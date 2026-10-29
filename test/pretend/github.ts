@@ -3,8 +3,9 @@
 // release, pre-releases and drafts included. Records each request. For
 // updating from inside the app: each release's files (the Mac zips and the
 // latest-mac.yml listing their sha512), and their downloads.
-import { createHash } from "node:crypto";
 import type { HttpRequest, HttpResponse } from "../../src/engine/http/transport";
+import { utf8 } from "../../src/engine/platform/bytes";
+import { digest } from "../../src/engine/platform/hash";
 
 const REPO = "/repos/pablonification/edunex-plus";
 
@@ -69,14 +70,14 @@ export class PretendGithub {
   }
 
   /** A release's files: a zip for each kind of Mac, and the latest-mac.yml electron-builder writes for them. */
-  files(tag: string): { name: string; content: Buffer }[] {
+  files(tag: string): { name: string; content: Uint8Array }[] {
     const version = tag.replace(/^v/, "");
     const zips = ["arm64", "x64"].map((arch) => {
       const name = `Edunex-Plus-${version}-${arch}-mac.zip`;
-      return { name, content: Buffer.from(`the ${arch} app, ${version}`) };
+      return { name, content: utf8(`the ${arch} app, ${version}`) };
     });
     if (this.noUpdateInfo) return zips;
-    const sha512 = (content: Buffer) => createHash("sha512").update(content).digest("base64");
+    const sha512 = (content: Uint8Array) => digest("sha512", content, "base64");
     const yml = [
       `version: ${version}`,
       "files:",
@@ -85,16 +86,16 @@ export class PretendGithub {
       `sha512: ${sha512(zips[0].content)}`,
       "releaseDate: '2026-10-01T00:00:00.000Z'",
     ].join("\n");
-    return [...zips, { name: "latest-mac.yml", content: Buffer.from(yml) }];
+    return [...zips, { name: "latest-mac.yml", content: utf8(yml) }];
   }
 
   /** A release file's download (from its address), or null; a tampered file comes back changed. */
-  download(url: string): Buffer | null {
+  download(url: string): Uint8Array | null {
     const match = /^https:\/\/github\.com\/pablonification\/edunex-plus\/releases\/download\/([^/]+)\/([^/]+)$/.exec(url);
     if (!match) return null;
     const name = decodeURIComponent(match[2]);
     const file = this.files(match[1]).find((entry) => entry.name === name);
     if (!file) return null;
-    return this.tampered.has(name) ? Buffer.concat([file.content.subarray(1), Buffer.from("!")]) : file.content;
+    return this.tampered.has(name) ? new Uint8Array([...file.content.subarray(1), ...utf8("!")]) : file.content;
   }
 }

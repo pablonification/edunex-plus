@@ -126,7 +126,7 @@ export class PretendWorld implements Transport {
       const blob = this.blobs.get(url.pathname);
       return blob === undefined
         ? { status: 404, headers: {}, body: "BlobNotFound", url: url.toString() }
-        : { status: 200, headers: {}, body: typeof blob === "string" ? blob : Buffer.from(blob).toString(), url: url.toString() };
+        : { status: 200, headers: {}, body: typeof blob === "string" ? blob : new TextDecoder().decode(blob), url: url.toString() };
     }
     throw new NetworkError("failed", `The pretend world has no ${url.host}`);
   }

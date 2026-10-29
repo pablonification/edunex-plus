@@ -5,6 +5,7 @@
 // personal), can be told to be busy or to file later, and keeps everything it got. Nothing goes
 // anywhere real.
 import { type HttpRequest, type HttpResponse, NetworkError } from "../../src/engine/http/transport";
+import { utf8Length } from "../../src/engine/platform/bytes";
 import { personalHits } from "../kit/privacy-rules";
 
 /** The pretend relay's address, which tests give the engine (the app ships with none). */
@@ -70,7 +71,7 @@ export class PretendRelay {
     if (request.method === "GET" && url.pathname === "/v1/health") return reply(200, { ok: true });
     const text = typeof request.body === "string" ? request.body : new TextDecoder().decode(request.body ?? new Uint8Array());
     if (request.method === "POST" && url.pathname === "/v1/reports") {
-      if (Buffer.byteLength(text) > MAX_BODY) return reply(413, { error: "too-big" });
+      if (utf8Length(text) > MAX_BODY) return reply(413, { error: "too-big" });
       let envelope: Received["envelope"];
       try {
         envelope = JSON.parse(text);

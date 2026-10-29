@@ -196,7 +196,10 @@ export async function openApp(options: Options = {}) {
       return notice.success ? notice.data : null;
     },
     api: async (url) => JSON.parse((await world.request({ method: "GET", url })).body),
-    text: async (url) => world.github.download(url)?.toString("utf8") ?? "",
+    text: async (url) => {
+      const file = world.github.download(url);
+      return file ? new TextDecoder().decode(file) : "";
+    },
     // The pretend releases have no chunk maps: the whole file is downloaded, as from a release before them.
     patch: async () => null,
     download: (file, progress) =>
