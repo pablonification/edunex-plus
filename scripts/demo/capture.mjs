@@ -1,12 +1,18 @@
 // Pictures of every screen and its key states on the demo's made-up data, for
 // a pull request or the docs (no real student data ever appears).
 //
-//   npm run demo:build && node scripts/demo/capture.mjs [out-dir]
+//   npm run demo:build && node scripts/demo/capture.mjs [out-dir] [--theme light|dark]
+//
+// `--theme dark` takes every picture in the dark theme (the default is light).
 import fs from "node:fs";
 import path from "node:path";
+import { parseArgs } from "node:util";
 import { launchDemo, settle } from "./drive.mjs";
 
-const out = path.resolve(process.argv[2] ?? ".scratch/ui/captures");
+const { values, positionals } = parseArgs({ allowPositionals: true, options: { theme: { type: "string", default: "light" } } });
+const theme = values.theme;
+if (theme !== "light" && theme !== "dark") throw new Error(`--theme is light or dark, not ${theme}`);
+const out = path.resolve(positionals[0] ?? ".scratch/ui/captures");
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
@@ -20,7 +26,7 @@ async function attempt(what, fn) {
 }
 
 async function session(scenario, fn, options = {}) {
-  const demo = await launchDemo({ scenario, shots: out, ...options });
+  const demo = await launchDemo({ scenario, shots: out, theme, ...options });
   demo.page.setDefaultTimeout(8_000);
   try {
     await demo.page.waitForTimeout(1500);
@@ -214,7 +220,8 @@ await session("signed-in", async (demo) => {
       { timeout: 60_000 },
     );
   });
-  await attempt("dark", async () => {
+  // A few dark pictures among the light ones; a dark run has them all already.
+  if (theme === "light") await attempt("dark", async () => {
     await demo.settings({ theme: "dark" });
     await nav(demo, "Beranda");
     await demo.shot("28-gelap-beranda");
@@ -235,7 +242,11 @@ await session("signed-in", async (demo) => {
 await session("first-run", async (demo) => {
   const { page } = demo;
   await attempt("welcome", async () => {
+    // The credit plays first (a few seconds), then the welcome with its Mulai button.
+    await page.getByRole("button", { name: "Mulai" }).waitFor({ timeout: 15_000 });
+    await settle(page, 1500);
     await demo.shot("32-pertama-selamat-datang");
+    await page.getByRole("button", { name: "Mulai" }).click();
     await page.getByRole("button", { name: "Hubungkan Edunex" }).click();
     // Microsoft handed back: the sign-in window is out of sight while Edunex's session is read.
     await page.getByText("Menyelesaikan masuk ke Edunex…").waitFor({ timeout: 30_000 });
@@ -248,7 +259,11 @@ await session("first-run", async (demo) => {
     await page.getByRole("button", { name: /^Lanjut/ }).click();
     await page.waitForTimeout(1200);
     await demo.shot("34-pertama-membaca");
-    await page.waitForFunction(() => Boolean(document.querySelector("[role=dialog]")), null, { timeout: 120_000 });
+    // Reading ends on "Buka Edunex Plus"; the first scan's summary opens over Beranda after it.
+    const open = page.getByRole("button", { name: "Buka Edunex Plus" });
+    await open.waitFor({ timeout: 120_000 });
+    await open.click();
+    await page.waitForFunction(() => Boolean(document.querySelector("[role=dialog]")), null, { timeout: 60_000 });
     await settle(page, 600);
     await demo.shot("35-pertama-temuan");
   });

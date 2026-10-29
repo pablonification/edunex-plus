@@ -41,7 +41,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 120, backgroundColor: "#FFFFFF", dark: { backgroundColor: "#161618" } }],
     ["expo-notifications", { color: "#2563EB" }],
     ["expo-calendar", { calendarPermission: "Edunex Plus adds your classes to your calendar." }],
-    ["expo-build-properties", { android: { minSdkVersion: 26 } }],
+    [
+      "expo-build-properties",
+      {
+        android: {
+          minSdkVersion: 26,
+          // Release builds shrink the code (R8), which renamed WorkManager's database (expo-background-task):
+          // Room finds a database's generated class by its name, so the app closed at launch.
+          extraProguardRules: "-keep class * extends androidx.room.RoomDatabase { *; }",
+        },
+      },
+    ],
   ],
   // tsconfig.json's paths are for the type checker only (one copy of each library's types); Metro resolves on its own.
   experiments: { typedRoutes: true, tsconfigPaths: false },
