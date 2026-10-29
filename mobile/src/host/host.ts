@@ -6,7 +6,7 @@
 import { Directory, Paths } from "expo-file-system";
 import { getLocales } from "expo-localization";
 import * as Notifications from "expo-notifications";
-import { Platform } from "react-native";
+import { AppState, Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
 import { SIX_WEB } from "../../../src/core/links";
@@ -170,6 +170,11 @@ async function makeHost(): Promise<Host> {
     started = false;
     engine.stop();
   };
+  // Back in the app (from Android's settings, say, notifications maybe just turned on): what's planned is booked again.
+  if (!DEMO)
+    AppState.addEventListener("change", (state) => {
+      if (state === "active" && started) engine.planAlerts();
+    });
   // "Tandai Hadir": SIX's timetable in a page of the app, signed in (./check-in.ts); the demo opens nothing.
   ui.openCheckIn = checkInOpener(engine, DEMO);
   const handlers = {
