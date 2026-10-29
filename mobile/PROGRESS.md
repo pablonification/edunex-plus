@@ -222,7 +222,7 @@ machine). Every helper runs at effort high or more.
   phones as a widget update starts (no fix released); its plugin can't set a smaller resize size,
   so the widget only stretches bigger than 4x2; the widget list shows no description (the config
   loader can't read src/core/strings). Watch the first two on a device.
-- Never pipe `tsc` into `tail` inside an `&&` chain: the pipe hides its exit code (38a1a49 went out with a type error).
+- Never pipe `tsc` or `biome` into `tail` inside an `&&` chain: the pipe hides its exit code (38a1a49 went out with a type error, fb0f860 with a lint error). Run them bare and read `$?`.
 - Headless wake-ups (background sync, widget) don't load `app/_layout.tsx`: the crypto polyfill and
   the sync task are imported from `mobile/index.ts`, the app's entry.
 

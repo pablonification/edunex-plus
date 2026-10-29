@@ -28,12 +28,16 @@ export async function createDemoWorld() {
   // flows that take its pictures beside the desktop's.
   const theme = asked.EDUNEX_DEMO_THEME === "dark" || asked.EDUNEX_DEMO_THEME === "light" ? asked.EDUNEX_DEMO_THEME : undefined;
   const lang = asked.EDUNEX_DEMO_LANG === "en" || asked.EDUNEX_DEMO_LANG === "id" ? asked.EDUNEX_DEMO_LANG : undefined;
+  // EDUNEX_DEMO_RESUME=1: start from what the demo saved last time, as a real start does, instead of a fresh first
+  // sync: what the cold-start measure (PROGRESS.md, the performance round) times.
+  const resume = asked.EDUNEX_DEMO_RESUME === "1";
   const signInWindows: SignInWindows = {
     open: (source, how) => run.signIn(source, how),
     stopQuiet: () => undefined,
     forget: async () => undefined,
   };
   return {
+    resume,
     signInWindows,
     transport: run.world,
     // Files from the pretend storage, as the desktop demo serves them (scripts/demo/setup.ts): what's stored there,

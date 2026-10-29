@@ -85,8 +85,11 @@ async function demoWorld(): Promise<World> {
   // Only a demo build has ../demo in it (metro.config.js leaves it out of the real app).
   const { createDemoWorld } = require("../demo/world") as typeof import("../demo/world");
   const storage = new PhoneStorage("demo");
-  storage.clear();
-  return { ...(await createDemoWorld()), storage, vault: memoryVault() };
+  const demo = await createDemoWorld();
+  // A fresh demo each start, unless it's asked to resume where it was (and has something to resume).
+  const resume = demo.resume && (await storage.read("state.json")) !== null;
+  if (!resume) storage.clear();
+  return { ...demo, ...(resume ? { prepare: undefined } : {}), storage, vault: memoryVault() };
 }
 
 let current: Promise<Host> | null = null;

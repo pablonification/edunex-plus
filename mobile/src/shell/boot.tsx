@@ -83,6 +83,8 @@ function Appearance({ clock, children }: { clock: UiClock | undefined; children:
 function Ready({ bridge }: { bridge: Bridge }) {
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
+      // The moment the Student sees the app (the splash goes): what a cold start is timed to, from the system log.
+      console.info("[startup] shown");
       void SplashScreen.hideAsync();
       void bridge.invoke("app.ready", {}).catch(() => undefined);
       void scheduleBackgroundSync().catch(() => undefined);
