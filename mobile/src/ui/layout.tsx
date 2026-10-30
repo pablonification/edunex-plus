@@ -255,8 +255,21 @@ export function Row({
           android_ripple={{ color: theme.color.selected }}
           style={[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[3] }]}
         >
-          {body}
-          {!actions && onPress && <Icons.ChevronRight size={16} color={theme.color.faint} />}
+          {!actions && onPress && (trailing === undefined || trailing === null) ? (
+            // Body and chevron as one block, centred in the row: the chevron level with the title's first line, as the
+            // indicator is, however many lines the row runs to. A row with trailing facts keeps its chevron beside them.
+            <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
+              {body}
+              <View style={{ height: 22, justifyContent: "center" }}>
+                <Icons.ChevronRight size={16} color={theme.color.faint} />
+              </View>
+            </View>
+          ) : (
+            <>
+              {body}
+              {!actions && onPress && <Icons.ChevronRight size={16} color={theme.color.faint} />}
+            </>
+          )}
         </Pressable>
       ) : (
         <View testID={testID} style={[styles.row, { flex: 1 }]}>
