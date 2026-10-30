@@ -146,6 +146,8 @@ async function makeHost(): Promise<Host> {
     alert: (notice) => void (DEMO ? undefined : reminders.deliver(notice)),
     // What's planned is booked with Android, to arrive with the app closed (./reminders.ts).
     ...(DEMO ? {} : { upcoming: (planned: readonly PlannedAlert[]) => reminders.upcoming(planned) }),
+    // A closed app reads no SIX for Tandai Hadir: a reminder at the start of every class SIX counts instead.
+    checkInReminders: true,
     log,
     // Release builds ask GitHub once a day whether a newer version is out (Settings says so, D5); never the demo.
     checkForUpdates: !DEMO && !__DEV__,
