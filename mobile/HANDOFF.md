@@ -25,10 +25,10 @@ Both APKs come from the latest run of the [Mobile workflow](https://github.com/p
 
 | Check | Result | Proof |
 | --- | --- | --- |
-| Scope | {{SCOPE_DONE}} of 44 desktop features done with proof (5 of them left out on purpose, each for a reason a phone gives). 4 wait for a real ITB account | `mobile/PROGRESS.md`, Scope |
+| Scope | 40 of 44 desktop features done with proof (5 of them left out on purpose, each for a reason a phone gives). 4 wait for a real ITB account | `mobile/PROGRESS.md`, Scope |
 | Same data (Check A) | {{CHECK_A}} | Maestro finds every item the desktop demo shows, in all 15 scenarios, on CI's emulator ({{RUN}}) |
-| Same feel (Check B) | {{CHECK_B}} | The judge compares each phone picture with the desktop's, light and dark |
-| Fresh install | {{FRESH_INSTALL}} | The demo release APK on a wiped phone, from the first screen to a handed-in Task |
+| Same feel (Check B) | 37 of 37 screens pass, light and dark (judge round 5): "same app, made properly for a phone" | The judge compares each phone picture with the desktop's, light and dark |
+| Fresh install | {{FRESH_INSTALL}} | Both APKs on a wiped phone (Redroid). The demo from its first screen through Android's notification prompt to a handed-in Task. The real app to ITB's own sign-in page |
 | Speed | Cold start 1.0–1.15 s with saved data. 0 janky frames scrolling the longest lists | Redroid (Android 13, 1.5 CPUs, software drawing, so pessimistic) |
 
 ## What's missing or shaky
@@ -87,4 +87,9 @@ All of them are in `mobile/PROGRESS.md` under Decisions. The ones that shape the
 
 ## How it was made
 
-{{MADE_WITH}}
+Built by Claude Opus 5.5 in Claude Code, run from T3 Code, as the lead on the build machine. Separate
+Claude Code sessions (Opus 5.5) on a Mac built the pieces on their own branches, each merged by the
+lead after its checks. Checkers that never edited: a judge (Opus 5.5) compared every phone picture
+with the desktop's over five rounds and ended at 37 of 37 in both themes, a fresh tester traced every
+desktop flow through the phone's code, and a picky-student pass used the app as a student would (12
+findings, all fixed).
