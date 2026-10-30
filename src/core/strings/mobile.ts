@@ -206,11 +206,11 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "schedule.export.nothing": { id: "Tidak ada yang bisa ditambahkan", en: "Nothing to add" },
   // grades-plan: Kurikulum's note. A course's corrections open from a tap on its row, not a ⋯ menu.
   "curriculum.unlistedNote": {
-    id: "{count} mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",
+    id: "Ada {count} mata kuliah di luar catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",
     en: {
-      one: "{count} course isn't on your SIX record, so it isn't counted as left. If your program says it's yours, tap its row and choose “In my curriculum”.",
+      one: "There's {count} course not on your SIX record, so it isn't counted as left. If your program says it's yours, tap its row and choose “In my curriculum”.",
       other:
-        "{count} courses aren't on your SIX record, so they aren't counted as left. If your program says one is yours, tap its row and choose “In my curriculum”.",
+        "There are {count} courses not on your SIX record, so they aren't counted as left. If your program says one is yours, tap its row and choose “In my curriculum”.",
     },
   },
   // tasks and schedule: a Task that is also attendance counts only while its Presence is open. No student
@@ -289,6 +289,11 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   // course: Pertemuan, a past class with no Edunex record (no Presence, or one left unmarked where SIX counts).
   // "Selesai" read as "you attended". SIX's count is said once, above the list.
   "meeting.done": { id: "Tanpa catatan Edunex", en: "No Edunex record" },
+  // attendance: the absences still allowed, on Beranda, Presensi and a course page.
+  "presence.budget.safe": {
+    id: "Masih boleh absen {count} kali",
+    en: { one: "{count} absence left", other: "{count} absences left" },
+  },
   // grades: Nilai's best IPK. The SKS still to grade are this term's and the plan's, not what's left to graduate.
   "grades.bestHint": { id: "jika semua A di {sks} SKS semester ini dan rencanamu", en: "with straight A's in the {sks} SKS of this term and your plan" },
   // grades-plan: Kalender akademik, the last day of classes. "Hari ini" read as today.
@@ -301,5 +306,11 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "bills.otherItb": {
     id: "Di Kalender ITB tertulis {date}. Bayar paling lambat tanggal yang lebih awal.",
     en: "ITB's calendar says {date}. Pay by the earlier one.",
+  },
+  // grades-plan: KRS's state once SIX has made it official (SIX's "Pengesahan"), with or without a clash.
+  "krs.stage.done": { id: "KRS sudah disahkan", en: "KRS is official" },
+  "krs.stage.clash": {
+    id: "KRS sudah disahkan, tapi ada {count} bentrok",
+    en: { one: "KRS is official, but {count} class clashes", other: "KRS is official, but {count} classes clash" },
   },
 };
