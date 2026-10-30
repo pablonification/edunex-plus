@@ -5,20 +5,19 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
 
 ## Where things stand
 
-- Every scope row is built; the ones marked `done` are proven on Redroid (see each row). Still open:
-  A4 (background sync, needs the real dev client from the next CI run), A7/S10 real sign-in
-  (Blockers for Arqila), and the judge and Score A for the rest.
-- Check A (same data): the pipeline works (signed-in on Redroid: home, presence, schedule, tasks,
-  courses, alerts, changes and exam all 100%), but CI's scenario jobs haven't produced a score yet:
-  the emulator's own "Pixel Launcher isn't responding" dialog covered the app. Fixed with a
-  watchdog in `scripts/ci/mobile-e2e.sh` (f613169); the next run counts.
-- Check B (same feel): judge round 1 done (9 screens), fixes in; round 2 waits for the next run's
-  full set (~37 screens a theme, the first run and Edunex alone too).
-- Fresh tester: 4 broken, 5 wrong, 6 missing; the broken ones and most wrong ones fixed
-  (b335967, 262503e, 8c833dc, e6a4bb8, e5eb318); the rest with two helpers (mobile-reminders,
-  mobile-gaps).
-- Next: merge the helpers, then the next CI run → judge round 2 + Score A; A4 on the real dev
-  client; picky-student pass; performance round; hand-off.
+- Every scope row is built. Open: A4 (background sync: the fix for headless timers, 56c463d, waits for
+  a release build to re-check), A7/S10 real sign-in (Blockers for Arqila).
+- Check A: on Redroid, signed-in screens are 100% but plan (177/178, the last "31 Jan" behind a
+  no-break space, fixed in the flows' pattern) and the scenarios CI still has to count. The phone's
+  own wording (Decision 12) now counts as found.
+- Check B: judge round 3 passed 35 of 37 in both themes; the two fails were fixed after its pictures.
+  Round 4 on the next CI run.
+- Picky-student pass done (12 findings): all fixed (course page's Buka di SIX, UKT dates, Jadwal's
+  week name and Hari ini, Lainnya's badge, columns at big font sizes, words, a reminder at the start
+  of every class SIX counts, a new Task's deadline in its notification).
+- Performance round: cold start 1.0–1.15 s with saved data, 0 janky frames scrolling long lists.
+- Next: next CI run → Score A for every scenario, judge round 4, A4 on the release build; then the
+  end-to-end fresh install, the hand-off report and the draft PR.
 
 ## Tools on pabs (installed without sudo)
 
@@ -72,7 +71,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | --- | --- | --- | --- | --- | --- |
 | A1 | Search (Ctrl K) | change | A search button in each page's header opens a full-screen search with the keyboard up | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | A2 | Alerts bell (history, unread) | change | Bell in the header opens the alert history screen; the system notifications are the main way | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
-| A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | done | Redroid: Coba notifikasi on a phone never asked → Android's permission prompt → "Notifikasi berfungsi / Ketuk untuk membuka Tugas & Ujian" in the shade with the e mark (r2-shade); a tap opens Tugas & Ujian; the welcome's Buka asks too (w-permission). An engine alert in the demo's day still to see |
+| A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | done | Redroid: Coba notifikasi on a phone never asked → Android's permission prompt → "Notifikasi berfungsi / Ketuk untuk membuka Tugas & Ujian" in the shade with the e mark (r2-shade); a tap opens Tugas & Ujian; the welcome's Buka asks too (w-permission). An engine alert with the app closed: the demo at `EDUNEX_DEMO_NOW=…10:50` with `EDUNEX_DEMO_NOTIFY=1` booked DK4073's 11:00 class-start reminder with Android, the app's process was killed (Home, `am kill`), and at the booked minute Android started it and showed "Kuliah sudah mulai · DK4073 / Tekan Tandai Hadir di SIX saat tombolnya muncul · kuliah sampai 12:59 / Abaikan kalau sudah tercatat hadir." on the Presensi channel (cr-shade, 11:13:59) |
 | A4 | Background sync (desktop: always running in the tray) | replace | expo-background-task every 15+ min, alerts from what it finds | built, on device | Redroid, release 48f4bff, the app closed (process killed): WorkManager starts the app for its job every ~15 min ("Start proc … for service SystemJobService", "Executing task 'edunex-plus.sync'"), the JS runs ("[background] sync starts", "woken, the app closed", "read"), then stopped: JS timers don't run in that headless start, and the sync waited 25 s on one for grouped alerts (which stop() then dropped). Fixed 56c463d: the engine sends waiting alerts at once (flushAlerts, tested), no timer. Re-check on the next build |
 | A5 | Source status line, offline / expired / changed banners, "Perbarui sekarang" | change | Quiet line under the header; banners the same; pull to refresh does "Perbarui sekarang" | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | built, on device | seen on Redroid (tour-settings-*); phone wording merged (6d7b18a); device check of the new words pending |
@@ -115,6 +114,7 @@ Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenar
 | 2026-10-30 03:10 | signed-in | exam 35/35 | (partial) | Redroid: exams open by the phone's id ({{exam}}, 2fe4674); before, no exam opened |
 | 2026-10-30 03:30 | all (CI 40938204552) | - | - | Not counted: every scenario flow stopped at launch behind the emulator's "Pixel Launcher isn't responding" dialog (2f28b69: error dialogs off, 3 cores and 4 GB); the app job (smoke, judge) passed |
 | 2026-10-30 06:45 | signed-in (Redroid, release ff2a963) | 424 | 766 | 14 of 16 flows ran through: home, courses, changes, tasks, exam, schedule, class, presence, search, first-scan 100%; plan 177/178; grades 64/78 and course 0/204 stopped when a tap under Android's buttons sent the app Home (fixed 1d652c4); task 11/119 stopped at a take-home's row name (fixed f485e8f); settings 2/14 (long page: 12 s scrolls since 377de1b; 2 phone-link items left out, A18) |
+| 2026-10-30 10:30 | signed-in (Redroid, release demo from run 4) | plan 177/178, settings 12/12 | (partial) | settings 100% with 25 s scrolls (2 phone-link items left out, A18); plan's last item "31 Jan" is held with a no-break space Java's `\s` doesn't match: the flows' pattern takes any space since a27f078 |
 
 ## Score B: same feel (judge on the Mac)
 
@@ -155,7 +155,9 @@ machine). Every helper runs at effort high or more.
 | jadwal-judge | Contact (Opus 5.5, high) | Judge round 2 on Jadwal: month marks, one Masa UTS band, a sheet's fixed main button, small ones | `mobile-jadwal-judge` | merged (d6f4747); seen on Redroid: the month's marks (moved, outside SIX, UTS, hand-ins, a deadline, clashes), one Masa UTS band, "Tambahkan 29 acara" in the sheet's footer |
 | welcome-judge | Dev 1 (Opus 5.5, high) | Judge round 2 on the first run: sign-in note, logos and links, a live Beranda while reading, small ones | `mobile-welcome-judge` | merged (992e24e); seen on Redroid: logos linked to the app's mark with checks, name and NIM, a live Beranda filling in while reading, step dots, the language switch on every step |
 | polish | Contact (Opus 5.5, high) | The judge's round-2 minor findings (15 items: the now card's room, tags and icons on wrapped lines, Riwayat, Rencana's code column and checks, UKT's tabs, Kalender's tap hint, Target's ⌄, a busy spinner, Settings' account buttons and colour rows, Lisensi's order, badges, chevrons, the first run's program) | `mobile-polish` | merged (366af98); device check pending |
-| student | Contact (Opus 5.5, high) | The picky-ITB-student pass, checker (never edits): a real week through the app, words, trust, what's first | `mobile-student` (reads only) | running |
+| student | Contact (Opus 5.5, high) | The picky-ITB-student pass, checker (never edits): a real week through the app, words, trust, what's first | `mobile-student` (reads only) | done: "I'd keep it", 12 findings (1 must, 9 should, 2 nits); lead fixed #2, #3 layout, #5, #8, #10 (c8cb21d, b689edc, a27f078, 6ae42a3), the rest below |
+| checkin-reminder | Contact (Opus 5.5, high) | Student #1 and #6: a reminder at the start of every class SIX counts (phone only, on by default, booked ahead), a new Task's notification with its deadline | `mobile-checkin-reminder` | merged (f4d45f6): `sixClassStart` detector behind `checkInReminders`, desktop's plan unchanged (tests) |
+| student-words | Dev 1 (Opus 5.5, high) | Student #3, #4, #7, #9, #11, #12 words, phone only through `phoneWording` | `mobile-student-words` | merged (5d2e731); screens wired by lead (Beranda's course name, mid-sentence "hari ini", UKT history key) |
 | inventory | Contact (Opus 5.5, high) | Check A inventory from the desktop demo per scenario + Maestro flow generator + score reporter | `mobile-inventory` | merged (8915598): 766 items signed-in, 15 scenarios |
 | home | Contact (Opus 5.5, xhigh) | S1 Beranda | `mobile-home` | merged (afdc26c) |
 | tasks | Dev 1 (Opus 5.5, high) | S2–S4 Tugas & Ujian, Task (hand-in, files), Exam | `mobile-tasks` | merged (d3ab9bd), handlers wired (3fcf067) |
@@ -214,6 +216,12 @@ machine). Every helper runs at effort high or more.
     install from Android 13; the APK ships from GitHub, so Play's limit on it doesn't apply; if the
     app ever goes to Play, this needs its declaration). Tandai Hadir opening can't be booked (only
     reading SIX tells), so the phone says SIX is checked every 2 minutes only while it's open.
+
+12. **The phone's own words count as the desktop's in Check A.** Where the phone rewords a desktop
+    string (`phoneWording`), a token filled from it is found in either wording with the same values:
+    `mobile/flows/phone-words.json` (made by `mobile/scripts/phone-words.mjs`, kept current by
+    `test/kit/phone-wording.test.ts`, as CI's flow job has no node_modules). Four phrases use it
+    ("Selesai" on a past class, "KRS sah", "sampai hari ini", "SKS tersisa"); facts never do.
 
 ## Blocked
 
