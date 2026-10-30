@@ -1,7 +1,7 @@
 // Small pieces that show a state: cards, badges, tags, a Task's status, a course's color, bars.
 // The phone's versions of src/app/ui/display.tsx, with the same names and meanings.
-import type { ReactNode } from "react";
-import { ActivityIndicator, StyleSheet, View, type ViewStyle } from "react-native";
+import { type ReactNode, useEffect, useRef } from "react";
+import { ActivityIndicator, Animated, Easing, StyleSheet, View, type ViewStyle } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useT } from "../../../src/app/i18n";
 import { Icons } from "./icons";
@@ -236,6 +236,22 @@ export function CourseCode({
         {code}
       </Text>
     </View>
+  );
+}
+
+/** The desktop's Loader turning (animate-spin): something is under way right now. */
+export function Spinner({ size = 14, color }: { size?: number; color: string }) {
+  const turn = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const loop = Animated.loop(Animated.timing(turn, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: true }));
+    loop.start();
+    return () => loop.stop();
+  }, [turn]);
+  const rotate = turn.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
+  return (
+    <Animated.View style={{ transform: [{ rotate }] }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Icons.Loader size={size} color={color} />
+    </Animated.View>
   );
 }
 
