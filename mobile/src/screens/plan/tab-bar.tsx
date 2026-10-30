@@ -29,11 +29,16 @@ export function TabBar<T extends string>({
   const frame = useRef<ComponentRef<typeof ScrollView>>(null);
   const places = useRef(new Map<string, LayoutRectangle>());
   const width = useRef(0);
-  // The picked tab stays in sight: as the bar is drawn (Back to a later tab) and on each pick.
+  const at = useRef(0);
+  // The picked tab stays in sight, as the bar is drawn (Back to a later tab) and on each pick: the bar moves only as
+  // far as it must, with the page's margin to spare, so a tab that already fits never cuts off the first one.
   const show = (tab: string) => {
     const place = places.current.get(tab);
     if (!place || !width.current) return;
-    frame.current?.scrollTo({ x: Math.max(0, place.x + place.width / 2 - width.current / 2), animated: true });
+    const start = place.x - space.page;
+    const end = place.x + place.width + space.page - width.current;
+    const x = start < at.current ? start : end > at.current ? end : null;
+    if (x !== null) frame.current?.scrollTo({ x: Math.max(0, x), animated: true });
   };
   // biome-ignore lint/correctness/useExhaustiveDependencies: only a new pick moves the frame
   useEffect(() => show(value), [value]);
@@ -48,6 +53,10 @@ export function TabBar<T extends string>({
         onLayout={(event) => {
           width.current = event.nativeEvent.layout.width;
         }}
+        onScroll={(event) => {
+          at.current = event.nativeEvent.contentOffset.x;
+        }}
+        scrollEventThrottle={32}
         contentContainerStyle={{ paddingHorizontal: space.page, gap: space[5] }}
         testID={`tabs.${prefix}`}
       >
