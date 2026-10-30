@@ -1,10 +1,12 @@
 // Jadwal's month on a phone (src/app/screens/schedule/month.tsx): the desktop's cells hold words a
-// phone has no room for, so the grid shows each day's number with a dot per course that meets that
-// day (in its color) and ITB's periods tinted; tapping a day lists below what the desktop's cell
-// and its popover say. First what's unusual, one line each, worst first (a class the app couldn't
-// read, an exam, Presence by handing in a Task, a deadline, a moved or extra class, a meeting only
-// Edunex announced), then the routine ("4 kuliah", "Bentrok 16:00"), then the day in time order,
-// each row opening its sheet, and the way to its week.
+// phone has no room for, so each day keeps the desktop's marks without their words: under its
+// number a mark for each kind of thing that's unusual, in the desktop's icon and color (a class the
+// app couldn't read, ITB's first or last lecture day, an exam's tag, Presence by handing in a Task,
+// a deadline, a moved or extra class, a meeting only Edunex announced), then the routine as a dot
+// per course that meets (in its color) and the clash mark when two of them share time. ITB's
+// periods are tinted. Tapping a day lists below what the desktop's cell and its popover say: first
+// what's unusual, one line each, worst first, then the routine ("4 kuliah", "Bentrok 16:00"), then
+// the day in time order, each row opening its sheet, and the way to its week.
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { type Format, type Translate, useFormat, useT } from "../../../../src/app/i18n";
@@ -29,14 +31,52 @@ const MARKED = new Set(["lecture-start", "lecture-end"]);
 /** Course dots a day shows before it runs out of room. */
 const DOTS = 4;
 
-/** The courses that meet that day (classes and meetings), each once, in time order. */
+/**
+ * The routine: the courses whose lectures (and, without SIX, Edunex's meetings) fall that day, each
+ * once, in time order. Exams and meetings outside SIX aren't routine: they have marks of their own.
+ */
 const codesOf = (day: ScheduleDay) => [
   ...new Set(
-    [...day.classes.map((c) => ({ code: c.session.courseCode, start: c.session.start })), ...day.outside, ...day.edunex]
+    [...day.classes.filter((c) => !c.exam).map((c) => ({ code: c.session.courseCode, start: c.session.start })), ...day.edunex]
       .sort((a, b) => a.start - b.start)
       .map((item) => item.code),
   ),
 ];
+
+interface CellMark {
+  key: string;
+  mark: ReactNode;
+}
+
+/**
+ * What's unusual that day as the desktop's cell marks it, without the words: one mark per kind,
+ * worst first, in the desktop's icon and color (its monthLines). The day panel says them in full.
+ */
+function cellMarks(day: ScheduleDay, theme: ReturnType<typeof useTheme>, now: number): CellMark[] {
+  const marks: CellMark[] = [];
+  const icon = (key: string, Icon: (typeof Icons)[keyof typeof Icons], color: string) =>
+    marks.push({ key, mark: <Icon size={11} color={color} weight="bold" /> });
+  if (day.unread.length) icon("unread", Icons.Info, theme.color.fg);
+  if (day.events.some((e) => MARKED.has(e.kind))) icon("marked", Icons.Flag, theme.color.sourceItbFg);
+  for (const activity of new Set(day.classes.filter((c) => c.exam).map((c) => c.session.activity)))
+    marks.push({ key: `exam${activity}`, mark: <Tag>{activity}</Tag> });
+  if (day.windows.length) {
+    const done = day.windows.every((w) => w.presence.recorded?.present || (w.task !== null && taskStatus(w.task, now) === "submitted"));
+    if (done) icon("window", Icons.CheckCircle, theme.color.successFg);
+    else icon("window", Icons.Upload, theme.color.accentFg);
+  }
+  if (day.due.length) icon("due", Icons.Clock, theme.color.fg);
+  if (day.classes.some((c) => c.moved)) icon("moved", Icons.History, theme.color.warningFg);
+  if (day.classes.some((c) => c.extra)) icon("extra", Icons.Plus, theme.color.warningFg);
+  if (day.outside.some((m) => m.online)) icon("online", Icons.Video, theme.color.warningFg);
+  if (day.outside.some((m) => !m.online))
+    // The desktop's mark for a meeting outside SIX in a room: a dashed ring.
+    marks.push({
+      key: "outside",
+      mark: <View style={{ width: 9, height: 9, borderRadius: 5, borderWidth: 1, borderStyle: "dashed", borderColor: theme.color.warningFg }} />,
+    });
+  return marks;
+}
 
 export function MonthView({
   month,
@@ -55,6 +95,7 @@ export function MonthView({
   onPick: (picked: Picked) => void;
   onShowWeek: (day: string) => void;
 }) {
+  const t = useT();
   const f = useFormat();
   const theme = useTheme();
   const world = useWorld();
@@ -78,6 +119,19 @@ export function MonthView({
               const inMonth = day.day.startsWith(month.month);
               const period = tinted.find((e) => e.firstDay <= day.day && day.day <= e.lastDay) ?? null;
               const codes = inMonth ? codesOf(day) : [];
+              const marks = inMonth ? cellMarks(day, theme, world.now) : [];
+              const clashes = inMonth ? clashesOf(day, t, f) : [];
+              // Said in full, as the desktop's cell says it to a screen reader.
+              const summary = inMonth
+                ? [
+                    ...monthLines(day, t, f, world).map((l) => l.full ?? l.text),
+                    ...clashes.map((c) => c.full),
+                    routineCount(day, t),
+                    period ? periodName(t, period) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(", ")
+                : "";
               const isToday = day.day === today;
               const isPicked = day.day === chosen;
               return (
@@ -87,7 +141,7 @@ export function MonthView({
                   onPress={() => onChoose(day.day)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: isPicked }}
-                  accessibilityLabel={f.dateLong(dayNoon(day.day))}
+                  accessibilityLabel={summary ? `${f.dateLong(dayNoon(day.day))}: ${summary}` : f.dateLong(dayNoon(day.day))}
                   style={{
                     flex: 1,
                     minHeight: 56,
@@ -118,12 +172,26 @@ export function MonthView({
                       {String(Number(day.day.slice(8)))}
                     </Text>
                   </View>
-                  <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", gap: 2, paddingHorizontal: 2 }}>
-                    {inMonth && day.unread.length > 0 && <CourseDot color={undefined} size={6} />}
-                    {codes.slice(0, DOTS).map((code) => (
-                      <CourseDot key={code} color={world.color(code)} size={6} />
-                    ))}
-                  </View>
+                  {marks.length > 0 && (
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 3, paddingHorizontal: 2 }}>
+                      {marks.map((m) => (
+                        <View key={m.key}>{m.mark}</View>
+                      ))}
+                    </View>
+                  )}
+                  {(codes.length > 0 || clashes.length > 0) && (
+                    // The routine, then the clash among it, as the desktop's "4 kuliah" over "Bentrok 16:00".
+                    <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 2, paddingHorizontal: 2 }}>
+                      {codes.slice(0, DOTS).map((code) => (
+                        <CourseDot key={code} color={world.color(code)} size={6} />
+                      ))}
+                      {clashes.length > 0 && (
+                        <View style={{ marginLeft: 1 }}>
+                          <Icons.Overlap size={11} color={theme.color.warningFg} weight="bold" />
+                        </View>
+                      )}
+                    </View>
+                  )}
                 </Pressable>
               );
             })}
@@ -146,6 +214,8 @@ interface Line {
   key: string;
   icon: (color: string) => ReactNode;
   text: string;
+  /** Said in full to a screen reader, when the line shortens it beside its icon. */
+  full?: string;
   tone: TextTone;
   bold?: boolean;
 }
@@ -172,8 +242,10 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ScheduleWo
     lines.push({
       key: `e${session.id}`,
       icon: () => <Tag>{session.activity}</Tag>,
-      // The room only when SIX gives one: never "UTS DK4073 11:00 · " with nothing after it.
-      text: factsLabel(t("schedule.month.exam", { activity: session.activity, code: session.courseCode, time: time(session.start) }), session.room),
+      // The tag already says "UTS": the line beside it is the course, its time and its room ("DK4073 11:00 · TVST C").
+      // The room only when SIX gives one: never "DK4073 11:00 · " with nothing after it.
+      text: factsLabel(`${session.courseCode} ${time(session.start)}`, session.room),
+      full: factsLabel(t("schedule.month.exam", { activity: session.activity, code: session.courseCode, time: time(session.start) }), session.room),
       tone: "fg",
       bold: true,
     });
@@ -324,7 +396,12 @@ function DayPanel({
               {lines.map((line) => {
                 const color = theme.color[TONE_COLOR[line.tone] ?? "muted"];
                 return (
-                  <View key={line.key} style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+                  <View
+                    key={line.key}
+                    accessible={line.full !== undefined}
+                    accessibilityLabel={line.full}
+                    style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}
+                  >
                     <View style={{ minHeight: 19, justifyContent: "center" }}>{line.icon(color)}</View>
                     <Text size="small" tone={line.tone} weight={line.bold ? "semibold" : "regular"} style={{ flex: 1 }}>
                       {line.text}
