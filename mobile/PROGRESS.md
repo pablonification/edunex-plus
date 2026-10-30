@@ -73,7 +73,7 @@ Status: todo / building / done (with proof: a Maestro flow, a screenshot, a judg
 | A1 | Search (Ctrl K) | change | A search button in each page's header opens a full-screen search with the keyboard up | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | A2 | Alerts bell (history, unread) | change | Bell in the header opens the alert history screen; the system notifications are the main way | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | A3 | OS notifications (new Task, attendance opens, reminders, class soon) | keep | expo-notifications, tapping one opens its screen (same Route) | done | Redroid: Coba notifikasi on a phone never asked → Android's permission prompt → "Notifikasi berfungsi / Ketuk untuk membuka Tugas & Ujian" in the shade with the e mark (r2-shade); a tap opens Tugas & Ujian; the welcome's Buka asks too (w-permission). An engine alert in the demo's day still to see |
-| A4 | Background sync (desktop: always running in the tray) | replace | expo-background-task every 15+ min, alerts from what it finds | todo | |
+| A4 | Background sync (desktop: always running in the tray) | replace | expo-background-task every 15+ min, alerts from what it finds | built, on device | Redroid, release 48f4bff, the app closed (process killed): WorkManager starts the app for its job every ~15 min ("Start proc … for service SystemJobService", "Executing task 'edunex-plus.sync'"), the JS runs ("[background] sync starts", "woken, the app closed", "read"), then stopped: JS timers don't run in that headless start, and the sync waited 25 s on one for grouped alerts (which stop() then dropped). Fixed 56c463d: the engine sends waiting alerts at once (flushAlerts, tested), no timer. Re-check on the next build |
 | A5 | Source status line, offline / expired / changed banners, "Perbarui sekarang" | change | Quiet line under the header; banners the same; pull to refresh does "Perbarui sekarang" | built, on device | seen on Redroid (shots h1–h5, tour-*, se*, al2); judge pending |
 | A6 | Settings (theme, language, alerts, deadline times, class soon, attendance target, course colors, snoozed, accounts, sign out all, first scan, about, licences, open source) | keep | A Settings screen from Lainnya; same sections minus the desktop-only ones | built, on device | seen on Redroid (tour-settings-*); phone wording merged (6d7b18a); device check of the new words pending |
 | A7 | Welcome / first-run tour, sign in to Edunex and SIX | change | Full-screen welcome, then ITB's real sign-in page in a WebView; one Microsoft sign-in tries both | building | Demo: Mulai → Hubungkan Edunex → SIX came along → reading (5 · 10 · 40) → notifications asked → app (shots w1–w8). Real: ITB/Microsoft page loads in the app. Needs: real sign-in by Arqila, Back re-check |
@@ -249,6 +249,10 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 - Never pipe `tsc` or `biome` into `tail` inside an `&&` chain: the pipe hides its exit code (38a1a49 went out with a type error, fb0f860 with a lint error). Run them bare and read `$?`.
 - CI runs on `mobile` only (48f4bff): helpers' `mobile-*` pushes used to start sixteen emulators each and held
   the branch's own run in the queue for an hour. A run takes ~3 h for the scenarios (each ~100 min).
+- In a headless start (WorkManager's sync, the widget) JS timers don't fire on this React Native (0.88, new
+  architecture), though expo-task-manager starts a task "to keep JS timers alive". Nothing in that path may wait
+  on a timer: the engine's own (feeds, grouping, fetch timeouts) included. The sync now reads, sends, books and
+  stops without one.
 - Headless wake-ups (background sync, widget) don't load `app/_layout.tsx`: the crypto polyfill and
   the sync task are imported from `mobile/index.ts`, the app's entry.
 
