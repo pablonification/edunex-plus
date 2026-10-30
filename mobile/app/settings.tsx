@@ -587,8 +587,8 @@ function CheckForUpdates({ version }: { version: string }) {
           {t("update.download")}
         </Button>
       ) : (
-        <Button size="sm" busy={checking} onPress={() => void check()} testID="action.checkUpdate">
-          {t("update.check")}
+        <Button size="sm" busy={checking} label={t("update.check")} onPress={() => void check()} testID="action.checkUpdate">
+          {t("mobile.update.checkShort")}
         </Button>
       )}
     </Row>

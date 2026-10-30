@@ -141,6 +141,9 @@ export const mobileStrings = {
     id: "Simpan dulu lewat Bagikan berkas, misalnya ke Drive atau File, supaya bisa dipilih di GitHub.",
     en: "Save it first with Share the file, to Drive or Files for example, so you can pick it on GitHub.",
   },
+  // settings: Tentang › Versi. The button beside the version says only the verb (its accessible name is update.check),
+  // so "Diperiksa sendiri sekali sehari." keeps its room on a phone's width.
+  "mobile.update.checkShort": { id: "Periksa", en: "Check" },
 } as const satisfies Record<string, Entry>;
 
 // The desktop's words the phone says its own way: the same facts, numbers and {placeholders}, with
