@@ -9,10 +9,10 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
   wait for a real ITB account (Blockers for Arqila). The rows that said "judge pending" cite judge
   round 4 and Check A of run 41002111336 (Decision 15). A6 and A9 checked on Redroid with the demo
   release of f48a0be.
-- Check A: run 41002111336 found 10,272 of 10,405 items (99%). Its 133 misses had three causes, all
-  fixed in 1046577, e9c7d3f and 74d2266 (Tasks' scroll up turned into a pull to refresh, the joint
-  class's Modul 1–4 named as the class's own, "2×" against the phone's "Masih boleh absen 2 kali").
-  Run 41029222897 (f48a0be) is the check: APKs, app and first-run passed, 13 scenarios due ~18:45–19:45.
+- Check A: run 41029222897 (f48a0be), all 16 jobs green, found 10,404 of 10,405 items. 14 scenarios
+  100%. The one miss (sick, Settings' "80%") was the flow's: it stopped the item in the strip above
+  Android's gesture bar, then scrolled up away from it. The flows now nudge a fifth of a screen first
+  (Settings 12/12 on Redroid with it). The next run carries it, the 08:10 edit and the polish fixes.
 - Check B: judge round 5 (run 41029222897) passed all 37 screens light and dark, 34 dark included.
   Its two polish fixes (tabs fade at a hidden edge, a date keeps its time) are pushed with the edit fix.
 - Hand-off: `mobile/HANDOFF.md` and the PR text (`~/scratch/pr/`) are drafted, with `{{…}}` for the
@@ -124,6 +124,7 @@ Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenar
 | 2026-10-30 03:30 | all (CI 40938204552) | - | - | Not counted: every scenario flow stopped at launch behind the emulator's "Pixel Launcher isn't responding" dialog (2f28b69: error dialogs off, 3 cores and 4 GB); the app job (smoke, judge) passed |
 | 2026-10-30 06:45 | signed-in (Redroid, release ff2a963) | 424 | 766 | 14 of 16 flows ran through: home, courses, changes, tasks, exam, schedule, class, presence, search, first-scan 100%; plan 177/178; grades 64/78 and course 0/204 stopped when a tap under Android's buttons sent the app Home (fixed 1d652c4); task 11/119 stopped at a take-home's row name (fixed f485e8f); settings 2/14 (long page: 12 s scrolls since 377de1b; 2 phone-link items left out, A18) |
 | 2026-10-30 10:30 | signed-in (Redroid, release demo from run 4) | plan 177/178, settings 12/12 | (partial) | settings 100% with 25 s scrolls (2 phone-link items left out, A18); plan's last item "31 Jan" is held with a no-break space Java's `\s` doesn't match: the flows' pattern takes any space since a27f078 |
+| 2026-10-30 19:50 | all 15 (CI 41029222897, f48a0be) | 10,404 | 10,405 | All 16 jobs green. 14 scenarios 100%; sick 763/764: Settings' "80%" stopped in the strip above Android's gesture bar, which Maestro's scroll counts as on screen and its check doesn't, so the flow scrolled up away from it. The flows now nudge a fifth of a screen further before scrolling up (scoring, not the app) |
 
 ## Score B: same feel (judge on the Mac)
 
@@ -252,6 +253,8 @@ machine). Every helper runs at effort high or more.
     the push starts a run. A push while a run goes waits for it (cancel-in-progress is off), so this run
     starts the moment 41029222897 ends. If that run's score needs more fixes, a newer push replaces it
     in the queue. If not, it is the final run, with nothing left to wobble.
+17. **Run 41050649991 (c79c07e) cancelled 10 minutes in**, for a run with the flows' nudge (above) too: the
+    final proof needs every fix, and queueing behind it would have cost 3 hours.
 
 ## Blocked
 

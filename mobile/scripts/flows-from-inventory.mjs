@@ -118,6 +118,11 @@ function checks(scenario, entry, scroll = 4000) {
     out.push(
       line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "DOWN", timeout: scroll, optional: true } }] } }),
     );
+    // Maestro's scroll counts a text in the last strip above Android's gesture bar as on screen, but the page's own
+    // scroll area ends above that bar, so the check after it doesn't (run 41029222897: Settings' "80%" at y 2303 of
+    // 2400, then scrolled up away from it). A fifth of a screen more brings such a text into view; for one higher up,
+    // the scroll up below covers the difference.
+    out.push(line({ runFlow: { when: { notVisible: element }, commands: [{ swipe: { start: "50%, 60%", end: "50%, 40%", duration: 400 } }] } }));
     out.push(
       line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "UP", timeout: scroll, optional: true } }] } }),
     );
