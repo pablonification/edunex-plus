@@ -26,6 +26,9 @@ echo "Emulator time: $(adb shell date)"
 # then stay over the app under test and hide every screen from the flows. Asked not to show them (and the
 # watchdog below closes one that shows anyway).
 adb shell settings put global hide_error_dialogs 1
+# A made-up answer in Downloads, for mobile/flows/use.yaml to attach through Android's own file picker.
+adb push "$root/mobile/flows/files/jawaban.pdf" /sdcard/Download/jawaban.pdf > /dev/null
+adb shell content call --uri content://media --method scan_volume --arg external_primary > /dev/null 2>&1 || true
 adb logcat -c
 adb logcat > "$out/logcat.txt" 2>&1 &
 logcat=$!

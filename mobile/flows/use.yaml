@@ -1,0 +1,186 @@
+# The Student uses the app, not only looks at it: each step does something and checks what it did, the proof
+# for the scope rows in mobile/PROGRESS.md (S3, S5-S7, S9, A17). On the demo's made-up student: nothing
+# leaves the phone. Its pictures are "use-*".
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+
+# S3: the Task marked as handed in another way, and that undone; then an answer and a file from Android's own picker
+# (mobile/flows/files/jawaban.pdf, put in Downloads by scripts/ci/mobile-e2e.sh), kept as a draft and handed in.
+- tapOn:
+    id: tab.tasks
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+    direction: DOWN
+- tapOn:
+    id: row.task.117003
+- extendedWaitUntil:
+    visible:
+      id: screen.task
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: action.markHandled
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: action.markHandled
+- tapOn:
+    id: handled.handedElsewhere
+- extendedWaitUntil:
+    visible:
+      id: action.unmarkHandled
+    timeout: 10000
+- takeScreenshot: use-03-handled
+- tapOn:
+    id: action.unmarkHandled
+- scrollUntilVisible:
+    element:
+      id: input.answer
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: input.answer
+- inputText: "Jawaban sementara"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: action.attach
+- extendedWaitUntil:
+    visible: "jawaban.pdf"
+    timeout: 20000
+- tapOn: "jawaban.pdf"
+- extendedWaitUntil:
+    visible: "Belum disimpan.*"
+    timeout: 20000
+- tapOn:
+    id: action.saveDraft
+- extendedWaitUntil:
+    visible: "Drafmu aman.*"
+    timeout: 20000
+- takeScreenshot: use-04-draft
+- tapOn:
+    id: action.submit
+- extendedWaitUntil:
+    visible: "Kumpulkan tugas ini\\?"
+    timeout: 10000
+- takeScreenshot: use-04-confirm
+# Presensi isn't open on the demo's day: handed in anyway, not counted as present (the sheet says so).
+- tapOn:
+    id: action.submitAnyway
+- extendedWaitUntil:
+    visible: "Terkumpul"
+    timeout: 20000
+- assertVisible: "Edunex mencatatnya hari ini, .*"
+- takeScreenshot: use-04-submitted
+- tapOn:
+    id: action.back
+
+# S5, S7: a class's sheet from the week, then next week and back with Hari ini.
+- tapOn:
+    id: tab.schedule
+- extendedWaitUntil:
+    visible:
+      id: row.class.dk4073-11-00
+    timeout: 20000
+- tapOn:
+    id: row.class.dk4073-11-00
+- extendedWaitUntil:
+    visible: "TVST C"
+    timeout: 10000
+- takeScreenshot: use-08-class-sheet
+- back
+- tapOn:
+    id: action.nextWeek
+- assertVisible: "Minggu depan"
+- assertVisible: "Minggu ke-8 · 12–18 Okt"
+- tapOn:
+    id: action.today
+- assertVisible: "Minggu ini"
+- assertVisible: "Minggu ke-7 · 5–11 Okt"
+
+# S6: the month, a day picked in it lists that day.
+- tapOn:
+    id: segment.view.month
+- tapOn:
+    id: day.2026-10-15
+- extendedWaitUntil:
+    visible: "Kamis, 15 Oktober"
+    timeout: 10000
+- takeScreenshot: use-10-month-day
+- tapOn:
+    id: segment.view.week
+
+# S9: Presensi's course opens its page.
+- tapOn:
+    id: tab.presence
+- tapOn:
+    id: row.presence.DK4073
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- assertVisible: "Komunikasi Pemasaran"
+- tapOn:
+    id: action.back
+
+# A17: Settings in English and dark, then back as it was. Each choice waits to show as chosen: the whole app draws
+# again on a theme or language change, and a tap in the middle of that is lost.
+- tapOn:
+    id: tab.more
+- scrollUntilVisible:
+    element:
+      id: row.nav.settings
+    direction: DOWN
+- tapOn:
+    id: row.nav.settings
+- extendedWaitUntil:
+    visible:
+      id: screen.settings
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: segment.lang
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: segment.lang.en
+- extendedWaitUntil:
+    visible:
+      id: segment.lang.en
+      selected: true
+    timeout: 10000
+- assertVisible: "Settings"
+- tapOn:
+    id: segment.theme.dark
+- extendedWaitUntil:
+    visible:
+      id: segment.theme.dark
+      selected: true
+    timeout: 10000
+- takeScreenshot: use-26-english-dark
+- tapOn:
+    id: segment.lang.id
+- extendedWaitUntil:
+    visible:
+      id: segment.lang.id
+      selected: true
+    timeout: 10000
+- tapOn:
+    id: segment.theme.system
+- extendedWaitUntil:
+    visible:
+      id: segment.theme.system
+      selected: true
+    timeout: 10000
+- assertVisible: "Pengaturan"
