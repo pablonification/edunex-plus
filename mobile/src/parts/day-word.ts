@@ -3,11 +3,14 @@
 import type { Translate } from "../../../src/app/i18n";
 import type { Format } from "../../../src/core/format";
 
-/** "hari ini" / "besok" / "kemarin", else "Kam, 8 Okt". */
+/** A date's words held together, so a line never ends on "Jum, 16" with "Okt" on the next. */
+export const together = (date: string) => date.replace(/ /g, "\u00a0");
+
+/** "hari ini" / "besok" / "kemarin", else "Kam, 8 Okt" (held together). */
 export function dayWord(f: Format, t: Translate, at: number): string {
   const offset = f.dayOffset(at);
   if (offset === 0) return t("time.todayWord");
   if (offset === 1) return t("time.tomorrowWord");
   if (offset === -1) return t("time.yesterdayWord");
-  return f.relativeDay(at);
+  return together(f.relativeDay(at));
 }

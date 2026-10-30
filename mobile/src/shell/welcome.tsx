@@ -513,15 +513,16 @@ function SourceTile({
           {hint}
         </Text>
       )}
-      {onConnect && (
+      {/* While a sign-in runs the link waits out of sight (greyed, it read as broken), its room kept so nothing jumps. */}
+      {onConnect && busy && <View style={{ minHeight: 48 }} />}
+      {onConnect && !busy && (
         <Pressable
-          onPress={busy ? undefined : onConnect}
+          onPress={onConnect}
           accessibilityRole="button"
-          accessibilityState={{ busy }}
           testID={`action.connectLine.${source}`}
           style={{ minHeight: 48, justifyContent: "center", paddingHorizontal: space[3] }}
         >
-          <Text size="small" weight="semibold" style={{ color: busy ? STAGE.faint : "#7aa2ff" }}>
+          <Text size="small" weight="semibold" style={{ color: "#7aa2ff" }}>
             {t("welcome.connect")}
           </Text>
         </Pressable>

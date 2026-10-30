@@ -9,7 +9,7 @@ import { percent } from "../../../../src/core/attendance";
 import { takeHomeOnly } from "../../../../src/core/exam-sources";
 import { type Finding, firstScan, scanReady } from "../../../../src/core/first-scan";
 import type { DatasetName } from "../../../../src/core/models";
-import { dayWord } from "../../parts/day-word";
+import { dayWord, together } from "../../parts/day-word";
 import { factsLabel } from "../../ui/layout";
 
 /** What the scan reads. */
@@ -56,7 +56,7 @@ export function useScan(computing: boolean) {
 }
 
 /** "Kam 15 Okt", or "hari ini", "besok", "kemarin": every line here says its day mid-sentence ("Berikutnya besok"). */
-const day = (f: Format, t: Translate, at: number) => (Math.abs(f.dayOffset(at)) <= 1 ? dayWord(f, t, at) : `${f.weekdayShort(at)} ${f.dayMonth(at)}`);
+const day = (f: Format, t: Translate, at: number) => (Math.abs(f.dayOffset(at)) <= 1 ? dayWord(f, t, at) : together(`${f.weekdayShort(at)} ${f.dayMonth(at)}`));
 
 /** The first few, then "and N more". */
 function few<T>(items: readonly T[], line: (item: T) => string, t: Translate): string[] {

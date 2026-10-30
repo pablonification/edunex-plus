@@ -28,6 +28,11 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-33-pertama-terhubung
 - tapOn:
     id: action.continue
+# The step fades in: its heading is the sign it has drawn (round 4 caught a blank dark picture).
+- extendedWaitUntil:
+    visible: "Membaca semestermu.*"
+    timeout: 30000
+    optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-34-pertama-membaca
 - extendedWaitUntil:

@@ -344,6 +344,17 @@ export function MeetingNow({ page }: { page: CoursePage }) {
       action={
         link || (presence && url) || sixSession ? (
           <>
+            {/* Why SIX's button comes first, in Beranda's words: Tandai Hadir is pressed there, not here. */}
+            {sixSession && (
+              <View style={{ width: "100%", flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+                <View style={{ marginTop: 2 }}>
+                  <Icons.Hand size={16} color={sixState === "open" ? c.accentFg : c.muted} />
+                </View>
+                <Text size="small" weight={sixState === "open" ? "semibold" : "medium"} style={{ flex: 1 }}>
+                  {t(sixState === "open" ? "home.now.checkInOpen" : sixState === "gone" ? "home.now.checkInGone" : "home.now.checkInWatch")}
+                </Text>
+              </View>
+            )}
             {sixSession && student && (
               <Button
                 variant={sixVariant}

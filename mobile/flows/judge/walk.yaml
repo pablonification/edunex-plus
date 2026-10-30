@@ -1,8 +1,8 @@
 # The phone's pictures for the same-feel judge (check B in mobile/PROGRESS.md): each screen in the state
 # the desktop demo's own pictures show it (scripts/demo/capture.mjs), named like them, with the theme
 # in front ("light-01-beranda"). Run through judge-light.yaml and judge-dark.yaml. The desktop's
-# 05 (a file dropped on the hand-in) needs the phone's file picker, 27 (offline) a phone without a
-# network, and 31 the English app: left out here. The first run (32-35) and Edunex alone (36-37) are
+# 05 (a file dropped on the hand-in) is the phone's 04b, the file from Android's picker; 27 (offline)
+# needs a phone without a network, and 31 the English app: left out here. The first run (32-35) and Edunex alone (36-37) are
 # judge/first-run.yaml and judge/edunex-only.yaml.
 appId: io.github.pablonification.edunexplus.demo
 ---
@@ -38,14 +38,45 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-04-tugas
-# The hand-in below the instructions: the answer, the files, the note for the lecturer, Riwayat.
+# Handing in outside the Presence's time, as the desktop's 05: an answer and a file (mobile/flows/files/jawaban.pdf, put in Downloads by
+# scripts/ci/mobile-e2e.sh) from Android's picker, then Kumpulkan's question with its warning. Closed with Back, the
+# file taken off again: the walk saves nothing.
 - scrollUntilVisible:
     element:
       id: action.attach
     direction: DOWN
     centerElement: true
     optional: true
+- tapOn:
+    id: input.answer
+- inputText: "Jawaban sementara"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: action.attach
+- extendedWaitUntil:
+    visible: "jawaban.pdf"
+    timeout: 20000
+- tapOn: "jawaban.pdf"
+- extendedWaitUntil:
+    visible: "Belum disimpan.*"
+    timeout: 20000
+- tapOn:
+    id: action.submit
+- extendedWaitUntil:
+    visible:
+      id: action.submitAnyway
+    timeout: 10000
+- waitForAnimationToEnd
 - takeScreenshot: ${THEME}-04b-tugas-kumpulkan
+- pressKey: back
+- tapOn:
+    id: action.removeFile
+    optional: true
 - tapOn:
     id: action.back
 - tapOn:
@@ -223,6 +254,11 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.syncStatus
 - tapOn:
     id: action.refreshNow
+    optional: true
+# The desktop's picture is mid-read: caught while it says so, if the read isn't over first.
+- extendedWaitUntil:
+    visible: ".*Memperbarui.*"
+    timeout: 5000
     optional: true
 - takeScreenshot: ${THEME}-24-status-data-memperbarui
 - pressKey: back
