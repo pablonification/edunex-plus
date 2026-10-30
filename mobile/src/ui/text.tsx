@@ -1,7 +1,7 @@
 // Text in the app's ramp and tones: every word on screen goes through here, so sizes and colors
 // stay the desktop's (theme.ts). A tone names what the color means, never the color itself.
 import type { ReactNode } from "react";
-import { Text as NativeText, type TextProps, type TextStyle } from "react-native";
+import { Text as NativeText, type TextProps, type TextStyle, useWindowDimensions } from "react-native";
 import { type Palette, type, useTheme, weight } from "./theme";
 
 export type TextSize = keyof typeof type;
@@ -53,6 +53,14 @@ export function Text({ size = "body", tone = "fg", weight: w = "regular", tabula
  * A text field's cursor, selection and handles in the app's blue (Android's default is its own teal):
  * spread on every TextInput.
  */
+/**
+ * A column's width for text set in it, `dp` at the normal font size: it grows with Android's font size, so
+ * "Kam, 10 Sep" stays on one line at "Besar", and every row's column still lines up.
+ */
+export function useTextWidth(dp: number): number {
+  return dp * Math.max(1, useWindowDimensions().fontScale);
+}
+
 export function useFieldColors() {
   const theme = useTheme();
   return { cursorColor: theme.color.accent, selectionHandleColor: theme.color.accent, selectionColor: `${theme.color.accent}4d` } as const;

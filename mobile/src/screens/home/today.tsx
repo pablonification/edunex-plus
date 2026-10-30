@@ -23,7 +23,7 @@ import { Button } from "../../ui/controls";
 import { LiveDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
-import { Text, type TextTone } from "../../ui/text";
+import { Text, type TextTone, useTextWidth } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { CourseMark, doneOf, MINUTE, movedLabel, nameOf, QuickRow, Quiet, STATE_TEXT, toned } from "./parts";
 
@@ -143,8 +143,9 @@ export function Today({
 
 /** The time column: start over end, or a deadline's one time. */
 function When({ start, end, past, tone }: { start: string; end?: string; past?: boolean; tone?: TextTone }) {
+  const width = useTextWidth(48);
   return (
-    <View style={{ width: 48 }}>
+    <View style={{ minWidth: width }}>
       <Text size="small" weight="semibold" tabular tone={past ? "faint" : (tone ?? "fg")}>
         {start}
       </Text>

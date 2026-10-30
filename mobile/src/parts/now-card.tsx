@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import { StyleSheet, View, type ViewStyle } from "react-native";
 import { Card } from "../ui/display";
-import { Text } from "../ui/text";
+import { Text, useTextWidth } from "../ui/text";
 import { space, useTheme } from "../ui/theme";
 
 export function NowCard({
@@ -30,6 +30,7 @@ export function NowCard({
   testID?: string;
 }) {
   const theme = useTheme();
+  const timeColumn = useTextWidth(60);
   return (
     <Card variant={raised ? "raised" : "plain"} testID={testID}>
       <View style={{ paddingHorizontal: space[4], paddingVertical: space[4], gap: space[3] }}>
@@ -37,7 +38,7 @@ export function NowCard({
           {time && (
             <View
               style={{
-                width: 60,
+                minWidth: timeColumn,
                 alignItems: "flex-end",
                 borderRightWidth: StyleSheet.hairlineWidth,
                 borderRightColor: theme.color.line,

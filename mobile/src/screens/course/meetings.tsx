@@ -22,7 +22,7 @@ import { Button } from "../../ui/controls";
 import { EmptyState, LiveDot, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
-import { Text } from "../../ui/text";
+import { Text, useTextWidth } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 
 type T = ReturnType<typeof useT>;
@@ -187,6 +187,7 @@ function MeetingRow({
 }) {
   const t = useT();
   const f = useFormat();
+  const dateColumn = useTextWidth(92);
   const now = useNow();
   const theme = useTheme();
   const open = useOpenExternal();
@@ -308,7 +309,7 @@ function MeetingRow({
     <View testID={`row.meeting.${meeting.key}`} style={index > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line } : null}>
       {divider && <PeriodDivider period={divider} />}
       <View style={[styles.row, next && { backgroundColor: c.infoBg }]}>
-        <View style={{ width: 92 }}>
+        <View style={{ minWidth: dateColumn }}>
           <Text size="body" weight="medium" tabular tone={future && !next ? "muted" : "fg"}>
             {`${f.weekdayShort(meeting.start)}, ${f.dayMonth(meeting.start)}`}
           </Text>
