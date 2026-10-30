@@ -31,13 +31,14 @@ import { NotificationsOff } from "../src/parts/notifications-off";
 import { openReport } from "../src/parts/report";
 import { useSignIn, useSignInNote } from "../src/shell/source-status";
 import { toast } from "../src/swaps/overlays";
+import { SourceLogo } from "../src/ui/brand";
 import { Button, Chip, Segmented, Switch } from "../src/ui/controls";
 import { Card, LiveDot } from "../src/ui/display";
 import { Icons } from "../src/ui/icons";
 import { Meta, Page } from "../src/ui/layout";
 import { Sheet } from "../src/ui/sheet";
 import { Text } from "../src/ui/text";
-import { radius, space, useTheme } from "../src/ui/theme";
+import { space, useTheme } from "../src/ui/theme";
 import { TopBar } from "../src/ui/top-bar";
 
 const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: true }[] = [
@@ -336,7 +337,6 @@ function SnoozedReminders({ report }: { report: (error: unknown) => void }) {
 function AccountRow({ source, who }: { source: SourceId; who: readonly string[] | null }) {
   const t = useT();
   const f = useFormat();
-  const theme = useTheme();
   const bridge = useBridge();
   const status = useStatus(source);
   const report = useReport();
@@ -374,20 +374,7 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
   return (
     <View style={{ paddingHorizontal: space[4], paddingVertical: space[3], gap: space[3] }} testID={`row.account.${source}`}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: radius.lg,
-            backgroundColor: source === "six" ? "#0b4ea2" : theme.color.infoBg,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text size="small" weight="bold" style={{ color: source === "six" ? "#ffffff" : theme.color.infoFg }}>
-            {source === "six" ? "SIX" : "E"}
-          </Text>
-        </View>
+        <SourceLogo source={source} size={40} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text size="body" weight="medium">
             {name}

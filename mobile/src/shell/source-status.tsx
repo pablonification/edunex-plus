@@ -12,6 +12,7 @@ import type { SignInStep } from "../../../src/core/contract";
 import type { SourceId, SourceState } from "../../../src/core/models";
 import { ReportButton } from "../parts/report";
 import { toast } from "../swaps/overlays";
+import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
 import { EmptyState, LiveDot } from "../ui/display";
 import { Icons } from "../ui/icons";
@@ -265,6 +266,7 @@ function hintFor(state: SourceState, source: string, t: ReturnType<typeof useT>)
 
 function SourceRow({ source, onClose }: { source: SourceId; onClose(): void }) {
   const t = useT();
+  const theme = useTheme();
   const f = useFormat();
   const status = useStatus(source);
   const { signIn, busy: signingIn } = useSignIn();
@@ -277,7 +279,25 @@ function SourceRow({ source, onClose }: { source: SourceId; onClose(): void }) {
   const word = status.state === "changed" ? t("status.changedShort") : t(`status.${status.state}`);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingVertical: space[3] }}>
-      <StateMark state={status.state} busy={refreshing || signingIn} />
+      {/* The logo says which system; the mark on its corner, how it's doing (the desktop's). */}
+      <View>
+        <SourceLogo source={source} size={36} />
+        <View
+          style={{
+            position: "absolute",
+            right: -5,
+            bottom: -5,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            backgroundColor: theme.color.raised,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <StateMark state={status.state} busy={refreshing || signingIn} />
+        </View>
+      </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Meta tone="fg" size="small">
           {name}
