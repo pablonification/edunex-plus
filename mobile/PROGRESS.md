@@ -234,6 +234,8 @@ machine). Every helper runs at effort high or more.
   so the widget only stretches bigger than 4x2; the widget list shows no description (the config
   loader can't read src/core/strings). Watch the first two on a device.
 - Never pipe `tsc` or `biome` into `tail` inside an `&&` chain: the pipe hides its exit code (38a1a49 went out with a type error, fb0f860 with a lint error). Run them bare and read `$?`.
+- CI runs on `mobile` only (48f4bff): helpers' `mobile-*` pushes used to start sixteen emulators each and held
+  the branch's own run in the queue for an hour. A run takes ~3 h for the scenarios (each ~100 min).
 - Headless wake-ups (background sync, widget) don't load `app/_layout.tsx`: the crypto polyfill and
   the sync task are imported from `mobile/index.ts`, the app's entry.
 
