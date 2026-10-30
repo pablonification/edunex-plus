@@ -17,7 +17,7 @@ import { Notice } from "../../ui/layout";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
-import { addToPhoneCalendar, shareIcs } from "./phone-calendar";
+import { addToPhoneCalendar, openPhoneCalendar, shareIcs } from "./phone-calendar";
 
 type Range = "term" | "weeks";
 type Step = { step: "choose" } | { step: "adding" } | { step: "denied" } | { step: "done"; events: number };
@@ -116,9 +116,18 @@ function CalendarSheet({ onClose }: { onClose: () => void }) {
   // The main action stays in view under the choices, as the desktop's dialog shows "Simpan 29 acara" without scrolling.
   const footer =
     step.step === "done" ? (
-      <Button variant="primary" onPress={onClose} testID="action.calendarDone">
-        {t("schedule.export.done")}
-      </Button>
+      <>
+        <Button
+          icon={<Icons.Calendar size={16} color={theme.color.fg} />}
+          onPress={() => void openPhoneCalendar(now).catch(() => toast(t("mobile.calendar.openFailed"), "danger"))}
+          testID="action.openCalendar"
+        >
+          {t("mobile.calendar.open")}
+        </Button>
+        <Button variant="primary" onPress={onClose} testID="action.calendarDone">
+          {t("schedule.export.done")}
+        </Button>
+      </>
     ) : (
       <>
         <Button

@@ -86,6 +86,12 @@ export const mobileStrings = {
     en: "Allow Calendar for Edunex Plus in your phone's settings, or share the .ics with a calendar app.",
   },
   "mobile.calendar.settings": { id: "Buka setelan", en: "Open settings" },
+  // Once the events are in: the phone's calendar app, opened on today.
+  "mobile.calendar.open": { id: "Buka kalender", en: "Open calendar" },
+  "mobile.calendar.openFailed": {
+    id: "Aplikasi kalender tidak bisa dibuka. Acaranya ada di kalender Edunex Plus.",
+    en: "Couldn't open your calendar app. The events are in the Edunex Plus calendar.",
+  },
   // The exam page's "Tambahkan ke kalender HP": said in a toast, with Buka setelan as its button.
   "mobile.exam.calendarDenied": {
     id: "Kalender HP belum diizinkan. Izinkan Kalender untuk Edunex Plus di setelan HP.",
