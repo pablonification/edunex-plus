@@ -288,11 +288,19 @@ async function capture(scenario) {
           const modules = page.locator(`${panel} nav[aria-label="Daftar isi"] li button`);
           const count = await modules.count();
           for (let i = 0; i < count; i++) {
-            // Named by the module ("modul-4"; "pengantar" for the course-wide notes before Modul 1).
+            // Named by the module ("modul-4"; "pengantar" for the course-wide notes before Modul 1); a joint class's after
+            // the heading above it ("kelas-gabungan-modul-1"), as both classes can have a Modul 1.
             const title = (await modules.nth(i).locator("[title]").first().getAttribute("title")) ?? (await modules.nth(i).innerText());
+            const joint = await modules.nth(i).evaluate((button) => {
+              for (let li = button.closest("li"); li; li = li.previousElementSibling) {
+                const heading = li.querySelector(":scope > p");
+                if (heading) return heading.textContent;
+              }
+              return "";
+            });
             await modules.nth(i).click();
             await settle(page, 400);
-            await read("course", `${code}/modules/${slug(title.split(" · ")[0])}`, panel, { exclude: 'nav[aria-label="Daftar isi"]' });
+            await read("course", `${code}/modules/${slug(`${joint} ${title.split(" · ")[0]}`)}`, panel, { exclude: 'nav[aria-label="Daftar isi"]' });
           }
         });
       }

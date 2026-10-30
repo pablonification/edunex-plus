@@ -117,12 +117,13 @@ export function contentsOf(page: CoursePage, t: Translate): Entry[] {
 
 /**
  * A module row's testID part: its first fact as the desktop's list shows it ("Modul 4" → "modul-4";
- * an Introduction by its first count, "2 catatan" → "2-catatan"), slugged as the inventory names the
+ * an Introduction by its first count, "2 catatan" → "2-catatan"; a joint class's after its heading,
+ * "kelas-gabungan-modul-1", as both classes can have a Modul 1), slugged as the inventory names the
  * module's state (mobile/scripts/inventory.mjs), so a flow finds the row by the state it checks.
  */
 export function entrySlug(t: Translate, entry: Entry): string {
   const first = entry.intro ? (countFacts(t, entry)[0] ?? entry.title) : t("course.module", { no: entry.label ?? "" });
-  return first
+  return (entry.parent ? `${t("course.jointClass")} ${first}` : first)
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase()

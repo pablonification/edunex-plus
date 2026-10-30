@@ -256,23 +256,23 @@
     },
     {
       "screen": "course",
-      "state": "II4091/modules/2-kelas-online"
+      "state": "II4091/modules/kelas-gabungan-2-kelas-online"
     },
     {
       "screen": "course",
-      "state": "II4091/modules/modul-1"
+      "state": "II4091/modules/kelas-gabungan-modul-1"
     },
     {
       "screen": "course",
-      "state": "II4091/modules/modul-2"
+      "state": "II4091/modules/kelas-gabungan-modul-2"
     },
     {
       "screen": "course",
-      "state": "II4091/modules/modul-3"
+      "state": "II4091/modules/kelas-gabungan-modul-3"
     },
     {
       "screen": "course",
-      "state": "II4091/modules/modul-4"
+      "state": "II4091/modules/kelas-gabungan-modul-4"
     },
     {
       "screen": "course",
@@ -5548,9 +5548,9 @@
       "tokens": ["Tugas 04 Bab IV & V", "15:00–23:59", "Belum dikerjakan", "Jum, 13 Nov"]
     },
     {
-      "id": "course.ii4091-modules-2-kelas-online.material.jadwal-kuliah-ta-mekanisme-pelaksanaan",
+      "id": "course.ii4091-modules-kelas-gabungan-2-kelas-online.material.jadwal-kuliah-ta-mekanisme-pelaksanaan",
       "screen": "course",
-      "state": "II4091/modules/2-kelas-online",
+      "state": "II4091/modules/kelas-gabungan-2-kelas-online",
       "kind": "material",
       "label": "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
       "context": "Pengantar",
@@ -5566,81 +5566,81 @@
       ]
     },
     {
-      "id": "course.ii4091-modules-2-kelas-online.material.link-teams-pertemuan-02-jumat-11-september-2026",
+      "id": "course.ii4091-modules-kelas-gabungan-2-kelas-online.material.link-teams-pertemuan-02-jumat-11-september-2026",
       "screen": "course",
-      "state": "II4091/modules/2-kelas-online",
+      "state": "II4091/modules/kelas-gabungan-2-kelas-online",
       "kind": "material",
       "label": "Link Teams Pertemuan 02, Jumat 11 September 2026",
       "context": "Pengantar",
       "tokens": ["Link Teams Pertemuan 02, Jumat 11 September 2026", "Kelas online", "Microsoft Teams", "Dr. Hadi Halim, S.T., M.T.", "10 Sep", "12:29"]
     },
     {
-      "id": "course.ii4091-modules-2-kelas-online.material.link-teams-pertemuan-03-jumat-9-oktober-2026",
+      "id": "course.ii4091-modules-kelas-gabungan-2-kelas-online.material.link-teams-pertemuan-03-jumat-9-oktober-2026",
       "screen": "course",
-      "state": "II4091/modules/2-kelas-online",
+      "state": "II4091/modules/kelas-gabungan-2-kelas-online",
       "kind": "material",
       "label": "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026",
       "context": "Pengantar",
       "tokens": ["Link Teams Pertemuan 03: Jumat, 9 Oktober 2026", "Kelas online", "Microsoft Teams", "Dr. Oki Susanto, S.T., M.T.", "5 Okt", "16:52"]
     },
     {
-      "id": "course.ii4091-modules-modul-1.material.penawaran-topik-ta-dosen",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-1.material.penawaran-topik-ta-dosen",
       "screen": "course",
-      "state": "II4091/modules/modul-1",
+      "state": "II4091/modules/kelas-gabungan-modul-1",
       "kind": "material",
       "label": "Penawaran Topik TA Dosen",
       "context": "Penawaran Topik TA Dosen",
       "tokens": ["Penawaran Topik TA Dosen"]
     },
     {
-      "id": "course.ii4091-modules-modul-1.material.topik-ta-dari-dosen",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-1.material.topik-ta-dari-dosen",
       "screen": "course",
-      "state": "II4091/modules/modul-1",
+      "state": "II4091/modules/kelas-gabungan-modul-1",
       "kind": "material",
       "label": "Topik TA dari Dosen",
       "context": "Penawaran Topik TA Dosen",
       "tokens": ["Topik TA dari Dosen", "Daftar topik dari dosen", "Topik TA Dosen 2026", "Dr. Hadi Halim, S.T., M.T.", "28 Agu", "14:15"]
     },
     {
-      "id": "course.ii4091-modules-modul-2.material.template-proposal-ta-laporan-ta-latex",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-2.material.template-proposal-ta-laporan-ta-latex",
       "screen": "course",
-      "state": "II4091/modules/modul-2",
+      "state": "II4091/modules/kelas-gabungan-modul-2",
       "kind": "material",
       "label": "Template Proposal TA & Laporan TA - Latex",
       "context": "Template Proposal TA & Laporan TA - Latex",
       "tokens": ["Template Proposal TA & Laporan TA - Latex"]
     },
     {
-      "id": "course.ii4091-modules-modul-2.material.template-proposal-ta-latex-2",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-2.material.template-proposal-ta-latex",
       "screen": "course",
-      "state": "II4091/modules/modul-2",
+      "state": "II4091/modules/kelas-gabungan-modul-2",
       "kind": "material",
       "label": "Template Proposal TA - LaTeX",
       "context": "Template Proposal TA & Laporan TA - Latex",
       "tokens": ["Template Proposal TA - LaTeX", "ZIP", "8 MB", "Dr. Hadi Halim, S.T., M.T.", "28 Agu", "14:16"]
     },
     {
-      "id": "course.ii4091-modules-modul-3.material.01-pengantar-proposal-ta-2",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-3.material.01-pengantar-proposal-ta",
       "screen": "course",
-      "state": "II4091/modules/modul-3",
+      "state": "II4091/modules/kelas-gabungan-modul-3",
       "kind": "material",
       "label": "01 Pengantar Proposal TA",
       "context": "01 Pengantar Proposal TA",
       "tokens": ["01 Pengantar Proposal TA"]
     },
     {
-      "id": "course.ii4091-modules-modul-3.material.slide-pengantar-proposal-ta-2",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-3.material.slide-pengantar-proposal-ta",
       "screen": "course",
-      "state": "II4091/modules/modul-3",
+      "state": "II4091/modules/kelas-gabungan-modul-3",
       "kind": "material",
       "label": "Slide Pengantar Proposal TA",
       "context": "01 Pengantar Proposal TA",
       "tokens": ["Slide Pengantar Proposal TA", "PDF", "2,2 MB", "Dr. Hadi Halim, S.T., M.T.", "4 Sep", "09:22"]
     },
     {
-      "id": "course.ii4091-modules-modul-4.material.02-penyusunan-proposal-ta-2",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-4.material.02-penyusunan-proposal-ta",
       "screen": "course",
-      "state": "II4091/modules/modul-4",
+      "state": "II4091/modules/kelas-gabungan-modul-4",
       "kind": "material",
       "label": "02 Penyusunan Proposal TA",
       "context": "02 Penyusunan Proposal TA",
