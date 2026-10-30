@@ -19,6 +19,7 @@ import {
 } from "../core/models";
 import { isNewerRelease } from "../core/updates";
 import { AlertCenter, type AlertNotice } from "./alerts/center";
+import { sixClassStart } from "./alerts/check-in";
 import type { Detector, PlannedAlert } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
 import { type Ntfy, PhoneChannel } from "./alerts/phone";
@@ -59,6 +60,12 @@ export interface EngineDeps {
   upcoming?(planned: readonly PlannedAlert[]): void;
   /** Defaults to every alert detector. */
   detectors?: readonly Detector[];
+  /**
+   * A reminder at the start of every class SIX counts, to press Tandai Hadir (alerts/check-in.ts,
+   * sixClassStart): the phone app, which can't read SIX with the app closed. Off on the desktop,
+   * which reads SIX all class while it runs.
+   */
+  checkInReminders?: boolean;
   /** Asks GitHub once a day for a newer release (packaged builds only). */
   checkForUpdates?: boolean;
   /** Only releases carrying a file this matches are offered (the phone's APK); every release when unset. */
@@ -180,7 +187,7 @@ export function createEngine(deps: EngineDeps): Engine {
   const alerts = new AlertCenter({
     clock,
     storage,
-    detectors: deps.detectors ?? DETECTORS,
+    detectors: [...(deps.detectors ?? DETECTORS), ...(deps.checkInReminders ? [sixClassStart] : [])],
     get: (name) => store.get(name),
     fetchedAt: (name) => store.fetchedAt(name),
     set: (name, value) => store.set(name, value, clock.now()),

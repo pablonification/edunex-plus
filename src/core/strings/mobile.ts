@@ -12,6 +12,13 @@ export const mobileStrings = {
   // Android's notification channels, as Settings › Notifications lists them.
   "mobile.channel.presence": { id: "Presensi dibuka dan ditutup", en: "Presence opening and closing" },
   "mobile.channel.alerts": { id: "Tugas, tenggat dan perubahan", en: "Tasks, deadlines and changes" },
+  // alerts
+  // At the start of a class SIX counts: with the app closed nothing reads SIX for the button, so the Student hears the class began.
+  "mobile.alert.classStarted": { id: "Kuliah sudah mulai · {course}", en: "Class has started · {course}" },
+  "mobile.alert.classStarted.body": {
+    id: "Tekan Tandai Hadir di SIX saat tombolnya muncul · kuliah sampai {time}",
+    en: "Press Tandai Hadir in SIX when it shows · class until {time}",
+  },
   // welcome
   "mobile.welcome.waitingHint": { id: "Tutup halaman masuk untuk membatalkan.", en: "Close the sign-in page to cancel." },
   "mobile.welcome.notify": {
@@ -171,11 +178,14 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Terkirim. Tidak muncul? Izinkan notifikasi Edunex Plus di pengaturan HP.",
     en: "Sent. Didn't see it? Allow Edunex Plus notifications in your phone's settings.",
   },
-  // settings: Notifikasi › Presensi. Tandai Hadir is only seen by checking SIX, which a closed app does now and then at best.
+  // settings: Notifikasi › Presensi. Tandai Hadir is only seen by checking SIX, which a closed app doesn't: the phone reminds at
+  // the start of a class SIX counts instead (mobile.alert.classStarted).
   "settings.alerts.presenceHint": {
-    id: "Saat Presensi Edunex dibuka, saat Tandai Hadir muncul di SIX selama aplikasi terbuka, dan 15 menit sebelum tutup jika belum tercatat",
-    en: "When an Edunex Presence opens, when Tandai Hadir shows in SIX while the app is open, and 15 minutes before it closes if you're not recorded",
+    id: "Saat kuliah yang dihitung di SIX mulai, saat Presensi Edunex dibuka, dan 15 menit sebelum tutup jika belum tercatat. Tandai Hadir di SIX hanya dicek selama aplikasi terbuka.",
+    en: "When a class SIX counts starts, when an Edunex Presence opens, and 15 minutes before it closes if you're not recorded. Tandai Hadir in SIX is checked only while the app is open.",
   },
+  // A new Task's notification: the title, then its deadline, the first thing a Student wants to know.
+  "alert.newTask.body": { id: "{title} · tenggat {dateId} {time}", en: "{title} · due {dateEn} {time}" },
   // home and presence: SIX is checked every 2 minutes only while the app is open (Android freezes a closed one).
   "home.now.checkEvery": { id: "Dicek tiap 2 menit selama aplikasi terbuka", en: "Checked every 2 minutes while the app is open" },
   "presence.row.watching": {
