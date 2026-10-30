@@ -113,7 +113,6 @@ export default function Alerts() {
                   key={item.id}
                   testID={`row.alert.${item.id}`}
                   accessibilityRole="button"
-                  accessibilityHint={unread ? t("alerts.unread") : undefined}
                   android_ripple={{ color: theme.color.selected }}
                   onPress={() => (item.checkIn ? openCheckIn(item.checkIn.meetingId, item.checkIn.url) : nav.go(item.target))}
                   style={{ flexDirection: "row", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] }}
@@ -136,7 +135,12 @@ export default function Alerts() {
                     <Text size="caption" tone="faint" tabular>
                       {period === "today" || period === "yesterday" ? f.time(item.at) : `${f.weekdayShort(item.at)} ${f.dayMonth(item.at)}`}
                     </Text>
-                    <View style={{ width: 8, height: 8, marginTop: 4, borderRadius: 4, backgroundColor: unread ? theme.color.accent : "transparent" }} />
+                    {/* The dot says "belum dibaca" to a screen reader too, as the desktop's does. */}
+                    <View
+                      accessible={unread}
+                      accessibilityLabel={unread ? t("alerts.unread") : undefined}
+                      style={{ width: 8, height: 8, marginTop: 4, borderRadius: 4, backgroundColor: unread ? theme.color.accent : "transparent" }}
+                    />
                   </View>
                 </Pressable>
               );
