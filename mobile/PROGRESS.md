@@ -13,8 +13,7 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
   of 10,405 items, 100% in all 15 scenarios.
 - Check B: judge round 5 (run 41029222897) passed all 37 screens light and dark, 34 dark included.
   Its two polish fixes (tabs fade at a hidden edge, a date keeps its time) are pushed with the edit fix.
-- Hand-off: `mobile/HANDOFF.md` and the PR text (`~/scratch/pr/`) are drafted, with `{{…}}` for the
-  final numbers (Decision 14).
+- Hand-off: `mobile/HANDOFF.md` is complete, with the final run's numbers; the draft PR is #285.
 - Fresh install on the final APKs (run 41061832793, bd3ca3c; Redroid, both apps uninstalled first):
   passed, 104 steps. (The dry run on 41029222897's APKs: 101 steps.) The demo from its welcome through Android's notification prompt and the first scan to Beranda,
   then use.yaml's steps (a Task handed in with jawaban.pdf from Android's picker, a class sheet, the
