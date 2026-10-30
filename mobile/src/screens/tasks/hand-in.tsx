@@ -627,10 +627,15 @@ export function HandInBar({ h }: { h: HandInState }) {
     >
       {why && !(h.notice?.action === "signIn" && h.guard.blocked) && (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-          <Icons.Info size={14} color={theme.color[why.tone === "danger" ? "dangerFg" : why.tone === "warning" ? "warningFg" : "muted"]} />
-          <Text size="small" tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
-            {why.text}
-          </Text>
+          {/* The icon on the first line (19 high) when the hint wraps; the hint as a whole level with its fix. */}
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+            <View style={{ paddingTop: 2.5 }}>
+              <Icons.Info size={14} color={theme.color[why.tone === "danger" ? "dangerFg" : why.tone === "warning" ? "warningFg" : "muted"]} />
+            </View>
+            <Text size="small" tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
+              {why.text}
+            </Text>
+          </View>
           {why.fix}
         </View>
       )}
@@ -884,7 +889,9 @@ function FileRowView({
       )}
       {hint ? (
         <View style={{ marginTop: space[1], paddingLeft: 42, flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-          <Icons.Info size={12} color={c.warningFg} />
+          <View style={{ paddingTop: 3 }}>
+            <Icons.Info size={12} color={c.warningFg} />
+          </View>
           <Text size="caption" tone="warning" style={{ flex: 1 }}>
             {hint}
           </Text>
