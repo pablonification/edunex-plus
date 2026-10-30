@@ -475,7 +475,8 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
     if (reveal) setOpened(reveal.at);
   }, [reveal]);
   return (
-    <View style={{ paddingHorizontal: space[1] }}>
+    // Level with the hand-in card's content above, as the desktop's px-4.
+    <View style={{ paddingHorizontal: space[4] }}>
       {steps.length >= 2 && (
         <>
           <Text size="small" weight="semibold" tone="muted" accessibilityRole="header" style={{ marginBottom: space[3] }}>
@@ -493,7 +494,8 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
                     ? { backgroundColor: c.meterWarning }
                     : step.at > now && step.kind !== "draft"
                       ? { backgroundColor: c.canvas, borderWidth: 1, borderColor: c.faint }
-                      : { backgroundColor: c.track };
+                      : // The desktop's faint at 60%: seen on the line in light and dark.
+                        { backgroundColor: `${c.faint}99` };
               return (
                 <View key={`${step.kind}:${step.at}`}>
                   <View style={[styles.dot, dot, { borderColor: (dot as { borderColor?: string }).borderColor ?? c.canvas }]} />

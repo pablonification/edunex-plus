@@ -60,7 +60,7 @@ function NoSixToday() {
     <View style={{ borderRadius: radius.xl, backgroundColor: theme.color.sunken, paddingHorizontal: space[4], paddingVertical: space[3.5], gap: space[3] }}>
       <Text tone="muted">{t("home.today.noSix")}</Text>
       {signedOut && (
-        <Button size="sm" busy={busy} onPress={() => void signIn("six")} testID="action.signInSix" style={{ alignSelf: "flex-start" }}>
+        <Button busy={busy} onPress={() => void signIn("six")} testID="action.signInSix" style={{ alignSelf: "flex-start" }}>
           {t("home.today.signInSix")}
         </Button>
       )}

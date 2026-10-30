@@ -147,8 +147,12 @@ function useSignal(task: Task, status: TaskStatus): { icon: ReactNode; facts: st
 /** "UTS Komunikasi Pemasaran": the kind's quiet tag, then the course. */
 export function ExamTitle({ kind, name }: { kind: string; name: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-      <Tag>{kind}</Tag>
+    // The tag level with the name's first line (22 high): 2 to centre its 18, 2 more to meet the letters, which sit low
+    // in their line.
+    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+      <View style={{ marginTop: 4 }}>
+        <Tag>{kind}</Tag>
+      </View>
       <Text size="body" weight="medium" numberOfLines={2} style={{ flexShrink: 1 }}>
         {name}
       </Text>
@@ -231,8 +235,9 @@ export function TaskRow({
         </Text>
       )}
       {signal && (
-        <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "center", gap: 6 }}>
-          {signal.icon}
+        // The icon level with the first line (19 high) when the line wraps.
+        <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+          {signal.icon && <View style={{ paddingTop: 2.5 }}>{signal.icon}</View>}
           <Text size="small" tone={signal.tone} weight={signal.tone === "warning" ? "medium" : "regular"} style={{ flexShrink: 1 }}>
             {signal.facts.join("  ·  ")}
           </Text>

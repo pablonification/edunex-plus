@@ -55,23 +55,22 @@ export function LicencesScreen() {
   const shown = useMemo(() => (list ? findLicences(list, query) : []), [list, query]);
   const searching = query.trim() !== "";
 
-  const header = (
-    <View style={{ paddingTop: space[4], paddingBottom: space[3] }}>
-      {list ? (
-        <Text size="body" tone="muted">
-          {t("licences.intro", { count: list.length })}
-        </Text>
-      ) : (
-        <Skeleton width="80%" height={20} />
-      )}
-    </View>
-  );
+  // What the list is, before the search, as the desktop's.
+  const intro = list ? (
+    <Text size="small" tone="muted">
+      {t("licences.intro", { count: list.length })}
+    </Text>
+  ) : loaded === "loading" ? (
+    <Skeleton width="80%" height={19} />
+  ) : null;
+  const header = <View style={{ height: space[3] }} />;
 
   return (
     <View testID="screen.licences" style={{ flex: 1, backgroundColor: theme.color.canvas }}>
       <TopBar title={t("licences.title")} />
-      {/* The search stays in view over the rows scrolling under it. */}
-      <View style={{ paddingHorizontal: space.page, paddingTop: space[3] }}>
+      {/* The intro, then the search, both in view over the rows scrolling under them. */}
+      <View style={{ paddingHorizontal: space.page, paddingTop: space[3], gap: space[3] }}>
+        {intro}
         <View style={[styles.search, { backgroundColor: theme.color.fill }]}>
           <Icons.Search size={16} color={theme.color.faint} />
           <TextInput
@@ -191,10 +190,11 @@ function LicenceRow({ entry, first, last, open, onToggle }: { entry: Licence; fi
             <Icons.ChevronRight size={14} color={c.faint} />
           </View>
           <View style={{ flex: 1, minWidth: 0, paddingVertical: space[2] }}>
-            <Text size="body" weight="medium" numberOfLines={1}>
+            {/* A long name wraps instead of being cut off. */}
+            <Text size="body" weight="medium">
               {entry.name}
             </Text>
-            <Text size="small" tone="muted" numberOfLines={1}>
+            <Text size="small" tone="muted">
               {[entry.version, entry.licence].filter(Boolean).join("  ·  ")}
             </Text>
           </View>

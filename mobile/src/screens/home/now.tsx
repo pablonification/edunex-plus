@@ -218,12 +218,20 @@ function AfterThis({ session, courses }: { session: NonNullable<NowCard["after"]
         <View style={{ paddingTop: 3 }}>
           <Icons.ArrowRight size={14} color={theme.color.faint} />
         </View>
-        <View style={{ flex: 1 }}>
-          <Meta>
-            {`${t("home.now.after", { time: f.time(session.start), course: session.courseCode })} ${nameOf(courses, session.courseCode, session.courseName)}`}
-            {session.room ?? ""}
-          </Meta>
-        </View>
+        {/* One flowing line, the room glued to its dot: on a wrap "· TVST C" starts the next line, so it never reads
+            as the end of the course's name. */}
+        <Text size="small" tone="muted" style={{ flex: 1 }}>
+          {`${t("home.now.after", { time: f.time(session.start), course: session.courseCode })} ${nameOf(courses, session.courseCode, session.courseName)}`}
+          {session.room && (
+            <>
+              {" "}
+              <Text size="small" tone="faint">
+                ·
+              </Text>
+              {`\u00a0${session.room.replace(/ /g, "\u00a0")}`}
+            </>
+          )}
+        </Text>
       </View>
     </CardLine>
   );

@@ -328,7 +328,7 @@ function ExamsNoSix() {
       <Text size="small" tone="muted">
         {t("tasks.examsNoSix")}
       </Text>
-      <Button size="sm" busy={busy} onPress={() => void signIn("six")} testID="action.signInSix">
+      <Button busy={busy} onPress={() => void signIn("six")} testID="action.signInSix">
         {t("action.signInTo", { source: "SIX" })}
       </Button>
     </View>

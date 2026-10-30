@@ -21,6 +21,7 @@ import * as curriculum from "./curriculum";
 import * as deadlines from "./deadlines";
 import { useFreshPlan } from "./fresh-plan";
 import * as krs from "./krs";
+import { PageScrollProvider } from "./page-scroll";
 import { PlaceStateProvider } from "./place-state";
 import * as planner from "./planner";
 import { TabBar } from "./tab-bar";
@@ -71,11 +72,13 @@ export function PlanScreen({ tab }: { tab?: string }) {
       {...pull}
     >
       <PlaceStateProvider>
-        <View testID={`panel.plan.${current}`}>
-          <TabBoundary key={`${current}:${fresh}`} name={`plan ${current}`}>
-            <Tab onCalendar={() => setCurrent("deadlines")} />
-          </TabBoundary>
-        </View>
+        <PageScrollProvider value={scroll}>
+          <View testID={`panel.plan.${current}`}>
+            <TabBoundary key={`${current}:${fresh}`} name={`plan ${current}`}>
+              <Tab onCalendar={() => setCurrent("deadlines")} />
+            </TabBoundary>
+          </View>
+        </PageScrollProvider>
       </PlaceStateProvider>
     </Page>
   );

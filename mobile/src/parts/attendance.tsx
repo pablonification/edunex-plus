@@ -2,7 +2,7 @@
 // budget with its bar and words, the course's target and the stepper that changes it. The words
 // and tones come from the desktop's own src/app/attendance-labels.ts.
 import { useState } from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { BAR_TEXT, budgetLabel, budgetWords, STATE_TONE } from "../../../src/app/attendance-labels";
 import { errorKey } from "../../../src/app/bridge";
 import { useT } from "../../../src/app/i18n";
@@ -15,7 +15,7 @@ import { Icons } from "../ui/icons";
 import { Meta } from "../ui/layout";
 import { Sheet } from "../ui/sheet";
 import { Text, type TextTone } from "../ui/text";
-import { space, useTheme } from "../ui/theme";
+import { radius, space, useTheme } from "../ui/theme";
 import { AbsenceBar } from "./meter";
 
 const MIN = 50;
@@ -56,7 +56,18 @@ export function TargetStepper({ value, onChange, code }: { value: number; onChan
   const t = useT();
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+    // In a box, as the desktop's Stepper: the two buttons and the value read as one control.
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        alignSelf: "flex-start",
+        borderWidth: StyleSheet.hairlineWidth * 2,
+        borderColor: theme.color.edge,
+        borderRadius: radius.lg,
+        backgroundColor: theme.color.surface,
+      }}
+    >
       <IconButton
         label={code ? t("presence.target.lowerFor", { code }) : t("presence.target.lower")}
         onPress={() => value > MIN && onChange(value - STEP)}
@@ -81,6 +92,7 @@ export function TargetStepper({ value, onChange, code }: { value: number; onChan
 /** "Target 80% ▾" on the course page: its own target in a sheet, or back to the default. */
 export function CourseTarget({ code }: { code: string }) {
   const t = useT();
+  const theme = useTheme();
   const { target, own, setOwn } = useTargets();
   const [open, setOpen] = useState(false);
   const mine = Object.hasOwn(own, code) ? own[code]! : null;
@@ -94,7 +106,11 @@ export function CourseTarget({ code }: { code: string }) {
         onPress={() => setOpen(true)}
         testID="action.courseTarget"
       >
-        {t("presence.target", { value })}
+        {/* The desktop's ⌄: the button opens a choice. */}
+        <Text size="small" weight="semibold" tabular numberOfLines={1}>
+          {t("presence.target", { value })}
+        </Text>
+        <Icons.ChevronDown size={12} color={theme.color.muted} />
       </Button>
       <Sheet open={open} onClose={() => setOpen(false)} title={t("presence.target.course", { code })}>
         <Text size="small" tone="muted">

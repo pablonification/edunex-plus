@@ -109,8 +109,12 @@ export const mobileStrings = {
   "mobile.planner.options": { id: "Pilihan untuk {code}", en: "Options for {code}" },
   "mobile.planner.moveTo": { id: "Pindahkan ke {term}", en: "Move to {term}" },
   "mobile.planner.moved": { id: "{code} dipindah ke {term}", en: "{code} moved to {term}" },
+  // Rencana's summary: the count of things to check scrolls down to the rules, which sit beside the plan on the desktop.
+  "mobile.planner.toCheckHint": { id: "Ke daftar aturan di bawah", en: "Goes to the rules below" },
   // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
   "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
+  // Kalender akademik, under the view switch: what a tap on a date does.
+  "mobile.deadline.tapHint": { id: "Ketuk tanggal untuk menambahkannya ke kalender HP.", en: "Tap a date to add it to your phone's calendar." },
   "mobile.deadline.calendarFailed": {
     id: "Kalender HP tidak bisa dibuka. Pasang aplikasi kalender, lalu coba lagi.",
     en: "The phone's calendar didn't open. Install a calendar app, then try again.",
@@ -137,6 +141,9 @@ export const mobileStrings = {
     id: "Simpan dulu lewat Bagikan berkas, misalnya ke Drive atau File, supaya bisa dipilih di GitHub.",
     en: "Save it first with Share the file, to Drive or Files for example, so you can pick it on GitHub.",
   },
+  // settings: Tentang › Versi. The button beside the version says only the verb (its accessible name is update.check),
+  // so "Diperiksa sendiri sekali sehari." keeps its room on a phone's width.
+  "mobile.update.checkShort": { id: "Periksa", en: "Check" },
 } as const satisfies Record<string, Entry>;
 
 // The desktop's words the phone says its own way: the same facts, numbers and {placeholders}, with

@@ -627,10 +627,15 @@ export function HandInBar({ h }: { h: HandInState }) {
     >
       {why && !(h.notice?.action === "signIn" && h.guard.blocked) && (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-          <Icons.Info size={14} color={theme.color[why.tone === "danger" ? "dangerFg" : why.tone === "warning" ? "warningFg" : "muted"]} />
-          <Text size="small" tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
-            {why.text}
-          </Text>
+          {/* The icon on the first line (19 high) when the hint wraps; the hint as a whole level with its fix. */}
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+            <View style={{ paddingTop: 2.5 }}>
+              <Icons.Info size={14} color={theme.color[why.tone === "danger" ? "dangerFg" : why.tone === "warning" ? "warningFg" : "muted"]} />
+            </View>
+            <Text size="small" tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
+              {why.text}
+            </Text>
+          </View>
           {why.fix}
         </View>
       )}
@@ -884,7 +889,9 @@ function FileRowView({
       )}
       {hint ? (
         <View style={{ marginTop: space[1], paddingLeft: 42, flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-          <Icons.Info size={12} color={c.warningFg} />
+          <View style={{ paddingTop: 3 }}>
+            <Icons.Info size={12} color={c.warningFg} />
+          </View>
           <Text size="caption" tone="warning" style={{ flex: 1 }}>
             {hint}
           </Text>
@@ -949,7 +956,21 @@ export function MarkHandedIn({ task }: { task: Task }) {
       <Text size="caption" tone="muted">
         {t("done.otherWay")}
       </Text>
-      {link(t("done.otherWay.menu"), () => setMenu(true), "action.markHandled", t("done.otherWay.menuFor"))}
+      {/* The desktop's quiet menu button: a muted "⌄ Tandai" that opens a choice, not a link. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("done.otherWay.menuFor")}
+        accessibilityState={{ expanded: menu }}
+        onPress={() => setMenu(true)}
+        hitSlop={10}
+        testID="action.markHandled"
+        style={{ flexDirection: "row", alignItems: "center", gap: 4, minHeight: 24 }}
+      >
+        <Icons.ChevronDown size={14} color={theme.color.muted} />
+        <Text size="caption" weight="medium" tone="muted">
+          {t("done.otherWay.menu")}
+        </Text>
+      </Pressable>
       <ActionSheet
         open={menu}
         onClose={() => setMenu(false)}

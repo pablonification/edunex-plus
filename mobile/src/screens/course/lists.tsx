@@ -39,7 +39,7 @@ function NoExams() {
       <Text size="body" tone="muted">
         {t("course.noExamsNoSix")}
       </Text>
-      <Button size="sm" busy={busy} onPress={() => void signIn("six")}>
+      <Button busy={busy} onPress={() => void signIn("six")}>
         {t("action.signInTo", { source: "SIX" })}
       </Button>
     </View>

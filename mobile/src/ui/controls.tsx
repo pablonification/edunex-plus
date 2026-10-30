@@ -2,7 +2,8 @@
 // switch, the segmented control and filter chips. Every target is at least 44 pt, every control has
 // a name a screen reader reads, and a press answers at once (ripple, then the work's spinner).
 import { type ReactNode, useEffect, useRef } from "react";
-import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { Spinner } from "./display";
 import { Text } from "./text";
 import { radius, space, useTheme } from "./theme";
 
@@ -61,13 +62,14 @@ export function Button({
           backgroundColor: bg,
           borderColor: border ?? "transparent",
           borderWidth: border ? StyleSheet.hairlineWidth * 2 : 0,
-          opacity: disabled && variant !== "primary" ? 0.5 : 1,
+          // Busy keeps its colours, dimmed, beside its turning spinner (the desktop's): at work, not off.
+          opacity: disabled && variant !== "primary" ? 0.5 : busy ? 0.7 : 1,
           transform: [{ scale: pressed && !off ? 0.97 : 1 }],
         },
         style,
       ]}
     >
-      {busy ? <ActivityIndicator size="small" color={fg} /> : icon}
+      {busy ? <Spinner size={16} color={fg} /> : icon}
       {children !== undefined &&
         (typeof children === "string" ? (
           <Text size={size === "lg" ? "body" : "small"} weight="semibold" style={{ color: fg }} numberOfLines={1}>

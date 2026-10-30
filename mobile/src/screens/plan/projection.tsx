@@ -109,7 +109,7 @@ export function GradeSelect({
         android_ripple={{ color: c.selected }}
         style={{
           minWidth: 60,
-          height: 36,
+          height: 44,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",

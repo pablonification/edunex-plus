@@ -14,7 +14,7 @@ import { ReportButton } from "../parts/report";
 import { toast } from "../swaps/overlays";
 import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
-import { EmptyState, LiveDot } from "../ui/display";
+import { EmptyState, LiveDot, Spinner } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta } from "../ui/layout";
 import { Sheet } from "../ui/sheet";
@@ -157,7 +157,7 @@ function useSyncLine() {
 
 function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
   const theme = useTheme();
-  if (busy || state === "connecting") return <Icons.Loader size={14} color={theme.color.muted} />;
+  if (busy || state === "connecting") return <Spinner size={14} color={theme.color.muted} />;
   if (state === "live") return <LiveDot />;
   if (state === "changed") return <Icons.AlertTriangle size={14} color={theme.color.dangerFg} weight="bold" />;
   if (state === "expired") return <Icons.Lock size={14} color={theme.color.warningFg} weight="bold" />;
@@ -437,7 +437,7 @@ export function SixEmptyState({ icon, title }: { icon: ReactNode; title: string 
   return (
     <EmptyState icon={icon} title={title}>
       {status.state === "signed-out" && (
-        <Button size="sm" variant="primary" busy={busy} onPress={() => void signIn("six")}>
+        <Button variant="primary" busy={busy} onPress={() => void signIn("six")}>
           {t("action.signInTo", { source: "SIX" })}
         </Button>
       )}
