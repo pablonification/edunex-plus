@@ -113,6 +113,8 @@ export const mobileStrings = {
   "mobile.planner.toCheckHint": { id: "Ke daftar aturan di bawah", en: "Goes to the rules below" },
   // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
   "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
+  // Kalender akademik, under the view switch: what a tap on a date does.
+  "mobile.deadline.tapHint": { id: "Ketuk tanggal untuk menambahkannya ke kalender HP.", en: "Tap a date to add it to your phone's calendar." },
   "mobile.deadline.calendarFailed": {
     id: "Kalender HP tidak bisa dibuka. Pasang aplikasi kalender, lalu coba lagi.",
     en: "The phone's calendar didn't open. Install a calendar app, then try again.",

@@ -85,6 +85,15 @@ export function Tab(_: { onCalendar?: () => void }) {
           ]}
           testID="action.calendarView"
         />
+        {/* Nothing else says a date can be tapped: the phone's way of keeping one is its own calendar. */}
+        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+          <View style={{ paddingTop: 2 }}>
+            <Icons.CalendarCheck size={14} color={theme.color.faint} />
+          </View>
+          <Text size="caption" tone="muted" style={{ flex: 1 }}>
+            {t("mobile.deadline.tapHint")}
+          </Text>
+        </View>
       </View>
       {view === "mine" ? <ForYou onPick={setPicked} /> : <EveryEvent onPick={setPicked} />}
       <AddToCalendar picked={picked} onClose={() => setPicked(null)} />
@@ -268,47 +277,61 @@ function DeadlineRow({ deadline, showTerm, onPick }: { deadline: Deadline; showT
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityHint={t("mobile.deadline.toCalendar")}
       onPress={() => onPick({ event, title, dates })}
       android_ripple={{ color: theme.color.selected }}
-      style={{ paddingHorizontal: space[4], paddingVertical: space[3], gap: 2 }}
+      style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingLeft: space[4], paddingRight: space[3], paddingVertical: space[3] }}
       testID={`row.deadline.${event.id}`}
     >
-      <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
-        <Text size="body" weight="semibold" tone={when === "past" ? "muted" : "fg"} tabular>
-          {dates}
-        </Text>
-        <Text size="caption" tone="faint" style={{ flex: 1 }}>
-          {days}
-        </Text>
-        <Text size="small" weight={when === "now" || near ? "semibold" : "regular"} tone={when === "now" ? "success" : near ? "warning" : "faint"} tabular>
-          {when === "now" ? t("deadlines.now") : relativeTime(lang)(offset, "day")}
-        </Text>
-      </View>
-      <Meta tone={when === "past" ? "muted" : "fg"}>
-        <Text size="body" weight="medium" tone={when === "past" ? "muted" : "fg"}>
-          {kind}
-        </Text>
-        {variant ? t(`deadline.variant.${variant}`) : null}
-        {showTerm && event.term ? termYears(event.term) : null}
-      </Meta>
-      {meaning && (
-        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-          {meaning.done && (
-            <View style={{ paddingTop: 3 }}>
-              <Icons.Check size={12} color={theme.color.successFg} weight="bold" />
-            </View>
-          )}
-          {warn && (
-            <View style={{ paddingTop: 3 }}>
-              <Icons.AlertTriangle size={12} color={theme.color.warningFg} weight="bold" />
-            </View>
-          )}
-          <Text size="small" weight={warn ? "medium" : "regular"} tone={warn ? "warning" : meaning.done ? "success" : "muted"} style={{ flex: 1 }}>
-            {t(meaning.key, meaning.vars)}
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
+          <Text size="body" weight="semibold" tone={when === "past" ? "muted" : "fg"} tabular>
+            {dates}
+          </Text>
+          <Text size="caption" tone="faint" style={{ flex: 1 }}>
+            {days}
+          </Text>
+          <Text size="small" weight={when === "now" || near ? "semibold" : "regular"} tone={when === "now" ? "success" : near ? "warning" : "faint"} tabular>
+            {when === "now" ? t("deadlines.now") : relativeTime(lang)(offset, "day")}
           </Text>
         </View>
-      )}
+        <Meta tone={when === "past" ? "muted" : "fg"}>
+          <Text size="body" weight="medium" tone={when === "past" ? "muted" : "fg"}>
+            {kind}
+          </Text>
+          {variant ? t(`deadline.variant.${variant}`) : null}
+          {showTerm && event.term ? termYears(event.term) : null}
+        </Meta>
+        {meaning && (
+          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+            {meaning.done && (
+              <View style={{ paddingTop: 3 }}>
+                <Icons.Check size={12} color={theme.color.successFg} weight="bold" />
+              </View>
+            )}
+            {warn && (
+              <View style={{ paddingTop: 3 }}>
+                <Icons.AlertTriangle size={12} color={theme.color.warningFg} weight="bold" />
+              </View>
+            )}
+            <Text size="small" weight={warn ? "medium" : "regular"} tone={warn ? "warning" : meaning.done ? "success" : "muted"} style={{ flex: 1 }}>
+              {t(meaning.key, meaning.vars)}
+            </Text>
+          </View>
+        )}
+      </View>
+      <Opens />
     </Pressable>
+  );
+}
+
+/** The row's chevron, level with its first line (`line` high): a tap opens the sheet to add the date to the phone's calendar. */
+function Opens({ line = 22 }: { line?: number }) {
+  const theme = useTheme();
+  return (
+    <View style={{ height: line, justifyContent: "center" }}>
+      <Icons.ChevronRight size={16} color={theme.color.faint} />
+    </View>
   );
 }
 
@@ -507,36 +530,40 @@ function EventRow({ entry, onPick }: { entry: CalendarEntry; onPick: (picked: Pi
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityHint={t("mobile.deadline.toCalendar")}
       onPress={() => onPick({ event, title: entry.title, dates })}
       android_ripple={{ color: theme.color.selected }}
-      style={{ paddingHorizontal: space[4], paddingVertical: space[2.5], gap: 2 }}
+      style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingLeft: space[4], paddingRight: space[3], paddingVertical: space[2.5] }}
     >
-      <Text size="small" weight="semibold" tone={when === "past" ? "muted" : "fg"} tabular>
-        {dates}
-        <Text size="small" tone="faint">{`  ${days}`}</Text>
-      </Text>
-      <Text size="body" tone={when === "past" ? "muted" : "fg"}>
-        {entry.title}
-        {when === "now" ? (
-          <Text size="small" weight="semibold" tone="success">
-            {`  ${t("deadlines.now")}`}
-          </Text>
-        ) : null}
-      </Text>
-      {(meaning || entry.revised) && (
-        <Meta tone={warn ? "fg" : "muted"}>
-          {meaning ? (
-            <Text size="small" weight={warn ? "medium" : "regular"} tone={warn ? "warning" : meaning.done && when !== "past" ? "success" : "muted"}>
-              {t(meaning.key, meaning.vars)}
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text size="small" weight="semibold" tone={when === "past" ? "muted" : "fg"} tabular>
+          {dates}
+          <Text size="small" tone="faint">{`  ${days}`}</Text>
+        </Text>
+        <Text size="body" tone={when === "past" ? "muted" : "fg"}>
+          {entry.title}
+          {when === "now" ? (
+            <Text size="small" weight="semibold" tone="success">
+              {`  ${t("deadlines.now")}`}
             </Text>
           ) : null}
-          {entry.revised ? (
-            <Text size="small" tone="faint">
-              {t("calendar.revised")}
-            </Text>
-          ) : null}
-        </Meta>
-      )}
+        </Text>
+        {(meaning || entry.revised) && (
+          <Meta tone={warn ? "fg" : "muted"}>
+            {meaning ? (
+              <Text size="small" weight={warn ? "medium" : "regular"} tone={warn ? "warning" : meaning.done && when !== "past" ? "success" : "muted"}>
+                {t(meaning.key, meaning.vars)}
+              </Text>
+            ) : null}
+            {entry.revised ? (
+              <Text size="small" tone="faint">
+                {t("calendar.revised")}
+              </Text>
+            ) : null}
+          </Meta>
+        )}
+      </View>
+      <Opens line={19} />
     </Pressable>
   );
 }
