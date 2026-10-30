@@ -3,7 +3,7 @@
 // found, each line with its number and the screen that shows it. It opens by itself once (./watch.tsx,
 // a setting remembers) and only with something to say; Settings opens it again. The findings come
 // from src/core/first-scan.ts.
-import type { ComponentType } from "react";
+import { type ComponentType, Fragment } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { isBuilt } from "../../../../src/app/shell/built";
@@ -14,7 +14,7 @@ import { BottomBar } from "../../parts/bottom-bar";
 import { Button } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
 import { type IconProps, Icons } from "../../ui/icons";
-import { Meta, Page } from "../../ui/layout";
+import { Page } from "../../ui/layout";
 import { Text } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
@@ -105,13 +105,13 @@ function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
   const connected = names.length ? t("scan.connected", { sources: f.list(names) }) : null;
   const read = [t("scan.read.courses", { count: summary.courses }), summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null].filter(Boolean);
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-      <Icons.CheckCircle size={16} color={theme.color.successFg} weight="bold" />
+    // The check on the first line, however many the facts take.
+    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+      <View style={{ marginTop: 2 }}>
+        <Icons.CheckCircle size={16} color={theme.color.successFg} weight="bold" />
+      </View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Meta>
-          {connected}
-          {t("scan.read", { list: read.join(", ") })}
-        </Meta>
+        <Facts>{[connected, t("scan.read", { list: read.join(", ") })]}</Facts>
       </View>
     </View>
   );
@@ -141,9 +141,9 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
           {title}
         </Text>
         {(lines.length > 0 || note) && (
-          <View style={{ marginTop: space[1], gap: 2 }}>
+          <View style={{ marginTop: space[1], gap: space[1] }}>
             {lines.map((line) => (
-              <Meta key={line}>{line}</Meta>
+              <Facts key={line}>{line.split("·")}</Facts>
             ))}
             {note && (
               <Text size="small" tone="muted">
@@ -157,5 +157,33 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
         <Icons.ChevronRight size={16} color={theme.color.faint} />
       </View>
     </Pressable>
+  );
+}
+
+/** Between two facts: a quiet dot that keeps to the fact before it and the one after. */
+const DOT = "\u00a0\u00a0·\u00a0\u00a0";
+
+/**
+ * One line of facts that wraps the way a sentence does: "KU5014: hadir 2 dari 6 · paling tinggi 73%
+ * dari target 80%". The dot is held to the facts either side of it, so no line starts or ends with
+ * one and the part that wraps reads as the same line, not the next. (Meta keeps each fact whole, so
+ * on a phone the second fact moves down on its own and loses its dot: here that reads as another item.)
+ */
+function Facts({ children }: { children: readonly (string | null)[] }) {
+  const facts = children.map((fact) => fact?.trim()).filter((fact): fact is string => Boolean(fact));
+  return (
+    // Read out without the dots, as Meta's are.
+    <Text size="small" tone="muted" accessibilityLabel={facts.join(", ")}>
+      {facts.map((fact, i) => (
+        <Fragment key={fact}>
+          {i > 0 && (
+            <Text size="small" tone="faint">
+              {DOT}
+            </Text>
+          )}
+          {fact}
+        </Fragment>
+      ))}
+    </Text>
   );
 }
