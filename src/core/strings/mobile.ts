@@ -211,4 +211,44 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
         "{count} courses aren't on your SIX record, so they aren't counted as left. If your program says one is yours, tap its row and choose “In my curriculum”.",
     },
   },
+  // tasks and schedule: a Task that is also attendance counts only while its Presence is open. No student
+  // says "jendela", so the phone says when Presence is open, or "dalam waktu ini" beside a time.
+  "task.note.attendance": {
+    id: "Tugas ini juga Presensi-mu. Kamu dihitung hadir hanya jika mengumpulkannya {date}, {time}.",
+    en: "This Task is also your attendance. You count as present only if you hand it in {date}, {time}.",
+  },
+  "task.note.attendanceCounted": {
+    id: "Terhitung hadir. Kamu mengumpulkannya selama Presensi dibuka ({when}).",
+    en: "Counted as present. You handed it in while Presence was open ({when}).",
+  },
+  "task.note.attendanceOutside": {
+    id: "Tidak dihitung hadir karena tidak dikumpulkan selama Presensi dibuka ({when}). Tugasnya tetap terkumpul.",
+    en: "Not counted as present, since it wasn't handed in while Presence was open ({when}). The Task itself is handed in.",
+  },
+  "task.note.attendanceMissed": {
+    id: "Presensi tugas ini sudah ditutup ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
+    en: "This Task's Presence has closed ({when}). Handed in now, it counts as handed in, not as present.",
+  },
+  "handIn.why.early": {
+    id: "Presensi belum dibuka. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir.",
+    en: "Presence isn't open yet. Save a draft now, then hand in {when} to be counted present.",
+  },
+  "handIn.check.attendanceEarly": {
+    id: "Presensi belum dibuka ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
+    en: "Presence isn't open yet ({when}). Handed in now, it counts as handed in, not as present.",
+  },
+  "handIn.check.attendanceMissed": {
+    id: "Presensi sudah ditutup ({when}). Tugas tetap terkumpul, tapi tidak dihitung hadir.",
+    en: "Presence has closed ({when}). It's still handed in, but not counted as present.",
+  },
+  "handIn.check.attendanceIn": { id: "Presensi sedang dibuka, jadi terhitung hadir.", en: "Presence is open, so you'll be counted present." },
+  // schedule: a hand-in Presence's details, beside its time, and its event in the phone's calendar.
+  "schedule.window.only": {
+    id: "Hadir tercatat hanya jika dikumpulkan dalam waktu ini.",
+    en: "You're marked present only if you hand it in during this time.",
+  },
+  "ics.handIn.note": {
+    id: "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini.",
+    en: "You're marked present only if you hand the Task in during this time.",
+  },
 };
