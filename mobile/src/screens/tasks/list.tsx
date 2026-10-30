@@ -3,8 +3,9 @@
 // the moment each runs out; an exam period going on sits on top; Done holds what's handed in, the
 // exams behind the Student and what closed. Belum selesai / Selesai at the top, the course chips
 // scrolling sideways under it, and the list itself one FlashList (cards drawn row by row).
-import { FlashList } from "@shopify/flash-list";
-import { type ReactNode, useState } from "react";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
+import { useScrollToTop } from "expo-router";
+import { type ReactNode, useRef, useState } from "react";
 import { RefreshControl, StyleSheet, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useNow, useT } from "../../../../src/app/i18n";
@@ -93,6 +94,9 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const courses = useTermCourses();
   const bridge = useBridge();
   const pull = usePullToRefresh();
+  // A tap on Tugas while it's open scrolls back to the top, as every tab built on Page does.
+  const list = useRef<FlashListRef<Line>>(null);
+  useScrollToTop(list);
   const { replace } = useNav();
   const six = useStatus("six");
   const show = shown ?? "open";
@@ -204,6 +208,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
     <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.color.canvas }}>
       <TabHeader />
       <FlashList
+        ref={list}
         data={lines}
         keyExtractor={(line) => line.key}
         getItemType={(line) => line.type}
