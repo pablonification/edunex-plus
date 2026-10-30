@@ -67,8 +67,11 @@ export default function TabsLayout() {
   useRememberCourseColors(courses?.map((course) => course.code));
   const tasks = useTasksBadge();
   const presence = usePresenceBadge();
-  // Rencana studi's count lives under Lainnya: the tab carries it, so it's seen without opening Lainnya.
-  const plan = usePlanBadge();
+  // Rencana studi's count lives under Lainnya: the tab carries what's to do (send the KRS, pay the UKT), so it's seen
+  // without opening Lainnya. A clash to ask about stays on Lainnya's row: on the tab, a count that won't go away all term
+  // teaches the Student to stop reading badges.
+  const planCount = usePlanBadge();
+  const plan = planCount?.tone === "warning" ? planCount : null;
   return (
     <Tabs
       screenOptions={{

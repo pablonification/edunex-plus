@@ -177,6 +177,7 @@ export function MeetingNow({ page }: { page: CoursePage }) {
   const live = useStatus("edunex").state === "live";
   const schedule = useDataset("six.schedule");
   const student = useDataset("six.student");
+  const checkIns = useDataset("six.checkIn");
   const openCheckIn = useOpenCheckIn();
   const unread = useDataset("six.scheduleUnread");
   const modules = pageModules(page);
@@ -195,6 +196,9 @@ export function MeetingNow({ page }: { page: CoursePage }) {
   const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
   // A class SIX counts, on now: SIX's button is the thing to do, as on Beranda (the app never presses it).
   const sixSession = current && countedIn === "six" && current.six && student ? current.six : null;
+  // As strong as Beranda's: filled while Tandai Hadir shows, outlined while it's still to come, quiet once it's gone.
+  const sixState = sixSession ? (checkIns?.[sixSession.id]?.state ?? "waiting") : null;
+  const sixVariant = sixState === "open" ? "primary" : sixState === "waiting" ? "secondary" : "ghost";
 
   const linkOf = (m: Meeting) => (m.end > now ? (m.announced?.link ?? null) : null);
   const placeOf = (m: Meeting) => [
@@ -342,8 +346,8 @@ export function MeetingNow({ page }: { page: CoursePage }) {
           <>
             {sixSession && student && (
               <Button
-                variant="primary"
-                icon={<Icons.ArrowUpRight size={16} color={c.onAccent} />}
+                variant={sixVariant}
+                icon={<Icons.ArrowUpRight size={16} color={sixVariant === "primary" ? c.onAccent : sixVariant === "ghost" ? c.muted : c.fg} />}
                 onPress={() => openCheckIn(sixSession.id, sixTimetableUrl(student, sixSession.start))}
                 label={t("home.now.openSixLabel", { course: page.course.code })}
                 testID="action.checkIn"
@@ -363,9 +367,10 @@ export function MeetingNow({ page }: { page: CoursePage }) {
               </Button>
             )}
             {presence && url && (
+              // Beside SIX's button, Edunex's is the small extra it is on Beranda.
               <Button
-                variant={presenceCounts ? "primary" : "secondary"}
-                icon={<Icons.ArrowUpRight size={16} color={presenceCounts ? c.onAccent : c.fg} />}
+                variant={presenceCounts ? "primary" : sixSession ? "ghost" : "secondary"}
+                icon={<Icons.ArrowUpRight size={16} color={presenceCounts ? c.onAccent : sixSession ? c.muted : c.fg} />}
                 onPress={() => open(url)}
                 style={{ flexGrow: 1 }}
                 testID="action.recordInEdunex"
