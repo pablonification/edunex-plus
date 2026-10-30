@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { verdictLabel } from "../../../../src/app/attendance-labels";
-import { useOpenExternal } from "../../../../src/app/hooks";
+import { useOpenCheckIn, useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
@@ -176,6 +176,8 @@ export function MeetingNow({ page }: { page: CoursePage }) {
   const attendance = useAttendance();
   const live = useStatus("edunex").state === "live";
   const schedule = useDataset("six.schedule");
+  const student = useDataset("six.student");
+  const openCheckIn = useOpenCheckIn();
   const unread = useDataset("six.scheduleUnread");
   const modules = pageModules(page);
   const pinned = pinnedMeeting(page.meetings, now);
@@ -191,6 +193,8 @@ export function MeetingNow({ page }: { page: CoursePage }) {
   const url = presence?.url ?? courseUrl;
   // Edunex's window is the thing to do only where it may be what counts.
   const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
+  // A class SIX counts, on now: SIX's button is the thing to do, as on Beranda (the app never presses it).
+  const sixSession = current && countedIn === "six" && current.six && student ? current.six : null;
 
   const linkOf = (m: Meeting) => (m.end > now ? (m.announced?.link ?? null) : null);
   const placeOf = (m: Meeting) => [
@@ -334,12 +338,24 @@ export function MeetingNow({ page }: { page: CoursePage }) {
         ) : undefined
       }
       action={
-        link || (presence && url) ? (
+        link || (presence && url) || sixSession ? (
           <>
+            {sixSession && student && (
+              <Button
+                variant="primary"
+                icon={<Icons.ArrowUpRight size={16} color={c.onAccent} />}
+                onPress={() => openCheckIn(sixSession.id, sixTimetableUrl(student, sixSession.start))}
+                label={t("home.now.openSixLabel", { course: page.course.code })}
+                testID="action.checkIn"
+                style={{ flexGrow: 1 }}
+              >
+                {t("home.now.openSix")}
+              </Button>
+            )}
             {link && (
               <Button
-                variant={presence ? "secondary" : "primary"}
-                icon={<Icons.Video size={16} color={presence ? c.fg : c.onAccent} />}
+                variant={presence || sixSession ? "secondary" : "primary"}
+                icon={<Icons.Video size={16} color={presence || sixSession ? c.fg : c.onAccent} />}
                 onPress={() => open(link)}
                 style={{ flexGrow: 1 }}
               >
