@@ -212,6 +212,13 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-23-cari
 - tapOn:
     id: action.back
+# A new Task on the pretend Edunex, as the desktop demo's pictures have it here: the read below finds it, and the bell
+# then has an unread alert (the link goes to Beranda).
+- openLink: "edunexplusdemo://demo?post=kuis"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 20000
 - tapOn:
     id: action.syncStatus
 - tapOn:

@@ -31,6 +31,18 @@ export async function createDemoWorld() {
   // EDUNEX_DEMO_RESUME=1: start from what the demo saved last time, as a real start does, instead of a fresh first
   // sync: what the cold-start measure (PROGRESS.md, the performance round) times.
   const resume = asked.EDUNEX_DEMO_RESUME === "1";
+  // While the demo runs, its link with ?post=kuis puts a new Task on the pretend Edunex, as the desktop demo's pictures
+  // do before the bell's (scripts/demo/capture.mjs): the next read finds it and the bell gets an unread alert.
+  Linking.addEventListener("url", ({ url }) => {
+    if (!url.startsWith("edunexplusdemo://demo") || new URL(url).searchParams.get("post") !== "kuis") return;
+    run.world.edunex.postTask(95001, {
+      name: "Kuis Kilat Bab 5",
+      description: "<p>Kerjakan 5 soal tentang inovasi proses di Bab 5. Unggah jawaban dalam satu PDF.</p>",
+      end_at: "2026-10-15T23:59:00+07:00",
+      file_required: true,
+      is_lateable: false,
+    });
+  });
   const signInWindows: SignInWindows = {
     open: (source, how) => run.signIn(source, how),
     stopQuiet: () => undefined,
