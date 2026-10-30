@@ -252,7 +252,7 @@ export function DayAgenda({
   ];
   return (
     <GestureDetector gesture={swipe}>
-      <View collapsable={false} style={{ minHeight: 280 }} testID={`agenda.${day.day}`}>
+      <View collapsable={false} testID={`agenda.${day.day}`}>
         <Text size="title" weight="semibold" accessibilityRole="header" style={{ marginBottom: space[3] }}>
           {f.dateLong(dayNoon(day.day))}
         </Text>
