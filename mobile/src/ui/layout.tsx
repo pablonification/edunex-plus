@@ -286,8 +286,11 @@ function factParts(children: ReactNode): ReactNode[] {
   return parts;
 }
 
-/** Each fact's dot sits in a slot this wide before it; at the start of a line the slot is clipped away. */
-const SEP = 18;
+/**
+ * Each fact's dot sits in a slot this wide before it; at the start of a line the slot is clipped away. The desktop's
+ * w-4: wider leaves the dot floating between facts ("Terpakai 4× · lewat batas 1×").
+ */
+const SEP = 16;
 
 /**
  * Facts on one line, quietly separated: "11:00–12:59 · TVST C". Empty parts drop out, and text
