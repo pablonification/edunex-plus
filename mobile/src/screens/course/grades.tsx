@@ -448,5 +448,16 @@ const COL_SCORE = 68;
 
 const styles = StyleSheet.create({
   tableRow: { flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingVertical: space[2] },
-  input: { height: 40, borderRadius: radius.md, paddingHorizontal: space[2], textAlign: "right", fontSize: 16, fontVariant: ["tabular-nums"] },
+  // Android pads a field's text from the top: none, and centred, so the number sits in the middle of its box.
+  input: {
+    height: 44,
+    borderRadius: radius.md,
+    paddingHorizontal: space[2],
+    paddingVertical: 0,
+    textAlign: "right",
+    textAlignVertical: "center",
+    includeFontPadding: false,
+    fontSize: 16,
+    fontVariant: ["tabular-nums"],
+  },
 });

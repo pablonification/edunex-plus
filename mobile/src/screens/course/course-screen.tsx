@@ -57,9 +57,10 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
   const toTop = () => {
     if (offset.current > tabsAt) scroll.current?.scrollTo({ y: tabsAt, animated: false });
   };
+  // A tab tapped: its tab bar comes to the top, so what the tab holds is in view and not below the course's header.
   const pickTab = (next: Tab) => {
     show({ tab: next, ...(module === undefined ? {} : { module }) });
-    toTop();
+    if (offset.current !== tabsAt) scroll.current?.scrollTo({ y: tabsAt, animated: offset.current < tabsAt });
   };
   const pickModule = (picked: number) => {
     show({ tab: "modules", module: picked });
