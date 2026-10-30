@@ -4,7 +4,9 @@
 #
 # Starting a run: GitHub only offers "Run workflow" (and `gh workflow run
 # mobile.yml`) once this file is on the default branch, main. Until it's merged
-# there, runs start from a push to `mobile` or a `mobile-*` branch.
+# there, runs start from a push to `mobile` (a helper's `mobile-*` branch is
+# tested once it's merged: sixteen emulators per push were holding up the
+# branch's own runs).
 #
 # Fetching the results: `gh run download <run id>` saves every APK, the flows'
 # results and the desktop pictures, one folder per artifact.
@@ -12,7 +14,7 @@ name: Mobile
 
 on:
   push:
-    branches: [mobile, "mobile-*"]
+    branches: [mobile]
     paths:
       - mobile/**
       - src/**
