@@ -3,21 +3,27 @@
 // connecting Edunex and SIX on ITB's own pages (one Microsoft sign-in, the other system comes along by
 // itself when it can), then reading the semester until Beranda has what it shows
 // (src/core/first-scan.ts homeReady). "Buka Edunex Plus" asks for notifications first, saying why.
-// The desktop's light and sound stay on the desktop: a soft glow behind the mark is enough here.
+// As on the desktop: the app's mark stays in one place from the promise to connecting, with Edunex
+// and SIX either side of it, each linking to it as it connects; reading shows the Student's own
+// Beranda, small, coming in as the read does; three dots say which step this is; the language is in
+// the corner. The desktop's light and sound stay on the desktop: a soft glow behind the mark is enough here.
 import * as Notifications from "expo-notifications";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Image, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Animated, Image, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Defs, RadialGradient, Rect, Stop } from "react-native-svg";
+import Svg, { Defs, Line, RadialGradient, Rect, Stop } from "react-native-svg";
 import { useT } from "../../../src/app/i18n";
 import { displayName, firstName } from "../../../src/app/names";
 import { useSaved } from "../../../src/app/saved";
 import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "../../../src/app/store";
 import { firstRead, homeReady, scanSummary } from "../../../src/core/first-scan";
 import type { DatasetName } from "../../../src/core/models";
+import { Home } from "../screens/home";
+import { SourceLogo } from "../ui/brand";
+import { Icons } from "../ui/icons";
 import { Text } from "../ui/text";
-import { radius, space } from "../ui/theme";
-import { useSignIn } from "./source-status";
+import { radius, space, useTheme } from "../ui/theme";
+import { useSignIn, useSignInNote } from "./source-status";
 
 /** What the reading step counts, and what decides it's done: the desktop's list. */
 const READ: readonly DatasetName[] = [
@@ -43,50 +49,116 @@ const READ_PATIENCE = 20_000;
 const CREDIT = { turn: 1300, done: 2600 } as const;
 
 /** The welcome's own dark stage, the desktop's (--stage), whatever the phone's theme. */
-const STAGE = { bg: "#04050a", fg: "#f2f2f5", muted: "#a5a7b3", faint: "#7c7e8a", accent: "#2f6feb", live: "#2fbf6c", line: "rgba(255,255,255,0.12)" };
+const STAGE = {
+  bg: "#04050a",
+  fg: "#f2f2f5",
+  muted: "#a5a7b3",
+  faint: "#7c7e8a",
+  accent: "#2f6feb",
+  link: "#5b8cff",
+  live: "#2fbf6c",
+  warning: "#e8b94a",
+  line: "rgba(255,255,255,0.12)",
+};
+
+/** The app's mark, the same size and place from the promise to connecting. */
+const MARK = 80;
+/** Edunex's and SIX's logos either side of it, and the column each stands in. */
+const LOGO = 56;
+const TILE = 104;
+/** Room kept at the top for the language switch, and at the bottom for the step dots. */
+const TOP_BAR = 56;
+const DOTS = 40;
+/** How far down the stage the mark sits, as a share of its height. */
+const MARK_AT = 0.14;
 
 const isConnected = (state: string) => state !== "signed-out" && state !== "expired";
 
 type Step = "opening" | "hello" | "connect" | "reading";
 
+/** Where the mark sits on this phone, from the top of a step's page, and the stage's height. */
+function useStage() {
+  const { height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const room = height - insets.top - insets.bottom - TOP_BAR - DOTS;
+  return { room, markTop: Math.max(space[4], Math.round(room * MARK_AT)), glowAt: (insets.top + TOP_BAR + room * MARK_AT + MARK / 2) / height };
+}
+
 export function Welcome({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState<Step>("opening");
   const bridge = useBridge();
   const insets = useSafeAreaInsets();
+  const { glowAt } = useStage();
   return (
     <View
       testID="screen.welcome"
       style={[StyleSheet.absoluteFill, { backgroundColor: STAGE.bg, paddingTop: insets.top, paddingBottom: insets.bottom, zIndex: 50 }]}
     >
-      <Glow />
-      {step === "opening" && <Credit onDone={() => setStep("hello")} />}
-      {step === "hello" && <Hello onNext={() => setStep("connect")} />}
-      {step === "connect" && (
-        <Connect
-          onNext={() => {
-            // Microsoft's session in the sign-in pages goes now, as on the desktop.
-            void bridge.invoke("auth.signInDone", {}).catch(() => undefined);
-            setStep("reading");
-          }}
-        />
+      <Glow at={glowAt} />
+      {step === "opening" ? (
+        <Credit onDone={() => setStep("hello")} />
+      ) : (
+        <>
+          <ScrollView contentContainerStyle={styles.scroll} bounces={false} overScrollMode="never" showsVerticalScrollIndicator={false}>
+            {step === "hello" && <Hello onNext={() => setStep("connect")} />}
+            {step === "connect" && (
+              <Connect
+                onNext={() => {
+                  // Microsoft's session in the sign-in pages goes now, as on the desktop.
+                  void bridge.invoke("auth.signInDone", {}).catch(() => undefined);
+                  setStep("reading");
+                }}
+              />
+            )}
+            {step === "reading" && <Reading onDone={onDone} />}
+          </ScrollView>
+          <View style={{ position: "absolute", top: insets.top + space[2], right: space[4] }}>
+            <LanguageSwitch />
+          </View>
+          <StepDots step={step} />
+        </>
       )}
-      {step === "reading" && <Reading onDone={onDone} />}
     </View>
   );
 }
 
-/** One light behind the mark, from the top of the stage. */
-function Glow() {
+/** One light behind the mark. */
+function Glow({ at }: { at: number }) {
   return (
     <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
       <Defs>
-        <RadialGradient id="glow" cx="50%" cy="30%" rx="70%" ry="45%">
+        <RadialGradient id="glow" cx="50%" cy={`${Math.round(at * 100)}%`} rx="70%" ry="40%">
           <Stop offset="0" stopColor="#2f6feb" stopOpacity="0.28" />
           <Stop offset="1" stopColor="#2f6feb" stopOpacity="0" />
         </RadialGradient>
       </Defs>
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#glow)" />
     </Svg>
+  );
+}
+
+/** Which of the three steps this is, as on the desktop: the current one a short bar. */
+function StepDots({ step }: { step: Exclude<Step, "opening"> }) {
+  const insets = useSafeAreaInsets();
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ position: "absolute", left: 0, right: 0, bottom: insets.bottom + space[4], flexDirection: "row", justifyContent: "center", gap: space[1.5] }}
+    >
+      {(["hello", "connect", "reading"] as const).map((one) => (
+        <View
+          key={one}
+          style={{
+            height: 6,
+            width: one === step ? 20 : 6,
+            borderRadius: 3,
+            backgroundColor: one === step ? "rgba(242,242,245,0.85)" : "rgba(242,242,245,0.25)",
+          }}
+        />
+      ))}
+    </View>
   );
 }
 
@@ -125,45 +197,44 @@ function Credit({ onDone }: { onDone: () => void }) {
   );
 }
 
-function Mark({ size }: { size: number }) {
-  return <Image source={require("../../assets/icon.png")} style={{ width: size, height: size }} accessibilityIgnoresInvertColors />;
+function Mark() {
+  return <Image source={require("../../assets/icon.png")} style={{ width: MARK, height: MARK }} accessibilityIgnoresInvertColors />;
 }
 
-/** The mark, the promise and "Mulai" at the bottom, within reach of a thumb. */
+/** The mark, the promise and "Mulai" right under it, as on the desktop. */
 function Hello({ onNext }: { onNext: () => void }) {
   const t = useT();
+  const { markTop } = useStage();
   const mark = useFadeIn(0);
   const words = useFadeIn(250);
   const button = useFadeIn(500);
   return (
     <View style={styles.page}>
-      <View style={styles.center}>
-        <Animated.View style={mark}>
-          <Mark size={96} />
-        </Animated.View>
-        <Animated.View style={[{ marginTop: space[8], alignItems: "center" }, words]}>
-          <Text size="display" weight="bold" style={styles.headline}>
-            {t("welcome.headline1")}
-          </Text>
-          <Text size="display" weight="bold" style={styles.headline}>
-            {t("welcome.headline2")}
-          </Text>
-          <Text size="lead" style={{ color: STAGE.muted, textAlign: "center", marginTop: space[4], maxWidth: 340 }}>
-            {t("welcome.pitch")}
-          </Text>
-        </Animated.View>
-      </View>
-      <Animated.View style={[{ gap: space[5] }, button]}>
+      <View style={{ height: markTop }} />
+      <Animated.View style={[{ alignItems: "center" }, mark]}>
+        <Mark />
+      </Animated.View>
+      <Animated.View style={[{ marginTop: space[10] + space[6], alignItems: "center" }, words]}>
+        <Text size="display" weight="bold" style={styles.headline}>
+          {t("welcome.headline1")}
+        </Text>
+        <Text size="display" weight="bold" style={styles.headline}>
+          {t("welcome.headline2")}
+        </Text>
+        <Text size="lead" style={{ color: STAGE.muted, textAlign: "center", marginTop: space[4], maxWidth: 340 }}>
+          {t("welcome.pitch")}
+        </Text>
+      </Animated.View>
+      <Animated.View style={[{ marginTop: space[8] }, button]}>
         <Pill label={t("welcome.start")} onPress={onNext} testID="action.start" />
-        <LanguageSwitch />
       </Animated.View>
     </View>
   );
 }
 
 /**
- * Indonesia or English (the desktop's welcome has it in its corner): under "Mulai", quiet and apart
- * from it, where the thumb already is. The phone's language picked it at first; Settings has it later.
+ * Indonesia or English, in the stage's corner on every step as on the desktop. The phone's language
+ * picked it at first; Settings has it later.
  */
 function LanguageSwitch() {
   const t = useT();
@@ -178,7 +249,7 @@ function LanguageSwitch() {
       testID="action.welcomeLanguage"
       accessibilityRole="radiogroup"
       accessibilityLabel={t("settings.language")}
-      style={{ flexDirection: "row", alignSelf: "center", gap: space[1], padding: 3, borderRadius: radius.full, backgroundColor: "rgba(255,255,255,0.06)" }}
+      style={{ flexDirection: "row", gap: 2, padding: 3, borderRadius: radius.full, backgroundColor: "rgba(255,255,255,0.06)" }}
     >
       {options.map((option) => {
         const on = option.value === lang;
@@ -189,11 +260,12 @@ function LanguageSwitch() {
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
             onPress={() => void bridge.invoke("settings.update", { lang: option.value }).catch(() => undefined)}
+            // 36 dp drawn, 48 dp to touch.
             hitSlop={{ top: 6, bottom: 6 }}
             style={{
-              minHeight: 40,
+              minHeight: 36,
               justifyContent: "center",
-              paddingHorizontal: space[4],
+              paddingHorizontal: space[3],
               borderRadius: radius.full,
               backgroundColor: on ? "rgba(255,255,255,0.14)" : "transparent",
             }}
@@ -208,9 +280,10 @@ function LanguageSwitch() {
   );
 }
 
-/** Edunex and SIX, each with its state; one big button that connects the next one, then "Lanjut". */
+/** Edunex and SIX either side of the app, each linking to it as it connects; one big button that connects the next one, then "Lanjut". */
 function Connect({ onNext }: { onNext: () => void }) {
   const t = useT();
+  const { markTop } = useStage();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
   const edunex = isConnected(useStatus("edunex").state);
@@ -239,42 +312,29 @@ function Connect({ onNext }: { onNext: () => void }) {
   return (
     // "Connected", for the flows: both in, with who it is (Edunex's account, SIX's program), as the desktop pictures it.
     <Animated.View style={[styles.page, fade]} testID={both && account && student ? "screen.welcome.connected" : undefined}>
-      <View style={[styles.center, { alignItems: "stretch" }]}>
-        <View style={{ alignItems: "center" }}>
-          <Mark size={64} />
-        </View>
-        <Text size="heading" weight="bold" style={[styles.headline, { marginTop: space[6] }]}>
-          {title}
-        </Text>
-        <Text size="lead" style={{ color: STAGE.muted, textAlign: "center", marginTop: space[3], minHeight: 46 }}>
-          {lead}
-        </Text>
-        <View style={[styles.sources, { marginTop: space[6] }]}>
-          <SourceLine
-            source="edunex"
-            on={edunex}
-            who={account ? `${displayName(account.name)} · ${account.nim}` : null}
-            busy={(signIns.edunex.busy && !edunex) || (steps.edunex !== null && !edunex)}
-          />
-          <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: STAGE.line }} />
-          <SourceLine
-            source="six"
-            on={six}
-            who={student ? (student.program ?? student.nim) : null}
-            busy={(signIns.six.busy && !six) || (steps.six !== null && !six)}
-            onConnect={!connected ? () => connect("six") : undefined}
-          />
-        </View>
-        <Text size="caption" style={{ color: STAGE.faint, textAlign: "center", marginTop: space[4] }}>
-          {t("welcome.readOnly")}
-        </Text>
+      <View style={{ height: markTop }} />
+      {/* Lined up on the mark, so it stays where the step before had it whatever the systems' lines say. */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "center", marginHorizontal: -space[1] }}>
+        <SourceTile source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
+        <Link on={edunex} side="left" />
+        <Mark />
+        <Link on={six} side="right" />
+        {/* Before anything is in, SIX can be connected first (the big button is Edunex's). Its name is Edunex's,
+            already said on the left: SIX says the program. */}
+        <SourceTile
+          source="six"
+          who={student ? [student.program ?? student.nim] : null}
+          busy={waiting}
+          onConnect={connected ? undefined : () => connect("six")}
+        />
       </View>
-      <View style={{ gap: space[3] }}>
-        {waiting && (
-          <Text size="small" style={{ color: STAGE.faint, textAlign: "center" }}>
-            {t("mobile.welcome.waitingHint")}
-          </Text>
-        )}
+      <Text size="display" weight="bold" style={[styles.headline, { marginTop: space[8] }]}>
+        {title}
+      </Text>
+      <Text size="lead" style={{ color: STAGE.muted, textAlign: "center", marginTop: space[3], minHeight: 46 }}>
+        {lead}
+      </Text>
+      <View style={{ marginTop: space[6], gap: space[2] }}>
         {offer ? (
           <Pill
             label={
@@ -291,68 +351,163 @@ function Connect({ onNext }: { onNext: () => void }) {
         ) : (
           <Pill label={t("welcome.continue")} onPress={onNext} testID="action.continue" />
         )}
+        {waiting && (
+          <Text size="small" style={{ color: STAGE.faint, textAlign: "center" }}>
+            {t("mobile.welcome.waitingHint")}
+          </Text>
+        )}
         {connected && offer && (
-          <Pressable onPress={onNext} accessibilityRole="button" style={{ alignSelf: "center", padding: space[3] }} testID="action.skip">
+          <Pressable
+            onPress={onNext}
+            accessibilityRole="button"
+            style={{ alignSelf: "center", minHeight: 48, justifyContent: "center", paddingHorizontal: space[4] }}
+            testID="action.skip"
+          >
             <Text size="body" weight="medium" style={{ color: STAGE.muted }}>
               {t("welcome.skipSource", { source: t(`source.${offer}`) })}
             </Text>
           </Pressable>
         )}
       </View>
+      <Text size="caption" style={{ color: STAGE.faint, textAlign: "center", marginTop: space[4] }}>
+        {t("welcome.readOnly")}
+      </Text>
     </Animated.View>
   );
 }
 
-function SourceLine({
-  source,
-  on,
-  who,
-  busy,
-  onConnect,
-}: {
-  source: "edunex" | "six";
-  on: boolean;
-  who: string | null;
-  busy: boolean;
-  onConnect?: () => void;
-}) {
-  const t = useT();
+/** A hairline from a system to the app: dashed while apart, drawn solid from the system's side when it connects. */
+function Link({ on, side }: { on: boolean; side: "left" | "right" }) {
+  const drawn = useRef(new Animated.Value(on ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(drawn, { toValue: on ? 1 : 0, duration: 700, useNativeDriver: true }).start();
+  }, [on, drawn]);
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingVertical: space[3] }} testID={`welcome.${source}`}>
-      <View
-        style={{
-          width: 10,
-          height: 10,
-          borderRadius: 5,
-          backgroundColor: on ? STAGE.live : "transparent",
-          borderWidth: on ? 0 : 1.5,
-          borderColor: STAGE.faint,
-        }}
+    // Level with the middle of the mark and of the logos beside it.
+    <View style={{ flex: 1, minWidth: space[4], height: 2, marginTop: MARK / 2 - 1, marginHorizontal: space[1] }}>
+      <Svg width="100%" height={2} style={StyleSheet.absoluteFill}>
+        <Line x1="0" y1="1" x2="100%" y2="1" stroke="rgba(255,255,255,0.3)" strokeWidth={1} strokeDasharray="3 4" />
+      </Svg>
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { borderRadius: 1, backgroundColor: STAGE.link, transformOrigin: side === "left" ? "0% 50%" : "100% 50%", transform: [{ scaleX: drawn }] },
+        ]}
       />
-      <View style={{ flex: 1 }}>
-        <Text size="body" weight="semibold" style={{ color: STAGE.fg }}>
-          {t(`source.${source}`)}
-        </Text>
-        <Text size="small" style={{ color: on ? STAGE.muted : STAGE.faint }} numberOfLines={1}>
-          {on ? (who ?? t("welcome.connected")) : t("welcome.notConnected")}
-        </Text>
-      </View>
-      {busy ? (
-        <ActivityIndicator color={STAGE.muted} />
-      ) : onConnect ? (
-        <Pressable onPress={onConnect} accessibilityRole="button" hitSlop={8} testID={`action.connectLine.${source}`}>
-          <Text size="small" weight="semibold" style={{ color: "#7aa2ff" }}>
-            {t("welcome.connect")}
-          </Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
 
-/** Reading the semester: the counts as they come in, then "Buka Edunex Plus". */
+/** One system: its logo (a check once connected), its name, and where its sign-in stands or who is signed in. */
+function SourceTile({
+  source,
+  who,
+  busy = false,
+  onConnect,
+}: {
+  source: "edunex" | "six";
+  /** Who is signed in, a line each: Edunex's name and NIM, SIX's program. */
+  who: readonly string[] | null;
+  /** Connect's sign-in is under way. */
+  busy?: boolean;
+  /** Connects it here, when the big button is the other system's. */
+  onConnect?: () => void;
+}) {
+  const t = useT();
+  const status = useStatus(source);
+  const note = useSignInNote(source);
+  const name = t(`source.${source}`);
+  const connected = isConnected(status.state);
+  // The desktop's welcome: who once in, then the sign-in's own note while it finishes out of sight.
+  let lines: readonly string[] = [t("welcome.notConnected")];
+  let color = STAGE.faint;
+  let hint: string | null = null;
+  if (connected && who) {
+    lines = who;
+    color = STAGE.muted;
+  } else if (connected) {
+    lines = [t("welcome.readingName")];
+    color = STAGE.muted;
+  } else if (status.state === "connecting") {
+    lines = [t("status.connecting")];
+  } else if (note) {
+    lines = [note.text];
+    hint = note.hint;
+    if (note.slow) color = STAGE.warning;
+  }
+  const logo = (
+    <View style={{ marginTop: (MARK - LOGO) / 2 }}>
+      <SourceLogo source={source} size={LOGO} />
+      {connected && (
+        <View
+          style={{
+            position: "absolute",
+            right: -6,
+            bottom: -6,
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: STAGE.live,
+            borderWidth: 2,
+            borderColor: STAGE.bg,
+          }}
+        >
+          <Icons.Check size={11} color="#ffffff" weight="bold" />
+        </View>
+      )}
+    </View>
+  );
+  return (
+    <View style={{ width: TILE, alignItems: "center" }} testID={`welcome.${source}`}>
+      {onConnect ? (
+        <Pressable
+          onPress={busy ? undefined : onConnect}
+          accessibilityRole="button"
+          accessibilityLabel={t("welcome.connectSource", { source: name })}
+          accessibilityState={{ busy }}
+        >
+          {logo}
+        </Pressable>
+      ) : (
+        logo
+      )}
+      <Text size="body" weight="semibold" style={{ color: STAGE.fg, marginTop: space[3] }}>
+        {name}
+      </Text>
+      {lines.map((line) => (
+        <Text key={line} size="small" style={{ color, textAlign: "center" }} numberOfLines={2}>
+          {line}
+        </Text>
+      ))}
+      {hint && (
+        <Text size="caption" style={{ color: STAGE.faint, textAlign: "center", marginTop: space[1] }}>
+          {hint}
+        </Text>
+      )}
+      {onConnect && (
+        <Pressable
+          onPress={busy ? undefined : onConnect}
+          accessibilityRole="button"
+          accessibilityState={{ busy }}
+          testID={`action.connectLine.${source}`}
+          style={{ minHeight: 48, justifyContent: "center", paddingHorizontal: space[3] }}
+        >
+          <Text size="small" weight="semibold" style={{ color: busy ? STAGE.faint : "#7aa2ff" }}>
+            {t("welcome.connect")}
+          </Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+/** Reading the semester: the Student's Beranda filling in, the counts as they come in, then "Buka Edunex Plus". */
 function Reading({ onDone }: { onDone: () => void }) {
   const t = useT();
+  const { room } = useStage();
+  const screen = useWindowDimensions();
   const saved = useSaved(READ);
   const edunex = useStatus("edunex");
   const six = useStatus("six");
@@ -377,6 +532,9 @@ function Reading({ onDone }: { onDone: () => void }) {
     { key: "meetings", count: summary.meetings },
   ] as const;
   const part = read.next;
+  // The window onto Beranda: a phone's screen scaled down, its top part, leaving the words below room.
+  const width = Math.round(Math.min(screen.width * 0.62, 280));
+  const height = Math.round(Math.min(room * 0.46, (width * screen.height) / screen.width));
   const open = async () => {
     // Android asks once; the reminders on the phone are why the app is here.
     await Notifications.requestPermissionsAsync().catch(() => undefined);
@@ -384,48 +542,47 @@ function Reading({ onDone }: { onDone: () => void }) {
   };
   return (
     <Animated.View style={[styles.page, fade]} testID={ready ? "screen.welcome.ready" : undefined}>
-      <View style={styles.center}>
-        <Mark size={72} />
-        <Text size="heading" weight="bold" style={[styles.headline, { marginTop: space[8] }]} accessibilityLiveRegion="polite">
-          {title}
-        </Text>
-        <View style={{ flexDirection: "row", justifyContent: "center", gap: space[6], marginTop: space[6] }}>
-          {counts.map((one) => (
-            // Read out as one: "5 mata kuliah", as the desktop writes it.
-            <View
-              key={one.key}
-              style={{ alignItems: "center" }}
-              accessible
-              accessibilityLabel={`${one.count} ${t(`welcome.count.${one.key}`, { count: one.count })}`}
-            >
-              <Text size="figure" weight="semibold" tabular style={{ color: STAGE.fg }}>
-                {String(one.count)}
-              </Text>
-              <Text size="small" style={{ color: STAGE.muted }}>
-                {t(`welcome.count.${one.key}`, { count: one.count })}
-              </Text>
-            </View>
-          ))}
-        </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginTop: space[5], minHeight: 20 }}>
-          {ready ? (
-            <>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: STAGE.live }} />
-              <Text size="small" style={{ color: STAGE.muted }}>
-                {t("welcome.readingDone")}
-              </Text>
-            </>
-          ) : (
-            <>
-              <ActivityIndicator size="small" color={STAGE.faint} />
-              <Text size="small" style={{ color: STAGE.faint }}>
-                {part ? `${t(`source.${part.source}`)} · ${t(`scan.part.${part.part}`)}` : t("welcome.readingWait")}
-              </Text>
-            </>
-          )}
-        </View>
+      <Glimpse width={width} height={height} progress={ready ? 1 : read.progress} />
+      <Text size="display" weight="bold" style={[styles.headline, { marginTop: space[6] }]} accessibilityLiveRegion="polite">
+        {title}
+      </Text>
+      <View style={{ flexDirection: "row", justifyContent: "center", gap: space[6], marginTop: space[4] }}>
+        {counts.map((one) => (
+          // Read out as one: "5 mata kuliah", as the desktop writes it.
+          <View
+            key={one.key}
+            style={{ alignItems: "center" }}
+            accessible
+            accessibilityLabel={`${one.count} ${t(`welcome.count.${one.key}`, { count: one.count })}`}
+          >
+            <Text size="figure" weight="semibold" tabular style={{ color: STAGE.fg }}>
+              {String(one.count)}
+            </Text>
+            <Text size="small" style={{ color: STAGE.muted }}>
+              {t(`welcome.count.${one.key}`, { count: one.count })}
+            </Text>
+          </View>
+        ))}
       </View>
-      <View style={{ minHeight: 96, gap: space[3] }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[2], marginTop: space[4], minHeight: 20 }}>
+        {ready ? (
+          <>
+            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: STAGE.live }} />
+            <Text size="small" style={{ color: STAGE.muted }}>
+              {t("welcome.readingDone")}
+            </Text>
+          </>
+        ) : (
+          <>
+            <ActivityIndicator size="small" color={STAGE.faint} />
+            <Text size="small" style={{ color: STAGE.faint }}>
+              {part ? `${t(`source.${part.source}`)} · ${t(`scan.part.${part.part}`)}` : t("welcome.readingWait")}
+            </Text>
+          </>
+        )}
+      </View>
+      {/* Its place is kept from the start, so nothing above moves when it comes. */}
+      <View style={{ minHeight: 96, gap: space[3], marginTop: space[6] }}>
         {(ready || patience) && (
           <>
             <Pill label={t("welcome.open")} onPress={() => void open()} testID="action.open" />
@@ -436,6 +593,57 @@ function Reading({ onDone }: { onDone: () => void }) {
         )}
       </View>
     </Animated.View>
+  );
+}
+
+/**
+ * The Student's own Beranda (src/screens/home), a phone's width scaled down into a small window that
+ * can't be touched or read out: it fills in as the data arrives, and comes up from dim as more is read.
+ * It runs nothing of its own; the data it shows is what the reading puts in.
+ */
+function Glimpse({ width, height, progress }: { width: number; height: number; progress: number }) {
+  const theme = useTheme();
+  const screen = useWindowDimensions();
+  const scale = width / screen.width;
+  const shown = useRef(new Animated.Value(progress)).current;
+  useEffect(() => {
+    Animated.timing(shown, { toValue: progress, duration: 600, useNativeDriver: true }).start();
+  }, [progress, shown]);
+  return (
+    <View
+      pointerEvents="none"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        alignSelf: "center",
+        width,
+        height,
+        borderRadius: radius.xxl,
+        overflow: "hidden",
+        borderWidth: 1,
+        borderColor: "rgba(255,255,255,0.14)",
+        backgroundColor: theme.color.canvas,
+      }}
+    >
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: shown.interpolate({ inputRange: [0, 1], outputRange: [0.35, 1] }) }]}>
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: screen.width,
+            height: height / scale,
+            paddingHorizontal: space.page,
+            paddingTop: space[6],
+            backgroundColor: theme.color.canvas,
+            transformOrigin: "0% 0%",
+            transform: [{ scale }],
+          }}
+        >
+          <Home />
+        </View>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -459,16 +667,10 @@ function Pill({ label, onPress, busy = false, testID }: { label: string; onPress
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, paddingHorizontal: space[6], paddingBottom: space[6], justifyContent: "space-between" },
+  scroll: { flexGrow: 1, paddingTop: TOP_BAR, paddingBottom: DOTS },
+  page: { flexGrow: 1, paddingHorizontal: space[5] },
   center: { flex: 1, alignItems: "center", justifyContent: "center" },
   headline: { color: STAGE.fg, textAlign: "center", letterSpacing: -0.5 },
-  sources: {
-    borderRadius: radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: STAGE.line,
-    paddingHorizontal: space[4],
-    backgroundColor: "rgba(255,255,255,0.03)",
-  },
   pill: {
     height: 54,
     borderRadius: radius.full,
