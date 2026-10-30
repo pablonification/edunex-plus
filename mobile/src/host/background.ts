@@ -17,6 +17,7 @@ const EVERY_MINUTES = 15;
 if (!DEMO)
   TaskManager.defineTask(SYNC_TASK, async () => {
     try {
+      console.info("[background] sync starts");
       const current = await host();
       if (current.running()) {
         await current.engine.refresh();
@@ -26,11 +27,15 @@ if (!DEMO)
       }
       // Woken with the app closed: one round of every feed that's due (a feed already running isn't run twice),
       // then long enough for alerts that wait to be grouped to go out, then quiet again.
+      // Each step in the system log ("[background] …"), so a sync that stops says where.
+      console.info("[background] woken, the app closed");
       current.start();
       await current.engine.refresh();
+      console.info("[background] read");
       await new Promise((resolve) => setTimeout(resolve, GROUP_WINDOW + 5_000));
       // What this round planned is booked with Android before the app goes quiet (./reminders.ts).
       await current.reminders.settled();
+      console.info("[background] reminders booked");
       // The home-screen widget shows what this round read.
       await updateWidgets(current).catch(() => undefined);
       // The Student opened the app meanwhile: its screens keep the feeds going.
