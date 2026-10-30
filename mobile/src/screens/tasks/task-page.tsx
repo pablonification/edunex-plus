@@ -141,7 +141,7 @@ function TaskPage({ task }: { task: Task }) {
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                       <Icons.Clock size={14} color={c[late ? "dangerFg" : soon ? "warningFg" : "fg"]} />
                       <Text size="body" weight="medium" tone={dueTone}>
-                        {t("task.due", { when: f.dueLabel(task.dueAt) })}
+                        {t("task.due", { when: f.dayTimeWord(task.dueAt) })}
                       </Text>
                     </View>
                   ),
@@ -151,7 +151,7 @@ function TaskPage({ task }: { task: Task }) {
                   ? { text: task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed"), tone: !task.lateAllowed && soon ? "warning" : "muted" }
                   : null,
                 task.opensAt !== null && notOpenYet(task, now)
-                  ? { text: t("task.opens", { when: f.dueLabel(task.opensAt) }), tone: "warning", strong: true }
+                  ? { text: t("task.opens", { when: f.dayTimeWord(task.opensAt) }), tone: "warning", strong: true }
                   : null,
               ]}
             />
@@ -160,7 +160,7 @@ function TaskPage({ task }: { task: Task }) {
               items={[
                 { text: t("task.noDeadline"), tone: "muted" },
                 task.opensAt !== null && notOpenYet(task, now)
-                  ? { text: t("task.opens", { when: f.dueLabel(task.opensAt) }), tone: "warning", strong: true }
+                  ? { text: t("task.opens", { when: f.dayTimeWord(task.opensAt) }), tone: "warning", strong: true }
                   : null,
               ]}
             />

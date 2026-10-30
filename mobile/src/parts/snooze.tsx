@@ -40,10 +40,10 @@ export function useSnooze(item: Snoozable | null) {
       testID="sheet.snooze"
       choices={choices.map((choice) => ({
         label: t(`snooze.choice.${choice.kind}`),
-        hint: choice.kind === "change" ? t("snooze.atLatest", { when: f.dueLabel(choice.until) }) : f.dueLabel(choice.until),
+        hint: choice.kind === "change" ? t("snooze.atLatest", { when: f.dayTimeWord(choice.until) }) : f.dueLabel(choice.until),
         testID: `snooze.${choice.kind}`,
         onPress: () => {
-          const when = f.dueLabel(choice.until);
+          const when = f.dayTimeWord(choice.until);
           snooze(item.key, choice.until, choice.kind).then(
             () => {
               if (shown !== null) dismissToast(shown);

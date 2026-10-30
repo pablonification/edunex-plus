@@ -138,7 +138,7 @@ function useSignal(task: Task, status: TaskStatus): { icon: ReactNode; facts: st
       ],
       tone: "muted",
     };
-  if (task.opensAt !== null && notOpenYet(task, now)) return { icon: null, facts: [t("task.opens", { when: f.dueLabel(task.opensAt) })], tone: "muted" };
+  if (task.opensAt !== null && notOpenYet(task, now)) return { icon: null, facts: [t("task.opens", { when: f.dayTimeWord(task.opensAt) })], tone: "muted" };
   if (shortWindow(task) !== null && task.opensAt !== null && task.dueAt !== null)
     return { icon: <Icons.Zap size={14} color={c.muted} />, facts: [t("task.shortWindow"), f.timeRange(task.opensAt, task.dueAt)], tone: "muted" };
   return null;
@@ -322,7 +322,7 @@ function PutOffRow({ item, entry }: Todo["putOff"][number]) {
   const f = useFormat();
   const { wake } = useSnoozes();
   const title = lateTitle(item);
-  const when = f.dueLabel(entry.until);
+  const when = f.dayTimeWord(entry.until);
   return (
     <Row
       testID={`row.putOff.${item.key}`}

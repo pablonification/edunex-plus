@@ -267,7 +267,7 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
       const status = taskStatus(item.task, now);
       parts.push(
         status === "not_started" ? null : t(`taskStatus.${status}`),
-        isOpenStatus(status) && item.task.dueAt !== null ? t("search.due", { when: f.dueLabel(item.task.dueAt) }) : null,
+        isOpenStatus(status) && item.task.dueAt !== null ? t("search.due", { when: f.dayTimeWord(item.task.dueAt) }) : null,
       );
       break;
     }

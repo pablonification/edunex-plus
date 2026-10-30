@@ -129,7 +129,7 @@ export function ExamPartRow({
     when = part.at !== null ? due(part.at, item.late) : { main: t("task.noDeadline"), tone: "faint" };
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
-    const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dueLabel(part.opensAt) });
+    const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dayTimeWord(part.opensAt) });
     facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     when = due(part.at, false);
   } else if (part?.kind === "sitting") {

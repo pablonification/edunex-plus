@@ -175,7 +175,7 @@ function SnoozedRow({ need, entry, courses }: { need: NeedDraft; entry: SnoozeEn
   const f = useFormat();
   const { wake } = useSnoozes();
   const view = useNeedView(courses)(need);
-  const when = f.dueLabel(entry.until);
+  const when = f.dayTimeWord(entry.until);
   return (
     <Row
       testID={`row.snoozed.${need.id}`}
@@ -334,7 +334,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
                     time: f.timeRange(need.session.opensAt, need.session.closesAt),
                   })
                 : // Open across days: each end with its own day.
-                  t("home.need.presenceAhead.span", { from: f.dueLabel(need.session.opensAt), to: f.dayTime(need.session.closesAt) }),
+                  t("home.need.presenceAhead.span", { from: f.dayTimeWord(need.session.opensAt), to: f.dayTime(need.session.closesAt) }),
             tone: null,
           },
           when: f.fromNow(need.session.opensAt),
@@ -362,7 +362,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
             ? t("home.need.task.overdue")
             : need.reason === "short"
               ? t("home.need.task.short", { duration: f.countdown(now + (task.dueAt! - task.opensAt!)) })
-              : t("home.need.task.due", { when: f.dueLabel(task.dueAt!) });
+              : t("home.need.task.due", { when: f.dayTimeWord(task.dueAt!) });
         return {
           title: task.title,
           titleLacksCourse: true,
@@ -387,7 +387,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
           title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) }),
           meta: [
             course,
-            closes !== null ? t("home.need.exam.closes", { when: f.dueLabel(closes) }) : `${f.relativeDay(sitting.start)}, ${time}`,
+            closes !== null ? t("home.need.exam.closes", { when: f.dayTimeWord(closes) }) : `${f.relativeDay(sitting.start)}, ${time}`,
             sitting.source === "six" ? sitting.room : t("home.need.exam.edunex"),
           ],
           note: need.disagree

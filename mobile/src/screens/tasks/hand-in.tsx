@@ -336,14 +336,14 @@ export function HandInCard({ h }: { h: HandInState }) {
       ? ""
       : status === "draft"
         ? draftAt !== null
-          ? factsLabel(t("handIn.draftSaved", { when: f.dueLabel(draftAt) }), t("handIn.draftStatus").toLowerCase())
+          ? factsLabel(t("handIn.draftSaved", { when: f.dayTimeWord(draftAt) }), t("handIn.draftStatus").toLowerCase())
           : t("handIn.draftStatus")
         : status === "overdue"
           ? t("handIn.lateStill")
           : status === "closed"
             ? t("handIn.closedStatus")
             : sentAt !== null
-              ? t("handIn.recorded", { when: f.dueLabel(sentAt) })
+              ? t("handIn.recorded", { when: f.dayTimeWord(sentAt) })
               : "";
   const inFlight = h.attached.filter((item) => item.state !== "failed");
   const done = inFlight.filter((item) => item.state === "uploaded").length;
@@ -494,7 +494,7 @@ export function HandInCard({ h }: { h: HandInState }) {
             </View>
           )}
           {!task.group && !h.editable && !h.sent && status !== "closed" && task.opensAt !== null && (
-            <Quiet>{t("handIn.notOpenYet", { when: f.dueLabel(task.opensAt) })}</Quiet>
+            <Quiet>{t("handIn.notOpenYet", { when: f.dayTimeWord(task.opensAt) })}</Quiet>
           )}
           {status === "closed" && <Quiet>{task.answer ? t("handIn.draftNeverSent") : t("handIn.nothingHandedIn")}</Quiet>}
         </View>
@@ -682,7 +682,7 @@ function sentence(t: Translate, f: Format, check: HandInCheck): string {
     case "attendanceIn":
       return t("handIn.check.attendanceIn");
     case "late":
-      return t("handIn.check.late", { when: f.dueLabel(check.dueAt) });
+      return t("handIn.check.late", { when: f.dayTimeWord(check.dueAt) });
     case "fileType":
       return t("handIn.check.fileType", { type: check.type.toUpperCase(), files: f.list(check.files), count: check.files.length });
     case "naming":
