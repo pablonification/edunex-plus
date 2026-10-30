@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { type BuildOptions, build, type Plugin } from "esbuild";
 import { describe, expect, it } from "vitest";
+import { pattern } from "../../mobile/scripts/flows-from-inventory.mjs";
 import { PHONE_WORDS, phoneWordPairs } from "../../mobile/scripts/phone-words.mjs";
 import { type Entry, STRINGS, type StringKey, translate } from "../../src/core/strings";
 import { phoneWording } from "../../src/core/strings/mobile";
@@ -192,5 +193,23 @@ describe("what the phone shows", () => {
         words(STRINGS[key]).some((text) => DESKTOP_WORDS.test(text)),
         key,
       ).toBe(true);
+  });
+});
+
+describe("the same-data flows (mobile/scripts/flows-from-inventory.mjs)", () => {
+  /** As Maestro reads a text selector: the element's whole text, case ignored, dots matching line ends. */
+  const finds = (token: string, text: string) => new RegExp(`^(?:${pattern(token)})$`, "isu").test(text);
+
+  it("find a desktop text the phone rewords in either wording, with the same values", () => {
+    expect(finds("Sisa jatah absen 2×", "Sisa jatah absen 2×")).toBe(true);
+    expect(finds("Sisa jatah absen 2×", "Masih boleh absen 2 kali")).toBe(true);
+    expect(finds("Sisa jatah absen 2×", "Masih boleh absen 3 kali")).toBe(false);
+  });
+
+  it("find a value taken out of such a text with what's stuck to it in the phone's words too", () => {
+    // The inventory keeps "2×" of "Sisa jatah absen 2×"; the phone says "Masih boleh absen 2 kali".
+    expect(finds("2×", "Kehadiran 85% · Masih boleh absen 2 kali")).toBe(true);
+    expect(finds("2×", "Terpakai 1× · sisa 2×")).toBe(true);
+    expect(finds("2×", "Masih boleh absen 1 kali")).toBe(false);
   });
 });

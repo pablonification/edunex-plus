@@ -37,21 +37,33 @@ const names = (text) => [...text.matchAll(/\{(\w+)\}/g)].map(([, name]) => name)
 /**
  * Each desktop text the phone says its own way (./phone-words.mjs), as a regex over a token with the phone's words
  * for it; a string's " · " parts too, as the inventory takes them apart. Not a template that's mostly blanks ("{title}"
- * would read any text as it), nor one whose phone words add a value the desktop's text doesn't carry.
+ * would read any text as it), nor one whose phone words add a value the desktop's text doesn't carry. Then a value the
+ * inventory takes out of such a text with what's stuck to it ("2×" of "Sisa jatah absen {count}×", as
+ * ./inventory-tokens.mjs widens a value), as the phone's whole words with that value, when they carry no other.
  */
-const REWORDED = JSON.parse(fs.readFileSync(PHONE_WORDS, "utf8")).flatMap(({ desktop, phone }) => {
-  const [from, to] = [desktop.split(" · "), phone.split(" · ")];
-  const pairs = from.length === to.length && from.length > 1 ? [[desktop, phone], ...from.map((part, i) => [part, to[i]])] : [[desktop, phone]];
-  return pairs.flatMap(([a, b]) => {
-    if (a === b || a.replace(/\{\w+\}/g, "").replace(/[^\p{L}]/gu, "").length < 4) return [];
-    if (!names(b).every((name) => names(a).includes(name))) return [];
-    const source = bareEnd(a)
-      .split(/(\{\w+\})/)
-      .map((part) => (/^\{\w+\}$/.test(part) ? "(.+?)" : escapeRegex(part).replace(/\s+/g, "\\s+")))
-      .join("");
-    return [{ re: new RegExp(`^${source}$`, "u"), names: names(a), to: bareEnd(b) }];
-  });
-});
+const PAIRS = JSON.parse(fs.readFileSync(PHONE_WORDS, "utf8"));
+const REWORDED = [
+  ...PAIRS.flatMap(({ desktop, phone }) => {
+    const [from, to] = [desktop.split(" · "), phone.split(" · ")];
+    const pairs = from.length === to.length && from.length > 1 ? [[desktop, phone], ...from.map((part, i) => [part, to[i]])] : [[desktop, phone]];
+    return pairs.flatMap(([a, b]) => {
+      if (a === b || a.replace(/\{\w+\}/g, "").replace(/[^\p{L}]/gu, "").length < 4) return [];
+      if (!names(b).every((name) => names(a).includes(name))) return [];
+      const source = bareEnd(a)
+        .split(/(\{\w+\})/)
+        .map((part) => (/^\{\w+\}$/.test(part) ? "(.+?)" : escapeRegex(part).replace(/\s+/g, "\\s+")))
+        .join("");
+      return [{ re: new RegExp(`^${source}$`, "u"), names: names(a), to: bareEnd(b) }];
+    });
+  }),
+  ...PAIRS.flatMap(({ desktop, phone }) =>
+    [...desktop.matchAll(/(\S*)\{(\w+)\}(\S*)/g)].flatMap(([, before, name, after]) => {
+      const [lead, tail] = [before.replace(/^[([]+/, ""), after.replace(/[)\].,;:]+$/, "")];
+      if ((!lead && !tail) || phone.includes(`${lead}{${name}}${tail}`) || names(phone).some((other) => other !== name)) return [];
+      return [{ re: new RegExp(`^${escapeRegex(lead)}(.+?)${escapeRegex(tail)}$`, "u"), names: [name], to: bareEnd(phone) }];
+    }),
+  ),
+];
 
 /** The phone's words for a desktop `token` filled from a text it rewords, with the same values; null for any other. */
 export function phoneText(token) {
