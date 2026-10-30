@@ -36,7 +36,8 @@ export function pattern(token) {
   // "pada:24 September": the desktop's text read a lecturer's <br> as nothing; the phone breaks the line there.
   const escaped = token
     .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    .replace(/\s+/g, "\\s+")
+    // A space is any space: the phone holds "31 Jan" together with a no-break one, which Java's \s doesn't match.
+    .replace(/\s+/g, "[\\s\\u00a0]+")
     .replace(/:(?=\S)/g, ":\\s*");
   return EXACT.test(token) ? escaped : `.*${escaped}.*`;
 }

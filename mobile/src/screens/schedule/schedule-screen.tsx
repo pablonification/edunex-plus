@@ -76,7 +76,8 @@ function Schedule({ header, onRefresh, refreshing }: { header: ReactNode; onRefr
   const days = useMemo(() => Array.from({ length: 7 }, (_, i) => shiftDay(monday, i)), [monday]);
   const month = useMemo(() => monthGrid(now, monthsBetween(thisMonth, place.month ?? thisMonth)), [now, thisMonth, place.month]);
   const week = place.view === "week";
-  const current = week ? monday === thisWeek : month.month === thisMonth;
+  // Weeks or months from today's: 0 is this one.
+  const offset = week ? Math.round((dayStart(monday) - dayStart(thisWeek)) / (7 * 24 * 3_600_000)) : monthsBetween(thisMonth, month.month);
   // The chosen day: the one the Student picked while it's on screen, else today, else the week's Monday or the month's 1st.
   const chosen = week
     ? place.day && days.includes(place.day)
@@ -101,6 +102,16 @@ function Schedule({ header, onRefresh, refreshing }: { header: ReactNode; onRefr
     setPlace({ week: weekStart(next), day: next });
   };
   const showWeek = (day: string) => setPlace({ view: "week", week: weekStart(day), day });
+  const atToday = offset === 0 && chosen === today;
+  // "Minggu depan", "3 minggu lalu": between the arrows, the week or month on screen said from today.
+  const placeName = (() => {
+    const count = Math.abs(offset);
+    if (offset === 0) return t(week ? "schedule.thisWeek" : "schedule.thisMonth");
+    if (offset === 1) return t(week ? "mobile.schedule.nextWeek" : "mobile.schedule.nextMonth");
+    if (offset === -1) return t(week ? "mobile.schedule.lastWeek" : "mobile.schedule.lastMonth");
+    if (offset > 0) return t(week ? "mobile.schedule.weeksAhead" : "mobile.schedule.monthsAhead", { count });
+    return t(week ? "mobile.schedule.weeksAgo" : "mobile.schedule.monthsAgo", { count });
+  })();
 
   const n = input ? termWeek(input.events, monday) : null;
   const range = f.dayRange(days[0]!, days[6]!);
@@ -137,33 +148,38 @@ function Schedule({ header, onRefresh, refreshing }: { header: ReactNode; onRefr
         title={t("nav.schedule")}
         description={description}
         actions={
-          <View style={{ flex: 1 }}>
-            <Segmented
-              label={t("schedule.view")}
-              value={place.view}
-              onChange={(view) => setPlace({ view })}
-              options={[
-                { value: "week", label: t("schedule.view.week") },
-                { value: "month", label: t("schedule.view.month") },
-              ]}
-              testID="segment.view"
-            />
-          </View>
+          <>
+            <View style={{ flex: 1 }}>
+              <Segmented
+                label={t("schedule.view")}
+                value={place.view}
+                onChange={(view) => setPlace({ view })}
+                options={[
+                  { value: "week", label: t("schedule.view.week") },
+                  { value: "month", label: t("schedule.view.month") },
+                ]}
+                testID="segment.view"
+              />
+            </View>
+            {/* The way back, in both views. On today it's there but quiet and does nothing: never disabled, so it doesn't look broken. */}
+            <Button
+              onPress={atToday ? undefined : () => setPlace({ week: null, month: null, day: null })}
+              label={t("mobile.schedule.todayLabel")}
+              testID="action.today"
+            >
+              <Text size="small" weight="semibold" tone={atToday ? "faint" : "fg"}>
+                {t("mobile.schedule.today")}
+              </Text>
+            </Button>
+          </>
         }
       />
       {waiting ? (
         <Loading />
       ) : week ? (
-        <WeekStrip
-          plan={weekPlan}
-          chosen={chosen}
-          onChoose={(day) => setPlace({ day })}
-          onStep={stepWeek}
-          onThisWeek={() => setPlace({ week: null, day: null })}
-          current={current}
-        />
+        <WeekStrip plan={weekPlan} chosen={chosen} onChoose={(day) => setPlace({ day })} onStep={stepWeek} name={placeName} />
       ) : (
-        <MonthNav month={description} current={current} onStep={stepMonth} onThisMonth={() => setPlace({ month: null, day: null })} />
+        <MonthNav month={description} name={placeName} onStep={stepMonth} />
       )}
       {!waiting && (
         <View style={{ marginTop: space[3] }}>
@@ -205,8 +221,8 @@ function Schedule({ header, onRefresh, refreshing }: { header: ReactNode; onRefr
   );
 }
 
-/** The month's arrows and "Bulan ini", the desktop's header controls. */
-function MonthNav({ month, current, onStep, onThisMonth }: { month: string; current: boolean; onStep: (by: number) => void; onThisMonth: () => void }) {
+/** The month's arrows, the month on screen named between them ("Bulan depan"). */
+function MonthNav({ month, name, onStep }: { month: string; name: string; onStep: (by: number) => void }) {
   const t = useT();
   const theme = useTheme();
   return (
@@ -215,11 +231,9 @@ function MonthNav({ month, current, onStep, onThisMonth }: { month: string; curr
         <Icons.ChevronLeft size={20} color={theme.color.fg} />
       </IconButton>
       <View style={{ flex: 1, alignItems: "center" }}>
-        <Button variant="ghost" size="sm" onPress={current ? undefined : onThisMonth} testID="action.thisMonth">
-          <Text size="small" weight="semibold" tone={current ? "faint" : "accent"}>
-            {t("schedule.thisMonth")}
-          </Text>
-        </Button>
+        <Text size="small" weight="semibold" accessibilityLiveRegion="polite" testID="label.place">
+          {name}
+        </Text>
       </View>
       <IconButton label={t("schedule.nextMonth")} onPress={() => onStep(1)} testID="action.nextMonth">
         <Icons.ChevronRight size={20} color={theme.color.fg} />

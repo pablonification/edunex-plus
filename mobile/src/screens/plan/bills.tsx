@@ -114,9 +114,12 @@ export function Tab(_: { onCalendar?: () => void }) {
                 <Text size="body" weight="medium">
                   {termYears(bill.term)}
                 </Text>
-                <Text size="small" tone="muted" tabular>
-                  {bill.dueDate ? `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` : "-"}
-                </Text>
+                {/* "Batas bayar 15 Jan 2026": a date on its own under a term reads as when it was paid. */}
+                {bill.dueDate && (
+                  <Text size="small" tone="muted" tabular>
+                    {`${t("bills.deadline")} ${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}`}
+                  </Text>
+                )}
               </View>
               <View style={{ alignItems: "flex-end", gap: 4 }}>
                 <Text size="body" tabular>
@@ -217,9 +220,14 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
               {f.dayMonth(dayMs(deadline.day))}
             </Text>
           </View>
+          {/* Which of two deadlines to follow matters only while there's something to pay: once paid, the other is only a fact. */}
           {deadline.other && (
             <Text size="caption" tone="faint" style={{ marginTop: 2 }}>
-              {t(deadline.other.source === "six" ? "bills.otherSix" : "bills.otherItb", { date: f.dayMonth(dayMs(deadline.other.day)) })}
+              {bill.status === "paid"
+                ? t(deadline.other.source === "six" ? "mobile.bills.paidOtherSix" : "mobile.bills.paidOtherItb", {
+                    date: f.dayMonth(dayMs(deadline.other.day)),
+                  })
+                : t(deadline.other.source === "six" ? "bills.otherSix" : "bills.otherItb", { date: f.dayMonth(dayMs(deadline.other.day)) })}
             </Text>
           )}
         </View>

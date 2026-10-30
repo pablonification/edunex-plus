@@ -64,7 +64,21 @@ export const mobileStrings = {
     id: "Tetap berjalan meski kamu pindah halaman. Tiap berkas lalu bisa dibuka tanpa internet.",
     en: "Keeps going if you leave this page. Each file then opens without internet.",
   },
+  // UKT: once a bill is paid, the other deadline is only a fact, with nothing left to follow.
+  "mobile.bills.paidOtherSix": { id: "Di SIX tertulis {date}", en: "SIX says {date}" },
+  "mobile.bills.paidOtherItb": { id: "Di kalender ITB tertulis {date}", en: "ITB's calendar says {date}" },
   // schedule
+  // Between Jadwal's arrows, the week or month on screen, said from today; "Hari ini" beside the view is the way back.
+  "mobile.schedule.lastWeek": { id: "Minggu lalu", en: "Last week" },
+  "mobile.schedule.nextWeek": { id: "Minggu depan", en: "Next week" },
+  "mobile.schedule.weeksAgo": { id: "{count} minggu lalu", en: { one: "{count} week ago", other: "{count} weeks ago" } },
+  "mobile.schedule.weeksAhead": { id: "{count} minggu lagi", en: { one: "In {count} week", other: "In {count} weeks" } },
+  "mobile.schedule.lastMonth": { id: "Bulan lalu", en: "Last month" },
+  "mobile.schedule.nextMonth": { id: "Bulan depan", en: "Next month" },
+  "mobile.schedule.monthsAgo": { id: "{count} bulan lalu", en: { one: "{count} month ago", other: "{count} months ago" } },
+  "mobile.schedule.monthsAhead": { id: "{count} bulan lagi", en: { one: "In {count} month", other: "In {count} months" } },
+  "mobile.schedule.today": { id: "Hari ini", en: "Today" },
+  "mobile.schedule.todayLabel": { id: "Kembali ke hari ini", en: "Back to today" },
   // "Tambahkan ke kalender HP" on the phone (S8): the events go into the phone's own calendar, in one called Edunex Plus.
   "mobile.calendar.lead": {
     id: "Kuliah, ujian dan tenggatmu masuk ke kalender HP, di kalender bernama Edunex Plus.",

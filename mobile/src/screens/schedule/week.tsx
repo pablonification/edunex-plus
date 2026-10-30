@@ -59,15 +59,14 @@ export function WeekStrip({
   chosen,
   onChoose,
   onStep,
-  onThisWeek,
-  current,
+  name,
 }: {
   plan: readonly ScheduleDay[];
   chosen: string;
   onChoose: (day: string) => void;
   onStep: (by: number) => void;
-  onThisWeek: () => void;
-  current: boolean;
+  /** The week on screen said from today: "Minggu ini", "Minggu depan". */
+  name: string;
 }) {
   const t = useT();
   const f = useFormat();
@@ -81,18 +80,9 @@ export function WeekStrip({
           <Icons.ChevronLeft size={20} color={theme.color.fg} />
         </IconButton>
         <View style={{ flex: 1, alignItems: "center" }}>
-          {/* On the current week it's there but quiet and does nothing: never disabled, so it doesn't look broken. */}
-          <Pressable
-            onPress={current ? undefined : onThisWeek}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: current }}
-            testID="action.thisWeek"
-            style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: space[3] }}
-          >
-            <Text size="small" weight="semibold" tone={current ? "faint" : "accent"}>
-              {t("schedule.thisWeek")}
-            </Text>
-          </Pressable>
+          <Text size="small" weight="semibold" accessibilityLiveRegion="polite" testID="label.place">
+            {name}
+          </Text>
         </View>
         <IconButton label={t("schedule.nextWeek")} onPress={() => onStep(1)} testID="action.nextWeek">
           <Icons.ChevronRight size={20} color={theme.color.fg} />
