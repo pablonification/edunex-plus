@@ -407,7 +407,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
           held: health.held ?? 0,
           target: health.target,
           best: percent(health.best ?? 0),
-          course: need.course ?? "",
+          // The course's name: few Students know their KU and PL codes by heart, so the code goes in the meta.
+          course: need.course ? nameOf(courses, need.course) : "",
         };
         const out = health.state === "out";
         // No absences left: said the day before each class, with its time; with no class known, every day.
@@ -415,6 +416,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         return {
           title: t(out ? "home.need.attendance.out" : tomorrow ? "home.need.attendance.tomorrow" : "home.need.attendance.none", vars),
           meta: [
+            course,
             tomorrow && need.at !== null ? f.time(need.at) : null,
             // Each fact in the warning's color, so Meta puts its dot between them.
             ...toned(t(out ? "home.need.attendance.outMeta" : "home.need.attendance.noneMeta", vars), out ? "danger" : "warning"),

@@ -26,6 +26,7 @@ import {
   submittedAt,
   takesAnswers,
 } from "../../../../src/core/tasks";
+import { dayWord } from "../../parts/day-word";
 import { FileBadge, useEdunexFile } from "../../parts/files";
 import { boxEditable, boxHtml, boxText, editableInApp, plainText } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
@@ -183,7 +184,7 @@ export function useHandIn(task: Task, status: TaskStatus) {
   const pattern = namingPattern(task.instructions);
   const type = requiredFileType(task.instructions);
   const early = guard.checks.find((check) => check.kind === "attendanceEarly");
-  const whenWindow = early ? `${f.relativeDay(early.opensAt)}, ${f.timeRange(early.opensAt, early.closesAt)}` : "";
+  const whenWindow = early ? `${dayWord(f, t, early.opensAt)}, ${f.timeRange(early.opensAt, early.closesAt)}` : "";
 
   const change = (key: string, patch: Partial<Attached>) => setAttached((list) => list.map((item) => (item.key === key ? { ...item, ...patch } : item)));
 
@@ -672,7 +673,7 @@ const CHECK_TONE: Record<HandInCheck["tone"], TextTone> = { block: "danger", war
 
 /** A check as one honest sentence (the desktop's HandInDialog). */
 function sentence(t: Translate, f: Format, check: HandInCheck): string {
-  const range = (opensAt: number, closesAt: number) => `${f.relativeDay(opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
+  const range = (opensAt: number, closesAt: number) => `${dayWord(f, t, opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
   switch (check.kind) {
     case "attendanceEarly":
       return t("handIn.check.attendanceEarly", { when: range(check.opensAt, check.closesAt) });

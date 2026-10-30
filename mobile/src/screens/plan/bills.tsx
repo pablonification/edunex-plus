@@ -117,7 +117,7 @@ export function Tab(_: { onCalendar?: () => void }) {
                 {/* "Batas bayar 15 Jan 2026": a date on its own under a term reads as when it was paid. */}
                 {bill.dueDate && (
                   <Text size="small" tone="muted" tabular>
-                    {`${t("bills.deadline")} ${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}`}
+                    {t("mobile.bills.due", { date: `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` })}
                   </Text>
                 )}
               </View>

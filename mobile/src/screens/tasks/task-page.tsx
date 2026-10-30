@@ -28,6 +28,7 @@ import {
   taskStatus,
 } from "../../../../src/core/tasks";
 import { useNav } from "../../nav";
+import { dayWord } from "../../parts/day-word";
 import { LecturerFile } from "../../parts/files";
 import { plainText } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
@@ -286,7 +287,7 @@ function Notes({ task }: { task: Task }) {
   const optional = presenceOptional(countedIn);
   const sessions = presence?.[task.courseCode] ?? [];
   const notes: { tone: "warning" | "neutral" | "success" | "danger"; icon: "hand" | "check" | "zap"; text: string }[] = [];
-  const range = (opensAt: number, closesAt: number) => `${f.relativeDay(opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
+  const range = (opensAt: number, closesAt: number) => `${dayWord(f, t, opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
   const result = attendanceResult(task, sessions, now);
   const status = taskStatus(task, now);
   const session = isOpenStatus(status) ? attendanceSession(task, sessions, now) : null;
@@ -296,7 +297,7 @@ function Notes({ task }: { task: Task }) {
         tone: "neutral",
         icon: "hand",
         text: t("task.note.attendanceOptional", {
-          date: f.relativeDay(session.opensAt),
+          date: dayWord(f, t, session.opensAt),
           time: f.timeRange(session.opensAt, session.closesAt),
           course: task.courseCode,
         }),
@@ -311,7 +312,7 @@ function Notes({ task }: { task: Task }) {
     notes.push({
       tone: "warning",
       icon: "hand",
-      text: t("task.note.attendance", { date: f.relativeDay(session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }),
+      text: t("task.note.attendance", { date: dayWord(f, t, session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }),
     });
   else if (session && !session.recorded?.present)
     notes.push({ tone: "neutral", icon: "hand", text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }) });

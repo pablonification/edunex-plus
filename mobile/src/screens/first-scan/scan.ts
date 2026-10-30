@@ -9,6 +9,7 @@ import { percent } from "../../../../src/core/attendance";
 import { takeHomeOnly } from "../../../../src/core/exam-sources";
 import { type Finding, firstScan, scanReady } from "../../../../src/core/first-scan";
 import type { DatasetName } from "../../../../src/core/models";
+import { dayWord } from "../../parts/day-word";
 import { factsLabel } from "../../ui/layout";
 
 /** What the scan reads. */
@@ -54,8 +55,8 @@ export function useScan(computing: boolean) {
   return { saved, statuses, ready, findings };
 }
 
-/** "Kam 15 Okt, 11:00" */
-const day = (f: Format, at: number) => (Math.abs(f.dayOffset(at)) <= 1 ? f.relativeDay(at) : `${f.weekdayShort(at)} ${f.dayMonth(at)}`);
+/** "Kam 15 Okt", or "hari ini", "besok", "kemarin": every line here says its day mid-sentence ("Berikutnya besok"). */
+const day = (f: Format, t: Translate, at: number) => (Math.abs(f.dayOffset(at)) <= 1 ? dayWord(f, t, at) : `${f.weekdayShort(at)} ${f.dayMonth(at)}`);
 
 /** The first few, then "and N more". */
 function few<T>(items: readonly T[], line: (item: T) => string, t: Translate): string[] {
@@ -81,7 +82,7 @@ export function describe(finding: Finding, t: Translate, f: Format): { title: st
         note: null,
       };
     case "clash": {
-      const when = (o: { start: number; end: number }) => `${day(f, o.start)}, ${f.timeRange(o.start, o.end)}`;
+      const when = (o: { start: number; end: number }) => `${day(f, t, o.start)}, ${f.timeRange(o.start, o.end)}`;
       const [first] = finding.overlaps;
       if (finding.overlaps.length === 1)
         return {
@@ -111,13 +112,13 @@ export function describe(finding: Finding, t: Translate, f: Format): { title: st
             const kind = t(`exam.kind.${exam.kind}`);
             const apart = exam.takeHomeApart;
             // Different days for a sitting is a question for the lecturer; a take-home due another day is only its second part.
-            const note = exam.disagree ? t("exam.disagree") : apart !== null && t("home.need.exam.takeHome", { date: day(f, apart) });
+            const note = exam.disagree ? t("exam.disagree") : apart !== null && t("home.need.exam.takeHome", { date: day(f, t, apart) });
             const session = exam.six[0];
             if (session)
-              return factsLabel(t("scan.exams.at", { name: kind, code, when: `${day(f, session.start)}, ${f.time(session.start)}` }), session.room, note);
+              return factsLabel(t("scan.exams.at", { name: kind, code, when: `${day(f, t, session.start)}, ${f.time(session.start)}` }), session.room, note);
             if (exam.at !== null) {
-              if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` });
-              return factsLabel(t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, exam.at)}, ${f.time(exam.at)}` }), note);
+              if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { kind, code, when: `${day(f, t, exam.at)}, ${f.time(exam.at)}` });
+              return factsLabel(t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, t, exam.at)}, ${f.time(exam.at)}` }), note);
             }
             if (exam.week) return t("scan.exams.week", { kind, code, range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
             return t("scan.exams.noDate", { name: kind, code });
@@ -133,7 +134,7 @@ export function describe(finding: Finding, t: Translate, f: Format): { title: st
           finding.meetings,
           ({ code, meeting }) =>
             factsLabel(
-              t("scan.notInSix.meeting", { code, number: meeting.number, when: `${day(f, meeting.start)}, ${f.timeRange(meeting.start, meeting.end)}` }),
+              t("scan.notInSix.meeting", { code, number: meeting.number, when: `${day(f, t, meeting.start)}, ${f.timeRange(meeting.start, meeting.end)}` }),
               meeting.online && t("scan.notInSix.online"),
             ),
           t,
