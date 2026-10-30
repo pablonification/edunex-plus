@@ -291,13 +291,29 @@ export function DayAgenda({
 
 // ---------------------------------------------------------------- rows
 
-/** The course's color down the row's left edge; none for a course the app doesn't know. Dashed for a meeting only Edunex announced. */
+/**
+ * The course's color down the row's left edge; none for a course the app doesn't know. Dashed for a
+ * meeting only Edunex announced. It stops short of the row's top and bottom, so the list's rounded
+ * corners never shave it into a sliver.
+ */
 function Stripe({ color, faded = false, dashed = false }: { color: string | undefined; faded?: boolean; dashed?: boolean }) {
   const theme = useTheme();
   if (!color) return null;
   const tone = theme.course(color);
   return (
-    <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, opacity: faded ? 0.5 : 1, overflow: "hidden" }}>
+    <View
+      style={{
+        position: "absolute",
+        left: 0,
+        top: radius.xl,
+        bottom: radius.xl,
+        width: 3,
+        borderTopRightRadius: 2,
+        borderBottomRightRadius: 2,
+        opacity: faded ? 0.5 : 1,
+        overflow: "hidden",
+      }}
+    >
       {dashed ? (
         Array.from({ length: 24 }, (_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: the dashes are drawn, they have no identity
@@ -386,6 +402,22 @@ function ClassRow({ item, onPress }: { item: ScheduledClass; onPress: () => void
   const budget = health && (health.state === "none" || health.state === "out" || health.state === "missed") ? health : undefined;
   return (
     <RowShell testID={`row.class.${rowKey(code, session.start)}`} label={label} onPress={onPress} sunken={uncertain !== null || past}>
+      {/* The class on now: a green outline as well as the dot, as the desktop's block. */}
+      {live && (
+        <View
+          style={{
+            position: "absolute",
+            top: 1,
+            left: 1,
+            right: 1,
+            bottom: 1,
+            borderRadius: radius.xl - 1,
+            borderWidth: 2,
+            borderColor: `${theme.color.live}80`,
+            pointerEvents: "none",
+          }}
+        />
+      )}
       <Stripe color={world.color(code)} faded={uncertain !== null} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
