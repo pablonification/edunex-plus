@@ -14,6 +14,7 @@
 //   node mobile/scripts/flows-from-inventory-report.mjs .scratch/maestro
 import fs from "node:fs";
 import path from "node:path";
+import { PHONE_WORDS } from "./phone-words.mjs";
 
 const ROOT = path.resolve(import.meta.dirname, "..", "..");
 export const EXPECTED = path.join(ROOT, "mobile", "flows", "expected");
@@ -29,17 +30,53 @@ export function phoneSkip(config, entryId) {
 export const label = (scenario, id, n, of) => `data|${scenario}|${id}|${n}/${of}`;
 export const LABEL = /^data\|([^|]+)\|([^|]+)\|(\d+)\/(\d+)$/;
 
+const escapeRegex = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const bareEnd = (text) => text.replace(/[.?!…]+$/, "");
+const names = (text) => [...text.matchAll(/\{(\w+)\}/g)].map(([, name]) => name);
+
+/**
+ * Each desktop text the phone says its own way (./phone-words.mjs), as a regex over a token with the phone's words
+ * for it; a string's " · " parts too, as the inventory takes them apart. Not a template that's mostly blanks ("{title}"
+ * would read any text as it), nor one whose phone words add a value the desktop's text doesn't carry.
+ */
+const REWORDED = JSON.parse(fs.readFileSync(PHONE_WORDS, "utf8")).flatMap(({ desktop, phone }) => {
+  const [from, to] = [desktop.split(" · "), phone.split(" · ")];
+  const pairs = from.length === to.length && from.length > 1 ? [[desktop, phone], ...from.map((part, i) => [part, to[i]])] : [[desktop, phone]];
+  return pairs.flatMap(([a, b]) => {
+    if (a === b || a.replace(/\{\w+\}/g, "").replace(/[^\p{L}]/gu, "").length < 4) return [];
+    if (!names(b).every((name) => names(a).includes(name))) return [];
+    const source = bareEnd(a)
+      .split(/(\{\w+\})/)
+      .map((part) => (/^\{\w+\}$/.test(part) ? "(.+?)" : escapeRegex(part).replace(/\s+/g, "\\s+")))
+      .join("");
+    return [{ re: new RegExp(`^${source}$`, "u"), names: names(a), to: bareEnd(b) }];
+  });
+});
+
+/** The phone's words for a desktop `token` filled from a text it rewords, with the same values; null for any other. */
+export function phoneText(token) {
+  const text = bareEnd(token.replace(/\s+/g, " ").trim());
+  for (const { re, names: order, to } of REWORDED) {
+    const match = re.exec(text);
+    if (match) return to.replace(/\{(\w+)\}/g, (_, name) => match[order.indexOf(name) + 1]);
+  }
+  return null;
+}
+
 // Grade letters alone ("A", "AB") match only a text that is exactly that; anything else may sit inside a longer text.
 const EXACT = /^(?:[A-E]|AB|BC|T|K)$/;
 /** Maestro's text selector: a regex the element's whole text must match (it ignores case; dots match line ends). */
 export function pattern(token) {
-  // "pada:24 September": the desktop's text read a lecturer's <br> as nothing; the phone breaks the line there.
-  const escaped = token
-    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-    // A space is any space: the phone holds "31 Jan" together with a no-break one, which Java's \s doesn't match.
-    .replace(/\s+/g, "[\\s\\u00a0]+")
-    .replace(/:(?=\S)/g, ":\\s*");
-  return EXACT.test(token) ? escaped : `.*${escaped}.*`;
+  const one = (text) =>
+    escapeRegex(text)
+      // A space is any space: the phone holds "31 Jan" together with a no-break one, which Java's \s doesn't match.
+      .replace(/\s+/g, "[\\s\\u00a0]+")
+      // "pada:24 September": the desktop's text read a lecturer's <br> as nothing; the phone breaks the line there.
+      .replace(/:(?=\S)/g, ":\\s*");
+  if (EXACT.test(token)) return one(token);
+  // Found in the desktop's words or the phone's, the same values in both.
+  const phone = phoneText(token);
+  return phone ? `.*(?:${one(token)}|${one(phone)}).*` : `.*${one(token)}.*`;
 }
 
 /** Fills {{name}} in every string of `value`; a string that is exactly "{{name}}" takes the value as it is (an object). */

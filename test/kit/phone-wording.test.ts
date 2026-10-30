@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { type BuildOptions, build, type Plugin } from "esbuild";
 import { describe, expect, it } from "vitest";
+import { PHONE_WORDS, phoneWordPairs } from "../../mobile/scripts/phone-words.mjs";
 import { type Entry, STRINGS, type StringKey, translate } from "../../src/core/strings";
 import { phoneWording } from "../../src/core/strings/mobile";
 import { wording as desktopWording } from "../../src/core/strings/wording";
@@ -147,6 +148,11 @@ describe("the phone's own words", () => {
         .map((text) => `${key}: ${text}`),
     );
     expect(broken).toEqual([]);
+  });
+
+  it("are listed for the same-data flows, so a desktop text the phone rewords still counts as found", () => {
+    const listed = JSON.parse(fs.readFileSync(PHONE_WORDS, "utf8"));
+    expect(listed, "out of date: run node mobile/scripts/phone-words.mjs").toEqual(phoneWordPairs(STRINGS, phoneWording));
   });
 
   it("are what the phone's translate() takes, and the desktop's stays as it is", async () => {

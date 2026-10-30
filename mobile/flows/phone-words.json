@@ -1,0 +1,172 @@
+[
+  {
+    "key": "alert.newTask.body",
+    "desktop": "{title}",
+    "phone": "{title} · tenggat {dateId} {time}"
+  },
+  {
+    "key": "alert.test.body",
+    "desktop": "Klik untuk membuka Tugas & Ujian",
+    "phone": "Ketuk untuk membuka Tugas & Ujian"
+  },
+  {
+    "key": "bills.otherItb",
+    "desktop": "Kalender ITB menulis {date}. Ikuti yang lebih awal.",
+    "phone": "Di Kalender ITB tertulis {date}. Bayar paling lambat tanggal yang lebih awal."
+  },
+  {
+    "key": "bills.otherSix",
+    "desktop": "SIX menulis {date}. Ikuti yang lebih awal.",
+    "phone": "Di SIX tertulis {date}. Bayar paling lambat tanggal yang lebih awal."
+  },
+  {
+    "key": "curriculum.unlistedNote",
+    "desktop": "{count} mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, pilih “Ada di kurikulumku” di menu ⋯ barisnya.",
+    "phone": "Ada {count} mata kuliah di luar catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”."
+  },
+  {
+    "key": "deadline.lectureEnd",
+    "desktop": "Jatah absenmu dihitung sampai hari ini.",
+    "phone": "Jatah absenmu dihitung sampai hari itu."
+  },
+  {
+    "key": "grades.bestHint",
+    "desktop": "jika semua A di {sks} SKS tersisa",
+    "phone": "jika semua A di {sks} SKS semester ini dan rencanamu"
+  },
+  {
+    "key": "handIn.check.attendanceEarly",
+    "desktop": "Belum masuk jendela presensi ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
+    "phone": "Presensi belum dibuka ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir."
+  },
+  {
+    "key": "handIn.check.attendanceIn",
+    "desktop": "Di dalam jendela presensi, jadi terhitung hadir.",
+    "phone": "Presensi sedang dibuka, jadi terhitung hadir."
+  },
+  {
+    "key": "handIn.check.attendanceMissed",
+    "desktop": "Jendela presensi sudah lewat ({when}). Tugas tetap terkumpul, tapi tidak dihitung hadir.",
+    "phone": "Presensi sudah ditutup ({when}). Tugas tetap terkumpul, tapi tidak dihitung hadir."
+  },
+  {
+    "key": "handIn.submitAnyway",
+    "desktop": "Kumpulkan tetap (tidak dihitung hadir)",
+    "phone": "Tetap kumpulkan (tidak dihitung hadir)"
+  },
+  {
+    "key": "handIn.why.early",
+    "desktop": "Belum masuk jendela presensi. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir.",
+    "phone": "Presensi belum dibuka. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir."
+  },
+  {
+    "key": "home.now.checkEvery",
+    "desktop": "Aplikasi memeriksa tiap 2 menit",
+    "phone": "Dicek tiap 2 menit selama aplikasi terbuka"
+  },
+  {
+    "key": "ics.handIn.note",
+    "desktop": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.",
+    "phone": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini."
+  },
+  {
+    "key": "krs.stage.clash",
+    "desktop": "KRS sah, tapi ada {count} bentrok",
+    "phone": "KRS sudah disahkan, tapi ada {count} bentrok"
+  },
+  {
+    "key": "krs.stage.done",
+    "desktop": "KRS sudah sah",
+    "phone": "KRS sudah disahkan"
+  },
+  {
+    "key": "meeting.done",
+    "desktop": "Selesai",
+    "phone": "Tanpa catatan Edunex"
+  },
+  {
+    "key": "planner.local",
+    "desktop": "Rencana ini tersimpan di komputer ini. Aplikasi tidak pernah mengirim KRS.",
+    "phone": "Rencana ini tersimpan di HP ini. Aplikasi tidak pernah mengirim KRS."
+  },
+  {
+    "key": "presence.budget.safe",
+    "desktop": "Sisa jatah absen {count}×",
+    "phone": "Masih boleh absen {count} kali"
+  },
+  {
+    "key": "presence.footer",
+    "desktop": "Kehadiran dihitung di SIX. Tekan Tandai Hadir di SIX saat tombolnya muncul. Aplikasi akan memberi tahu.",
+    "phone": "Kehadiran dihitung di SIX. Tekan Tandai Hadir di SIX saat tombolnya muncul. Buka aplikasi saat kuliah agar langsung tahu."
+  },
+  {
+    "key": "presence.how.check",
+    "desktop": "Setelah tiap kuliah, aplikasi memeriksa apakah hitungan SIX bertambah, dan memberi tahu hari itu juga jika tidak.",
+    "phone": "Setelah tiap kuliah, aplikasi mengecek apakah hitungan SIX bertambah, dan memberi tahu jika tidak. Pengecekannya saat aplikasi dibuka, dan sesekali saat tertutup."
+  },
+  {
+    "key": "presence.row.watching",
+    "desktop": "Tandai Hadir belum muncul. Aplikasi memeriksa SIX tiap 2 menit.",
+    "phone": "Tandai Hadir belum muncul. Selama aplikasi terbuka, SIX dicek tiap 2 menit."
+  },
+  {
+    "key": "schedule.export.nothing",
+    "desktop": "Tidak ada yang bisa disimpan",
+    "phone": "Tidak ada yang bisa ditambahkan"
+  },
+  {
+    "key": "schedule.window.only",
+    "desktop": "Hadir tercatat hanya jika dikumpulkan dalam jendela ini.",
+    "phone": "Hadir tercatat hanya jika dikumpulkan dalam waktu ini."
+  },
+  {
+    "key": "settings.alerts.presenceHint",
+    "desktop": "Saat Tandai Hadir muncul di SIX atau Presensi Edunex dibuka, dan 15 menit sebelum tutup jika belum tercatat",
+    "phone": "Saat kuliah yang dihitung di SIX mulai, saat Presensi Edunex dibuka, dan 15 menit sebelum tutup jika belum tercatat. Tandai Hadir di SIX hanya dicek selama aplikasi terbuka."
+  },
+  {
+    "key": "settings.alerts.testSent",
+    "desktop": "Terkirim. Tidak muncul? Izinkan notifikasi Edunex Plus di pengaturan sistem.",
+    "phone": "Terkirim. Tidak muncul? Izinkan notifikasi Edunex Plus di pengaturan HP."
+  },
+  {
+    "key": "settings.signOutAllBody",
+    "desktop": "Kamu keluar dari Edunex dan SIX, dan semua yang disimpan aplikasi di komputer ini dihapus. Itu termasuk yang kamu isi sendiri, seperti rencana studi, koreksi kurikulum, bobot dan nilai mata kuliah, target kehadiran per mata kuliah, warna mata kuliah, pengingat yang ditunda, dan HP yang terhubung. Ini tidak bisa dibatalkan.",
+    "phone": "Kamu keluar dari Edunex dan SIX, dan semua yang disimpan aplikasi di HP ini dihapus. Itu termasuk yang kamu isi sendiri, seperti rencana studi, koreksi kurikulum, bobot dan nilai mata kuliah, target kehadiran per mata kuliah, warna mata kuliah, dan pengingat yang ditunda. Ini tidak bisa dibatalkan."
+  },
+  {
+    "key": "settings.signOutAllHint",
+    "desktop": "Keluar dari Edunex dan SIX, lalu menghapus semua datamu dari komputer ini.",
+    "phone": "Keluar dari Edunex dan SIX, lalu menghapus semua datamu dari HP ini."
+  },
+  {
+    "key": "settings.snoozed.hint",
+    "desktop": "Hanya di komputer ini, untuk Beranda, halaman tugas, dan halaman mata kuliah. Notifikasi perubahan baru tetap muncul.",
+    "phone": "Hanya di HP ini, untuk Beranda, halaman tugas, dan halaman mata kuliah. Notifikasi perubahan baru tetap muncul."
+  },
+  {
+    "key": "signIn.slowHint",
+    "desktop": "Jendela masuknya terbuka lagi. Tunggu di sana, atau tutup lalu coba lagi.",
+    "phone": "Halaman masuknya terbuka lagi. Tunggu sebentar, atau tutup lalu coba lagi."
+  },
+  {
+    "key": "task.note.attendance",
+    "desktop": "Tugas ini sekaligus Presensi-mu. Kamu hanya terhitung hadir jika mengumpulkannya di dalam jendelanya, {date}, {time}.",
+    "phone": "Tugas ini juga Presensi-mu. Kamu dihitung hadir hanya jika mengumpulkannya {date}, {time}."
+  },
+  {
+    "key": "task.note.attendanceCounted",
+    "desktop": "Terhitung hadir. Kamu mengumpulkan di dalam jendela presensi ({when}).",
+    "phone": "Terhitung hadir. Kamu mengumpulkannya selama Presensi dibuka ({when})."
+  },
+  {
+    "key": "task.note.attendanceMissed",
+    "desktop": "Jendela presensi tugas ini sudah lewat ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
+    "phone": "Presensi tugas ini sudah ditutup ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir."
+  },
+  {
+    "key": "task.note.attendanceOutside",
+    "desktop": "Tidak dihitung hadir karena dikumpulkan di luar jendela presensi ({when}). Tugasnya tetap terkumpul.",
+    "phone": "Tidak dihitung hadir karena tidak dikumpulkan selama Presensi dibuka ({when}). Tugasnya tetap terkumpul."
+  }
+]
