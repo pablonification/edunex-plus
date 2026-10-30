@@ -956,7 +956,21 @@ export function MarkHandedIn({ task }: { task: Task }) {
       <Text size="caption" tone="muted">
         {t("done.otherWay")}
       </Text>
-      {link(t("done.otherWay.menu"), () => setMenu(true), "action.markHandled", t("done.otherWay.menuFor"))}
+      {/* The desktop's quiet menu button: a muted "⌄ Tandai" that opens a choice, not a link. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("done.otherWay.menuFor")}
+        accessibilityState={{ expanded: menu }}
+        onPress={() => setMenu(true)}
+        hitSlop={10}
+        testID="action.markHandled"
+        style={{ flexDirection: "row", alignItems: "center", gap: 4, minHeight: 24 }}
+      >
+        <Icons.ChevronDown size={14} color={theme.color.muted} />
+        <Text size="caption" weight="medium" tone="muted">
+          {t("done.otherWay.menu")}
+        </Text>
+      </Pressable>
       <ActionSheet
         open={menu}
         onClose={() => setMenu(false)}
