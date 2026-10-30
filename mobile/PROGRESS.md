@@ -7,17 +7,21 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
 
 - Every scope row is built. Open: A7/S10 real sign-in (Blockers for Arqila). A4 (background sync)
   now runs through with the app closed (release 4f06ae8).
-- Check A: on Redroid, signed-in screens are 100% but plan (177/178, the last "31 Jan" behind a
-  no-break space, fixed in the flows' pattern) and the scenarios CI still has to count. The phone's
-  own wording (Decision 12) now counts as found.
+- Check A: CI run 41002111336 counted all 15 scenarios. 10,272 of 10,405 items found (99%), each
+  scenario 98–100%. The 133 misses had three causes, all fixed. Six scenarios' Tasks flow stopped
+  (30): Maestro's scroll up turned into a pull to refresh, because a second tap on Tugas didn't scroll
+  it to the top (1046577). The joint class's Modul 1–4 shared a name with the class's own (70): the
+  inventory and the phone's row ids now say "kelas-gabungan-modul-1". The desktop's "2×" didn't
+  count the phone's "Masih boleh absen 2 kali" (33): Decision 12 now covers a value cut from a
+  reworded text. On Redroid the joint modules (10/10) and the class sheets (25/25) are found.
 - Check B: judge round 4 passed every screen light and 36 of 37 dark; the fail was a blank picture
   (34 dark, the walk fixed). Its picture again on the next run.
 - Picky-student pass done (12 findings): all fixed (course page's Buka di SIX, UKT dates, Jadwal's
   week name and Hari ini, Lainnya's badge, columns at big font sizes, words, a reminder at the start
   of every class SIX counts, a new Task's deadline in its notification).
 - Performance round: cold start 1.0–1.15 s with saved data, 0 janky frames scrolling long lists.
-- Next: next CI run → Score A for every scenario, judge round 4, A4 on the release build; then the
-  end-to-end fresh install, the hand-off report and the draft PR.
+- Next: the next CI run, with Check A expected at 100% in every scenario and 34 dark's picture for
+  the judge. Then the end-to-end fresh install, the hand-off report and the draft PR.
 
 ## Tools on pabs (installed without sudo)
 
@@ -222,7 +226,9 @@ machine). Every helper runs at effort high or more.
     string (`phoneWording`), a token filled from it is found in either wording with the same values:
     `mobile/flows/phone-words.json` (made by `mobile/scripts/phone-words.mjs`, kept current by
     `test/kit/phone-wording.test.ts`, as CI's flow job has no node_modules). Four phrases use it
-    ("Selesai" on a past class, "KRS sah", "sampai hari ini", "SKS tersisa"); facts never do.
+    ("Selesai" on a past class, "KRS sah", "sampai hari ini", "SKS tersisa"); facts never do. A value
+    the inventory cuts out with what touches it ("2×" of "Sisa jatah absen 2×") counts in the phone's
+    whole words with that value ("Masih boleh absen 2 kali").
 
 ## Blocked
 
@@ -258,6 +264,13 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
   phones as a widget update starts (no fix released); its plugin can't set a smaller resize size,
   so the widget only stretches bigger than 4x2; the widget list shows no description (the config
   loader can't read src/core/strings). Watch the first two on a device.
+- A scroll up in a flow can overshoot a page's top and pull to refresh. The demo then reads everything
+  again, and its spinners keep the screen moving for 10 s on Redroid and over 25 s on CI's emulator.
+  Maestro waits for a still screen after each swipe, so the step runs out of time. A flow that
+  starts from a tab should find its top after tapping the tab (every tab scrolls up on a second tap).
+- The edit scenario's "Diubah dosen" time depends on how fast the inventory's machine runs (08:10
+  alone, 08:24 with three walks at once). The committed 08:11 is what CI's phone shows; keep it when
+  regenerating.
 - Never pipe `tsc` or `biome` into `tail` inside an `&&` chain: the pipe hides its exit code (38a1a49 went out with a type error, fb0f860 with a lint error). Run them bare and read `$?`.
 - CI runs on `mobile` only (48f4bff): helpers' `mobile-*` pushes used to start sixteen emulators each and held
   the branch's own run in the queue for an hour. A run takes ~3 h for the scenarios (each ~100 min).
