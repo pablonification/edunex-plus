@@ -219,6 +219,19 @@ machine). Every helper runs at effort high or more.
   `.ts`. Unchanged from main; GitHub's official Node passes it. Everything else in `npm run check`
   passes on pabs (2465 tests).
 
+## Performance (round 2)
+
+Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), release builds from CI run
+40987379862 (48f4bff). Scripts: `~/tools/coldstart.sh`, `~/tools/jank.sh` (copies in the report).
+
+| Measure | Result | Goal |
+| --- | --- | --- |
+| Cold start with saved data (Android's START to the app's "[startup] shown", Beranda drawn; demo resumed with `EDUNEX_DEMO_RESUME=1`, after a force-stop) | 1015, 1047, 1115, 1145, 1017 ms | under 2 s |
+| JS start to first frame (release, real app) | 291 ms ("Running main" → "[startup] shown") | |
+| Scrolling Tugas & Ujian (FlashList), 12 swipes | 0 janky frames of 83; 99th percentile 32 ms | smooth |
+| Scrolling Kurikulum (the longest plain list), 12 swipes | 0 janky frames of 83; 99th percentile 26 ms | smooth |
+| Beranda, Tugas, Kurikulum with tab switches between | 2.47% janky (6 of 243), the slow ones the switches | |
+
 ## Notes for later
 
 - Back closed the app: predictive back was on (Android 13+ then never sends React Native the Back
