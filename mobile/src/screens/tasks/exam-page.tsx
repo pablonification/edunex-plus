@@ -42,7 +42,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   const courses = useTermCourses();
   if (!exams)
     return (
-      <Page testID="screen.exam" header={<TopBar />}>
+      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />}>
         <Skeleton width={96} />
         <Skeleton width="80%" height={32} style={{ marginTop: space[3] }} />
         <Skeleton height={128} style={{ marginTop: space[8] }} />
@@ -51,7 +51,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   const exam = exams.find((e) => e.id === examId);
   if (!exam)
     return (
-      <Page testID="screen.exam" header={<TopBar />}>
+      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />}>
         <EmptyState icon={<Icons.GraduationCap size={20} color={theme.color.muted} />} title={t("exam.notFound")} />
       </Page>
     );
@@ -100,7 +100,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
   if (!exam.tasks.length && course?.edunex) links.push({ key: "course", label: t("examPage.seeCourse"), url: edunexCourseUrl(course.edunex.courseId) });
 
   return (
-    <Page testID="screen.exam" header={<TopBar />} {...pull}>
+    <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} {...pull}>
       <PageHeader
         eyebrow={
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>

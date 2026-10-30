@@ -74,13 +74,13 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
     return edunexReading ? (
       <Loading />
     ) : (
-      <Page testID="screen.course" header={<TopBar />}>
+      <Page testID="screen.course" header={<TopBar title={t("nav.courses")} />}>
         <NotLoaded />
       </Page>
     );
   if (page === null)
     return (
-      <Page testID="screen.course" header={<TopBar />}>
+      <Page testID="screen.course" header={<TopBar title={t("nav.courses")} />}>
         <CourseMissing />
       </Page>
     );
@@ -116,7 +116,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
   return (
     <Page
       testID="screen.course"
-      header={<TopBar actions={<MoreMenu page={page} />} />}
+      header={<TopBar title={t("nav.courses")} actions={<MoreMenu page={page} />} />}
       scrollRef={scroll}
       // The tab bar stays at the top while a long tab scrolls.
       stickyHeaderIndices={[1]}
@@ -374,8 +374,9 @@ function NotLoaded() {
 }
 
 function Loading() {
+  const t = useT();
   return (
-    <Page testID="screen.course" header={<TopBar />}>
+    <Page testID="screen.course" header={<TopBar title={t("nav.courses")} />}>
       <View accessibilityState={{ busy: true }}>
         <Skeleton height={12} width={64} />
         <Skeleton height={30} width="70%" style={{ marginTop: space[3] }} />

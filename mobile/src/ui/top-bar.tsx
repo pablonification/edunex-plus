@@ -1,6 +1,8 @@
-// The bar over a screen a tab opened (a Task, a course, Settings): Back on the left, saying where
-// it goes, as the desktop's back button does; the screen's own actions on the right. The tabs'
-// own pages use `TabBar`: the app's name, search and the bell, within reach of a thumb's stretch.
+// The bar over a screen a tab opened (a Task, a course, Settings): Back on the left, then the part
+// of the app it belongs to ("Tugas & Ujian", as the desktop's back button says; Back itself goes
+// wherever the Student came from), or the screen's name when the page has no title of its own;
+// the screen's own actions on the right. The tabs' own pages use `TabBar`: the app's name, search
+// and the bell, within reach of a thumb's stretch.
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

@@ -58,7 +58,7 @@ export function TaskScreen({ taskId }: { taskId: number }) {
   const task = tasks?.find((item) => item.id === taskId);
   if (task) return <TaskPage key={task.id} task={task} />;
   return (
-    <Page testID="screen.task" header={<TopBar />}>
+    <Page testID="screen.task" header={<TopBar title={t("nav.tasks")} />}>
       {tasks ? (
         <EmptyState icon={<Icons.ListChecks size={20} color={theme.color.muted} />} title={t("task.notFound")}>
           <Button size="sm" onPress={() => go({ screen: "tasks" })}>
@@ -98,7 +98,7 @@ function TaskPage({ task }: { task: Task }) {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: c.canvas }}>
-      <Page testID="screen.task" header={<TopBar />} scrollRef={scroll} {...pull}>
+      <Page testID="screen.task" header={<TopBar title={t("nav.tasks")} />} scrollRef={scroll} {...pull}>
         {/* The way up, part by part: the course, and its module. */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[1.5], flexWrap: "wrap" }}>
           <Pressable
