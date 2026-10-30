@@ -251,4 +251,37 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini.",
     en: "You're marked present only if you hand the Task in during this time.",
   },
+  // tasks: the hand-in's buttons and the lines about handing in. The phone says "hand in" for the act
+  // everywhere, as most of its lines already do. "Submitted" stays the status (Terkumpul in the Glossary).
+  "handIn.submit": { id: "Kumpulkan", en: "Hand in" },
+  "handIn.submitLate": { id: "Kumpulkan terlambat", en: "Hand in late" },
+  "handIn.submitNow": { id: "Kumpulkan sekarang", en: "Hand in now" },
+  "handIn.submitAnyway": { id: "Tetap kumpulkan (tidak dihitung hadir)", en: "Hand in anyway (not counted present)" },
+  "handIn.explainer": {
+    id: "Dosen bisa melihat draf yang tersimpan, tapi hanya Kumpulkan yang menyerahkannya.",
+    en: "Your lecturer can see a saved draft, but only Hand in sends it.",
+  },
+  "handIn.confirmTitle": { id: "Kumpulkan tugas ini?", en: "Hand in this Task?" },
+  "handIn.confirmBody": {
+    id: "Jawabanmu dan {files} akan diserahkan ke dosen. Setelah dikumpulkan, jawabanmu final.",
+    en: "Your answer and {files} go to your lecturer. Once handed in, your answer is final.",
+  },
+  "handIn.confirmBodyText": {
+    id: "Jawabanmu akan diserahkan ke dosen. Setelah dikumpulkan, jawabanmu final.",
+    en: "Your answer goes to your lecturer. Once handed in, your answer is final.",
+  },
+  "history.submitted": { id: "Kamu mengumpulkan", en: "You handed it in" },
+  "task.note.editedAfterSubmit": {
+    id: "Dosen mengubah tugas ini pada {edited}, setelah kamu mengumpulkan pada {sent}. Edunex tidak memberi tahu. Pastikan jawabanmu masih sesuai instruksi.",
+    en: "Your lecturer changed this Task on {edited}, after you handed it in on {sent}. Edunex didn't tell you. Check that your answer still fits the instructions.",
+  },
+  "task.change.afterSubmit": {
+    id: "Dosen mengubah tugas ini pada {edited}, setelah kamu mengumpulkan pada {sent}.",
+    en: "Your lecturer changed this Task on {edited}, after you handed it in on {sent}.",
+  },
+  "task.editedAfterSubmitLine": { id: "Diubah setelah kamu kumpulkan ({date}) · cek lagi", en: "Changed after you handed it in ({date}) · check again" },
+  "scan.edited.afterSubmit": { id: "{count} di antaranya setelah kamu mengumpulkan.", en: "{count} after you'd already handed it in." },
+  "alert.due.body": { id: "{title} · belum dikumpulkan", en: "{title} · not handed in yet" },
+  "alert.due.draft": { id: "{title} · masih draf, belum dikumpulkan", en: "{title} · still a draft, not handed in yet" },
+  "settings.alerts.deadlineHint": { id: "Sebelum tenggat, hanya jika belum dikumpulkan", en: "Before the deadline, only if not handed in" },
 };
