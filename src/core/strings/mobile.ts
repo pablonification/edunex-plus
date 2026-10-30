@@ -109,6 +109,8 @@ export const mobileStrings = {
   "mobile.planner.options": { id: "Pilihan untuk {code}", en: "Options for {code}" },
   "mobile.planner.moveTo": { id: "Pindahkan ke {term}", en: "Move to {term}" },
   "mobile.planner.moved": { id: "{code} dipindah ke {term}", en: "{code} moved to {term}" },
+  // Rencana's summary: the count of things to check scrolls down to the rules, which sit beside the plan on the desktop.
+  "mobile.planner.toCheckHint": { id: "Ke daftar aturan di bawah", en: "Goes to the rules below" },
   // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
   "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
   "mobile.deadline.calendarFailed": {

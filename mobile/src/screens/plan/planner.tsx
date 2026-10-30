@@ -7,8 +7,9 @@
 // semester) a sheet behind its ⋯ or a long press, adding a course a sheet with search, a minor
 // up close a sheet. Every change that loses something can be taken back from its toast. The plan
 // stays on this phone; the app never sends a KRS.
-import { type ReactNode, useRef, useState } from "react";
+import { type ComponentRef, type ReactNode, useRef, useState } from "react";
 import { Alert, Pressable, TextInput, View } from "react-native";
+import { useCourseColor } from "../../../../src/app/courses";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { type PlanState, useCurriculumFix, usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import { nearestLetter } from "../../../../src/core/honors";
@@ -76,12 +77,13 @@ import {
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
 import { dismissToast, toast } from "../../swaps/overlays";
 import { Button, Chip, ChipRow, IconButton } from "../../ui/controls";
-import { Card, Tag } from "../../ui/display";
+import { Card, CourseCode, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet, type SheetChoice } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
 import { type Palette, radius, space, type, useTheme } from "../../ui/theme";
+import { useScrollToView } from "./page-scroll";
 import { usePlaceState } from "./place-state";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
 import { SixNeeded } from "./six-needed";
@@ -183,6 +185,8 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
   const [adding, setAdding] = useState<string | null>(null);
   const [acting, setActing] = useState<Acting | null>(null);
   const undoable = useUndoable(state);
+  const rulesRef = useRef<ComponentRef<typeof View>>(null);
+  const scrollTo = useScrollToView();
   const rules = checkPlan(record, plan, projection);
   const minor = activeMinor(record, plan);
   const spec = activeSpecialization(record, plan);
@@ -218,7 +222,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
     <View style={{ gap: space[4] }}>
       <SixPageNote datasets={["six.curriculum"]} />
       <UnreadNote record={record} />
-      <Summary record={record} state={state} rules={rules} />
+      <Summary record={record} state={state} rules={rules} onCheck={() => scrollTo(rulesRef.current)} />
       <Past record={record} steps={projection.steps.filter((s) => !s.projected && s.term !== record.term)} />
       {/* Shown while this term's KRS is still empty too: that's when trying courses matters most. */}
       {record.term ? (
@@ -383,7 +387,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
           {t("planner.local")}
         </Text>
       </View>
-      <View style={{ marginTop: space[4], gap: space[4] }}>
+      <View ref={rulesRef} collapsable={false} style={{ marginTop: space[4], gap: space[4] }}>
         <Rules record={record} rules={rules} plan={plan} undoable={undoable} />
         <Outlook record={record} state={state} />
         <Minors record={record} state={state} undoable={undoable} />
@@ -442,7 +446,7 @@ function useShortfallText(): (shortfall: Shortfall) => string {
     );
 }
 
-function Summary({ record, state, rules }: { record: StudentRecord; state: PlanState; rules: Rule[] }) {
+function Summary({ record, state, rules, onCheck }: { record: StudentRecord; state: PlanState; rules: Rule[]; onCheck: () => void }) {
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -490,13 +494,27 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
               <Text size="title" weight="semibold">
                 {finish ? t("planner.semester", { n: finish.semester }) : "-"}
               </Text>
-              <Text size="caption" weight="medium" tone={warnings ? "warning" : "muted"} accessibilityLiveRegion="polite">
-                {warnings
-                  ? t("planner.toCheck", { count: warnings })
-                  : finish && finish.semester > finish.normal
-                    ? t("planner.late", { normal: finish.normal })
-                    : t("planner.onTime")}
-              </Text>
+              {warnings ? (
+                // The checks sit beside the plan on the desktop; here they're further down, so the count takes you there.
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityHint={t("mobile.planner.toCheckHint")}
+                  accessibilityLiveRegion="polite"
+                  onPress={onCheck}
+                  hitSlop={10}
+                  testID="action.planChecks"
+                  style={{ flexDirection: "row", alignItems: "center", gap: 2, alignSelf: "flex-start" }}
+                >
+                  <Text size="caption" weight="medium" tone="warning">
+                    {t("planner.toCheck", { count: warnings })}
+                  </Text>
+                  <Icons.ChevronRight size={12} color={theme.color.warningFg} weight="bold" />
+                </Pressable>
+              ) : (
+                <Text size="caption" weight="medium" tone="muted" accessibilityLiveRegion="polite">
+                  {finish && finish.semester > finish.normal ? t("planner.late", { normal: finish.normal }) : t("planner.onTime")}
+                </Text>
+              )}
             </>
           )}
         </View>
@@ -756,9 +774,9 @@ function RoleTag({ record, code, minor, spec }: { record: StudentRecord; code: s
 }
 
 /**
- * A course's row in a semester: its name, then its code, tag and SKS on the line under it (a phone's
- * width keeps the name readable), its grade, and ⋯ for what else can be done with it (a long press
- * opens the same sheet).
+ * A course's row in a semester: its code in the leading column (as KRS and the desktop's line), its
+ * name, its tag and SKS on the line under the name, its grade, and ⋯ for what else can be done with
+ * it (a long press opens the same sheet).
  */
 function CourseLine({
   code,
@@ -785,6 +803,7 @@ function CourseLine({
 }) {
   const t = useT();
   const theme = useTheme();
+  const colorOf = useCourseColor();
   return (
     <Pressable
       onLongPress={onMore}
@@ -801,14 +820,15 @@ function CourseLine({
       }}
       testID={`row.course.${code}`}
     >
+      {/* The code level with the name's first line (22 high). */}
+      <View style={{ alignSelf: "flex-start", minHeight: 22, justifyContent: "center" }}>
+        <CourseCode code={code} color={colorOf(code)} column />
+      </View>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <Text size="body" numberOfLines={3}>
           {name}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2], rowGap: 2 }}>
-          <Text size="small" weight="semibold" tabular>
-            {code}
-          </Text>
           {tag}
           <Text size="small" tone="muted" tabular>
             {`${sks} SKS`}
@@ -828,7 +848,7 @@ function CourseLine({
       {posted ? (
         <View
           accessibilityLabel={`${t("grades.sixGrade")}: ${grade}`}
-          style={{ minWidth: 60, height: 36, borderRadius: radius.md, alignItems: "center", justifyContent: "center", backgroundColor: theme.color.neutralBg }}
+          style={{ minWidth: 60, height: 44, borderRadius: radius.md, alignItems: "center", justifyContent: "center", backgroundColor: theme.color.neutralBg }}
         >
           <Text size="small" weight="bold" style={{ color: theme.color.neutralFg }}>
             {grade}
