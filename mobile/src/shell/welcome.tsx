@@ -65,7 +65,18 @@ const STAGE = {
 const MARK = 80;
 /** Edunex's and SIX's logos either side of it, and the column each stands in. */
 const LOGO = 56;
-const TILE = 104;
+/**
+ * The column each stands in, as wide as half the row allows (up to TILE_MAX): wide enough for SIX's
+ * program on two lines ("Sistem dan Teknologi / Informasi"). The link to the mark runs over the column's
+ * empty sides, from the logo's edge, so the logos keep their place.
+ */
+const TILE_MAX = 152;
+const tileWidth = (screen: number) => {
+  const row = screen - space[5] * 2 + space[1] * 2;
+  // Two columns side by side with a gap, and room left on a small phone for each link's shortest line (16, and 4 at
+  // each end) between the logo and the mark.
+  return Math.min(TILE_MAX, Math.floor((row - space[2]) / 2), row - MARK - 2 * (space[4] + space[1] * 2) - LOGO);
+};
 /** Room kept at the top for the language switch, and at the bottom for the step dots. */
 const TOP_BAR = 56;
 const DOTS = 40;
@@ -284,6 +295,7 @@ function LanguageSwitch() {
 function Connect({ onNext }: { onNext: () => void }) {
   const t = useT();
   const { markTop } = useStage();
+  const tile = tileWidth(useWindowDimensions().width);
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
   const edunex = isConnected(useStatus("edunex").state);
@@ -315,14 +327,15 @@ function Connect({ onNext }: { onNext: () => void }) {
       <View style={{ height: markTop }} />
       {/* Lined up on the mark, so it stays where the step before had it whatever the systems' lines say. */}
       <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "center", marginHorizontal: -space[1] }}>
-        <SourceTile source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
-        <Link on={edunex} side="left" />
+        <SourceTile source="edunex" width={tile} who={account ? [displayName(account.name), account.nim] : null} />
+        <Link on={edunex} side="left" tile={tile} />
         <Mark />
-        <Link on={six} side="right" />
+        <Link on={six} side="right" tile={tile} />
         {/* Before anything is in, SIX can be connected first (the big button is Edunex's). Its name is Edunex's,
             already said on the left: SIX says the program. */}
         <SourceTile
           source="six"
+          width={tile}
           who={student ? [student.program ?? student.nim] : null}
           busy={waiting}
           onConnect={connected ? undefined : () => connect("six")}
@@ -377,14 +390,25 @@ function Connect({ onNext }: { onNext: () => void }) {
 }
 
 /** A hairline from a system to the app: dashed while apart, drawn solid from the system's side when it connects. */
-function Link({ on, side }: { on: boolean; side: "left" | "right" }) {
+function Link({ on, side, tile }: { on: boolean; side: "left" | "right"; tile: number }) {
+  // From the logo's edge (the tile's sides beside it are empty at this height) to the mark's.
+  const over = (tile - LOGO) / 2;
   const drawn = useRef(new Animated.Value(on ? 1 : 0)).current;
   useEffect(() => {
     Animated.timing(drawn, { toValue: on ? 1 : 0, duration: 700, useNativeDriver: true }).start();
   }, [on, drawn]);
   return (
     // Level with the middle of the mark and of the logos beside it.
-    <View style={{ flex: 1, minWidth: space[4], height: 2, marginTop: MARK / 2 - 1, marginHorizontal: space[1] }}>
+    <View
+      style={{
+        flex: 1,
+        minWidth: space[4],
+        height: 2,
+        marginTop: MARK / 2 - 1,
+        marginLeft: side === "left" ? space[1] - over : space[1],
+        marginRight: side === "right" ? space[1] - over : space[1],
+      }}
+    >
       <Svg width="100%" height={2} style={StyleSheet.absoluteFill}>
         <Line x1="0" y1="1" x2="100%" y2="1" stroke="rgba(255,255,255,0.3)" strokeWidth={1} strokeDasharray="3 4" />
       </Svg>
@@ -401,11 +425,14 @@ function Link({ on, side }: { on: boolean; side: "left" | "right" }) {
 /** One system: its logo (a check once connected), its name, and where its sign-in stands or who is signed in. */
 function SourceTile({
   source,
+  width,
   who,
   busy = false,
   onConnect,
 }: {
   source: "edunex" | "six";
+  /** The column's width (tileWidth). */
+  width: number;
   /** Who is signed in, a line each: Edunex's name and NIM, SIX's program. */
   who: readonly string[] | null;
   /** Connect's sign-in is under way. */
@@ -460,7 +487,7 @@ function SourceTile({
     </View>
   );
   return (
-    <View style={{ width: TILE, alignItems: "center" }} testID={`welcome.${source}`}>
+    <View style={{ width, alignItems: "center" }} testID={`welcome.${source}`}>
       {onConnect ? (
         <Pressable
           onPress={busy ? undefined : onConnect}
