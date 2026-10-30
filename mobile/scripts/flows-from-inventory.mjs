@@ -126,6 +126,17 @@ function checks(scenario, entry, scroll = 4000) {
     out.push(
       line({ runFlow: { when: { notVisible: element }, commands: [{ scrollUntilVisible: { element, direction: "UP", timeout: scroll, optional: true } }] } }),
     );
+    // A page still gliding from the last scroll can carry a text found at its bottom edge off that edge before the
+    // check, and the scroll up then looks the wrong way (run 41061832793: Settings' "PL3002"). Down once more, stopping
+    // with it in the middle. This runs only for a text not found yet, so it costs time only on what would be missed.
+    out.push(
+      line({
+        runFlow: {
+          when: { notVisible: element },
+          commands: [{ scrollUntilVisible: { element, direction: "DOWN", timeout: scroll, centerElement: true, optional: true } }],
+        },
+      }),
+    );
     out.push(line({ assertVisible: { ...element, optional: true, label: label(scenario, entry.id, i + 1, entry.tokens.length) } }));
   });
   return out;

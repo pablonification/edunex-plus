@@ -17,8 +17,8 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
   Its two polish fixes (tabs fade at a hidden edge, a date keeps its time) are pushed with the edit fix.
 - Hand-off: `mobile/HANDOFF.md` and the PR text (`~/scratch/pr/`) are drafted, with `{{…}}` for the
   final numbers (Decision 14).
-- Fresh install, dry run on run 41029222897's APKs (Redroid, both apps uninstalled first): passed, 101
-  steps. The demo from its welcome through Android's notification prompt and the first scan to Beranda,
+- Fresh install on the final APKs (run 41061832793, bd3ca3c; Redroid, both apps uninstalled first):
+  passed, 104 steps. (The dry run on 41029222897's APKs: 101 steps.) The demo from its welcome through Android's notification prompt and the first scan to Beranda,
   then use.yaml's steps (a Task handed in with jawaban.pdf from Android's picker, a class sheet, the
   month, English and dark). The real app from its welcome to ITB's own Microsoft sign-in page in the
   app, login.microsoftonline.com beside the lock. `~/scratch/fresh/fresh.sh <apk folder>` repeats it on
@@ -125,6 +125,7 @@ Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenar
 | 2026-10-30 06:45 | signed-in (Redroid, release ff2a963) | 424 | 766 | 14 of 16 flows ran through: home, courses, changes, tasks, exam, schedule, class, presence, search, first-scan 100%; plan 177/178; grades 64/78 and course 0/204 stopped when a tap under Android's buttons sent the app Home (fixed 1d652c4); task 11/119 stopped at a take-home's row name (fixed f485e8f); settings 2/14 (long page: 12 s scrolls since 377de1b; 2 phone-link items left out, A18) |
 | 2026-10-30 10:30 | signed-in (Redroid, release demo from run 4) | plan 177/178, settings 12/12 | (partial) | settings 100% with 25 s scrolls (2 phone-link items left out, A18); plan's last item "31 Jan" is held with a no-break space Java's `\s` doesn't match: the flows' pattern takes any space since a27f078 |
 | 2026-10-30 19:50 | all 15 (CI 41029222897, f48a0be) | 10,404 | 10,405 | All 16 jobs green. 14 scenarios 100%; sick 763/764: Settings' "80%" stopped in the strip above Android's gesture bar, which Maestro's scroll counts as on screen and its check doesn't, so the flow scrolled up away from it. The flows now nudge a fifth of a screen further before scrolling up (scoring, not the app) |
+| 2026-10-30 22:30 | 13 of 15 (CI 41061832793, bd3ca3c) | 5,792 + … | 5,793 + … | sick now 764/764 (the nudge). One flake: course-table-lost's Settings "PL3002", found at the bottom edge while the page still glided, gone by the check, then looked for upward. The flows now end with a centring pass down for a text still not found |
 
 ## Score B: same feel (judge on the Mac)
 
@@ -255,6 +256,11 @@ machine). Every helper runs at effort high or more.
     in the queue. If not, it is the final run, with nothing left to wobble.
 17. **Run 41050649991 (c79c07e) cancelled 10 minutes in**, for a run with the flows' nudge (above) too: the
     final proof needs every fix, and queueing behind it would have cost 3 hours.
+18. **One more run after 41061832793 (bd3ca3c), for the flows' last pass.** Its first 13 scenarios: sick
+    100% with the nudge, one new flake (course-table-lost, Settings' "PL3002" carried off the bottom by a
+    page still gliding, then looked for upward). The flows now end with one centring pass down, only for
+    a text not found yet (Settings 12/12 on Redroid). 41061832793 runs to its end for its own score; the
+    next run starts right after it and is the final proof.
 
 ## Blocked
 
