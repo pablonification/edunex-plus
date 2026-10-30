@@ -10,8 +10,8 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
 - Check A: on Redroid, signed-in screens are 100% but plan (177/178, the last "31 Jan" behind a
   no-break space, fixed in the flows' pattern) and the scenarios CI still has to count. The phone's
   own wording (Decision 12) now counts as found.
-- Check B: judge round 3 passed 35 of 37 in both themes; the two fails were fixed after its pictures.
-  Round 4 on the next CI run.
+- Check B: judge round 4 passed every screen light and 36 of 37 dark; the fail was a blank picture
+  (34 dark, the walk fixed). Its picture again on the next run.
 - Picky-student pass done (12 findings): all fixed (course page's Buka di SIX, UKT dates, Jadwal's
   week name and Hari ini, Lainnya's badge, columns at big font sizes, words, a reminder at the start
   of every class SIX counts, a new Task's deadline in its notification).
@@ -131,6 +131,7 @@ Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenar
 | lainnya | fail | fail | 1 | codes and icons above their text, names ragged (fixed: no font padding, a code column); palette way to colors added |
 | (all 37) | 23 pass | 24 pass | 2 | Round 2 (CI 40965166772): passes 01, 03, 04, 04b, 06, 07, 08, 12, 13, 15, 18, 19, 20, 23, 26-lisensi, 26-tentang, 32, 35, 36, 37, lainnya (02 and 25 partly: walk fixed 0f7287c). Fails: switches (fixed e335266), the calendar sheet's button off screen (11), the month without exams, deadlines, moves, clashes (10), the Masa UTS tiles (09: these three with mobile-jadwal-judge), Nilai's figures (14, fixed e1fd4bc), KRS columns (17, fixed), Pertemuan opening below the fold (21, fixed ae5a61f), calculator numbers high (22, fixed), logos (24, 26 fixed ee02f6e; 32a, 33 with mobile-welcome-judge), the first run's sign-in note and reading step (32a, 34: mobile-welcome-judge). Round 3 after both merge |
 | (all 37) | 35 pass | 35 pass | 3 | Round 3 (CI 40987379862, code 452b773): all round-2 importants fixed; fails only 32a and 33, the first run's lines under the logos cut ("masuk ke Edu…", "Teknologi Infor…"), already widened by the polish merge (366af98) after those pictures. Minors since: small buttons 48 dp to touch, rooms unbroken, the walk shows 02's clashes and 32a's note (77e7130). Round 4 on the next run |
+| (all 37) | 37 pass | 36 pass | 4 | Round 4 (run 41002111336, code 4f06ae8): 32a and 33 fixed, round 3's minors fixed, the picky-student changes "done well, still the same app". The one fail, 34 dark, was a blank picture (taken before the step faded in): the walk now waits for its heading (9004728). Minors fixed in 9004728: dates held together (04, 35), UKT's history "Batas bayar di SIX", the course page's line above Buka di SIX, no grey Hubungkan while signing in, 24 caught mid-read, 04b now Kumpulkan's question with a file from Android's picker (the desktop's 05). Left: Nilai's third caption runs to four lines (14), Rencana studi's tabs cut at the edge without a fade (15–19) |
 
 ## Helpers (on the Mac, 5aba008d-0de9-4d6b-bacd-91fd44264da8)
 
@@ -148,7 +149,7 @@ machine). Every helper runs at effort high or more.
 | report | Dev 1 (Opus 5.5, high) | A8 first-scan summary, A9 problem report, licences (phone's own list) | `mobile-report` | merged (3f86bb0), wired (ca90b75) |
 | wording | Dev 1 (Opus 5.5, high) | Phone words where desktop strings say computer, window, click (override table + test) | `mobile-wording` | merged (6d7b18a): `wording.native.ts` swap, 8 keys, `test/kit/phone-wording.test.ts` guards ~1,900 keys the phone shows |
 | widget | Contact (Opus 5.5, high) | D1 home-screen widget (the tray's now/next/deadline) | `mobile-widget` | merged (a55850f), wired: `useWidgetUpdates` in the frame, `updateWidgets` after a closed-app sync, entry `mobile/index.ts` |
-| judge | Dev 1 (Opus 5.5, high) | Check B, checker (never edits): round 1 on 9 screens (run 40938204552), round 2 on all 37 (run 40965166772), round 3 (run 40987379862: 35/37), round 4 (run 41002111336, code 4f06ae8: running) | `mobile-judge`, `-2`, `-3`, `-4` (read only) | round 1 done: 5/9 light, 4/9 dark, 2 unjudgeable pictures; fixes in ff2a963, 69b9cfb, a4a1d8d; round 2 on the next run's full set |
+| judge | Dev 1 (Opus 5.5, high) | Check B, checker (never edits): round 1 on 9 screens (run 40938204552), round 2 on all 37 (run 40965166772), round 3 (run 40987379862: 35/37), round 4 (run 41002111336, code 4f06ae8: 37/37 light, 36/37 dark, the fail a blank picture) | `mobile-judge`, `-2`, `-3`, `-4` (read only) | round 1 done: 5/9 light, 4/9 dark, 2 unjudgeable pictures; fixes in ff2a963, 69b9cfb, a4a1d8d; round 2 on the next run's full set |
 | tester | Contact (Opus 5.5, high) | Fresh tester, checker (never edits): traces every desktop flow through the phone's code for broken, missing, wrong, rough | `mobile-tester` (reads only) | done (on a stale checkout: its wording, widget and background-task findings were already fixed); the rest fixed or handed out |
 | reminders | Contact (Opus 5.5, high) | Timed alerts scheduled ahead as Android notifications, the phone's true words about checking, a way back when notifications are off | `mobile-reminders` | merged (0cd44ec): booking.ts + reminders.ts (11 tests), 5 phone wording lines, notifications-off notice; device check pending |
 | gaps | Dev 1 (Opus 5.5, high) | Course offline save, exam to calendar, banners on Nilai and Rencana, Laporkan on banners, welcome language switch, file and share words | `mobile-gaps` | merged (3695abd): all six; device check pending |
