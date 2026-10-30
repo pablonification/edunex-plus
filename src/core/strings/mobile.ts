@@ -162,6 +162,8 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Saat Presensi Edunex dibuka, saat Tandai Hadir muncul di SIX selama aplikasi terbuka, dan 15 menit sebelum tutup jika belum tercatat",
     en: "When an Edunex Presence opens, when Tandai Hadir shows in SIX while the app is open, and 15 minutes before it closes if you're not recorded",
   },
+  // A new Task's notification: the title, then its deadline, the first thing a Student wants to know.
+  "alert.newTask.body": { id: "{title} · tenggat {dateId} {time}", en: "{title} · due {dateEn} {time}" },
   // home and presence: SIX is checked every 2 minutes only while the app is open (Android freezes a closed one).
   "home.now.checkEvery": { id: "Dicek tiap 2 menit selama aplikasi terbuka", en: "Checked every 2 minutes while the app is open" },
   "presence.row.watching": {

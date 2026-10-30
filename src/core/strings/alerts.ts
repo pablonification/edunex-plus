@@ -5,6 +5,8 @@ export const alertsStrings = {
   // One alert (OS notification and history row)
   "alert.plain": { id: "{title}", en: "{title}" },
   "alert.newTask": { id: "Tugas baru · {course}", en: "New Task · {course}" },
+  // The Task's title. The phone adds its deadline ({dateId} / {dateEn}, {time}: phoneWording in ./mobile.ts).
+  "alert.newTask.body": { id: "{title}", en: "{title}" },
   "alert.shortTask": { id: "Tugas singkat · {course}", en: "Short Task · {course}" },
   "alert.shortTask.body": { id: "{title} · tutup {time}", en: "{title} · closes {time}" },
   "alert.newMaterial": { id: "Materi baru · {course}", en: "New material · {course}" },

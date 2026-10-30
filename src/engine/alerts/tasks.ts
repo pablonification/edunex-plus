@@ -5,6 +5,7 @@
 // deadline gets new reminders at the new times, and a submitted Task has none;
 // nor does one the Student told the app about (handed in another way, not
 // handing it in, handed in by the group: core/done.ts), until it changes.
+import { dateVars } from "../../core/dates";
 import { taskPutAway } from "../../core/done";
 import { DEADLINE_REMINDERS, type DeadlineReminder, type Task } from "../../core/models";
 import type { StringKey } from "../../core/strings";
@@ -27,7 +28,12 @@ export function newTaskAlert(task: Task, now: number): AlertDraft {
       body: { key: "alert.shortTask.body", vars: { title: task.title, time: clockTime(task.dueAt) } },
     };
   }
-  return { ...base, title: { key: "alert.newTask", vars: { course: task.courseCode } }, body: { key: "alert.plain", vars: { title: task.title } } };
+  // The deadline goes along: the desktop's words leave it out, the phone's say it (phoneWording).
+  const body =
+    task.dueAt === null
+      ? ({ key: "alert.plain", vars: { title: task.title } } as const)
+      : ({ key: "alert.newTask.body", vars: { title: task.title, ...dateVars(task.dueAt), time: clockTime(task.dueAt) } } as const);
+  return { ...base, title: { key: "alert.newTask", vars: { course: task.courseCode } }, body };
 }
 
 export const newTasks: Detector = {

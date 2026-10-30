@@ -39,6 +39,11 @@ const NOT_SHOWN: Partial<Record<StringKey, string>> = {
   "material.openedCopy": "found through the material kind's label, t(`material.<kind>`), and openedCopy is no kind",
 };
 
+/** Keys whose phone words add facts the engine always passes but the desktop's leave out, and which. */
+const ADDS: Partial<Record<StringKey, { id: string[]; en: string[] }>> = {
+  "alert.newTask.body": { id: ["dateId", "time"], en: ["dateEn", "time"] },
+};
+
 const words = (entry: Entry) => [entry.id, ...(typeof entry.en === "string" ? [entry.en] : [entry.en.one, entry.en.other])];
 const placeholders = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map(([, name]) => name).sort();
 const shape = (entry: Entry) => ({
@@ -138,7 +143,10 @@ describe("the phone's own words", () => {
     it(`${key} says what the desktop says, with the same {placeholders} and plural forms`, () => {
       expect(Object.hasOwn(STRINGS, key)).toBe(true);
       const desktop: Entry = STRINGS[key];
-      expect(shape(entry)).toEqual(shape(desktop));
+      const adds = ADDS[key];
+      const desktopShape = shape(desktop);
+      const expected = adds ? { id: [...desktopShape.id, ...adds.id].sort(), en: [...(desktopShape.en as string[]), ...adds.en].sort() } : desktopShape;
+      expect(shape(entry)).toEqual(expected);
       expect(entry).not.toEqual(desktop);
     });
 
