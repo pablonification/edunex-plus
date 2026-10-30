@@ -71,6 +71,27 @@ describe("schedule alerts", () => {
     expect(app.texts()).toEqual([]);
   });
 
+  it("on a phone's sync with the app closed, what waits to be grouped goes out at once when asked", async () => {
+    const app = await start();
+    app.world.six.moveMeeting("2194343", "10:00", "11:30", "9009");
+    // Read at human pace, but not past the grouping window: the alert is still waiting.
+    let done = false;
+    const reading = app.engine.refresh("six").finally(() => (done = true));
+    for (let second = 0; second < 600 && !done; second++) {
+      await new Promise((resolve) => setImmediate(resolve));
+      if (!done) await app.world.clock.advance(1_000);
+    }
+    await reading;
+    expect(app.shown.filter((n) => n.kind === "scheduleChanged")).toEqual([]);
+    const at = app.world.clock.now();
+    app.engine.flushAlerts();
+    const moved = app.shown.filter((n) => n.kind === "scheduleChanged");
+    expect(moved.map((n) => [n.text, n.shownAt])).toEqual([["Jadwal berubah · PL3002 — Kam, 15 Okt 08:00–09:30 · R.SG PWK LT.6 → 10:00–11:30 · 9009", at]]);
+    // And not again when the window would have ended.
+    await app.world.clock.advance(25_000);
+    expect(app.shown.filter((n) => n.kind === "scheduleChanged")).toHaveLength(1);
+  });
+
   it("a class moved in SIX: the day it's seen, naming old → new, once", async () => {
     const app = await start();
     app.world.six.moveMeeting("2194343", "10:00", "11:30", "9009");

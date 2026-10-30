@@ -84,6 +84,8 @@ export interface Engine {
   signOut(source?: SourceId): Promise<void>;
   /** Reads again now ("Perbarui sekarang", waking from sleep): every feed but the background ones (FeedSpec.background). */
   refresh(source?: SourceId): Promise<void>;
+  /** Sends the alerts waiting to be grouped now (a phone's sync with the app closed, about to stop). */
+  flushAlerts(): void;
   /** Runs a write the Student asked for (save a draft, submit) with the source's current session. */
   act(source: SourceId, action: string, input: unknown): Promise<unknown>;
   /** Keeps something the Student entered (course weights, a study plan) on this computer: a "local.*" dataset. */
@@ -651,6 +653,10 @@ export function createEngine(deps: EngineDeps): Engine {
 
     async refresh(source) {
       await scheduler.runNow((name) => (!source || sourceOf(name) === source) && !background.has(name));
+    },
+
+    flushAlerts() {
+      alerts.flushNow();
     },
 
     async act(id, name, input) {

@@ -5,7 +5,6 @@
 import * as BackgroundTask from "expo-background-task";
 import * as TaskManager from "expo-task-manager";
 import { AppState } from "react-native";
-import { GROUP_WINDOW } from "../../../src/engine/alerts/center";
 import { host } from "./host";
 import { DEMO } from "./version";
 import { updateWidgets } from "./widget";
@@ -25,14 +24,15 @@ if (!DEMO)
         console.info("[background] synced, the app open");
         return BackgroundTask.BackgroundTaskResult.Success;
       }
-      // Woken with the app closed: one round of every feed that's due (a feed already running isn't run twice),
-      // then long enough for alerts that wait to be grouped to go out, then quiet again.
+      // Woken with the app closed: one round of every feed that's due (a feed already running isn't run twice), its
+      // alerts sent at once (JS timers may not run in a sync with no screen, so nothing waits for its grouping
+      // window), then quiet again.
       // Each step in the system log ("[background] …"), so a sync that stops says where.
       console.info("[background] woken, the app closed");
       current.start();
       await current.engine.refresh();
       console.info("[background] read");
-      await new Promise((resolve) => setTimeout(resolve, GROUP_WINDOW + 5_000));
+      current.engine.flushAlerts();
       // What this round planned is booked with Android before the app goes quiet (./reminders.ts).
       await current.reminders.settled();
       console.info("[background] reminders booked");

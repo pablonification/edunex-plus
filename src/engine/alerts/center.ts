@@ -118,6 +118,14 @@ export class AlertCenter {
     this.replan();
   }
 
+  /**
+   * Sends the alerts waiting to be grouped now instead of at the end of their window: a phone's sync
+   * with the app closed is about to stop, and its timers may not run till then.
+   */
+  flushNow(): void {
+    this.flush();
+  }
+
   /** Every dataset event the store sends. */
   observe(event: Event): void {
     if (event.type === "dataset.removed") {
