@@ -437,7 +437,7 @@ export function SixEmptyState({ icon, title }: { icon: ReactNode; title: string 
   return (
     <EmptyState icon={icon} title={title}>
       {status.state === "signed-out" && (
-        <Button size="sm" variant="primary" busy={busy} onPress={() => void signIn("six")}>
+        <Button variant="primary" busy={busy} onPress={() => void signIn("six")}>
           {t("action.signInTo", { source: "SIX" })}
         </Button>
       )}

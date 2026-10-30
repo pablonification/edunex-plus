@@ -259,7 +259,7 @@ function NeedsSix() {
         </View>
       </View>
       {six.state === "signed-out" && (
-        <Button size="sm" busy={busy} onPress={() => void signIn("six")} testID="action.signInSix" style={{ alignSelf: "flex-start" }}>
+        <Button busy={busy} onPress={() => void signIn("six")} testID="action.signInSix" style={{ alignSelf: "flex-start" }}>
           {t("schedule.signInSix")}
         </Button>
       )}

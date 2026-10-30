@@ -129,7 +129,7 @@ function NoSixIntro({ recorded, closed }: { recorded: number; closed: number }) 
       <Text size="small" tone="muted">
         {t("meeting.noSixCount")}
       </Text>
-      <Button size="sm" busy={busy} onPress={() => void signIn("six")}>
+      <Button busy={busy} onPress={() => void signIn("six")}>
         {t("presence.signInSix")}
       </Button>
     </View>
