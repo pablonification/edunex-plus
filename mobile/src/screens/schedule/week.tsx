@@ -44,6 +44,9 @@ const NO_LECTURES = new Set(["uts", "uas", "holiday"]);
 /** A row's key, as the inventory names a class: "pl3002-08-00" (its code and WIB start), unique within a day. */
 export const rowKey = (code: string, start: number) => `${code.toLowerCase()}-${clockOf(minuteOfDay(start)).replace(":", "-")}`;
 
+/** A day of ITB's calendar without lectures (an exam week, a holiday): tinted in the strip. */
+const offDay = (day: ScheduleDay) => day.events.some((e) => NO_LECTURES.has(e.kind));
+
 /** Anything on the day the strip puts a dot under. */
 const busy = (day: ScheduleDay) => !isEmptyDay(day);
 
@@ -95,12 +98,16 @@ export function WeekStrip({
           <Icons.ChevronRight size={20} color={theme.color.fg} />
         </IconButton>
       </View>
-      <View style={{ flexDirection: "row" }} accessibilityRole="tablist">
-        {plan.map((day) => {
+      {/* The days line up with the page (16 from the edge), as the notice under them does. */}
+      <View style={{ flexDirection: "row", paddingHorizontal: space.page - space[2] }} accessibilityRole="tablist">
+        {plan.map((day, i) => {
           const noon = dayNoon(day.day);
           const picked = day.day === chosen;
           const isToday = day.day === today;
-          const off = day.events.some((e) => NO_LECTURES.has(e.kind));
+          const off = offDay(day);
+          // One band behind a run of ITB's days off, as the desktop's: rounded only where the run starts and ends.
+          const opens = off && !(i > 0 && offDay(plan[i - 1]!));
+          const closes = off && !(i < plan.length - 1 && offDay(plan[i + 1]!));
           return (
             <Pressable
               key={day.day}
@@ -113,7 +120,10 @@ export function WeekStrip({
                 flex: 1,
                 alignItems: "center",
                 paddingVertical: space[1.5],
-                borderRadius: radius.lg,
+                borderTopLeftRadius: opens ? radius.lg : 0,
+                borderBottomLeftRadius: opens ? radius.lg : 0,
+                borderTopRightRadius: closes ? radius.lg : 0,
+                borderBottomRightRadius: closes ? radius.lg : 0,
                 backgroundColor: off ? theme.color.sourceItbBg : undefined,
               }}
             >
@@ -128,14 +138,17 @@ export function WeekStrip({
                   borderRadius: 17,
                   alignItems: "center",
                   justifyContent: "center",
-                  backgroundColor: picked ? (isToday ? theme.color.accent : theme.color.fg) : undefined,
+                  // Today is the accent disc, as the desktop's; a picked day is the desktop's picked tint with a ring, never a bright disc.
+                  backgroundColor: picked ? (isToday ? theme.color.accent : theme.color.selected) : undefined,
+                  borderWidth: picked && !isToday ? 1.5 : 0,
+                  borderColor: theme.color.fg,
                 }}
               >
                 <Text
                   size="body"
                   weight="semibold"
                   tabular
-                  style={{ color: picked ? (isToday ? theme.color.onAccent : theme.color.canvas) : isToday ? theme.color.accentFg : theme.color.fg }}
+                  style={{ color: picked && isToday ? theme.color.onAccent : isToday ? theme.color.accentFg : theme.color.fg }}
                 >
                   {String(Number(day.day.slice(8)))}
                 </Text>
