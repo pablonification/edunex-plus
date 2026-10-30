@@ -21,6 +21,7 @@ if (!DEMO)
       if (current.running()) {
         await current.engine.refresh();
         await current.reminders.settled();
+        console.info("[background] synced, the app open");
         return BackgroundTask.BackgroundTaskResult.Success;
       }
       // Woken with the app closed: one round of every feed that's due (a feed already running isn't run twice),
@@ -34,6 +35,7 @@ if (!DEMO)
       await updateWidgets(current).catch(() => undefined);
       // The Student opened the app meanwhile: its screens keep the feeds going.
       if (AppState.currentState !== "active") current.stop();
+      console.info("[background] synced, the app closed");
       return BackgroundTask.BackgroundTaskResult.Success;
     } catch (error) {
       console.error("[background] sync failed:", error);
