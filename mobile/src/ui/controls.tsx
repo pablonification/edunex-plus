@@ -1,8 +1,8 @@
 // Interactive controls, the phone's versions of src/app/ui/controls.tsx: buttons, icon buttons, the
 // switch, the segmented control and filter chips. Every target is at least 44 pt, every control has
 // a name a screen reader reads, and a press answers at once (ripple, then the work's spinner).
-import type { ReactNode } from "react";
-import { ActivityIndicator, Switch as NativeSwitch, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { type ReactNode, useEffect, useRef } from "react";
+import { ActivityIndicator, Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { Text } from "./text";
 import { radius, space, useTheme } from "./theme";
 
@@ -124,18 +124,43 @@ export function Switch({
   disabled?: boolean;
 }) {
   const theme = useTheme();
+  const at = useRef(new Animated.Value(value ? 1 : 0)).current;
+  useEffect(() => {
+    Animated.timing(at, { toValue: value ? 1 : 0, duration: 150, useNativeDriver: false }).start();
+  }, [at, value]);
+  // The desktop's switch: calm when on (ink, not accent), so a list of ten doesn't shout; off, the field edge (3:1 on
+  // every surface). A little bigger than the desktop's for a thumb, with the touch area of a row's control.
+  const track = at.interpolate({ inputRange: [0, 1], outputRange: [theme.color.fieldEdge, theme.color.fg] });
+  const knob = at.interpolate({ inputRange: [0, 1], outputRange: ["#ffffff", theme.color.surface] });
+  const x = at.interpolate({ inputRange: [0, 1], outputRange: [2, SWITCH.width - SWITCH.knob - 2] });
   return (
-    <NativeSwitch
+    <Pressable
       testID={testID}
-      value={value}
-      onValueChange={onChange}
+      onPress={() => onChange(!value)}
       disabled={disabled}
+      accessibilityRole="switch"
       accessibilityLabel={label}
-      trackColor={{ false: theme.color.track, true: theme.color.accent }}
-      thumbColor="#ffffff"
-    />
+      accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
+      hitSlop={12}
+      style={{ opacity: disabled ? 0.5 : 1 }}
+    >
+      <Animated.View style={{ width: SWITCH.width, height: SWITCH.height, borderRadius: SWITCH.height / 2, backgroundColor: track, justifyContent: "center" }}>
+        <Animated.View
+          style={{
+            width: SWITCH.knob,
+            height: SWITCH.knob,
+            borderRadius: SWITCH.knob / 2,
+            backgroundColor: knob,
+            transform: [{ translateX: x }],
+            elevation: 1,
+          }}
+        />
+      </Animated.View>
+    </Pressable>
   );
 }
+
+const SWITCH = { width: 40, height: 24, knob: 20 } as const;
 
 /** A choice of a few views of one thing ("Belum selesai 6 / Selesai 5", "Minggu / Bulan"). */
 export function Segmented<T extends string>({
@@ -215,6 +240,8 @@ export function Chip({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
+      // 36 dp to see, 48 to touch.
+      hitSlop={{ top: 6, bottom: 6 }}
       style={[
         styles.chip,
         selected
