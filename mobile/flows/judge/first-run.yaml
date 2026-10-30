@@ -13,6 +13,12 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.start
 - tapOn:
     id: action.connect.edunex
+# The moment the desktop's picture shows: the sign-in handed back, Edunex's session being read.
+- extendedWaitUntil:
+    visible:
+      text: ".*Menyelesaikan masuk.*"
+    timeout: 30000
+    optional: true
 - takeScreenshot: ${THEME}-32a-pertama-menyelesaikan
 - extendedWaitUntil:
     visible:

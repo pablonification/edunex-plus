@@ -53,6 +53,8 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: off, busy }}
+      // A small button is 36 dp to see and 48 to touch.
+      hitSlop={size === "sm" ? { top: 6, bottom: 6 } : undefined}
       android_ripple={{ color: variant === "primary" ? "rgba(255,255,255,0.25)" : c.selected, foreground: true }}
       style={({ pressed }) => [
         styles.button,

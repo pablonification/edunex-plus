@@ -160,6 +160,9 @@ function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => voi
   );
 }
 
+/** A short fact (a room, "TVST C"; a time) is never broken across two lines: its spaces hold. */
+const short = (fact: string) => (fact.length <= 14 ? fact.replace(/ /g, "\u00a0") : fact);
+
 /** Between two facts: a quiet dot that keeps to the fact before it and the one after. */
 const DOT = "\u00a0\u00a0·\u00a0\u00a0";
 
@@ -181,7 +184,7 @@ function Facts({ children }: { children: readonly (string | null)[] }) {
               {DOT}
             </Text>
           )}
-          {fact}
+          {short(fact)}
         </Fragment>
       ))}
     </Text>

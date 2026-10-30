@@ -12,10 +12,10 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-01-beranda
-# Beranda's lower half: the rest of today, what needs you, what changed.
+# Beranda's lower half as the desktop's picture shows it: today's rows down to the clash at 16:00.
 - scrollUntilVisible:
     element:
-      text: "Yang berubah"
+      text: "Bentrok dengan PL3032.*"
     direction: DOWN
     centerElement: true
     optional: true
