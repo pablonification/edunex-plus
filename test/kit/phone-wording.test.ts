@@ -18,18 +18,8 @@ const DESKTOP_WORDS = /komputer|computer|klik|click|jendela|window|laptop/i;
 
 /** Keys the phone shows whose desktop word is the right one there too, and why. */
 const MEANT: Partial<Record<StringKey, string>> = {
-  "handIn.why.early": "the attendance window: the hours a hand-in counts as present",
-  "handIn.check.attendanceEarly": "the attendance window",
-  "handIn.check.attendanceIn": "the attendance window",
-  "handIn.check.attendanceMissed": "the attendance window",
-  "task.note.attendance": "the attendance window",
-  "task.note.attendanceCounted": "the attendance window",
-  "task.note.attendanceMissed": "the attendance window",
-  "task.note.attendanceOutside": "the attendance window",
   "task.shortWindow": "a Task open only for a short time",
   "settings.alerts.newTaskHint": "Tasks open only for a short time",
-  "schedule.window.only": "the attendance window, in the schedule's details",
-  "ics.handIn.note": "the attendance window, in the phone calendar's event",
   "krs.clash.nextUrs": "the URS window: the dates the KRS can be changed",
 };
 

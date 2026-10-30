@@ -132,6 +132,8 @@ export const mobileStrings = {
   "mobile.planner.moved": { id: "{code} dipindah ke {term}", en: "{code} moved to {term}" },
   // Rencana's summary: the count of things to check scrolls down to the rules, which sit beside the plan on the desktop.
   "mobile.planner.toCheckHint": { id: "Ke daftar aturan di bawah", en: "Goes to the rules below" },
+  // UKT › Riwayat: a past bill's deadline, under its term (the date alone read as when it was paid).
+  "mobile.bills.due": { id: "Batas bayar {date}", en: "Due {date}" },
   // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
   "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
   // Kalender akademik, under the view switch: what a tap on a date does.
@@ -228,11 +230,111 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "schedule.export.nothing": { id: "Tidak ada yang bisa ditambahkan", en: "Nothing to add" },
   // grades-plan: Kurikulum's note. A course's corrections open from a tap on its row, not a ⋯ menu.
   "curriculum.unlistedNote": {
-    id: "{count} mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",
+    id: "Ada {count} mata kuliah di luar catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",
     en: {
-      one: "{count} course isn't on your SIX record, so it isn't counted as left. If your program says it's yours, tap its row and choose “In my curriculum”.",
+      one: "There's {count} course not on your SIX record, so it isn't counted as left. If your program says it's yours, tap its row and choose “In my curriculum”.",
       other:
-        "{count} courses aren't on your SIX record, so they aren't counted as left. If your program says one is yours, tap its row and choose “In my curriculum”.",
+        "There are {count} courses not on your SIX record, so they aren't counted as left. If your program says one is yours, tap its row and choose “In my curriculum”.",
     },
+  },
+  // tasks and schedule: a Task that is also attendance counts only while its Presence is open. No student
+  // says "jendela", so the phone says when Presence is open, or "dalam waktu ini" beside a time.
+  "task.note.attendance": {
+    id: "Tugas ini juga Presensi-mu. Kamu dihitung hadir hanya jika mengumpulkannya {date}, {time}.",
+    en: "This Task is also your attendance. You count as present only if you hand it in {date}, {time}.",
+  },
+  "task.note.attendanceCounted": {
+    id: "Terhitung hadir. Kamu mengumpulkannya selama Presensi dibuka ({when}).",
+    en: "Counted as present. You handed it in while Presence was open ({when}).",
+  },
+  "task.note.attendanceOutside": {
+    id: "Tidak dihitung hadir karena tidak dikumpulkan selama Presensi dibuka ({when}). Tugasnya tetap terkumpul.",
+    en: "Not counted as present, since it wasn't handed in while Presence was open ({when}). The Task itself is handed in.",
+  },
+  "task.note.attendanceMissed": {
+    id: "Presensi tugas ini sudah ditutup ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
+    en: "This Task's Presence has closed ({when}). Handed in now, it counts as handed in, not as present.",
+  },
+  "handIn.why.early": {
+    id: "Presensi belum dibuka. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir.",
+    en: "Presence isn't open yet. Save a draft now, then hand in {when} to be counted present.",
+  },
+  "handIn.check.attendanceEarly": {
+    id: "Presensi belum dibuka ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
+    en: "Presence isn't open yet ({when}). Handed in now, it counts as handed in, not as present.",
+  },
+  "handIn.check.attendanceMissed": {
+    id: "Presensi sudah ditutup ({when}). Tugas tetap terkumpul, tapi tidak dihitung hadir.",
+    en: "Presence has closed ({when}). It's still handed in, but not counted as present.",
+  },
+  "handIn.check.attendanceIn": { id: "Presensi sedang dibuka, jadi terhitung hadir.", en: "Presence is open, so you'll be counted present." },
+  // schedule: a hand-in Presence's details, beside its time, and its event in the phone's calendar.
+  "schedule.window.only": {
+    id: "Hadir tercatat hanya jika dikumpulkan dalam waktu ini.",
+    en: "You're marked present only if you hand it in during this time.",
+  },
+  "ics.handIn.note": {
+    id: "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini.",
+    en: "You're marked present only if you hand the Task in during this time.",
+  },
+  // tasks: the hand-in's buttons and the lines about handing in. The phone says "hand in" for the act
+  // everywhere, as most of its lines already do. "Submitted" stays the status (Terkumpul in the Glossary).
+  "handIn.submit": { id: "Kumpulkan", en: "Hand in" },
+  "handIn.submitLate": { id: "Kumpulkan terlambat", en: "Hand in late" },
+  "handIn.submitNow": { id: "Kumpulkan sekarang", en: "Hand in now" },
+  "handIn.submitAnyway": { id: "Tetap kumpulkan (tidak dihitung hadir)", en: "Hand in anyway (not counted present)" },
+  "handIn.explainer": {
+    id: "Dosen bisa melihat draf yang tersimpan, tapi hanya Kumpulkan yang menyerahkannya.",
+    en: "Your lecturer can see a saved draft, but only Hand in sends it.",
+  },
+  "handIn.confirmTitle": { id: "Kumpulkan tugas ini?", en: "Hand in this Task?" },
+  "handIn.confirmBody": {
+    id: "Jawabanmu dan {files} akan diserahkan ke dosen. Setelah dikumpulkan, jawabanmu final.",
+    en: "Your answer and {files} go to your lecturer. Once handed in, your answer is final.",
+  },
+  "handIn.confirmBodyText": {
+    id: "Jawabanmu akan diserahkan ke dosen. Setelah dikumpulkan, jawabanmu final.",
+    en: "Your answer goes to your lecturer. Once handed in, your answer is final.",
+  },
+  "history.submitted": { id: "Kamu mengumpulkan", en: "You handed it in" },
+  "task.note.editedAfterSubmit": {
+    id: "Dosen mengubah tugas ini pada {edited}, setelah kamu mengumpulkan pada {sent}. Edunex tidak memberi tahu. Pastikan jawabanmu masih sesuai instruksi.",
+    en: "Your lecturer changed this Task on {edited}, after you handed it in on {sent}. Edunex didn't tell you. Check that your answer still fits the instructions.",
+  },
+  "task.change.afterSubmit": {
+    id: "Dosen mengubah tugas ini pada {edited}, setelah kamu mengumpulkan pada {sent}.",
+    en: "Your lecturer changed this Task on {edited}, after you handed it in on {sent}.",
+  },
+  "task.editedAfterSubmitLine": { id: "Diubah setelah kamu kumpulkan ({date}) · cek lagi", en: "Changed after you handed it in ({date}) · check again" },
+  "scan.edited.afterSubmit": { id: "{count} di antaranya setelah kamu mengumpulkan.", en: "{count} after you'd already handed it in." },
+  "alert.due.body": { id: "{title} · belum dikumpulkan", en: "{title} · not handed in yet" },
+  "alert.due.draft": { id: "{title} · masih draf, belum dikumpulkan", en: "{title} · still a draft, not handed in yet" },
+  "settings.alerts.deadlineHint": { id: "Sebelum tenggat, hanya jika belum dikumpulkan", en: "Before the deadline, only if not handed in" },
+  // course: Pertemuan, a past class with no Edunex record (no Presence, or one left unmarked where SIX counts).
+  // "Selesai" read as "you attended". SIX's count is said once, above the list.
+  "meeting.done": { id: "Tanpa catatan Edunex", en: "No Edunex record" },
+  // attendance: the absences still allowed, on Beranda, Presensi and a course page.
+  "presence.budget.safe": {
+    id: "Masih boleh absen {count} kali",
+    en: { one: "{count} absence left", other: "{count} absences left" },
+  },
+  // grades: Nilai's best IPK. The SKS still to grade are this term's and the plan's, not what's left to graduate.
+  "grades.bestHint": { id: "jika semua A di {sks} SKS semester ini dan rencanamu", en: "with straight A's in the {sks} SKS of this term and your plan" },
+  // grades-plan: Kalender akademik, the last day of classes. "Hari ini" read as today.
+  "deadline.lectureEnd": { id: "Jatah absenmu dihitung sampai hari itu.", en: "Your absences left count up to that day." },
+  // grades-plan: UKT, when SIX and the ITB calendar give two deadlines for one bill.
+  "bills.otherSix": {
+    id: "Di SIX tertulis {date}. Bayar paling lambat tanggal yang lebih awal.",
+    en: "SIX says {date}. Pay by the earlier one.",
+  },
+  "bills.otherItb": {
+    id: "Di Kalender ITB tertulis {date}. Bayar paling lambat tanggal yang lebih awal.",
+    en: "ITB's calendar says {date}. Pay by the earlier one.",
+  },
+  // grades-plan: KRS's state once SIX has made it official (SIX's "Pengesahan"), with or without a clash.
+  "krs.stage.done": { id: "KRS sudah disahkan", en: "KRS is official" },
+  "krs.stage.clash": {
+    id: "KRS sudah disahkan, tapi ada {count} bentrok",
+    en: { one: "KRS is official, but {count} class clashes", other: "KRS is official, but {count} classes clash" },
   },
 };
