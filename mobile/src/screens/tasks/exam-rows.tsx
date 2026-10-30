@@ -191,8 +191,10 @@ export function ExamPartRow({
         </Text>
       )}
       {(moved || disagree) && (
-        <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Icons.AlertTriangle size={14} color={theme.color.warningFg} />
+        <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+          <View style={{ paddingTop: 2.5 }}>
+            <Icons.AlertTriangle size={14} color={theme.color.warningFg} />
+          </View>
           <Text size="small" weight="medium" tone="warning" style={{ flexShrink: 1 }}>
             {moved ? t("exam.markChanged") : t("exam.row.disagree", days)}
           </Text>
