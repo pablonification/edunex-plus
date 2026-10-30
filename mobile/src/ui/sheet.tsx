@@ -1,22 +1,49 @@
 // Bottom sheets: what the desktop opens as a popover or a dialog (a class's detail, the snooze
 // menu, a course's color), rising from the bottom within reach of a thumb. `Sheet` holds any
-// content; `ActionSheet` is a menu of choices. Android's Back and a tap outside close it.
+// content; `ActionSheet` is a menu of choices. Android's Back and a tap outside close it. A sheet's
+// main action goes in `footer`: it stays in view under the content however long that runs, as a
+// dialog's buttons do on the desktop.
 import type { ReactNode } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "./text";
 import { radius, space, useTheme } from "./theme";
 
-export function Sheet({ open, onClose, title, children, testID }: { open: boolean; onClose(): void; title?: ReactNode; children: ReactNode; testID?: string }) {
+export function Sheet({
+  open,
+  onClose,
+  title,
+  footer,
+  children,
+  testID,
+}: {
+  open: boolean;
+  onClose(): void;
+  title?: ReactNode;
+  /** The sheet's main action (and its companions), fixed at the bottom while the content scrolls. */
+  footer?: ReactNode;
+  children: ReactNode;
+  testID?: string;
+}) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <View style={{ flex: 1, justifyContent: "flex-end" }}>
         <Pressable style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.scrim }]} onPress={onClose} accessibilityLabel="close" />
         <View
           testID={testID}
-          style={[styles.sheet, { backgroundColor: theme.color.raised, paddingBottom: insets.bottom + space[3], borderColor: theme.color.edge }]}
+          style={[
+            styles.sheet,
+            // Never taller than the screen under the status bar: the content scrolls, the title and the footer stay.
+            {
+              maxHeight: height - insets.top - space[6],
+              backgroundColor: theme.color.raised,
+              paddingBottom: insets.bottom + space[3],
+              borderColor: theme.color.edge,
+            },
+          ]}
           accessibilityViewIsModal
         >
           <View style={[styles.grip, { backgroundColor: theme.color.track }]} />
@@ -31,9 +58,26 @@ export function Sheet({ open, onClose, title, children, testID }: { open: boolea
               )}
             </View>
           )}
-          <ScrollView style={{ maxHeight: 560 }} contentContainerStyle={{ paddingHorizontal: space[5] }} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            style={{ maxHeight: 560, flexGrow: 0, flexShrink: 1 }}
+            contentContainerStyle={{ paddingHorizontal: space[5], paddingBottom: footer !== undefined ? space[3] : 0 }}
+            keyboardShouldPersistTaps="handled"
+          >
             {children}
           </ScrollView>
+          {footer !== undefined && (
+            <View
+              style={{
+                gap: space[2],
+                paddingHorizontal: space[5],
+                paddingTop: space[3],
+                borderTopWidth: StyleSheet.hairlineWidth,
+                borderTopColor: theme.color.line,
+              }}
+            >
+              {footer}
+            </View>
+          )}
         </View>
       </View>
     </Modal>

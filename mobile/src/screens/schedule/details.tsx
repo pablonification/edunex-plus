@@ -254,10 +254,7 @@ function ClassDetails({ item, onLeave }: { item: ScheduledClass; onLeave: () => 
       <Facts>
         <Fact icon={(color) => <Icons.Clock size={16} color={color} />}>
           <Text size="body" tabular>
-            {f.dateLong(session.start)}
-          </Text>
-          <Text size="body" tabular>
-            {timeRange(f, session.start, session.end)}
+            {`${f.dateLong(session.start)}  ·  ${timeRange(f, session.start, session.end)}`}
             {exam ? (
               <Text size="body" tone="muted">
                 {`  ·  ${t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}`}
@@ -370,10 +367,7 @@ function MeetingDetails({ meeting, notInSix, onLeave }: { meeting: OutsideMeetin
       <Facts>
         <Fact icon={(color) => <Icons.Clock size={16} color={color} />}>
           <Text size="body" tabular>
-            {f.dateLong(meeting.start)}
-          </Text>
-          <Text size="body" tabular>
-            {timeRange(f, meeting.start, meeting.end)}
+            {`${f.dateLong(meeting.start)}  ·  ${timeRange(f, meeting.start, meeting.end)}`}
           </Text>
         </Fact>
         <Fact icon={(color) => (meeting.online ? <Icons.Video size={16} color={color} /> : <Icons.MapPin size={16} color={color} />)}>
@@ -416,10 +410,7 @@ function WindowDetails({ window, onLeave }: { window: TaskWindow; onLeave: () =>
       <Facts>
         <Fact icon={(color) => <Icons.Clock size={16} color={color} />}>
           <Text size="body" tabular>
-            {f.dateLong(presence.opensAt)}
-          </Text>
-          <Text size="body" tabular>
-            {timeRange(f, presence.opensAt, presence.closesAt)}
+            {`${f.dateLong(presence.opensAt)}  ·  ${timeRange(f, presence.opensAt, presence.closesAt)}`}
           </Text>
           <Text size="small" tone="muted">
             {t("schedule.window.only")}

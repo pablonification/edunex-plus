@@ -2,7 +2,7 @@
 // with the same choices (what goes in, each with how many, and how far ahead, from today) and the
 // same events. The phone finishes the job itself: the events go straight into its calendar (asking
 // for access first), and doing it again updates them. "Bagikan .ics" is the other way, the
-// desktop's file through the share sheet.
+// desktop's file through the share sheet. Both stay in view at the sheet's foot.
 import { useMemo, useState } from "react";
 import { Linking, Pressable, View } from "react-native";
 import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
@@ -17,7 +17,7 @@ import { Notice } from "../../ui/layout";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
-import { addToPhoneCalendar, shareIcs } from "./phone-calendar";
+import { addToPhoneCalendar, openPhoneCalendar, shareIcs } from "./phone-calendar";
 
 type Range = "term" | "weeks";
 type Step = { step: "choose" } | { step: "adding" } | { step: "denied" } | { step: "done"; events: number };
@@ -112,20 +112,48 @@ function CalendarSheet({ onClose }: { onClose: () => void }) {
       setSharing(false);
     }
   };
-  const shareButton = (
-    <Button
-      busy={sharing}
-      disabled={chosen.length === 0}
-      icon={<Icons.ArrowUpRight size={16} color={theme.color.fg} />}
-      onPress={() => void share()}
-      testID="action.shareIcs"
-    >
-      {t("mobile.calendar.share")}
-    </Button>
-  );
+
+  // The main action stays in view under the choices, as the desktop's dialog shows "Simpan 29 acara" without scrolling.
+  const footer =
+    step.step === "done" ? (
+      <>
+        <Button
+          icon={<Icons.Calendar size={16} color={theme.color.fg} />}
+          onPress={() => void openPhoneCalendar(now).catch(() => toast(t("mobile.calendar.openFailed"), "danger"))}
+          testID="action.openCalendar"
+        >
+          {t("mobile.calendar.open")}
+        </Button>
+        <Button variant="primary" onPress={onClose} testID="action.calendarDone">
+          {t("schedule.export.done")}
+        </Button>
+      </>
+    ) : (
+      <>
+        <Button
+          busy={sharing}
+          disabled={chosen.length === 0}
+          icon={<Icons.ArrowUpRight size={16} color={theme.color.fg} />}
+          onPress={() => void share()}
+          testID="action.shareIcs"
+        >
+          {t("mobile.calendar.share")}
+        </Button>
+        <Button
+          variant="primary"
+          size="lg"
+          busy={step.step === "adding"}
+          disabled={chosen.length === 0}
+          onPress={() => void add()}
+          testID="action.addToCalendar.confirm"
+        >
+          {chosen.length === 0 ? t("schedule.export.nothing") : t("mobile.calendar.add", { count: chosen.length })}
+        </Button>
+      </>
+    );
 
   return (
-    <Sheet open onClose={onClose} title={t("schedule.export.title")} testID="sheet.addToCalendar">
+    <Sheet open onClose={onClose} title={t("schedule.export.title")} footer={footer} testID="sheet.addToCalendar">
       {step.step === "done" ? (
         <View style={{ gap: space[4], paddingBottom: space[2] }}>
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
@@ -141,9 +169,6 @@ function CalendarSheet({ onClose }: { onClose: () => void }) {
               </Text>
             </View>
           </View>
-          <Button variant="primary" onPress={onClose} testID="action.calendarDone">
-            {t("schedule.export.done")}
-          </Button>
         </View>
       ) : (
         <View style={{ paddingBottom: space[2] }}>
@@ -268,20 +293,6 @@ function CalendarSheet({ onClose }: { onClose: () => void }) {
             <Text size="small" tone="muted" style={{ flex: 1 }}>
               {t("mobile.calendar.again")}
             </Text>
-          </View>
-
-          <View style={{ marginTop: space[5], gap: space[2] }}>
-            {shareButton}
-            <Button
-              variant="primary"
-              size="lg"
-              busy={step.step === "adding"}
-              disabled={chosen.length === 0}
-              onPress={() => void add()}
-              testID="action.addToCalendar.confirm"
-            >
-              {chosen.length === 0 ? t("schedule.export.nothing") : t("mobile.calendar.add", { count: chosen.length })}
-            </Button>
           </View>
         </View>
       )}

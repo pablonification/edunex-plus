@@ -8,6 +8,7 @@
 import * as Calendar from "expo-calendar";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
+import { Linking } from "react-native";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { ICS_ZONE, writeIcs } from "../../../../src/core/ics";
 import type { PhoneItem } from "../../../../src/core/phone-calendar";
@@ -176,3 +177,6 @@ export async function shareIcs(items: readonly PhoneItem[], now: number): Promis
   if (!(await Sharing.isAvailableAsync())) throw new Error("This phone can't share files");
   await Sharing.shareAsync(file.uri, { mimeType: "text/calendar", UTI: "public.calendar-event", dialogTitle: `${CALENDAR_NAME}.ics` });
 }
+
+/** The phone's calendar app, opened on a moment (Android's calendar link: content://com.android.calendar/time/<ms>). */
+export const openPhoneCalendar = (at: number): Promise<void> => Linking.openURL(`content://com.android.calendar/time/${at}`);
