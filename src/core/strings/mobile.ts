@@ -111,6 +111,8 @@ export const mobileStrings = {
   "mobile.planner.moved": { id: "{code} dipindah ke {term}", en: "{code} moved to {term}" },
   // Rencana's summary: the count of things to check scrolls down to the rules, which sit beside the plan on the desktop.
   "mobile.planner.toCheckHint": { id: "Ke daftar aturan di bawah", en: "Goes to the rules below" },
+  // UKT › Riwayat: a past bill's deadline, under its term (the date alone read as when it was paid).
+  "mobile.bills.due": { id: "Batas bayar {date}", en: "Due {date}" },
   // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
   "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
   // Kalender akademik, under the view switch: what a tap on a date does.
@@ -284,4 +286,20 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "alert.due.body": { id: "{title} · belum dikumpulkan", en: "{title} · not handed in yet" },
   "alert.due.draft": { id: "{title} · masih draf, belum dikumpulkan", en: "{title} · still a draft, not handed in yet" },
   "settings.alerts.deadlineHint": { id: "Sebelum tenggat, hanya jika belum dikumpulkan", en: "Before the deadline, only if not handed in" },
+  // course: Pertemuan, a past class with no Edunex record (no Presence, or one left unmarked where SIX counts).
+  // "Selesai" read as "you attended". SIX's count is said once, above the list.
+  "meeting.done": { id: "Tanpa catatan Edunex", en: "No Edunex record" },
+  // grades: Nilai's best IPK. The SKS still to grade are this term's and the plan's, not what's left to graduate.
+  "grades.bestHint": { id: "jika semua A di {sks} SKS semester ini dan rencanamu", en: "with straight A's in the {sks} SKS of this term and your plan" },
+  // grades-plan: Kalender akademik, the last day of classes. "Hari ini" read as today.
+  "deadline.lectureEnd": { id: "Jatah absenmu dihitung sampai hari itu.", en: "Your absences left count up to that day." },
+  // grades-plan: UKT, when SIX and the ITB calendar give two deadlines for one bill.
+  "bills.otherSix": {
+    id: "Di SIX tertulis {date}. Bayar paling lambat tanggal yang lebih awal.",
+    en: "SIX says {date}. Pay by the earlier one.",
+  },
+  "bills.otherItb": {
+    id: "Di Kalender ITB tertulis {date}. Bayar paling lambat tanggal yang lebih awal.",
+    en: "ITB's calendar says {date}. Pay by the earlier one.",
+  },
 };
