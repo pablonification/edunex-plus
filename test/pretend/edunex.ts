@@ -176,10 +176,13 @@ export class PretendEdunex {
     return id;
   }
 
-  /** Changes fields of a Task the way an edit on the website does: `updated_at` moves, nothing is announced. */
-  editTask(taskId: number, attributes: Json): void {
+  /**
+   * Changes fields of a Task the way an edit on the website does: `updated_at` moves, nothing is announced.
+   * `at` is when the lecturer saved it (now unless given; never later than now).
+   */
+  editTask(taskId: number, attributes: Json, at = this.clock.now()): void {
     const task = this.task(taskId);
-    task.attributes = { ...task.attributes, ...attributes, updated_at: wib(this.clock.now()) };
+    task.attributes = { ...task.attributes, ...attributes, updated_at: wib(Math.min(at, this.clock.now())) };
   }
 
   moveDeadline(taskId: number, endAt: string): void {

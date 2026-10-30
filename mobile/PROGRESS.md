@@ -16,9 +16,14 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
 - Check B: judge round 4 passed every screen light and 36 of 37 dark. The fail was a blank picture
   (34 dark, the walk fixed in 9004728). Round 5 judges it from run 41029222897.
 - Hand-off: `mobile/HANDOFF.md` and the PR text (`~/scratch/pr/`) are drafted, with `{{…}}` for the
-  final numbers (Decision 14). The fresh-install check is ready in `~/scratch/fresh/` (wipe, install
-  both APKs, first run through notifications and the first scan, then use.yaml's steps, and the real
-  APK up to ITB's sign-in page), to run on the final run's APKs.
+  final numbers (Decision 14).
+- Fresh install, dry run on run 41029222897's APKs (Redroid, both apps uninstalled first): passed, 101
+  steps. The demo from its welcome through Android's notification prompt and the first scan to Beranda,
+  then use.yaml's steps (a Task handed in with jawaban.pdf from Android's picker, a class sheet, the
+  month, English and dark). The real app from its welcome to ITB's own Microsoft sign-in page in the
+  app, login.microsoftonline.com beside the lock. `~/scratch/fresh/fresh.sh <apk folder>` repeats it on
+  the final run's APKs.
+- The edit scenario's "Diubah dosen" no longer moves with the machine's speed (Decision 16, Notes).
 - Performance round: cold start 1.0–1.15 s with saved data, 0 janky frames scrolling long lists.
 - Next: when run 41029222897 ends, score Check A (expected 100%), fix what's missing, judge round 5
   on 34 dark, then the fresh install, the final numbers in HANDOFF.md and the draft PR.
@@ -153,7 +158,7 @@ machine). Every helper runs at effort high or more.
 | report | Dev 1 (Opus 5.5, high) | A8 first-scan summary, A9 problem report, licences (phone's own list) | `mobile-report` | merged (3f86bb0), wired (ca90b75) |
 | wording | Dev 1 (Opus 5.5, high) | Phone words where desktop strings say computer, window, click (override table + test) | `mobile-wording` | merged (6d7b18a): `wording.native.ts` swap, 8 keys, `test/kit/phone-wording.test.ts` guards ~1,900 keys the phone shows |
 | widget | Contact (Opus 5.5, high) | D1 home-screen widget (the tray's now/next/deadline) | `mobile-widget` | merged (a55850f), wired: `useWidgetUpdates` in the frame, `updateWidgets` after a closed-app sync, entry `mobile/index.ts` |
-| judge | Dev 1 (Opus 5.5, high) | Check B, checker (never edits): round 1 on 9 screens (run 40938204552), round 2 on all 37 (run 40965166772), round 3 (run 40987379862: 35/37), round 4 (run 41002111336, code 4f06ae8: 37/37 light, 36/37 dark, the fail a blank picture) | `mobile-judge`, `-2`, `-3`, `-4` (read only) | round 1 done: 5/9 light, 4/9 dark, 2 unjudgeable pictures; fixes in ff2a963, 69b9cfb, a4a1d8d; round 2 on the next run's full set |
+| judge | Dev 1 (Opus 5.5, high) | Check B, checker (never edits): round 1 on 9 screens (run 40938204552), round 2 on all 37 (run 40965166772), round 3 (run 40987379862: 35/37), round 4 (run 41002111336, code 4f06ae8: 37/37 light, 36/37 dark, the fail a blank picture), round 5 (run 41029222897, code f48a0be, on Contact: 34 dark and the screens changed since) | `mobile-judge`, `-2`, `-3`, `-4`, `-5` (read only) | round 1 done: 5/9 light, 4/9 dark, 2 unjudgeable pictures; fixes in ff2a963, 69b9cfb, a4a1d8d; round 2 on the next run's full set |
 | tester | Contact (Opus 5.5, high) | Fresh tester, checker (never edits): traces every desktop flow through the phone's code for broken, missing, wrong, rough | `mobile-tester` (reads only) | done (on a stale checkout: its wording, widget and background-task findings were already fixed); the rest fixed or handed out |
 | reminders | Contact (Opus 5.5, high) | Timed alerts scheduled ahead as Android notifications, the phone's true words about checking, a way back when notifications are off | `mobile-reminders` | merged (0cd44ec): booking.ts + reminders.ts (11 tests), 5 phone wording lines, notifications-off notice; on Redroid a class-start reminder arrived with the app killed (A3), the notice shows in Settings (A6) |
 | gaps | Dev 1 (Opus 5.5, high) | Course offline save, exam to calendar, banners on Nilai and Rencana, Laporkan on banners, welcome language switch, file and share words | `mobile-gaps` | merged (3695abd): all six; device check pending |
@@ -241,6 +246,11 @@ machine). Every helper runs at effort high or more.
 15. **Scope rows count as done on a judge pass or a Check A score**, named with its round, picture and
     run, as each is a check of that screen on CI's phone. Rows that need a real account stay "blocked
     (Arqila)" with what the demo already proves.
+16. **The edit scenario's lecturer edit has a fixed moment (08:10), pushed while run 41029222897 runs.**
+    It was the one value in Check A that moved with the machine's speed. The fix touches test/pretend, so
+    the push starts a run. A push while a run goes waits for it (cancel-in-progress is off), so this run
+    starts the moment 41029222897 ends. If that run's score needs more fixes, a newer push replaces it
+    in the queue. If not, it is the final run, with nothing left to wobble.
 
 ## Blocked
 
@@ -280,9 +290,11 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
   again, and its spinners keep the screen moving for 10 s on Redroid and over 25 s on CI's emulator.
   Maestro waits for a still screen after each swipe, so the step runs out of time. A flow that
   starts from a tab should find its top after tapping the tab (every tab scrolls up on a second tap).
-- The edit scenario's "Diubah dosen" time depends on how fast the inventory's machine runs (08:10
-  alone, 08:24 with three walks at once). The committed 08:11 is what CI's phone shows; keep it when
-  regenerating.
+- The edit scenario's "Diubah dosen" time used to depend on how fast the machine ran (08:10 alone,
+  08:24 with three inventory walks at once, 08:11 on CI's phone). The demo stamped the lecturer's edit
+  with the pretend clock after the sign-ins, which are played fast while real disk writes finish. The
+  edit is now saved at the demo's start plus 3 minutes, 08:10 on every machine
+  (test/pretend/demo.test.ts proves it with slow storage).
 - Never pipe `tsc` or `biome` into `tail` inside an `&&` chain: the pipe hides its exit code (38a1a49 went out with a type error, fb0f860 with a lint error). Run them bare and read `$?`.
 - CI runs on `mobile` only (48f4bff): helpers' `mobile-*` pushes used to start sixteen emulators each and held
   the branch's own run in the queue for an hour. A run takes ~3 h for the scenarios (each ~100 min).

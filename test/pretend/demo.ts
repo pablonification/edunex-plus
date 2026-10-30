@@ -209,12 +209,18 @@ export function demoRun(options: DemoOptions): DemoRun {
       if (options.edit) {
         const brief = "https://edunexfixture.blob.core.windows.net/edunex/fixture-brief-v2";
         if (extras.brief) world.putFile(brief, extras.brief);
-        world.edunex.editTask(117001, {
-          end_at: "2026-10-12T23:59:00+07:00",
-          description:
-            "<p>Kumpulkan ulang Bab I yang sudah direvisi memakai template terbaru, paling lambat Senin, 12 Oktober 2026 pukul 23.59.</p><p>Format berkas PDF, nama berkas NIM_Bab1.pdf.</p>",
-          files: [{ name: "brief-v2.pdf", file: brief }],
-        });
+        // Saved 3 minutes after the demo's start (08:10), not when the sign-ins above happened to end: their
+        // pretend time depends on how fast the machine runs, and the Task's "Diubah dosen" shows this moment.
+        world.edunex.editTask(
+          117001,
+          {
+            end_at: "2026-10-12T23:59:00+07:00",
+            description:
+              "<p>Kumpulkan ulang Bab I yang sudah direvisi memakai template terbaru, paling lambat Senin, 12 Oktober 2026 pukul 23.59.</p><p>Format berkas PDF, nama berkas NIM_Bab1.pdf.</p>",
+            files: [{ name: "brief-v2.pdf", file: brief }],
+          },
+          Date.parse(demoStart(options)) + 180_000,
+        );
         await fastForward(engine.refresh("edunex"));
       }
       if (options.courseTable === "changed" && options.scenario === "signed-in") {
