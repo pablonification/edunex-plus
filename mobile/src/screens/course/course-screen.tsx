@@ -20,6 +20,7 @@ import { CourseColorSheet, colorName } from "../../parts/course-color-picker";
 import { usePullToRefresh, useRefresh } from "../../shell/source-status";
 import { Button, IconButton } from "../../ui/controls";
 import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
+import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta, Page, PageHeader } from "../../ui/layout";
 import { ActionSheet, type SheetChoice } from "../../ui/sheet";
@@ -289,6 +290,7 @@ function TabBar<T extends string>({
   const bar = useRef<ComponentRef<typeof ScrollView>>(null);
   const places = useRef(new Map<T, { x: number; width: number }>());
   const [width, setWidth] = useState(0);
+  const fades = useEdges();
   useEffect(() => {
     const place = places.current.get(value);
     if (place && width) bar.current?.scrollTo({ x: Math.max(0, place.x + place.width / 2 - width / 2), animated: true });
@@ -305,6 +307,10 @@ function TabBar<T extends string>({
         showsHorizontalScrollIndicator={false}
         accessibilityRole="tablist"
         accessibilityLabel={label}
+        onLayout={fades.onLayout}
+        onContentSizeChange={fades.onContentSizeChange}
+        onScroll={fades.onScroll}
+        scrollEventThrottle={32}
         contentContainerStyle={{ paddingHorizontal: space.page - space[2] }}
       >
         {tabs.map((tab) => {
@@ -344,6 +350,8 @@ function TabBar<T extends string>({
           );
         })}
       </ScrollView>
+      {fades.edges.left && <EdgeFade side="left" color={c.canvas} />}
+      {fades.edges.right && <EdgeFade side="right" color={c.canvas} />}
     </View>
   );
 }

@@ -13,8 +13,8 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
   fixed in 1046577, e9c7d3f and 74d2266 (Tasks' scroll up turned into a pull to refresh, the joint
   class's Modul 1–4 named as the class's own, "2×" against the phone's "Masih boleh absen 2 kali").
   Run 41029222897 (f48a0be) is the check: APKs, app and first-run passed, 13 scenarios due ~18:45–19:45.
-- Check B: judge round 4 passed every screen light and 36 of 37 dark. The fail was a blank picture
-  (34 dark, the walk fixed in 9004728). Round 5 judges it from run 41029222897.
+- Check B: judge round 5 (run 41029222897) passed all 37 screens light and dark, 34 dark included.
+  Its two polish fixes (tabs fade at a hidden edge, a date keeps its time) are pushed with the edit fix.
 - Hand-off: `mobile/HANDOFF.md` and the PR text (`~/scratch/pr/`) are drafted, with `{{…}}` for the
   final numbers (Decision 14).
 - Fresh install, dry run on run 41029222897's APKs (Redroid, both apps uninstalled first): passed, 101
@@ -141,6 +141,7 @@ Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenar
 | (all 37) | 23 pass | 24 pass | 2 | Round 2 (CI 40965166772): passes 01, 03, 04, 04b, 06, 07, 08, 12, 13, 15, 18, 19, 20, 23, 26-lisensi, 26-tentang, 32, 35, 36, 37, lainnya (02 and 25 partly: walk fixed 0f7287c). Fails: switches (fixed e335266), the calendar sheet's button off screen (11), the month without exams, deadlines, moves, clashes (10), the Masa UTS tiles (09: these three with mobile-jadwal-judge), Nilai's figures (14, fixed e1fd4bc), KRS columns (17, fixed), Pertemuan opening below the fold (21, fixed ae5a61f), calculator numbers high (22, fixed), logos (24, 26 fixed ee02f6e; 32a, 33 with mobile-welcome-judge), the first run's sign-in note and reading step (32a, 34: mobile-welcome-judge). Round 3 after both merge |
 | (all 37) | 35 pass | 35 pass | 3 | Round 3 (CI 40987379862, code 452b773): all round-2 importants fixed; fails only 32a and 33, the first run's lines under the logos cut ("masuk ke Edu…", "Teknologi Infor…"), already widened by the polish merge (366af98) after those pictures. Minors since: small buttons 48 dp to touch, rooms unbroken, the walk shows 02's clashes and 32a's note (77e7130). Round 4 on the next run |
 | (all 37) | 37 pass | 36 pass | 4 | Round 4 (run 41002111336, code 4f06ae8): 32a and 33 fixed, round 3's minors fixed, the picky-student changes "done well, still the same app". The one fail, 34 dark, was a blank picture (taken before the step faded in): the walk now waits for its heading (9004728). Minors fixed in 9004728: dates held together (04, 35), UKT's history "Batas bayar di SIX", the course page's line above Buka di SIX, no grey Hubungkan while signing in, 24 caught mid-read, 04b now Kumpulkan's question with a file from Android's picker (the desktop's 05). Left: Nilai's third caption runs to four lines (14), Rencana studi's tabs cut at the edge without a fade (15–19) |
+| (all 37) | 37 pass | 37 pass | 5 | Round 5 (run 41029222897, code f48a0be, judge on Contact): 34 dark fixed, and every screen changed since round 4 passes; "same app, made properly for a phone". No important findings. Its two polish fixes, done in the next commit and seen on Redroid: tabs that run past the edge fade there (Rencana studi 15–19, the course page 20–22, `mobile/src/ui/edge-fade.tsx`), and a date keeps its time on one line in the first scan and the hand-in sheet (35, 04b, `dayAt`). Left as it is: Nilai's third caption on four lines (14, optional) |
 
 ## Helpers (on the Mac, 5aba008d-0de9-4d6b-bacd-91fd44264da8)
 

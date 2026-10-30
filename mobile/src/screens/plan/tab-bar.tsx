@@ -3,6 +3,7 @@
 // `tab.<prefix>.<value>` for the flows.
 import { type ComponentRef, useEffect, useRef } from "react";
 import { type LayoutRectangle, Pressable, ScrollView, View } from "react-native";
+import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 
@@ -30,6 +31,7 @@ export function TabBar<T extends string>({
   const places = useRef(new Map<string, LayoutRectangle>());
   const width = useRef(0);
   const at = useRef(0);
+  const fades = useEdges();
   // The picked tab stays in sight, as the bar is drawn (Back to a later tab) and on each pick: the bar moves only as
   // far as it must, with the page's margin to spare, so a tab that already fits never cuts off the first one.
   const show = (tab: string) => {
@@ -52,9 +54,12 @@ export function TabBar<T extends string>({
         accessibilityLabel={label}
         onLayout={(event) => {
           width.current = event.nativeEvent.layout.width;
+          fades.onLayout(event);
         }}
+        onContentSizeChange={fades.onContentSizeChange}
         onScroll={(event) => {
           at.current = event.nativeEvent.contentOffset.x;
+          fades.onScroll(event);
         }}
         scrollEventThrottle={32}
         contentContainerStyle={{ paddingHorizontal: space.page, gap: space[5] }}
@@ -82,6 +87,8 @@ export function TabBar<T extends string>({
           );
         })}
       </ScrollView>
+      {fades.edges.left && <EdgeFade side="left" color={theme.color.canvas} />}
+      {fades.edges.right && <EdgeFade side="right" color={theme.color.canvas} />}
     </View>
   );
 }

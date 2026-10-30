@@ -9,7 +9,7 @@ import { percent } from "../../../../src/core/attendance";
 import { takeHomeOnly } from "../../../../src/core/exam-sources";
 import { type Finding, firstScan, scanReady } from "../../../../src/core/first-scan";
 import type { DatasetName } from "../../../../src/core/models";
-import { dayWord, together } from "../../parts/day-word";
+import { dayAt, dayWord, together } from "../../parts/day-word";
 import { factsLabel } from "../../ui/layout";
 
 /** What the scan reads. */
@@ -82,7 +82,7 @@ export function describe(finding: Finding, t: Translate, f: Format): { title: st
         note: null,
       };
     case "clash": {
-      const when = (o: { start: number; end: number }) => `${day(f, t, o.start)}, ${f.timeRange(o.start, o.end)}`;
+      const when = (o: { start: number; end: number }) => dayAt(day(f, t, o.start), f.timeRange(o.start, o.end));
       const [first] = finding.overlaps;
       if (finding.overlaps.length === 1)
         return {
@@ -115,10 +115,10 @@ export function describe(finding: Finding, t: Translate, f: Format): { title: st
             const note = exam.disagree ? t("exam.disagree") : apart !== null && t("home.need.exam.takeHome", { date: day(f, t, apart) });
             const session = exam.six[0];
             if (session)
-              return factsLabel(t("scan.exams.at", { name: kind, code, when: `${day(f, t, session.start)}, ${f.time(session.start)}` }), session.room, note);
+              return factsLabel(t("scan.exams.at", { name: kind, code, when: dayAt(day(f, t, session.start), f.time(session.start)) }), session.room, note);
             if (exam.at !== null) {
-              if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { kind, code, when: `${day(f, t, exam.at)}, ${f.time(exam.at)}` });
-              return factsLabel(t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: `${day(f, t, exam.at)}, ${f.time(exam.at)}` }), note);
+              if (takeHomeOnly(exam)) return t("scan.exams.takeHome", { kind, code, when: dayAt(day(f, t, exam.at), f.time(exam.at)) });
+              return factsLabel(t("scan.exams.at", { name: exam.edunex[0]?.title ?? kind, code, when: dayAt(day(f, t, exam.at), f.time(exam.at)) }), note);
             }
             if (exam.week) return t("scan.exams.week", { kind, code, range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
             return t("scan.exams.noDate", { name: kind, code });
@@ -134,7 +134,7 @@ export function describe(finding: Finding, t: Translate, f: Format): { title: st
           finding.meetings,
           ({ code, meeting }) =>
             factsLabel(
-              t("scan.notInSix.meeting", { code, number: meeting.number, when: `${day(f, t, meeting.start)}, ${f.timeRange(meeting.start, meeting.end)}` }),
+              t("scan.notInSix.meeting", { code, number: meeting.number, when: dayAt(day(f, t, meeting.start), f.timeRange(meeting.start, meeting.end)) }),
               meeting.online && t("scan.notInSix.online"),
             ),
           t,
