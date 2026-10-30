@@ -217,9 +217,20 @@ export function CourseDot({ color, size = 10 }: { color: string | undefined; siz
   );
 }
 
-export function CourseCode({ code, color, size = "small" }: { code: string; color: string | undefined; size?: "small" | "caption" | "body" }) {
+export function CourseCode({
+  code,
+  color,
+  size = "small",
+  column = false,
+}: {
+  code: string;
+  color: string | undefined;
+  size?: "small" | "caption" | "body";
+  /** In a list's leading column: one width for every code, so the names beside it start in one column. */
+  column?: boolean;
+}) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+    <View style={[{ flexDirection: "row", alignItems: "center", gap: 6 }, column && { width: 84 }]}>
       <CourseDot color={color} size={8} />
       <Text size={size} weight="semibold" tabular>
         {code}

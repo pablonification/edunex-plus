@@ -385,7 +385,7 @@ function WithoutSix() {
                 <Row
                   key={course.code}
                   testID={`row.course.${course.code}`}
-                  leading={<CourseCode code={course.code} color={course.color} />}
+                  leading={<CourseCode code={course.code} color={course.color} column />}
                   title={course.name}
                   meta={
                     grade ? t("grades.edunexGrade", { total: f.number(grade.total, 1), letter: grade.letter }) : anyGrade ? t("grades.edunexNone") : undefined

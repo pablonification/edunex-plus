@@ -2,7 +2,7 @@
 // with the same names and the same rules: the page, its header, sections, lists of rows, one-line
 // facts, notices and figures. Screens compose these instead of styling their own.
 import { useScrollToTop } from "expo-router";
-import { Children, type ComponentRef, Fragment, isValidElement, type ReactNode, type Ref, type RefObject, useCallback, useRef } from "react";
+import { Children, type ComponentRef, cloneElement, Fragment, isValidElement, type ReactNode, type Ref, type RefObject, useCallback, useRef } from "react";
 import { Pressable, RefreshControl, ScrollView, type ScrollViewProps, StyleSheet, View, type ViewStyle } from "react-native";
 import { Icons } from "./icons";
 import { Text } from "./text";
@@ -153,7 +153,8 @@ export function Section({
               </View>
             )}
           </View>
-          {action && <View style={{ flexShrink: 0 }}>{action}</View>}
+          {/* Level with the title: centred on it alone, at its line when a description follows. */}
+          {action && <View style={{ flexShrink: 0, alignSelf: description === undefined ? "center" : "flex-start" }}>{action}</View>}
         </View>
       )}
       {children}
@@ -420,7 +421,9 @@ export function StatRow({ children }: { children: ReactNode }) {
             i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: theme.color.line },
           ]}
         >
-          {stat}
+          {/* Three or more side by side on a phone: a label may take two lines, so each gets room for two and sits at
+              its bottom, and the figures line up across the row. */}
+          {stats.length >= 3 && isValidElement<{ labelLines?: number }>(stat) ? cloneElement(stat, { labelLines: 2 }) : stat}
         </View>
       ))}
     </View>
@@ -433,18 +436,23 @@ export function Stat({
   hint,
   tone = "neutral",
   size = "figure",
+  labelLines,
 }: {
   label: ReactNode;
   value: ReactNode;
   hint?: ReactNode;
   tone?: keyof typeof STAT_TONE;
   size?: "figure" | "heading";
+  /** Room for this many lines of label, the label at its bottom (StatRow gives it). */
+  labelLines?: number;
 }) {
   return (
     <View>
-      <Text size="small" tone="muted" weight="medium">
-        {label}
-      </Text>
+      <View style={labelLines ? { minHeight: labelLines * 19, justifyContent: "flex-end" } : undefined}>
+        <Text size="small" tone="muted" weight="medium" numberOfLines={labelLines}>
+          {label}
+        </Text>
+      </View>
       <Text size={size} weight="semibold" tone={STAT_TONE[tone]} tabular>
         {value}
       </Text>

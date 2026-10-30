@@ -261,7 +261,7 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
             <Row
               key={course.code}
               testID={`row.course.${course.code}`}
-              leading={<CourseCode code={course.code} color={colorOf(course.code)} />}
+              leading={<CourseCode code={course.code} color={colorOf(course.code)} column />}
               title={course.name}
               meta={
                 clashes.length || !oneClass ? (

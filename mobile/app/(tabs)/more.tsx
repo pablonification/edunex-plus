@@ -85,12 +85,7 @@ export default function More() {
             {courses.map((course) => (
               <Row
                 key={course.code}
-                // One width for every code, so the names start in one column.
-                leading={
-                  <View style={{ width: 84 }}>
-                    <CourseCode code={course.code} color={color(course.code)} />
-                  </View>
-                }
+                leading={<CourseCode code={course.code} color={color(course.code)} column />}
                 title={course.name}
                 onPress={() => nav.go({ screen: "course", code: course.code })}
                 onLongPress={() => openCourseColorPicker(course.code)}
