@@ -31,6 +31,9 @@ export async function createDemoWorld() {
   // EDUNEX_DEMO_RESUME=1: start from what the demo saved last time, as a real start does, instead of a fresh first
   // sync: what the cold-start measure (PROGRESS.md, the performance round) times.
   const resume = asked.EDUNEX_DEMO_RESUME === "1";
+  // EDUNEX_DEMO_NOTIFY=1: its alerts go to Android as the real app's do, booked ahead too (with EDUNEX_DEMO_NOW a
+  // few minutes before a class, the class-start reminder comes with the app closed).
+  const notify = asked.EDUNEX_DEMO_NOTIFY === "1";
   // While the demo runs, its link with ?post=kuis puts a new Task on the pretend Edunex, as the desktop demo's pictures
   // do before the bell's (scripts/demo/capture.mjs): the next read finds it and the bell gets an unread alert.
   Linking.addEventListener("url", ({ url }) => {
@@ -50,6 +53,7 @@ export async function createDemoWorld() {
   };
   return {
     resume,
+    notify,
     signInWindows,
     transport: run.world,
     // Files from the pretend storage, as the desktop demo serves them (scripts/demo/setup.ts): what's stored there,

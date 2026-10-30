@@ -59,7 +59,10 @@ export function phoneReminders(deps: {
     // Notifications off: nothing is booked (Android would drop it), so nothing live is skipped either.
     if (!(await Notifications.getPermissionsAsync()).granted) return;
     const lang = deps.lang();
-    const plan = rebook({ planned, booked: await load(), waiting: await waiting(), now: deps.clock.now(), lang });
+    const now = deps.clock.now();
+    const plan = rebook({ planned, booked: await load(), waiting: await waiting(), now, lang });
+    // Android books on its own clock: the same time ahead of now. They're one clock but in the demo, whose day is its own.
+    const ahead = Date.now() - now;
     for (const id of plan.cancel) await Notifications.cancelScheduledNotificationAsync(id);
     const kept: Booked = { ...plan.kept };
     try {
@@ -68,7 +71,7 @@ export function phoneReminders(deps: {
         await Notifications.scheduleNotificationAsync({
           identifier: id,
           content: { title: content.title, body: content.body, data: content.data as unknown as Record<string, unknown> },
-          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, channelId: content.channelId },
+          trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at + ahead, channelId: content.channelId },
         });
         kept[id] = booking;
       }

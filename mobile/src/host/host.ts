@@ -62,6 +62,8 @@ interface World {
   /** Edunex's file storage: the network, or the demo's pretend storage. */
   fetchFile?: FetchFile;
   clockOffset(): number;
+  /** The demo's alerts go to Android as the real app's do (EDUNEX_DEMO_NOTIFY=1), to see a reminder come with the app closed. */
+  notify?: boolean;
 }
 
 /** A vault that forgets on quit, for the demo: its made-up sessions never touch the keystore. */
@@ -106,6 +108,7 @@ export function host(): Promise<Host> {
 
 async function makeHost(): Promise<Host> {
   const world = DEMO ? await demoWorld() : await realWorld();
+  const toAndroid = !DEMO || world.notify === true;
   const log = new AppLog(() => world.clock.now());
   const listeners = new Set<(event: unknown) => void>();
   let lang: Lang = "id";
@@ -142,10 +145,10 @@ async function makeHost(): Promise<Host> {
       }
       send(event);
     },
-    // The demo's made-up alerts stay in the app, as on the desktop.
-    alert: (notice) => void (DEMO ? undefined : reminders.deliver(notice)),
+    // The demo's made-up alerts stay in the app, as on the desktop, unless it's asked to show how they arrive.
+    alert: (notice) => void (toAndroid ? reminders.deliver(notice) : undefined),
     // What's planned is booked with Android, to arrive with the app closed (./reminders.ts).
-    ...(DEMO ? {} : { upcoming: (planned: readonly PlannedAlert[]) => reminders.upcoming(planned) }),
+    ...(toAndroid ? { upcoming: (planned: readonly PlannedAlert[]) => reminders.upcoming(planned) } : {}),
     // A closed app reads no SIX for Tandai Hadir: a reminder at the start of every class SIX counts instead.
     checkInReminders: true,
     log,
