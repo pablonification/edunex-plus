@@ -26,7 +26,7 @@ Both APKs come from the latest run of the [Mobile workflow](https://github.com/p
 | Check | Result | Proof |
 | --- | --- | --- |
 | Scope | 40 of 44 desktop features done with proof (5 of them left out on purpose, each for a reason a phone gives). 4 wait for a real ITB account | `mobile/PROGRESS.md`, Scope |
-| Same data (Check A) | 10,404 of 10,405 items, all 15 scenarios, 14 of them at 100%. The one miss was the test flow's own and is fixed. {{FINAL_RUN}} | Maestro finds every item the desktop demo shows, in all 15 scenarios, on CI's emulator (run 41061832793) |
+| Same data (Check A) | 10,405 of 10,405 items, 100% in all 15 scenarios | Maestro finds every item the desktop demo shows, on CI's emulator (run 41081537722, all 16 jobs green) |
 | Same feel (Check B) | 37 of 37 screens pass, light and dark (judge round 5): "same app, made properly for a phone" | The judge compares each phone picture with the desktop's, light and dark |
 | Fresh install | Passed, 104 steps, on bd3ca3c's APKs | Both APKs on a wiped phone (Redroid). The demo from its first screen through Android's notification prompt to a handed-in Task. The real app to ITB's own sign-in page |
 | Speed | Cold start 1.0–1.15 s with saved data. 0 janky frames scrolling the longest lists | Redroid (Android 13, 1.5 CPUs, software drawing, so pessimistic) |

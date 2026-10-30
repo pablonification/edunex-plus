@@ -9,9 +9,8 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
   wait for a real ITB account (Blockers for Arqila). The rows that said "judge pending" cite judge
   round 4 and Check A of run 41002111336 (Decision 15). A6 and A9 checked on Redroid with the demo
   release of f48a0be.
-- Check A: run 41061832793 (bd3ca3c, the final app code), all 16 jobs green, found 10,404 of 10,405
-  items, 14 scenarios at 100%. The one miss was the flow's own (a page still gliding carried a text off
-  the edge, then the flow looked upward), fixed in d45d175. Run 41081537722 is the final proof.
+- Check A: the final run 41081537722 (d45d175, app code of bd3ca3c), all 16 jobs green, found 10,405
+  of 10,405 items, 100% in all 15 scenarios.
 - Check B: judge round 5 (run 41029222897) passed all 37 screens light and dark, 34 dark included.
   Its two polish fixes (tabs fade at a hidden edge, a date keeps its time) are pushed with the edit fix.
 - Hand-off: `mobile/HANDOFF.md` and the PR text (`~/scratch/pr/`) are drafted, with `{{…}}` for the
@@ -24,8 +23,8 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
   the final run's APKs.
 - The edit scenario's "Diubah dosen" no longer moves with the machine's speed (Decision 16, Notes).
 - Performance round: cold start 1.0–1.15 s with saved data, 0 janky frames scrolling long lists.
-- Draft PR: #285 (mobile → main), with run 41061832793's numbers. Merging is Arqila's.
-- Next: when run 41081537722 ends (~02:30), its score in HANDOFF.md ({{FINAL_RUN}}) and the PR's text.
+- Draft PR: #285 (mobile → main), with the final run's numbers. Merging is Arqila's.
+- Next: nothing of the lead's. What's left is Arqila's (Blockers for Arqila, and HANDOFF.md's steps).
 
 ## Tools on pabs (installed without sudo)
 
@@ -125,6 +124,7 @@ Inventory: `mobile/flows/expected/` (the desktop demo's screens, read per scenar
 | 2026-10-30 10:30 | signed-in (Redroid, release demo from run 4) | plan 177/178, settings 12/12 | (partial) | settings 100% with 25 s scrolls (2 phone-link items left out, A18); plan's last item "31 Jan" is held with a no-break space Java's `\s` doesn't match: the flows' pattern takes any space since a27f078 |
 | 2026-10-30 19:50 | all 15 (CI 41029222897, f48a0be) | 10,404 | 10,405 | All 16 jobs green. 14 scenarios 100%; sick 763/764: Settings' "80%" stopped in the strip above Android's gesture bar, which Maestro's scroll counts as on screen and its check doesn't, so the flow scrolled up away from it. The flows now nudge a fifth of a screen further before scrolling up (scoring, not the app) |
 | 2026-10-30 23:15 | all 15 (CI 41061832793, bd3ca3c) | 10,404 | 10,405 | All 16 jobs green. sick 764/764 with the nudge; edit 767/767 with the fixed 08:10. One flake: course-table-lost's Settings "PL3002", found at the bottom edge while the page still glided, gone by the check, then looked for upward. The flows now end with a centring pass down for a text still not found (d45d175, the final run 41081537722) |
+| 2026-10-31 02:15 | all 15 (CI 41081537722, d45d175) | 10,405 | 10,405 | The final run: all 16 jobs green, every scenario 100% |
 
 ## Score B: same feel (judge on the Mac)
 
