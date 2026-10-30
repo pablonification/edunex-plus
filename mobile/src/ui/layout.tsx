@@ -131,7 +131,8 @@ export function Section({
   return (
     <View style={{ marginTop: first ? 0 : space[8] }} testID={testID}>
       {title !== undefined && (
-        <View style={styles.sectionHead}>
+        // Title and action level: centred together on a title alone, bottoms lined up when a description follows.
+        <View style={[styles.sectionHead, { alignItems: description === undefined ? "center" : "flex-end" }]}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="title" weight="semibold" accessibilityRole="header">
               {title}
@@ -153,8 +154,7 @@ export function Section({
               </View>
             )}
           </View>
-          {/* Level with the title: centred on it alone, at its line when a description follows. */}
-          {action && <View style={{ flexShrink: 0, alignSelf: description === undefined ? "center" : "flex-start" }}>{action}</View>}
+          {action && <View style={{ flexShrink: 0 }}>{action}</View>}
         </View>
       )}
       {children}
