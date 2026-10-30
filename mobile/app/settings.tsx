@@ -4,8 +4,9 @@
 // through ntfy (the app is the phone, A18). `?at=alerts|courseColors` opens it at that group.
 import { router } from "expo-router";
 import { type ComponentRef, type ReactNode, useRef, useState } from "react";
-import { Image, Pressable, type ScrollView, View } from "react-native";
+import { Image, Pressable, type ScrollView, StyleSheet, View } from "react-native";
 import { errorKey } from "../../src/app/bridge";
+import { useCourseColorPicks } from "../../src/app/course-colors";
 import { useTermCourses } from "../../src/app/courses";
 import { useFormat, useLang, useT } from "../../src/app/i18n";
 import { displayName } from "../../src/app/names";
@@ -26,19 +27,19 @@ import { pageName } from "../../src/core/report";
 import type { StringKey } from "../../src/core/strings";
 import { useParam } from "../src/nav";
 import { TargetStepper, useTargets } from "../src/parts/attendance";
-import { openCourseColorPicker } from "../src/parts/course-color-picker";
+import { colorName, openCourseColorPicker } from "../src/parts/course-color-picker";
 import { NotificationsOff } from "../src/parts/notifications-off";
 import { openReport } from "../src/parts/report";
 import { useSignIn, useSignInNote } from "../src/shell/source-status";
 import { toast } from "../src/swaps/overlays";
 import { SourceLogo } from "../src/ui/brand";
 import { Button, Chip, Segmented, Switch } from "../src/ui/controls";
-import { Card, LiveDot } from "../src/ui/display";
+import { Card, CourseDot, LiveDot } from "../src/ui/display";
 import { Icons } from "../src/ui/icons";
 import { Meta, Page } from "../src/ui/layout";
 import { Sheet } from "../src/ui/sheet";
 import { Text } from "../src/ui/text";
-import { space, useTheme } from "../src/ui/theme";
+import { radius, space, useTheme } from "../src/ui/theme";
 import { TopBar } from "../src/ui/top-bar";
 
 const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: true }[] = [
@@ -371,35 +372,35 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
             : status.state === "live"
               ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "success" }
               : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "warning" };
+  // The button beside the account, as the desktop's and the rows under it: the row already names the system, so the
+  // button says only the verb (its accessible name says all of it), leaving the name and program room to wrap.
   return (
-    <View style={{ paddingHorizontal: space[4], paddingVertical: space[3], gap: space[3] }} testID={`row.account.${source}`}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
-        <SourceLogo source={source} size={40} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text size="body" weight="medium">
-            {name}
+    <View
+      style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] }}
+      testID={`row.account.${source}`}
+    >
+      <SourceLogo source={source} size={40} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="body" weight="medium">
+          {name}
+        </Text>
+        {who && <Meta size="small">{who}</Meta>}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+          {status.state === "live" && <LiveDot />}
+          <Text size="caption" weight="medium" tone={state.tone} style={{ flexShrink: 1 }}>
+            {state.text}
           </Text>
-          {who && (
-            <Meta size="small" numberOfLines={1}>
-              {who}
-            </Meta>
-          )}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-            {status.state === "live" && <LiveDot />}
-            <Text size="caption" weight="medium" tone={state.tone}>
-              {state.text}
-            </Text>
-          </View>
         </View>
       </View>
       <Button
         size="sm"
         variant={needsSignIn ? "primary" : "secondary"}
         busy={needsSignIn ? signingIn : busy}
+        label={label}
         onPress={() => void (needsSignIn ? signIn(source) : signOut())}
         testID={needsSignIn ? `action.signIn.${source}` : `action.signOut.${source}`}
       >
-        {label}
+        {needsSignIn ? t(status.state === "expired" ? "action.signInAgain" : "action.signIn") : t("action.signOut")}
       </Button>
     </View>
   );
@@ -434,19 +435,70 @@ function AttendanceTargets() {
   );
 }
 
-/** Each course's color: a row opens the same picker as a course page's header and Lainnya's long-press. */
+/**
+ * Each course's color, as the desktop's: the course, then its code and whether the color is automatic or
+ * the Student's pick (and who shares it); the color by name opens the same picker as a course page's
+ * header and Lainnya's long-press. Last, every course back to automatic at once (the toast offers Undo).
+ */
 function CourseColors() {
   const t = useT();
+  const f = useFormat();
   const theme = useTheme();
-  const courses = useTermCourses();
-  if (!courses?.length) return null;
+  const term = useTermCourses();
+  const picks = useCourseColorPicks();
+  // A code in two classes is one course with one color.
+  const courses = (term ?? []).filter((course, index, all) => all.findIndex((other) => other.code === course.code) === index);
+  if (!courses.length) return null;
+  const picked = courses.filter((course) => course.colorPicked).length;
   return (
     <Group title={t("settings.courseColors")} note={t("settings.courseColors.note")}>
-      {courses.map((course) => (
-        <Row key={course.code} label={`${course.code} ${course.name}`} onPress={() => openCourseColorPicker(course.code)}>
-          <View style={{ width: 14, height: 14, borderRadius: 3, backgroundColor: theme.course(course.color) }} />
-        </Row>
-      ))}
+      {courses.map((course) => {
+        const same = courses.filter((other) => other.code !== course.code && other.colorId === course.colorId).map((other) => other.code);
+        const name = colorName(t, course.colorId);
+        return (
+          <Row
+            key={course.code}
+            label={course.name}
+            a11yLabel={`${course.name}, ${t("courseColor.current", { code: course.code, color: name })}`}
+            hint={
+              <Meta>
+                {course.code}
+                {t(course.colorPicked ? "courseColor.yours" : "courseColor.automatic")}
+                {same.length ? t("courseColor.sameAs", { codes: f.list(same) }) : ""}
+              </Meta>
+            }
+            onPress={() => openCourseColorPicker(course.code)}
+            testID={`row.courseColor.${course.code}`}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 6,
+                height: 36,
+                paddingHorizontal: space[2.5],
+                borderRadius: radius.lg,
+                borderWidth: StyleSheet.hairlineWidth * 2,
+                borderColor: theme.color.edge,
+                backgroundColor: theme.color.surface,
+              }}
+            >
+              <CourseDot color={course.color} />
+              <Text size="small" weight="medium" numberOfLines={1}>
+                {name}
+              </Text>
+              <Icons.ChevronDown size={12} color={theme.color.muted} />
+            </View>
+          </Row>
+        );
+      })}
+      <Row label={t("settings.courseColors.all")} hint={picked ? t("settings.courseColors.allHint", { count: picked }) : t("settings.courseColors.allAuto")}>
+        {picked > 0 ? (
+          <Button size="sm" onPress={() => void picks.resetAll(courses.map((course) => course.code))} testID="action.resetCourseColors">
+            {t("settings.courseColors.reset")}
+          </Button>
+        ) : null}
+      </Row>
     </Group>
   );
 }
@@ -601,15 +653,20 @@ function Divided({ children }: { children: ReactNode }) {
 /** A setting: what it is, when it applies, and its control (beside it, or under it when the choices are long). */
 function Row({
   label,
+  a11yLabel,
   hint,
   stacked = false,
   onPress,
+  testID,
   children,
 }: {
   label: string;
+  /** A pressable row's accessible name, when the label alone doesn't say what it opens. */
+  a11yLabel?: string;
   hint?: ReactNode;
   stacked?: boolean;
   onPress?: () => void;
+  testID?: string;
   children?: ReactNode;
 }) {
   const body = (
@@ -630,7 +687,7 @@ function Row({
   );
   if (!onPress) return body;
   return (
-    <Pressable onPress={onPress} accessibilityRole="button">
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11yLabel} testID={testID}>
       {body}
     </Pressable>
   );
