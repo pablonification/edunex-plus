@@ -1377,7 +1377,46 @@ function MinorSheet({
         })
       : [];
   return (
-    <Sheet open onClose={onClose} title={t("rule.minor", { name: minor.name })} testID="sheet.minor">
+    <Sheet
+      open
+      onClose={onClose}
+      title={t("rule.minor", { name: minor.name })}
+      // Planning (or stopping) the minor stays in view under its course list, however long.
+      footer={
+        on && registered ? (
+          // One button, or the choice of keeping or removing its planned courses when there are some (both in view: no menu on a sheet).
+          stop.map((choice) => (
+            <View key={choice.label} style={{ gap: space[1] }}>
+              <Button onPress={() => decide(choice.onPress)} testID="action.minorStop">
+                {choice.label}
+              </Button>
+              {stop.length > 1 && choice.hint ? (
+                <Text size="caption" tone="muted">
+                  {choice.hint}
+                </Text>
+              ) : null}
+            </View>
+          ))
+        ) : on ? (
+          <Button
+            onPress={() => decide(() => undoable((p) => ({ ...p, minor: null }), t("planner.minorStopped", { name: minor.name })))}
+            testID="action.minorStop"
+          >
+            {t("planner.minorStop")}
+          </Button>
+        ) : (
+          <Button
+            variant="primary"
+            icon={<Icons.Target size={16} color={theme.color.onAccent} />}
+            onPress={() => decide(() => undoable((p) => planMinor(p, minor), t("planner.minorPlannedDone", { name: minor.name })))}
+            testID="action.minorPlan"
+          >
+            {t("planner.minorPlan")}
+          </Button>
+        )
+      }
+      testID="sheet.minor"
+    >
       <Meta>
         {minor.program}
         {registered ? t(stopped ? "curriculum.notContinuing" : "planner.minorRegistered") : ""}
@@ -1453,39 +1492,6 @@ function MinorSheet({
       <Text size="caption" tone="muted" style={{ marginTop: space[3] }}>
         {t("planner.minorWhat")}
       </Text>
-      <View style={{ marginTop: space[4], marginBottom: space[2], gap: space[2] }}>
-        {on && registered ? (
-          // One button, or the choice of keeping or removing its planned courses when there are some (both in view: no menu on a sheet).
-          stop.map((choice) => (
-            <View key={choice.label} style={{ gap: space[1] }}>
-              <Button onPress={() => decide(choice.onPress)} testID="action.minorStop">
-                {choice.label}
-              </Button>
-              {stop.length > 1 && choice.hint ? (
-                <Text size="caption" tone="muted">
-                  {choice.hint}
-                </Text>
-              ) : null}
-            </View>
-          ))
-        ) : on ? (
-          <Button
-            onPress={() => decide(() => undoable((p) => ({ ...p, minor: null }), t("planner.minorStopped", { name: minor.name })))}
-            testID="action.minorStop"
-          >
-            {t("planner.minorStop")}
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            icon={<Icons.Target size={16} color={theme.color.onAccent} />}
-            onPress={() => decide(() => undoable((p) => planMinor(p, minor), t("planner.minorPlannedDone", { name: minor.name })))}
-            testID="action.minorPlan"
-          >
-            {t("planner.minorPlan")}
-          </Button>
-        )}
-      </View>
     </Sheet>
   );
 }

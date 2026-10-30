@@ -60,7 +60,7 @@ export function Sheet({
           )}
           <ScrollView
             style={{ maxHeight: 560, flexGrow: 0, flexShrink: 1 }}
-            contentContainerStyle={{ paddingHorizontal: space[5] }}
+            contentContainerStyle={{ paddingHorizontal: space[5], paddingBottom: footer !== undefined ? space[3] : 0 }}
             keyboardShouldPersistTaps="handled"
           >
             {children}

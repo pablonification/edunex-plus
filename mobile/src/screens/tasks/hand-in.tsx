@@ -703,7 +703,34 @@ function HandInSheet({ h, submitLabel }: { h: HandInState; submitLabel: string }
   };
   const saveDraft = () => (h.changed ? void h.run("draft") : h.setConfirming(false));
   return (
-    <Sheet open={h.confirming} onClose={close} title={t("handIn.confirmTitle")} testID="sheet.submit">
+    <Sheet
+      open={h.confirming}
+      onClose={close}
+      title={t("handIn.confirmTitle")}
+      // Handing in stays in view however many checks the sheet lists.
+      footer={
+        guard.waitForWindow ? (
+          <>
+            <Button variant="primary" size="lg" busy={busy === "draft"} disabled={busy === "submit"} onPress={saveDraft} testID="action.saveInstead">
+              {h.changed ? t("handIn.saveInstead") : t("handIn.notNow")}
+            </Button>
+            <Button size="lg" busy={busy === "submit"} disabled={busy === "draft"} onPress={() => void h.run("submit")} testID="action.submitAnyway">
+              {t("handIn.submitAnyway")}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="primary" size="lg" busy={busy === "submit"} onPress={() => void h.run("submit")} testID="action.submitConfirm">
+              {submitLabel}
+            </Button>
+            <Button size="lg" onPress={close}>
+              {t("action.cancel")}
+            </Button>
+          </>
+        )
+      }
+      testID="sheet.submit"
+    >
       <Text size="body" tone="muted">
         {files.length
           ? t("handIn.confirmBody", { files: files.length === 1 ? files[0]!.name : t("handIn.fileCount", { count: files.length }) })
@@ -725,27 +752,6 @@ function HandInSheet({ h, submitLabel }: { h: HandInState; submitLabel: string }
           })}
         </View>
       )}
-      <View style={{ marginTop: space[5], marginBottom: space[2], gap: space[2] }}>
-        {guard.waitForWindow ? (
-          <>
-            <Button variant="primary" size="lg" busy={busy === "draft"} disabled={busy === "submit"} onPress={saveDraft} testID="action.saveInstead">
-              {h.changed ? t("handIn.saveInstead") : t("handIn.notNow")}
-            </Button>
-            <Button size="lg" busy={busy === "submit"} disabled={busy === "draft"} onPress={() => void h.run("submit")} testID="action.submitAnyway">
-              {t("handIn.submitAnyway")}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="primary" size="lg" busy={busy === "submit"} onPress={() => void h.run("submit")} testID="action.submitConfirm">
-              {submitLabel}
-            </Button>
-            <Button size="lg" onPress={close}>
-              {t("action.cancel")}
-            </Button>
-          </>
-        )}
-      </View>
     </Sheet>
   );
 }
