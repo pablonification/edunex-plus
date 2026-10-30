@@ -33,7 +33,11 @@ export const LABEL = /^data\|([^|]+)\|([^|]+)\|(\d+)\/(\d+)$/;
 const EXACT = /^(?:[A-E]|AB|BC|T|K)$/;
 /** Maestro's text selector: a regex the element's whole text must match (it ignores case; dots match line ends). */
 export function pattern(token) {
-  const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s+");
+  // "pada:24 September": the desktop's text read a lecturer's <br> as nothing; the phone breaks the line there.
+  const escaped = token
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    .replace(/\s+/g, "\\s+")
+    .replace(/:(?=\S)/g, ":\\s*");
   return EXACT.test(token) ? escaped : `.*${escaped}.*`;
 }
 
