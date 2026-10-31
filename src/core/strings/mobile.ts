@@ -50,6 +50,39 @@ export const mobileStrings = {
   },
   // The class sheet's way to an exam sitting's page.
   "mobile.home.openExam": { id: "Buka ujian", en: "Open exam" },
+  // Beranda, round 2's v4: the greeting is the screen's one title, short like the reference apps'.
+  "mobile.home.hello.morning": { id: "Pagi, {name}", en: "Morning, {name}" },
+  "mobile.home.hello.midday": { id: "Siang, {name}", en: "Afternoon, {name}" },
+  "mobile.home.hello.afternoon": { id: "Sore, {name}", en: "Afternoon, {name}" },
+  "mobile.home.hello.evening": { id: "Malam, {name}", en: "Evening, {name}" },
+  // The now card's line above the course: "Sekarang · R.SG PWK LT.6", "Berikutnya · TVST C".
+  "mobile.home.next": { id: "Berikutnya", en: "Next" },
+  // Big numbers with their unit: "53 mnt lagi", "7 hari", "2 hari lewat".
+  "mobile.home.unit.minute": { id: "mnt", en: "min" },
+  "mobile.home.unit.hour": { id: "jam", en: { one: "hr", other: "hrs" } },
+  "mobile.home.unit.day": { id: "hari", en: { one: "day", other: "days" } },
+  "mobile.home.left": { id: "lagi", en: "left" },
+  "mobile.home.late": { id: "lewat", en: "late" },
+  // After the Student went to SIX's Tandai Hadir from the card and SIX no longer shows it: their step, not a claim.
+  "mobile.home.wentToSix": { id: "Sudah ke SIX · {time}", en: "Went to SIX · {time}" },
+  // Beranda's two sections, and the screen behind the first.
+  "mobile.home.toHandle": { id: "Perlu kamu urus", en: "To handle" },
+  "mobile.home.laterToday": { id: "Nanti hari ini", en: "Later today" },
+  // A card's kind, in a pill.
+  "mobile.home.kind.task": { id: "Tugas", en: "Task" },
+  "mobile.home.kind.presence": { id: "Presensi", en: "Presence" },
+  "mobile.home.kind.attendance": { id: "Kehadiran", en: "Attendance" },
+  "mobile.home.kind.meeting": { id: "Pertemuan", en: "Meeting" },
+  "mobile.home.kind.bill": { id: "UKT", en: "UKT" },
+  "mobile.home.kind.krs": { id: "KRS", en: "KRS" },
+  // A class row's one chip.
+  "mobile.home.chip.noAbsences": { id: "Jatah habis", en: "No absences left" },
+  "mobile.home.chip.belowTarget": { id: "Di bawah target", en: "Below target" },
+  "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
+  "mobile.home.chip.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
+  "mobile.home.online": { id: "daring", en: "online" },
+  // The class sheet's line for a class going on.
+  "mobile.home.liveUntil": { id: "Sekarang · sampai {time}", en: "Now · until {time}" },
   // The first read's card on Beranda: the summary the welcome used to show.
   "mobile.home.scanOpen": { id: "Lihat ringkasan", en: "See summary" },
   // Notifications, asked on Beranda the first time there's a class.

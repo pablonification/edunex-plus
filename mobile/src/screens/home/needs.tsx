@@ -3,7 +3,6 @@
 // Each row can be put off ("Ingatkan nanti") and, where only the Student can know it's dealt with,
 // put away ("Sudah beres"): a swipe (ui/swipe.tsx), or a long press, or TalkBack's actions. What's
 // put off and away is counted under the whole list, and opens there.
-import { router } from "expo-router";
 import { type ReactNode, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
@@ -41,14 +40,11 @@ export function NeedsYou({
   due,
   range,
   courses,
-  limit,
 }: {
   needs: readonly NeedDraft[];
   due: readonly NeedDraft[];
   range: NeedsRange;
   courses: readonly TermCourse[];
-  /** Beranda's: this many rows, and "Lihat semua" for the rest and what's put off or away. None: the whole list. */
-  limit?: number;
 }) {
   const t = useT();
   const f = useFormat();
@@ -67,10 +63,8 @@ export function NeedsYou({
   const away = snoozed.length + done.length;
   // Closed once nothing is put off or away, so the next one doesn't find the list open.
   if (listOpen && !away) setListOpen(false);
-  const awayLine = limit === undefined && away > 0 && (
-    <AwayLine snoozed={snoozed.length} done={done.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />
-  );
-  const rows = limit === undefined ? shown : shown.slice(0, limit);
+  const awayLine = away > 0 && <AwayLine snoozed={snoozed.length} done={done.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />;
+  const rows = shown;
   // Each row drawn again only when its words could change (./held.tsx): its data, the courses' names, the clock within
   // a day of its moment.
   const names = courses.map((course) => `${course.code}=${course.name}`).join("|");
@@ -78,29 +72,9 @@ export function NeedsYou({
     const { sig, moments } = facts({ need, names });
     return { sig, at: heldAt(now, moments, DAY) };
   };
-  const more = limit !== undefined && !loading && (shown.length > limit || away > 0);
+  // Under the screen's own title ("Perlu kamu urus"): no second title, the count is the list.
   return (
-    <Section
-      title={t("home.needs")}
-      count={loading || shown.length === 0 ? undefined : shown.length}
-      testID="section.needs"
-      first={limit === undefined}
-      action={
-        more ? (
-          <Pressable
-            accessibilityRole="link"
-            onPress={() => router.push("/needs")}
-            hitSlop={12}
-            style={{ minHeight: 48, justifyContent: "center" }}
-            testID="action.needs.all"
-          >
-            <Text size="labelLarge" tone="accent">
-              {t("home.changes.all")}
-            </Text>
-          </Pressable>
-        ) : undefined
-      }
-    >
+    <Section testID="section.needs" first>
       {loading ? (
         <Card style={{ padding: space[4], gap: space[3] }}>
           <Skeleton width="33%" />

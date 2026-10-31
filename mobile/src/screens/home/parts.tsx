@@ -9,7 +9,7 @@ import { useCourseColor } from "../../../../src/app/courses";
 import { type Format, type Translate, useNow, useT } from "../../../../src/app/i18n";
 import type { AttendanceState } from "../../../../src/core/attendance";
 import { type DoneTerms, doneTerms } from "../../../../src/core/done";
-import type { ClassFacts, NeedDraft } from "../../../../src/core/needs";
+import type { ClassFacts, NeedDraft, NowCard } from "../../../../src/core/needs";
 import type { Snoozable, SnoozeKey } from "../../../../src/core/snooze";
 import { canSnooze, type RowDone, useMarkDone, useRowActions, useSnooze } from "../../parts/snooze";
 import { CourseDot } from "../../ui/display";
@@ -19,6 +19,10 @@ import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextSize, type TextTone, type TextWeight } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { RealClock } from "./held";
+
+/** The row key (Hari ini's, Nanti hari ini's) of what the now card shows. From src/app/screens/home.tsx. */
+export const cardKey = (card: NowCard | null) =>
+  card?.class ? `class:${card.class.session.id}` : card?.meeting ? `meeting:${card.meeting.code}:${card.meeting.meeting.start}` : null;
 
 export const MINUTE = 60_000;
 export const DAY = 86_400_000;

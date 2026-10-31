@@ -5,7 +5,7 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { budgetLabel, useActionLabel } from "../../../../src/app/attendance-labels";
-import { type TermCourse, useCourseColor } from "../../../../src/app/courses";
+import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useExamIds } from "../../../../src/app/schedule-data";
@@ -18,13 +18,15 @@ import { dayNoon } from "../../../../src/core/schedule";
 import { type Route, useNav } from "../../nav";
 import { CountdownBar } from "../../parts/meter";
 import { OpenSixTimetable } from "../../parts/six-page-note";
+import { BigButton } from "../../ui/big-button";
 import { Button } from "../../ui/controls";
-import { CourseDot, LiveDot } from "../../ui/display";
+import { LiveDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 import { Sheet } from "../../ui/sheet";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
+import { CourseTile } from "../../ui/tile";
 import { useCheckIn } from "./checked-in";
 import { DAY, MINUTE, movedLabel, nameOf, STATE_TEXT } from "./parts";
 
@@ -84,7 +86,7 @@ function Details({
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const color = useCourseColor();
+  const v = useTheme().v4;
   const { session, meeting, slot, code, windowFor } = cardSubject(card);
   const facts = card.class;
   const live = slot !== null && slot.start <= now && now < slot.end;
@@ -93,26 +95,30 @@ function Details({
   const kind = session && !/^kuliah$/i.test(session.activity) ? session.activity : null;
   const other = facts?.overlap ? context?.health.get(facts.overlap.code) : undefined;
   const picked = facts?.health && other ? clashPick(facts.health, other).pick === code : false;
+  const name = nameOf(courses, code, session?.courseName);
+  const crumb = [
+    code,
+    kind ?? session?.activity ?? (meeting ? t(meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: meeting.number }) : null),
+  ]
+    .filter(Boolean)
+    .join(" · ");
   return (
     <View style={{ gap: space[4] }}>
-      <View>
-        <Meta>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <CourseDot color={color(code)} size={8} />
-            <Text size="small" weight="semibold" tabular>
-              {code}
-            </Text>
-          </View>
-          {kind ?? ""}
-          {meeting ? t(meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: meeting.number }) : ""}
-        </Meta>
-        <Text size="titleLarge" accessibilityRole="header" style={{ marginTop: space[1] }}>
-          {nameOf(courses, code, session?.courseName)}
-        </Text>
+      {/* v4: the course's tile, "PL3002 · Kuliah", the name in the display face. */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[4] }}>
+        <CourseTile code={code} name={name} size={52} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text size="bodyMedium" weight="medium" style={{ color: v.muted }}>
+            {crumb}
+          </Text>
+          <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={{ color: v.fg, fontSize: 20, lineHeight: 26, marginTop: 2 }}>
+            {name}
+          </Text>
+        </View>
       </View>
-      <View style={{ gap: space[3] }}>
+      <View>
         {slot && (
-          <Fact icon={(c) => <Icons.Clock size={18} color={c} />}>
+          <Fact icon={(c) => <Icons.Clock size={22} color={c} />}>
             <Text size="bodyLarge" tabular>
               {`${f.relativeDay(slot.start)} · ${f.timeRange(slot.start, slot.end)}`}
             </Text>
@@ -120,7 +126,7 @@ function Details({
               <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
                 {fresh && <LiveDot />}
                 <Text size="bodyMedium" tone="success">
-                  {t("home.now.live", { time: f.time(slot.end) })}
+                  {t("mobile.home.liveUntil", { time: f.time(slot.end) })}
                 </Text>
               </View>
             )}
@@ -132,32 +138,32 @@ function Details({
           </Fact>
         )}
         {windowFor && (
-          <Fact icon={(c) => <Icons.Clock size={18} color={c} />}>{f.relativeDay(windowFor.start) + " · " + f.timeRange(windowFor.start, windowFor.end)}</Fact>
+          <Fact icon={(c) => <Icons.Clock size={22} color={c} />}>{`${f.relativeDay(windowFor.start)} · ${f.timeRange(windowFor.start, windowFor.end)}`}</Fact>
         )}
         {facts?.moved && (
-          <Fact tone="warning" icon={(c) => <Icons.CalendarClock size={18} color={c} />}>
+          <Fact tone="warning" icon={(c) => <Icons.CalendarClock size={22} color={c} />}>
             {movedLabel(t, f, facts)}
           </Fact>
         )}
-        {session?.room && <Fact icon={(c) => <Icons.MapPin size={18} color={c} />}>{session.room}</Fact>}
+        {session?.room && <Fact icon={(c) => <Icons.MapPin size={22} color={c} />}>{session.room}</Fact>}
         {meeting && !card.meeting?.maybeInSix && (
-          <Fact tone="warning" icon={(c) => <Icons.Info size={18} color={c} />}>
+          <Fact tone="warning" icon={(c) => <Icons.Info size={22} color={c} />}>
             {t("home.today.notInSix")}
           </Fact>
         )}
         {facts?.overlap && (
-          <Fact tone="warning" icon={(c) => <Icons.Overlap size={18} color={c} />}>
+          <Fact tone="warning" icon={(c) => <Icons.Overlap size={22} color={c} />}>
             {`${t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}${picked ? `. ${t("home.today.pick")}` : ""}`}
           </Fact>
         )}
         <Attendance card={card} past={past} onLeave={onLeave} />
         {card.after && (
-          <Fact icon={(c) => <Icons.ArrowRight size={18} color={c} />}>
+          <Fact icon={(c) => <Icons.ArrowRight size={22} color={c} />}>
             {`${t("home.now.after", { time: f.time(card.after.start), course: card.after.courseCode })} ${nameOf(courses, card.after.courseCode, card.after.courseName)}${card.after.room ? ` · ${card.after.room}` : ""}`}
           </Fact>
         )}
         {card.unreadDay && (
-          <Fact icon={(c) => <Icons.Info size={18} color={c} />}>
+          <Fact icon={(c) => <Icons.Info size={22} color={c} />}>
             <Text size="bodyLarge">{t("home.now.unread", { day: f.relativeDay(dayNoon(card.unreadDay)) })}</Text>
             <View style={{ flexDirection: "row", marginTop: space[1] }}>
               <OpenSixTimetable day={card.unreadDay} />
@@ -169,22 +175,41 @@ function Details({
   );
 }
 
-/** One fact with its icon, as Jadwal's class sheet lists them. */
-function Fact({ icon, tone = "fg", children }: { icon: (color: string) => ReactNode; tone?: TextTone; children: ReactNode }) {
+/** One fact with its icon (v4: a 48 dp row, the icon in the quiet grey, the words a step softer than a title). */
+function Fact({ icon, tone = "fg", end, children }: { icon: (color: string) => ReactNode; tone?: TextTone; end?: ReactNode; children: ReactNode }) {
   const theme = useTheme();
-  const color = tone === "warning" ? theme.color.warningFg : tone === "success" ? theme.color.successFg : theme.color.onSurfaceVariant;
+  const v = theme.v4;
+  const color = tone === "warning" ? theme.color.warningFg : tone === "success" ? theme.color.successFg : v.muted;
   return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[4] }}>
-      <View style={{ width: 20, alignItems: "center", paddingTop: 3 }}>{icon(color)}</View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 48, paddingVertical: space[2] }}>
+      <View style={{ width: 22, alignItems: "center" }}>{icon(color)}</View>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         {typeof children === "string" ? (
-          <Text size="bodyLarge" tone={tone}>
+          <Text size="bodyLarge" tone={tone} style={tone === "fg" ? { color: v.fg2 } : undefined}>
             {children}
           </Text>
         ) : (
           children
         )}
       </View>
+      {end}
+    </View>
+  );
+}
+
+/** The absences: one pip each, used in the danger colour, still allowed in the track's (v4's pip meter). */
+function Pips({ health }: { health: AttendanceHealth }) {
+  const v = useTheme().v4;
+  const used = health.held !== null && health.attended !== null ? Math.max(0, health.held - health.attended) : 0;
+  const left = Math.max(0, health.absencesLeft ?? 0);
+  const total = Math.min(8, used + left);
+  if (total === 0) return null;
+  return (
+    <View style={{ flexDirection: "row", gap: 4 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {Array.from({ length: total }, (_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: pips are positions
+        <View key={i} style={{ width: 18, height: 8, borderRadius: 4, backgroundColor: i < used ? v.redFg : v.line, opacity: i < used ? 0.8 : 1 }} />
+      ))}
     </View>
   );
 }
@@ -233,13 +258,13 @@ function Attendance({ card, past, onLeave }: { card: NowCard; past: boolean; onL
   return (
     <>
       {(where || health) && (
-        <Fact icon={(c) => <Icons.Hand size={18} color={c} />}>
+        <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={health ? <Pips health={health} /> : undefined}>
           {where && <Text size="bodyLarge">{where}</Text>}
           {health && <Budget health={health} />}
         </Fact>
       )}
       {checkLine && (
-        <Fact tone={checkLine.tone} icon={(c) => <Icons.CheckCircle size={18} color={c} />}>
+        <Fact tone={checkLine.tone} icon={(c) => <Icons.CheckCircle size={22} color={c} />}>
           <Text size="bodyLarge" tone={checkLine.tone}>
             {checkLine.text}
           </Text>
@@ -251,7 +276,7 @@ function Attendance({ card, past, onLeave }: { card: NowCard; past: boolean; onL
         </Fact>
       )}
       {presence && window && (
-        <Fact icon={(c) => <Icons.ListChecks size={18} color={c} />}>
+        <Fact icon={(c) => <Icons.ListChecks size={22} color={c} />}>
           <Text size="bodyLarge">
             {presence.counts !== false
               ? t("home.now.presenceDo", {
@@ -339,63 +364,60 @@ function Actions({ card, courses, onLeave }: { card: NowCard; courses: readonly 
     onLeave();
     go(route);
   };
-  // Side by side, the main one at the end (nearest the thumb, as Material's dialogs): the sheet stays short.
+  // v4: the one thing to do filled, the way to the course (or the exam) outlined under it.
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
+    <View style={{ gap: space[2] }}>
+      {action && <MainAction card={card} action={action} onLeave={onLeave} />}
       {target && (
-        <Button variant={action ? "secondary" : "tonal"} onPress={() => leave(target)} testID="action.openCourse" style={{ flexGrow: 1, flexBasis: 140 }}>
+        <BigButton variant="outline" onPress={() => leave(target)} testID="action.openCourse">
           {t(examId ? "mobile.home.openExam" : "home.now.openCourse")}
-        </Button>
+        </BigButton>
       )}
-      {action && <MainAction card={card} action={action} onLeave={onLeave} style={{ flexGrow: 1, flexBasis: 140 }} />}
     </View>
   );
 }
 
 /** The card's one action, filled: Tandai Hadir, the Presence, or joining the online class. */
-export function MainAction({ card, action, onLeave, style }: { card: NowCard; action: Exclude<CardAction, null>; onLeave?(): void; style?: object }) {
+export function MainAction({ card, action, onLeave }: { card: NowCard; action: Exclude<CardAction, null>; onLeave?(): void }) {
   const t = useT();
-  const theme = useTheme();
+  const now = useNow();
+  const v = useTheme().v4;
   const student = useDataset("six.student");
   const checkIn = useCheckIn();
   const external = useOpenExternal();
   const { session, code, link } = cardSubject(card);
-  if (action === "presence") return <PresenceButton card={card} variant="primary" onLeave={onLeave} style={style} />;
+  if (action === "presence") return <PresenceButton card={card} variant="primary" onLeave={onLeave} />;
   if (action === "checkIn" && session && student)
     return (
-      <Button
-        variant="primary"
-        icon={<Icons.Hand size={18} color={theme.color.onPrimary} />}
+      <BigButton
+        icon={<Icons.Hand size={20} weight="fill" color={v.onBrand} />}
         // The sheet goes first: SIX's page opens as a screen of its own, which a sheet would stay over.
         onPress={() => {
           onLeave?.();
-          checkIn(session.id, sixTimetableUrl(student, session.start));
+          checkIn(session.id, sixTimetableUrl(student, session.start), now);
         }}
         label={t("home.now.openSixLabel", { course: session.courseCode })}
         testID="action.checkIn"
-        style={style}
       >
         {t("mobile.notification.checkIn")}
-      </Button>
+      </BigButton>
     );
   if (action === "join" && link)
     return (
-      <Button
-        variant="primary"
-        icon={<Icons.Video size={18} color={theme.color.onPrimary} />}
+      <BigButton
+        icon={<Icons.Video size={20} color={v.onBrand} />}
         onPress={() => external(link)}
         label={t("home.today.joinLabel", { course: code })}
         testID="action.join"
-        style={style}
       >
         {t("home.today.join")}
-      </Button>
+      </BigButton>
     );
   return null;
 }
 
 /** An Edunex Presence's way in: the Task it's recorded by (opened here), or Edunex's page. */
-function PresenceButton({ card, variant, onLeave, style }: { card: NowCard; variant: "primary" | "ghost"; onLeave?(): void; style?: object }) {
+function PresenceButton({ card, variant, onLeave }: { card: NowCard; variant: "primary" | "ghost"; onLeave?(): void }) {
   const t = useT();
   const theme = useTheme();
   const { go } = useNav();
@@ -403,22 +425,31 @@ function PresenceButton({ card, variant, onLeave, style }: { card: NowCard; vari
   const presence = card.presence;
   if (!presence) return null;
   const viaTask = presence.activity === "assignment" && presence.task !== null;
+  const open = () => {
+    if (viaTask && presence.task) {
+      onLeave?.();
+      go({ screen: "task", taskId: presence.task.id });
+    } else external(presence.url);
+  };
+  const label = viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code });
+  const words = viaTask ? t("home.now.openTask") : t("presence.open.record");
+  if (variant === "primary")
+    return (
+      <BigButton icon={viaTask ? undefined : <Icons.ArrowUpRight size={20} color={theme.v4.onBrand} />} onPress={open} label={label} testID="action.presence">
+        {words}
+      </BigButton>
+    );
   return (
     <Button
-      variant={variant}
-      size={variant === "ghost" ? "sm" : "md"}
-      icon={viaTask ? undefined : <Icons.ArrowUpRight size={16} color={variant === "primary" ? theme.color.onPrimary : theme.color.primary} />}
-      onPress={() => {
-        if (viaTask && presence.task) {
-          onLeave?.();
-          go({ screen: "task", taskId: presence.task.id });
-        } else external(presence.url);
-      }}
-      label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
+      variant="ghost"
+      size="sm"
+      icon={viaTask ? undefined : <Icons.ArrowUpRight size={16} color={theme.color.primary} />}
+      onPress={open}
+      label={label}
       testID="action.presence"
-      style={variant === "ghost" ? { alignSelf: "flex-start", marginLeft: -space[3] } : style}
+      style={{ alignSelf: "flex-start", marginLeft: -space[3] }}
     >
-      {viaTask ? t("home.now.openTask") : t("presence.open.record")}
+      {words}
     </Button>
   );
 }

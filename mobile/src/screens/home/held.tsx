@@ -48,7 +48,7 @@ function HeldClock({ at, children }: { at: number; children: ReactNode }) {
 /** Inside a held row, what must be now itself (the times a snooze offers, counted from the moment it's picked). */
 export function RealClock({ children }: { children: ReactNode }) {
   const real = useContext(RealClockContext);
-  return real ? <ClockProvider clock={real}>{children}</ClockProvider> : <>{children}</>;
+  return real ? <ClockProvider clock={real}>{children}</ClockProvider> : children;
 }
 
 /**

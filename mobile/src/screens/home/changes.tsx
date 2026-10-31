@@ -1,22 +1,19 @@
-// "Yang berubah": one row on Beranda (how many changed this week, the newest), opening a sheet with the last
-// few as src/app/screens/home.tsx shows them. The bell keeps all of them, with the same words: "Lihat semua"
-// opens its screen.
+// "Yang berubah": the last week's changes, as src/app/screens/home.tsx shows them, on "Perlu kamu urus"'s screen (round
+// 2, v4: one tap from Beranda). The bell keeps all of them, with the same words: "Lihat semua" opens its screen.
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
-import { View } from "react-native";
+import { useMemo } from "react";
+import { Pressable, View } from "react-native";
 import { useCourseColor } from "../../../../src/app/courses";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import type { Alert, AlertKind } from "../../../../src/core/models";
 import { type HomeContext, recentChanges } from "../../../../src/core/needs";
 import { useNav } from "../../nav";
-import { Button } from "../../ui/controls";
 import { CourseDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { List, Meta, Row, Section } from "../../ui/layout";
-import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { useTheme } from "../../ui/theme";
 import { toned } from "./parts";
 
 /** "Yang berubah" shows this many; the bell has the rest. */
@@ -36,60 +33,45 @@ const IMPORTANT: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit", 
 /** An edit after hand-in whose title names the change ("Tenggat diundur ke …") still says so in its body. */
 const IMPORTANT_BODY: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit.body", "alert.taskEdited.count.after"]);
 
+/**
+ * "Yang berubah" on "Perlu kamu urus"'s screen: the last week's changes as src/app/screens/home.tsx shows them, at most
+ * five, then "Lihat semua" for the bell's whole history.
+ */
 export function Changes({ context }: { context: HomeContext }) {
   const t = useT();
-  const theme = useTheme();
   const { go } = useNav();
   const history = useDataset("app.alerts");
-  const [open, setOpen] = useState(false);
   const all = useMemo(() => recentChanges(context, history?.items ?? []), [context, history]);
   const changes = all.slice(0, CHANGES_SHOWN);
-  const newest = changes[0];
-  const leave = (then: () => void) => {
-    setOpen(false);
-    then();
-  };
   return (
-    <Section testID="section.changes">
-      <List>
-        <Row
-          testID="action.changes"
-          leading={<Icons.History size={22} color={theme.color.onSurfaceVariant} />}
-          title={
-            <Text size="bodyLarge" weight="medium">
-              {t("home.changes")}
-              {all.length > 0 && (
-                <Text size="bodyLarge" tone="muted" tabular>
-                  {`  ${all.length}`}
-                </Text>
-              )}
-            </Text>
-          }
-          meta={
-            <Text size="bodyMedium" tone="muted" numberOfLines={1}>
-              {newest ? t(newest.title.key, newest.title.vars) : t("home.changes.none")}
-            </Text>
-          }
-          // Nothing changed: the bell still has the history.
-          onPress={() => (changes.length ? setOpen(true) : router.push("/alerts"))}
-        />
-      </List>
-      <Sheet open={open} onClose={() => setOpen(false)} title={t("home.changes")} testID="sheet.changes">
-        <View style={{ marginHorizontal: -space[6] }}>
-          {changes.map((item) => (
-            <ChangeRow key={item.id} item={item} onOpen={() => leave(() => go(item.target))} />
-          ))}
-        </View>
-        {/* In the content, not the sheet's footer (cut off: ./class-sheet.tsx). */}
-        <Button
-          variant="tonal"
-          onPress={() => leave(() => router.push("/alerts"))}
+    <Section
+      title={t("home.changes")}
+      testID="section.changes"
+      action={
+        <Pressable
+          accessibilityRole="link"
+          onPress={() => router.push("/alerts")}
+          hitSlop={12}
+          style={{ minHeight: 48, justifyContent: "center" }}
           testID="action.changes.all"
-          style={{ marginTop: space[4], marginBottom: space[2] }}
         >
-          {t("home.changes.all")}
-        </Button>
-      </Sheet>
+          <Text size="labelLarge" tone="accent">
+            {t("home.changes.all")}
+          </Text>
+        </Pressable>
+      }
+    >
+      {changes.length === 0 ? (
+        <Text size="bodyMedium" tone="muted">
+          {t("home.changes.none")}
+        </Text>
+      ) : (
+        <List>
+          {changes.map((item) => (
+            <ChangeRow key={item.id} item={item} onOpen={() => go(item.target)} />
+          ))}
+        </List>
+      )}
     </Section>
   );
 }
