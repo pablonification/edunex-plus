@@ -172,7 +172,11 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
  * (tap: each source and "Perbarui sekarang"), then search, the bell with its unread count (`bell`: Beranda), and the
  * Student's avatar, the way to the account and Settings. A banner follows when something needs the Student.
  */
-export function TabHeader({ title, bell = false }: { title: string; bell?: boolean }) {
+/**
+ * A tab's top bar. `actions`: the tab's own one or two (an icon button, ⋮), between its title and Search; M3 allows
+ * two in the bar, the rest in ⋮.
+ */
+export function TabHeader({ title, bell = false, actions }: { title: string; bell?: boolean; actions?: ReactNode }) {
   const t = useT();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -201,6 +205,7 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
             </Text>
           </View>
         </Pressable>
+        {actions}
         <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
           <Icons.Search size={24} color={theme.color.onSurfaceVariant} />
         </IconButton>

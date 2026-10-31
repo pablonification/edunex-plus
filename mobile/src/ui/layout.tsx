@@ -30,6 +30,18 @@ import { radius, shape, space, useTheme } from "./theme";
  */
 const ScrollEdge = createContext<Animated.Value | null>(null);
 
+/**
+ * 0 until the page has scrolled `from` − 24 dp, 1 from `from` on (an Animated value; null outside a Page): a top bar's
+ * title that shows once the page's own big title has gone under it (M3's collapsing top app bar).
+ */
+export function useScrolledPast(from: number): Animated.AnimatedInterpolation<number> | null {
+  const offset = useContext(ScrollEdge);
+  return useMemo(
+    () => offset?.interpolate({ inputRange: [Math.max(0, from - 24), Math.max(1, from)], outputRange: [0, 1], extrapolate: "clamp" }) ?? null,
+    [offset, from],
+  );
+}
+
 /** 0 at the page's top, 1 once anything has scrolled under the bar (an Animated value; null outside a Page). */
 export function useScrolledUnder(): Animated.AnimatedInterpolation<number> | null {
   const offset = useContext(ScrollEdge);

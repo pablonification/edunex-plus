@@ -95,8 +95,8 @@ export function Menu({
           <Pressable
             key={choice.label}
             testID={choice.testID}
-            accessibilityRole="menuitem"
-            accessibilityState={{ disabled: !!choice.disabled }}
+            accessibilityRole={choice.checked === undefined ? "menuitem" : "checkbox"}
+            accessibilityState={{ disabled: !!choice.disabled, ...(choice.checked === undefined ? {} : { checked: choice.checked }) }}
             disabled={choice.disabled}
             onPress={() => {
               onClose();
@@ -106,7 +106,7 @@ export function Menu({
             style={[styles.item, choice.disabled && { opacity: 0.38 }]}
           >
             {choice.icon && <View style={{ width: 24, alignItems: "center" }}>{choice.icon}</View>}
-            <View style={{ flexShrink: 1 }}>
+            <View style={{ flexShrink: 1, flexGrow: 1 }}>
               <Text size="labelLarge" tone={choice.tone === "danger" ? "danger" : "fg"} style={{ fontWeight: "400", fontSize: 16, lineHeight: 24 }}>
                 {choice.label}
               </Text>
@@ -116,6 +116,11 @@ export function Menu({
                 </Text>
               )}
             </View>
+            {choice.checked !== undefined && (
+              <View style={{ width: 24, alignItems: "center" }}>
+                {choice.checked && <Icons.Check size={20} color={c.onSurface} weight="bold" />}
+              </View>
+            )}
           </Pressable>
         ))}
       </Animated.View>
