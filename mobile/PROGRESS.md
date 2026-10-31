@@ -152,7 +152,8 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | Helper | Piece | Branch | Status |
 | --- | --- | --- | --- |
 | qa | Set up the lab, baseline numbers, before pictures | `mobile-qa` | running |
-| shell | F3, F4, F5, F9: native tabs (5), native stack routes, native sheets, M3 design system, `mobile/DESIGN.md` | `mobile-shell` | running |
+| shell | F3, F4, F5, F9: native tabs (5), native stack routes, native sheets, M3 design system, `mobile/DESIGN.md` | `mobile-shell` | running; pushed through 556ae0b. Found W6's real cause: RN 0.88 hands Back to JS only on Android 16, so with predictive back on, 13–15 closed the app (fixed by `plugins/back-to-js.js`). Tab switch 53–109 ms median, screen open 17–108 ms (mid/weak) |
+| home | Beranda, swipe (W7), one target (W12), onboarding (W15), fresh-install speed | `mobile-r2-home` (from `mobile-shell`) | running |
 
 ## Round 1 (done 2026-10-31; kept for its decisions and proofs)
 
