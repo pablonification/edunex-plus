@@ -91,7 +91,6 @@ function legacy(r: Roles, scheme: "light" | "dark") {
   return {
     canvas: r.surface,
     sidebar: r.surfaceContainer,
-    surface: r.surfaceContainerLow,
     raised: r.surfaceContainerLow,
     edge: r.outlineVariant,
     line: r.outlineVariant,
@@ -203,7 +202,7 @@ export const m3weight: Record<keyof typeof m3type, "400" | "500"> = {
 
 /**
  * The sizes the screens were written with, each on its M3 style: micro and caption → Body S, small → Body M, body and
- * lead → Body L, title → Title L, heading → Headline S, figure and display → Headline M.
+ * lead → Body L, title → Title M, heading → Headline S, figure and display → Headline M.
  */
 export const type = {
   micro: m3type.bodySmall,
@@ -211,7 +210,7 @@ export const type = {
   small: m3type.bodyMedium,
   body: m3type.bodyLarge,
   lead: m3type.bodyLarge,
-  title: m3type.titleLarge,
+  title: m3type.titleMedium,
   heading: m3type.headlineSmall,
   figure: m3type.headlineMedium,
   display: m3type.headlineMedium,

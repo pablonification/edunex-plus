@@ -119,7 +119,7 @@ export function GradeSelect({
           borderWidth: 1,
           borderStyle: guess ? "dashed" : "solid",
           borderColor: c.fieldEdge,
-          backgroundColor: guess ? "transparent" : c.surface,
+          backgroundColor: guess ? "transparent" : c.surfaceContainerLow,
         }}
       >
         <Text size="small" weight="semibold" tone={guess ? "muted" : "fg"} tabular>
@@ -150,7 +150,7 @@ export function GradeSelect({
                   justifyContent: "center",
                   borderWidth: on ? 2 : 1,
                   borderColor: on ? c.accent : c.edge,
-                  backgroundColor: on ? c.infoBg : c.surface,
+                  backgroundColor: on ? c.infoBg : c.surfaceContainerLow,
                 }}
               >
                 <Text size="body" weight="semibold" tone={on ? "info" : "fg"} tabular>
@@ -254,7 +254,7 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
             borderRadius: radius.lg,
             borderWidth: 1,
             borderColor: invalid ? theme.color.dangerFg : theme.color.edge,
-            backgroundColor: theme.color.surface,
+            backgroundColor: theme.color.surfaceContainerLow,
             paddingHorizontal: space[2],
             paddingVertical: 0,
             textAlign: "right",

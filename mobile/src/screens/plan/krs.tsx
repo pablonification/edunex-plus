@@ -182,7 +182,7 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
                 justifyContent: "center",
                 borderWidth: step.done ? 2 : 1,
                 borderColor: step.done ? theme.color.canvas : theme.color.track,
-                backgroundColor: step.done ? theme.color.live : theme.color.surface,
+                backgroundColor: step.done ? theme.color.live : theme.color.surfaceContainerLow,
               }}
             >
               {step.done && <Icons.Check size={9} color="#ffffff" weight="bold" />}

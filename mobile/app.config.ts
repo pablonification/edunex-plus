@@ -45,6 +45,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "./plugins/high-refresh-rate",
     // The bottom tabs' icons as Android drawables (scripts/make-tab-icons.mjs).
     "./plugins/tab-icons",
+    // The native bottom sheets edge to edge (no black navigation bar over their end).
+    "./plugins/sheet-theme",
     "expo-secure-store",
     "expo-background-task",
     "expo-sharing",

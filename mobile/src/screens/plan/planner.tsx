@@ -1738,7 +1738,7 @@ function AddCourse({
                           borderRadius: radius.md,
                           borderWidth: done ? 0 : 1,
                           borderColor: theme.color.edge,
-                          backgroundColor: done ? theme.color.successBg : theme.color.surface,
+                          backgroundColor: done ? theme.color.successBg : theme.color.surfaceContainerLow,
                         }}
                         testID={`action.add.${code}`}
                       >

@@ -24,6 +24,7 @@ import { CourseDot } from "../src/ui/display";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel, Meta } from "../src/ui/layout";
 import { Text, useFieldColors } from "../src/ui/text";
+import { usePerfDrawn } from "../src/perf";
 import { radius, space, type, useTheme } from "../src/ui/theme";
 
 /** Every screen and Rencana studi tab is built on the phone. */
@@ -88,6 +89,7 @@ function remember(key: string): void {
 }
 
 export default function Search() {
+  usePerfDrawn(true);
   const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();

@@ -112,7 +112,9 @@ export function MonthView({
           </Text>
         ))}
       </View>
-      <View style={{ borderRadius: radius.xl, borderWidth: 1, borderColor: theme.color.line, overflow: "hidden", backgroundColor: theme.color.surface }}>
+      <View
+        style={{ borderRadius: radius.xl, borderWidth: 1, borderColor: theme.color.line, overflow: "hidden", backgroundColor: theme.color.surfaceContainerLow }}
+      >
         {weeks.map((week, w) => (
           <View key={week[0]!.day} style={{ flexDirection: "row", borderTopWidth: w > 0 ? 1 : 0, borderTopColor: theme.color.line }}>
             {week.map((day) => {

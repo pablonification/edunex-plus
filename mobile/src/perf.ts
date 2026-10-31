@@ -5,7 +5,7 @@
 //   [perf] first-data <ms>          from the JS start to Beranda drawn with the Student's data
 // Cheap enough to stay on in every build: one timer every 50 ms, and a line only when something's slow
 // or a screen opens.
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useNavigation } from "expo-router";
 import { useCallback, useEffect } from "react";
 
 /** What's running, for a stall's label: the screen shown and the engine's last step. */
@@ -72,11 +72,26 @@ export function perfFirstData(): void {
 }
 
 /**
- * perfDrawn each time this screen comes into focus: a tab is mounted ahead and isn't drawn again on a switch, so the
- * switch's line is the frame after the tab shows.
+ * A bottom tab's line: from the tab's press reaching JS (Android's bar has already switched to the tab, mounted ahead)
+ * to the frame after the tab comes into focus. Native tabs don't pass through the navigation container's actions, so
+ * the tab's own tabPress starts the clock.
  */
-export function usePerfFocused(kind: "screen" | "tab" = "tab"): void {
-  useFocusEffect(useCallback(() => perfDrawn(kind), [kind]));
+export function usePerfFocused(name: string): void {
+  const navigation = useNavigation();
+  useEffect(
+    () =>
+      navigation.addListener("tabPress" as never, () => {
+        perfNavigating();
+        perfShown(name);
+      }),
+    [navigation, name],
+  );
+  useFocusEffect(
+    useCallback(() => {
+      perfShown(name);
+      perfDrawn("tab");
+    }, [name]),
+  );
 }
 
 /** perfDrawn once `ready` (the screen's data is in it), after the render that shows it. */

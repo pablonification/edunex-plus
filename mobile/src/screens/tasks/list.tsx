@@ -236,7 +236,7 @@ export function CardRow({ first, last, children }: Place & { children: ReactNode
   return (
     <View
       style={{
-        backgroundColor: c.surface,
+        backgroundColor: c.surfaceContainerLow,
         overflow: "hidden",
         borderColor: c.edge,
         borderLeftWidth: StyleSheet.hairlineWidth,

@@ -110,7 +110,7 @@ export function LecturerFile({ file, edunexUrl, testID }: { file: TaskFile; edun
   const theme = useTheme();
   const { here, busy, open, share } = useEdunexFile(file, edunexUrl);
   return (
-    <View style={[styles.card, { borderColor: theme.color.edge, backgroundColor: theme.color.surface }]}>
+    <View style={[styles.card, { borderColor: theme.color.edge, backgroundColor: theme.color.surfaceContainerLow }]}>
       <Pressable
         testID={testID}
         accessibilityRole="button"

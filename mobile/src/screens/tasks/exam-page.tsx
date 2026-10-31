@@ -242,7 +242,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
                 accessibilityRole="button"
                 onPress={() => go({ screen: "exam", examId: other.id })}
                 android_ripple={{ color: c.selected }}
-                style={[styles.other, { borderColor: c.edge, backgroundColor: c.surface }]}
+                style={[styles.other, { borderColor: c.edge, backgroundColor: c.surfaceContainerLow }]}
               >
                 <Tag>{t(`exam.kind.${other.kind}`)}</Tag>
                 <CourseDot color={colorOf(other.courseCode)} size={8} />
@@ -430,7 +430,7 @@ function TakeHomeCard({ task }: { task: Task }) {
       accessibilityRole="button"
       onPress={() => go({ screen: "task", taskId: task.id })}
       android_ripple={{ color: theme.color.selected }}
-      style={[styles.card, styles.takeHome, { borderColor: theme.color.edge, backgroundColor: theme.color.surface }]}
+      style={[styles.card, styles.takeHome, { borderColor: theme.color.edge, backgroundColor: theme.color.surfaceContainerLow }]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[2] }}>
         {/* How the app knows it's the exam's take-home, said once where it's shown. */}
