@@ -3,6 +3,6 @@ import { usePerfFocused } from "../../src/perf";
 import { TasksScreen } from "../../src/screens/tasks/list";
 
 export default function Screen() {
-  usePerfFocused("tab");
+  usePerfFocused("tasks");
   return <TasksScreen show={useParam("show") === "done" ? "done" : undefined} />;
 }

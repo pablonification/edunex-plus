@@ -154,7 +154,7 @@ function LicenceRow({ entry, first, last, open, onToggle }: { entry: Licence; fi
   return (
     <View
       style={{
-        backgroundColor: c.surface,
+        backgroundColor: c.surfaceContainerLow,
         overflow: "hidden",
         borderColor: c.edge,
         borderLeftWidth: StyleSheet.hairlineWidth,
@@ -266,7 +266,7 @@ function Loading() {
         borderRadius: radius.xl,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.color.edge,
-        backgroundColor: theme.color.surface,
+        backgroundColor: theme.color.surfaceContainerLow,
         overflow: "hidden",
       }}
     >

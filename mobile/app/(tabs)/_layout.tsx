@@ -5,7 +5,7 @@
 // switch is instant and each keeps its scroll; a second tap on the open tab scrolls it to the top.
 // Labels always show. The icons are the app's own Phosphor glyphs as Android drawables
 // (plugins/tab-icons.js), outlined at rest and filled when picked.
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs } from "expo-router/native-tabs";
 import { useRememberCourseColors } from "../../../src/app/course-colors";
 import { useTermCourses } from "../../../src/app/courses";
 import { useT } from "../../../src/app/i18n";

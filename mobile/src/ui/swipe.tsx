@@ -60,7 +60,7 @@ export function SwipeRow({ actions, children, testID }: { actions: readonly Swip
         </View>
       )}
     >
-      <View style={{ backgroundColor: theme.color.surface }}>{children}</View>
+      <View style={{ backgroundColor: theme.color.surfaceContainerLow }}>{children}</View>
     </Swipeable>
   );
 }

@@ -6,6 +6,6 @@ import { TabHeader, usePullToRefresh } from "../../src/shell/source-status";
 export default function Screen() {
   const t = useT();
   const pull = usePullToRefresh();
-  usePerfFocused("tab");
+  usePerfFocused("schedule");
   return <ScheduleScreen header={<TabHeader title={t("nav.schedule")} />} {...pull} />;
 }

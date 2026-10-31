@@ -65,7 +65,7 @@ export function TargetStepper({ value, onChange, code }: { value: number; onChan
         borderWidth: StyleSheet.hairlineWidth * 2,
         borderColor: theme.color.edge,
         borderRadius: radius.lg,
-        backgroundColor: theme.color.surface,
+        backgroundColor: theme.color.surfaceContainerLow,
       }}
     >
       <IconButton

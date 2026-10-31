@@ -613,7 +613,7 @@ function UnreadRow({ count, onPress }: { count: number; onPress: () => void }) {
         borderWidth: 1,
         borderStyle: "dashed",
         borderColor: theme.color.edge,
-        backgroundColor: theme.color.surface,
+        backgroundColor: theme.color.surfaceContainerLow,
         paddingHorizontal: space[3],
       }}
     >

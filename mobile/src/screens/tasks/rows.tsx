@@ -304,7 +304,9 @@ export function PutOff({ putOff, open, onToggle }: { putOff: Todo["putOff"]; ope
         </Button>
       </View>
       {open && (
-        <View style={{ borderRadius: 12, borderWidth: 0.5, borderColor: theme.color.edge, backgroundColor: theme.color.surface, overflow: "hidden" }}>
+        <View
+          style={{ borderRadius: 12, borderWidth: 0.5, borderColor: theme.color.edge, backgroundColor: theme.color.surfaceContainerLow, overflow: "hidden" }}
+        >
           {putOff.map(({ item, entry }, i) => (
             <View key={item.key} style={i > 0 ? { borderTopWidth: 0.5, borderTopColor: theme.color.line } : null}>
               <PutOffRow item={item} entry={entry} />

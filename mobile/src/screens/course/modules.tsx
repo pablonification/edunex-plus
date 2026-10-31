@@ -85,7 +85,7 @@ function Contents({ entries, onPick }: { entries: Entry[]; onPick: (module: numb
         <View key={g === 0 ? "own" : "joint"}>
           {heading(g === 0 ? t("course.contents") : t("course.jointClass"), g === 0)}
           {group.some((e) => e.unopened) && unopenedNote}
-          <View style={[styles.list, { borderColor: c.edge, backgroundColor: c.surface }]}>
+          <View style={[styles.list, { borderColor: c.edge, backgroundColor: c.surfaceContainerLow }]}>
             {group.map((entry, i) => {
               const divider = i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line } : null;
               const label = entry.intro ? "" : t("course.module", { no: entry.label ?? "" });
@@ -195,7 +195,7 @@ export function ModulePage({ entry, anyContent }: { entry: Entry; anyContent: bo
               <Text size="small" weight="semibold" tone="muted" style={{ marginBottom: space[2] }}>
                 {t("course.tasks")}
               </Text>
-              <View style={[styles.list, { borderColor: theme.color.edge, backgroundColor: theme.color.surface }]}>
+              <View style={[styles.list, { borderColor: theme.color.edge, backgroundColor: theme.color.surfaceContainerLow }]}>
                 {entry.tasks.map((task, i) => (
                   <View key={task.id} style={i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line } : null}>
                     <TaskRow task={task} status={taskStatus(task, now)} meta="none" />
@@ -209,7 +209,7 @@ export function ModulePage({ entry, anyContent }: { entry: Entry; anyContent: bo
               <Text size="small" weight="semibold" tone="muted" style={{ marginBottom: space[2] }}>
                 {t("course.materials")}
               </Text>
-              <View style={[styles.list, { borderColor: theme.color.edge, backgroundColor: theme.color.surface }]}>
+              <View style={[styles.list, { borderColor: theme.color.edge, backgroundColor: theme.color.surfaceContainerLow }]}>
                 {entry.materials.map((material, i) => (
                   <View key={material.id} style={i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line } : null}>
                     <MaterialRow material={material} />

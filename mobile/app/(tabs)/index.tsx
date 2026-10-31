@@ -8,7 +8,7 @@ import { Page } from "../../src/ui/layout";
 export default function Screen() {
   const t = useT();
   const pull = usePullToRefresh();
-  usePerfFocused("tab");
+  usePerfFocused("home");
   return (
     <Page testID="screen.home" header={<TabHeader title={t("nav.home")} bell />} {...pull}>
       <Home />

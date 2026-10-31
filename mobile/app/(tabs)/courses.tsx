@@ -9,7 +9,7 @@ import { Page } from "../../src/ui/layout";
 export default function Screen() {
   const t = useT();
   const pull = usePullToRefresh();
-  usePerfFocused("tab");
+  usePerfFocused("courses");
   return (
     <Page testID="screen.courses" header={<TabHeader title={t("mobile.tab.courses")} />} {...pull}>
       <PresenceContent />

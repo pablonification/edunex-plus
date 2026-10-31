@@ -91,7 +91,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
           <EmptyState icon={<Icons.Calendar size={20} color={theme.color.muted} />} title={t("meeting.none")} />
         )
       ) : (
-        <View style={[styles.list, { borderColor: theme.color.edge, backgroundColor: theme.color.surface }]}>
+        <View style={[styles.list, { borderColor: theme.color.edge, backgroundColor: theme.color.surfaceContainerLow }]}>
           {meetings.map((meeting, index) => {
             const period = periodOf(meeting);
             const firstInPeriod = period && (index === 0 || periodOf(meetings[index - 1]!) !== period);

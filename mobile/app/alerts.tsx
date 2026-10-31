@@ -19,6 +19,7 @@ import { type IconProps, Icons } from "../src/ui/icons";
 import { List, Meta, Page, Section } from "../src/ui/layout";
 import { Text } from "../src/ui/text";
 import { space, useTheme } from "../src/ui/theme";
+import { usePerfDrawn } from "../src/perf";
 import { TopBar } from "../src/ui/top-bar";
 
 const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
@@ -48,6 +49,7 @@ const periodOf = (f: Format, at: number): Period => {
 };
 
 export default function Alerts() {
+  usePerfDrawn(true);
   const t = useT();
   const f = useFormat();
   const now = useNow();

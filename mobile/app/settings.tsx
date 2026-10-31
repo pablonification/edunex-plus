@@ -40,6 +40,7 @@ import { Meta, Page } from "../src/ui/layout";
 import { Sheet } from "../src/ui/sheet";
 import { Text } from "../src/ui/text";
 import { radius, space, useTheme } from "../src/ui/theme";
+import { usePerfDrawn } from "../src/perf";
 import { TopBar } from "../src/ui/top-bar";
 
 const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: true }[] = [
@@ -69,6 +70,7 @@ function useReport() {
 }
 
 export default function SettingsScreen() {
+  usePerfDrawn(true);
   const t = useT();
   const bridge = useBridge();
   const store = useStore();
@@ -480,7 +482,7 @@ function CourseColors() {
                 borderRadius: radius.lg,
                 borderWidth: StyleSheet.hairlineWidth * 2,
                 borderColor: theme.color.edge,
-                backgroundColor: theme.color.surface,
+                backgroundColor: theme.color.surfaceContainerLow,
               }}
             >
               <CourseDot color={course.color} />
