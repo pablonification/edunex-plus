@@ -9,13 +9,14 @@
 
 import { type AnyNode, type Element, isTag, isText } from "domhandler";
 import { Directory, File, Paths } from "expo-file-system";
-import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { Image, Text as RNText, ScrollView, StyleSheet, type TextStyle, View } from "react-native";
-import { useOpenLink } from "../../../src/app/hooks";
+import { useOpenExternal, useOpenLink } from "../../../src/app/hooks";
 import { type Translate, useT } from "../../../src/app/i18n";
 import { useBridge } from "../../../src/app/store";
 import type { FileProblem } from "../../../src/core/actions/files";
 import { isStorageFile, isWebLink, linkHost } from "../../../src/core/links";
+import { Button } from "../ui/controls";
 import { Skeleton } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Text, type TextSize } from "../ui/text";
@@ -315,15 +316,22 @@ function hash(text: string): string {
   return (h >>> 0).toString(36);
 }
 
-/** A picture on Edunex's storage: a placeholder while it loads, and why when it can't show. */
+/** Where to see a picture the phone can't show: the item's page on Edunex (LecturerHtml's `edunexUrl`). */
+const PictureHelp = createContext<string | null>(null);
+
+/** A picture on Edunex's storage: a placeholder while it loads, and why when it can't show, with the way to see it. */
 function RemoteImage({ src, alt }: { src: string; alt: string }) {
   const t = useT();
   const theme = useTheme();
   const bridge = useBridge();
+  const help = useContext(PictureHelp);
+  const openExternal = useOpenExternal();
+  const [attempt, setAttempt] = useState(0);
   const [picture, setPicture] = useState<Picked>(() => {
     const uri = ready.get(src);
     return uri ? { state: "ready", uri } : { state: "loading" };
   });
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `attempt` is "Coba lagi": the same link read again
   useEffect(() => {
     if (ready.has(src)) return;
     let live = true;
@@ -343,26 +351,54 @@ function RemoteImage({ src, alt }: { src: string; alt: string }) {
     return () => {
       live = false;
     };
-  }, [bridge, src]);
+  }, [bridge, src, attempt]);
   if (picture.state === "loading") return <Skeleton height={160} style={{ borderRadius: radius.lg }} />;
   if (picture.state === "failed")
     return (
-      <View
-        style={{ flexDirection: "row", alignItems: "center", gap: space[2], borderRadius: radius.lg, backgroundColor: theme.color.sunken, padding: space[3] }}
-      >
-        <Icons.ImageBroken size={16} color={theme.color.muted} />
-        <Text size="small" tone="muted" style={{ flex: 1 }}>
-          {t(`file.problem.${picture.problem}`)}
-        </Text>
+      <View style={{ borderRadius: radius.lg, backgroundColor: theme.color.surfaceContainerHigh, padding: space[3], gap: space[2] }} testID="note.picture">
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+          <Icons.ImageBroken size={18} color={theme.color.onSurfaceVariant} />
+          <Text size="bodyMedium" tone="muted" style={{ flex: 1 }}>
+            {t(`file.problem.${picture.problem}`)}
+          </Text>
+        </View>
+        {(picture.problem === "unreachable" || help) && (
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2], marginLeft: space[6] + 2 }}>
+            {picture.problem === "unreachable" && (
+              <Button
+                size="sm"
+                onPress={() => {
+                  setPicture({ state: "loading" });
+                  setAttempt((n) => n + 1);
+                }}
+              >
+                {t("action.tryAgain")}
+              </Button>
+            )}
+            {help && (
+              <Button size="sm" onPress={() => openExternal(help)} testID="action.pictureEdunex">
+                {t("action.openInEdunex")}
+              </Button>
+            )}
+          </View>
+        )}
       </View>
     );
   return <Picture uri={picture.uri} alt={alt} />;
 }
 
-export function LecturerHtml({ html, pictureAlt, size = "body" }: { html: string; pictureAlt?: string; size?: TextSize }) {
+/**
+ * `edunexUrl`: the item's page on Edunex (a module's note), offered when a picture in it can't be shown on the phone,
+ * so the Student still has a way to see it.
+ */
+export function LecturerHtml({ html, pictureAlt, size = "body", edunexUrl }: { html: string; pictureAlt?: string; size?: TextSize; edunexUrl?: string }) {
   const t = useT();
   const theme = useTheme();
   const open = useOpenLink();
   const body = useMemo(() => parseBody(html), [html]);
-  return <Stack gap={space[2.5]}>{blocks(body, { t, theme, open, size, alt: pictureAlt }, "r")}</Stack>;
+  return (
+    <PictureHelp.Provider value={edunexUrl ?? null}>
+      <Stack gap={space[2.5]}>{blocks(body, { t, theme, open, size, alt: pictureAlt }, "r")}</Stack>
+    </PictureHelp.Provider>
+  );
 }

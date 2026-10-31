@@ -8,9 +8,8 @@
 // once and open in the phone's own apps (../../parts/files.tsx); highlights and page notes stay on the
 // desktop (A14).
 
-import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { type Format, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { type CoursePage, isOpenTask } from "../../../../src/app/screens/course/data";
@@ -26,14 +25,14 @@ import {
 import { linkHost } from "../../../../src/core/links";
 import type { Material } from "../../../../src/core/models";
 import { taskStatus } from "../../../../src/core/tasks";
-import { useEdunexFile } from "../../parts/files";
+import { FileRow } from "../../parts/files";
 import { LecturerHtml } from "../../parts/lecturer-html";
-import { Button, IconButton } from "../../ui/controls";
+import { Button } from "../../ui/controls";
 import { EmptyState, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
 import { Text } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
+import { radius, shape, space, useTheme } from "../../ui/theme";
 import { TaskRow } from "../tasks/rows";
 import { contentsOf, countFacts, dayAndTime, type Entry, entrySlug, latest, WEEK } from "./contents";
 
@@ -269,9 +268,9 @@ function MaterialRow({ material }: { material: Material }) {
           <View style={{ marginTop: space[2] }}>
             {action.kind === "image" ? (
               // The picture through the same reader as a note's pictures (Edunex's storage, read in by the host).
-              <LecturerHtml html={`<img src="${attr(action.url)}">`} pictureAlt={material.title} />
+              <LecturerHtml html={`<img src="${attr(action.url)}">`} pictureAlt={material.title} edunexUrl={edunexMaterialUrl(material)} />
             ) : action.html ? (
-              <LecturerHtml html={action.html} />
+              <LecturerHtml html={action.html} edunexUrl={edunexMaterialUrl(material)} />
             ) : (
               <Text size="body" tone="muted">
                 {t("note.empty")}
@@ -308,7 +307,18 @@ function MaterialRow({ material }: { material: Material }) {
     </Text>
   );
 
-  if (action.kind === "download") return <FileRow material={material} url={action.url} name={action.name} icon={icon} body={body(plainTitle)} />;
+  if (action.kind === "download")
+    return (
+      <FileRow
+        file={{ url: action.url, name: action.name }}
+        edunexUrl={edunexMaterialUrl(material)}
+        leading={icon}
+        label={t("mobile.file.openFor", { name: material.title })}
+        testID={`row.material.${material.id}`}
+      >
+        {body(plainTitle)}
+      </FileRow>
+    );
 
   // A lecturer's link is its title, opened like a link in a note (any web page, in the browser).
   if (kind === "link" && action.kind === "open") return <LinkRow material={material} url={action.url} icon={icon} body={body} facts={facts} />;
@@ -395,38 +405,6 @@ function LinkRow({
   );
 }
 
-/** A file on Edunex: the row opens it in the phone's app (downloading it once); Share once it's here. */
-function FileRow({ material, url, name, icon, body }: { material: Material; url: string; name: string; icon: ReactNode; body: ReactNode }) {
-  const t = useT();
-  const theme = useTheme();
-  const file = useEdunexFile({ url, name }, edunexMaterialUrl(material));
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center" }}>
-      <Pressable
-        testID={`row.material.${material.id}`}
-        accessibilityRole="button"
-        accessibilityLabel={t("mobile.file.openFor", { name: material.title })}
-        accessibilityState={{ busy: file.busy }}
-        onPress={() => void file.open()}
-        android_ripple={{ color: theme.color.selected }}
-        style={[styles.material, { flex: 1, paddingRight: file.here ? space[1] : space[4] }]}
-      >
-        {icon}
-        {body}
-        {file.busy ? <ActivityIndicator size="small" color={theme.color.faint} /> : !file.here && <Icons.Download size={18} color={theme.color.faint} />}
-      </Pressable>
-      {file.here && (
-        <View style={{ paddingRight: space[1] }}>
-          <IconButton label={t("mobile.file.shareFor", { name: material.title })} onPress={file.share}>
-            {/* Android's share glyph, as parts/files.tsx draws it. */}
-            <ShareNetworkIcon size={18} color={theme.color.muted} />
-          </IconButton>
-        </View>
-      )}
-    </View>
-  );
-}
-
 /** Under each item, as on Edunex: who posted it and when, and who last changed it and when; once when they're the same moment. */
 function Credits({ material, f }: { material: Material; f: Format }) {
   const t = useT();
@@ -455,7 +433,7 @@ function Credits({ material, f }: { material: Material; f: Format }) {
 }
 
 const styles = StyleSheet.create({
-  list: { borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
+  list: { borderRadius: shape.lg, overflow: "hidden" },
   entry: { paddingHorizontal: space[4], paddingVertical: space[3], minHeight: 48 },
   material: { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] },
   icon: { width: 32, height: 32, borderRadius: radius.lg, alignItems: "center", justifyContent: "center" },

@@ -6,7 +6,7 @@ import { type ComponentRef, useCallback, useEffect, useRef, useState } from "rea
 import { Animated, Easing, Modal, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../src/app/i18n";
-import { IconButton } from "./controls";
+import { IconButton, Switch } from "./controls";
 import { Icons } from "./icons";
 import { reduceMotion } from "./motion";
 import type { SheetChoice } from "./sheet";
@@ -117,8 +117,9 @@ export function Menu({
               )}
             </View>
             {choice.checked !== undefined && (
-              <View style={{ width: 24, alignItems: "center" }}>
-                {choice.checked && <Icons.Check size={20} color={c.onSurface} weight="bold" />}
+              // The setting's state, as Material's switch; the whole item is the target.
+              <View pointerEvents="none" importantForAccessibility="no-hide-descendants">
+                <Switch value={choice.checked} onChange={() => undefined} label={choice.label} />
               </View>
             )}
           </Pressable>
