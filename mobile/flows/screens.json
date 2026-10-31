@@ -94,6 +94,11 @@
           },
           {
             "tapOn": {
+              "id": "tab.academic"
+            }
+          },
+          {
+            "tapOn": {
               "id": "action.account"
             }
           },
@@ -241,6 +246,11 @@
             "commands": [
               {
                 "tapOn": {
+                  "id": "tab.academic"
+                }
+              },
+              {
+                "tapOn": {
                   "id": "action.account"
                 }
               },
@@ -292,12 +302,58 @@
         }
       ],
       "byEntry": {
+        "^home\\.banner": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": [
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "action.needs.all"
+                    },
+                    "direction": "DOWN",
+                    "timeout": 8000,
+                    "optional": true
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "action.needs.all"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.needs"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          }
+        ],
         "^home\\.now\\.": [
           {
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.changes"
+                  "id": "screen.needs"
                 }
               },
               "commands": ["back"]
@@ -338,6 +394,328 @@
             }
           }
         ],
+        "^home\\.class-session\\.ekonomi-dan-inovasi-dalam-perencanaan": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "action.nowClass"
+                    },
+                    "direction": "UP",
+                    "timeout": 4000,
+                    "optional": true
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "action.nowClass"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "sheet.nowClass"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "^home\\.class-session\\.komunikasi-pemasaran": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "text": ".*Komunikasi Pemasaran.*",
+                "childOf": {
+                  "id": "section.today"
+                }
+              },
+              "direction": "DOWN",
+              "timeout": 8000,
+              "visibilityPercentage": 50
+            }
+          },
+          {
+            "tapOn": {
+              "text": ".*Komunikasi Pemasaran.*",
+              "childOf": {
+                "id": "section.today"
+              }
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
+        "^home\\.class-session\\.ekonomi-infrastruktur-dan-transportasi": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "text": ".*Ekonomi Infrastruktur dan Transportasi.*",
+                "childOf": {
+                  "id": "section.today"
+                }
+              },
+              "direction": "DOWN",
+              "timeout": 8000,
+              "visibilityPercentage": 50
+            }
+          },
+          {
+            "tapOn": {
+              "text": ".*Ekonomi Infrastruktur dan Transportasi.*",
+              "childOf": {
+                "id": "section.today"
+              }
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
+        "^home\\.class-session\\.teknik-penyelesaian-masalah-terstruktur": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "text": ".*Teknik Penyelesaian Masalah Terstruktur.*",
+                "childOf": {
+                  "id": "section.today"
+                }
+              },
+              "direction": "DOWN",
+              "timeout": 8000,
+              "visibilityPercentage": 50
+            }
+          },
+          {
+            "tapOn": {
+              "text": ".*Teknik Penyelesaian Masalah Terstruktur.*",
+              "childOf": {
+                "id": "section.today"
+              }
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
+        "^home\\.class-session\\.proposal-tugas-akhir": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.schedule"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.schedule"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "day.2026-10-09"
+              },
+              "direction": "UP",
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-09"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.ii4091-15-00"
+              }
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.ii4091-15-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.class"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
+        "^home\\.need\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": [
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "action.needs.all"
+                    },
+                    "direction": "DOWN",
+                    "timeout": 8000,
+                    "optional": true
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "action.needs.all"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.needs"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          }
+        ],
         "^home\\.change\\.": [
           {
             "runFlow": {
@@ -353,38 +731,68 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "sheet.changes"
+                  "id": "screen.needs"
                 }
               },
               "commands": [
                 {
                   "scrollUntilVisible": {
                     "element": {
-                      "id": "action.changes"
+                      "id": "action.needs.all"
                     },
                     "direction": "DOWN",
-                    "timeout": 6000,
+                    "timeout": 8000,
                     "optional": true
                   }
                 },
                 {
                   "tapOn": {
-                    "id": "action.changes"
+                    "id": "action.needs.all"
                   }
                 },
                 {
                   "extendedWaitUntil": {
                     "visible": {
-                      "id": "sheet.changes"
+                      "id": "screen.needs"
                     },
                     "timeout": 10000
                   }
                 }
               ]
             }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "section.changes"
+              },
+              "direction": "DOWN",
+              "timeout": 8000,
+              "optional": true
+            }
           }
         ],
         "^home\\.absence-budget\\.dk4073": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "runFlow": {
               "when": {
@@ -460,6 +868,26 @@
             "runFlow": {
               "when": {
                 "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
                   "id": "sheet.nowClass"
                 }
               },
@@ -527,6 +955,26 @@
           }
         ],
         "^home\\.absence-budget\\.ku5014": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "runFlow": {
               "when": {
@@ -602,6 +1050,26 @@
             "runFlow": {
               "when": {
                 "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
                   "id": "sheet.nowClass"
                 }
               },
@@ -669,6 +1137,26 @@
           }
         ],
         "^home\\.absence-budget\\.pl3032": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "runFlow": {
               "when": {
@@ -749,20 +1237,10 @@
               },
               "commands": ["back"]
             }
-          },
-          {
-            "runFlow": {
-              "when": {
-                "visible": {
-                  "id": "sheet.changes"
-                }
-              },
-              "commands": ["back"]
-            }
           }
         ]
       },
-      "$comment": "Round 2: Beranda's term courses moved to Kuliah (W12); their class, SKS and absences are on each course's page."
+      "$comment": "Round 2, v4: the now card's facts in its sheet; today's other classes in their row's sheet (tomorrow's meeting on Jadwal); the items to handle, the date and term and what changed on Perlu kamu urus's screen; the old course cards' facts on each course's page."
     },
     "changes": {
       "status": "ready",
@@ -1917,6 +2395,11 @@
     "settings": {
       "status": "placeholder",
       "steps": [
+        {
+          "tapOn": {
+            "id": "tab.academic"
+          }
+        },
         {
           "tapOn": {
             "id": "action.account"

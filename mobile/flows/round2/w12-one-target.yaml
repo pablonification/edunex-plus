@@ -39,7 +39,7 @@ appId: io.github.pablonification.edunexplus.demo
 - back
 - scrollUntilVisible:
     element:
-      id: action.changes
+      id: section.today
     direction: DOWN
     timeout: 10000
 - scroll

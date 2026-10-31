@@ -1,4 +1,4 @@
-# W7 (round 2): swiping a row on Beranda works as in Gmail. Swiped toward the end past the threshold, "Sudah tahu"
+# W7 (round 2): swiping a row works as in Gmail (on Perlu kamu urus's list, one tap from Beranda in v4). Swiped toward the end past the threshold, "Sudah tahu"
 # commits: the row leaves and the snackbar offers Urungkan, which brings it back. Swiped toward the start, "Ingatkan
 # nanti" opens its times. The long-press menu stays as the visible way.
 # Fails on round 1 (9395cea: a swipe only reveals buttons, toward the start; the row stays); passes after.
@@ -14,6 +14,12 @@ appId: io.github.pablonification.edunexplus.demo
     notVisible:
       id: status.settling
     timeout: 180000
+- tapOn:
+    id: action.needs.all
+- extendedWaitUntil:
+    visible:
+      id: screen.needs
+    timeout: 10000
 - scrollUntilVisible:
     element:
       id: "row.need.attendance:KU5014:out"

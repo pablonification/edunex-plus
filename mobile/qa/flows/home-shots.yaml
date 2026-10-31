@@ -1,4 +1,5 @@
-# Pictures of Beranda and the first run (mobile/report/img/mobile-r2-home/), through the lab's shots.sh (${THEME}).
+# Pictures of Beranda (round 2, v4) and the first run (mobile/report/img/mobile-r2-home/), through the lab's shots.sh
+# (${THEME}).
 appId: io.github.pablonification.edunexplus.demo
 ---
 # The first run: the welcome, Beranda filling in, the summary card.
@@ -18,7 +19,6 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 30000
     optional: true
 - takeScreenshot: 02-beranda-filling
-# The first read done (the top bar's progress line gone), then down to the card: at a large font it's below the fold.
 - extendedWaitUntil:
     notVisible:
       id: status.firstRead
@@ -42,7 +42,9 @@ appId: io.github.pablonification.edunexplus.demo
     notVisible:
       id: status.settling
     timeout: 180000
-# At a large font on a small phone the button is below the fold.
+- tapOn:
+    id: action.notify.later
+    optional: true
 - scrollUntilVisible:
     element:
       id: action.checkIn
@@ -59,50 +61,38 @@ appId: io.github.pablonification.edunexplus.demo
 - waitForAnimationToEnd
 - takeScreenshot: 05-sheet-kelas
 - back
-# Signed in, the class on with Tandai Hadir still to come.
-- clearState
-- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
-- extendedWaitUntil:
-    visible:
-      id: card.now
-    timeout: 120000
-- extendedWaitUntil:
-    notVisible:
-      id: status.settling
-    timeout: 180000
-- tapOn:
-    id: action.notify.later
-    optional: true
-- waitForAnimationToEnd
-- takeScreenshot: 06-beranda
 - scrollUntilVisible:
     element:
       id: section.today
     direction: DOWN
-- swipe:
-    start: 50%, 70%
-    end: 50%, 40%
-    duration: 400
-- waitForAnimationToEnd
-- takeScreenshot: 07-beranda-hari-ini
-- scrollUntilVisible:
-    element:
-      id: action.changes
-    direction: DOWN
-- tapOn:
-    id: action.changes
-- extendedWaitUntil:
-    visible:
-      id: sheet.changes
     timeout: 10000
 - waitForAnimationToEnd
-- takeScreenshot: 08-sheet-berubah
-- back
+- takeScreenshot: 06-beranda-nanti
 - scrollUntilVisible:
     element:
-      id: "row.need.attendance:KU5014:out"
+      id: action.checkIn
     direction: UP
-    centerElement: true
+    timeout: 10000
+# After Tandai Hadir: the demo's pretend SIX page counts as pressed; SIX's next read (every 2 minutes in class) shows it.
+- tapOn:
+    id: action.checkIn
+- waitForAnimationToEnd
+- back
+- extendedWaitUntil:
+    visible:
+      id: card.now.checkedIn
+    timeout: 200000
+- waitForAnimationToEnd
+- takeScreenshot: 07-beranda-sudah-ke-six
+# Perlu kamu urus's screen, a swipe and its snackbar, Ingatkan nanti's times.
+- tapOn:
+    id: action.needs.all
+- extendedWaitUntil:
+    visible:
+      id: screen.needs
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 08-perlu-kamu-urus
 - swipe:
     from:
       id: "row.need.attendance:KU5014:out"
@@ -110,6 +100,9 @@ appId: io.github.pablonification.edunexplus.demo
     duration: 300
 - takeScreenshot: 09-swipe-urungkan
 - tapOn: "Urungkan"
+- extendedWaitUntil:
+    notVisible: "Urungkan"
+    timeout: 10000
 - swipe:
     from:
       id: "row.need.exam:DK4073-UTS"

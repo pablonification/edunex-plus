@@ -1,9 +1,12 @@
-# Beranda in use (mobile/qa/home-notes.md): the now card's sheet three times, a Hari ini class's sheet twice, Yang
-# berubah's sheet, Perlu perhatianmu's whole list twice (a screen open), and a swipe that commits, then Urungkan.
+# Beranda in use (mobile/qa/home-notes.md): the now card's sheet three times, a later class's sheet twice, a tab
+# switch and back three times, Perlu kamu urus's screen twice (a screen open), an exam from a card twice.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - tapOn:
     id: tab.home
+- tapOn:
+    id: action.notify.later
+    optional: true
 - repeat:
     times: 3
     commands:
@@ -14,16 +17,27 @@ appId: io.github.pablonification.edunexplus.demo
             id: sheet.nowClass
           timeout: 10000
       - back
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: tab.schedule
+      - tapOn:
+          id: tab.home
 - scrollUntilVisible:
     element:
-      id: "row.today.class:2153983"
+      text: ".*Komunikasi Pemasaran.*"
+      childOf:
+        id: section.today
     direction: DOWN
-    centerElement: true
+    visibilityPercentage: 50
 - repeat:
     times: 2
     commands:
       - tapOn:
-          id: "row.today.class:2153983"
+          text: ".*Komunikasi Pemasaran.*"
+          childOf:
+            id: section.today
       - extendedWaitUntil:
           visible:
             id: sheet.nowClass
@@ -31,34 +45,22 @@ appId: io.github.pablonification.edunexplus.demo
       - back
 - scrollUntilVisible:
     element:
-      id: action.changes
-    direction: DOWN
-- tapOn:
-    id: action.changes
-- extendedWaitUntil:
-    visible:
-      id: sheet.changes
-    timeout: 10000
-- back
-- scrollUntilVisible:
-    element:
-      id: "row.need.attendance:KU5014:out"
-    direction: UP
-    centerElement: true
-- swipe:
-    from:
-      id: "row.need.attendance:KU5014:out"
-    direction: RIGHT
-    duration: 300
-- tapOn: "Urungkan"
-- scrollUntilVisible:
-    element:
-      id: section.needs
+      id: action.needs.all
     direction: UP
 - repeat:
     times: 2
     commands:
       - tapOn:
-          id: "row.need.exam:DK4073-UTS"
+          id: action.needs.all
+      - extendedWaitUntil:
+          visible:
+            id: screen.needs
+          timeout: 10000
+      - back
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "card.need.exam:DK4073-UTS"
       - waitForAnimationToEnd
       - back

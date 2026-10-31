@@ -302,7 +302,9 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 
-# Settings, behind the avatar: the top, notifications, about, the licences
+# Settings, behind the avatar (on every tab's bar but Beranda's, round 2's v4): the top, notifications, about, the licences
+- tapOn:
+    id: tab.academic
 - tapOn:
     id: action.account
 - extendedWaitUntil:
