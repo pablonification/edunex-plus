@@ -27,7 +27,8 @@ import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { ClassSheet, classCard } from "./class-sheet";
-import { CourseMark, doneOf, MINUTE, movedLabel, nameOf, QuickRow, Quiet, STATE_TEXT, toned } from "./parts";
+import { facts, heldAt, memoRow } from "./held";
+import { CourseMark, DAY, doneOf, MINUTE, movedLabel, nameOf, QuickRow, Quiet, STATE_TEXT, toned } from "./parts";
 
 /** A later class says "dalam …" only this close to its start; further off, the time column says enough. */
 const SOON = 2 * 60 * MINUTE;
@@ -112,6 +113,14 @@ export function Today({
   const { entries: handled } = useDone();
   const [picked, setPicked] = useState<NowCard | null>(null);
   const day = wibDay(context.now);
+  // Each row drawn again only when its own words could change (./held.tsx): its data, what SIX counted, the courses'
+  // names, or the clock near its class or deadline.
+  const names = courses.map((course) => `${course.code}=${course.name}`).join("|");
+  const held = (item: TodayItem) => {
+    const result = item.kind === "class" ? context.classResults?.[item.facts.session.id]?.result : undefined;
+    const { sig, moments } = facts({ item, onCard, result, names });
+    return { sig, at: heldAt(now, moments, item.kind === "due" ? DAY : 3 * 60 * MINUTE) };
+  };
   const needOf = (task: TodayPlan["due"][number]) => due.find((need) => need.kind === "task" && need.task.id === task.id) ?? null;
   const items: TodayItem[] = [
     // No time to place it at: first on its day.
@@ -140,7 +149,7 @@ export function Today({
       {today.length > 0 ? (
         <List style={!context.schedule ? { marginTop: space[3] } : undefined}>
           {today.map((item) => (
-            <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} onOpen={setPicked} />
+            <HeldToday key={keyOf(item)} {...held(item)} props={{ item, courses, onCard, context, onOpen: setPicked }} />
           ))}
         </List>
       ) : (
@@ -153,7 +162,7 @@ export function Today({
           </Text>
           <List>
             {tomorrow.map((item) => (
-              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} onOpen={setPicked} />
+              <HeldToday key={keyOf(item)} {...held(item)} props={{ item, courses, onCard, context, onOpen: setPicked }} />
             ))}
           </List>
         </>
@@ -396,6 +405,8 @@ function TodayRow({
     </Row>
   );
 }
+
+const HeldToday = memoRow(TodayRow);
 
 const resultKey = (result: string | undefined): Parameters<Translate>[0] =>
   result === "counted" ? "home.today.counted" : result === "absent" ? "home.today.absent" : result === "missing" ? "home.today.notCounted" : "home.today.done";

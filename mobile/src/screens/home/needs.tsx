@@ -25,6 +25,7 @@ import { Icons } from "../../ui/icons";
 import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
 import { Text, type TextTone } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
+import { facts, heldAt, memoRow } from "./held";
 import { CourseMark, classDayTime, DAY, doneOf, nameOf, QuickRow, toned } from "./parts";
 
 type Tone = "danger" | "warning" | null;
@@ -70,6 +71,13 @@ export function NeedsYou({
     <AwayLine snoozed={snoozed.length} done={done.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />
   );
   const rows = limit === undefined ? shown : shown.slice(0, limit);
+  // Each row drawn again only when its words could change (./held.tsx): its data, the courses' names, the clock within
+  // a day of its moment.
+  const names = courses.map((course) => `${course.code}=${course.name}`).join("|");
+  const held = (need: NeedDraft) => {
+    const { sig, moments } = facts({ need, names });
+    return { sig, at: heldAt(now, moments, DAY) };
+  };
   const more = limit !== undefined && !loading && (shown.length > limit || away > 0);
   return (
     <Section
@@ -102,7 +110,7 @@ export function NeedsYou({
         <>
           <List>
             {rows.map((need) => (
-              <NeedRow key={need.id} need={need} courses={courses} />
+              <HeldNeed key={need.id} {...held(need)} props={{ need, courses }} />
             ))}
           </List>
           {awayLine && <View style={{ marginTop: space[2.5], paddingHorizontal: space[1] }}>{awayLine}</View>}
@@ -493,6 +501,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
     }
   };
 }
+
+const HeldNeed = memoRow(NeedRow);
 
 function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCourse[] }) {
   const t = useT();

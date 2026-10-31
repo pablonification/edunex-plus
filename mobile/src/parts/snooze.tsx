@@ -25,12 +25,15 @@ export const canSnooze = (item: Snoozable, now: number) => snoozeChoices(item, n
 export type RowDone = Extract<DoneHow, "checked" | "groupDone" | "gotIt" | "paid">;
 
 /** The snooze sheet's state and what putting an item off does (a toast with Undo). */
-export function useSnooze(item: Snoozable | null) {
+export function useSnooze(item: Snoozable | null, control?: { open: boolean; setOpen(open: boolean): void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const { snooze, wake } = useSnoozes();
-  const [open, setOpen] = useState(false);
+  const [own, setOwn] = useState(false);
+  // Opened from outside (a row whose sheet lives under another clock), or on its own.
+  const open = control?.open ?? own;
+  const setOpen = control?.setOpen ?? setOwn;
   const choices = item ? snoozeChoices(item, now) : [];
   const sheet = item ? (
     <ActionSheet

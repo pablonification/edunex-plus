@@ -18,6 +18,7 @@ import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextSize, type TextTone, type TextWeight } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
+import { RealClock } from "./held";
 
 export const MINUTE = 60_000;
 export const DAY = 86_400_000;
@@ -93,6 +94,10 @@ export function Quiet({ children }: { children: string }) {
   );
 }
 
+function LaterSheet({ item, open, setOpen }: { item: Snoozable; open: boolean; setOpen(open: boolean): void }) {
+  return useSnooze(item, { open, setOpen }).sheet;
+}
+
 export interface QuickDone {
   item: SnoozeKey;
   how: RowDone;
@@ -147,7 +152,8 @@ export function QuickRow({
   const theme = useTheme();
   const now = useNow();
   const later = snooze && canSnooze(snooze, now) ? snooze : null;
-  const sheet = useSnooze(later);
+  const [laterOpen, setLaterOpen] = useState(false);
+  const sheet = { available: later !== null, open: () => setLaterOpen(true) };
   const put = useMarkDone(done?.item ?? null, done?.how ?? null, done?.said ?? "");
   const swipe = useRowActions({ done: done ? { how: done.how, put } : null, snooze: later ? sheet : null });
   const [menu, setMenu] = useState(false);
@@ -164,7 +170,12 @@ export function QuickRow({
     <>
       <SwipeRow actions={swipe}>{children({ quick, onLongPress })}</SwipeRow>
       {choices.length > 0 && <ActionSheet open={menu} onClose={() => setMenu(false)} title={name} choices={choices} testID="sheet.row" />}
-      {sheet.sheet}
+      {/* The times it offers count from now itself, even where the row's clock is held (./held.tsx). */}
+      {later && (
+        <RealClock>
+          <LaterSheet item={later} open={laterOpen} setOpen={setLaterOpen} />
+        </RealClock>
+      )}
     </>
   );
 }
