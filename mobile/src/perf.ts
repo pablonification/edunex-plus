@@ -45,8 +45,12 @@ export function perfNavigating(): void {
   leftAt = Date.now();
 }
 
-/** The screen now shown (its route's name), for the lines that follow. */
+/**
+ * The screen now shown (its route's name), for the lines that follow. A new route with no navigation timed yet (Expo
+ * Router's own pushes don't pass through the container's actions) starts the clock here, as the state changes.
+ */
 export function perfShown(route: string): void {
+  if (route !== screen && !leftAt) leftAt = Date.now();
   screen = route;
 }
 
@@ -86,12 +90,7 @@ export function usePerfFocused(name: string): void {
       }),
     [navigation, name],
   );
-  useFocusEffect(
-    useCallback(() => {
-      perfShown(name);
-      perfDrawn("tab");
-    }, [name]),
-  );
+  useFocusEffect(useCallback(() => perfDrawn("tab"), []));
 }
 
 /** perfDrawn once `ready` (the screen's data is in it), after the render that shows it. */
