@@ -47,6 +47,19 @@ motion and onboarding are open. The desktop is a reference for data only.
   as two tinted countdown cards ("7 hari"), Plus Jakarta Sans for headings and numbers, M3 Expressive wavy progress
   for the class now, a cookie check after Tandai Hadir, and the motion live (`v4-live.html`, `v4-motion.webm`). Words
   Beranda 48, Jadwal 40, sheet 14. Every pair passes contrast.py. Shown; waiting for Arqila's word before building.
+- **2026-11-01: Arqila: "go with v4".** The home helper builds Beranda and the class sheet natively from v4 on
+  `mobile-r2-home` (Plus Jakarta Sans, course ink/tint pairs, wavy progress, cookie check, springs on the UI thread),
+  with pictures on `mid`/`weak` and a recording. Arqila sees it in the app before v4 goes to other screens (Decision 23).
+  Tasks-academic resumes its look-free work; schedule-courses is done with it (below). The desktop's helpers and the
+  lead share one account: all stopped at the 5-hour limit (2026-11-01 01:24–01:42), resumed after 02:00.
+- **Schedule-courses' look-free report (head 2dbc39c, layout WIP not merged):** W1 proven on `mid` (PDF opens in
+  Drive's viewer; extension-less PDF read from its bytes; DOCX with no app says so under the row with Bagikan and Buka
+  di Edunex; flow `w01-files` fails on round 1, passes now). W5 proven: Jadwal scrolling at a median 8.33 ms (120 fps)
+  vs 16.67 ms on round 1 (`w05-refresh.sh`). W13: the reminder's Tandai Hadir opens SIX's page in the app
+  (`w13-tandai-hadir`), a "Today" widget's data and its tap link to a class sheet, calendar sync as a setting
+  (34 demo events, rewritten on change), "Ingatkan sebelum kuliah" in Jadwal's menu. Merge note: 081dd15 adds an
+  `actions` slot to `TabHeader`, which conflicts with the home helper's 5abbb31. To merge: the plumbing commits
+  before the v4 roll-out, the layout after it.
 - CI run 41219489671 (819ec87): APKs built; `e2e (app)` failed (logs once the run ends); the scenarios still running.
 - Meanwhile only work that doesn't depend on the look: fresh-install start under 2 s, JS stalls, device proofs for
   W1, W2 and W5, CI (run 41219489671 on 819ec87), the two cut-off texts, the one-title fix.
@@ -96,7 +109,7 @@ Causes marked "suspected" are read from the code and get proved on a device befo
 
 | # | Found | Cause | Fix | Proof | Status |
 | --- | --- | --- | --- | --- | --- |
-| W1 | Can't open modules or PDFs, or download them | (a) A download is named from the lecturer's title plus an extension guessed from Edunex's `type` and the link; with none, the file has no type, `canPreview` says no app can open it. The server's own Content-Type and the file's first bytes were never asked. (b) Anything not an Edunex file link ("Buka di Edunex") opens Edunex in the outside browser, signed out (W15). (c) A module opens inside the course page, not as its own screen (Back fights it, W6) | Name and type from the response (Content-Type, Content-Disposition), then from the bytes (%PDF, PK…); open with that type; a module is a screen of its own; Edunex pages in the app, signed in | `test/mobile/file-kind.test.ts` (85f2461); flow `w01-files` (Modul → module → PDF opens in Android's viewer) on the lab | fix pushed; device proof and (c) with the shell |
+| W1 | Can't open modules or PDFs, or download them | (a) A download is named from the lecturer's title plus an extension guessed from Edunex's `type` and the link; with none, the file has no type, `canPreview` says no app can open it. The server's own Content-Type and the file's first bytes were never asked. (b) Anything not an Edunex file link ("Buka di Edunex") opens Edunex in the outside browser, signed out (W15). (c) A module opens inside the course page, not as its own screen (Back fights it, W6) | Name and type from the response (Content-Type, Content-Disposition), then from the bytes (%PDF, PK…); open with that type; a module is a screen of its own; Edunex pages in the app, signed in | `test/mobile/file-kind.test.ts` (85f2461); flow `w01-files` (Modul → module → PDF opens in Android's viewer) on the lab | proven on `mid` (`w01-files`, schedule-courses 2dbc39c, to merge); (c) done with the shell |
 | W2 | Updating from SIX/Edunex is slow | Every start runs every feed at once, fresh or not (`Scheduler.start`); SIX's pages go one at a time 2 s apart, so a full read is many pages × 2 s; each saved dataset is hashed with a pure-JS SHA-1 over a sorted JSON copy on Hermes (no JIT) | Saved data first, only feeds that are due run at start (freshness from each dataset's fetchedAt), the rest on their cadence; pull to refresh still reads all; change detection by string compare, no hashing on the JS thread; measure requests and time per sync | `test/engine/start-due-only.test.ts` (3 of 6 failed before 39b9a51): a start 5 min after a full read sends only the sign-in checks (before: 83 Edunex requests, 13 SIX pages = 28 s of SIX's 2 s gaps); `dataset-hash.test.ts`. First-ever sync: 87 + 67 requests, 242 s pretend time (53 are SIX's public catalog at 3.5 s) | fix pushed; time on the lab |
 | W3 | Moving around lags: frame drops, a freeze before a page shows | Suspected: JS-drawn tabs mount each tab on first visit; screens compute everything before the first frame; the engine's sync work (parse, hash, write) on the same JS thread | Native tabs (preloaded), screens that draw their first screenful first, engine work cut and spread out; measured with `[perf]` lines and Perfetto | `[perf] screen/tab` under target on `weak` and `mid` | todo |
 | W4 | Hierarchy: what to look at first isn't clear | Desktop layout: every fact at once, hairline boxes, grey text | Redesign per screen (plans below) | judge 8+/10 per screen | todo |
