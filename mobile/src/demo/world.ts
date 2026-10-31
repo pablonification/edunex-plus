@@ -10,7 +10,7 @@ import { Linking } from "react-native";
 import type { SignInWindows } from "../../../src/desktop/signin-both";
 import { fillablePdf } from "../../../test/kit/fillable-pdf";
 import { demoOptions, demoRun } from "../../../test/pretend/demo";
-import { BARE_PDF_URL, DOCX_URL, FILES_MODULE, PICTURE_URL, sampleDocx, samplePicture } from "./files";
+import { BARE_PDF_URL, DOCX_URL, FILES_MODULE, PICTURE_URL, sampleDocx, samplePicture, streamed } from "./files";
 
 async function settings(): Promise<Record<string, string | undefined>> {
   const link = await Linking.getInitialURL().catch(() => null);
@@ -38,8 +38,18 @@ export async function createDemoWorld() {
   // EDUNEX_DEMO_FILES=1: II4091's Modul 3 holds a Word document and a PDF its storage names with no extension and no
   // type, beside its slides (W1's flow: every kind opens in the phone's app, or says why with the way forward).
   if (asked.EDUNEX_DEMO_FILES === "1") {
-    run.world.edunex.postMaterial(FILES_MODULE.courseId, { moduleId: FILES_MODULE.moduleId, name: "Rubrik Penilaian Proposal", type: "docx", content: DOCX_URL });
-    run.world.edunex.postMaterial(FILES_MODULE.courseId, { moduleId: FILES_MODULE.moduleId, name: "Contoh Proposal Terbaik", type: "file", content: BARE_PDF_URL });
+    run.world.edunex.postMaterial(FILES_MODULE.courseId, {
+      moduleId: FILES_MODULE.moduleId,
+      name: "Rubrik Penilaian Proposal",
+      type: "docx",
+      content: DOCX_URL,
+    });
+    run.world.edunex.postMaterial(FILES_MODULE.courseId, {
+      moduleId: FILES_MODULE.moduleId,
+      name: "Contoh Proposal Terbaik",
+      type: "file",
+      content: BARE_PDF_URL,
+    });
   }
   // While the demo runs, its link with ?post=kuis puts a new Task on the pretend Edunex, as the desktop demo's pictures
   // do before the bell's (scripts/demo/capture.mjs): the next read finds it and the bell gets an unread alert.
@@ -53,6 +63,19 @@ export async function createDemoWorld() {
       is_lateable: false,
     });
   });
+  const demoFile = async (url: string, init?: RequestInit): Promise<Response> => {
+    // The note's picture and W1's two files, as a real storage answers for them: the picture and the Word document
+    // with their types, the bare PDF as bytes with no name and no type.
+    if (url === PICTURE_URL) return new Response(samplePicture(), { status: 200, headers: { "content-type": "image/png" } });
+    if (url === DOCX_URL)
+      return new Response(sampleDocx(), {
+        status: 200,
+        headers: { "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+      });
+    if (url === BARE_PDF_URL) return new Response(new Uint8Array(fillablePdf()), { status: 200, headers: { "content-type": "application/octet-stream" } });
+    const stored = await run.world.fetch(url, { signal: init?.signal ?? undefined });
+    return stored.status === 200 ? stored : new Response(new Uint8Array(fillablePdf()), { status: 200, headers: { "content-type": "application/pdf" } });
+  };
   const signInWindows: SignInWindows = {
     open: (source, how) => run.signIn(source, how),
     stopQuiet: () => undefined,
@@ -65,19 +88,7 @@ export async function createDemoWorld() {
     transport: run.world,
     // Files from the pretend storage, as the desktop demo serves them (scripts/demo/setup.ts): what's stored there,
     // else (a lecturer's file the pretend Edunex only names) a made-up PDF.
-    fetchFile: async (url: string, init?: RequestInit) => {
-      // The note's picture and W1's two files, as a real storage answers for them: the picture and the Word document
-      // with their types, the bare PDF as bytes with no name and no type.
-      if (url === PICTURE_URL) return new Response(samplePicture(), { status: 200, headers: { "content-type": "image/png" } });
-      if (url === DOCX_URL)
-        return new Response(sampleDocx(), {
-          status: 200,
-          headers: { "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
-        });
-      if (url === BARE_PDF_URL) return new Response(new Uint8Array(fillablePdf()), { status: 200, headers: { "content-type": "application/octet-stream" } });
-      const stored = await run.world.fetch(url, { signal: init?.signal ?? undefined });
-      return stored.status === 200 ? stored : new Response(new Uint8Array(fillablePdf()), { status: 200, headers: { "content-type": "application/pdf" } });
-    },
+    fetchFile: async (url: string, init?: RequestInit) => streamed(await demoFile(url, init)),
     clock: run.world.clock,
     world: run.world,
     clockOffset: () => run.world.clock.now() - Date.now(),

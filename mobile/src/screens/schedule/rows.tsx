@@ -244,9 +244,20 @@ type ChipTone = "warning" | "danger" | "neutral";
 function Chip({ icon: Icon, tone = "warning", children }: { icon?: (typeof Icons)[keyof typeof Icons]; tone?: ChipTone; children: string }) {
   const theme = useTheme();
   const c = theme.color;
-  const [bg, fg] = tone === "danger" ? [c.dangerBg, c.dangerFg] : tone === "warning" ? [c.warningBg, c.warningFg] : [c.surfaceContainerHighest, c.onSurfaceVariant];
+  const [bg, fg] =
+    tone === "danger" ? [c.dangerBg, c.dangerFg] : tone === "warning" ? [c.warningBg, c.warningFg] : [c.surfaceContainerHighest, c.onSurfaceVariant];
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[1], borderRadius: shape.sm, backgroundColor: bg, paddingHorizontal: space[2], paddingVertical: 2 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space[1],
+        borderRadius: shape.sm,
+        backgroundColor: bg,
+        paddingHorizontal: space[2],
+        paddingVertical: 2,
+      }}
+    >
       {Icon && <Icon size={14} color={fg} weight="bold" />}
       <Text size="labelMedium" style={{ color: fg, flexShrink: 1 }}>
         {children}
@@ -286,7 +297,14 @@ const ClassCard = memo(function ClassCard({ item, onPick }: { item: ScheduledCla
     ...overlaps.map((o) => t("schedule.mark.overlap", { code: o.code })),
     budget ? budgetLabel(t, budget) : null,
   ];
-  const label = factsLabel(exam ? `${session.activity} ${code}` : code, world.name(code, session.courseName), time, room, live ? t("schedule.live") : null, ...marks);
+  const label = factsLabel(
+    exam ? `${session.activity} ${code}` : code,
+    world.name(code, session.courseName),
+    time,
+    room,
+    live ? t("schedule.live") : null,
+    ...marks,
+  );
   const muted = past || uncertain !== null;
   return (
     <Card
@@ -323,13 +341,22 @@ const ClassCard = memo(function ClassCard({ item, onPick }: { item: ScheduledCla
       </Text>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[1], marginTop: 2 }}>
         <Icons.MapPin size={14} color={theme.color.onSurfaceVariant} />
-        <Text size="bodyMedium" weight={exam ? "semibold" : "regular"} tone={exam && !past ? "fg" : "muted"} style={[{ flexShrink: 1 }, !session.room && { fontStyle: "italic" }]}>
+        <Text
+          size="bodyMedium"
+          weight={exam ? "semibold" : "regular"}
+          tone={exam && !past ? "fg" : "muted"}
+          style={[{ flexShrink: 1 }, !session.room && { fontStyle: "italic" }]}
+        >
           {room}
         </Text>
       </View>
       {(uncertain || moved || extra || overlaps.length > 0 || budget) && (
         <Chips>
-          {uncertain && <Chip icon={Icons.Info} tone="neutral">{t("schedule.uncertain.short")}</Chip>}
+          {uncertain && (
+            <Chip icon={Icons.Info} tone="neutral">
+              {t("schedule.uncertain.short")}
+            </Chip>
+          )}
           {movedText && <Chip icon={Icons.History}>{movedText}</Chip>}
           {extra && <Chip icon={Icons.Plus}>{t("schedule.mark.extra")}</Chip>}
           {overlaps.map((o) => (
@@ -366,7 +393,13 @@ const MeetingCard = memo(function MeetingCard({
   const time = timeRange(f, meeting.start, meeting.end);
   // "Pertemuan" alone says nothing: a meeting Edunex didn't number names its course, like a class from SIX.
   const what = meeting.number !== null ? t("schedule.meeting", { n: meeting.number }) : world.name(meeting.code);
-  const label = factsLabel(meeting.code, what, time, meeting.online ? t("schedule.online") : null, notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex"));
+  const label = factsLabel(
+    meeting.code,
+    what,
+    time,
+    meeting.online ? t("schedule.online") : null,
+    notInSix ? t("schedule.notInSix") : t("schedule.fromEdunex"),
+  );
   return (
     <Card
       testID={`row.class.${rowKey(meeting.code, meeting.start)}`}
@@ -414,7 +447,11 @@ function WindowCard({ window, onPick }: { window: TaskWindow; onPick: (picked: P
     <Card testID={`row.window.${window.presence.id}`} label={factsLabel(window.code, text)} onPress={() => onPick({ kind: "window", window })} quiet={done}>
       <View style={{ flexDirection: "row", gap: space[2] }}>
         <View style={{ paddingTop: 2 }}>
-          {done ? <Icons.CheckCircle size={18} color={theme.color.successFg} weight="bold" /> : <Icons.Upload size={18} color={theme.color.primary} weight="bold" />}
+          {done ? (
+            <Icons.CheckCircle size={18} color={theme.color.successFg} weight="bold" />
+          ) : (
+            <Icons.Upload size={18} color={theme.color.primary} weight="bold" />
+          )}
         </View>
         <Text size="bodyMedium" tone={done ? "success" : "fg"} style={{ flex: 1 }}>
           <Text size="bodyMedium" weight="semibold" tabular tone={done ? "success" : "fg"}>

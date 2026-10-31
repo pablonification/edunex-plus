@@ -175,7 +175,8 @@ export async function addToPhoneCalendar(
 export async function removePhoneCalendar(): Promise<void> {
   if (!(await Calendar.getCalendarPermissions()).granted) return;
   const calendars = await Calendar.getCalendars();
-  for (const calendar of calendars.filter((c) => c.title === CALENDAR_NAME && c.allowsModifications && c.source?.isLocalAccount !== false)) await calendar.delete();
+  for (const calendar of calendars.filter((c) => c.title === CALENDAR_NAME && c.allowsModifications && c.source?.isLocalAccount !== false))
+    await calendar.delete();
   const record = new File(Paths.document, RECORD);
   if (record.exists) record.delete();
 }

@@ -33,16 +33,16 @@ export function useAgendaInput(): ScheduleData | undefined {
     const ids = new Set(openIds.split(","));
     return (tasks ?? []).filter((task) => ids.has(String(task.id)));
   }, [tasks, openIds]);
-  const codes = useMemo(
-    () => [...new Set([...(courses ?? []).map((c) => c.code), ...(schedule ?? []).map((s) => s.courseCode)])],
-    [courses, schedule],
-  );
+  const codes = useMemo(() => [...new Set([...(courses ?? []).map((c) => c.code), ...(schedule ?? []).map((s) => s.courseCode)])], [courses, schedule]);
   const windows = useMemo(() => taskWindows(presence, schedule ?? [], tasks ?? []), [presence, schedule, tasks]);
   const outside = useMemo(
     () => (schedule ? meetingsOutsideSix(codes, schedule, months, { materials, announcements, presence }, unread) : []),
     [codes, schedule, months, materials, announcements, presence, unread],
   );
-  const edunex = useMemo(() => (schedule ? [] : edunexMeetings(codes, { materials, announcements, presence })), [codes, schedule, materials, announcements, presence]);
+  const edunex = useMemo(
+    () => (schedule ? [] : edunexMeetings(codes, { materials, announcements, presence })),
+    [codes, schedule, materials, announcements, presence],
+  );
   return useMemo(() => {
     if (!schedule && !tasks && !presence && !calendar) return undefined;
     const shared = { tasks: open, events: calendar?.events ?? [], windows };

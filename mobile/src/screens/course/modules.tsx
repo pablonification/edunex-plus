@@ -153,7 +153,6 @@ function Contents({ entries, onPick }: { entries: Entry[]; onPick: (module: numb
                       {fresh && <Tag tone="info">{t("course.new")}</Tag>}
                     </View>
                   )}
-                  <Icons.ChevronRight size={16} color={c.faint} />
                 </Pressable>
               );
             })}

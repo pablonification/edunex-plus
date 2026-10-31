@@ -108,7 +108,13 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
             <SixPageNote datasets={["six.courses", "six.schedule"]} />
             <NowZone zone={rows.zone} attendance={rows.attendance} />
             {courses.length === 0
-              ? !listChanged && <EmptyState icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />} title={t("presence.empty")} description={t("presence.emptyHint")} />
+              ? !listChanged && (
+                  <EmptyState
+                    icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />}
+                    title={t("presence.empty")}
+                    description={t("presence.emptyHint")}
+                  />
+                )
               : groups.map(({ group, items }) => (
                   <View key={group} testID={`group.presence.${group}`}>
                     <GroupTitle group={group} items={items} />

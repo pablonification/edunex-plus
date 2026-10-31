@@ -179,7 +179,12 @@ function Agenda({
         ListHeaderComponent={<Notes six={input.six} />}
         contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[12] }}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.color.primary]} progressBackgroundColor={theme.color.surfaceContainerHigh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.color.primary]}
+            progressBackgroundColor={theme.color.surfaceContainerHigh}
+          />
         }
         testID="list.agenda"
       />

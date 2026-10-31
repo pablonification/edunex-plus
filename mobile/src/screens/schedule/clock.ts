@@ -32,8 +32,7 @@ export function useDayFormat() {
 export type Phase = "ahead" | "live" | "past";
 
 /** Where a class stands now: still ahead, on now, or over. */
-export const usePhase = (start: number, end: number): Phase =>
-  useClockSelect((now) => (now >= end ? "past" : now >= start ? "live" : "ahead"));
+export const usePhase = (start: number, end: number): Phase => useClockSelect((now) => (now >= end ? "past" : now >= start ? "live" : "ahead"));
 
 /**
  * `value`, or the one before it while `key` says nothing changed: a list worked out again each minute (the exams, the

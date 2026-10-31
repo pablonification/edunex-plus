@@ -131,7 +131,11 @@ export function FileRow({
         >
           {leading}
           <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
-          {busy ? <ActivityIndicator size="small" color={theme.color.onSurfaceVariant} /> : !here && <Icons.Download size={20} color={theme.color.onSurfaceVariant} />}
+          {busy ? (
+            <ActivityIndicator size="small" color={theme.color.onSurfaceVariant} />
+          ) : (
+            !here && <Icons.Download size={20} color={theme.color.onSurfaceVariant} />
+          )}
         </Pressable>
         {here && (
           <View style={{ paddingRight: space[1] }}>
