@@ -97,8 +97,12 @@ heading → headlineSmall, figure/display → headlineMedium.
 | `IconButton` | Standard icon button | 48 dp, a name is required; `selected` for a toggle |
 | `Chip` / `ChipRow` | Filter chip | 32 high, outlined; picked: secondaryContainer and a check |
 | `Segmented` | Segmented buttons | 40 high, outlined, picked with a check |
-| `Switch` | M3 switch | 52×32, thumb grows when on |
+| `Switch` | M3 switch | Android's own `MaterialSwitch` (`modules/material-switch`, W9): Material's track, thumb, check, ripple and TalkBack "switch, on"; colours from the roles; 52×48 to touch; the testID sits on the switch itself. A tap the screen doesn't keep goes back after 1.5 s. Without the native module (tests) the JS-drawn one stands in |
 | `List` + `Row` | List items in a group | tonal tiles 2 dp apart, round group ends; 56 dp min; no chevrons; one row, one target, one outcome |
+| `GroupTile` | One tile of a grouped list | the same tile as `List`'s, drawn row by row (`first`/`last` round the group's ends) for a FlashList (Tugas) |
+| `SettingsGroup`, `SettingRow`, `SwitchRow`, `ChoiceRow` + `ChoiceSheet` (`ui/settings-list.tsx`) | Settings lists | a group's title in primary, rows as tonal tiles; a switch row toggles from anywhere on it; a choice row shows its value and opens a native sheet of radio options (each option `<rowTestID>.<value>`) |
+| `ErrorBanner` (`ui/settings-list.tsx`) | Banner | a page's error under its top bar with a close button, until the next try works (never a snackbar) |
+| `DrawnCheck`, `Celebration` (`ui/celebrate.tsx`) | — | the earned moment: a success circle springs in and its check draws itself (Reanimated, UI thread) with the success haptic; Remove animations: a fade. `Celebration` shows it over the page without blocking taps, read by TalkBack, gone after ~1.7 s (the hand-in) |
 | `Card` | Filled card | plain (Low), raised (Container, the one card that leads), sunken (High) |
 | `Section`, `PageHeader`, `Notice`, `StatRow`, `Meta` | | as before, on the scale |
 | `EmptyState` | | icon in a secondaryContainer circle, Title M, a line why, the next step as a button |
