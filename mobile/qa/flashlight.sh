@@ -5,7 +5,7 @@
 #
 # `flashlight test` closes the app before each iteration, runs the flow (which opens the demo from its
 # saved data, scrolls Tugas and goes through every tab) and samples the app's CPU, RAM and FPS meanwhile;
-# `flashlight report` makes the web report (score, charts) in C:\qa\runs\<time>-flashlight-<avd>\report\.
+# `flashlight report` makes the web report (score, charts) in F:\qa\runs\<time>-flashlight-<avd>\report\.
 # Prints the averages from the results. Maestro reads the screen between its steps (accessibility), which
 # the app pays for: compare Flashlight's numbers with Flashlight's, not with jank.sh's.
 set -euo pipefail
