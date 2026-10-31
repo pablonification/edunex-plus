@@ -1,20 +1,23 @@
-// "Yang berubah": a short look at the last week's changes, as src/app/screens/home.tsx shows them.
-// The bell keeps all of them, with the same words: "Lihat semua" opens its screen.
+// "Yang berubah": one row on Beranda (how many changed this week, the newest), opening a sheet with the last
+// few as src/app/screens/home.tsx shows them. The bell keeps all of them, with the same words: "Lihat semua"
+// opens its screen.
 import { router } from "expo-router";
-import { useMemo } from "react";
-import { Pressable, View } from "react-native";
+import { useMemo, useState } from "react";
+import { View } from "react-native";
 import { useCourseColor } from "../../../../src/app/courses";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import type { Alert, AlertKind } from "../../../../src/core/models";
 import { type HomeContext, recentChanges } from "../../../../src/core/needs";
 import { useNav } from "../../nav";
+import { Button } from "../../ui/controls";
 import { CourseDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { List, Meta, Row, Section } from "../../ui/layout";
+import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
-import { useTheme } from "../../ui/theme";
-import { Quiet, toned } from "./parts";
+import { space, useTheme } from "../../ui/theme";
+import { toned } from "./parts";
 
 /** "Yang berubah" shows this many; the bell has the rest. */
 const CHANGES_SHOWN = 5;
@@ -35,31 +38,59 @@ const IMPORTANT_BODY: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubm
 
 export function Changes({ context }: { context: HomeContext }) {
   const t = useT();
+  const theme = useTheme();
   const { go } = useNav();
   const history = useDataset("app.alerts");
+  const [open, setOpen] = useState(false);
   const all = useMemo(() => recentChanges(context, history?.items ?? []), [context, history]);
   const changes = all.slice(0, CHANGES_SHOWN);
+  const newest = changes[0];
+  const leave = (then: () => void) => {
+    setOpen(false);
+    then();
+  };
   return (
-    <Section
-      title={t("home.changes")}
-      testID="section.changes"
-      action={
-        <Pressable accessibilityRole="link" onPress={() => router.push("/alerts")} hitSlop={12} testID="action.changes.all">
-          <Text size="small" weight="medium" tone="accent">
+    <Section testID="section.changes">
+      <List>
+        <Row
+          testID="action.changes"
+          leading={<Icons.History size={22} color={theme.color.onSurfaceVariant} />}
+          title={
+            <Text size="bodyLarge" weight="medium">
+              {t("home.changes")}
+              {all.length > 0 && (
+                <Text size="bodyLarge" tone="muted" tabular>
+                  {`  ${all.length}`}
+                </Text>
+              )}
+            </Text>
+          }
+          meta={
+            <Text size="bodyMedium" tone="muted" numberOfLines={1}>
+              {newest ? t(newest.title.key, newest.title.vars) : t("home.changes.none")}
+            </Text>
+          }
+          // Nothing changed: the bell still has the history.
+          onPress={() => (changes.length ? setOpen(true) : router.push("/alerts"))}
+        />
+      </List>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t("home.changes")}
+        testID="sheet.changes"
+        footer={
+          <Button variant="tonal" onPress={() => leave(() => router.push("/alerts"))} testID="action.changes.all">
             {t("home.changes.all")}
-          </Text>
-        </Pressable>
-      }
-    >
-      {changes.length === 0 ? (
-        <Quiet>{t("home.changes.none")}</Quiet>
-      ) : (
-        <List>
+          </Button>
+        }
+      >
+        <View style={{ marginHorizontal: -space[6] }}>
           {changes.map((item) => (
-            <ChangeRow key={item.id} item={item} onOpen={() => go(item.target)} />
+            <ChangeRow key={item.id} item={item} onOpen={() => leave(() => go(item.target))} />
           ))}
-        </List>
-      )}
+        </View>
+      </Sheet>
     </Section>
   );
 }
