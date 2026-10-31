@@ -46,7 +46,7 @@ Baseline numbers of round 1 (9395cea): [BASELINE.md](BASELINE.md).
 Both: Android 14 (API 34) Google APIs x86_64, WHPX, host GPU, AVD files in `%USERPROFILE%\.android\avd`.
 
 ```bash
-bash mobile/qa/emu.sh mid            # or weak; prints the serial last, e.g. emulator-5554
+bash mobile/qa/emu.sh mid            # or weak (emu-mid.sh / emu-weak.sh do the same); prints the serial last, e.g. emulator-5554
 export ANDROID_SERIAL=emulator-5554  # every script talks to $ANDROID_SERIAL (or the only device attached)
 adb -s emulator-5554 emu kill        # stop it
 ```
