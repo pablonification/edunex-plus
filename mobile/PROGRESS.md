@@ -52,6 +52,19 @@ motion and onboarding are open. The desktop is a reference for data only.
   with pictures on `mid`/`weak` and a recording. Arqila sees it in the app before v4 goes to other screens (Decision 23).
   Tasks-academic resumes its look-free work; schedule-courses is done with it (below). The desktop's helpers and the
   lead share one account: all stopped at the 5-hour limit (2026-11-01 01:24–01:42), resumed after 02:00.
+- **2026-11-01 ~06:30: Arqila on Beranda v4 (6d3ab0a): "Fix. And please, we need to move faster. Use more than 1
+  subagent."** Beranda is approved after three fixes (class sheet to 3–4 facts, a deep blue header in dark, a visible
+  wave at a class's start), with no second look. v4 rolls out to every tab in parallel (Decision 25).
+  - Merged `mobile-r2-home` into `mobile` (c616855, check green but for the four `drift-fix-guard` tests that fail
+    on `mobile` already on pabs, and `exam.test.tsx`, which fails only in a symlinked worktree); 21a2690 drops the
+    phone wording for "Dicek tiap 2 menit". Base branches with `mobile` merged in and conflicts resolved:
+    `mobile-r2-sched-base` (31728fd) and `mobile-r2-tasks-base` (3e5598b; both word counters kept, `words.sh` by tab,
+    `words-now.sh` for the screen as it is; W12 split into Beranda's and Akademik's flows).
+  - Five helpers on the desktop (the Mac is unreachable): home (the three fixes, a Gradle build to prove the restart,
+    proof), schedule-courses (Jadwal), tasks-academic (Tugas, Task, Exam), kuliah (new: Kuliah, course, module), akademik
+    (new: Akademik and its screens, Settings, Search, Notifikasi). Shared rules: `mobile/qa/v4-rollout.md`.
+  - The desktop went offline (05:55–06:25) for Arqila's restart. A cloud launch tried meanwhile ran as a local worktree on
+    pabs instead: stopped at its first commit, worktree and branch removed. Not used again.
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
@@ -249,6 +262,12 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
     `src/core/strings/mobile.ts`; the desktop's long, exact sentences don't have to appear on the phone's overviews.
     Exactness and nuance stay, on the detail screen or sheet. Check A still finds every fact somewhere on the phone.
 
+25. **v4 rolls out to every tab in parallel** (Arqila, 2026-11-01). One helper per piece, all at once; the lead
+    reviews each branch as it lands and merges it once its screens pass the gates; then Arqila gets one page with all
+    five tabs in v4, light and dark, and a short recording. The desktop is shared by rule (`mobile/qa/v4-rollout.md`):
+    at most two Gradle builds and two emulators at once, by lock folders in `C:\qa\locks`; GitHub Actions builds
+    when both slots are taken. Helpers never run on pabs.
+
 ### Judge (helper on the desktop, never the lead)
 
 | Round | Code | Screens judged | Scores | High/medium left |
@@ -263,6 +282,8 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | home | Beranda, swipe (W7), one target (W12), onboarding (W15), fresh-install speed | `mobile-r2-home` (from `mobile-shell`) | handed back; notes `mobile/qa/home-notes.md` |
 | schedule-courses | Jadwal agenda, class sheet, W13 (reminder's Tandai Hadir, widget today, calendar sync), Kuliah, course + module, W1 on the device, W5 proof | `mobile-r2-schedule-courses` | running |
 | tasks-academic | Tugas, Task, Exam, Akademik and its screens, Settings, Search, Notifikasi, W9 | `mobile-r2-tasks-academic` | running |
+| kuliah | Kuliah, course page, module in v4 (W1 kept) | `mobile-r2-kuliah` (from `mobile-r2-sched-base`) | running (desktop, launched 2026-11-01 ~06:35) |
+| akademik | Akademik and its screens (Nilai, Rencana, Kurikulum, KRS, UKT, Kalender), Settings, Search, Notifikasi in v4 | `mobile-r2-akademik` (from `mobile-r2-tasks-base`) | running (desktop, launched 2026-11-01 ~06:35) |
 
 ## Round 1 (done 2026-10-31; kept for its decisions and proofs)
 
@@ -583,11 +604,10 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
-- **2026-11-01: the desktop needs a restart when you're next at it.** Gradle daemons hung in a Windows file call
-  that Windows won't kill. They held `~/.gradle`'s lock, and two build folders (`C:\b\r2tasks`, `C:\b\r2tasks2`)
-  have files held open until a reboot. PowerShell's process queries hang on the same thing. Helpers now build
-  one at a time, each with its own Gradle home, or on GitHub Actions. Proposed: restart DESKTOP-4SEOA4J when no
-  helper is running (I'll say when in the lead's thread). Nothing is lost, everything is pushed.
+- **2026-11-01: the Mac (MacBook Air) is unreachable** on T3. Helpers all run on the desktop meanwhile. Proposed: open
+  T3 on the Mac when you can; I'll put helpers there too.
+- **2026-11-01: the desktop was restarted by Arqila (Gradle's stuck locks).** To drop once the home helper's first
+  local build after the restart is clean.
 - **Round 2: the desktop (DESKTOP-4SEOA4J) has only one Claude account**, shown as "Claude"; there is no
   "Contact" or "Dev 1" there. All helpers run on that one account, so three at once may run it out sooner.
   Proposed: add the two accounts in T3 Code on the desktop (Settings → Providers) if you want them split; I
