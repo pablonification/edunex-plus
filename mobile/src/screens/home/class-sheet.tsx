@@ -4,13 +4,13 @@
 // thing to do is the sheet's filled button at the bottom, within reach; the way to the course sits beside it.
 import type { ReactNode } from "react";
 import { View } from "react-native";
-import { budgetLabel, useActionLabel } from "../../../../src/app/attendance-labels";
+import { budgetLabel } from "../../../../src/app/attendance-labels";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useExamIds } from "../../../../src/app/schedule-data";
 import { useDataset, useStatus } from "../../../../src/app/store";
-import { type AttendanceHealth, clashPick, percent } from "../../../../src/core/attendance";
+import { type AttendanceHealth, percent } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import type { NowCard } from "../../../../src/core/needs";
@@ -22,7 +22,6 @@ import { BigButton } from "../../ui/big-button";
 import { Button } from "../../ui/controls";
 import { LiveDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { Meta } from "../../ui/layout";
 import { Sheet } from "../../ui/sheet";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -31,27 +30,14 @@ import { useCheckIn } from "./checked-in";
 import { DAY, MINUTE, movedLabel, nameOf, STATE_TEXT } from "./parts";
 
 /** What the sheet is about: the now card's, or a Hari ini row's class (a card of its own, with nothing beside it). */
-export function ClassSheet({
-  card,
-  courses,
-  open,
-  onClose,
-  context,
-}: {
-  card: NowCard | null;
-  courses: readonly TermCourse[];
-  open: boolean;
-  onClose(): void;
-  /** The other course's health, for a clash's pick. */
-  context?: { health: ReadonlyMap<string, AttendanceHealth> };
-}) {
+export function ClassSheet({ card, courses, open, onClose }: { card: NowCard | null; courses: readonly TermCourse[]; open: boolean; onClose(): void }) {
   return (
     // The buttons end the content rather than sit in the sheet's footer: the native sheet measured the footer short and
     // cut its buttons off on every phone tried (mid, weak).
     <Sheet open={open && card !== null} onClose={onClose} testID="sheet.nowClass">
       {card && (
         <>
-          <Details card={card} courses={courses} context={context} onLeave={onClose} />
+          <Details card={card} courses={courses} onLeave={onClose} />
           <View style={{ marginTop: space[6], marginBottom: space[2] }}>
             <Actions card={card} onLeave={onClose} courses={courses} />
           </View>
@@ -72,17 +58,7 @@ export function cardSubject(card: NowCard) {
   return { session, meeting, slot, code, windowFor, link: card.class?.link ?? meeting?.link ?? null };
 }
 
-function Details({
-  card,
-  courses,
-  context,
-  onLeave,
-}: {
-  card: NowCard;
-  courses: readonly TermCourse[];
-  context?: { health: ReadonlyMap<string, AttendanceHealth> };
-  onLeave(): void;
-}) {
+function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly TermCourse[]; onLeave(): void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -93,8 +69,6 @@ function Details({
   const past = slot !== null && slot.end <= now;
   const fresh = useStatus(meeting ? "edunex" : "six").state === "live";
   const kind = session && !/^kuliah$/i.test(session.activity) ? session.activity : null;
-  const other = facts?.overlap ? context?.health.get(facts.overlap.code) : undefined;
-  const picked = facts?.health && other ? clashPick(facts.health, other).pick === code : false;
   const name = nameOf(courses, code, session?.courseName);
   const crumb = [
     code,
@@ -153,7 +127,7 @@ function Details({
         )}
         {facts?.overlap && (
           <Fact tone="warning" icon={(c) => <Icons.Overlap size={22} color={c} />}>
-            {`${t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}${picked ? `. ${t("home.today.pick")}` : ""}`}
+            {t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}
           </Fact>
         )}
         <Attendance card={card} past={past} onLeave={onLeave} />
@@ -223,67 +197,51 @@ function Attendance({ card, past, onLeave }: { card: NowCard; past: boolean; onL
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const actionLabel = useActionLabel();
+  const v = useTheme().v4;
   const checkIns = useDataset("six.checkIn");
   const student = useDataset("six.student");
   const facts = card.class;
   const presence = card.presence;
   const counted = facts?.countedIn ?? "unknown";
   const session = facts?.session ?? null;
-  const where = presence?.counts
-    ? t("home.now.countEdunex")
-    : presence?.noSix
-      ? t("home.now.countNoSix")
-      : presence && presence.counts === null
-        ? t("home.now.countNotKnown")
-        : counted === "six" || counted === "both"
-          ? t("home.now.countSix")
-          : facts && !past
-            ? t("home.now.countUnknown")
-            : null;
   const health = facts?.health && facts.state !== "unknown" ? facts.health : null;
   const check = session ? checkIns?.[session.id] : undefined;
   const watching = session && student && !past && (card.state === "live" || card.state === "next") && checkingIn(session, now);
+  // Tandai Hadir's state as a label, never the how (the rules: no explanatory sentences on Beranda's sheets).
   const checkLine = watching
     ? check?.state === "open"
-      ? { text: t("home.now.checkInOpen"), hint: t("home.now.checkInOpenHint", { time: f.time(session.end) }), tone: "success" as const }
+      ? { key: "mobile.home.checkIn.open" as const, tone: "success" as const }
       : check?.state === "gone"
-        ? { text: t("home.now.checkInGone"), hint: null, tone: "fg" as const }
+        ? { key: "mobile.home.checkIn.gone" as const, tone: "fg" as const }
         : counted === "six" || counted === "both" || counted === "unknown" || check
-          ? { text: t("home.now.checkInWatch"), hint: t("home.now.checkEvery"), tone: "fg" as const }
+          ? { key: "mobile.home.checkIn.waiting" as const, tone: "fg" as const }
           : null
     : null;
   const window = presence?.session ?? null;
-  if (!where && !health && !checkLine && !presence) return null;
+  if (!health && !checkLine && !presence) return null;
   return (
     <>
-      {(where || health) && (
-        <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={health ? <Pips health={health} /> : undefined}>
-          {where && <Text size="bodyLarge">{where}</Text>}
-          {health && <Budget health={health} />}
+      {health && (
+        <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />}>
+          <Text size="bodyLarge" weight="medium" tone={STATE_TEXT[health.state]} style={STATE_TEXT[health.state] === "muted" ? { color: v.fg2 } : undefined}>
+            {budgetLabel(t, health)}
+          </Text>
+          {health.held ? (
+            <Text size="bodyMedium" tone="muted">
+              {t("mobile.home.share", { percent: percent(health.attended ?? 0, health.held), target: health.target })}
+            </Text>
+          ) : null}
         </Fact>
       )}
       {checkLine && (
         <Fact tone={checkLine.tone} icon={(c) => <Icons.CheckCircle size={22} color={c} />}>
-          <Text size="bodyLarge" tone={checkLine.tone}>
-            {checkLine.text}
-          </Text>
-          {checkLine.hint && (
-            <Text size="bodyMedium" tone="muted">
-              {checkLine.hint}
-            </Text>
-          )}
+          {t(checkLine.key)}
         </Fact>
       )}
       {presence && window && (
         <Fact icon={(c) => <Icons.ListChecks size={22} color={c} />}>
-          <Text size="bodyLarge">
-            {presence.counts !== false
-              ? t("home.now.presenceDo", {
-                  action: actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } }),
-                  time: f.dayTime(window.closesAt),
-                })
-              : t("home.now.presenceExtra", { time: f.dayTime(window.closesAt) })}
+          <Text size="bodyLarge" style={{ color: v.fg2 }}>
+            {t("mobile.home.presenceUntil", { time: f.dayTime(window.closesAt) })}
           </Text>
           {presence.counts !== false && (
             <CountdownBar
@@ -304,19 +262,6 @@ function Attendance({ card, past, onLeave }: { card: NowCard; past: boolean; onL
         </Fact>
       )}
     </>
-  );
-}
-
-/** "Kehadiran 85% · Masih boleh absen 1 kali", what's left in the state's colour. */
-function Budget({ health }: { health: AttendanceHealth }) {
-  const t = useT();
-  return (
-    <Meta>
-      {health.held ? t("home.now.share", { percent: percent(health.attended ?? 0, health.held) }) : ""}
-      <Text size="bodyMedium" weight="medium" tone={STATE_TEXT[health.state]}>
-        {budgetLabel(t, health)}
-      </Text>
-    </Meta>
   );
 }
 

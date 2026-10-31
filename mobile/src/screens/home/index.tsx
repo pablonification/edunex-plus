@@ -94,10 +94,13 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
       </Rise>
       <Rise screen="home" index={1}>
         <FirstScanCard />
-        <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
       </Rise>
       <Urus needs={needs} due={due} courses={courses} />
       <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
+      {/* The one ask, after what the Student came for: the now card and Perlu kamu urus stay the first things seen. */}
+      <Rise screen="home" index={7}>
+        <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
+      </Rise>
     </>
   );
 }

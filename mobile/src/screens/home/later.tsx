@@ -89,7 +89,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
           ))}
         </View>
       </Rise>
-      <ClassSheet card={picked} courses={courses} open={picked !== null} onClose={() => setPicked(null)} context={context} />
+      <ClassSheet card={picked} courses={courses} open={picked !== null} onClose={() => setPicked(null)} />
     </View>
   );
 }

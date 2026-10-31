@@ -64,7 +64,7 @@ export function NowSection({
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
         <Icons.CalendarCheck size={24} color={v.muted} />
         <Text size="bodyLarge" style={{ color: v.fg2, flex: 1 }}>
-          {unread ? t("home.now.unread", { day: f.relativeDay(dayNoon(unread)) }) : t("home.now.free")}
+          {unread ? t("home.now.unread", { day: f.relativeDay(dayNoon(unread)) }) : t("mobile.home.free")}
         </Text>
       </View>
       {unread && <OpenSixTimetable day={unread} />}
@@ -167,7 +167,7 @@ function Card({ card, courses, health }: { card: NowCard; courses: readonly Term
           </View>
         )
       )}
-      <ClassSheet card={card} courses={courses} open={open} onClose={() => setOpen(false)} context={{ health }} />
+      <ClassSheet card={card} courses={courses} open={open} onClose={() => setOpen(false)} />
     </View>
   );
 }

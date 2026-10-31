@@ -135,7 +135,7 @@ export function Urus({ needs, due, courses }: { needs: readonly NeedDraft[]; due
           </IconButton>
         </View>
       </Rise>
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: "row", alignItems: "stretch", gap: 10 }}>
         {cards.map((card, i) => (
           <Rise key={card.need.id} screen="home" index={3 + i} style={{ flex: 1 }}>
             <Card card={card} />
@@ -166,7 +166,7 @@ function Card({ card }: { card: UrusCard }) {
       onPress={() => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url))}
       accessibilityLabel={[card.kind, card.title, `${value} ${unit}${tail ? ` ${tail}` : ""}`].join(", ")}
       testID={`card.need.${need.id}`}
-      style={{ backgroundColor: tint, borderRadius: 20, padding: 14, minHeight: 148 }}
+      style={{ flex: 1, backgroundColor: tint, borderRadius: 20, padding: 14, minHeight: 148 }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         {card.code ? <CourseGlyph code={card.code} name={card.title} /> : <Icons.ListChecks size={22} color={ink} />}

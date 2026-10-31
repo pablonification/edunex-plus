@@ -14,6 +14,7 @@ import { scanSummary } from "../../../../src/core/first-scan";
 import { useSettling } from "../../host/settling";
 import { Button, IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
+import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { shape, space, useTheme } from "../../ui/theme";
 import { useScanReady } from "../first-scan/scan";
@@ -106,7 +107,7 @@ function rememberAsked(): void {
  */
 export function NotifyCard({ hasClass }: { hasClass: boolean }) {
   const t = useT();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const [state, setState] = useState<"unknown" | "ask" | "done">(askedNotify ? "done" : "unknown");
   useEffect(() => {
     if (state !== "unknown") return;
@@ -121,32 +122,39 @@ export function NotifyCard({ hasClass }: { hasClass: boolean }) {
     setState("done");
     if (allow) await Notifications.requestPermissionsAsync().catch(() => undefined);
   };
+  // v4: a card like Nanti hari ini's rows, one question, the filled Nyalakan and a close (Nanti); no sentence.
   return (
     <View
       testID="card.notify"
-      style={{ marginTop: space[4], borderRadius: shape.lg, backgroundColor: theme.color.surfaceContainerLow, padding: space[4], gap: space[3] }}
+      style={{
+        marginTop: space[4],
+        borderRadius: 20,
+        backgroundColor: v.card,
+        padding: space[3],
+        paddingLeft: 14,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space[3],
+      }}
     >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
-        <View
-          style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.color.secondaryContainer, alignItems: "center", justifyContent: "center" }}
-        >
-          <Icons.Bell size={20} color={theme.color.onSecondaryContainer} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text size="titleMedium">{t("mobile.home.notifyTitle")}</Text>
-          <Text size="bodyMedium" tone="muted" style={{ marginTop: 2 }}>
-            {t("mobile.home.notifyBody")}
-          </Text>
-        </View>
+      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}>
+        <Icons.Bell size={22} weight="fill" color={v.brandInk} />
       </View>
-      <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: space[2] }}>
-        <Button variant="ghost" onPress={() => void answer(false)} testID="action.notify.later">
-          {t("mobile.home.notifyLater")}
-        </Button>
-        <Button variant="tonal" onPress={() => void answer(true)} testID="action.notify.on">
+      <Text size="bodyLarge" weight="medium" style={{ color: v.fg, flex: 1 }}>
+        {t("mobile.home.notifyTitle")}
+      </Text>
+      <PressScale
+        onPress={() => void answer(true)}
+        testID="action.notify.on"
+        style={{ minHeight: 40, borderRadius: 20, paddingHorizontal: space[4], justifyContent: "center", backgroundColor: v.brand }}
+      >
+        <Text size="labelLarge" style={{ color: v.onBrand }}>
           {t("mobile.home.notifyOn")}
-        </Button>
-      </View>
+        </Text>
+      </PressScale>
+      <IconButton label={t("mobile.home.notifyLater")} onPress={() => void answer(false)} testID="action.notify.later">
+        <Icons.X size={20} color={v.muted} />
+      </IconButton>
     </View>
   );
 }

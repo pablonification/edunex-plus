@@ -45,7 +45,8 @@ export function WavyProgress({ progress, ink, track, label }: { progress: number
   }, [still, shift]);
   const moving = useAnimatedStyle(() => ({ transform: [{ translateX: shift.value }] }));
   const p = Math.max(0, Math.min(1, progress));
-  const done = Math.max(0, width * p - 2);
+  // At least a wavelength and a half drawn, so a class just started reads as a wave starting, not a glitch.
+  const done = Math.min(width - 12, Math.max(WAVE * 1.5, width * p - 2));
   return (
     <View
       accessible

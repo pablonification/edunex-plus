@@ -41,13 +41,6 @@ export const mobileStrings = {
   // Chips on the now card: what's unusual about the class, the details in its sheet.
   "mobile.home.timeMoved": { id: "Jam berubah", en: "New time" },
   "mobile.home.roomMoved": { id: "Ruang berubah", en: "New room" },
-  // The Student went to SIX's page from the card, and SIX no longer shows the button. Pressed, or closed: only SIX's
-  // count after class says whether they were marked present.
-  "mobile.home.checkedIn": { id: "SIX tak lagi menampilkan Tandai Hadir", en: "SIX no longer shows Tandai Hadir" },
-  "mobile.home.checkedInHint": {
-    id: "Hitungan SIX setelah kuliah menunjukkan apakah hadirmu tercatat.",
-    en: "SIX's count after class shows whether you were marked present.",
-  },
   // The class sheet's way to an exam sitting's page.
   "mobile.home.openExam": { id: "Buka ujian", en: "Open exam" },
   // Beranda, round 2's v4: the greeting is the screen's one title, short like the reference apps'.
@@ -83,16 +76,20 @@ export const mobileStrings = {
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   "mobile.home.chip.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
   "mobile.home.online": { id: "daring", en: "online" },
+  // The class sheet's facts as labels, never the how: the share against the target, Tandai Hadir's state, the Presence.
+  "mobile.home.share": { id: "Kehadiran {percent}% · target {target}%", en: "Attendance {percent}% · target {target}%" },
+  "mobile.home.checkIn.open": { id: "Tandai Hadir dibuka", en: "Tandai Hadir is open" },
+  "mobile.home.checkIn.waiting": { id: "Tandai Hadir belum muncul", en: "No Tandai Hadir yet" },
+  "mobile.home.checkIn.gone": { id: "Tandai Hadir tak tampil lagi", en: "Tandai Hadir is gone" },
+  "mobile.home.presenceUntil": { id: "Presensi Edunex · sampai {time}", en: "Edunex Presence · until {time}" },
+  // The now card with no class in the week ahead.
+  "mobile.home.free": { id: "Tak ada kuliah 7 hari ke depan", en: "No classes in the next 7 days" },
   // The class sheet's line for a class going on.
   "mobile.home.liveUntil": { id: "Sekarang · sampai {time}", en: "Now · until {time}" },
   // The first read's card on Beranda: the summary the welcome used to show.
   "mobile.home.scanOpen": { id: "Lihat ringkasan", en: "See summary" },
   // Notifications, asked on Beranda the first time there's a class.
-  "mobile.home.notifyTitle": { id: "Ingatkan aku sebelum kuliah", en: "Remind me before class" },
-  "mobile.home.notifyBody": {
-    id: "Pengingat kuliah, Presensi dan tenggat tetap sampai saat aplikasi tertutup.",
-    en: "Reminders for classes, Presence and deadlines still arrive with the app closed.",
-  },
+  "mobile.home.notifyTitle": { id: "Ingatkan sebelum kuliah?", en: "Remind you before class?" },
   "mobile.home.notifyOn": { id: "Nyalakan", en: "Turn on" },
   "mobile.home.notifyLater": { id: "Nanti", en: "Not now" },
   // The top bar's status line while the first read runs: which system and which part.
