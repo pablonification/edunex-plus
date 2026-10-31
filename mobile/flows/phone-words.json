@@ -100,11 +100,6 @@
     "phone": "Presensi belum dibuka. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir."
   },
   {
-    "key": "home.now.checkEvery",
-    "desktop": "Aplikasi memeriksa tiap 2 menit",
-    "phone": "Dicek tiap 2 menit selama aplikasi terbuka"
-  },
-  {
     "key": "ics.handIn.note",
     "desktop": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.",
     "phone": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini."
