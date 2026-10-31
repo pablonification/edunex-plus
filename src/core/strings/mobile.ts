@@ -271,8 +271,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Rencana ini tersimpan di HP ini. Aplikasi tidak pernah mengirim KRS.",
     en: "This plan stays on this phone. The app never sends a KRS.",
   },
-  // schedule: the calendar sheet's button with nothing chosen. On the phone it adds to the calendar, it saves no file.
-  "schedule.export.nothing": { id: "Tidak ada yang bisa ditambahkan", en: "Nothing to add" },
   // grades-plan: Kurikulum's note. A course's corrections open from a tap on its row, not a ⋯ menu.
   "curriculum.unlistedNote": {
     id: "Ada {count} mata kuliah di luar catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",

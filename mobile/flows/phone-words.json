@@ -110,11 +110,6 @@
     "phone": "Tandai Hadir belum muncul. Selama aplikasi terbuka, SIX dicek tiap 2 menit."
   },
   {
-    "key": "schedule.export.nothing",
-    "desktop": "Tidak ada yang bisa disimpan",
-    "phone": "Tidak ada yang bisa ditambahkan"
-  },
-  {
     "key": "schedule.window.only",
     "desktop": "Hadir tercatat hanya jika dikumpulkan dalam jendela ini.",
     "phone": "Hadir tercatat hanya jika dikumpulkan dalam waktu ini."

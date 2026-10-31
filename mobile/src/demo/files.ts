@@ -57,10 +57,9 @@ export const sampleDocx = () =>
       "AAAAAjAgAAd29yZC9kb2N1bWVudC54bWxQSwUGAAAAAAUABQAgAQAAKQMAAAAA",
   );
 
-const STORAGE = "https://edunexfixture.blob.core.windows.net/edunex";
-export const PICTURE_URL = `${STORAGE}/fixture-2`;
-export const DOCX_URL = `${STORAGE}/fixture-rubrik-penilaian`;
-export const BARE_PDF_URL = `${STORAGE}/fixture-contoh-proposal`;
+export const PICTURE_URL = "https://edunexfixture.blob.core.windows.net/edunex/fixture-2";
+export const DOCX_URL = "https://edunexfixture.blob.core.windows.net/edunex/fixture-rubrik-penilaian";
+export const BARE_PDF_URL = "https://edunexfixture.blob.core.windows.net/edunex/fixture-contoh-proposal";
 
 /** II4091 (Edunex course 95326), its Modul 3 ("Slide Pengantar Proposal TA"). */
 export const FILES_MODULE = { courseId: 95326, moduleId: 450219 } as const;
