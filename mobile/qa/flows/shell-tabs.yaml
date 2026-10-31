@@ -1,0 +1,83 @@
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 90000
+- waitForAnimationToEnd
+# Five rounds of the five tabs (mobile/qa/shell-notes.md, "Numbers").
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
