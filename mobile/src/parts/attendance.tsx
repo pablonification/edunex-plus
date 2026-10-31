@@ -90,11 +90,14 @@ export function TargetStepper({ value, onChange, code }: { value: number; onChan
 }
 
 /** "Target 80% ▾" on the course page: its own target in a sheet, or back to the default. */
-export function CourseTarget({ code }: { code: string }) {
+export function CourseTarget({ code, open: shown, onOpenChange }: { code: string; open?: boolean; onOpenChange?: (open: boolean) => void }) {
   const t = useT();
   const theme = useTheme();
   const { target, own, setOwn } = useTargets();
-  const [open, setOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
+  // Opened by its button, or from outside (a course page's "Ubah target") when the page holds the state.
+  const open = shown ?? ownOpen;
+  const setOpen = onOpenChange ?? setOwnOpen;
   const mine = Object.hasOwn(own, code) ? own[code]! : null;
   const value = mine ?? target;
   return (

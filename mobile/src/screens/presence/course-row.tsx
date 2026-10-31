@@ -1,110 +1,88 @@
-// A course on Presensi (src/app/screens/presence.tsx's CourseRow): the course and its next class,
-// then SIX's share labeled over its absences as a bar with words ("Kehadiran 85% sejauh ini (6 dari
-// 7)", "Jatah absen", "Terpakai 1× · sisa 1×"), and one exception at most on a line of its own. On
-// the phone it's one column: the row opens the course's meetings, and the exception's own actions
-// ("Buka jadwal di SIX", "Ubah target") sit under it, outside the row's target.
+// A course on Kuliah (round 2, W4/W11): a slim row, one target, the course's page; what Presensi's long card said
+// (the bar, the count, one exception with its links) is on the course page now, under its name (CourseException).
+// Words and figures are the desktop's (src/app/screens/presence.tsx's CourseRow and Exception).
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import type { CourseAttendance } from "../../../../src/app/attendance";
-import { budgetWords, useActionLabel } from "../../../../src/app/attendance-labels";
+import { budgetLabel, budgetWords, useActionLabel } from "../../../../src/app/attendance-labels";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
-import { isExamActivity, onUsualSlot, type PresenceGroup, percent } from "../../../../src/core/attendance";
+import { isExamActivity, onUsualSlot, type PresenceGroup } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import { useNav } from "../../nav";
-import { AbsenceBudget } from "../../parts/attendance";
 import { openCourseColorPicker } from "../../parts/course-color-picker";
-import { CourseCode } from "../../ui/display";
+import { CourseDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { Meta } from "../../ui/layout";
+import { factsLabel, Meta, Row } from "../../ui/layout";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { shape, space, useTheme } from "../../ui/theme";
 import { classOf, dayLabel, GONE_FOR, metaParts, type RowContext, sideText, uncertainText, windowWhen } from "./logic";
 
 export function CourseRow({ item, group, context }: { item: CourseAttendance; group: PresenceGroup; context: RowContext }) {
   const t = useT();
   const f = useFormat();
-  const theme = useTheme();
   const { go } = useNav();
   const name = useCourseNames();
   const { course, health } = item;
   const meta = metaParts(t, f, item, context);
-  const words = context.signedOut ? null : budgetWords(t, health, context.soFar);
-  const own = Object.hasOwn(context.own, course.code);
-  const label = [
-    `${course.code} ${name(course.code, course.name)}`,
-    words ? t("presence.bar.label") : "",
-    words?.lead ?? "",
-    words?.bold ?? "",
-    words && own ? t("presence.row.ownTarget", { value: health.target }) : "",
-    words && health.held
-      ? t("presence.row.count", { attended: health.attended ?? 0, held: health.held, percent: percent(health.attended ?? 0, health.held) })
-      : "",
-    !words ? sideText(t, group, health) : "",
-    ...meta,
-  ]
-    .filter(Boolean)
-    .join(", ");
-
+  const chip = budgetChip(t, group, health, context);
   return (
-    <View>
-      <Pressable
-        testID={`row.course.${course.code}`}
-        // Kuliah is the way into a course: the row opens its page (one target, one outcome).
-        onPress={() => go({ screen: "course", code: course.code })}
-        // The course's colour, as a long-press (the desktop's right-click on its sidebar row).
-        onLongPress={() => openCourseColorPicker(course.code)}
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        android_ripple={{ color: theme.color.selected }}
-        style={{ padding: space[4], flexDirection: "row", gap: space[2] }}
-      >
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-            {/* Level with the name's first line. */}
-            <View style={{ paddingTop: 2 }}>
-              <CourseCode code={course.code} color={course.color} />
-            </View>
-            <Text size="body" weight="semibold" numberOfLines={2} style={{ flex: 1 }}>
-              {name(course.code, course.name)}
-            </Text>
-          </View>
-          {meta.length > 0 && (
-            <View style={{ marginTop: space[1] }}>
-              <Meta>{meta}</Meta>
-            </View>
-          )}
-          <Side item={item} group={group} own={own} soFar={context.soFar} signedOut={context.signedOut} />
-        </View>
-        <View style={{ paddingTop: 2 }}>
-          <Icons.ChevronRight size={16} color={theme.color.faint} />
-        </View>
-      </Pressable>
-      <Exception item={item} context={context} />
-    </View>
+    <Row
+      testID={`row.course.${course.code}`}
+      leading={<CourseDot color={course.color} size={12} />}
+      title={
+        <Text size="bodyLarge" weight="medium" numberOfLines={2}>
+          {name(course.code, course.name)}
+        </Text>
+      }
+      meta={<Meta numberOfLines={2}>{[course.code, ...meta].join(" · ")}</Meta>}
+      trailing={chip ? <BudgetChip chip={chip} /> : undefined}
+      // Kuliah is the way into a course: the row opens its page (one target, one outcome).
+      onPress={() => go({ screen: "course", code: course.code })}
+      // The course's colour, as a long-press (the desktop's right-click on its sidebar row).
+      onLongPress={() => openCourseColorPicker(course.code)}
+      label={factsLabel(course.code, name(course.code, course.name), ...meta, chip?.label)}
+    />
   );
 }
 
-/** The row's end: the absences, Edunex's own tally, or how it finished. */
-function Side({ item, group, own, soFar, signedOut }: { item: CourseAttendance; group: PresenceGroup; own: boolean; soFar: boolean; signedOut: boolean }) {
-  const t = useT();
-  const { health } = item;
-  if (signedOut) return null;
-  if (group === "out" || group === "none" || group === "spare" || group === "unknown")
-    return (
-      <View style={{ marginTop: space[2.5] }}>
-        <AbsenceBudget health={health} place="row" own={own} soFar={soFar} />
-      </View>
-    );
+type ChipTone = "danger" | "warning" | "success" | "neutral";
+
+/** The chip's few words ("Sisa 1×", "Habis", "Lewat batas 1×"), its tone, and the whole sentence for a screen reader. */
+function budgetChip(t: ReturnType<typeof useT>, group: PresenceGroup, health: CourseAttendance["health"], context: RowContext) {
+  if (context.signedOut) return null;
+  if (group === "out" || group === "none" || group === "spare" || group === "unknown") {
+    const words = budgetWords(t, health, context.soFar);
+    if (!words) return null;
+    const tone: ChipTone = words.tone === "danger" ? "danger" : words.tone === "warning" ? "warning" : group === "spare" ? "success" : "neutral";
+    return { text: words.bold.charAt(0).toLocaleUpperCase() + words.bold.slice(1), tone, label: budgetLabel(t, health) };
+  }
   const text = sideText(t, group, health);
   if (!text) return null;
+  return { text, tone: (group === "missed" ? "danger" : group === "met" ? "success" : "neutral") as ChipTone, label: text };
+}
+
+/** What's left of a course's absences, on a chip of its tone. */
+function BudgetChip({ chip }: { chip: { text: string; tone: ChipTone } }) {
+  const theme = useTheme();
+  const c = theme.color;
+  const [bg, fg] =
+    chip.tone === "danger"
+      ? [c.dangerBg, c.dangerFg]
+      : chip.tone === "warning"
+        ? [c.warningBg, c.warningFg]
+        : chip.tone === "success"
+          ? [c.successBg, c.successFg]
+          : [c.surfaceContainerHighest, c.onSurfaceVariant];
   return (
-    <Text size="small" weight={group === "missed" ? "semibold" : "regular"} tone={group === "missed" ? "danger" : "muted"} style={{ marginTop: space[2.5] }}>
-      {text}
-    </Text>
+    <View style={{ borderRadius: shape.sm, backgroundColor: bg, paddingHorizontal: space[2], paddingVertical: space[1] }}>
+      <Text size="labelLarge" tabular style={{ color: fg }} numberOfLines={2}>
+        {chip.text}
+      </Text>
+    </View>
   );
 }
 
@@ -114,7 +92,7 @@ function Side({ item, group, own, soFar, signedOut }: { item: CourseAttendance; 
  * on a class that may not run; a clash with which to go to; what the next class's Edunex window
  * asks; that the next class may not run; a lab's own rules.
  */
-function Exception({ item, context }: { item: CourseAttendance; context: RowContext }) {
+export function CourseException({ item, context }: { item: CourseAttendance; context: RowContext }) {
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -225,15 +203,14 @@ function Exception({ item, context }: { item: CourseAttendance; context: RowCont
 /** The exception's line, under the row: its words, then its actions (each a full thumb's target). */
 function Line({ tone, icon, action, children }: { tone: "muted" | "warning"; icon?: ReactNode; action?: ReactNode; children: string }) {
   return (
-    // Under the row's own padding: 12 below its last line, as between its other lines.
-    <View style={{ marginTop: -space[1], paddingHorizontal: space[4], paddingBottom: action ? space[1] : space[4] }}>
+    <View testID="note.courseException">
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
         {icon && <View style={{ paddingTop: 3 }}>{icon}</View>}
         <Text size="small" tone={tone} weight={tone === "warning" ? "medium" : "regular"} style={{ flex: 1 }}>
           {children}
         </Text>
       </View>
-      {action && <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[4], marginTop: space[0.5] }}>{action}</View>}
+      {action && <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[4], marginTop: space[1] }}>{action}</View>}
     </View>
   );
 }

@@ -157,6 +157,9 @@ export const mobileStrings = {
   // The desktop's calendar file, through the share sheet (Drive, email, another calendar app).
   "mobile.calendar.share": { id: "Bagikan .ics", en: "Share .ics" },
   "mobile.calendar.shareFailed": { id: "Berkas .ics tidak bisa dibagikan. Coba lagi.", en: "Couldn't share the .ics file. Try again." },
+  // presence
+  // Kuliah's ⋮: the attendance targets, with the range in force under it ("80%", "75–80%").
+  "mobile.courses.targets": { id: "Target kehadiran", en: "Attendance targets" },
   // grades-plan
   // The planner's ⋯ on a course: the desktop plans a course in a semester, the phone moves it there from a sheet.
   "mobile.planner.options": { id: "Pilihan untuk {code}", en: "Options for {code}" },

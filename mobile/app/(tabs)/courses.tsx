@@ -1,21 +1,16 @@
-// Kuliah: the term's courses, each with its absences left and its next class, the ones at risk first
-// (Presensi's page, src/screens/presence); a course opens its page. Tap and hold one for its colour.
-import { useT } from "../../../src/app/i18n";
+// Kuliah: the term's courses, each with its absences left and its next class, the ones at risk first; a course opens
+// its page (src/screens/presence). Tap and hold one for its colour.
 import { usePerfFocused } from "../../src/perf";
-import { PresenceContent } from "../../src/screens/presence/presence-screen";
-import { TabHeader, usePullToRefresh } from "../../src/shell/source-status";
-import { Page } from "../../src/ui/layout";
+import { CoursesScreen } from "../../src/screens/presence/presence-screen";
+import { usePullToRefresh } from "../../src/shell/source-status";
 import { TabClock } from "../../src/ui/tab-clock";
 
 export default function Screen() {
-  const t = useT();
   const pull = usePullToRefresh();
   usePerfFocused("courses");
   return (
     <TabClock>
-      <Page testID="screen.courses" header={<TabHeader title={t("mobile.tab.courses")} />} {...pull}>
-        <PresenceContent />
-      </Page>
+      <CoursesScreen {...pull} />
     </TabClock>
   );
 }

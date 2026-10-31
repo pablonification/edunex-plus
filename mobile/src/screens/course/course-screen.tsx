@@ -9,7 +9,6 @@
 import { router } from "expo-router";
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import { type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, View } from "react-native";
-import { useAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type StringKey, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
@@ -23,7 +22,7 @@ import { CourseColorSheet, colorName } from "../../parts/course-color-picker";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh, useRefresh } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
-import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
+import { Card, CourseDot, EmptyState, Skeleton } from "../../ui/display";
 import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta, Page, PageHeader } from "../../ui/layout";
@@ -33,6 +32,8 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { GradesTab } from "./grades";
+import { CourseException } from "../presence/course-row";
+import { useRowContext } from "../presence/presence-screen";
 import { AnnouncementsTab, TasksTab } from "./lists";
 import { MeetingsTab } from "./meetings";
 import { ModulesTab } from "./modules";
@@ -40,6 +41,8 @@ import { MeetingNow, RiskStrip } from "./now";
 import { SaveOfflineProgress, useSaveOfflineChoice } from "./save-offline";
 
 const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
+/** Where the page's own title ends (dp from the page's top, at the normal text size): the top bar's title shows from there. */
+const TITLE_BOTTOM = 96;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -104,7 +107,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   return (
     <Page
       testID="screen.course"
-      header={<TopBar title={t("nav.courses")} actions={<MoreMenu page={page} />} />}
+      header={<TopBar title={page.course.name} titleFrom={TITLE_BOTTOM} actions={<MoreMenu page={page} />} />}
       scrollRef={scroll}
       // The tab bar stays at the top while a long tab scrolls.
       stickyHeaderIndices={[1]}
@@ -168,7 +171,7 @@ function Header({ page }: { page: CoursePage }) {
             <Icons.ChevronDown size={12} color={theme.color.faint} />
           </Pressable>
         }
-        title={course.name}
+        title={<Text size="headlineSmall">{course.name}</Text>}
         description={
           <Meta size="small">
             {course.classNo ? t("course.class", { no: course.classNo }) : ""}
@@ -197,19 +200,27 @@ function Header({ page }: { page: CoursePage }) {
 }
 
 /**
- * The course's absences ("Jatah absen": the bar and "Terpakai 1× · sisa 1×"), SIX's count with its
- * share, and the target, a tap from changing it. It stays while the banner below shows.
+ * The course's attendance on one tonal card: what's left of its absences (the bar and "Terpakai 1× · sisa 1×", SIX's
+ * count and share) with its target a tap away, then the one thing that asks something of the Student (out of reach
+ * and the fix, a clash, what the next Presence asks), as Kuliah's row said it in round 1.
  */
 function AttendanceMeter({ page }: { page: CoursePage }) {
-  const attendance = useAttendance();
   const { attendanceTargets } = useSettings();
-  const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
-  if (!health || !attendance?.sixConnected) return null;
+  const [targets, setTargets] = useState(false);
+  const rows = useRowContext(() => setTargets(true));
+  const item = rows?.attendance.courses.find((c) => c.course.code === page.course.code);
+  if (!item || !rows?.attendance.sixConnected) return null;
+  const { health } = item;
   return (
-    <View testID="meter.courseAttendance" style={{ marginTop: -space[2], marginBottom: space[5], gap: space[3], alignItems: "flex-start" }}>
-      <AbsenceBudget health={health} place="header" own={Object.hasOwn(attendanceTargets, page.course.code)} soFar={attendance.period === null} />
-      {health.held ? <CourseTarget code={page.course.code} /> : null}
-    </View>
+    <Card style={{ marginTop: -space[2], marginBottom: space[5], padding: space[4], gap: space[3] }} testID="meter.courseAttendance">
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <AbsenceBudget health={health} place="header" own={Object.hasOwn(attendanceTargets, page.course.code)} soFar={rows.attendance.period === null} />
+        </View>
+        {health.held ? <CourseTarget code={page.course.code} open={targets} onOpenChange={setTargets} /> : null}
+      </View>
+      <CourseException item={item} context={rows.context} />
+    </Card>
   );
 }
 
@@ -280,7 +291,7 @@ function TabBar<T extends string>({
   }, [value, width]);
   return (
     <View
-      style={{ backgroundColor: c.canvas, marginHorizontal: -space.page, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.line }}
+      style={{ backgroundColor: c.surface, marginHorizontal: -space.page, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: c.outlineVariant }}
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
     >
       <ScrollView
@@ -308,12 +319,12 @@ function TabBar<T extends string>({
               onPress={() => onChange(tab.value)}
               onLayout={(event) => places.current.set(tab.value, { x: event.nativeEvent.layout.x, width: event.nativeEvent.layout.width })}
               android_ripple={{ color: c.selected }}
-              style={{ paddingHorizontal: space[2], minHeight: 48, justifyContent: "center" }}
+              style={{ paddingHorizontal: space[3], minHeight: 48, justifyContent: "center" }}
             >
-              <Text size="body" weight={on ? "semibold" : "medium"} tone={on ? "fg" : "muted"} numberOfLines={1}>
+              <Text size="titleSmall" style={{ color: on ? c.primary : c.onSurfaceVariant }} numberOfLines={1}>
                 {tab.label}
                 {tab.count !== undefined && (
-                  <Text size="small" weight="medium" tone="faint" tabular>
+                  <Text size="titleSmall" tabular style={{ color: on ? c.primary : c.onSurfaceVariant, fontWeight: "400" }}>
                     {`  ${tab.count}`}
                   </Text>
                 )}
@@ -321,20 +332,21 @@ function TabBar<T extends string>({
               <View
                 style={{
                   position: "absolute",
-                  left: space[2],
-                  right: space[2],
+                  left: space[3],
+                  right: space[3],
                   bottom: 0,
-                  height: 2,
-                  borderRadius: 1,
-                  backgroundColor: on ? c.fg : "transparent",
+                  height: 3,
+                  borderTopLeftRadius: 3,
+                  borderTopRightRadius: 3,
+                  backgroundColor: on ? c.primary : "transparent",
                 }}
               />
             </Pressable>
           );
         })}
       </ScrollView>
-      {fades.edges.left && <EdgeFade side="left" color={c.canvas} />}
-      {fades.edges.right && <EdgeFade side="right" color={c.canvas} />}
+      {fades.edges.left && <EdgeFade side="left" color={c.surface} />}
+      {fades.edges.right && <EdgeFade side="right" color={c.surface} />}
     </View>
   );
 }
