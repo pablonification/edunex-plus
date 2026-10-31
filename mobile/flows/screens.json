@@ -411,8 +411,7 @@
               "direction": "UP",
               "timeout": 6000,
               "optional": true,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -422,8 +421,7 @@
               },
               "direction": "DOWN",
               "timeout": 10000,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -484,8 +482,7 @@
               "direction": "UP",
               "timeout": 6000,
               "optional": true,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -495,8 +492,7 @@
               },
               "direction": "DOWN",
               "timeout": 10000,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -557,8 +553,7 @@
               "direction": "UP",
               "timeout": 6000,
               "optional": true,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -568,8 +563,7 @@
               },
               "direction": "DOWN",
               "timeout": 10000,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -630,8 +624,7 @@
               "direction": "UP",
               "timeout": 6000,
               "optional": true,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -641,8 +634,7 @@
               },
               "direction": "DOWN",
               "timeout": 10000,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -703,8 +695,7 @@
               "direction": "UP",
               "timeout": 6000,
               "optional": true,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
@@ -714,8 +705,7 @@
               },
               "direction": "DOWN",
               "timeout": 10000,
-              "visibilityPercentage": 50,
-              "centerElement": true
+              "visibilityPercentage": 50
             }
           },
           {
