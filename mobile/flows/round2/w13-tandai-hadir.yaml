@@ -1,0 +1,35 @@
+# W13 (round 2): the reminder at the start of a class SIX counts carries Android's "Tandai Hadir" action, and pressing it
+# opens SIX's page in the app, signed in (the demo's page shows its note instead of SIX). The demo starts at 07:57 on
+# the recorded Thursday with its alerts sent to Android (EDUNEX_DEMO_NOTIFY=1); PL3002 starts at 08:00, a few minutes later.
+# Round 1 (9395cea): no such reminder, no action.
+appId: io.github.pablonification.edunexplus.demo
+name: "w13 Tandai Hadir from the class reminder"
+---
+# A shade left open by an earlier run would hide the app.
+- pressKey: home
+- clearState
+# Notifications allowed (a launch that only grants it), then the demo from its link.
+- launchApp:
+    permissions:
+      notifications: allow
+- stopApp
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_NOTIFY=1&EDUNEX_DEMO_NOW=2026-10-08T07:57:00%2B07:00"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- pressKey: home
+# The class starts: Android shows the reminder (booked ahead, so it comes with the app in the background too).
+- swipe:
+    start: "50%, 1%"
+    end: "50%, 70%"
+    duration: 400
+- extendedWaitUntil:
+    visible: "Kuliah sudah mulai . PL3002"
+    timeout: 420000
+- takeScreenshot: w13-1-class-reminder
+- tapOn: "Tandai Hadir"
+- extendedWaitUntil:
+    visible: "Di aplikasi asli, halaman SIX terbuka di sini.*"
+    timeout: 20000
+- takeScreenshot: w13-2-six-page-in-app

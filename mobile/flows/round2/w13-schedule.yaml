@@ -1,0 +1,78 @@
+# W13 (round 2): the schedule is part of the app, not an export bolted on. Jadwal opens on today's classes (no tap),
+# its ⋮ holds "Ingatkan sebelum kuliah" (15 minutes before) and "Tampilkan di Kalender HP" (a calendar of the app's
+# own, kept current), the month is a screen a tap away that Back leaves, and the "Hari ini" widget's tap on a class
+# (its link, edunexplusdemo://schedule?class=<SIX's id>) opens that class's sheet. Round 1 (9395cea): the week's
+# segment, a one-off "Tambahkan ke kalender HP" at the page's end, no reminder setting here, no widget link.
+appId: io.github.pablonification.edunexplus.demo
+name: "w13 the schedule is part of the app"
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- tapOn:
+    id: tab.schedule
+# Today first: the class on now, with nothing tapped.
+- extendedWaitUntil:
+    visible:
+      id: row.class.pl3002-08-00
+    timeout: 10000
+- assertVisible: "Sedang berlangsung"
+# The reminder before class, where the schedule is.
+- tapOn:
+    id: action.scheduleMenu
+- assertVisible: "Ingatkan sebelum kuliah"
+- assertVisible: "15 menit sebelumnya"
+- tapOn:
+    id: action.remindBeforeClass
+- tapOn:
+    text: "(Allow|Izinkan|ALLOW|IZINKAN)"
+    optional: true
+- extendedWaitUntil:
+    visible: "Pengingat menyala, 15 menit sebelum tiap kuliah."
+    timeout: 5000
+- tapOn:
+    id: action.scheduleMenu
+- assertVisible:
+    id: action.remindBeforeClass
+    checked: true
+# The phone's calendar, kept current: on, allowed, written.
+- tapOn:
+    id: action.calendarSync
+- tapOn:
+    text: "(Allow|Izinkan|ALLOW|IZINKAN)"
+    optional: true
+- extendedWaitUntil:
+    visible: ".*acara ada di kalender Edunex Plus.*"
+    timeout: 30000
+- takeScreenshot: w13-3-calendar-on
+# The month, a screen away; Back returns to the agenda.
+- tapOn:
+    id: action.month
+- extendedWaitUntil:
+    visible:
+      id: screen.month
+    timeout: 10000
+- assertVisible: "Oktober 2026"
+- back
+- assertVisible:
+    id: screen.schedule
+# The widget's tap on a class: its sheet.
+- openLink: "edunexplusdemo://schedule?class=2194342"
+- extendedWaitUntil:
+    visible:
+      id: sheet.class
+    timeout: 10000
+- assertVisible: "R.SG PWK LT.6"
+- takeScreenshot: w13-4-sheet-from-widget-link
+- back
+# Off: the calendar leaves the phone.
+- tapOn:
+    id: action.scheduleMenu
+- tapOn:
+    id: action.calendarSync
+- extendedWaitUntil:
+    visible: "Kalender Edunex Plus dihapus dari HP."
+    timeout: 10000

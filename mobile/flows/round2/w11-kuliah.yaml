@@ -1,0 +1,55 @@
+# W4/W11 on Kuliah (round 2): in three seconds, which course is at risk and the way in. Under the top bar the answer for
+# the day; the courses at risk first, each one slim row with one target (no links of its own in the row: round 1's
+# Presensi card carried "Buka jadwal di SIX" and "Ubah target" beside its bar and paragraphs); the row opens the
+# course, where the bar, the count, the target and the one exception are; the targets are in the top bar's ⋮.
+# Round 1 (9395cea): no Kuliah tab, Presensi's long cards.
+appId: io.github.pablonification.edunexplus.demo
+name: "w11 Kuliah one row one target"
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- tapOn:
+    id: tab.courses
+- extendedWaitUntil:
+    visible:
+      id: screen.courses
+    timeout: 10000
+- assertVisible: "Hari ini ada 4 kuliah.*"
+# At risk first: the course out of reach heads the list, its chip says how far.
+- assertVisible:
+    id: group.presence.out
+- assertVisible:
+    id: row.course.KU5014
+- assertVisible: "Lewat batas 1.*"
+# One target per row: no links of their own on Kuliah.
+- assertNotVisible:
+    id: action.checkSix
+- assertNotVisible:
+    id: "action.changeTarget.*"
+- takeScreenshot: w11-1-kuliah
+# The row opens its course: the attendance card with the one thing to do about it.
+- tapOn:
+    id: row.course.KU5014
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 10000
+- assertVisible:
+    id: meter.courseAttendance
+- assertVisible:
+    id: note.courseException
+- assertVisible: ".*33%.*2 dari 6.*"
+- takeScreenshot: w11-2-course
+- back
+# The targets, in ⋮.
+- tapOn:
+    id: action.coursesMenu
+- tapOn:
+    id: action.target
+- extendedWaitUntil:
+    visible: "Target umum"
+    timeout: 5000

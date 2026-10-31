@@ -105,14 +105,14 @@ appId: io.github.pablonification.edunexplus.demo
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-8 · 12–18 Okt"
+      text: "Minggu ke-8 . 12.18 Okt"
     timeout: 5000
 - tapOn:
     id: action.today
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-7 · 5–11 Okt"
+      text: "Minggu ke-7 . 5.11 Okt"
     timeout: 5000
 
 # S6: the month, a screen away; a day picked in it lists that day; Back returns to the agenda.
