@@ -7,7 +7,11 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: tab.home
     timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 - assertVisible:
     id: screen.home
-- assertVisible: "Selamat pagi, Dimas"
+- assertVisible: ".*Kamis, 8 Oktober.*"
 - takeScreenshot: smoke

@@ -28,7 +28,7 @@ export function TopBar({ title, actions, onBack }: { title?: string; actions?: R
         <IconButton label={t("action.back")} onPress={onBack ?? nav.back} testID="action.back">
           <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
         </IconButton>
-        <Text size="titleLarge" numberOfLines={1} accessibilityRole="header" style={{ flex: 1, marginLeft: space[1] }}>
+        <Text size="titleLarge" accessibilityRole="header" style={{ flex: 1, marginLeft: space[1], paddingVertical: space[1] }}>
           {title ?? ""}
         </Text>
         {actions && <View style={{ flexDirection: "row", alignItems: "center" }}>{actions}</View>}

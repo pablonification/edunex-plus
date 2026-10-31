@@ -43,10 +43,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-router",
     // The screen's fastest refresh rate (90 or 120 Hz), not the 60 Hz many phones keep an app at (W5).
     "./plugins/high-refresh-rate",
+    // No GWP-ASan: its backtrace walk crashed the app at start, now and then, on Hermes's stack (./plugins/no-gwp-asan.js).
+    "./plugins/no-gwp-asan",
     // Back (key and gesture) reaches the app on Android 13–15 as on 16 (W6).
     "./plugins/back-to-js",
     // The bottom tabs' icons as Android drawables (scripts/make-tab-icons.mjs).
     "./plugins/tab-icons",
+    // The headings' and numbers' typeface, Plus Jakarta Sans, as font assets (DESIGN.md "Type").
+    "./plugins/fonts",
     // The native bottom sheets edge to edge (no black navigation bar over their end).
     "./plugins/sheet-theme",
     "expo-secure-store",

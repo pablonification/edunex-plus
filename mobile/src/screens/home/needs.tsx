@@ -1,7 +1,8 @@
 // "Perlu perhatianmu": the week ahead, never repeating today, as src/app/screens/home.tsx lists it.
+// Beranda shows the first three and "Lihat semua"; the whole list is its own screen (app/needs.tsx).
 // Each row can be put off ("Ingatkan nanti") and, where only the Student can know it's dealt with,
-// put away ("Sudah beres"): the icons beside it, a swipe, or a long press. What's put off and away
-// is counted under the list, and opens there.
+// put away ("Sudah beres"): a swipe (ui/swipe.tsx), or a long press, or TalkBack's actions. What's
+// put off and away is counted under the whole list, and opens there.
 import { type ReactNode, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
@@ -23,6 +24,7 @@ import { Icons } from "../../ui/icons";
 import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
 import { Text, type TextTone } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
+import { facts, heldAt, memoRow } from "./held";
 import { CourseMark, classDayTime, DAY, doneOf, nameOf, QuickRow, toned } from "./parts";
 
 type Tone = "danger" | "warning" | null;
@@ -62,8 +64,17 @@ export function NeedsYou({
   // Closed once nothing is put off or away, so the next one doesn't find the list open.
   if (listOpen && !away) setListOpen(false);
   const awayLine = away > 0 && <AwayLine snoozed={snoozed.length} done={done.length} open={listOpen} onToggle={() => setListOpen(!listOpen)} />;
+  const rows = shown;
+  // Each row drawn again only when its words could change (./held.tsx): its data, the courses' names, the clock within
+  // a day of its moment.
+  const names = courses.map((course) => `${course.code}=${course.name}`).join("|");
+  const held = (need: NeedDraft) => {
+    const { sig, moments } = facts({ need, names });
+    return { sig, at: heldAt(now, moments, DAY) };
+  };
+  // Under the screen's own title ("Perlu kamu urus"): no second title, the count is the list.
   return (
-    <Section title={t("home.needs")} count={loading || shown.length === 0 ? undefined : shown.length} testID="section.needs">
+    <Section testID="section.needs" first>
       {loading ? (
         <Card style={{ padding: space[4], gap: space[3] }}>
           <Skeleton width="33%" />
@@ -72,8 +83,8 @@ export function NeedsYou({
       ) : shown.length ? (
         <>
           <List>
-            {shown.map((need) => (
-              <NeedRow key={need.id} need={need} courses={courses} />
+            {rows.map((need) => (
+              <HeldNeed key={need.id} {...held(need)} props={{ need, courses }} />
             ))}
           </List>
           {awayLine && <View style={{ marginTop: space[2.5], paddingHorizontal: space[1] }}>{awayLine}</View>}
@@ -465,6 +476,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
   };
 }
 
+const HeldNeed = memoRow(NeedRow);
+
 function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCourse[] }) {
   const t = useT();
   const view = useNeedView(courses)(need);
@@ -476,13 +489,13 @@ function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCou
   return (
     // Attendance has "Sudah tahu" instead of a snooze: the warning is for one class, or for good.
     <QuickRow name={name} done={doneOf(t, need)} snooze={need.kind !== "attendance" ? snoozable(need, now) : null}>
-      {({ actions, onLongPress }) => (
+      {({ quick, onLongPress }) => (
         <Row
           testID={`row.need.${need.id}`}
           title={view.title}
           label={view.label}
           meta={<Meta>{view.meta}</Meta>}
-          actions={actions}
+          quick={quick}
           onLongPress={onLongPress}
           trailing={
             view.when ? (

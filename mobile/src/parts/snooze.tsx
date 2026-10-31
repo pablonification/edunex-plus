@@ -25,12 +25,15 @@ export const canSnooze = (item: Snoozable, now: number) => snoozeChoices(item, n
 export type RowDone = Extract<DoneHow, "checked" | "groupDone" | "gotIt" | "paid">;
 
 /** The snooze sheet's state and what putting an item off does (a toast with Undo). */
-export function useSnooze(item: Snoozable | null) {
+export function useSnooze(item: Snoozable | null, control?: { open: boolean; setOpen(open: boolean): void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const { snooze, wake } = useSnoozes();
-  const [open, setOpen] = useState(false);
+  const [own, setOwn] = useState(false);
+  // Opened from outside (a row whose sheet lives under another clock), or on its own.
+  const open = control?.open ?? own;
+  const setOpen = control?.setOpen ?? setOwn;
   const choices = item ? snoozeChoices(item, now) : [];
   const sheet = item ? (
     <ActionSheet
@@ -155,8 +158,9 @@ export function rowControls(done: ReactNode, snooze: ReactNode): ReactNode {
 }
 
 /**
- * The same two actions as a swipe: "Sudah beres" (the ✓'s words) and "Ingatkan nanti" (opens the
- * sheet `useSnooze` gave). Use with <SwipeRow actions={…}>.
+ * The same two actions as a swipe (ui/swipe.tsx): "Sudah beres" toward the row's end (it leaves, folds away, and the
+ * snackbar offers Urungkan) and "Ingatkan nanti" toward its start (the row springs back and the sheet `useSnooze`
+ * gave opens on its times). Use with <SwipeRow actions={…}>.
  */
 export function useRowActions({
   done,
@@ -182,6 +186,7 @@ export function useRowActions({
       tone: "warning",
       icon: <Icons.Snooze size={20} color={theme.color.warningFg} />,
       onPress: snooze.open,
+      leaves: false,
       testID: "swipe.snooze",
     });
   return actions;

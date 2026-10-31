@@ -26,6 +26,26 @@ Sources: Material 3 (incl. Expressive) and Android's quality guidelines, through
 **BackHandler** only while a sheet or an unsaved edit is open (a sheet's Back is the native sheet's own).
 Anything else that wants Back is a screen: make it a route.
 
+## Round 2's look: v4 (chosen by Arqila, built on Beranda first)
+
+The direction is `mobile/design/r2-directions/v4/` on `origin/mobile-r2-mockups` (README, `build.mjs` for the exact
+values, `v4-live.html` to try it). Beranda and its class sheet are built from it (`src/screens/home`); the parts below
+are shared, for the next screens once Arqila has seen it in the app (Decision 23).
+
+| Part | What | Where |
+| --- | --- | --- |
+| Surfaces | `theme.v4`: `page` (#f1f3f7 / #0c0e12) under `card` (#fff / #171a20, radius 20–24, a soft shadow in light only), `line`, `fg` / `fg2` / `muted`, the header's `head` (#1f63e0 / #163f94) with `onHead`, the one filled button's `brand` / `onBrand` (#1f63e0 + white; dark #a9c4ff + #0a2a66: white on #4d86ff fails), tonal `okBg/okFg`, `redBg/redFg`, `ambBg/ambFg`, `live` (the now dot) | `src/ui/theme.ts` |
+| Course tiles | `theme.courseTile(tone)` → `{ ink, tint }` for each of the ten course colours (light and dark): ink ≥ 4.6:1 on its tint and on a card. `CourseTile` (44 dp, radius 32%, the course's glyph two-tone in its ink on its tint), `CourseGlyph`; the glyph picked from the course's name (`courseGlyph`) | `src/ui/tile.tsx` |
+| Type | Headings and numbers in Plus Jakarta Sans (`<Text face="display" weight="bold">`, also `semibold`, `extrabold`), bundled as Android font assets (`plugins/fonts.js`, OFL in the licences); everything else Roboto on the M3 scale | `src/ui/text.tsx`, `assets/fonts` |
+| Press | `PressScale`: gives to 96.5% and springs back (expressive), on the UI thread; one per card or row | `src/ui/press.tsx` |
+| Big button | `BigButton` (52 dp pill): `filled` (the screen's one main action), `done` (tonal green, after it), `outline` | `src/ui/big-button.tsx` |
+| Living parts | `WavyProgress` (M3 Expressive's wave up to how far along, moving; track and stop dot after), `CookieCheck` (M3's cookie scaling in turning, its check drawing itself), `PulseDot`, `CountUp` (a number counting up once per run), `Rise` (a screen's cards rising in a stagger on its first showing only) | `src/ui/expressive.tsx` |
+
+Rules that hold (the judge's): a row has a title and at most one short meta line, at most one status (a chip or an
+icon, never a sentence); no explanatory sentences on a tab's first screen (one tap deeper); a tab's first screen ≤ ~45
+words above the tabs (`mobile/qa/words.sh`); one title per screen. Motion on the UI thread; Remove animations: fades
+and a still wave.
+
 ## Colour: Material 3 roles
 
 `theme.color.<role>`. Pair each fill with its `on…` role; never a raw hex in a screen.
@@ -98,11 +118,12 @@ heading → headlineSmall, figure/display → headlineMedium.
 | `Chip` / `ChipRow` | Filter chip | 32 high, outlined; picked: secondaryContainer and a check |
 | `Segmented` | Segmented buttons | 40 high, outlined, picked with a check |
 | `Switch` | M3 switch | Android's own `MaterialSwitch` (`modules/material-switch`, W9): Material's track, thumb, check, ripple and TalkBack "switch, on"; colours from the roles; 52×48 to touch; the testID sits on the switch itself. A tap the screen doesn't keep goes back after 1.5 s. Without the native module (tests) the JS-drawn one stands in |
-| `List` + `Row` | List items in a group | tonal tiles 2 dp apart, round group ends; 56 dp min; no chevrons; one row, one target, one outcome |
+| `List` + `Row` | List items in a group | tonal tiles 2 dp apart, round group ends; 56 dp min; no chevrons; one row, one target, one outcome; `quick` names a row's swipe actions for TalkBack |
 | `GroupTile` | One tile of a grouped list | the same tile as `List`'s, drawn row by row (`first`/`last` round the group's ends) for a FlashList (Tugas) |
 | `SettingsGroup`, `SettingRow`, `SwitchRow`, `ChoiceRow` + `ChoiceSheet` (`ui/settings-list.tsx`) | Settings lists | a group's title in primary, rows as tonal tiles; a switch row toggles from anywhere on it; a choice row shows its value and opens a native sheet of radio options (each option `<rowTestID>.<value>`) |
 | `ErrorBanner` (`ui/settings-list.tsx`) | Banner | a page's error under its top bar with a close button, until the next try works (never a snackbar) |
 | `DrawnCheck`, `Celebration` (`ui/celebrate.tsx`) | — | the earned moment: a success circle springs in and its check draws itself (Reanimated, UI thread) with the success haptic; Remove animations: a fade. `Celebration` shows it over the page without blocking taps, read by TalkBack, gone after ~1.7 s (the hand-in) |
+| `SwipeRow` | Swipe to act (Gmail) | see Patterns; on the UI thread (gesture handler 3 + Reanimated) |
 | `Card` | Filled card | plain (Low), raised (Container, the one card that leads), sunken (High) |
 | `Section`, `PageHeader`, `Notice`, `StatRow`, `Meta` | | as before, on the scale |
 | `EmptyState` | | icon in a secondaryContainer circle, Title M, a line why, the next step as a button |
@@ -135,6 +156,14 @@ heading → headlineSmall, figure/display → headlineMedium.
   dialog only when it blocks. The snackbar says what happened, with Undo.
 - **Undo over confirm** for routine actions; confirm only what can't be undone, naming it.
 - **Every gesture has a visible way too** (a swipe also in the long-press menu, the menu also in ⋮ or a button).
+- **Swipe on a row = Android's commit swipe** (`SwipeRow`, Gmail's): the row follows the finger over the action's
+  colour; past 35% of its width (or a flick past 25%) a haptic tick and the icon growing say letting go will do it.
+  A "done" (success tone) swipes toward the end, anything else toward the start, the same on every screen. An action
+  that puts the row away (`leaves`, the default) slides it out, folds it, then runs, and its snackbar offers Urungkan
+  (a row still there 1.5 s later comes back); one that opens a choice (`leaves: false`, Ingatkan nanti) springs back
+  and opens it. Every swipe is also in the long-press `ActionSheet` and in TalkBack's actions (`Row quick=`).
+- **A card is one target**: the whole card opens one thing (Beranda's now card: its class's sheet); a labelled
+  button inside it is the card's one action, never an arrow to somewhere else.
 - **Speed**: every screen calls `usePerfDrawn(ready)` (a tab: `usePerfFocused(name)`); targets on the lab's
   release builds: tab switch < 300 ms, screen open < 500 ms, no JS block > 50 ms while moving. Draw the
   first screenful first: defer what's below it a frame, FlashList for long lists.
