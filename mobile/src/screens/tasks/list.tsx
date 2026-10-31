@@ -206,7 +206,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
 
   return (
     <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.color.canvas }}>
-      <TabHeader />
+      <TabHeader title={t("nav.tasks")} />
       <FlashList
         ref={list}
         data={lines}

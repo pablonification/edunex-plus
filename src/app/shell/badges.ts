@@ -98,6 +98,12 @@ const PLAN_BADGES: Readonly<Record<PlanTab, () => Badge>> = {
   deadlines: useDeadlinesBadge,
 };
 
+/** Each of Rencana studi's tabs' own count, for a screen that lists them one by one (the phone's Akademik). */
+export function usePlanTabBadges(): Readonly<Partial<Record<PlanTab, Badge>>> {
+  // The tabs are fixed, so every tab's hook runs on every render, in the same order.
+  return Object.fromEntries(builtPlanTabs.map((tab) => [tab, PLAN_BADGES[tab]()]));
+}
+
 /** Rencana studi: its tabs' counts together, what needs the Student (warnings) first. */
 export function usePlanBadge(): Badge {
   // The tabs are fixed, so every tab's hook runs on every render, in the same order.

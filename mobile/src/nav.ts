@@ -1,6 +1,8 @@
 // Where the Student is, the phone's way: the desktop's routes (src/core/route.ts, which alerts and
 // links name too) as Expo Router paths. Screens move with useNav().go(route), as on the desktop
-// (src/app/nav.tsx), so a ported screen keeps its calls; Back is the phone's own.
+// (src/app/nav.tsx), so a ported screen keeps its calls; Back is the phone's own. The phone's shape
+// differs (PROGRESS.md, "The new shape of the app"): Presensi is the Kuliah tab, each part of Rencana
+// studi a screen of its own (/plan/<part>), a course's module a screen over the course.
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
 import type { Route } from "../../src/core/route";
@@ -18,24 +20,21 @@ export function hrefOf(route: Route): string {
       return `/task/${route.taskId}`;
     case "exam":
       return `/exam/${encodeURIComponent(route.examId)}`;
-    case "course": {
-      const query = [route.tab ? `tab=${encodeURIComponent(route.tab)}` : "", route.module !== undefined ? `module=${route.module}` : ""]
-        .filter(Boolean)
-        .join("&");
-      return `/course/${encodeURIComponent(route.code)}${query ? `?${query}` : ""}`;
-    }
+    case "course":
+      if (route.module !== undefined) return `/course/${encodeURIComponent(route.code)}/module/${route.module}`;
+      return `/course/${encodeURIComponent(route.code)}${route.tab ? `?tab=${encodeURIComponent(route.tab)}` : ""}`;
     case "schedule":
       return "/schedule";
     case "presence":
-      return "/presence";
+      return "/courses";
     case "grades":
       return "/grades";
     case "plan":
-      return route.tab ? `/plan?tab=${encodeURIComponent(route.tab)}` : "/plan";
+      return `/plan/${encodeURIComponent(route.tab ?? "planner")}`;
   }
 }
 
-/** The tabs: going to one switches tab instead of stacking a second copy. */
+/** The tabs (Presensi is Kuliah's): going to one switches tab instead of stacking a second copy. */
 const TABS = new Set<Route["screen"]>(["home", "tasks", "schedule", "presence"]);
 
 export interface Nav {
@@ -76,8 +75,6 @@ function paramsOf(route: Route): Record<string, string | undefined> {
     case "tasks":
       return { show: route.show };
     case "course":
-      return { tab: route.tab, module: route.module === undefined ? undefined : String(route.module) };
-    case "plan":
       return { tab: route.tab };
     default:
       return {};

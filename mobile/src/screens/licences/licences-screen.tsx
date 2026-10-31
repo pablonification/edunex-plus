@@ -13,6 +13,7 @@ import { isWebLink } from "../../../../src/core/links";
 import { Button, IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { useBottomInset } from "../../ui/insets";
 import { factsLabel, Notice } from "../../ui/layout";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
@@ -34,6 +35,7 @@ export function LicencesScreen() {
   const fieldColors = useFieldColors();
   const t = useT();
   const theme = useTheme();
+  const bottom = useBottomInset();
   const [loaded, setLoaded] = useState<Loaded>("loading");
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
@@ -133,7 +135,7 @@ export function LicencesScreen() {
               {t("search.noResults", { query: query.trim() })}
             </Text>
           }
-          contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] }}
+          contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] + bottom }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
         />

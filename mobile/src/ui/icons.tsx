@@ -4,6 +4,7 @@
 import { AlarmIcon } from "phosphor-react-native/src/icons/Alarm";
 import { AppWindowIcon } from "phosphor-react-native/src/icons/AppWindow";
 import { ArrowCounterClockwiseIcon } from "phosphor-react-native/src/icons/ArrowCounterClockwise";
+import { ArrowLeftIcon } from "phosphor-react-native/src/icons/ArrowLeft";
 import { ArrowRightIcon } from "phosphor-react-native/src/icons/ArrowRight";
 import { ArrowsClockwiseIcon } from "phosphor-react-native/src/icons/ArrowsClockwise";
 import { ArrowsInSimpleIcon } from "phosphor-react-native/src/icons/ArrowsInSimple";
@@ -27,6 +28,7 @@ import { ClockIcon } from "phosphor-react-native/src/icons/Clock";
 import { ClockCounterClockwiseIcon } from "phosphor-react-native/src/icons/ClockCounterClockwise";
 import { DeviceMobileIcon } from "phosphor-react-native/src/icons/DeviceMobile";
 import { DotsThreeIcon } from "phosphor-react-native/src/icons/DotsThree";
+import { DotsThreeVerticalIcon } from "phosphor-react-native/src/icons/DotsThreeVertical";
 import { DownloadSimpleIcon } from "phosphor-react-native/src/icons/DownloadSimple";
 import { EyeIcon } from "phosphor-react-native/src/icons/Eye";
 import { EyeSlashIcon } from "phosphor-react-native/src/icons/EyeSlash";
@@ -166,6 +168,10 @@ export const Icons = {
   Plus: icon(PlusIcon),
   Minus: icon(MinusIcon),
   MoreHorizontal: icon(DotsThreeIcon),
+  /** Android's overflow menu (⋮). */
+  MoreVertical: icon(DotsThreeVerticalIcon),
+  /** Android's Back in a top app bar (an arrow, not a chevron). */
+  ArrowLeft: icon(ArrowLeftIcon),
   CalendarCheck: icon(CalendarCheckIcon),
   Hand: icon(HandIcon),
   Snooze: icon(AlarmIcon),

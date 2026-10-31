@@ -1,58 +1,28 @@
-// The bottom tabs: the pages a Student opens most, in thumb's reach. Nilai, Rencana studi, the
-// courses and Settings are under Lainnya. Each tab's badge is the desktop sidebar's count.
-import { Tabs } from "expo-router";
-import type { ReactNode } from "react";
-import { View } from "react-native";
+// The bottom tabs: Android's own navigation bar (expo-router's NativeTabs, a Material
+// BottomNavigationView through react-native-screens), five jobs a Student has every day (PROGRESS.md,
+// "The new shape of the app"): Beranda, Jadwal, Tugas, Kuliah (the courses with their absences left,
+// once Presensi) and Akademik (IPK, Nilai, the study plan, KRS, UKT). Every tab is mounted ahead, so a
+// switch is instant and each keeps its scroll; a second tap on the open tab scrolls it to the top.
+// Labels always show. The icons are the app's own Phosphor glyphs as Android drawables
+// (plugins/tab-icons.js), outlined at rest and filled when picked.
+import { NativeTabs } from "expo-router/unstable-native-tabs";
 import { useRememberCourseColors } from "../../../src/app/course-colors";
 import { useTermCourses } from "../../../src/app/courses";
 import { useT } from "../../../src/app/i18n";
 import { type Badge, usePlanBadge, usePresenceBadge, useTasksBadge } from "../../../src/app/shell/badges";
-import { Icons } from "../../src/ui/icons";
-import { Text } from "../../src/ui/text";
+import { InTabs } from "../../src/ui/insets";
 import { useTheme } from "../../src/ui/theme";
 
 /**
- * A tab's count, as the desktop sidebar's: grey says how many, amber with ⚠ that one needs the Student
- * today. Drawn by the app (not the tab bar's own badge) beside the icon's top corner, so it never covers
- * the icon, with the bar's colour around it.
+ * A tab's badge, Material's (the error colour): only what needs the Student today (the desktop's amber ⚠ counts). A
+ * plain count (six Tasks to do) stays on the tab's page: a red number that never goes away teaches the Student to
+ * stop reading badges.
  */
-function TabIcon({ badge, children }: { badge: Badge; children: ReactNode }) {
-  const theme = useTheme();
-  const c = theme.color;
-  const warning = badge?.tone === "warning";
-  return (
-    <View style={{ width: 24, height: 24 }}>
-      {children}
-      {badge && (
-        <View
-          style={{
-            position: "absolute",
-            left: 19,
-            top: -7,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 2,
-            minWidth: 18,
-            height: 18,
-            paddingHorizontal: 4,
-            borderRadius: 9,
-            borderWidth: 1.5,
-            borderColor: c.sidebar,
-            justifyContent: "center",
-            backgroundColor: warning ? c.warningBg : c.neutralBg,
-          }}
-        >
-          {warning && <Icons.AlertTriangle size={9} weight="bold" color={c.warningFg} />}
-          <Text size="micro" weight="semibold" tabular style={{ color: warning ? c.warningFg : c.neutralFg, fontSize: 11, lineHeight: 14 }}>
-            {String(badge.value)}
-          </Text>
-        </View>
-      )}
-    </View>
-  );
+function badgeOf(badge: Badge): string | undefined {
+  return badge?.tone === "warning" ? String(badge.value) : undefined;
 }
 
-/** A tab's name for a screen reader, its count with it: "Presensi, 1, Perlu perhatianmu" (the desktop's). */
+/** A tab's name for a screen reader, its count with it: "Kuliah, 1, Perlu perhatianmu" (the desktop's). */
 function tabLabel(t: ReturnType<typeof useT>, title: string, badge: Badge): string {
   if (!badge) return title;
   return badge.tone === "warning" ? `${title}, ${badge.value}, ${t("home.needs")}` : `${title}, ${badge.value}`;
@@ -60,84 +30,51 @@ function tabLabel(t: ReturnType<typeof useT>, title: string, badge: Badge): stri
 
 export default function TabsLayout() {
   const t = useT();
-  const theme = useTheme();
-  const c = theme.color;
+  const c = useTheme().color;
   const courses = useTermCourses();
   // Each course's automatic color, remembered the first time it shows, so it never moves by itself (the desktop's sidebar does this).
   useRememberCourseColors(courses?.map((course) => course.code));
   const tasks = useTasksBadge();
   const presence = usePresenceBadge();
-  // Rencana studi's count lives under Lainnya: the tab carries what's to do (send the KRS, pay the UKT), so it's seen
-  // without opening Lainnya. A clash to ask about stays on Lainnya's row: on the tab, a count that won't go away all term
-  // teaches the Student to stop reading badges.
+  // Akademik carries what's to do there (send the KRS, pay the UKT); a clash to ask about stays on its row.
   const planCount = usePlanBadge();
   const plan = planCount?.tone === "warning" ? planCount : null;
+  const tabs = [
+    { name: "index", title: t("nav.home"), id: "home", icon: "home", badge: null },
+    { name: "schedule", title: t("nav.schedule"), id: "schedule", icon: "schedule", badge: null },
+    { name: "tasks", title: t("mobile.tab.tasks"), id: "tasks", icon: "tasks", badge: tasks },
+    { name: "courses", title: t("mobile.tab.courses"), id: "courses", icon: "courses", badge: presence },
+    { name: "academic", title: t("mobile.tab.academic"), id: "academic", icon: "academic", badge: plan },
+  ] as const;
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: c.accentFg,
-        tabBarInactiveTintColor: c.muted,
-        tabBarStyle: { backgroundColor: c.sidebar, borderTopColor: c.edge },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: "500" },
-        sceneStyle: { backgroundColor: c.canvas },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t("nav.home"),
-          tabBarButtonTestID: "tab.home",
-          tabBarIcon: ({ color, focused }) => <Icons.Home color={color as string} size={24} weight={focused ? "fill" : "regular"} />,
+    <InTabs.Provider value>
+      <NativeTabs
+        backgroundColor={c.surfaceContainer}
+        indicatorColor={c.secondaryContainer}
+        rippleColor={c.selected}
+        iconColor={{ default: c.onSurfaceVariant, selected: c.onSecondaryContainer }}
+        labelStyle={{
+          default: { color: c.onSurfaceVariant, fontSize: 12, fontWeight: "500" },
+          selected: { color: c.onSurface, fontSize: 12, fontWeight: "600" },
         }}
-      />
-      <Tabs.Screen
-        name="tasks"
-        options={{
-          title: t("mobile.tab.tasks"),
-          tabBarButtonTestID: "tab.tasks",
-          tabBarAccessibilityLabel: tabLabel(t, t("mobile.tab.tasks"), tasks),
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon badge={tasks}>
-              <Icons.ListChecks color={color as string} size={24} weight={focused ? "bold" : "regular"} />
-            </TabIcon>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="schedule"
-        options={{
-          title: t("nav.schedule"),
-          tabBarButtonTestID: "tab.schedule",
-          tabBarIcon: ({ color, focused }) => <Icons.Calendar color={color as string} size={24} weight={focused ? "fill" : "regular"} />,
-        }}
-      />
-      <Tabs.Screen
-        name="presence"
-        options={{
-          title: t("nav.presence"),
-          tabBarButtonTestID: "tab.presence",
-          tabBarAccessibilityLabel: tabLabel(t, t("nav.presence"), presence),
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon badge={presence}>
-              <Icons.Hand color={color as string} size={24} weight={focused ? "fill" : "regular"} />
-            </TabIcon>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="more"
-        options={{
-          title: t("mobile.tab.more"),
-          tabBarButtonTestID: "tab.more",
-          tabBarAccessibilityLabel: tabLabel(t, t("mobile.tab.more"), plan),
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon badge={plan}>
-              <Icons.LayoutGrid color={color as string} size={24} weight={focused ? "fill" : "regular"} />
-            </TabIcon>
-          ),
-        }}
-      />
-    </Tabs>
+        badgeBackgroundColor={c.error}
+        badgeTextColor={c.onError}
+        labelVisibilityMode="labeled"
+      >
+        {tabs.map((tab) => (
+          <NativeTabs.Trigger
+            key={tab.name}
+            name={tab.name}
+            testID={`tab.${tab.id}`}
+            accessibilityLabel={tabLabel(t, tab.title, tab.badge)}
+            contentStyle={{ backgroundColor: c.surface }}
+          >
+            <NativeTabs.Trigger.Icon drawable={{ default: `tab_${tab.icon}`, selected: `tab_${tab.icon}_filled` }} />
+            <NativeTabs.Trigger.Label>{tab.title}</NativeTabs.Trigger.Label>
+            <NativeTabs.Trigger.Badge hidden={!badgeOf(tab.badge)}>{badgeOf(tab.badge)}</NativeTabs.Trigger.Badge>
+          </NativeTabs.Trigger>
+        ))}
+      </NativeTabs>
+    </InTabs.Provider>
   );
 }

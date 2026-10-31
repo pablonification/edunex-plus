@@ -1,14 +1,14 @@
 // Rencana studi on the phone (src/app/screens/plan.tsx): the study planner, the curriculum map,
-// KRS, UKT and ITB's academic calendar, as tabs fixed under the top bar that scroll sideways.
-// The tab shown is the route's (`?tab=`), recorded in its place as the Student picks it, so Back
-// leaves the screen and a link opens the right tab. Each tab has its own crash guard: a tab that
-// breaks leaves the tab bar, and the way to another tab.
-import { Component, type ComponentRef, type ComponentType, type ErrorInfo, type ReactNode, useEffect, useRef } from "react";
+// KRS, UKT and ITB's academic calendar, each a screen of its own (/plan/<part>), opened from Akademik's
+// rows (or a link, an alert, the search), with Android's Back to where the Student came from. Each has
+// its own crash guard: a part that breaks shows why, with the top bar and Back still there.
+import { Component, type ComponentRef, type ComponentType, type ErrorInfo, type ReactNode, useRef } from "react";
 import type { ScrollView } from "react-native";
 import { View } from "react-native";
 import { type StringKey, useT } from "../../../../src/app/i18n";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
 import { useNav } from "../../nav";
+import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
@@ -24,7 +24,6 @@ import * as krs from "./krs";
 import { PageScrollProvider } from "./page-scroll";
 import { PlaceStateProvider } from "./place-state";
 import * as planner from "./planner";
-import { TabBar } from "./tab-bar";
 
 const TAB: Readonly<Record<PlanTab, ComponentType<{ onCalendar?: () => void }>>> = {
   planner: planner.Tab,
@@ -34,39 +33,31 @@ const TAB: Readonly<Record<PlanTab, ComponentType<{ onCalendar?: () => void }>>>
   deadlines: deadlines.Tab,
 };
 
-export function PlanScreen({ tab }: { tab?: string }) {
+/** The part of Rencana studi a route names (`part`: planner, curriculum, krs, bills, deadlines); the first one built otherwise. */
+export function partOf(part: string | undefined): PlanTab {
+  return builtPlanTabs.find((id) => id === part) ?? builtPlanTabs[0] ?? "planner";
+}
+
+export function PlanScreen({ part }: { part?: string }) {
   const t = useT();
-  const { replace } = useNav();
+  const { go } = useNav();
   const pull = usePullToRefresh();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
-  // Back from another screen that changed the saved plan: the tab starts again from what's saved.
+  // Back from another screen that changed the saved plan: the part starts again from what's saved.
   const fresh = useFreshPlan();
-  const first = builtPlanTabs[0] ?? "planner";
-  const current: PlanTab = builtPlanTabs.some((id) => id === tab) ? (tab as PlanTab) : first;
-  const setCurrent = (next: PlanTab) => replace({ screen: "plan", tab: next });
-  // A tab opens at its top.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new tab is what moves the page
-  useEffect(() => {
-    scroll.current?.scrollTo({ y: 0, animated: false });
-  }, [current]);
+  const current = partOf(part);
+  usePerfDrawn(true);
   if (!builtPlanTabs.length) return null;
-  const Tab = TAB[current];
+  const Part = TAB[current];
   return (
     <Page
-      testID="screen.plan"
+      testID={`screen.plan.${current}`}
       scrollRef={scroll}
       header={
         <>
-          <TopBar title={t("nav.plan")} />
+          <TopBar title={t(`plan.tab.${current}` as StringKey)} />
           {/* A plan the app can't trust right now (offline, SIX's session ended, a page SIX changed): said here, as on the desktop. */}
           <ProblemBanner belowBar />
-          <TabBar
-            value={current}
-            label={t("nav.plan")}
-            prefix="plan"
-            tabs={builtPlanTabs.map((id) => ({ value: id, label: t(`plan.tab.${id}` as StringKey) }))}
-            onChange={setCurrent}
-          />
         </>
       }
       {...pull}
@@ -75,7 +66,7 @@ export function PlanScreen({ tab }: { tab?: string }) {
         <PageScrollProvider value={scroll}>
           <View testID={`panel.plan.${current}`}>
             <TabBoundary key={`${current}:${fresh}`} name={`plan ${current}`}>
-              <Tab onCalendar={() => setCurrent("deadlines")} />
+              <Part onCalendar={() => go({ screen: "plan", tab: "deadlines" })} />
             </TabBoundary>
           </View>
         </PageScrollProvider>

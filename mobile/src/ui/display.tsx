@@ -1,12 +1,14 @@
-// Small pieces that show a state: cards, badges, tags, a Task's status, a course's color, bars.
-// The phone's versions of src/app/ui/display.tsx, with the same names and meanings.
+// Small pieces that show a state: cards, badges, tags, a Task's status, a course's color, bars, the
+// skeleton and the empty state. The phone's versions of src/app/ui/display.tsx, with the same names and
+// meanings, drawn in Material 3's tonal surfaces (DESIGN.md): no hairline boxes.
 import { type ReactNode, useEffect, useRef } from "react";
-import { ActivityIndicator, Animated, Easing, StyleSheet, View, type ViewStyle } from "react-native";
+import { ActivityIndicator, Animated, Easing, View, type ViewStyle } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useT } from "../../../src/app/i18n";
 import { Icons } from "./icons";
+import { useReduceMotion } from "./motion";
 import { Text } from "./text";
-import { type Palette, radius, space, useTheme } from "./theme";
+import { type Palette, radius, shape, space, useTheme } from "./theme";
 
 export function Card({
   variant = "plain",
@@ -19,17 +21,13 @@ export function Card({
   children: ReactNode;
   testID?: string;
 }) {
-  const theme = useTheme();
-  const look: ViewStyle =
-    variant === "sunken"
-      ? { backgroundColor: theme.color.sunken, borderRadius: radius.xl }
-      : {
-          backgroundColor: variant === "raised" ? theme.color.raised : theme.color.surface,
-          borderRadius: variant === "raised" ? radius.xxl : radius.xl,
-          borderWidth: StyleSheet.hairlineWidth,
-          borderColor: theme.color.edge,
-          ...(variant === "raised" ? { elevation: theme.scheme === "dark" ? 0 : 2, shadowColor: "#101828" } : {}),
-        };
+  const c = useTheme().color;
+  // M3's filled card on the page (surfaceContainerLow); raised, the one card that leads a screen, a step up
+  // (surfaceContainer); sunken, a quiet well (surfaceContainerHigh). Separated by tone, never a border or a shadow.
+  const look: ViewStyle = {
+    backgroundColor: variant === "sunken" ? c.surfaceContainerHigh : variant === "raised" ? c.surfaceContainer : c.surfaceContainerLow,
+    borderRadius: variant === "raised" ? shape.lgPlus : shape.lg,
+  };
   return (
     <View testID={testID} style={[{ overflow: "hidden" }, look, style]}>
       {children}
@@ -37,17 +35,22 @@ export function Card({
   );
 }
 
+/** Nothing to show: why, and the next step as its `children` (a button). Never shown while data is still coming. */
 export function EmptyState({ icon, title, description, children }: { icon: ReactNode; title: string; description?: ReactNode; children?: ReactNode }) {
   const theme = useTheme();
   return (
     <View style={{ alignItems: "center", paddingVertical: space[10], paddingHorizontal: space[6], gap: space[2] }}>
-      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: theme.color.fill, alignItems: "center", justifyContent: "center" }}>{icon}</View>
-      <Text size="body" weight="semibold" style={{ textAlign: "center", marginTop: space[1] }}>
+      <View
+        style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.color.secondaryContainer, alignItems: "center", justifyContent: "center" }}
+      >
+        {icon}
+      </View>
+      <Text size="titleMedium" style={{ textAlign: "center", marginTop: space[2] }}>
         {title}
       </Text>
       {description !== undefined &&
         (typeof description === "string" ? (
-          <Text size="small" tone="muted" style={{ textAlign: "center" }}>
+          <Text size="bodyMedium" tone="muted" style={{ textAlign: "center" }}>
             {description}
           </Text>
         ) : (
@@ -58,9 +61,23 @@ export function EmptyState({ icon, title, description, children }: { icon: React
   );
 }
 
+/** A placeholder in the shape of what's coming, breathing slowly (still, when the phone asks for less motion). */
 export function Skeleton({ height = 16, width = "100%", style }: { height?: number; width?: ViewStyle["width"]; style?: ViewStyle }) {
   const theme = useTheme();
-  return <View style={[{ height, width, borderRadius: radius.md, backgroundColor: theme.color.fill }, style]} />;
+  const still = useReduceMotion();
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (still) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 0.55, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [pulse, still]);
+  return <Animated.View style={[{ height, width, borderRadius: shape.sm, backgroundColor: theme.color.surfaceContainerHigh, opacity: pulse }, style]} />;
 }
 
 export function LiveDot({ color }: { color?: string }) {
@@ -258,6 +275,6 @@ export function Spinner({ size = 14, color }: { size?: number; color: string }) 
 /** A thin bar for work under way (a hand-in, a download); `indeterminate` while how far is unknown. */
 export function ProgressBar({ value, label, indeterminate = false }: { value: number; label: string; indeterminate?: boolean }) {
   const theme = useTheme();
-  if (indeterminate) return <ActivityIndicator accessibilityLabel={label} color={theme.color.accent} />;
-  return <Bar value={value} color={theme.color.accent} label={label} style={{ height: 4 }} />;
+  if (indeterminate) return <ActivityIndicator accessibilityLabel={label} color={theme.color.primary} />;
+  return <Bar value={value} color={theme.color.primary} label={label} style={{ height: 4 }} />;
 }
