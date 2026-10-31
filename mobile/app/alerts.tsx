@@ -14,12 +14,12 @@ import { useBridge, useDataset, useStatus } from "../../src/app/store";
 import type { Alert, AlertKind } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
+import { usePerfDrawn } from "../src/perf";
 import { CourseDot, EmptyState } from "../src/ui/display";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { List, Meta, Page, Section } from "../src/ui/layout";
 import { Text } from "../src/ui/text";
 import { space, useTheme } from "../src/ui/theme";
-import { usePerfDrawn } from "../src/perf";
 import { TopBar } from "../src/ui/top-bar";
 
 const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {

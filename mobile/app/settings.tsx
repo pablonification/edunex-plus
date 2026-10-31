@@ -30,6 +30,7 @@ import { TargetStepper, useTargets } from "../src/parts/attendance";
 import { colorName, openCourseColorPicker } from "../src/parts/course-color-picker";
 import { NotificationsOff } from "../src/parts/notifications-off";
 import { openReport } from "../src/parts/report";
+import { usePerfDrawn } from "../src/perf";
 import { useSignIn, useSignInNote } from "../src/shell/source-status";
 import { toast } from "../src/swaps/overlays";
 import { SourceLogo } from "../src/ui/brand";
@@ -40,7 +41,6 @@ import { Meta, Page } from "../src/ui/layout";
 import { Sheet } from "../src/ui/sheet";
 import { Text } from "../src/ui/text";
 import { radius, space, useTheme } from "../src/ui/theme";
-import { usePerfDrawn } from "../src/perf";
 import { TopBar } from "../src/ui/top-bar";
 
 const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: true }[] = [

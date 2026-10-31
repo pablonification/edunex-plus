@@ -1,0 +1,298 @@
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 90000
+- waitForAnimationToEnd
+# Round 2 shell: five rounds of the tabs, then the drill-downs (mobile/qa/shell-notes.md, "Numbers").
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.grades
+    direction: DOWN
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.krs
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.curriculum
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan.curriculum
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.curriculum
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.grades
+    direction: DOWN
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.krs
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.curriculum
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan.curriculum
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.curriculum
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.grades
+    direction: DOWN
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.krs
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.curriculum
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan.curriculum
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.curriculum
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "row.module.*"
+    direction: DOWN
+- tapOn:
+    id: "row.module.*"
+- extendedWaitUntil:
+    visible:
+      id: screen.module
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- pressKey: back

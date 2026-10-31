@@ -1,0 +1,227 @@
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 90000
+- waitForAnimationToEnd
+# The same tour on the round-1 app (its tabs: home, tasks, schedule, presence, more).
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.presence
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.presence
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.presence
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.presence
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.presence
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.grades
+    direction: DOWN
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan
+- extendedWaitUntil:
+    visible:
+      id: screen.plan
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.grades
+    direction: DOWN
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan
+- extendedWaitUntil:
+    visible:
+      id: screen.plan
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.grades
+    direction: DOWN
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan
+    direction: DOWN
+- tapOn:
+    id: row.nav.plan
+- extendedWaitUntil:
+    visible:
+      id: screen.plan
+    timeout: 20000
+- waitForAnimationToEnd
+- pressKey: back
+- waitForAnimationToEnd
