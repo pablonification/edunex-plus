@@ -76,9 +76,53 @@ kept) → Back → Kuliah. Most students' phones run 13–15.
 9. **Overflow ⋮: an anchored Material menu** (JS, in a Modal, 150 ms fade+grow on the native driver);
    long-press menus stay `ActionSheet` (native sheet). A native PopupMenu would need a new native module.
 10. **Snackbar** placed above the tabs' bar by measuring where a tab's page ends (no hard-coded bar height).
-11. **Perf for tabs**: native tab switches don't pass through the navigation container's actions, so
+11. **Hidden tabs let the minute's tick pass (`TabClock`).** Every date on screen hangs on the app's minute
+    clock (`useFormat` → `useNow`), so with five tabs mounted ahead each tick drew all five at once: JS blocks of
+    300–515 ms once a minute on `mid` (a246d06 run: `js-block 467 academic`, `500 index`; the round-1 app had the
+    same with Beranda alone, `334 index`). Tried first: react-freeze on hidden tabs (and `freezeOnBlur` on the
+    stack). Measured worse: unfreezing draws the whole tab again on every switch (tab medians 72–95 ms, JS blocks
+    200–270 ms on most switches, e12feaf). Kept: each tab gets a clock that passes ticks on only while it's in
+    front and catches up once when shown, if the minute changed (981d27f). Two small exports in
+    `src/app/i18n` (`useClock`, `ClockProvider`); the desktop is unchanged.
+12. **Perf for tabs**: native tab switches don't pass through the navigation container's actions, so
     `usePerfFocused(name)` starts the clock at the tab's own `tabPress` (the press arriving in JS; Android
     has already shown the preloaded tab) and logs `[perf] tab <name>` the frame after focus.
+
+## Numbers (release builds, the lab's emulators)
+
+Script: `mobile/qa/shell-measure.sh <apk> <flow> <name>` (installs, starts the demo signed-in from clean,
+waits for first data, runs a Maestro tour, sums the app's `[perf]` lines and `dumpsys gfxinfo`). Tours:
+`qa/flows/shell-tabs.yaml` (5 rounds of the 5 tabs) and `shell-tabs-round1.yaml` (the same on the round-1
+app's tabs); `shell-tour.yaml` (tabs, then a course ×3, Nilai ×3, KRS ×3, Kurikulum ×3, a module). Runs under
+`C:\qa\runs\*-shell-*`. mid and weak ran side by side (each before then after), so both builds saw the same load.
+
+Before = 1f492fb (round 1 + F1/F2), after = 981d27f. The round-1 app's own probes logged no tab or screen
+times (its clock waited on the container's `__unsafe_action__`, which Expo Router 58's navigations never
+emit), and its Back closed the app (above), so "before" is the tabs-only tour's JS blocks and frames.
+
+| Measure (target) | mid before | mid after | weak before | weak after |
+| --- | --- | --- | --- | --- |
+| Tab switch, median by tab (< 300 ms) | not logged | 53–80 ms | not logged | 89–109 ms |
+| Tab switch, worst of 25 | not logged | 295 ms (Jadwal) | not logged | 885 ms (Jadwal, once) |
+| Screen open, median (< 500 ms) | not logged | course 46, module 17, Nilai 70, a Rencana part 96 | not logged | course 28, module 31, Nilai 102, a Rencana part 108 |
+| Worst JS block during the tabs tour (none > 50 ms) | 639 ms (Tugas), 539 (Presensi) | 254 ms (Jadwal), 244 (Akademik) | 1207 ms (Jadwal), 680 (Presensi) | 834 ms (Jadwal), 304 (Beranda) |
+| JS blocks > 50 ms in the tabs tour | 15 | 13 | 19 | 22 |
+| Janky frames (gfxinfo), tabs tour | 34.7% of 1676 | 34.2% of 6442 | 12.6% of 1697 | 11.2% of 5588 |
+
+Reading it: switches and screen opens are well under target; the shell itself adds nearly nothing (a module
+draws in 17–31 ms, a course in 28–46). What's left over 50 ms is each screen's own render when its data or
+the minute changes (Jadwal, Beranda, Tugas, Nilai: 100–400 ms each on mid), the screen helpers' work
+(memoize the heavy sections so a tick redraws only what shows the time; FlashList for long lists). The
+emulators' janky-frame share is high for both builds alike (the emulator's GPU path), so it compares builds,
+not phones. Probe caveats: `[perf] tab courses 1.4–1.6 s` at the tour's end is a clock carried across two
+Back presses (a pop to a screen already drawn logs nothing), not a switch.
+
+Earlier runs on the way: a246d06 (no clock gating): minute ticks blocked 300–515 ms (`academic 467`,
+`index 500`); e12feaf (react-freeze): tab medians 72–95 ms with 200–270 ms blocks on most switches.
+
+## Check A (same data)
+
+See the hand-back message: `signed-in` flows run on mid with 981d27f.
 
 ## Contrast (design skill's scripts/contrast.py, every text/icon pair)
 
@@ -107,6 +151,18 @@ Fixed on the way: primary #2862d6 → #245bcc (was 4.38 on surfaceContainerHighe
   open-with, installers, tray-icon, vault, package-sign), `lstat 'C%3A'` (copy-lint), drift-fix-guard (Node
   TS stripping), pdf-fill, course.test "1 jam 0 mnt" (a slow run crossing the hour), itb-calendar. Every
   `test/mobile` test passes.
+
+## Pictures and the recording
+
+Screenshots (mid, release 981d27f, light and dark): `mobile/report/img/shell/{light,dark}-{1-beranda,
+2-jadwal,3-tugas,4-kuliah,5-akademik,6-sheet-kelas,7-mata-kuliah,8-menu}.webp` (Maestro flow kept at
+`C:\qa\shell\shots.yaml`). Recording (29 s): branch `media-shell`,
+`qa-media/shell/shell-tabs-module-back-sheet.mp4` (also `C:\qa\shell\shell-recording.mp4`): tabs, Kuliah →
+course → module, the back gesture twice, a class sheet opened, dragged, dragged closed.
+
+Shaky: a drag that starts on a sheet's scrollable content (rather than its handle or title) doesn't move the
+sheet when the content can't scroll; Material normally hands it over. Back's in-app peek (a finger-tracked
+preview) isn't there (react-native-screens 4.30's stack has no OnBackAnimationCallback).
 
 ## Lab
 
