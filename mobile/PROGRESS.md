@@ -137,6 +137,10 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
     signing out of Edunex clears its site's storage, of SIX its cookies.
 20. **The phone starts due-only** (`EngineDeps.startDueOnly`), the desktop as before. Pull to refresh reads all.
 21. **Helpers run on the desktop's one Claude account at effort high** (Arqila, 2026-10-31).
+22. **Helpers push their own branches from the desktop** (`gh` signed in as pablonification there since ~19:45,
+    2026-10-31; before that they could only commit locally). Pictures go on the piece's branch; screen recordings on a
+    separate `media-<piece>` branch, never merged, so videos stay out of `mobile`'s history. The desktop's token has no
+    `workflow` scope: changes to `.github/workflows/*` are made from pabs.
 
 ### Judge (helper on the desktop, never the lead)
 
@@ -466,10 +470,6 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
-- **Round 2: the desktop can't push to GitHub.** `gh` isn't signed in there and Git's credential helper waits for a
-  window nobody sees, so helpers on DESKTOP-4SEOA4J commit locally and hand the lead a `git format-patch` in their
-  final message, which the lead applies on pabs. It works, but it's slow, and pictures don't travel that way.
-  Proposed: on the desktop, run `gh auth login` once (HTTPS, browser), then `gh auth setup-git`.
 - **Round 2: the desktop (DESKTOP-4SEOA4J) has only one Claude account**, shown as "Claude"; there is no
   "Contact" or "Dev 1" there. All helpers run on that one account, so three at once may run it out sooner.
   Proposed: add the two accounts in T3 Code on the desktop (Settings → Providers) if you want them split; I
