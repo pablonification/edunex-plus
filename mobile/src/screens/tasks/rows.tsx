@@ -146,6 +146,7 @@ export const TaskRow = inWorld(function TaskRow({
   const rest = exam ? [t("exam.takeHome"), task.title] : meta === "course" ? [where] : meta === "module" ? [module] : [];
   return (
     <Row
+      wrapTrailing
       testID={`row.task.${task.id}`}
       label={label}
       onPress={() => go({ screen: "task", taskId: task.id })}
@@ -255,6 +256,7 @@ function PutOffRow({ item, entry }: Todo["putOff"][number]) {
   const when = f.dayTimeWord(entry.until);
   return (
     <Row
+      wrapTrailing
       testID={`row.putOff.${item.key}`}
       title={title}
       meta={

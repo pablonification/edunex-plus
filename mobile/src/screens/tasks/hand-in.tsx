@@ -718,7 +718,7 @@ export function HandInBar({ h }: { h: HandInState }) {
           disabled={!h.canSave}
           busy={h.busy === "draft"}
           onPress={() => void h.run("draft")}
-          style={{ flex: 1 }}
+          style={{ flexShrink: 0 }}
         >
           {t("handIn.saveDraft")}
         </Button>
@@ -729,7 +729,7 @@ export function HandInBar({ h }: { h: HandInState }) {
           disabled={!h.canSubmit}
           busy={h.busy === "submit"}
           onPress={() => h.setConfirming(true)}
-          style={{ flex: 1.4 }}
+          style={{ flex: 1 }}
         >
           {submitLabel}
         </Button>

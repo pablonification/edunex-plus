@@ -19,7 +19,7 @@ import { toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
 import { CourseDot, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { factsLabel, Notice } from "../../ui/layout";
+import { factsLabel, Notice, TrailingInline } from "../../ui/layout";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 
@@ -190,10 +190,22 @@ export function RowMeta({ code, color, rest }: { code?: string | null; color?: s
 export function DateColumn({ main, sub, tone, late = false }: { main: string; sub?: string | null; tone?: TextTone; late?: boolean }) {
   const theme = useTheme();
   const width = useTextWidth(96);
+  // Under the row's text (a narrow screen): the day and the time on one line, wrapping if they must.
+  const inline = useContext(TrailingInline);
+  const sign = late && <Icons.AlertTriangle size={14} color={theme.color.error} weight="bold" />;
+  if (inline)
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexShrink: 1 }}>
+        {sign}
+        <Text size="bodyMedium" weight="medium" tone={tone ?? "fg"} tabular style={{ flexShrink: 1 }}>
+          {sub ? `${main} · ${sub}` : main}
+        </Text>
+      </View>
+    );
   return (
     <View style={{ alignItems: "flex-end", minWidth: Math.min(width, 120) }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-        {late && <Icons.AlertTriangle size={14} color={theme.color.error} weight="bold" />}
+        {sign}
         <Text size="bodyMedium" weight="medium" tone={tone ?? "fg"} tabular numberOfLines={1}>
           {main}
         </Text>

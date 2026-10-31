@@ -18,7 +18,7 @@ import { toast } from "../../swaps/overlays";
 import { IconButton } from "../../ui/controls";
 import { StatusChip } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { factsLabel, Row } from "../../ui/layout";
+import { factsLabel, Row, TrailingInline, useNarrow } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
@@ -157,6 +157,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
 
   const row = (
     <Row
+      wrapTrailing
       // A take-home opens its Task, and is named as one: the exam's own row (its sitting) keeps the exam's id.
       testID={part?.kind === "takehome" ? `row.task.${part.task.id}` : `row.exam.${exam.id}`}
       label={label}
@@ -224,6 +225,7 @@ export const PeriodRow = inWorld(function PeriodRow({ item, inCourse = false }: 
   const t = useT();
   const theme = useTheme();
   const { f } = useRowWorld();
+  const narrow = useNarrow();
   const [toggled, setToggled] = useState(false);
   const open = toggled !== (item.state !== "far");
   const codes = item.exams.map((exam) => exam.courseCode);
@@ -252,8 +254,16 @@ export const PeriodRow = inWorld(function PeriodRow({ item, inCourse = false }: 
           <Text size="bodyMedium" tone="muted" numberOfLines={2}>
             {line}
           </Text>
+          {/* Narrow: the dates under the words, on one line, so the title keeps the row. */}
+          {narrow && (
+            <TrailingInline.Provider value>
+              <View style={{ marginTop: space[1] }}>
+                <DateColumn main={main} sub={sub} />
+              </View>
+            </TrailingInline.Provider>
+          )}
         </View>
-        <DateColumn main={main} sub={sub} />
+        {!narrow && <DateColumn main={main} sub={sub} />}
         <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
           <Icons.ChevronDown size={20} color={theme.color.onSurfaceVariant} />
         </View>
@@ -348,6 +358,7 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
   };
   const row = (
     <Row
+      wrapTrailing
       testID={`row.exam.${exam.id}`}
       label={factsLabel(title, ...facts, main, sub)}
       onPress={() => go({ screen: "exam", examId: exam.id })}
