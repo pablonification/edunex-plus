@@ -6,7 +6,7 @@ import { type ReactNode, useCallback, useState, useSyncExternalStore } from "rea
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
-import { useFormat, useT } from "../../../src/app/i18n";
+import { useFormat, useNow, useT } from "../../../src/app/i18n";
 import { initials } from "../../../src/app/names";
 import { useSaved } from "../../../src/app/saved";
 import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "../../../src/app/store";
@@ -24,6 +24,9 @@ import { Sheet } from "../ui/sheet";
 import { Text } from "../ui/text";
 import { radius, space, TOUCH, useTheme } from "../ui/theme";
 import { BAR_HEIGHT, BarSurface } from "../ui/top-bar";
+
+/** Data older than this says so under the tab's title. */
+const STALE = 60 * 60_000;
 
 /** Opens the sign-in page for a source; resolves when it closes. */
 export function useSignIn() {
@@ -156,7 +159,7 @@ function useSyncLine() {
   else if (state === "offline")
     text = unreachable.length < signedIn.length ? t("sync.offlineOne", { source: t(`source.${unreachable[0]!.source}`) }) : t("status.offline");
   else text = updatedAt ? t("status.updated", { when: f.fromNow(updatedAt) }) : t("status.neverUpdated");
-  return { state, text, signedIn: signedIn.length > 0, busy: now.length > 0 };
+  return { state, text, signedIn: signedIn.length > 0, busy: now.length > 0, updatedAt };
 }
 
 function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
@@ -181,6 +184,12 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
   const line = useSyncLine();
   // The first read after signing in: which part it's reading, until Beranda has what it shows (W15).
   const firstReading = !useSettings().firstScanDone && line.signedIn;
+  const now = useNow();
+  // The status line only when it says something to act on (one title per screen, no "Diperbarui baru saja" under it):
+  // a problem, offline, the first read, or data older than an hour. The title still opens the sources sheet.
+  const stale = line.updatedAt !== null && now - line.updatedAt > STALE;
+  const showLine =
+    firstReading || line.state === "changed" || line.state === "expired" || line.state === "offline" || (line.signedIn && (line.updatedAt === null || stale));
   const [panel, setPanel] = useState(false);
   const tone = line.state === "changed" ? "danger" : line.state === "expired" ? "warning" : "muted";
   const status = (
@@ -206,7 +215,7 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
           <Text size="titleLarge" numberOfLines={1} accessibilityRole="header">
             {title}
           </Text>
-          {firstReading ? <FirstReadLine>{status}</FirstReadLine> : status}
+          {showLine && (firstReading ? <FirstReadLine>{status}</FirstReadLine> : status)}
         </Pressable>
         <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
           <Icons.Search size={24} color={theme.color.onSurfaceVariant} />

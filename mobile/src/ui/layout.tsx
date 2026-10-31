@@ -30,6 +30,24 @@ import { radius, shape, space, useTheme } from "./theme";
  */
 const ScrollEdge = createContext<Animated.Value | null>(null);
 
+/**
+ * The title the screen's bar shows (a `TabHeader`'s or `TopBar`'s `title`), for the one-title rule: a screen has one
+ * title, in its bar; a `PageHeader` under it never repeats it nor draws a second big heading. Null outside a screen
+ * with a bar. A screen that lays out its own list (a FlashList) instead of `Page` wraps it in `TitledBy`.
+ */
+const BarTitle = createContext<string | null>(null);
+
+export function TitledBy({ title, children }: { title: string; children: ReactNode }) {
+  return <BarTitle.Provider value={title}>{children}</BarTitle.Provider>;
+}
+
+/** The bar's `title` prop, when the header is a bar element with one. */
+function titleOf(header: ReactNode): string | null {
+  if (!isValidElement(header)) return null;
+  const title = (header.props as { title?: unknown }).title;
+  return typeof title === "string" ? title : "";
+}
+
 /** 0 at the page's top, 1 once anything has scrolled under the bar (an Animated value; null outside a Page). */
 export function useScrolledUnder(): Animated.AnimatedInterpolation<number> | null {
   const offset = useContext(ScrollEdge);
@@ -109,7 +127,7 @@ export function Page({
         keyboardShouldPersistTaps="handled"
         {...rest}
       >
-        {children}
+        {header ? <BarTitle.Provider value={titleOf(header)}>{children}</BarTitle.Provider> : children}
       </Animated.ScrollView>
     </View>
   );
@@ -124,11 +142,18 @@ export function PageHeader({
 }: {
   /** A short line above the title (the date on Beranda, the course code on a course). */
   eyebrow?: ReactNode;
-  /** Left out under a tab's top bar, which already names the screen. */
+  /**
+   * Under a bar (any `Page` with a header) the screen's title is the bar's: a title equal to it isn't drawn again, and
+   * any other is drawn as a section's title, never a second big heading (one title per screen).
+   */
   title?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
 }) {
+  const bar = useContext(BarTitle);
+  const same = bar !== null && typeof title === "string" && title.trim().toLowerCase() === bar.trim().toLowerCase();
+  if (same) title = undefined;
+  if (title === undefined && description === undefined && actions === undefined && (eyebrow === undefined || eyebrow === null)) return null;
   return (
     <View style={{ marginBottom: space[6] }}>
       {eyebrow !== undefined && eyebrow !== null && (
@@ -143,7 +168,7 @@ export function PageHeader({
         </View>
       )}
       {title !== undefined && title !== null && (
-        <Text size="headlineMedium" accessibilityRole="header">
+        <Text size={bar !== null ? "titleMedium" : "headlineMedium"} weight={bar !== null ? "semibold" : undefined} accessibilityRole="header">
           {title}
         </Text>
       )}
