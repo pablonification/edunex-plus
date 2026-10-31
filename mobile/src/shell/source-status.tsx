@@ -8,9 +8,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
 import { useFormat, useT } from "../../../src/app/i18n";
 import { initials } from "../../../src/app/names";
-import { useBridge, useDataset, useSignInStep, useStatus } from "../../../src/app/store";
+import { useSaved } from "../../../src/app/saved";
+import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "../../../src/app/store";
 import type { SignInStep } from "../../../src/core/contract";
-import type { SourceId, SourceState } from "../../../src/core/models";
+import { firstRead } from "../../../src/core/first-scan";
+import type { DatasetName, SourceId, SourceState } from "../../../src/core/models";
 import { ReportButton } from "../parts/report";
 import { toast } from "../swaps/overlays";
 import { SourceLogo } from "../ui/brand";
@@ -177,8 +179,18 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const line = useSyncLine();
+  // The first read after signing in: which part it's reading, until Beranda has what it shows (W15).
+  const firstReading = !useSettings().firstScanDone && line.signedIn;
   const [panel, setPanel] = useState(false);
   const tone = line.state === "changed" ? "danger" : line.state === "expired" ? "warning" : "muted";
+  const status = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }}>
+      <StateMark state={line.state === "signed-out" ? "signed-out" : line.state} busy={line.state === "connecting"} />
+      <Text size="bodySmall" tone={tone} numberOfLines={1} style={{ flexShrink: 1 }}>
+        {line.text}
+      </Text>
+    </View>
+  );
   return (
     <BarSurface>
       <View
@@ -194,12 +206,7 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
           <Text size="titleLarge" numberOfLines={1} accessibilityRole="header">
             {title}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }}>
-            <StateMark state={line.state === "signed-out" ? "signed-out" : line.state} busy={line.state === "connecting"} />
-            <Text size="bodySmall" tone={tone} numberOfLines={1} style={{ flexShrink: 1 }}>
-              {line.text}
-            </Text>
-          </View>
+          {firstReading ? <FirstReadLine>{status}</FirstReadLine> : status}
         </Pressable>
         <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
           <Icons.Search size={24} color={theme.color.onSurfaceVariant} />
@@ -210,6 +217,44 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
       <ProblemBanner />
       <SyncPanel open={panel} onClose={() => setPanel(false)} />
     </BarSurface>
+  );
+}
+
+const FIRST_READ: readonly DatasetName[] = [
+  "six.student",
+  "six.courses",
+  "six.skipped",
+  "six.schedule",
+  "six.scheduleMonths",
+  "six.transcript",
+  "edunex.courses",
+  "edunex.tasks",
+  "edunex.outline",
+  "edunex.materials",
+  "edunex.presence",
+  "edunex.announcements",
+  "edunex.exams",
+  "itb.calendar",
+];
+
+/** "Membaca Edunex · Tugas…" while the first read runs, a calm line with a spinner; once in, the usual line. */
+function FirstReadLine({ children }: { children: ReactNode }) {
+  const t = useT();
+  const theme = useTheme();
+  const saved = useSaved(FIRST_READ);
+  const edunex = useStatus("edunex");
+  const six = useStatus("six");
+  const itb = useStatus("itb");
+  const read = firstRead(saved, [edunex, six, itb]);
+  const part = read.progress < 1 ? read.next : null;
+  if (!part) return children;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }} testID="status.firstRead">
+      <Spinner size={14} color={theme.color.onSurfaceVariant} />
+      <Text size="bodySmall" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }} accessibilityLiveRegion="polite">
+        {t("mobile.home.reading", { part: `${t(`source.${part.source}`)} · ${t(`scan.part.${part.part}`)}` })}
+      </Text>
+    </View>
   );
 }
 
