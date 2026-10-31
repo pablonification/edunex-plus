@@ -1,4 +1,4 @@
-# Recording: a course from Lainnya (II4091: its modules have files), its Modul tab, Modul 3, then its PDF.
+# Recording: a course from Kuliah (round 1: Lainnya) (II4091: its modules have files), its Modul tab, Modul 3, then its PDF.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - extendedWaitUntil:
@@ -6,7 +6,7 @@ appId: io.github.pablonification.edunexplus.demo
       id: tab.home
     timeout: 60000
 - tapOn:
-    id: tab.more
+    id: 'tab\.(courses|more)'
 - scrollUntilVisible:
     element:
       id: row.course.II4091

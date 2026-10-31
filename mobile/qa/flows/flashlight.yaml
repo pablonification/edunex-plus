@@ -1,4 +1,5 @@
-# Flashlight's iteration (flashlight.sh): start from saved data, scroll Tugas, go through every tab.
+# Flashlight's iteration (flashlight.sh): start from saved data, scroll Tugas, go through every tab. The tabs' ids
+# match round 1's app (Presensi, Lainnya) and round 2's (Kuliah, Akademik), so both builds run the same flow.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_RESUME=1"
@@ -14,8 +15,8 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: tab.schedule
 - tapOn:
-    id: tab.presence
+    id: 'tab\.(courses|presence)'
 - tapOn:
-    id: tab.more
+    id: 'tab\.(academic|more)'
 - tapOn:
     id: tab.home
