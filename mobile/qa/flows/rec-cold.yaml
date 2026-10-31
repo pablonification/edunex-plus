@@ -1,0 +1,11 @@
+# Recording: the app from cold (stopped, saved data) to Beranda.
+appId: io.github.pablonification.edunexplus.demo
+---
+- stopApp
+- pressKey: home
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_RESUME=1"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 60000
+- waitForAnimationToEnd

@@ -1,0 +1,31 @@
+# Recording: a course from Lainnya (II4091: its modules have files), its Modul tab, Modul 3, then its PDF.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 60000
+- tapOn:
+    id: tab.more
+- scrollUntilVisible:
+    element:
+      id: row.course.II4091
+    direction: DOWN
+- tapOn:
+    id: row.course.II4091
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- tapOn:
+    id: tab.course.modules
+    optional: true
+- tapOn:
+    id: row.module.modul-3
+- waitForAnimationToEnd
+- takeScreenshot: modul
+- tapOn:
+    id: row.material.880004
+- waitForAnimationToEnd:
+    timeout: 8000
+- takeScreenshot: modul-berkas

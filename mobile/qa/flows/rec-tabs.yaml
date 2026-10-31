@@ -1,0 +1,18 @@
+# Recording: through every tab and back to Beranda.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 60000
+- tapOn:
+    id: tab.tasks
+- tapOn:
+    id: tab.schedule
+- tapOn:
+    id: tab.presence
+- tapOn:
+    id: tab.more
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd

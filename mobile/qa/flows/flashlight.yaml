@@ -1,0 +1,21 @@
+# Flashlight's iteration (flashlight.sh): start from saved data, scroll Tugas, go through every tab.
+appId: io.github.pablonification.edunexplus.demo
+---
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_RESUME=1"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 60000
+- tapOn:
+    id: tab.tasks
+- scroll
+- scroll
+- scroll
+- tapOn:
+    id: tab.schedule
+- tapOn:
+    id: tab.presence
+- tapOn:
+    id: tab.more
+- tapOn:
+    id: tab.home
