@@ -1,24 +1,17 @@
 // A course on Kuliah (round 2, W4/W11): a slim row, one target, the course's page; what Presensi's long card said
 // (the bar, the count, one exception with its links) is on the course page now, under its name (CourseException).
 // Words and figures are the desktop's (src/app/screens/presence.tsx's CourseRow and Exception).
-import type { ReactNode } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import type { CourseAttendance } from "../../../../src/app/attendance";
-import { budgetLabel, budgetWords, useActionLabel } from "../../../../src/app/attendance-labels";
-import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
-import { isExamActivity, onUsualSlot, type PresenceGroup, presenceGroup } from "../../../../src/core/attendance";
-import { checkingIn } from "../../../../src/core/check-in";
-import { wibDay } from "../../../../src/core/course-meetings";
-import { sixTimetableUrl } from "../../../../src/core/links";
+import type { PresenceGroup } from "../../../../src/core/attendance";
 import { useNav } from "../../nav";
 import { openCourseColorPicker } from "../../parts/course-color-picker";
 import { CourseDot } from "../../ui/display";
-import { Icons } from "../../ui/icons";
 import { factsLabel, Meta, Row } from "../../ui/layout";
 import { Text } from "../../ui/text";
-import { shape, space, useTheme } from "../../ui/theme";
+import { space } from "../../ui/theme";
 import { BudgetChip, budgetChip } from "../course/attendance-line";
 import { metaParts, type RowContext } from "./logic";
 

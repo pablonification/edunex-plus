@@ -126,7 +126,9 @@ export function StatusChip({ tone, children, testID }: { tone: ChipTone; childre
 /** A section's title over its card, in Plus Jakarta Sans; `end` holds its one action (a chevron to the whole list). */
 export function SectionTitle({ children, end, first = false }: { children: string; end?: ReactNode; first?: boolean }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", marginTop: first ? 0 : space[6], marginBottom: end ? space[1] : space[3], marginLeft: space[1] }}>
+    <View
+      style={{ flexDirection: "row", alignItems: "center", marginTop: first ? 0 : space[6], marginBottom: end ? space[1] : space[3], marginLeft: space[1] }}
+    >
       <Text size="titleMedium" face="display" weight="bold" accessibilityRole="header" style={{ flex: 1, fontSize: 17, letterSpacing: -0.2 }}>
         {children}
       </Text>
