@@ -10,6 +10,7 @@
 import { StatusBar } from "expo-status-bar";
 import { type ComponentType, type Ref, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ActivityIndicator, BackHandler, StyleSheet, View } from "react-native";
+import Animated, { Easing, FadeIn, FadeOut, SlideInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WebView, { type WebViewNavigation, type WebViewProps } from "react-native-webview";
 import type { WebViewMessageEvent } from "react-native-webview/lib/WebViewTypes";
@@ -22,8 +23,9 @@ import { isSixAfterSignIn, readSixSession, SIX_LOGIN_PAGE, SIX_SIGN_IN_URL, SIX_
 import { cookiesFor } from "../../modules/web-cookies";
 import { IconButton } from "../ui/controls";
 import { Icons } from "../ui/icons";
+import { reduceMotion } from "../ui/motion";
 import { Text } from "../ui/text";
-import { space, useTheme } from "../ui/theme";
+import { motion, space, useTheme } from "../ui/theme";
 
 type Source = "edunex" | "six";
 
@@ -255,7 +257,9 @@ function SignInPage({ run }: { run: Run }) {
   const sourceName = t(run.source === "edunex" ? "source.edunex" : "source.six");
 
   return (
-    <View
+    <Animated.View
+      entering={quiet ? undefined : reduceMotion() ? FadeIn.duration(motion.duration.medium) : SlideInDown.duration(motion.duration.long).easing(EMPHASIZED)}
+      exiting={quiet ? undefined : FadeOut.duration(motion.duration.short)}
       pointerEvents={quiet ? "none" : "auto"}
       style={quiet ? styles.offscreen : [StyleSheet.absoluteFill, { backgroundColor: theme.color.canvas, paddingTop: insets.top, zIndex: 100 }]}
       accessibilityViewIsModal={!quiet}
@@ -264,17 +268,22 @@ function SignInPage({ run }: { run: Run }) {
       {/* ITB's and Microsoft's pages are light: the status bar's icons stay readable over them. */}
       {!quiet && <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />}
       {!quiet && (
-        <View style={[styles.bar, { borderBottomColor: theme.color.edge }]}>
+        // Material's full-screen dialog bar: close at the start, what this is, and whose page it is (the lock, the host).
+        <View style={[styles.bar, { backgroundColor: theme.color.surface }]}>
           <IconButton label={t("action.close")} onPress={giveUp} testID="signin.close">
-            <Icons.X size={22} />
+            <Icons.X size={24} color={theme.color.onSurface} />
           </IconButton>
-          <Text size="body" weight="semibold" style={{ flex: 1 }} numberOfLines={1}>
-            {title}
-          </Text>
-          <Icons.Lock size={16} color={theme.color.faint} />
-          <Text size="caption" tone="faint" style={{ marginRight: space[3], maxWidth: 180 }} numberOfLines={1} ellipsizeMode="head">
-            {host}
-          </Text>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text size="titleLarge" numberOfLines={1}>
+              {title}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+              <Icons.Lock size={12} color={theme.color.onSurfaceVariant} />
+              <Text size="bodySmall" tone="muted" numberOfLines={1} ellipsizeMode="head" style={{ flexShrink: 1 }}>
+                {host}
+              </Text>
+            </View>
+          </View>
         </View>
       )}
       <View style={{ flex: 1 }}>
@@ -324,13 +333,16 @@ function SignInPage({ run }: { run: Run }) {
           </View>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
+/** Material's emphasized decelerate, for a screen coming in. */
+const EMPHASIZED = Easing.bezier(0.05, 0.7, 0.1, 1);
+
 const styles = StyleSheet.create({
   offscreen: { position: "absolute", left: -2000, top: 0, width: 400, height: 800, opacity: 0 },
-  bar: { flexDirection: "row", alignItems: "center", gap: space[2], height: 56, paddingLeft: space[1], borderBottomWidth: StyleSheet.hairlineWidth },
+  bar: { flexDirection: "row", alignItems: "center", gap: space[1], minHeight: 64, paddingLeft: space[1], paddingRight: space[4] },
   cover: { alignItems: "center", justifyContent: "center", padding: space[8] },
   slow: { position: "absolute", left: space[3], right: space[3], bottom: space[3], borderRadius: 12, padding: space[4], gap: 2 },
 });
