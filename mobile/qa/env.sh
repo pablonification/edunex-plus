@@ -6,7 +6,7 @@ export ANDROID_HOME=${ANDROID_HOME:-'C:\Android\sdk'}
 export ANDROID_SDK_ROOT=$ANDROID_HOME
 export JAVA_HOME=${QA_JAVA_HOME:-'C:\qa\tools\jdk17'}
 sdk=$(cygpath -u "$ANDROID_HOME")
-export PATH="$(cygpath -u "$JAVA_HOME")/bin:$sdk/platform-tools:$sdk/emulator:$sdk/cmdline-tools/latest/bin:$(cygpath -u "$QA_TOOLS")/maestro/bin:$(cygpath -u "$QA_TOOLS")/flashlight:$PATH"
+export PATH="$(cygpath -u "$JAVA_HOME")/bin:$sdk/platform-tools:$sdk/emulator:$sdk/cmdline-tools/latest/bin:$(cygpath -u "$QA_TOOLS")/maestro/bin:$(cygpath -u "$QA_TOOLS")/flashlight:$(cygpath -u "$QA_TOOLS")/perfetto:$PATH"
 unset sdk
 # Git Bash would turn an argument like /sdcard/x into C:/Program Files/Git/sdcard/x before adb sees it.
 # Scripts pass Windows programs their local paths with `cygpath -m` instead.

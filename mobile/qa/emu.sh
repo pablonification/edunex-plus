@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Starts one of the lab's emulators the same way every time: a cold boot (no snapshot loaded or saved),
 # WHPX acceleration, the host's GPU (not SwiftShader), and the AVD's hardware rewritten from the table
-# below first.
+# below first. No window by default (--window shows one): a window is presented on the host's 60 Hz
+# monitor, which is no part of the phone.
 #
-#   mobile/qa/emu.sh <mid|weak> [port] [--headless] [--force-hz]
+#   mobile/qa/emu.sh <mid|weak> [port] [--window] [--force-hz] [--gpu host]
 #   mobile/qa/emu.sh <mid|weak> --prepare
 #
 # Several instances of one AVD can run at once: each starts -read-only from the AVD's prepared disk, on
@@ -26,12 +27,14 @@ here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 
 name=${1:-}
 shift || true
-port= prepare=0 window=1 force_hz=0
+port= prepare=0 window=0 force_hz=0 gpu=host
 while [ $# -gt 0 ]; do
   case $1 in
     --prepare) prepare=1 ;;
+    --window) window=1 ;;
     --headless) window=0 ;;
     --force-hz) force_hz=1 ;;
+    --gpu) gpu=$2; shift ;;
     [0-9]*) port=$1 ;;
     *) echo "Unknown argument $1" >&2; exit 2 ;;
   esac
@@ -69,7 +72,9 @@ set_ini hw.lcd.vsync "$hz"
 set_ini hw.ramSize "$ram"
 set_ini hw.cpu.ncore "$cores"
 set_ini hw.gpu.enabled yes
-set_ini hw.gpu.mode host
+set_ini hw.gpu.mode "$gpu"
+# The guest's GL reaches the host through a transport: asg (address space graphics) is the newer, cheaper one.
+set_ini hw.gltransport asg
 set_ini hw.keyboard no
 set_ini hw.audioInput no
 set_ini hw.camera.back none
@@ -93,7 +98,8 @@ elif ! free "$port"; then
 fi
 serial=emulator-$port
 
-args=(-avd "$name" -port "$port" -no-snapshot -no-boot-anim -accel on -gpu host -no-audio -netfast)
+# -timezone: the emulator would take the host's zone (Asia/Bangkok here); the demo and CI use Bandung's.
+args=(-avd "$name" -port "$port" -no-snapshot -no-boot-anim -accel on -gpu "$gpu" -no-audio -netfast -timezone Asia/Jakarta)
 if [ $prepare = 1 ]; then
   # A writable boot (the only kind that keeps what it does) can't share the AVD with a running instance.
   if tasklist //FI "IMAGENAME eq qemu-system-x86_64.exe" //V 2> /dev/null | grep -q " $name"; then
@@ -109,8 +115,9 @@ fi
 log=$QA_OUT/emulator/$name-$port.log
 mkdir -p "$(dirname "$log")"
 echo "Starting $name on port $port: emulator ${args[*]}"
-# Started on its own (not a child of this shell) so it outlives the script.
-powershell.exe -NoProfile -Command "Start-Process -FilePath '$(cygpath -m "$(command -v emulator.exe)")' -ArgumentList '${args[*]}' -RedirectStandardOutput '$log' -RedirectStandardError '$log.err' -WindowStyle Minimized"
+# Started on its own (not a child of this shell) so it outlives the script, and holding none of this shell's
+# handles: an emulator that inherited a pipe would keep `emu.sh | tail` waiting for as long as it runs.
+powershell.exe -NoProfile -Command "Start-Process -FilePath '$(cygpath -m "$(command -v emulator.exe)")' -ArgumentList '${args[*]}' -RedirectStandardOutput '$log' -RedirectStandardError '$log.err' -WindowStyle Minimized" < /dev/null > /dev/null 2>&1
 
 boot_start=$(date +%s)
 adb -s "$serial" wait-for-device
@@ -128,6 +135,11 @@ sh wm dismiss-keyguard > /dev/null 2>&1 || true
 sh input keyevent 82 > /dev/null 2>&1 || true
 sh settings put system peak_refresh_rate "$hz.0"
 if [ $force_hz = 1 ]; then sh settings put system min_refresh_rate "$hz.0"; else sh settings delete system min_refresh_rate > /dev/null; fi
+# Apps draw with Android's Vulkan renderer (the GPU's own, through the emulator to the NVIDIA card). With the
+# default, GL, every frame waited ~15 ms on the emulator's GL translation (Android's Settings: 50% janky, p50
+# 17 ms; with Vulkan 0%, p50 5 ms, GPU 1 ms), which measured the emulator, not the app. Apps started from
+# now on use it; `dumpsys gfxinfo <app>` says "Pipeline=Skia (Vulkan)".
+sh setprop debug.hwui.renderer skiavk
 
 if [ $prepare = 1 ]; then
   # As CI does (scripts/ci/mobile-e2e.sh): Bandung's time zone, where the demo and every student are,

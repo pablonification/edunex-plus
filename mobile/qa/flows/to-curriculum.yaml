@@ -1,0 +1,18 @@
+# From Beranda to Lainnya → Rencana studi → Kurikulum, the longest plain list (jank.sh scrolls it after).
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 60000
+- tapOn:
+    id: tab.more
+- tapOn:
+    id: row.nav.plan
+- extendedWaitUntil:
+    visible:
+      id: screen.plan
+    timeout: 20000
+- tapOn:
+    id: tab.plan.curriculum
+- waitForAnimationToEnd
