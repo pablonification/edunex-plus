@@ -67,13 +67,16 @@ interface World {
   notify?: boolean;
 }
 
-/** A vault that forgets on quit, for the demo: its made-up sessions never touch the keystore. */
-function memoryVault(): Vault {
-  const values = new Map<string, string>();
+/**
+ * The demo's vault: its made-up sessions never touch the keystore. They're kept in the demo's own files, so a demo
+ * resumed (EDUNEX_DEMO_RESUME=1) is still signed in to its pretend Edunex and SIX, as the real app is after a restart.
+ */
+function demoVault(storage: Storage): Vault {
+  const key = (name: string) => `demo-vault/${name.replace(/[^a-z0-9._-]/gi, "_")}`;
   return {
-    get: async (name) => values.get(name) ?? null,
-    set: async (name, value) => void values.set(name, value),
-    delete: async (name) => void values.delete(name),
+    get: (name) => storage.read(key(name)),
+    set: (name, value) => storage.write(key(name), value),
+    delete: (name) => storage.remove(key(name)),
   };
 }
 
@@ -96,7 +99,7 @@ async function demoWorld(): Promise<World> {
   // A fresh demo each start, unless it's asked to resume where it was (and has something to resume).
   const resume = demo.resume && (await storage.read("state.json")) !== null;
   if (!resume) storage.clear();
-  return { ...demo, ...(resume ? { prepare: undefined } : {}), storage, vault: memoryVault() };
+  return { ...demo, ...(resume ? { prepare: undefined } : {}), storage, vault: demoVault(storage) };
 }
 
 let current: Promise<Host> | null = null;
