@@ -1,0 +1,135 @@
+# Round 2's pictures of Tugas, a Task, an exam, Akademik and its screens, Settings, Search and Notifikasi
+# (shots.sh), from a cleared app, in ${THEME}. Branch mobile-r2-tasks-academic.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- takeScreenshot: 01-tugas
+- tapOn:
+    id: segment.show.done
+- waitForAnimationToEnd
+- takeScreenshot: 02-tugas-selesai
+- tapOn:
+    id: segment.show.open
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+- tapOn:
+    id: row.task.117003
+- waitForAnimationToEnd
+- takeScreenshot: 03-tugas-detail
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    centerElement: true
+- takeScreenshot: 04-tugas-jawaban
+- back
+- scrollUntilVisible:
+    element:
+      id: row.exam.DK4073-UTS
+    direction: UP
+- tapOn:
+    id: row.exam.DK4073-UTS
+- waitForAnimationToEnd
+- takeScreenshot: 05-ujian
+- back
+- tapOn:
+    id: tab.academic
+- waitForAnimationToEnd
+- takeScreenshot: 06-akademik
+- scrollUntilVisible:
+    element:
+      id: row.nav.grades
+    direction: UP
+- tapOn:
+    id: row.nav.grades
+- waitForAnimationToEnd
+- takeScreenshot: 07-nilai
+- scrollUntilVisible:
+    element:
+      id: card.chart
+    centerElement: true
+- takeScreenshot: 08-nilai-grafik
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.planner
+    centerElement: true
+- tapOn:
+    id: row.nav.plan.planner
+- waitForAnimationToEnd
+- takeScreenshot: 09-rencana
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.curriculum
+    centerElement: true
+- tapOn:
+    id: row.nav.plan.curriculum
+- waitForAnimationToEnd
+- takeScreenshot: 10-kurikulum
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.krs
+    centerElement: true
+- tapOn:
+    id: row.nav.plan.krs
+- waitForAnimationToEnd
+- takeScreenshot: 11-krs
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.bills
+    centerElement: true
+- tapOn:
+    id: row.nav.plan.bills
+- waitForAnimationToEnd
+- takeScreenshot: 12-ukt
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.deadlines
+    centerElement: true
+- tapOn:
+    id: row.nav.plan.deadlines
+- waitForAnimationToEnd
+- takeScreenshot: 13-kalender
+- back
+- tapOn:
+    id: action.account
+- waitForAnimationToEnd
+- takeScreenshot: 14-pengaturan
+- scrollUntilVisible:
+    element:
+      id: segment.theme
+    centerElement: true
+- takeScreenshot: 15-pengaturan-tampilan
+- tapOn:
+    id: segment.theme
+- waitForAnimationToEnd
+- takeScreenshot: 16-pengaturan-tema
+- back
+- back
+- tapOn:
+    id: action.search
+- waitForAnimationToEnd
+- takeScreenshot: 17-cari
+- inputText: "DK4073"
+- waitForAnimationToEnd
+- takeScreenshot: 18-cari-hasil
+- back
+- back
+- tapOn:
+    id: tab.home
+- tapOn:
+    id: action.alerts
+- waitForAnimationToEnd
+- takeScreenshot: 19-notifikasi
