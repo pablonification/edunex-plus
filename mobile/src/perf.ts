@@ -85,6 +85,8 @@ export function usePerfFocused(name: string): void {
   useEffect(
     () =>
       navigation.addListener("tabPress" as never, () => {
+        // A tap on the tab already open scrolls it to the top: no switch to time.
+        if (navigation.isFocused()) return;
         perfNavigating();
         perfShown(name);
       }),

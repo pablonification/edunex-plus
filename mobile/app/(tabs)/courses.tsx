@@ -5,14 +5,17 @@ import { usePerfFocused } from "../../src/perf";
 import { PresenceContent } from "../../src/screens/presence/presence-screen";
 import { TabHeader, usePullToRefresh } from "../../src/shell/source-status";
 import { Page } from "../../src/ui/layout";
+import { TabFreeze } from "../../src/ui/tab-freeze";
 
 export default function Screen() {
   const t = useT();
   const pull = usePullToRefresh();
   usePerfFocused("courses");
   return (
-    <Page testID="screen.courses" header={<TabHeader title={t("mobile.tab.courses")} />} {...pull}>
-      <PresenceContent />
-    </Page>
+    <TabFreeze>
+      <Page testID="screen.courses" header={<TabHeader title={t("mobile.tab.courses")} />} {...pull}>
+        <PresenceContent />
+      </Page>
+    </TabFreeze>
   );
 }
