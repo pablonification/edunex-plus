@@ -113,3 +113,29 @@ inventory also run, and Check A's launch):
 Expected with both: fresh install → first frame ~1.2 s, Beranda with Edunex's data < 2 s on mid.
 
 ## Numbers
+
+Release builds, the lab's emulators, `qa/shell-measure.sh` with this branch's tours (`qa/flows/home-idle-scroll.yaml`:
+two of the minute's ticks on Beranda untouched, then three scrolls down and up; `home-tour.yaml`: the now card's sheet
+×3, a Hari ini sheet ×2, Yang berubah's sheet, a swipe and Urungkan, an exam ×2). Runs under `C:\qa\runs\*-shell-home-*`.
+"Before" is the shell (981d27f), the build these screens started from; round 1 (9395cea) had the same Beranda.
+
+`weak`, quiet machine (nothing else measured or built):
+
+| Measure (target) | before (981d27f) | after: swipe memoized (b357b2a) | after: rows held (488b31b) |
+| --- | --- | --- | --- |
+| JS block at the minute's tick on Beranda (< 50 ms) | 168, 182 ms | 108, 123 ms | 52, 110 ms (Beranda's own sections 39–52 ms) |
+| JS block when SIX's check-in read lands (every 2 min in class) | 508, 530 ms | 340, 420 ms | 195, 562 ms (all five tabs redraw on that data; Beranda's part is the smaller one) |
+| Scrolling Beranda (< 5% janky) | 1.04% of 961 frames, p90 11 ms | 0.41% of 973, p90 10 ms | 0.82% of 975, p90 11 ms |
+| Tab switch to Beranda (< 300 ms) | | 10–11 ms | |
+| Opening an exam from Perlu perhatianmu (< 500 ms) | | 36–38 ms | |
+| Tour janky frames (sheets, swipes) | | 5.72% of 1485 | |
+
+The final build (2843f6b, rebased) measured again on `weak` with four emulators and a build running on the machine:
+both builds degraded alike (the shell's idle tour: 64 JS blocks, median 90 ms; this build's: 73, median 91 ms), so those
+runs compare nothing and aren't in the table.
+
+`mid` (f3b5393, the first build, before either change): minute tick 89–90 ms; first-data 6.3 s (see above).
+
+What's left over 50 ms: the tick still redraws the now card, the greeting and the top bar's status line (~50 ms on
+`weak`); a data change redraws every tab subscribed to it at once (Jadwal, Kuliah, Beranda), a shell-level matter
+(gate data like the clock, or let hidden tabs skip it).
