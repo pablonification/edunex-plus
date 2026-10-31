@@ -366,7 +366,7 @@
             }
           }
         ],
-        "^home\\.absence-budget\\.([a-z0-9]+)": [
+        "^home\\.absence-budget\\.dk4073": [
           {
             "runFlow": {
               "when": {
@@ -388,13 +388,271 @@
             }
           },
           {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.course"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
             "tapOn": {
               "id": "tab.courses"
             }
           },
           {
-            "assertVisible": {
-              "id": "screen.courses"
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.DK4073"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.DK4073"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^home\\.absence-budget\\.ii4091": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.changes"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.course"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.II4091"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.II4091"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^home\\.absence-budget\\.ku5014": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.changes"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.course"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.KU5014"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.KU5014"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^home\\.absence-budget\\.pl3002": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.changes"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.course"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.PL3002"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.PL3002"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^home\\.absence-budget\\.pl3032": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.changes"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.course"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.PL3032"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.PL3032"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
             }
           }
         ],
@@ -420,7 +678,8 @@
             }
           }
         ]
-      }
+      },
+      "$comment": "Round 2: Beranda's term courses moved to Kuliah (W12); their class, SKS and absences are on each course's page."
     },
     "changes": {
       "status": "ready",
