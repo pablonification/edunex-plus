@@ -157,6 +157,9 @@ export const mobileStrings = {
   // The desktop's calendar file, through the share sheet (Drive, email, another calendar app).
   "mobile.calendar.share": { id: "Bagikan .ics", en: "Share .ics" },
   "mobile.calendar.shareFailed": { id: "Berkas .ics tidak bisa dibagikan. Coba lagi.", en: "Couldn't share the .ics file. Try again." },
+  // widget
+  // The "Hari ini" home-screen widget on a day without classes; a tap opens Jadwal.
+  "mobile.widget.todayNone": { id: "Tidak ada kuliah hari ini.", en: "No classes today." },
   // presence
   // Kuliah's ⋮: the attendance targets, with the range in force under it ("80%", "75–80%").
   "mobile.courses.targets": { id: "Target kehadiran", en: "Attendance targets" },

@@ -9,7 +9,7 @@ import type { Snapshot } from "../../../src/core/snapshot";
 import { translate } from "../../../src/core/strings";
 import { type WidgetModel, widgetModel } from "./model";
 import { readSaved } from "./saved";
-import { emptyDrawing, widgetDrawing } from "./view";
+import { emptyDrawing, TODAY_WIDGET, todayDrawing, widgetDrawing } from "./view";
 
 /** The engine as the app has it running: its snapshot and its moment (the demo's runs ahead). */
 export interface LiveSource {
@@ -37,7 +37,8 @@ export function drawingOf(model: WidgetModel | null, info: WidgetInfo): WidgetRe
     const lang = getLocales()[0]?.languageCode === "id" ? "id" : "en";
     return emptyDrawing(translate(lang, "welcome.continueHint"));
   }
-  return widgetDrawing(model, { width: info.width, height: info.height, fontScale: info.screenInfo.fontScale || 1 });
+  const size = { width: info.width, height: info.height, fontScale: info.screenInfo.fontScale || 1 };
+  return info.widgetName === TODAY_WIDGET ? todayDrawing(model, size) : widgetDrawing(model, size);
 }
 
 /** Android's calls (the widget added, resized, due for its update): drawn again from what's known now. */

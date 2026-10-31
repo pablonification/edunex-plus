@@ -14,6 +14,10 @@ import type { WidgetClass, WidgetLine, WidgetModel, WidgetTarget } from "./model
 
 /** The widget's name in the app's config (app.config.ts) and to Android. */
 export const WIDGET_NAME = "Now";
+/** "Hari ini": today's classes and the next deadline (W13), the smaller widget. */
+export const TODAY_WIDGET = "Today";
+/** Both, as Android knows them: every one placed is drawn again whenever what it shows changes. */
+export const WIDGET_NAMES = [WIDGET_NAME, TODAY_WIDGET] as const;
 
 /** The app's deep links (app.config.ts's scheme). */
 const SCHEME = DEMO ? "edunexplusdemo" : "edunexplus";
@@ -37,6 +41,70 @@ export function widgetDrawing(model: WidgetModel, size: WidgetSize): { light: Re
     return { light: one, dark: one };
   }
   return { light: <NowWidget model={model} size={size} theme={THEMES.light} />, dark: <NowWidget model={model} size={size} theme={THEMES.dark} /> };
+}
+
+/** The "Hari ini" widget in the phone's light and dark looks, or the one the Student chose in the app. */
+export function todayDrawing(model: WidgetModel, size: WidgetSize): { light: React.JSX.Element; dark: React.JSX.Element } {
+  if (model.theme === "light" || model.theme === "dark") {
+    const one = <TodayWidget model={model} size={size} theme={THEMES[model.theme]} />;
+    return { light: one, dark: one };
+  }
+  return { light: <TodayWidget model={model} size={size} theme={THEMES.light} />, dark: <TodayWidget model={model} size={size} theme={THEMES.dark} /> };
+}
+
+/**
+ * "Hari ini · Kam 8 Okt", then today's classes one line each (the time, the code, the room; the one on now in the live
+ * colour, the ones over quiet), each opening its sheet on Jadwal, then the next deadline. Without SIX, the class
+ * widget's "now" says what to do. What doesn't fit the height is left out, the class on now and the next first.
+ */
+function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetSize; theme: Theme }) {
+  const c = theme.color;
+  const today = model.today;
+  if (!today)
+    return (
+      <Frame theme={theme}>
+        <Text text="Edunex Plus" size="body" color={c.fg} bold />
+        <Text text={model.status.text} size="micro" color={model.status.problem ? c.warningFg : c.faint} />
+      </Frame>
+    );
+  const scale = Math.max(1, size.fontScale);
+  let room = size.height - 2 * PAD - (LINE.micro + GAP) * scale - (today.deadline ? (LINE.small + LINE.micro + GAP) * scale : 0);
+  // Classes over are dropped first, from the morning on: what's still ahead stays.
+  const ahead = today.classes.filter((one) => !one.past);
+  const over = today.classes.filter((one) => one.past);
+  const shown: typeof today.classes = [];
+  for (const one of [...ahead, ...over.reverse()]) {
+    if (room < LINE.small * scale + 4) break;
+    shown.push(one);
+    room -= LINE.small * scale + 4;
+  }
+  const lines = today.classes.filter((one) => shown.includes(one));
+  return (
+    <Frame theme={theme}>
+      <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: 4 }}>
+        <Text text={today.heading} size="micro" color={c.muted} bold />
+        {today.none ? <Plain line={today.none} color={c.muted} /> : null}
+        {lines.map((one) => (
+          <FlexWidget
+            key={`${one.code}${one.time}`}
+            {...tap(one.open)}
+            accessibilityLabel={[one.time, one.code, one.room].filter(Boolean).join(", ")}
+            style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 6 }}
+          >
+            <FlexWidget style={{ width: 4, height: 16, borderRadius: 2, backgroundColor: hex(theme.course(one.tone)) }} />
+            <Text text={one.time} size="small" color={one.live ? c.successFg : one.past ? c.faint : c.fg} bold={one.live} />
+            <Text text={[one.code, one.room].filter(Boolean).join(" · ")} size="small" color={one.past ? c.faint : c.fg} bold={!one.past} />
+          </FlexWidget>
+        ))}
+      </FlexWidget>
+      {today.deadline ? (
+        <FlexWidget style={{ width: "match_parent", flexDirection: "column" }} {...tap(today.deadline.open)}>
+          <Text text={today.deadline.label} size="micro" color={c.muted} bold />
+          <Text text={today.deadline.detail ?? ""} size="small" color={c.fg} />
+        </FlexWidget>
+      ) : null}
+    </Frame>
+  );
 }
 
 /** Before anything is saved: the app's name and the one thing to do, opening the app. */
@@ -222,6 +290,9 @@ function tap(open: WidgetTarget): { clickAction: string; clickActionData?: Recor
       return { clickAction: "OPEN_URI", clickActionData: { uri: open.url } };
     case "route":
       return { clickAction: "OPEN_URI", clickActionData: { uri: `${SCHEME}://${hrefOf(open.route).replace(/^\//, "")}` } };
+    case "class":
+      // Jadwal on the class's day, its sheet open (schedule-screen.tsx reads ?class=).
+      return { clickAction: "OPEN_URI", clickActionData: { uri: `${SCHEME}://schedule?class=${encodeURIComponent(open.sessionId)}` } };
     case "checkIn":
       // The demo's SIX is pretend: Presensi instead, as its "Tandai Hadir" opens nothing.
       return {

@@ -73,10 +73,42 @@ describe("the widget", () => {
     expect(model.needs?.heading).toBe("Needs you");
   });
 
+  it("Hari ini: today's classes in time order, the one on now marked, each opening its sheet; then the next deadline", async () => {
+    const h = await startHome();
+    const today = modelOf(h).today;
+    expect(today?.heading).toBe("Hari ini · Kam 8 Okt");
+    expect(today?.classes.map(({ time, code, room, live, past }) => ({ time, code, room, live, past }))).toEqual([
+      { time: "08:00–10:00", code: "PL3002", room: "R.SG PWK LT.6", live: true, past: false },
+      { time: "11:00–12:59", code: "DK4073", room: "TVST C", live: false, past: false },
+      { time: "15:00–16:30", code: "PL3032", room: "R.SG PWK LT.6", live: false, past: false },
+      { time: "16:00–17:50", code: "KU5014", room: "9134", live: false, past: false },
+    ]);
+    expect(today?.classes[0]?.open).toEqual({ kind: "class", sessionId: expect.any(String) });
+    expect(today?.none).toBeNull();
+    expect(today?.deadline).toMatchObject({ label: expect.stringMatching(/^Tenggat .+ · [A-Z]{2}\d{4}$/), open: { kind: "route", route: { screen: "task" } } });
+    // The widget is drawn again when the class on now ends.
+    expect(modelOf(h).changesAt).toBe(Date.parse("2026-10-08T09:30:00+07:00"));
+    await h.until("2026-10-08T10:30:00+07:00");
+    const later = modelOf(h).today;
+    expect(later?.classes.map((one) => [one.code, one.live, one.past])).toEqual([
+      ["PL3002", false, true],
+      ["DK4073", false, false],
+      ["PL3032", false, false],
+      ["KU5014", false, false],
+    ]);
+    expect(modelOf(h).changesAt).toBe(Date.parse("2026-10-08T11:00:00+07:00"));
+  });
+
+  it("Hari ini on a day without classes says so, and opens Jadwal", async () => {
+    const h = await startHome();
+    await h.until("2026-10-10T09:00:00+07:00");
+    expect(modelOf(h).today).toMatchObject({ heading: "Hari ini · Sab 10 Okt", classes: [], none: { label: "Tidak ada kuliah hari ini.", open: { kind: "route", route: { screen: "schedule" } } } });
+  });
+
   it("never signed in: where to start, and nothing else", async () => {
     const h = await startEngine();
     const model = modelOf(h);
     expect(model.status).toEqual({ text: "Hubungkan Edunex atau SIX dulu", problem: true });
-    expect([model.now, model.actions, model.needs]).toEqual([null, [], null]);
+    expect([model.now, model.actions, model.needs, model.today]).toEqual([null, [], null, null]);
   });
 });

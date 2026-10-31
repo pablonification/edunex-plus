@@ -8,7 +8,7 @@ import { getWidgetInfo, requestWidgetUpdate } from "react-native-android-widget"
 import type { Event } from "../../../src/core/contract";
 import { currentModel, drawingOf, type LiveSource, setLiveSource } from "../widget/draw";
 import { saveDemoOffset } from "../widget/saved";
-import { WIDGET_NAME } from "../widget/view";
+import { WIDGET_NAMES } from "../widget/view";
 import { type Host, host } from "./host";
 
 /** Events come in bursts during a sync: one drawing after they settle. */
@@ -26,10 +26,11 @@ const liveOf = (current: Pick<Host, "engine" | "clockOffset">): LiveSource => ({
  * Returns when what it says next changes by itself (a class starts or ends), or null.
  */
 export async function updateWidgets(current?: Pick<Host, "engine" | "clockOffset">): Promise<number | null> {
-  const placed = await getWidgetInfo(WIDGET_NAME);
-  if (!placed.length) return null;
+  const placed = await Promise.all(WIDGET_NAMES.map(async (name) => ((await getWidgetInfo(name)).length ? name : null)));
+  const names = placed.filter((name) => name !== null);
+  if (!names.length) return null;
   const model = currentModel(current ? liveOf(current) : undefined);
-  await requestWidgetUpdate({ widgetName: WIDGET_NAME, renderWidget: (info) => drawingOf(model, info) });
+  for (const name of names) await requestWidgetUpdate({ widgetName: name, renderWidget: (info) => drawingOf(model, info) });
   return model?.changesAt ?? null;
 }
 
