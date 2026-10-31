@@ -52,6 +52,15 @@ motion and onboarding are open. The desktop is a reference for data only.
   with pictures on `mid`/`weak` and a recording. Arqila sees it in the app before v4 goes to other screens (Decision 23).
   Tasks-academic resumes its look-free work; schedule-courses is done with it (below). The desktop's helpers and the
   lead share one account: all stopped at the 5-hour limit (2026-11-01 01:24–01:42), resumed after 02:00.
+- **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
+  (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
+  lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
+  `task-clock.test.ts`); `mobile/qa/sync.sh` turns the demo's request log into W2's numbers (702df81, 313b7a6). Stalls
+  before (`mid`): Nilai 207/129 ms, Rencana 118/96/89 ms, Tugas 131 ms (+ 294–333 ms at SIX's check-in read, fixed by
+  the home helper's 42e5e39). Left: W2 numbers, the stalls after, Rencana's Check A rerun (an adb error cut it).
+- **Home helper, fixes for the first look (6d3ab0a):** builds on GitHub Actions now (the desktop's Gradle is stuck).
+  Fresh install to Beranda with data on `mid`: 2.7 / 2.1 / 2.1 s, against 6.8 s for the shell on the same machine
+  (target under 2 s; the demo's full first read ends near 7 s, in the background).
 - **2026-11-01 04:35: first look at Beranda v4 (36d17ad, CI run 41241344121, Redroid, quick look only).** Structure as
   v4: the blue header with the greeting, the now card with the wave and minutes left, two tinted Perlu kamu urus cards
   (73% Kehadiran in red, 7 hari UTS), Nanti hari ini rows with tiles and one chip. Sent back to the home helper: the
@@ -96,11 +105,14 @@ motion and onboarding are open. The desktop is a reference for data only.
 
 | Tab (first screen, light, `mid`) | Words before (round 1 / shell) | Target | After |
 | --- | --- | --- | --- |
-| Beranda | ~150 (shell) | 40s | |
-| Jadwal | | 40s | |
-| Tugas | | 40s | |
-| Kuliah | | 40s | |
-| Akademik | | 40s | |
+| Beranda | ~150 (shell) / 88 (origin/mobile) | 40s | |
+| Jadwal | 64 (origin/mobile) | 40s | |
+| Tugas | 80 (origin/mobile) | 40s | |
+| Kuliah | 99 (origin/mobile) | 40s | |
+| Akademik | 27 (origin/mobile) | 40s | |
+
+Counted with `mobile/qa/words.sh <serial> <tab>` (tasks-academic aabc3f4): `mid`, light, fresh demo, status bar and tab
+labels skipped.
 
 ### Machines
 
@@ -571,6 +583,11 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
+- **2026-11-01: the desktop needs a restart when you're next at it.** Gradle daemons hung in a Windows file call
+  that Windows won't kill. They held `~/.gradle`'s lock, and two build folders (`C:\b\r2tasks`, `C:\b\r2tasks2`)
+  have files held open until a reboot. PowerShell's process queries hang on the same thing. Helpers now build
+  one at a time, each with its own Gradle home, or on GitHub Actions. Proposed: restart DESKTOP-4SEOA4J when no
+  helper is running (I'll say when in the lead's thread). Nothing is lost, everything is pushed.
 - **Round 2: the desktop (DESKTOP-4SEOA4J) has only one Claude account**, shown as "Claude"; there is no
   "Contact" or "Dev 1" there. All helpers run on that one account, so three at once may run it out sooner.
   Proposed: add the two accounts in T3 Code on the desktop (Settings → Providers) if you want them split; I
