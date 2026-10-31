@@ -1,8 +1,10 @@
 // Runs the app at the screen's fastest refresh rate (W5 in PROGRESS.md). Many Android phones with a
 // 90 or 120 Hz screen keep an app at 60 Hz unless its window asks for more (Xiaomi's and Samsung's
-// adaptive modes among them). MainActivity asks for the display mode with the highest refresh rate at
-// the screen's current resolution, once the window exists; Android still lowers it on its own for
-// battery saver or a hot phone.
+// adaptive modes among them, and Android 14's emulator: one 120 Hz mode, the app drawn at 60). MainActivity
+// asks, once the window exists, for the fastest refresh rate at the screen's current resolution in two
+// ways: that display mode (where the phone has several), and the rate itself for its window
+// (preferredRefreshRate: a phone whose only mode is already fast still caps an app that asks for nothing).
+// Android still lowers it on its own for battery saver or a hot phone.
 const { withMainActivity } = require("expo/config-plugins");
 
 const MARK = "// Edunex Plus: the screen's fastest refresh rate";
@@ -15,8 +17,11 @@ const CODE = `
         val fastest = screen.supportedModes
           .filter { it.physicalWidth == now.physicalWidth && it.physicalHeight == now.physicalHeight }
           .maxByOrNull { it.refreshRate }
-        if (fastest != null && fastest.modeId != now.modeId) {
-          window.attributes = window.attributes.also { it.preferredDisplayModeId = fastest.modeId }
+        if (fastest != null) {
+          window.attributes = window.attributes.also {
+            if (fastest.modeId != now.modeId) it.preferredDisplayModeId = fastest.modeId
+            it.preferredRefreshRate = fastest.refreshRate
+          }
         }
       }
     }`;
