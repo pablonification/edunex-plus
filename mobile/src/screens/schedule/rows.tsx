@@ -315,7 +315,8 @@ const ClassCard = memo(function ClassCard({ item, onPick }: { item: ScheduledCla
       quiet={muted}
       live={live}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+      {/* The time, then "Sedang berlangsung": under it when the text is large. */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2], rowGap: 2 }}>
         <Text size="titleSmall" tabular tone={muted ? "muted" : "fg"}>
           {time}
         </Text>
@@ -333,7 +334,7 @@ const ClassCard = memo(function ClassCard({ item, onPick }: { item: ScheduledCla
           </View>
         )}
       </View>
-      <Text size="bodyMedium" numberOfLines={2} style={{ marginTop: 2 }}>
+      <Text size="bodyMedium" numberOfLines={3} style={{ marginTop: 2 }}>
         <Text size="bodyMedium" weight="semibold" tabular tone={muted ? "muted" : "fg"}>
           {code}
         </Text>
@@ -412,7 +413,7 @@ const MeetingCard = memo(function MeetingCard({
       <Text size="titleSmall" tabular tone={past ? "muted" : "fg"}>
         {time}
       </Text>
-      <Text size="bodyMedium" numberOfLines={2} style={{ marginTop: 2 }}>
+      <Text size="bodyMedium" numberOfLines={3} style={{ marginTop: 2 }}>
         <Text size="bodyMedium" weight="semibold" tabular tone={past ? "muted" : "fg"}>
           {meeting.code}
         </Text>

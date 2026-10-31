@@ -213,13 +213,12 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
   const { health } = item;
   return (
     <Card style={{ marginTop: -space[2], marginBottom: space[5], padding: space[4], gap: space[3] }} testID="meter.courseAttendance">
-      <CourseBudgetLine item={item} context={rows.context} />
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <AbsenceBudget health={health} place="header" own={Object.hasOwn(attendanceTargets, page.course.code)} soFar={rows.attendance.period === null} />
-        </View>
-        {health.held ? <CourseTarget code={page.course.code} open={targets} onOpenChange={setTargets} /> : null}
-      </View>
+      <CourseBudgetLine
+        item={item}
+        context={rows.context}
+        end={health.held ? <CourseTarget code={page.course.code} open={targets} onOpenChange={setTargets} /> : undefined}
+      />
+      <AbsenceBudget health={health} place="header" own={Object.hasOwn(attendanceTargets, page.course.code)} soFar={rows.attendance.period === null} />
       <CourseException item={item} context={rows.context} />
     </Card>
   );

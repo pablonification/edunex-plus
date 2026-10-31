@@ -34,36 +34,43 @@ export function CourseRow({ item, group, context }: { item: CourseAttendance; gr
       testID={`row.course.${course.code}`}
       leading={<CourseDot color={course.color} size={12} />}
       title={
-        <Text size="bodyLarge" weight="medium" numberOfLines={2}>
+        <Text size="bodyLarge" weight="medium" numberOfLines={3}>
           {name(course.code, course.name)}
         </Text>
       }
-      meta={<Meta numberOfLines={2}>{[course.code, ...meta].join(" · ")}</Meta>}
-      trailing={chip ? <BudgetChip chip={chip} /> : undefined}
+      meta={<Meta>{[course.code, ...meta].join(" · ")}</Meta>}
       // Kuliah is the way into a course: the row opens its page (one target, one outcome).
       onPress={() => go({ screen: "course", code: course.code })}
       // The course's colour, as a long-press (the desktop's right-click on its sidebar row).
       onLongPress={() => openCourseColorPicker(course.code)}
       label={factsLabel(course.code, name(course.code, course.name), ...meta, chip?.label)}
-    />
+    >
+      {/* Under the facts, not at the row's end: on a small phone the name and the next class keep the whole width. */}
+      {chip && (
+        <View style={{ flexDirection: "row", marginTop: space[2] }}>
+          <BudgetChip chip={chip} />
+        </View>
+      )}
+    </Row>
   );
 }
 
 /** The course page's first line (W4: budget and next class in one row): the chip, then the next class and its room. */
-export function CourseBudgetLine({ item, context }: { item: CourseAttendance; context: RowContext }) {
+export function CourseBudgetLine({ item, context, end }: { item: CourseAttendance; context: RowContext; end?: ReactNode }) {
   const t = useT();
   const f = useFormat();
   const chip = budgetChip(t, presenceGroup(item.health, context.signedOut), item.health, context);
   const meta = metaParts(t, f, item, context);
-  if (!chip && !meta.length) return null;
+  if (!chip && !meta.length && !end) return null;
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[3], rowGap: space[1] }} testID="line.courseBudget">
-      {chip && <BudgetChip chip={chip} />}
-      {meta.length > 0 && (
-        <View style={{ flexShrink: 1, minWidth: 160 }}>
-          <Meta>{meta.join(" · ")}</Meta>
+    <View style={{ gap: space[2] }} testID="line.courseBudget">
+      {(chip || end) && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space[2] }}>
+          {chip ? <BudgetChip chip={chip} /> : <View />}
+          {end}
         </View>
       )}
+      {meta.length > 0 && <Meta>{meta.join(" · ")}</Meta>}
     </View>
   );
 }
@@ -97,8 +104,8 @@ function BudgetChip({ chip }: { chip: { text: string; tone: ChipTone } }) {
           ? [c.successBg, c.successFg]
           : [c.surfaceContainerHighest, c.onSurfaceVariant];
   return (
-    <View style={{ borderRadius: shape.sm, backgroundColor: bg, paddingHorizontal: space[2], paddingVertical: space[1] }}>
-      <Text size="labelLarge" tabular style={{ color: fg }} numberOfLines={2}>
+    <View style={{ borderRadius: shape.sm, backgroundColor: bg, paddingHorizontal: space[2], paddingVertical: 2 }}>
+      <Text size="labelLarge" tabular style={{ color: fg }}>
         {chip.text}
       </Text>
     </View>
