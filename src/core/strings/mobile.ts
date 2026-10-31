@@ -278,8 +278,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   },
   // A new Task's notification: the title, then its deadline, the first thing a Student wants to know.
   "alert.newTask.body": { id: "{title} · tenggat {dateId} {time}", en: "{title} · due {dateEn} {time}" },
-  // home and presence: SIX is checked every 2 minutes only while the app is open (Android freezes a closed one).
-  "home.now.checkEvery": { id: "Dicek tiap 2 menit selama aplikasi terbuka", en: "Checked every 2 minutes while the app is open" },
   "presence.row.watching": {
     id: "Tandai Hadir belum muncul. Selama aplikasi terbuka, SIX dicek tiap 2 menit.",
     en: "Tandai Hadir hasn't shown yet. While the app is open, it checks SIX every 2 minutes.",
