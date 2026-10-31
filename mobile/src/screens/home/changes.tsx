@@ -74,22 +74,21 @@ export function Changes({ context }: { context: HomeContext }) {
           onPress={() => (changes.length ? setOpen(true) : router.push("/alerts"))}
         />
       </List>
-      <Sheet
-        open={open}
-        onClose={() => setOpen(false)}
-        title={t("home.changes")}
-        testID="sheet.changes"
-        footer={
-          <Button variant="tonal" onPress={() => leave(() => router.push("/alerts"))} testID="action.changes.all">
-            {t("home.changes.all")}
-          </Button>
-        }
-      >
+      <Sheet open={open} onClose={() => setOpen(false)} title={t("home.changes")} testID="sheet.changes">
         <View style={{ marginHorizontal: -space[6] }}>
           {changes.map((item) => (
             <ChangeRow key={item.id} item={item} onOpen={() => leave(() => go(item.target))} />
           ))}
         </View>
+        {/* In the content, not the sheet's footer (cut off: ./class-sheet.tsx). */}
+        <Button
+          variant="tonal"
+          onPress={() => leave(() => router.push("/alerts"))}
+          testID="action.changes.all"
+          style={{ marginTop: space[4], marginBottom: space[2] }}
+        >
+          {t("home.changes.all")}
+        </Button>
       </Sheet>
     </Section>
   );

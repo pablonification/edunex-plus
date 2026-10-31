@@ -18,14 +18,16 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 30000
     optional: true
 - takeScreenshot: 02-beranda-filling
+# The first read done (the top bar's progress line gone), then down to the card: at a large font it's below the fold.
 - extendedWaitUntil:
-    visible:
-      id: card.firstScan
+    notVisible:
+      id: status.firstRead
     timeout: 600000
 - scrollUntilVisible:
     element:
       id: card.firstScan
     direction: DOWN
+    timeout: 60000
     centerElement: true
 - waitForAnimationToEnd
 - takeScreenshot: 03-summary-card

@@ -44,13 +44,17 @@ export function ClassSheet({
   context?: { health: ReadonlyMap<string, AttendanceHealth> };
 }) {
   return (
-    <Sheet
-      open={open && card !== null}
-      onClose={onClose}
-      testID="sheet.nowClass"
-      footer={card ? <Actions card={card} onLeave={onClose} courses={courses} /> : undefined}
-    >
-      {card && <Details card={card} courses={courses} context={context} onLeave={onClose} />}
+    // The buttons end the content rather than sit in the sheet's footer: the native sheet measured the footer short and
+    // cut its buttons off on every phone tried (mid, weak).
+    <Sheet open={open && card !== null} onClose={onClose} testID="sheet.nowClass">
+      {card && (
+        <>
+          <Details card={card} courses={courses} context={context} onLeave={onClose} />
+          <View style={{ marginTop: space[6], marginBottom: space[2] }}>
+            <Actions card={card} onLeave={onClose} courses={courses} />
+          </View>
+        </>
+      )}
     </Sheet>
   );
 }
