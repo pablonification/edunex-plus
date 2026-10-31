@@ -53,7 +53,7 @@ export function Toasts() {
           transform: reduceMotion() ? [] : [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
         }}
       >
-        <Text size="bodyMedium" tone="inverse" numberOfLines={2} style={{ flex: 1, paddingVertical: space[1] }}>
+        <Text size="bodyMedium" tone="inverse" style={{ flex: 1, paddingVertical: space[1] }}>
           {item.text}
         </Text>
         {item.action && (
