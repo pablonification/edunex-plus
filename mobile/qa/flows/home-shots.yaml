@@ -1,0 +1,108 @@
+# Pictures of Beranda and the first run (mobile/report/img/mobile-r2-home/), through the lab's shots.sh (${THEME}).
+appId: io.github.pablonification.edunexplus.demo
+---
+# The first run: the welcome, Beranda filling in, the summary card.
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=first-run&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: action.signIn
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: 01-welcome
+- tapOn:
+    id: action.signIn
+- extendedWaitUntil:
+    visible:
+      id: status.firstRead
+    timeout: 30000
+    optional: true
+- takeScreenshot: 02-beranda-filling
+- extendedWaitUntil:
+    visible:
+      id: card.firstScan
+    timeout: 600000
+- scrollUntilVisible:
+    element:
+      id: card.firstScan
+    direction: DOWN
+    centerElement: true
+- waitForAnimationToEnd
+- takeScreenshot: 03-summary-card
+# Signed in, Thursday 08:07, SIX's Tandai Hadir open in the morning's class.
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CHECK_IN=open&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: action.checkIn
+    timeout: 120000
+- waitForAnimationToEnd
+- takeScreenshot: 04-beranda-tandai-hadir
+- tapOn:
+    id: action.nowClass
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 05-sheet-kelas
+- back
+# Signed in, the class on with Tandai Hadir still to come.
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: card.now
+    timeout: 120000
+- tapOn:
+    id: action.notify.later
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: 06-beranda
+- scrollUntilVisible:
+    element:
+      id: section.today
+    direction: DOWN
+- swipe:
+    start: 50%, 70%
+    end: 50%, 40%
+    duration: 400
+- waitForAnimationToEnd
+- takeScreenshot: 07-beranda-hari-ini
+- scrollUntilVisible:
+    element:
+      id: action.changes
+    direction: DOWN
+- tapOn:
+    id: action.changes
+- extendedWaitUntil:
+    visible:
+      id: sheet.changes
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 08-sheet-berubah
+- back
+- scrollUntilVisible:
+    element:
+      id: "row.need.attendance:KU5014:out"
+    direction: UP
+    centerElement: true
+- swipe:
+    from:
+      id: "row.need.attendance:KU5014:out"
+    direction: RIGHT
+    duration: 300
+- takeScreenshot: 09-swipe-urungkan
+- tapOn: "Urungkan"
+- swipe:
+    from:
+      id: "row.need.exam:DK4073-UTS"
+    direction: LEFT
+    duration: 300
+- extendedWaitUntil:
+    visible:
+      id: sheet.snooze
+    timeout: 5000
+- waitForAnimationToEnd
+- takeScreenshot: 10-swipe-ingatkan-nanti
+- back
