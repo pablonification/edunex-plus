@@ -52,6 +52,13 @@ motion and onboarding are open. The desktop is a reference for data only.
   with pictures on `mid`/`weak` and a recording. Arqila sees it in the app before v4 goes to other screens (Decision 23).
   Tasks-academic resumes its look-free work; schedule-courses is done with it (below). The desktop's helpers and the
   lead share one account: all stopped at the 5-hour limit (2026-11-01 01:24–01:42), resumed after 02:00.
+- **2026-11-01 04:35: first look at Beranda v4 (36d17ad, CI run 41241344121, Redroid, quick look only).** Structure as
+  v4: the blue header with the greeting, the now card with the wave and minutes left, two tinted Perlu kamu urus cards
+  (73% Kehadiran in red, 7 hari UTS), Nanti hari ini rows with tiles and one chip. Sent back to the home helper: the
+  notification card is round 1's grey card with a banned sentence, placed above Perlu kamu urus (high); the class
+  sheet's attendance row wraps two banned SIX sentences beside unexplained pips (high); unequal card heights and a
+  tiny squiggle at low progress (medium). The desktop was overloaded by two helpers' parallel Gradle builds (locks,
+  hung PowerShell): tasks-academic paused its builds so Beranda's proof goes first.
 - **Schedule-courses' look-free report (head 2dbc39c, layout WIP not merged):** W1 proven on `mid` (PDF opens in
   Drive's viewer; extension-less PDF read from its bytes; DOCX with no app says so under the row with Bagikan and Buka
   di Edunex; flow `w01-files` fails on round 1, passes now). W5 proven: Jadwal scrolling at a median 8.33 ms (120 fps)
