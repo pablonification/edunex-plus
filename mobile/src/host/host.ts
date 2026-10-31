@@ -28,6 +28,7 @@ import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
 import { type PhoneReminders, phoneReminders } from "./reminders";
 import { phoneReportHandlers } from "./report";
+import { setSettling } from "./settling";
 import { PhoneStorage } from "./storage";
 import { phoneTaskHandlers } from "./tasks";
 import { phoneTransport } from "./transport";
@@ -178,10 +179,22 @@ async function makeHost(): Promise<Host> {
   lang = engine.snapshot().settings.lang;
   void prepareChannels(lang);
   const loaded = Date.now();
-  if (world.prepare) await world.prepare(engine);
-  // Where a start's time goes before the first frame (the lab reads it): the saved data, and the demo's own sign-in
-  // and first sync (which the real app does after its first frame, behind Beranda's skeletons).
-  console.info(`[startup] host load ${loaded - began} prepare ${Date.now() - loaded}`);
+  // The demo's sign-in and first sync run after the first frame, as the real app reads after a sign-in: Beranda draws
+  // at once and fills in (./settling.ts). The lab reads where the time goes from these lines.
+  console.info(`[startup] host load ${loaded - began}`);
+  if (world.prepare) {
+    setSettling(true);
+    void world.prepare(engine).then(
+      () => {
+        console.info(`[startup] settled ${Date.now() - loaded}`);
+        setSettling(false);
+      },
+      (error: unknown) => {
+        console.error("[startup] the demo's first sync failed:", error);
+        setSettling(false);
+      },
+    );
+  }
 
   // One Microsoft sign-in covers both systems, exactly as on the desktop.
   const both = signInToBoth({ engine, send, windows: world.signInWindows, log });

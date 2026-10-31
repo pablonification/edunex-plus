@@ -11,6 +11,7 @@ import { useT } from "../../../../src/app/i18n";
 import { firstName } from "../../../../src/app/names";
 import { useBridge, useDataset, useSettings } from "../../../../src/app/store";
 import { scanSummary } from "../../../../src/core/first-scan";
+import { useSettling } from "../../host/settling";
 import { Button, IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
@@ -20,7 +21,9 @@ import { useScanReady } from "../first-scan/scan";
 /** "Semua siap": shown once the first read is in, until the Student opens the summary or closes the card. */
 export function FirstScanCard() {
   const { firstScanDone } = useSettings();
-  if (firstScanDone) return null;
+  // The demo's own first sync isn't the Student's first read.
+  const settling = useSettling();
+  if (firstScanDone || settling) return null;
   return <ScanCard />;
 }
 

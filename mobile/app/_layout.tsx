@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useDataset, useStatus } from "../../src/app/store";
+import { useSettling } from "../src/host/settling";
 import { useWidgetUpdates } from "../src/host/widget";
 import { CourseColorPickerHost } from "../src/parts/course-color-picker";
 import { perfNavigating, perfShown, watchJsThread } from "../src/perf";
@@ -38,7 +39,9 @@ function useNobodyIn(): boolean {
   const six = useStatus("six");
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
-  return edunex.state === "signed-out" && !account && six.state === "signed-out" && !student;
+  // The demo signing itself in after the first frame isn't a first run.
+  const settling = useSettling();
+  return edunex.state === "signed-out" && !account && six.state === "signed-out" && !student && !settling;
 }
 
 /** The `[perf]` lines (../src/perf.ts): the JS thread watched, each navigation timed to its screen drawn. */

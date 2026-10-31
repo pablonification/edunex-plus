@@ -13,6 +13,7 @@ import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "..
 import type { SignInStep } from "../../../src/core/contract";
 import { firstRead } from "../../../src/core/first-scan";
 import type { DatasetName, SourceId, SourceState } from "../../../src/core/models";
+import { useSettling } from "../host/settling";
 import { ReportButton } from "../parts/report";
 import { toast } from "../swaps/overlays";
 import { SourceLogo } from "../ui/brand";
@@ -188,8 +189,14 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
   // The status line only when it says something to act on (one title per screen, no "Diperbarui baru saja" under it):
   // a problem, offline, the first read, or data older than an hour. The title still opens the sources sheet.
   const stale = line.updatedAt !== null && now - line.updatedAt > STALE;
+  const settling = useSettling();
   const showLine =
-    firstReading || line.state === "changed" || line.state === "expired" || line.state === "offline" || (line.signedIn && (line.updatedAt === null || stale));
+    settling ||
+    firstReading ||
+    line.state === "changed" ||
+    line.state === "expired" ||
+    line.state === "offline" ||
+    (line.signedIn && (line.updatedAt === null || stale));
   const [panel, setPanel] = useState(false);
   const tone = line.state === "changed" ? "danger" : line.state === "expired" ? "warning" : "muted";
   const status = (
@@ -215,7 +222,16 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
           <Text size="titleLarge" numberOfLines={1} accessibilityRole="header">
             {title}
           </Text>
-          {showLine && (firstReading ? <FirstReadLine>{status}</FirstReadLine> : status)}
+          {showLine &&
+            (settling ? (
+              <View testID="status.settling">
+                <FirstReadLine always>{status}</FirstReadLine>
+              </View>
+            ) : firstReading ? (
+              <FirstReadLine>{status}</FirstReadLine>
+            ) : (
+              status
+            ))}
         </Pressable>
         <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
           <Icons.Search size={24} color={theme.color.onSurfaceVariant} />
@@ -247,7 +263,7 @@ const FIRST_READ: readonly DatasetName[] = [
 ];
 
 /** "Membaca Edunex · Tugas…" while the first read runs, a calm line with a spinner; once in, the usual line. */
-function FirstReadLine({ children }: { children: ReactNode }) {
+function FirstReadLine({ children, always = false }: { children: ReactNode; always?: boolean }) {
   const t = useT();
   const theme = useTheme();
   const saved = useSaved(FIRST_READ);
@@ -256,12 +272,12 @@ function FirstReadLine({ children }: { children: ReactNode }) {
   const itb = useStatus("itb");
   const read = firstRead(saved, [edunex, six, itb]);
   const part = read.progress < 1 ? read.next : null;
-  if (!part) return children;
+  if (!part && !always) return children;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }} testID="status.firstRead">
       <Spinner size={14} color={theme.color.onSurfaceVariant} />
       <Text size="bodySmall" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }} accessibilityLiveRegion="polite">
-        {t("mobile.home.reading", { part: `${t(`source.${part.source}`)} · ${t(`scan.part.${part.part}`)}` })}
+        {part ? t("mobile.home.reading", { part: `${t(`source.${part.source}`)} · ${t(`scan.part.${part.part}`)}` }) : t("welcome.readingWait")}
       </Text>
     </View>
   );
