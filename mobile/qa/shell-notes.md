@@ -23,6 +23,19 @@ Root native stack (app/_layout.tsx, animation "default" = Android's own, predict
 `src/nav.ts` `hrefOf`: presence → `/courses`, plan → `/plan/<tab ?? planner>`, course+module → the module
 route. Settings is behind the avatar (`action.account`) on every tab; "Laporkan masalah" stays in Settings.
 
+## Found: Back closed the app on Android 13–15 (W6), the baseline too
+
+On `mid` (Android 14), Back (the key and the gesture) from any pushed screen (Settings, Nilai, a module)
+went to the launcher, on this branch and on the round-1 build (1f492fb) alike; a JS listener logged nothing.
+React Native 0.88 registers the callback that hands Back to JS only when the phone runs Android 16 and the
+app targets it (`AndroidVersion.isAtLeastTargetSdk36` checks both); with `enableOnBackInvokedCallback="true"`
+(f54ca42) Android 13+ never calls `onBackPressed()`, so on 13–15 nothing reached JS and Android's default
+(finish) ran: the window held only the activity's own callback (`CoreBackPreview … mPriority=-1`).
+Fix: `plugins/back-to-js.js` registers the same callback in MainActivity on Android 13–15 and steps it
+aside while the default runs (as React Native's does), so it can't loop. After (6b0b85e, `mid`): a
+priority-0 callback is registered; Settings → Back → Beranda; module → edge swipe → the course (scroll
+kept) → Back → Kuliah. Most students' phones run 13–15.
+
 ## Decisions
 
 1. **Tab icons: the app's Phosphor glyphs as Android vector drawables**, not Material Symbols via `md`.
