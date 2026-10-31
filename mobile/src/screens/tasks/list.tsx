@@ -13,7 +13,7 @@ import { RefreshControl, View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { type Translate, useT } from "../../../../src/app/i18n";
 import { type Todo, useTodo } from "../../../../src/app/schedule-data";
-import { useBridge, useStatus } from "../../../../src/app/store";
+import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import type { Exam } from "../../../../src/core/exams";
 import type { Task } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
@@ -30,6 +30,7 @@ import { space, useTheme } from "../../ui/theme";
 import { PastExamRow } from "./exam-rows";
 import { inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
 import { PutOff, TaskRow, TodoRow } from "./rows";
+import { momentsOf, useClockMoments } from "./task-clock";
 
 const GROUPS: { group: TodoGroup; title: StringKey }[] = [
   { group: "overdue", title: "tasks.group.overdue" },
@@ -165,6 +166,9 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const t = useT();
   const theme = useTheme();
   const todo = useTodo();
+  // What the list shows things about, for its clock (./task-clock.tsx): a tick redraws it only when one is crossed.
+  const presence = useDataset("edunex.presence");
+  useClockMoments(useMemo(() => momentsOf([...(todo?.items ?? []), ...(Object.values(presence ?? {}).flat() as object[])]), [todo, presence]));
   const courses = useTermCourses();
   const bridge = useBridge();
   const pull = usePullToRefresh();
