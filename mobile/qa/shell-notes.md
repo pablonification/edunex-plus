@@ -122,7 +122,11 @@ Earlier runs on the way: a246d06 (no clock gating): minute ticks blocked 300–5
 
 ## Check A (same data)
 
-See the hand-back message: `signed-in` flows run on mid with 981d27f.
+`signed-in` on mid, release 981d27f (`node mobile/scripts/flows-from-inventory.mjs signed-in`, then Maestro on
+`mobile/flows/data/signed-in`): **764 of 764 counted, 100%** (766 items, the 2 phone skips of A18 not counted),
+every screen 100%. 14 flows ran in one go (course 56 min, plan 16 min); that run hit the 2-hour limit for one
+command before `task` and `tasks`, which ran after it on the same build (both passed). Report:
+`node mobile/scripts/flows-from-inventory-report.mjs C:/qa/shell/checkA C:/qa/shell/checkA2 --missing`.
 
 ## Contrast (design skill's scripts/contrast.py, every text/icon pair)
 
