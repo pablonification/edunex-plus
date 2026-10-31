@@ -174,3 +174,25 @@ Recordings on branch `media-mobile-r2-home`, `qa-media/mobile-r2-home/`: `r2home
   end of the content instead (as Jadwal's does). Every other `footer` user should be looked at.
 - **A data change redraws every tab** that reads it (the check-in read every 2 min in class: 200–560 ms on `weak`).
 - The swipe's flick and threshold were tuned by hand on the emulators; worth a feel on a real phone.
+
+## Round 2, v4 (Arqila's pick): what was built, and what didn't carry over as drawn
+
+Built from `mobile/design/r2-directions/v4/` (`origin/mobile-r2-mockups`), Beranda and its class sheet only (Decision 23).
+
+| v4 asks | Built | Where |
+| --- | --- | --- |
+| Header in Edunex blue, the greeting the one title, search and the bell | as drawn; the bell's dot in #ffcc4d when something's new; a tap on the greeting opens the sources' sheet; the status line under it only when stale, offline or reading | `screens/home/header.tsx`; the status bar's strip `app/(tabs)/index.tsx` |
+| Now card: white, over the header by 60 dp, radius 24, tile, "Sekarang · room" with a pulsing dot, name in Plus Jakarta Sans 18 bold, the wave and the minutes left, one Tandai Hadir | as drawn; minutes up to two hours, then hours, then days; the next class counts down without a wave; a Presence window gets the wave too; another day shows "Besok · 08:00" | `screens/home/now.tsx` |
+| After Tandai Hadir: tonal green, the cookie scales in, its check draws, a haptic | as drawn, but the words are "Sudah ke SIX · 09:07" (the Student's step), not "Hadir · 09:07" (the app can't know SIX counted them: the lead's review) | `now.tsx`, `ui/expressive.tsx` CookieCheck |
+| Perlu kamu urus: two tinted cards, the course glyph, a kind pill, a big countdown, red when overdue; chevron to the list | as drawn; an attendance item's figure is its best reachable share ("73%", red); nothing to handle: one quiet line, still the way in | `screens/home/urus.tsx` |
+| Nanti hari ini: tile, title, "time · room", one chip | as drawn; the chips: Jatah habis, Di bawah target, Bentrok, Jam berubah, Ruang berubah, Tak di SIX | `screens/home/later.tsx` |
+| Class sheet: tile, "code · Kuliah", title, facts with a pip meter, buttons | as drawn on the native Material sheet (white, v4's card); the facts kept as labels (time, a new time, room, a clash, the absences as one row with the pips and "Kehadiran 33% · target 80%", Tandai Hadir's state, the Presence, what comes after) | `screens/home/class-sheet.tsx` |
+| Plus Jakarta Sans for headings and numbers | bundled as Android font assets (`plugins/fonts.js`), one family per weight (Android won't pick a weight from one file), OFL in the licences | `assets/fonts` |
+| Course ink and tint from the app's course colours | solved per colour so each pair is ≥ 4.6:1 (88 pairs through contrast.py); the mock's green for II4091 isn't one of the app's ten colours, so II4091 is its own colour's tint | `ui/theme.ts` courseTile |
+| Course icons | picked from words in the course's name (Ekonomi → chart, Komunikasi → megaphone, Transportasi → train, …), a book otherwise | `ui/tile.tsx` |
+| Motion on the UI thread: press 0.965 + expressive spring, rise once, count up once, the wave moves; Reduce Motion fades | as drawn (Reanimated); the count-up writes a read-only field from the UI thread | `ui/press.tsx`, `ui/expressive.tsx` |
+| The ask for notifications | a v4 card after Nanti hari ini: the bell on a brand tint, "Ingatkan sebelum kuliah?", Nyalakan, close | `screens/home/first-run.tsx` |
+
+What Beranda leaves out is one tap deeper, on Perlu kamu urus's screen (`needs-screen.tsx`): every item with its swipe and long press, what's put off and away, the date and term, an exam period coming, what changed. Settings is behind the avatar on the other tabs (v4's header has none).
+
+Found on the way: an animation that never ends (the wave) keeps Android's `uiautomator dump` from ever reaching idle, so the lab's word counter reads Maestro's hierarchy instead. And the lab machine's Gradle hung for good while enumerating the machine's volumes (file-system watching); `org.gradle.vfs.watch=false` in a build's Gradle home gets past it (the other builds on this machine likely need it too).
