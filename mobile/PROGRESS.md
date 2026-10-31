@@ -65,6 +65,16 @@ motion and onboarding are open. The desktop is a reference for data only.
     (new: Akademik and its screens, Settings, Search, Notifikasi). Shared rules: `mobile/qa/v4-rollout.md`.
   - The desktop went offline (05:55–06:25) for Arqila's restart. A cloud launch tried meanwhile ran as a local worktree on
     pabs instead: stopped at its first commit, worktree and branch removed. Not used again.
+- **2026-11-01 06:46: the desktop's C: filled up (0.7–1.2 GB free of 237 GB) and T3's backend crashed; all five
+  helpers died at 06:48–06:49 on all three accounts.** Where it went: `C:\b` 26 GB (about 11 build copies), Temp
+  18 GB, `C:\qa` 16 GB (four Gradle homes, one per helper, plus runs and APKs), `.gradle` 4.6 GB, worktrees 5.7 GB.
+  Cause (the lead's): the rules gave every helper its own build slot and Gradle home on C: and never removed them. A
+  cleanup helper (Dev 1) is stopping orphaned daemons and clearing them. Fixed in the lab (2db5fc94): `QA_OUT=F:/qa`,
+  `QA_BUILD_ROOT=F:/b`, TEMP/TMP on F:; `build.sh` takes only `--slot gradle-1|gradle-2` with one shared Gradle home
+  per slot, removes the build copy and its daemon once the APK is out, and refuses to run (as `emu.sh` does) when C:
+  has under 20 GB free; `v4-rollout.md` says so. No helper is relaunched until the cleanup is reported done; then
+  each merges `origin/mobile` first (for the new `build.sh`) and resumes from its pushed branch (tasks-academic at
+  3f9e2c5; the others had pushed nothing yet).
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
