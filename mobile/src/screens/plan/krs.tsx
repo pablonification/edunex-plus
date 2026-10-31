@@ -258,39 +258,34 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
             <Row
               key={course.code}
               testID={`row.course.${course.code}`}
-              leading={<CourseCode code={course.code} color={colorOf(course.code)} column />}
               title={course.name}
+              // The name gets the row; its code, SKS, class and a clash on the line under it, wrapping at big text.
               meta={
-                clashes.length || !oneClass ? (
-                  <Meta>
-                    {oneClass ? "" : t("krs.class", { classNo: course.classNo ?? "-" })}
-                    {clashes.length ? (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                        <Icons.Overlap size={12} color={theme.color.warningFg} weight="bold" />
-                        <Text size="small" weight="medium" tone="warning">
-                          {t("krs.clashWith", { code: clashes.join(", ") })}
-                        </Text>
-                      </View>
-                    ) : (
-                      ""
-                    )}
-                  </Meta>
-                ) : undefined
-              }
-              trailing={
-                <>
-                  <Text size="small" weight="medium" tabular>
-                    {t("krs.sks", { sks: course.sks ?? "-" })}
-                  </Text>
-                  {course.approved === false && (
+                <Meta>
+                  <CourseCode code={course.code} color={colorOf(course.code)} />
+                  {t("krs.sks", { sks: course.sks ?? "-" })}
+                  {oneClass ? "" : t("krs.class", { classNo: course.classNo ?? "-" })}
+                  {clashes.length ? (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                      <Icons.Clock size={12} color={theme.color.warningFg} />
-                      <Text size="caption" weight="semibold" tone="warning">
-                        {t("krs.notApproved")}
+                      <Icons.Overlap size={12} color={theme.color.warningFg} weight="bold" />
+                      <Text size="small" weight="medium" tone="warning">
+                        {t("krs.clashWith", { code: clashes.join(", ") })}
                       </Text>
                     </View>
+                  ) : (
+                    ""
                   )}
-                </>
+                </Meta>
+              }
+              trailing={
+                course.approved === false ? (
+                  <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+                    <Icons.Clock size={12} color={theme.color.warningFg} />
+                    <Text size="caption" weight="semibold" tone="warning">
+                      {t("krs.notApproved")}
+                    </Text>
+                  </View>
+                ) : undefined
               }
               onPress={known ? () => go({ screen: "course", code: course.code }) : undefined}
             />
