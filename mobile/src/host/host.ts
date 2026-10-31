@@ -20,7 +20,7 @@ import { createEngine, type Engine } from "../../../src/engine/engine";
 import type { Transport } from "../../../src/engine/http/transport";
 import type { Storage, Vault } from "../../../src/engine/store/storage";
 import { clearOrigin, clearWebData, cookiesFor, setCookie } from "../../modules/web-cookies";
-import { perfDoing } from "../perf";
+import { perfDoing, perfSync } from "../perf";
 import { phoneSignInWindows } from "../shell/sign-in";
 import { checkInOpener, pageOpener } from "./check-in";
 import { phoneFileHandlers } from "./files";
@@ -137,12 +137,14 @@ async function makeHost(): Promise<Host> {
     for (const listener of listeners) listener(event);
   };
   const engine = createEngine({
-    transport: world.transport,
+    // The demo says on Android's log what its sync reads (../perf.ts perfSync, W2's numbers); the real app doesn't.
+    transport: DEMO ? traced(world.transport) : world.transport,
     clock: world.clock,
     storage: world.storage,
     vault: world.vault,
     version: APP_VERSION,
     emit: (event: Event) => {
+      if (DEMO) traceEvent(event);
       if (event.type === "settings" && event.settings.lang !== lang) {
         lang = event.settings.lang;
         void prepareChannels(lang);
@@ -261,4 +263,28 @@ async function makeHost(): Promise<Host> {
     clockOffset: world.clockOffset(),
   };
   return { engine, api, ui, reminders, clockOffset: world.clockOffset, running: () => started, start, stop };
+}
+
+/** Every request through `transport`, timed, as "[sync]" lines (demo builds). */
+function traced(transport: Transport): Transport {
+  return {
+    async request(request) {
+      const at = Date.now();
+      const where = request.url.replace(/^https?:\/\//, "").replace(/\?.*$/, "");
+      try {
+        const response = await transport.request(request);
+        perfSync(`${request.method} ${where} ${response.status} ${Date.now() - at}ms`);
+        return response;
+      } catch (error) {
+        perfSync(`${request.method} ${where} failed ${Date.now() - at}ms`);
+        throw error;
+      }
+    },
+  };
+}
+
+/** What the engine tells the screens that a sync is about: a changed dataset, a source's state. */
+function traceEvent(event: Event): void {
+  if (event.type === "dataset") perfSync(`dataset ${event.dataset.name}`);
+  else if (event.type === "status") perfSync(`status ${event.status.source} ${event.status.state}`);
 }

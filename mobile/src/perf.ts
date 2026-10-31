@@ -1,4 +1,5 @@
 // What the app feels like, in numbers the QA lab reads from logcat (mobile/qa, PROGRESS.md "FAST"):
+//   [sync] +<ms> <what>             a demo build's sync: its requests, changed datasets, sources' states (W2)
 //   [perf] js-block <ms> <label>   the JS thread was busy that long at once (over 50 ms), and what ran then
 //   [perf] screen <route> <ms>      from the navigation to the screen drawn with its data
 //   [perf] tab <name> <ms>          the same for a tab
@@ -66,6 +67,15 @@ export function perfDrawn(kind: "screen" | "tab" = "screen"): void {
 }
 
 const jsStart = Date.now();
+
+/**
+ * A demo build's sync, step by step, from the JS start: each request it sends (the pretend Edunex and SIX), each
+ * dataset that changed and each source's state ("[sync] +1234 GET six.itb.ac.id/app/... 210ms"). How much a start
+ * with saved data reads, and how long until it's done (W2). Never in the real app: no addresses in Android's log.
+ */
+export function perfSync(text: string): void {
+  console.log(`[sync] +${Date.now() - jsStart} ${text}`);
+}
 let firstData = false;
 
 /** Beranda drew the Student's data for the first time in this run. */
