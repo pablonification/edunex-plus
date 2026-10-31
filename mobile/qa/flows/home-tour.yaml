@@ -1,0 +1,62 @@
+# Beranda in use (mobile/qa/home-notes.md): the now card's sheet three times, a later class's sheet twice, a tab
+# switch and back three times, Perlu kamu urus's screen twice (a screen open), an exam from a card twice.
+appId: io.github.pablonification.edunexplus.demo
+---
+- tapOn:
+    id: tab.home
+- tapOn:
+    id: action.notify.later
+    optional: true
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: action.nowClass
+      - extendedWaitUntil:
+          visible:
+            id: sheet.nowClass
+          timeout: 10000
+      - back
+- repeat:
+    times: 3
+    commands:
+      - tapOn:
+          id: tab.schedule
+      - tapOn:
+          id: tab.home
+- scrollUntilVisible:
+    element:
+      id: "row.today.class:2153983"
+    direction: DOWN
+    visibilityPercentage: 50
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "row.today.class:2153983"
+      - extendedWaitUntil:
+          visible:
+            id: sheet.nowClass
+          timeout: 10000
+      - back
+- scrollUntilVisible:
+    element:
+      id: action.needs.all
+    direction: UP
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: action.needs.all
+      - extendedWaitUntil:
+          visible:
+            id: screen.needs
+          timeout: 10000
+      - back
+- repeat:
+    times: 2
+    commands:
+      - tapOn:
+          id: "card.need.exam:DK4073-UTS"
+      - waitForAnimationToEnd
+      - back

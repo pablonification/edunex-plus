@@ -29,12 +29,71 @@ export const mobileStrings = {
     id: "Tekan Tandai Hadir di SIX saat tombolnya muncul · kuliah sampai {time}",
     en: "Press Tandai Hadir in SIX when it shows · class until {time}",
   },
-  // welcome
-  "mobile.welcome.waitingHint": { id: "Tutup halaman masuk untuk membatalkan.", en: "Close the sign-in page to cancel." },
-  "mobile.welcome.notify": {
-    id: "Izinkan notifikasi agar pengingat tetap sampai saat aplikasi tertutup.",
-    en: "Allow notifications so reminders still arrive with the app closed.",
-  },
+  // welcome: one screen, what the app is in a line, three reasons, one button.
+  "mobile.welcome.line": { id: "Edunex dan SIX, di satu aplikasi", en: "Edunex and SIX, in one app" },
+  "mobile.welcome.reason.class": { id: "Kuliah hari ini dan Tandai Hadir", en: "Today's classes and Tandai Hadir" },
+  "mobile.welcome.reason.tasks": { id: "Tugas dan tenggatnya", en: "Tasks and their deadlines" },
+  "mobile.welcome.reason.attendance": { id: "Jatah absen dan nilai", en: "Absences left and grades" },
+  "mobile.welcome.signIn": { id: "Masuk dengan akun ITB", en: "Sign in with your ITB account" },
+  // home
+  // The now card is one target: a tap opens its class's sheet. Said to TalkBack after the card's own words.
+  "mobile.home.nowHint": { id: "Buka rincian kuliah", en: "Opens the class details" },
+  // Chips on the now card: what's unusual about the class, the details in its sheet.
+  "mobile.home.timeMoved": { id: "Jam berubah", en: "New time" },
+  "mobile.home.roomMoved": { id: "Ruang berubah", en: "New room" },
+  // The class sheet's way to an exam sitting's page.
+  "mobile.home.openExam": { id: "Buka ujian", en: "Open exam" },
+  // Beranda, round 2's v4: the greeting is the screen's one title, short like the reference apps'.
+  "mobile.home.hello.morning": { id: "Pagi, {name}", en: "Morning, {name}" },
+  "mobile.home.hello.midday": { id: "Siang, {name}", en: "Afternoon, {name}" },
+  "mobile.home.hello.afternoon": { id: "Sore, {name}", en: "Afternoon, {name}" },
+  "mobile.home.hello.evening": { id: "Malam, {name}", en: "Evening, {name}" },
+  // The now card's line above the course: "Sekarang · R.SG PWK LT.6", "Berikutnya · TVST C".
+  "mobile.home.next": { id: "Berikutnya", en: "Next" },
+  // Big numbers with their unit: "53 mnt lagi", "7 hari", "2 hari lewat".
+  "mobile.home.unit.minute": { id: "mnt", en: "min" },
+  "mobile.home.unit.hour": { id: "jam", en: { one: "hr", other: "hrs" } },
+  "mobile.home.unit.day": { id: "hari", en: { one: "day", other: "days" } },
+  "mobile.home.left": { id: "lagi", en: "left" },
+  "mobile.home.late": { id: "lewat", en: "late" },
+  // After the Student went to SIX's Tandai Hadir from the card and SIX no longer shows it: their step, not a claim.
+  "mobile.home.wentToSix": { id: "Sudah ke SIX · {time}", en: "Went to SIX · {time}" },
+  // Beranda's two sections, and the screen behind the first.
+  "mobile.home.toHandle": { id: "Perlu kamu urus", en: "To handle" },
+  "mobile.home.laterToday": { id: "Nanti hari ini", en: "Later today" },
+  // Nothing in "Perlu kamu urus": one line, still the way to its screen.
+  "mobile.home.toHandleNone": { id: "Tak ada yang perlu diurus", en: "Nothing to handle" },
+  // A card's kind, in a pill.
+  "mobile.home.kind.task": { id: "Tugas", en: "Task" },
+  "mobile.home.kind.presence": { id: "Presensi", en: "Presence" },
+  "mobile.home.kind.attendance": { id: "Kehadiran", en: "Attendance" },
+  "mobile.home.kind.meeting": { id: "Pertemuan", en: "Meeting" },
+  "mobile.home.kind.bill": { id: "UKT", en: "UKT" },
+  "mobile.home.kind.krs": { id: "KRS", en: "KRS" },
+  // A class row's one chip.
+  "mobile.home.chip.noAbsences": { id: "Jatah habis", en: "No absences left" },
+  "mobile.home.chip.belowTarget": { id: "Di bawah target", en: "Below target" },
+  "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
+  "mobile.home.chip.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
+  "mobile.home.online": { id: "daring", en: "online" },
+  // The class sheet's facts as labels, never the how: the share against the target, Tandai Hadir's state, the Presence.
+  "mobile.home.share": { id: "Kehadiran {percent}% · target {target}%", en: "Attendance {percent}% · target {target}%" },
+  "mobile.home.checkIn.open": { id: "Tandai Hadir dibuka", en: "Tandai Hadir is open" },
+  "mobile.home.checkIn.waiting": { id: "Tandai Hadir belum muncul", en: "No Tandai Hadir yet" },
+  "mobile.home.checkIn.gone": { id: "Tandai Hadir tak tampil lagi", en: "Tandai Hadir is gone" },
+  "mobile.home.presenceUntil": { id: "Presensi Edunex · sampai {time}", en: "Edunex Presence · until {time}" },
+  // The now card with no class in the week ahead.
+  "mobile.home.free": { id: "Tak ada kuliah 7 hari ke depan", en: "No classes in the next 7 days" },
+  // The class sheet's line for a class going on.
+  "mobile.home.liveUntil": { id: "Sekarang · sampai {time}", en: "Now · until {time}" },
+  // The first read's card on Beranda: the summary the welcome used to show.
+  "mobile.home.scanOpen": { id: "Lihat ringkasan", en: "See summary" },
+  // Notifications, asked on Beranda the first time there's a class.
+  "mobile.home.notifyTitle": { id: "Ingatkan sebelum kuliah?", en: "Remind you before class?" },
+  "mobile.home.notifyOn": { id: "Nyalakan", en: "Turn on" },
+  "mobile.home.notifyLater": { id: "Nanti", en: "Not now" },
+  // The top bar's status line while the first read runs: which system and which part.
+  "mobile.home.reading": { id: "Membaca {part}…", en: "Reading {part}…" },
   // tasks
   // A file from Edunex opens in the phone's own apps (A12, A13), or goes elsewhere through the share sheet.
   // Edunex's and SIX's own pages inside the app (W14): the demo's pages are pretend, so it says what the real app shows.
@@ -218,6 +277,21 @@ export const mobileStrings = {
 // "HP ini" for "komputer ini", a page for a window, a tap for a click. translate() takes them on the
 // phone only (./wording.native.ts), so the desktop's words stay as they are.
 export const phoneWording: Partial<Record<StringKey, Entry>> = {
+  // The snackbar after "Sudah beres": what happened and when it's back, short enough for two lines beside Urungkan
+  // (a snackbar's text never truncates). The same conditions as the desktop's.
+  "done.toast.checked": { id: "Sudah dicek. Kembali hanya jika dosen mengubahnya lagi.", en: "Checked. Back only if your lecturer edits it again." },
+  "done.toast.groupDone": { id: "Dikumpulkan kelompokmu. Kembali hanya jika tugasnya berubah.", en: "Your group handed it in. Back only if the Task changes." },
+  "done.toast.handedElsewhere": { id: "Sudah dikumpulkan. Kembali hanya jika tugasnya berubah.", en: "Handed in. Back only if the Task changes." },
+  "done.toast.notHandingIn": {
+    id: "Tidak dikumpulkan. Kembali hanya jika tenggat atau tugasnya berubah.",
+    en: "Not handing it in. Back only if the deadline or Task changes.",
+  },
+  "done.toast.gotIt": { id: "Sudah tahu. Kembali hanya jika target {course} berubah.", en: "Got it. Back only if {course}'s target changes." },
+  "done.toast.gotItClass": { id: "Sudah tahu. Kembali sehari sebelum kuliah berikutnya.", en: "Got it. Back the day before the next class." },
+  "done.toast.gotItCount": { id: "Sudah tahu. Kembali setelah SIX menghitung kuliah berikutnya.", en: "Got it. Back after SIX counts the next class." },
+  "done.toast.paid": { id: "Sudah dibayar. Kembali jika tagihan berubah atau lewat batas.", en: "Paid. Back if the bill changes or passes its due date." },
+  // The first-run summary's title, short enough for the top bar.
+  "scan.heading": { id: "Ringkasan awal", en: "First summary" },
   // settings: the test notification's body, as Android shows it.
   "alert.test.body": { id: "Ketuk untuk membuka Tugas & Ujian", en: "Tap to open Tasks & Exams" },
   // settings: Notifikasi › Coba notifikasi, once sent.
@@ -233,8 +307,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   },
   // A new Task's notification: the title, then its deadline, the first thing a Student wants to know.
   "alert.newTask.body": { id: "{title} · tenggat {dateId} {time}", en: "{title} · due {dateEn} {time}" },
-  // home and presence: SIX is checked every 2 minutes only while the app is open (Android freezes a closed one).
-  "home.now.checkEvery": { id: "Dicek tiap 2 menit selama aplikasi terbuka", en: "Checked every 2 minutes while the app is open" },
   "presence.row.watching": {
     id: "Tandai Hadir belum muncul. Selama aplikasi terbuka, SIX dicek tiap 2 menit.",
     en: "Tandai Hadir hasn't shown yet. While the app is open, it checks SIX every 2 minutes.",

@@ -49,6 +49,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "./plugins/back-to-js",
     // The bottom tabs' icons as Android drawables (scripts/make-tab-icons.mjs).
     "./plugins/tab-icons",
+    // The headings' and numbers' typeface, Plus Jakarta Sans, as font assets (DESIGN.md "Type").
+    "./plugins/fonts",
     // The native bottom sheets edge to edge (no black navigation bar over their end).
     "./plugins/sheet-theme",
     "expo-secure-store",

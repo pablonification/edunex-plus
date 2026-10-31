@@ -35,7 +35,7 @@ export function TopBar({ title, actions, onBack, titleFrom }: { title?: string; 
           <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
         </IconButton>
         <Animated.View style={{ flex: 1, marginLeft: space[1], opacity: shown ?? 1 }}>
-          <Text size="titleLarge" numberOfLines={1} accessibilityRole="header">
+          <Text size="titleLarge" accessibilityRole="header" style={{ paddingVertical: space[1] }}>
             {title ?? ""}
           </Text>
         </Animated.View>

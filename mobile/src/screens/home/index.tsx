@@ -1,128 +1,106 @@
-// Beranda (src/app/screens/home.tsx) on a phone: the ten-second answer. The date and the greeting;
-// then "Sekarang", the class going on (or next) with where its attendance counts and the one thing
-// to do; then, in one column, "Hari ini", "Perlu perhatianmu", a short "Yang berubah" (the bell has
-// it all) and this term's courses. The data and the words are the desktop's own: the same hooks,
-// the same src/core/needs reasoning, the same catalog keys.
-import { useMemo } from "react";
+// Beranda (round 2, v4, chosen by Arqila: mobile/design/r2-directions/v4): in three seconds, whether a class is on and
+// what to press, and what to handle next. The blue header with the greeting (the screen's one title), search and the
+// bell (./header.tsx); the now card over its edge (./now.tsx: the wave, the minutes left, Tandai Hadir); "Perlu kamu
+// urus", the two most pressing things as tinted cards (./urus.tsx); "Nanti hari ini", the classes still to come
+// (./later.tsx). Everything else (the whole list, the date and term, what changed) is one tap deeper, on "Perlu kamu
+// urus"'s screen (./needs-screen.tsx). The data and the reasoning are the desktop's (src/core/needs). While the first
+// read runs, each part stands in its own shape and fills in. Cards rise in a stagger the first time only.
+import { useLayoutEffect, useMemo } from "react";
 import { View } from "react-native";
-import { type TermCourse, useTerm, useTermCourses } from "../../../../src/app/courses";
+import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useHomeWorld } from "../../../../src/app/home-world";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
-import { firstName } from "../../../../src/app/names";
 import { useDataset } from "../../../../src/app/store";
-import { PERIOD_NEAR } from "../../../../src/core/exams";
-import { attention, dueItems, type HomeContext, homeContext, needsRange, nowCard, todayPlan, unreadAhead } from "../../../../src/core/needs";
+import { attention, dueItems, type HomeContext, homeContext, nowCard, todayPlan, unreadAhead } from "../../../../src/core/needs";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { perfFirstData, usePerfDrawn } from "../../perf";
-import { Card, Skeleton } from "../../ui/display";
-import { Icons } from "../../ui/icons";
-import { Meta, PageHeader } from "../../ui/layout";
-import { radius, space, useTheme } from "../../ui/theme";
-import { Changes } from "./changes";
-import { HomeCourses } from "./courses";
-import { NeedsYou } from "./needs";
-import { NowSection } from "./now";
-import { cardKey, Today } from "./today";
+import { ProblemBanner } from "../../shell/source-status";
+import { Skeleton } from "../../ui/display";
+import { Rise } from "../../ui/expressive";
+import { space, useTheme } from "../../ui/theme";
+import { FirstScanCard, NotifyCard } from "./first-run";
+import { HomeHeader, OVERLAP } from "./header";
+import { Later } from "./later";
+import { NowSection, useCardStyle } from "./now";
+import { cardKey } from "./parts";
+import { Urus } from "./urus";
 
-/** Everything under the tab's header: the page itself is the route's (app/(tabs)/index.tsx). */
+/** Everything on Beranda's page: the page itself is the route's (app/(tabs)/index.tsx). */
 export function Home() {
-  const f = useFormat();
-  const now = useNow();
+  const began = Date.now();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
   const courses = useTermCourses();
-  const term = useTerm();
   const name = account?.name ?? student?.name;
   const world = useHomeWorld();
   const context = useMemo(() => (world ? homeContext(world) : undefined), [world]);
-  // The timetable's page changed: said here. A class on it the app couldn't read is said in Hari ini and on the card, quietly.
+  // The timetable's page changed: said here. A class on it the app couldn't read is said on the card, quietly.
   const timetableChanged = useChangedPage(["six.schedule"]);
   usePerfDrawn(context !== undefined, "tab");
   if (context !== undefined && name) perfFirstData();
-
+  // A redraw's cost on the phone: what the minute's tick or new data does to Beranda (the lab reads it from logcat).
+  useLayoutEffect(() => {
+    const total = Date.now() - began;
+    if (total > 30) console.log(`[perf] home-render ${total}`);
+  });
   return (
     <>
-      <PageHeader
-        eyebrow={
-          <Meta>
-            {f.dateLong(now)}
-            {term ? f.term(term) : null}
-          </Meta>
-        }
-        title={`${f.greeting()}${name ? `, ${firstName(name)}` : ""}`}
-        description={<ExamWeek />}
-      />
-      {timetableChanged && (
-        <View style={{ marginBottom: space[6] }}>
-          <SixPageNote datasets={["six.schedule"]} />
+      <HomeHeader />
+      <View style={{ marginTop: -OVERLAP, paddingHorizontal: space[4], paddingBottom: space[4] }}>
+        {context ? <Answers context={context} courses={courses ?? []} /> : <Loading />}
+        <View style={{ marginTop: space[4], gap: space[3] }}>
+          <ProblemBanner />
+          {timetableChanged && <SixPageNote datasets={["six.schedule"]} />}
         </View>
-      )}
-      {context ? <Answers context={context} courses={courses ?? []} /> : <AnswersLoading />}
-      <HomeCourses courses={courses} nim={student?.nim} context={context} />
+      </View>
     </>
   );
 }
 
-function AnswersLoading() {
-  const theme = useTheme();
+/** Beranda's shape before its data: the now card, two cards, two rows. Never a spinner on a blank page. */
+function Loading() {
+  const surface = useCardStyle();
+  const v = useTheme().v4;
   return (
-    <View accessibilityState={{ busy: true }}>
-      <Card variant="raised" style={{ padding: space[5], gap: space[3] }}>
-        <Skeleton height={12} width={160} />
-        <Skeleton height={20} width="66%" />
-        <Skeleton height={12} width="50%" />
-      </Card>
-      <View style={{ marginTop: space[8], height: 112, borderRadius: radius.xl, backgroundColor: theme.color.fill }} />
+    <View accessibilityState={{ busy: true }} testID="home.loading">
+      <View style={[surface, { padding: space[4], gap: space[4] }]}>
+        <View style={{ flexDirection: "row", gap: space[3] }}>
+          <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
+          <View style={{ flex: 1, gap: space[2] }}>
+            <Skeleton height={12} width="45%" />
+            <Skeleton height={18} width="85%" />
+          </View>
+        </View>
+        <Skeleton height={14} width="100%" />
+      </View>
+      <View style={{ flexDirection: "row", gap: 10, marginTop: space[12] }}>
+        {[0, 1].map((i) => (
+          <View key={i} style={{ flex: 1, height: 148, borderRadius: 20, backgroundColor: v.card }} />
+        ))}
+      </View>
     </View>
   );
 }
 
-/** The day first, then what needs the Student, then what changed: one column, in the order a thumb scrolls. */
+/** The class now, what to handle, and what's left today: one column, in the order a thumb scrolls. */
 function Answers({ context, courses }: { context: HomeContext; courses: readonly TermCourse[] }) {
   const card = useMemo(() => nowCard(context), [context]);
   const plan = useMemo(() => todayPlan(context), [context]);
   const needs = useMemo(() => attention(context, card, plan), [context, card, plan]);
   const due = useMemo(() => dueItems(context, plan), [context, plan]);
-  const range = useMemo(() => needsRange(context), [context]);
   return (
     <>
-      <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} />
-      <Today context={context} plan={plan} due={due} courses={courses} onCard={cardKey(card)} />
-      <NeedsYou needs={needs} due={due} range={range} courses={courses} />
-      <Changes context={context} />
+      <Rise screen="home" index={0}>
+        <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} />
+      </Rise>
+      <Rise screen="home" index={1}>
+        <FirstScanCard />
+      </Rise>
+      <Urus needs={needs} due={due} courses={courses} />
+      <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
+      {/* The one ask, after what the Student came for: the now card and Perlu kamu urus stay the first things seen. */}
+      <Rise screen="home" index={7}>
+        <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
+      </Rise>
     </>
-  );
-}
-
-/** UTS or UAS week starting within two weeks, or going on, from ITB's calendar: a calm line, not a tag. */
-function ExamWeek() {
-  const t = useT();
-  const f = useFormat();
-  const now = useNow();
-  const theme = useTheme();
-  const calendar = useDataset("itb.calendar");
-  const exams = calendar?.events.filter((e) => e.kind === "uts" || e.kind === "uas") ?? [];
-  const running = exams.find((e) => e.start <= now && now < e.end);
-  const next = exams.find((e) => e.start > now && e.start - now <= PERIOD_NEAR);
-  if (!running && !next) return null;
-  const date = (at: number) => `${f.weekday(at)}, ${f.dayMonth(at)}`;
-  let facts: string[];
-  if (running) facts = [t(running.kind === "uts" ? "home.utsNow" : "home.uasNow", { date: date(running.end - 1) })];
-  else {
-    const days = f.dayOffset(next!.start);
-    facts = [
-      t(next!.kind === "uts" ? "home.utsStarts" : "home.uasStarts", { date: date(next!.start) }),
-      days === 1 ? t("time.tomorrowWord") : t("home.inDays", { count: days }),
-    ];
-  }
-  return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-      <View style={{ paddingTop: 2 }}>
-        <Icons.CalendarClock size={16} color={theme.color.faint} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Meta>{facts}</Meta>
-      </View>
-    </View>
   );
 }

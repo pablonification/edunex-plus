@@ -33,6 +33,49 @@ motion and onboarding are open. The desktop is a reference for data only.
   Hidup (`mobile-r2-mockups`, a6d187f, `v2-hidup/`): each course its colour and icon tile, the class now a vivid card in
   its colour with a live progress bar and one white button, big numbers for what needs you, Plus Jakarta Sans for
   headings and numbers. Words: Beranda 47, Jadwal 37, class sheet 21. Shown; waiting for Arqila's word.
+- **2026-11-01: Arqila on v2: "this is ai slop … why r u losing ur taste".** Cause (the lead's): the stock "AI
+  dashboard" kit (gradient blobs, glass pill, rainbow avatar ring, emoji, heavy black type), off-brand purple, and
+  designing from store banners and defaults instead of the real apps. Not the design skill, not Android. v3
+  (`mobile-r2-mockups`, 546c888, `v3/`) is built from the reference apps' in-app screens: Edunex blue in one header
+  area holding the class now and its one button, a grey sheet, white hairline groups, course icons on white tiles,
+  outlined chips, Roboto at medium weights; Jadwal and the sheet as calm as Todoist. Words 45 / 42 / 23. Shown; the
+  home helper builds it as a native Beranda prototype (`mobile-r2-proto-beranda`) with the motion, recorded on `mid`.
+- **2026-11-01: Arqila on v3: "still very plain, is it just because of the mockup?"** Mostly not. v3 kept the reference
+  apps' skeleton (blue header, white rows) and dropped what makes them look alive even in stills: visible colour per
+  item, a number-first focal card, a brand typeface, expressive shapes. Stills also hide motion, the smaller part.
+  v4 (`mobile-r2-mockups`, `v4/`): v3's layout plus course-tinted tiles with filled two-tone icons, "Perlu kamu urus"
+  as two tinted countdown cards ("7 hari"), Plus Jakarta Sans for headings and numbers, M3 Expressive wavy progress
+  for the class now, a cookie check after Tandai Hadir, and the motion live (`v4-live.html`, `v4-motion.webm`). Words
+  Beranda 48, Jadwal 40, sheet 14. Every pair passes contrast.py. Shown; waiting for Arqila's word before building.
+- **2026-11-01: Arqila: "go with v4".** The home helper builds Beranda and the class sheet natively from v4 on
+  `mobile-r2-home` (Plus Jakarta Sans, course ink/tint pairs, wavy progress, cookie check, springs on the UI thread),
+  with pictures on `mid`/`weak` and a recording. Arqila sees it in the app before v4 goes to other screens (Decision 23).
+  Tasks-academic resumes its look-free work; schedule-courses is done with it (below). The desktop's helpers and the
+  lead share one account: all stopped at the 5-hour limit (2026-11-01 01:24–01:42), resumed after 02:00.
+- **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
+  (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
+  lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
+  `task-clock.test.ts`); `mobile/qa/sync.sh` turns the demo's request log into W2's numbers (702df81, 313b7a6). Stalls
+  before (`mid`): Nilai 207/129 ms, Rencana 118/96/89 ms, Tugas 131 ms (+ 294–333 ms at SIX's check-in read, fixed by
+  the home helper's 42e5e39). Left: W2 numbers, the stalls after, Rencana's Check A rerun (an adb error cut it).
+- **Home helper, fixes for the first look (6d3ab0a):** builds on GitHub Actions now (the desktop's Gradle is stuck).
+  Fresh install to Beranda with data on `mid`: 2.7 / 2.1 / 2.1 s, against 6.8 s for the shell on the same machine
+  (target under 2 s; the demo's full first read ends near 7 s, in the background).
+- **2026-11-01 04:35: first look at Beranda v4 (36d17ad, CI run 41241344121, Redroid, quick look only).** Structure as
+  v4: the blue header with the greeting, the now card with the wave and minutes left, two tinted Perlu kamu urus cards
+  (73% Kehadiran in red, 7 hari UTS), Nanti hari ini rows with tiles and one chip. Sent back to the home helper: the
+  notification card is round 1's grey card with a banned sentence, placed above Perlu kamu urus (high); the class
+  sheet's attendance row wraps two banned SIX sentences beside unexplained pips (high); unequal card heights and a
+  tiny squiggle at low progress (medium). The desktop was overloaded by two helpers' parallel Gradle builds (locks,
+  hung PowerShell): tasks-academic paused its builds so Beranda's proof goes first.
+- **Schedule-courses' look-free report (head 2dbc39c, layout WIP not merged):** W1 proven on `mid` (PDF opens in
+  Drive's viewer; extension-less PDF read from its bytes; DOCX with no app says so under the row with Bagikan and Buka
+  di Edunex; flow `w01-files` fails on round 1, passes now). W5 proven: Jadwal scrolling at a median 8.33 ms (120 fps)
+  vs 16.67 ms on round 1 (`w05-refresh.sh`). W13: the reminder's Tandai Hadir opens SIX's page in the app
+  (`w13-tandai-hadir`), a "Today" widget's data and its tap link to a class sheet, calendar sync as a setting
+  (34 demo events, rewritten on change), "Ingatkan sebelum kuliah" in Jadwal's menu. Merge note: 081dd15 adds an
+  `actions` slot to `TabHeader`, which conflicts with the home helper's 5abbb31. To merge: the plumbing commits
+  before the v4 roll-out, the layout after it.
 - CI run 41219489671 (819ec87): APKs built; `e2e (app)` failed (logs once the run ends); the scenarios still running.
 - Meanwhile only work that doesn't depend on the look: fresh-install start under 2 s, JS stalls, device proofs for
   W1, W2 and W5, CI (run 41219489671 on 819ec87), the two cut-off texts, the one-title fix.
@@ -62,11 +105,14 @@ motion and onboarding are open. The desktop is a reference for data only.
 
 | Tab (first screen, light, `mid`) | Words before (round 1 / shell) | Target | After |
 | --- | --- | --- | --- |
-| Beranda | ~150 (shell) | 40s | |
-| Jadwal | | 40s | |
-| Tugas | | 40s | |
-| Kuliah | | 40s | |
-| Akademik | | 40s | |
+| Beranda | ~150 (shell) / 88 (origin/mobile) | 40s | |
+| Jadwal | 64 (origin/mobile) | 40s | |
+| Tugas | 80 (origin/mobile) | 40s | |
+| Kuliah | 99 (origin/mobile) | 40s | |
+| Akademik | 27 (origin/mobile) | 40s | |
+
+Counted with `mobile/qa/words.sh <serial> <tab>` (tasks-academic aabc3f4): `mid`, light, fresh demo, status bar and tab
+labels skipped.
 
 ### Machines
 
@@ -82,21 +128,21 @@ Causes marked "suspected" are read from the code and get proved on a device befo
 
 | # | Found | Cause | Fix | Proof | Status |
 | --- | --- | --- | --- | --- | --- |
-| W1 | Can't open modules or PDFs, or download them | (a) A download is named from the lecturer's title plus an extension guessed from Edunex's `type` and the link; with none, the file has no type, `canPreview` says no app can open it. The server's own Content-Type and the file's first bytes were never asked. (b) Anything not an Edunex file link ("Buka di Edunex") opens Edunex in the outside browser, signed out (W15). (c) A module opens inside the course page, not as its own screen (Back fights it, W6) | Name and type from the response (Content-Type, Content-Disposition), then from the bytes (%PDF, PK…); open with that type; a module is a screen of its own; Edunex pages in the app, signed in | `test/mobile/file-kind.test.ts` (85f2461); flow `w01-files` (Modul → module → PDF opens in Android's viewer) on the lab | fix pushed; device proof and (c) with the shell |
+| W1 | Can't open modules or PDFs, or download them | (a) A download is named from the lecturer's title plus an extension guessed from Edunex's `type` and the link; with none, the file has no type, `canPreview` says no app can open it. The server's own Content-Type and the file's first bytes were never asked. (b) Anything not an Edunex file link ("Buka di Edunex") opens Edunex in the outside browser, signed out (W15). (c) A module opens inside the course page, not as its own screen (Back fights it, W6) | Name and type from the response (Content-Type, Content-Disposition), then from the bytes (%PDF, PK…); open with that type; a module is a screen of its own; Edunex pages in the app, signed in | `test/mobile/file-kind.test.ts` (85f2461); flow `w01-files` (Modul → module → PDF opens in Android's viewer) on the lab | proven on `mid` (`w01-files`, schedule-courses 2dbc39c, to merge); (c) done with the shell |
 | W2 | Updating from SIX/Edunex is slow | Every start runs every feed at once, fresh or not (`Scheduler.start`); SIX's pages go one at a time 2 s apart, so a full read is many pages × 2 s; each saved dataset is hashed with a pure-JS SHA-1 over a sorted JSON copy on Hermes (no JIT) | Saved data first, only feeds that are due run at start (freshness from each dataset's fetchedAt), the rest on their cadence; pull to refresh still reads all; change detection by string compare, no hashing on the JS thread; measure requests and time per sync | `test/engine/start-due-only.test.ts` (3 of 6 failed before 39b9a51): a start 5 min after a full read sends only the sign-in checks (before: 83 Edunex requests, 13 SIX pages = 28 s of SIX's 2 s gaps); `dataset-hash.test.ts`. First-ever sync: 87 + 67 requests, 242 s pretend time (53 are SIX's public catalog at 3.5 s) | fix pushed; time on the lab |
 | W3 | Moving around lags: frame drops, a freeze before a page shows | Suspected: JS-drawn tabs mount each tab on first visit; screens compute everything before the first frame; the engine's sync work (parse, hash, write) on the same JS thread | Native tabs (preloaded), screens that draw their first screenful first, engine work cut and spread out; measured with `[perf]` lines and Perfetto | `[perf] screen/tab` under target on `weak` and `mid` | todo |
-| W4 | Hierarchy: what to look at first isn't clear | Desktop layout: every fact at once, hairline boxes, grey text | Redesign per screen (plans below) | judge 8+/10 per screen | todo |
+| W4 | Hierarchy: what to look at first isn't clear | Desktop layout: every fact at once, hairline boxes, grey text | Redesign per screen (plans below) | judge 8+/10 per screen; Beranda: flow `round2/w04-home-hierarchy` | Beranda: done on `mobile-r2-home` (w04 fails on 9395cea, passes on 339318a) |
 | W5 | Capped at 60 fps on a 90/120 Hz screen | Suspected: the window asks for no frame rate, so phones that keep apps at 60 Hz (Xiaomi, Samsung's adaptive) do | Ask for the display's fastest mode at the same size (`preferredDisplayModeId`) from MainActivity, by a config plugin | `dumpsys display`/SurfaceFlinger + framestats at ~8.3/11.1 ms on `mid` | plugin pushed (f54ca42, seen in prebuild's MainActivity); device proof |
 | W6 | Swipe-back (Android's back gesture) doesn't work | Found by the shell helper: React Native 0.88 hands Back to JS only on Android 16; with predictive back on, 13–15 closed the app from any screen. And a module open inside the course page (BackHandler): the first swipe did nothing, the second left the course | Predictive back on (RN 0.88 registers its OnBackPressedCallback at targetSdk 36), every drill-down a native stack screen, BackHandler only while a sheet or edit is open | flow `w06-back`: the gesture (`input swipe` from the edge) and Back from every pushed screen | fixed (shell, 181ebcd): `plugins/back-to-js.js`; seen on `mid` (Settings → Back → Beranda; module → edge swipe → course → Back → Kuliah); flow to write |
-| W7 | Swiping on items ("needs you") feels weird | iOS-style reveal-a-button swipe with friction 1.6 | Android's way (Gmail): swipe past a threshold commits with a haptic, the row slides out, a snackbar offers Urungkan; long-press menu stays | flow `w07-swipe` | todo |
+| W7 | Swiping on items ("needs you") feels weird | iOS-style reveal-a-button swipe with friction 1.6 | Android's way (Gmail): swipe past a threshold commits with a haptic, the row slides out, a snackbar offers Urungkan; long-press menu stays | flow `round2/w07-swipe` | done on `mobile-r2-home` (`ui/swipe.tsx`: commit past 35% with a haptic tick, row slides out and folds, Urungkan; snooze springs back and opens its times; w07 fails on 9395cea, passes on 339318a) |
 | W8 | A sheet's dark overlay slides up with the sheet | `Modal animationType="slide"` moves the scrim with the sheet | Native sheets (react-native-screens formSheet: Material bottom sheet, scrim fades, predictive back) | recording; flow opens and drags each sheet | fixed (shell): scrim fades while the sheet slides (frame at 150 ms), recording on `media-shell` |
 | W9 | Use native UI wherever possible | JS tab bar, JS sheets, JS menus | Native bottom navigation (expo-router NativeTabs), native stack, native sheets, native switches, Android's pickers and share | judge, review | todo |
-| W10 | Animations janky, not joyful | Slide-from-right JS-thread work during transitions, no motion system | Android's own transitions, spring motion on the UI thread (Reanimated) for a few moments: a hand-in, a check-in, a swipe | recording judged | todo |
+| W10 | Animations janky, not joyful | Slide-from-right JS-thread work during transitions, no motion system | Android's own transitions, spring motion on the UI thread (Reanimated) for a few moments: a hand-in, a check-in, a swipe | recording judged; Beranda: flow `round2/w10-check-in-done` | Beranda: the swipe's commit, and after the Student went to SIX's Tandai Hadir and the button is gone, a check that draws itself and a haptic (the words claim no presence; fades with Remove animations), on `mobile-r2-home` |
 | W11 | Screens too crowded | As W4 | Fewer facts per row; secondary detail one tap away | judge | todo |
-| W12 | Home: a course card's arrow and the card go to different places | Two press targets on one card | One card, one target, one outcome, everywhere (a review rule) | flow `w12-one-target` | todo |
+| W12 | Home: a course card's arrow and the card go to different places | Two press targets on one card | One card, one target, one outcome, everywhere (a review rule) | flow `round2/w12-one-target` | Beranda done on `mobile-r2-home`: the course cards (and their ↗) left Beranda for Kuliah; the now card is one target (its sheet), its one button labelled; w12 fails on 9395cea, passes on 339318a |
 | W13 | "Add to phone calendar" feels bolted on | A one-off export | The schedule as part of the app: Jadwal's agenda as the main view, a reminder before class with a Tandai Hadir action, a today widget, and calendar sync as a setting that keeps itself current | flows `w13-*`; `booking.test.ts` (the button) | Tandai Hadir button on class reminders (cfda093); agenda, widget's today, calendar sync with the Jadwal helper |
 | W14 | Tandai Hadir and other Edunex/SIX pages ask to sign in again | Only Tandai Hadir's own page carried SIX's session; every other "Buka di SIX/Edunex" (and Tandai Hadir when the class isn't on the read timetable) went to the outside browser | One in-app page for Edunex and SIX, opened with the app's session (SIX's cookie, Edunex's auth in its site's storage before the page loads) | `test/mobile/signed-pages.test.ts` (routing failed before e1a3c60); flow on the demo's page note | Cause found: once both were signed in, `signInToBoth` → `windows.forget()` wiped every web view's data (Microsoft's session, Edunex's saved sign-in, SIX's cookies). Fix pushed (e1a3c60): kept until sign-out, one in-app page (`app/web.tsx`) for every Edunex/SIX link; device proof needs a real account |
-| W15 | Onboarding is bad | A dark three-step deck before anything useful | Redesigned (plan below) | judge + fresh tester | todo |
+| W15 | Onboarding is bad | A dark three-step deck before anything useful | Redesigned (plan below) | judge + fresh tester; flow `round2/w15-onboarding` | done on `mobile-r2-home` (w15 fails on 9395cea, passes on 339318a) |
 
 ### FAST: targets and the table (desktop emulators, release builds only)
 
@@ -142,7 +188,7 @@ bar, never greyed out.
 
 | Screen | In 3 seconds | Hierarchy (first → last) | Main action | Navigation |
 | --- | --- | --- | --- | --- |
-| Beranda | Is a class on now or next, and do I need to press Tandai Hadir? What's urgent? | 1. Now/next class card (time big, course, room; one button when Tandai Hadir is open) 2. Perlu perhatianmu (≤3 rows, "Lihat semua") 3. Hari ini (compact list of today's classes) 4. Yang berubah (one row → its sheet) | Tandai Hadir (when open) | tab; card → class sheet; row → its Task/exam |
+| Beranda | Is a class on now or next, and do I need to press Tandai Hadir? What's urgent? | 1. Now/next class card (time big, course, room; one button when Tandai Hadir is open) 2. Perlu perhatianmu (≤3 rows, "Lihat semua") 3. Hari ini (compact list of today's classes) 4. Yang berubah (one row → its sheet) | Tandai Hadir (when open) | tab; card → its class sheet (Beranda's own, `screens/home/class-sheet.tsx`: the now card's cut facts, Tandai Hadir / Presensi / Gabung and Buka mata kuliah side by side); a Hari ini class → the same sheet; a need → its Task/exam; Lihat semua → `/needs`; Yang berubah → its sheet → Lihat semua → the bell. The term's courses moved to Kuliah (W12). First run: the summary and the notification ask are cards here |
 | Jadwal | Where am I next, and what's this week like? | Week strip; agenda by day (time, course, room; changes and clashes as one chip) | Open a class | tab; month as a top-bar action; class → sheet; sheet → course |
 | Class sheet | Where and when, can I skip it, Tandai Hadir | Time + room large; attendance budget line; buttons | Tandai Hadir / Buka mata kuliah | native sheet |
 | Tugas | What's due next? | To do / Done; course chips; rows by week (title, course, due day and time; overdue red) | Open the Task | tab; row → Task |
@@ -156,7 +202,7 @@ bar, never greyed out.
 | Search | Find anything | Field focused with the keyboard; results grouped | Open a result | push from any tab's top bar |
 | Notifikasi | What happened | Unread first; tap opens it | — | push from Beranda's bell |
 | Settings | Change one thing fast | Profile (name, NIM) on top; groups: Tampilan, Notifikasi, Presensi, Akun, Tentang; native switches | — | push from the avatar |
-| Onboarding | What this is, and one button to start | See below | Masuk dengan akun ITB | — |
+| Onboarding | What this is, and one button to start | See below (built: `shell/welcome.tsx`; the reasons are "Kuliah hari ini dan Tandai Hadir", "Tugas dan tenggatnya", "Jatah absen dan nilai"; under the button, "Kata sandimu tidak pernah sampai ke Edunex Plus") | Masuk dengan akun ITB | — |
 
 **Onboarding (full redesign).** No deck. One light screen in the app's colours: the mark, one line
 ("Edunex dan SIX, di satu aplikasi"), three short reasons as icons with a word each, one filled button
@@ -214,7 +260,7 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | --- | --- | --- | --- |
 | qa | Set up the lab, baseline numbers, before pictures | `mobile-qa` | merged (d9a156b): `mobile/qa/README.md`, `BASELINE.md`, 34 before pictures in `mobile/report/img/before/`, recordings on `media-qa` |
 | shell | F3, F4, F5, F9: native tabs (5), native stack routes, native sheets, M3 design system, `mobile/DESIGN.md` | `mobile-shell` | merged (181ebcd, head 315aabb); Check A signed-in 764/764. Found W6's real cause: RN 0.88 hands Back to JS only on Android 16, so with predictive back on, 13–15 closed the app (fixed by `plugins/back-to-js.js`). Tab switch 53–109 ms median, screen open 17–108 ms (mid/weak) |
-| home | Beranda, swipe (W7), one target (W12), onboarding (W15), fresh-install speed | `mobile-r2-home` (from `mobile-shell`) | running |
+| home | Beranda, swipe (W7), one target (W12), onboarding (W15), fresh-install speed | `mobile-r2-home` (from `mobile-shell`) | handed back; notes `mobile/qa/home-notes.md` |
 | schedule-courses | Jadwal agenda, class sheet, W13 (reminder's Tandai Hadir, widget today, calendar sync), Kuliah, course + module, W1 on the device, W5 proof | `mobile-r2-schedule-courses` | running |
 | tasks-academic | Tugas, Task, Exam, Akademik and its screens, Settings, Search, Notifikasi, W9 | `mobile-r2-tasks-academic` | running |
 
@@ -537,6 +583,11 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
+- **2026-11-01: the desktop needs a restart when you're next at it.** Gradle daemons hung in a Windows file call
+  that Windows won't kill. They held `~/.gradle`'s lock, and two build folders (`C:\b\r2tasks`, `C:\b\r2tasks2`)
+  have files held open until a reboot. PowerShell's process queries hang on the same thing. Helpers now build
+  one at a time, each with its own Gradle home, or on GitHub Actions. Proposed: restart DESKTOP-4SEOA4J when no
+  helper is running (I'll say when in the lead's thread). Nothing is lost, everything is pushed.
 - **Round 2: the desktop (DESKTOP-4SEOA4J) has only one Claude account**, shown as "Claude"; there is no
   "Contact" or "Dev 1" there. All helpers run on that one account, so three at once may run it out sooner.
   Proposed: add the two accounts in T3 Code on the desktop (Settings → Providers) if you want them split; I

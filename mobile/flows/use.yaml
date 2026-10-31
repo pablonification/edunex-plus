@@ -9,6 +9,10 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: tab.home
     timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 
 # S3: the Task marked as handed in another way, and that undone; then an answer and a file from Android's own picker
 # (mobile/flows/files/jawaban.pdf, put in Downloads by scripts/ci/mobile-e2e.sh), kept as a draft and handed in.

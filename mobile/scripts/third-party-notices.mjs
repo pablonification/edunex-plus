@@ -10,7 +10,8 @@
 //   Native's libraries), which Gradle links in whether or not its JavaScript is used;
 // - what React Native builds into the app from outside npm (Hermes, its Android and C++ libraries),
 //   at the versions this React Native names;
-// - LINE's and GitHub's marks, drawn by "Laporkan masalah" from Simple Icons.
+// - LINE's and GitHub's marks, drawn by "Laporkan masalah" from Simple Icons;
+// - Plus Jakarta Sans, the headings' and numbers' typeface (assets/fonts, SIL Open Font License).
 //
 //   node scripts/third-party-notices.mjs               the list, from a fresh bundle (about 15 s)
 //   node scripts/third-party-notices.mjs --if-missing  only when there's no list yet (`npm start`)
@@ -39,6 +40,15 @@ const SIMPLE_ICONS = {
     "them only to name where a problem report goes, as their guidelines describe",
     "(https://line.me/en/logo, https://github.com/logos).",
   ].join("\n"),
+};
+
+/** The headings' and numbers' typeface, bundled from assets/fonts (plugins/fonts.js) with its licence beside it. */
+const JAKARTA = {
+  name: "Plus Jakarta Sans",
+  version: "2.071",
+  licence: "OFL-1.1",
+  source: "https://github.com/tokotype/PlusJakartaSans",
+  text: fs.readFileSync(path.join(MOBILE, "assets", "fonts", "PlusJakartaSans-OFL.txt"), "utf8"),
 };
 
 /**
@@ -288,7 +298,7 @@ export function openSourceList() {
     const entry = packageEntry(dir);
     byKey.set(`${entry.name}@${entry.version}`, entry);
   }
-  const entries = [...byKey.values(), ...nativeEntries(), SIMPLE_ICONS];
+  const entries = [...byKey.values(), ...nativeEntries(), SIMPLE_ICONS, JAKARTA];
   return entries.sort((a, b) => a.name.localeCompare(b.name, "en") || (a.version ?? "").localeCompare(b.version ?? "", "en"));
 }
 
