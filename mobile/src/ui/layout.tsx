@@ -67,6 +67,7 @@ export function Page({
   testID,
   scrollRef,
   contentStyle,
+  background,
   onScroll,
   ...rest
 }: {
@@ -78,6 +79,8 @@ export function Page({
   testID?: string;
   scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
   contentStyle?: ViewStyle;
+  /** The page's colour, when it isn't the surface (round 2's Beranda: v4's page grey under white cards). */
+  background?: string;
 } & Omit<ScrollViewProps, "children" | "refreshControl">) {
   const theme = useTheme();
   const bottom = useBottomInset();
@@ -103,7 +106,7 @@ export function Page({
   return (
     <View
       ref={frame}
-      style={{ flex: 1, backgroundColor: theme.color.surface }}
+      style={{ flex: 1, backgroundColor: background ?? theme.color.surface }}
       testID={testID}
       // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx).
       onLayout={inTabs ? () => frame.current?.measureInWindow((_x, y, _width, height) => reportTabsBottom(y + height)) : undefined}

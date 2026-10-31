@@ -160,6 +160,74 @@ const COURSE = {
 } as const;
 
 /**
+ * Each course colour as a tile (round 2, v4: DESIGN.md "Course tiles"): [ink on light, ink on dark, tint on light, tint
+ * on dark]. The ink is the course colour darkened (light) or lightened (dark) until it reads at 4.5:1 or more on its
+ * tint and on a card; the tint is the colour mixed into the card. Measured with contrast.py (mobile/qa/home-notes.md).
+ */
+const COURSE_TILE = {
+  cyan: ["#02748c", "#06bfe7", "#e3f2f6", "#143b48"],
+  indigo: ["#6c45f6", "#9787ff", "#efebff", "#2d2b4d"],
+  berry: ["#a80165", "#dd71a5", "#f5e3ee", "#3d2436"],
+  blue: ["#015f98", "#5b9ed1", "#e3edf4", "#1e3142"],
+  orchid: ["#a03db5", "#eb95ff", "#f8ebfb", "#41334d"],
+  magenta: ["#b10ca6", "#e167d5", "#f6e4f5", "#3e2443"],
+  purple: ["#8500c2", "#bb7be5", "#f2e3f8", "#332546"],
+  pink: ["#b43a82", "#ff7ac3", "#faebf4", "#452d41"],
+  plum: ["#843e8b", "#bb84c0", "#f1eaf2", "#352a3d"],
+  lavender: ["#7f57ac", "#b889ee", "#f2eef8", "#362f49"],
+} as const;
+/** A course with no colour yet: the same in grey. */
+const GREY_TILE = ["#5f6673", "#9aa1ae", "#edeef0", "#31353c"] as const;
+
+/**
+ * Round 2's look (v4, chosen by Arqila; mobile/design/r2-directions/v4): the page, its cards, the blue header, the
+ * one filled button and the tinted states. Every text pair through contrast.py (mobile/qa/home-notes.md).
+ */
+const V4 = {
+  light: {
+    page: "#f1f3f7",
+    card: "#ffffff",
+    line: "#e6e9ef",
+    fg: "#14171c",
+    fg2: "#3f4652",
+    muted: "#5f6673",
+    brand: "#1f63e0",
+    onBrand: "#ffffff",
+    head: "#1f63e0",
+    onHead: "#ffffff",
+    okBg: "#e3f4e8",
+    okFg: "#11692f",
+    redBg: "#fde7e6",
+    redFg: "#a8201a",
+    ambBg: "#fff0d9",
+    ambFg: "#7f4500",
+    live: "#1e9e5a",
+    bellDot: "#ffcc4d",
+  },
+  dark: {
+    page: "#0c0e12",
+    card: "#171a20",
+    line: "#262a33",
+    fg: "#eef0f4",
+    fg2: "#c8cdd6",
+    muted: "#9aa1ae",
+    brand: "#a9c4ff",
+    onBrand: "#0a2a66",
+    head: "#163f94",
+    onHead: "#ffffff",
+    okBg: "#14301f",
+    okFg: "#8fe0a8",
+    redBg: "#3d1b1a",
+    redFg: "#ffb4ab",
+    ambBg: "#3a2a12",
+    ambFg: "#ffcf8a",
+    live: "#3cc77d",
+    bellDot: "#ffcc4d",
+  },
+} as const;
+export type V4Palette = { [K in keyof (typeof V4)["light"]]: string };
+
+/**
  * Material 3's type scale (size/line height in sp; Android scales them with the font size setting). Weights are
  * the scale's; `Text`'s `weight` overrides one for emphasis (M3 Expressive's emphasized styles).
  */
@@ -233,9 +301,11 @@ export const space = { 0.5: 2, 1: 4, 1.5: 6, 2: 8, 2.5: 10, 3: 12, 3.5: 14, 4: 1
 /** The least a finger can hit (Material's 48 dp), whatever the control looks like. */
 export const TOUCH = 48;
 
-export const weight = { regular: "400", medium: "500", semibold: "600", bold: "700" } as const;
+export const weight = { regular: "400", medium: "500", semibold: "600", bold: "700", extrabold: "800" } as const;
 
 export const font = {
+  /** Headings and numbers (v4): Plus Jakarta Sans, bundled (plugins/fonts.js); one family per weight on Android. */
+  display: { semibold: "PlusJakartaSans-SemiBold", bold: "PlusJakartaSans-Bold", extrabold: "PlusJakartaSans-ExtraBold" },
   sans: Platform.select({ android: "sans-serif", default: undefined }),
   medium: Platform.select({ android: "sans-serif-medium", default: undefined }),
   mono: Platform.select({ android: "monospace", default: "Menlo" }),
@@ -261,8 +331,12 @@ export const motion = {
 export interface Theme {
   scheme: "light" | "dark";
   color: Palette;
+  /** Round 2's surfaces and states (v4). */
+  v4: V4Palette;
   /** A course color as the desktop names it (`var(--course-blue)`), in this theme's tone. */
   course(tone: string | undefined): string;
+  /** A course's tile colours (v4): its ink (icon, big numbers, a pill's word) and its tint (the tile, the card). */
+  courseTile(tone: string | undefined): { ink: string; tint: string };
 }
 
 function makeTheme(scheme: "light" | "dark"): Theme {
@@ -274,6 +348,12 @@ function makeTheme(scheme: "light" | "dark"): Theme {
     course(tone) {
       const id = tone?.match(/--course-([a-z]+)/)?.[1] as keyof typeof COURSE | undefined;
       return id && COURSE[id] ? COURSE[id][index] : color.onSurfaceVariant;
+    },
+    v4: V4[scheme],
+    courseTile(tone) {
+      const id = tone?.match(/--course-([a-z]+)/)?.[1] as keyof typeof COURSE_TILE | undefined;
+      const tile = id && COURSE_TILE[id] ? COURSE_TILE[id] : GREY_TILE;
+      return { ink: tile[index], tint: tile[2 + index] };
     },
   };
 }
