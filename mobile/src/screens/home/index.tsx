@@ -115,33 +115,16 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   const needs = useMemo(() => attention(context, card, plan), [context, card, plan]);
   const due = useMemo(() => dueItems(context, plan), [context, plan]);
   const range = useMemo(() => needsRange(context), [context]);
-  const t0 = Date.now();
   return (
     <>
       <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} health={context.health} />
-      <RenderMark name="now" from={t0} />
       <FirstScanCard />
       <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
-      <RenderMark name="cards" from={t0} />
       <NeedsYou needs={needs} due={due} range={range} courses={courses} limit={3} />
-      <RenderMark name="needs" from={t0} />
       <Today context={context} plan={plan} due={due} courses={courses} onCard={cardKey(card)} />
-      <RenderMark name="today" from={t0} />
       <Changes context={context} />
-      <RenderMark name="changes" from={t0} />
     </>
   );
-}
-
-/** Temporary: how far into Answers' render each section ends (ms from its start), logged when the whole is slow. */
-const marks: string[] = [];
-function RenderMark({ name, from }: { name: string; from: number }) {
-  marks.push(`${name} ${Date.now() - from}`);
-  if (name === "changes") {
-    if (Date.now() - from > 30) console.log(`[perf] home-sections ${marks.join(" ")}`);
-    marks.length = 0;
-  }
-  return null;
 }
 
 /** UTS or UAS week starting within two weeks, or going on, from ITB's calendar: a calm line, not a tag. */
