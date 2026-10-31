@@ -173,7 +173,8 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
       return bill.status === "unknown" ? null : covered;
     });
   })();
-  const divider = { marginTop: space[3], paddingTop: space[3], borderTopWidth: 1, borderTopColor: theme.color.line } as const;
+  // Parts of the card apart by space, not a hairline (DESIGN.md: tonal surfaces, no boxes).
+  const divider = { marginTop: space[4] } as const;
   return (
     <Card style={{ paddingHorizontal: space[4], paddingVertical: space[4] }} testID={`card.bill.${bill.term}`}>
       <Meta size="small">

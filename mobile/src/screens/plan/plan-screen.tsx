@@ -7,6 +7,7 @@ import type { ScrollView } from "react-native";
 import { View } from "react-native";
 import { type StringKey, useT } from "../../../../src/app/i18n";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
+import { useDataset, useStatus } from "../../../../src/app/store";
 import { useNav } from "../../nav";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
@@ -46,7 +47,7 @@ export function PlanScreen({ part }: { part?: string }) {
   // Back from another screen that changed the saved plan: the part starts again from what's saved.
   const fresh = useFreshPlan();
   const current = partOf(part);
-  usePerfDrawn(true);
+  usePerfDrawn(useDataReady(current));
   if (!builtPlanTabs.length) return null;
   const Part = TAB[current];
   return (
@@ -73,6 +74,18 @@ export function PlanScreen({ part }: { part?: string }) {
       </PlaceStateProvider>
     </Page>
   );
+}
+
+/** The part's own data is in (or there's none to wait for): its screen is drawn with it. */
+function useDataReady(part: PlanTab): boolean {
+  const curriculum = useDataset("six.curriculum");
+  const krs = useDataset("six.krs");
+  const bills = useDataset("six.bills");
+  const calendar = useDataset("itb.calendar");
+  const six = useStatus("six");
+  const has = { planner: curriculum, curriculum, krs, bills, deadlines: calendar }[part] !== undefined;
+  const waiting = part === "deadlines" ? false : six.state === "connecting" || six.state === "live";
+  return has || !waiting;
 }
 
 /** The crash guard (src/app/ui/panel-boundary.tsx): a bad record breaks one tab with a visible error and a way to try again. */

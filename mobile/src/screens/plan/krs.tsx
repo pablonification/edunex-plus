@@ -137,10 +137,7 @@ function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
       {window && (
         <View
           style={{
-            marginTop: space[3],
-            paddingTop: space[3],
-            borderTopWidth: 1,
-            borderTopColor: theme.color.line,
+            marginTop: space[4],
             flexDirection: "row",
             alignItems: "center",
             gap: space[2],

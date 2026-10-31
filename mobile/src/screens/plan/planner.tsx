@@ -83,6 +83,7 @@ import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet, type SheetChoice } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
 import { type Palette, radius, space, type, useTheme } from "../../ui/theme";
+import { useAfterFirstFrame } from "./deferred";
 import { useScrollToView } from "./page-scroll";
 import { usePlaceState } from "./place-state";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
@@ -212,6 +213,8 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
   const nowLabel = record.semesterNow ? t("planner.now", { n: record.semesterNow }) : t("planner.nowPlain");
   const sksOf = (term: string) => plan.terms.find((p) => p.term === term)?.courses.reduce((sum, c) => sum + c.sks, 0) ?? 0;
   const limitOf = (term: string) => (termKind(term) === "short" ? SHORT_SKS : MAX_SKS);
+  // The rules, the outlook and the minors sit below the semesters: they come a frame after the first screenful.
+  const rest = useAfterFirstFrame();
   const confirmReset = () =>
     Alert.alert(t("planner.resetTitle"), lossParts.length ? t("planner.resetBody", { list: f.list(lossParts) }) : t("planner.resetNothing"), [
       { text: t("action.cancel"), style: "cancel" },
@@ -388,9 +391,13 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
         </Text>
       </View>
       <View ref={rulesRef} collapsable={false} style={{ marginTop: space[4], gap: space[4] }}>
-        <Rules record={record} rules={rules} plan={plan} undoable={undoable} />
-        <Outlook record={record} state={state} />
-        <Minors record={record} state={state} undoable={undoable} />
+        {rest && (
+          <>
+            <Rules record={record} rules={rules} plan={plan} undoable={undoable} />
+            <Outlook record={record} state={state} />
+            <Minors record={record} state={state} undoable={undoable} />
+          </>
+        )}
       </View>
       {adding && (
         <AddCourse
@@ -613,16 +620,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
         </View>
       </Pressable>
       {open && (
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderTopColor: theme.color.line,
-            backgroundColor: theme.color.sunken,
-            paddingHorizontal: space[4],
-            paddingVertical: space[3],
-            gap: space[2.5],
-          }}
-        >
+        <View style={{ backgroundColor: theme.color.surfaceContainer, paddingHorizontal: space[4], paddingVertical: space[3], gap: space[3] }}>
           {steps.map((s) => (
             <View key={s.term}>
               <Text size="small" weight="medium">
@@ -676,7 +674,7 @@ function TermBlock({
     <Card testID={`card.term.${term}`}>
       <View style={{ paddingLeft: space[4], paddingRight: onRemove ? space[1] : space[4], paddingVertical: space[2.5], gap: 2 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-          <Text size="body" weight="semibold" accessibilityRole="header" style={{ flex: 1 }}>
+          <Text size="titleMedium" weight="semibold" accessibilityRole="header" style={{ flex: 1 }}>
             {title}
           </Text>
           {onRemove && (
@@ -700,9 +698,13 @@ function TermBlock({
           </Text>
         )}
         <View style={{ marginTop: space[1], flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: space[3], rowGap: 2 }}>
-          <Text size="small" weight="semibold" tone={over ? "danger" : "muted"} tabular>
-            {`${sks}${limit !== null ? ` / ${limit}` : ""} SKS`}
-          </Text>
+          {/* Over the limit: said by an icon too, never by the red alone. */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+            {over && <Icons.AlertTriangle size={14} color={theme.color.dangerFg} weight="bold" />}
+            <Text size="small" weight="semibold" tone={over ? "danger" : "muted"} tabular>
+              {`${sks}${limit !== null ? ` / ${limit}` : ""} SKS`}
+            </Text>
+          </View>
           {step && (
             <>
               <Text size="small" weight="semibold" tabular>
@@ -721,19 +723,11 @@ function TermBlock({
           accessibilityRole="button"
           onPress={onAdd}
           android_ripple={{ color: theme.color.selected }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[2],
-            minHeight: 48,
-            paddingHorizontal: space[4],
-            borderTopWidth: 1,
-            borderTopColor: theme.color.line,
-          }}
+          style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48, paddingHorizontal: space[4], marginTop: space[1] }}
           testID={`action.addCourse.${term}`}
         >
-          <Icons.Plus size={14} color={theme.color.accentFg} />
-          <Text size="small" weight="semibold" tone="accent">
+          <Icons.Plus size={18} color={theme.color.primary} />
+          <Text size="labelLarge" tone="primary">
             {addLabel ?? t("planner.addCourse")}
           </Text>
         </Pressable>
@@ -814,23 +808,19 @@ function CourseLine({
         gap: space[2],
         paddingLeft: space[4],
         paddingRight: onMore ? space[1] : space[4],
-        paddingVertical: space[2.5],
-        borderTopWidth: 1,
-        borderTopColor: theme.color.line,
+        paddingVertical: space[2],
       }}
       testID={`row.course.${code}`}
     >
-      {/* The code level with the name's first line (22 high). */}
-      <View style={{ alignSelf: "flex-start", minHeight: 22, justifyContent: "center" }}>
-        <CourseCode code={code} color={colorOf(code)} column />
-      </View>
+      {/* The name gets the row's width; its code, tag and SKS wrap on the line under it (no code column). */}
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text size="body" numberOfLines={3}>
+        <Text size="bodyLarge" numberOfLines={3}>
           {name}
         </Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2], rowGap: 2 }}>
+          <CourseCode code={code} color={colorOf(code)} />
           {tag}
-          <Text size="small" tone="muted" tabular>
+          <Text size="bodyMedium" tone="muted" tabular>
             {`${sks} SKS`}
           </Text>
         </View>
@@ -869,7 +859,6 @@ function CourseLine({
 /** A KRS course the Student left out as a what-if: crossed out where it was, with the way back. */
 function DroppedLine({ code, name, sks, onPutBack }: { code: string; name: string; sks: number; onPutBack: () => void }) {
   const t = useT();
-  const theme = useTheme();
   const struck = { textDecorationLine: "line-through" } as const;
   return (
     <View
@@ -879,9 +868,7 @@ function DroppedLine({ code, name, sks, onPutBack }: { code: string; name: strin
         gap: space[2],
         paddingLeft: space[4],
         paddingRight: space[2],
-        paddingVertical: space[2.5],
-        borderTopWidth: 1,
-        borderTopColor: theme.color.line,
+        paddingVertical: space[2],
       }}
       testID={`row.course.${code}`}
     >
@@ -1204,7 +1191,7 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
           })}
       </View>
       {hidden.length > 0 && (
-        <View style={{ borderTopWidth: 1, borderTopColor: theme.color.line, paddingHorizontal: space[4], paddingVertical: space[2] }}>
+        <View style={{ paddingHorizontal: space[4], paddingVertical: space[2] }}>
           <Pressable
             accessibilityRole="button"
             accessibilityState={{ expanded: showHidden }}
@@ -1244,7 +1231,6 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
 /** The one shared target, what the rest needs for it, the IPK path, and the honors ladder. */
 function Outlook({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
-  const theme = useTheme();
   const { plan, projection } = state;
   const target = targetOf(record, plan);
   return (
@@ -1259,13 +1245,13 @@ function Outlook({ record, state }: { record: StudentRecord; state: PlanState })
       <View style={{ paddingHorizontal: space[3], paddingTop: space[3] }}>
         <IpkChart steps={projection.steps} target={target} height={156} />
       </View>
-      <View style={{ marginTop: space[3], borderTopWidth: 1, borderTopColor: theme.color.line, paddingHorizontal: space[4], paddingVertical: space[3] }}>
+      <View style={{ marginTop: space[3], paddingHorizontal: space[4], paddingVertical: space[3] }}>
         <Text size="caption" weight="medium" tone="muted" style={{ marginBottom: space[1.5] }}>
           {t("honors.title")}
         </Text>
         <HonorsList projection={projection} />
       </View>
-      <Text size="small" tone="faint" style={{ borderTopWidth: 1, borderTopColor: theme.color.line, paddingHorizontal: space[4], paddingVertical: space[2.5] }}>
+      <Text size="small" tone="faint" style={{ paddingHorizontal: space[4], paddingBottom: space[4] }}>
         {t("honors.rule")}
       </Text>
     </Card>

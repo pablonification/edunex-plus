@@ -6,7 +6,7 @@
 // Student's own corrections where SIX's record doesn't match their curriculum, each one marked and
 // reversible. On the phone a course's syllabus and corrections are a tap (or a long press) away,
 // in a sheet, instead of on hover.
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useT } from "../../../../src/app/i18n";
@@ -44,8 +44,10 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const [onlyLeft, setOnlyLeft] = useViewChoice("curriculum.onlyLeft", false);
   const [picking, setPicking] = useState<MapCourse | null>(null);
   const [acting, setActing] = useState<{ course: MapCourse; required: boolean } | null>(null);
-  const map = record?.curriculum && state ? curriculumMap(record, state.plan) : null;
-  if (!record || !state || !record.curriculum || !map)
+  // The map and the SKS count once per plan, not on every render (the minute's tick redraws dates elsewhere).
+  const map = useMemo(() => (record?.curriculum && state ? curriculumMap(record, state.plan) : null), [record, state]);
+  const sks = useMemo(() => (record && state ? sksModel(record, state.plan) : null), [record, state]);
+  if (!record || !state || !record.curriculum || !map || !sks)
     return (
       <SixNeeded
         datasets={["six.curriculum", "six.progress"]}
@@ -68,7 +70,6 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
       others: onlyLeft ? s.others.filter((c) => isLeft(c.status)) : s.others,
     }))
     .filter((s) => s.required.length + s.others.length > 0);
-  const sks = sksModel(record, state.plan);
   const hidden = map.semesters.length - semesters.length;
   const correct = (course: MapCourse, fix: CurriculumFix | null, message: string) => {
     const before = setFix(course.code, fix);
@@ -163,12 +164,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
                 justifyContent: "space-between",
                 gap: space[3],
                 paddingHorizontal: space[4],
-                paddingVertical: space[2.5],
-                borderBottomWidth: 1,
-                borderBottomColor: theme.color.line,
+                paddingTop: space[3],
+                paddingBottom: space[1],
               }}
             >
-              <Text size="body" weight="semibold" accessibilityRole="header">
+              <Text size="titleMedium" weight="semibold" accessibilityRole="header">
                 {t("planner.semester", { n: semester.semester })}
               </Text>
               {!onlyLeft && (
@@ -180,12 +180,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
             {semester.required.map((course) => rowOf(course, true))}
             {semester.others.length > 0 && (
               <>
-                <Text
-                  size="caption"
-                  weight="medium"
-                  tone="muted"
-                  style={{ paddingHorizontal: space[4], paddingTop: space[2.5], paddingBottom: space[1], borderTopWidth: 1, borderTopColor: theme.color.line }}
-                >
+                <Text size="caption" weight="medium" tone="muted" style={{ paddingHorizontal: space[4], paddingTop: space[3], paddingBottom: space[1] }}>
                   {t("curriculum.others")}
                 </Text>
                 {semester.others.map((course) => rowOf(course, false))}
@@ -456,11 +451,8 @@ function CourseRow({ course, menuHint, onPress }: { course: MapCourse; menuHint:
         : `${t(`curriculum.status.${course.status}`)}${course.grade ? ` ${course.grade}` : ""}`;
   const body = (
     <>
-      <Text size="small" weight="semibold" tone={crossed ? "muted" : "fg"} tabular style={{ width: 68, paddingTop: 1 }}>
-        {course.code}
-      </Text>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text size="body" tone={crossed ? "muted" : "fg"} numberOfLines={3}>
+        <Text size="bodyLarge" tone={crossed ? "muted" : "fg"} numberOfLines={3}>
           {course.name}
         </Text>
         {(course.via || course.fix) && (
@@ -470,8 +462,11 @@ function CourseRow({ course, menuHint, onPress }: { course: MapCourse; menuHint:
             {course.sixLeft ? t("curriculum.sixStillLeft") : ""}
           </Meta>
         )}
-        {/* As in a narrow desktop card: the status and SKS on a line under the name. */}
+        {/* The code, the status and SKS on a line under the name: the name gets the row's width (no code column). */}
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2.5], rowGap: 2 }}>
+          <Text size="bodyMedium" weight="medium" tone={crossed ? "muted" : "fg"} tabular>
+            {course.code}
+          </Text>
           {course.whatIf === "added" ? (
             // Tried this semester, not on SIX's KRS: never "This semester" as if it were.
             <WhatIfTag />
@@ -493,14 +488,14 @@ function CourseRow({ course, menuHint, onPress }: { course: MapCourse; menuHint:
           </Text>
         ) : null}
       </View>
-      {menuHint && <Icons.MoreHorizontal size={18} color={theme.color.muted} />}
+      {menuHint && <Icons.MoreHorizontal size={20} color={theme.color.onSurfaceVariant} />}
     </>
   );
   const style = { flexDirection: "row", alignItems: "flex-start", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[2.5] } as const;
   // A screen reader hears the row whole, with the word the check stands for.
   const label = factsLabel(course.code, course.name, statusWord, `${course.sks ?? "-"} SKS`);
   return (
-    <View style={{ borderTopWidth: 1, borderTopColor: theme.color.line }} testID={`row.course.${course.code}`}>
+    <View testID={`row.course.${course.code}`}>
       {onPress ? (
         <Pressable
           accessibilityRole="button"
