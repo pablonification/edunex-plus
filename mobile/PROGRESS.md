@@ -3,6 +3,143 @@
 The memory of this build. Read it first when resuming; update it after every step.
 Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, dev build).
 
+## Round 2 (started 2026-10-31)
+
+Round 1 passed its checks but Arqila found it not releasable: the desktop squeezed onto a phone, slow to
+move around and to update, files that don't open, no swipe-back, sheets and swipes that feel wrong, a weak
+onboarding. Round 2's goal: an app that feels built for Android (next to Gojek, GoPay, Todoist, myBCA), fast,
+calm, clear, joyful. Brand, words (src/core/strings), data and engine stay; layout, navigation, components,
+motion and onboarding are open. The desktop is a reference for data only.
+
+### Where round 2 stands
+
+- Step: planning done (this section), foundations next. The desktop QA lab is being set up (helper `qa`).
+- Next for the lead: the foundations below (F1–F8), then hand screens to helpers on the desktop.
+
+### Machines
+
+- **pabs** (lead): code, git, plans, reviews, merges. No subagents here; Redroid only for quick looks.
+- **DESKTOP-4SEOA4J** (Windows, env `67a98ec4-cd29-481b-b1e4-0043d87cb0cd`, project `e1e0641c-02f9-4356-9035-5c6b51141d22`,
+  checkout `C:\Users\Arqila\edunex-plus`): the QA lab. Release builds, emulators `mid` (Pixel 7 class, high refresh)
+  and `weak` (2 GB, small screen), Maestro, Flashlight, Perfetto, screenshots, recordings. Its setup is in
+  `mobile/qa/README.md` (branch `mobile-qa`). It has one Claude account ("Claude"), not "Contact" and "Dev 1" (Blockers).
+
+### What Arqila found, and why (WORKS: each one a flow or test that failed first)
+
+Causes marked "suspected" are read from the code and get proved on a device before the fix counts.
+
+| # | Found | Cause | Fix | Proof | Status |
+| --- | --- | --- | --- | --- | --- |
+| W1 | Can't open modules or PDFs, or download them | (a) A download is named from the lecturer's title plus an extension guessed from Edunex's `type` and the link; with none, the file has no type, `canPreview` says no app can open it. The server's own Content-Type and the file's first bytes were never asked. (b) Anything not an Edunex file link ("Buka di Edunex") opens Edunex in the outside browser, signed out (W15). (c) A module opens inside the course page, not as its own screen (Back fights it, W6) | Name and type from the response (Content-Type, Content-Disposition), then from the bytes (%PDF, PK…); open with that type; a module is a screen of its own; Edunex pages in the app, signed in | unit tests on the naming; flow `w01-files` (Modul → module → PDF opens in Android's viewer, ZIP/DOCX too) | todo |
+| W2 | Updating from SIX/Edunex is slow | Every start runs every feed at once, fresh or not (`Scheduler.start`); SIX's pages go one at a time 2 s apart, so a full read is many pages × 2 s; each saved dataset is hashed with a pure-JS SHA-1 over a sorted JSON copy on Hermes (no JIT) | Saved data first, only feeds that are due run at start (freshness from each dataset's fetchedAt), the rest on their cadence; pull to refresh still reads all; change detection by string compare, no hashing on the JS thread; measure requests and time per sync | engine tests (a fresh feed doesn't run at start; due ones do); `mobile/qa` sync timing with test/pretend's latency | todo |
+| W3 | Moving around lags: frame drops, a freeze before a page shows | Suspected: JS-drawn tabs mount each tab on first visit; screens compute everything before the first frame; the engine's sync work (parse, hash, write) on the same JS thread | Native tabs (preloaded), screens that draw their first screenful first, engine work cut and spread out; measured with `[perf]` lines and Perfetto | `[perf] screen/tab` under target on `weak` and `mid` | todo |
+| W4 | Hierarchy: what to look at first isn't clear | Desktop layout: every fact at once, hairline boxes, grey text | Redesign per screen (plans below) | judge 8+/10 per screen | todo |
+| W5 | Capped at 60 fps on a 90/120 Hz screen | Suspected: the window asks for no frame rate, so phones that keep apps at 60 Hz (Xiaomi, Samsung's adaptive) do | Ask for the display's fastest mode at the same size (`preferredDisplayModeId`) from MainActivity, by a config plugin | `dumpsys display`/SurfaceFlinger + framestats at ~8.3/11.1 ms on `mid` | todo |
+| W6 | Swipe-back (Android's back gesture) doesn't work | Predictive back turned off in round 1 (`predictiveBackGestureEnabled: false`) and in-place states (a module, Jadwal's month) caught by BackHandler instead of being screens | Predictive back on (RN 0.88 registers its OnBackPressedCallback at targetSdk 36), every drill-down a native stack screen, BackHandler only while a sheet or edit is open | flow `w06-back`: the gesture (`input swipe` from the edge) and Back from every pushed screen | todo |
+| W7 | Swiping on items ("needs you") feels weird | iOS-style reveal-a-button swipe with friction 1.6 | Android's way (Gmail): swipe past a threshold commits with a haptic, the row slides out, a snackbar offers Urungkan; long-press menu stays | flow `w07-swipe` | todo |
+| W8 | A sheet's dark overlay slides up with the sheet | `Modal animationType="slide"` moves the scrim with the sheet | Native sheets (react-native-screens formSheet: Material bottom sheet, scrim fades, predictive back) | recording; flow opens and drags each sheet | todo |
+| W9 | Use native UI wherever possible | JS tab bar, JS sheets, JS menus | Native bottom navigation (expo-router NativeTabs), native stack, native sheets, native switches, Android's pickers and share | judge, review | todo |
+| W10 | Animations janky, not joyful | Slide-from-right JS-thread work during transitions, no motion system | Android's own transitions, spring motion on the UI thread (Reanimated) for a few moments: a hand-in, a check-in, a swipe | recording judged | todo |
+| W11 | Screens too crowded | As W4 | Fewer facts per row; secondary detail one tap away | judge | todo |
+| W12 | Home: a course card's arrow and the card go to different places | Two press targets on one card | One card, one target, one outcome, everywhere (a review rule) | flow `w12-one-target` | todo |
+| W13 | "Add to phone calendar" feels bolted on | A one-off export | The schedule as part of the app: Jadwal's agenda as the main view, a reminder before class with a Tandai Hadir action, a today widget, and calendar sync as a setting that keeps itself current | flows `w13-*` | todo |
+| W14 | Tandai Hadir and other Edunex/SIX pages ask to sign in again | Only Tandai Hadir's own page carried SIX's session; every other "Buka di SIX/Edunex" (and Tandai Hadir when the class isn't on the read timetable) went to the outside browser | One in-app page for Edunex and SIX, opened with the app's session (SIX's cookie, Edunex's auth in its site's storage before the page loads) | unit tests: no Edunex/SIX link reaches `Linking`; flow on the demo's pages | todo |
+| W15 | Onboarding is bad | A dark three-step deck before anything useful | Redesigned (plan below) | judge + fresh tester | todo |
+
+### FAST: targets and the table (desktop emulators, release builds only)
+
+| Measure | Target | Before (mid / weak) | After (mid / weak) |
+| --- | --- | --- | --- |
+| Tap responds | < 100 ms | | |
+| Tab switch | < 300 ms | | |
+| Open a screen with its data | < 500 ms | | |
+| Scrolling long lists | full refresh on mid; < 5% janky on weak | | |
+| Cold start, fresh install → first data | < 2 s on mid | | |
+| Update from SIX/Edunex | saved data at once, background, only what changed; total time down | | |
+| JS thread blocked | never > 50 ms in use | | |
+
+### The new shape of the app (information architecture)
+
+Five native bottom tabs, each a job a student has every day:
+
+1. **Beranda**: what needs me now. The class now or next with its one action (Tandai Hadir when open),
+   what needs me (at most three, swipe to handle), today's classes. Search and the bell in the top bar.
+2. **Jadwal**: the agenda is the main view (today first, days down the page), a week strip on top, the
+   month one tap away. A class opens its sheet. Reminders before class and calendar sync live here.
+3. **Tugas**: Tasks and exams by when they're due; To do / Done; course chips.
+4. **Kuliah** (courses, replaces Presensi): each course with its absence budget and next class; the
+   ones at risk first. A course opens its page (Modul, Pertemuan, Tugas, Nilai, Pengumuman); a module
+   is its own screen. The Presensi target lives here.
+5. **Akademik** (replaces Lainnya): IPK and SKS on top, then Nilai, Rencana, Kurikulum, KRS, UKT,
+   Kalender akademik, each its own screen. Settings and the account behind the avatar in the top bar of
+   every tab.
+
+Every drill-down is a native stack screen (predictive back); every short task a native sheet.
+
+### Screen plans (redesign first: 3-second need, hierarchy, main action, navigation, states)
+
+States, for every screen: loading = the saved data at once, else a skeleton of the screen's own shape
+(never a spinner on a blank page); empty = says why and the next step; error = a banner under the top bar
+with what's wrong and "Coba lagi"; offline = saved data with "Terakhir diperbarui …" quietly in the top
+bar, never greyed out.
+
+| Screen | In 3 seconds | Hierarchy (first → last) | Main action | Navigation |
+| --- | --- | --- | --- | --- |
+| Beranda | Is a class on now or next, and do I need to press Tandai Hadir? What's urgent? | 1. Now/next class card (time big, course, room; one button when Tandai Hadir is open) 2. Perlu perhatianmu (≤3 rows, "Lihat semua") 3. Hari ini (compact list of today's classes) 4. Yang berubah (one row → its sheet) | Tandai Hadir (when open) | tab; card → class sheet; row → its Task/exam |
+| Jadwal | Where am I next, and what's this week like? | Week strip; agenda by day (time, course, room; changes and clashes as one chip) | Open a class | tab; month as a top-bar action; class → sheet; sheet → course |
+| Class sheet | Where and when, can I skip it, Tandai Hadir | Time + room large; attendance budget line; buttons | Tandai Hadir / Buka mata kuliah | native sheet |
+| Tugas | What's due next? | To do / Done; course chips; rows by week (title, course, due day and time; overdue red) | Open the Task | tab; row → Task |
+| Task | What do I do, by when, and hand it in | Due + status; instructions; lecturer's files; my answer; sticky bar Kumpulkan | Kumpulkan | push |
+| Exam | When, where, what | Date + time + room big; parts; Tandai selesai | — | push |
+| Kuliah | Which course is at risk, and the way into a course | Risk summary line; course rows (colour, name, code, budget chip, next class) | Open a course | tab |
+| Course | What's new, and the modules | Collapsing top bar with name; budget and next class in one row; tabs Modul / Pertemuan / Tugas / Nilai / Pengumuman | Open a module | push; module → push |
+| Module | The files and notes of this week | Title; items (file rows open in the phone's viewer, notes in full, links) | Open a file | push |
+| Akademik | IPK and what to do this term (KRS, UKT) | IPK + SKS card; to-do chips (KRS, UKT); list of screens | Open Nilai | tab |
+| Nilai, Rencana, Kurikulum, KRS, UKT, Kalender | One topic each | The desktop's data, one column, sections | per screen | push |
+| Search | Find anything | Field focused with the keyboard; results grouped | Open a result | push from any tab's top bar |
+| Notifikasi | What happened | Unread first; tap opens it | — | push from Beranda's bell |
+| Settings | Change one thing fast | Profile (name, NIM) on top; groups: Tampilan, Notifikasi, Presensi, Akun, Tentang; native switches | — | push from the avatar |
+| Onboarding | What this is, and one button to start | See below | Masuk dengan akun ITB | — |
+
+**Onboarding (full redesign).** No deck. One light screen in the app's colours: the mark, one line
+("Edunex dan SIX, di satu aplikasi"), three short reasons as icons with a word each, one filled button
+"Masuk dengan akun ITB", the language as a small chip. The button opens ITB's Microsoft page as a native
+screen (top bar "Masuk", close). After it: straight to Beranda, which fills in as data arrives (skeletons,
+then rows), with a calm progress line in the top bar. SIX joins on the same Microsoft session out of sight.
+Notifications are asked in context later: a card on Beranda the first time there's a class ("Ingatkan aku
+sebelum kuliah": Nyalakan / Nanti). The first-scan summary becomes a card on Beranda, not a takeover.
+
+**Motion.** Android's own stack transitions and predictive back; native sheets; tab switches instant (no
+animation, as Material's bar). Joy in a few earned moments, on the UI thread: Kumpulkan (a check that
+draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion → fades.
+
+### Foundations (lead, before screens)
+
+| # | Piece | Status |
+| --- | --- | --- |
+| F1 | `[perf]` probes: JS stalls > 50 ms with what ran, tap → screen drawn, first data | todo |
+| F2 | High refresh rate (config plugin in MainActivity) | todo |
+| F3 | Predictive back on; drill-downs as stack screens | todo |
+| F4 | Native tabs (5, as above), native stack transitions | todo |
+| F5 | Native sheets (formSheet routes) replacing `ui/sheet.tsx`'s Modal | todo |
+| F6 | Files: type from the response and bytes; open in Android's viewer (W1) | todo |
+| F7 | One in-app Edunex/SIX page with the app's session (W14) | todo |
+| F8 | Engine: start only due feeds, cheap change detection (W2) | todo |
+| F9 | M3 type scale and colour roles in `ui/theme.ts`, every pair through contrast.py | todo |
+
+### Judge (helper on the desktop, never the lead)
+
+| Round | Code | Screens judged | Scores | High/medium left |
+| --- | --- | --- | --- | --- |
+
+### Helpers (round 2, on the desktop)
+
+| Helper | Piece | Branch | Status |
+| --- | --- | --- | --- |
+| qa | Set up the lab, baseline numbers, before pictures | `mobile-qa` | running |
+
+## Round 1 (done 2026-10-31; kept for its decisions and proofs)
+
 ## Where things stand
 
 - Scope: 40 of 44 rows done with proof (5 of them left out on purpose). The other 4 (A7, S10, A15, D5)
@@ -317,6 +454,10 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
+- **Round 2: the desktop (DESKTOP-4SEOA4J) has only one Claude account**, shown as "Claude"; there is no
+  "Contact" or "Dev 1" there. All helpers run on that one account, so three at once may run it out sooner.
+  Proposed: add the two accounts in T3 Code on the desktop (Settings → Providers) if you want them split; I
+  keep working on the one meanwhile.
 - **Real sign-in can only be proven with a real ITB account.** On Redroid, ITB's real sign-in
   page loads in the app (sso-edunex → login.microsoftonline.com, the address shown beside the
   lock), and the whole flow after it is proven with the demo's made-up sign-in. Proposed: once the
