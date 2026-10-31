@@ -68,6 +68,8 @@ export const mobileStrings = {
   // Beranda's two sections, and the screen behind the first.
   "mobile.home.toHandle": { id: "Perlu kamu urus", en: "To handle" },
   "mobile.home.laterToday": { id: "Nanti hari ini", en: "Later today" },
+  // Nothing in "Perlu kamu urus": one line, still the way to its screen.
+  "mobile.home.toHandleNone": { id: "Tak ada yang perlu diurus", en: "Nothing to handle" },
   // A card's kind, in a pill.
   "mobile.home.kind.task": { id: "Tugas", en: "Task" },
   "mobile.home.kind.presence": { id: "Presensi", en: "Presence" },

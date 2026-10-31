@@ -96,7 +96,33 @@ export function Urus({ needs, due, courses }: { needs: readonly NeedDraft[]; due
       .filter((card): card is UrusCard => card !== null)
       .slice(0, 2);
   }, [needs, due, entries, handled, now, t, courses]);
-  if (!cards.length) return null;
+  // Nothing to handle: the section's cards go, a single quiet line stays as the way to the whole list (what's put off,
+  // the date and term, what changed).
+  if (!cards.length)
+    return (
+      <Rise screen="home" index={2}>
+        <PressScale
+          onPress={() => router.push("/needs")}
+          testID="action.needs.all"
+          style={{
+            marginTop: space[6],
+            backgroundColor: v.card,
+            borderRadius: 20,
+            minHeight: 56,
+            paddingHorizontal: space[4],
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space[3],
+          }}
+        >
+          <Icons.CheckCircle size={22} weight="fill" color={v.okFg} />
+          <Text size="bodyLarge" weight="medium" style={{ color: v.fg, flex: 1 }}>
+            {t("mobile.home.toHandleNone")}
+          </Text>
+          <Icons.ChevronRight size={20} color={v.muted} />
+        </PressScale>
+      </Rise>
+    );
   return (
     <View testID="section.needs">
       <Rise screen="home" index={2}>
