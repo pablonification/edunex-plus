@@ -33,6 +33,8 @@ export async function startEngine(
     releaseAsset?: RegExp;
     /** Where problem reports go with one click (the pretend relay); none by default, as the app ships. */
     relay?: string;
+    /** Starts as the phone does: only the sign-in checks and what's due (EngineDeps.startDueOnly). */
+    startDueOnly?: boolean;
   } = {},
 ): Promise<Harness> {
   const world = options.world ?? new PretendWorld({ now: options.now });
@@ -53,6 +55,7 @@ export async function startEngine(
     log,
     relay: options.relay,
     os: () => "macOS 15.3 (arm64)",
+    ...(options.startDueOnly ? { startDueOnly: true } : {}),
   });
   // A first start: the tests read alerts in Bahasa Indonesia, which a Student picks in Settings.
   const firstStart = (await storage.read("state.json")) === null;

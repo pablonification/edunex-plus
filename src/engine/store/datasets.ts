@@ -2,25 +2,44 @@
 // disk, and announced to the screens only when its content really changed.
 import type { DatasetPayload, Event } from "../../core/contract";
 import { type DatasetName, Datasets, type DatasetValue } from "../../core/models";
-import { digest } from "../platform/hash";
 import type { Storage } from "./storage";
 
 const FORMAT = 1;
 const keyOf = (name: string) => `datasets/${name}.json`;
 
-/** Same content, same hash: object keys are sorted first. */
+/**
+ * Same content, same hash: object keys are sorted first. Cheap enough for a phone's JS thread, where it runs on
+ * every read of every page: the sorted text comes from the JSON writer itself (handed every key, sorted, it writes
+ * each object's keys in that order), and the hash is a 53-bit one over that text (cyrb53), not a cryptographic one.
+ * It tells content apart; nothing relies on it being hard to forge.
+ */
 export function hashOf(value: unknown): string {
-  const stable = (v: unknown): unknown =>
-    Array.isArray(v)
-      ? v.map(stable)
-      : v && typeof v === "object"
-        ? Object.fromEntries(
-            Object.keys(v)
-              .sort()
-              .map((k) => [k, stable((v as Record<string, unknown>)[k])]),
-          )
-        : v;
-  return digest("sha1", JSON.stringify(stable(value)), "hex");
+  const keys = new Set<string>();
+  const collect = (v: unknown): void => {
+    if (Array.isArray(v)) for (const item of v) collect(item);
+    else if (v && typeof v === "object")
+      for (const key in v) {
+        keys.add(key);
+        collect((v as Record<string, unknown>)[key]);
+      }
+  };
+  collect(value);
+  const text = JSON.stringify(value, [...keys].sort()) ?? "undefined";
+  return `${text.length.toString(36)}-${cyrb53(text)}`;
+}
+
+/** cyrb53 (bryc's public-domain string hash): 53 well-mixed bits, as a base-36 string. */
+function cyrb53(text: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 
 export class DatasetStore {

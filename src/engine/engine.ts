@@ -76,6 +76,12 @@ export interface EngineDeps {
   relay?: string;
   /** The computer's system, as a report that sends itself names it ("macOS 15.3 (arm64)"). */
   os?(): string;
+  /**
+   * Starts like an app opened many times a day (the phone): the saved data shows, the sign-in checks run at once, and
+   * every other feed waits until it's due by its own cadence, counted from its last good read (saved with the app's
+   * state). Off, a start reads everything again (the desktop, which starts once and runs all day).
+   */
+  startDueOnly?: boolean;
 }
 
 export interface Engine {
@@ -91,6 +97,8 @@ export interface Engine {
   signOut(source?: SourceId): Promise<void>;
   /** Reads again now ("Perbarui sekarang", waking from sleep): every feed but the background ones (FeedSpec.background). */
   refresh(source?: SourceId): Promise<void>;
+  /** Reads what's due now (a phone's sync with the app closed): the sign-in checks, and each feed whose cadence has come round. */
+  refreshDue(): Promise<void>;
   /** Sends the alerts waiting to be grouped now (a phone's sync with the app closed, about to stop). */
   flushAlerts(): void;
   /** Runs a write the Student asked for (save a draft, submit) with the source's current session. */
@@ -158,6 +166,8 @@ const QUIET_STATES = new Set<SourceStatus["state"]>(["connecting", "live", "sign
 const levelOf = (error: unknown) => (isEngineError(error, "Offline") || isEngineError(error, "Unauthorized") ? "warn" : "error");
 
 /** When each feed last read well and what it stores (report/kept-pages.ts), as saved with the state. */
+/** When each feed last read without an error, by its name. */
+const LastReads = z.record(z.string().max(60), z.number());
 const FeedHistories = z.record(z.string().max(60), z.object({ fills: z.array(z.string().max(60)).max(30), goodAt: z.number().nullable() }));
 
 /** Where each source keeps the rows its reads left out. */
@@ -222,6 +232,16 @@ export function createEngine(deps: EngineDeps): Engine {
   const pages = new Map<string, readonly DatasetName[]>();
   /** Feeds whose page has a part that can change alone (FeedSpec.part): what that part fills. */
   const parts = new Map<string, readonly DatasetName[]>();
+  /** Each feed's cadence (FeedSpec.every), and when it last read without an error (saved with the state when startDueOnly). */
+  const cadences = new Map<string, number>();
+  const lastReads = new Map<string, number>();
+  /** How long a feed may still wait: 0 when it's due (never read, or its cadence has come round), or it's a sign-in check. */
+  const freshFor = (name: string): number => {
+    if ([...sources.values()].some((source) => source.liveness === name)) return 0;
+    const at = lastReads.get(name);
+    const every = cadences.get(name);
+    return at === undefined || every === undefined ? 0 : Math.max(0, at + every - clock.now());
+  };
   /** The pages behind each feed's latest read that went wrong, for a report. In memory only. */
   const kept = new KeptPages({ kept: (problem) => outbox.onKept(problem), forgotten: (problem, readWell) => outbox.onForgotten(problem, readWell) });
   /** Each source's current session number. Work started under an earlier one lands nowhere. */
@@ -282,7 +302,16 @@ export function createEngine(deps: EngineDeps): Engine {
   const generation = (source: SourceId) => generations.get(source) ?? 0;
 
   async function saveState(): Promise<void> {
-    await storage.write("state.json", JSON.stringify({ format: STATE_FORMAT, settings, statuses: [...statuses.values()], feeds: kept.histories() }));
+    await storage.write(
+      "state.json",
+      JSON.stringify({
+        format: STATE_FORMAT,
+        settings,
+        statuses: [...statuses.values()],
+        feeds: kept.histories(),
+        ...(deps.startDueOnly ? { lastReads: Object.fromEntries(lastReads) } : {}),
+      }),
+    );
   }
 
   /** Whose data each source holds now (their NIM). */
@@ -379,6 +408,8 @@ export function createEngine(deps: EngineDeps): Engine {
       scheduler.remove(name);
       outcomes.delete(name);
       unreachableAt.delete(name);
+      // A new session reads everything afresh.
+      lastReads.delete(name);
     }
   }
 
@@ -402,6 +433,7 @@ export function createEngine(deps: EngineDeps): Engine {
     else pages.delete(spec.name);
     if (spec.part) parts.set(spec.name, spec.part);
     else parts.delete(spec.name);
+    cadences.set(spec.name, spec.every);
     scheduler.add({
       name: spec.name,
       every: spec.every,
@@ -424,7 +456,9 @@ export function createEngine(deps: EngineDeps): Engine {
         }
         if (current()) {
           log.add("info", spec.name, "ok");
+          lastReads.set(spec.name, clock.now());
           await settle(spec.name, null);
+          if (deps.startDueOnly) await saveState();
         }
       },
     });
@@ -558,6 +592,9 @@ export function createEngine(deps: EngineDeps): Engine {
           }
           const feeds = FeedHistories.safeParse(saved.feeds ?? {});
           if (feeds.success) kept.remember(feeds.data as Record<string, FeedHistory>);
+          const reads = LastReads.safeParse(saved.lastReads ?? {});
+          // A read "later" than now (the phone's clock was set back) counts as due.
+          if (reads.success && deps.startDueOnly) for (const [name, at] of Object.entries(reads.data)) if (at <= clock.now()) lastReads.set(name, at);
         }
       } catch {
         // Unreadable state: start from defaults.
@@ -581,7 +618,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     start() {
-      scheduler.start();
+      scheduler.start(deps.startDueOnly ? (spec) => freshFor(spec.name) : undefined);
       alerts.start();
       updates?.start();
     },
@@ -660,6 +697,10 @@ export function createEngine(deps: EngineDeps): Engine {
 
     async refresh(source) {
       await scheduler.runNow((name) => (!source || sourceOf(name) === source) && !background.has(name));
+    },
+
+    async refreshDue() {
+      await scheduler.runNow((name) => freshFor(name) === 0);
     },
 
     flushAlerts() {

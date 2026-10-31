@@ -45,11 +45,19 @@ export class Scheduler {
     this.feeds.delete(name);
   }
 
-  /** Starts every feed now, a few seconds apart. */
-  start(): void {
+  /**
+   * Starts every feed now, half a second apart, the most frequent first. `wait`, when given, says how long a feed may
+   * still wait (its data is fresh): those run when they're due instead of now.
+   */
+  start(wait?: (spec: FeedSpec) => number): void {
     this.started = true;
     let delay = 0;
-    for (const state of this.feeds.values()) {
+    for (const state of this.byCadence([...this.feeds.values()])) {
+      const fresh = wait ? wait(state.spec) : 0;
+      if (fresh > 0) {
+        this.plan(state, fresh);
+        continue;
+      }
       this.plan(state, delay);
       delay += 500;
     }
@@ -62,7 +70,9 @@ export class Scheduler {
 
   /** Runs the matching feeds right away (a manual refresh, or a new session). */
   async runNow(match: (name: string) => boolean = () => true): Promise<void> {
-    const runs = [...this.feeds.values()].filter((s) => match(s.spec.name)).map((s) => this.run(s));
+    // The most frequent first: on a site that answers one request at a time, what changes by the minute isn't kept
+    // waiting behind what changes once a day.
+    const runs = this.byCadence([...this.feeds.values()].filter((s) => match(s.spec.name))).map((s) => this.run(s));
     await Promise.all(runs);
   }
 
@@ -70,6 +80,10 @@ export class Scheduler {
   isPlanned(name: string): boolean {
     const state = this.feeds.get(name);
     return Boolean(state && state.timer !== null);
+  }
+
+  private byCadence(states: FeedState[]): FeedState[] {
+    return states.sort((a, b) => a.spec.every - b.spec.every);
   }
 
   private plan(state: FeedState, delay: number): void {

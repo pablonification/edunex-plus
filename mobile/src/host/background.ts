@@ -1,6 +1,6 @@
 // Reading Edunex and SIX while the app is closed: Android's WorkManager wakes the app every 15
 // minutes or so (expo-background-task), the engine reads what's due, and its alerts go out as
-// notifications, as the desktop's tray does all day. With the app open it's a plain refresh.
+// notifications, as the desktop's tray does all day. With the app open, the same: only what's due.
 // The demo never runs it: its world is make-believe.
 import * as BackgroundTask from "expo-background-task";
 import * as TaskManager from "expo-task-manager";
@@ -19,7 +19,7 @@ if (!DEMO)
       console.info("[background] sync starts");
       const current = await host();
       if (current.running()) {
-        await current.engine.refresh();
+        await current.engine.refreshDue();
         await current.reminders.settled();
         console.info("[background] synced, the app open");
         return BackgroundTask.BackgroundTaskResult.Success;
@@ -30,7 +30,8 @@ if (!DEMO)
       // Each step in the system log ("[background] …"), so a sync that stops says where.
       console.info("[background] woken, the app closed");
       current.start();
-      await current.engine.refresh();
+      // Only what's due: a page read ten minutes ago isn't read again (SIX answers one page every 2 s).
+      await current.engine.refreshDue();
       console.info("[background] read");
       current.engine.flushAlerts();
       // What this round planned is booked with Android before the app goes quiet (./reminders.ts).
