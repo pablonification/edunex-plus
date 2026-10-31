@@ -27,6 +27,11 @@ export const mobileStrings = {
   },
   // tasks
   // A file from Edunex opens in the phone's own apps (A12, A13), or goes elsewhere through the share sheet.
+  // Edunex's and SIX's own pages inside the app (W14): the demo's pages are pretend, so it says what the real app shows.
+  "mobile.page.demo": {
+    id: "Di aplikasi asli, halaman {site} terbuka di sini, sudah masuk dengan akunmu.",
+    en: "In the real app, {site}'s page opens here, already signed in with your account.",
+  },
   "mobile.file.openFor": { id: "Buka {name}", en: "Open {name}" },
   "mobile.file.share": { id: "Bagikan", en: "Share" },
   "mobile.file.shareFor": { id: "Bagikan {name}", en: "Share {name}" },

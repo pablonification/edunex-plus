@@ -10,7 +10,6 @@ import { router } from "expo-router";
 import { SIX_WEB, sixTimetableUrl } from "../../../src/core/links";
 import type { DatasetName, DatasetValue } from "../../../src/core/models";
 import type { Engine } from "../../../src/engine/engine";
-import { EngineError } from "../../../src/engine/errors";
 import { SixSession } from "../../../src/engine/sources/six";
 import { setCookie } from "../../modules/web-cookies";
 import type { HostUi } from "./handlers";
@@ -60,14 +59,19 @@ export function checkInUrl(engine: Reader, meetingId: string): string | null {
 }
 
 /**
- * `HostUi.openCheckIn`: checks the class, then goes to the check-in page. Refused when the class
- * isn't on SIX's timetable, so `useOpenCheckIn` opens SIX's timetable in the browser instead.
+ * `HostUi.openCheckIn`: SIX's timetable in the app, on the class when it's there (else on its month), signed in.
+ * Never the phone's browser, where the Student isn't signed in to SIX. The demo's page says what the real one shows.
  */
-export function checkInOpener(engine: Reader, demo: boolean): HostUi["openCheckIn"] {
+export function checkInOpener(): HostUi["openCheckIn"] {
   return async (meetingId) => {
-    if (demo) return;
-    if (!checkInUrl(engine, meetingId)) throw new EngineError("Rejected", "That class isn't on SIX's timetable");
     router.push(`/check-in/${encodeURIComponent(meetingId)}` as never);
+  };
+}
+
+/** `HostUi.openPage`: one of Edunex's or SIX's pages in the app, signed in (./signed-pages.ts). */
+export function pageOpener(): HostUi["openPage"] {
+  return async (url) => {
+    router.push({ pathname: "/web", params: { url } } as never);
   };
 }
 

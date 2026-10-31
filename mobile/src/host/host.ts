@@ -9,7 +9,7 @@ import * as Notifications from "expo-notifications";
 import { AppState, Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
-import { SIX_WEB } from "../../../src/core/links";
+import { EDUNEX_WEB, SIX_WEB } from "../../../src/core/links";
 import type { Lang } from "../../../src/core/models";
 import type { FetchFile } from "../../../src/desktop/remote-files";
 import { type SignInWindows, signInToBoth } from "../../../src/desktop/signin-both";
@@ -19,9 +19,9 @@ import { type Clock, systemClock } from "../../../src/engine/clock";
 import { createEngine, type Engine } from "../../../src/engine/engine";
 import type { Transport } from "../../../src/engine/http/transport";
 import type { Storage, Vault } from "../../../src/engine/store/storage";
-import { clearWebData, cookiesFor, setCookie } from "../../modules/web-cookies";
+import { clearOrigin, clearWebData, cookiesFor, setCookie } from "../../modules/web-cookies";
 import { phoneSignInWindows } from "../shell/sign-in";
-import { checkInOpener } from "./check-in";
+import { checkInOpener, pageOpener } from "./check-in";
 import { phoneFileHandlers } from "./files";
 import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
@@ -122,7 +122,7 @@ async function makeHost(): Promise<Host> {
   });
   /** The settings timed alerts depend on: a change books them again at once, not at the next 5-minute check. */
   let alertSettings = "";
-  const ui: HostUi = { openCheckIn: async () => undefined };
+  const ui: HostUi = { openCheckIn: async () => undefined, openPage: async () => undefined };
   const send = (event: Event) => {
     for (const listener of listeners) listener(event);
   };
@@ -157,6 +157,8 @@ async function makeHost(): Promise<Host> {
     // A release is for the phone only once it carries an APK: the desktop's installers are no use here.
     releaseAsset: /\.apk$/i,
     os: () => `Android ${Platform.Version}`,
+    // Opened many times a day: each start shows what's saved and reads only what's due (W2 in PROGRESS.md).
+    startDueOnly: true,
   });
   // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).
   const firstRun = (await world.storage.read("state.json")) === null;
@@ -185,14 +187,15 @@ async function makeHost(): Promise<Host> {
     AppState.addEventListener("change", (state) => {
       if (state === "active" && started) engine.planAlerts();
     });
-  // "Tandai Hadir": SIX's timetable in a page of the app, signed in (./check-in.ts); the demo opens nothing.
-  ui.openCheckIn = checkInOpener(engine, DEMO);
+  // "Tandai Hadir" and every other page of Edunex's or SIX's: in a page of the app, signed in (./check-in.ts).
+  ui.openCheckIn = checkInOpener();
+  ui.openPage = pageOpener();
   const handlers = {
     ...phoneHandlers({
       engine,
       signIn: (source) => both.signIn(source),
       stopQuietSignIn: () => both.stopQuiet(),
-      ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId) },
+      ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId), openPage: (url) => ui.openPage(url) },
       log,
       demo: DEMO,
       ready: () => start(),
@@ -211,6 +214,8 @@ async function makeHost(): Promise<Host> {
           // Edunex's files go with the account they came from (the desktop's file cache and downloads).
           const downloads = new Directory(Paths.document, "downloads");
           if (downloads.exists) downloads.delete();
+          // And Edunex's sign-in its website kept in the app's pages.
+          clearOrigin(EDUNEX_WEB);
         } else {
           // SIX's session, as Tandai Hadir's page holds it: each of SIX's cookies, expired.
           for (const cookie of cookiesFor(`${SIX_WEB}/`)) await setCookie(`${SIX_WEB}/`, `${cookie.name}=; Max-Age=0; Path=/; Secure`);

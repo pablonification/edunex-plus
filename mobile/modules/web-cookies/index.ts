@@ -6,6 +6,7 @@ interface WebCookiesModule {
   get(url: string): string;
   set(url: string, cookie: string): Promise<boolean>;
   clear(): Promise<boolean>;
+  clearOrigin(origin: string): void;
 }
 
 const native = requireOptionalNativeModule<WebCookiesModule>("WebCookies");
@@ -31,4 +32,9 @@ export async function setCookie(url: string, cookie: string): Promise<void> {
 /** Forgets every cookie and page storage the web views kept. */
 export async function clearWebData(): Promise<void> {
   await native?.clear();
+}
+
+/** Forgets what one site's pages kept in their storage ("https://edunex.itb.ac.id": Edunex's sign-in). */
+export function clearOrigin(origin: string): void {
+  native?.clearOrigin(origin);
 }

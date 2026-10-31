@@ -19,7 +19,7 @@ import type { SignInWindows } from "../../../src/desktop/signin-both";
 import { EngineError, isEngineError } from "../../../src/engine/errors";
 import { EDUNEX_SIGN_IN_URL, EDUNEX_SITE_HOST, readSignInToken } from "../../../src/engine/sources/edunex/signin";
 import { isSixAfterSignIn, readSixSession, SIX_LOGIN_PAGE, SIX_SIGN_IN_URL, SIX_SITE_HOST } from "../../../src/engine/sources/six/signin";
-import { clearWebData, cookiesFor } from "../../modules/web-cookies";
+import { cookiesFor } from "../../modules/web-cookies";
 import { IconButton } from "../ui/controls";
 import { Icons } from "../ui/icons";
 import { Text } from "../ui/text";
@@ -111,9 +111,10 @@ export const phoneSignInWindows: SignInWindows = {
     run?.finish(null);
   },
   // Microsoft's session and everything the sign-in pages kept, gone once no sign-in needs them.
-  async forget() {
-    if (!runs.length) await clearWebData();
-  },
+  // The desktop wipes Microsoft's session once both are signed in. The phone keeps it, and what Edunex's and SIX's pages
+  // kept, in the app's own web views (no other app reads them) until the Student signs out: Edunex's and SIX's pages in
+  // the app then open signed in, and a session that ends signs in again without a password (W14 in PROGRESS.md).
+  async forget() {},
 };
 
 /** Draws every sign-in under way: quiet ones out of sight, the Student's over the whole screen. */

@@ -1,6 +1,6 @@
 // The sign-in pages' cookies, which page scripts can't read (SIX keeps its session in an
-// HttpOnly cookie): read once a sign-in is done, set for SIX's own page ("Tandai Hadir"), and
-// cleared with everything else a page kept when the Student signs out.
+// HttpOnly cookie): read once a sign-in is done, set for SIX's own pages in the app, and cleared
+// with everything else a page kept when the Student signs out.
 package expo.modules.webcookies
 
 import android.webkit.CookieManager
@@ -24,6 +24,11 @@ class WebCookiesModule : Module() {
         manager.flush()
         promise.resolve(ok)
       }
+    }
+
+    // One site's page storage (Edunex keeps its sign-in there): signing out of that system alone.
+    Function("clearOrigin") { origin: String ->
+      WebStorage.getInstance().deleteOrigin(origin)
     }
 
     // Every cookie and every page's storage the app's web views kept (Microsoft's, Edunex's, SIX's).

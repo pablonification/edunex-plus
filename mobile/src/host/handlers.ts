@@ -11,6 +11,7 @@ import type { AppLog } from "../../../src/engine/app-log";
 import { errorLine } from "../../../src/engine/app-log";
 import type { Engine } from "../../../src/engine/engine";
 import { EngineError, isEngineError } from "../../../src/engine/errors";
+import { siteOf } from "./signed-pages";
 
 export type Handlers = { [N in ActionName]: (input: z.infer<(typeof Actions)[N]["input"]>) => Promise<ActionOutput<N>> };
 
@@ -18,6 +19,8 @@ export type Handlers = { [N in ActionName]: (input: z.infer<(typeof Actions)[N][
 export interface HostUi {
   /** SIX's timetable with this class's popup, signed in, for "Tandai Hadir". */
   openCheckIn(meetingId: string): Promise<void>;
+  /** A page of Edunex's or SIX's website in the app, signed in with the app's session (./signed-pages.ts). */
+  openPage(url: string): Promise<void>;
 }
 
 export interface HandlerContext {
@@ -39,8 +42,12 @@ export interface HandlerContext {
   demo: boolean;
 }
 
-/** Opens a page in the phone's browser. The demo opens nothing, like the desktop's. */
-async function openInBrowser(context: HandlerContext, url: string): Promise<void> {
+/**
+ * Opens a page: Edunex's and SIX's own in the app, signed in (never the browser, where the Student isn't); anything
+ * else in the phone's browser. The demo opens no outside page, like the desktop's.
+ */
+async function openPage(context: HandlerContext, url: string): Promise<void> {
+  if (siteOf(url)) return context.ui.openPage(url);
   if (context.demo) return;
   await Linking.openURL(url);
 }
@@ -66,12 +73,12 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
     "settings.update": (patch) => engine.updateSettings(patch),
     "shell.openExternal": async ({ url }) => {
       if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
-      await openInBrowser(context, url);
+      await openPage(context, url);
       return {};
     },
     "shell.openLink": async ({ url }) => {
       if (!isWebLink(url)) throw new EngineError("Rejected", "Only web pages open from a lecturer's link");
-      await openInBrowser(context, url);
+      await openPage(context, url);
       return {};
     },
     "local.set": async ({ name, value }) => {
@@ -104,7 +111,7 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
     "app.openRelease": async () => {
       const notice = engine.snapshot().datasets.find((dataset) => dataset.name === "app.update");
       if (!notice) throw new EngineError("Rejected", "No newer release");
-      await openInBrowser(context, UpdateNotice.parse(notice.value).url);
+      await openPage(context, UpdateNotice.parse(notice.value).url);
       return {};
     },
   };
