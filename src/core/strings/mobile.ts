@@ -216,6 +216,21 @@ export const mobileStrings = {
 // "HP ini" for "komputer ini", a page for a window, a tap for a click. translate() takes them on the
 // phone only (./wording.native.ts), so the desktop's words stay as they are.
 export const phoneWording: Partial<Record<StringKey, Entry>> = {
+  // The snackbar after "Sudah beres": what happened and when it's back, short enough for two lines beside Urungkan
+  // (a snackbar's text never truncates). The same conditions as the desktop's.
+  "done.toast.checked": { id: "Sudah dicek. Kembali hanya jika dosen mengubahnya lagi.", en: "Checked. Back only if your lecturer edits it again." },
+  "done.toast.groupDone": { id: "Dikumpulkan kelompokmu. Kembali hanya jika tugasnya berubah.", en: "Your group handed it in. Back only if the Task changes." },
+  "done.toast.handedElsewhere": { id: "Sudah dikumpulkan. Kembali hanya jika tugasnya berubah.", en: "Handed in. Back only if the Task changes." },
+  "done.toast.notHandingIn": {
+    id: "Tidak dikumpulkan. Kembali hanya jika tenggat atau tugasnya berubah.",
+    en: "Not handing it in. Back only if the deadline or Task changes.",
+  },
+  "done.toast.gotIt": { id: "Sudah tahu. Kembali hanya jika target {course} berubah.", en: "Got it. Back only if {course}'s target changes." },
+  "done.toast.gotItClass": { id: "Sudah tahu. Kembali sehari sebelum kuliah berikutnya.", en: "Got it. Back the day before the next class." },
+  "done.toast.gotItCount": { id: "Sudah tahu. Kembali setelah SIX menghitung kuliah berikutnya.", en: "Got it. Back after SIX counts the next class." },
+  "done.toast.paid": { id: "Sudah dibayar. Kembali jika tagihan berubah atau lewat batas.", en: "Paid. Back if the bill changes or passes its due date." },
+  // The first-run summary's title, short enough for the top bar.
+  "scan.heading": { id: "Ringkasan awal", en: "First summary" },
   // settings: the test notification's body, as Android shows it.
   "alert.test.body": { id: "Ketuk untuk membuka Tugas & Ujian", en: "Tap to open Tasks & Exams" },
   // settings: Notifikasi › Coba notifikasi, once sent.
