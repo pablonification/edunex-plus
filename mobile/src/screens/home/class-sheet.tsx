@@ -335,15 +335,16 @@ function Actions({ card, courses, onLeave }: { card: NowCard; courses: readonly 
     onLeave();
     go(route);
   };
+  // Side by side, the main one at the end (nearest the thumb, as Material's dialogs): the sheet stays short.
   return (
-    <>
-      {action && <MainAction card={card} action={action} onLeave={onLeave} />}
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
       {target && (
-        <Button variant={action ? "secondary" : "tonal"} onPress={() => leave(target)} testID="action.openCourse">
+        <Button variant={action ? "secondary" : "tonal"} onPress={() => leave(target)} testID="action.openCourse" style={{ flexGrow: 1, flexBasis: 140 }}>
           {t(examId ? "mobile.home.openExam" : "home.now.openCourse")}
         </Button>
       )}
-    </>
+      {action && <MainAction card={card} action={action} onLeave={onLeave} style={{ flexGrow: 1, flexBasis: 140 }} />}
+    </View>
   );
 }
 
