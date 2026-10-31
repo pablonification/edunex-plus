@@ -24,8 +24,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: "./assets/android-icon-foreground.png",
       monochromeImage: "./assets/android-icon-monochrome.png",
     },
-    // Off: with it on, Android 13+ never sends React Native the Back press, so Back would close the app from a sign-in page or a sheet.
-    predictiveBackGestureEnabled: false,
+    // On (W6): React Native 0.88 takes Back through Android's OnBackPressedDispatcher at targetSdk 36, so the back
+    // gesture reaches the app's screens and sheets, with Android's own preview of where it goes.
+    predictiveBackGestureEnabled: true,
     // USE_EXACT_ALARM: a reminder booked ahead ("kuliah sebentar lagi", src/host/reminders.ts) arrives on time, not minutes
     // late as Android 12+ lets an inexact alarm (PROGRESS.md Decision 11).
     permissions: [
@@ -40,6 +41,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   extra: { version, demo },
   plugins: [
     "expo-router",
+    // The screen's fastest refresh rate (90 or 120 Hz), not the 60 Hz many phones keep an app at (W5).
+    "./plugins/high-refresh-rate",
     "expo-secure-store",
     "expo-background-task",
     "expo-sharing",
