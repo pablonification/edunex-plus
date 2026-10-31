@@ -1,0 +1,26 @@
+# Recording: a course's menu sheet opened and closed.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 60000
+- tapOn:
+    id: tab.more
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- tapOn:
+    id: action.courseMenu
+- waitForAnimationToEnd
+- takeScreenshot: sheet-open
+- pressKey: back
+- waitForAnimationToEnd

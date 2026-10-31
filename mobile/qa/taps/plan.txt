@@ -1,0 +1,28 @@
+# taps.sh's steps, from Beranda after a start from saved data: kind | name | testID regex, or BACK.
+# kind groups the steps in the table: tab (first visit after the start), tab-again, screen, back.
+tab | Tugas | tab\.tasks
+tab | Jadwal | tab\.schedule
+tab | Presensi | tab\.presence
+tab | Lainnya | tab\.more
+tab | Beranda | tab\.home
+tab-again | Tugas | tab\.tasks
+tab-again | Jadwal | tab\.schedule
+tab-again | Presensi | tab\.presence
+tab-again | Lainnya | tab\.more
+tab-again | Beranda | tab\.home
+screen | Notifikasi | action\.alerts
+back | from Notifikasi | BACK
+screen | Cari | action\.search
+back | from Cari (its back arrow) | action.back
+tab-again | Tugas | tab\.tasks
+screen | a Task | row\.task\..*
+back | from the Task | BACK
+screen | an exam | row\.exam\..*
+back | from the exam | BACK
+tab-again | Lainnya | tab\.more
+screen | Nilai | row\.nav\.grades
+back | from Nilai | BACK
+screen | Rencana studi | row\.nav\.plan
+back | from Rencana studi | BACK
+screen | a course | row\.course\..*
+back | from the course | BACK
