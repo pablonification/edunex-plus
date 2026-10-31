@@ -1,4 +1,4 @@
-# Recording: a course from Lainnya, its Modul tab, a module, then a file in it.
+# Recording: a course from Lainnya (II4091: its modules have files), its Modul tab, Modul 3, then its PDF.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - extendedWaitUntil:
@@ -9,10 +9,10 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.more
 - scrollUntilVisible:
     element:
-      id: row.course.PL3002
+      id: row.course.II4091
     direction: DOWN
 - tapOn:
-    id: row.course.PL3002
+    id: row.course.II4091
 - extendedWaitUntil:
     visible:
       id: screen.course
@@ -21,14 +21,11 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.course.modules
     optional: true
 - tapOn:
-    id: 'row\.module\..*'
-    index: 0
+    id: row.module.modul-3
 - waitForAnimationToEnd
 - takeScreenshot: modul
 - tapOn:
-    id: 'row\.material\..*'
-    index: 0
-    optional: true
+    id: row.material.880004
 - waitForAnimationToEnd:
     timeout: 8000
 - takeScreenshot: modul-berkas

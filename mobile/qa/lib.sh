@@ -52,3 +52,11 @@ qa_median() { grep -E '^[0-9.]+$' | sort -n | awk '{ v[NR] = $1 } END { if (NR =
 
 # Which build is installed: versionName and the APK's build.txt sha, when the APK came from build.sh.
 qa_apk_sha() { local txt; txt=$(dirname "$1")/build.txt; [ -f "$txt" ] && sed -n 's/^sha=//p' "$txt" | cut -c1-10; }
+
+# What else is busy on the machine (other emulators, builds, the host's CPU): written next to every number, since
+# helpers share this machine.
+qa_machine_state() { powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$here/machine.ps1" < /dev/null | tr -d ''; }
+
+# The measured emulator's priority on the host: High while measuring, so other helpers' builds and emulators take
+# less from it; Normal after.
+qa_priority() { powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$here/machine.ps1" -Port "${S#emulator-}" -Priority "$1" < /dev/null > /dev/null 2>&1 || true; }

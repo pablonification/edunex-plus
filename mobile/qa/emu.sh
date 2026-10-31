@@ -164,10 +164,12 @@ if [ $prepare = 1 ]; then
   exit 0
 fi
 
-# Android keeps working for a while after boot (Play services, compiling): timing runs wait for it.
-for _ in $(seq 90); do
+# Android keeps working for a while after boot (Play services, compiling): timing runs wait for it. The 1-minute
+# load average starts from nothing at boot, so it's only trusted after two minutes up.
+for _ in $(seq 150); do
+  up=$(sh cut -d. -f1 /proc/uptime)
   load=$(sh cat /proc/loadavg | cut -d' ' -f1)
-  awk -v l="$load" -v c="$cores" 'BEGIN { exit !(l < c * 0.5) }' && break
+  [ "$up" -ge 120 ] && awk -v l="$load" -v c="$cores" 'BEGIN { exit !(l < c * 0.5) }' && break
   sleep 2
 done
 echo "Settled: load $load on $cores cores after $(($(date +%s) - boot_start)) s"
