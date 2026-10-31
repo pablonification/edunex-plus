@@ -317,7 +317,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
@@ -397,7 +397,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
@@ -477,7 +477,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
@@ -557,7 +557,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
@@ -636,7 +636,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
@@ -715,7 +715,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
@@ -861,7 +861,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
@@ -941,7 +941,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
@@ -1486,7 +1486,7 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)"
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
                 }
               },
               "commands": [
