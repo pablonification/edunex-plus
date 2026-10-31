@@ -8,7 +8,7 @@ import { budgetLabel, budgetWords, useActionLabel } from "../../../../src/app/at
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
-import { isExamActivity, onUsualSlot, type PresenceGroup } from "../../../../src/core/attendance";
+import { isExamActivity, onUsualSlot, type PresenceGroup, presenceGroup } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { sixTimetableUrl } from "../../../../src/core/links";
@@ -46,6 +46,25 @@ export function CourseRow({ item, group, context }: { item: CourseAttendance; gr
       onLongPress={() => openCourseColorPicker(course.code)}
       label={factsLabel(course.code, name(course.code, course.name), ...meta, chip?.label)}
     />
+  );
+}
+
+/** The course page's first line (W4: budget and next class in one row): the chip, then the next class and its room. */
+export function CourseBudgetLine({ item, context }: { item: CourseAttendance; context: RowContext }) {
+  const t = useT();
+  const f = useFormat();
+  const chip = budgetChip(t, presenceGroup(item.health, context.signedOut), item.health, context);
+  const meta = metaParts(t, f, item, context);
+  if (!chip && !meta.length) return null;
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[3], rowGap: space[1] }} testID="line.courseBudget">
+      {chip && <BudgetChip chip={chip} />}
+      {meta.length > 0 && (
+        <View style={{ flexShrink: 1, minWidth: 160 }}>
+          <Meta>{meta.join(" · ")}</Meta>
+        </View>
+      )}
+    </View>
   );
 }
 

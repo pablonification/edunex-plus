@@ -13,7 +13,8 @@
     "Status 'placeholder': steps written from the testID convention (PROGRESS.md Decision 8) before the screen exists;",
     "the lead replaces them with the real steps and sets status to 'ready' as each screen lands.",
     "'scrollTimeout': how long each item's scroll may take on a long screen (default 4000 ms). 'phoneSkips' (top level): the desktop's items the phone leaves out on purpose, by entry id pattern, with the scope row and why: no checks, not counted.",
-    "The shared launch is tried twice: over a course's sixty fresh starts, one now and then stuck on its splash."
+    "The shared launch is tried twice: over a course's sixty fresh starts, one now and then stuck on its splash.",
+    "presence: Kuliah shows each course as a slim row (round 2); a course's bar, count, next class and exception are on its page, so those entries open it (byEntry), and every other entry comes back to Kuliah first."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -964,7 +965,217 @@
             "id": "screen.courses"
           }
         }
-      ]
+      ],
+      "byEntry": {
+        "^presence.attendance.teknik-penyelesaian-masalah-terstruktur|": [
+          {
+            "tapOn": {
+              "id": "action.back",
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.KU5014"
+              }
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.KU5014"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^presence.attendance.komunikasi-pemasaran|": [
+          {
+            "tapOn": {
+              "id": "action.back",
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.DK4073"
+              }
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.DK4073"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^presence.attendance.ekonomi-infrastruktur-dan-transportasi|": [
+          {
+            "tapOn": {
+              "id": "action.back",
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.PL3032"
+              }
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.PL3032"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^presence.attendance.ekonomi-dan-inovasi-dalam-perencanaan|": [
+          {
+            "tapOn": {
+              "id": "action.back",
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.PL3002"
+              }
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.PL3002"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^presence.attendance.proposal-tugas-akhir|": [
+          {
+            "tapOn": {
+              "id": "action.back",
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.II4091"
+              }
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.course.II4091"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^presence.": [
+          {
+            "tapOn": {
+              "id": "action.back",
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          }
+        ]
+      }
     },
     "grades": {
       "status": "ready",

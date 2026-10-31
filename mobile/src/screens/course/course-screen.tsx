@@ -32,7 +32,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { GradesTab } from "./grades";
-import { CourseException } from "../presence/course-row";
+import { CourseBudgetLine, CourseException } from "../presence/course-row";
 import { useRowContext } from "../presence/presence-screen";
 import { AnnouncementsTab, TasksTab } from "./lists";
 import { MeetingsTab } from "./meetings";
@@ -213,6 +213,7 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
   const { health } = item;
   return (
     <Card style={{ marginTop: -space[2], marginBottom: space[5], padding: space[4], gap: space[3] }} testID="meter.courseAttendance">
+      <CourseBudgetLine item={item} context={rows.context} />
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
         <View style={{ flex: 1, minWidth: 0 }}>
           <AbsenceBudget health={health} place="header" own={Object.hasOwn(attendanceTargets, page.course.code)} soFar={rows.attendance.period === null} />
