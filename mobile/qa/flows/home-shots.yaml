@@ -36,8 +36,14 @@ appId: io.github.pablonification.edunexplus.demo
 - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CHECK_IN=open&EDUNEX_DEMO_THEME=${THEME}"
 - extendedWaitUntil:
     visible:
-      id: action.checkIn
+      id: card.now
     timeout: 120000
+# At a large font on a small phone the button is below the fold.
+- scrollUntilVisible:
+    element:
+      id: action.checkIn
+    direction: DOWN
+    timeout: 30000
 - waitForAnimationToEnd
 - takeScreenshot: 04-beranda-tandai-hadir
 - tapOn:

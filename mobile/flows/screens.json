@@ -138,7 +138,8 @@
           }
         ]
       },
-      "$comment": "Round 2 (W15): the welcome is one screen; 'connected' is who's signed in, on Settings once SIX joined; 'ready' is Beranda's summary card once the first read is in."
+      "$comment": "Round 2 (W15): the welcome is one screen; 'connected' is who's signed in, on Settings once SIX joined; 'ready' is Beranda's summary card once the first read is in.",
+      "relaunch": true
     },
     "first-scan": {
       "status": "ready",
@@ -407,6 +408,17 @@
               "element": {
                 "id": "row.course.DK4073"
               },
+              "direction": "UP",
+              "timeout": 6000,
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.DK4073"
+              },
+              "direction": "DOWN",
               "timeout": 10000
             }
           },
@@ -465,6 +477,17 @@
               "element": {
                 "id": "row.course.II4091"
               },
+              "direction": "UP",
+              "timeout": 6000,
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.II4091"
+              },
+              "direction": "DOWN",
               "timeout": 10000
             }
           },
@@ -523,6 +546,17 @@
               "element": {
                 "id": "row.course.KU5014"
               },
+              "direction": "UP",
+              "timeout": 6000,
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.KU5014"
+              },
+              "direction": "DOWN",
               "timeout": 10000
             }
           },
@@ -581,6 +615,17 @@
               "element": {
                 "id": "row.course.PL3002"
               },
+              "direction": "UP",
+              "timeout": 6000,
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.PL3002"
+              },
+              "direction": "DOWN",
               "timeout": 10000
             }
           },
@@ -639,6 +684,17 @@
               "element": {
                 "id": "row.course.PL3032"
               },
+              "direction": "UP",
+              "timeout": 6000,
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.course.PL3032"
+              },
+              "direction": "DOWN",
               "timeout": 10000
             }
           },
