@@ -28,7 +28,7 @@ appId: io.github.pablonification.edunexplus.demo
       id: card.firstScan
     direction: DOWN
     timeout: 60000
-    centerElement: true
+    visibilityPercentage: 80
 - waitForAnimationToEnd
 - takeScreenshot: 03-summary-card
 # Signed in, Thursday 08:07, SIX's Tandai Hadir open in the morning's class.
