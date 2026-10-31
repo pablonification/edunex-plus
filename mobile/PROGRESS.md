@@ -13,9 +13,50 @@ motion and onboarding are open. The desktop is a reference for data only.
 
 ### Where round 2 stands
 
-- Step: foundations done and the shell and the lab merged (bf4d6bc). Three screen helpers at work on the desktop
-  (home, schedule-courses, tasks-academic).
-- Next for the lead: review and merge each screen helper; then the judge (round 1 of round 2) and a fresh tester.
+- **2026-11-01, Arqila's verdict on the shell and the first Beranda/first-run build (2843f6b):** "I don't like this at
+  all. The UI is still cluttered and very bad on mobile. The volume of text is still ridiculous. This is bad. I already
+  gave you the apps I like (Gojek, GoPay, Todoist, T3 Code mobile, Grab, myBCA). Embarrassing. I also want the app more
+  joyful, like a typical startup-made app where everything is micro-optimised so it feels very pleasing to use." And on
+  the shell's Jadwal: "Why is the page title redundant? Come on." (top bar "Jadwal", then "Jadwal" again in the page.)
+- **Gate (Decision 23): design direction first.** The lead makes 2–3 clearly different directions as static mockups
+  (Beranda, Jadwal, the class sheet; light and dark; 390 px; the demo's data; a word count under each; a motion note;
+  next to the reference apps), shows them to Arqila in the lead's thread and on branch `mobile-r2-mockups`, and asks
+  which direction and what to change. Until Arqila picks, nobody writes screen-layout code and no screen helper's
+  branch is merged. Then the chosen direction is built on Beranda first and shown to Arqila in the real app before
+  it rolls out to the other screens.
+- Meanwhile only work that doesn't depend on the look: fresh-install start under 2 s, JS stalls, device proofs for
+  W1, W2 and W5, CI (run 41219489671 on 819ec87), the two cut-off texts, the one-title fix.
+- Helpers paused on layout, each on look-free work: home (cut-off texts, one-title TabHeader/Page, fresh install
+  < 2 s, Beranda's stalls), schedule-courses (W1, W5, W13 plumbing, duplicate titles), tasks-academic (duplicate
+  titles, the word counter `mobile/qa/words.sh`, stalls in Tugas/Nilai/Rencana, W2 on the device).
+
+### Rules from Arqila's verdict (2026-11-01; the judge fails a screen on any of them)
+
+1. **Text budget.** A list row: a title and at most one short meta line. At most one status per row, as a chip or
+   icon, never a sentence (a Hari ini row saying "Tak bisa lagi capai 80%" in red and "Bentrok dengan PL3032
+   16:00–16:30" in orange is what to kill). No explanatory sentences on tab screens ("Tekan Tandai Hadir di SIX saat
+   tombolnya muncul.", "Dicek tiap 2 menit…", "Pengingat kuliah, Presensi dan tenggat tetap sampai saat aplikasi
+   tertutup.", "cek ke dosen kalau ada yang terlewat"): one tap deeper, or gone; a button only when actionable.
+   Each tab's first screen (light, `mid`, no scrolling) counted with `mobile/qa/words.sh`: target in the 40s for every
+   tab (Beranda was ~150).
+2. **One title per screen.** On tabs a large title that collapses into the top bar on scroll, or just the top bar,
+   never both. No in-page h1 on any tab or stack screen. "Diperbarui baru saja" only when stale or offline. The judge
+   fails any screen that shows its name twice.
+3. **Look.** Fewer containers (no grey card on a grey page for everything), stronger contrast between type sizes,
+   generous whitespace, one accent colour for one meaning, one focal point per screen and the rest quiet. Judged next to
+   screenshots of the reference apps, never against the desktop or round 1.
+4. **Joy and micro-polish, on the UI thread.** Pressed items scale down slightly with a spring and every target has
+   press feedback; haptics on commits (swipe, Kumpulkan, Tandai Hadir, toggles); lists stagger in the first time;
+   numbers count up (IPK, absences left); the check draws itself; empty states are pleasant; skeletons shimmer; sheets
+   and screens move with springs. Navigation stays Android-native (predictive back, native tabs).
+
+| Tab (first screen, light, `mid`) | Words before (round 1 / shell) | Target | After |
+| --- | --- | --- | --- |
+| Beranda | ~150 (shell) | 40s | |
+| Jadwal | | 40s | |
+| Tugas | | 40s | |
+| Kuliah | | 40s | |
+| Akademik | | 40s | |
 
 ### Machines
 
@@ -145,6 +186,12 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
     2026-10-31; before that they could only commit locally). Pictures go on the piece's branch; screen recordings on a
     separate `media-<piece>` branch, never merged, so videos stay out of `mobile`'s history. The desktop's token has no
     `workflow` scope: changes to `.github/workflows/*` are made from pabs.
+
+23. **Design direction first, approved by Arqila** (2026-11-01). 2–3 directions as static mockups before any more
+    screen-layout code; the chosen one built on Beranda in the real app and shown to Arqila before the other screens.
+24. **The phone says less than the desktop, never less truly** (2026-11-01). The phone has its own short strings in
+    `src/core/strings/mobile.ts`; the desktop's long, exact sentences don't have to appear on the phone's overviews.
+    Exactness and nuance stay, on the detail screen or sheet. Check A still finds every fact somewhere on the phone.
 
 ### Judge (helper on the desktop, never the lead)
 
