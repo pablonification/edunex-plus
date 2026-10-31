@@ -19,7 +19,6 @@ import { lateSnoozable, type TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { canSnooze, useRowActions, useSnooze } from "../../parts/snooze";
 import { Button, IconButton } from "../../ui/controls";
-import { StatusChip } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
@@ -27,24 +26,22 @@ import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { ExamPartRow, PeriodRow } from "./exam-rows";
 import {
-  DateColumn,
+  countdown,
   type DueWhen,
   dueWhen,
-  ExamTitle,
   formatScore,
+  HeroCard,
   inWorld,
   moduleLabel,
-  RowMeta,
   RowNote,
   type RowWorldValue,
   type SignalIcon,
+  StatusPill,
+  TaskLine,
   useRowWorld,
 } from "./row-parts";
 
 export { CourseCodeMark, DateColumn, ExamTitle, formatScore, moduleLabel, useDueWhen } from "./row-parts";
-
-/** Statuses worth a chip in a list: the rest are said by the segment, the group and the date. */
-const LOUD: readonly TaskStatus[] = ["draft", "in_review"];
 
 type MarkedHow = Extract<DoneHow, "handedElsewhere" | "notHandingIn" | "groupDone">;
 
@@ -106,6 +103,7 @@ export const TaskRow = inWorld(function TaskRow({
   exam,
   actions,
   onLongPress,
+  hero = false,
 }: {
   task: Task;
   status: TaskStatus;
@@ -114,6 +112,8 @@ export const TaskRow = inWorld(function TaskRow({
   exam?: Exam;
   actions?: ReactNode;
   onLongPress?: () => void;
+  /** Tugas's one big card: the nearest deadline (row-parts.tsx HeroCard), the same item, target and name. */
+  hero?: boolean;
 }) {
   const t = useT();
   const { go } = useNav();
@@ -122,7 +122,6 @@ export const TaskRow = inWorld(function TaskRow({
   const module = moduleLabel(t, task.module);
   const date = taskDate(t, world.f, world.now, task, status);
   const signal = signalOf(t, world, task, status);
-  const chip = LOUD.includes(status);
   const where = module ?? course?.name ?? null;
   const facts = exam
     ? [meta === "course" ? task.courseCode : "", t("exam.takeHome"), task.title]
@@ -143,39 +142,58 @@ export const TaskRow = inWorld(function TaskRow({
     date.rel,
   );
   const code = meta === "course" ? task.courseCode : null;
-  const rest = exam ? [t("exam.takeHome"), task.title] : meta === "course" ? [where] : meta === "module" ? [module] : [];
+  // v4: one meta line (the code, or the kind of a take-home, and when), one status (the countdown, the score, or
+  // "not handed in"); everything else is in the row's spoken name and on the Task's page.
+  const sentAt = submittedAt(task);
+  const kind = exam ? t(`exam.kind.${exam.kind}`) : null;
+  const when =
+    sentAt !== null
+      ? t("task.submittedOnDate", { date: world.f.dayMonth(sentAt) })
+      : task.dueAt === null
+        ? t("task.noDeadline")
+        : `${world.f.relativeDay(task.dueAt)}, ${world.f.time(task.dueAt)}`;
+  const lead = kind ?? (meta === "module" && task.module ? t("task.module", { n: task.module.index }) : code);
+  const line = [lead, when].filter(Boolean).join(" · ");
+  const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
+  const statusPill =
+    sentAt !== null ? (
+      task.score !== null ? (
+        <StatusPill tone="ok" text={t("task.scoreValue", { score: formatScore(task.score, world.f) })} />
+      ) : null
+    ) : status === "closed" ? (
+      <StatusPill tone="red" text={t("task.notHandedIn")} />
+    ) : away ? (
+      <StatusPill tone={away.tone} text={away.text} />
+    ) : null;
+  const name = exam ? (course?.name ?? exam.courseCode) : task.title;
+  const open = () => go({ screen: "task", taskId: task.id });
+  if (hero && task.dueAt !== null)
+    return (
+      <HeroCard
+        testID={`row.task.${task.id}`}
+        label={label}
+        onPress={open}
+        code={task.courseCode}
+        course={course?.name}
+        kind={kind ?? t("mobile.home.kind.task")}
+        at={task.dueAt}
+        title={name}
+        meta={[exam ? task.courseCode : (module ?? task.courseCode), when].filter(Boolean).join(" · ")}
+      />
+    );
   return (
-    <Row
-      wrapTrailing
+    <TaskLine
       testID={`row.task.${task.id}`}
       label={label}
-      onPress={() => go({ screen: "task", taskId: task.id })}
+      onPress={open}
       onLongPress={onLongPress}
       actions={actions}
-      title={
-        exam ? (
-          <ExamTitle kind={t(`exam.kind.${exam.kind}`)} name={course?.name ?? exam.courseCode} />
-        ) : (
-          <Text size="bodyLarge" numberOfLines={2}>
-            {task.title}
-          </Text>
-        )
-      }
-      meta={<RowMeta code={code} color={world.colorOf(task.courseCode)} rest={rest} />}
-      trailing={
-        <>
-          {chip && <StatusChip status={status} />}
-          <DateColumn main={date.main} sub={date.sub} tone={date.tone} late={date.late && status === "overdue"} />
-        </>
-      }
-    >
-      {late && <RowNote>{t("home.need.task.overdue")}</RowNote>}
-      {signal && (
-        <RowNote icon={signal.icon} tone={signal.tone}>
-          {signal.facts.join("  ·  ")}
-        </RowNote>
-      )}
-    </Row>
+      code={meta === "course" ? task.courseCode : null}
+      course={course?.name}
+      title={name}
+      meta={line}
+      status={statusPill}
+    />
   );
 });
 

@@ -18,10 +18,13 @@ import { moduleName } from "../../../../src/core/tasks";
 import { toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
 import { CourseDot, Tag } from "../../ui/display";
+import { CountUp } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice, TrailingInline } from "../../ui/layout";
+import { PressScale } from "../../ui/press";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
+import { CourseGlyph, CourseTile, useCourseTile } from "../../ui/tile";
 
 const DAY = 86_400_000;
 
@@ -286,5 +289,185 @@ export function ExamTitle({ kind, name }: { kind: string; name: string }) {
         {name}
       </Text>
     </View>
+  );
+}
+
+// ------------------------------------------------------------ v4 (round 2's look): a row, its one status, the big card
+
+const HOUR = 3_600_000;
+const MINUTE = 60_000;
+
+export type PillTone = "neutral" | "amber" | "red" | "ok";
+
+/** How far off `at` is, as the one status a row shows: "8 hari", "5 jam", "40 mnt"; "lewat 2 hari" once past (red). */
+export function countdown(t: Translate, now: number, at: number): { value: number; unit: string; late: boolean; tone: PillTone; text: string } {
+  const gap = Math.abs(at - now);
+  const late = at < now;
+  const [value, key] =
+    gap < HOUR
+      ? [Math.max(1, Math.floor(gap / MINUTE)), "mobile.home.unit.minute" as const]
+      : gap < DAY
+        ? [Math.floor(gap / HOUR), "mobile.home.unit.hour" as const]
+        : [Math.floor(gap / DAY), "mobile.home.unit.day" as const];
+  const unit = t(key, { count: value });
+  const tone: PillTone = late ? "red" : gap < DAY ? "amber" : "neutral";
+  return { value, unit, late, tone, text: late ? `${t("mobile.home.late")} ${value} ${unit}` : `${value} ${unit}` };
+}
+
+/** A row's one status: a pill in its tone, with a sign when it's red (never the colour alone). */
+export function StatusPill({ tone, text, icon }: { tone: PillTone; text: string; icon?: ReactNode }) {
+  const v = useTheme().v4;
+  const [bg, fg] = tone === "red" ? [v.redBg, v.redFg] : tone === "amber" ? [v.ambBg, v.ambFg] : tone === "ok" ? [v.okBg, v.okFg] : [v.page, v.fg2];
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: bg }}>
+      {icon ?? (tone === "red" ? <Icons.AlertTriangle size={13} weight="bold" color={fg} /> : null)}
+      <Text size="labelMedium" weight="semibold" tabular style={{ color: fg }} numberOfLines={1}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * A row of Tugas in v4: the course's tile, a title, one short meta line, and at most one status at the end. The whole
+ * row is one target (the press spring); `actions` (a quick action) sit beside it, never inside. Its spoken name says
+ * every fact (`label`), the ones the row leaves to the Task's page too.
+ */
+export function TaskLine({
+  testID,
+  label,
+  onPress,
+  onLongPress,
+  code,
+  course,
+  leading,
+  title,
+  meta,
+  status,
+  actions,
+  children,
+}: {
+  testID: string;
+  label: string;
+  onPress: () => void;
+  onLongPress?: () => void;
+  /** The course whose tile leads the row; none on a course's own page. */
+  code?: string | null;
+  course?: string;
+  /** In place of a course's tile (an exam period's calendar). */
+  leading?: ReactNode;
+  title: string;
+  meta?: string | null;
+  status?: ReactNode;
+  actions?: ReactNode;
+  children?: ReactNode;
+}) {
+  const v = useTheme().v4;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center" }}>
+      <PressScale
+        testID={testID}
+        accessibilityLabel={label}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        style={{
+          flex: 1,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space[3],
+          paddingLeft: 14,
+          paddingRight: actions ? space[1] : 14,
+          paddingVertical: space[3],
+          minHeight: 68,
+        }}
+      >
+        {leading ?? (code ? <CourseTile code={code} name={course} /> : null)}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+            {title}
+          </Text>
+          {meta ? (
+            <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted, marginTop: 2 }}>
+              {meta}
+            </Text>
+          ) : null}
+          {children}
+        </View>
+        {status}
+      </PressScale>
+      {actions}
+    </View>
+  );
+}
+
+/**
+ * The nearest deadline as Tugas's one big card (v4, Beranda's "Perlu kamu urus"): the course's tint, its glyph and the
+ * kind in a pill, the countdown big ("8 hari"; red and "lewat" once past), then what it is and when. The same item,
+ * target and spoken name as its row would have: it isn't listed again under it.
+ */
+export function HeroCard({
+  testID,
+  label,
+  onPress,
+  code,
+  course,
+  kind,
+  at,
+  title,
+  meta,
+}: {
+  testID: string;
+  label: string;
+  onPress: () => void;
+  code: string;
+  course?: string;
+  kind: string;
+  at: number;
+  title: string;
+  meta: string;
+}) {
+  const t = useT();
+  const { now } = useRowWorld();
+  const v = useTheme().v4;
+  const { ink, tint } = useCourseTile()(code);
+  const away = countdown(t, now, at);
+  const color = away.late ? v.redFg : ink;
+  return (
+    <PressScale
+      testID={testID}
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={{ backgroundColor: tint, borderRadius: 24, padding: space[4], marginBottom: space[6] }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+        <CourseGlyph code={code} name={course} />
+        <View style={{ backgroundColor: v.card, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 }}>
+          <Text size="labelMedium" weight="semibold" style={{ color: ink }}>
+            {kind}
+          </Text>
+        </View>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: space[3] }}>
+        {away.late && (
+          <Text size="bodyLarge" face="display" weight="semibold" style={{ color, marginRight: 6 }}>
+            {t("mobile.home.late")}
+          </Text>
+        )}
+        <CountUp
+          id={`tasks:${testID}`}
+          value={away.value}
+          style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
+        />
+        <Text size="bodyLarge" face="display" weight="semibold" style={{ color, fontSize: 16, marginLeft: 5 }}>
+          {away.unit}
+        </Text>
+      </View>
+      <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, marginTop: space[2] }}>
+        {title}
+      </Text>
+      <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, marginTop: 2 }}>
+        {meta}
+      </Text>
+    </PressScale>
   );
 }
