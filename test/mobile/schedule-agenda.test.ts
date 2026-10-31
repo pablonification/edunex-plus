@@ -32,6 +32,17 @@ describe("Jadwal's agenda", () => {
     // The weekend, empty, is left out; a tap on Saturday brings up its week's line.
     expect(lineOf(agenda, "2026-10-10")).toBe(agenda.weekAt.get("2026-10-05"));
     expect(lineOf(agenda, "2026-10-08")).toBe(4);
+    // A week's Monday brings up the week's own line, with its bands.
+    expect(lineOf(agenda, "2026-10-05")).toBe(0);
+  });
+
+  it("an exam week's empty days are left to the week's band, not a Kosong each", () => {
+    const uts = { kind: "uts" } as ScheduleDay["events"][number];
+    const plan = ["2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", "2026-10-16", "2026-10-17", "2026-10-18"].map((day) =>
+      day === "2026-10-15" ? { ...busy(day), events: [uts] } : day <= "2026-10-16" ? { ...empty(day), events: [uts] } : empty(day),
+    );
+    const agenda = agendaLines(plan, { six: true, months: ["2026-10"], today: "2026-10-08" });
+    expect(agenda.lines.map((line) => (line.type === "week" ? "week" : line.day.day))).toEqual(["week", "2026-10-15"]);
   });
 
   it("a week SIX hasn't published says so once, and its empty weekdays aren't called free", () => {

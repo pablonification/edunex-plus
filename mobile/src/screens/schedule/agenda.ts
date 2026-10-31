@@ -22,6 +22,9 @@ export interface Agenda {
   weekAt: ReadonlyMap<string, number>;
 }
 
+/** ITB's periods without lectures: a day in one holds nothing worth a line of its own, the week's band says why. */
+const NO_LECTURES = new Set(["uts", "uas", "holiday"]);
+
 /** Monday is 0. */
 const weekday = (day: string) => (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7;
 
@@ -57,7 +60,9 @@ export function agendaLines(plan: readonly ScheduleDay[], { six, months, today }
     });
     for (const day of week) {
       const empty = isEmptyDay(day);
-      const free = six && empty && !day.holiday && weekday(day.day) < 5 && covered.has(day.day.slice(0, 7));
+      const off = day.events.some((e) => NO_LECTURES.has(e.kind));
+      // An exam week's empty days aren't "Kosong": the week's band says it ("Masa UTS · 12–16 Okt").
+      const free = six && empty && !off && weekday(day.day) < 5 && covered.has(day.day.slice(0, 7));
       if (empty && !free && !day.holiday && day.day !== today) continue;
       dayAt.set(day.day, lines.length);
       lines.push({ type: "day", key: `day-${day.day}`, day, free });
@@ -66,8 +71,12 @@ export function agendaLines(plan: readonly ScheduleDay[], { six, months, today }
   return { lines, dayAt, weekAt };
 }
 
-/** The line to bring up for `day`: its own, else the next day shown after it in its week, else its week's line. */
+/**
+ * The line to bring up for `day`: a week's Monday brings up the week's own line (its period bands with it), any other
+ * day its own line, else the next day shown after it in its week, else its week's line.
+ */
 export function lineOf(agenda: Agenda, day: string): number | undefined {
+  if (weekStart(day) === day && agenda.weekAt.has(day)) return agenda.weekAt.get(day);
   const own = agenda.dayAt.get(day);
   if (own !== undefined) return own;
   const monday = weekStart(day);
