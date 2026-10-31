@@ -13,10 +13,9 @@ motion and onboarding are open. The desktop is a reference for data only.
 
 ### Where round 2 stands
 
-- Step: foundations F1, F2, F6, F7, F8 pushed (39b9a51…9681b1e); the shell (F3, F4, F5, F9) with helper `shell`;
-  the QA lab with helper `qa`. Device proof of each still to come from the lab.
-- Next for the lead: briefs for the screen helpers (after the shell merges), Maestro flows for W1–W15, the
-  widget's today list and calendar sync with the Jadwal helper.
+- Step: foundations done and the shell and the lab merged (bf4d6bc). Three screen helpers at work on the desktop
+  (home, schedule-courses, tasks-academic).
+- Next for the lead: review and merge each screen helper; then the judge (round 1 of round 2) and a fresh tester.
 
 ### Machines
 
@@ -37,9 +36,9 @@ Causes marked "suspected" are read from the code and get proved on a device befo
 | W3 | Moving around lags: frame drops, a freeze before a page shows | Suspected: JS-drawn tabs mount each tab on first visit; screens compute everything before the first frame; the engine's sync work (parse, hash, write) on the same JS thread | Native tabs (preloaded), screens that draw their first screenful first, engine work cut and spread out; measured with `[perf]` lines and Perfetto | `[perf] screen/tab` under target on `weak` and `mid` | todo |
 | W4 | Hierarchy: what to look at first isn't clear | Desktop layout: every fact at once, hairline boxes, grey text | Redesign per screen (plans below) | judge 8+/10 per screen | todo |
 | W5 | Capped at 60 fps on a 90/120 Hz screen | Suspected: the window asks for no frame rate, so phones that keep apps at 60 Hz (Xiaomi, Samsung's adaptive) do | Ask for the display's fastest mode at the same size (`preferredDisplayModeId`) from MainActivity, by a config plugin | `dumpsys display`/SurfaceFlinger + framestats at ~8.3/11.1 ms on `mid` | plugin pushed (f54ca42, seen in prebuild's MainActivity); device proof |
-| W6 | Swipe-back (Android's back gesture) doesn't work | Predictive back turned off in round 1 (`predictiveBackGestureEnabled: false`) and in-place states (a module, Jadwal's month) caught by BackHandler instead of being screens | Predictive back on (RN 0.88 registers its OnBackPressedCallback at targetSdk 36), every drill-down a native stack screen, BackHandler only while a sheet or edit is open | flow `w06-back`: the gesture (`input swipe` from the edge) and Back from every pushed screen | predictive back on (f54ca42, manifest `enableOnBackInvokedCallback="true"`); routes with the shell |
+| W6 | Swipe-back (Android's back gesture) doesn't work | Found by the shell helper: React Native 0.88 hands Back to JS only on Android 16; with predictive back on, 13–15 closed the app from any screen. And a module open inside the course page (BackHandler): the first swipe did nothing, the second left the course | Predictive back on (RN 0.88 registers its OnBackPressedCallback at targetSdk 36), every drill-down a native stack screen, BackHandler only while a sheet or edit is open | flow `w06-back`: the gesture (`input swipe` from the edge) and Back from every pushed screen | fixed (shell, 181ebcd): `plugins/back-to-js.js`; seen on `mid` (Settings → Back → Beranda; module → edge swipe → course → Back → Kuliah); flow to write |
 | W7 | Swiping on items ("needs you") feels weird | iOS-style reveal-a-button swipe with friction 1.6 | Android's way (Gmail): swipe past a threshold commits with a haptic, the row slides out, a snackbar offers Urungkan; long-press menu stays | flow `w07-swipe` | todo |
-| W8 | A sheet's dark overlay slides up with the sheet | `Modal animationType="slide"` moves the scrim with the sheet | Native sheets (react-native-screens formSheet: Material bottom sheet, scrim fades, predictive back) | recording; flow opens and drags each sheet | todo |
+| W8 | A sheet's dark overlay slides up with the sheet | `Modal animationType="slide"` moves the scrim with the sheet | Native sheets (react-native-screens formSheet: Material bottom sheet, scrim fades, predictive back) | recording; flow opens and drags each sheet | fixed (shell): scrim fades while the sheet slides (frame at 150 ms), recording on `media-shell` |
 | W9 | Use native UI wherever possible | JS tab bar, JS sheets, JS menus | Native bottom navigation (expo-router NativeTabs), native stack, native sheets, native switches, Android's pickers and share | judge, review | todo |
 | W10 | Animations janky, not joyful | Slide-from-right JS-thread work during transitions, no motion system | Android's own transitions, spring motion on the UI thread (Reanimated) for a few moments: a hand-in, a check-in, a swipe | recording judged | todo |
 | W11 | Screens too crowded | As W4 | Fewer facts per row; secondary detail one tap away | judge | todo |
@@ -52,13 +51,18 @@ Causes marked "suspected" are read from the code and get proved on a device befo
 
 | Measure | Target | Before (mid / weak) | After (mid / weak) |
 | --- | --- | --- | --- |
-| Tap responds | < 100 ms | | |
-| Tab switch | < 300 ms | | |
-| Open a screen with its data | < 500 ms | | |
-| Scrolling long lists | full refresh on mid; < 5% janky on weak | | |
-| Cold start, fresh install → first data | < 2 s on mid | | |
-| Update from SIX/Edunex | saved data at once, background, only what changed; total time down | | |
-| JS thread blocked | never > 50 ms in use | | |
+| Tap responds | < 100 ms | 19–58 / 22–52 ms | |
+| Tab switch | < 300 ms | ~505–518 (Tugas first 911) / ~502–524 (Tugas first 1100) ms | shell: 53–80 / 89–109 ms median |
+| Open a screen with its data | < 500 ms | 564–643, Rencana 808, Nilai 900 / 583–773, Rencana 1076, Nilai 1221 ms | shell: course 46, module 17, Nilai 70, Rencana part 96 / 28, 31, 102, 108 ms |
+| Scrolling long lists | full refresh on mid; < 5% janky on weak | 0.75% janky at 60 fps (120 Hz screen) / 1.20% | refresh fix cff308d to prove |
+| Cold start, fresh install → first data | < 2 s on mid | 6.6 / 7.8 s | |
+| Cold start with saved data | | 1.09 / 1.57 s | |
+| Update from SIX/Edunex | saved data at once, background, only what changed; total time down | a start re-read everything: 83 Edunex + 13 SIX requests (SIX 2 s apart) | due-only start: the sign-in checks only (39b9a51) |
+| JS thread blocked | never > 50 ms in use | 253 / 558 ms after a tap; 639 / 1207 ms in a tabs tour | shell: 254 / 834 ms in the tabs tour (screens' own renders, for the screen helpers) |
+| Flashlight score | | 99 / 99 | |
+
+Before = round 1's code (9395cea) on the lab's emulators, release builds (`mobile/qa/BASELINE.md`). Shell numbers on
+981d27f (`mobile/qa/shell-notes.md`).
 
 ### The new shape of the app (information architecture)
 
@@ -120,14 +124,14 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | # | Piece | Status |
 | --- | --- | --- |
 | F1 | `[perf]` probes: JS stalls > 50 ms with what ran, tap → screen drawn, first data | done (1f492fb, `mobile/src/perf.ts`) |
-| F2 | High refresh rate (config plugin in MainActivity) | done (f54ca42), proof on `mid` |
-| F3 | Predictive back on; drill-downs as stack screens | on (f54ca42); routes: shell |
-| F4 | Native tabs (5, as above), native stack transitions | shell |
-| F5 | Native sheets (formSheet routes) replacing `ui/sheet.tsx`'s Modal | shell |
+| F2 | High refresh rate (config plugin in MainActivity) | f54ca42 did nothing on `mid` (one 120 Hz mode, already current; Android caps the app's render rate): cff308d also sets `preferredRefreshRate`; proof with the Jadwal helper |
+| F3 | Predictive back on; drill-downs as stack screens | done (shell, merged 181ebcd): every drill-down a route; Back reaches JS on Android 13–15 (`plugins/back-to-js.js`) |
+| F4 | Native tabs (5, as above), native stack transitions | done (shell): NativeTabs with Phosphor vector drawables, Android's own transitions |
+| F5 | Native sheets (formSheet routes) replacing `ui/sheet.tsx`'s Modal | done (shell): react-native-screens' FormSheet (Material BottomSheetDialog), scrim fades (W8, seen on `mid`) |
 | F6 | Files: type from the response and bytes; open in Android's viewer (W1) | done (85f2461) |
 | F7 | One in-app Edunex/SIX page with the app's session (W14) | done (e1a3c60) |
 | F8 | Engine: start only due feeds, cheap change detection (W2) | done (39b9a51) |
-| F9 | M3 type scale and colour roles in `ui/theme.ts`, every pair through contrast.py | shell |
+| F9 | M3 type scale and colour roles in `ui/theme.ts`, every pair through contrast.py | done (shell): `mobile/DESIGN.md`, every pair passes (shell-notes.md) |
 
 ### Round 2 decisions
 
@@ -151,9 +155,11 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 
 | Helper | Piece | Branch | Status |
 | --- | --- | --- | --- |
-| qa | Set up the lab, baseline numbers, before pictures | `mobile-qa` | running |
-| shell | F3, F4, F5, F9: native tabs (5), native stack routes, native sheets, M3 design system, `mobile/DESIGN.md` | `mobile-shell` | running; pushed through 556ae0b. Found W6's real cause: RN 0.88 hands Back to JS only on Android 16, so with predictive back on, 13–15 closed the app (fixed by `plugins/back-to-js.js`). Tab switch 53–109 ms median, screen open 17–108 ms (mid/weak) |
+| qa | Set up the lab, baseline numbers, before pictures | `mobile-qa` | merged (d9a156b): `mobile/qa/README.md`, `BASELINE.md`, 34 before pictures in `mobile/report/img/before/`, recordings on `media-qa` |
+| shell | F3, F4, F5, F9: native tabs (5), native stack routes, native sheets, M3 design system, `mobile/DESIGN.md` | `mobile-shell` | merged (181ebcd, head 315aabb); Check A signed-in 764/764. Found W6's real cause: RN 0.88 hands Back to JS only on Android 16, so with predictive back on, 13–15 closed the app (fixed by `plugins/back-to-js.js`). Tab switch 53–109 ms median, screen open 17–108 ms (mid/weak) |
 | home | Beranda, swipe (W7), one target (W12), onboarding (W15), fresh-install speed | `mobile-r2-home` (from `mobile-shell`) | running |
+| schedule-courses | Jadwal agenda, class sheet, W13 (reminder's Tandai Hadir, widget today, calendar sync), Kuliah, course + module, W1 on the device, W5 proof | `mobile-r2-schedule-courses` | running |
+| tasks-academic | Tugas, Task, Exam, Akademik and its screens, Settings, Search, Notifikasi, W9 | `mobile-r2-tasks-academic` | running |
 
 ## Round 1 (done 2026-10-31; kept for its decisions and proofs)
 
@@ -457,6 +463,9 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
   with the pretend clock after the sign-ins, which are played fast while real disk writes finish. The
   edit is now saved at the demo's start plus 3 minutes, 08:10 on every machine
   (test/pretend/demo.test.ts proves it with slow storage).
+- Round 2: after an engine change run the whole suite, `test/app` too (16f1da5 changed the demo's first-sync timing and
+  two desktop course tests caught it only later). Never `git reset --hard` with uncommitted work around: it took
+  `mobile/report/text.mjs`'s round-1 edit once (restored from a saved diff).
 - Never pipe `tsc` or `biome` into `tail` inside an `&&` chain: the pipe hides its exit code (38a1a49 went out with a type error, fb0f860 with a lint error). Run them bare and read `$?`.
 - CI runs on `mobile` only (48f4bff): helpers' `mobile-*` pushes used to start sixteen emulators each and held
   the branch's own run in the queue for an hour. A run takes ~3 h for the scenarios (each ~100 min).
