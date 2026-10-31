@@ -4,7 +4,7 @@
 // "Yang berubah" as one row opening its sheet (./changes.tsx). The term's courses live on Kuliah. The data and the words
 // are the desktop's own (src/app/screens/home.tsx): the same hooks, the same src/core/needs reasoning, the same keys.
 // While the first read runs, each part stands as a skeleton of its own shape and fills in as its data comes.
-import { memo, useMemo } from "react";
+import { memo, useLayoutEffect, useMemo } from "react";
 import { View } from "react-native";
 import { type TermCourse, useTerm, useTermCourses } from "../../../../src/app/courses";
 import { useHomeWorld } from "../../../../src/app/home-world";
@@ -32,8 +32,16 @@ export function Home() {
   const student = useDataset("six.student");
   const courses = useTermCourses();
   const name = account?.name ?? student?.name;
+  const began = Date.now();
   const world = useHomeWorld();
+  const worldAt = Date.now();
   const context = useMemo(() => (world ? homeContext(world) : undefined), [world]);
+  const contextAt = Date.now();
+  // A redraw's cost on the phone: what the minute's tick does to Beranda (the lab reads it from logcat).
+  useLayoutEffect(() => {
+    const total = Date.now() - began;
+    if (total > 30) console.log(`[perf] home-render ${total} world ${worldAt - began} context ${contextAt - worldAt}`);
+  });
   // The timetable's page changed: said here. A class on it the app couldn't read is said in Hari ini and on the card, quietly.
   const timetableChanged = useChangedPage(["six.schedule"]);
   usePerfDrawn(context !== undefined, "tab");
@@ -110,8 +118,8 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   return (
     <>
       <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} health={context.health} />
-      <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
       <FirstScanCard />
+      <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
       <NeedsYou needs={needs} due={due} range={range} courses={courses} limit={3} />
       <Today context={context} plan={plan} due={due} courses={courses} onCard={cardKey(card)} />
       <Changes context={context} />

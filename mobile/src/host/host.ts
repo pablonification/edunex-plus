@@ -111,6 +111,7 @@ export function host(): Promise<Host> {
 }
 
 async function makeHost(): Promise<Host> {
+  const began = Date.now();
   const world = DEMO ? await demoWorld() : await realWorld();
   const toAndroid = !DEMO || world.notify === true;
   const log = new AppLog(() => world.clock.now());
@@ -176,7 +177,11 @@ async function makeHost(): Promise<Host> {
   if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
   lang = engine.snapshot().settings.lang;
   void prepareChannels(lang);
+  const loaded = Date.now();
   if (world.prepare) await world.prepare(engine);
+  // Where a start's time goes before the first frame (the lab reads it): the saved data, and the demo's own sign-in
+  // and first sync (which the real app does after its first frame, behind Beranda's skeletons).
+  console.info(`[startup] host load ${loaded - began} prepare ${Date.now() - loaded}`);
 
   // One Microsoft sign-in covers both systems, exactly as on the desktop.
   const both = signInToBoth({ engine, send, windows: world.signInWindows, log });

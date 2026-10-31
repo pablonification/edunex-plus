@@ -21,7 +21,7 @@ import { useNav } from "../../nav";
 import { OpenSixTimetable } from "../../parts/six-page-note";
 import { useSignIn } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
-import { LiveDot } from "../../ui/display";
+import { LiveDot, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
@@ -52,12 +52,30 @@ const keyOf = (item: TodayItem) =>
         ? `meeting:${item.code}:${item.at}`
         : `due:${item.task.id}`;
 
-/** Before SIX's timetable: where today's classes come from, and a way in while signed out. */
+/**
+ * Before SIX's timetable: where today's classes come from, and a way in while signed out. While SIX is being read (the
+ * first read after signing in), the list's own shape instead: never "SIX isn't connected" while it's coming.
+ */
 function NoSixToday() {
   const t = useT();
   const theme = useTheme();
-  const signedOut = useStatus("six").state === "signed-out";
+  const state = useStatus("six").state;
+  const signedOut = state === "signed-out";
   const { signIn, busy } = useSignIn();
+  if (state === "connecting" || state === "live")
+    return (
+      <View accessibilityState={{ busy: true }} style={{ borderRadius: radius.xl, overflow: "hidden", gap: 2 }}>
+        {[0, 1].map((i) => (
+          <View key={i} style={{ flexDirection: "row", gap: space[3], padding: space[4], backgroundColor: theme.color.surfaceContainerLow }}>
+            <Skeleton height={14} width={40} />
+            <View style={{ flex: 1, gap: space[2] }}>
+              <Skeleton width="70%" />
+              <Skeleton height={12} width="40%" />
+            </View>
+          </View>
+        ))}
+      </View>
+    );
   return (
     <View style={{ borderRadius: radius.xl, backgroundColor: theme.color.sunken, paddingHorizontal: space[4], paddingVertical: space[3.5], gap: space[3] }}>
       <Text tone="muted">{t("home.today.noSix")}</Text>
