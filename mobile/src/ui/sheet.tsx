@@ -54,8 +54,9 @@ export function Sheet({
         testID={testID}
         accessibilityViewIsModal
         // Never taller than the screen less a strip of the page: the content scrolls, the title and the footer stay. The
-        // native sheet already keeps clear of the navigation bar.
-        style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4], backgroundColor: c.surfaceContainerLow }}
+        // sheet runs under the navigation bar (plugins/sheet-theme.js) and sizes itself to the content less the bar, so the
+        // content ends with the bar's height: measured on mid, its last row was cut by exactly that.
+        style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + insets.bottom, backgroundColor: c.surfaceContainerLow }}
       >
         {title !== undefined && (
           <View style={{ paddingHorizontal: space[6], paddingBottom: space[3] }}>
