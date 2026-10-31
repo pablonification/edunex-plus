@@ -496,8 +496,10 @@ describe("SIX changed something", () => {
     h.world.six.changeLayout(/\/statusmhs$/, ">Kehadiran</th>", ">Presensi</th>");
     await until(h, h.engine.refresh("six"));
     expect(h.status("six").state).toBe("live");
-    // The recorded morning has a class on: its first look at "Tandai Hadir" is news of its own.
-    expect(h.events.slice(before).filter((e) => e.type === "dataset" && e.dataset.name !== "six.checkIn")).toEqual([]);
+    // The recorded morning has a class on: its first look at "Tandai Hadir" is news of its own. The public catalog, read
+    // behind the Student's own pages (Pace.turn), may still be filling in.
+    const news = new Set(["six.checkIn", "itb.catalog"]);
+    expect(h.events.slice(before).filter((e) => e.type === "dataset" && !news.has(e.dataset.name))).toEqual([]);
   });
 });
 

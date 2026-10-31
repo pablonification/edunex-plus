@@ -31,11 +31,13 @@ export class PublicClient {
     private readonly site: string,
     private readonly gapMs = 0,
     private readonly pace: Pace = new Pace(clock),
+    /** Its requests let every other request on the site go first (Pace.turn). */
+    private readonly background = false,
   ) {}
 
   /** The text of a page; requests wait their turn and keep the gap. */
   text(url: string, accept = "text/html"): Promise<string> {
-    return this.pace.turn(() => this.fetch(url, accept));
+    return this.pace.turn(() => this.fetch(url, accept), this.background);
   }
 
   private async fetch(url: string, accept: string): Promise<string> {

@@ -163,7 +163,8 @@ function coursePrograms(context: SourceContext, catalog: CourseCatalog): Set<str
 
 export function registerCatalogFeed(context: SourceContext): void {
   // In SIX's own line: the signed-in SIX source reads the same site.
-  const client = new PublicClient(context.transport, context.clock, context.userAgent, "SIX", CATALOG_GAP_MS, context.pace(new URL(CATALOG_URL).host));
+  // Behind the Student's own SIX pages: the catalog is for the planner, and may take its time (Pace.turn).
+  const client = new PublicClient(context.transport, context.clock, context.userAgent, "SIX", CATALOG_GAP_MS, context.pace(new URL(CATALOG_URL).host), true);
   // Once per launch, pages whose layout looked changed are read again without
   // waiting a day: an update may read them now.
   let retryChanged = true;
