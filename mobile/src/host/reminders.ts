@@ -70,7 +70,12 @@ export function phoneReminders(deps: {
       for (const { id, at, content, booking } of plan.book) {
         await Notifications.scheduleNotificationAsync({
           identifier: id,
-          content: { title: content.title, body: content.body, data: content.data as unknown as Record<string, unknown> },
+          content: {
+            title: content.title,
+            body: content.body,
+            data: content.data as unknown as Record<string, unknown>,
+            ...(content.categoryId ? { categoryIdentifier: content.categoryId } : {}),
+          },
           trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at + ahead, channelId: content.channelId },
         });
         kept[id] = booking;

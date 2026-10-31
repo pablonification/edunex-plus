@@ -27,6 +27,8 @@ export const HORIZON = 14 * DAY;
 export const LEAD = MINUTE;
 
 export const CHANNELS = { urgent: "presence", normal: "alerts" } as const;
+/** The notification category of an alert about a class to mark present in: Android shows its "Tandai Hadir" button. */
+export const CHECK_IN_CATEGORY = "checkIn";
 /** Presence opening or closing goes on a channel of its own that may break through, the way the desktop marks it critical. */
 const URGENT = new Set<AlertKind>(["presenceOpen", "presenceClosing"]);
 
@@ -50,6 +52,8 @@ export interface NoticeContent {
   body: string | null;
   data: NoticeData;
   channelId: string;
+  /** CHECK_IN_CATEGORY on an alert about a class to mark present in (its "Tandai Hadir" button). */
+  categoryId?: typeof CHECK_IN_CATEGORY;
 }
 
 type Shown = Pick<AlertNotice, "kind" | "title" | "body" | "target" | "checkIn">;
@@ -65,6 +69,7 @@ export function noticeContent(notice: Shown, lang: Lang, ahead = false): NoticeC
     body: lines.length ? lines.join("\n") : null,
     data: { target: notice.target, ...(notice.checkIn ? { checkIn: notice.checkIn } : {}) },
     channelId: URGENT.has(notice.kind) ? CHANNELS.urgent : CHANNELS.normal,
+    ...(notice.checkIn ? { categoryId: CHECK_IN_CATEGORY } : {}),
   };
 }
 

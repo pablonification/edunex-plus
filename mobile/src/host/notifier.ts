@@ -7,7 +7,7 @@ import * as Notifications from "expo-notifications";
 import type { Lang } from "../../../src/core/models";
 import { translate } from "../../../src/core/strings";
 import type { AlertNotice } from "../../../src/engine/alerts/center";
-import { CHANNELS, noticeContent } from "./booking";
+import { CHANNELS, CHECK_IN_CATEGORY, noticeContent } from "./booking";
 
 export { CHANNELS, type NoticeData } from "./booking";
 
@@ -25,6 +25,10 @@ export function prepareChannels(lang: Lang): Promise<void> {
       name: translate(lang, "mobile.channel.alerts"),
       importance: Notifications.AndroidImportance.DEFAULT,
     });
+    // A class to mark present in: Android's own button on the notification opens SIX's page in the app (W13).
+    await Notifications.setNotificationCategoryAsync(CHECK_IN_CATEGORY, [
+      { identifier: CHECK_IN_CATEGORY, buttonTitle: translate(lang, "mobile.notification.checkIn"), options: { opensAppToForeground: true } },
+    ]);
   })().catch(() => undefined);
   return channelsMade;
 }
@@ -38,10 +42,10 @@ export function phoneNotifier(lang: () => Lang) {
       const permission = await Notifications.getPermissionsAsync();
       if (!permission.granted) return false;
       await channelsReady(lang());
-      const { title, body, data, channelId } = noticeContent(notice, lang());
+      const { title, body, data, channelId, categoryId } = noticeContent(notice, lang());
       await Notifications.scheduleNotificationAsync({
         identifier: notice.id,
-        content: { title, body, data: data as unknown as Record<string, unknown> },
+        content: { title, body, data: data as unknown as Record<string, unknown>, ...(categoryId ? { categoryIdentifier: categoryId } : {}) },
         trigger: { channelId },
       });
       return true;

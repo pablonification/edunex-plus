@@ -12,6 +12,8 @@ export const mobileStrings = {
   // Android's notification channels, as Settings › Notifications lists them.
   "mobile.channel.presence": { id: "Presensi dibuka dan ditutup", en: "Presence opening and closing" },
   "mobile.channel.alerts": { id: "Tugas, tenggat dan perubahan", en: "Tasks, deadlines and changes" },
+  // The button Android shows on a notification about a class to mark present in: SIX's own name for it.
+  "mobile.notification.checkIn": { id: "Tandai Hadir", en: "Tandai Hadir" },
   // alerts
   // At the start of a class SIX counts: with the app closed nothing reads SIX for the button, so the Student hears the class began.
   "mobile.alert.classStarted": { id: "Kuliah sudah mulai · {course}", en: "Class has started · {course}" },

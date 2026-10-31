@@ -2,7 +2,19 @@
 // cancelled and skipped, then the real engine against the pretend Edunex with a pretend Android
 // that shows each booking at its time, the app closed or open: every reminder reaches the Student once.
 import { describe, expect, it } from "vitest";
-import { type Booked, CHANNELS, HORIZON, LEAD, LIMIT, liveCheck, noticeContent, readBooked, rebook, writeBooked } from "../../mobile/src/host/booking";
+import {
+  type Booked,
+  CHANNELS,
+  CHECK_IN_CATEGORY,
+  HORIZON,
+  LEAD,
+  LIMIT,
+  liveCheck,
+  noticeContent,
+  readBooked,
+  rebook,
+  writeBooked,
+} from "../../mobile/src/host/booking";
 import type { AlertNotice } from "../../src/engine/alerts/center";
 import type { PlannedAlert } from "../../src/engine/alerts/detector";
 import { createEngine } from "../../src/engine/engine";
@@ -51,7 +63,10 @@ describe("what's booked with Android", () => {
       channelId: CHANNELS.urgent,
       body: "Ignore this if you're already marked present.",
       data: { checkIn: { meetingId: "m1" } },
+      // Android shows its own "Tandai Hadir" button on it (W13): the category's one action opens SIX's page in the app.
+      categoryId: CHECK_IN_CATEGORY,
     });
+    expect(book[0].content.categoryId).toBeUndefined();
   });
 
   it("books the nearest ones only: not inside a minute (the app's own timer has it), not past the horizon, at most LIMIT", () => {
