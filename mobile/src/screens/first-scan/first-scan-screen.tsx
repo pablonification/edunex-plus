@@ -63,7 +63,7 @@ export function FirstScanScreen() {
               borderRadius: radius.xl,
               borderWidth: StyleSheet.hairlineWidth,
               borderColor: theme.color.edge,
-              backgroundColor: theme.color.surface,
+              backgroundColor: theme.color.surfaceContainerLow,
               overflow: "hidden",
             }}
           >

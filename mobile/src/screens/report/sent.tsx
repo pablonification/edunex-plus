@@ -62,7 +62,7 @@ export function NoteField({
           borderWidth: 1,
           borderRadius: radius.lg,
           borderColor: c.fieldEdge,
-          backgroundColor: c.surface,
+          backgroundColor: c.surfaceContainerLow,
           color: c.fg,
           paddingHorizontal: space[3],
           paddingVertical: space[2.5],

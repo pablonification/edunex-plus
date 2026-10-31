@@ -404,7 +404,7 @@ function Way({
         borderRadius: radius.xl,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: c.edge,
-        backgroundColor: c.surface,
+        backgroundColor: c.surfaceContainerLow,
         overflow: "hidden",
         opacity: disabled && !busy ? 0.6 : 1,
         elevation: theme.scheme === "dark" ? 0 : 1,
@@ -609,7 +609,7 @@ function FileItem({ file }: { file: NonNullable<Saved> }) {
         borderRadius: radius.lg,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.color.line,
-        backgroundColor: theme.color.surface,
+        backgroundColor: theme.color.surfaceContainerLow,
         paddingHorizontal: space[3],
         paddingVertical: space[2.5],
       }}

@@ -14,6 +14,7 @@ import { useBridge, useDataset, useStatus } from "../../src/app/store";
 import type { Alert, AlertKind } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
+import { usePerfDrawn } from "../src/perf";
 import { CourseDot, EmptyState } from "../src/ui/display";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { List, Meta, Page, Section } from "../src/ui/layout";
@@ -48,6 +49,7 @@ const periodOf = (f: Format, at: number): Period => {
 };
 
 export default function Alerts() {
+  usePerfDrawn(true);
   const t = useT();
   const f = useFormat();
   const now = useNow();

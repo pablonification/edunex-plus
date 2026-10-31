@@ -255,7 +255,7 @@ function CalendarSheet({ onClose }: { onClose: () => void }) {
                     borderRadius: radius.xl,
                     borderWidth: on ? 1.5 : 1,
                     borderColor: on ? theme.color.accent : theme.color.edge,
-                    backgroundColor: on ? theme.color.infoBg : theme.color.surface,
+                    backgroundColor: on ? theme.color.infoBg : theme.color.surfaceContainerLow,
                     paddingHorizontal: space[3.5],
                     paddingVertical: space[2.5],
                   }}

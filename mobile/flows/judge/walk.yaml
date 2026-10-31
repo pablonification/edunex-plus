@@ -147,15 +147,17 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-12-ekspor-kalender-selesai
 - pressKey: back
 
-# Presensi
+# Kuliah (the courses with their absences left)
 - tapOn:
-    id: tab.presence
+    id: tab.courses
 - waitForAnimationToEnd
-- takeScreenshot: ${THEME}-13-presensi
+- takeScreenshot: ${THEME}-13-kuliah
 
-# Nilai and Rencana studi, from Lainnya
+# Akademik, then Nilai and Rencana studi's parts, each its own screen
 - tapOn:
-    id: tab.more
+    id: tab.academic
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-13b-akademik
 - tapOn:
     id: row.nav.grades
 - extendedWaitUntil:
@@ -167,36 +169,59 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 - tapOn:
-    id: row.nav.plan
+    id: row.nav.plan.planner
 - extendedWaitUntil:
     visible:
-      id: screen.plan
+      id: panel.plan.planner
     timeout: 20000
-- tapOn:
-    id: tab.plan.planner
-    optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-15-rencana
 - tapOn:
-    id: tab.plan.curriculum
+    id: action.back
+- tapOn:
+    id: row.nav.plan.curriculum
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.curriculum
+    timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-16-kurikulum
 - tapOn:
-    id: tab.plan.krs
+    id: action.back
+- tapOn:
+    id: row.nav.plan.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-17-krs
 - tapOn:
-    id: tab.plan.bills
+    id: action.back
+- tapOn:
+    id: row.nav.plan.bills
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.bills
+    timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-18-ukt
 - tapOn:
-    id: tab.plan.deadlines
+    id: action.back
+- tapOn:
+    id: row.nav.plan.deadlines
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.deadlines
+    timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-19-kalender-akademik
 - tapOn:
     id: action.back
 
-# A course: its page, its meetings, its grade calculator
+# A course (from Kuliah): its page, its meetings, its grade calculator
+- tapOn:
+    id: tab.courses
 - scrollUntilVisible:
     element:
       id: row.course.PL3002
@@ -269,17 +294,9 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 
-# Lainnya, then Settings: the top, notifications, about, the licences
+# Settings, behind the avatar: the top, notifications, about, the licences
 - tapOn:
-    id: tab.more
-- waitForAnimationToEnd
-- takeScreenshot: ${THEME}-lainnya
-- scrollUntilVisible:
-    element:
-      id: row.nav.settings
-    direction: DOWN
-- tapOn:
-    id: row.nav.settings
+    id: action.account
 - extendedWaitUntil:
     visible:
       id: screen.settings

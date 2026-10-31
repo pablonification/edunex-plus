@@ -26,8 +26,11 @@ import { dayLabel, groupLabel, groupsOf, noonOf, nowZone, type RowContext, type 
 import { NowZone } from "./now";
 import { TargetsSheet } from "./targets-sheet";
 
-/** Everything under the tab's header; the route puts it in a Page with pull to refresh. */
-export function PresenceContent() {
+/**
+ * Everything under the tab's header; the route puts it in a Page with pull to refresh. Kuliah (the tab it lives in now)
+ * names the page in its top bar, so `title` is left out there.
+ */
+export function PresenceContent({ title }: { title?: string } = {}) {
   const t = useT();
   const attendance = useAttendance();
   const now = useNow();
@@ -69,7 +72,7 @@ export function PresenceContent() {
   return (
     <>
       <PageHeader
-        title={t("nav.presence")}
+        title={title}
         description={showTargets ? <DayLine attendance={attendance} /> : undefined}
         actions={showTargets ? <TargetsButton range={targetRange(courses)} onPress={() => openTargets(true)} /> : undefined}
       />

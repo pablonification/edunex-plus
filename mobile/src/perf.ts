@@ -5,7 +5,8 @@
 //   [perf] first-data <ms>          from the JS start to Beranda drawn with the Student's data
 // Cheap enough to stay on in every build: one timer every 50 ms, and a line only when something's slow
 // or a screen opens.
-import { useEffect } from "react";
+import { useFocusEffect, useNavigation } from "expo-router";
+import { useCallback, useEffect } from "react";
 
 /** What's running, for a stall's label: the screen shown and the engine's last step. */
 let screen = "start";
@@ -44,8 +45,12 @@ export function perfNavigating(): void {
   leftAt = Date.now();
 }
 
-/** The screen now shown (its route's name), for the lines that follow. */
+/**
+ * The screen now shown (its route's name), for the lines that follow. A new route with no navigation timed yet (Expo
+ * Router's own pushes don't pass through the container's actions) starts the clock here, as the state changes.
+ */
 export function perfShown(route: string): void {
+  if (route !== screen && !leftAt) leftAt = Date.now();
   screen = route;
 }
 
@@ -68,6 +73,26 @@ export function perfFirstData(): void {
   if (firstData) return;
   firstData = true;
   requestAnimationFrame(() => console.log(`[perf] first-data ${Date.now() - jsStart}`));
+}
+
+/**
+ * A bottom tab's line: from the tab's press reaching JS (Android's bar has already switched to the tab, mounted ahead)
+ * to the frame after the tab comes into focus. Native tabs don't pass through the navigation container's actions, so
+ * the tab's own tabPress starts the clock.
+ */
+export function usePerfFocused(name: string): void {
+  const navigation = useNavigation();
+  useEffect(
+    () =>
+      navigation.addListener("tabPress" as never, () => {
+        // A tap on the tab already open scrolls it to the top: no switch to time.
+        if (navigation.isFocused()) return;
+        perfNavigating();
+        perfShown(name);
+      }),
+    [navigation, name],
+  );
+  useFocusEffect(useCallback(() => perfDrawn("tab"), []));
 }
 
 /** perfDrawn once `ready` (the screen's data is in it), after the render that shows it. */

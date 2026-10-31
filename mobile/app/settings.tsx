@@ -30,6 +30,7 @@ import { TargetStepper, useTargets } from "../src/parts/attendance";
 import { colorName, openCourseColorPicker } from "../src/parts/course-color-picker";
 import { NotificationsOff } from "../src/parts/notifications-off";
 import { openReport } from "../src/parts/report";
+import { usePerfDrawn } from "../src/perf";
 import { useSignIn, useSignInNote } from "../src/shell/source-status";
 import { toast } from "../src/swaps/overlays";
 import { SourceLogo } from "../src/ui/brand";
@@ -69,6 +70,7 @@ function useReport() {
 }
 
 export default function SettingsScreen() {
+  usePerfDrawn(true);
   const t = useT();
   const bridge = useBridge();
   const store = useStore();
@@ -480,7 +482,7 @@ function CourseColors() {
                 borderRadius: radius.lg,
                 borderWidth: StyleSheet.hairlineWidth * 2,
                 borderColor: theme.color.edge,
-                backgroundColor: theme.color.surface,
+                backgroundColor: theme.color.surfaceContainerLow,
               }}
             >
               <CourseDot color={course.color} />

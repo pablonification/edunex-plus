@@ -121,11 +121,15 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: segment.view.week
 
-# S9: Presensi's course opens its page.
+# S9: Kuliah's course opens its page.
 - tapOn:
-    id: tab.presence
+    id: tab.courses
+- scrollUntilVisible:
+    element:
+      id: row.course.DK4073
+    direction: DOWN
 - tapOn:
-    id: row.presence.DK4073
+    id: row.course.DK4073
 - extendedWaitUntil:
     visible:
       id: screen.course
@@ -137,13 +141,7 @@ appId: io.github.pablonification.edunexplus.demo
 # A17: Settings in English and dark, then back as it was. Each choice waits to show as chosen: the whole app draws
 # again on a theme or language change, and a tap in the middle of that is lost.
 - tapOn:
-    id: tab.more
-- scrollUntilVisible:
-    element:
-      id: row.nav.settings
-    direction: DOWN
-- tapOn:
-    id: row.nav.settings
+    id: action.account
 - extendedWaitUntil:
     visible:
       id: screen.settings

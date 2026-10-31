@@ -125,7 +125,7 @@ function ScoreInput({
           {
             width,
             color: c.fg,
-            backgroundColor: c.surface,
+            backgroundColor: c.surfaceContainerLow,
             borderColor: problem ? c.dangerFg : highlight ? c.warningFg : c.fieldEdge,
             borderWidth: problem || highlight ? 2 : StyleSheet.hairlineWidth * 2,
           },

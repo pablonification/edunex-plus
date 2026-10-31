@@ -18,6 +18,7 @@ import type { DatasetName } from "../../src/core/models";
 import { SCREENS, type ScreenId, type SearchItem, search, searchIndex, suggestions } from "../../src/core/search";
 import { isOpenStatus, taskStatus } from "../../src/core/tasks";
 import { useNav } from "../src/nav";
+import { usePerfDrawn } from "../src/perf";
 import { refreshNow } from "../src/shell/source-status";
 import { IconButton } from "../src/ui/controls";
 import { CourseDot } from "../src/ui/display";
@@ -88,6 +89,7 @@ function remember(key: string): void {
 }
 
 export default function Search() {
+  usePerfDrawn(true);
   const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();
@@ -171,7 +173,7 @@ export default function Search() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         keyExtractor={(row) => ("head" in row ? `head:${row.head}` : row.item.key)}
-        contentContainerStyle={{ paddingBottom: space[6] }}
+        contentContainerStyle={{ paddingBottom: space[6] + insets.bottom }}
         ListEmptyComponent={
           query.trim() ? (
             <View style={{ alignItems: "center", marginTop: space[8], paddingHorizontal: space[6], gap: space[1] }}>
