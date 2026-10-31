@@ -48,6 +48,7 @@ export function PlanScreen({ part }: { part?: string }) {
   // Back from another screen that changed the saved plan: the part starts again from what's saved.
   const fresh = useFreshPlan();
   const current = partOf(part);
+  const v = useTheme().v4;
   usePerfDrawn(useDataReady(current));
   if (!builtPlanTabs.length) return null;
   const Part = TAB[current];
@@ -55,6 +56,7 @@ export function PlanScreen({ part }: { part?: string }) {
     <Page
       testID={`screen.plan.${current}`}
       scrollRef={scroll}
+      background={v.page}
       header={
         <>
           <TopBar title={t(`plan.tab.${current}` as StringKey)} />
