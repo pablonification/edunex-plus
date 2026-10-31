@@ -31,7 +31,7 @@ import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
-import { CourseBudgetLine, CourseException } from "../presence/course-row";
+import { CourseBudgetLine, CourseException } from "./attendance-line";
 import { useRowContext } from "../presence/presence-screen";
 import { GradesTab } from "./grades";
 import { AnnouncementsTab, TasksTab } from "./lists";

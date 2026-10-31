@@ -20,8 +20,21 @@ export const BAR_HEIGHT = 64;
 /**
  * `titleFrom`: the page shows the title big at its top (a course's name), so the bar's title stays hidden until the
  * page has scrolled that far (dp), then fades in: M3's collapsing top app bar, without moving any layout.
+ * `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, its title in Plus Jakarta Sans.
  */
-export function TopBar({ title, actions, onBack, titleFrom }: { title?: string; actions?: ReactNode; onBack?: () => void; titleFrom?: number }) {
+export function TopBar({
+  title,
+  actions,
+  onBack,
+  titleFrom,
+  v4 = false,
+}: {
+  title?: string;
+  actions?: ReactNode;
+  onBack?: () => void;
+  titleFrom?: number;
+  v4?: boolean;
+}) {
   const t = useT();
   const nav = useNav();
   const theme = useTheme();
@@ -29,13 +42,19 @@ export function TopBar({ title, actions, onBack, titleFrom }: { title?: string; 
   const past = useScrolledPast(titleFrom ?? 0);
   const shown = titleFrom === undefined ? null : past;
   return (
-    <BarSurface>
+    <BarSurface v4={v4}>
       <View style={[styles.bar, { marginTop: insets.top }]}>
         <IconButton label={t("action.back")} onPress={onBack ?? nav.back} testID="action.back">
           <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
         </IconButton>
         <Animated.View style={{ flex: 1, marginLeft: space[1], opacity: shown ?? 1 }}>
-          <Text size="titleLarge" accessibilityRole="header" style={{ paddingVertical: space[1] }}>
+          <Text
+            size="titleLarge"
+            numberOfLines={v4 ? 1 : undefined}
+            {...(v4 ? ({ face: "display", weight: "bold" } as const) : {})}
+            accessibilityRole="header"
+            style={{ paddingVertical: space[1], ...(v4 ? { letterSpacing: -0.2 } : {}) }}
+          >
             {title ?? ""}
           </Text>
         </Animated.View>
@@ -47,14 +66,20 @@ export function TopBar({ title, actions, onBack, titleFrom }: { title?: string; 
 
 /**
  * A top bar's surface, edge to edge under the status bar: the page's colour at rest, surfaceContainer once the page
- * scrolls under it (faded on the UI thread from the page's offset).
+ * scrolls under it (faded on the UI thread from the page's offset). `v4`: v4's page grey at rest, its card colour
+ * under a scrolled page.
  */
-export function BarSurface({ children }: { children: ReactNode }) {
+export function BarSurface({ children, v4 = false }: { children: ReactNode; v4?: boolean }) {
   const theme = useTheme();
   const under = useScrolledUnder();
   return (
-    <View style={{ backgroundColor: theme.color.surface }}>
-      {under && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.surfaceContainer, opacity: under }]} />}
+    <View style={{ backgroundColor: v4 ? theme.v4.page : theme.color.surface }}>
+      {under && (
+        <Animated.View
+          pointerEvents="none"
+          style={[StyleSheet.absoluteFill, { backgroundColor: v4 ? theme.v4.card : theme.color.surfaceContainer, opacity: under }]}
+        />
+      )}
       {children}
     </View>
   );
