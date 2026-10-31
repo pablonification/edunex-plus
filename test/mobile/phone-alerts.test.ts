@@ -2,7 +2,7 @@
 // Metro's wording.native.ts gives translate()): the reminder at the start of a class SIX counts,
 // booked ahead, and a new Task with its deadline. The desktop's words: test/engine/class-start.test.ts.
 import { describe, expect, it, vi } from "vitest";
-import { CHANNELS, noticeContent } from "../../mobile/src/host/booking";
+import { CHANNELS, CHECK_IN_CATEGORY, noticeContent } from "../../mobile/src/host/booking";
 import type { Task } from "../../src/core/models";
 import type { PlannedAlert } from "../../src/engine/alerts/detector";
 import { newTaskAlert } from "../../src/engine/alerts/tasks";
@@ -31,6 +31,8 @@ describe("on the phone", () => {
       body: "Tekan Tandai Hadir di SIX saat tombolnya muncul · kuliah sampai 10:00\nAbaikan kalau sudah tercatat hadir.",
       data: { target: { screen: "home" }, checkIn: { meetingId: "2194342", url: TIMETABLE } },
       channelId: CHANNELS.urgent,
+      // Android's own "Tandai Hadir" button on it, opening SIX's page in the app.
+      categoryId: CHECK_IN_CATEGORY,
     });
     expect(noticeContent(reminder, "en", true)).toMatchObject({
       title: "Class has started · PL3002",

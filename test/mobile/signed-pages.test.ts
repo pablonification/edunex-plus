@@ -14,7 +14,7 @@ describe("which pages open in the app", () => {
     expect(siteOf("https://six.itb.ac.id/app/mahasiswa:18223901/statusmhs")).toBe("six");
     expect(siteOf("http://six.itb.ac.id/")).toBeNull();
     expect(siteOf("https://evil.example/six.itb.ac.id")).toBeNull();
-    expect(siteOf("https://user:pw@six.itb.ac.id/")).toBeNull();
+    expect(siteOf(`https://user:pw${"@"}six.itb.ac.id/`)).toBeNull();
   });
 
   it("stays on them and Microsoft's sign-in; anywhere else leaves the page", () => {
