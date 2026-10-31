@@ -43,6 +43,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-router",
     // The screen's fastest refresh rate (90 or 120 Hz), not the 60 Hz many phones keep an app at (W5).
     "./plugins/high-refresh-rate",
+    // Back (key and gesture) reaches the app on Android 13–15 as on 16 (W6).
+    "./plugins/back-to-js",
     // The bottom tabs' icons as Android drawables (scripts/make-tab-icons.mjs).
     "./plugins/tab-icons",
     // The native bottom sheets edge to edge (no black navigation bar over their end).

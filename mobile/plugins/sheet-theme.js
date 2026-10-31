@@ -19,7 +19,10 @@ module.exports = function withSheetTheme(config) {
       ["android:windowLightNavigationBar", "?attr/isLightTheme"],
       ["enableEdgeToEdge", "true"],
     ];
-    const overlay = { $: { name: OVERLAY, parent: "Base.ThemeOverlay.Material3.BottomSheetDialog" }, item: items.map(([name, value]) => ({ $: { name }, _: value })) };
+    const overlay = {
+      $: { name: OVERLAY, parent: "Base.ThemeOverlay.Material3.BottomSheetDialog" },
+      item: items.map(([name, value]) => ({ $: { name }, _: value })),
+    };
     mod.modResults.resources.style = [...styles.filter((style) => style.$.name !== OVERLAY && style.$.name !== "AppBottomSheetDialog"), overlay];
     return mod;
   });
