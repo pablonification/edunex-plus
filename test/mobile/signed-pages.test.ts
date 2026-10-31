@@ -1,12 +1,8 @@
 // Edunex's and SIX's pages open in the app, signed in, never in the phone's browser (W14): the rules
 // mobile/src/host/signed-pages.ts and the page (mobile/src/screens/web/signed-page.tsx) go by.
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-// The phone's react-native (handlers.ts resolves it from mobile/), with only what the handlers use.
-const Linking = vi.hoisted(() => ({ openURL: vi.fn(async (_url: string) => undefined) }));
-vi.mock("../../mobile/node_modules/react-native/index.js", () => ({ Linking, Platform: { OS: "android", Version: 36 } }));
-
-import { edunexAuthScript, isSixLoginPage, siteOf, staysInPage } from "../../mobile/src/host/signed-pages";
+import { edunexAuthScript, isSixLoginPage, siteOf, staysInPage, whereOpens } from "../../mobile/src/host/signed-pages";
 
 describe("which pages open in the app", () => {
   it("Edunex's and SIX's own sites, https only", () => {
@@ -57,15 +53,10 @@ describe("Edunex's saved sign-in", () => {
 });
 
 describe("the app's links", () => {
-  it("send Edunex's and SIX's pages to the app's page, never the browser; others to the browser", async () => {
-    const { phoneHandlers } = await import("../../mobile/src/host/handlers");
-    const openPage = vi.fn(async () => undefined);
-    const handlers = phoneHandlers({ engine: {} as never, demo: false, ui: { openCheckIn: vi.fn(), openPage } } as never);
-    await handlers["shell.openExternal"]!({ url: "https://six.itb.ac.id/app/mahasiswa:1/statusmhs" });
-    await handlers["shell.openExternal"]!({ url: "https://edunex.itb.ac.id/courses/1" });
-    expect(openPage).toHaveBeenCalledTimes(2);
-    expect(Linking.openURL).not.toHaveBeenCalled();
-    await handlers["shell.openLink"]!({ url: "https://www.youtube.com/watch?v=1" });
-    expect(Linking.openURL).toHaveBeenCalledWith("https://www.youtube.com/watch?v=1");
+  it("send Edunex's and SIX's pages to the app's page, never the browser; others to the browser (none in the demo)", () => {
+    expect(whereOpens("https://six.itb.ac.id/app/mahasiswa:1/statusmhs", false)).toBe("app");
+    expect(whereOpens("https://edunex.itb.ac.id/courses/1", true)).toBe("app");
+    expect(whereOpens("https://www.youtube.com/watch?v=1", false)).toBe("browser");
+    expect(whereOpens("https://www.youtube.com/watch?v=1", true)).toBe("nowhere");
   });
 });

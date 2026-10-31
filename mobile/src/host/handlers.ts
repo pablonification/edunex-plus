@@ -11,7 +11,7 @@ import type { AppLog } from "../../../src/engine/app-log";
 import { errorLine } from "../../../src/engine/app-log";
 import type { Engine } from "../../../src/engine/engine";
 import { EngineError, isEngineError } from "../../../src/engine/errors";
-import { siteOf } from "./signed-pages";
+import { whereOpens } from "./signed-pages";
 
 export type Handlers = { [N in ActionName]: (input: z.infer<(typeof Actions)[N]["input"]>) => Promise<ActionOutput<N>> };
 
@@ -47,9 +47,9 @@ export interface HandlerContext {
  * else in the phone's browser. The demo opens no outside page, like the desktop's.
  */
 async function openPage(context: HandlerContext, url: string): Promise<void> {
-  if (siteOf(url)) return context.ui.openPage(url);
-  if (context.demo) return;
-  await Linking.openURL(url);
+  const where = whereOpens(url, context.demo);
+  if (where === "app") return context.ui.openPage(url);
+  if (where === "browser") await Linking.openURL(url);
 }
 
 export function phoneHandlers(context: HandlerContext): Partial<Handlers> {

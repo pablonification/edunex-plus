@@ -29,6 +29,15 @@ export function siteOf(url: string): Site | null {
   return null;
 }
 
+/**
+ * Where a page the app opens goes: Edunex's and SIX's own in the app's page, signed in ("app"); anything else in the
+ * phone's browser ("browser"), except in the demo, which opens no outside page, like the desktop's ("nowhere").
+ */
+export function whereOpens(url: string, demo: boolean): "app" | "browser" | "nowhere" {
+  if (siteOf(url)) return "app";
+  return demo ? "nowhere" : "browser";
+}
+
 /** Microsoft's sign-in, which both send a Student whose session ended to, and Edunex's own sign-in door. */
 const SIGN_IN_HOSTS = [/(^|\.)microsoftonline\.com$/, /(^|\.)microsoft\.com$/, /(^|\.)live\.com$/, /(^|\.)msauth\.net$/, /(^|\.)msftauth\.net$/];
 
