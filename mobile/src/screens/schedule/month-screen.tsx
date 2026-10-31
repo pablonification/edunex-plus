@@ -3,7 +3,6 @@
 // agenda where it was; "Lihat minggunya" returns to it on that day. The top bar names the month.
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
-import { View } from "react-native";
 import { useLang, useT } from "../../../../src/app/i18n";
 import { dayStart, monthGrid, scheduleDays } from "../../../../src/core/schedule";
 import { usePerfDrawn } from "../../perf";
@@ -12,8 +11,7 @@ import { IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
-import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { useToday } from "./clock";
 import { DetailSheet, type Picked } from "./details";
@@ -57,18 +55,26 @@ function Month() {
     setChosen(null);
   };
   return (
-    <Page testID="screen.month" header={<TopBar title={name} />} {...pull}>
-      <View style={{ flexDirection: "row", alignItems: "center", marginHorizontal: -space[3], marginBottom: space[2] }}>
-        <IconButton label={t("schedule.prevMonth")} onPress={() => step(-1)} testID="action.prevMonth">
-          <Icons.ChevronLeft size={22} color={theme.color.onSurfaceVariant} />
-        </IconButton>
-        <Text size="titleMedium" style={{ flex: 1, textAlign: "center" }} accessibilityLiveRegion="polite" testID="label.month">
-          {name}
-        </Text>
-        <IconButton label={t("schedule.nextMonth")} onPress={() => step(1)} testID="action.nextMonth">
-          <Icons.ChevronRight size={22} color={theme.color.onSurfaceVariant} />
-        </IconButton>
-      </View>
+    <Page
+      testID="screen.month"
+      header={
+        <TopBar
+          title={name}
+          actions={
+            // The month's arrows in the top bar: the bar names the month once, the page is the grid.
+            <>
+              <IconButton label={t("schedule.prevMonth")} onPress={() => step(-1)} testID="action.prevMonth">
+                <Icons.ChevronLeft size={24} color={theme.color.onSurfaceVariant} />
+              </IconButton>
+              <IconButton label={t("schedule.nextMonth")} onPress={() => step(1)} testID="action.nextMonth">
+                <Icons.ChevronRight size={24} color={theme.color.onSurfaceVariant} />
+              </IconButton>
+            </>
+          }
+        />
+      }
+      {...pull}
+    >
       {input ? (
         <MonthView
           month={month}
