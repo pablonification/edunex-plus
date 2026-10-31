@@ -33,6 +33,13 @@ motion and onboarding are open. The desktop is a reference for data only.
   Hidup (`mobile-r2-mockups`, a6d187f, `v2-hidup/`): each course its colour and icon tile, the class now a vivid card in
   its colour with a live progress bar and one white button, big numbers for what needs you, Plus Jakarta Sans for
   headings and numbers. Words: Beranda 47, Jadwal 37, class sheet 21. Shown; waiting for Arqila's word.
+- **2026-11-01: Arqila on v2: "this is ai slop … why r u losing ur taste".** Cause (the lead's): the stock "AI
+  dashboard" kit (gradient blobs, glass pill, rainbow avatar ring, emoji, heavy black type), off-brand purple, and
+  designing from store banners and defaults instead of the real apps. Not the design skill, not Android. v3
+  (`mobile-r2-mockups`, 546c888, `v3/`) is built from the reference apps' in-app screens: Edunex blue in one header
+  area holding the class now and its one button, a grey sheet, white hairline groups, course icons on white tiles,
+  outlined chips, Roboto at medium weights; Jadwal and the sheet as calm as Todoist. Words 45 / 42 / 23. Shown; the
+  home helper builds it as a native Beranda prototype (`mobile-r2-proto-beranda`) with the motion, recorded on `mid`.
 - CI run 41219489671 (819ec87): APKs built; `e2e (app)` failed (logs once the run ends); the scenarios still running.
 - Meanwhile only work that doesn't depend on the look: fresh-install start under 2 s, JS stalls, device proofs for
   W1, W2 and W5, CI (run 41219489671 on 819ec87), the two cut-off texts, the one-title fix.
