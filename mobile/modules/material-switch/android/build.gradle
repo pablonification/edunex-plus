@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'expo.modules.materialswitch'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.materialswitch"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+}
+
+dependencies {
+  // The same Material library react-native-screens and expo-router's native tabs bring in.
+  implementation 'com.google.android.material:material:1.13.0'
+}

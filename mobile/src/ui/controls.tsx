@@ -2,7 +2,8 @@
 // text), icon buttons, the switch, segmented buttons and filter chips. Every target is at least 48 dp
 // whatever it looks like, every control has a name a screen reader reads, and a press answers at once
 // (Android's ripple, then the work's spinner).
-import { type ReactNode, useEffect, useRef } from "react";
+import { requireNativeView, requireOptionalNativeModule } from "expo";
+import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { Spinner } from "./display";
 import { Icons } from "./icons";
@@ -140,11 +141,89 @@ export function IconButton({
   );
 }
 
+interface NativeSwitchProps {
+  value: boolean;
+  enabled: boolean;
+  label: string;
+  colors: Record<"trackOn" | "trackOff" | "thumbOn" | "thumbOff" | "outline" | "icon", string>;
+  sync: number;
+  onValueChange: (event: { nativeEvent: { value: boolean } }) => void;
+  testID?: string;
+  style?: ViewStyle;
+  importantForAccessibility?: "no";
+}
+
+/** Android's own MaterialSwitch (modules/material-switch); missing on a build without it (tests): the drawn one stands in. */
+const NativeSwitch: ComponentType<NativeSwitchProps> | null = requireOptionalNativeModule("MaterialSwitch")
+  ? requireNativeView<NativeSwitchProps>("MaterialSwitch")
+  : null;
+
 /**
- * Material 3's switch: an outlined track with a small thumb when off, the primary track with a big thumb when on.
- * Drawn here (React Native's Switch is the older AppCompat one), with the target of a row's control.
+ * Material 3's switch: an outlined track with a small thumb when off, the primary track with a big thumb and its check
+ * when on. Android's own (MaterialSwitch, W9): its animation, ripple and TalkBack's "switch, on" are the system's. A tap
+ * moves it at once and asks `onChange`; a value the screen didn't take (an error) puts it back.
  */
-export function Switch({
+export function Switch(props: { value: boolean; onChange: (value: boolean) => void; label: string; testID?: string; disabled?: boolean }) {
+  return NativeSwitch ? <MaterialSwitch {...props} Native={NativeSwitch} /> : <DrawnSwitch {...props} />;
+}
+
+function MaterialSwitch({
+  value,
+  onChange,
+  label,
+  testID,
+  disabled,
+  Native,
+}: {
+  value: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+  testID?: string;
+  disabled?: boolean;
+  Native: ComponentType<NativeSwitchProps>;
+}) {
+  const c = useTheme().color;
+  const colors = useMemo(
+    () => ({
+      trackOn: c.primary,
+      trackOff: c.surfaceContainerHighest,
+      thumbOn: c.onPrimary,
+      thumbOff: c.outline,
+      outline: c.outline,
+      icon: c.onPrimaryContainer,
+    }),
+    [c],
+  );
+  // Bumped when a tap wasn't taken: the native switch goes back to `value`.
+  const [sync, setSync] = useState(0);
+  const latest = useRef(value);
+  latest.current = value;
+  const waiting = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => void (waiting.current && clearTimeout(waiting.current)), []);
+  return (
+    <Native
+      testID={testID}
+      value={value}
+      enabled={!disabled}
+      label={label}
+      colors={colors}
+      sync={sync}
+      onValueChange={({ nativeEvent }) => {
+        const was = latest.current;
+        onChange(nativeEvent.value);
+        // Settings are saved through the engine: give it a moment, then put the switch back if nothing changed.
+        if (waiting.current) clearTimeout(waiting.current);
+        waiting.current = setTimeout(() => {
+          if (latest.current === was) setSync((n) => n + 1);
+        }, 1500);
+      }}
+      style={{ width: SWITCH.width, height: TOUCH, opacity: disabled ? 0.38 : 1 }}
+    />
+  );
+}
+
+/** The switch drawn in JS, where the native one isn't built in. */
+function DrawnSwitch({
   value,
   onChange,
   label,
