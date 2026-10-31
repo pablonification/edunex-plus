@@ -80,6 +80,8 @@ function Frame() {
           headerShown: false,
           contentStyle: { backgroundColor: theme.color.surface },
           animation: "default",
+          // A screen under another stops drawing until it's shown again (the tabs under a pushed screen too).
+          freezeOnBlur: true,
         }}
       >
         <Stack.Screen name="(tabs)" />
