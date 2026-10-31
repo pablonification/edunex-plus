@@ -1,15 +1,19 @@
-// Settings (A6): the desktop's (src/app/shell/settings.tsx) as a screen, group by group, with the same
-// words and the same settings. What only a computer has is left out: closing to the tray (Android keeps
-// the app itself), installing updates (the phone shows the version and asks GitHub, D5), and phone alerts
-// through ntfy (the app is the phone, A18). `?at=alerts|courseColors` opens it at that group.
+// Settings (A6), from the avatar on every tab: the desktop's (src/app/shell/settings.tsx) as Android's
+// settings list, with the same words and the same settings. Who's signed in on top, then the groups as
+// Material lists: accounts, notifications (Android's own switches), how the app looks (Tema and Bahasa
+// pick from a sheet), Beranda, attendance, course colors, problem reports, about, and signing out of
+// everything last. What only a computer has is left out: closing to the tray, installing updates (the
+// phone shows the version and asks GitHub, D5) and phone alerts through ntfy (A18). A setting that
+// can't be saved says so under the top bar, never in a snackbar. `?at=alerts|courseColors` opens it at
+// that group.
 import { router } from "expo-router";
-import { type ComponentRef, type ReactNode, useRef, useState } from "react";
-import { Image, Pressable, type ScrollView, StyleSheet, View } from "react-native";
+import { type ComponentRef, useRef, useState } from "react";
+import { Image, type ScrollView, View } from "react-native";
 import { errorKey } from "../../src/app/bridge";
 import { useCourseColorPicks } from "../../src/app/course-colors";
 import { useTermCourses } from "../../src/app/courses";
 import { useFormat, useLang, useT } from "../../src/app/i18n";
-import { displayName } from "../../src/app/names";
+import { displayName, initials } from "../../src/app/names";
 import { useDone, useHeldBack, useSnoozes } from "../../src/app/snoozes";
 import { useBridge, useDataset, useSettings, useStatus, useStore } from "../../src/app/store";
 import {
@@ -34,13 +38,14 @@ import { usePerfDrawn } from "../src/perf";
 import { useSignIn, useSignInNote } from "../src/shell/source-status";
 import { toast } from "../src/swaps/overlays";
 import { SourceLogo } from "../src/ui/brand";
-import { Button, Chip, Segmented, Switch } from "../src/ui/controls";
-import { Card, CourseDot, LiveDot } from "../src/ui/display";
+import { Button, Chip } from "../src/ui/controls";
+import { CourseDot, LiveDot } from "../src/ui/display";
 import { Icons } from "../src/ui/icons";
-import { Meta, Page } from "../src/ui/layout";
+import { Meta, Notice, Page } from "../src/ui/layout";
+import { ChoiceRow, ErrorBanner, SettingRow, SettingsGroup, SwitchRow } from "../src/ui/settings-list";
 import { Sheet } from "../src/ui/sheet";
 import { Text } from "../src/ui/text";
-import { radius, space, useTheme } from "../src/ui/theme";
+import { space, useTheme } from "../src/ui/theme";
 import { TopBar } from "../src/ui/top-bar";
 
 const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: true }[] = [
@@ -64,25 +69,27 @@ const DUE_LABEL: Record<DeadlineReminder, StringKey> = {
   1: "settings.alerts.due1",
 };
 
-function useReport() {
-  const t = useT();
-  return (error: unknown) => toast(t(errorKey(error)), "danger");
-}
+/** What a failed save says, on the page (ErrorBanner under the top bar). */
+type Report = (error: unknown) => void;
 
 export default function SettingsScreen() {
   usePerfDrawn(true);
   const t = useT();
+  const theme = useTheme();
   const bridge = useBridge();
   const store = useStore();
   const settings = useSettings();
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  const report = useReport();
   const at = useParam("at");
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  const [problem, setProblem] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
-  const update = (patch: Partial<Settings>) => void bridge.invoke("settings.update", patch).catch(report);
+  const report: Report = (error) => setProblem(t(errorKey(error)));
+  const update = (patch: Partial<Settings>) =>
+    void bridge.invoke("settings.update", patch).then(
+      () => setProblem(null),
+      (error: unknown) => report(error),
+    );
   // Opened at a group (the bell's "Atur notifikasi", a course's long-press): scrolled to it once it's laid out.
   const scrollTo = (group: string) => (y: number) => {
     if (at === group) requestAnimationFrame(() => scroll.current?.scrollTo({ y: Math.max(0, y - 8), animated: false }));
@@ -94,6 +101,7 @@ export default function SettingsScreen() {
       setConfirming(false);
       router.replace("/");
     } catch (error) {
+      setConfirming(false);
       report(error);
     } finally {
       setBusy(false);
@@ -101,102 +109,119 @@ export default function SettingsScreen() {
   };
 
   return (
-    <Page testID="screen.settings" header={<TopBar title={t("nav.settings")} />} scrollRef={scroll}>
-      <Group title={t("settings.accounts")} note={t("settings.accounts.note")} first>
-        <AccountRow source="edunex" who={account ? [displayName(account.name), account.nim] : null} />
-        <AccountRow source="six" who={student ? [displayName(student.name), student.program ?? student.nim] : null} />
-        <Row label={t("settings.firstScan")} hint={t("settings.firstScan.hint")}>
-          <Button
-            size="sm"
-            label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`}
-            onPress={() => router.push("/first-scan")}
-            testID="action.firstScan"
-          >
-            {t("settings.firstScan.show")}
-          </Button>
-        </Row>
-        <Row label={t("settings.signOutAll.label")} hint={t("settings.signOutAllHint")}>
-          <Button size="sm" variant="danger" onPress={() => setConfirming(true)} testID="action.signOutAll">
-            {t("settings.signOutAll")}
-          </Button>
-        </Row>
-      </Group>
+    <Page
+      testID="screen.settings"
+      header={
+        <>
+          <TopBar title={t("nav.settings")} />
+          {problem && <ErrorBanner text={problem} onClose={() => setProblem(null)} />}
+        </>
+      }
+      scrollRef={scroll}
+    >
+      <Profile />
+
+      <SettingsGroup title={t("settings.accounts")} note={t("settings.accounts.note")} first>
+        <AccountRow source="edunex" report={report} />
+        <AccountRow source="six" report={report} />
+        <SettingRow
+          title={t("settings.firstScan")}
+          summary={t("settings.firstScan.hint")}
+          onPress={() => router.push("/first-scan")}
+          label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`}
+          testID="action.firstScan"
+        />
+      </SettingsGroup>
 
       <View onLayout={(event) => scrollTo("alerts")(event.nativeEvent.layout.y)}>
         <AlertSettings settings={settings} update={update} report={report} />
       </View>
 
-      <Group title={t("settings.appearance")}>
-        <Row label={t("settings.theme")} stacked>
-          <Segmented
-            label={t("settings.theme")}
-            value={settings.theme}
-            onChange={(theme) => update({ theme })}
-            testID="segment.theme"
-            options={[
-              { value: "system", label: t("settings.theme.system") },
-              { value: "light", label: t("settings.theme.light") },
-              { value: "dark", label: t("settings.theme.dark") },
-            ]}
-          />
-        </Row>
-        <Row label={t("settings.language")} stacked>
-          <Segmented
-            label={t("settings.language")}
-            value={settings.lang}
-            onChange={(lang) => update({ lang })}
-            testID="segment.lang"
-            options={[
-              { value: "id", label: "Indonesia" },
-              { value: "en", label: "English" },
-            ]}
-          />
-        </Row>
-      </Group>
+      <SettingsGroup title={t("settings.appearance")}>
+        <ChoiceRow
+          title={t("settings.theme")}
+          value={settings.theme}
+          onChange={(theme) => update({ theme })}
+          testID="segment.theme"
+          choices={[
+            { value: "system", label: t("settings.theme.system") },
+            { value: "light", label: t("settings.theme.light") },
+            { value: "dark", label: t("settings.theme.dark") },
+          ]}
+        />
+        <ChoiceRow
+          title={t("settings.language")}
+          value={settings.lang}
+          onChange={(lang) => update({ lang })}
+          testID="segment.lang"
+          choices={[
+            { value: "id", label: "Indonesia" },
+            { value: "en", label: "English" },
+          ]}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("nav.home")}>
+        <ChoiceRow
+          title={t("settings.needsAhead")}
+          hint={t("settings.needsAhead.hint")}
+          value={String(settings.needsAhead)}
+          onChange={(days) => update({ needsAhead: Number(days) as NeedsAhead })}
+          testID="segment.needsAhead"
+          choices={NEEDS_AHEAD.map((days) => ({ value: String(days), label: t(`settings.needsAhead.${days}`) }))}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title={t("mobile.settings.attendance")}>
+        <AttendanceTargets />
+      </SettingsGroup>
 
       <View onLayout={(event) => scrollTo("courseColors")(event.nativeEvent.layout.y)}>
         <CourseColors />
       </View>
 
-      <Group title={t("settings.other")}>
-        <Row label={t("settings.needsAhead")} hint={t("settings.needsAhead.hint")} stacked>
-          <Segmented
-            label={t("settings.needsAhead")}
-            value={String(settings.needsAhead)}
-            onChange={(days) => update({ needsAhead: Number(days) as NeedsAhead })}
-            testID="segment.needsAhead"
-            options={NEEDS_AHEAD.map((days) => ({ value: String(days), label: t(`settings.needsAhead.${days}`) }))}
-          />
-        </Row>
-        <AttendanceTargets />
-      </Group>
-
       {store.relay && <ReportSettings settings={settings} update={update} report={report} />}
 
-      <Group title={t("settings.about")} note={t("settings.unofficial")}>
+      <SettingsGroup title={t("settings.about")} note={t("settings.unofficial")}>
         <About />
         <CheckForUpdates version={store.version} />
-        <Row label={t("report.title")} hint={t(store.relay ? "report.settingsHintRelay" : "report.settingsHint")}>
-          <Button size="sm" label={t("report.title")} icon={<Icons.Flag size={14} />} onPress={() => openReport({})} testID="action.report">
-            {t("report.open")}
-          </Button>
-        </Row>
-        <Row label={t("licences.title")} hint={t("licences.hint")}>
-          <Button size="sm" label={t("licences.viewAll")} onPress={() => router.push("/licences")} testID="action.licences">
-            {t("licences.view")}
-          </Button>
-        </Row>
-      </Group>
+        <SettingRow
+          title={t("report.title")}
+          summary={t(store.relay ? "report.settingsHintRelay" : "report.settingsHint")}
+          leading={<Icons.Flag size={24} color={theme.color.onSurfaceVariant} />}
+          onPress={() => openReport({})}
+          testID="action.report"
+        />
+        <SettingRow
+          title={t("licences.title")}
+          summary={t("licences.hint")}
+          leading={<Icons.BookOpen size={24} color={theme.color.onSurfaceVariant} />}
+          onPress={() => router.push("/licences")}
+          label={t("licences.viewAll")}
+          testID="action.licences"
+        />
+      </SettingsGroup>
+
+      <SettingsGroup>
+        <SettingRow
+          title={t("settings.signOutAll.label")}
+          summary={t("settings.signOutAllHint")}
+          tone="danger"
+          leading={<Icons.LogOut size={24} color={theme.color.error} />}
+          onPress={() => setConfirming(true)}
+          testID="action.signOutAll"
+        />
+      </SettingsGroup>
 
       <Sheet open={confirming} onClose={() => setConfirming(false)} title={t("settings.signOutAllConfirm")} testID="sheet.signOutAll">
-        <Text size="body" tone="muted">
+        <Text size="bodyMedium" tone="muted">
           {t("settings.signOutAllBody")}
         </Text>
-        <View style={{ gap: space[2], marginTop: space[5], marginBottom: space[2] }}>
+        <View style={{ gap: space[2], marginTop: space[6], marginBottom: space[2] }}>
           <Button variant="danger" size="lg" busy={busy} onPress={() => void signOutOfEverything()} testID="action.signOutAllConfirm">
             {t("settings.signOutAll")}
           </Button>
-          <Button size="lg" onPress={() => setConfirming(false)}>
+          <Button size="lg" variant="ghost" onPress={() => setConfirming(false)}>
             {t("action.cancel")}
           </Button>
         </View>
@@ -205,21 +230,49 @@ export default function SettingsScreen() {
   );
 }
 
-function AlertSettings({ settings, update, report }: { settings: Settings; update: (patch: Partial<Settings>) => void; report: (error: unknown) => void }) {
+/** Who's signed in: the avatar, the name, the NIM and the program (Edunex's account, else SIX's). */
+function Profile() {
+  const theme = useTheme();
+  const account = useDataset("edunex.account");
+  const student = useDataset("six.student");
+  const name = account?.name ?? student?.name;
+  if (!name) return null;
+  const facts = [account?.nim ?? student?.nim, student?.program].filter(Boolean) as string[];
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[4], paddingHorizontal: space[1], marginBottom: space[6] }} testID="card.profile">
+      <View
+        style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.color.primaryContainer, alignItems: "center", justifyContent: "center" }}
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+      >
+        <Text size="titleLarge" tone="onPrimaryContainer">
+          {initials(name)}
+        </Text>
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }} accessible>
+        <Text size="titleLarge" numberOfLines={2}>
+          {displayName(name)}
+        </Text>
+        {facts.length > 0 && <Meta size="small">{facts}</Meta>}
+      </View>
+    </View>
+  );
+}
+
+function AlertSettings({ settings, update, report }: { settings: Settings; update: (patch: Partial<Settings>) => void; report: Report }) {
   const t = useT();
   const bridge = useBridge();
   const [testing, setTesting] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [result, setResult] = useState<"sent" | "off" | null>(null);
   const sixOut = useStatus("six").state === "signed-out";
   const setOn = (group: AlertGroup, on: boolean) =>
     update({ mutedAlerts: on ? settings.mutedAlerts.filter((g) => g !== group) : [...settings.mutedAlerts.filter((g) => g !== group), group] });
   const test = async () => {
     setTesting(true);
-    setSent(false);
+    setResult(null);
     try {
       const { shown } = await bridge.invoke("alerts.test", {});
-      if (shown) setSent(true);
-      else toast(t("mobile.settings.notificationsOff"), "danger");
+      setResult(shown ? "sent" : "off");
     } catch (error) {
       report(error);
     } finally {
@@ -230,93 +283,71 @@ function AlertSettings({ settings, update, report }: { settings: Settings; updat
     update({
       deadlineReminders: DEADLINE_REMINDERS.filter((h) => (h === hours ? !settings.deadlineReminders.includes(h) : settings.deadlineReminders.includes(h))),
     });
+  const needsSix = (hint: string) =>
+    sixOut ? (
+      <Meta>
+        {hint}
+        {t("settings.alerts.needsSix")}
+      </Meta>
+    ) : (
+      hint
+    );
   return (
-    <Group title={t("settings.alerts")} lead={<NotificationsOff />}>
+    <SettingsGroup title={t("settings.alerts")} lead={<NotificationsOff />}>
       {ALERT_ROWS.map(({ group, label, hint, six }) => (
-        <View key={group}>
-          <Row
-            label={t(label)}
-            hint={
-              six && sixOut ? (
-                <Meta>
-                  {t(hint)}
-                  {t("settings.alerts.needsSix")}
-                </Meta>
-              ) : group === "deadline" && !settings.deadlineReminders.length ? (
-                t("settings.alerts.deadlineNone")
-              ) : (
-                t(hint)
-              )
-            }
-          >
-            <Switch value={!settings.mutedAlerts.includes(group)} onChange={(on) => setOn(group, on)} label={t(label)} testID={`switch.alert.${group}`} />
-          </Row>
+        <SwitchRow
+          key={group}
+          title={t(label)}
+          summary={six ? needsSix(t(hint)) : group === "deadline" && !settings.deadlineReminders.length ? t("settings.alerts.deadlineNone") : t(hint)}
+          value={!settings.mutedAlerts.includes(group)}
+          onChange={(on) => setOn(group, on)}
+          testID={`switch.alert.${group}`}
+        >
           {/* The deadline row picks its reminder times under it. */}
           {group === "deadline" && (
-            <View
-              accessibilityLabel={t("settings.alerts.deadlineTimes")}
-              style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2], paddingHorizontal: space[4], paddingBottom: space[3] }}
-            >
-              {DEADLINE_REMINDERS.map((hours) => {
-                const on = settings.deadlineReminders.includes(hours);
-                return (
-                  <Chip key={hours} selected={on} onPress={() => toggleDue(hours)} testID={`chip.due.${hours}`}>
-                    {`${on ? "✓ " : ""}${t(DUE_LABEL[hours])}`}
-                  </Chip>
-                );
-              })}
+            <View accessibilityLabel={t("settings.alerts.deadlineTimes")} style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
+              {DEADLINE_REMINDERS.map((hours) => (
+                <Chip key={hours} selected={settings.deadlineReminders.includes(hours)} onPress={() => toggleDue(hours)} testID={`chip.due.${hours}`}>
+                  {t(DUE_LABEL[hours])}
+                </Chip>
+              ))}
             </View>
           )}
-        </View>
+        </SwitchRow>
       ))}
-      <Row
-        label={t("settings.alerts.classSoon")}
-        hint={
-          sixOut ? (
-            <Meta>
-              {t("settings.alerts.classSoonHint")}
-              {t("settings.alerts.needsSix")}
-            </Meta>
-          ) : (
-            t("settings.alerts.classSoonHint")
-          )
+      <SwitchRow
+        title={t("settings.alerts.classSoon")}
+        summary={needsSix(t("settings.alerts.classSoonHint"))}
+        value={settings.classSoonAlerts}
+        onChange={(classSoonAlerts) => update({ classSoonAlerts })}
+        testID="switch.classSoon"
+      />
+      <SettingRow
+        title={t("settings.alerts.test")}
+        summary={t("settings.alerts.testHint")}
+        trailing={
+          <Button size="sm" variant="ghost" busy={testing} onPress={() => void test()} testID="action.testAlert" label={t("settings.alerts.test")}>
+            {t("settings.alerts.testAction")}
+          </Button>
         }
       >
-        <Switch
-          value={settings.classSoonAlerts}
-          onChange={(classSoonAlerts) => update({ classSoonAlerts })}
-          label={t("settings.alerts.classSoon")}
-          testID="switch.classSoon"
-        />
-      </Row>
-      <Row label={t("settings.alerts.test")} hint={t("settings.alerts.testHint")}>
-        <Button size="sm" busy={testing} onPress={() => void test()} testID="action.testAlert">
-          {t("settings.alerts.testAction")}
-        </Button>
-      </Row>
-      {sent && <Notice text={t("settings.alerts.testSent")} />}
+        {result && (
+          <View accessibilityLiveRegion="polite">
+            {result === "sent" ? (
+              <Notice tone="success" title={t("settings.alerts.testSent")} />
+            ) : (
+              <Notice tone="danger" title={t("mobile.settings.notificationsOff")} />
+            )}
+          </View>
+        )}
+      </SettingRow>
       <SnoozedReminders report={report} />
-    </Group>
-  );
-}
-
-function Notice({ text }: { text: string }) {
-  const theme = useTheme();
-  return (
-    <View
-      accessibilityLiveRegion="polite"
-      style={{ flexDirection: "row", gap: space[2], backgroundColor: theme.color.successBg, paddingHorizontal: space[4], paddingVertical: space[3] }}
-    >
-      <Icons.CheckCircle size={16} color={theme.color.successFg} weight="bold" />
-      <Text size="small" tone="success" style={{ flex: 1 }}>
-        {text}
-      </Text>
-    </View>
+    </SettingsGroup>
   );
 }
 
 /** What's put off or marked handled, and the way to bring it all back; only while there is some. */
-function SnoozedReminders({ report }: { report: (error: unknown) => void }) {
+function SnoozedReminders({ report }: { report: Report }) {
   const t = useT();
   const { wakeAll } = useSnoozes();
   const { unmarkAll } = useDone();
@@ -324,25 +355,29 @@ function SnoozedReminders({ report }: { report: (error: unknown) => void }) {
   const count = held.snoozed.length + held.done.length;
   if (!count) return null;
   return (
-    <Row label={t("settings.snoozed", { count })} hint={t("settings.snoozed.hint")}>
-      <Button
-        size="sm"
-        onPress={() => Promise.all([wakeAll(), unmarkAll()]).then(() => toast(t("settings.snoozed.woken"), "success"), report)}
-        testID="action.wakeAll"
-      >
-        {t("settings.snoozed.wakeAll")}
-      </Button>
-    </Row>
+    <SettingRow
+      title={t("settings.snoozed", { count })}
+      summary={t("settings.snoozed.hint")}
+      trailing={
+        <Button
+          size="sm"
+          variant="ghost"
+          onPress={() => Promise.all([wakeAll(), unmarkAll()]).then(() => toast(t("settings.snoozed.woken"), "success"), report)}
+          testID="action.wakeAll"
+        >
+          {t("settings.snoozed.wakeAll")}
+        </Button>
+      }
+    />
   );
 }
 
-/** One system's account: who, its state and last check, and Sign in (again) or Sign out of just that system. */
-function AccountRow({ source, who }: { source: SourceId; who: readonly string[] | null }) {
+/** One system's account: its state and last check, and Sign in (again) or Sign out of just that system. */
+function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   const t = useT();
   const f = useFormat();
   const bridge = useBridge();
   const status = useStatus(source);
-  const report = useReport();
   const { signIn, busy: signingIn } = useSignIn();
   const note = useSignInNote(source);
   const [busy, setBusy] = useState(false);
@@ -374,37 +409,33 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
             : status.state === "live"
               ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "success" }
               : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "warning" };
-  // The button beside the account, as the desktop's and the rows under it: the row already names the system, so the
-  // button says only the verb (its accessible name says all of it), leaving the name and program room to wrap.
+  // The row names the system and its state; the button beside it says only the verb (its accessible name says all of it).
   return (
-    <View
-      style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] }}
+    <SettingRow
       testID={`row.account.${source}`}
-    >
-      <SourceLogo source={source} size={40} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="body" weight="medium">
-          {name}
-        </Text>
-        {who && <Meta size="small">{who}</Meta>}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+      leading={<SourceLogo source={source} size={40} />}
+      title={name}
+      summary={
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           {status.state === "live" && <LiveDot />}
-          <Text size="caption" weight="medium" tone={state.tone} style={{ flexShrink: 1 }}>
+          <Text size="bodyMedium" tone={state.tone} style={{ flexShrink: 1 }}>
             {state.text}
           </Text>
         </View>
-      </View>
-      <Button
-        size="sm"
-        variant={needsSignIn ? "primary" : "secondary"}
-        busy={needsSignIn ? signingIn : busy}
-        label={label}
-        onPress={() => void (needsSignIn ? signIn(source) : signOut())}
-        testID={needsSignIn ? `action.signIn.${source}` : `action.signOut.${source}`}
-      >
-        {needsSignIn ? t(status.state === "expired" ? "action.signInAgain" : "action.signIn") : t("action.signOut")}
-      </Button>
-    </View>
+      }
+      trailing={
+        <Button
+          size="sm"
+          variant={needsSignIn ? "tonal" : "secondary"}
+          busy={needsSignIn ? signingIn : busy}
+          label={label}
+          onPress={() => void (needsSignIn ? signIn(source) : signOut())}
+          testID={needsSignIn ? `action.signIn.${source}` : `action.signOut.${source}`}
+        >
+          {needsSignIn ? t(status.state === "expired" ? "action.signInAgain" : "action.signIn") : t("action.signOut")}
+        </Button>
+      }
+    />
   );
 }
 
@@ -420,32 +451,31 @@ function AttendanceTargets() {
   };
   return (
     <>
-      <Row label={t("settings.attendance.target")} hint={t(codes.length ? "settings.attendance.targetHintOwn" : "settings.attendance.targetHint")} stacked>
+      <SettingRow title={t("settings.attendance.target")} summary={t(codes.length ? "settings.attendance.targetHintOwn" : "settings.attendance.targetHint")}>
         <TargetStepper value={target} onChange={setDefault} />
-      </Row>
+      </SettingRow>
       {codes.map((code) => (
-        <Row key={code} label={name(code)} hint={t("settings.attendance.own", { code })} stacked>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+        <SettingRow key={code} title={name(code)} summary={t("settings.attendance.own", { code })}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>
             <TargetStepper value={own[code]!} onChange={(value) => setOwn(code, value)} code={code} />
             <Button size="sm" variant="ghost" label={t("settings.attendance.useDefaultFor", { code })} onPress={() => setOwn(code, null)}>
               {t("settings.attendance.useDefault")}
             </Button>
           </View>
-        </Row>
+        </SettingRow>
       ))}
     </>
   );
 }
 
 /**
- * Each course's color, as the desktop's: the course, then its code and whether the color is automatic or
- * the Student's pick (and who shares it); the color by name opens the same picker as a course page's
- * header and Lainnya's long-press. Last, every course back to automatic at once (the toast offers Undo).
+ * Each course's color, as the desktop's: the course, then its code and whether the color is automatic or the Student's
+ * pick (and who shares it); the row opens the same picker as a course page's header. Last, every course back to
+ * automatic at once (the snackbar offers Undo).
  */
 function CourseColors() {
   const t = useT();
   const f = useFormat();
-  const theme = useTheme();
   const term = useTermCourses();
   const picks = useCourseColorPicks();
   // A code in two classes is one course with one color.
@@ -453,16 +483,16 @@ function CourseColors() {
   if (!courses.length) return null;
   const picked = courses.filter((course) => course.colorPicked).length;
   return (
-    <Group title={t("settings.courseColors")} note={t("settings.courseColors.note")}>
+    <SettingsGroup title={t("settings.courseColors")} note={t("settings.courseColors.note")}>
       {courses.map((course) => {
         const same = courses.filter((other) => other.code !== course.code && other.colorId === course.colorId).map((other) => other.code);
         const name = colorName(t, course.colorId);
         return (
-          <Row
+          <SettingRow
             key={course.code}
-            label={course.name}
-            a11yLabel={`${course.name}, ${t("courseColor.current", { code: course.code, color: name })}`}
-            hint={
+            title={course.name}
+            label={`${course.name}, ${t("courseColor.current", { code: course.code, color: name })}`}
+            summary={
               <Meta>
                 {course.code}
                 {t(course.colorPicked ? "courseColor.yours" : "courseColor.automatic")}
@@ -471,42 +501,33 @@ function CourseColors() {
             }
             onPress={() => openCourseColorPicker(course.code)}
             testID={`row.courseColor.${course.code}`}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                gap: 6,
-                height: 36,
-                paddingHorizontal: space[2.5],
-                borderRadius: radius.lg,
-                borderWidth: StyleSheet.hairlineWidth * 2,
-                borderColor: theme.color.edge,
-                backgroundColor: theme.color.surfaceContainerLow,
-              }}
-            >
-              <CourseDot color={course.color} />
-              <Text size="small" weight="medium" numberOfLines={1}>
-                {name}
-              </Text>
-              <Icons.ChevronDown size={12} color={theme.color.muted} />
-            </View>
-          </Row>
+            trailing={
+              <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+                <CourseDot color={course.color} size={16} />
+                <Text size="bodyMedium" tone="muted" numberOfLines={1}>
+                  {name}
+                </Text>
+              </View>
+            }
+          />
         );
       })}
-      <Row label={t("settings.courseColors.all")} hint={picked ? t("settings.courseColors.allHint", { count: picked }) : t("settings.courseColors.allAuto")}>
-        {picked > 0 ? (
-          <Button size="sm" onPress={() => void picks.resetAll(courses.map((course) => course.code))} testID="action.resetCourseColors">
-            {t("settings.courseColors.reset")}
-          </Button>
-        ) : null}
-      </Row>
-    </Group>
+      {picked > 0 ? (
+        <SettingRow
+          title={t("settings.courseColors.reset")}
+          summary={t("settings.courseColors.allHint", { count: picked })}
+          onPress={() => void picks.resetAll(courses.map((course) => course.code))}
+          testID="action.resetCourseColors"
+        />
+      ) : (
+        <SettingRow title={t("settings.courseColors.all")} summary={t("settings.courseColors.allAuto")} />
+      )}
+    </SettingsGroup>
   );
 }
 
 /** Problem reports, while the app has the maintainer's relay: whether they go by themselves, and what went. */
-function ReportSettings({ settings, update, report }: { settings: Settings; update: (patch: Partial<Settings>) => void; report: (error: unknown) => void }) {
+function ReportSettings({ settings, update, report }: { settings: Settings; update: (patch: Partial<Settings>) => void; report: Report }) {
   const t = useT();
   const f = useFormat();
   const lang = useLang();
@@ -517,48 +538,51 @@ function ReportSettings({ settings, update, report }: { settings: Settings; upda
     return names.length ? t("report.settings.page", { page: f.list(names) }) : t("report.settings.noPage");
   };
   return (
-    <Group title={t("report.settings.title")} note={t("report.settings.note")}>
-      <Row label={t("report.settings.sending")} hint={t("report.settings.sendingHint")} stacked>
-        <Segmented
-          label={t("report.settings.sending")}
-          value={reportSendingOf(settings)}
-          onChange={(reportSending) => update({ reportSending, reportAsked: true })}
-          options={[
-            { value: "auto", label: t("report.settings.auto") },
-            { value: "ask", label: t("report.settings.ask") },
-            { value: "never", label: t("report.settings.never") },
-          ]}
-        />
-      </Row>
+    <SettingsGroup title={t("report.settings.title")} note={t("report.settings.note")}>
+      <ChoiceRow
+        title={t("report.settings.sending")}
+        hint={t("report.settings.sendingHint")}
+        value={reportSendingOf(settings)}
+        onChange={(reportSending) => update({ reportSending, reportAsked: true })}
+        testID="segment.reportSending"
+        choices={[
+          { value: "auto", label: t("report.settings.auto") },
+          { value: "ask", label: t("report.settings.ask") },
+          { value: "never", label: t("report.settings.never") },
+        ]}
+      />
       {sent.map((one) => (
-        <Row
+        <SettingRow
           key={`${one.at} ${one.id}`}
-          label={pages(one.feeds)}
-          hint={<Meta>{[f.dayTime(one.at), t(one.how === "auto" ? "report.settings.byItself" : "report.settings.byYou")]}</Meta>}
-        >
-          {one.issue ? (
-            <Button
-              size="sm"
-              label={t("report.settings.seeIssue", { number: one.issue.number })}
-              icon={<Icons.ArrowUpRight size={14} />}
-              onPress={() => void bridge.invoke("report.openIssue", { number: one.issue!.number }).catch(report)}
-            >
-              {`#${one.issue.number}`}
-            </Button>
-          ) : (
-            <Text size="small" tone="muted">
-              {t("report.settings.notFiled")}
-            </Text>
-          )}
-        </Row>
+          title={pages(one.feeds)}
+          summary={<Meta>{[f.dayTime(one.at), t(one.how === "auto" ? "report.settings.byItself" : "report.settings.byYou")]}</Meta>}
+          trailing={
+            one.issue ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                label={t("report.settings.seeIssue", { number: one.issue.number })}
+                icon={<Icons.ArrowUpRight size={14} />}
+                onPress={() => void bridge.invoke("report.openIssue", { number: one.issue!.number }).catch(report)}
+              >
+                {`#${one.issue.number}`}
+              </Button>
+            ) : (
+              <Text size="bodyMedium" tone="muted">
+                {t("report.settings.notFiled")}
+              </Text>
+            )
+          }
+        />
       ))}
-    </Group>
+    </SettingsGroup>
   );
 }
 
 /** "Periksa pembaruan": GitHub is asked now; a newer version opens its release page to download the APK. */
 function CheckForUpdates({ version }: { version: string }) {
   const t = useT();
+  const theme = useTheme();
   const bridge = useBridge();
   const update = useDataset("app.update");
   const [checking, setChecking] = useState(false);
@@ -577,23 +601,32 @@ function CheckForUpdates({ version }: { version: string }) {
   const answer =
     found === "newer" && update ? t("update.checked.newer", { version: update.version }) : found && found !== "newer" ? t(`update.checked.${found}`) : null;
   return (
-    <Row label={t("settings.version", { version })} hint={answer ?? t("update.checkHint")}>
-      {found === "newer" ? (
-        <Button
-          size="sm"
-          variant="primary"
-          icon={<Icons.ArrowUpRight size={14} color="#ffffff" />}
-          onPress={() => void bridge.invoke("app.openRelease", {}).catch(() => undefined)}
-          testID="action.openRelease"
-        >
-          {t("update.download")}
-        </Button>
-      ) : (
-        <Button size="sm" busy={checking} label={t("update.check")} onPress={() => void check()} testID="action.checkUpdate">
-          {t("mobile.update.checkShort")}
-        </Button>
-      )}
-    </Row>
+    <SettingRow
+      title={t("settings.version", { version })}
+      summary={
+        <Text size="bodyMedium" tone="muted" accessibilityLiveRegion="polite">
+          {answer ?? t("update.checkHint")}
+        </Text>
+      }
+      leading={<Icons.RefreshCw size={24} color={theme.color.onSurfaceVariant} />}
+      trailing={
+        found === "newer" ? (
+          <Button
+            size="sm"
+            variant="tonal"
+            icon={<Icons.ArrowUpRight size={14} color={theme.color.onSecondaryContainer} />}
+            onPress={() => void bridge.invoke("app.openRelease", {}).catch(() => undefined)}
+            testID="action.openRelease"
+          >
+            {t("update.download")}
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" busy={checking} label={t("update.check")} onPress={() => void check()} testID="action.checkUpdate">
+            {t("mobile.update.checkShort")}
+          </Button>
+        )
+      }
+    />
   );
 }
 
@@ -601,96 +634,14 @@ function CheckForUpdates({ version }: { version: string }) {
 function About() {
   const t = useT();
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] }}>
-      <Image source={require("../assets/icon.png")} style={{ width: 40, height: 40 }} accessibilityIgnoresInvertColors />
-      <View style={{ flex: 1 }}>
-        <Text size="body" weight="semibold">
+    <SettingRow
+      leading={<Image source={require("../assets/icon.png")} style={{ width: 40, height: 40, borderRadius: 10 }} accessibilityIgnoresInvertColors />}
+      title={
+        <Text size="bodyLarge" weight="semibold">
           Edunex Plus
         </Text>
-        <Text size="small" tone="muted">
-          {t("settings.openSource")}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-/** A group of settings on one card, under its title, with a note under it. */
-function Group({ title, note, lead, first = false, children }: { title?: string; note?: string; lead?: ReactNode; first?: boolean; children: ReactNode }) {
-  return (
-    <View style={{ marginTop: first ? 0 : space[6] }}>
-      {title && (
-        <Text size="small" weight="semibold" tone="muted" style={{ marginBottom: space[2], paddingHorizontal: space[1] }} accessibilityRole="header">
-          {title}
-        </Text>
-      )}
-      {lead}
-      <Card>
-        <Divided>{children}</Divided>
-      </Card>
-      {note && (
-        <Text size="caption" tone="faint" style={{ marginTop: 6, paddingHorizontal: space[1] }}>
-          {note}
-        </Text>
-      )}
-    </View>
-  );
-}
-
-function Divided({ children }: { children: ReactNode }) {
-  const theme = useTheme();
-  const items = (Array.isArray(children) ? children.flat() : [children]).filter((child) => child !== null && child !== undefined && child !== false);
-  return (
-    <>
-      {items.map((child, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: the group's rows, in their order
-        <View key={i} style={i > 0 ? { borderTopWidth: 0.5, borderTopColor: theme.color.line } : undefined}>
-          {child as ReactNode}
-        </View>
-      ))}
-    </>
-  );
-}
-
-/** A setting: what it is, when it applies, and its control (beside it, or under it when the choices are long). */
-function Row({
-  label,
-  a11yLabel,
-  hint,
-  stacked = false,
-  onPress,
-  testID,
-  children,
-}: {
-  label: string;
-  /** A pressable row's accessible name, when the label alone doesn't say what it opens. */
-  a11yLabel?: string;
-  hint?: ReactNode;
-  stacked?: boolean;
-  onPress?: () => void;
-  testID?: string;
-  children?: ReactNode;
-}) {
-  const body = (
-    <View style={[{ paddingHorizontal: space[4], paddingVertical: space[3], gap: space[3] }, stacked ? null : { flexDirection: "row", alignItems: "center" }]}>
-      <View style={{ flex: stacked ? undefined : 1, minWidth: 0 }}>
-        <Text size="body">{label}</Text>
-        {hint !== undefined &&
-          (typeof hint === "string" ? (
-            <Text size="small" tone="muted">
-              {hint}
-            </Text>
-          ) : (
-            hint
-          ))}
-      </View>
-      {children}
-    </View>
-  );
-  if (!onPress) return body;
-  return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={a11yLabel} testID={testID}>
-      {body}
-    </Pressable>
+      }
+      summary={t("settings.openSource")}
+    />
   );
 }

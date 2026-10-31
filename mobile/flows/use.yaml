@@ -151,34 +151,43 @@ appId: io.github.pablonification.edunexplus.demo
       id: segment.lang
     direction: DOWN
     centerElement: true
+# Bahasa and Tema are rows showing their value; each opens its choices in a sheet, which closes on a pick.
+- tapOn:
+    id: segment.lang
 - tapOn:
     id: segment.lang.en
 - extendedWaitUntil:
     visible:
-      id: segment.lang.en
-      selected: true
+      id: segment.lang
+      text: ".*English.*"
     timeout: 10000
 - assertVisible: "Settings"
+- tapOn:
+    id: segment.theme
 - tapOn:
     id: segment.theme.dark
 - extendedWaitUntil:
     visible:
-      id: segment.theme.dark
-      selected: true
+      id: segment.theme
+      text: ".*Dark.*"
     timeout: 10000
 - takeScreenshot: use-26-english-dark
+- tapOn:
+    id: segment.lang
 - tapOn:
     id: segment.lang.id
 - extendedWaitUntil:
     visible:
-      id: segment.lang.id
-      selected: true
+      id: segment.lang
+      text: ".*Indonesia.*"
     timeout: 10000
+- tapOn:
+    id: segment.theme
 - tapOn:
     id: segment.theme.system
 - extendedWaitUntil:
     visible:
-      id: segment.theme.system
-      selected: true
+      id: segment.theme
+      text: ".*Sistem.*"
     timeout: 10000
 - assertVisible: "Pengaturan"
