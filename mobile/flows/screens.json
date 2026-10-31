@@ -410,7 +410,9 @@
               },
               "direction": "UP",
               "timeout": 6000,
-              "optional": true
+              "optional": true,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -419,7 +421,9 @@
                 "id": "row.course.DK4073"
               },
               "direction": "DOWN",
-              "timeout": 10000
+              "timeout": 10000,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -479,7 +483,9 @@
               },
               "direction": "UP",
               "timeout": 6000,
-              "optional": true
+              "optional": true,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -488,7 +494,9 @@
                 "id": "row.course.II4091"
               },
               "direction": "DOWN",
-              "timeout": 10000
+              "timeout": 10000,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -548,7 +556,9 @@
               },
               "direction": "UP",
               "timeout": 6000,
-              "optional": true
+              "optional": true,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -557,7 +567,9 @@
                 "id": "row.course.KU5014"
               },
               "direction": "DOWN",
-              "timeout": 10000
+              "timeout": 10000,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -617,7 +629,9 @@
               },
               "direction": "UP",
               "timeout": 6000,
-              "optional": true
+              "optional": true,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -626,7 +640,9 @@
                 "id": "row.course.PL3002"
               },
               "direction": "DOWN",
-              "timeout": 10000
+              "timeout": 10000,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -686,7 +702,9 @@
               },
               "direction": "UP",
               "timeout": 6000,
-              "optional": true
+              "optional": true,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
@@ -695,7 +713,9 @@
                 "id": "row.course.PL3032"
               },
               "direction": "DOWN",
-              "timeout": 10000
+              "timeout": 10000,
+              "visibilityPercentage": 50,
+              "centerElement": true
             }
           },
           {
