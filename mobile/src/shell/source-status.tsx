@@ -7,6 +7,7 @@ import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
 import { useFormat, useT } from "../../../src/app/i18n";
+import { initials } from "../../../src/app/names";
 import { useBridge, useDataset, useSignInStep, useStatus } from "../../../src/app/store";
 import type { SignInStep } from "../../../src/core/contract";
 import type { SourceId, SourceState } from "../../../src/core/models";
@@ -19,7 +20,8 @@ import { Icons } from "../ui/icons";
 import { Meta } from "../ui/layout";
 import { Sheet } from "../ui/sheet";
 import { Text } from "../ui/text";
-import { radius, space, useTheme } from "../ui/theme";
+import { radius, space, TOUCH, useTheme } from "../ui/theme";
+import { BAR_HEIGHT, BarSurface } from "../ui/top-bar";
 
 /** Opens the sign-in page for a source; resolves when it closes. */
 export function useSignIn() {
@@ -166,71 +168,113 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
 }
 
 /**
- * The top of every tab: the data status as one quiet line (tap: each source and "Perbarui
- * sekarang"), search and the bell with its unread count. A banner follows when something needs
- * the Student.
+ * The top of every tab (Material 3's top app bar): the tab's name with the data's status as one quiet line under it
+ * (tap: each source and "Perbarui sekarang"), then search, the bell with its unread count (`bell`: Beranda), and the
+ * Student's avatar, the way to the account and Settings. A banner follows when something needs the Student.
  */
-export function TabHeader() {
+export function TabHeader({ title, bell = false }: { title: string; bell?: boolean }) {
   const t = useT();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const line = useSyncLine();
   const [panel, setPanel] = useState(false);
-  const history = useDataset("app.alerts");
-  const unread = (history?.items ?? []).filter((item) => item.at > (history?.readAt ?? 0)).length;
   const tone = line.state === "changed" ? "danger" : line.state === "expired" ? "warning" : "muted";
   return (
-    <View style={{ paddingTop: insets.top, backgroundColor: theme.color.canvas }}>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingLeft: space.page, paddingRight: space[1], minHeight: 52 }}>
+    <BarSurface>
+      <View
+        style={{ marginTop: insets.top, flexDirection: "row", alignItems: "center", paddingLeft: space.page, paddingRight: space[1], minHeight: BAR_HEIGHT }}
+      >
         <Pressable
           testID="action.syncStatus"
           accessibilityRole="button"
-          accessibilityLabel={`${t("sync.title")}: ${line.text}`}
+          accessibilityLabel={`${title}. ${t("sync.title")}: ${line.text}`}
           onPress={() => setPanel(true)}
-          style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 44 }}
+          style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center" }}
         >
-          <StateMark state={line.state === "signed-out" ? "signed-out" : line.state} busy={line.state === "connecting"} />
-          <Text size="small" weight="medium" tone={tone} numberOfLines={1} style={{ flexShrink: 1 }}>
-            {line.text}
+          <Text size="titleLarge" numberOfLines={1} accessibilityRole="header">
+            {title}
           </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }}>
+            <StateMark state={line.state === "signed-out" ? "signed-out" : line.state} busy={line.state === "connecting"} />
+            <Text size="bodySmall" tone={tone} numberOfLines={1} style={{ flexShrink: 1 }}>
+              {line.text}
+            </Text>
+          </View>
         </Pressable>
         <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
-          <Icons.Search size={22} />
+          <Icons.Search size={24} color={theme.color.onSurfaceVariant} />
         </IconButton>
-        <View>
-          <IconButton
-            label={unread > 0 ? t("alerts.open", { count: unread }) : t("alerts.title")}
-            onPress={() => router.push("/alerts")}
-            testID="action.alerts"
-          >
-            <Icons.Bell size={22} />
-          </IconButton>
-          {unread > 0 && (
-            <View
-              pointerEvents="none"
-              style={{
-                position: "absolute",
-                top: 6,
-                right: 6,
-                minWidth: 16,
-                height: 16,
-                borderRadius: 8,
-                paddingHorizontal: 3,
-                backgroundColor: theme.color.accent,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text size="micro" weight="bold" tone="onAccent" style={{ fontSize: 10, lineHeight: 12 }}>
-                {unread > 99 ? "99+" : String(unread)}
-              </Text>
-            </View>
-          )}
-        </View>
+        {bell && <Bell />}
+        <Avatar />
       </View>
       <ProblemBanner />
       <SyncPanel open={panel} onClose={() => setPanel(false)} />
+    </BarSurface>
+  );
+}
+
+/** The bell, with Material's badge (the error colour) while something new is unread. */
+function Bell() {
+  const t = useT();
+  const theme = useTheme();
+  const history = useDataset("app.alerts");
+  const unread = (history?.items ?? []).filter((item) => item.at > (history?.readAt ?? 0)).length;
+  return (
+    <View>
+      <IconButton label={unread > 0 ? t("alerts.open", { count: unread }) : t("alerts.title")} onPress={() => router.push("/alerts")} testID="action.alerts">
+        <Icons.Bell size={24} color={theme.color.onSurfaceVariant} />
+      </IconButton>
+      {unread > 0 && (
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 26,
+            minWidth: 16,
+            height: 16,
+            borderRadius: 8,
+            paddingHorizontal: 4,
+            backgroundColor: theme.color.error,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text size="labelSmall" style={{ color: theme.color.onError, lineHeight: 16 }}>
+            {unread > 99 ? "99+" : String(unread)}
+          </Text>
+        </View>
+      )}
     </View>
+  );
+}
+
+/** The Student's initials in a circle: their account and Settings. */
+function Avatar() {
+  const t = useT();
+  const theme = useTheme();
+  const account = useDataset("edunex.account");
+  const student = useDataset("six.student");
+  const name = account?.name ?? student?.name;
+  return (
+    <Pressable
+      testID="action.account"
+      accessibilityRole="button"
+      accessibilityLabel={t("mobile.account.open")}
+      onPress={() => router.push("/settings")}
+      android_ripple={{ color: theme.color.selected, borderless: true, radius: 20 }}
+      style={{ width: TOUCH, height: TOUCH, alignItems: "center", justifyContent: "center" }}
+    >
+      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.color.primaryContainer, alignItems: "center", justifyContent: "center" }}>
+        {name ? (
+          <Text size="labelLarge" tone="onPrimaryContainer">
+            {initials(name)}
+          </Text>
+        ) : (
+          <Icons.User size={18} color={theme.color.onPrimaryContainer} />
+        )}
+      </View>
+    </Pressable>
   );
 }
 

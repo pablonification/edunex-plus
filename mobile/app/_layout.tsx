@@ -1,12 +1,13 @@
-// The app's frame: the engine and the desktop's store (../src/shell/boot), the theme, and a stack
-// over the bottom tabs for everything a tab opens (a Task, a course, Settings). The crypto polyfill and
-// the background sync come first, from ../index.ts.
+// The app's frame: the engine and the desktop's store (../src/shell/boot), the theme, and a native
+// stack over the bottom tabs for everything a tab opens (a Task, a course, a module, Settings), with
+// Android's own screen transition and Back (the predictive gesture too). The crypto polyfill and the
+// background sync come first, from ../index.ts.
 import { NavigationBar } from "expo-navigation-bar";
 import { Stack, useNavigationContainerRef } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useDataset, useStatus } from "../../src/app/store";
 import { useWidgetUpdates } from "../src/host/widget";
 import { CourseColorPickerHost } from "../src/parts/course-color-picker";
@@ -60,7 +61,6 @@ function usePerfWatch(): void {
 
 function Frame() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const nobody = useNobodyIn();
   useWidgetUpdates();
   usePerfWatch();
@@ -72,16 +72,17 @@ function Frame() {
       <StatusBar style={welcoming || theme.scheme === "dark" ? "light" : "dark"} />
       {/* Three-button navigation's buttons: light on the welcome's dark stage and the dark theme, else dark. */}
       <NavigationBar style={welcoming || theme.scheme === "dark" ? "dark" : "light"} />
-      {/* A screen over the tabs ends above the phone's navigation bar: nothing to tap sits under its buttons (the tabs
-          end at their own bar). */}
+      {/* Edge to edge: a screen over the tabs runs under the phone's navigation bar, and its page keeps its last row
+          clear of it (ui/insets.ts). "default" is Android's own open and close (the system's slide and fade), drawn
+          natively. */}
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: theme.color.canvas, paddingBottom: insets.bottom },
-          animation: "slide_from_right",
+          contentStyle: { backgroundColor: theme.color.surface },
+          animation: "default",
         }}
       >
-        <Stack.Screen name="(tabs)" options={{ contentStyle: { backgroundColor: theme.color.canvas } }} />
+        <Stack.Screen name="(tabs)" />
       </Stack>
       {welcoming && <Welcome onDone={() => setWelcoming(false)} />}
       {!welcoming && <FirstScanWatch />}

@@ -5,7 +5,8 @@
 //   [perf] first-data <ms>          from the JS start to Beranda drawn with the Student's data
 // Cheap enough to stay on in every build: one timer every 50 ms, and a line only when something's slow
 // or a screen opens.
-import { useEffect } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useEffect } from "react";
 
 /** What's running, for a stall's label: the screen shown and the engine's last step. */
 let screen = "start";
@@ -68,6 +69,14 @@ export function perfFirstData(): void {
   if (firstData) return;
   firstData = true;
   requestAnimationFrame(() => console.log(`[perf] first-data ${Date.now() - jsStart}`));
+}
+
+/**
+ * perfDrawn each time this screen comes into focus: a tab is mounted ahead and isn't drawn again on a switch, so the
+ * switch's line is the frame after the tab shows.
+ */
+export function usePerfFocused(kind: "screen" | "tab" = "tab"): void {
+  useFocusEffect(useCallback(() => perfDrawn(kind), [kind]));
 }
 
 /** perfDrawn once `ready` (the screen's data is in it), after the render that shows it. */

@@ -43,6 +43,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-router",
     // The screen's fastest refresh rate (90 or 120 Hz), not the 60 Hz many phones keep an app at (W5).
     "./plugins/high-refresh-rate",
+    // The bottom tabs' icons as Android drawables (scripts/make-tab-icons.mjs).
+    "./plugins/tab-icons",
     "expo-secure-store",
     "expo-background-task",
     "expo-sharing",

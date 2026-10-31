@@ -1,10 +1,13 @@
 // The course page on the phone (S17, src/app/screens/course.tsx): one course, its parent and child
 // Edunex classes merged. The header says what it is and where attendance stands; under it what is
 // happening now or next (and, for a course at risk, what that means today); then its tabs, scrolling
-// sideways and staying at the top while the page scrolls: Modul (a list that opens one module at a
-// time), Pertemuan, Tugas & Ujian, Nilai and Pengumuman. The rare actions sit behind "⋯" in the top
-// bar, as the desktop's: the course's color, and its pages on Edunex and SIX. Pull to refresh.
-import { type ComponentRef, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+// sideways and staying at the top while the page scrolls: Modul (a list; a module opens as its own
+// screen, ./module-screen.tsx), Pertemuan, Tugas & Ujian, Nilai and Pengumuman. The rare actions sit
+// behind ⋮ in the top bar (Android's overflow menu): the course's color, and its pages on Edunex and
+// SIX. Pull to refresh.
+
+import { router } from "expo-router";
+import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import { type LayoutChangeEvent, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -14,16 +17,18 @@ import { type CoursePage, useCoursePage } from "../../../../src/app/screens/cour
 import { useDataset, useSettings, useStatus } from "../../../../src/app/store";
 import { edunexCourseUrl, sixTimetableUrl } from "../../../../src/core/links";
 import { todoCount, todoForCourse } from "../../../../src/core/todo";
-import { useNav } from "../../nav";
+import { hrefOf, useNav } from "../../nav";
 import { AbsenceBudget, CourseTarget } from "../../parts/attendance";
 import { CourseColorSheet, colorName } from "../../parts/course-color-picker";
+import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh, useRefresh } from "../../shell/source-status";
-import { Button, IconButton } from "../../ui/controls";
+import { Button } from "../../ui/controls";
 import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
 import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta, Page, PageHeader } from "../../ui/layout";
-import { ActionSheet, type SheetChoice } from "../../ui/sheet";
+import { OverflowMenu } from "../../ui/menu";
+import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
@@ -38,10 +43,10 @@ const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as cons
 type Tab = (typeof TABS)[number];
 
 /**
- * `tab` and `module`: what the page shows, kept in the route (useNav().replace) as the Student picks
- * them, so a link, an alert or a Task's way up opens the same place.
+ * `tab`: the tab shown, kept in the route (useNav().replace) as the Student picks it, so a link, an alert or a Task's
+ * way up opens the same place.
  */
-export function CourseScreen({ code, tab, module }: { code: string; tab?: string; module?: number }) {
+export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const t = useT();
   const page = useCoursePage(code);
   const edunexState = useStatus("edunex").state;
@@ -53,21 +58,14 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
   const [tabsAt, setTabsAt] = useState(0);
   const offset = useRef(0);
   const current: Tab = (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules";
-  const show = (next: { tab: Tab; module?: number }) => replace({ screen: "course", code, ...next });
-  // Another tab, or a module opened or closed, while the tab bar is stuck at the top: its start comes into view under it.
-  const toTop = () => {
-    if (offset.current > tabsAt) scroll.current?.scrollTo({ y: tabsAt, animated: false });
-  };
+  usePerfDrawn(page !== undefined);
   // A tab tapped: its tab bar comes to the top, so what the tab holds is in view and not below the course's header.
   const pickTab = (next: Tab) => {
-    show({ tab: next, ...(module === undefined ? {} : { module }) });
+    replace({ screen: "course", code, tab: next });
     if (offset.current !== tabsAt) scroll.current?.scrollTo({ y: tabsAt, animated: offset.current < tabsAt });
   };
-  const pickModule = (picked: number) => {
-    show({ tab: "modules", module: picked });
-    toTop();
-  };
-  const toList = useCallback(() => replace({ screen: "course", code, tab: "modules" }), [replace, code]);
+  // A module opens as its own screen, over the course: Back comes back to this list, where it was.
+  const pickModule = (picked: number) => router.push(hrefOf({ screen: "course", code, module: picked }) as never);
 
   // Edunex's courses not read yet: placeholders while Edunex is being read, else why the page isn't here (signed out,
   // expired, failed), so a course seen only in SIX never shows placeholders for good.
@@ -98,18 +96,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
   let panel: ReactNode;
   if (current === "grades") panel = <GradesTab page={page} onOpenModules={() => pickTab("modules")} />;
   else if (!loaded) panel = <NotLoaded />;
-  else if (current === "modules")
-    panel = (
-      <ModulesTab
-        page={page}
-        module={module}
-        onPick={pickModule}
-        onList={() => {
-          toList();
-          toTop();
-        }}
-      />
-    );
+  else if (current === "modules") panel = <ModulesTab page={page} onPick={pickModule} />;
   else if (current === "meetings") panel = <MeetingsTab page={page} />;
   else if (current === "tasks") panel = <TasksTab code={page.course.code} exams={page.exams} />;
   else panel = <AnnouncementsTab announcements={page.announcements} mainCourseId={page.course.edunex?.courseId ?? null} code={page.course.code} />;
@@ -226,13 +213,12 @@ function AttendanceMeter({ page }: { page: CoursePage }) {
   );
 }
 
-/** "⋯": the rare actions. Its files for offline, the course's color, and its pages on Edunex and SIX. */
+/** ⋮: the rare actions. Its files for offline, the course's color, and its pages on Edunex and SIX. */
 function MoreMenu({ page }: { page: CoursePage }) {
   const t = useT();
   const theme = useTheme();
   const open = useOpenExternal();
   const student = useDataset("six.student");
-  const [menu, setMenu] = useState(false);
   const [picking, setPicking] = useState(false);
   const saveOffline = useSaveOfflineChoice(page);
   const { course } = page;
@@ -264,10 +250,7 @@ function MoreMenu({ page }: { page: CoursePage }) {
     });
   return (
     <>
-      <IconButton label={t("course.more")} onPress={() => setMenu(true)} testID="action.courseMenu">
-        <Icons.MoreHorizontal size={22} />
-      </IconButton>
-      <ActionSheet open={menu} onClose={() => setMenu(false)} title={course.code} choices={choices} testID="sheet.courseMenu" />
+      <OverflowMenu label={t("course.more")} choices={choices} testID="action.courseMenu" />
       <CourseColorSheet code={course.code} open={picking} onClose={() => setPicking(false)} />
     </>
   );

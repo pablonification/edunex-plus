@@ -1,16 +1,45 @@
 // The parts every screen is built from, the phone's versions of the desktop's (src/app/ui/layout.tsx)
 // with the same names and the same rules: the page, its header, sections, lists of rows, one-line
-// facts, notices and figures. Screens compose these instead of styling their own.
+// facts, notices and figures, in Material 3's look (DESIGN.md). Screens compose these instead of
+// styling their own.
 import { useScrollToTop } from "expo-router";
-import { Children, type ComponentRef, cloneElement, Fragment, isValidElement, type ReactNode, type Ref, type RefObject, useCallback, useRef } from "react";
-import { Pressable, RefreshControl, ScrollView, type ScrollViewProps, StyleSheet, View, type ViewStyle } from "react-native";
+import {
+  Children,
+  type ComponentRef,
+  cloneElement,
+  createContext,
+  Fragment,
+  isValidElement,
+  type ReactNode,
+  type Ref,
+  type RefObject,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+} from "react";
+import { Animated, Pressable, RefreshControl, type ScrollView, type ScrollViewProps, StyleSheet, View, type ViewStyle } from "react-native";
 import { Icons } from "./icons";
+import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
 import { Text } from "./text";
-import { radius, space, useTheme } from "./theme";
+import { radius, shape, space, useTheme } from "./theme";
+
+/**
+ * How far the page under a top bar has scrolled, followed on the UI thread (no JS work while scrolling): the bar takes
+ * its scrolled-under colour from it (top-bar.tsx).
+ */
+const ScrollEdge = createContext<Animated.Value | null>(null);
+
+/** 0 at the page's top, 1 once anything has scrolled under the bar (an Animated value; null outside a Page). */
+export function useScrolledUnder(): Animated.AnimatedInterpolation<number> | null {
+  const offset = useContext(ScrollEdge);
+  return useMemo(() => offset?.interpolate({ inputRange: [0, 8], outputRange: [0, 1], extrapolate: "clamp" }) ?? null, [offset]);
+}
 
 /**
  * A screen: scrolls, with the page's sides, and pulls to refresh when `onRefresh` is given ("Perbarui
- * sekarang"). The bottom keeps clear of the tab bar.
+ * sekarang"). Its `header` (a top bar) stays on top and takes a tone when the page scrolls under it; the end
+ * keeps clear of the tabs or the phone's own navigation bar.
  */
 export function Page({
   children,
@@ -20,6 +49,7 @@ export function Page({
   testID,
   scrollRef,
   contentStyle,
+  onScroll,
   ...rest
 }: {
   children: ReactNode;
@@ -32,6 +62,15 @@ export function Page({
   contentStyle?: ViewStyle;
 } & Omit<ScrollViewProps, "children" | "refreshControl">) {
   const theme = useTheme();
+  const bottom = useBottomInset();
+  const inTabs = useInTabs();
+  const frame = useRef<ComponentRef<typeof View>>(null);
+  const offset = useRef(new Animated.Value(0)).current;
+  // The offset goes to the UI thread; a screen's own onScroll (if it has one) still hears each event.
+  const scrolled = useMemo(
+    () => Animated.event([{ nativeEvent: { contentOffset: { y: offset } } }], { useNativeDriver: true, listener: onScroll as never }),
+    [offset, onScroll],
+  );
   // A tap on the tab already open scrolls its page back to the top, as Android apps do.
   const own = useRef<ComponentRef<typeof ScrollView>>(null);
   useScrollToTop(own as RefObject<ComponentRef<typeof ScrollView>>);
@@ -44,21 +83,34 @@ export function Page({
     [scrollRef],
   );
   return (
-    <View style={{ flex: 1, backgroundColor: theme.color.canvas }} testID={testID}>
-      {header}
-      <ScrollView
-        ref={ref}
-        contentContainerStyle={[styles.page, contentStyle]}
+    <View
+      ref={frame}
+      style={{ flex: 1, backgroundColor: theme.color.surface }}
+      testID={testID}
+      // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx).
+      onLayout={inTabs ? () => frame.current?.measureInWindow((_x, y, _width, height) => reportTabsBottom(y + height)) : undefined}
+    >
+      <ScrollEdge.Provider value={offset}>{header}</ScrollEdge.Provider>
+      <Animated.ScrollView
+        ref={ref as never}
+        onScroll={scrolled}
+        scrollEventThrottle={16}
+        contentContainerStyle={[styles.page, { paddingBottom: space[10] + bottom }, contentStyle]}
         refreshControl={
           onRefresh ? (
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.color.accent]} progressBackgroundColor={theme.color.raised} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.color.primary]}
+              progressBackgroundColor={theme.color.surfaceContainerHigh}
+            />
           ) : undefined
         }
         keyboardShouldPersistTaps="handled"
         {...rest}
       >
         {children}
-      </ScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }
@@ -72,7 +124,8 @@ export function PageHeader({
 }: {
   /** A short line above the title (the date on Beranda, the course code on a course). */
   eyebrow?: ReactNode;
-  title: ReactNode;
+  /** Left out under a tab's top bar, which already names the screen. */
+  title?: ReactNode;
   description?: ReactNode;
   actions?: ReactNode;
 }) {
@@ -89,9 +142,11 @@ export function PageHeader({
           )}
         </View>
       )}
-      <Text size="display" weight="semibold" accessibilityRole="header" style={{ letterSpacing: -0.4 }}>
-        {title}
-      </Text>
+      {title !== undefined && title !== null && (
+        <Text size="headlineMedium" accessibilityRole="header">
+          {title}
+        </Text>
+      )}
       {description !== undefined && description !== null && (
         <View style={{ marginTop: space[1.5] }}>
           {typeof description === "string" ? (
@@ -134,10 +189,10 @@ export function Section({
         // Title and action level: centred together on a title alone, bottoms lined up when a description follows.
         <View style={[styles.sectionHead, { alignItems: description === undefined ? "center" : "flex-end" }]}>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="title" weight="semibold" accessibilityRole="header">
+            <Text size="titleMedium" weight="semibold" accessibilityRole="header">
               {title}
               {count !== undefined && (
-                <Text size="title" weight="medium" tone="faint" tabular>
+                <Text size="titleMedium" tone="muted" tabular>
                   {`  ${count}`}
                 </Text>
               )}
@@ -162,17 +217,17 @@ export function Section({
   );
 }
 
-/** Rows that belong together, on one card, divided by hairlines. */
+/**
+ * Rows that belong together: one group of tonal tiles a hair apart, round at the group's ends (Android 16's
+ * grouped lists). No borders: tone separates the group from the page.
+ */
 export function List({ children, style, testID }: { children: ReactNode; style?: ViewStyle; testID?: string }) {
   const theme = useTheme();
   const rows = Children.toArray(children).filter(Boolean);
   return (
-    <View testID={testID} style={[styles.list, { borderColor: theme.color.edge, backgroundColor: theme.color.surface }, style]}>
+    <View testID={testID} style={[styles.list, style]}>
       {rows.map((row, i) => (
-        <View
-          key={isValidElement(row) && row.key !== null ? row.key : i}
-          style={i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line } : null}
-        >
+        <View key={isValidElement(row) && row.key !== null ? row.key : i} style={[styles.tile, { backgroundColor: theme.color.surfaceContainerLow }]}>
           {row}
         </View>
       ))}
@@ -181,9 +236,9 @@ export function List({ children, style, testID }: { children: ReactNode; style?:
 }
 
 /**
- * One thing in a list: what it is (title), when and where (meta, one line), and at the end its state
- * or its one action. A tappable row is one target, the whole row, with a chevron saying it opens.
- * `actions` sit beside it, never inside it.
+ * One thing in a list (Material 3's list item): what it is (title), when and where (meta, one line), and at
+ * the end its state or its one action. A tappable row is one target, the whole row, with one outcome; no
+ * chevron (Android's lists open on a tap without one). `actions` sit beside it, never inside it.
  */
 export function Row({
   leading,
@@ -219,7 +274,7 @@ export function Row({
         {leading !== undefined && <View style={{ flexShrink: 0, minHeight: 22, justifyContent: "center" }}>{leading}</View>}
         <View style={{ flex: 1, minWidth: 0 }}>
           {typeof title === "string" ? (
-            <Text size="body" weight="medium" numberOfLines={3}>
+            <Text size="bodyLarge" numberOfLines={3}>
               {title}
             </Text>
           ) : (
@@ -228,7 +283,7 @@ export function Row({
           {meta !== undefined && meta !== null && meta !== false && (
             <View style={{ marginTop: 2 }}>
               {typeof meta === "string" ? (
-                <Text size="small" tone="muted">
+                <Text size="bodyMedium" tone="muted">
                   {meta}
                 </Text>
               ) : (
@@ -253,26 +308,12 @@ export function Row({
           accessibilityRole="button"
           accessibilityLabel={label}
           android_ripple={{ color: theme.color.selected }}
-          style={[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[3] }]}
+          style={[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[4] }]}
         >
-          {!actions && onPress && (trailing === undefined || trailing === null) ? (
-            // Body and chevron as one block, centred in the row: the chevron level with the title's first line, as the
-            // indicator is, however many lines the row runs to. A row with trailing facts keeps its chevron beside them.
-            <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
-              {body}
-              <View style={{ height: 22, justifyContent: "center" }}>
-                <Icons.ChevronRight size={16} color={theme.color.faint} />
-              </View>
-            </View>
-          ) : (
-            <>
-              {body}
-              {!actions && onPress && <Icons.ChevronRight size={16} color={theme.color.faint} />}
-            </>
-          )}
+          {body}
         </Pressable>
       ) : (
-        <View testID={testID} style={[styles.row, { flex: 1 }]}>
+        <View testID={testID} style={[styles.row, { flex: 1, paddingRight: space[4] }]}>
           {body}
         </View>
       )}
@@ -493,7 +534,8 @@ export function Gap({ size = 4 }: { size?: keyof typeof space }) {
 const styles = StyleSheet.create({
   page: { paddingHorizontal: space.page, paddingTop: space[4], paddingBottom: space[10] },
   sectionHead: { marginBottom: space[3], flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space[4] },
-  list: { borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, overflow: "hidden" },
-  row: { flexDirection: "row", alignItems: "center", gap: space[3], paddingLeft: space[4], paddingVertical: space[3], minHeight: 56 },
+  list: { borderRadius: shape.lgPlus, overflow: "hidden", gap: 2 },
+  tile: { borderRadius: shape.xs },
+  row: { flexDirection: "row", alignItems: "center", gap: space[4], paddingLeft: space[4], paddingVertical: space[3], minHeight: 56 },
   notice: { flexDirection: "row", alignItems: "flex-start", gap: space[3], borderRadius: radius.xl, paddingHorizontal: space[4], paddingVertical: space[3] },
 });

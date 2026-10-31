@@ -1,16 +1,23 @@
-// Interactive controls, the phone's versions of src/app/ui/controls.tsx: buttons, icon buttons, the
-// switch, the segmented control and filter chips. Every target is at least 44 pt, every control has
-// a name a screen reader reads, and a press answers at once (ripple, then the work's spinner).
+// Interactive controls, Material 3's (DESIGN.md, "Components"): buttons (filled, tonal, outlined,
+// text), icon buttons, the switch, segmented buttons and filter chips. Every target is at least 48 dp
+// whatever it looks like, every control has a name a screen reader reads, and a press answers at once
+// (Android's ripple, then the work's spinner).
 import { type ReactNode, useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { Spinner } from "./display";
+import { Icons } from "./icons";
 import { Text } from "./text";
-import { radius, space, useTheme } from "./theme";
+import { shape, space, TOUCH, useTheme } from "./theme";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+/**
+ * primary: Filled, the screen's one main action. tonal: Filled tonal, a strong second. secondary: Outlined. ghost:
+ * Text, the least. danger: Outlined in the error colour (a destructive action that's still confirmed).
+ */
+type Variant = "primary" | "tonal" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
 
-const HEIGHT: Record<Size, number> = { sm: 36, md: 44, lg: 50 };
+/** Container heights: M3 Expressive's XS (32), S (40, the default) and M (56). Each is 48 to touch. */
+const HEIGHT: Record<Size, number> = { sm: 32, md: 40, lg: 56 };
 
 export function Button({
   variant = "secondary",
@@ -38,14 +45,24 @@ export function Button({
 }) {
   const theme = useTheme();
   const c = theme.color;
-  const look: Record<Variant, { bg: string; fg: string; border?: string }> = {
-    primary: disabled ? { bg: c.edge, fg: c.faint } : { bg: c.accent, fg: c.onAccent },
-    secondary: { bg: c.surface, fg: c.fg, border: c.edge },
-    ghost: { bg: "transparent", fg: c.muted },
-    danger: { bg: c.surface, fg: c.dangerFg, border: c.edge },
+  const look: Record<Variant, { bg: string; fg: string; border?: string; ripple: string }> = {
+    primary: { bg: c.primary, fg: c.onPrimary, ripple: "rgba(255,255,255,0.24)" },
+    tonal: { bg: c.secondaryContainer, fg: c.onSecondaryContainer, ripple: c.selected },
+    secondary: { bg: "transparent", fg: c.primary, border: c.outline, ripple: c.selected },
+    ghost: { bg: "transparent", fg: c.primary, ripple: c.selected },
+    danger: { bg: "transparent", fg: c.error, border: c.outline, ripple: c.selected },
   };
-  const { bg, fg, border } = look[variant];
   const off = disabled || busy;
+  // Disabled, as Material draws it: the label at 38% and a filled container at 12% of the text colour.
+  const { bg, fg, border, ripple } = disabled
+    ? {
+        bg: variant === "primary" || variant === "tonal" ? `${c.onSurface}1f` : "transparent",
+        fg: `${c.onSurface}61`,
+        border: look[variant].border ? `${c.onSurface}1f` : undefined,
+        ripple: "transparent",
+      }
+    : look[variant];
+  const height = HEIGHT[size];
   return (
     <Pressable
       testID={testID}
@@ -53,28 +70,28 @@ export function Button({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: off, busy }}
-      // A small button is 36 dp to see and 48 to touch.
-      hitSlop={size === "sm" ? { top: 6, bottom: 6 } : undefined}
-      android_ripple={{ color: variant === "primary" ? "rgba(255,255,255,0.25)" : c.selected, foreground: true }}
-      style={({ pressed }) => [
+      // 48 to touch however small it looks.
+      hitSlop={height < TOUCH ? { top: (TOUCH - height) / 2, bottom: (TOUCH - height) / 2 } : undefined}
+      android_ripple={{ color: ripple, foreground: true }}
+      style={[
         styles.button,
         {
-          height: HEIGHT[size],
-          paddingHorizontal: size === "sm" ? space[3] : space[4],
+          height,
+          paddingHorizontal: size === "sm" ? space[3] : size === "lg" ? space[6] : space[4],
+          paddingLeft: icon || busy ? (size === "sm" ? space[2] + 2 : space[4]) : undefined,
           backgroundColor: bg,
           borderColor: border ?? "transparent",
-          borderWidth: border ? StyleSheet.hairlineWidth * 2 : 0,
+          borderWidth: border ? 1 : 0,
           // Busy keeps its colours, dimmed, beside its turning spinner (the desktop's): at work, not off.
-          opacity: disabled && variant !== "primary" ? 0.5 : busy ? 0.7 : 1,
-          transform: [{ scale: pressed && !off ? 0.97 : 1 }],
+          opacity: busy ? 0.72 : 1,
         },
         style,
       ]}
     >
-      {busy ? <Spinner size={16} color={fg} /> : icon}
+      {busy ? <Spinner size={size === "lg" ? 20 : 16} color={fg} /> : icon}
       {children !== undefined &&
         (typeof children === "string" ? (
-          <Text size={size === "lg" ? "body" : "small"} weight="semibold" style={{ color: fg }} numberOfLines={1}>
+          <Text size={size === "lg" ? "titleMedium" : "labelLarge"} style={{ color: fg }} numberOfLines={1}>
             {children}
           </Text>
         ) : (
@@ -84,36 +101,49 @@ export function Button({
   );
 }
 
-/** A button that's only an icon: its name is required, and its target is 44 pt however small the glyph. */
+/**
+ * A button that's only an icon (M3's standard icon button): its name is required, its target 48 dp. `selected` for
+ * a toggle (a tonal circle behind it).
+ */
 export function IconButton({
   label,
   onPress,
+  onLongPress,
   children,
   testID,
   selected = false,
+  disabled = false,
 }: {
   label: string;
   onPress?: () => void;
+  onLongPress?: () => void;
   children: ReactNode;
   testID?: string;
   selected?: boolean;
+  disabled?: boolean;
 }) {
   const theme = useTheme();
   return (
     <Pressable
       testID={testID}
       onPress={onPress}
+      onLongPress={onLongPress}
+      disabled={disabled}
       accessibilityRole="button"
       accessibilityLabel={label}
-      hitSlop={4}
-      android_ripple={{ color: theme.color.selected, borderless: true, radius: 22 }}
-      style={[styles.icon, selected && { backgroundColor: theme.color.selected }]}
+      accessibilityState={{ disabled, ...(selected ? { selected } : {}) }}
+      android_ripple={{ color: theme.color.selected, borderless: true, radius: 20 }}
+      style={[styles.icon, selected && { backgroundColor: theme.color.secondaryContainer }, disabled && { opacity: 0.38 }]}
     >
       {children}
     </Pressable>
   );
 }
 
+/**
+ * Material 3's switch: an outlined track with a small thumb when off, the primary track with a big thumb when on.
+ * Drawn here (React Native's Switch is the older AppCompat one), with the target of a row's control.
+ */
 export function Switch({
   value,
   onChange,
@@ -128,15 +158,16 @@ export function Switch({
   disabled?: boolean;
 }) {
   const theme = useTheme();
+  const c = theme.color;
   const at = useRef(new Animated.Value(value ? 1 : 0)).current;
   useEffect(() => {
-    Animated.timing(at, { toValue: value ? 1 : 0, duration: 150, useNativeDriver: false }).start();
+    Animated.spring(at, { toValue: value ? 1 : 0, useNativeDriver: false, stiffness: 1400, damping: 67, mass: 1 }).start();
   }, [at, value]);
-  // The desktop's switch: calm when on (ink, not accent), so a list of ten doesn't shout; off, the field edge (3:1 on
-  // every surface). A little bigger than the desktop's for a thumb, with the touch area of a row's control.
-  const track = at.interpolate({ inputRange: [0, 1], outputRange: [theme.color.fieldEdge, theme.color.fg] });
-  const knob = at.interpolate({ inputRange: [0, 1], outputRange: ["#ffffff", theme.color.surface] });
-  const x = at.interpolate({ inputRange: [0, 1], outputRange: [2, SWITCH.width - SWITCH.knob - 2] });
+  const track = at.interpolate({ inputRange: [0, 1], outputRange: [c.surfaceContainerHighest, c.primary] });
+  const edge = at.interpolate({ inputRange: [0, 1], outputRange: [c.outline, c.primary] });
+  const knobColor = at.interpolate({ inputRange: [0, 1], outputRange: [c.outline, c.onPrimary] });
+  const knob = at.interpolate({ inputRange: [0, 1], outputRange: [16, 24] });
+  const x = at.interpolate({ inputRange: [0, 1], outputRange: [8, SWITCH.width - 24 - 4 - 2] });
   return (
     <Pressable
       testID={testID}
@@ -145,28 +176,42 @@ export function Switch({
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
-      hitSlop={12}
-      style={{ opacity: disabled ? 0.5 : 1 }}
+      hitSlop={8}
+      style={{ opacity: disabled ? 0.38 : 1 }}
     >
-      <Animated.View style={{ width: SWITCH.width, height: SWITCH.height, borderRadius: SWITCH.height / 2, backgroundColor: track, justifyContent: "center" }}>
+      <Animated.View
+        style={{
+          width: SWITCH.width,
+          height: SWITCH.height,
+          borderRadius: SWITCH.height / 2,
+          backgroundColor: track,
+          borderColor: edge,
+          borderWidth: 2,
+          justifyContent: "center",
+        }}
+      >
         <Animated.View
           style={{
-            width: SWITCH.knob,
-            height: SWITCH.knob,
-            borderRadius: SWITCH.knob / 2,
-            backgroundColor: knob,
-            transform: [{ translateX: x }],
-            elevation: 1,
+            position: "absolute",
+            left: x,
+            width: knob,
+            height: knob,
+            borderRadius: 12,
+            backgroundColor: knobColor,
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
+        >
+          {value && <Icons.Check size={14} color={c.primary} weight="bold" />}
+        </Animated.View>
       </Animated.View>
     </Pressable>
   );
 }
 
-const SWITCH = { width: 40, height: 24, knob: 20 } as const;
+const SWITCH = { width: 52, height: 32 } as const;
 
-/** A choice of a few views of one thing ("Belum selesai 6 / Selesai 5", "Minggu / Bulan"). */
+/** Material 3's segmented buttons: a few views of one thing ("Belum selesai 6 / Selesai 5", "Minggu / Bulan"). */
 export function Segmented<T extends string>({
   options,
   value,
@@ -181,9 +226,10 @@ export function Segmented<T extends string>({
   testID?: string;
 }) {
   const theme = useTheme();
+  const c = theme.color;
   return (
-    <View testID={testID} accessibilityRole="radiogroup" accessibilityLabel={label} style={[styles.segmented, { backgroundColor: theme.color.fill }]}>
-      {options.map((option) => {
+    <View testID={testID} accessibilityRole="radiogroup" accessibilityLabel={label} style={[styles.segmented, { borderColor: c.outline }]}>
+      {options.map((option, i) => {
         const on = option.value === value;
         return (
           <Pressable
@@ -192,12 +238,14 @@ export function Segmented<T extends string>({
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
             onPress={() => onChange(option.value)}
-            style={[styles.segment, on && { backgroundColor: theme.color.segment, elevation: theme.scheme === "dark" ? 0 : 1 }]}
+            android_ripple={{ color: c.selected }}
+            style={[styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }]}
           >
-            <Text size="small" weight={on ? "semibold" : "medium"} tone={on ? "fg" : "muted"} numberOfLines={1}>
+            {on && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
+            <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "fg"} numberOfLines={1} style={{ flexShrink: 1 }}>
               {option.label}
               {option.count !== undefined && (
-                <Text size="small" weight="medium" tone={on ? "muted" : "faint"} tabular>
+                <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "muted"} tabular>
                   {` ${option.count}`}
                 </Text>
               )}
@@ -215,14 +263,15 @@ export function ChipRow({ children }: { children: ReactNode }) {
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={{ gap: space[2], paddingHorizontal: space.page }}
-      style={{ marginHorizontal: -space.page }}
+      contentContainerStyle={{ gap: space[2], paddingHorizontal: space.page, paddingVertical: space[2] }}
+      style={{ marginHorizontal: -space.page, marginVertical: -space[2] }}
     >
       {children}
     </ScrollView>
   );
 }
 
+/** Material 3's filter chip: 32 dp to see (48 to touch), outlined; picked, the tonal fill and a check. */
 export function Chip({
   selected,
   onPress,
@@ -237,6 +286,7 @@ export function Chip({
   label?: string;
 }) {
   const theme = useTheme();
+  const c = theme.color;
   return (
     <Pressable
       testID={testID}
@@ -244,17 +294,16 @@ export function Chip({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
-      // 36 dp to see, 48 to touch.
-      hitSlop={{ top: 6, bottom: 6 }}
+      hitSlop={{ top: 8, bottom: 8 }}
+      android_ripple={{ color: c.selected }}
       style={[
         styles.chip,
-        selected
-          ? { backgroundColor: theme.color.fill, borderColor: theme.color.fill }
-          : { backgroundColor: theme.color.surface, borderColor: theme.color.edge },
+        selected ? { backgroundColor: c.secondaryContainer, borderColor: c.secondaryContainer, paddingLeft: space[2] } : { borderColor: c.outline },
       ]}
     >
+      {selected && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
       {typeof children === "string" ? (
-        <Text size="small" weight="medium" tone={selected ? "fg" : "muted"}>
+        <Text size="labelLarge" tone={selected ? "onSecondaryContainer" : "muted"}>
           {children}
         </Text>
       ) : (
@@ -265,17 +314,18 @@ export function Chip({
 }
 
 const styles = StyleSheet.create({
-  button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[2], borderRadius: radius.lg, overflow: "hidden" },
-  icon: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-  segmented: { flexDirection: "row", borderRadius: radius.lg, padding: 3, gap: 2 },
-  segment: { flex: 1, minHeight: 38, borderRadius: radius.md, alignItems: "center", justifyContent: "center", paddingHorizontal: space[3] },
+  button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[2], borderRadius: shape.full, overflow: "hidden" },
+  icon: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, alignItems: "center", justifyContent: "center" },
+  segmented: { flexDirection: "row", borderRadius: shape.full, borderWidth: 1, overflow: "hidden" },
+  segment: { flex: 1, minHeight: 40, flexDirection: "row", gap: space[2], alignItems: "center", justifyContent: "center", paddingHorizontal: space[3] },
   chip: {
-    height: 36,
-    paddingHorizontal: space[3],
-    borderRadius: radius.full,
-    borderWidth: StyleSheet.hairlineWidth * 2,
+    height: 32,
+    paddingHorizontal: space[4],
+    borderRadius: shape.sm,
+    borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: space[2],
+    overflow: "hidden",
   },
 });

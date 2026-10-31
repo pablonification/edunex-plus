@@ -9,6 +9,14 @@ export const mobileStrings = {
   // Bottom tabs: short, the screen's own title says the rest ("Tugas & Ujian").
   "mobile.tab.tasks": { id: "Tugas", en: "Tasks" },
   "mobile.tab.more": { id: "Lainnya", en: "More" },
+  // Kuliah: the term's courses with each one's absences left (Presensi's page). Akademik: IPK, Nilai, the study plan, KRS, UKT.
+  "mobile.tab.courses": { id: "Kuliah", en: "Courses" },
+  "mobile.tab.academic": { id: "Akademik", en: "Academic" },
+  // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
+  "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
+  "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
+  // Akademik: the screens behind it, as a list.
+  "mobile.academic.screens": { id: "Studimu", en: "Your studies" },
   // Android's notification channels, as Settings › Notifications lists them.
   "mobile.channel.presence": { id: "Presensi dibuka dan ditutup", en: "Presence opening and closing" },
   "mobile.channel.alerts": { id: "Tugas, tenggat dan perubahan", en: "Tasks, deadlines and changes" },

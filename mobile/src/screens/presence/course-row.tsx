@@ -52,9 +52,10 @@ export function CourseRow({ item, group, context }: { item: CourseAttendance; gr
   return (
     <View>
       <Pressable
-        testID={`row.presence.${course.code}`}
-        onPress={() => go({ screen: "course", code: course.code, tab: "meetings" })}
-        // The course's colour, as a long-press on it in Lainnya (the desktop's right-click on its sidebar row).
+        testID={`row.course.${course.code}`}
+        // Kuliah is the way into a course: the row opens its page (one target, one outcome).
+        onPress={() => go({ screen: "course", code: course.code })}
+        // The course's colour, as a long-press (the desktop's right-click on its sidebar row).
         onLongPress={() => openCourseColorPicker(course.code)}
         accessibilityRole="button"
         accessibilityLabel={label}

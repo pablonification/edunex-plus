@@ -1,16 +1,16 @@
-// The Modul tab on the phone (S17, src/app/screens/course/modules.tsx): no two panes. First Edunex's
-// table of contents ("Daftar isi": each Edunex course's course-wide items as its Introduction, then
-// every module Edunex lists by Edunex's own number, the ones not opened yet greyed; the joint
-// class's after the class's own). Tapping one opens it on the same screen: its Tasks and materials,
-// drawn the way Edunex draws them (notes and pictures in full, a link by its own words, every other
-// kind with the one action that fits it), each with who posted it and when; "Daftar isi" (and
-// Android's Back) goes back to the list. Files download once and open in the phone's own apps
-// (../../parts/files.tsx); highlights and page notes stay on the desktop (A14).
+// The Modul tab on the phone (S17, src/app/screens/course/modules.tsx): no two panes. Edunex's table
+// of contents ("Daftar isi": each Edunex course's course-wide items as its Introduction, then every
+// module Edunex lists by Edunex's own number, the ones not opened yet greyed; the joint class's after
+// the class's own). Tapping one opens it as a screen of its own (ModulePage, ./module-screen.tsx,
+// /course/<code>/module/<id>): its Tasks and materials, drawn the way Edunex draws them (notes and
+// pictures in full, a link by its own words, every other kind with the one action that fits it), each
+// with who posted it and when; Android's Back (the gesture too) comes back to the list. Files download
+// once and open in the phone's own apps (../../parts/files.tsx); highlights and page notes stay on the
+// desktop (A14).
 
-import { useFocusEffect } from "expo-router";
 import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
-import { type ReactNode, useCallback } from "react";
-import { ActivityIndicator, BackHandler, Pressable, StyleSheet, View } from "react-native";
+import type { ReactNode } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { type Format, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { type CoursePage, isOpenTask } from "../../../../src/app/screens/course/data";
@@ -37,22 +37,23 @@ import { radius, space, useTheme } from "../../ui/theme";
 import { TaskRow } from "../tasks/rows";
 import { contentsOf, countFacts, dayAndTime, type Entry, entrySlug, latest, WEEK } from "./contents";
 
-/**
- * `module`: the Edunex module shown (picked here, or asked for by search, an alert or a Task's way
- * up), or a course's Introduction (introModule); without one, the table of contents.
- */
-export function ModulesTab({ page, module, onPick, onList }: { page: CoursePage; module?: number; onPick: (module: number) => void; onList: () => void }) {
+/** The table of contents; picking a module opens its own screen (`onPick`). */
+export function ModulesTab({ page, onPick }: { page: CoursePage; onPick: (module: number) => void }) {
   const t = useT();
   const theme = useTheme();
   const entries = contentsOf(page, t);
-  const opened = entries.filter((e) => !e.unopened);
-  // A Task's module the contents don't list as opened (Edunex's outline leaves it out): where its Tasks are, the Introduction.
-  const named =
-    module === undefined ? undefined : (opened.find((e) => e.id === String(module)) ?? opened.find((e) => e.tasks.some((task) => task.moduleId === module)));
-
   if (!entries.length) return <EmptyState icon={<Icons.BookOpen size={20} color={theme.color.muted} />} title={t("course.noMaterials")} />;
-  if (named) return <ModulePage entry={named} anyContent={entries.some((e) => e.tasks.length || e.materials.length)} onList={onList} />;
   return <Contents entries={entries} onPick={onPick} />;
+}
+
+/**
+ * The module `module` names among a course's contents (picked from them, or asked for by search, an alert or a
+ * Task's way up), or the course's Introduction (introModule). A Task's module the contents don't list as opened
+ * (Edunex's outline leaves it out): where its Tasks are.
+ */
+export function moduleEntry(entries: readonly Entry[], module: number): Entry | undefined {
+  const opened = entries.filter((e) => !e.unopened);
+  return opened.find((e) => e.id === String(module)) ?? opened.find((e) => e.tasks.some((task) => task.moduleId === module));
 }
 
 function Contents({ entries, onPick }: { entries: Entry[]; onPick: (module: number) => void }) {
@@ -164,29 +165,13 @@ function Contents({ entries, onPick }: { entries: Entry[]; onPick: (module: numb
   );
 }
 
-/** One module (or a course's Introduction), on its own: its Tasks, then its materials. */
-function ModulePage({ entry, anyContent, onList }: { entry: Entry; anyContent: boolean; onList: () => void }) {
+/** One module (or a course's Introduction), on its own screen: its Tasks, then its materials. */
+export function ModulePage({ entry, anyContent }: { entry: Entry; anyContent: boolean }) {
   const t = useT();
   const now = useNow();
   const theme = useTheme();
-  // Android's Back goes to the table of contents first, as the button at the top does: only while the course is the
-  // screen in front, so Back from a Task opened here closes the Task.
-  useFocusEffect(
-    useCallback(() => {
-      const sub = BackHandler.addEventListener("hardwareBackPress", () => {
-        onList();
-        return true;
-      });
-      return () => sub.remove();
-    }, [onList]),
-  );
   return (
     <View testID={`page.module.${entry.id}`}>
-      <View style={{ marginLeft: -space[3], marginBottom: space[3], flexDirection: "row" }}>
-        <Button variant="ghost" size="sm" icon={<Icons.ChevronLeft size={16} color={theme.color.muted} />} onPress={onList} testID="action.courseContents">
-          {t("course.contents")}
-        </Button>
-      </View>
       <Meta size="small">
         <Text size="small" weight="semibold" tone="muted">
           {entry.intro ? t("course.courseWide") : t("course.module", { no: entry.label ?? "" })}
