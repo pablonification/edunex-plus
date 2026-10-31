@@ -3,8 +3,8 @@
 // each with its course's color. With nothing typed: what was opened lately, the next Tasks, the
 // courses, the places and the verbs (refresh, theme). The index is src/core/search.ts's.
 import { File, Paths } from "expo-file-system";
-import { router } from "expo-router";
-import { type ComponentType, useMemo, useState } from "react";
+import { router, useNavigation } from "expo-router";
+import { type ComponentRef, type ComponentType, type RefObject, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useCourseColor, useTermCourses } from "../../src/app/courses";
@@ -21,11 +21,11 @@ import { useNav } from "../src/nav";
 import { usePerfDrawn } from "../src/perf";
 import { refreshNow } from "../src/shell/source-status";
 import { IconButton } from "../src/ui/controls";
-import { CourseDot } from "../src/ui/display";
+import { CourseDot, EmptyState } from "../src/ui/display";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel, Meta } from "../src/ui/layout";
 import { Text, useFieldColors } from "../src/ui/text";
-import { radius, space, type, useTheme } from "../src/ui/theme";
+import { shape, space, TOUCH, type, useTheme } from "../src/ui/theme";
 
 /** Every screen and Rencana studi tab is built on the phone. */
 const BUILT = Object.keys(SCREENS) as ScreenId[];
@@ -97,6 +97,7 @@ export default function Search() {
   const now = useNow();
   const nav = useNav();
   const theme = useTheme();
+  const c = theme.color;
   const insets = useSafeAreaInsets();
   const saved = useSaved(SEARCHED);
   const bridge = useBridge();
@@ -104,11 +105,16 @@ export default function Search() {
   const courses = useTermCourses();
   const [query, setQuery] = useState("");
   const [recent] = useState(readRecent);
+  const field = useRef<ComponentRef<typeof TextInput>>(null);
   const index = useMemo(() => searchIndex(saved, { lang, screens: BUILT, now }), [saved, lang, now]);
   const groups = useMemo(() => (query.trim() ? search(index, query) : suggestions(index, now, recent)), [index, query, now, recent]);
   const nextTheme = theme.scheme === "dark" ? "light" : "dark";
+  useFocusField(field);
 
-  const rows = groups.flatMap((group) => [{ head: group.kind } as const, ...group.items.map((item) => ({ item }))]);
+  const rows = groups.flatMap((group) => [
+    { head: group.kind } as const,
+    ...group.items.map((item, i) => ({ item, first: i === 0, last: i === group.items.length - 1 })),
+  ]);
 
   const open = (item: SearchItem) => {
     remember(item.key);
@@ -125,21 +131,22 @@ export default function Search() {
   };
 
   return (
-    <View testID="screen.search" style={{ flex: 1, backgroundColor: theme.color.canvas, paddingTop: insets.top }}>
-      <View style={[styles.bar, { borderBottomColor: theme.color.line }]}>
-        <IconButton label={t("action.back")} onPress={() => router.back()} testID="action.back">
-          <Icons.ChevronLeft size={22} />
-        </IconButton>
-        <View style={[styles.field, { backgroundColor: theme.color.fill }]}>
-          <Icons.Search size={18} color={theme.color.muted} />
+    <View testID="screen.search" style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
+      {/* Material 3's search view: Back, then the field across the bar, in a container of its own. */}
+      <View style={styles.bar}>
+        <View style={[styles.field, { backgroundColor: c.surfaceContainerHigh }]}>
+          <IconButton label={t("action.back")} onPress={() => router.back()} testID="action.back">
+            <Icons.ArrowLeft size={24} color={c.onSurface} />
+          </IconButton>
           <TextInput
             {...fieldColors}
+            ref={field}
             testID="search.input"
             value={query}
             onChangeText={setQuery}
             autoFocus
             placeholder={t("search.placeholder")}
-            placeholderTextColor={theme.color.faint}
+            placeholderTextColor={c.onSurfaceVariant}
             accessibilityLabel={t("search.open")}
             autoCorrect={false}
             autoCapitalize="none"
@@ -148,20 +155,27 @@ export default function Search() {
               const first = groups[0]?.items[0];
               if (first) open(first);
             }}
-            style={{ flex: 1, color: theme.color.fg, ...type.body, paddingVertical: 0 }}
+            style={{ flex: 1, color: c.onSurface, ...type.bodyLarge, paddingVertical: 0, minHeight: TOUCH }}
           />
           {query !== "" && (
-            <IconButton label={t("action.close")} onPress={() => setQuery("")}>
-              <Icons.X size={16} color={theme.color.muted} />
+            <IconButton
+              label={t("mobile.search.clear")}
+              onPress={() => {
+                setQuery("");
+                field.current?.focus();
+              }}
+              testID="action.clearSearch"
+            >
+              <Icons.X size={22} color={c.onSurfaceVariant} />
             </IconButton>
           )}
         </View>
       </View>
       {query.trim() !== "" && (
         <Text
-          size="caption"
-          tone="faint"
-          style={{ paddingHorizontal: space.page, paddingTop: space[2] }}
+          size="bodySmall"
+          tone="muted"
+          style={{ paddingHorizontal: space.page + space[4], paddingTop: space[1] }}
           accessibilityLiveRegion="polite"
           testID="search.count"
         >
@@ -173,23 +187,20 @@ export default function Search() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         keyExtractor={(row) => ("head" in row ? `head:${row.head}` : row.item.key)}
-        contentContainerStyle={{ paddingBottom: space[6] + insets.bottom }}
+        contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[6] + insets.bottom }}
         ListEmptyComponent={
           query.trim() ? (
-            <View style={{ alignItems: "center", marginTop: space[8], paddingHorizontal: space[6], gap: space[1] }}>
-              <Text size="body" weight="medium" style={{ textAlign: "center" }}>
-                {t("search.noResults", { query: query.trim() })}
-              </Text>
-              <Text size="small" tone="muted" style={{ textAlign: "center" }}>
-                {t("search.noResultsHint", { code: courses?.[0]?.code ?? "PL3002" })}
-              </Text>
-            </View>
+            <EmptyState
+              icon={<Icons.Search size={24} color={c.onSecondaryContainer} />}
+              title={t("search.noResults", { query: query.trim() })}
+              description={t("search.noResultsHint", { code: courses?.[0]?.code ?? "PL3002" })}
+            />
           ) : undefined
         }
         renderItem={({ item: row }) => {
           if ("head" in row)
             return (
-              <Text size="caption" weight="semibold" tone="faint" style={{ paddingHorizontal: space.page, paddingTop: space[4], paddingBottom: space[1] }}>
+              <Text size="titleSmall" tone="primary" accessibilityRole="header" style={styles.head}>
                 {t(`search.group.${row.head}`)}
               </Text>
             );
@@ -199,30 +210,63 @@ export default function Search() {
               ? t("search.action.themeTo", { theme: t(`settings.theme.${nextTheme}`) })
               : detailOf(item, t, f, now);
           return (
-            <Pressable
-              testID={`row.search.${item.key}`}
-              accessibilityRole="button"
-              onPress={() => open(item)}
-              android_ripple={{ color: theme.color.selected }}
-              style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space.page, paddingVertical: space[2.5], minHeight: 56 }}
+            // A group's rows as one list of tonal tiles, round at its ends (List's look, drawn row by row).
+            <View
+              style={[
+                styles.tile,
+                { backgroundColor: c.surfaceContainerLow },
+                row.first && { borderTopLeftRadius: shape.lgPlus, borderTopRightRadius: shape.lgPlus },
+                row.last && { borderBottomLeftRadius: shape.lgPlus, borderBottomRightRadius: shape.lgPlus },
+                !row.last && { marginBottom: 2 },
+              ]}
             >
-              <ItemMark item={item} color={colorOf(item.code)} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text size="body" weight="medium" numberOfLines={2}>
-                  {item.title}
-                </Text>
-                {detail !== "" && (
-                  <Meta size="small" numberOfLines={1}>
-                    {detail}
-                  </Meta>
-                )}
-              </View>
-            </Pressable>
+              <Pressable
+                testID={`row.search.${item.key}`}
+                accessibilityRole="button"
+                onPress={() => open(item)}
+                android_ripple={{ color: c.selected }}
+                style={styles.row}
+              >
+                <ItemMark item={item} color={colorOf(item.code)} />
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text size="bodyLarge" numberOfLines={2}>
+                    {item.title}
+                  </Text>
+                  {detail !== "" && (
+                    <Meta size="small" numberOfLines={1}>
+                      {detail}
+                    </Meta>
+                  )}
+                </View>
+              </Pressable>
+            </View>
           );
         }}
       />
     </View>
   );
+}
+
+/**
+ * The keyboard up as the screen opens. `autoFocus` alone is lost when the field mounts while Android's open transition
+ * is still running; asking again once the transition has ended (and once more a moment later, for a slow phone) brings
+ * it up every time. Asking a field that already has focus does nothing.
+ */
+function useFocusField(field: RefObject<ComponentRef<typeof TextInput> | null>): void {
+  const navigation = useNavigation();
+  useEffect(() => {
+    const focus = () => {
+      if (!field.current?.isFocused()) field.current?.focus();
+    };
+    const later = setTimeout(focus, 350);
+    const ended = navigation.addListener("transitionEnd" as never, (event: { data?: { closing?: boolean } }) => {
+      if (!event.data?.closing) focus();
+    });
+    return () => {
+      clearTimeout(later);
+      ended();
+    };
+  }, [navigation, field]);
 }
 
 function ItemMark({ item, color }: { item: SearchItem; color: string | undefined }) {
@@ -238,11 +282,11 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
             : Icons.Moon
           : { course: Icons.BookOpen, task: Icons.ListChecks, exam: Icons.GraduationCap, module: Icons.LayoutGrid, announcement: Icons.Megaphone }[item.kind];
   return (
-    <View style={{ width: 36, height: 36, borderRadius: radius.lg, backgroundColor: theme.color.fill, alignItems: "center", justifyContent: "center" }}>
-      <Icon size={18} color={theme.color.muted} />
+    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.color.secondaryContainer, alignItems: "center", justifyContent: "center" }}>
+      <Icon size={20} color={theme.color.onSecondaryContainer} />
       {item.code && (
-        <View style={{ position: "absolute", right: -2, bottom: -2 }}>
-          <CourseDot color={color} size={9} />
+        <View style={{ position: "absolute", right: 0, bottom: 0 }}>
+          <CourseDot color={color} size={10} />
         </View>
       )}
     </View>
@@ -299,23 +343,10 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space[1],
-    paddingHorizontal: space[1],
-    paddingVertical: space[2],
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  field: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space[2],
-    height: 44,
-    // A field's corner, as the desktop's search box: full rounding is for chips and switches.
-    borderRadius: radius.lg,
-    paddingLeft: space[3],
-    marginRight: space[2],
-  },
+  bar: { paddingHorizontal: space.page, paddingTop: space[2], paddingBottom: space[2] },
+  // Material 3's search bar: a full pill, 56 high.
+  field: { flexDirection: "row", alignItems: "center", gap: space[1], minHeight: 56, borderRadius: shape.full, paddingHorizontal: space[1] },
+  head: { paddingHorizontal: space[4], paddingTop: space[6], paddingBottom: space[2] },
+  tile: { borderRadius: shape.xs, overflow: "hidden" },
+  row: { flexDirection: "row", alignItems: "center", gap: space[4], paddingHorizontal: space[4], paddingVertical: space[3], minHeight: 56 },
 });
