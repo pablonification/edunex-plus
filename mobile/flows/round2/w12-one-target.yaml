@@ -1,0 +1,31 @@
+# W12 (PROGRESS.md): one card, one target, one outcome. Akademik's leading card (IPK and SKS) is one press that opens
+# Nilai; a Tugas row is one press that opens its Task.
+# Fails on round 1 (9395cea): no Akademik; Lainnya's profile card went to Settings while its figures sat beside it.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- tapOn:
+    id: tab.academic
+- tapOn:
+    id: card.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- back
+- tapOn:
+    id: tab.tasks
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+- tapOn:
+    id: row.task.117003
+- extendedWaitUntil:
+    visible:
+      id: screen.task
+    timeout: 20000
