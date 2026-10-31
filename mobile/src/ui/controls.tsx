@@ -149,6 +149,8 @@ interface NativeSwitchProps {
   sync: number;
   onValueChange: (event: { nativeEvent: { value: boolean } }) => void;
   testID?: string;
+  /** The testID again, on the switch itself: the box around it is hidden from accessibility, and UI tests look there. */
+  testId?: string;
   style?: ViewStyle;
   importantForAccessibility?: "no";
 }
@@ -203,6 +205,7 @@ function MaterialSwitch({
   return (
     <Native
       testID={testID}
+      testId={testID}
       value={value}
       enabled={!disabled}
       label={label}

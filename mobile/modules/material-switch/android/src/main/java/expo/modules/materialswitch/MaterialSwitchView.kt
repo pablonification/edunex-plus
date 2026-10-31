@@ -11,6 +11,9 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
+import androidx.core.view.AccessibilityDelegateCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.accessibility.AccessibilityNodeInfoCompat
 import com.google.android.material.materialswitch.MaterialSwitch
 import expo.modules.kotlin.AppContext
 import expo.modules.kotlin.viewevent.EventDispatcher
@@ -23,6 +26,7 @@ class MaterialSwitchView(context: Context, appContext: AppContext) : ExpoView(co
   private val onValueChange by EventDispatcher()
   private var value = false
   private var applying = false
+  private var testId: String? = null
 
   // The app's activity theme isn't a Material 3 one: the switch gets Material 3's own, so its style resolves.
   private val themed = ContextThemeWrapper(context, com.google.android.material.R.style.Theme_Material3_DayNight)
@@ -47,6 +51,16 @@ class MaterialSwitchView(context: Context, appContext: AppContext) : ExpoView(co
     }
 
   init {
+    // The switch carries the screen's testID as its view id, as React Native's own views do (UI tests read it there).
+    ViewCompat.setAccessibilityDelegate(
+      toggle,
+      object : AccessibilityDelegateCompat() {
+        override fun onInitializeAccessibilityNodeInfo(host: View, info: AccessibilityNodeInfoCompat) {
+          super.onInitializeAccessibilityNodeInfo(host, info)
+          testId?.let { info.viewIdResourceName = it }
+        }
+      },
+    )
     gravity = Gravity.CENTER
     // TalkBack reads the switch itself ("<label>, switch, on"), not this box around it.
     importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -69,6 +83,10 @@ class MaterialSwitchView(context: Context, appContext: AppContext) : ExpoView(co
 
   fun setOn(enabled: Boolean) {
     toggle.isEnabled = enabled
+  }
+
+  fun setTestId(id: String?) {
+    testId = id
   }
 
   fun setLabel(label: String?) {

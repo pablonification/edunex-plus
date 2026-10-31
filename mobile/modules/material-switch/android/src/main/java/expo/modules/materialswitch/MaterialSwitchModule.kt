@@ -16,6 +16,8 @@ class MaterialSwitchModule : Module() {
       Prop("value") { view: MaterialSwitchView, value: Boolean -> view.setValue(value) }
       Prop("enabled") { view: MaterialSwitchView, enabled: Boolean -> view.setOn(enabled) }
       Prop("label") { view: MaterialSwitchView, label: String? -> view.setLabel(label) }
+      // The screen's testID on the switch itself, where TalkBack and UI tests find it (the box around it is hidden).
+      Prop("testId") { view: MaterialSwitchView, id: String? -> view.setTestId(id) }
       // The theme's roles as "#rrggbb": trackOn, trackOff, thumbOn, thumbOff, outline, icon.
       Prop("colors") { view: MaterialSwitchView, colors: Map<String, String>? -> view.setColors(colors ?: emptyMap()) }
       // A number JS changes to put the switch back at `value` (a tap the screen didn't take).
