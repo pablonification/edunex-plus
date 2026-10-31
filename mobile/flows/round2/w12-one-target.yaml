@@ -1,0 +1,43 @@
+# W12 (round 2): on Beranda every card and row is one target with one outcome. The course cards with an arrow that
+# went somewhere else than the card are gone (the courses live on Kuliah); the now card opens its class's sheet, and
+# its one button is a labelled button of its own; a Hari ini row opens the same sheet.
+# Fails on round 1 (9395cea: course rows with their own ↗ to Edunex beside the row that opened the course page, the
+# card's title a link of its own); passes after.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- assertNotVisible:
+    id: action.openCourse
+- tapOn:
+    id: action.nowClass
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 10000
+- back
+- scrollUntilVisible:
+    element:
+      id: "row.today.class:.*"
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+- tapOn:
+    id: "row.today.class:.*"
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 10000
+- back
+- scrollUntilVisible:
+    element:
+      id: action.changes
+    direction: DOWN
+    timeout: 10000
+- scroll
+- assertNotVisible:
+    id: action.openExternal

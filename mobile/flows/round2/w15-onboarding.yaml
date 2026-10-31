@@ -1,0 +1,38 @@
+# W15 (round 2): the first run is one screen with one button, then straight to Beranda. On the first-run demo: no
+# deck (no Mulai, no steps), the one button "Masuk dengan akun ITB"; once Edunex is in, Beranda shows at once and fills
+# in, the top bar saying what it's reading; the summary is a card on Beranda, not a screen that takes over.
+# Fails on round 1 (9395cea: a dark three-step deck, Mulai, then Hubungkan, then Lanjut); passes after.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=first-run"
+- extendedWaitUntil:
+    visible:
+      id: screen.welcome
+    timeout: 60000
+- assertNotVisible:
+    id: action.start
+- assertVisible:
+    id: action.signIn
+- assertVisible: "Masuk dengan akun ITB"
+- tapOn:
+    id: action.signIn
+# Beranda straight after the sign-in: no Lanjut, no reading step.
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 30000
+- assertNotVisible:
+    id: screen.welcome
+- extendedWaitUntil:
+    visible:
+      id: card.firstScan
+    timeout: 600000
+- assertNotVisible:
+    id: screen.firstScan
+- tapOn:
+    id: action.firstScan.open
+- extendedWaitUntil:
+    visible:
+      id: screen.firstScan
+    timeout: 30000

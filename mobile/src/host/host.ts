@@ -199,6 +199,16 @@ async function makeHost(): Promise<Host> {
     });
   // "Tandai Hadir" and every other page of Edunex's or SIX's: in a page of the app, signed in (./check-in.ts).
   ui.openCheckIn = checkInOpener();
+  // The demo's SIX page is pretend: opening it for a class counts as the Student pressing Tandai Hadir there, so SIX's
+  // next read no longer shows the button (what Beranda's card then says, W10).
+  const pretendSix = (world as { world?: { six?: { closeCheckIn(id: string): void } } }).world?.six;
+  if (DEMO && pretendSix) {
+    const open = ui.openCheckIn;
+    ui.openCheckIn = async (meetingId) => {
+      await open(meetingId);
+      pretendSix.closeCheckIn(meetingId);
+    };
+  }
   ui.openPage = pageOpener();
   const handlers = {
     ...phoneHandlers({
