@@ -13,8 +13,10 @@ motion and onboarding are open. The desktop is a reference for data only.
 
 ### Where round 2 stands
 
-- Step: planning done (this section), foundations next. The desktop QA lab is being set up (helper `qa`).
-- Next for the lead: the foundations below (F1–F8), then hand screens to helpers on the desktop.
+- Step: foundations F1, F2, F6, F7, F8 pushed (39b9a51…9681b1e); the shell (F3, F4, F5, F9) with helper `shell`;
+  the QA lab with helper `qa`. Device proof of each still to come from the lab.
+- Next for the lead: briefs for the screen helpers (after the shell merges), Maestro flows for W1–W15, the
+  widget's today list and calendar sync with the Jadwal helper.
 
 ### Machines
 
@@ -30,20 +32,20 @@ Causes marked "suspected" are read from the code and get proved on a device befo
 
 | # | Found | Cause | Fix | Proof | Status |
 | --- | --- | --- | --- | --- | --- |
-| W1 | Can't open modules or PDFs, or download them | (a) A download is named from the lecturer's title plus an extension guessed from Edunex's `type` and the link; with none, the file has no type, `canPreview` says no app can open it. The server's own Content-Type and the file's first bytes were never asked. (b) Anything not an Edunex file link ("Buka di Edunex") opens Edunex in the outside browser, signed out (W15). (c) A module opens inside the course page, not as its own screen (Back fights it, W6) | Name and type from the response (Content-Type, Content-Disposition), then from the bytes (%PDF, PK…); open with that type; a module is a screen of its own; Edunex pages in the app, signed in | unit tests on the naming; flow `w01-files` (Modul → module → PDF opens in Android's viewer, ZIP/DOCX too) | todo |
-| W2 | Updating from SIX/Edunex is slow | Every start runs every feed at once, fresh or not (`Scheduler.start`); SIX's pages go one at a time 2 s apart, so a full read is many pages × 2 s; each saved dataset is hashed with a pure-JS SHA-1 over a sorted JSON copy on Hermes (no JIT) | Saved data first, only feeds that are due run at start (freshness from each dataset's fetchedAt), the rest on their cadence; pull to refresh still reads all; change detection by string compare, no hashing on the JS thread; measure requests and time per sync | engine tests (a fresh feed doesn't run at start; due ones do); `mobile/qa` sync timing with test/pretend's latency | todo |
+| W1 | Can't open modules or PDFs, or download them | (a) A download is named from the lecturer's title plus an extension guessed from Edunex's `type` and the link; with none, the file has no type, `canPreview` says no app can open it. The server's own Content-Type and the file's first bytes were never asked. (b) Anything not an Edunex file link ("Buka di Edunex") opens Edunex in the outside browser, signed out (W15). (c) A module opens inside the course page, not as its own screen (Back fights it, W6) | Name and type from the response (Content-Type, Content-Disposition), then from the bytes (%PDF, PK…); open with that type; a module is a screen of its own; Edunex pages in the app, signed in | `test/mobile/file-kind.test.ts` (85f2461); flow `w01-files` (Modul → module → PDF opens in Android's viewer) on the lab | fix pushed; device proof and (c) with the shell |
+| W2 | Updating from SIX/Edunex is slow | Every start runs every feed at once, fresh or not (`Scheduler.start`); SIX's pages go one at a time 2 s apart, so a full read is many pages × 2 s; each saved dataset is hashed with a pure-JS SHA-1 over a sorted JSON copy on Hermes (no JIT) | Saved data first, only feeds that are due run at start (freshness from each dataset's fetchedAt), the rest on their cadence; pull to refresh still reads all; change detection by string compare, no hashing on the JS thread; measure requests and time per sync | `test/engine/start-due-only.test.ts` (3 of 6 failed before 39b9a51): a start 5 min after a full read sends only the sign-in checks (before: 83 Edunex requests, 13 SIX pages = 28 s of SIX's 2 s gaps); `dataset-hash.test.ts`. First-ever sync: 87 + 67 requests, 242 s pretend time (53 are SIX's public catalog at 3.5 s) | fix pushed; time on the lab |
 | W3 | Moving around lags: frame drops, a freeze before a page shows | Suspected: JS-drawn tabs mount each tab on first visit; screens compute everything before the first frame; the engine's sync work (parse, hash, write) on the same JS thread | Native tabs (preloaded), screens that draw their first screenful first, engine work cut and spread out; measured with `[perf]` lines and Perfetto | `[perf] screen/tab` under target on `weak` and `mid` | todo |
 | W4 | Hierarchy: what to look at first isn't clear | Desktop layout: every fact at once, hairline boxes, grey text | Redesign per screen (plans below) | judge 8+/10 per screen | todo |
-| W5 | Capped at 60 fps on a 90/120 Hz screen | Suspected: the window asks for no frame rate, so phones that keep apps at 60 Hz (Xiaomi, Samsung's adaptive) do | Ask for the display's fastest mode at the same size (`preferredDisplayModeId`) from MainActivity, by a config plugin | `dumpsys display`/SurfaceFlinger + framestats at ~8.3/11.1 ms on `mid` | todo |
-| W6 | Swipe-back (Android's back gesture) doesn't work | Predictive back turned off in round 1 (`predictiveBackGestureEnabled: false`) and in-place states (a module, Jadwal's month) caught by BackHandler instead of being screens | Predictive back on (RN 0.88 registers its OnBackPressedCallback at targetSdk 36), every drill-down a native stack screen, BackHandler only while a sheet or edit is open | flow `w06-back`: the gesture (`input swipe` from the edge) and Back from every pushed screen | todo |
+| W5 | Capped at 60 fps on a 90/120 Hz screen | Suspected: the window asks for no frame rate, so phones that keep apps at 60 Hz (Xiaomi, Samsung's adaptive) do | Ask for the display's fastest mode at the same size (`preferredDisplayModeId`) from MainActivity, by a config plugin | `dumpsys display`/SurfaceFlinger + framestats at ~8.3/11.1 ms on `mid` | plugin pushed (f54ca42, seen in prebuild's MainActivity); device proof |
+| W6 | Swipe-back (Android's back gesture) doesn't work | Predictive back turned off in round 1 (`predictiveBackGestureEnabled: false`) and in-place states (a module, Jadwal's month) caught by BackHandler instead of being screens | Predictive back on (RN 0.88 registers its OnBackPressedCallback at targetSdk 36), every drill-down a native stack screen, BackHandler only while a sheet or edit is open | flow `w06-back`: the gesture (`input swipe` from the edge) and Back from every pushed screen | predictive back on (f54ca42, manifest `enableOnBackInvokedCallback="true"`); routes with the shell |
 | W7 | Swiping on items ("needs you") feels weird | iOS-style reveal-a-button swipe with friction 1.6 | Android's way (Gmail): swipe past a threshold commits with a haptic, the row slides out, a snackbar offers Urungkan; long-press menu stays | flow `w07-swipe` | todo |
 | W8 | A sheet's dark overlay slides up with the sheet | `Modal animationType="slide"` moves the scrim with the sheet | Native sheets (react-native-screens formSheet: Material bottom sheet, scrim fades, predictive back) | recording; flow opens and drags each sheet | todo |
 | W9 | Use native UI wherever possible | JS tab bar, JS sheets, JS menus | Native bottom navigation (expo-router NativeTabs), native stack, native sheets, native switches, Android's pickers and share | judge, review | todo |
 | W10 | Animations janky, not joyful | Slide-from-right JS-thread work during transitions, no motion system | Android's own transitions, spring motion on the UI thread (Reanimated) for a few moments: a hand-in, a check-in, a swipe | recording judged | todo |
 | W11 | Screens too crowded | As W4 | Fewer facts per row; secondary detail one tap away | judge | todo |
 | W12 | Home: a course card's arrow and the card go to different places | Two press targets on one card | One card, one target, one outcome, everywhere (a review rule) | flow `w12-one-target` | todo |
-| W13 | "Add to phone calendar" feels bolted on | A one-off export | The schedule as part of the app: Jadwal's agenda as the main view, a reminder before class with a Tandai Hadir action, a today widget, and calendar sync as a setting that keeps itself current | flows `w13-*` | todo |
-| W14 | Tandai Hadir and other Edunex/SIX pages ask to sign in again | Only Tandai Hadir's own page carried SIX's session; every other "Buka di SIX/Edunex" (and Tandai Hadir when the class isn't on the read timetable) went to the outside browser | One in-app page for Edunex and SIX, opened with the app's session (SIX's cookie, Edunex's auth in its site's storage before the page loads) | unit tests: no Edunex/SIX link reaches `Linking`; flow on the demo's pages | todo |
+| W13 | "Add to phone calendar" feels bolted on | A one-off export | The schedule as part of the app: Jadwal's agenda as the main view, a reminder before class with a Tandai Hadir action, a today widget, and calendar sync as a setting that keeps itself current | flows `w13-*`; `booking.test.ts` (the button) | Tandai Hadir button on class reminders (cfda093); agenda, widget's today, calendar sync with the Jadwal helper |
+| W14 | Tandai Hadir and other Edunex/SIX pages ask to sign in again | Only Tandai Hadir's own page carried SIX's session; every other "Buka di SIX/Edunex" (and Tandai Hadir when the class isn't on the read timetable) went to the outside browser | One in-app page for Edunex and SIX, opened with the app's session (SIX's cookie, Edunex's auth in its site's storage before the page loads) | `test/mobile/signed-pages.test.ts` (routing failed before e1a3c60); flow on the demo's page note | Cause found: once both were signed in, `signInToBoth` → `windows.forget()` wiped every web view's data (Microsoft's session, Edunex's saved sign-in, SIX's cookies). Fix pushed (e1a3c60): kept until sign-out, one in-app page (`app/web.tsx`) for every Edunex/SIX link; device proof needs a real account |
 | W15 | Onboarding is bad | A dark three-step deck before anything useful | Redesigned (plan below) | judge + fresh tester | todo |
 
 ### FAST: targets and the table (desktop emulators, release builds only)
@@ -117,15 +119,24 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 
 | # | Piece | Status |
 | --- | --- | --- |
-| F1 | `[perf]` probes: JS stalls > 50 ms with what ran, tap → screen drawn, first data | todo |
-| F2 | High refresh rate (config plugin in MainActivity) | todo |
-| F3 | Predictive back on; drill-downs as stack screens | todo |
-| F4 | Native tabs (5, as above), native stack transitions | todo |
-| F5 | Native sheets (formSheet routes) replacing `ui/sheet.tsx`'s Modal | todo |
-| F6 | Files: type from the response and bytes; open in Android's viewer (W1) | todo |
-| F7 | One in-app Edunex/SIX page with the app's session (W14) | todo |
-| F8 | Engine: start only due feeds, cheap change detection (W2) | todo |
-| F9 | M3 type scale and colour roles in `ui/theme.ts`, every pair through contrast.py | todo |
+| F1 | `[perf]` probes: JS stalls > 50 ms with what ran, tap → screen drawn, first data | done (1f492fb, `mobile/src/perf.ts`) |
+| F2 | High refresh rate (config plugin in MainActivity) | done (f54ca42), proof on `mid` |
+| F3 | Predictive back on; drill-downs as stack screens | on (f54ca42); routes: shell |
+| F4 | Native tabs (5, as above), native stack transitions | shell |
+| F5 | Native sheets (formSheet routes) replacing `ui/sheet.tsx`'s Modal | shell |
+| F6 | Files: type from the response and bytes; open in Android's viewer (W1) | done (85f2461) |
+| F7 | One in-app Edunex/SIX page with the app's session (W14) | done (e1a3c60) |
+| F8 | Engine: start only due feeds, cheap change detection (W2) | done (39b9a51) |
+| F9 | M3 type scale and colour roles in `ui/theme.ts`, every pair through contrast.py | shell |
+
+### Round 2 decisions
+
+19. **The phone keeps its web views' sessions until sign-out** (the desktop wipes Microsoft's session after sign-in).
+    The app's web view data is private to the app; keeping it is what lets Edunex's and SIX's pages open in the app
+    signed in, and a session that ended sign in again without a password. Signing out of everything wipes it all,
+    signing out of Edunex clears its site's storage, of SIX its cookies.
+20. **The phone starts due-only** (`EngineDeps.startDueOnly`), the desktop as before. Pull to refresh reads all.
+21. **Helpers run on the desktop's one Claude account at effort high** (Arqila, 2026-10-31).
 
 ### Judge (helper on the desktop, never the lead)
 
@@ -137,6 +148,7 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | Helper | Piece | Branch | Status |
 | --- | --- | --- | --- |
 | qa | Set up the lab, baseline numbers, before pictures | `mobile-qa` | running |
+| shell | F3, F4, F5, F9: native tabs (5), native stack routes, native sheets, M3 design system, `mobile/DESIGN.md` | `mobile-shell` | running |
 
 ## Round 1 (done 2026-10-31; kept for its decisions and proofs)
 
