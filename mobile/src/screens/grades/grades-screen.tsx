@@ -35,6 +35,7 @@ import { shownIndex, Transcript } from "./transcript";
 const SIX_WEB = "https://six.itb.ac.id";
 
 export function GradesScreen() {
+  const t = useT();
   const pull = usePullToRefresh();
   // Back from the planner with a plan it changed: start again from what's saved.
   const fresh = useFreshPlan();
@@ -43,7 +44,8 @@ export function GradesScreen() {
       testID="screen.grades"
       header={
         <>
-          <TopBar />
+          {/* The screen's one title, in its bar (no second "Nilai" on the page). */}
+          <TopBar title={t("nav.grades")} />
           {/* Grades the app can't trust right now (offline, SIX's session ended, a page SIX changed): said here, as on the desktop. */}
           <ProblemBanner belowBar />
         </>
@@ -104,7 +106,6 @@ function Answer({ record, state }: { record: StudentRecord; state: PlanState }) 
   const word = predicate(predicateFor(finalIpk, path));
   return (
     <PageHeader
-      title={t("nav.grades")}
       description={
         <Text size="lead" tone="muted">
           <Text size="lead" weight="medium">
@@ -395,7 +396,6 @@ function WithoutSix() {
   const anyGrade = courses?.some((c) => outline?.[c.code]?.grade) ?? false;
   return (
     <>
-      <PageHeader title={t("nav.grades")} />
       <SixNeeded
         datasets={["six.transcript", "six.progress"]}
         icon={<Icons.GraduationCap size={20} color={theme.color.muted} />}

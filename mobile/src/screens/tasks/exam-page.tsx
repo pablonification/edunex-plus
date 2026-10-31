@@ -103,7 +103,8 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
   if (!exam.tasks.length && course?.edunex) links.push({ key: "course", label: t("examPage.seeCourse"), url: edunexCourseUrl(course.edunex.courseId) });
 
   return (
-    <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} {...pull}>
+    // One title: the exam's own, on the page; the bar carries only Back.
+    <Page testID="screen.exam" header={<TopBar />} {...pull}>
       <PageHeader
         eyebrow={
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>

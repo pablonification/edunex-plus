@@ -104,7 +104,8 @@ function TaskPage({ task }: { task: Task }) {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: c.surface }}>
-      <Page testID="screen.task" header={<TopBar title={t("nav.tasks")} />} scrollRef={scroll} {...pull}>
+      {/* One title: the Task's own, on the page; the bar carries only Back. */}
+      <Page testID="screen.task" header={<TopBar />} scrollRef={scroll} {...pull}>
         {/* The way up, part by part: the course, and its module. */}
         <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginLeft: -space[2] }}>
           <Pressable
