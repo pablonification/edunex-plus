@@ -5,14 +5,13 @@
 import { NavigationBar } from "expo-navigation-bar";
 import { Stack, useNavigationContainerRef } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useDataset, useStatus } from "../../src/app/store";
 import { useWidgetUpdates } from "../src/host/widget";
 import { CourseColorPickerHost } from "../src/parts/course-color-picker";
 import { perfNavigating, perfShown, watchJsThread } from "../src/perf";
-import { FirstScanWatch } from "../src/screens/first-scan/watch";
 import { ReportAskCard } from "../src/screens/report/ask";
 import { Boot } from "../src/shell/boot";
 import { NotificationTaps } from "../src/shell/notification-taps";
@@ -64,14 +63,11 @@ function Frame() {
   const nobody = useNobodyIn();
   useWidgetUpdates();
   usePerfWatch();
-  // On first run the welcome stays until the Student moves on, so SIX can be connected right after Edunex.
-  const [welcoming, setWelcoming] = useState(nobody);
-  if (nobody && !welcoming) setWelcoming(true);
   return (
     <>
-      <StatusBar style={welcoming || theme.scheme === "dark" ? "light" : "dark"} />
-      {/* Three-button navigation's buttons: light on the welcome's dark stage and the dark theme, else dark. */}
-      <NavigationBar style={welcoming || theme.scheme === "dark" ? "dark" : "light"} />
+      <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
+      {/* Three-button navigation's buttons: light on the dark theme, else dark. */}
+      <NavigationBar style={theme.scheme === "dark" ? "dark" : "light"} />
       {/* Edge to edge: a screen over the tabs runs under the phone's navigation bar, and its page keeps its last row
           clear of it (ui/insets.ts). "default" is Android's own open and close (the system's slide and fade), drawn
           natively. */}
@@ -84,8 +80,8 @@ function Frame() {
       >
         <Stack.Screen name="(tabs)" />
       </Stack>
-      {welcoming && <Welcome onDone={() => setWelcoming(false)} />}
-      {!welcoming && <FirstScanWatch />}
+      {/* Until a system is in: then it fades, and Beranda fills in under it (the first read's summary is a card there). */}
+      {nobody && <Welcome />}
       <ReportAskCard />
       <Toasts />
       <CourseColorPickerHost />
