@@ -8,13 +8,11 @@ import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { AppState } from "react-native";
 import { useLang } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
-import { phoneItems } from "../../../../src/core/phone-calendar";
-import { dayStart, shiftDay } from "../../../../src/core/schedule";
+import { calendarPlan, needsWrite } from "./calendar-plan";
 import { useToday } from "./clock";
 import { addToPhoneCalendar, removePhoneCalendar, shareIcs } from "./phone-calendar";
 
 const SETTING = "phone-calendar-sync.json";
-const DAY = 24 * 3_600_000;
 
 export type SyncProblem = "denied" | "failed" | null;
 
@@ -100,19 +98,7 @@ function useCalendarItems() {
   // Worked out again only when one of the datasets the events come from changes (or the day, or the language).
   const values = Object.values(sources);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `sources` is new each render; its values are what count
-  return useMemo(() => {
-    const calendar = sources["itb.calendar"];
-    const months = sources["six.scheduleMonths"];
-    const from = shiftDay(today, -7);
-    // The term's end: its UAS's last day on ITB's calendar, else the end of SIX's last month published, else four weeks ahead.
-    const uas = calendar?.events.filter((e) => e.kind === "uas" && e.lastDay >= today).sort((a, b) => a.firstDay.localeCompare(b.firstDay))[0]?.lastDay;
-    const lastMonth = [...(months ?? [])].sort().at(-1);
-    const until = uas ?? (lastMonth ? shiftDay(`${shiftDay(`${lastMonth}-28`, 4).slice(0, 7)}-01`, -1) : shiftDay(today, 27));
-    const now = Date.parse(`${today}T12:00:00+07:00`);
-    const items = phoneItems((name) => sources[name as keyof typeof sources] as never, lang, now, { from, until });
-    const key = JSON.stringify(items.map((i) => [i.uid, i.start, i.end, i.summary, i.location ?? "", i.description ?? "", i.url ?? ""]));
-    return { items, key, span: { from: dayStart(from), until: dayStart(until) + DAY } };
-  }, [lang, today, ...values]);
+  return useMemo(() => calendarPlan((name) => sources[name as keyof typeof sources] as never, lang, today), [lang, today, ...values]);
 }
 
 /**
@@ -123,7 +109,7 @@ export function PhoneCalendarSync() {
   const sync = useSyncExternalStore(subscribe, current);
   const { items, key, span } = useCalendarItems();
   useEffect(() => {
-    if (!sync.on || sync.busy || sync.problem || sync.written === key) return;
+    if (!needsWrite(sync, key)) return;
     // A moment after the change, off the frame that drew it (a sync's own reads come in bursts).
     const timer = setTimeout(() => {
       set({ busy: true, ask: false });
