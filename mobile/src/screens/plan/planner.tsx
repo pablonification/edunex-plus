@@ -83,7 +83,7 @@ import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet, type SheetChoice } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
 import { type Palette, radius, space, type, useTheme } from "../../ui/theme";
-import { useAfterFirstFrame } from "./deferred";
+import { Later } from "./deferred";
 import { useScrollToView } from "./page-scroll";
 import { usePlaceState } from "./place-state";
 import { GradeSelect, HonorsList, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermLabel } from "./projection";
@@ -213,8 +213,8 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
   const nowLabel = record.semesterNow ? t("planner.now", { n: record.semesterNow }) : t("planner.nowPlain");
   const sksOf = (term: string) => plan.terms.find((p) => p.term === term)?.courses.reduce((sum, c) => sum + c.sks, 0) ?? 0;
   const limitOf = (term: string) => (termKind(term) === "short" ? SHORT_SKS : MAX_SKS);
-  // The rules, the outlook and the minors sit below the semesters: they come a frame after the first screenful.
-  const rest = useAfterFirstFrame();
+  // The rules, the outlook and the minors sit below the semesters: they come after the first screenful, a frame each
+  // (Later), so their arrival draws only themselves.
   const confirmReset = () =>
     Alert.alert(t("planner.resetTitle"), lossParts.length ? t("planner.resetBody", { list: f.list(lossParts) }) : t("planner.resetNothing"), [
       { text: t("action.cancel"), style: "cancel" },
@@ -391,13 +391,15 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
         </Text>
       </View>
       <View ref={rulesRef} collapsable={false} style={{ marginTop: space[4], gap: space[4] }}>
-        {rest && (
-          <>
-            <Rules record={record} rules={rules} plan={plan} undoable={undoable} />
-            <Outlook record={record} state={state} />
-            <Minors record={record} state={state} undoable={undoable} />
-          </>
-        )}
+        <Later frame={1}>
+          <Rules record={record} rules={rules} plan={plan} undoable={undoable} />
+        </Later>
+        <Later frame={2}>
+          <Outlook record={record} state={state} />
+        </Later>
+        <Later frame={3}>
+          <Minors record={record} state={state} undoable={undoable} />
+        </Later>
       </View>
       {adding && (
         <AddCourse

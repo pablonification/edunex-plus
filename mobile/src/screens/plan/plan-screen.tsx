@@ -12,6 +12,7 @@ import { useNav } from "../../nav";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
+import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
 import { Text } from "../../ui/text";
@@ -67,7 +68,14 @@ export function PlanScreen({ part }: { part?: string }) {
         <PageScrollProvider value={scroll}>
           <View testID={`panel.plan.${current}`}>
             <TabBoundary key={`${current}:${fresh}`} name={`plan ${current}`}>
-              <Part onCalendar={() => go({ screen: "plan", tab: "deadlines" })} />
+              {/* Rencana, Kurikulum, KRS and UKT say no time to the minute: the minute's tick doesn't draw them again. */}
+              {current === "deadlines" ? (
+                <Part onCalendar={() => go({ screen: "plan", tab: "deadlines" })} />
+              ) : (
+                <HourClock>
+                  <Part onCalendar={() => go({ screen: "plan", tab: "deadlines" })} />
+                </HourClock>
+              )}
             </TabBoundary>
           </View>
         </PageScrollProvider>

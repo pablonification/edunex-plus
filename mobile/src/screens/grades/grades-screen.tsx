@@ -21,12 +21,13 @@ import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
 import { Card, CourseCode } from "../../ui/display";
+import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat } from "../../ui/layout";
 import { Text, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
-import { useAfterFirstFrame } from "../plan/deferred";
+import { Later } from "../plan/deferred";
 import { useFreshPlan } from "../plan/fresh-plan";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "../plan/projection";
 import { SixNeeded } from "../plan/six-needed";
@@ -52,7 +53,10 @@ export function GradesScreen() {
       }
       {...pull}
     >
-      <GradesOrWithoutSix key={fresh} />
+      {/* Nothing here says a time to the minute: the minute's tick doesn't draw the page again. */}
+      <HourClock>
+        <GradesOrWithoutSix key={fresh} />
+      </HourClock>
     </Page>
   );
 }
@@ -70,8 +74,7 @@ function GradesOrWithoutSix() {
 function Grades({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
   // The answer, the figures and the graduation card fill the first screenful; the chart, this term and the
-  // transcript come a frame later.
-  const rest = useAfterFirstFrame();
+  // transcript come after, a frame each, each drawing only itself when it comes.
   return (
     <>
       <Answer record={record} state={state} />
@@ -81,17 +84,21 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
         <Disagreement record={record} />
         <Standing record={record} state={state} />
         <Graduation record={record} state={state} />
-        {rest && (
+        <Later frame={1}>
           <Card style={{ paddingHorizontal: space[4], paddingTop: space[4], paddingBottom: space[3] }} testID="card.chart">
             <Text size="titleMedium" weight="semibold" accessibilityRole="header" style={{ marginBottom: space[3] }}>
               {t("grades.chart")}
             </Text>
             <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />
           </Card>
-        )}
+        </Later>
       </View>
-      {rest && <ThisTerm record={record} state={state} />}
-      {rest && <Transcript record={record} />}
+      <Later frame={2}>
+        <ThisTerm record={record} state={state} />
+      </Later>
+      <Later frame={3}>
+        <Transcript record={record} />
+      </Later>
     </>
   );
 }
