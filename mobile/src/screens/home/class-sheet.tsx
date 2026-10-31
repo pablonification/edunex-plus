@@ -34,7 +34,7 @@ export function ClassSheet({ card, courses, open, onClose }: { card: NowCard | n
   return (
     // The buttons end the content rather than sit in the sheet's footer: the native sheet measured the footer short and
     // cut its buttons off on every phone tried (mid, weak).
-    <Sheet open={open && card !== null} onClose={onClose} testID="sheet.nowClass">
+    <Sheet open={open && card !== null} onClose={onClose} background={useTheme().v4.card} testID="sheet.nowClass">
       {card && (
         <>
           <Details card={card} courses={courses} onLeave={onClose} />
