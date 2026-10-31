@@ -324,7 +324,7 @@ export function Segmented<T extends string>({
             style={[styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }]}
           >
             {on && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
-            <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "fg"} numberOfLines={1} style={{ flexShrink: 1 }}>
+            <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "fg"} numberOfLines={2} style={{ flexShrink: 1, textAlign: "center" }}>
               {option.label}
               {option.count !== undefined && (
                 <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "muted"} tabular>
@@ -399,7 +399,16 @@ const styles = StyleSheet.create({
   button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[2], borderRadius: shape.full, overflow: "hidden" },
   icon: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, alignItems: "center", justifyContent: "center" },
   segmented: { flexDirection: "row", borderRadius: shape.full, borderWidth: 1, overflow: "hidden" },
-  segment: { flex: 1, minHeight: 40, flexDirection: "row", gap: space[2], alignItems: "center", justifyContent: "center", paddingHorizontal: space[3] },
+  segment: {
+    flex: 1,
+    minHeight: 40,
+    flexDirection: "row",
+    gap: space[2],
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: space[3],
+    paddingVertical: space[1],
+  },
   chip: {
     height: 32,
     paddingHorizontal: space[4],

@@ -18,7 +18,17 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { Animated, Pressable, RefreshControl, type ScrollView, type ScrollViewProps, StyleSheet, View, type ViewStyle } from "react-native";
+import {
+  Animated,
+  Pressable,
+  RefreshControl,
+  type ScrollView,
+  type ScrollViewProps,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { Icons } from "./icons";
 import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
 import { Text } from "./text";
@@ -236,6 +246,18 @@ export function List({ children, style, testID }: { children: ReactNode; style?:
 }
 
 /**
+ * Narrow for words: under 340 dp of the normal font size across (a small phone, or a bigger font). Rows then put what
+ * sat at their end under their text, where it can wrap, instead of squeezing the title.
+ */
+export function useNarrow(): boolean {
+  const { width, fontScale } = useWindowDimensions();
+  return width / Math.max(1, fontScale) < 340;
+}
+
+/** True inside a row's end moved under its text (Row's `wrapTrailing`): a date there says itself on one line. */
+export const TrailingInline = createContext(false);
+
+/**
  * One thing in a list (Material 3's list item): what it is (title), when and where (meta, one line), and at
  * the end its state or its one action. A tappable row is one target, the whole row, with one outcome; no
  * chevron (Android's lists open on a tap without one). `actions` sit beside it, never inside it.
@@ -252,6 +274,7 @@ export function Row({
   current,
   testID,
   children,
+  wrapTrailing = false,
 }: {
   leading?: ReactNode;
   title: ReactNode;
@@ -264,8 +287,12 @@ export function Row({
   current?: boolean;
   testID?: string;
   children?: ReactNode;
+  /** On a narrow screen (useNarrow), `trailing` goes under the text instead of beside it. */
+  wrapTrailing?: boolean;
 }) {
   const theme = useTheme();
+  const narrow = useNarrow();
+  const below = wrapTrailing && narrow && trailing !== undefined && trailing !== null;
   const body = (
     <>
       {/* The indicator and the text as one block, centred in the row: the indicator level with the title's first line
@@ -292,9 +319,16 @@ export function Row({
             </View>
           )}
           {children}
+          {below && (
+            <TrailingInline.Provider value>
+              <View style={{ marginTop: space[1], flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>{trailing}</View>
+            </TrailingInline.Provider>
+          )}
         </View>
       </View>
-      {trailing !== undefined && trailing !== null && <View style={{ flexShrink: 0, alignItems: "flex-end", gap: 4, maxWidth: "42%" }}>{trailing}</View>}
+      {!below && trailing !== undefined && trailing !== null && (
+        <View style={{ flexShrink: 0, alignItems: "flex-end", gap: 4, maxWidth: "42%" }}>{trailing}</View>
+      )}
     </>
   );
   const pressable = onPress || onLongPress;
