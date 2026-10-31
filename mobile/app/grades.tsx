@@ -1,3 +1,4 @@
+import { usePerfDrawn } from "../src/perf";
 import { GradesScreen } from "../src/screens/grades/grades-screen";
 
 export default function Screen() {

@@ -1,6 +1,6 @@
 import { useParam } from "../../src/nav";
-import { TaskScreen } from "../../src/screens/tasks/task-page";
 import { usePerfDrawn } from "../../src/perf";
+import { TaskScreen } from "../../src/screens/tasks/task-page";
 
 export default function Screen() {
   usePerfDrawn(true);
