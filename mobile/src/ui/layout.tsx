@@ -250,6 +250,7 @@ export function Row({
   onLongPress,
   label,
   current,
+  quick,
   testID,
   children,
 }: {
@@ -262,6 +263,8 @@ export function Row({
   onLongPress?: () => void;
   label?: string;
   current?: boolean;
+  /** The row's quick actions (a swipe's, a long press's), named for TalkBack's actions menu. */
+  quick?: readonly { label: string; onPress(): void }[];
   testID?: string;
   children?: ReactNode;
 }) {
@@ -307,6 +310,8 @@ export function Row({
           onLongPress={onLongPress}
           accessibilityRole="button"
           accessibilityLabel={label}
+          accessibilityActions={quick?.map((action, i) => ({ name: `quick${i}`, label: action.label }))}
+          onAccessibilityAction={quick ? (event) => quick[Number(event.nativeEvent.actionName.slice(5))]?.onPress() : undefined}
           android_ripple={{ color: theme.color.selected }}
           style={[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[4] }]}
         >
