@@ -66,7 +66,19 @@ export async function createDemoWorld() {
     world: run.world,
     clockOffset: () => run.world.clock.now() - Date.now(),
     prepare: async (engine: Parameters<typeof run.prepare>[0]) => {
+      // Each step of the demo's start timed for the lab ("[startup] demo …"): where a fresh install's seconds go.
+      const signIn = engine.signIn.bind(engine);
+      let at = Date.now();
+      const began = at;
+      engine.signIn = async (...args: Parameters<typeof signIn>) => {
+        const result = await signIn(...args);
+        console.info(`[startup] demo sign-in ${args[0]} ${Date.now() - at}`);
+        at = Date.now();
+        return result;
+      };
       await run.prepare(engine);
+      engine.signIn = signIn;
+      console.info(`[startup] demo rest ${Date.now() - at} total ${Date.now() - began}`);
       if (theme || lang) await engine.updateSettings({ ...(theme ? { theme } : {}), ...(lang ? { lang } : {}) });
     },
   };

@@ -30,6 +30,46 @@
     "phone": "Jatah absenmu dihitung sampai hari itu."
   },
   {
+    "key": "done.toast.checked",
+    "desktop": "Ditandai sudah dicek. Muncul lagi hanya jika dosen mengubahnya lagi.",
+    "phone": "Sudah dicek. Kembali hanya jika dosen mengubahnya lagi."
+  },
+  {
+    "key": "done.toast.gotIt",
+    "desktop": "Sudah tahu. Muncul lagi hanya jika target kehadiran {course} berubah.",
+    "phone": "Sudah tahu. Kembali hanya jika target {course} berubah."
+  },
+  {
+    "key": "done.toast.gotItClass",
+    "desktop": "Sudah tahu. Muncul lagi sehari sebelum kuliah berikutnya.",
+    "phone": "Sudah tahu. Kembali sehari sebelum kuliah berikutnya."
+  },
+  {
+    "key": "done.toast.gotItCount",
+    "desktop": "Sudah tahu. Muncul lagi saat SIX mencatat pertemuan berikutnya.",
+    "phone": "Sudah tahu. Kembali setelah SIX menghitung kuliah berikutnya."
+  },
+  {
+    "key": "done.toast.groupDone",
+    "desktop": "Ditandai sudah dikumpulkan kelompokmu. Muncul lagi hanya jika tugasnya berubah.",
+    "phone": "Dikumpulkan kelompokmu. Kembali hanya jika tugasnya berubah."
+  },
+  {
+    "key": "done.toast.handedElsewhere",
+    "desktop": "Ditandai sudah dikumpulkan. Muncul lagi hanya jika tugasnya berubah.",
+    "phone": "Sudah dikumpulkan. Kembali hanya jika tugasnya berubah."
+  },
+  {
+    "key": "done.toast.notHandingIn",
+    "desktop": "Ditandai tidak dikumpulkan. Muncul lagi hanya jika tenggat atau tugasnya berubah.",
+    "phone": "Tidak dikumpulkan. Kembali hanya jika tenggat atau tugasnya berubah."
+  },
+  {
+    "key": "done.toast.paid",
+    "desktop": "Ditandai sudah dibayar. Muncul lagi jika tagihannya berubah atau lewat batas bayar.",
+    "phone": "Sudah dibayar. Kembali jika tagihan berubah atau lewat batas."
+  },
+  {
     "key": "grades.bestHint",
     "desktop": "jika semua A di {sks} SKS tersisa",
     "phone": "jika semua A di {sks} SKS semester ini dan rencanamu"
@@ -108,6 +148,11 @@
     "key": "presence.row.watching",
     "desktop": "Tandai Hadir belum muncul. Aplikasi memeriksa SIX tiap 2 menit.",
     "phone": "Tandai Hadir belum muncul. Selama aplikasi terbuka, SIX dicek tiap 2 menit."
+  },
+  {
+    "key": "scan.heading",
+    "desktop": "Ringkasan saat pertama terhubung",
+    "phone": "Ringkasan awal"
   },
   {
     "key": "schedule.export.nothing",

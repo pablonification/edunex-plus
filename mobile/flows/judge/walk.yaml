@@ -10,6 +10,10 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: tab.home
     timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-01-beranda
 # Beranda's lower half as the desktop's picture shows it: today's rows down to the clash at 16:00.
@@ -275,6 +279,10 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: tab.home
     timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 - tapOn:
     id: action.syncStatus
 - tapOn:
@@ -294,7 +302,9 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 
-# Settings, behind the avatar: the top, notifications, about, the licences
+# Settings, behind the avatar (on every tab's bar but Beranda's, round 2's v4): the top, notifications, about, the licences
+- tapOn:
+    id: tab.academic
 - tapOn:
     id: action.account
 - extendedWaitUntil:

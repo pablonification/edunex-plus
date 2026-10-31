@@ -38,6 +38,16 @@ const SCANNED: readonly DatasetName[] = [
 /** Lines say at most this many courses, exams or meetings, then "and N more". */
 const SHOWN = 3;
 
+/** Whether the first read is in (Beranda's card says so), and its counts: without working out the findings. */
+export function useScanReady() {
+  const saved = useSaved(SCANNED);
+  const edunex = useStatus("edunex");
+  const six = useStatus("six");
+  const itb = useStatus("itb");
+  const statuses = useMemo(() => [edunex, six, itb], [edunex, six, itb]);
+  return { saved, statuses, ready: scanReady(saved, statuses) };
+}
+
 /** What the scan reasons from, as the app has it now. */
 export function useScan(computing: boolean) {
   const { attendanceTarget, attendanceTargets } = useSettings();

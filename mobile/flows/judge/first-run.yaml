@@ -1,52 +1,33 @@
-# The first run, as the desktop demo's pictures 32-35 show it: the welcome, Edunex being connected,
-# both connected, the semester being read, then the first scan's summary. Opened by judge-light.yaml
-# and judge-dark.yaml on the first-run scenario.
+# The first run (W15, round 2): the one welcome screen, the sign-in handing back, Beranda filling in with the first
+# read's progress in the top bar, the summary card once the read is in, and the summary it opens. Opened by
+# judge-light.yaml and judge-dark.yaml on the first-run scenario.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - extendedWaitUntil:
     visible:
-      id: action.start
+      id: action.signIn
     timeout: 60000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-32-pertama-selamat-datang
 - tapOn:
-    id: action.start
-- tapOn:
-    id: action.connect.edunex
-# The moment the desktop's picture shows: the sign-in handed back, Edunex's session being read.
+    id: action.signIn
+# Beranda comes as soon as Edunex is in: its own shape while the semester is read.
 - extendedWaitUntil:
     visible:
-      text: ".*Menyelesaikan masuk.*"
-    timeout: 30000
-    optional: true
-- takeScreenshot: ${THEME}-32a-pertama-menyelesaikan
+      id: tab.home
+    timeout: 60000
+- takeScreenshot: ${THEME}-33-pertama-beranda-mengisi
 - extendedWaitUntil:
     visible:
-      id: screen.welcome.connected
-    timeout: 180000
-- waitForAnimationToEnd
-- takeScreenshot: ${THEME}-33-pertama-terhubung
-- tapOn:
-    id: action.continue
-# The step fades in: its heading is the sign it has drawn (round 4 caught a blank dark picture).
-- extendedWaitUntil:
-    visible: "Membaca semestermu.*"
-    timeout: 30000
-    optional: true
-- waitForAnimationToEnd
-- takeScreenshot: ${THEME}-34-pertama-membaca
-- extendedWaitUntil:
-    visible:
-      id: action.open
+      id: card.firstScan
     timeout: 600000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-34-pertama-siap
 - tapOn:
-    id: action.open
-- tapOn:
-    text: "(Allow|Izinkan|ALLOW|IZINKAN)"
-    optional: true
+    id: action.firstScan.open
 - extendedWaitUntil:
     visible:
       id: screen.firstScan
-    timeout: 120000
+    timeout: 60000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-35-pertama-temuan

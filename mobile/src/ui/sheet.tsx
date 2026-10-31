@@ -19,6 +19,7 @@ export function Sheet({
   onClose,
   title,
   footer,
+  background,
   children,
   testID,
 }: {
@@ -27,6 +28,8 @@ export function Sheet({
   title?: ReactNode;
   /** The sheet's main action (and its companions), fixed at the bottom while the content scrolls. */
   footer?: ReactNode;
+  /** The sheet's colour, when it isn't surfaceContainerLow (round 2's v4 sheets: the white card). */
+  background?: string;
   children: ReactNode;
   testID?: string;
 }) {
@@ -44,7 +47,7 @@ export function Sheet({
       detents="fitToContents"
       prefersGrabberVisible
       preferredCornerRadius={shape.xl}
-      nativeContainerStyle={{ backgroundColor: c.surfaceContainerLow }}
+      nativeContainerStyle={{ backgroundColor: background ?? c.surfaceContainerLow }}
       onNativeDismiss={onClose}
       onDidDisappear={() => {
         if (!open) setShown(false);
@@ -56,7 +59,7 @@ export function Sheet({
         // Never taller than the screen less a strip of the page: the content scrolls, the title and the footer stay. The
         // sheet runs under the navigation bar (plugins/sheet-theme.js) and sizes itself to the content less the bar, so the
         // content ends with the bar's height: measured on mid, its last row was cut by exactly that.
-        style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + insets.bottom, backgroundColor: c.surfaceContainerLow }}
+        style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + insets.bottom, backgroundColor: background ?? c.surfaceContainerLow }}
       >
         {title !== undefined && (
           <View style={{ paddingHorizontal: space[6], paddingBottom: space[3] }}>

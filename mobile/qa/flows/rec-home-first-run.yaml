@@ -1,0 +1,39 @@
+# Recording (qa-media/mobile-r2-home/): the first run, from the welcome to Beranda filling in and its summary card.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=first-run&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: action.signIn
+    timeout: 60000
+- waitForAnimationToEnd
+- tapOn:
+    id: action.signIn
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.firstRead
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: card.firstScan
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+- waitForAnimationToEnd
+- tapOn:
+    id: action.firstScan.open
+- extendedWaitUntil:
+    visible:
+      id: screen.firstScan
+    timeout: 30000
+- waitForAnimationToEnd
+- back

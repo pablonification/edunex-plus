@@ -28,6 +28,7 @@ import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
 import { type PhoneReminders, phoneReminders } from "./reminders";
 import { phoneReportHandlers } from "./report";
+import { setSettling } from "./settling";
 import { PhoneStorage } from "./storage";
 import { phoneTaskHandlers } from "./tasks";
 import { phoneTransport } from "./transport";
@@ -111,6 +112,7 @@ export function host(): Promise<Host> {
 }
 
 async function makeHost(): Promise<Host> {
+  const began = Date.now();
   const world = DEMO ? await demoWorld() : await realWorld();
   const toAndroid = !DEMO || world.notify === true;
   const log = new AppLog(() => world.clock.now());
@@ -176,7 +178,23 @@ async function makeHost(): Promise<Host> {
   if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
   lang = engine.snapshot().settings.lang;
   void prepareChannels(lang);
-  if (world.prepare) await world.prepare(engine);
+  const loaded = Date.now();
+  // The demo's sign-in and first sync run after the first frame, as the real app reads after a sign-in: Beranda draws
+  // at once and fills in (./settling.ts). The lab reads where the time goes from these lines.
+  console.info(`[startup] host load ${loaded - began}`);
+  if (world.prepare) {
+    setSettling(true);
+    void world.prepare(engine).then(
+      () => {
+        console.info(`[startup] settled ${Date.now() - loaded}`);
+        setSettling(false);
+      },
+      (error: unknown) => {
+        console.error("[startup] the demo's first sync failed:", error);
+        setSettling(false);
+      },
+    );
+  }
 
   // One Microsoft sign-in covers both systems, exactly as on the desktop.
   const both = signInToBoth({ engine, send, windows: world.signInWindows, log });
@@ -199,6 +217,16 @@ async function makeHost(): Promise<Host> {
     });
   // "Tandai Hadir" and every other page of Edunex's or SIX's: in a page of the app, signed in (./check-in.ts).
   ui.openCheckIn = checkInOpener();
+  // The demo's SIX page is pretend: opening it for a class counts as the Student pressing Tandai Hadir there, so SIX's
+  // next read no longer shows the button (what Beranda's card then says, W10).
+  const pretendSix = (world as { world?: { six?: { closeCheckIn(id: string): void } } }).world?.six;
+  if (DEMO && pretendSix) {
+    const open = ui.openCheckIn;
+    ui.openCheckIn = async (meetingId) => {
+      await open(meetingId);
+      pretendSix.closeCheckIn(meetingId);
+    };
+  }
   ui.openPage = pageOpener();
   const handlers = {
     ...phoneHandlers({

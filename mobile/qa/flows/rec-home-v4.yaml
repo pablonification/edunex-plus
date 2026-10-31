@@ -1,0 +1,41 @@
+# Recording (qa-media/mobile-r2-home/): Beranda in v4 from the start: the cards rising, a later class's sheet and back,
+# a tab switch and back, Tandai Hadir and, once SIX's next read is in (the wait is cut from the video), the cookie.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CHECK_IN=open&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: card.now
+    timeout: 120000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- tapOn:
+    id: action.notify.later
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    id: "row.today.class:2153983"
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 10000
+- waitForAnimationToEnd
+- back
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- tapOn:
+    id: tab.home
+- waitForAnimationToEnd
+- tapOn:
+    id: action.checkIn
+- waitForAnimationToEnd
+- back
+- extendedWaitUntil:
+    visible:
+      id: card.now.checkedIn
+    timeout: 200000
+- waitForAnimationToEnd

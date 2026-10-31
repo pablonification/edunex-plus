@@ -6,11 +6,14 @@ import { type ReactNode, useCallback, useState, useSyncExternalStore } from "rea
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
-import { useFormat, useT } from "../../../src/app/i18n";
+import { useFormat, useNow, useT } from "../../../src/app/i18n";
 import { initials } from "../../../src/app/names";
-import { useBridge, useDataset, useSignInStep, useStatus } from "../../../src/app/store";
+import { useSaved } from "../../../src/app/saved";
+import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "../../../src/app/store";
 import type { SignInStep } from "../../../src/core/contract";
-import type { SourceId, SourceState } from "../../../src/core/models";
+import { firstRead } from "../../../src/core/first-scan";
+import type { DatasetName, SourceId, SourceState } from "../../../src/core/models";
+import { useSettling } from "../host/settling";
 import { ReportButton } from "../parts/report";
 import { toast } from "../swaps/overlays";
 import { SourceLogo } from "../ui/brand";
@@ -22,6 +25,9 @@ import { Sheet } from "../ui/sheet";
 import { Text } from "../ui/text";
 import { radius, space, TOUCH, useTheme } from "../ui/theme";
 import { BAR_HEIGHT, BarSurface } from "../ui/top-bar";
+
+/** Data older than this says so under the tab's title. */
+const STALE = 60 * 60_000;
 
 /** Opens the sign-in page for a source; resolves when it closes. */
 export function useSignIn() {
@@ -154,7 +160,7 @@ function useSyncLine() {
   else if (state === "offline")
     text = unreachable.length < signedIn.length ? t("sync.offlineOne", { source: t(`source.${unreachable[0]!.source}`) }) : t("status.offline");
   else text = updatedAt ? t("status.updated", { when: f.fromNow(updatedAt) }) : t("status.neverUpdated");
-  return { state, text, signedIn: signedIn.length > 0, busy: now.length > 0 };
+  return { state, text, signedIn: signedIn.length > 0, busy: now.length > 0, updatedAt };
 }
 
 function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
@@ -178,7 +184,6 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
   const insets = useSafeAreaInsets();
   const line = useSyncLine();
   const [panel, setPanel] = useState(false);
-  const tone = line.state === "changed" ? "danger" : line.state === "expired" ? "warning" : "muted";
   return (
     <BarSurface>
       <View
@@ -194,12 +199,7 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
           <Text size="titleLarge" numberOfLines={1} accessibilityRole="header">
             {title}
           </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }}>
-            <StateMark state={line.state === "signed-out" ? "signed-out" : line.state} busy={line.state === "connecting"} />
-            <Text size="bodySmall" tone={tone} numberOfLines={1} style={{ flexShrink: 1 }}>
-              {line.text}
-            </Text>
-          </View>
+          <StatusLine />
         </Pressable>
         <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
           <Icons.Search size={24} color={theme.color.onSurfaceVariant} />
@@ -213,12 +213,106 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
   );
 }
 
+/** The sources' state in words, for a title's spoken name ("Beranda. Data: Diperbarui 2 menit yang lalu"). */
+export function useSyncText(): string {
+  return useSyncLine().text;
+}
+
+/**
+ * The data's status under a screen's title, only when it says something to act on (one title per screen, no
+ * "Diperbarui baru saja"): a problem, offline, the first read, the demo still reading, or data older than an hour.
+ * `color`: on a coloured header (Beranda's blue), every word and mark in it.
+ */
+export function StatusLine({ color }: { color?: string }) {
+  const line = useSyncLine();
+  // The first read after signing in: which part it's reading, until Beranda has what it shows (W15).
+  const firstReading = !useSettings().firstScanDone && line.signedIn;
+  const now = useNow();
+  const stale = line.updatedAt !== null && now - line.updatedAt > STALE;
+  const settling = useSettling();
+  const show =
+    settling ||
+    firstReading ||
+    line.state === "changed" ||
+    line.state === "expired" ||
+    line.state === "offline" ||
+    (line.signedIn && (line.updatedAt === null || stale));
+  if (!show) return null;
+  const tone = line.state === "changed" ? "danger" : line.state === "expired" ? "warning" : "muted";
+  const status = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }}>
+      {color ? (
+        line.state === "connecting" ? (
+          <Spinner size={14} color={color} />
+        ) : null
+      ) : (
+        <StateMark state={line.state === "signed-out" ? "signed-out" : line.state} busy={line.state === "connecting"} />
+      )}
+      <Text size="bodySmall" tone={tone} numberOfLines={1} style={[{ flexShrink: 1 }, color ? { color } : null]}>
+        {line.text}
+      </Text>
+    </View>
+  );
+  if (settling)
+    return (
+      <View testID="status.settling">
+        <FirstReadLine always color={color}>
+          {status}
+        </FirstReadLine>
+      </View>
+    );
+  return firstReading ? <FirstReadLine color={color}>{status}</FirstReadLine> : status;
+}
+
+const FIRST_READ: readonly DatasetName[] = [
+  "six.student",
+  "six.courses",
+  "six.skipped",
+  "six.schedule",
+  "six.scheduleMonths",
+  "six.transcript",
+  "edunex.courses",
+  "edunex.tasks",
+  "edunex.outline",
+  "edunex.materials",
+  "edunex.presence",
+  "edunex.announcements",
+  "edunex.exams",
+  "itb.calendar",
+];
+
+/** "Membaca Edunex · Tugas…" while the first read runs, a calm line with a spinner; once in, the usual line. */
+function FirstReadLine({ children, always = false, color }: { children: ReactNode; always?: boolean; color?: string }) {
+  const t = useT();
+  const theme = useTheme();
+  const saved = useSaved(FIRST_READ);
+  const edunex = useStatus("edunex");
+  const six = useStatus("six");
+  const itb = useStatus("itb");
+  const read = firstRead(saved, [edunex, six, itb]);
+  const part = read.progress < 1 ? read.next : null;
+  if (!part && !always) return children;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }} testID="status.firstRead">
+      <Spinner size={14} color={color ?? theme.color.onSurfaceVariant} />
+      <Text size="bodySmall" tone="muted" numberOfLines={1} style={[{ flexShrink: 1 }, color ? { color } : null]} accessibilityLiveRegion="polite">
+        {part ? t("mobile.home.reading", { part: `${t(`source.${part.source}`)} · ${t(`scan.part.${part.part}`)}` }) : t("welcome.readingWait")}
+      </Text>
+    </View>
+  );
+}
+
+/** How many alerts came since the bell was last opened. */
+export function useUnreadAlerts(): number {
+  const history = useDataset("app.alerts");
+  return (history?.items ?? []).filter((item) => item.at > (history?.readAt ?? 0)).length;
+}
+
 /** The bell, with Material's badge (the error colour) while something new is unread. */
 function Bell() {
   const t = useT();
   const theme = useTheme();
-  const history = useDataset("app.alerts");
-  const unread = (history?.items ?? []).filter((item) => item.at > (history?.readAt ?? 0)).length;
+  const unread = useUnreadAlerts();
   return (
     <View>
       <IconButton label={unread > 0 ? t("alerts.open", { count: unread }) : t("alerts.title")} onPress={() => router.push("/alerts")} testID="action.alerts">
@@ -278,7 +372,7 @@ function Avatar() {
   );
 }
 
-function SyncPanel({ open, onClose }: { open: boolean; onClose(): void }) {
+export function SyncPanel({ open, onClose }: { open: boolean; onClose(): void }) {
   const t = useT();
   const bridge = useBridge();
   const line = useSyncLine();

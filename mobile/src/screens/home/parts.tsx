@@ -9,15 +9,20 @@ import { useCourseColor } from "../../../../src/app/courses";
 import { type Format, type Translate, useNow, useT } from "../../../../src/app/i18n";
 import type { AttendanceState } from "../../../../src/core/attendance";
 import { type DoneTerms, doneTerms } from "../../../../src/core/done";
-import type { ClassFacts, NeedDraft } from "../../../../src/core/needs";
+import type { ClassFacts, NeedDraft, NowCard } from "../../../../src/core/needs";
 import type { Snoozable, SnoozeKey } from "../../../../src/core/snooze";
-import { canSnooze, DoneButton, type RowDone, rowControls, SnoozeMenu, useMarkDone, useRowActions, useSnooze } from "../../parts/snooze";
+import { canSnooze, type RowDone, useMarkDone, useRowActions, useSnooze } from "../../parts/snooze";
 import { CourseDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextSize, type TextTone, type TextWeight } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
+import { RealClock } from "./held";
+
+/** The row key (Hari ini's, Nanti hari ini's) of what the now card shows. From src/app/screens/home.tsx. */
+export const cardKey = (card: NowCard | null) =>
+  card?.class ? `class:${card.class.session.id}` : card?.meeting ? `meeting:${card.meeting.code}:${card.meeting.meeting.start}` : null;
 
 export const MINUTE = 60_000;
 export const DAY = 86_400_000;
@@ -93,6 +98,10 @@ export function Quiet({ children }: { children: string }) {
   );
 }
 
+function LaterSheet({ item, open, setOpen }: { item: Snoozable; open: boolean; setOpen(open: boolean): void }) {
+  return useSnooze(item, { open, setOpen }).sheet;
+}
+
 export interface QuickDone {
   item: SnoozeKey;
   how: RowDone;
@@ -126,10 +135,10 @@ function doneSaid(t: Translate, need: NeedDraft, terms: DoneTerms): string {
 }
 
 /**
- * A row's quick actions, "Sudah beres" (the ✓, only where only the Student can know) and "Ingatkan
- * nanti", three ways: as visible icons beside the row (`actions`, for Row's `actions`), as a swipe,
- * and in a sheet on a long press (`onLongPress`, for Row's), so nobody has to know the gesture.
- * Neither action: the row as it is.
+ * A row's quick actions, "Sudah beres" (only where only the Student can know) and "Ingatkan nanti", three ways: a
+ * swipe (ui/swipe.tsx: done toward the end, later toward the start), a sheet on a long press (`onLongPress`, for
+ * Row's), and TalkBack's actions (`quick`, for Row's), so nobody has to know the gesture. Neither action: the row as
+ * it is. No icons beside the row: they crowded every line (W11), and the swipe and the press are Android's own ways.
  */
 export function QuickRow({
   name,
@@ -137,24 +146,21 @@ export function QuickRow({
   snooze,
   children,
 }: {
-  /** What the item is, whole ("Tugas 02 · II4091"): the controls' names and the sheet's title. */
+  /** What the item is, whole ("Tugas 02 · II4091"): the sheet's title. */
   name: string;
   done: QuickDone | null;
   snooze: Snoozable | null;
-  children: (quick: { actions: ReactNode; onLongPress: (() => void) | undefined }) => ReactNode;
+  children: (quick: { quick: readonly { label: string; onPress(): void }[] | undefined; onLongPress: (() => void) | undefined }) => ReactNode;
 }) {
   const t = useT();
   const theme = useTheme();
   const now = useNow();
   const later = snooze && canSnooze(snooze, now) ? snooze : null;
-  const sheet = useSnooze(later);
+  const [laterOpen, setLaterOpen] = useState(false);
+  const sheet = { available: later !== null, open: () => setLaterOpen(true) };
   const put = useMarkDone(done?.item ?? null, done?.how ?? null, done?.said ?? "");
   const swipe = useRowActions({ done: done ? { how: done.how, put } : null, snooze: later ? sheet : null });
   const [menu, setMenu] = useState(false);
-  const actions = rowControls(
-    done ? <DoneButton item={done.item} how={done.how} name={name} said={done.said} /> : null,
-    later ? <SnoozeMenu item={later} name={name} /> : null,
-  );
   const choices = [
     ...(done
       ? [{ label: t(`done.${done.how}`), icon: <Icons.Check size={20} weight="bold" color={theme.color.muted} />, onPress: put, testID: "menu.done" }]
@@ -163,11 +169,17 @@ export function QuickRow({
   ];
   // Only "Ingatkan nanti": straight to its times, as on Tugas (a menu of one would be a sheet too many).
   const onLongPress = !choices.length ? undefined : !done && later ? sheet.open : () => setMenu(true);
+  const quick = choices.length ? choices.map((choice) => ({ label: choice.label, onPress: choice.onPress })) : undefined;
   return (
     <>
-      <SwipeRow actions={swipe}>{children({ actions, onLongPress })}</SwipeRow>
+      <SwipeRow actions={swipe}>{children({ quick, onLongPress })}</SwipeRow>
       {choices.length > 0 && <ActionSheet open={menu} onClose={() => setMenu(false)} title={name} choices={choices} testID="sheet.row" />}
-      {sheet.sheet}
+      {/* The times it offers count from now itself, even where the row's clock is held (./held.tsx). */}
+      {later && (
+        <RealClock>
+          <LaterSheet item={later} open={laterOpen} setOpen={setLaterOpen} />
+        </RealClock>
+      )}
     </>
   );
 }

@@ -3,7 +3,7 @@
 // one; a tone names what the color means, never the color itself.
 import type { ReactNode } from "react";
 import { Text as NativeText, type TextProps, type TextStyle, useWindowDimensions } from "react-native";
-import { m3type, m3weight, type Palette, type, useTheme, weight } from "./theme";
+import { font, m3type, m3weight, type Palette, type, useTheme, weight } from "./theme";
 
 export type TextSize = keyof typeof type;
 export type TextTone =
@@ -49,11 +49,20 @@ export interface AppTextProps extends TextProps {
   weight?: TextWeight;
   /** Figures that line up in a column (times, counts). */
   tabular?: boolean;
+  /**
+   * The display face (Plus Jakarta Sans) for headings and numbers (v4), at `weight` "semibold", "extrabold" or else
+   * bold. Body text stays Roboto.
+   */
+  face?: "display";
   children?: ReactNode;
 }
 
-export function Text({ size = "body", tone = "fg", weight: w, tabular = false, style, children, ...rest }: AppTextProps) {
+export function Text({ size = "body", tone = "fg", weight: w, tabular = false, face, style, children, ...rest }: AppTextProps) {
   const theme = useTheme();
+  const display =
+    face === "display"
+      ? { fontFamily: w === "semibold" ? font.display.semibold : w === "extrabold" ? font.display.extrabold : font.display.bold, fontWeight: "normal" as const }
+      : null;
   const base: TextStyle = {
     ...type[size],
     color: theme.color[TONE[tone]],
@@ -64,6 +73,8 @@ export function Text({ size = "body", tone = "fg", weight: w, tabular = false, s
     // Android pads a line's top by the font's own extra room, more for bigger text: without it a line sits in its
     // line height as on the web, so an icon or a smaller code beside a title lines up with it.
     includeFontPadding: false,
+    // The face's own weight is in its file: Android would embolden it again.
+    ...display,
   };
   return (
     <NativeText style={[base, style]} {...rest}>

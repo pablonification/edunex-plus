@@ -22,6 +22,8 @@ cat=$!
 adb -s "$S" shell am start -a android.intent.action.VIEW -d "'edunexplusdemo://demo?EDUNEX_DEMO=signed-in'" "$QA_APP" > /dev/null
 # The first read settles before the tour: Beranda drawn with data, then a quiet moment.
 for _ in $(seq 120); do grep -q "\[perf\] first-data" "$out/logcat.txt" && break; sleep 1; done
+# The demo reads after its first frame (src/host/settling.ts): the tour starts once it's done.
+for _ in $(seq 120); do grep -q "\[startup\] settled" "$out/logcat.txt" && break; sleep 1; done
 sleep 8
 adb -s "$S" shell dumpsys gfxinfo "$QA_APP" reset > /dev/null
 echo "tour-start $(date +%s.%N)" > "$out/marks.txt"
