@@ -64,6 +64,14 @@ export function useScrolledUnder(): Animated.AnimatedInterpolation<number> | nul
   return useMemo(() => offset?.interpolate({ inputRange: [0, 8], outputRange: [0, 1], extrapolate: "clamp" }) ?? null, [offset]);
 }
 
+/** The page's own colour (`Page`'s `background`, v4's page grey), so its top bar sits on the same colour at rest. */
+const PageColor = createContext<string | null>(null);
+
+/** The colour of the page a bar is on (null: the surface). */
+export function usePageColor(): string | null {
+  return useContext(PageColor);
+}
+
 /**
  * A screen: scrolls, with the page's sides, and pulls to refresh when `onRefresh` is given ("Perbarui
  * sekarang"). Its `header` (a top bar) stays on top and takes a tone when the page scrolls under it; the end
@@ -121,7 +129,9 @@ export function Page({
       // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx).
       onLayout={inTabs ? () => frame.current?.measureInWindow((_x, y, _width, height) => reportTabsBottom(y + height)) : undefined}
     >
-      <ScrollEdge.Provider value={offset}>{header}</ScrollEdge.Provider>
+      <PageColor.Provider value={background ?? null}>
+        <ScrollEdge.Provider value={offset}>{header}</ScrollEdge.Provider>
+      </PageColor.Provider>
       <Animated.ScrollView
         ref={ref as never}
         onScroll={scrolled}

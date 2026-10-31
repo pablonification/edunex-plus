@@ -10,7 +10,7 @@ import { useT } from "../../../src/app/i18n";
 import { useNav } from "../nav";
 import { IconButton } from "./controls";
 import { Icons } from "./icons";
-import { useScrolledUnder } from "./layout";
+import { usePageColor, useScrolledUnder } from "./layout";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
 
@@ -38,14 +38,15 @@ export function TopBar({ title, actions, onBack }: { title?: string; actions?: R
 }
 
 /**
- * A top bar's surface, edge to edge under the status bar: the page's colour at rest, surfaceContainer once the page
- * scrolls under it (faded on the UI thread from the page's offset).
+ * A top bar's surface, edge to edge under the status bar: the page's colour at rest (v4's grey on a page that sets
+ * it), surfaceContainer once the page scrolls under it (faded on the UI thread from the page's offset).
  */
 export function BarSurface({ children }: { children: ReactNode }) {
   const theme = useTheme();
   const under = useScrolledUnder();
+  const page = usePageColor();
   return (
-    <View style={{ backgroundColor: theme.color.surface }}>
+    <View style={{ backgroundColor: page ?? theme.color.surface }}>
       {under && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.surfaceContainer, opacity: under }]} />}
       {children}
     </View>
