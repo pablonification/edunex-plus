@@ -6,9 +6,9 @@
 // never the only way: every action is also in the row's long-press menu (sheet.tsx) and its TalkBack actions. All of
 // it runs on the UI thread; JS hears only of the tick and the commit.
 import * as Haptics from "expo-haptics";
-import { type ReactNode, useEffect, useRef } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { I18nManager, type LayoutChangeEvent, StyleSheet, View } from "react-native";
-import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
+import { GestureDetector, type PanGestureConfig, usePanGesture } from "react-native-gesture-handler";
 import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useReduceMotion } from "./motion";
@@ -84,65 +84,77 @@ function Swiper({ actions, children, testID }: { actions: readonly SwipeAction[]
   const back = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => void (back.current && clearTimeout(back.current)), []);
 
-  const run = (which: number) => {
-    const action = which > 0 ? plus : minus;
-    if (!action) return;
-    confirm();
-    action.onPress();
-    if (action.leaves === false) return;
-    // Still here a moment later: the action didn't take it away, so it comes back rather than leave a gap.
-    back.current = setTimeout(() => {
-      fold.value = withTiming(0, { duration: motion.duration.medium });
-      fade.value = withTiming(1, { duration: motion.duration.medium });
-      x.value = withSpring(0, motion.spatialDefault);
-    }, RETURN_AFTER);
-  };
-
-  const pan = usePanGesture({
-    activeOffsetX: [-12, 12],
-    failOffsetY: [-10, 10],
-    onUpdate: (event) => {
-      "worklet";
-      const dx = event.translationX;
-      // The side with no action resists, as Android's overscroll does.
-      x.value = (dx > 0 && !hasPlus) || (dx < 0 && !hasMinus) ? dx * 0.15 : dx;
-      const past = Math.abs(x.value) > width.value * COMMIT && ((x.value > 0 && hasPlus) || (x.value < 0 && hasMinus)) ? 1 : 0;
-      if (past !== armed.value) {
-        armed.value = past;
-        scheduleOnRN(tick);
-      }
-    },
-    onDeactivate: (event) => {
-      "worklet";
-      const which = x.value > 0 ? 1 : -1;
-      const has = which > 0 ? hasPlus : hasMinus;
-      const leaves = which > 0 ? plusLeaves : minusLeaves;
-      const far = Math.abs(x.value) > width.value * COMMIT;
-      const flung = Math.abs(x.value) > width.value * 0.25 && Math.sign(event.velocityX) === which && Math.abs(event.velocityX) > FLICK;
-      armed.value = 0;
-      if (!has || !(far || flung)) {
+  // The latest actions, for the stable `run` the gesture holds: a redraw (the minute's tick) mustn't rebuild the gesture
+  // and its worklets, which cost the JS thread several ms a row.
+  const latest = useRef({ plus, minus });
+  latest.current = { plus, minus };
+  const run = useCallback(
+    (which: number) => {
+      const { plus, minus } = latest.current;
+      const action = which > 0 ? plus : minus;
+      if (!action) return;
+      confirm();
+      action.onPress();
+      if (action.leaves === false) return;
+      // Still here a moment later: the action didn't take it away, so it comes back rather than leave a gap.
+      back.current = setTimeout(() => {
+        fold.value = withTiming(0, { duration: motion.duration.medium });
+        fade.value = withTiming(1, { duration: motion.duration.medium });
         x.value = withSpring(0, motion.spatialDefault);
-        return;
-      }
-      if (!leaves) {
-        // A choice opens: the row bounces home (the earned spring) as the sheet comes up.
-        x.value = withSpring(0, motion.expressive);
-        scheduleOnRN(run, which);
-        return;
-      }
-      const folded = (done?: boolean) => {
-        "worklet";
-        if (done) scheduleOnRN(run, which);
-      };
-      const gone = (done?: boolean) => {
-        "worklet";
-        if (done !== false) fold.value = withTiming(1, { duration: motion.duration.medium }, folded);
-      };
-      // Remove animations: it fades where it is, then folds.
-      if (still) fade.value = withTiming(0, { duration: motion.duration.short }, gone);
-      else x.value = withSpring(which * width.value, { ...motion.spatialFast, overshootClamping: true }, gone);
+      }, RETURN_AFTER);
     },
-  });
+    [fold, fade, x],
+  );
+
+  const config = useMemo(
+    (): PanGestureConfig => ({
+      activeOffsetX: [-12, 12],
+      failOffsetY: [-10, 10],
+      onUpdate: (event) => {
+        "worklet";
+        const dx = event.translationX;
+        // The side with no action resists, as Android's overscroll does.
+        x.value = (dx > 0 && !hasPlus) || (dx < 0 && !hasMinus) ? dx * 0.15 : dx;
+        const past = Math.abs(x.value) > width.value * COMMIT && ((x.value > 0 && hasPlus) || (x.value < 0 && hasMinus)) ? 1 : 0;
+        if (past !== armed.value) {
+          armed.value = past;
+          scheduleOnRN(tick);
+        }
+      },
+      onDeactivate: (event) => {
+        "worklet";
+        const which = x.value > 0 ? 1 : -1;
+        const has = which > 0 ? hasPlus : hasMinus;
+        const leaves = which > 0 ? plusLeaves : minusLeaves;
+        const far = Math.abs(x.value) > width.value * COMMIT;
+        const flung = Math.abs(x.value) > width.value * 0.25 && Math.sign(event.velocityX) === which && Math.abs(event.velocityX) > FLICK;
+        armed.value = 0;
+        if (!has || !(far || flung)) {
+          x.value = withSpring(0, motion.spatialDefault);
+          return;
+        }
+        if (!leaves) {
+          // A choice opens: the row bounces home (the earned spring) as the sheet comes up.
+          x.value = withSpring(0, motion.expressive);
+          scheduleOnRN(run, which);
+          return;
+        }
+        const folded = (done?: boolean) => {
+          "worklet";
+          if (done) scheduleOnRN(run, which);
+        };
+        const gone = (done?: boolean) => {
+          "worklet";
+          if (done !== false) fold.value = withTiming(1, { duration: motion.duration.medium }, folded);
+        };
+        // Remove animations: it fades where it is, then folds.
+        if (still) fade.value = withTiming(0, { duration: motion.duration.short }, gone);
+        else x.value = withSpring(which * width.value, { ...motion.spatialFast, overshootClamping: true }, gone);
+      },
+    }),
+    [hasPlus, hasMinus, plusLeaves, minusLeaves, still, run, x, width, armed, fold, fade],
+  );
+  const pan = usePanGesture(config);
 
   const row = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }], opacity: fade.value }));
   const box = useAnimatedStyle(() => (fold.value > 0 ? { height: interpolate(fold.value, [0, 1], [height.value, 0]), overflow: "hidden" } : {}));
