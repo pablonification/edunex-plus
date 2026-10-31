@@ -526,6 +526,31 @@ export function Stat({
   );
 }
 
+/**
+ * One tile of a `List` drawn row by row, for a virtualized list (FlashList) that can't wrap its rows in a `List`: the
+ * same tonal tile, round at the group's ends (`first`, `last`), 2 dp from the tile above it.
+ */
+export function GroupTile({ first, last, children }: { first: boolean; last: boolean; children: ReactNode }) {
+  const theme = useTheme();
+  const end = shape.lgPlus;
+  const inner = shape.xs;
+  return (
+    <View
+      style={{
+        marginTop: first ? 0 : 2,
+        overflow: "hidden",
+        backgroundColor: theme.color.surfaceContainerLow,
+        borderTopLeftRadius: first ? end : inner,
+        borderTopRightRadius: first ? end : inner,
+        borderBottomLeftRadius: last ? end : inner,
+        borderBottomRightRadius: last ? end : inner,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
 /** Space between the parts of a screen that aren't sections (a card under the header). */
 export function Gap({ size = 4 }: { size?: keyof typeof space }) {
   return <View style={{ height: space[size] }} />;
