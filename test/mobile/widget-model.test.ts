@@ -102,7 +102,11 @@ describe("the widget", () => {
   it("Hari ini on a day without classes says so, and opens Jadwal", async () => {
     const h = await startHome();
     await h.until("2026-10-10T09:00:00+07:00");
-    expect(modelOf(h).today).toMatchObject({ heading: "Hari ini · Sab 10 Okt", classes: [], none: { label: "Tidak ada kuliah hari ini.", open: { kind: "route", route: { screen: "schedule" } } } });
+    expect(modelOf(h).today).toMatchObject({
+      heading: "Hari ini · Sab 10 Okt",
+      classes: [],
+      none: { label: "Tidak ada kuliah hari ini.", open: { kind: "route", route: { screen: "schedule" } } },
+    });
   });
 
   it("never signed in: where to start, and nothing else", async () => {

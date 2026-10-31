@@ -5,8 +5,8 @@
 // are settings in ⋮, where a Student looks for them on a calendar. A class opens its sheet (./details.tsx).
 // The minute's tick redraws only the cards whose class starts or ends (./clock.ts).
 import { FlashList, type FlashListRef, type ViewToken } from "@shopify/flash-list";
-import { router, useScrollToTop } from "expo-router";
 import * as Notifications from "expo-notifications";
+import { router, useScrollToTop } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Linking, RefreshControl, View } from "react-native";
 import { useT } from "../../../../src/app/i18n";

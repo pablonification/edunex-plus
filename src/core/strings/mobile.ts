@@ -113,11 +113,17 @@ export const mobileStrings = {
   "mobile.calendar.sync.hint": { id: "Kalender Edunex Plus, selalu terbaru", en: "An Edunex Plus calendar, kept up to date" },
   "mobile.calendar.sync.on": {
     id: "{count} acara ada di kalender Edunex Plus. Ikut berubah saat jadwal berubah.",
-    en: { one: "{count} event in the Edunex Plus calendar. It changes when your schedule does.", other: "{count} events in the Edunex Plus calendar. They change when your schedule does." },
+    en: {
+      one: "{count} event in the Edunex Plus calendar. It changes when your schedule does.",
+      other: "{count} events in the Edunex Plus calendar. They change when your schedule does.",
+    },
   },
   "mobile.calendar.sync.off": { id: "Kalender Edunex Plus dihapus dari HP.", en: "The Edunex Plus calendar is off your phone." },
   "mobile.calendar.sync.failed": { id: "Kalender HP belum bisa diperbarui", en: "Couldn't update your phone's calendar" },
-  "mobile.calendar.sync.failedHint": { id: "Jadwal di sini tetap terbaru. Coba lagi sebentar lagi.", en: "Your schedule here is up to date. Try again in a moment." },
+  "mobile.calendar.sync.failedHint": {
+    id: "Jadwal di sini tetap terbaru. Coba lagi sebentar lagi.",
+    en: "Your schedule here is up to date. Try again in a moment.",
+  },
   // "Tambahkan ke kalender HP" on the phone (S8): the events go into the phone's own calendar, in one called Edunex Plus.
   "mobile.calendar.lead": {
     id: "Kuliah, ujian dan tenggatmu masuk ke kalender HP, di kalender bernama Edunex Plus.",

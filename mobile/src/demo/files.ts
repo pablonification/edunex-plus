@@ -77,7 +77,11 @@ export async function streamed(response: Response): Promise<Response> {
   let read = false;
   const body = {
     getReader: () => ({
-      read: async () => (read ? { done: true as const, value: undefined } : ((read = true), { done: false as const, value: bytes })),
+      read: async () => {
+        if (read) return { done: true as const, value: undefined };
+        read = true;
+        return { done: false as const, value: bytes };
+      },
       cancel: async () => undefined,
       releaseLock: () => undefined,
     }),
