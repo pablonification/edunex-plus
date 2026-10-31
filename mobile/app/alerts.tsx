@@ -5,7 +5,7 @@
 // "Tandai semua dibaca". Nothing is ever marked in Edunex.
 import { router } from "expo-router";
 import { type ComponentType, useEffect, useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useCourseColor } from "../../src/app/courses";
 import { useHomeWorld } from "../../src/app/home-world";
 import { useOpenCheckIn } from "../../src/app/hooks";
@@ -15,9 +15,10 @@ import type { Alert, AlertKind } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
 import { usePerfDrawn } from "../src/perf";
+import { Button } from "../src/ui/controls";
 import { CourseDot, EmptyState } from "../src/ui/display";
 import { type IconProps, Icons } from "../src/ui/icons";
-import { List, Meta, Page, Section } from "../src/ui/layout";
+import { factsLabel, List, Meta, Page, Section } from "../src/ui/layout";
 import { Text } from "../src/ui/text";
 import { space, useTheme } from "../src/ui/theme";
 import { TopBar } from "../src/ui/top-bar";
@@ -54,6 +55,7 @@ export default function Alerts() {
   const f = useFormat();
   const now = useNow();
   const theme = useTheme();
+  const c = theme.color;
   const bridge = useBridge();
   const nav = useNav();
   const openCheckIn = useOpenCheckIn();
@@ -80,17 +82,9 @@ export default function Alerts() {
           title={t("alerts.title")}
           actions={
             anyUnread ? (
-              <Pressable
-                onPress={() => setReadAt(now)}
-                accessibilityRole="button"
-                hitSlop={8}
-                style={{ paddingHorizontal: space[3] }}
-                testID="action.markAllRead"
-              >
-                <Text size="small" weight="medium" tone="accent">
-                  {t("alerts.markAllRead")}
-                </Text>
-              </Pressable>
+              <Button variant="ghost" onPress={() => setReadAt(now)} testID="action.markAllRead" style={{ marginRight: space[2] }}>
+                {t("alerts.markAllRead")}
+              </Button>
             ) : undefined
           }
         />
@@ -98,7 +92,7 @@ export default function Alerts() {
     >
       {items.length === 0 && (
         <EmptyState
-          icon={<Icons.Bell size={18} color={theme.color.muted} />}
+          icon={<Icons.Bell size={24} color={c.onSecondaryContainer} />}
           title={t("alerts.empty")}
           description={t(sixOut ? "alerts.emptyHintEdunex" : "alerts.emptyHint")}
         />
@@ -109,40 +103,42 @@ export default function Alerts() {
             {group.map((item) => {
               const Icon = KIND_ICON[item.kind];
               const unread = isUnread(item);
+              const pressing = PRESSING.has(item.kind);
               const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
+              const title = t(item.title.key, item.title.vars);
+              const body = item.body ? t(item.body.key, item.body.vars) : null;
+              const when = period === "today" || period === "yesterday" ? f.time(item.at) : `${f.weekdayShort(item.at)} ${f.dayMonth(item.at)}`;
               return (
                 <Pressable
                   key={item.id}
                   testID={`row.alert.${item.id}`}
                   accessibilityRole="button"
-                  android_ripple={{ color: theme.color.selected }}
+                  // Unread first in what's read out, as the dot says it first to the eye.
+                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, title, body, when)}
+                  android_ripple={{ color: c.selected }}
                   onPress={() => (item.checkIn ? openCheckIn(item.checkIn.meetingId, item.checkIn.url) : nav.go(item.target))}
-                  style={{ flexDirection: "row", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] }}
+                  style={styles.row}
                 >
-                  <View style={{ marginTop: 2, alignSelf: "flex-start" }}>
-                    <Icon size={18} color={PRESSING.has(item.kind) ? theme.color.warningFg : theme.color.faint} />
+                  <View style={[styles.mark, { backgroundColor: pressing ? c.warningBg : c.secondaryContainer }]}>
+                    <Icon size={20} color={pressing ? c.warningFg : c.onSecondaryContainer} />
                     {code && (
-                      <View style={{ position: "absolute", right: -4, bottom: -2 }}>
-                        <CourseDot color={colorOf(code)} size={8} />
+                      <View style={{ position: "absolute", right: 0, bottom: 0 }}>
+                        <CourseDot color={colorOf(code)} size={10} />
                       </View>
                     )}
                   </View>
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                    <Text size="small" weight={unread ? "semibold" : "regular"}>
-                      {t(item.title.key, item.title.vars)}
+                    <Text size="bodyLarge" weight={unread ? "semibold" : undefined} numberOfLines={3}>
+                      {title}
                     </Text>
-                    {item.body && <Meta size="caption">{t(item.body.key, item.body.vars)}</Meta>}
+                    {body && <Meta size="small">{body}</Meta>}
                   </View>
-                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingTop: 2 }}>
-                    <Text size="caption" tone="faint" tabular>
-                      {period === "today" || period === "yesterday" ? f.time(item.at) : `${f.weekdayShort(item.at)} ${f.dayMonth(item.at)}`}
+                  <View style={styles.end}>
+                    <Text size="bodySmall" tone={unread ? "primary" : "muted"} weight={unread ? "semibold" : undefined} tabular>
+                      {when}
                     </Text>
-                    {/* The dot says "belum dibaca" to a screen reader too, as the desktop's does. */}
-                    <View
-                      accessible={unread}
-                      accessibilityLabel={unread ? t("alerts.unread") : undefined}
-                      style={{ width: 8, height: 8, marginTop: 4, borderRadius: 4, backgroundColor: unread ? theme.color.accent : "transparent" }}
-                    />
+                    {/* Unread: a dot and the bold title, never the colour alone. */}
+                    {unread && <View style={[styles.dot, { backgroundColor: c.primary }]} />}
                   </View>
                 </Pressable>
               );
@@ -150,23 +146,37 @@ export default function Alerts() {
           </List>
         </Section>
       ))}
-      <View style={{ marginTop: space[6], flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space[3] }}>
-        <View style={{ flex: 1, minWidth: 200 }}>
+      <View style={{ marginTop: space[8] }}>
+        <List>
+          <Pressable
+            onPress={() => router.push({ pathname: "/settings", params: { at: "alerts" } })}
+            accessibilityRole="button"
+            android_ripple={{ color: c.selected }}
+            style={styles.row}
+            testID="action.alertSettings"
+          >
+            <View style={[styles.mark, { backgroundColor: c.secondaryContainer }]}>
+              <Icons.Settings size={20} color={c.onSecondaryContainer} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text size="bodyLarge">{t("alerts.settings")}</Text>
+              <Text size="bodyMedium" tone="muted">
+                {t("mobile.alerts.settingsHint")}
+              </Text>
+            </View>
+          </Pressable>
+        </List>
+        <View style={{ marginTop: space[3], paddingHorizontal: space[4] }}>
           <Meta size="caption">{t(sixOut ? "alerts.footnoteEdunex" : "alerts.footnote")}</Meta>
         </View>
-        <Pressable
-          onPress={() => router.push({ pathname: "/settings", params: { at: "alerts" } })}
-          accessibilityRole="button"
-          hitSlop={8}
-          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-          testID="action.alertSettings"
-        >
-          <Icons.Settings size={14} color={theme.color.accentFg} />
-          <Text size="small" weight="medium" tone="accent">
-            {t("alerts.settings")}
-          </Text>
-        </Pressable>
       </View>
     </Page>
   );
 }
+
+const styles = StyleSheet.create({
+  row: { flexDirection: "row", alignItems: "flex-start", gap: space[4], paddingHorizontal: space[4], paddingVertical: space[3], minHeight: 72 },
+  mark: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
+  end: { alignItems: "flex-end", gap: space[2], paddingTop: 2 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+});
