@@ -40,6 +40,13 @@ motion and onboarding are open. The desktop is a reference for data only.
   area holding the class now and its one button, a grey sheet, white hairline groups, course icons on white tiles,
   outlined chips, Roboto at medium weights; Jadwal and the sheet as calm as Todoist. Words 45 / 42 / 23. Shown; the
   home helper builds it as a native Beranda prototype (`mobile-r2-proto-beranda`) with the motion, recorded on `mid`.
+- **2026-11-01: Arqila on v3: "still very plain, is it just because of the mockup?"** Mostly not. v3 kept the reference
+  apps' skeleton (blue header, white rows) and dropped what makes them look alive even in stills: visible colour per
+  item, a number-first focal card, a brand typeface, expressive shapes. Stills also hide motion, the smaller part.
+  v4 (`mobile-r2-mockups`, `v4/`): v3's layout plus course-tinted tiles with filled two-tone icons, "Perlu kamu urus"
+  as two tinted countdown cards ("7 hari"), Plus Jakarta Sans for headings and numbers, M3 Expressive wavy progress
+  for the class now, a cookie check after Tandai Hadir, and the motion live (`v4-live.html`, `v4-motion.webm`). Words
+  Beranda 48, Jadwal 40, sheet 14. Every pair passes contrast.py. Shown; waiting for Arqila's word before building.
 - CI run 41219489671 (819ec87): APKs built; `e2e (app)` failed (logs once the run ends); the scenarios still running.
 - Meanwhile only work that doesn't depend on the look: fresh-install start under 2 s, JS stalls, device proofs for
   W1, W2 and W5, CI (run 41219489671 on 819ec87), the two cut-off texts, the one-title fix.
