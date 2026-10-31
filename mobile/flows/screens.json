@@ -464,10 +464,7 @@
           {
             "scrollUntilVisible": {
               "element": {
-                "text": ".*Komunikasi Pemasaran.*",
-                "childOf": {
-                  "id": "section.today"
-                }
+                "id": "row.today.class:2153983"
               },
               "direction": "DOWN",
               "timeout": 8000,
@@ -476,10 +473,7 @@
           },
           {
             "tapOn": {
-              "text": ".*Komunikasi Pemasaran.*",
-              "childOf": {
-                "id": "section.today"
-              }
+              "id": "row.today.class:2153983"
             }
           },
           {
@@ -515,10 +509,7 @@
           {
             "scrollUntilVisible": {
               "element": {
-                "text": ".*Ekonomi Infrastruktur dan Transportasi.*",
-                "childOf": {
-                  "id": "section.today"
-                }
+                "id": "row.today.class:2194402"
               },
               "direction": "DOWN",
               "timeout": 8000,
@@ -527,10 +518,7 @@
           },
           {
             "tapOn": {
-              "text": ".*Ekonomi Infrastruktur dan Transportasi.*",
-              "childOf": {
-                "id": "section.today"
-              }
+              "id": "row.today.class:2194402"
             }
           },
           {
@@ -566,10 +554,7 @@
           {
             "scrollUntilVisible": {
               "element": {
-                "text": ".*Teknik Penyelesaian Masalah Terstruktur.*",
-                "childOf": {
-                  "id": "section.today"
-                }
+                "id": "row.today.class:2185658"
               },
               "direction": "DOWN",
               "timeout": 8000,
@@ -578,10 +563,7 @@
           },
           {
             "tapOn": {
-              "text": ".*Teknik Penyelesaian Masalah Terstruktur.*",
-              "childOf": {
-                "id": "section.today"
-              }
+              "id": "row.today.class:2185658"
             }
           },
           {

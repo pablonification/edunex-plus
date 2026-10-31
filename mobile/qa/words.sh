@@ -6,6 +6,5 @@ set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 . "${QA_LAB:-C:/Users/Arqila/edunex-plus/mobile/qa}/env.sh"
 tmp=$(mktemp -d)
-adb shell uiautomator dump /sdcard/words.xml > /dev/null
-adb pull /sdcard/words.xml "$tmp/words.xml" > /dev/null
-node "$here/words.mjs" "$(cygpath -m "$tmp/words.xml" 2> /dev/null || echo "$tmp/words.xml")" "$@"
+maestro --device "${ANDROID_SERIAL:?set ANDROID_SERIAL}" hierarchy > "$tmp/hierarchy.json" 2> /dev/null
+node "$here/words.mjs" "$(cygpath -m "$tmp/hierarchy.json" 2> /dev/null || echo "$tmp/hierarchy.json")" "$@"

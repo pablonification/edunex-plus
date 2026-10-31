@@ -26,18 +26,14 @@ appId: io.github.pablonification.edunexplus.demo
           id: tab.home
 - scrollUntilVisible:
     element:
-      text: ".*Komunikasi Pemasaran.*"
-      childOf:
-        id: section.today
+      id: "row.today.class:2153983"
     direction: DOWN
     visibilityPercentage: 50
 - repeat:
     times: 2
     commands:
       - tapOn:
-          text: ".*Komunikasi Pemasaran.*"
-          childOf:
-            id: section.today
+          id: "row.today.class:2153983"
       - extendedWaitUntil:
           visible:
             id: sheet.nowClass

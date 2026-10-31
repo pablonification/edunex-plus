@@ -17,9 +17,7 @@ appId: io.github.pablonification.edunexplus.demo
     optional: true
 - waitForAnimationToEnd
 - tapOn:
-    text: ".*Komunikasi Pemasaran.*"
-    childOf:
-      id: section.today
+    id: "row.today.class:2153983"
 - extendedWaitUntil:
     visible:
       id: sheet.nowClass
