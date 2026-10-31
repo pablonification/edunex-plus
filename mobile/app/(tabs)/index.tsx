@@ -4,17 +4,17 @@ import { usePerfFocused } from "../../src/perf";
 import { Home } from "../../src/screens/home";
 import { TabHeader, usePullToRefresh } from "../../src/shell/source-status";
 import { Page } from "../../src/ui/layout";
-import { TabFreeze } from "../../src/ui/tab-freeze";
+import { TabClock } from "../../src/ui/tab-clock";
 
 export default function Screen() {
   const t = useT();
   const pull = usePullToRefresh();
   usePerfFocused("home");
   return (
-    <TabFreeze>
+    <TabClock>
       <Page testID="screen.home" header={<TabHeader title={t("nav.home")} bell />} {...pull}>
         <Home />
       </Page>
-    </TabFreeze>
+    </TabClock>
   );
 }

@@ -1,14 +1,14 @@
 import { useParam } from "../../src/nav";
 import { usePerfFocused } from "../../src/perf";
 import { TasksScreen } from "../../src/screens/tasks/list";
-import { TabFreeze } from "../../src/ui/tab-freeze";
+import { TabClock } from "../../src/ui/tab-clock";
 
 export default function Screen() {
   usePerfFocused("tasks");
   const show = useParam("show") === "done" ? "done" : undefined;
   return (
-    <TabFreeze>
+    <TabClock>
       <TasksScreen show={show} />
-    </TabFreeze>
+    </TabClock>
   );
 }
