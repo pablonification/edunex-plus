@@ -28,6 +28,11 @@ motion and onboarding are open. The desktop is a reference for data only.
   `mobile/design/r2-directions/`, 07ddde3): A · Tenang (calm, Todoist-like), B · Sorot (playful, GoPay/Gojek-like),
   C · Linimasa (a timeline with the class now as its focal stop). Beranda / Jadwal / class sheet word counts:
   A 47 / 49 / 20, B 41 / 42 / 23, C 38 / 42 / 25. Waiting for Arqila's pick; no screen-layout code until then.
+- **2026-11-01: Arqila on the three directions: "why is it giving very plain feeling?"** The lead had cut to the
+  budget and put no personality back (system font, courses as thin bars, white and grey, no moments). Answer: v2 ·
+  Hidup (`mobile-r2-mockups`, a6d187f, `v2-hidup/`): each course its colour and icon tile, the class now a vivid card in
+  its colour with a live progress bar and one white button, big numbers for what needs you, Plus Jakarta Sans for
+  headings and numbers. Words: Beranda 47, Jadwal 37, class sheet 21. Shown; waiting for Arqila's word.
 - CI run 41219489671 (819ec87): APKs built; `e2e (app)` failed (logs once the run ends); the scenarios still running.
 - Meanwhile only work that doesn't depend on the look: fresh-install start under 2 s, JS stalls, device proofs for
   W1, W2 and W5, CI (run 41219489671 on 819ec87), the two cut-off texts, the one-title fix.
