@@ -61,7 +61,6 @@ appId: io.github.pablonification.edunexplus.demo
 - scrollUntilVisible:
     element:
       id: row.nav.plan.planner
-    centerElement: true
 - tapOn:
     id: row.nav.plan.planner
 - waitForAnimationToEnd
@@ -70,7 +69,6 @@ appId: io.github.pablonification.edunexplus.demo
 - scrollUntilVisible:
     element:
       id: row.nav.plan.curriculum
-    centerElement: true
 - tapOn:
     id: row.nav.plan.curriculum
 - waitForAnimationToEnd
@@ -79,7 +77,6 @@ appId: io.github.pablonification.edunexplus.demo
 - scrollUntilVisible:
     element:
       id: row.nav.plan.krs
-    centerElement: true
 - tapOn:
     id: row.nav.plan.krs
 - waitForAnimationToEnd
@@ -88,7 +85,6 @@ appId: io.github.pablonification.edunexplus.demo
 - scrollUntilVisible:
     element:
       id: row.nav.plan.bills
-    centerElement: true
 - tapOn:
     id: row.nav.plan.bills
 - waitForAnimationToEnd
@@ -97,7 +93,6 @@ appId: io.github.pablonification.edunexplus.demo
 - scrollUntilVisible:
     element:
       id: row.nav.plan.deadlines
-    centerElement: true
 - tapOn:
     id: row.nav.plan.deadlines
 - waitForAnimationToEnd
@@ -110,7 +105,6 @@ appId: io.github.pablonification.edunexplus.demo
 - scrollUntilVisible:
     element:
       id: segment.theme
-    centerElement: true
 - takeScreenshot: 15-pengaturan-tampilan
 - tapOn:
     id: segment.theme
