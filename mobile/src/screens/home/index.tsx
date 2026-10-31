@@ -90,7 +90,7 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   return (
     <>
       <Rise screen="home" index={0}>
-        <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} health={context.health} />
+        <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} />
       </Rise>
       <Rise screen="home" index={1}>
         <FirstScanCard />

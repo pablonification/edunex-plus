@@ -11,7 +11,6 @@ import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
-import type { AttendanceHealth } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import type { NowCard } from "../../../../src/core/needs";
 import { dayNoon } from "../../../../src/core/schedule";
@@ -43,20 +42,18 @@ export function NowSection({
   courses,
   hasSchedule,
   unread,
-  health,
 }: {
   card: NowCard | null;
   courses: readonly TermCourse[];
   hasSchedule: boolean;
   /** The first day ahead with a class SIX shows that the app couldn't read. */
   unread: string | null;
-  health: ReadonlyMap<string, AttendanceHealth>;
 }) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
   const surface = useCardStyle();
-  if (card) return <Card card={card} courses={courses} health={health} />;
+  if (card) return <Card card={card} courses={courses} />;
   // Without SIX there's no timetable: no card. With one, a quiet week, unless a class on it can't be read.
   if (!hasSchedule) return null;
   return (
@@ -80,7 +77,7 @@ function countdown(from: number, at: number): { value: number; unit: "minute" | 
   return { value: Math.floor(minutes / (24 * 60)), unit: "day" };
 }
 
-function Card({ card, courses, health }: { card: NowCard; courses: readonly TermCourse[]; health: ReadonlyMap<string, AttendanceHealth> }) {
+function Card({ card, courses }: { card: NowCard; courses: readonly TermCourse[] }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
