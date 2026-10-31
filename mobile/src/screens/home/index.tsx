@@ -9,7 +9,6 @@ import { View } from "react-native";
 import { type TermCourse, useTerm, useTermCourses } from "../../../../src/app/courses";
 import { useHomeWorld } from "../../../../src/app/home-world";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
-import { firstName } from "../../../../src/app/names";
 import { useDataset } from "../../../../src/app/store";
 import { PERIOD_NEAR } from "../../../../src/core/exams";
 import { attention, dueItems, type HomeContext, homeContext, needsRange, nowCard, todayPlan, unreadAhead } from "../../../../src/core/needs";
@@ -18,7 +17,6 @@ import { perfFirstData, usePerfDrawn } from "../../perf";
 import { Card, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
-import { Text } from "../../ui/text";
 import { shape, space, useTheme } from "../../ui/theme";
 import { Changes } from "./changes";
 import { FirstScanCard, NotifyCard } from "./first-run";
@@ -49,7 +47,7 @@ export function Home() {
 
   return (
     <>
-      <Greeting name={name} />
+      <Greeting />
       {timetableChanged && (
         <View style={{ marginBottom: space[4] }}>
           <SixPageNote datasets={["six.schedule"]} />
@@ -60,8 +58,11 @@ export function Home() {
   );
 }
 
-/** "Kamis, 8 Oktober · Semester 1 2026/2027", then "Selamat pagi, Dimas", and an exam period coming as one quiet line. */
-const Greeting = memo(function Greeting({ name }: { name: string | undefined }) {
+/**
+ * The day and the term, and an exam period coming, as quiet lines: the screen's one title is the bar's ("Beranda"),
+ * so no greeting heading under it.
+ */
+const Greeting = memo(function Greeting() {
   const f = useFormat();
   const now = useNow();
   const term = useTerm();
@@ -71,9 +72,6 @@ const Greeting = memo(function Greeting({ name }: { name: string | undefined }) 
         {f.dateLong(now)}
         {term ? f.term(term) : null}
       </Meta>
-      <Text size="headlineSmall" accessibilityRole="header" style={{ marginTop: 2 }}>
-        {`${f.greeting()}${name ? `, ${firstName(name)}` : ""}`}
-      </Text>
       <ExamWeek />
     </View>
   );
