@@ -16,6 +16,10 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 30000
 - extendedWaitUntil:
     notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
       id: status.firstRead
     timeout: 120000
 - scrollUntilVisible:

@@ -10,6 +10,10 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: tab.home
     timeout: 120000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 - scrollUntilVisible:
     element:
       id: "row.need.attendance:KU5014:out"

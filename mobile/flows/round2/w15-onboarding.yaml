@@ -22,6 +22,10 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: tab.home
     timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 - assertNotVisible:
     id: screen.welcome
 - extendedWaitUntil:

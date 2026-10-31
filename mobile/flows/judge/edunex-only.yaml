@@ -6,6 +6,10 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: tab.home
     timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-36-tanpa-six-beranda
 - tapOn:

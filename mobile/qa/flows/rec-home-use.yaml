@@ -8,6 +8,10 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: card.now
     timeout: 120000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 - tapOn:
     id: action.notify.later
     optional: true

@@ -12,9 +12,17 @@ appId: io.github.pablonification.edunexplus.demo
       id: tab.home
     timeout: 120000
 - extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
     visible:
       id: card.now
     timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
 - assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
 - assertNotVisible: ".*Dicek tiap 2 menit.*"
 - assertNotVisible: ".*Presensi Edunex juga dibuka.*"

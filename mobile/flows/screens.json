@@ -13,7 +13,8 @@
     "Status 'placeholder': steps written from the testID convention (PROGRESS.md Decision 8) before the screen exists;",
     "the lead replaces them with the real steps and sets status to 'ready' as each screen lands.",
     "'scrollTimeout': how long each item's scroll may take on a long screen (default 4000 ms). 'phoneSkips' (top level): the desktop's items the phone leaves out on purpose, by entry id pattern, with the scope row and why: no checks, not counted.",
-    "The shared launch is tried twice: over a course's sixty fresh starts, one now and then stuck on its splash."
+    "The shared launch is tried twice: over a course's sixty fresh starts, one now and then stuck on its splash.",
+    "The demo signs in and reads after the first frame (mobile/src/host/settling.ts): the launch waits for the top bar's status.settling to go before any check."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -33,6 +34,14 @@
                 "id": "tab.home"
               },
               "timeout": 120000
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "notVisible": {
+                "id": "status.settling"
+              },
+              "timeout": 180000
             }
           }
         ]
@@ -156,6 +165,14 @@
               "id": "(tab\\.home|screen\\.welcome)"
             },
             "timeout": 120000
+          }
+        },
+        {
+          "extendedWaitUntil": {
+            "notVisible": {
+              "id": "status.settling"
+            },
+            "timeout": 180000
           }
         }
       ],
