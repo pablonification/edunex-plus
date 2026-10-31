@@ -27,7 +27,7 @@ while [ $# -gt 0 ]; do
     --out) out=$(cygpath -m "$2"); shift 2 ;;
     --record) record=$(cygpath -m "$2"); shift 2 ;;
     --recorder) recorder=$2; shift 2 ;;
-    *) flow=$(cygpath -m "$1"); shift ;;
+    *) [ -f "$1" ] && flow=$(cygpath -m "$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"); shift ;;
   esac
 done
 [ -f "$flow" ] || { sed -n '2,17p' "$0"; exit 2; }
@@ -45,7 +45,7 @@ trap restore EXIT
 if [ "$theme" = dark ]; then dsh cmd uimode night yes > /dev/null; else dsh cmd uimode night no > /dev/null; fi
 [ -z "$font" ] || dsh settings put system font_scale "$font"
 
-work=$(mktemp -d)
+work=$(cygpath -m "$(mktemp -d)")
 if [ -n "$record" ]; then
   mkdir -p "$(dirname "$record")"
   if [ "$recorder" = phone ]; then
@@ -59,9 +59,9 @@ if [ -n "$record" ]; then
 fi
 
 echo "$name on $AVD ($S), $theme${font:+, font $font} → $out"
-# From the work folder, so takeScreenshot's pictures land there.
+# Maestro 2.12 puts takeScreenshot's pictures in its test output folder, under <flow>/takeScreenshot/.
 status=0
-(cd "$work" && maestro --device "$S" test --no-ansi --no-reinstall-driver -e THEME="$theme" "$flow") > "$out/$prefix-maestro.txt" 2>&1 || status=$?
+maestro --device "$S" test --no-ansi --no-reinstall-driver --test-output-dir "$(cygpath -m "$work/maestro")" -e THEME="$theme" "$flow" > "$out/$prefix-maestro.txt" 2>&1 || status=$?
 notdone=$(grep -E 'COMPLETED|FAILED|WARNED|SKIPPED' "$out/$prefix-maestro.txt" | grep -vc COMPLETED || true)
 [ "$notdone" = 0 ] || echo "  $notdone step(s) not completed (optional ones skipped, or a failure): $(cygpath -w "$out/$prefix-maestro.txt")"
 
@@ -80,12 +80,13 @@ if [ -n "$record" ]; then
   echo "  recording: $(cygpath -w "$record")"
 fi
 
-for png in "$work"/*.png; do
+find "$work/maestro" -name '*.png' -path '*takeScreenshot*' > "$work/pngs.txt" 2> /dev/null || true
+while read -r png; do
   [ -f "$png" ] || continue
   shot=$(basename "$png" .png)
   cp "$png" "$out/png/$prefix-$shot.png"
-  ffmpeg -hide_banner -loglevel error -y -i "$png" -vf "scale=-2:'min(1080,ih)'" -c:v libwebp -quality 80 "$out/$prefix-$shot.webp"
-done
+  ffmpeg -hide_banner -loglevel error -y -i "$png" -vf "scale=-2:'min(1080,ih)'" -c:v libwebp -quality 80 "$out/$prefix-$shot.webp" < /dev/null
+done < "$work/pngs.txt"
 rm -rf "$work"
 echo "  $(ls "$out" | grep -c "^$prefix-.*\.webp$") pictures"
 exit $status

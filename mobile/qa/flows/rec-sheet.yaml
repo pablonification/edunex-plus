@@ -24,3 +24,6 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: sheet-open
 - pressKey: back
 - waitForAnimationToEnd
+- tapOn:
+    id: action.back
+- waitForAnimationToEnd
