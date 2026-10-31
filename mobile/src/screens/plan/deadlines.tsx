@@ -18,11 +18,10 @@ import { relativeTime } from "../../../../src/core/intl";
 import { itbCalendar } from "../../../../src/core/links";
 import type { AcademicCalendar, CalendarEvent } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
-import { toast } from "../../swaps/overlays";
 import { Button, Chip, ChipRow, Segmented } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { List, Meta } from "../../ui/layout";
+import { List, Meta, Notice } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
@@ -65,6 +64,8 @@ export function Tab(_: { onCalendar?: () => void }) {
   const calendar = useDataset("itb.calendar");
   const [view, setView] = useViewChoice<"mine" | "all">("deadlines.view", "mine");
   const [picked, setPicked] = useState<Picked | null>(null);
+  // The phone's calendar didn't open: said on the page, under the view switch, until the next try (never a snackbar).
+  const [failed, setFailed] = useState(false);
   if (!calendar) return <EmptyState icon={<Icons.CalendarClock size={20} color={theme.color.muted} />} title={t("deadlines.empty")} />;
   return (
     <View>
@@ -94,9 +95,14 @@ export function Tab(_: { onCalendar?: () => void }) {
             {t("mobile.deadline.tapHint")}
           </Text>
         </View>
+        {failed && (
+          <View accessibilityRole="alert" accessibilityLiveRegion="assertive">
+            <Notice tone="danger" title={t("mobile.deadline.calendarFailed")} testID="note.calendarFailed" />
+          </View>
+        )}
       </View>
       {view === "mine" ? <ForYou onPick={setPicked} /> : <EveryEvent onPick={setPicked} />}
-      <AddToCalendar picked={picked} onClose={() => setPicked(null)} />
+      <AddToCalendar picked={picked} onClose={() => setPicked(null)} onFailed={setFailed} />
     </View>
   );
 }
@@ -569,13 +575,14 @@ function EventRow({ entry, onPick }: { entry: CalendarEntry; onPick: (picked: Pi
 }
 
 /** The sheet a date opens: add it to the phone's calendar (its own app, filled in), or read it on ITB's calendar. */
-function AddToCalendar({ picked, onClose }: { picked: Picked | null; onClose: () => void }) {
+function AddToCalendar({ picked, onClose, onFailed }: { picked: Picked | null; onClose: () => void; onFailed: (failed: boolean) => void }) {
   const t = useT();
   const theme = useTheme();
   const open = useOpenExternal();
   const calendar = useDataset("itb.calendar");
   const { url, year } = itbCalendar(useThisTerm(), calendar);
   const add = async (pick: Picked) => {
+    onFailed(false);
     try {
       // A whole-day event on its days; noon in WIB is the same date wherever the calendar keeps it.
       await createEventInCalendarAsync({
@@ -586,7 +593,7 @@ function AddToCalendar({ picked, onClose }: { picked: Picked | null; onClose: ()
         notes: pick.event.title,
       });
     } catch {
-      toast(t("mobile.deadline.calendarFailed"), "danger");
+      onFailed(true);
     }
   };
   return (
