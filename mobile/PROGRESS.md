@@ -250,7 +250,12 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
     signed in, and a session that ended sign in again without a password. Signing out of everything wipes it all,
     signing out of Edunex clears its site's storage, of SIX its cookies.
 20. **The phone starts due-only** (`EngineDeps.startDueOnly`), the desktop as before. Pull to refresh reads all.
-21. **Helpers run on the desktop's one Claude account at effort high** (Arqila, 2026-10-31).
+21. **Helpers run at effort high, spread over the desktop's three Claude accounts** (Arqila, 2026-10-31; amended
+    2026-11-01). `claudeAgent` ("Claude"), `claudeAgent_claude_dev_1` ("Claude Dev 1"), `claudeAgent_claude_dev_2`
+    ("Claude Dev 2"), all Opus 5.5. Every desktop launch names its account (`providerInstanceId` / `modelSelection`),
+    so no single 5-hour limit stops every helper at once. Switching a running thread's account ends its run: switch
+    at a clean point (pushed, locks freed), then send "continue". Now: Claude: home (Beranda), schedule-courses
+    (Jadwal), the judge later; Dev 1: kuliah; Dev 2: akademik, tasks-academic (Tugas).
 22. **Helpers push their own branches from the desktop** (`gh` signed in as pablonification there since ~19:45,
     2026-10-31; before that they could only commit locally). Pictures go on the piece's branch; screen recordings on a
     separate `media-<piece>` branch, never merged, so videos stay out of `mobile`'s history. The desktop's token has no
@@ -282,8 +287,8 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | home | Beranda, swipe (W7), one target (W12), onboarding (W15), fresh-install speed | `mobile-r2-home` (from `mobile-shell`) | handed back; notes `mobile/qa/home-notes.md` |
 | schedule-courses | Jadwal agenda, class sheet, W13 (reminder's Tandai Hadir, widget today, calendar sync), Kuliah, course + module, W1 on the device, W5 proof | `mobile-r2-schedule-courses` | running |
 | tasks-academic | Tugas, Task, Exam, Akademik and its screens, Settings, Search, Notifikasi, W9 | `mobile-r2-tasks-academic` | running |
-| kuliah | Kuliah, course page, module in v4 (W1 kept) | `mobile-r2-kuliah` (from `mobile-r2-sched-base`) | running (desktop, launched 2026-11-01 ~06:35) |
-| akademik | Akademik and its screens (Nilai, Rencana, Kurikulum, KRS, UKT, Kalender), Settings, Search, Notifikasi in v4 | `mobile-r2-akademik` (from `mobile-r2-tasks-base`) | running (desktop, launched 2026-11-01 ~06:35) |
+| kuliah | Kuliah, course page, module in v4 (W1 kept) | `mobile-r2-kuliah` (from `mobile-r2-sched-base`) | running (desktop, Claude Dev 1, launched 2026-11-01 ~06:35) |
+| akademik | Akademik and its screens (Nilai, Rencana, Kurikulum, KRS, UKT, Kalender), Settings, Search, Notifikasi in v4 | `mobile-r2-akademik` (from `mobile-r2-tasks-base`) | running (desktop, Claude Dev 2, launched 2026-11-01 ~06:35) |
 
 ## Round 1 (done 2026-10-31; kept for its decisions and proofs)
 
@@ -608,10 +613,6 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
   T3 on the Mac when you can; I'll put helpers there too.
 - **2026-11-01: the desktop was restarted by Arqila (Gradle's stuck locks).** To drop once the home helper's first
   local build after the restart is clean.
-- **Round 2: the desktop (DESKTOP-4SEOA4J) has only one Claude account**, shown as "Claude"; there is no
-  "Contact" or "Dev 1" there. All helpers run on that one account, so three at once may run it out sooner.
-  Proposed: add the two accounts in T3 Code on the desktop (Settings → Providers) if you want them split; I
-  keep working on the one meanwhile.
 - **Real sign-in can only be proven with a real ITB account.** On Redroid, ITB's real sign-in
   page loads in the app (sso-edunex → login.microsoftonline.com, the address shown beside the
   lock), and the whole flow after it is proven with the demo's made-up sign-in. Proposed: once the
