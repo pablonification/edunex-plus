@@ -24,6 +24,11 @@ motion and onboarding are open. The desktop is a reference for data only.
   which direction and what to change. Until Arqila picks, nobody writes screen-layout code and no screen helper's
   branch is merged. Then the chosen direction is built on Beranda first and shown to Arqila in the real app before
   it rolls out to the other screens.
+- **2026-11-01 01:15: three directions shown to Arqila** (the lead's thread, html_render; branch `mobile-r2-mockups`,
+  `mobile/design/r2-directions/`, 07ddde3): A · Tenang (calm, Todoist-like), B · Sorot (playful, GoPay/Gojek-like),
+  C · Linimasa (a timeline with the class now as its focal stop). Beranda / Jadwal / class sheet word counts:
+  A 47 / 49 / 20, B 41 / 42 / 23, C 38 / 42 / 25. Waiting for Arqila's pick; no screen-layout code until then.
+- CI run 41219489671 (819ec87): APKs built; `e2e (app)` failed (logs once the run ends); the scenarios still running.
 - Meanwhile only work that doesn't depend on the look: fresh-install start under 2 s, JS stalls, device proofs for
   W1, W2 and W5, CI (run 41219489671 on 819ec87), the two cut-off texts, the one-title fix.
 - Helpers paused on layout, each on look-free work: home (cut-off texts, one-title TabHeader/Page, fresh install
