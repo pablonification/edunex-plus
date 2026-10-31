@@ -14,6 +14,7 @@ import { type FetchFile, readFile } from "../../../src/desktop/remote-files";
 import type { Engine } from "../../../src/engine/engine";
 import { EngineError } from "../../../src/engine/errors";
 import { linkGone, statusIn } from "./download-errors";
+import { downloadName, typeOf } from "./file-kind";
 import type { Handlers } from "./handlers";
 import { saveOffline, saveProgress } from "./save-offline";
 
@@ -45,6 +46,17 @@ function safeName(name: string): string {
     .replace(/^\.+/, "")
     .trim();
   return clean || "file";
+}
+
+/** The file name a Content-Disposition header gives ("attachment; filename=\"Slide.pdf\""), if any. */
+function attachmentName(header: string | null): string | null {
+  const match = header ? /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(header) : null;
+  if (!match) return null;
+  try {
+    return safeName(decodeURIComponent(match[1]!));
+  } catch {
+    return safeName(match[1]!);
+  }
 }
 
 const phoneFetch: FetchFile = (url, init) => expoFetch(url, init) as unknown as Promise<Response>;
@@ -95,30 +107,45 @@ export function phoneFileHandlers(context: FileContext): Pick<Handlers, FileActi
   const downloads = new Downloads();
   const fetchFile = context.fetchFile ?? phoneFetch;
 
-  /** Downloads `url` into a new file named `name`, and records it; nothing is left behind when it fails. */
+  /**
+   * Downloads `url` and keeps it as `name` with the extension the file really has (./file-kind.ts: the server's name
+   * or type, else its first bytes), so Android knows which app opens it; records it. Nothing is left behind when it fails.
+   */
   const download = async (url: string, name: string): Promise<File> => {
-    const file = downloads.place(name);
+    // A folder of its own for each download: Android names the file there from the server's answer.
+    const incoming = new Directory(Paths.cache, "incoming", Math.random().toString(36).slice(2, 10));
     try {
+      incoming.create({ intermediates: true });
+      let got: File;
+      let contentType: string | null = null;
       if (context.fetchFile) {
         // The demo's pretend storage answers in memory.
         const response = await fetchFile(url, { signal: new AbortController().signal, credentials: "omit", redirect: "error" });
         if (!response.ok) throw new EngineError(linkGone(response.status) ? "Rejected" : "Failed", `The storage answered ${response.status}`);
-        file.create();
-        file.writeSync(new Uint8Array(await response.arrayBuffer()));
+        contentType = response.headers.get("content-type");
+        got = new File(incoming, attachmentName(response.headers.get("content-disposition")) ?? "download");
+        got.create();
+        got.writeSync(new Uint8Array(await response.arrayBuffer()));
       } else {
         // Straight to the file, however big: Android's own download, not through the app's memory.
-        await File.downloadFileAsync(url, file);
+        got = await File.downloadFileAsync(url, incoming);
       }
+      const handle = got.open();
+      const head = handle.readBytesSync(4096);
+      handle.close();
+      const file = downloads.place(downloadName(name, { serverName: got.name, contentType, head }));
+      got.moveSync(file);
+      downloads.record(url, file);
+      return file;
     } catch (error) {
-      if (file.exists) file.delete();
       if (error instanceof EngineError) throw error;
       const message = error instanceof Error ? error.message : String(error);
       // Refused: the link expired or the file is gone. Anything else is the connection.
       const status = statusIn(message);
       throw new EngineError(status !== null && linkGone(status) ? "Rejected" : "Failed", `The download failed: ${message}`);
+    } finally {
+      if (incoming.exists) incoming.delete();
     }
-    downloads.record(url, file);
-    return file;
   };
 
   const local = (url: string): File => {
@@ -144,8 +171,10 @@ export function phoneFileHandlers(context: FileContext): Pick<Handlers, FileActi
     },
     "files.open": async ({ url }) => {
       const file = local(url);
-      if (!(await file.canPreview().catch(() => false))) throw new EngineError("Rejected", `No app on this phone opens ${file.name}`);
-      await file.preview({ title: file.name });
+      // The type by the file's extension (./file-kind.ts), not the system's guess, which knows fewer.
+      const mimeType = typeOf(file.name) ?? undefined;
+      if (!(await file.canPreview({ mimeType }).catch(() => false))) throw new EngineError("Rejected", `No app on this phone opens ${file.name}`);
+      await file.preview({ title: file.name, mimeType });
       return {};
     },
     // A phone has no folder to show the file in: the share sheet is where it goes from here (Drive, chat, another app).
