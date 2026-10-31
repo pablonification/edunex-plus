@@ -1,0 +1,26 @@
+# W10 (round 2): a joyful, earned moment on Beranda. With SIX's Tandai Hadir open in the morning's class (the
+# check-in-open demo), the now card's one button is Tandai Hadir; after the Student went to press it and SIX no
+# longer shows it, the card says so with a check that draws itself (and a haptic; a fade with Remove animations).
+# Fails on round 1 (9395cea: the card only says Tandai Hadir no longer shows); passes after.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CHECK_IN=open"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- extendedWaitUntil:
+    visible:
+      id: action.checkIn
+    timeout: 30000
+- tapOn:
+    id: action.checkIn
+- waitForAnimationToEnd
+- back
+# The demo's SIX page is pretend: opening it counts as pressing the button there. SIX's next read (every 2 minutes
+# while the class is on) no longer shows it.
+- extendedWaitUntil:
+    visible:
+      id: card.now.checkedIn
+    timeout: 200000

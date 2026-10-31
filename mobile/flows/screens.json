@@ -65,54 +65,80 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "action.start"
+                "id": "action.signIn"
               },
               "timeout": 60000
             }
           },
           {
             "tapOn": {
-              "id": "action.start"
+              "id": "action.signIn"
             }
           },
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "action.connect.edunex"
+                "id": "tab.home"
               },
-              "timeout": 60000
+              "timeout": 120000
             }
           },
           {
             "tapOn": {
-              "id": "action.connect.edunex"
+              "id": "action.account"
             }
           },
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "screen.welcome.connected"
+                "id": "screen.settings"
               },
-              "timeout": 180000
+              "timeout": 30000
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "text": ".*Sistem dan Teknologi Informasi.*"
+              },
+              "timeout": 180000,
+              "optional": true
             }
           }
         ],
         "^ready$": [
           {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "action.signIn"
+              },
+              "timeout": 60000
+            }
+          },
+          {
             "tapOn": {
-              "id": "action.continue"
+              "id": "action.signIn"
             }
           },
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "screen.welcome.ready"
+                "id": "tab.home"
+              },
+              "timeout": 120000
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "card.firstScan"
               },
               "timeout": 600000
             }
           }
         ]
-      }
+      },
+      "$comment": "Round 2 (W15): the welcome is one screen; 'connected' is who's signed in, on Settings once SIX joined; 'ready' is Beranda's summary card once the first read is in."
     },
     "first-scan": {
       "status": "ready",
@@ -144,59 +170,35 @@
               {
                 "extendedWaitUntil": {
                   "visible": {
-                    "id": "action.start"
+                    "id": "action.signIn"
                   },
                   "timeout": 60000
                 }
               },
               {
                 "tapOn": {
-                  "id": "action.start"
+                  "id": "action.signIn"
                 }
               },
               {
                 "extendedWaitUntil": {
                   "visible": {
-                    "id": "action.connect.edunex"
+                    "id": "tab.home"
                   },
-                  "timeout": 60000
-                }
-              },
-              {
-                "tapOn": {
-                  "id": "action.connect.edunex"
+                  "timeout": 120000
                 }
               },
               {
                 "extendedWaitUntil": {
                   "visible": {
-                    "id": "action.continue"
-                  },
-                  "timeout": 180000
-                }
-              },
-              {
-                "tapOn": {
-                  "id": "action.continue"
-                }
-              },
-              {
-                "extendedWaitUntil": {
-                  "visible": {
-                    "id": "action.open"
+                    "id": "card.firstScan"
                   },
                   "timeout": 600000
                 }
               },
               {
                 "tapOn": {
-                  "id": "action.open"
-                }
-              },
-              {
-                "tapOn": {
-                  "text": "(Allow|Izinkan)",
-                  "optional": true
+                  "id": "action.firstScan.open"
                 }
               },
               {
@@ -204,7 +206,7 @@
                   "visible": {
                     "id": "screen.firstScan"
                   },
-                  "timeout": 300000,
+                  "timeout": 60000,
                   "optional": true
                 }
               }
@@ -270,7 +272,155 @@
             "id": "screen.home"
           }
         }
-      ]
+      ],
+      "byEntry": {
+        "^home\\.now\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.changes"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "action.nowClass"
+                    },
+                    "direction": "UP",
+                    "timeout": 4000,
+                    "optional": true
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "action.nowClass"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "sheet.nowClass"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "^home\\.change\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "sheet.changes"
+                }
+              },
+              "commands": [
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "action.changes"
+                    },
+                    "direction": "DOWN",
+                    "timeout": 6000,
+                    "optional": true
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "action.changes"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "sheet.changes"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "^home\\.absence-budget\\.([a-z0-9]+)": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.changes"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          }
+        ],
+        "^home\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.changes"
+                }
+              },
+              "commands": ["back"]
+            }
+          }
+        ]
+      }
     },
     "changes": {
       "status": "ready",

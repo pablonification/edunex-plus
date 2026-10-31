@@ -1,0 +1,50 @@
+# W7 (round 2): swiping a row on Beranda works as in Gmail. Swiped toward the end past the threshold, "Sudah tahu"
+# commits: the row leaves and the snackbar offers Urungkan, which brings it back. Swiped toward the start, "Ingatkan
+# nanti" opens its times. The long-press menu stays as the visible way.
+# Fails on round 1 (9395cea: a swipe only reveals buttons, toward the start; the row stays); passes after.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- scrollUntilVisible:
+    element:
+      id: "row.need.attendance:KU5014:out"
+    direction: DOWN
+    timeout: 10000
+    centerElement: true
+- swipe:
+    from:
+      id: "row.need.attendance:KU5014:out"
+    direction: RIGHT
+    duration: 300
+- extendedWaitUntil:
+    visible: "Urungkan"
+    timeout: 5000
+- assertNotVisible:
+    id: "row.need.attendance:KU5014:out"
+- tapOn: "Urungkan"
+- extendedWaitUntil:
+    visible:
+      id: "row.need.attendance:KU5014:out"
+    timeout: 5000
+- swipe:
+    from:
+      id: "row.need.exam:DK4073-UTS"
+    direction: LEFT
+    duration: 300
+- extendedWaitUntil:
+    visible:
+      id: sheet.snooze
+    timeout: 5000
+- back
+# The visible way: a long press opens the same choices.
+- longPressOn:
+    id: "row.need.attendance:KU5014:out"
+- extendedWaitUntil:
+    visible:
+      id: sheet.row
+    timeout: 5000

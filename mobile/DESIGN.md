@@ -98,7 +98,8 @@ heading → headlineSmall, figure/display → headlineMedium.
 | `Chip` / `ChipRow` | Filter chip | 32 high, outlined; picked: secondaryContainer and a check |
 | `Segmented` | Segmented buttons | 40 high, outlined, picked with a check |
 | `Switch` | M3 switch | 52×32, thumb grows when on |
-| `List` + `Row` | List items in a group | tonal tiles 2 dp apart, round group ends; 56 dp min; no chevrons; one row, one target, one outcome |
+| `List` + `Row` | List items in a group | tonal tiles 2 dp apart, round group ends; 56 dp min; no chevrons; one row, one target, one outcome; `quick` names a row's swipe actions for TalkBack |
+| `SwipeRow` | Swipe to act (Gmail) | see Patterns; on the UI thread (gesture handler 3 + Reanimated) |
 | `Card` | Filled card | plain (Low), raised (Container, the one card that leads), sunken (High) |
 | `Section`, `PageHeader`, `Notice`, `StatRow`, `Meta` | | as before, on the scale |
 | `EmptyState` | | icon in a secondaryContainer circle, Title M, a line why, the next step as a button |
@@ -131,6 +132,14 @@ heading → headlineSmall, figure/display → headlineMedium.
   dialog only when it blocks. The snackbar says what happened, with Undo.
 - **Undo over confirm** for routine actions; confirm only what can't be undone, naming it.
 - **Every gesture has a visible way too** (a swipe also in the long-press menu, the menu also in ⋮ or a button).
+- **Swipe on a row = Android's commit swipe** (`SwipeRow`, Gmail's): the row follows the finger over the action's
+  colour; past 35% of its width (or a flick past 25%) a haptic tick and the icon growing say letting go will do it.
+  A "done" (success tone) swipes toward the end, anything else toward the start, the same on every screen. An action
+  that puts the row away (`leaves`, the default) slides it out, folds it, then runs, and its snackbar offers Urungkan
+  (a row still there 1.5 s later comes back); one that opens a choice (`leaves: false`, Ingatkan nanti) springs back
+  and opens it. Every swipe is also in the long-press `ActionSheet` and in TalkBack's actions (`Row quick=`).
+- **A card is one target**: the whole card opens one thing (Beranda's now card: its class's sheet); a labelled
+  button inside it is the card's one action, never an arrow to somewhere else.
 - **Speed**: every screen calls `usePerfDrawn(ready)` (a tab: `usePerfFocused(name)`); targets on the lab's
   release builds: tab switch < 300 ms, screen open < 500 ms, no JS block > 50 ms while moving. Draw the
   first screenful first: defer what's below it a frame, FlashList for long lists.
