@@ -139,3 +139,36 @@ runs compare nothing and aren't in the table.
 What's left over 50 ms: the tick still redraws the now card, the greeting and the top bar's status line (~50 ms on
 `weak`); a data change redraws every tab subscribed to it at once (Jadwal, Kuliah, Beranda), a shell-level matter
 (gate data like the clock, or let hidden tabs skip it).
+
+## Check A (same data), release 2843f6b on `mid`
+
+| Scenario | Screens run | Score |
+| --- | --- | --- |
+| signed-in | home 20/20, changes 3/3, courses 6/6, alerts 3/3, settings 12/12, first-scan 8/8, presence 9/9, tasks 15/15 | 100% of those |
+| first-run | welcome 4/4, first-scan 8/8 | 12/12, 100% |
+| check-in-open | home | 20/20 |
+| edunex-only | home | 9/9 |
+
+`screens.json` changes: Beranda's now-card facts are checked in its sheet, Yang berubah's in its sheet, the old course
+cards' (class, SKS, absences) on each course's page from Kuliah; the first run's account on Settings once SIX joined,
+its counts on Beranda's summary card, each state from a fresh start. Not rerun here: the other helpers' screens this
+branch doesn't touch (course, module, plan, grades, task, exam, schedule, class, search); the shell measured them at
+100% on the same base. A full-scenario run (`maestro test …/signed-in`) stalled once in the course flow with the app
+in the background (Maestro grinding through optional scrolls on the launcher); the per-screen runs above are each
+their own `maestro test`.
+
+## Pictures and recordings
+
+`mobile/report/img/mobile-r2-home/`: `weak-{light,dark,light-font1.3}-NN-*.webp` and `mid-…` (the flow:
+`qa/flows/home-shots.yaml`): the welcome, Beranda filling in, the summary card, the now card with Tandai Hadir, its
+sheet, Beranda, Hari ini, Yang berubah's sheet, a swipe and its snackbar, Ingatkan nanti's times.
+Recordings on branch `media-mobile-r2-home`, `qa-media/mobile-r2-home/`: `r2home-first-run-weak.mp4` (40 s),
+`r2home-beranda-weak.mp4` (38 s), real speed (flows `qa/flows/rec-home-*.yaml`).
+
+## Shaky, and for others
+
+- **The shared `Sheet`'s `footer` is cut off** (shell, `src/ui/sheet.tsx`): on `mid` and `weak` the native sheet
+  measured content with a footer short and hid the footer's last ~20–60 dp. Beranda's sheets put their buttons at the
+  end of the content instead (as Jadwal's does). Every other `footer` user should be looked at.
+- **A data change redraws every tab** that reads it (the check-in read every 2 min in class: 200–560 ms on `weak`).
+- The swipe's flick and threshold were tuned by hand on the emulators; worth a feel on a real phone.
