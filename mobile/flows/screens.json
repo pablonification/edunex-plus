@@ -534,11 +534,6 @@
           "assertVisible": {
             "id": "screen.schedule"
           }
-        },
-        {
-          "tapOn": {
-            "id": "segment.view.week"
-          }
         }
       ],
       "byState": {
@@ -551,11 +546,6 @@
           {
             "assertVisible": {
               "id": "screen.schedule"
-            }
-          },
-          {
-            "tapOn": {
-              "id": "segment.view.week"
             }
           },
           {
@@ -577,7 +567,15 @@
           },
           {
             "tapOn": {
-              "id": "segment.view.month"
+              "id": "action.month"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.month"
+              },
+              "timeout": 10000
             }
           }
         ]

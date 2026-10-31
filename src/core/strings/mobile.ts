@@ -101,6 +101,23 @@ export const mobileStrings = {
   "mobile.schedule.monthsAhead": { id: "{count} bulan lagi", en: { one: "In {count} month", other: "In {count} months" } },
   "mobile.schedule.today": { id: "Hari ini", en: "Today" },
   "mobile.schedule.todayLabel": { id: "Kembali ke hari ini", en: "Back to today" },
+  // Jadwal's top bar: the month, a screen away.
+  "mobile.schedule.month": { id: "Lihat sebulan", en: "Month view" },
+  // Jadwal's ⋮: the reminder before each class (the engine's "Kuliah sebentar lagi"), with how long before.
+  "mobile.schedule.remind": { id: "Ingatkan sebelum kuliah", en: "Remind me before class" },
+  "mobile.schedule.remind.hint": { id: "15 menit sebelumnya", en: "15 minutes before" },
+  "mobile.schedule.remind.on": { id: "Pengingat menyala, 15 menit sebelum tiap kuliah.", en: "Reminders on, 15 minutes before each class." },
+  "mobile.schedule.remind.off": { id: "Pengingat kuliah dimatikan.", en: "Class reminders are off." },
+  // Jadwal's ⋮: the phone's calendar kept the same as Jadwal, in a calendar of the app's own (W13).
+  "mobile.calendar.sync": { id: "Tampilkan di Kalender HP", en: "Show in phone calendar" },
+  "mobile.calendar.sync.hint": { id: "Kalender Edunex Plus, selalu terbaru", en: "An Edunex Plus calendar, kept up to date" },
+  "mobile.calendar.sync.on": {
+    id: "{count} acara ada di kalender Edunex Plus. Ikut berubah saat jadwal berubah.",
+    en: { one: "{count} event in the Edunex Plus calendar. It changes when your schedule does.", other: "{count} events in the Edunex Plus calendar. They change when your schedule does." },
+  },
+  "mobile.calendar.sync.off": { id: "Kalender Edunex Plus dihapus dari HP.", en: "The Edunex Plus calendar is off your phone." },
+  "mobile.calendar.sync.failed": { id: "Kalender HP belum bisa diperbarui", en: "Couldn't update your phone's calendar" },
+  "mobile.calendar.sync.failedHint": { id: "Jadwal di sini tetap terbaru. Coba lagi sebentar lagi.", en: "Your schedule here is up to date. Try again in a moment." },
   // "Tambahkan ke kalender HP" on the phone (S8): the events go into the phone's own calendar, in one called Edunex Plus.
   "mobile.calendar.lead": {
     id: "Kuliah, ujian dan tenggatmu masuk ke kalender HP, di kalender bernama Edunex Plus.",

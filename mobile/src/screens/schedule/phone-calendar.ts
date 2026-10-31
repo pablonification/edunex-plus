@@ -52,11 +52,11 @@ function writeRecord(record: Record): void {
   new File(Paths.document, RECORD).writeSync(JSON.stringify(record));
 }
 
-/** Calendar access, asked for once if it can still be asked. */
-async function allowed(): Promise<boolean> {
+/** Calendar access, asked for once if it can still be asked (`ask`: the Student just asked for it; a sync in the background never asks). */
+async function allowed(ask = true): Promise<boolean> {
   const now = await Calendar.getCalendarPermissions();
   if (now.granted) return true;
-  if (!now.canAskAgain) return false;
+  if (!ask || !now.canAskAgain) return false;
   return (await Calendar.requestCalendarPermissions()).granted;
 }
 
@@ -141,8 +141,13 @@ function claim(unknown: Map<string, Calendar.ExpoCalendarEvent[]>, details: { ti
  * Student picked: an event put there before in that span whose item is gone (a class SIX dropped)
  * comes out; one of a kind left out this time stays, as with the .ics file.
  */
-export async function addToPhoneCalendar(items: readonly PhoneItem[], current: ReadonlySet<string>, span: { from: number; until: number }): Promise<AddResult> {
-  if (!(await allowed())) return { kind: "denied" };
+export async function addToPhoneCalendar(
+  items: readonly PhoneItem[],
+  current: ReadonlySet<string>,
+  span: { from: number; until: number },
+  { ask = true }: { ask?: boolean } = {},
+): Promise<AddResult> {
+  if (!(await allowed(ask))) return { kind: "denied" };
   const calendar = await ownCalendar();
   const record = readRecord(calendar.id);
   const unknown = await unrecorded(calendar, record, items);
@@ -164,6 +169,15 @@ export async function addToPhoneCalendar(items: readonly PhoneItem[], current: R
     writeRecord(record);
   }
   return { kind: "added", events: items.length };
+}
+
+/** Takes the app's own calendar off the phone, with every event in it (the Student turned "Tampilkan di Kalender HP" off). */
+export async function removePhoneCalendar(): Promise<void> {
+  if (!(await Calendar.getCalendarPermissions()).granted) return;
+  const calendars = await Calendar.getCalendars();
+  for (const calendar of calendars.filter((c) => c.title === CALENDAR_NAME && c.allowsModifications && c.source?.isLocalAccount !== false)) await calendar.delete();
+  const record = new File(Paths.document, RECORD);
+  if (record.exists) record.delete();
 }
 
 /** The same events as an .ics file, through the share sheet (Drive, email, another calendar app). */

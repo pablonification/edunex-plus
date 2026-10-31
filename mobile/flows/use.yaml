@@ -102,24 +102,35 @@ appId: io.github.pablonification.edunexplus.demo
 - back
 - tapOn:
     id: action.nextWeek
-- assertVisible: "Minggu depan"
-- assertVisible: "Minggu ke-8 · 12–18 Okt"
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: "Minggu ke-8 · 12–18 Okt"
+    timeout: 5000
 - tapOn:
     id: action.today
-- assertVisible: "Minggu ini"
-- assertVisible: "Minggu ke-7 · 5–11 Okt"
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: "Minggu ke-7 · 5–11 Okt"
+    timeout: 5000
 
-# S6: the month, a day picked in it lists that day.
+# S6: the month, a screen away; a day picked in it lists that day; Back returns to the agenda.
 - tapOn:
-    id: segment.view.month
+    id: action.month
+- extendedWaitUntil:
+    visible:
+      id: screen.month
+    timeout: 10000
 - tapOn:
     id: day.2026-10-15
 - extendedWaitUntil:
     visible: "Kamis, 15 Oktober"
     timeout: 10000
 - takeScreenshot: use-10-month-day
-- tapOn:
-    id: segment.view.week
+- back
+- assertVisible:
+    id: screen.schedule
 
 # S9: Kuliah's course opens its page.
 - tapOn:

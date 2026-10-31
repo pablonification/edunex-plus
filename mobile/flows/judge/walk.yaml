@@ -116,36 +116,23 @@ appId: io.github.pablonification.edunexplus.demo
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-09-jadwal-masa-uts
 - tapOn:
-    id: segment.view.month
+    id: action.month
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-10-jadwal-bulan
+- pressKey: back
+# The phone's calendar: a setting in Jadwal's ⋮ that keeps itself current.
 - tapOn:
-    id: segment.view.week
-- scrollUntilVisible:
-    element:
-      id: action.addToCalendar
-    direction: DOWN
-    optional: true
-- tapOn:
-    id: action.addToCalendar
-    optional: true
+    id: action.scheduleMenu
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-11-ekspor-kalender
-- scrollUntilVisible:
-    element:
-      id: action.addToCalendar.confirm
-    direction: DOWN
-    optional: true
 - tapOn:
-    id: action.addToCalendar.confirm
-    optional: true
+    id: action.calendarSync
 # Android asks for the calendar once.
 - tapOn:
     text: "(Allow|Izinkan|ALLOW|IZINKAN)"
     optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-12-ekspor-kalender-selesai
-- pressKey: back
 
 # Kuliah (the courses with their absences left)
 - tapOn:
