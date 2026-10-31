@@ -154,7 +154,8 @@ Fixed on the way: primary #2862d6 → #245bcc (was 4.38 on surfaceContainerHighe
 - vitest: 23 failures in 12 files, all Windows or clock: backslash paths (phone-safe, chunk-maps,
   open-with, installers, tray-icon, vault, package-sign), `lstat 'C%3A'` (copy-lint), drift-fix-guard (Node
   TS stripping), pdf-fill, course.test "1 jam 0 mnt" (a slow run crossing the hour), itb-calendar. Every
-  `test/mobile` test passes.
+  `test/mobile` test passes. After the rebase onto df00b94: `tsc -p tsconfig.test.json` passes (the lead's ff83b6a);
+  `test/mobile` + `test/app`: 7 failures (course.test "1 jam 0 mnt", pdf-fill), the same 7 on a clean `origin/mobile` here.
 
 ## Pictures and the recording
 
