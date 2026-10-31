@@ -13,6 +13,7 @@ import { useDataset } from "../../../../src/app/store";
 import { PERIOD_NEAR } from "../../../../src/core/exams";
 import { attention, dueItems, type HomeContext, homeContext, needsRange, nowCard, todayPlan, unreadAhead } from "../../../../src/core/needs";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
+import { perfFirstData, usePerfDrawn } from "../../perf";
 import { Card, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta, PageHeader } from "../../ui/layout";
@@ -36,6 +37,8 @@ export function Home() {
   const context = useMemo(() => (world ? homeContext(world) : undefined), [world]);
   // The timetable's page changed: said here. A class on it the app couldn't read is said in Hari ini and on the card, quietly.
   const timetableChanged = useChangedPage(["six.schedule"]);
+  usePerfDrawn(context !== undefined, "tab");
+  if (context !== undefined && name) perfFirstData();
 
   return (
     <>

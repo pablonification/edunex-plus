@@ -20,6 +20,7 @@ import { createEngine, type Engine } from "../../../src/engine/engine";
 import type { Transport } from "../../../src/engine/http/transport";
 import type { Storage, Vault } from "../../../src/engine/store/storage";
 import { clearOrigin, clearWebData, cookiesFor, setCookie } from "../../modules/web-cookies";
+import { perfDoing } from "../perf";
 import { phoneSignInWindows } from "../shell/sign-in";
 import { checkInOpener, pageOpener } from "./check-in";
 import { phoneFileHandlers } from "./files";
@@ -110,6 +111,12 @@ async function makeHost(): Promise<Host> {
   const world = DEMO ? await demoWorld() : await realWorld();
   const toAndroid = !DEMO || world.notify === true;
   const log = new AppLog(() => world.clock.now());
+  // Each step of the engine names what the JS thread was doing, should it stall ("[perf] js-block", ../perf.ts).
+  const add = log.add.bind(log);
+  log.add = (level, area, message) => {
+    add(level, area, message);
+    perfDoing(area);
+  };
   const listeners = new Set<(event: unknown) => void>();
   let lang: Lang = "id";
   const notifier = phoneNotifier(() => lang);

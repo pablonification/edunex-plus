@@ -2,14 +2,15 @@
 // over the bottom tabs for everything a tab opens (a Task, a course, Settings). The crypto polyfill and
 // the background sync come first, from ../index.ts.
 import { NavigationBar } from "expo-navigation-bar";
-import { Stack } from "expo-router";
+import { Stack, useNavigationContainerRef } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDataset, useStatus } from "../../src/app/store";
 import { useWidgetUpdates } from "../src/host/widget";
 import { CourseColorPickerHost } from "../src/parts/course-color-picker";
+import { perfNavigating, perfShown, watchJsThread } from "../src/perf";
 import { FirstScanWatch } from "../src/screens/first-scan/watch";
 import { ReportAskCard } from "../src/screens/report/ask";
 import { Boot } from "../src/shell/boot";
@@ -40,11 +41,29 @@ function useNobodyIn(): boolean {
   return edunex.state === "signed-out" && !account && six.state === "signed-out" && !student;
 }
 
+/** The `[perf]` lines (../src/perf.ts): the JS thread watched, each navigation timed to its screen drawn. */
+function usePerfWatch(): void {
+  const navigation = useNavigationContainerRef() as unknown as {
+    addListener(event: "__unsafe_action__" | "state", listener: () => void): () => void;
+    getCurrentRoute(): { name: string } | undefined;
+  };
+  useEffect(() => {
+    watchJsThread();
+    const dispatched = navigation.addListener("__unsafe_action__", () => perfNavigating());
+    const shown = navigation.addListener("state", () => perfShown(navigation.getCurrentRoute()?.name ?? "?"));
+    return () => {
+      dispatched();
+      shown();
+    };
+  }, [navigation]);
+}
+
 function Frame() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const nobody = useNobodyIn();
   useWidgetUpdates();
+  usePerfWatch();
   // On first run the welcome stays until the Student moves on, so SIX can be connected right after Edunex.
   const [welcoming, setWelcoming] = useState(nobody);
   if (nobody && !welcoming) setWelcoming(true);
