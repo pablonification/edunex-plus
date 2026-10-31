@@ -163,7 +163,12 @@ function Swiper({ actions, children, testID }: { actions: readonly SwipeAction[]
       <Animated.View
         pointerEvents="none"
         importantForAccessibility="no-hide-descendants"
-        style={[StyleSheet.absoluteFill, styles.under, { backgroundColor: theme.color[bg], justifyContent: from === "left" ? "flex-start" : "flex-end" }, style]}
+        style={[
+          StyleSheet.absoluteFill,
+          styles.under,
+          { backgroundColor: theme.color[bg], justifyContent: from === "left" ? "flex-start" : "flex-end" },
+          style,
+        ]}
       >
         <Animated.View style={[styles.mark, mark]}>
           {action.icon}
