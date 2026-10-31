@@ -1,6 +1,6 @@
-// Tandai Hadir, pressed from here: the classes whose SIX page the Student opened from Beranda this run, so the card
-// can tell "you pressed it" (the button went away after they went to press it) from "SIX closed it" (it went away on
-// its own), and celebrate only the first.
+// Tandai Hadir, gone to from here: the classes whose SIX page the Student opened from Beranda this run. When SIX then
+// no longer shows the button, the card marks the Student's step with a check, saying only what the app knows: the
+// button is gone (pressed, or closed by SIX), and SIX's count after class tells whether they were marked present.
 import { useCallback, useSyncExternalStore } from "react";
 import { useOpenCheckIn } from "../../../../src/app/hooks";
 

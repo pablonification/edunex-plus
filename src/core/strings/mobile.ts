@@ -41,9 +41,13 @@ export const mobileStrings = {
   // Chips on the now card: what's unusual about the class, the details in its sheet.
   "mobile.home.timeMoved": { id: "Jam berubah", en: "New time" },
   "mobile.home.roomMoved": { id: "Ruang berubah", en: "New room" },
-  // The Student went to press Tandai Hadir from the card, and SIX no longer shows it.
-  "mobile.home.checkedIn": { id: "Tandai Hadir sudah kamu tekan", en: "You pressed Tandai Hadir" },
-  "mobile.home.checkedInHint": { id: "Hitungan SIX dicek lagi setelah kuliah.", en: "SIX's count is checked again after class." },
+  // The Student went to SIX's page from the card, and SIX no longer shows the button. Pressed, or closed: only SIX's
+  // count after class says whether they were marked present.
+  "mobile.home.checkedIn": { id: "SIX tak lagi menampilkan Tandai Hadir", en: "SIX no longer shows Tandai Hadir" },
+  "mobile.home.checkedInHint": {
+    id: "Hitungan SIX setelah kuliah menunjukkan apakah hadirmu tercatat.",
+    en: "SIX's count after class shows whether you were marked present.",
+  },
   // The class sheet's way to an exam sitting's page.
   "mobile.home.openExam": { id: "Buka ujian", en: "Open exam" },
   // The first read's card on Beranda: the summary the welcome used to show.

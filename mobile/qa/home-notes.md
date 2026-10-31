@@ -38,9 +38,11 @@ lists say why (the desktop's words); the status line and banner are the shell's.
    same actions (`Row quick=`), and the swipe is the shortcut.
 3. **The courses left Beranda** for Kuliah. Check A's `home.absence-budget.*` entries are checked on Kuliah
    (`screens.json` `byEntry`).
-4. **Tandai Hadir done** is said only when the Student went to press it from the app (`checked-in.ts`) and SIX's next
-   read no longer shows the button; otherwise the card says SIX's own "no longer shows" line. The demo's pretend SIX
-   page counts as pressed (`host.ts`), so the moment can be seen.
+4. **After Tandai Hadir** the card marks the Student's step (they went to SIX's page from the app, `checked-in.ts`,
+   and SIX's next read no longer shows the button) with the check that draws itself, and says only what the app
+   knows: "SIX tak lagi menampilkan Tandai Hadir. Hitungan SIX setelah kuliah menunjukkan apakah hadirmu tercatat."
+   The button going away can also mean SIX closed it, or a press that failed: no claim of presence (the lead's
+   review). The demo's pretend SIX page closes the button when opened (`host.ts`), so the moment can be seen.
 
 ## The swipe (W7, `ui/swipe.tsx`, shared)
 

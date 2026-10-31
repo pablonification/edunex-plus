@@ -229,7 +229,11 @@ const CHECK = "M5 12.5l4.5 4.5L19 7.5";
 const CHECK_LENGTH = 22;
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
-/** Tandai Hadir done: a check that draws itself in a circle that pops in, and a tap of the phone. Fades with less motion. */
+/**
+ * After the Student went to SIX's page from here, SIX no longer shows Tandai Hadir: their step marked with a check that
+ * draws itself in a circle that pops in, and a tap of the phone (a fade with less motion). The words claim no presence:
+ * the button is gone, and SIX's count after class says whether it counted.
+ */
 function CheckedIn() {
   const t = useT();
   const theme = useTheme();
