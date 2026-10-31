@@ -1,0 +1,58 @@
+# Recording (qa-media/mobile-r2-home/): Beranda in use. The now card's sheet, a swipe that puts a row away and
+# Urungkan, a swipe that opens Ingatkan nanti, Yang berubah's sheet.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: card.now
+    timeout: 120000
+- tapOn:
+    id: action.notify.later
+    optional: true
+- waitForAnimationToEnd
+- tapOn:
+    id: action.nowClass
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 10000
+- waitForAnimationToEnd
+- back
+- scrollUntilVisible:
+    element:
+      id: "row.need.attendance:KU5014:out"
+    direction: DOWN
+    centerElement: true
+- swipe:
+    from:
+      id: "row.need.attendance:KU5014:out"
+    direction: RIGHT
+    duration: 500
+- waitForAnimationToEnd
+- tapOn: "Urungkan"
+- waitForAnimationToEnd
+- swipe:
+    from:
+      id: "row.need.exam:DK4073-UTS"
+    direction: LEFT
+    duration: 500
+- extendedWaitUntil:
+    visible:
+      id: sheet.snooze
+    timeout: 5000
+- waitForAnimationToEnd
+- back
+- scrollUntilVisible:
+    element:
+      id: action.changes
+    direction: DOWN
+- tapOn:
+    id: action.changes
+- extendedWaitUntil:
+    visible:
+      id: sheet.changes
+    timeout: 10000
+- waitForAnimationToEnd
+- back

@@ -79,6 +79,37 @@ warning 5.99 / 8.51, danger 5.54 / 7.64, neutral 7.23 / 8.23; the swipe's layers
 5.99 / 8.51; onSecondaryContainer on secondaryContainer (the reasons, the bell) 11.58 / 9.11; the language chip's
 outline on surface 3.92 / 5.35 (3:1 for a border). All pass.
 
-## Numbers
+## Fresh install to Beranda with data (item 5): where the time goes, and the proposal
 
-See the hand-back (and below once measured).
+Measured with the `[startup]` lines this branch adds (`host.ts`, `demo/world.ts`), release builds, the signed-in demo
+from a fresh install:
+
+| Step (JS thread) | weak | mid |
+| --- | ---: | ---: |
+| Saved data loaded (`host load`) | 22 ms | 22 ms |
+| The demo signs in to Edunex (its first read of Edunex is played fast inside `engine.signIn`) | 195 ms | see table below |
+| The demo signs in to SIX, playing SIX's first read fast (13 pages, parsed on the JS thread) | 3242 ms | |
+| The rest: ITB's calendar, the public catalog (53 pages), the first alerts settle (`clock.advance(200 s)`) | 1655 ms | |
+| **All of it, before the first frame** (`prepare`) | 5093 ms | 5043 ms |
+| After the first frame: the catalog's parse still blocks JS (`js-block … itb.catalog`) | 1247 ms | 1048–1169 ms |
+| `[perf] first-data` (JS start → Beranda drawn with data) | | 6269–6372 ms |
+
+So ~80% of the 6.3 s is the demo's own first sync, played before the first frame; Beranda's own drawing is ~0.2–0.4 s.
+The real app doesn't do this: it draws Beranda first and fills it in after the sign-in, which this branch's first run
+now shows (W15: Beranda's skeleton at once after "Masuk dengan akun ITB", data as it comes).
+
+Proposal (not made here: it changes the shared demo, `test/pretend/demo.ts`, which the desktop's demo and the
+inventory also run, and Check A's launch):
+
+1. **The phone's demo signs in before the first frame, and syncs after it**: `demoRun.prepare` split into
+   `signIn` (the Edunex token and SIX cookie in the vault, no read) and `settle` (the fast-played first read). The
+   phone awaits only `signIn` (~0.1 s), so the first frame comes at ~1.2 s with Beranda's skeleton, Edunex's data
+   ~1 s later, SIX's ~3 s later, exactly as after a real sign-in. Check A's `launch` then waits for the first read to
+   end (the status line's `status.firstRead` gone, or a `[startup] settled` mark) before its checks, so its 100% holds.
+2. **The public catalog leaves the first read**: 53 pages parsed on the JS thread (1.0–1.2 s blocked right after the
+   first frame) for Kurikulum only; read it when Kurikulum opens, or later in the background, or parse it off the JS
+   thread.
+
+Expected with both: fresh install → first frame ~1.2 s, Beranda with Edunex's data < 2 s on mid.
+
+## Numbers
