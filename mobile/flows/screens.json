@@ -15,7 +15,8 @@
     "'scrollTimeout': how long each item's scroll may take on a long screen (default 4000 ms). 'phoneSkips' (top level): the desktop's items the phone leaves out on purpose, by entry id pattern, with the scope row and why: no checks, not counted.",
     "The shared launch is tried twice: over a course's sixty fresh starts, one now and then stuck on its splash.",
     "presence: Kuliah shows each course as a slim row (round 2); a course's bar, count, next class and exception are on its page, so those entries open it (byEntry), and every other entry comes back to Kuliah first.",
-    "The demo signs in and reads after the first frame (mobile/src/host/settling.ts): the launch waits for the top bar's status.settling to go before any check."
+    "The demo signs in and reads after the first frame (mobile/src/host/settling.ts): the launch waits for the top bar's status.settling to go before any check.",
+    "schedule (v4): one day at a time under the week strip; next week is a swipe across the strip. A class block shows its short name and room only, so the week's class entries open the class's sheet (Beranda's, sheet.nowClass) where its code, times and full name are, and every other entry closes it first."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -1502,8 +1503,20 @@
             }
           },
           {
-            "tapOn": {
-              "id": "action.nextWeek"
+            "swipe": {
+              "from": {
+                "id": "strip.week"
+              },
+              "direction": "LEFT"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "label.place",
+                "text": ".*12.18 Okt.*"
+              },
+              "timeout": 5000
             }
           }
         ],
@@ -1534,74 +1547,6 @@
         ]
       },
       "byEntry": {
-        "\\|Kamis, 8 Oktober$": [
-          {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "day.2026-10-08"
-              },
-              "direction": "UP",
-              "timeout": 5000,
-              "optional": true
-            }
-          },
-          {
-            "tapOn": {
-              "id": "day.2026-10-08"
-            }
-          }
-        ],
-        "\\|Jumat, 9 Oktober$": [
-          {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "day.2026-10-09"
-              },
-              "direction": "UP",
-              "timeout": 5000,
-              "optional": true
-            }
-          },
-          {
-            "tapOn": {
-              "id": "day.2026-10-09"
-            }
-          }
-        ],
-        "\\|Kamis, 15 Oktober$": [
-          {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "day.2026-10-15"
-              },
-              "direction": "UP",
-              "timeout": 5000,
-              "optional": true
-            }
-          },
-          {
-            "tapOn": {
-              "id": "day.2026-10-15"
-            }
-          }
-        ],
-        "\\|Jumat, 16 Oktober$": [
-          {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "day.2026-10-16"
-              },
-              "direction": "UP",
-              "timeout": 5000,
-              "optional": true
-            }
-          },
-          {
-            "tapOn": {
-              "id": "day.2026-10-16"
-            }
-          }
-        ],
         "^schedule\\.month\\.class-session\\.4-kuliah\\|": [
           {
             "scrollUntilVisible": {
@@ -1822,6 +1767,428 @@
               "id": "day.2026-10-29"
             }
           }
+        ],
+        "^schedule\\.week\\.class-session\\.08-00-10-00\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.pl3002-08-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.pl3002-08-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^schedule\\.week\\.class-session\\.11-00-12-59\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.dk4073-11-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.dk4073-11-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^schedule\\.week\\.class-session\\.15-00-16-30\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.pl3032-15-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.pl3032-15-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^schedule\\.week\\.class-session\\.16-00-17-50\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.ku5014-16-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.ku5014-16-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^schedule\\.week\\.class-session\\.15-00-17-00\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-09"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.ii4091-15-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.ii4091-15-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^schedule\\.next-week\\.class-session\\.08-00-09-30\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-15"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.pl3002-08-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.pl3002-08-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^schedule\\.next-week\\.class-session\\.dk4073\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-15"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.dk4073-11-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.dk4073-11-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^schedule\\.next-week\\.class-session\\.15-00-16-30\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-15"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.pl3032-15-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.pl3032-15-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^schedule\\.next-week\\.class-session\\.16-00-17-50\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-15"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.ku5014-16-00"
+              },
+              "timeout": 5000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.class.ku5014-16-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "\\|Kamis, 8 Oktober$": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08"
+            }
+          }
+        ],
+        "\\|Jumat, 9 Oktober$": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-09"
+            }
+          }
+        ],
+        "\\|Kamis, 15 Oktober$": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-15"
+            }
+          }
+        ],
+        "\\|Jumat, 16 Oktober$": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-16"
+            }
+          }
+        ],
+        "^schedule\\.(week|next-week)\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          }
         ]
       }
     },
@@ -1852,8 +2219,11 @@
           }
         },
         {
-          "assertVisible": {
-            "id": "sheet.class"
+          "extendedWaitUntil": {
+            "visible": {
+              "id": "sheet.nowClass"
+            },
+            "timeout": 5000
           }
         }
       ],
@@ -1897,8 +2267,11 @@
             }
           },
           {
-            "assertVisible": {
-              "id": "sheet.class"
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 5000
             }
           }
         ]

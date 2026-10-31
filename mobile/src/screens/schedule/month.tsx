@@ -21,8 +21,8 @@ import { Icons } from "../../ui/icons";
 import { factsLabel, List } from "../../ui/layout";
 import { Text, type TextTone } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
+import { rowKey } from "./day";
 import type { Picked } from "./details";
-import { rowKey } from "./rows";
 import { handInLabel, periodName, timeRange, useWorld } from "./world";
 
 /** ITB's periods tinted behind their days; single days (the term's first and last lecture day) get a line instead. */

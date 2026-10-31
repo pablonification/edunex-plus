@@ -160,6 +160,11 @@ export const mobileStrings = {
   "mobile.schedule.monthsAhead": { id: "{count} bulan lagi", en: { one: "In {count} month", other: "In {count} months" } },
   "mobile.schedule.today": { id: "Hari ini", en: "Today" },
   "mobile.schedule.todayLabel": { id: "Kembali ke hari ini", en: "Back to today" },
+  // Jadwal's day (v4): a day with no class, a hand-in's time ("II4091 · sebelum 23:59"), and where a class the app
+  // couldn't read is.
+  "mobile.schedule.noClasses": { id: "Tidak ada kuliah", en: "No classes" },
+  "mobile.schedule.before": { id: "sebelum {time}", en: "by {time}" },
+  "mobile.schedule.unreadMeta": { id: "Jam dan ruangnya ada di SIX", en: "Its time and room are on SIX" },
   // Jadwal's top bar: the month, a screen away.
   "mobile.schedule.month": { id: "Lihat sebulan", en: "Month view" },
   // Jadwal's ⋮: the reminder before each class (the engine's "Kuliah sebentar lagi"), with how long before.

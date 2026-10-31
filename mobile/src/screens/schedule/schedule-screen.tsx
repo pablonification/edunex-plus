@@ -1,35 +1,46 @@
-// Jadwal on the phone (W13, round 2): where am I next, and what's this week like. The agenda is the screen: the
-// term's days down the page, opening on today, from the desktop's own data (scheduleDays over the same input), in
-// one FlashList so a term of days scrolls at the screen's full rate. The week strip on top follows the list and moves
-// it. The month is a screen away (the top bar's calendar button); the reminder before class and the phone's calendar
-// are settings in ⋮, where a Student looks for them on a calendar. A class opens its sheet (./details.tsx).
-// The minute's tick redraws only the cards whose class starts or ends (./clock.ts).
-import { FlashList, type FlashListRef, type ViewToken } from "@shopify/flash-list";
+// Jadwal (round 2, v4: mobile/design/r2-directions/v4, "v4-jadwal"): where am I next, and what's this week like. The
+// month is the screen's one title, the term's week quietly under it; the week strip with each day's courses as dots,
+// today in red; then the day picked (today first) as hours with each class a block in its course's tint, the now-line in
+// red. A swipe across the day moves a day, across the strip a week. A class opens Beranda's class sheet (one sheet for a
+// class, wherever it's opened); a hand-in, a deadline or a meeting only Edunex announced opens its own (./details.tsx).
+// The month is the top bar's calendar button; the reminder before class, the phone's calendar and the .ics are in ⋮.
+// Data and reasoning are the desktop's (scheduleDays over the same input); the minute's tick reaches only the now-line
+// and the block on now (./clock.ts).
 import * as Notifications from "expo-notifications";
 import { router, useScrollToTop } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking, RefreshControl, View } from "react-native";
-import { useT } from "../../../../src/app/i18n";
-import type { ScheduleData } from "../../../../src/app/schedule-data";
+import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
+import Animated, { FadeIn, FadeInLeft, FadeInRight } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTermCourses } from "../../../../src/app/courses";
+import { useHomeWorld } from "../../../../src/app/home-world";
+import { useClock, useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useSettings, useStatus } from "../../../../src/app/store";
-import { type ScheduleDay, scheduleDays, shiftDay, weekStart } from "../../../../src/core/schedule";
+import { wibDay } from "../../../../src/core/course-meetings";
+import { classFacts, homeContext, type NowCard } from "../../../../src/core/needs";
+import { isEmptyDay, minuteOfDay, type ScheduleDay, scheduleDays, shiftDay, termWeek, weekStart } from "../../../../src/core/schedule";
 import { useParam } from "../../nav";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
-import { TabHeader, useSignIn } from "../../shell/source-status";
+import { usePerfDrawn } from "../../perf";
+import { StatusLine, SyncPanel, useSignIn, useSyncText } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
 import { Button, IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
+import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
-import { shape, space, useTheme } from "../../ui/theme";
-import { type AgendaLine, agendaDays, agendaLines, dayOfLine, lineOf } from "./agenda";
+import { useReduceMotion } from "../../ui/motion";
+import { Text } from "../../ui/text";
+import { space, TOUCH, useTheme } from "../../ui/theme";
+import { ClassSheet, classCard } from "../home/class-sheet";
 import { PhoneCalendarSync, useCalendarSync, useShareIcs } from "./calendar-sync";
-import { useToday } from "./clock";
+import { useDayFormat, useToday } from "./clock";
+import { DayView, HOUR, hoursOf } from "./day";
 import { DetailSheet, type Picked } from "./details";
 import { useAgendaInput } from "./input";
-import { DayBlock, WeekLine } from "./rows";
-import { type TopDay, topDayStore, WeekStrip } from "./strip";
+import { WeekStrip } from "./strip";
 import { ScheduleWorldProvider } from "./world";
 
 /** A day another screen asked Jadwal to show (the month's "Lihat minggunya"): taken when Jadwal is next in front. */
@@ -49,135 +60,201 @@ export function ScheduleScreen({ onRefresh, refreshing }: { onRefresh: () => voi
   );
 }
 
-/** "2026-11" → "2026-11-30". */
-const lastDayOf = (month: string) => shiftDay(`${shiftDay(`${month}-28`, 4).slice(0, 7)}-01`, -1);
+/** Monday is 0. */
+const weekday = (day: string) => (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) % 7;
 
 function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
-  const t = useT();
   const theme = useTheme();
+  const v = theme.v4;
   const input = useAgendaInput();
   const six = useStatus("six");
   const today = useToday();
-  const [picked, setPicked] = useState<Picked | null>(null);
-  // The timetable's page changed and nothing was read yet: no use waiting for it.
+  const courses = useTermCourses() ?? [];
+  const world = useHomeWorld();
+  const worldRef = useRef(world);
+  worldRef.current = world;
+  // The day picked: today first; it follows today across midnight while the Student hasn't picked another.
+  const [picked, setPicked] = useState(today);
+  const [direction, setDirection] = useState(0);
+  const shownToday = useRef(today);
+  if (shownToday.current !== today) {
+    if (picked === shownToday.current) setPicked(today);
+    shownToday.current = today;
+  }
+  const pick = useCallback((day: string, by = 0) => {
+    setDirection(by);
+    setPicked(day);
+  }, []);
+  const [sheet, setSheet] = useState<{ card: NowCard } | { picked: Picked } | null>(null);
   const timetableChanged = useChangedPage(["six.schedule"]);
   const waiting = !input || (!input.six && (six.state === "connecting" || six.state === "live") && !timetableChanged);
+  usePerfDrawn(!waiting, "tab");
 
-  // From three weeks back to the end of what SIX published (or six weeks ahead), worked out again only when that changes.
-  const lastMonth = input?.months.length ? [...input.months].sort().at(-1)! : null;
-  const days = useMemo(() => agendaDays(today, lastMonth ? lastDayOf(lastMonth) : null), [today, lastMonth]);
-  const plan = useMemo(() => (input ? scheduleDays(days, input) : []), [days, input]);
+  const monday = weekStart(picked);
+  const week = useMemo(() => Array.from({ length: 7 }, (_, i) => shiftDay(monday, i)), [monday]);
+  const plan = useMemo(() => (input ? scheduleDays(week, input) : []), [week, input]);
   const byDay = useMemo(() => new Map(plan.map((day) => [day.day, day])), [plan]);
-  const agenda = useMemo(() => agendaLines(plan, { six: input?.six ?? false, months: input?.months ?? [], today }), [plan, input?.six, input?.months, today]);
+  const day = byDay.get(picked);
+  const covered = new Set(input?.months ?? []);
+  const free = Boolean(input?.six && day && isEmptyDay(day) && !day.holiday && covered.has(picked.slice(0, 7)) && weekday(picked) < 5);
 
-  return (
-    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: theme.color.surface }}>
-      <TabHeader title={t("nav.schedule")} actions={<ScheduleActions />} />
-      {waiting || !input ? (
-        <Loading />
-      ) : (
-        <Agenda input={input} agenda={agenda} byDay={byDay} onPick={setPicked} onRefresh={onRefresh} refreshing={refreshing} />
-      )}
-      <DetailSheet picked={picked} onClose={() => setPicked(null)} />
-    </View>
-  );
-}
-
-function Agenda({
-  input,
-  agenda,
-  byDay,
-  onPick,
-  onRefresh,
-  refreshing,
-}: {
-  input: ScheduleData;
-  agenda: ReturnType<typeof agendaLines>;
-  byDay: ReadonlyMap<string, ScheduleDay>;
-  onPick: (picked: Picked) => void;
-  onRefresh: () => void;
-  refreshing: boolean;
-}) {
-  const theme = useTheme();
-  const today = useToday();
-  const list = useRef<FlashListRef<AgendaLine>>(null);
-  const top = useRef<TopDay>(topDayStore(today)).current;
-  const lines = useRef(agenda);
-  lines.current = agenda;
-  // Opens on today: its line, else its week's.
-  const [initial] = useState(() => lineOf(agenda, today) ?? 0);
-
-  const go = useCallback(
-    (day: string) => {
-      const index = lineOf(lines.current, day);
-      if (index === undefined) return;
-      top.set(day);
-      list.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
+  // A class tapped: Beranda's sheet, from the same facts Beranda reads; anything else, its own.
+  const clock = useClock();
+  const open = useCallback(
+    (what: Picked) => {
+      if (what.kind === "class" && worldRef.current) {
+        const facts = classFacts(homeContext(worldRef.current), what.item.session);
+        setSheet({ card: classCard(facts, clock.now()) });
+        return;
+      }
+      if (what.kind === "meeting" && "number" in what.meeting && typeof what.meeting.number === "number") {
+        const meeting = what.meeting;
+        setSheet({
+          card: {
+            state: "next",
+            class: null,
+            meeting: {
+              code: meeting.code,
+              meeting: { number: meeting.number!, start: meeting.start, end: meeting.end, note: null, online: meeting.online, link: meeting.link },
+              ...(what.notInSix ? {} : { maybeInSix: true as const }),
+            },
+            presence: null,
+            after: null,
+            unreadDay: null,
+          },
+        });
+        return;
+      }
+      setSheet({ picked: what });
     },
-    [top],
+    [clock],
   );
-  // A second tap on Jadwal's tab brings today back to the top, as a calendar's does.
-  useScrollToTop(useRef({ scrollToTop: () => go(today) }));
 
-  // A class asked for from outside (the widget's tap): its day comes up and its sheet opens.
+  // A class asked for from outside (the "Hari ini" widget's tap): its day, then its sheet.
   const asked = useParam("class");
   useEffect(() => {
-    if (!asked) return;
-    for (const day of byDay.values()) {
-      const item = day.classes.find((c) => c.session.id === asked);
-      if (!item) continue;
-      go(day.day);
-      onPick({ kind: "class", item });
-      break;
+    if (!asked || !input) return;
+    const session = input.schedule.find((s) => s.id === asked);
+    if (session) {
+      const day = wibDay(session.start);
+      pick(day);
+      const scheduled = scheduleDays([day], input)[0]?.classes.find((c) => c.session.id === asked);
+      if (scheduled) open({ kind: "class", item: scheduled });
     }
     router.setParams({ class: undefined } as never);
-  }, [asked, byDay, go, onPick]);
+  }, [asked, input, open, pick]);
   // A day asked for by the month.
   useEffect(() => {
     const take = () => {
       if (wanted === null) return;
       const day = wanted;
       wanted = null;
-      go(day);
+      pick(day);
     };
     take();
     wantedListeners.add(take);
     return () => void wantedListeners.delete(take);
-  }, [go]);
-
-  // The strip follows the day at the top of the list (a week's line counts as its first day shown).
-  const onViewable = useRef(({ viewableItems }: { viewableItems: ViewToken<AgendaLine>[] }) => {
-    const shown = viewableItems.filter((v) => v.isViewable && v.item).sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-    const first = shown[0]?.item;
-    if (!first) return;
-    const next = shown[1]?.item;
-    top.set(first.type === "week" && next?.type === "day" && weekStart(next.day.day) === first.monday ? next.day.day : dayOfLine(first));
-  }).current;
-
-  const renderItem = useCallback(
-    ({ item }: { item: AgendaLine }) =>
-      item.type === "week" ? (
-        <WeekLine monday={item.monday} days={item.days} uncovered={item.uncovered} input={input} />
-      ) : (
-        <DayBlock day={item.day} free={item.free} six={input.six} onPick={onPick} />
-      ),
-    [input, onPick],
-  );
+  }, [pick]);
 
   return (
-    <>
-      <WeekStrip top={top} plan={byDay} input={input} onGo={go} />
-      <FlashList
-        ref={list}
-        data={agenda.lines}
-        keyExtractor={(line) => line.key}
-        getItemType={(line) => line.type}
-        renderItem={renderItem}
-        initialScrollIndex={initial}
-        onViewableItemsChanged={onViewable}
-        viewabilityConfig={{ itemVisiblePercentThreshold: 10, minimumViewTime: 0 }}
-        ListHeaderComponent={<Notes six={input.six} />}
-        contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[12] }}
+    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: v.card }}>
+      <ScheduleHeader monday={monday} picked={picked} onToday={() => pick(today, today > picked ? 1 : -1)} />
+      {waiting || !input || !day ? (
+        <Loading />
+      ) : (
+        <>
+          <Rise screen="schedule" index={0}>
+            <WeekStrip
+              monday={monday}
+              picked={picked}
+              plan={byDay}
+              onPick={(next) => pick(next, next > picked ? 1 : -1)}
+              onWeek={(by) => pick(shiftDay(picked, by * 7), by)}
+            />
+          </Rise>
+          <Notes six={input.six} />
+          <DayScroll
+            day={day}
+            today={today}
+            direction={direction}
+            onSwipe={(by) => pick(shiftDay(picked, by), by)}
+            onRefresh={onRefresh}
+            refreshing={refreshing}
+          >
+            <DayView day={day} courses={courses} six={input.six} free={free} onPick={open} />
+          </DayScroll>
+        </>
+      )}
+      <ClassSheet
+        card={sheet && "card" in sheet ? sheet.card : null}
+        courses={courses}
+        open={sheet !== null && "card" in sheet}
+        onClose={() => setSheet(null)}
+      />
+      <DetailSheet picked={sheet && "picked" in sheet ? sheet.picked : null} onClose={() => setSheet(null)} />
+    </View>
+  );
+}
+
+/**
+ * The day, scrolling down its hours: opens where it matters (today: an hour before now; another day: its first class),
+ * pulls to refresh, and moves a day on a swipe across it. A new day comes in from the side it was swiped from.
+ */
+function DayScroll({
+  day,
+  today,
+  direction,
+  onSwipe,
+  onRefresh,
+  refreshing,
+  children,
+}: {
+  day: ScheduleDay;
+  today: string;
+  direction: number;
+  onSwipe: (by: number) => void;
+  onRefresh: () => void;
+  refreshing: boolean;
+  children: React.ReactNode;
+}) {
+  const theme = useTheme();
+  const still = useReduceMotion();
+  const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTop(scroll);
+  const swipe = usePanGesture({
+    activeOffsetX: [-28, 28],
+    failOffsetY: [-14, 14],
+    runOnJS: true,
+    onDeactivate: (event) => {
+      if (event.canceled) return;
+      if (event.translationX <= -60) onSwipe(1);
+      else if (event.translationX >= 60) onSwipe(-1);
+    },
+  });
+  const { from } = hoursOf(day);
+  const first = Math.min(
+    ...[...day.classes.map((c) => c.session.start), ...day.outside.map((m) => m.start), ...day.edunex.map((m) => m.start)].map(minuteOfDay),
+  );
+  const target = day.day === today ? minuteOfDay(Date.now()) - 60 : Number.isFinite(first) ? first - 20 : from * 60;
+  const y = Math.max(0, ((target - from * 60) / 60) * HOUR);
+  useEffect(() => {
+    scroll.current?.scrollTo({ y, animated: false });
+  }, [day.day, y]);
+  const entering =
+    direction === 0
+      ? undefined
+      : still
+        ? FadeIn.duration(150)
+        : direction > 0
+          ? FadeInRight.springify().damping(20).stiffness(220)
+          : FadeInLeft.springify().damping(20).stiffness(220);
+  return (
+    <GestureDetector gesture={swipe}>
+      <ScrollView
+        ref={scroll}
+        collapsable={false}
+        style={{ flex: 1, borderTopWidth: 1, borderTopColor: theme.v4.line }}
+        contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -187,22 +264,80 @@ function Agenda({
           />
         }
         testID="list.agenda"
-      />
-    </>
+      >
+        <Animated.View key={day.day} entering={entering} style={{ flexGrow: 1 }}>
+          {children}
+        </Animated.View>
+      </ScrollView>
+    </GestureDetector>
   );
 }
 
-/** Above the agenda, only when there's something to say: SIX's page changed, SIX not signed in, the phone's calendar. */
+/**
+ * Jadwal's top bar: the month of the week on screen as its one title (Plus Jakarta Sans), the term's week quietly
+ * under it ("Minggu ke-7 · 5–11 Okt") with the data's status only when it says something; then "Hari ini" when away
+ * from today, the month and ⋮. A tap on the title opens the sources' sheet, as on every tab.
+ */
+function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: string; onToday: () => void }) {
+  const t = useT();
+  const lang = useLang();
+  const f = useDayFormat();
+  const v = useTheme().v4;
+  const insets = useSafeAreaInsets();
+  const input = useAgendaInput();
+  const today = useToday();
+  const sync = useSyncText();
+  const [panel, setPanel] = useState(false);
+  const noon = Date.parse(`${picked}T12:00:00+07:00`);
+  const month = new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", {
+    month: "long",
+    ...(picked.slice(0, 4) !== today.slice(0, 4) ? { year: "numeric" } : {}),
+    timeZone: "Asia/Jakarta",
+  }).format(noon);
+  const n = input ? termWeek(input.events, monday) : null;
+  const range = f.dayRange(monday, shiftDay(monday, 6));
+  const place = n ? t("schedule.weekOf", { n, range }) : range;
+  return (
+    <View style={{ backgroundColor: v.card, paddingTop: insets.top }}>
+      <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
+        <Pressable
+          onPress={() => setPanel(true)}
+          accessibilityRole="button"
+          accessibilityLabel={`${month}, ${place}. ${t("sync.title")}: ${sync}`}
+          testID="action.syncStatus"
+          style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center" }}
+        >
+          <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
+            {month}
+          </Text>
+          <Text size="bodyMedium" tabular numberOfLines={1} testID="label.place" style={{ color: v.muted, marginTop: -2 }}>
+            {place}
+          </Text>
+          <StatusLine />
+        </Pressable>
+        {picked !== today && (
+          <Button size="sm" variant="tonal" onPress={onToday} label={t("mobile.schedule.todayLabel")} testID="action.today">
+            {t("mobile.schedule.today")}
+          </Button>
+        )}
+        <ScheduleActions />
+      </View>
+      <SyncPanel open={panel} onClose={() => setPanel(false)} />
+    </View>
+  );
+}
+
+/** Above the day, only when there's something to say: SIX's page changed, SIX not signed in, the phone's calendar. */
 function Notes({ six }: { six: boolean }) {
   const timetableChanged = useChangedPage(["six.schedule"]);
   const sync = useCalendarSync();
-  return (
-    <View style={{ gap: space[3], paddingTop: space[2] }}>
-      <SixPageNote datasets={["six.schedule"]} />
-      {!six && !timetableChanged && <NeedsSix />}
-      {sync.on && sync.problem && <CalendarProblem problem={sync.problem} onRetry={sync.retry} />}
-    </View>
-  );
+  const items = [
+    timetableChanged ? <SixPageNote key="page" datasets={["six.schedule"]} /> : null,
+    !six && !timetableChanged ? <NeedsSix key="six" /> : null,
+    sync.on && sync.problem ? <CalendarProblem key="calendar" problem={sync.problem} onRetry={sync.retry} /> : null,
+  ].filter(Boolean);
+  if (!items.length) return null;
+  return <View style={{ gap: space[3], paddingHorizontal: space[4], paddingBottom: space[3] }}>{items}</View>;
 }
 
 /** The phone's calendar couldn't be written: why, and the fix. Never a snackbar: it stays until it's fixed. */
@@ -219,9 +354,7 @@ function CalendarProblem({ problem, onRetry }: { problem: "denied" | "failed"; o
           </Button>
         }
         testID="note.calendarDenied"
-      >
-        {t("mobile.calendar.deniedHint")}
-      </Notice>
+      />
     );
   return (
     <Notice
@@ -233,16 +366,14 @@ function CalendarProblem({ problem, onRetry }: { problem: "denied" | "failed"; o
         </Button>
       }
       testID="note.calendarFailed"
-    >
-      {t("mobile.calendar.sync.failedHint")}
-    </Notice>
+    />
   );
 }
 
 /** The top bar's own: the month, and ⋮ with the reminder before class, the phone's calendar and the .ics. */
 function ScheduleActions() {
   const t = useT();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const bridge = useBridge();
   const { classSoonAlerts } = useSettings();
   const sync = useCalendarSync();
@@ -259,7 +390,7 @@ function ScheduleActions() {
   return (
     <>
       <IconButton label={t("mobile.schedule.month")} onPress={() => router.push("/schedule-month")} testID="action.month">
-        <Icons.Calendar size={24} color={theme.color.onSurfaceVariant} />
+        <Icons.Calendar size={24} color={v.fg} />
       </IconButton>
       <OverflowMenu
         testID="action.scheduleMenu"
@@ -267,7 +398,7 @@ function ScheduleActions() {
           {
             label: t("mobile.schedule.remind"),
             hint: t("mobile.schedule.remind.hint"),
-            icon: <Icons.Bell size={20} color={theme.color.onSurfaceVariant} />,
+            icon: <Icons.Bell size={20} color={v.muted} />,
             checked: classSoonAlerts,
             onPress: () => {
               const next = !classSoonAlerts;
@@ -286,7 +417,7 @@ function ScheduleActions() {
           {
             label: t("mobile.calendar.sync"),
             hint: t("mobile.calendar.sync.hint"),
-            icon: <Icons.Smartphone size={20} color={theme.color.onSurfaceVariant} />,
+            icon: <Icons.Smartphone size={20} color={v.muted} />,
             checked: sync.on,
             onPress: () => {
               if (sync.on) void sync.turnOff().then(() => toast(t("mobile.calendar.sync.off")));
@@ -296,7 +427,7 @@ function ScheduleActions() {
           },
           {
             label: t("mobile.calendar.share"),
-            icon: <Icons.ArrowUpRight size={20} color={theme.color.onSurfaceVariant} />,
+            icon: <Icons.ArrowUpRight size={20} color={v.muted} />,
             onPress: () => void share().catch(() => toast(t("mobile.calendar.shareFailed"), "danger")),
             testID: "action.shareIcs",
           },
@@ -323,32 +454,22 @@ function NeedsSix() {
           </Button>
         ) : undefined
       }
-    >
-      {t("schedule.needsSix.hint")}
-    </Notice>
+    />
   );
 }
 
-/** While SIX's timetable is on its way: the strip's days, then two days of cards. */
+/** While SIX's timetable is on its way: the strip's days, then two blocks on the hours. */
 function Loading() {
   return (
-    <View accessibilityState={{ busy: true }} style={{ paddingHorizontal: space.page, gap: space[3] }}>
-      <Skeleton height={20} width={180} style={{ alignSelf: "center", marginVertical: space[3] }} />
-      <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+    <View accessibilityState={{ busy: true }} style={{ paddingHorizontal: space[4], gap: space[3] }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: space[3] }}>
         {Array.from({ length: 7 }, (_, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: placeholder days have no identity and never move
-          <Skeleton key={i} height={52} width={36} />
+          <Skeleton key={i} height={60} width={38} />
         ))}
       </View>
-      {[0, 1].map((day) => (
-        <View key={day} style={{ flexDirection: "row", gap: space[3], marginTop: space[4] }}>
-          <Skeleton height={56} width={48} />
-          <View style={{ flex: 1, gap: space[2] }}>
-            <Skeleton height={88} style={{ borderRadius: shape.md }} />
-            <Skeleton height={88} style={{ borderRadius: shape.md }} />
-          </View>
-        </View>
-      ))}
+      <Skeleton height={120} style={{ marginTop: space[6], marginLeft: 50, borderRadius: 14 }} />
+      <Skeleton height={120} style={{ marginTop: space[8], marginLeft: 50, borderRadius: 14 }} />
     </View>
   );
 }
