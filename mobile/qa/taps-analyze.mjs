@@ -90,12 +90,14 @@ function analyse(trace) {
   // Each step's touch: the first one after the step's own time, before the next step's.
   const timesFile = trace.replace(/\.pftrace$/, ".times.txt");
   const times = fs.existsSync(timesFile)
-    ? fs.readFileSync(timesFile, "utf8").split(/\r?\n/).filter(Boolean).map((t) => Math.round(Number(t) * 1e9))
+    ? fs
+        .readFileSync(timesFile, "utf8")
+        .split(/\r?\n/)
+        .filter(Boolean)
+        .map((t) => Math.round(Number(t) * 1e9))
     : null;
-  const paired = times
-    ? times.map((t, i) => touches.find((touch) => touch >= t - 50e6 && touch < (times[i + 1] ?? Infinity)) ?? null)
-    : touches;
-  return paired.map((touch, i) => {
+  const paired = times ? times.map((t, i) => touches.find((touch) => touch >= t - 50e6 && touch < (times[i + 1] ?? Infinity)) ?? null) : touches;
+  return paired.map((touch, _i) => {
     if (touch == null) return null;
     const until = touches.find((t) => t > touch) ?? Infinity;
     const after = frames.filter((f) => f.start >= touch && f.start < until);

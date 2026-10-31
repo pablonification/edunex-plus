@@ -61,5 +61,7 @@ console.log(`| average CPU (all threads, % of one core) | ${r1(cpu)} |`);
 console.log(`| average RAM (MB) | ${r1(ram)} |`);
 console.log(`| time with a thread over 90% CPU | ${Math.round(locked)} ms of ${measures.length * POLLING_INTERVAL} ms |`);
 console.log(`| iterations | ${iterations.length} of ${results.iterations.length} passed, ${r1(average(iterations.map((i) => i.time)) / 1000)} s each |`);
-const top = Object.entries(perThread).sort((a, b) => b[1] - a[1]).slice(0, 5);
+const top = Object.entries(perThread)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 5);
 console.log(`| busiest threads (CPU %) | ${top.map(([n, v]) => `${n} ${r1(v)}`).join(", ")} |`);

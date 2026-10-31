@@ -33,7 +33,11 @@ for (const file of files) {
     const at = line.indexOf("[perf] ");
     if (at < 0) continue;
     // console.info may quote its argument; the words are what count.
-    const words = line.slice(at + 7).replace(/['"]\s*$/, "").trim().split(/\s+/);
+    const words = line
+      .slice(at + 7)
+      .replace(/['"]\s*$/, "")
+      .trim()
+      .split(/\s+/);
     const [kind, ...rest] = words;
     if (kind === "first-data") add(kind, "", Number(rest[0]));
     else if (kind === "js-block") add(kind, rest.slice(1).join(" ") || "?", Number(rest[0]));
