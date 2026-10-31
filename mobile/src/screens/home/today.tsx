@@ -1,15 +1,16 @@
 // "Hari ini": today's classes, the meetings outside SIX and what's due today, then tomorrow's, as
-// src/app/screens/home.tsx lists them. A deadline can be put off or put away from its row: the
-// icons beside it, a swipe, or a long press.
+// src/app/screens/home.tsx lists them, a short row each: the time, the course, the room, and one line
+// for what matters today (no absences left, a clash, a new time). A class opens its sheet
+// (./class-sheet.tsx) with the rest. A deadline can be put off or put away from its row: a swipe, or
+// a long press.
+import { useState } from "react";
 import { View } from "react-native";
 import { budgetLabel } from "../../../../src/app/attendance-labels";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
-import { useExamIds } from "../../../../src/app/schedule-data";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
 import { useStatus } from "../../../../src/app/store";
-import { clashPick } from "../../../../src/core/attendance";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { taskPutAway } from "../../../../src/core/done";
 import type { UnreadSession } from "../../../../src/core/models";
@@ -25,6 +26,7 @@ import { Icons } from "../../ui/icons";
 import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
+import { ClassSheet, classCard } from "./class-sheet";
 import { CourseMark, doneOf, MINUTE, movedLabel, nameOf, QuickRow, Quiet, STATE_TEXT, toned } from "./parts";
 
 /** A later class says "dalam …" only this close to its start; further off, the time column says enough. */
@@ -90,6 +92,7 @@ export function Today({
   const now = useNow();
   const { entries } = useSnoozes();
   const { entries: handled } = useDone();
+  const [picked, setPicked] = useState<NowCard | null>(null);
   const day = wibDay(context.now);
   const needOf = (task: TodayPlan["due"][number]) => due.find((need) => need.kind === "task" && need.task.id === task.id) ?? null;
   const items: TodayItem[] = [
@@ -119,7 +122,7 @@ export function Today({
       {today.length > 0 ? (
         <List style={!context.schedule ? { marginTop: space[3] } : undefined}>
           {today.map((item) => (
-            <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} />
+            <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} onOpen={setPicked} />
           ))}
         </List>
       ) : (
@@ -132,11 +135,12 @@ export function Today({
           </Text>
           <List>
             {tomorrow.map((item) => (
-              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} />
+              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} onOpen={setPicked} />
             ))}
           </List>
         </>
       )}
+      <ClassSheet card={picked} courses={courses} open={picked !== null} onClose={() => setPicked(null)} context={context} />
     </Section>
   );
 }
@@ -171,14 +175,25 @@ function NowMark({ fresh }: { fresh: boolean }) {
   );
 }
 
-function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses: readonly TermCourse[]; onCard: string | null; context: HomeContext }) {
+function TodayRow({
+  item,
+  courses,
+  onCard,
+  context,
+  onOpen,
+}: {
+  item: TodayItem;
+  courses: readonly TermCourse[];
+  onCard: string | null;
+  context: HomeContext;
+  onOpen(card: NowCard): void;
+}) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const theme = useTheme();
   const { go } = useNav();
   const open = useOpenExternal();
-  const examIds = useExamIds();
   const fresh = useStatus("six").state === "live";
   const edunexFresh = useStatus("edunex").state === "live";
   const key = keyOf(item);
@@ -212,10 +227,10 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
     const name = factsLabel(task.title, task.courseCode);
     return (
       <QuickRow name={name} done={need && doneOf(t, need)} snooze={need ? snoozable(need, now) : null}>
-        {({ actions, onLongPress }) => (
+        {({ quick, onLongPress }) => (
           <Row
             testID={testID}
-            actions={actions}
+            quick={quick}
             onLongPress={onLongPress}
             leading={<When start={f.time(task.dueAt!)} tone={close ? "warning" : undefined} />}
             title={task.title}
@@ -282,18 +297,12 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
   const past = session.end <= now;
   const course = courses.find((c) => c.code === session.courseCode);
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
-  // A sitting opens its exam's page: when and where, what to study.
-  const examId = examIds.get(session.id);
   // Said on the day: no absences left, or the target out of reach (so the course doesn't vanish from Beranda); the now card says it for its class.
   const budget = facts.health && (facts.state === "none" || facts.state === "out") && !past && !shownAbove ? budgetLabel(t, facts.health) : null;
   // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
   const moved = facts.moved && !shownAbove;
-  // A clash, with the pick folded in on the course that needs the Student more (Presensi's answer).
-  const other = facts.overlap ? context.health.get(facts.overlap.code) : undefined;
-  const picked = facts.health && other ? clashPick(facts.health, other).pick === session.courseCode : false;
-  const clash = facts.overlap
-    ? `${t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}${picked ? `. ${t("home.today.pick")}` : ""}`
-    : null;
+  // A clash, said short: which one to pick (Presensi's answer) is in the class's sheet.
+  const clash = facts.overlap ? t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) }) : null;
   // A class that's over: what SIX's count did after it, when the app saw.
   const result = past ? context.classResults?.[session.id]?.result : undefined;
   return (
@@ -337,9 +346,8 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
           </Text>
         ) : undefined
       }
-      onPress={() =>
-        go(examId ? { screen: "exam", examId } : course?.edunex ? { screen: "course", code: session.courseCode, tab: "meetings" } : { screen: "presence" })
-      }
+      // The class's sheet: its facts in full, the way to the course (or the exam) at its foot.
+      onPress={() => onOpen(classCard(facts, now))}
     >
       {!past && (budget || clash) && (
         // Kept beside a clash: choosing between two classes is when "Jatah absen habis" matters most.

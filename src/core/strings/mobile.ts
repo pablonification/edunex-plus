@@ -29,12 +29,35 @@ export const mobileStrings = {
     id: "Tekan Tandai Hadir di SIX saat tombolnya muncul · kuliah sampai {time}",
     en: "Press Tandai Hadir in SIX when it shows · class until {time}",
   },
-  // welcome
-  "mobile.welcome.waitingHint": { id: "Tutup halaman masuk untuk membatalkan.", en: "Close the sign-in page to cancel." },
-  "mobile.welcome.notify": {
-    id: "Izinkan notifikasi agar pengingat tetap sampai saat aplikasi tertutup.",
-    en: "Allow notifications so reminders still arrive with the app closed.",
+  // welcome: one screen, what the app is in a line, three reasons, one button.
+  "mobile.welcome.line": { id: "Edunex dan SIX, di satu aplikasi", en: "Edunex and SIX, in one app" },
+  "mobile.welcome.reason.class": { id: "Kuliah hari ini dan Tandai Hadir", en: "Today's classes and Tandai Hadir" },
+  "mobile.welcome.reason.tasks": { id: "Tugas dan tenggatnya", en: "Tasks and their deadlines" },
+  "mobile.welcome.reason.attendance": { id: "Jatah absen dan nilai", en: "Absences left and grades" },
+  "mobile.welcome.signIn": { id: "Masuk dengan akun ITB", en: "Sign in with your ITB account" },
+  // home
+  // The now card is one target: a tap opens its class's sheet. Said to TalkBack after the card's own words.
+  "mobile.home.nowHint": { id: "Buka rincian kuliah", en: "Opens the class details" },
+  // Chips on the now card: what's unusual about the class, the details in its sheet.
+  "mobile.home.timeMoved": { id: "Jam berubah", en: "New time" },
+  "mobile.home.roomMoved": { id: "Ruang berubah", en: "New room" },
+  // The Student went to press Tandai Hadir from the card, and SIX no longer shows it.
+  "mobile.home.checkedIn": { id: "Tandai Hadir sudah kamu tekan", en: "You pressed Tandai Hadir" },
+  "mobile.home.checkedInHint": { id: "Hitungan SIX dicek lagi setelah kuliah.", en: "SIX's count is checked again after class." },
+  // The class sheet's way to an exam sitting's page.
+  "mobile.home.openExam": { id: "Buka ujian", en: "Open exam" },
+  // The first read's card on Beranda: the summary the welcome used to show.
+  "mobile.home.scanOpen": { id: "Lihat ringkasan", en: "See summary" },
+  // Notifications, asked on Beranda the first time there's a class.
+  "mobile.home.notifyTitle": { id: "Ingatkan aku sebelum kuliah", en: "Remind me before class" },
+  "mobile.home.notifyBody": {
+    id: "Pengingat kuliah, Presensi dan tenggat tetap sampai saat aplikasi tertutup.",
+    en: "Reminders for classes, Presence and deadlines still arrive with the app closed.",
   },
+  "mobile.home.notifyOn": { id: "Nyalakan", en: "Turn on" },
+  "mobile.home.notifyLater": { id: "Nanti", en: "Not now" },
+  // The top bar's status line while the first read runs: which system and which part.
+  "mobile.home.reading": { id: "Membaca {part}…", en: "Reading {part}…" },
   // tasks
   // A file from Edunex opens in the phone's own apps (A12, A13), or goes elsewhere through the share sheet.
   // Edunex's and SIX's own pages inside the app (W14): the demo's pages are pretend, so it says what the real app shows.
