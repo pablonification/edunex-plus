@@ -34,6 +34,9 @@ read -r w h <<< "$(dsh wm size | grep -oE '[0-9]+x[0-9]+' | tail -1 | tr x ' ')"
 echo "Taps on $AVD ($S), $passes passes of $(basename "$plan"), ${gap} s apart → $out"
 
 start_app() {
+  # Maestro's driver (left by jank.sh, flashlight.sh or a helper's flow) holds UI automation: uiautomator dump fails.
+  dsh am force-stop dev.mobile.maestro > /dev/null 2>&1 || true
+  dsh am force-stop dev.mobile.maestro.test > /dev/null 2>&1 || true
   dsh am force-stop "$QA_APP"
   dsh input keyevent HOME
   sleep 2
@@ -48,14 +51,27 @@ start_app() {
 start_app discovery
 : > "$out/steps.tsv"
 while IFS='|' read -r kind name target; do
-  kind=$(echo "$kind" | xargs) name=$(echo "$name" | xargs) target=$(echo "$target" | xargs)
+  trim() { sed -E 's/^[[:space:]]+|[[:space:]]+$//g' <<< "$1"; }
+  kind=$(trim "$kind") name=$(trim "$name") target=$(trim "$target")
   [ -z "$kind" ] || [ "${kind:0:1}" = "#" ] && continue
   if [ "$target" = BACK ]; then
     printf '%s\t%s\tBACK\t\t\n' "$kind" "$name" >> "$out/steps.tsv"
     dsh input keyevent BACK
   else
-    dsh uiautomator dump /sdcard/qa-ui.xml > /dev/null 2>&1 || true
-    if xy=$(dsh cat /sdcard/qa-ui.xml | node "$here/ui-find.mjs" "$target" "$w" "$h"); then
+    # Not on screen (a small phone shows less): scroll down a little, up to three times; the replay scrolls too.
+    found=0
+    for attempt in 0 1 2 3; do
+      # A screen that's never still (a blinking cursor) can fail a dump: tried again, and an old dump never read.
+      dsh rm -f /sdcard/qa-ui.xml
+      for _ in 1 2 3; do dsh uiautomator dump /sdcard/qa-ui.xml 2> /dev/null | grep -q 'dumped to' && break; sleep 1; done
+      dsh ls /sdcard/qa-ui.xml > /dev/null 2>&1 || break
+      if xy=$(dsh cat /sdcard/qa-ui.xml | node "$here/ui-find.mjs" "$target" "$w" "$h"); then found=1; break; fi
+      [ "$attempt" -lt 3 ] || break
+      printf 'scroll\tscroll\tSCROLL\t%s\t%s,%s\n' $((w / 2)) $((h * 65 / 100)) $((h * 35 / 100)) >> "$out/steps.tsv"
+      dsh input swipe $((w / 2)) $((h * 65 / 100)) $((w / 2)) $((h * 35 / 100)) 400
+      sleep 1.5
+    done
+    if [ $found = 1 ]; then
       read -r x y id <<< "$xy"
       printf '%s\t%s\t%s\t%s\t%s\n' "$kind" "$name" "$id" "$x" "$y" >> "$out/steps.tsv"
       dsh input tap "$x" "$y"
@@ -77,11 +93,24 @@ echo "  $(wc -l < "$out/steps.tsv") steps found"
   echo ': > /data/local/tmp/qa-taps-times.txt'
   while IFS=$'\t' read -r kind name id x y; do
     echo 'cut -d" " -f1 /proc/uptime >> /data/local/tmp/qa-taps-times.txt'
-    if [ "$id" = BACK ]; then echo 'input keyevent BACK'; else echo "input tap $x $y"; fi
+    case $id in
+      BACK) echo 'input keyevent BACK' ;;
+      SCROLL) echo "input swipe $x ${y%,*} $x ${y#*,} 400"; echo 'sleep 1.5'; continue ;;
+      *) echo "input tap $x $y" ;;
+    esac
     echo "sleep $gap"
   done < "$out/steps.tsv"
 } > "$out/replay.sh"
 ad push "$out/replay.sh" /data/local/tmp/qa-taps.sh > /dev/null
+# Perfetto's ftrace and process data come from traced_probes; once it was found dead on weak (a trace with frames
+# but no input, scheduler or process names). Android's init restarts it for root.
+if ! dsh pidof traced_probes > /dev/null; then
+  echo "  traced_probes isn't running: starting it (as root, then back)"
+  ad root > /dev/null; sleep 2; ad wait-for-device
+  dsh setprop ctl.start traced_probes
+  ad unroot > /dev/null; sleep 2; ad wait-for-device
+  dsh pidof traced_probes > /dev/null || { echo "traced_probes still isn't running: restart the emulator." >&2; exit 1; }
+fi
 dsh mkdir -p /data/misc/perfetto-configs > /dev/null 2>&1 || true
 ad push "$here/perfetto/taps.pbtx" /data/misc/perfetto-configs/qa-taps.pbtx > /dev/null
 for pass in $(seq "$passes"); do

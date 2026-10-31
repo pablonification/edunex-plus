@@ -12,7 +12,8 @@
 // - the app's frames: SurfaceFlinger's frame timeline (actual_frame_timeline_slice), each frame on screen at
 //   ts + dur; a frame the app's UI thread drew has a "DrawFrames <vsync id>" section on its RenderThread, while
 //   one the RenderThread made alone (a ripple fading, Android's own animations) has none;
-// - the JS threads (mqt_v_js): when they ran (sched).
+// - the JS threads (mqt_v_js): when they ran (sched), and when they were busy, running or waiting for a CPU
+//   (thread_state Running/R/R+): a 2-core phone preempts a long JS task, which still holds everything up.
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
@@ -80,6 +81,11 @@ function analyse(trace) {
     trace,
     `select s.ts, s.dur, s.utid from sched s join thread t using(utid) where t.upid in ${proc} and t.name like 'mqt_v_js%' order by s.ts`,
   ).map(([ts, dur, utid]) => ({ start: Number(ts), end: Number(ts) + Number(dur), utid }));
+  const jsBusy = query(
+    trace,
+    `select s.ts, s.dur, s.utid from thread_state s join thread t using(utid)
+     where t.upid in ${proc} and t.name like 'mqt_v_js%' and s.state in ('Running', 'R', 'R+') order by s.utid, s.ts`,
+  ).map(([ts, dur, utid]) => ({ start: Number(ts), end: Number(ts) + Number(dur), utid }));
 
   // Each step's touch: the first one after the step's own time, before the next step's.
   const timesFile = trace.replace(/\.pftrace$/, ".times.txt");
@@ -115,15 +121,19 @@ function analyse(trace) {
       drawn = Math.max(drawn ?? 0, f.end);
       longest = Math.max(longest, f.end - f.start);
     }
-    // The JS threads' time running between the touch and the settled frame, and their longest unbroken run.
+    // The JS threads' time running between the touch and the settled frame, and their longest busy stretch
+    // (running or waiting to run, without sleeping in between: one task the thread couldn't leave).
     let ran = 0;
+    for (const s of js) {
+      if (s.end <= touch || s.start >= end) continue;
+      ran += Math.min(s.end, end) - Math.max(s.start, touch);
+    }
     let jsLongest = 0;
     let run = null;
-    for (const s of js) {
+    for (const s of jsBusy) {
       if (s.end <= touch || s.start >= end) continue;
       const a = Math.max(s.start, touch);
       const b = Math.min(s.end, end);
-      ran += b - a;
       if (run && run.utid === s.utid && a - run.end < 1e6) run.end = b;
       else run = { utid: s.utid, start: a, end: b };
       jsLongest = Math.max(jsLongest, run.end - run.start);
@@ -144,7 +154,9 @@ function analyse(trace) {
 
 const perTrace = traces.map((t) => {
   const taps = analyse(t);
-  if (taps.length !== steps.length || taps.includes(null)) {
+  if (taps.every((tap) => tap == null)) {
+    console.error(`${t}: no touch of the app in the trace at all (no deliverInputEvent: was traced_probes running?).`);
+  } else if (taps.length !== steps.length || taps.includes(null)) {
     console.error(`${t}: ${taps.filter(Boolean).length} of ${steps.length} steps reached the app.`);
   }
   return taps;
@@ -177,9 +189,9 @@ if (json) {
   console.log(JSON.stringify(rows, null, 2));
 } else {
   const f = (v) => (v == null ? "-" : String(Math.round(v)));
-  console.log("| step | kind | responds | drawn | all motion ends | longest frame | longest freeze | JS ran | JS longest run | drawn, each pass |");
+  console.log("| step | kind | responds | drawn | all motion ends | longest frame | longest freeze | JS ran | JS longest busy | drawn, each pass |");
   console.log("| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |");
-  for (const r of rows) {
+  for (const r of rows.filter((r) => r.kind !== "scroll")) {
     const note = r.framesBefore ? " (frames already running before the touch)" : "";
     console.log(
       `| ${r.name}${note} | ${r.kind} | ${f(r.responds)} | ${f(r.drawn)} | ${f(r.settled)} | ${f(r.longest)} | ${f(r.freeze)} | ${f(r.js)} | ${f(r.jsRun)} | ${r.drawnEach.map(f).join(", ")} |`,
