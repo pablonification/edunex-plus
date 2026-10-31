@@ -24,7 +24,7 @@ import {
 import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
-import { Text, type TextTone, useFieldColors } from "../../ui/text";
+import { Text, type TextTone, useFieldColors, useTextWidth } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
 import { ChartLegend, LineChart } from "./chart";
 
@@ -214,13 +214,15 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
   // While a value is being typed, the pick still counted stays marked until the typed one is valid.
   const picked = typing === null || parsed?.kind !== "ok" ? TARGET_PICKS.find((pick) => Math.abs(pick - target) < 1e-9) : undefined;
   const invalid = parsed?.kind === "invalid";
+  const pickWidth = useTextWidth(208);
   return (
     <View style={{ gap: space[2] }}>
       <Text size="small" weight="medium" tone="muted">
         {t("grades.target")}
       </Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <View style={{ flex: 1 }}>
+      {/* The picks and the field side by side while they fit; at a big font size the field wraps under the picks. */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>
+        <View style={{ flexGrow: 1, flexBasis: pickWidth }}>
           <Segmented
             label={t("grades.target")}
             value={picked?.toString() ?? ""}

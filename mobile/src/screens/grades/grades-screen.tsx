@@ -6,25 +6,27 @@
 // what-if with the one shared target; and the transcript, a term at a time. Without SIX, this
 // term's courses from Edunex with their calculators, and what signing in to SIX unlocks.
 // On the phone the graduation card comes before the chart: the answer before the picture of it.
-import type { ReactNode } from "react";
+import { memo, type ReactNode, useMemo } from "react";
 import { Pressable, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
-import { useDataset } from "../../../../src/app/store";
+import { useDataset, useStatus } from "../../../../src/app/store";
 import { type PlanState, usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import type { CalendarEvent } from "../../../../src/core/models";
 import { checkPlan, expectedGrade, hasWhatIfs, passedSks, project, type StudentRecord, sksModel, targetOf } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
+import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
 import { Card, CourseCode } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat, StatRow } from "../../ui/layout";
-import { Text } from "../../ui/text";
+import { List, Meta, Notice, Page, PageHeader, Row, Section, Stat } from "../../ui/layout";
+import { Text, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
+import { useAfterFirstFrame } from "../plan/deferred";
 import { useFreshPlan } from "../plan/fresh-plan";
 import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "../plan/projection";
 import { SixNeeded } from "../plan/six-needed";
@@ -57,11 +59,17 @@ function GradesOrWithoutSix() {
   const record = useStudentRecord();
   // SIX's own record: the planner's what-ifs for this term stay in the planner.
   const state = usePlan(record, false);
+  const six = useStatus("six");
+  // Drawn with its data: SIX's record, or what shows without it once there's nothing to wait for.
+  usePerfDrawn(Boolean(record && state) || (six.state !== "connecting" && six.state !== "live"));
   return record && state ? <Grades record={record} state={state} /> : <WithoutSix />;
 }
 
 function Grades({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
+  // The answer, the figures and the graduation card fill the first screenful; the chart, this term and the
+  // transcript come a frame later.
+  const rest = useAfterFirstFrame();
   return (
     <>
       <Answer record={record} state={state} />
@@ -71,15 +79,17 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
         <Disagreement record={record} />
         <Standing record={record} state={state} />
         <Graduation record={record} state={state} />
-        <Card style={{ paddingHorizontal: space[4], paddingTop: space[4], paddingBottom: space[3] }} testID="card.chart">
-          <Text size="title" weight="semibold" accessibilityRole="header" style={{ marginBottom: space[3] }}>
-            {t("grades.chart")}
-          </Text>
-          <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />
-        </Card>
+        {rest && (
+          <Card style={{ paddingHorizontal: space[4], paddingTop: space[4], paddingBottom: space[3] }} testID="card.chart">
+            <Text size="titleMedium" weight="semibold" accessibilityRole="header" style={{ marginBottom: space[3] }}>
+              {t("grades.chart")}
+            </Text>
+            <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />
+          </Card>
+        )}
       </View>
-      <ThisTerm record={record} state={state} />
-      <Transcript record={record} />
+      {rest && <ThisTerm record={record} state={state} />}
+      {rest && <Transcript record={record} />}
     </>
   );
 }
@@ -138,9 +148,10 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   const signed = (value: number) => `${value > 0.004 ? "+" : value < -0.004 ? "−" : "±"}${f.number(Math.abs(value), 2)}`;
   const sks = sksModel(record, state.plan);
   const { bestIpk, variableSks } = state.projection;
-  // The IPK itself is the header's answer; these are the figures around it.
+  // The IPK itself is the header's answer; these are the figures around it, side by side while they fit and wrapping
+  // at a big font size, never squeezed into columns.
   return (
-    <StatRow>
+    <StatWrap>
       <Stat label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
       <Stat
         label={t("grades.lastIp")}
@@ -156,11 +167,28 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
         }
       />
       <Stat label={t("grades.best")} value={num(bestIpk)} hint={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} />
-    </StatRow>
+    </StatWrap>
   );
 }
 
-function Graduation({ record, state }: { record: StudentRecord; state: PlanState }) {
+/** Figures on a tonal card, as many to a line as fit (each at least a short label wide), wrapping at big font sizes. */
+function StatWrap({ children }: { children: ReactNode[] }) {
+  const min = useTextWidth(96);
+  return (
+    <Card style={{ paddingHorizontal: space[4], paddingVertical: space[4] }} testID="card.standing">
+      <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[4], rowGap: space[4] }}>
+        {children.map((child, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: a fixed set of figures in their order
+          <View key={i} style={{ flexGrow: 1, flexBasis: min, minWidth: min }}>
+            {child}
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
+const Graduation = memo(function Graduation({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
   const f = useFormat();
   const nav = useNav();
@@ -170,18 +198,18 @@ function Graduation({ record, state }: { record: StudentRecord; state: PlanState
   const { projection, plan } = state;
   const final = projection.finalIpk;
   const word = predicate(predicateFor(final, projection.path));
-  const finish = checkPlan(record, plan, projection).find((r) => r.id === "finish");
+  const finish = useMemo(() => checkPlan(record, plan, projection).find((r) => r.id === "finish"), [record, plan, projection]);
   const lastTerm = [...plan.terms].reverse().find((term) => term.courses.length)?.term ?? record.term;
   const blocked = finish?.level === "error";
   return (
     <Card style={{ paddingHorizontal: space[4], paddingVertical: space[4] }} testID="card.graduation">
-      <Text size="title" weight="semibold" accessibilityRole="header">
+      <Text size="titleMedium" weight="semibold" accessibilityRole="header">
         {t("grades.graduation")}
       </Text>
-      <Text size="caption" tone="muted">
+      <Text size="bodySmall" tone="muted">
         {t("grades.graduationEstimate")}
       </Text>
-      <Text size="display" weight="semibold" tabular style={{ marginTop: space[3] }}>
+      <Text size="headlineMedium" weight="semibold" tabular style={{ marginTop: space[3] }}>
         {final === null ? "-" : f.number(final, 2)}
       </Text>
       {word ? (
@@ -202,7 +230,7 @@ function Graduation({ record, state }: { record: StudentRecord; state: PlanState
           {t("grades.withoutWhatIfs")}
         </Text>
       )}
-      <View style={{ marginTop: space[3], paddingTop: space[3], borderTopWidth: 1, borderTopColor: theme.color.line }}>
+      <View style={{ marginTop: space[4] }}>
         <HonorsSentence projection={projection} />
       </View>
       <View style={{ marginTop: space[4], flexDirection: "row" }}>
@@ -217,7 +245,7 @@ function Graduation({ record, state }: { record: StudentRecord; state: PlanState
       </View>
     </Card>
   );
-}
+});
 
 function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
@@ -226,13 +254,13 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
   const theme = useTheme();
   const outline = useDataset("edunex.outline");
   const { plan, update } = state;
-  if (!record.term || !record.thisTerm.length) return null;
   // This term alone: what the IPK becomes and what the target needs from its courses.
-  const termOnly = project(record, { ...plan, terms: [] });
+  const termOnly = useMemo(() => project(record, { ...plan, terms: [] }), [record, plan]);
   const after = termOnly.steps.find((s) => s.term === record.term)?.ipk ?? null;
   const goal = targetOf(record, plan);
   const pending = record.thisTerm.some((c) => c.grade === null);
   const hidden = record.thisTerm.some((c) => c.grade === null && !outline?.[c.code]?.grade);
+  if (!record.term || !record.thisTerm.length) return null;
   return (
     <Section title={t("grades.thisTerm")} description={pending ? t("grades.whatIf") : undefined} testID="section.thisTerm">
       <List>
@@ -242,14 +270,13 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
             <Row
               key={course.code}
               testID={`row.course.${course.code}`}
-              leading={
-                <Text size="small" weight="semibold" tabular style={{ width: 64 }}>
-                  {course.code}
-                </Text>
-              }
               title={course.name}
+              // The code with the facts under the name: a fixed code column left the name a third of a phone's width.
               meta={
                 <Meta>
+                  <Text size="bodyMedium" weight="medium" tabular>
+                    {course.code}
+                  </Text>
                   {t("curriculum.sks", { sks: course.sks })}
                   {published ? t("grades.edunexGrade", { total: f.number(published.total, 1), letter: published.letter }) : ""}
                 </Meta>
@@ -285,10 +312,10 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
             </Row>
           );
         })}
-        <View style={{ backgroundColor: theme.color.sunken, paddingHorizontal: space[4], paddingVertical: space[3.5], gap: space[3] }}>
-          <Text size="body">
+        <View style={{ backgroundColor: theme.color.surfaceContainer, paddingHorizontal: space[4], paddingVertical: space[4], gap: space[3] }}>
+          <Text size="bodyLarge">
             {t("grades.ipkAfter")}{" "}
-            <Text size="lead" weight="semibold" tabular>
+            <Text size="titleMedium" weight="semibold" tabular>
               {after === null ? "-" : f.number(after, 2)}
             </Text>
           </Text>
@@ -385,7 +412,7 @@ function WithoutSix() {
                 <Row
                   key={course.code}
                   testID={`row.course.${course.code}`}
-                  leading={<CourseCode code={course.code} color={course.color} column />}
+                  leading={<CourseCode code={course.code} color={course.color} />}
                   title={course.name}
                   meta={
                     grade ? t("grades.edunexGrade", { total: f.number(grade.total, 1), letter: grade.letter }) : anyGrade ? t("grades.edunexNone") : undefined

@@ -3,7 +3,7 @@
 // grades as SIX lists them, a retake and a grade that doesn't count marked on its row.
 // A term's row is `row.term.smt-<n>` (a short semester: its code), and says it's open with a
 // `row.term.<…>.open` mark inside it, so a flow can open one without closing it.
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { CheckedIndex, TranscriptTerm } from "../../../../src/core/models";
@@ -32,6 +32,7 @@ export function Transcript({ record }: { record: StudentRecord }) {
   const stageIp = stage ? shownIndex(stage.ip) : null;
   const lastGraded = [...terms].reverse().find((term) => shownIndex(term.ip) !== null)?.term ?? null;
   const [open, setOpen] = useState<string | null>(lastGraded);
+  const toggle = useCallback((term: string) => setOpen((was) => (was === term ? null : term)), []);
   return (
     <Section
       title={t("grades.transcript")}
@@ -46,14 +47,24 @@ export function Transcript({ record }: { record: StudentRecord }) {
     >
       <List>
         {[...terms].reverse().map((term) => (
-          <TermRow key={term.term} record={record} term={term} open={open === term.term} onToggle={() => setOpen(open === term.term ? null : term.term)} />
+          <TermRow key={term.term} record={record} term={term} open={open === term.term} onToggle={toggle} />
         ))}
       </List>
     </Section>
   );
 }
 
-function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term: TranscriptTerm; open: boolean; onToggle: () => void }) {
+const TermRow = memo(function TermRow({
+  record,
+  term,
+  open,
+  onToggle,
+}: {
+  record: StudentRecord;
+  term: TranscriptTerm;
+  open: boolean;
+  onToggle: (term: string) => void;
+}) {
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -68,15 +79,12 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
         testID={id}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        onPress={onToggle}
+        onPress={() => onToggle(term.term)}
         android_ripple={{ color: theme.color.selected }}
         style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3], minHeight: 56 }}
       >
-        <View testID={open ? `${id}.open` : undefined} style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}>
-          <Icons.ChevronRight size={16} color={theme.color.faint} />
-        </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text size="body" weight="medium">
+          <Text size="bodyLarge" weight="medium">
             {termName(term.term)}
           </Text>
           <Meta>
@@ -91,40 +99,37 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
             ) : null}
           </Meta>
         </View>
-        <Text size={now ? "small" : "body"} weight={now ? "regular" : "semibold"} tone={now ? "muted" : "fg"} tabular>
+        <Text size={now ? "bodyMedium" : "titleMedium"} weight={now ? "regular" : "semibold"} tone={now ? "muted" : "fg"} tabular>
           {now ? t("grades.inProgress") : `IP ${num(ip)}`}
         </Text>
+        {/* Folded or open: the arrow turns, and `.open` tells a flow it's open. */}
+        <View testID={open ? `${id}.open` : undefined} style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
+          <Icons.ChevronDown size={20} color={theme.color.onSurfaceVariant} />
+        </View>
       </Pressable>
       {open && (
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderTopColor: theme.color.line,
-            backgroundColor: theme.color.sunken,
-            paddingHorizontal: space[4],
-            paddingVertical: space[2],
-          }}
-        >
+        // The term's courses on a step of tone under its row, no hairline between.
+        <View style={{ backgroundColor: theme.color.surfaceContainer, paddingHorizontal: space[4], paddingVertical: space[2] }}>
           {term.courses.map((course) => (
             <View
               key={`${course.code}-${course.attempt}`}
               testID={`row.course.${course.code}`}
               style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3], paddingVertical: space[2] }}
             >
-              <Text size="small" weight="semibold" tabular style={{ width: 64, paddingTop: 1 }}>
-                {course.code}
-              </Text>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text size="body">{course.name}</Text>
-                {/* As on a narrow desktop list: the tags and SKS on a line under the name, the grade staying on the row. */}
-                <View style={{ marginTop: 2, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[1.5] }}>
+                <Text size="bodyLarge">{course.name}</Text>
+                {/* The code, the tags and SKS on a line under the name (no code column squeezing it), the grade on the row's end. */}
+                <View style={{ marginTop: 2, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>
+                  <Text size="bodyMedium" weight="medium" tabular>
+                    {course.code}
+                  </Text>
                   {course.attempt > 1 && <Tag>{t("grades.retaken")}</Tag>}
                   {course.standing !== "counted" && (
                     <Tag tone={course.standing === "pending" || course.standing === "unknown" ? "neutral" : "warning"}>
                       {t(`grades.standing.${course.standing}`)}
                     </Tag>
                   )}
-                  <Text size="small" tone="muted" tabular>
+                  <Text size="bodyMedium" tone="muted" tabular>
                     {`${course.sks ?? "-"} SKS`}
                   </Text>
                 </View>
@@ -144,4 +149,4 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
       )}
     </View>
   );
-}
+});
