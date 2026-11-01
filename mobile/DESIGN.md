@@ -40,6 +40,9 @@ are shared, for the next screens once Arqila has seen it in the app (Decision 23
 | Press | `PressScale`: gives to 96.5% and springs back (expressive), on the UI thread; one per card or row | `src/ui/press.tsx` |
 | Big button | `BigButton` (52 dp pill): `filled` (the screen's one main action), `done` (tonal green, after it), `outline` | `src/ui/big-button.tsx` |
 | Living parts | `WavyProgress` (M3 Expressive's wave up to how far along, moving; track and stop dot after), `CookieCheck` (M3's cookie scaling in turning, its check drawing itself), `PulseDot`, `CountUp` (a number counting up once per run), `Rise` (a screen's cards rising in a stagger on its first showing only) | `src/ui/expressive.tsx` |
+| Lists | `CardGroup` (a white card of rows, radius 20), `TileRow` (one target: a leading tile, the title, at most one meta line, at most one status; its divider starts after the tile; `dim` for what isn't open yet), `StatusChip` (the row's one status as a tonal pill: red, amber, ok, brand, neutral), `SectionTitle` (a section's name in Plus Jakarta Sans, its one action at the end). Kuliah, the course page and the module are built from them | `src/ui/v4-list.tsx` |
+| Other tiles | `IconTile` (a TileRow's tile that isn't a course's: a file's kind, a module's number, a meeting's date) in a tone from `useToneTile()` (v4's red, amber, ok, brand and neutral pairs) | `src/ui/icon-tile.tsx` |
+| Bars | `TopBar v4` and `TabHeader v4`: the bar in the page's grey (the card's white once the page scrolls under it), the title in Plus Jakarta Sans, for a screen on v4's grey page | `src/ui/top-bar.tsx`, `src/shell/source-status.tsx` |
 
 Rules that hold (the judge's): a row has a title and at most one short meta line, at most one status (a chip or an
 icon, never a sentence); no explanatory sentences on a tab's first screen (one tap deeper); a tab's first screen ≤ ~45

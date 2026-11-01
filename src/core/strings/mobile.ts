@@ -141,10 +141,6 @@ export const mobileStrings = {
     id: "Menyimpan {done} dari {total} berkas",
     en: { one: "Saving {done} of {total} file", other: "Saving {done} of {total} files" },
   },
-  "mobile.offline.savingHint": {
-    id: "Tetap berjalan meski kamu pindah halaman. Tiap berkas lalu bisa dibuka tanpa internet.",
-    en: "Keeps going if you leave this page. Each file then opens without internet.",
-  },
   // UKT: once a bill is paid, the other deadline is only a fact, with nothing left to follow.
   "mobile.bills.paidOtherSix": { id: "Di SIX tertulis {date}", en: "SIX says {date}" },
   "mobile.bills.paidOtherItb": { id: "Di kalender ITB tertulis {date}", en: "ITB's calendar says {date}" },
