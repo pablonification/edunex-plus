@@ -14,11 +14,9 @@ import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, { FadeIn, FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTermCourses } from "../../../../src/app/courses";
-import { useHomeWorld } from "../../../../src/app/home-world";
-import { useClock, useLang, useT } from "../../../../src/app/i18n";
+import { useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useSettings, useStatus } from "../../../../src/app/store";
 import { wibDay } from "../../../../src/core/course-meetings";
-import { classFacts, homeContext, type NowCard } from "../../../../src/core/needs";
 import { isEmptyDay, minuteOfDay, type ScheduleDay, scheduleDays, shiftDay, termWeek, weekStart } from "../../../../src/core/schedule";
 import { useParam } from "../../nav";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
@@ -34,12 +32,11 @@ import { OverflowMenu } from "../../ui/menu";
 import { useReduceMotion } from "../../ui/motion";
 import { Text } from "../../ui/text";
 import { space, TOUCH, useTheme } from "../../ui/theme";
-import { ClassSheet, classCard } from "../home/class-sheet";
 import { PhoneCalendarSync, useCalendarSync, useShareIcs } from "./calendar-sync";
 import { useDayFormat, useToday } from "./clock";
 import { DayView, HOUR, hoursOf } from "./day";
-import { DetailSheet, type Picked } from "./details";
 import { useAgendaInput } from "./input";
+import { useScheduleSheets } from "./sheets";
 import { WeekStrip } from "./strip";
 import { ScheduleWorldProvider } from "./world";
 
@@ -70,9 +67,6 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   const six = useStatus("six");
   const today = useToday();
   const courses = useTermCourses() ?? [];
-  const world = useHomeWorld();
-  const worldRef = useRef(world);
-  worldRef.current = world;
   // The day picked: today first; it follows today across midnight while the Student hasn't picked another.
   const [picked, setPicked] = useState(today);
   const [direction, setDirection] = useState(0);
@@ -85,7 +79,6 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
     setDirection(by);
     setPicked(day);
   }, []);
-  const [sheet, setSheet] = useState<{ card: NowCard } | { picked: Picked } | null>(null);
   const timetableChanged = useChangedPage(["six.schedule"]);
   const waiting = !input || (!input.six && (six.state === "connecting" || six.state === "live") && !timetableChanged);
   usePerfDrawn(!waiting, "tab");
@@ -98,37 +91,8 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   const covered = new Set(input?.months ?? []);
   const free = Boolean(input?.six && day && isEmptyDay(day) && !day.holiday && covered.has(picked.slice(0, 7)) && weekday(picked) < 5);
 
-  // A class tapped: Beranda's sheet, from the same facts Beranda reads; anything else, its own.
-  const clock = useClock();
-  const open = useCallback(
-    (what: Picked) => {
-      if (what.kind === "class" && worldRef.current) {
-        const facts = classFacts(homeContext(worldRef.current), what.item.session);
-        setSheet({ card: classCard(facts, clock.now()) });
-        return;
-      }
-      if (what.kind === "meeting" && "number" in what.meeting && typeof what.meeting.number === "number") {
-        const meeting = what.meeting;
-        setSheet({
-          card: {
-            state: "next",
-            class: null,
-            meeting: {
-              code: meeting.code,
-              meeting: { number: meeting.number!, start: meeting.start, end: meeting.end, note: null, online: meeting.online, link: meeting.link },
-              ...(what.notInSix ? {} : { maybeInSix: true as const }),
-            },
-            presence: null,
-            after: null,
-            unreadDay: null,
-          },
-        });
-        return;
-      }
-      setSheet({ picked: what });
-    },
-    [clock],
-  );
+  // A class tapped: Beranda's sheet; anything else, Jadwal's own (./sheets.tsx).
+  const { open, sheets } = useScheduleSheets();
 
   // A class asked for from outside (the "Hari ini" widget's tap): its day, then its sheet.
   const asked = useParam("class");
@@ -185,13 +149,7 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
           </DayScroll>
         </>
       )}
-      <ClassSheet
-        card={sheet && "card" in sheet ? sheet.card : null}
-        courses={courses}
-        open={sheet !== null && "card" in sheet}
-        onClose={() => setSheet(null)}
-      />
-      <DetailSheet picked={sheet && "picked" in sheet ? sheet.picked : null} onClose={() => setSheet(null)} />
+      {sheets}
     </View>
   );
 }

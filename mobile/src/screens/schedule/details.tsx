@@ -37,7 +37,7 @@ export type Picked =
 /** The sheet for what was tapped; going to a course, exam or Task closes it first. */
 export function DetailSheet({ picked, onClose }: { picked: Picked | null; onClose: () => void }) {
   return (
-    <Sheet open={picked !== null} onClose={onClose} testID="sheet.class">
+    <Sheet open={picked !== null} onClose={onClose} background={useTheme().v4.card} testID="sheet.class">
       {picked?.kind === "class" && <ClassDetails item={picked.item} onLeave={onClose} />}
       {picked?.kind === "meeting" && <MeetingDetails meeting={picked.meeting} notInSix={picked.notInSix} onLeave={onClose} />}
       {picked?.kind === "window" && <WindowDetails window={picked.window} onLeave={onClose} />}
