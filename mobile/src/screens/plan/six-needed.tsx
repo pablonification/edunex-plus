@@ -11,9 +11,9 @@ import type { DatasetName } from "../../../../src/core/models";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { useSignIn } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
-import { Card } from "../../ui/display";
+import { Panel } from "../../ui/group";
 import { Text } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 
 /** `datasets`: what the part shows from SIX; when that page changed before it was ever read, the part says so instead of waiting. */
 export function SixNeeded({
@@ -30,7 +30,7 @@ export function SixNeeded({
   datasets?: readonly DatasetName[];
 }) {
   const t = useT();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const status = useStatus("six");
   const { signIn, busy } = useSignIn();
   const changed = useChangedPage(datasets);
@@ -39,18 +39,14 @@ export function SixNeeded({
   const expired = status.state === "expired";
   const connecting = status.state === "connecting" || status.state === "live";
   return (
-    <Card
-      style={{ flexDirection: "row", alignItems: "flex-start", gap: space[4], paddingHorizontal: space[4], paddingVertical: space[4] }}
-      testID="note.sixNeeded"
-    >
-      <View style={{ width: 36, height: 36, borderRadius: radius.lg, backgroundColor: theme.color.fill, alignItems: "center", justifyContent: "center" }}>
-        {icon}
-      </View>
+    // v4: a white card on the page's grey, its icon in a tinted square.
+    <Panel style={{ flexDirection: "row", alignItems: "flex-start", gap: space[4], padding: space[5] }} testID="note.sixNeeded">
+      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.page, alignItems: "center", justifyContent: "center" }}>{icon}</View>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="body" weight="semibold">
+        <Text size="bodyLarge" weight="semibold" style={{ color: v.fg }}>
           {title}
         </Text>
-        <Text size="small" tone="muted" style={{ marginTop: 2 }}>
+        <Text size="bodyMedium" style={{ marginTop: 2, color: v.muted }}>
           {connecting ? t("plan.loading") : signedOut || expired ? body : t("plan.needSixWait")}
         </Text>
         {(signedOut || expired || action) && (
@@ -64,6 +60,6 @@ export function SixNeeded({
           </View>
         )}
       </View>
-    </Card>
+    </Panel>
   );
 }
