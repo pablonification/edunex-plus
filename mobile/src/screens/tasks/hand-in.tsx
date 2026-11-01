@@ -32,8 +32,10 @@ import { boxEditable, boxHtml, boxText, editableInApp, plainText } from "../../p
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { useRefresh, useSignIn } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
+import { BigButton } from "../../ui/big-button";
+import { Panel } from "../../ui/card-list";
 import { Button, IconButton } from "../../ui/controls";
-import { Card, ProgressBar, StatusGlyph } from "../../ui/display";
+import { ProgressBar, StatusGlyph } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { useBottomInset } from "../../ui/insets";
 import { factsLabel, Meta } from "../../ui/layout";
@@ -353,12 +355,14 @@ export function HandInCard({ h }: { h: HandInState }) {
   const glyph = c[GLYPH_TONE[status]];
 
   return (
-    <Card testID="card.handIn">
+    <Panel flush testID="card.handIn">
       <View style={{ padding: space[4], gap: space[4] }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
           <StatusGlyph status={status} size={24} color={glyph} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="titleMedium">{t(`taskStatus.${status}`)}</Text>
+            <Text size="titleMedium" face="display" weight="bold" style={{ color: theme.v4.fg }}>
+              {t(`taskStatus.${status}`)}
+            </Text>
             {subtitle ? <Meta>{subtitle}</Meta> : null}
           </View>
           {(task.score !== null || status === "in_review") && (
@@ -366,7 +370,7 @@ export function HandInCard({ h }: { h: HandInState }) {
               <Text size="bodySmall" tone="muted">
                 {t("task.score")}
               </Text>
-              <Text size="titleLarge" weight="semibold" tabular>
+              <Text size="titleLarge" face="display" weight="extrabold" tabular style={{ color: theme.v4.fg }}>
                 {task.score !== null ? formatScore(task.score, f) : "-"}
               </Text>
             </View>
@@ -391,7 +395,7 @@ export function HandInCard({ h }: { h: HandInState }) {
                 <Text size="labelLarge" tone="muted">
                   {t("mobile.tasks.answerText")}
                 </Text>
-                <View style={{ borderRadius: shape.md, backgroundColor: c.surfaceContainerHigh, paddingHorizontal: space[3], paddingVertical: space[3] }}>
+                <View style={{ borderRadius: shape.md, backgroundColor: theme.v4.page, paddingHorizontal: space[3], paddingVertical: space[3] }}>
                   <LecturerHtml html={h.answer.saved} pictureAlt={t("image.altYours")} />
                 </View>
                 {h.editable && h.textLocked && (
@@ -516,7 +520,7 @@ export function HandInCard({ h }: { h: HandInState }) {
           </View>
         )}
       </View>
-    </Card>
+    </Panel>
   );
 }
 
@@ -607,7 +611,7 @@ function AnswerField({
             paddingHorizontal: focused ? space[4] - 1 : space[4],
             paddingVertical: focused ? space[3] - 1 : space[3],
             color: c.onSurface,
-            backgroundColor: c.surface,
+            backgroundColor: theme.v4.card,
           },
         ]}
       />
@@ -628,7 +632,7 @@ function AnswerField({
 function Quiet({ children }: { children: ReactNode }) {
   const theme = useTheme();
   return (
-    <View style={{ borderRadius: shape.md, backgroundColor: theme.color.surfaceContainerHigh, paddingHorizontal: space[3], paddingVertical: space[3] }}>
+    <View style={{ borderRadius: shape.md, backgroundColor: theme.v4.page, paddingHorizontal: space[3], paddingVertical: space[3] }}>
       <Text size="bodyMedium" tone="muted">
         {children}
       </Text>
@@ -689,7 +693,9 @@ export function HandInBar({ h }: { h: HandInState }) {
     <View
       testID="bar.handIn"
       style={{
-        backgroundColor: theme.color.surfaceContainer,
+        backgroundColor: theme.v4.card,
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderTopColor: theme.v4.line,
         paddingHorizontal: space.page,
         paddingTop: space[3],
         paddingBottom: space[3] + bottom,
@@ -711,28 +717,26 @@ export function HandInBar({ h }: { h: HandInState }) {
         </View>
       )}
       <View style={{ flexDirection: "row", gap: space[2] }}>
-        <Button
+        <BigButton
           testID="action.saveDraft"
-          size="lg"
-          variant={h.wait && h.canSave ? "primary" : "secondary"}
+          variant={h.wait && h.canSave ? "filled" : "outline"}
           disabled={!h.canSave}
           busy={h.busy === "draft"}
           onPress={() => void h.run("draft")}
-          style={{ flexShrink: 0 }}
         >
           {t("handIn.saveDraft")}
-        </Button>
-        <Button
+        </BigButton>
+        <BigButton
           testID="action.submit"
-          size="lg"
-          variant={h.wait ? "secondary" : "primary"}
+          variant={h.wait ? "outline" : "filled"}
           disabled={!h.canSubmit}
           busy={h.busy === "submit"}
           onPress={() => h.setConfirming(true)}
-          style={{ flex: 1 }}
+          flex={1}
+          icon={h.wait ? undefined : <Icons.Upload size={20} weight="bold" color={theme.v4.onBrand} />}
         >
           {submitLabel}
-        </Button>
+        </BigButton>
       </View>
       <HandInSheet h={h} submitLabel={h.status === "overdue" ? submitLabel : t("handIn.submitNow")} />
     </View>
@@ -917,7 +921,7 @@ function FileRowView({
     </>
   );
   return (
-    <View style={[styles.file, { backgroundColor: failed ? c.errorContainer : c.surfaceContainerHigh }]}>
+    <View style={[styles.file, { backgroundColor: failed ? c.errorContainer : theme.v4.page }]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2.5] }}>
         {onOpen && !failed ? (
           <Pressable
