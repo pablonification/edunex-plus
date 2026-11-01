@@ -6,7 +6,6 @@ import { type ReactNode, useEffect, useState } from "react";
 import { type LayoutChangeEvent, type StyleProp, StyleSheet, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
 import Animated, {
   Easing,
-  FadeIn,
   FadeInDown,
   useAnimatedProps,
   useAnimatedStyle,
@@ -197,7 +196,8 @@ const risen = new Set<string>();
 
 /**
  * A screen's part rising into place on its first showing, `index` steps after the first (55 ms apart, on M3
- * Expressive's spring); a fade with Remove animations; still the next time `screen` is drawn in this run.
+ * Expressive's spring); just there with Remove animations, and the next time `screen` is drawn in this run. (A fade in
+ * its place was now and then left at nothing on the emulator with animations off: Kuliah drawn blank.)
  */
 export function Rise({ screen, index, style, children }: { screen: string; index: number; style?: StyleProp<ViewStyle>; children: ReactNode }) {
   const still = useReduceMotion();
@@ -205,10 +205,9 @@ export function Rise({ screen, index, style, children }: { screen: string; index
   useEffect(() => {
     risen.add(screen);
   }, [screen]);
-  const entering = !first
-    ? undefined
-    : still
-      ? FadeIn.delay(index * 40)
+  const entering =
+    !first || still
+      ? undefined
       : FadeInDown.delay(80 + index * 55)
           .springify()
           .damping(16)
