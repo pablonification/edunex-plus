@@ -7,6 +7,7 @@ import type { TermCourse } from "../../../../src/app/courses";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { ClassFacts, HomeContext, NowCard, TodayPlan } from "../../../../src/core/needs";
+import { type AbsenceTone, absenceInk, absenceTone } from "../../ui/absence";
 import { Rise } from "../../ui/expressive";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
@@ -101,6 +102,7 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
   const name = item.kind === "class" ? nameOf(courses, item.code, item.facts.session.courseName) : nameOf(courses, item.code);
   const place = item.kind === "class" ? item.facts.session.room : item.meeting.meeting.online ? t("mobile.home.online") : null;
   const chip = chipOf(item);
+  const ink = chip && absenceInk(v, chip.tone);
   return (
     <PressScale
       onPress={onOpen}
@@ -117,9 +119,9 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
           {[f.time(item.start), place].filter(Boolean).join(" · ")}
         </Text>
       </View>
-      {chip && (
-        <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: chip.tone === "red" ? v.redBg : v.ambBg }}>
-          <Text size="labelMedium" weight="semibold" style={{ color: chip.tone === "red" ? v.redFg : v.ambFg }}>
+      {chip && ink && (
+        <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: ink.bg }}>
+          <Text size="labelMedium" weight="semibold" style={{ color: ink.fg }}>
             {t(chip.key)}
           </Text>
         </View>
@@ -136,12 +138,16 @@ type ChipKey =
   | "mobile.home.roomMoved"
   | "mobile.home.chip.notInSix";
 
-/** The row's one chip, the most pressing: no absences left, below target, a clash, a new time or room, not in SIX. */
-function chipOf(item: Item): { key: ChipKey; tone: "red" | "amber" } | null {
+/**
+ * The row's one chip, the most pressing: no absences left, below target, a clash, a new time or room, not in SIX. The
+ * absences take the app's absence scale (src/ui/absence.ts: "Jatah habis" amber, "Di bawah target" red); the rest amber.
+ */
+function chipOf(item: Item): { key: ChipKey; tone: AbsenceTone } | null {
   if (item.kind === "meeting") return item.meeting.maybeInSix ? null : { key: "mobile.home.chip.notInSix", tone: "amber" };
   const { facts } = item;
-  if (facts.state === "none") return { key: "mobile.home.chip.noAbsences", tone: "red" };
-  if (facts.state === "out") return { key: "mobile.home.chip.belowTarget", tone: "red" };
+  const absence = absenceTone(facts.state);
+  if (absence && (facts.state === "none" || facts.state === "out"))
+    return { key: facts.state === "none" ? "mobile.home.chip.noAbsences" : "mobile.home.chip.belowTarget", tone: absence };
   if (facts.overlap) return { key: "mobile.home.chip.clash", tone: "amber" };
   if (facts.moved) return { key: facts.moved.usualStart !== null ? "mobile.home.timeMoved" : "mobile.home.roomMoved", tone: "amber" };
   return null;

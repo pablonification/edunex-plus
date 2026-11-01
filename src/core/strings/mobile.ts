@@ -75,17 +75,14 @@ export const mobileStrings = {
   "mobile.home.chip.belowTarget": { id: "Di bawah target", en: "Below target" },
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   "mobile.home.chip.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
+  // The class sheet's time row: the class is on now (a green chip), and where a moved class or room usually is.
+  "mobile.home.chip.now": { id: "Sekarang", en: "Now" },
+  "mobile.home.movedFrom": { id: "Pindah dari {usual}", en: "Moved from {usual}" },
   "mobile.home.online": { id: "daring", en: "online" },
   // The class sheet's facts as labels, never the how: the share against the target, Tandai Hadir's state, the Presence.
   "mobile.home.share": { id: "Kehadiran {percent}% · target {target}%", en: "Attendance {percent}% · target {target}%" },
-  "mobile.home.checkIn.open": { id: "Tandai Hadir dibuka", en: "Tandai Hadir is open" },
-  "mobile.home.checkIn.waiting": { id: "Tandai Hadir belum muncul", en: "No Tandai Hadir yet" },
-  "mobile.home.checkIn.gone": { id: "Tandai Hadir tak tampil lagi", en: "Tandai Hadir is gone" },
-  "mobile.home.presenceUntil": { id: "Presensi Edunex · sampai {time}", en: "Edunex Presence · until {time}" },
   // The now card with no class in the week ahead.
   "mobile.home.free": { id: "Tak ada kuliah 7 hari ke depan", en: "No classes in the next 7 days" },
-  // The class sheet's line for a class going on.
-  "mobile.home.liveUntil": { id: "Sekarang · sampai {time}", en: "Now · until {time}" },
   // The first read's card on Beranda: the summary the welcome used to show.
   "mobile.home.scanOpen": { id: "Lihat ringkasan", en: "See summary" },
   // Notifications, asked on Beranda the first time there's a class.
