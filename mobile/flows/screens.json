@@ -3660,6 +3660,14 @@
             }
           },
           {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.nav.plan.bills"
+              },
+              "timeout": 10000
+            }
+          },
+          {
             "tapOn": {
               "id": "row.nav.plan.bills"
             }
@@ -3677,6 +3685,14 @@
           {
             "tapOn": {
               "id": "tab.academic"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.nav.plan.deadlines"
+              },
+              "timeout": 10000
             }
           },
           {
