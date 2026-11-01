@@ -1,5 +1,5 @@
-// The Nilai tab on the phone (S18, src/app/screens/course/grades.tsx): Edunex's grade only once the
-// lecturer publishes it, and the course-contract calculator. The answer comes first, as a sentence
+// The Nilai tab on the phone (S18, src/app/screens/course/grades.tsx; round 2, v4): Edunex's grade only once the
+// lecturer publishes it, and the course-contract calculator on one white card. The answer comes first, as a sentence
 // for the letter the Student aims for; it's only given when it can be trusted: the weights must add
 // up to 100, example weights say so loudly, and a score outside 0–100 is explained, not quietly
 // changed. Numbers are typed on the number keypad. What the Student enters stays on this phone
@@ -14,11 +14,11 @@ import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } fr
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../../src/core/models";
 import { dismissToast, toast } from "../../swaps/overlays";
 import { Button, IconButton, Segmented } from "../../ui/controls";
-import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
+import { useCardStyle } from "../home/now";
 
 // The letter aimed for, per course, while the app runs (the desktop keeps it in the page's place in history).
 const aims = new Map<string, ContractLetter>();
@@ -26,28 +26,30 @@ const aims = new Map<string, ContractLetter>();
 export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenModules?: () => void }) {
   const t = useT();
   const f = useFormat();
-  const theme = useTheme();
+  const v = useTheme().v4;
+  const surface = useCardStyle();
   const grade = page.outline?.grade ?? null;
   return (
-    <View style={{ gap: space[6] }}>
+    <View style={{ gap: space[4] }}>
       <Calculator page={page} onOpenModules={onOpenModules} />
-      <Card style={{ paddingHorizontal: space[4], paddingVertical: space[3.5] }}>
-        <Text size="small" weight="semibold" tone="muted">
+      {/* Edunex's own grade, once the lecturer publishes it: the number and the letter, big. */}
+      <View style={[surface, { paddingHorizontal: space[4], paddingVertical: space[4] }]}>
+        <Text size="bodyMedium" weight="medium" style={{ color: v.muted }}>
           {t("grade.edunex")}
         </Text>
         {grade ? (
-          <Text size="heading" weight="semibold" tabular style={{ marginTop: space[2] }}>
+          <Text size="headlineSmall" face="display" weight="extrabold" tabular style={{ color: v.fg, marginTop: space[1], fontSize: 28 }}>
             {`${f.number(grade.total, 1)}  ${grade.letter}`}
           </Text>
         ) : (
-          <View style={{ marginTop: space[2], flexDirection: "row", gap: space[2] }}>
-            <Icons.EyeOff size={14} color={theme.color.muted} />
-            <Text size="body" tone="muted" style={{ flex: 1 }}>
+          <View style={{ marginTop: space[2], flexDirection: "row", alignItems: "center", gap: space[2] }}>
+            <Icons.EyeOff size={16} color={v.muted} />
+            <Text size="bodyMedium" style={{ color: v.fg2, flex: 1 }}>
               {t("grade.unpublished")}
             </Text>
           </View>
         )}
-      </Card>
+      </View>
     </View>
   );
 }
@@ -182,6 +184,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const f = useFormat();
   const theme = useTheme();
   const c = theme.color;
+  const surface = useCardStyle();
   const bridge = useBridge();
   const code = page.course.code;
   const saved = useDataset("local.courseWeights");
@@ -256,10 +259,10 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const answerTone = !weightsOk ? "warning" : need.need === null && !need.reached && result.final === null ? "danger" : "fg";
 
   return (
-    // The warning, the answer, then the table it comes from.
+    // The warning, then one white card: the answer, then the table it comes from.
     <View>
       {isExample && (
-        <View style={{ marginBottom: space[5] }}>
+        <View style={{ marginBottom: space[4] }}>
           <Notice
             tone="warning"
             title={t("grade.exampleNotice", { code })}
@@ -276,10 +279,11 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
         </View>
       )}
 
+      <View style={[surface, { padding: space[4] }]}>
       <View accessibilityLiveRegion="polite">
         {weightsOk && result.final === null && (
-          <View style={{ marginBottom: space[3], gap: space[1.5] }}>
-            <Text size="small" weight="medium" tone="muted">
+          <View style={{ marginBottom: space[4], gap: space[2] }}>
+            <Text size="bodyMedium" weight="medium" style={{ color: theme.v4.muted }}>
               {t("grade.target")}
             </Text>
             <Segmented
@@ -291,7 +295,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
             />
           </View>
         )}
-        <Text size="heading" weight="semibold" tone={answerTone}>
+        <Text size="titleLarge" face="display" weight="bold" tone={answerTone} style={{ lineHeight: 28 }}>
           {answer}
         </Text>
         {weightsOk && result.final === null && (
@@ -312,7 +316,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
         )}
       </View>
 
-      <View style={{ marginTop: space[5], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }}>
+      <View style={{ marginTop: space[5], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
         <View style={[styles.tableRow, { paddingVertical: space[1.5] }]}>
           <Text size="caption" weight="medium" tone="faint" style={{ flex: 1 }}>
             {t("grade.part")}
@@ -337,7 +341,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
             <View
               key={part.id}
               testID={`row.gradePart.${part.id}`}
-              style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }]}
+              style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }]}
             >
               <PartName name={name} onRename={(next) => setPart(part.id, { name: next })} />
               <View style={{ width: COL_WEIGHT, flexDirection: "row", justifyContent: "flex-end", alignItems: "flex-start", gap: 4 }}>
@@ -386,7 +390,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
           );
         })}
         {/* What changes the table, at its foot: a part more, or the example weights back; and the total. */}
-        <View style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line, alignItems: "center" }]}>
+        <View style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line, alignItems: "center" }]}>
           <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", marginLeft: -space[3] }}>
             <Button
               variant="ghost"
@@ -415,7 +419,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
           </Text>
           <View style={{ width: COL_SCORE + 44 }} />
         </View>
-        <View style={{ marginTop: space[3], paddingTop: space[3], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.line }}>
+        <View style={{ marginTop: space[3], paddingTop: space[3], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
           <Text size="small" tone="muted" style={{ marginBottom: space[2] }} accessibilityRole="header">
             {t("grade.cutoffs")}
           </Text>
@@ -438,6 +442,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
             ))}
           </View>
         </View>
+      </View>
       </View>
     </View>
   );
