@@ -331,6 +331,7 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | tasks-academic | Tugas, Task, Exam, Akademik and its screens, Settings, Search, Notifikasi, W9 | `mobile-r2-tasks-academic` | running |
 | kuliah | Kuliah, course page, module in v4 (W1 kept) | `mobile-r2-kuliah` (from `mobile-r2-sched-base`) | running (desktop, Claude Dev 1; relaunched 07:40 after the C: crash, from e44dcff) |
 | akademik | Akademik and its screens (Nilai, Rencana, Kurikulum, KRS, UKT, Kalender), Settings, Search, Notifikasi in v4 | `mobile-r2-akademik` (from `mobile-r2-tasks-base`) | running (desktop, Claude Dev 2; relaunched 07:40, first pushes its unpushed 8d2de5a) |
+| flows | CI's "app" flows (smoke, use, judge-light/-dark) on v4's Beranda | `mobile-r2-flows` (from `mobile`, 7549034) | handed back (Mac). smoke checks the greeting with the demo name and the class-now card; the walk adds `02b-perlu-kamu-urus` and scrolls 02 to the 16:00 row. use and the walks failed on an app bug, not the flows: every sheet stayed off-screen with Android's animations off (CI's emulator; also "Remove animations" in Accessibility). Fixed with a patch of react-native-screens 4.30.1 (`patches/`, upstream's #4581, not yet released) |
 
 ## Round 1 (done 2026-10-31; kept for its decisions and proofs)
 

@@ -33,6 +33,7 @@ export const FLOWS = [
     shots: [
       { phone: "01-beranda", desktop: "01-beranda", caption: "Beranda" },
       { phone: "02-beranda-hari-ini", desktop: "02-beranda-hari-ini", caption: "Beranda, further down" },
+      { phone: "02b-perlu-kamu-urus", caption: "Perlu kamu urus (Beranda's chevron)" },
     ],
   },
   {
