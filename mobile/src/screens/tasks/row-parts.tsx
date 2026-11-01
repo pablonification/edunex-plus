@@ -18,7 +18,7 @@ import { moduleName } from "../../../../src/core/tasks";
 import { toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
 import { CourseDot, Tag } from "../../ui/display";
-import { CountUp } from "../../ui/expressive";
+import { CountUp, WavyProgress } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice, TrailingInline } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
@@ -420,9 +420,11 @@ export function IconTile({ children }: { children: ReactNode }) {
 }
 
 /**
- * The nearest deadline as Tugas's one big card (v4, Beranda's "Perlu kamu urus"): the course's tint, its glyph and the
- * kind in a pill, the countdown big ("8 hari"; red and "lewat" once past), then what it is and when. The same item,
- * target and spoken name as its row would have: it isn't listed again under it.
+ * The nearest deadline as Tugas's one big card (v4, Beranda's "Perlu kamu urus"): the course's tint, its glyph and a
+ * pill (the course's code, or an exam's kind), the countdown big ("8 hari"; red and "lewat" once past), how much of its
+ * time has gone as M3's wave (from when it opened), then what it is and when. The screen's focal point, so it's
+ * tall: the rows under it start lower, and Tugas's first screen holds fewer words. The same item, target and spoken
+ * name as its row would have: it isn't listed again under it.
  */
 export function HeroCard({
   testID,
@@ -433,6 +435,7 @@ export function HeroCard({
   code,
   course,
   kind,
+  from,
   at,
   title,
   meta,
@@ -444,7 +447,10 @@ export function HeroCard({
   quick?: Quick;
   code: string;
   course?: string;
+  /** The pill: the course's code for a Task, the exam's kind for a take-home. */
   kind: string;
+  /** When it opened (Edunex's "Mulai bisa dijawab"), for the wave; none, no wave. */
+  from: number | null;
   at: number;
   title: string;
   meta: string;
@@ -455,6 +461,7 @@ export function HeroCard({
   const { ink, tint } = useCourseTile()(code);
   const away = countdown(t, now, at);
   const color = away.late ? v.redFg : ink;
+  const gone = from !== null && from < now && from < at && !away.late ? (now - from) / (at - from) : null;
   return (
     <PressScale
       testID={testID}
@@ -462,7 +469,7 @@ export function HeroCard({
       onPress={onPress}
       onLongPress={onLongPress}
       {...quickActions(quick)}
-      style={{ backgroundColor: tint, borderRadius: 24, padding: space[4] }}
+      style={{ backgroundColor: tint, borderRadius: 28, padding: space[5], minHeight: 240 }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <CourseGlyph code={code} name={course} />
@@ -474,20 +481,25 @@ export function HeroCard({
       </View>
       <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: space[3] }}>
         {away.late && (
-          <Text size="bodyLarge" face="display" weight="semibold" style={{ color, marginRight: 6 }}>
+          <Text size="bodyLarge" face="display" weight="semibold" style={{ color, fontSize: 18, marginRight: 6 }}>
             {t("mobile.home.late")}
           </Text>
         )}
         <CountUp
           id={`tasks:${testID}`}
           value={away.value}
-          style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
+          style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 56, lineHeight: 64, letterSpacing: -1.5, fontVariant: ["tabular-nums"] }}
         />
-        <Text size="bodyLarge" face="display" weight="semibold" style={{ color, fontSize: 16, marginLeft: 5 }}>
+        <Text size="bodyLarge" face="display" weight="semibold" style={{ color, fontSize: 18, marginLeft: 6 }}>
           {away.unit}
         </Text>
       </View>
-      <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, marginTop: space[2] }}>
+      {gone !== null && (
+        <View style={{ flexDirection: "row", marginTop: space[2], marginBottom: space[1] }}>
+          <WavyProgress progress={gone} ink={ink} track={`${ink}4d`} label={t("mobile.tasks.timeGone", { percent: Math.round(gone * 100) })} />
+        </View>
+      )}
+      <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, marginTop: space[3] }}>
         {title}
       </Text>
       <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, marginTop: 2 }}>

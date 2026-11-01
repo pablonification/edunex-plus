@@ -181,10 +181,11 @@ export const TaskRow = inWorld(function TaskRow({
         quick={quick}
         code={task.courseCode}
         course={course?.name}
-        kind={kind ?? t("mobile.home.kind.task")}
+        kind={kind ?? task.courseCode}
+        from={task.opensAt}
         at={task.dueAt}
         title={name}
-        meta={`${task.courseCode} · ${when}`}
+        meta={when}
       />
     );
   return (

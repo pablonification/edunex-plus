@@ -155,7 +155,7 @@ function tasksView(
           count: todoCount(group.items) || undefined,
           first: lines.length === 0,
         });
-        if (hero && group === heroGroup) lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, { type: "gap", key: "gap-hero", size: 3 });
+        if (hero && group === heroGroup) lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, { type: "gap", key: "gap-hero", size: 6 });
         lines.push(...todoCard(group.items.filter((item) => item !== hero)));
         if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
       }

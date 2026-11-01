@@ -79,7 +79,7 @@ status=$?
 # (mobile/qa/words.sh: the demo fresh, light, font 1.0, no scrolling), into words-<tab>.txt with its dump and picture.
 if [[ $pattern != data/* ]]; then
   for tab in home schedule tasks courses academic; do
-    QA_OUT="$out/words" QA_APP="$app" "$root/mobile/qa/words.sh" "$(adb get-serialno)" "$tab" > "$out/words-$tab.txt" 2>&1 ||
+    QA_OUT="$out/words" QA_APP="$app" bash "$root/mobile/qa/words.sh" "$(adb get-serialno)" "$tab" > "$out/words-$tab.txt" 2>&1 ||
       echo "words.sh $tab failed (words-$tab.txt)"
   done
 fi
