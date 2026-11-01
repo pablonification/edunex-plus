@@ -112,12 +112,13 @@ npm run --if-present demo:fixtures
 npm run licences
 npx expo prebuild --platform android --clean --no-install
 
-# CI: "Tune Gradle". The daemon is kept here (CI passes --no-daemon) so the next build starts warm.
+# CI: "Tune Gradle", with a 4 GB heap instead of CI's 6: two builds run here beside emulators and five helpers, and
+# at 6 GB each Windows ran out of paging file (2026-11-01). The daemon stops when the build copy goes.
 cd android
 sed -i '/^org.gradle.jvmargs=/d' gradle.properties
 {
   echo
-  echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
+  echo 'org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=768m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
   echo 'org.gradle.caching=true'
   echo 'org.gradle.parallel=true'
 } >> gradle.properties
