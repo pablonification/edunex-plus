@@ -12,7 +12,7 @@
 # --record: the emulator records its display from the host (60 fps, nothing running on the phone), made
 # into an MP4; --recorder phone uses Android's `screenrecord` instead (every frame, but on the phone's CPU,
 # 3 minutes at most).
-# Default out: C:\qa\shots\<time>-<flow>-<avd>\.
+# Default out: F:\qa\shots\<time>-<flow>-<avd>\.
 set -euo pipefail
 here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 . "$here/env.sh"

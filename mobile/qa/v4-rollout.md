@@ -32,17 +32,30 @@ base and branch.
    - Check A for your screens' scenarios stays at 100%.
    - Round 1's flows and your round 2 flows for your screens pass.
 
-**Machines.** The desktop was restarted on 2026-11-01, so its Gradle locks are gone. The Mac is offline. Every helper is on the desktop, so share it:
-- **Gradle: at most two builds at once.**
-  - Take a slot with `mkdir C:\qa\locks\gradle-1` or `mkdir C:\qa\locks\gradle-2` (whichever succeeds first). Write your helper name into its `owner` file.
-  - Then build: `mobile/qa/build.sh <sha> --slot <yours>`, with your own Gradle home. `rmdir` the slot when the build ends.
-  - If both slots are taken, build on GitHub Actions instead: `gh workflow run mobile.yml --ref <your-branch> -f apks=demo-release -f e2e=false -f desktop-shots=false`, then download the artifact `edunex-plus-demo-release-apk`.
-- **Emulators: at most two at once.**
-  - Take `C:\qa\locks\emu-1` or `C:\qa\locks\emu-2` the same way.
-  - Use your own port: home 5562, Jadwal 5564, Tugas 5566, Kuliah 5572, Akademik 5574.
-  - Do your pictures, recording and Check A in one session, then stop your emulator and free the lock.
-- **A stale lock** (older than 40 minutes, its owner's processes gone) may be taken over.
-- **Never** kill another helper's processes. If a build hangs on a lock, don't fight it: use GitHub Actions.
+**Machines.** The Mac is offline, so every helper is on the desktop. Share it.
+
+**C: is never used for builds or output.** On 2026-11-01 helpers' build copies, Gradle homes and Temp filled C:'s 237 GB. T3 crashed and every helper died with it. So:
+- **Big files go on F:** (202 GB free) **or H:** (287 GB free), never C:.
+  - That means build copies, Gradle homes, TEMP/TMP, emulator run output, screenshots, recordings and Perfetto traces.
+  - `mobile/qa/env.sh` already points the lab there: `QA_OUT=F:/qa`, `QA_BUILD_ROOT=F:/b`, and TEMP/TMP set to `F:\qa\tmp`. Every lab script sources it.
+  - Anything you run by hand writes under `F:\qa\<your piece>\` too.
+- **Before every build and every emulator session, C: needs at least 20 GB free.** `build.sh` and `emu.sh` check this themselves (`qa_check_disk`). If C: is under 20 GB, stop and report it to the lead. Don't clean up other helpers' files.
+- **No Gradle home of your own.** Each build slot has one Gradle home, shared by whoever builds in it (`F:\b\gradle-1.gradle`, `F:\b\gradle-2.gradle`).
+- **A build copy goes once its APK is out.** `build.sh` deletes it and stops its Gradle daemon. `--keep` is only for an immediate rebuild.
+- **Clean up after yourself.** Uninstall nothing from the lab. Delete your own runs once their pictures are pushed.
+
+**Gradle: at most two builds at once.**
+- Build with `mobile/qa/build.sh <sha> --slot gradle-1` or `--slot gradle-2`. A busy slot refuses and tells you who has it, so try the other.
+- If both are busy, build on GitHub Actions: `gh workflow run mobile.yml --ref <your-branch> -f apks=demo-release -f e2e=false -f desktop-shots=false`, then download the artifact `edunex-plus-demo-release-apk`.
+
+**Emulators: at most two at once.**
+- Take `C:\qa\locks\emu-1` or `C:\qa\locks\emu-2` with `mkdir` (it succeeds only if the lock is free), and write your helper name into its `owner` file.
+- Use your own port: home 5562, Jadwal 5564, Tugas 5566, Kuliah 5572, Akademik 5574.
+- Do your pictures, recording and Check A in one session, then stop your emulator and `rmdir` the lock.
+
+**Locks and processes.**
+- A stale lock (older than 40 minutes, its owner's processes gone) may be taken over.
+- Never kill another helper's processes. If a build hangs, don't fight it: use GitHub Actions.
 
 **Pictures and proof.**
 - For each of your screens, on `mid`: light, dark and 1.3 font scale, as webp, in `mobile/report/img/v4/<piece>/`. Also `weak` light for each tab's first screen.
