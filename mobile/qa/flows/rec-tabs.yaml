@@ -1,4 +1,4 @@
-# Recording: through every tab and back to Beranda.
+# Recording: through every tab and back to Beranda (round 1's tabs or round 2's).
 appId: io.github.pablonification.edunexplus.demo
 ---
 - extendedWaitUntil:
@@ -10,9 +10,9 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: tab.schedule
 - tapOn:
-    id: tab.presence
+    id: 'tab\.(courses|presence)'
 - tapOn:
-    id: tab.more
+    id: 'tab\.(academic|more)'
 - tapOn:
     id: tab.home
 - waitForAnimationToEnd

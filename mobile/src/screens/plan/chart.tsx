@@ -73,6 +73,8 @@ export function LineChart({
 }: LineChartProps) {
   const theme = useTheme();
   const c = theme.color;
+  // v4: the chart sits on a white card; its hairlines, holes and tap card in the card's own tones.
+  const v4 = theme.v4;
   const [width, setWidth] = useState(0);
   const [tapped, setTapped] = useState<number | null>(null);
 
@@ -129,8 +131,8 @@ export function LineChart({
           <Svg width={width} height={height} accessible={false} importantForAccessibility="no-hide-descendants">
             {gridlines.map((g) => (
               <G key={g}>
-                <Line x1={PAD.left} x2={PAD.left + plotW} y1={y(g)} y2={y(g)} stroke={c.line} strokeWidth={1} />
-                <SvgText x={PAD.left - 6} y={y(g) + 3.5} textAnchor="end" fontSize={FONT} fill={c.faint}>
+                <Line x1={PAD.left} x2={PAD.left + plotW} y1={y(g)} y2={y(g)} stroke={v4.line} strokeWidth={1} />
+                <SvgText x={PAD.left - 6} y={y(g) + 3.5} textAnchor="end" fontSize={FONT} fill={v4.muted}>
                   {format(g)}
                 </SvgText>
               </G>
@@ -143,13 +145,13 @@ export function LineChart({
                 y={height - 8}
                 textAnchor="middle"
                 fontSize={FONT}
-                fill={estimate(i) ? c.muted : c.faint}
+                fill={v4.muted}
                 fontWeight={picked === i ? "600" : "400"}
               >
                 {ticks[i]}
               </SvgText>
             ))}
-            {picked !== null && <Line x1={x(picked)} x2={x(picked)} y1={PAD.top} y2={PAD.top + plotH} stroke={c.edge} strokeWidth={1} />}
+            {picked !== null && <Line x1={x(picked)} x2={x(picked)} y1={PAD.top} y2={PAD.top + plotH} stroke={v4.line} strokeWidth={1} />}
             {reference && (
               <G>
                 <Line x1={PAD.left} x2={PAD.left + plotW} y1={refY} y2={refY} stroke={c.muted} strokeWidth={1.25} strokeDasharray="5 4" />
@@ -176,8 +178,8 @@ export function LineChart({
                       cx={x(i)}
                       cy={y(v)}
                       r={s.kind === "line" ? (i === lastIndex || picked === i ? 4 : 3) : picked === i ? 4.5 : 4}
-                      fill={estimate(i) ? c.surface : s.color}
-                      stroke={estimate(i) ? s.color : c.surface}
+                      fill={estimate(i) ? v4.card : s.color}
+                      stroke={estimate(i) ? s.color : v4.card}
                       strokeWidth={estimate(i) ? 1.75 : 2}
                     />
                   ),
@@ -185,7 +187,7 @@ export function LineChart({
               </G>
             ))}
             {line && endText && lastIndex >= 0 ? (
-              <SvgText x={x(lastIndex) + 8} y={y(line.values[lastIndex]!) + 4} fontSize={12} fontWeight="600" fill={c.fg}>
+              <SvgText x={x(lastIndex) + 8} y={y(line.values[lastIndex]!) + 4} fontSize={12} fontWeight="600" fill={v4.fg}>
                 {endText}
               </SvgText>
             ) : null}
@@ -213,8 +215,8 @@ export function LineChart({
               left: Math.min(Math.max(x(picked) - 70, 0), width - 140),
               width: 140,
               borderRadius: radius.lg,
-              backgroundColor: c.raised,
-              borderColor: c.edge,
+              backgroundColor: v4.card,
+              borderColor: v4.line,
               borderWidth: 1,
               paddingHorizontal: space[2.5],
               paddingVertical: space[2],

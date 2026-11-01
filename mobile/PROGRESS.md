@@ -162,9 +162,9 @@ motion and onboarding are open. The desktop is a reference for data only.
 | --- | --- | --- | --- |
 | Beranda | ~150 (shell) / 88 (origin/mobile) | 40s | 50 (v4, CI 6d3ab0a) |
 | Jadwal | 64 (origin/mobile) | 40s | |
-| Tugas | 80 (origin/mobile) | 40s | |
+| Tugas | What's due next? | To do / Done (segmented, full width, counts); course chips; groups by when (Terlambat, Minggu ini, Minggu depan, Nanti) as tonal tiles; a row: title, one meta line (course · module), day over time at the end; late in the error colour with a warning icon; UTS/UAS/Kuis tag on exams; Masa UTS one expandable row. "dalam N hari" only in the row's spoken name (the Task says it) | Open the Task | tab; row → Task |
 | Kuliah | 99 (origin/mobile) | 40s | |
-| Akademik | 27 (origin/mobile) | 40s | |
+| Akademik | IPK and what to do this term (KRS, UKT) | IPK + SKS card (name and NIM a quiet line; the whole card opens Nilai: one target, the avatar keeps Settings); to-do chips only when something's due (Kirim KRS, Bayar UKT, Isi kuesioner); each screen a row with the one line that answers it (IPK · IP terakhir, lulus semester N, SKS of needed, KRS state and clashes, UKT paid/due, the next date) | Open Nilai | tab |
 
 Counted with `mobile/qa/words.sh <serial> <tab>` (tasks-academic aabc3f4): `mid`, light, fresh demo, status bar and tab
 labels skipped.
@@ -246,17 +246,17 @@ bar, never greyed out.
 | Beranda | Is a class on now or next, and do I need to press Tandai Hadir? What's urgent? | 1. Now/next class card (time big, course, room; one button when Tandai Hadir is open) 2. Perlu perhatianmu (≤3 rows, "Lihat semua") 3. Hari ini (compact list of today's classes) 4. Yang berubah (one row → its sheet) | Tandai Hadir (when open) | tab; card → its class sheet (Beranda's own, `screens/home/class-sheet.tsx`: the now card's cut facts, Tandai Hadir / Presensi / Gabung and Buka mata kuliah side by side); a Hari ini class → the same sheet; a need → its Task/exam; Lihat semua → `/needs`; Yang berubah → its sheet → Lihat semua → the bell. The term's courses moved to Kuliah (W12). First run: the summary and the notification ask are cards here |
 | Jadwal | Where am I next, and what's this week like? | Week strip; agenda by day (time, course, room; changes and clashes as one chip) | Open a class | tab; month as a top-bar action; class → sheet; sheet → course |
 | Class sheet | Where and when, can I skip it, Tandai Hadir | Time + room large; attendance budget line; buttons | Tandai Hadir / Buka mata kuliah | native sheet |
-| Tugas | What's due next? | To do / Done; course chips; rows by week (title, course, due day and time; overdue red) | Open the Task | tab; row → Task |
-| Task | What do I do, by when, and hand it in | Due + status; instructions; lecturer's files; my answer; sticky bar Kumpulkan | Kumpulkan | push |
-| Exam | When, where, what | Date + time + room big; parts; Tandai selesai | — | push |
+| Tugas | What's due next? | To do / Done (segmented, full width, counts); course chips; groups by when (Terlambat, Minggu ini, Minggu depan, Nanti) as tonal tiles; a row: title, one meta line (course · module), day over time at the end; late in the error colour with a warning icon; UTS/UAS/Kuis tag on exams; Masa UTS one expandable row. "dalam N hari" only in the row's spoken name (the Task says it) | Open the Task | tab; row → Task |
+| Task | What do I do, by when, and hand it in | Course › module (small), title, then the due card (Tenggat, the date large, time left, late allowed, status chip); notes; instructions; lecturer's files; Jawabanmu (outlined field with its label, Android's file picker); history; sticky bar: Kumpulkan filled, Simpan draf outlined; handed in: a check that draws itself + haptic | Kumpulkan | push |
+| Exam | When, where, what | Tag + course; each sitting a card with day, time (and minutes) and room large; take-home and Edunex parts as cards; Tandai selesai the one filled button while an Edunex window is open | Tandai selesai (when open) | push |
 | Kuliah | Which course is at risk, and the way into a course | Risk summary line; course rows (colour, name, code, budget chip, next class) | Open a course | tab |
 | Course | What's new, and the modules | Collapsing top bar with name; budget and next class in one row; tabs Modul / Pertemuan / Tugas / Nilai / Pengumuman | Open a module | push; module → push |
 | Module | The files and notes of this week | Title; items (file rows open in the phone's viewer, notes in full, links) | Open a file | push |
-| Akademik | IPK and what to do this term (KRS, UKT) | IPK + SKS card; to-do chips (KRS, UKT); list of screens | Open Nilai | tab |
+| Akademik | IPK and what to do this term (KRS, UKT) | IPK + SKS card (name and NIM a quiet line; the whole card opens Nilai: one target, the avatar keeps Settings); to-do chips only when something's due (Kirim KRS, Bayar UKT, Isi kuesioner); each screen a row with the one line that answers it (IPK · IP terakhir, lulus semester N, SKS of needed, KRS state and clashes, UKT paid/due, the next date) | Open Nilai | tab |
 | Nilai, Rencana, Kurikulum, KRS, UKT, Kalender | One topic each | The desktop's data, one column, sections | per screen | push |
-| Search | Find anything | Field focused with the keyboard; results grouped | Open a result | push from any tab's top bar |
-| Notifikasi | What happened | Unread first; tap opens it | — | push from Beranda's bell |
-| Settings | Change one thing fast | Profile (name, NIM) on top; groups: Tampilan, Notifikasi, Presensi, Akun, Tentang; native switches | — | push from the avatar |
+| Search | Find anything | M3 search bar (back, field, clear), focused with the keyboard (again after the transition); results grouped under headers as tonal rows | Open a result | push from any tab's top bar |
+| Notifikasi | What happened | By day; unread: dot + semibold + "belum dibaca" spoken; icon in a tonal circle; Tandai semua dibaca in the top bar; Atur notifikasi a row | — | push from Beranda's bell |
+| Settings | Change one thing fast | Profile (name, NIM) on top; groups: Akun, Notifikasi, Tampilan, Beranda, Kehadiran, Warna mata kuliah, Tentang, sign out of everything last; Android's MaterialSwitch; Tema/Bahasa/Jangkauan as rows showing the value, picked in a native sheet; errors in a banner | — | push from the avatar |
 | Onboarding | What this is, and one button to start | See below (built: `shell/welcome.tsx`; the reasons are "Kuliah hari ini dan Tandai Hadir", "Tugas dan tenggatnya", "Jatah absen dan nilai"; under the button, "Kata sandimu tidak pernah sampai ke Edunex Plus") | Masuk dengan akun ITB | — |
 
 **Onboarding (full redesign).** No deck. One light screen in the app's colours: the mark, one line

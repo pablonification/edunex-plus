@@ -10,7 +10,7 @@ import { useT } from "../../../src/app/i18n";
 import { useNav } from "../nav";
 import { IconButton } from "./controls";
 import { Icons } from "./icons";
-import { useScrolledPast, useScrolledUnder } from "./layout";
+import { usePageColor, useScrolledPast, useScrolledUnder } from "./layout";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
 
@@ -65,15 +65,16 @@ export function TopBar({
 }
 
 /**
- * A top bar's surface, edge to edge under the status bar: the page's colour at rest, surfaceContainer once the page
- * scrolls under it (faded on the UI thread from the page's offset). `v4`: v4's page grey at rest, its card colour
- * under a scrolled page.
+ * A top bar's surface, edge to edge under the status bar: the page's colour at rest (v4's grey with `v4`, or the
+ * colour a page sets), surfaceContainer (v4: its card colour) once the page scrolls under it (faded on the UI thread
+ * from the page's offset).
  */
 export function BarSurface({ children, v4 = false }: { children: ReactNode; v4?: boolean }) {
   const theme = useTheme();
   const under = useScrolledUnder();
+  const page = usePageColor();
   return (
-    <View style={{ backgroundColor: v4 ? theme.v4.page : theme.color.surface }}>
+    <View style={{ backgroundColor: v4 ? theme.v4.page : (page ?? theme.color.surface) }}>
       {under && (
         <Animated.View
           pointerEvents="none"

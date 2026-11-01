@@ -1,16 +1,19 @@
-// Tugas & Ujian on the phone (S2): src/app/screens/tasks.tsx's TasksScreen with the same data, the
-// same groups in the same order and the same words. Everything still ahead in one list, ordered by
-// the moment each runs out; an exam period going on sits on top; Done holds what's handed in, the
-// exams behind the Student and what closed. Belum selesai / Selesai at the top, the course chips
-// scrolling sideways under it, and the list itself one FlashList (cards drawn row by row).
+// Tugas on the phone (S2, round 2): src/app/screens/tasks.tsx's TasksScreen with the same data, the
+// same groups in the same order and the same words, read the phone's way. Everything still ahead in
+// one list, grouped by when it runs out (Terlambat, Minggu ini, Minggu depan, Nanti); an exam period
+// going on sits on top; Selesai holds what's handed in, the exams behind the Student and what closed.
+// Belum selesai / Selesai at the top, the course chips under it, then the groups as tonal lists
+// (Android's grouped tiles), the whole list one FlashList drawn row by row. The rows read what they
+// share once for the list (row-parts.tsx), and the lines are worked out only when the data, the
+// filter or the minute changes.
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useScrollToTop } from "expo-router";
-import { type ReactNode, useRef, useState } from "react";
-import { RefreshControl, StyleSheet, View } from "react-native";
-import { useTermCourses } from "../../../../src/app/courses";
-import { useNow, useT } from "../../../../src/app/i18n";
+import { memo, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import { RefreshControl, View } from "react-native";
+import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
+import { type Translate, useT } from "../../../../src/app/i18n";
 import { type Todo, useTodo } from "../../../../src/app/schedule-data";
-import { useBridge, useStatus } from "../../../../src/app/store";
+import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import type { Exam } from "../../../../src/core/exams";
 import type { Task } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
@@ -21,11 +24,13 @@ import { TabHeader, usePullToRefresh, useRefresh, useSignIn } from "../../shell/
 import { Button, Chip, ChipRow, Segmented } from "../../ui/controls";
 import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { PageHeader } from "../../ui/layout";
+import { GroupTile } from "../../ui/layout";
 import { Text } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 import { PastExamRow } from "./exam-rows";
+import { inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
 import { PutOff, TaskRow, TodoRow } from "./rows";
+import { momentsOf, useClockMoments } from "./task-clock";
 
 const GROUPS: { group: TodoGroup; title: StringKey }[] = [
   { group: "overdue", title: "tasks.group.overdue" },
@@ -38,7 +43,7 @@ const GROUPS: { group: TodoGroup; title: StringKey }[] = [
 // The course filter the Student last chose, kept while the app runs (per bridge), as on the desktop.
 const lastCourse = new WeakMap<object, string | null>();
 
-/** Where a row sits in its card: the card's corners and hairlines are drawn row by row. */
+/** Where a row sits in its group: the group's round ends are drawn row by row. */
 interface Place {
   first: boolean;
   last: boolean;
@@ -83,31 +88,15 @@ export function doneLines(done: Todo["done"], exams: readonly Exam[], heading: (
   return lines;
 }
 
-/**
- * The screen. `show`: "done" while Selesai is picked, kept in the route (`?show=done`), so Back and
- * a link come back to it.
- */
-export function TasksScreen({ show: shown }: { show?: "done" }) {
-  const t = useT();
-  const theme = useTheme();
-  const todo = useTodo();
-  const courses = useTermCourses();
-  const bridge = useBridge();
-  const pull = usePullToRefresh();
-  // A tap on Tugas while it's open scrolls back to the top, as every tab built on Page does.
-  const list = useRef<FlashListRef<Line>>(null);
-  useScrollToTop(list);
-  const { replace } = useNav();
-  const six = useStatus("six");
-  const show = shown ?? "open";
-  const setShow = (next: "open" | "done") => replace(next === "done" ? { screen: "tasks", show: "done" } : { screen: "tasks" });
-  const [course, setCourseState] = useState<string | null>(lastCourse.get(bridge) ?? null);
-  const setCourse = (value: string | null) => {
-    lastCourse.set(bridge, value);
-    setCourseState(value);
-  };
-  const [putOffOpen, setPutOffOpen] = useState(false);
-
+/** What the list shows for one filter: its lines, the counts in the segments, and the courses worth a chip. */
+function tasksView(
+  t: Translate,
+  todo: Todo | undefined,
+  courses: readonly TermCourse[] | undefined,
+  course: string | null,
+  show: "open" | "done",
+  sixOut: boolean,
+) {
   const now = todo?.now ?? 0;
   const items = todoForCourse(todo?.items ?? [], course);
   const mine = (code: string) => course === null || code === course;
@@ -121,12 +110,11 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const during = items.filter((item) => item.kind === "period" && item.state === "during");
   const rest = items.filter((item) => !during.includes(item));
   const putOff = (todo?.putOff ?? []).filter(({ item }) => mine(item.course ?? ""));
-  if (putOffOpen && !putOff.length) setPutOffOpen(false);
   const groups = GROUPS.map(({ group, title }) => ({ group, title, items: rest.filter((item) => todoGroup(item, now) === group) })).filter(
     (group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0),
   );
   const nothingToDo = !rest.some(todoCounted) && putOff.length === 0;
-  const examsNoSix = six.state === "signed-out" && show === "open" && course === null;
+  const examsNoSix = sixOut && show === "open" && course === null;
   const codes = new Set([
     ...(todo?.items ?? []).map((item) => item.course),
     ...(todo?.exams ?? []).map((exam) => exam.courseCode),
@@ -167,32 +155,123 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
       }
     if (examsNoSix) lines.push({ type: "examsNoSix", key: "examsNoSix" });
   }
+  return { lines, openCount: todo ? todoCount(items) : undefined, doneCount: todo ? doneCount : undefined, withItems, hasPutOff: putOff.length > 0 };
+}
+
+/**
+ * The screen. `show`: "done" while Selesai is picked, kept in the route (`?show=done`), so Back and
+ * a link come back to it.
+ */
+export function TasksScreen({ show: shown }: { show?: "done" }) {
+  const t = useT();
+  const theme = useTheme();
+  const todo = useTodo();
+  // What the list shows things about, for its clock (./task-clock.tsx): a tick redraws it only when one is crossed.
+  const presence = useDataset("edunex.presence");
+  useClockMoments(useMemo(() => momentsOf([...(todo?.items ?? []), ...(Object.values(presence ?? {}).flat() as object[])]), [todo, presence]));
+  const courses = useTermCourses();
+  const bridge = useBridge();
+  const pull = usePullToRefresh();
+  // A tap on Tugas while it's open scrolls back to the top, as every tab built on Page does.
+  const list = useRef<FlashListRef<Line>>(null);
+  useScrollToTop(list);
+  const { replace } = useNav();
+  const sixOut = useStatus("six").state === "signed-out";
+  const show = shown ?? "open";
+  const setShow = useCallback((next: "open" | "done") => replace(next === "done" ? { screen: "tasks", show: "done" } : { screen: "tasks" }), [replace]);
+  const [course, setCourseState] = useState<string | null>(lastCourse.get(bridge) ?? null);
+  const setCourse = useCallback(
+    (value: string | null) => {
+      lastCourse.set(bridge, value);
+      setCourseState(value);
+    },
+    [bridge],
+  );
+  const [putOffOpen, setPutOffOpen] = useState(false);
+  const view = useMemo(() => tasksView(t, todo, courses, course, show, sixOut), [t, todo, courses, course, show, sixOut]);
+  if (putOffOpen && !view.hasPutOff) setPutOffOpen(false);
 
   const header = (
-    <View style={{ paddingTop: space[4] }}>
-      <PageHeader title={t("nav.tasks")} />
-      <View style={{ marginTop: -space[2] }}>
-        <Segmented
-          testID="segment.show"
-          label={t("tasks.show")}
-          value={show}
-          onChange={setShow}
-          options={[
-            { value: "open", label: t("tasks.filter.open"), count: todo ? todoCount(items) : undefined },
-            { value: "done", label: t("tasks.filter.done"), count: todo ? doneCount : undefined },
-          ]}
+    <Header show={show} onShow={setShow} openCount={view.openCount} doneCount={view.doneCount} courses={view.withItems} course={course} onCourse={setCourse} />
+  );
+  const togglePutOff = useCallback(() => setPutOffOpen((open) => !open), []);
+  const showAll = useCallback(() => setCourse(null), [setCourse]);
+  const renderItem = useCallback(
+    ({ item: line }: { item: Line }) => <LineView line={line} putOffOpen={putOffOpen} onPutOff={togglePutOff} onShowAll={showAll} />,
+    [putOffOpen, togglePutOff, showAll],
+  );
+
+  return (
+    <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.color.surface }}>
+      <TabHeader title={t("nav.tasks")} />
+      <TaskRowWorld>
+        <FlashList
+          ref={list}
+          data={view.lines}
+          keyExtractor={(line) => line.key}
+          getItemType={(line) => line.type}
+          extraData={putOffOpen}
+          renderItem={renderItem}
+          ListHeaderComponent={header}
+          contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] }}
+          // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
+          refreshControl={
+            <RefreshControl
+              refreshing={pull.refreshing}
+              onRefresh={pull.onRefresh}
+              colors={[theme.color.primary]}
+              progressBackgroundColor={theme.color.surfaceContainerHigh}
+            />
+          }
+          keyboardShouldPersistTaps="handled"
         />
-      </View>
-      {withItems.length > 1 && (
-        <View style={{ marginTop: space[4] }} accessibilityRole="radiogroup" accessibilityLabel={t("tasks.filter.course")}>
+      </TaskRowWorld>
+    </View>
+  );
+}
+
+/** Belum selesai / Selesai with their counts, the course chips under it, and a row's problem when there is one. */
+const Header = memo(function Header({
+  show,
+  onShow,
+  openCount,
+  doneCount,
+  courses,
+  course,
+  onCourse,
+}: {
+  show: "open" | "done";
+  onShow: (show: "open" | "done") => void;
+  openCount: number | undefined;
+  doneCount: number | undefined;
+  courses: readonly TermCourse[];
+  course: string | null;
+  onCourse: (code: string | null) => void;
+}) {
+  const t = useT();
+  return (
+    <View style={{ paddingTop: space[2], paddingBottom: space[6] }}>
+      <RowProblemBanner />
+      <Segmented
+        testID="segment.show"
+        label={t("tasks.show")}
+        value={show}
+        onChange={onShow}
+        options={[
+          { value: "open", label: t("tasks.filter.open"), count: openCount },
+          { value: "done", label: t("tasks.filter.done"), count: doneCount },
+        ]}
+      />
+      {courses.length > 1 && (
+        <View style={{ marginTop: space[3] }} accessibilityRole="radiogroup" accessibilityLabel={t("tasks.filter.course")}>
           <ChipRow>
-            <Chip testID="chip.course.all" selected={course === null} onPress={() => setCourse(null)}>
+            <Chip testID="chip.course.all" selected={course === null} onPress={() => onCourse(null)}>
               {t("tasks.filter.all")}
             </Chip>
-            {withItems.map((c) => (
-              <Chip key={c.code} testID={`chip.course.${c.code}`} label={`${c.code} ${c.name}`} selected={course === c.code} onPress={() => setCourse(c.code)}>
+            {courses.map((c) => (
+              <Chip key={c.code} testID={`chip.course.${c.code}`} label={`${c.code} ${c.name}`} selected={course === c.code} onPress={() => onCourse(c.code)}>
                 <CourseDot color={c.color} size={8} />
-                <Text size="small" weight="medium" tone={course === c.code ? "fg" : "muted"}>
+                <Text size="labelLarge" tone={course === c.code ? "onSecondaryContainer" : "muted"}>
                   {c.code}
                 </Text>
               </Chip>
@@ -200,58 +279,16 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
           </ChipRow>
         </View>
       )}
-      <View style={{ height: space[6] }} />
     </View>
   );
+});
 
-  return (
-    <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.color.canvas }}>
-      <TabHeader title={t("nav.tasks")} />
-      <FlashList
-        ref={list}
-        data={lines}
-        keyExtractor={(line) => line.key}
-        getItemType={(line) => line.type}
-        // What a row shows depends on more than its line (the clock, the course filter, what's put off).
-        extraData={[now, course, putOffOpen]}
-        renderItem={({ item: line }) => (
-          <LineView line={line} putOffOpen={putOffOpen} onPutOff={() => setPutOffOpen(!putOffOpen)} onShowAll={() => setCourse(null)} />
-        )}
-        ListHeaderComponent={header}
-        contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] }}
-        // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
-        refreshControl={
-          <RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} colors={[theme.color.accent]} progressBackgroundColor={theme.color.raised} />
-        }
-        keyboardShouldPersistTaps="handled"
-      />
-    </View>
-  );
-}
-
-/** A row in its card: the card's sides, its corners on the first and last rows, a hairline between. */
+/** A row in its group's tonal tile (Android's grouped list, drawn row by row). Kept by this name for a course's page. */
 export function CardRow({ first, last, children }: Place & { children: ReactNode }) {
-  const theme = useTheme();
-  const c = theme.color;
   return (
-    <View
-      style={{
-        backgroundColor: c.surfaceContainerLow,
-        overflow: "hidden",
-        borderColor: c.edge,
-        borderLeftWidth: StyleSheet.hairlineWidth,
-        borderRightWidth: StyleSheet.hairlineWidth,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: first ? c.edge : c.line,
-        borderBottomWidth: last ? StyleSheet.hairlineWidth : 0,
-        borderTopLeftRadius: first ? radius.xl : 0,
-        borderTopRightRadius: first ? radius.xl : 0,
-        borderBottomLeftRadius: last ? radius.xl : 0,
-        borderBottomRightRadius: last ? radius.xl : 0,
-      }}
-    >
+    <GroupTile first={first} last={last}>
       {children}
-    </View>
+    </GroupTile>
   );
 }
 
@@ -269,22 +306,10 @@ export function LineView({
   inCourse?: boolean;
 }) {
   const t = useT();
-  const now = useNow();
   const theme = useTheme();
   switch (line.type) {
     case "heading":
-      return (
-        <View style={{ marginTop: line.first ? 0 : space[8], marginBottom: space[3] }}>
-          <Text size="title" weight="semibold" accessibilityRole="header">
-            {line.title}
-            {line.count !== undefined && (
-              <Text size="title" weight="medium" tone="faint" tabular>
-                {`  ${line.count}`}
-              </Text>
-            )}
-          </Text>
-        </View>
-      );
+      return <Heading title={line.title} count={line.count} first={line.first} />;
     case "todo":
       return (
         <CardRow first={line.first} last={line.last}>
@@ -294,7 +319,7 @@ export function LineView({
     case "done":
       return (
         <CardRow first={line.first} last={line.last}>
-          <TaskRow task={line.task} status={taskStatus(line.task, now)} meta={inCourse ? "module" : "course"} exam={line.exam} />
+          <DoneTaskRow task={line.task} exam={line.exam} inCourse={inCourse} />
         </CardRow>
       );
     case "past":
@@ -306,12 +331,12 @@ export function LineView({
     case "putOff":
       return <PutOff putOff={line.putOff} open={putOffOpen} onToggle={() => onPutOff?.()} />;
     case "gap":
-      return <View style={{ height: space[8] }} />;
+      return <View style={{ height: space[6] }} />;
     case "empty":
       return (
-        <EmptyState icon={<Icons.CheckCircle size={20} color={theme.color.muted} />} title={line.title} description={line.description}>
+        <EmptyState icon={<Icons.CheckCircle size={24} color={theme.color.onSecondaryContainer} />} title={line.title} description={line.description}>
           {line.showAll && (
-            <Button size="sm" onPress={onShowAll}>
+            <Button variant="tonal" onPress={onShowAll} testID="action.showAll">
               {t("tasks.showAll")}
             </Button>
           )}
@@ -324,23 +349,45 @@ export function LineView({
   }
 }
 
+/** A group's title and how many in it. */
+function Heading({ title, count, first }: { title: string; count?: number; first: boolean }) {
+  return (
+    <View style={{ marginTop: first ? 0 : space[6], marginBottom: space[2], paddingHorizontal: space[1] }}>
+      <Text size="titleMedium" weight="semibold" accessibilityRole="header">
+        {title}
+        {count !== undefined && (
+          <Text size="titleMedium" tone="muted" tabular>
+            {`  ${count}`}
+          </Text>
+        )}
+      </Text>
+    </View>
+  );
+}
+
+/** A Task in Done, its status as of the list's minute. */
+const DoneTaskRow = inWorld(function DoneTaskRow({ task, exam, inCourse }: { task: Task; exam?: Exam; inCourse: boolean }) {
+  const { now } = useRowWorld();
+  return <TaskRow task={task} status={taskStatus(task, now)} meta={inCourse ? "module" : "course"} exam={exam} />;
+});
+
 /** At the end of the list, without SIX: SIX's exam timetable is missing, and the one way to get it. */
 function ExamsNoSix() {
   const t = useT();
   const { signIn, busy } = useSignIn();
   return (
-    <View style={{ marginTop: space[8], gap: space[2], alignItems: "flex-start" }}>
-      <Text size="small" tone="muted">
+    <View style={{ marginTop: space[8], gap: space[3], alignItems: "flex-start", paddingHorizontal: space[1] }}>
+      <Text size="bodyMedium" tone="muted">
         {t("tasks.examsNoSix")}
       </Text>
-      <Button busy={busy} onPress={() => void signIn("six")} testID="action.signInSix">
+      <Button variant="tonal" busy={busy} onPress={() => void signIn("six")} testID="action.signInSix">
         {t("action.signInTo", { source: "SIX" })}
       </Button>
     </View>
   );
 }
 
-/** Before the first Task list has arrived: placeholders while it's on its way, else why it isn't. */
+/** Before the first Task list has arrived: a group's shape while it's on its way, else why it isn't. */
 export function NoTasksYet() {
   const t = useT();
   const theme = useTheme();
@@ -348,31 +395,30 @@ export function NoTasksYet() {
   const { refresh, busy } = useRefresh();
   if (status.state === "connecting" || status.state === "live")
     return (
-      <View
-        accessibilityState={{ busy: true }}
-        style={{ borderRadius: radius.xl, borderWidth: StyleSheet.hairlineWidth, borderColor: theme.color.edge, overflow: "hidden" }}
-      >
+      <View accessibilityState={{ busy: true }} accessibilityLabel={t("mobile.tasks.loading")}>
+        <View style={{ paddingHorizontal: space[1], marginBottom: space[3] }}>
+          <Skeleton width={120} height={20} />
+        </View>
         {[0, 1, 2].map((i) => (
-          <View
-            key={i}
-            style={[
-              { flexDirection: "row", alignItems: "center", gap: space[4], padding: space[4] },
-              i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line },
-            ]}
-          >
-            <View style={{ flex: 1, gap: space[2] }}>
-              <Skeleton width="60%" />
-              <Skeleton width="40%" height={12} />
+          <GroupTile key={i} first={i === 0} last={i === 2}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space[4], paddingHorizontal: space[4], paddingVertical: space[4] }}>
+              <View style={{ flex: 1, gap: space[2] }}>
+                <Skeleton width="70%" height={18} />
+                <Skeleton width="45%" height={14} />
+              </View>
+              <View style={{ alignItems: "flex-end", gap: space[2] }}>
+                <Skeleton width={72} height={14} />
+                <Skeleton width={40} height={14} />
+              </View>
             </View>
-            <Skeleton width={72} height={28} />
-          </View>
+          </GroupTile>
         ))}
       </View>
     );
   return (
-    <EmptyState icon={<Icons.ListChecks size={20} color={theme.color.muted} />} title={t("tasks.unavailable")}>
+    <EmptyState icon={<Icons.ListChecks size={24} color={theme.color.onSecondaryContainer} />} title={t("tasks.unavailable")}>
       {status.state !== "expired" && status.state !== "signed-out" && (
-        <Button size="sm" busy={busy} onPress={() => void refresh("edunex")}>
+        <Button variant="tonal" busy={busy} onPress={() => void refresh("edunex")} testID="action.tryAgain">
           {t("action.tryAgain")}
         </Button>
       )}

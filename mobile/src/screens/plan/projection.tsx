@@ -24,7 +24,7 @@ import {
 import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
-import { Text, type TextTone, useFieldColors } from "../../ui/text";
+import { Text, type TextTone, useFieldColors, useTextWidth } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
 import { ChartLegend, LineChart } from "./chart";
 
@@ -97,37 +97,41 @@ export function GradeSelect({
 }) {
   const theme = useTheme();
   const c = theme.color;
+  const v = theme.v4;
   const [open, setOpen] = useState(false);
+  // v4: a grade the Student picked is a tonal chip in the brand's tint; one still assumed is dashed and quiet.
+  const ink = guess ? v.muted : v.brandInk;
   return (
     <>
       <Pressable
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value}`}
-        hitSlop={6}
+        hitSlop={4}
         onPress={() => setOpen(true)}
-        android_ripple={{ color: c.selected }}
+        android_ripple={{ color: c.selected, borderless: false }}
         style={{
           minWidth: 60,
-          height: 44,
+          height: 40,
           flexDirection: "row",
           alignItems: "center",
           justifyContent: "center",
           gap: 4,
           paddingHorizontal: space[2],
-          borderRadius: radius.md,
-          borderWidth: 1,
-          borderStyle: guess ? "dashed" : "solid",
+          borderRadius: 12,
+          borderWidth: guess ? 1 : 0,
+          borderStyle: "dashed",
           borderColor: c.fieldEdge,
-          backgroundColor: guess ? "transparent" : c.surfaceContainerLow,
+          backgroundColor: guess ? "transparent" : v.brandTint,
+          overflow: "hidden",
         }}
       >
-        <Text size="small" weight="semibold" tone={guess ? "muted" : "fg"} tabular>
+        <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: ink }}>
           {value}
         </Text>
-        <Icons.ChevronDown size={12} color={c.muted} />
+        <Icons.ChevronDown size={12} color={ink} weight="bold" />
       </Pressable>
-      <Sheet open={open} onClose={() => setOpen(false)} title={label} testID="sheet.grade">
+      <Sheet open={open} onClose={() => setOpen(false)} title={label} background={v.card} testID="sheet.grade">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2], paddingBottom: space[2] }}>
           {LETTER_GRADES.map((grade) => {
             const on = grade === value;
@@ -144,19 +148,19 @@ export function GradeSelect({
                 android_ripple={{ color: c.selected }}
                 style={{
                   width: 64,
-                  height: 48,
-                  borderRadius: radius.lg,
+                  height: 52,
+                  borderRadius: 14,
                   alignItems: "center",
                   justifyContent: "center",
-                  borderWidth: on ? 2 : 1,
-                  borderColor: on ? c.accent : c.edge,
-                  backgroundColor: on ? c.infoBg : c.surfaceContainerLow,
+                  borderWidth: on ? 2 : 0,
+                  borderColor: v.brandInk,
+                  backgroundColor: on ? v.brandTint : v.page,
                 }}
               >
-                <Text size="body" weight="semibold" tone={on ? "info" : "fg"} tabular>
+                <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: on ? v.brandInk : v.fg }}>
                   {grade}
                 </Text>
-                <Text size="micro" tone="muted" tabular>
+                <Text size="micro" tabular style={{ color: on ? v.brandInk : v.muted }}>
                   {GRADE_POINTS[grade].toFixed(1)}
                 </Text>
               </Pressable>
@@ -214,13 +218,15 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
   // While a value is being typed, the pick still counted stays marked until the typed one is valid.
   const picked = typing === null || parsed?.kind !== "ok" ? TARGET_PICKS.find((pick) => Math.abs(pick - target) < 1e-9) : undefined;
   const invalid = parsed?.kind === "invalid";
+  const pickWidth = useTextWidth(208);
   return (
     <View style={{ gap: space[2] }}>
       <Text size="small" weight="medium" tone="muted">
         {t("grades.target")}
       </Text>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <View style={{ flex: 1 }}>
+      {/* The picks and the field side by side while they fit; at a big font size the field wraps under the picks. */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>
+        <View style={{ flexGrow: 1, flexBasis: pickWidth }}>
           <Segmented
             label={t("grades.target")}
             value={picked?.toString() ?? ""}

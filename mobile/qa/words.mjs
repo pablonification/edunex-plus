@@ -1,35 +1,54 @@
-// Words on a phone's screen above its tab bar (round 2's text budget: a tab's first screen ≤ ~45 words; the lead's
-// rules), from Maestro's view of the screen (`maestro hierarchy`, which works while something on screen keeps moving,
-// where Android's own uiautomator dump waits for an idle that never comes): every text between the status bar and the
-// top of the tabs' bar (or the screen's bottom with no tabs), counted as the v4 mockups count them (letters or digits,
-// with what holds a word together: . : , × % – -). Content descriptions aren't counted (they repeat the text).
+// The words a Student sees on a tab's first screen, from a uiautomator dump (words.sh): every visible text of
+// the app between the status bar and the bottom navigation, nothing scrolled to, then counted.
 //
-//   node mobile/qa/words.mjs <hierarchy.json> [--list]   (words.sh makes it)
+//   node mobile/qa/words.mjs <dump.xml> [--app <package>] [--json]
+//
+// Counted: each node's `text` (what's drawn; an icon's content-desc is not text on screen), split at spaces,
+// a word being anything with a letter or a digit ("·", "–", "›" aren't). Left out: other packages (the status bar,
+// the launcher), the bottom navigation (from the top of the first tab.* node down) and nodes whose middle is off
+// the screen or under that bar. Prints the count, then each text with its own count, top to bottom.
 import fs from "node:fs";
 
-const raw = fs.readFileSync(process.argv[2], "utf8");
-const root = JSON.parse(raw.slice(raw.indexOf("{")));
-const box = (b) => (b ?? "[0,0][0,0]").match(/-?\d+/g).map(Number);
-const nodes = [];
-const walk = (node) => {
-  nodes.push(node.attributes ?? {});
-  for (const child of node.children ?? []) walk(child);
-};
-walk(root);
-const tabs = nodes.find((a) => a["resource-id"] === "tab.home");
-const bottom = tabs ? box(tabs.bounds)[1] : Math.max(...nodes.map((a) => box(a.bounds)[3]));
-// Below the status bar (its clock isn't the app's): the top 5.5% of the screen.
-const top = Math.round(Math.max(...nodes.map((a) => box(a.bounds)[3])) * 0.055);
-let words = 0;
-const seen = [];
-for (const a of nodes) {
-  const text = (a.text ?? "").trim();
-  if (!text) continue;
-  const [, y1, , y2] = box(a.bounds);
-  if (y1 >= bottom || y2 <= top || y2 <= y1) continue;
-  const count = (text.match(/[\p{L}\p{N}][\p{L}\p{N}.:,×%–-]*/gu) || []).length;
-  words += count;
-  seen.push(`${count}\t${text}`);
+const args = process.argv.slice(2);
+const file = args.find((arg) => !arg.startsWith("--"));
+const app = args.includes("--app") ? args[args.indexOf("--app") + 1] : "io.github.pablonification.edunexplus.demo";
+if (!file) {
+  console.error("usage: node words.mjs <dump.xml> [--app <package>] [--json]");
+  process.exit(2);
 }
-if (process.argv.includes("--list")) console.log(seen.join("\n"));
-console.log(words);
+const xml = fs.readFileSync(file, "utf8");
+const attr = (node, name) => {
+  const match = new RegExp(` ${name}="([^"]*)"`).exec(node);
+  return match ? match[1] : "";
+};
+const unescape = (text) =>
+  text
+    .replace(/&#10;/g, "\n")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&");
+const nodes = [...xml.matchAll(/<node [^>]*>/g)].map(([node]) => {
+  const [x1, y1, x2, y2] = (attr(node, "bounds").match(/\d+/g) ?? [0, 0, 0, 0]).map(Number);
+  return { id: attr(node, "resource-id"), text: unescape(attr(node, "text")), pkg: attr(node, "package"), x1, y1, x2, y2 };
+});
+const screen = nodes.find((node) => node.pkg === app && node.y1 === 0) ?? nodes[0];
+const height = Math.max(...nodes.map((node) => node.y2));
+const tabs = nodes.filter((node) => /^tab\./.test(node.id));
+const barTop = tabs.length ? Math.min(...tabs.map((node) => node.y1)) : height;
+const words = (text) => text.split(/\s+/).filter((word) => /[\p{L}\p{N}]/u.test(word)).length;
+const shown = nodes
+  .filter((node) => node.pkg === app && node.text.trim() !== "")
+  .filter((node) => {
+    const middle = (node.y1 + node.y2) / 2;
+    return middle > 0 && middle < barTop && node.x2 > 0 && node.x1 < (screen?.x2 ?? Number.POSITIVE_INFINITY);
+  })
+  .sort((a, b) => a.y1 - b.y1 || a.x1 - b.x1)
+  .map((node) => ({ text: node.text.replace(/\s+/g, " ").trim(), words: words(node.text), y: node.y1 }));
+const total = shown.reduce((sum, item) => sum + item.words, 0);
+if (args.includes("--json")) console.log(JSON.stringify({ words: total, texts: shown }, null, 1));
+else {
+  console.log(`words ${total}`);
+  for (const item of shown) console.log(`${String(item.words).padStart(3)}  ${item.text}`);
+}

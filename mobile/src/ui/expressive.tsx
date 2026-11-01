@@ -148,8 +148,21 @@ const counted = new Set<string>();
 /**
  * A number that counts up from zero once (700 ms, easing out), the first time `id` is shown in this run; after that,
  * and with Remove animations, it's simply there. Drawn as a read-only field the UI thread can rewrite each frame.
+ * `decimals` for a figure like an IPK (2), with the language's `comma` ("3,42" in Indonesian).
  */
-export function CountUp({ id, value, style }: { id: string; value: number; style: StyleProp<TextStyle> }) {
+export function CountUp({
+  id,
+  value,
+  style,
+  decimals = 0,
+  comma = false,
+}: {
+  id: string;
+  value: number;
+  style: StyleProp<TextStyle>;
+  decimals?: number;
+  comma?: boolean;
+}) {
   const still = useReduceMotion();
   const [first] = useState(() => !still && !counted.has(id));
   const shown = useSharedValue(first ? 0 : value);
@@ -158,16 +171,21 @@ export function CountUp({ id, value, style }: { id: string; value: number; style
     if (first) shown.value = withDelay(250, withTiming(value, { duration: 700, easing: Easing.out(Easing.cubic) }));
     else shown.value = value;
   }, [id, value, first, shown]);
+  const written = (n: number) => {
+    "worklet";
+    const fixed = decimals > 0 ? n.toFixed(decimals) : String(Math.round(n));
+    return comma ? fixed.replace(".", ",") : fixed;
+  };
   const text = useAnimatedProps(() => {
-    const now = String(Math.round(shown.value));
+    const now = written(shown.value);
     return { text: now, defaultValue: now } as never;
   });
   return (
     <AnimatedInput
       editable={false}
       underlineColorAndroid="transparent"
-      accessibilityLabel={String(value)}
-      defaultValue={String(first ? 0 : value)}
+      accessibilityLabel={written(value)}
+      defaultValue={written(first ? 0 : value)}
       animatedProps={text}
       style={[{ padding: 0, margin: 0, includeFontPadding: false }, style]}
     />

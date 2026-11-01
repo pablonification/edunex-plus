@@ -1,19 +1,21 @@
-// Nilai's transcript on the phone (src/app/screens/grades.tsx's Transcript and TermRow): every term,
-// newest first, one open at a time (the last graded one to start with), each its courses and
-// grades as SIX lists them, a retake and a grade that doesn't count marked on its row.
-// A term's row is `row.term.smt-<n>` (a short semester: its code), and says it's open with a
-// `row.term.<…>.open` mark inside it, so a flow can open one without closing it.
-import { useState } from "react";
-import { Pressable, View } from "react-native";
+// Nilai's transcript on the phone (round 2, v4; src/app/screens/grades.tsx's Transcript and TermRow): every term,
+// newest first, as rows in one white card under its heading, one open at a time (the last graded one to start with).
+// An open term's courses follow its row, each with its course tile, its code and SKS on one line and its grade, a
+// bold letter, at the end; a retake and a grade that doesn't count said on that line. The IPK without TPB sits quiet
+// by the heading.
+// A term's row is `row.term.smt-<n>` (a short semester: its code), and says it's open with a `row.term.<…>.open` mark
+// inside it, so a flow can open one without closing it.
+import { memo, useCallback, useState } from "react";
+import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { CheckedIndex, TranscriptTerm } from "../../../../src/core/models";
 import { type StudentRecord, semesterOf, termKind } from "../../../../src/core/planner";
-import { Tag } from "../../ui/display";
+import { Group, GroupRow, Heading, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
-import { List, Meta, Section } from "../../ui/layout";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
-import { GradeBadge, useTermName } from "../plan/projection";
+import { useTheme } from "../../ui/theme";
+import { CourseTile } from "../../ui/tile";
+import { useTermName } from "../plan/projection";
 
 /** SIX's figure when it shows one (it wins when the rows disagree), else the app's. */
 export const shownIndex = (index: CheckedIndex) => index.six ?? index.computed;
@@ -24,124 +26,156 @@ export function termTestId(term: string, entryTerm: string | null): string {
   return termKind(term) === "short" || semester === null ? term : `smt-${semester}`;
 }
 
+/** A grade as a row's one status: a bold letter in the display face, a failing one (D, E) in red, a replaced one struck. */
+export function GradeLetter({ grade, struck = false, label }: { grade: string; struck?: boolean; label?: string }) {
+  const v = useTheme().v4;
+  const failing = grade === "D" || grade === "E";
+  return (
+    <Text
+      size="titleMedium"
+      face="display"
+      weight="bold"
+      accessibilityLabel={label ? `${label}: ${grade}` : undefined}
+      style={{
+        minWidth: 32,
+        textAlign: "right",
+        fontSize: 17,
+        color: failing ? v.redFg : struck ? v.muted : v.fg,
+        textDecorationLine: struck ? "line-through" : "none",
+      }}
+    >
+      {grade}
+    </Text>
+  );
+}
+
 export function Transcript({ record }: { record: StudentRecord }) {
   const t = useT();
   const f = useFormat();
+  const v = useTheme().v4;
   const terms = record.transcript!.terms;
   const stage = record.progress?.stages.at(-1);
   const stageIp = stage ? shownIndex(stage.ip) : null;
   const lastGraded = [...terms].reverse().find((term) => shownIndex(term.ip) !== null)?.term ?? null;
   const [open, setOpen] = useState<string | null>(lastGraded);
+  const toggle = useCallback((term: string) => setOpen((was) => (was === term ? null : term)), []);
+  // SIX's "Tahap Sarjana" IPK is the IPK without TPB: said in the Student's words, quietly by the heading.
+  const stageText = stage && stageIp !== null && !/persiapan/i.test(stage.name) ? t("grades.stageIp", { ip: f.number(stageIp, 2) }) : null;
   return (
-    <Section
-      title={t("grades.transcript")}
-      description={
-        <Meta>
-          {t("grades.transcriptFrom")}
-          {/* SIX's "Tahap Sarjana" IPK is the IPK without TPB: said in the Student's words. */}
-          {stage && stageIp !== null && !/persiapan/i.test(stage.name) ? t("grades.stageIp", { ip: f.number(stageIp, 2) }) : ""}
-        </Meta>
-      }
-      testID="section.transcript"
-    >
-      <List>
-        {[...terms].reverse().map((term) => (
-          <TermRow key={term.term} record={record} term={term} open={open === term.term} onToggle={() => setOpen(open === term.term ? null : term.term)} />
+    <View testID="section.transcript">
+      <Heading
+        trailing={
+          stageText ? (
+            <Text size="bodyMedium" tabular style={{ color: v.muted }}>
+              {stageText}
+            </Text>
+          ) : undefined
+        }
+      >
+        {t("grades.transcript")}
+      </Heading>
+      <Group>
+        {[...terms].reverse().map((term, i) => (
+          <TermRows key={term.term} record={record} term={term} first={i === 0} open={open === term.term} onToggle={toggle} />
         ))}
-      </List>
-    </Section>
+      </Group>
+    </View>
   );
 }
 
-function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term: TranscriptTerm; open: boolean; onToggle: () => void }) {
+const TermRows = memo(function TermRows({
+  record,
+  term,
+  first,
+  open,
+  onToggle,
+}: {
+  record: StudentRecord;
+  term: TranscriptTerm;
+  first: boolean;
+  open: boolean;
+  onToggle: (term: string) => void;
+}) {
   const t = useT();
   const f = useFormat();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const termName = useTermName(record);
   const ip = shownIndex(term.ip);
   const num = (value: number | null) => (value === null ? "-" : f.number(value, 2));
   const now = term.term === record.term && ip === null;
   const id = `row.term.${termTestId(term.term, record.entryTerm)}`;
   return (
-    <View>
-      <Pressable
+    <>
+      <GroupRow
+        first={first}
         testID={id}
-        accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        onPress={onToggle}
-        android_ripple={{ color: theme.color.selected }}
-        style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3], minHeight: 56 }}
-      >
-        <View testID={open ? `${id}.open` : undefined} style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}>
-          <Icons.ChevronRight size={16} color={theme.color.faint} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text size="body" weight="medium">
+        onPress={() => onToggle(term.term)}
+        title={
+          <Text size="bodyLarge" face="display" weight="semibold" style={{ color: v.fg }}>
             {termName(term.term)}
           </Text>
-          <Meta>
-            {t("grades.courseCount", { count: term.courses.length })}
+        }
+        meta={
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 6 }}>
+            <Text size="bodyMedium" style={{ color: v.muted }}>
+              {t("grades.courseCount", { count: term.courses.length })}
+            </Text>
             {!term.ip.agrees ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Icons.AlertTriangle size={12} color={theme.color.warningFg} weight="bold" />
-                <Text size="caption" weight="medium" tone="warning">
+                <Icons.AlertTriangle size={12} color={v.ambFg} weight="bold" />
+                <Text size="bodyMedium" tabular style={{ color: v.ambFg }}>
                   {t("grades.termDisagree", { six: num(term.ip.six), computed: num(term.ip.computed) })}
                 </Text>
               </View>
             ) : null}
-          </Meta>
-        </View>
-        <Text size={now ? "small" : "body"} weight={now ? "regular" : "semibold"} tone={now ? "muted" : "fg"} tabular>
-          {now ? t("grades.inProgress") : `IP ${num(ip)}`}
-        </Text>
-      </Pressable>
-      {open && (
-        <View
-          style={{
-            borderTopWidth: 1,
-            borderTopColor: theme.color.line,
-            backgroundColor: theme.color.sunken,
-            paddingHorizontal: space[4],
-            paddingVertical: space[2],
-          }}
-        >
-          {term.courses.map((course) => (
-            <View
-              key={`${course.code}-${course.attempt}`}
-              testID={`row.course.${course.code}`}
-              style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3], paddingVertical: space[2] }}
-            >
-              <Text size="small" weight="semibold" tabular style={{ width: 64, paddingTop: 1 }}>
-                {course.code}
+          </View>
+        }
+        trailing={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            {now ? (
+              <Pill tone="plain">{t("grades.inProgress")}</Pill>
+            ) : (
+              <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
+                {`IP ${num(ip)}`}
               </Text>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text size="body">{course.name}</Text>
-                {/* As on a narrow desktop list: the tags and SKS on a line under the name, the grade staying on the row. */}
-                <View style={{ marginTop: 2, flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[1.5] }}>
-                  {course.attempt > 1 && <Tag>{t("grades.retaken")}</Tag>}
-                  {course.standing !== "counted" && (
-                    <Tag tone={course.standing === "pending" || course.standing === "unknown" ? "neutral" : "warning"}>
-                      {t(`grades.standing.${course.standing}`)}
-                    </Tag>
-                  )}
-                  <Text size="small" tone="muted" tabular>
-                    {`${course.sks ?? "-"} SKS`}
-                  </Text>
-                </View>
-              </View>
-              <View style={{ minWidth: 36, alignItems: "flex-end" }}>
-                {course.grade ? (
-                  <GradeBadge grade={course.grade} struck={course.standing === "replaced"} />
-                ) : (
-                  <Text size="body" tone="faint">
-                    -
-                  </Text>
-                )}
-              </View>
+            )}
+            {/* Folded or open: the arrow turns, and `.open` tells a flow it's open. */}
+            <View testID={open ? `${id}.open` : undefined} style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
+              <Icons.ChevronDown size={18} color={v.muted} />
             </View>
-          ))}
-        </View>
-      )}
-    </View>
+          </View>
+        }
+      />
+      {open && term.courses.map((course) => <CourseRow key={`${course.code}-${course.attempt}`} course={course} />)}
+    </>
+  );
+});
+
+/** A course on the transcript: its tile, its name, the code and SKS (and a retake or a grade that doesn't count), the grade. */
+function CourseRow({ course }: { course: TranscriptTerm["courses"][number] }) {
+  const t = useT();
+  const counted = course.standing === "counted";
+  // No grade yet: that is the row's status. A grade that doesn't count (replaced, not on the transcript yet): said on the line.
+  const standing = course.standing === "counted" ? null : t(`grades.standing.${course.standing}`);
+  const meta = [course.code, `${course.sks ?? "-"} SKS`, course.attempt > 1 ? t("grades.retaken") : null, course.grade ? standing : null]
+    .filter(Boolean)
+    .join(" · ");
+  const warn = course.grade !== null && !counted && course.standing !== "pending" && course.standing !== "unknown";
+  return (
+    <GroupRow
+      testID={`row.course.${course.code}`}
+      leading={<CourseTile code={course.code} name={course.name} />}
+      title={course.name}
+      meta={meta}
+      metaTone={warn ? "amber" : "muted"}
+      trailing={
+        course.grade ? (
+          <GradeLetter grade={course.grade} struck={course.standing === "replaced"} />
+        ) : (
+          <Pill tone="plain">{standing ?? t("grades.standing.pending")}</Pill>
+        )
+      }
+    />
   );
 }
