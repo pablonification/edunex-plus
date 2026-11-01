@@ -7,6 +7,14 @@ export const mobileTasksStrings = {
   // A Task's answer, as two labelled parts: the text box, and the files with it.
   "mobile.tasks.answerText": { id: "Teks jawaban", en: "Answer text" },
   "mobile.tasks.answerFiles": { id: "Berkas jawaban", en: "Answer files" },
+  // Under the empty answer box: Edunex takes no hand-in without text (the desktop's handIn.why.noText, said where it's typed).
+  "mobile.tasks.answerRequired": { id: "Wajib diisi, meski kamu melampirkan berkas", en: "Required, even when you attach a file" },
+  // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
+  "mobile.tasks.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
+  // A Task that is also attendance: a chip on its due card, and one line under the deadline with when to hand it in to
+  // count as present ("Jum 15:00–23:59"). The desktop's task.note.attendance, in the phone's few words.
+  "mobile.tasks.presenceChip": { id: "Presensi", en: "Presence" },
+  "mobile.tasks.presenceLine": { id: "Kumpulkan {when} agar hadir", en: "Hand in {when} to count as present" },
   // The moment a Task is handed in, over the page for a breath: its detail is handIn.recorded ("Edunex mencatatnya hari ini, 10:02").
   "mobile.tasks.handedIn": { id: "Terkumpul", en: "Handed in" },
   // An exam row's one status when SIX and Edunex give it different days (the days themselves on the exam's page).

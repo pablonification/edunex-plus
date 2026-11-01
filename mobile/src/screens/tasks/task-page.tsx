@@ -100,6 +100,7 @@ function TaskPage({ task }: { task: Task }) {
   const soon = !late && isOpenStatus(status) && task.dueAt !== null && task.dueAt - now < DAY;
   const where = moduleLabel(t, task.module);
   const handIn = useHandIn(task, status);
+  const presence = usePresence(task);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const historyAt = useRef(0);
   /** "Lihat perubahannya" asks History to open its newest edit: which, and how many times asked. */
@@ -149,7 +150,7 @@ function TaskPage({ task }: { task: Task }) {
         </Text>
 
         {/* By when, and where the Student stands: the first thing to read after the name, the page's one big card. */}
-        <DueCard task={task} status={status} late={late} soon={soon} course={course?.name} />
+        <DueCard task={task} status={status} late={late} soon={soon} course={course?.name} presence={presence.due} />
 
         {exam && (
           // The exam it's part of, and how the app knows: Edunex files it there, or its name says so.
@@ -175,7 +176,7 @@ function TaskPage({ task }: { task: Task }) {
           </PressScale>
         )}
 
-        <Notes task={task} />
+        <Notes task={task} presence={presence} />
         <EditNotice task={task} onSee={(at) => setReveal((was) => ({ at, asked: (was?.asked ?? 0) + 1 }))} />
 
         <View testID="section.instructions">
@@ -227,7 +228,22 @@ function TaskPage({ task }: { task: Task }) {
  * warning sign and "lewat" once late (never the colour alone). While it can still be handed in, how long is left leads,
  * large; under it the day and time, and whether late is still taken. The status as Edunex has it sits in the corner.
  */
-function DueCard({ task, status, late, soon, course }: { task: Task; status: TaskStatus; late: boolean; soon: boolean; course?: string }) {
+function DueCard({
+  task,
+  status,
+  late,
+  soon,
+  course,
+  presence,
+}: {
+  task: Task;
+  status: TaskStatus;
+  late: boolean;
+  soon: boolean;
+  course?: string;
+  /** When handing it in also counts as present ("Jum 15:00–23:59"), while that's still ahead. */
+  presence: string | null;
+}) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -241,10 +257,20 @@ function DueCard({ task, status, late, soon, course }: { task: Task; status: Tas
     <View testID="card.due" style={{ marginTop: space[4], backgroundColor: bg, borderRadius: 24, padding: space[4], gap: space[1] }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3], marginBottom: space[2] }}>
         {late ? <Icons.AlertTriangle size={22} weight="bold" color={fg} /> : <CourseGlyph code={task.courseCode} name={course} />}
-        <View style={{ backgroundColor: v.card, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, flexShrink: 1 }}>
-          <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
-            {t(`taskStatus.${status}`)}
-          </Text>
+        <View style={{ flexDirection: "row", gap: space[2], flexShrink: 1 }}>
+          {presence && (
+            <View testID="chip.presence" style={[styles.pill, { backgroundColor: v.card }]}>
+              <Icons.Hand size={13} color={fg} />
+              <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
+                {t("mobile.tasks.presenceChip")}
+              </Text>
+            </View>
+          )}
+          <View style={[styles.pill, { backgroundColor: v.card, flexShrink: 1 }]}>
+            <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
+              {t(`taskStatus.${status}`)}
+            </Text>
+          </View>
         </View>
       </View>
       {task.dueAt === null ? (
@@ -281,6 +307,11 @@ function DueCard({ task, status, late, soon, course }: { task: Task; status: Tas
           >
             {f.dueLabel(task.dueAt)}
           </Text>
+          {presence && (
+            <Text size="bodyMedium" weight="medium" tabular style={{ color: fg }}>
+              {t("mobile.tasks.presenceLine", { when: presence })}
+            </Text>
+          )}
           {lateRule && (
             <Text size="bodyMedium" style={{ color: v.fg2 }}>
               {lateRule}
@@ -300,26 +331,52 @@ function DueCard({ task, status, late, soon, course }: { task: Task; status: Tas
   );
 }
 
+type Presence = ReturnType<typeof usePresence>;
+
+/**
+ * The Task's Presensi, read once for the due card and Notes: whether it's optional (SIX counts the course), how a
+ * hand-in counted, the session still to come. `due`: while handing it in can still count as present, when, as the due
+ * card's line says it: "Jum 15:00–23:59" (the day of its deadline goes without its date), "hari ini 15:00–23:59".
+ */
+function usePresence(task: Task) {
+  const t = useT();
+  const f = useFormat();
+  const now = useNow();
+  const presence = useDataset("edunex.presence");
+  const countedIn = useAttendance()?.courses.find((entry) => entry.course.code === task.courseCode)?.health.countedIn;
+  const optional = presenceOptional(countedIn);
+  const sessions = presence?.[task.courseCode] ?? [];
+  const result = attendanceResult(task, sessions, now);
+  const session = isOpenStatus(taskStatus(task, now)) ? attendanceSession(task, sessions, now) : null;
+  let due: string | null = null;
+  if (!optional && !result && session && session.closesAt > now) {
+    const offset = f.dayOffset(session.opensAt);
+    const day =
+      offset === 0
+        ? t("time.todayWord")
+        : offset === 1
+          ? t("time.tomorrowWord")
+          : task.dueAt !== null && f.dayOffset(task.dueAt) === offset
+            ? f.weekdayShort(session.opensAt)
+            : `${f.weekdayShort(session.opensAt)} ${f.dayMonth(session.opensAt)}`;
+    due = `${day} ${f.timeRange(session.opensAt, session.closesAt)}`;
+  }
+  return { now, optional, result, session, due };
+}
+
 /**
  * What Edunex doesn't say on its Task page: attendance taken by handing it in (and, once handed in,
  * whether it counted), a short window. Where the course counts in SIX, the attendance window is
  * optional: said once, calmly.
  */
-function Notes({ task }: { task: Task }) {
+function Notes({ task, presence }: { task: Task; presence: Presence }) {
   const t = useT();
   const f = useFormat();
-  const now = useNow();
   const theme = useTheme();
   const v = theme.v4;
-  const presence = useDataset("edunex.presence");
-  const countedIn = useAttendance()?.courses.find((entry) => entry.course.code === task.courseCode)?.health.countedIn;
-  const optional = presenceOptional(countedIn);
-  const sessions = presence?.[task.courseCode] ?? [];
+  const { now, optional, result, session } = presence;
   const notes: { tone: "warning" | "neutral" | "success" | "danger"; icon: "hand" | "check" | "zap"; text: string }[] = [];
   const range = (opensAt: number, closesAt: number) => `${dayWord(f, t, opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
-  const result = attendanceResult(task, sessions, now);
-  const status = taskStatus(task, now);
-  const session = isOpenStatus(status) ? attendanceSession(task, sessions, now) : null;
   if (optional) {
     if (session && session.closesAt > now)
       notes.push({
@@ -337,13 +394,8 @@ function Notes({ task }: { task: Task }) {
         ? { tone: "success", icon: "check", text: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }) }
         : { tone: "danger", icon: "hand", text: t("task.note.attendanceOutside", { when: range(result.session.opensAt, result.session.closesAt) }) },
     );
-  else if (session && session.closesAt > now)
-    notes.push({
-      tone: "warning",
-      icon: "hand",
-      text: t("task.note.attendance", { date: dayWord(f, t, session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }),
-    });
-  else if (session && !session.recorded?.present)
+  // One still ahead is the due card's Presensi chip and line (usePresence's `due`).
+  else if (session && session.closesAt <= now && !session.recorded?.present)
     notes.push({ tone: "neutral", icon: "hand", text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }) });
   const window = shortWindow(task);
   if (window !== null && task.opensAt !== null && task.dueAt !== null)
@@ -725,6 +777,7 @@ function InstructionsCompare({ change, at, onClose }: { change: Extract<TaskChan
 }
 
 const styles = StyleSheet.create({
+  pill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   note: {
     flexDirection: "row",
     alignItems: "flex-start",

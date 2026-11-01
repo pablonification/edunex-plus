@@ -387,6 +387,7 @@ export function HandInCard({ h }: { h: HandInState }) {
               fieldColors={fieldColors}
               unsaved={h.textChanged}
               onDiscard={h.answer.discard}
+              hint={h.hasText ? null : t("mobile.tasks.answerRequired")}
             />
           ) : (
             !task.group &&
@@ -572,6 +573,7 @@ function AnswerField({
   fieldColors,
   unsaved,
   onDiscard,
+  hint,
 }: {
   value: string;
   onChange: (text: string) => void;
@@ -580,6 +582,8 @@ function AnswerField({
   fieldColors: ReturnType<typeof useFieldColors>;
   unsaved: boolean;
   onDiscard: () => void;
+  /** Material's supporting text under the box, while there's one to say (it's required, and empty). */
+  hint: string | null;
 }) {
   const t = useT();
   const theme = useTheme();
@@ -601,6 +605,7 @@ function AnswerField({
         placeholder={placeholder}
         placeholderTextColor={c.onSurfaceVariant}
         accessibilityLabel={label}
+        accessibilityHint={hint ?? undefined}
         textAlignVertical="top"
         style={[
           styles.box,
@@ -615,6 +620,11 @@ function AnswerField({
           },
         ]}
       />
+      {hint && (
+        <Text size="bodySmall" tone="muted" style={{ marginTop: space[1], paddingHorizontal: space[4] }}>
+          {hint}
+        </Text>
+      )}
       {unsaved && (
         <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3] }}>
           <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
@@ -671,7 +681,7 @@ function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text:
       ? { tone: "danger", text: t("handIn.why.failed") }
       : { tone: "neutral", text: t("handIn.why.refused") };
   if (h.uploading) return { tone: "neutral", text: t("handIn.why.uploading") };
-  if (!h.hasText) return { tone: "neutral", text: t("handIn.why.noText") };
+  if (!h.hasText) return { tone: "neutral", text: t("mobile.tasks.why.noText") };
   if (!h.hasAnswer) return { tone: "neutral", text: t("handIn.why.noFile") };
   if (h.early)
     return { tone: "warning", text: t(h.changed || h.status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: h.whenWindow }) };
