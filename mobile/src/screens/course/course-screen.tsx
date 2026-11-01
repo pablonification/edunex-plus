@@ -187,7 +187,10 @@ function Header({ page, onOpen, onTitleEnd }: { page: CoursePage; onOpen: () => 
       testID="action.courseAbout"
       style={{ flexDirection: "row", alignItems: "flex-start", gap: space[4] }}
     >
-      <View onLayout={(event: LayoutChangeEvent) => onTitleEnd(event.nativeEvent.layout.y + event.nativeEvent.layout.height)} style={{ flexDirection: "row", gap: space[4], flex: 1 }}>
+      <View
+        onLayout={(event: LayoutChangeEvent) => onTitleEnd(event.nativeEvent.layout.y + event.nativeEvent.layout.height)}
+        style={{ flexDirection: "row", gap: space[4], flex: 1 }}
+      >
         <View style={{ paddingTop: 2 }}>
           <CourseTile code={course.code} name={course.name} size={48} />
         </View>

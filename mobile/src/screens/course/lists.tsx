@@ -32,7 +32,6 @@ function Rows({ children, testID }: { children: ReactNode[]; testID?: string }) 
   return (
     <CardGroup testID={testID}>
       {children.map((child, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: each child carries its own key inside; this is its place
         <View key={i} style={i > 0 ? { borderTopWidth: 1, borderTopColor: v.line } : undefined}>
           {child}
         </View>

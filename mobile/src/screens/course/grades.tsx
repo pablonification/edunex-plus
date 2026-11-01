@@ -280,169 +280,169 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
       )}
 
       <View style={[surface, { padding: space[4] }]}>
-      <View accessibilityLiveRegion="polite">
-        {weightsOk && result.final === null && (
-          <View style={{ marginBottom: space[4], gap: space[2] }}>
-            <Text size="bodyMedium" weight="medium" style={{ color: theme.v4.muted }}>
-              {t("grade.target")}
-            </Text>
-            <Segmented
-              testID="segment.gradeTarget"
-              label={t("grade.target")}
-              value={aim}
-              onChange={setTarget}
-              options={CONTRACT_LETTERS.slice(0, 5).map((letter) => ({ value: letter, label: letter }))}
-            />
-          </View>
-        )}
-        <Text size="titleLarge" face="display" weight="bold" tone={answerTone} style={{ lineHeight: 28 }}>
-          {answer}
-        </Text>
-        {weightsOk && result.final === null && (
-          <Text size="small" tone="muted" style={{ marginTop: space[2] }}>
-            {`${t("grade.answer.others")}:`}
-            {result.needs
-              .filter((n) => n.letter !== aim)
-              .map((n) => (
-                <Text key={n.letter} size="small" tone={n.need === null && !n.reached ? "faint" : "muted"} tabular>
-                  {"   "}
-                  <Text size="small" weight="semibold">
-                    {n.letter}
-                  </Text>
-                  {` ${n.reached ? t("grade.secured") : n.need === null ? t("grade.outOfReach") : `≥ ${n.need}`}`}
-                </Text>
-              ))}
-          </Text>
-        )}
-      </View>
-
-      <View style={{ marginTop: space[5], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
-        <View style={[styles.tableRow, { paddingVertical: space[1.5] }]}>
-          <Text size="caption" weight="medium" tone="faint" style={{ flex: 1 }}>
-            {t("grade.part")}
-          </Text>
-          <Text
-            size="caption"
-            weight={!fix && !sumOk ? "semibold" : "medium"}
-            tone={!fix && !sumOk ? "warning" : "faint"}
-            style={{ width: COL_WEIGHT, textAlign: "right" }}
-          >
-            {t("grade.weight")}
-          </Text>
-          <Text size="caption" weight="medium" tone="faint" style={{ width: COL_SCORE, textAlign: "right" }}>
-            {t("grade.score")}
-          </Text>
-          <View style={{ width: 44 }} />
-        </View>
-        {contract.parts.map((part) => {
-          const name = nameOf(part);
-          const fromSix = part.attendance && attendance !== null;
-          return (
-            <View
-              key={part.id}
-              testID={`row.gradePart.${part.id}`}
-              style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }]}
-            >
-              <PartName name={name} onRename={(next) => setPart(part.id, { name: next })} />
-              <View style={{ width: COL_WEIGHT, flexDirection: "row", justifyContent: "flex-end", alignItems: "flex-start", gap: 4 }}>
-                <ScoreInput
-                  testID={`input.gradeWeight.${part.id}`}
-                  label={t("grade.weightOf", { part: name })}
-                  value={part.weight}
-                  required
-                  highlight={!fix && !sumOk}
-                  width={52}
-                  onProblem={mark(`w:${part.id}`)}
-                  onValue={(value) => setPart(part.id, { weight: value ?? 0 })}
-                />
-                <Text size="body" tone="faint" style={{ paddingTop: 10 }}>
-                  %
-                </Text>
-              </View>
-              <View style={{ width: COL_SCORE, alignItems: "flex-end" }}>
-                {fromSix ? (
-                  // One text, the figure over where it comes from ("66 dari SIX").
-                  <Text size="body" weight="semibold" tabular style={{ textAlign: "right", paddingTop: 4 }}>
-                    {String(partScore(part, attendance))}
-                    {"\n"}
-                    <Text size="caption" weight="regular" tone="faint">
-                      {t("grade.fromSixShort")}
-                    </Text>
-                  </Text>
-                ) : (
-                  <ScoreInput
-                    testID={`input.gradeScore.${part.id}`}
-                    label={t("grade.scoreOf", { part: name })}
-                    value={part.score}
-                    placeholder="-"
-                    onProblem={mark(`s:${part.id}`)}
-                    onValue={(value) => setPart(part.id, { score: value })}
-                  />
-                )}
-              </View>
-              <IconButton
-                label={t("grade.remove", { part: name })}
-                onPress={() => save({ ...contract, parts: contract.parts.filter((p) => p.id !== part.id) })}
-              >
-                <Icons.X size={14} color={c.muted} />
-              </IconButton>
+        <View accessibilityLiveRegion="polite">
+          {weightsOk && result.final === null && (
+            <View style={{ marginBottom: space[4], gap: space[2] }}>
+              <Text size="bodyMedium" weight="medium" style={{ color: theme.v4.muted }}>
+                {t("grade.target")}
+              </Text>
+              <Segmented
+                testID="segment.gradeTarget"
+                label={t("grade.target")}
+                value={aim}
+                onChange={setTarget}
+                options={CONTRACT_LETTERS.slice(0, 5).map((letter) => ({ value: letter, label: letter }))}
+              />
             </View>
-          );
-        })}
-        {/* What changes the table, at its foot: a part more, or the example weights back; and the total. */}
-        <View style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line, alignItems: "center" }]}>
-          <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", marginLeft: -space[3] }}>
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={<Icons.Plus size={14} color={c.muted} />}
-              disabled={contract.parts.length >= 20}
-              testID="action.gradeAdd"
-              onPress={() => save({ ...contract, parts: [...contract.parts, { id: `p${Date.now().toString(36)}`, name: "", weight: 0, score: null }] })}
+          )}
+          <Text size="titleLarge" face="display" weight="bold" tone={answerTone} style={{ lineHeight: 28 }}>
+            {answer}
+          </Text>
+          {weightsOk && result.final === null && (
+            <Text size="small" tone="muted" style={{ marginTop: space[2] }}>
+              {`${t("grade.answer.others")}:`}
+              {result.needs
+                .filter((n) => n.letter !== aim)
+                .map((n) => (
+                  <Text key={n.letter} size="small" tone={n.need === null && !n.reached ? "faint" : "muted"} tabular>
+                    {"   "}
+                    <Text size="small" weight="semibold">
+                      {n.letter}
+                    </Text>
+                    {` ${n.reached ? t("grade.secured") : n.need === null ? t("grade.outOfReach") : `≥ ${n.need}`}`}
+                  </Text>
+                ))}
+            </Text>
+          )}
+        </View>
+
+        <View style={{ marginTop: space[5], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
+          <View style={[styles.tableRow, { paddingVertical: space[1.5] }]}>
+            <Text size="caption" weight="medium" tone="faint" style={{ flex: 1 }}>
+              {t("grade.part")}
+            </Text>
+            <Text
+              size="caption"
+              weight={!fix && !sumOk ? "semibold" : "medium"}
+              tone={!fix && !sumOk ? "warning" : "faint"}
+              style={{ width: COL_WEIGHT, textAlign: "right" }}
             >
-              {t("grade.add")}
-            </Button>
-            {!isExample && (
-              <Button variant="ghost" size="sm" onPress={reset} testID="action.gradeReset">
-                {t("grade.reset")}
-              </Button>
-            )}
+              {t("grade.weight")}
+            </Text>
+            <Text size="caption" weight="medium" tone="faint" style={{ width: COL_SCORE, textAlign: "right" }}>
+              {t("grade.score")}
+            </Text>
+            <View style={{ width: 44 }} />
           </View>
-          <Text
-            size="body"
-            weight="semibold"
-            tabular
-            tone={fix || sumOk ? "muted" : "warning"}
-            style={{ width: COL_WEIGHT, textAlign: "right", paddingRight: 14 }}
-          >
-            {`${f.number(result.totalWeight, 0)}%`}
-          </Text>
-          <View style={{ width: COL_SCORE + 44 }} />
-        </View>
-        <View style={{ marginTop: space[3], paddingTop: space[3], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
-          <Text size="small" tone="muted" style={{ marginBottom: space[2] }} accessibilityRole="header">
-            {t("grade.cutoffs")}
-          </Text>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[4], rowGap: space[2] }}>
-            {CONTRACT_LETTERS.map((letter) => (
-              <View key={letter} style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-                <Text size="small" weight="semibold" style={{ paddingTop: 10, minWidth: 30 }}>
-                  {`${letter} ≥`}
-                </Text>
-                <ScoreInput
-                  testID={`input.gradeCutoff.${letter}`}
-                  label={t("grade.cutoffOf", { letter })}
-                  value={contract.cutoffs[letter]}
-                  required
-                  width={52}
-                  onProblem={mark(`c:${letter}`)}
-                  onValue={(value) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: value ?? 0 } })}
-                />
+          {contract.parts.map((part) => {
+            const name = nameOf(part);
+            const fromSix = part.attendance && attendance !== null;
+            return (
+              <View
+                key={part.id}
+                testID={`row.gradePart.${part.id}`}
+                style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }]}
+              >
+                <PartName name={name} onRename={(next) => setPart(part.id, { name: next })} />
+                <View style={{ width: COL_WEIGHT, flexDirection: "row", justifyContent: "flex-end", alignItems: "flex-start", gap: 4 }}>
+                  <ScoreInput
+                    testID={`input.gradeWeight.${part.id}`}
+                    label={t("grade.weightOf", { part: name })}
+                    value={part.weight}
+                    required
+                    highlight={!fix && !sumOk}
+                    width={52}
+                    onProblem={mark(`w:${part.id}`)}
+                    onValue={(value) => setPart(part.id, { weight: value ?? 0 })}
+                  />
+                  <Text size="body" tone="faint" style={{ paddingTop: 10 }}>
+                    %
+                  </Text>
+                </View>
+                <View style={{ width: COL_SCORE, alignItems: "flex-end" }}>
+                  {fromSix ? (
+                    // One text, the figure over where it comes from ("66 dari SIX").
+                    <Text size="body" weight="semibold" tabular style={{ textAlign: "right", paddingTop: 4 }}>
+                      {String(partScore(part, attendance))}
+                      {"\n"}
+                      <Text size="caption" weight="regular" tone="faint">
+                        {t("grade.fromSixShort")}
+                      </Text>
+                    </Text>
+                  ) : (
+                    <ScoreInput
+                      testID={`input.gradeScore.${part.id}`}
+                      label={t("grade.scoreOf", { part: name })}
+                      value={part.score}
+                      placeholder="-"
+                      onProblem={mark(`s:${part.id}`)}
+                      onValue={(value) => setPart(part.id, { score: value })}
+                    />
+                  )}
+                </View>
+                <IconButton
+                  label={t("grade.remove", { part: name })}
+                  onPress={() => save({ ...contract, parts: contract.parts.filter((p) => p.id !== part.id) })}
+                >
+                  <Icons.X size={14} color={c.muted} />
+                </IconButton>
               </View>
-            ))}
+            );
+          })}
+          {/* What changes the table, at its foot: a part more, or the example weights back; and the total. */}
+          <View style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line, alignItems: "center" }]}>
+            <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", marginLeft: -space[3] }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Icons.Plus size={14} color={c.muted} />}
+                disabled={contract.parts.length >= 20}
+                testID="action.gradeAdd"
+                onPress={() => save({ ...contract, parts: [...contract.parts, { id: `p${Date.now().toString(36)}`, name: "", weight: 0, score: null }] })}
+              >
+                {t("grade.add")}
+              </Button>
+              {!isExample && (
+                <Button variant="ghost" size="sm" onPress={reset} testID="action.gradeReset">
+                  {t("grade.reset")}
+                </Button>
+              )}
+            </View>
+            <Text
+              size="body"
+              weight="semibold"
+              tabular
+              tone={fix || sumOk ? "muted" : "warning"}
+              style={{ width: COL_WEIGHT, textAlign: "right", paddingRight: 14 }}
+            >
+              {`${f.number(result.totalWeight, 0)}%`}
+            </Text>
+            <View style={{ width: COL_SCORE + 44 }} />
+          </View>
+          <View style={{ marginTop: space[3], paddingTop: space[3], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
+            <Text size="small" tone="muted" style={{ marginBottom: space[2] }} accessibilityRole="header">
+              {t("grade.cutoffs")}
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[4], rowGap: space[2] }}>
+              {CONTRACT_LETTERS.map((letter) => (
+                <View key={letter} style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+                  <Text size="small" weight="semibold" style={{ paddingTop: 10, minWidth: 30 }}>
+                    {`${letter} ≥`}
+                  </Text>
+                  <ScoreInput
+                    testID={`input.gradeCutoff.${letter}`}
+                    label={t("grade.cutoffOf", { letter })}
+                    value={contract.cutoffs[letter]}
+                    required
+                    width={52}
+                    onProblem={mark(`c:${letter}`)}
+                    onValue={(value) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: value ?? 0 } })}
+                  />
+                </View>
+              ))}
+            </View>
           </View>
         </View>
-      </View>
       </View>
     </View>
   );

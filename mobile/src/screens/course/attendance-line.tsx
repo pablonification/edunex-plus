@@ -94,7 +94,11 @@ export function AttendanceCard({ item, context, onOpen }: { item: CourseAttendan
   const over = health.state === "met" || health.state === "missed";
   if (share === null && !chip && !next.length && !exception) return null;
   const count =
-    share === null ? null : over ? t("presence.row.final", { percent: share }) : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share });
+    share === null
+      ? null
+      : over
+        ? t("presence.row.final", { percent: share })
+        : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share });
   const color = health.state === "out" || health.state === "missed" ? v.redFg : health.state === "none" ? v.ambFg : v.fg;
   const label = [count, share !== null ? t("presence.row.ownTarget", { value: health.target }) : null, chip?.label, next.join(", "), exception?.short]
     .filter(Boolean)

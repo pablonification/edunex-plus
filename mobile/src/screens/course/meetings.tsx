@@ -19,6 +19,7 @@ import { dayStart } from "../../../../src/core/schedule";
 import { SixEmptyState, useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { EmptyState } from "../../ui/display";
+import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -160,18 +161,14 @@ function DateTile({ at, next, past }: { at: number; next: boolean; past: boolean
   const [day, month] = f.dayMonth(at).split(/\s+/);
   const [bg, fg] = next ? [v.brandTint, v.brandInk] : [v.page, past ? v.muted : v.fg];
   return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}
-    >
+    <IconTile tint={bg}>
       <Text size="titleMedium" face="display" weight="bold" tabular style={{ color: fg, fontSize: 17, lineHeight: 19 }}>
         {day ?? ""}
       </Text>
       <Text size="labelSmall" weight="medium" style={{ color: fg, fontSize: 11, lineHeight: 13 }}>
         {month ?? ""}
       </Text>
-    </View>
+    </IconTile>
   );
 }
 

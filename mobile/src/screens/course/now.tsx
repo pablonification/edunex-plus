@@ -21,6 +21,7 @@ import { dayNoon } from "../../../../src/core/schedule";
 import { OpenSixTimetable } from "../../parts/six-page-note";
 import { BigButton } from "../../ui/big-button";
 import { CookieCheck, CountUp, PulseDot, Rise, WavyProgress } from "../../ui/expressive";
+import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -38,12 +39,6 @@ function countdown(from: number, at: number): { value: number; unit: "minute" | 
   if (minutes < 120) return { value: minutes, unit: "minute" };
   if (minutes < 48 * 60) return { value: Math.floor(minutes / 60), unit: "hour" };
   return { value: Math.floor(minutes / (24 * 60)), unit: "day" };
-}
-
-/** A round tile holding a quiet icon, a row's leading part where there's no course to show (the page is the course). */
-function IconTile({ children }: { children: ReactNode }) {
-  const v = useTheme().v4;
-  return <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.page, alignItems: "center", justifyContent: "center" }}>{children}</View>;
 }
 
 /**
@@ -83,7 +78,7 @@ export function MeetingNow({ page, shownNext, card, rise }: { page: CoursePage; 
           key={`p${p.id}`}
           first={first}
           leading={
-            <IconTile>
+            <IconTile tint={v.page}>
               <Icons.Hand size={20} color={v.muted} />
             </IconTile>
           }
@@ -111,7 +106,7 @@ export function MeetingNow({ page, shownNext, card, rise }: { page: CoursePage; 
         key="next"
         first={first}
         leading={
-          <IconTile>
+          <IconTile tint={v.page}>
             <Icons.CalendarClock size={20} color={v.muted} />
           </IconTile>
         }
@@ -133,7 +128,7 @@ export function MeetingNow({ page, shownNext, card, rise }: { page: CoursePage; 
         key="unread"
         first={first}
         leading={
-          <IconTile>
+          <IconTile tint={v.page}>
             <Icons.Info size={20} color={v.muted} />
           </IconTile>
         }
@@ -141,11 +136,14 @@ export function MeetingNow({ page, shownNext, card, rise }: { page: CoursePage; 
         status={<OpenSixTimetable day={unreadDay} />}
       />
     ));
-  const quiet = rows.length ? (
-    <CardGroup style={{ marginTop: space[3] }}>{rows.map((row, i) => row(i === 0))}</CardGroup>
-  ) : null;
+  const quiet = rows.length ? <CardGroup style={{ marginTop: space[3] }}>{rows.map((row, i) => row(i === 0))}</CardGroup> : null;
   const countedIn = attendance?.courses.find((x) => x.course.code === page.course.code)?.health.countedIn;
-  if (!current && !presence) return quiet ? <Rise screen={rise} index={2}>{quiet}</Rise> : null;
+  if (!current && !presence)
+    return quiet ? (
+      <Rise screen={rise} index={2}>
+        {quiet}
+      </Rise>
+    ) : null;
   return (
     <Rise screen={rise} index={2}>
       <NowCard page={page} meeting={meeting} presence={presence} current={current !== null} countedIn={countedIn} modules={modules} />
@@ -305,7 +303,9 @@ function NowCard({
         </View>
         {/* Whether the open Presence counts, where only SIX does or nobody can say. */}
         {presence && !presenceCounts && (
-          <StatusChip tone={countedIn === "noSix" ? "amber" : "neutral"}>{t(countedIn === "noSix" ? "mobile.course.mayNotCount" : "mobile.course.optional")}</StatusChip>
+          <StatusChip tone={countedIn === "noSix" ? "amber" : "neutral"}>
+            {t(countedIn === "noSix" ? "mobile.course.mayNotCount" : "mobile.course.optional")}
+          </StatusChip>
         )}
       </View>
       {left && (
@@ -315,7 +315,11 @@ function NowCard({
               progress={(now - progress.from) / Math.max(1, progress.to - progress.from)}
               ink={ink}
               track={tint}
-              label={current ? t("home.now.live", { time: f.time(progress.to) }) : t("course.closesAt", { time: f.dayTime(progress.to), left: f.countdown(progress.to) })}
+              label={
+                current
+                  ? t("home.now.live", { time: f.time(progress.to) })
+                  : t("course.closesAt", { time: f.dayTime(progress.to), left: f.countdown(progress.to) })
+              }
             />
           ) : (
             <View style={{ flex: 1 }} />
