@@ -99,6 +99,14 @@ motion and onboarding are open. The desktop is a reference for data only.
   bottleneck is the two emulator slots: Kuliah, Tugas and Akademik wait on them with code done. Before PR #285 leaves
   draft: run the CI workflow on `mobile` (a run on a helper branch failed test (root CI lacks `mobile/node_modules`),
   lint (`words.mjs`) and workflows (actionlint)).
+- **10:15: the desktop stalled again (since ~09:30) and the roll-out moved to the Mac and GitHub Actions.** A read-only
+  health check found `df` and `systeminfo` hanging (even for C:), both emulators running but invisible to adb, four
+  leftover Gradle daemons (~5 GB), and every helper's provider log stopped at 09:30–09:34. All five desktop threads
+  stopped by the lead (their work was pushed). Beranda's fixes (814a91d, passed the lead's device look) merged into
+  `mobile` (8673697; mobile typecheck, biome, mobile tests green). The device step now runs on GitHub Actions' e2e (flows,
+  Check A per scenario, the judge's walk light/dark): `mobile` run 41268203004, Akademik 41268222659, Kuliah
+  41268225029. On the Mac: Tugas's fixes and proof (Arqila account), and one absence scale in a shared helper applied
+  to Beranda, Kuliah and Jadwal (Contact account). Rules updated (`v4-rollout.md`, 3e55de5).
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
@@ -323,6 +331,7 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | tasks-academic | Tugas, Task, Exam in v4 (Akademik and its screens, Settings, Search, Notifikasi moved to `mobile-r2-akademik`); W4/W11, W9, W10, W12 on these | `mobile-r2-tasks-academic` (from `mobile`) | **running** (desktop, Claude Dev 1; relaunched after the C: crash from 3f9e2c5). Tugas rows, exam rows and the list on v4 cards; Task and Exam pages next. Done: screens rebuilt before the v4 pick (to be redone to v4), native MaterialSwitch (`modules/material-switch`), WORKS flows `flows/round2/w04,w09,w10,w12` (fail on 9395cea, pass on 88d72aa), Check A signed-in 100% on tasks/exam/task/grades/search/alerts/settings (plan's run cut off by adb, to redo). Look-free: one title on Task, Exam, Nilai (d3632e4); `qa/words.sh` (aabc3f4): origin/mobile (819ec87 app) on mid, first screens: Beranda 88, Jadwal 64, Tugas 80, Kuliah 99, Akademik 27 words; stalls: Nilai/Rencana on an hour clock + below-the-fold parts a frame each (edb3418), Tugas redraws only when a deadline, window or the day turns (9487788, test `test/mobile/task-clock.test.ts`); demo sync tracing `[sync]` (702df81) and `qa/sync.sh` (313b7a6). **Left to measure** (release build of 313b7a6: CI run 41240805843's demo APK, not yet on a device): (1) W2: `sync.sh` on mid — requests and time for a start with saved data and for a pull to refresh (a first try was stopped); into FAST's "Update from SIX/Edunex" row. (2) Stalls after the fixes: `[perf] js-block` on Tugas (tab switch after a minute, idle 2 min), Nilai and Rencana (open, scroll, a minute idle). Before (mid, 770dbf0 + probe 57b839b): Nilai 84/207/129 ms (deferred mount, minute tick), Rencana 118/96/89 ms, Tugas 131 ms on return after a minute; Tugas' other blocks (294–333 ms at six.checkIn) are all five mounted tabs redrawing on a sync step, the home helper's 42e5e39. (3) Check A plan scenario again. Lab: a Gradle daemon (33764) hung in a native file-system call and held `~/.gradle`'s journal lock; my builds then used `C:\qa\gradle-r2tasks`; I added `~/.gradle/gradle.properties` `org.gradle.vfs.watch=false`; build slots r2tasks/r2tasks2 have files held open (unusable until a reboot) |
 | kuliah | Kuliah, course page, module in v4 (W1 kept) | `mobile-r2-kuliah` (from `mobile-r2-sched-base`) | running (desktop, Claude Dev 1; relaunched 07:40 after the C: crash, from e44dcff) |
 | akademik | Akademik and its screens (Nilai, Rencana, Kurikulum, KRS, UKT, Kalender), Settings, Search, Notifikasi in v4 | `mobile-r2-akademik` (from `mobile-r2-tasks-base`) | running (desktop, Claude Dev 2; relaunched 07:40, first pushes its unpushed 8d2de5a) |
+| flows | CI's "app" flows (smoke, use, judge-light/-dark) on v4's Beranda | `mobile-r2-flows` (from `mobile`, 7549034) | handed back (Mac). smoke checks the greeting with the demo name and the class-now card; the walk adds `02b-perlu-kamu-urus` and scrolls 02 to the 16:00 row. use and the walks failed on an app bug, not the flows: every sheet stayed off-screen with Android's animations off (CI's emulator; also "Remove animations" in Accessibility). Fixed with a patch of react-native-screens 4.30.1 (`patches/`, upstream's #4581, not yet released) |
 
 ## Round 1 (done 2026-10-31; kept for its decisions and proofs)
 
@@ -643,8 +652,11 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
-- **2026-11-01: the Mac (MacBook Air) is unreachable** on T3. Helpers all run on the desktop meanwhile. Proposed: open
-  T3 on the Mac when you can; I'll put helpers there too.
+- **2026-11-01 ~09:30: the desktop's file system stalled.** `df` and `systeminfo` hang (even for C:), adb sees no
+  emulator though two run, four Gradle daemons hold ~5 GB, and every T3 helper there froze. Proposed: look at it when
+  you can (a disk or driver stall: is F: an internal drive? the lab now writes temp and builds there), and restart
+  it. Until then helpers run on the Mac and every device check on GitHub Actions; the desktop isn't needed for the
+  roll-out, only for speed numbers later.
 - **2026-11-01: the desktop was restarted by Arqila (Gradle's stuck locks).** To drop once the home helper's first
   local build after the restart is clean.
 - **Real sign-in can only be proven with a real ITB account.** On Redroid, ITB's real sign-in
