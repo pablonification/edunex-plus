@@ -1,12 +1,16 @@
-// Rencana studi › Kalender akademik on the phone (src/app/screens/plan/deadlines.tsx, S16): ITB's
-// academic calendar, two ways. "Untukmu": this term's and the next term's deadlines and what each
-// means for the Student, grouped by how soon, a marker for today, near countdowns in bold, past
-// ones folded away. "Kalender lengkap": every event ITB lists, by month, with chips and a search.
-// The view picked stays while the app is open; ITB's calendar is named and linked, with when it
-// was last checked. Works without SIX. A tap on a date offers to add it to the phone's calendar
-// (the phone's own calendar app opens with it filled in, nothing is written without the Student).
+// Rencana studi › Kalender akademik on the phone (src/app/screens/plan/deadlines.tsx, S16; round 2, v4): ITB's
+// academic calendar, two ways. Works without SIX.
+// 1. One card led by the next date: the days to it, big (counting up once), and what and when on one line, today's
+//    date a quiet line over it. A tap offers to add it to the phone's calendar.
+// 2. "Untukmu": this term's deadlines by month, each a row with its date in a small tile, what it is, what it means
+//    for the Student (when the app has something to say) and how soon; running ones say so. Next term's and the
+//    past ones fold away. "Kalender lengkap": every event ITB lists, by month, with chips and a search. The view
+//    picked stays while the app is open.
+// 3. ITB's calendar, named and linked, with when it was last checked, at the end.
+// A tap on a date offers to add it to the phone's calendar (the phone's own calendar app opens with it filled in,
+// nothing is written without the Student).
 import { createEventInCalendarAsync } from "expo-calendar/legacy";
-import { Fragment, useState } from "react";
+import { useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -16,22 +20,25 @@ import { useViewChoice } from "../../../../src/app/view-choice";
 import { CALENDAR_GROUPS, type CalendarEntry, type CalendarGroup, DEADLINE_KINDS, type Deadline, fullCalendar } from "../../../../src/core/academic";
 import { relativeTime } from "../../../../src/core/intl";
 import { itbCalendar } from "../../../../src/core/links";
-import type { AcademicCalendar, CalendarEvent } from "../../../../src/core/models";
+import type { CalendarEvent } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
 import { Button, Chip, ChipRow, Segmented } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
+import { Rise } from "../../ui/expressive";
+import { Figure, Group, GroupRow, Heading, IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
-import { List, Meta, Notice } from "../../ui/layout";
+import { factsLabel, Notice } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
-import { radius, space, type, useTheme } from "../../ui/theme";
+import { font, space, type, useTheme } from "../../ui/theme";
+import { Later } from "./deferred";
 import { usePlaceState } from "./place-state";
 import { useTermYears } from "./projection";
 
-type Group = "now" | "week" | "month" | "term" | "next";
+type Soon = "now" | "week" | "month" | "term" | "next";
 
 /** Which group an upcoming deadline falls in: running, the next 7 days, this month, the rest of this term, next term. */
-function groupOf(deadline: Deadline, now: number, term: string | null, termEnd: number): Group {
+function groupOf(deadline: Deadline, now: number, term: string | null, termEnd: number): Soon {
   if (deadline.when === "now") return "now";
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
@@ -47,8 +54,6 @@ function groupOf(deadline: Deadline, now: number, term: string | null, termEnd: 
   return term && deadline.event.term !== term ? "next" : "term";
 }
 
-const GROUPS: Group[] = ["now", "week", "month", "term", "next"];
-
 /** A date the Student tapped: what the phone's calendar gets (the app's words for it, ITB's title in the notes). */
 interface Picked {
   event: CalendarEvent;
@@ -58,24 +63,49 @@ interface Picked {
 
 const noon = (day: string) => Date.parse(`${day}T12:00:00+07:00`);
 
+const RISE = "plan-deadlines";
+
+/** "12–16 Okt", "4 Des", "30 Nov – 11 Des": a deadline's days as the list says them. */
+function useDates(): (event: CalendarEvent) => string {
+  const f = useFormat();
+  return (event) => {
+    const first = noon(event.firstDay);
+    const last = noon(event.lastDay);
+    if (event.firstDay === event.lastDay) return f.dayMonth(first);
+    if (event.firstDay.slice(0, 7) === event.lastDay.slice(0, 7)) return `${event.firstDay.slice(8).replace(/^0/, "")}–${f.dayMonth(last)}`;
+    return `${f.dayMonth(first)} – ${f.dayMonth(last)}`;
+  };
+}
+
+/** "UTS", "Batas perubahan nilai · TA": the app's name for a deadline. */
+function useDeadlineTitle(): (deadline: Deadline) => string {
+  const t = useT();
+  return ({ event, variant }) => {
+    const kind = t(`deadline.kind.${event.kind}` as StringKey);
+    return variant ? `${kind} · ${t(`deadline.variant.${variant}`)}` : kind;
+  };
+}
+
 export function Tab(_: { onCalendar?: () => void }) {
   const t = useT();
   const theme = useTheme();
   const calendar = useDataset("itb.calendar");
   const [view, setView] = useViewChoice<"mine" | "all">("deadlines.view", "mine");
   const [picked, setPicked] = useState<Picked | null>(null);
-  // The phone's calendar didn't open: said on the page, under the view switch, until the next try (never a snackbar).
+  // The phone's calendar didn't open: said on the page, at its top, until the next try (never a snackbar).
   const [failed, setFailed] = useState(false);
   if (!calendar) return <EmptyState icon={<Icons.CalendarClock size={20} color={theme.color.muted} />} title={t("deadlines.empty")} />;
   return (
     <View>
-      <View style={{ marginBottom: space[5], gap: space[3] }}>
-        <View>
-          <Text size="small" tone="muted">
-            {t(view === "mine" ? "deadlines.intro" : "calendar.intro")}
-          </Text>
-          <Source calendar={calendar} />
+      {failed && (
+        <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ marginBottom: space[3] }}>
+          <Notice tone="danger" title={t("mobile.deadline.calendarFailed")} testID="note.calendarFailed" />
         </View>
+      )}
+      <Rise screen={RISE} index={0}>
+        <Next onPick={setPicked} />
+      </Rise>
+      <Rise screen={RISE} index={1} style={{ marginTop: space[4] }}>
         <Segmented
           label={t("deadlines.view")}
           value={view}
@@ -86,258 +116,64 @@ export function Tab(_: { onCalendar?: () => void }) {
           ]}
           testID="action.calendarView"
         />
-        {/* Nothing else says a date can be tapped: the phone's way of keeping one is its own calendar. */}
-        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-          <View style={{ paddingTop: 2 }}>
-            <Icons.CalendarCheck size={14} color={theme.color.faint} />
-          </View>
-          <Text size="caption" tone="muted" style={{ flex: 1 }}>
-            {t("mobile.deadline.tapHint")}
-          </Text>
-        </View>
-        {failed && (
-          <View accessibilityRole="alert" accessibilityLiveRegion="assertive">
-            <Notice tone="danger" title={t("mobile.deadline.calendarFailed")} testID="note.calendarFailed" />
-          </View>
-        )}
-      </View>
-      {view === "mine" ? <ForYou onPick={setPicked} /> : <EveryEvent onPick={setPicked} />}
+      </Rise>
+      <Rise screen={RISE} index={2}>
+        {view === "mine" ? <ForYou onPick={setPicked} /> : <EveryEvent onPick={setPicked} />}
+      </Rise>
+      <Later>
+        <Source />
+      </Later>
       <AddToCalendar picked={picked} onClose={() => setPicked(null)} onFailed={setFailed} />
     </View>
   );
 }
 
-/** "Dari Kalender Pendidikan ITB 2026/2027 · diperiksa 2 jam yang lalu": where every date here comes from, to read for oneself, and how fresh it is. */
-function Source({ calendar }: { calendar: AcademicCalendar }) {
+/** The leading card: the next date's days to go, big; what and when on one line; today's date a quiet line over it. */
+function Next({ onPick }: { onPick: (picked: Picked) => void }) {
   const t = useT();
   const f = useFormat();
-  const open = useOpenExternal();
-  const { url, year } = itbCalendar(useThisTerm(), calendar);
-  return (
-    <View style={{ marginTop: 2 }}>
-      <Meta size="caption">
-        <Text size="caption" tone="muted">
-          {t("deadlines.from")}{" "}
-          <Text size="caption" tone="accent" accessibilityRole="link" onPress={() => open(url)} style={{ textDecorationLine: "underline" }}>
-            {year ? t("deadlines.source", { years: `${year}/${year + 1}` }) : t("deadlines.sourcePlain")}
-          </Text>
+  const now = useNow();
+  const v = useTheme().v4;
+  const dates = useDates();
+  const titleOf = useDeadlineTitle();
+  const { upcoming } = useDeadlines();
+  const next = upcoming.find((d) => d.when === "next");
+  const today = (
+    <Text size="bodyMedium" style={{ color: v.muted }} testID="marker.today">
+      {t("deadlines.todayAt", { date: `${f.weekdayShort(now)}, ${f.dayMonth(now)}` })}
+    </Text>
+  );
+  if (!next)
+    return (
+      <Panel style={{ padding: space[5], gap: space[2] }} testID="card.deadlines.next">
+        {today}
+        <Text size="bodyLarge" style={{ color: v.fg }}>
+          {t("mobile.calendar.noneLeft")}
         </Text>
-        {t("deadlines.checked", { when: f.fromNow(calendar.checkedAt) })}
-      </Meta>
-    </View>
-  );
-}
-
-/** The day's marker: "Sekarang · Kam, 8 Okt", with a line to the edge. */
-function TodayLine() {
-  const t = useT();
-  const f = useFormat();
-  const now = useNow();
-  const theme = useTheme();
+      </Panel>
+    );
+  const title = titleOf(next);
+  const when = dates(next.event);
+  const offset = Math.max(0, f.dayOffset(next.event.start));
+  const days = offset === 0 ? t("mobile.calendar.today") : `${offset} ${t("mobile.calendar.daysLeft", { count: offset })}`;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }} testID="marker.today">
-      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.accent }} />
-      <Text size="caption" weight="semibold" tone="accent">
-        {t("deadlines.todayAt", { date: `${f.weekdayShort(now)}, ${f.dayMonth(now)}` })}
-      </Text>
-      <View style={{ flex: 1, height: 1, backgroundColor: theme.color.accent, opacity: 0.4 }} />
-    </View>
-  );
-}
-
-function ForYou({ onPick }: { onPick: (picked: Picked) => void }) {
-  const t = useT();
-  const now = useNow();
-  const theme = useTheme();
-  const term = useThisTerm();
-  const termYears = useTermYears();
-  const { upcoming, past } = useDeadlines();
-  const [nextOpen, setNextOpen] = usePlaceState("deadlines.nextTerm", false);
-  const [pastOpen, setPastOpen] = useState(false);
-  const grouped = new Map<Group, Deadline[]>();
-  const termEnd = Math.max(0, ...[...upcoming, ...past].filter((d) => d.event.term === term).map((d) => d.event.end));
-  for (const d of upcoming) {
-    const g = groupOf(d, now, term, termEnd);
-    grouped.set(g, [...(grouped.get(g) ?? []), d]);
-  }
-  const firstAhead = GROUPS.find((g) => g !== "now" && grouped.get(g)?.length);
-  return (
-    <View>
-      <View style={{ gap: space[6] }}>
-        {GROUPS.map((group) => {
-          const items = grouped.get(group);
-          if (!items?.length) return null;
-          const collapsed = group === "next" && !nextOpen;
-          // "Semester depan" names its term once, when its events share one, instead of on every row.
-          const terms = new Set(items.flatMap((d) => (d.event.term ? [d.event.term] : [])));
-          const named = group === "next" && terms.size === 1 ? [...terms][0]! : null;
-          const heading = (
-            <Text size="small" weight="semibold" accessibilityRole="header">
-              {t(`deadlines.group.${group}`)}
-              {named ? (
-                <Text size="small" weight="medium" tone="muted">
-                  {`  ·  ${termYears(named)}`}
-                </Text>
-              ) : null}
-              <Text size="small" weight="medium" tone="faint" tabular>
-                {`  ${items.length}`}
-              </Text>
-            </Text>
-          );
-          return (
-            <Fragment key={group}>
-              {group === firstAhead && <TodayLine />}
-              <View testID={`group.deadlines.${group}`}>
-                {group === "next" ? (
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityState={{ expanded: !collapsed }}
-                    onPress={() => setNextOpen(!nextOpen)}
-                    hitSlop={8}
-                    style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: space[2], minHeight: 32 }}
-                    testID="action.deadlines.next"
-                  >
-                    <View style={{ transform: [{ rotate: collapsed ? "0deg" : "90deg" }] }}>
-                      <Icons.ChevronRight size={14} color={theme.color.faint} />
-                    </View>
-                    {heading}
-                  </Pressable>
-                ) : (
-                  <View style={{ marginBottom: space[2] }}>{heading}</View>
-                )}
-                {!collapsed && (
-                  <List>
-                    {items.map((deadline) => (
-                      <DeadlineRow
-                        key={deadline.event.id}
-                        deadline={deadline}
-                        showTerm={deadline.event.term !== term && deadline.event.term !== named}
-                        onPick={onPick}
-                      />
-                    ))}
-                  </List>
-                )}
-              </View>
-            </Fragment>
-          );
-        })}
-      </View>
-      {past.length > 0 && (
-        <View style={{ marginTop: space[8] }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: pastOpen }}
-            onPress={() => setPastOpen(!pastOpen)}
-            hitSlop={8}
-            style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 32 }}
-            testID="action.deadlines.past"
-          >
-            <View style={{ transform: [{ rotate: pastOpen ? "90deg" : "0deg" }] }}>
-              <Icons.ChevronRight size={14} color={theme.color.muted} />
-            </View>
-            <Text size="small" weight="medium" tone="muted">
-              {t("deadlines.past")}
-              <Text size="small" tone="faint" tabular>
-                {`  ${past.length}`}
-              </Text>
-            </Text>
-          </Pressable>
-          {pastOpen && (
-            <View style={{ marginTop: space[3] }}>
-              <List>
-                {past.map((deadline) => (
-                  <DeadlineRow key={deadline.event.id} deadline={deadline} showTerm={deadline.event.term !== term} onPick={onPick} />
-                ))}
-              </List>
-            </View>
-          )}
-        </View>
-      )}
-    </View>
-  );
-}
-
-/** `showTerm`: the event's term, only where it isn't the one the Student is reading about (this term, or the group's). */
-function DeadlineRow({ deadline, showTerm, onPick }: { deadline: Deadline; showTerm: boolean; onPick: (picked: Picked) => void }) {
-  const t = useT();
-  const lang = useLang();
-  const f = useFormat();
-  const theme = useTheme();
-  const termYears = useTermYears();
-  const { event, meaning, variant, when } = deadline;
-  const first = noon(event.firstDay);
-  const last = noon(event.lastDay);
-  const single = event.firstDay === event.lastDay;
-  const sameMonth = event.firstDay.slice(0, 7) === event.lastDay.slice(0, 7);
-  const dates = single
-    ? f.dayMonth(first)
-    : sameMonth
-      ? `${event.firstDay.slice(8).replace(/^0/, "")}–${f.dayMonth(last)}`
-      : `${f.dayMonth(first)} – ${f.dayMonth(last)}`;
-  const days = single ? f.weekdayShort(first) : `${f.weekdayShort(first)}–${f.weekdayShort(last)}`;
-  const offset = f.dayOffset(event.start);
-  const near = when === "next" && offset < 14;
-  const warn = meaning?.warn && when !== "past";
-  const kind = t(`deadline.kind.${event.kind}` as StringKey);
-  const title = variant ? `${kind} · ${t(`deadline.variant.${variant}`)}` : kind;
-  return (
-    <Pressable
-      accessibilityRole="button"
+    <Panel
+      onPress={() => onPick({ event: next.event, title, dates: when })}
+      accessibilityLabel={factsLabel(days, title, when)}
       accessibilityHint={t("mobile.deadline.toCalendar")}
-      onPress={() => onPick({ event, title, dates })}
-      android_ripple={{ color: theme.color.selected }}
-      style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingLeft: space[4], paddingRight: space[3], paddingVertical: space[3] }}
-      testID={`row.deadline.${event.id}`}
+      testID="card.deadlines.next"
+      style={{ padding: space[5], gap: space[2] }}
     >
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
-          <Text size="body" weight="semibold" tone={when === "past" ? "muted" : "fg"} tabular>
-            {dates}
-          </Text>
-          <Text size="caption" tone="faint" style={{ flex: 1 }}>
-            {days}
-          </Text>
-          <Text size="small" weight={when === "now" || near ? "semibold" : "regular"} tone={when === "now" ? "success" : near ? "warning" : "faint"} tabular>
-            {when === "now" ? t("deadlines.now") : relativeTime(lang)(offset, "day")}
-          </Text>
-        </View>
-        <Meta tone={when === "past" ? "muted" : "fg"}>
-          <Text size="body" weight="medium" tone={when === "past" ? "muted" : "fg"}>
-            {kind}
-          </Text>
-          {variant ? t(`deadline.variant.${variant}`) : null}
-          {showTerm && event.term ? termYears(event.term) : null}
-        </Meta>
-        {meaning && (
-          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-            {meaning.done && (
-              <View style={{ paddingTop: 3 }}>
-                <Icons.Check size={12} color={theme.color.successFg} weight="bold" />
-              </View>
-            )}
-            {warn && (
-              <View style={{ paddingTop: 3 }}>
-                <Icons.AlertTriangle size={12} color={theme.color.warningFg} weight="bold" />
-              </View>
-            )}
-            <Text size="small" weight={warn ? "medium" : "regular"} tone={warn ? "warning" : meaning.done ? "success" : "muted"} style={{ flex: 1 }}>
-              {t(meaning.key, meaning.vars)}
-            </Text>
-          </View>
-        )}
-      </View>
-      <Opens />
-    </Pressable>
-  );
-}
-
-/** The row's chevron, level with its first line (`line` high): a tap opens the sheet to add the date to the phone's calendar. */
-function Opens({ line = 22 }: { line?: number }) {
-  const theme = useTheme();
-  return (
-    <View style={{ height: line, justifyContent: "center" }}>
-      <Icons.ChevronRight size={16} color={theme.color.faint} />
-    </View>
+      {today}
+      {offset === 0 ? (
+        <Text style={{ fontFamily: font.display.extrabold, fontSize: 44, lineHeight: 51, letterSpacing: -1, color: v.fg }}>{days}</Text>
+      ) : (
+        <Figure id={`deadlines.next.${next.event.id}`} value={offset} unit={t("mobile.calendar.daysLeft", { count: offset })} />
+      )}
+      <Text size="bodyLarge" weight="medium" style={{ color: v.fg }}>
+        {factsLabel(title, when)}
+      </Text>
+    </Panel>
   );
 }
 
@@ -348,12 +184,215 @@ function useMonthName(): (month: string) => string {
   return (month) => format.format(Date.parse(`${month}-15T12:00:00+07:00`));
 }
 
+/** Items in order, by the month they start in ("2026-10"). */
+function byMonth<T>(items: readonly T[], day: (item: T) => string): { month: string; items: T[] }[] {
+  const months: { month: string; items: T[] }[] = [];
+  for (const item of items) {
+    const month = day(item).slice(0, 7);
+    const last = months.at(-1);
+    if (last?.month === month) last.items.push(item);
+    else months.push({ month, items: [item] });
+  }
+  return months;
+}
+
+function ForYou({ onPick }: { onPick: (picked: Picked) => void }) {
+  const t = useT();
+  const now = useNow();
+  const term = useThisTerm();
+  const termYears = useTermYears();
+  const monthName = useMonthName();
+  const { upcoming, past } = useDeadlines();
+  const [nextOpen, setNextOpen] = usePlaceState("deadlines.nextTerm", false);
+  const [pastOpen, setPastOpen] = useState(false);
+  const termEnd = Math.max(0, ...[...upcoming, ...past].filter((d) => d.event.term === term).map((d) => d.event.end));
+  const thisTerm = upcoming.filter((d) => groupOf(d, now, term, termEnd) !== "next");
+  const nextTerm = upcoming.filter((d) => groupOf(d, now, term, termEnd) === "next");
+  // "Semester depan" names its term once, when its events share one, instead of on every row.
+  const terms = new Set(nextTerm.flatMap((d) => (d.event.term ? [d.event.term] : [])));
+  const named = terms.size === 1 ? [...terms][0]! : null;
+  return (
+    <View>
+      {byMonth(thisTerm, (d) => d.event.firstDay).map(({ month, items }) => (
+        <View key={month} testID={`group.deadlines.${month}`}>
+          <Heading>{monthName(month)}</Heading>
+          <Group>
+            {items.map((deadline, i) => (
+              <DeadlineRow key={deadline.event.id} first={i === 0} deadline={deadline} showTerm={deadline.event.term !== term} onPick={onPick} />
+            ))}
+          </Group>
+        </View>
+      ))}
+      {nextTerm.length > 0 && (
+        <Group testID="group.deadlines.next" style={{ marginTop: space[6] }}>
+          <Fold
+            open={nextOpen}
+            onToggle={() => setNextOpen(!nextOpen)}
+            title={t("deadlines.group.next")}
+            meta={factsLabel(named && termYears(named), t("mobile.calendar.dates", { count: nextTerm.length }))}
+            testID="action.deadlines.next"
+          />
+          {nextOpen &&
+            nextTerm.map((deadline) => (
+              <DeadlineRow
+                key={deadline.event.id}
+                first={false}
+                deadline={deadline}
+                showTerm={deadline.event.term !== term && deadline.event.term !== named}
+                onPick={onPick}
+              />
+            ))}
+        </Group>
+      )}
+      {past.length > 0 && (
+        <Group testID="group.deadlines.past" style={{ marginTop: space[3] }}>
+          <Fold
+            open={pastOpen}
+            onToggle={() => setPastOpen(!pastOpen)}
+            title={t("deadlines.past")}
+            meta={t("mobile.calendar.dates", { count: past.length })}
+            testID="action.deadlines.past"
+          />
+          {pastOpen &&
+            past.map((deadline) => (
+              <DeadlineRow key={deadline.event.id} first={false} deadline={deadline} showTerm={deadline.event.term !== term} onPick={onPick} />
+            ))}
+        </Group>
+      )}
+    </View>
+  );
+}
+
+/** A fold's row: its name, how many dates it holds, a chevron that turns as it opens. */
+function Fold({ open, onToggle, title, meta, testID }: { open: boolean; onToggle: () => void; title: string; meta: string; testID: string }) {
+  const v = useTheme().v4;
+  return (
+    <GroupRow
+      first
+      title={title}
+      meta={meta}
+      onPress={onToggle}
+      accessibilityState={{ expanded: open }}
+      testID={testID}
+      trailing={
+        <View style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}>
+          <Icons.ChevronRight size={20} color={v.muted} />
+        </View>
+      }
+    />
+  );
+}
+
+/** A date in a small tile: the day (or days), the month under it; tinted while it's ahead, green while running, grey once past. */
+function DateTile({ event, when }: { event: CalendarEvent; when: Deadline["when"] }) {
+  const f = useFormat();
+  const v = useTheme().v4;
+  const day = (iso: string) => iso.slice(8).replace(/^0/, "");
+  const sameMonth = event.firstDay.slice(0, 7) === event.lastDay.slice(0, 7);
+  const days = event.firstDay === event.lastDay || !sameMonth ? day(event.firstDay) : `${day(event.firstDay)}–${day(event.lastDay)}`;
+  const month = f.dayMonth(noon(event.firstDay)).split(/\s/).at(-1) ?? "";
+  const { bg, fg } = when === "past" ? { bg: v.page, fg: v.muted } : when === "now" ? { bg: v.okBg, fg: v.okFg } : { bg: v.brandTint, fg: v.brandInk };
+  return (
+    <View
+      style={{
+        minWidth: 44,
+        minHeight: 44,
+        borderRadius: 14,
+        paddingHorizontal: space[1],
+        backgroundColor: bg,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      {/* One text, two lines ("12–16" over "Okt"), so the tile reads as one date. */}
+      <Text style={{ textAlign: "center", color: fg, lineHeight: 16 }}>
+        <Text face="display" weight="bold" tabular style={{ color: fg, fontSize: days.length > 2 ? 14 : 17, lineHeight: 19 }}>
+          {days}
+        </Text>
+        {"\n"}
+        <Text size="labelSmall" weight="medium" style={{ color: fg }}>
+          {month}
+        </Text>
+      </Text>
+    </View>
+  );
+}
+
+/** `showTerm`: the event's term, only where it isn't the one the Student is reading about (this term, or the fold's). */
+function DeadlineRow({ deadline, first, showTerm, onPick }: { deadline: Deadline; first: boolean; showTerm: boolean; onPick: (picked: Picked) => void }) {
+  const t = useT();
+  const lang = useLang();
+  const f = useFormat();
+  const v = useTheme().v4;
+  const termYears = useTermYears();
+  const dates = useDates();
+  const titleOf = useDeadlineTitle();
+  const { event, meaning, when } = deadline;
+  const title = titleOf(deadline);
+  const range = dates(event);
+  const start = noon(event.firstDay);
+  const end = noon(event.lastDay);
+  const days = event.firstDay === event.lastDay ? f.weekdayShort(start) : `${f.weekdayShort(start)}–${f.weekdayShort(end)}`;
+  const offset = f.dayOffset(event.start);
+  const near = when === "next" && offset < 14;
+  const warn = meaning?.warn && when !== "past";
+  const soon = when === "now" ? t("deadlines.now") : relativeTime(lang)(offset, "day");
+  const means = meaning ? t(meaning.key, meaning.vars) : null;
+  const term = showTerm && event.term ? termYears(event.term) : null;
+  return (
+    <GroupRow
+      first={first}
+      leading={<DateTile event={event} when={when} />}
+      title={
+        <Text size="bodyLarge" weight="medium" style={{ color: when === "past" ? v.muted : v.fg, lineHeight: 21 }}>
+          {title}
+        </Text>
+      }
+      // What it means for the Student when the app has something to say (after its dates when they run past the
+      // tile's month); else its days.
+      meta={means ? factsLabel(event.firstDay.slice(0, 7) !== event.lastDay.slice(0, 7) && range, means, term) : factsLabel(range, days, term)}
+      metaTone={warn ? "amber" : meaning?.done && when !== "past" ? "ok" : "muted"}
+      trailing={
+        when === "now" ? (
+          <Pill tone="ok">{soon}</Pill>
+        ) : (
+          <Text size="bodyMedium" weight={near ? "semibold" : "regular"} tabular style={{ color: near ? v.ambFg : v.muted }}>
+            {soon}
+          </Text>
+        )
+      }
+      onPress={() => onPick({ event, title, dates: range })}
+      accessibilityLabel={factsLabel(title, range, days, soon, means, term)}
+      accessibilityHint={t("mobile.deadline.toCalendar")}
+      testID={`row.deadline.${event.id}`}
+    />
+  );
+}
+
+/** The day's marker among the full calendar's rows: "Sekarang · Kam, 8 Okt", with a line to the edge. */
+function TodayLine() {
+  const t = useT();
+  const f = useFormat();
+  const now = useNow();
+  const v = useTheme().v4;
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: 14, paddingVertical: space[2] }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brandInk }} />
+      <Text size="labelMedium" weight="semibold" style={{ color: v.brandInk }}>
+        {t("deadlines.todayAt", { date: `${f.weekdayShort(now)}, ${f.dayMonth(now)}` })}
+      </Text>
+      <View style={{ flex: 1, height: 1, backgroundColor: v.brandInk, opacity: 0.4 }} />
+    </View>
+  );
+}
+
 /** The full calendar: every event, by month, with chips and a search; months already over are folded until asked for or searched. */
 function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
   const fieldColors = useFieldColors();
   const t = useT();
   const now = useNow();
   const theme = useTheme();
+  const v = theme.v4;
   const monthName = useMonthName();
   const calendar = useDataset("itb.calendar");
   const krs = useDataset("six.krs");
@@ -393,30 +432,30 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
     setGroups(next);
   };
   return (
-    <View>
+    <View style={{ marginTop: space[4] }}>
       <View
         style={{
           flexDirection: "row",
           alignItems: "center",
           gap: space[2],
-          height: 44,
-          borderRadius: radius.lg,
-          paddingHorizontal: space[3],
-          backgroundColor: theme.color.fill,
+          minHeight: 48,
+          borderRadius: 24,
+          paddingHorizontal: space[4],
+          backgroundColor: v.card,
         }}
       >
-        <Icons.Search size={18} color={theme.color.faint} />
+        <Icons.Search size={20} color={v.muted} />
         <TextInput
           {...fieldColors}
           value={query}
           onChangeText={setQuery}
           accessibilityLabel={t("calendar.search")}
           placeholder={t("calendar.search")}
-          placeholderTextColor={theme.color.faint}
+          placeholderTextColor={v.muted}
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
-          style={{ flex: 1, color: theme.color.fg, ...type.body, paddingVertical: 0 }}
+          style={{ flex: 1, color: v.fg, ...type.body, paddingVertical: 0 }}
           testID="input.calendarSearch"
         />
       </View>
@@ -440,21 +479,21 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
           })}
         </ChipRow>
       </View>
-      <View style={{ marginTop: space[3], flexDirection: "row", alignItems: "center", gap: space[3] }}>
+      <View style={{ marginTop: space[3], flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 24 }}>
         {/* Only the count is announced as it changes, not the button beside it. */}
-        <Text size="caption" tone="muted" accessibilityLiveRegion="polite">
+        <Text size="bodyMedium" style={{ color: v.muted }} accessibilityLiveRegion="polite">
           {filtered ? t("calendar.countOf", { shown, count: total }) : t("calendar.count", { count: total })}
         </Text>
         {filtered && (
           <Pressable
             accessibilityRole="button"
-            hitSlop={10}
+            hitSlop={12}
             onPress={() => {
               setQuery("");
               setGroups(new Set());
             }}
           >
-            <Text size="caption" weight="medium" tone="accent">
+            <Text size="bodyMedium" weight="medium" style={{ color: v.brandInk }}>
               {t("calendar.clear")}
             </Text>
           </Pressable>
@@ -474,47 +513,36 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
         </View>
       )}
       {shown === 0 && (
-        <View
-          style={{ marginTop: space[6], borderRadius: radius.xl, backgroundColor: theme.color.sunken, paddingHorizontal: space[4], paddingVertical: space[6] }}
-        >
-          <Text size="small" tone="muted" style={{ textAlign: "center" }}>
+        <Panel style={{ marginTop: space[6], paddingHorizontal: space[5], paddingVertical: space[6] }}>
+          <Text size="bodyLarge" style={{ color: v.muted, textAlign: "center" }}>
             {t("calendar.none")}
           </Text>
-        </View>
+        </Panel>
       )}
-      <View style={{ marginTop: space[4], gap: space[5] }}>
-        {visible.map(({ month, entries }) => {
-          // The line for today sits before the month's first event still to come.
-          const todayAt = month === thisMonth ? entries.findIndex((e) => e.when !== "past") : -2;
-          return (
-            <View key={month}>
-              <Text size="small" weight="semibold" accessibilityRole="header" style={{ marginBottom: space[1.5] }}>
-                {monthName(month)}
-                <Text size="small" weight="medium" tone="faint" tabular>
-                  {`  ${entries.length}`}
+      {visible.map(({ month, entries }) => {
+        // The line for today sits before the month's first event still to come.
+        const todayAt = month === thisMonth ? entries.findIndex((e) => e.when !== "past") : -2;
+        return (
+          <View key={month}>
+            <Heading
+              trailing={
+                <Text size="bodyMedium" tabular style={{ color: v.muted }}>
+                  {String(entries.length)}
                 </Text>
-              </Text>
-              <List>
-                {entries.flatMap((entry, i) => [
-                  ...(i === todayAt
-                    ? [
-                        <View key="today" style={{ paddingHorizontal: space[4], paddingVertical: space[1.5] }}>
-                          <TodayLine />
-                        </View>,
-                      ]
-                    : []),
-                  <EventRow key={entry.event.id} entry={entry} onPick={onPick} />,
-                ])}
-                {todayAt === -1 && (
-                  <View key="today" style={{ paddingHorizontal: space[4], paddingVertical: space[1.5] }}>
-                    <TodayLine />
-                  </View>
-                )}
-              </List>
-            </View>
-          );
-        })}
-      </View>
+              }
+            >
+              {monthName(month)}
+            </Heading>
+            <Group>
+              {entries.flatMap((entry, i) => [
+                ...(i === todayAt ? [<TodayLine key="today" />] : []),
+                <EventRow key={entry.event.id} first={i === 0 && todayAt !== 0} entry={entry} onPick={onPick} />,
+              ])}
+              {todayAt === -1 && <TodayLine key="today" />}
+            </Group>
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -522,55 +550,59 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
 /** Meanings that only say again what ITB's title says ("Masa Ujian Tengah Semester": "Midterm exam week."); the search still finds them. */
 const RESTATED: ReadonlySet<StringKey> = new Set<StringKey>(["deadline.uts", "deadline.lectureStart"]);
 
-/** One event, compact: its days, ITB's title, and what it means when the app has something to say. */
-function EventRow({ entry, onPick }: { entry: CalendarEntry; onPick: (picked: Picked) => void }) {
+/** One event: its date in a tile, ITB's title, and what it means when the app has something to say. */
+function EventRow({ entry, first, onPick }: { entry: CalendarEntry; first: boolean; onPick: (picked: Picked) => void }) {
   const t = useT();
   const f = useFormat();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const { event, when } = entry;
   const meaning = entry.meaning && !RESTATED.has(entry.meaning.key) ? entry.meaning : null;
   const days =
     event.firstDay === event.lastDay ? f.weekdayShort(noon(event.firstDay)) : `${f.weekdayShort(noon(event.firstDay))}–${f.weekdayShort(noon(event.lastDay))}`;
   const warn = meaning?.warn && when !== "past";
   const dates = f.dayRange(event.firstDay, event.lastDay);
+  const means = meaning ? t(meaning.key, meaning.vars) : null;
+  const revised = entry.revised ? t("calendar.revised") : null;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityHint={t("mobile.deadline.toCalendar")}
-      onPress={() => onPick({ event, title: entry.title, dates })}
-      android_ripple={{ color: theme.color.selected }}
-      style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingLeft: space[4], paddingRight: space[3], paddingVertical: space[2.5] }}
-    >
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text size="small" weight="semibold" tone={when === "past" ? "muted" : "fg"} tabular>
-          {dates}
-          <Text size="small" tone="faint">{`  ${days}`}</Text>
-        </Text>
-        <Text size="body" tone={when === "past" ? "muted" : "fg"}>
+    <GroupRow
+      first={first}
+      leading={<DateTile event={event} when={when} />}
+      title={
+        <Text size="bodyLarge" style={{ color: when === "past" ? v.muted : v.fg, lineHeight: 21 }}>
           {entry.title}
-          {when === "now" ? (
-            <Text size="small" weight="semibold" tone="success">
-              {`  ${t("deadlines.now")}`}
-            </Text>
-          ) : null}
         </Text>
-        {(meaning || entry.revised) && (
-          <Meta tone={warn ? "fg" : "muted"}>
-            {meaning ? (
-              <Text size="small" weight={warn ? "medium" : "regular"} tone={warn ? "warning" : meaning.done && when !== "past" ? "success" : "muted"}>
-                {t(meaning.key, meaning.vars)}
-              </Text>
-            ) : null}
-            {entry.revised ? (
-              <Text size="small" tone="faint">
-                {t("calendar.revised")}
-              </Text>
-            ) : null}
-          </Meta>
-        )}
-      </View>
-      <Opens line={19} />
-    </Pressable>
+      }
+      meta={means || revised ? factsLabel(means, revised) : factsLabel(dates, days)}
+      metaTone={warn ? "amber" : meaning?.done && when !== "past" ? "ok" : "muted"}
+      trailing={when === "now" ? <Pill tone="ok">{t("deadlines.now")}</Pill> : undefined}
+      onPress={() => onPick({ event, title: entry.title, dates })}
+      accessibilityLabel={factsLabel(entry.title, dates, days, when === "now" && t("deadlines.now"), means, revised)}
+      accessibilityHint={t("mobile.deadline.toCalendar")}
+    />
+  );
+}
+
+/** Where every date here comes from, to read for oneself, and how fresh it is: ITB's calendar as a row that opens it. */
+function Source() {
+  const t = useT();
+  const f = useFormat();
+  const v = useTheme().v4;
+  const open = useOpenExternal();
+  const calendar = useDataset("itb.calendar");
+  const { url, year } = itbCalendar(useThisTerm(), calendar);
+  if (!calendar) return null;
+  return (
+    <Group style={{ marginTop: space[6] }} testID="row.deadlines.source">
+      <GroupRow
+        first
+        leading={<IconTile tone="plain" icon={(color) => <Icons.CalendarClock size={22} color={color} />} />}
+        title={year ? t("deadlines.source", { years: `${year}/${year + 1}` }) : t("deadlines.sourcePlain")}
+        meta={t("deadlines.checked", { when: f.fromNow(calendar.checkedAt) })}
+        trailing={<Icons.ArrowUpRight size={20} color={v.muted} />}
+        onPress={() => open(url)}
+        accessibilityRole="link"
+      />
+    </Group>
   );
 }
 

@@ -1,11 +1,17 @@
-// Rencana studi › Kurikulum on the phone (src/app/screens/plan/curriculum.tsx, S13): the program's
-// required courses by recommended semester with where the Student stands on each (courses passed
-// under an older code matched the way SIX places them), in plain words; "Sisa saja" hides what's
-// done (kept while the app is open); the totals from the same SKS count as the planner; the
-// specializations and minors with progress; each course's syllabus on SIX's public pages; and the
-// Student's own corrections where SIX's record doesn't match their curriculum, each one marked and
-// reversible. On the phone a course's syllabus and corrections are a tap (or a long press) away,
-// in a sheet, instead of on hover.
+// Rencana studi › Kurikulum on the phone (src/app/screens/plan/curriculum.tsx, S13; round 2, v4): the program's
+// required courses by recommended semester with where the Student stands on each (courses passed under an older code
+// matched the way SIX places them), the specializations and minors with progress, each course's syllabus on SIX's
+// public pages, and the Student's own corrections where SIX's record doesn't match their curriculum, each one marked
+// and reversible.
+// 1. One card led by the SKS passed of the curriculum's total (a big number that counts up once, a thin bar), then
+//    the required courses left and the electives, the same SKS count as the planner.
+// 2. "Sisa saja" with what's left on its line: hides what's done (kept while the app is open). Under it, quietly, what's
+//    worth knowing about the curriculum itself (an older start, courses SIX leaves off).
+// 3. Each semester: its heading with its SKS, its courses as rows (name, code and SKS, one status at the end: the
+//    grade once passed, a pill while it needs the Student).
+// 4. Specializations and minors, below the fold.
+// A course's syllabus and corrections are a tap (or a long press) away, in a sheet.
+import * as Haptics from "expo-haptics";
 import { type ReactNode, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -18,13 +24,15 @@ import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../.
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
 import { toast } from "../../swaps/overlays";
 import { Button, Switch } from "../../ui/controls";
-import { Bar, Card } from "../../ui/display";
+import { Rise } from "../../ui/expressive";
+import { Figure, FigureLabel, Group, GroupRow, Heading, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
-import { factsLabel, Meta, Section } from "../../ui/layout";
+import { factsLabel, Meta } from "../../ui/layout";
+import { Meter } from "../../ui/meter";
 import { ActionSheet, Sheet, type SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
-import { WhatIfTag } from "./planner";
+import { space, useTheme } from "../../ui/theme";
+import { Later } from "./deferred";
 import { SixNeeded } from "./six-needed";
 
 /** SIX's public course page (no sign-in): the syllabus. */
@@ -32,6 +40,11 @@ export const syllabusUrl = (courseId: string) => `https://six.itb.ac.id/pub/mata
 
 /** Still to do: everything not passed, credited, or off the Student's list (SIX doesn't ask it of them, or they said so). */
 const isLeft = (status: SlotStatus) => !["passed", "exempt", "unlisted", "not-mine", "done", "program-adds"].includes(status);
+
+/** The semesters drawn with the screen's first frame; the rest arrive a frame each (./deferred.ts). */
+const FIRST_SEMESTERS = 2;
+
+const RISE = "plan-curriculum";
 
 export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const t = useT();
@@ -71,9 +84,15 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
     }))
     .filter((s) => s.required.length + s.others.length > 0);
   const hidden = map.semesters.length - semesters.length;
+  const unlisted = map.semesters.flatMap((s) => s.required).filter((c) => c.status === "unlisted").length;
   const correct = (course: MapCourse, fix: CurriculumFix | null, message: string) => {
     const before = setFix(course.code, fix);
+    void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
     toast(message, "neutral", { label: t("planner.undo"), onClick: () => setFix(course.code, before) });
+  };
+  const toggleLeft = (on: boolean) => {
+    void Haptics.performAndroidHapticsAsync(on ? Haptics.AndroidHaptics.Toggle_On : Haptics.AndroidHaptics.Toggle_Off).catch(() => undefined);
+    setOnlyLeft(on);
   };
   /** A row's sheet: its syllabus on SIX, then (a required course) the corrections. */
   const choicesOf = (course: MapCourse, required: boolean): SheetChoice[] => {
@@ -87,7 +106,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
         testID: "action.syllabus",
       });
     if (!required) return items;
-    // SIX's record leaves it out: the Student can say it's theirs to take after all, as the note above the list says.
+    // SIX's record leaves it out: the Student can say it's theirs to take after all, as the notes at the end say.
     if (course.status === "unlisted")
       items.push({
         label: t("curriculum.fix.mine"),
@@ -129,80 +148,93 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
       });
     return items;
   };
-  const rowOf = (course: MapCourse, required: boolean) => {
+  const rowOf = (course: MapCourse, required: boolean, first: boolean) => {
     const actionable = required || course.courseId !== null;
     return (
       <CourseRow
         key={course.code}
         course={course}
+        first={first}
         // The rows most likely to need a correction say they have a menu.
         menuHint={required && (course.status === "unlisted" || course.fix !== null)}
         onPress={actionable ? () => setActing({ course, required }) : undefined}
       />
     );
   };
-  return (
-    <View style={{ gap: space[6] }}>
-      <SixPageNote datasets={["six.curriculum", "six.progress"]} />
-      <UnreadNote record={record} />
-      <Totals
-        whatIf={hasWhatIfs(state.plan, record)}
-        name={record.curriculum.name}
-        year={record.curriculum.year}
-        startedOn={map.startedOn}
-        unlisted={map.semesters.flatMap((s) => s.required).filter((c) => c.status === "unlisted").length}
-        sks={sks}
-      />
-      <View style={{ gap: space[3] }}>
-        <LeftBar sks={sks} onlyLeft={onlyLeft} onToggle={setOnlyLeft} />
-        {semesters.map((semester) => (
-          <Card key={semester.semester} testID={`card.curriculum.${semester.semester}`}>
+  const semesterCard = (semester: (typeof semesters)[number]) => (
+    <View testID={`card.curriculum.${semester.semester}`}>
+      <Heading
+        trailing={
+          !onlyLeft ? (
+            <Text size="bodyMedium" tabular style={{ color: theme.v4.muted }}>
+              {t("curriculum.sks", { sks: semester.required.reduce((sum, c) => sum + c.sks, 0) })}
+            </Text>
+          ) : undefined
+        }
+      >
+        {t("planner.semester", { n: semester.semester })}
+      </Heading>
+      <Group>
+        {semester.required.map((course, i) => rowOf(course, true, i === 0))}
+        {semester.others.length > 0 && (
+          <>
             <View
               style={{
-                flexDirection: "row",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: space[3],
                 paddingHorizontal: space[4],
                 paddingTop: space[3],
                 paddingBottom: space[1],
+                borderTopWidth: semester.required.length ? 1 : 0,
+                borderTopColor: theme.v4.line,
               }}
             >
-              <Text size="titleMedium" weight="semibold" accessibilityRole="header">
-                {t("planner.semester", { n: semester.semester })}
+              <Text size="labelLarge" style={{ color: theme.v4.muted }}>
+                {t("curriculum.others")}
               </Text>
-              {!onlyLeft && (
-                <Text size="small" weight="medium" tone="muted" tabular>
-                  {t("curriculum.sks", { sks: semester.required.reduce((sum, c) => sum + c.sks, 0) })}
-                </Text>
-              )}
             </View>
-            {semester.required.map((course) => rowOf(course, true))}
-            {semester.others.length > 0 && (
-              <>
-                <Text size="caption" weight="medium" tone="muted" style={{ paddingHorizontal: space[4], paddingTop: space[3], paddingBottom: space[1] }}>
-                  {t("curriculum.others")}
-                </Text>
-                {semester.others.map((course) => rowOf(course, false))}
-              </>
-            )}
-          </Card>
-        ))}
-        {onlyLeft && semesters.length === 0 && (
-          <View style={{ borderRadius: radius.xl, backgroundColor: theme.color.sunken, paddingHorizontal: space[4], paddingVertical: space[6] }}>
-            <Text size="small" tone="muted" style={{ textAlign: "center" }}>
-              {t("curriculum.allDone")}
-            </Text>
-          </View>
+            {semester.others.map((course, i) => rowOf(course, false, i === 0))}
+          </>
         )}
-        {onlyLeft && hidden > 0 && semesters.length > 0 && (
-          <Text size="caption" tone="faint">
-            {t("curriculum.hiddenDone", { count: hidden })}
+      </Group>
+    </View>
+  );
+  return (
+    <View>
+      <SixPageNote datasets={["six.curriculum", "six.progress"]} />
+      <UnreadNote record={record} />
+      <Rise screen={RISE} index={0}>
+        <Totals whatIf={hasWhatIfs(state.plan, record)} name={record.curriculum.name} sks={sks} />
+      </Rise>
+      <Rise screen={RISE} index={1} style={{ marginTop: space[3] }}>
+        <OnlyLeft sks={sks} onlyLeft={onlyLeft} onToggle={toggleLeft} />
+        <Notes startedOn={map.startedOn} year={record.curriculum.year} unlisted={unlisted} />
+      </Rise>
+      {semesters.slice(0, FIRST_SEMESTERS).map((semester, i) => (
+        <Rise key={semester.semester} screen={RISE} index={2 + i}>
+          {semesterCard(semester)}
+        </Rise>
+      ))}
+      {semesters.slice(FIRST_SEMESTERS).map((semester, i) => (
+        <Later key={semester.semester} frame={1 + i}>
+          {semesterCard(semester)}
+        </Later>
+      ))}
+      {onlyLeft && semesters.length === 0 && (
+        <Panel style={{ marginTop: space[6], paddingHorizontal: space[5], paddingVertical: space[6], alignItems: "center", gap: space[3] }}>
+          <Icons.CheckCircle size={28} color={theme.v4.okFg} />
+          <Text size="bodyLarge" style={{ color: theme.v4.fg, textAlign: "center" }}>
+            {t("curriculum.allDone")}
           </Text>
-        )}
-      </View>
-      {map.specializations.length > 0 && <Packages title={t("curriculum.specializations")} packages={map.specializations} id="specializations" />}
-      {map.minors.length > 0 && <Packages title={t("curriculum.minors")} packages={map.minors} id="minors" />}
+        </Panel>
+      )}
+      {onlyLeft && hidden > 0 && semesters.length > 0 && (
+        <Text size="bodyMedium" style={{ color: theme.v4.muted, marginTop: space[3], marginLeft: space[1] }}>
+          {t("curriculum.hiddenDone", { count: hidden })}
+        </Text>
+      )}
+      <Later frame={Math.max(1, semesters.length - FIRST_SEMESTERS + 1)}>
+        {map.specializations.length > 0 && <Packages title={t("curriculum.specializations")} packages={map.specializations} id="specializations" />}
+        {map.minors.length > 0 && <Packages title={t("curriculum.minors")} packages={map.minors} id="minors" />}
+      </Later>
       <ActionSheet
         open={acting !== null}
         onClose={() => setActing(null)}
@@ -226,67 +258,54 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   );
 }
 
-/** The curriculum's three numbers, each with its label: the total, required left, electives. */
-function Totals({
-  whatIf,
-  name,
-  year,
-  startedOn,
-  unlisted,
-  sks,
-}: {
-  /** This semester holds what-ifs: every count here includes them. */
-  whatIf: boolean;
-  name: string;
-  year: number;
-  startedOn: number | null;
-  unlisted: number;
-  sks: SksModel;
-}) {
+/** The leading card: SKS passed of the curriculum's total, big, then the required courses left and the electives. */
+function Totals({ whatIf, name, sks }: { /** This semester holds what-ifs: every count here includes them. */ whatIf: boolean; name: string; sks: SksModel }) {
   const t = useT();
-  const theme = useTheme();
-  const figure = (label: string, value: ReactNode, hint?: ReactNode) => (
-    <View>
-      <Text size="caption" weight="medium" tone="muted">
+  const v = useTheme().v4;
+  const e = sks.electives;
+  const of = t("mobile.curriculum.ofSks", { need: sks.need });
+  const stat = (label: string, value: ReactNode, hint?: string) => (
+    <View style={{ gap: 2 }}>
+      <Text size="labelLarge" style={{ color: v.muted }}>
         {label}
       </Text>
-      <Text size="title" weight="semibold" tabular style={{ marginTop: 2 }}>
+      <Text size="bodyLarge" weight="semibold" tabular style={{ color: v.fg }}>
         {value}
       </Text>
-      {/* Fact by fact, so a narrow column wraps between "12 semester ini" and "6 direncanakan", never inside one. */}
-      {hint ? <Meta size="caption">{hint}</Meta> : null}
+      {hint ? (
+        <Text size="bodyMedium" tabular style={{ color: v.muted }}>
+          {hint}
+        </Text>
+      ) : null}
     </View>
   );
-  const e = sks.electives;
   return (
-    <Card style={{ paddingHorizontal: space[4], paddingVertical: space[4] }} testID="card.curriculumTotals">
-      <Text size="small" weight="medium" tone="muted">
+    <Panel testID="card.curriculumTotals" style={{ padding: space[5], gap: space[3] }}>
+      <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
         {name}
       </Text>
-      {(startedOn !== null || unlisted > 0) && (
-        <Text size="small" tone="muted" style={{ marginTop: 2 }}>
-          {[startedOn !== null && t("curriculum.startedOn", { from: startedOn, to: year }), unlisted > 0 && t("curriculum.unlistedNote", { count: unlisted })]
-            .filter(Boolean)
-            .join(" ")}
-        </Text>
-      )}
+      <View accessible accessibilityLabel={`${t("grades.sksPassed")} ${sks.passed} ${of}`}>
+        <FigureLabel>{t("grades.sksPassed")}</FigureLabel>
+        <Figure id="curriculum.sksPassed" value={sks.passed} unit={of} />
+      </View>
+      <Meter
+        value={sks.need ? sks.passed / sks.need : 0}
+        then={sks.need ? sks.inProgress / sks.need : 0}
+        label={`${t("grades.sksPassed")} ${sks.passed} ${of}`}
+      />
       {whatIf && (
-        <View style={{ marginTop: 2, flexDirection: "row", alignItems: "center", gap: 4 }}>
-          <Icons.Info size={12} color={theme.color.infoFg} weight="bold" />
-          <Text size="caption" weight="medium" tone="info">
+        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[1.5] }}>
+          <View style={{ paddingTop: 3 }}>
+            <Icons.Info size={14} color={v.brandInk} weight="bold" />
+          </View>
+          <Text size="bodyMedium" style={{ color: v.brandInk, flex: 1 }}>
             {t("curriculum.withWhatIfs")}
           </Text>
         </View>
       )}
-      <View style={{ marginTop: space[3], gap: space[3] }}>
-        {figure(
-          t("curriculum.total"),
-          t("curriculum.sks", { sks: sks.need }),
-          sks.requiredNeed !== null && sks.electiveNeed !== null
-            ? t("curriculum.totalSplit", { required: sks.requiredNeed, electives: sks.electiveNeed })
-            : undefined,
-        )}
-        {figure(
+      <View style={{ height: 1, backgroundColor: v.line, marginVertical: space[1] }} />
+      <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[8], rowGap: space[3] }}>
+        {stat(
           t("curriculum.requiredLeft"),
           sks.requiredLeft.count
             ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks })
@@ -294,12 +313,12 @@ function Totals({
           sks.requiredLeft.count > 0 && sks.requiredUnplanned.count === 0 ? t("curriculum.requiredLeftHint") : undefined,
         )}
         {sks.electiveNeed !== null &&
-          figure(
+          stat(
             t("curriculum.electives"),
             <>
               {t("curriculum.electivesValue", { have: Math.min(e.have, sks.electiveNeed), need: sks.electiveNeed })}
               {e.extra > 0 ? (
-                <Text size="small" weight="semibold" tone="success">
+                <Text size="bodyMedium" weight="semibold" style={{ color: v.okFg }}>
                   {`  +${e.extra}`}
                 </Text>
               ) : null}
@@ -307,213 +326,113 @@ function Totals({
             t("curriculum.electivesDetail", { passed: e.passed, now: e.inProgress, planned: e.planned }),
           )}
       </View>
-    </Card>
+    </Panel>
   );
 }
 
-/** "Sisa saja" and what's left. */
-function LeftBar({ sks, onlyLeft, onToggle }: { sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void }) {
+/** "Sisa saja", with what's left on its line. */
+function OnlyLeft({ sks, onlyLeft, onToggle }: { sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void }) {
   const t = useT();
-  const parts = [
+  const left = factsLabel(
     sks.requiredLeft.count ? t("curriculum.left.required", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks }) : t("curriculum.left.requiredNone"),
     sks.electiveNeed === null ? null : sks.electives.short ? t("curriculum.left.electives", { sks: sks.electives.short }) : t("curriculum.left.electivesNone"),
-  ].filter((part): part is string => part !== null);
+  );
   return (
-    <View style={{ gap: space[2] }}>
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }} accessibilityLiveRegion="polite">
-        <Text size="small" weight="semibold">{`${t("curriculum.left")}:`}</Text>
-        <View style={{ flex: 1 }}>
-          <Meta>{parts}</Meta>
-        </View>
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3] }}>
-        <Text size="small" weight="medium">
-          {t("curriculum.onlyLeft")}
-        </Text>
-        <Switch value={onlyLeft} onChange={onToggle} label={t("curriculum.onlyLeft")} testID="action.onlyLeft" />
-      </View>
-    </View>
+    <Group>
+      <GroupRow
+        first
+        title={t("curriculum.onlyLeft")}
+        meta={`${t("curriculum.left")}: ${left}`}
+        trailing={<Switch value={onlyLeft} onChange={onToggle} label={t("curriculum.onlyLeft")} testID="action.onlyLeft" />}
+      />
+    </Group>
   );
 }
 
-/** Where a course stands, in plain words: quiet when done or not yet, colored only where it needs the Student. */
-function Status({ status, grade }: { status: SlotStatus; grade: string | null }) {
+/** A course's one status at the end of its row: the grade once passed, a pill while it's under way or needs the Student. */
+function Status({ course }: { course: MapCourse }) {
   const t = useT();
-  const theme = useTheme();
-  const label = t(`curriculum.status.${status}`);
-  // The word a check stands for is in its row's accessible name (CourseRow).
-  const check = () => <Icons.Check size={14} color={theme.color.successFg} weight="bold" />;
-  const line = (children: ReactNode) => <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>{children}</View>;
-  switch (status) {
+  const v = useTheme().v4;
+  if (course.whatIf === "added") return <Pill tone="brand">{t("planner.whatIfTag")}</Pill>;
+  if (course.whatIf === "left-out") return <Pill tone="plain">{t("planner.droppedTag")}</Pill>;
+  const label = t(`curriculum.status.${course.status}`);
+  switch (course.status) {
     case "passed":
-      // Most rows: the check and the grade say it, so the rows that need the Student stand out. The word stays for a screen reader.
-      if (grade)
-        return line(
-          <>
-            {check()}
-            <Text size="small" weight="semibold" tabular>
-              {grade}
+      // Most rows: the check and the grade say it, quietly, so the rows that need the Student stand out.
+      if (course.grade)
+        return (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[1], minWidth: 40, justifyContent: "flex-end" }}>
+            <Icons.Check size={14} color={v.okFg} weight="bold" />
+            <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.okFg }}>
+              {course.grade}
             </Text>
-          </>,
+          </View>
         );
-      return line(
-        <>
-          {check()}
-          <Text size="small" tone="muted">
-            {label}
-          </Text>
-        </>,
-      );
+      return <Pill tone="ok">{label}</Pill>;
     case "exempt":
     case "done":
     case "program-adds":
-      return line(
-        <>
-          {check()}
-          <Text size="small" tone="muted">
-            {label}
-          </Text>
-        </>,
-      );
+      return <Pill tone="ok">{label}</Pill>;
     case "failed":
-      return (
-        <View
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: 4,
-            height: 20,
-            paddingHorizontal: 8,
-            borderRadius: radius.full,
-            backgroundColor: theme.color.dangerBg,
-          }}
-        >
-          <Icons.AlertTriangle size={12} color={theme.color.dangerFg} weight="bold" />
-          <Text size="micro" weight="semibold" tone="danger">
-            {label}
-          </Text>
-        </View>
-      );
+      return <Pill tone="red">{label}</Pill>;
     case "in-progress":
-      return line(
-        <>
-          <Icons.Clock size={14} color={theme.color.infoFg} />
-          <Text size="small" weight="medium" tone="info">
-            {label}
-          </Text>
-        </>,
-      );
+      return <Pill tone="brand">{label}</Pill>;
     case "planned":
-      return line(
-        <>
-          <Icons.Calendar size={14} color={theme.color.muted} />
-          <Text size="small" tone="muted">
-            {label}
-          </Text>
-        </>,
-      );
-    case "unlisted":
-      return line(
-        <>
-          <Icons.Info size={14} color={theme.color.muted} />
-          <Text size="small" tone="muted">
-            {label}
-          </Text>
-        </>,
-      );
-    case "not-mine":
-      return line(
-        <>
-          <Icons.Minus size={14} color={theme.color.faint} />
-          <Text size="small" tone="faint">
-            {label}
-          </Text>
-        </>,
-      );
+      return <Pill tone="plain">{label}</Pill>;
+    case "left":
+      return <Pill tone="amber">{label}</Pill>;
     default:
-      return (
-        <Text size="small" tone="faint">
-          {label}
-        </Text>
-      );
+      // Unlisted and not in the curriculum: said on the meta line, the row stays quiet.
+      return null;
   }
 }
 
-function CourseRow({ course, menuHint, onPress }: { course: MapCourse; menuHint: boolean; onPress?: () => void }) {
+function CourseRow({ course, first, menuHint, onPress }: { course: MapCourse; first: boolean; menuHint: boolean; onPress?: () => void }) {
   const t = useT();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const crossed = course.status === "not-mine";
+  const sks = `${course.sks ?? "-"} SKS`;
   const statusWord =
     course.whatIf === "added"
       ? t("planner.whatIfTag")
       : course.whatIf === "left-out"
         ? t("planner.droppedTag")
         : `${t(`curriculum.status.${course.status}`)}${course.grade ? ` ${course.grade}` : ""}`;
-  const body = (
-    <>
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text size="bodyLarge" tone={crossed ? "muted" : "fg"} numberOfLines={3}>
+  // The code, then how it's counted (under an older code) or its SKS, then what isn't a status but is still true.
+  const meta = factsLabel(
+    course.code,
+    course.via ? t("curriculum.via", { code: course.via.code, name: course.via.name }) : sks,
+    !course.whatIf && (course.status === "unlisted" || crossed) && t(`curriculum.status.${course.status}`),
+    course.fix && t("curriculum.fixed"),
+    course.sixLeft && t("curriculum.sixStillLeft"),
+  );
+  // Off the Student's list: the meta line says so, and a row they may want to correct shows it has a menu.
+  const quiet = !course.whatIf && (course.status === "unlisted" || crossed);
+  const trailing = !quiet ? <Status course={course} /> : menuHint ? <Icons.MoreHorizontal size={20} color={v.muted} /> : null;
+  return (
+    <GroupRow
+      first={first}
+      testID={`row.course.${course.code}`}
+      title={
+        <Text size="bodyLarge" weight="medium" numberOfLines={3} style={{ color: crossed ? v.muted : v.fg, lineHeight: 21 }}>
           {course.name}
         </Text>
-        {(course.via || course.fix) && (
-          <Meta size="caption">
-            {course.via ? t("curriculum.via", { code: course.via.code, name: course.via.name }) : ""}
-            {course.fix ? t("curriculum.fixed") : ""}
-            {course.sixLeft ? t("curriculum.sixStillLeft") : ""}
-          </Meta>
-        )}
-        {/* The code, the status and SKS on a line under the name: the name gets the row's width (no code column). */}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2.5], rowGap: 2 }}>
-          <Text size="bodyMedium" weight="medium" tone={crossed ? "muted" : "fg"} tabular>
-            {course.code}
-          </Text>
-          {course.whatIf === "added" ? (
-            // Tried this semester, not on SIX's KRS: never "This semester" as if it were.
-            <WhatIfTag />
-          ) : course.whatIf === "left-out" ? (
-            <Text size="small" tone="info">
-              {t("planner.droppedTag")}
-            </Text>
-          ) : (
-            <Status status={course.status} grade={course.grade} />
-          )}
-          <Text size="small" tone="muted" tabular>
-            {`${course.sks ?? "-"} SKS`}
-          </Text>
-        </View>
-        {/* The desktop's tooltip on "Tidak ada di catatan SIX-mu": why it isn't counted as left. */}
-        {course.status === "unlisted" && !course.whatIf ? (
-          <Text size="caption" tone="muted">
-            {t("curriculum.unlistedWhy")}
-          </Text>
-        ) : null}
-      </View>
-      {menuHint && <Icons.MoreHorizontal size={20} color={theme.color.onSurfaceVariant} />}
-    </>
-  );
-  const style = { flexDirection: "row", alignItems: "flex-start", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[2.5] } as const;
-  // A screen reader hears the row whole, with the word the check stands for.
-  const label = factsLabel(course.code, course.name, statusWord, `${course.sks ?? "-"} SKS`);
-  return (
-    <View testID={`row.course.${course.code}`}>
-      {onPress ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={label}
-          accessibilityHint={course.courseId ? t("curriculum.syllabusOf", { code: course.code }) : undefined}
-          onPress={onPress}
-          onLongPress={onPress}
-          android_ripple={{ color: theme.color.selected }}
-          style={style}
-        >
-          {body}
-        </Pressable>
-      ) : (
-        <View accessible accessibilityLabel={label} style={style}>
-          {body}
-        </View>
+      }
+      meta={meta}
+      trailing={trailing}
+      onPress={onPress}
+      onLongPress={onPress}
+      // A screen reader hears the row whole, with the word the check stands for.
+      accessible
+      accessibilityLabel={factsLabel(
+        course.code,
+        course.name,
+        statusWord,
+        sks,
+        course.via && t("curriculum.via", { code: course.via.code, name: course.via.name }),
       )}
-    </View>
+      accessibilityHint={onPress && course.courseId ? t("curriculum.syllabusOf", { code: course.code }) : undefined}
+    />
   );
 }
 
@@ -576,41 +495,37 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
   );
 }
 
+/** Specializations or minors: each a card, its SKS so far over a thin bar, then its courses. */
 function Packages({ id, title, packages }: { id: string; title: string; packages: PackageProgress[] }) {
   const t = useT();
-  const theme = useTheme();
+  const v = useTheme().v4;
   return (
-    <Section first title={title} testID={`section.${id}`}>
+    <View testID={`section.${id}`}>
+      <Heading>{title}</Heading>
       <View style={{ gap: space[3] }}>
-        {packages.map((p) => (
-          <Card key={`${p.program ?? ""}${p.name}`} style={{ paddingHorizontal: space[4], paddingVertical: space[3] }}>
-            <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space[3] }}>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text size="small" weight="semibold">
-                  {p.name}
-                </Text>
-                {(p.program || p.registered) && (
-                  <Meta size="caption">
-                    {p.program ?? ""}
-                    {p.registered ? (
-                      <Text size="caption" weight={p.notContinuing ? "regular" : "medium"} tone={p.notContinuing ? "muted" : "info"}>
-                        {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}
-                      </Text>
-                    ) : null}
-                  </Meta>
-                )}
-              </View>
-              <Text size="small" weight="semibold" tabular>
-                {t("curriculum.packageSks", { have: p.have, need: p.sks })}
-              </Text>
-            </View>
-            <Bar
-              style={{ marginTop: space[2] }}
-              value={p.sks ? p.have / p.sks : 0}
-              color={theme.color.meterSuccess}
-              label={`${p.name}: ${t("curriculum.packageSks", { have: p.have, need: p.sks })}`}
-            />
-            <View style={{ marginTop: space[2], gap: space[1] }}>
+        {packages.map((p) => {
+          const progress = t("curriculum.packageSks", { have: p.have, need: p.sks });
+          return (
+            <Group key={`${p.program ?? ""}${p.name}`}>
+              <GroupRow
+                first
+                title={
+                  <Text size="bodyLarge" face="display" weight="bold" style={{ color: v.fg }}>
+                    {p.name}
+                  </Text>
+                }
+                meta={factsLabel(p.program, p.registered && t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered"))}
+                metaTone={p.registered && !p.notContinuing ? "ok" : "muted"}
+                trailing={
+                  <Text size="bodyMedium" weight="semibold" tabular style={{ color: v.fg }}>
+                    {progress}
+                  </Text>
+                }
+              >
+                <View style={{ marginTop: space[2] }}>
+                  <Meter value={p.sks ? p.have / p.sks : 0} color={v.okFg} label={`${p.name}: ${progress}`} />
+                </View>
+              </GroupRow>
               {p.courses.map((c) => {
                 const left = isLeft(c.status);
                 const word = c.whatIf
@@ -618,58 +533,58 @@ function Packages({ id, title, packages }: { id: string; title: string; packages
                   : left && c.status !== "in-progress" && c.status !== "planned" && c.status !== "failed"
                     ? t("curriculum.status.left")
                     : t(`curriculum.status.${c.status}`);
+                const notTaken = left && c.status !== "in-progress" && c.status !== "planned";
                 return (
-                  <View
+                  <GroupRow
                     key={c.code}
+                    testID={`row.course.${c.code}`}
                     accessible
                     accessibilityLabel={factsLabel(c.code, c.name, word)}
-                    style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}
-                    testID={`row.course.${c.code}`}
-                  >
-                    <Text
-                      size="caption"
-                      weight="semibold"
-                      tone={left && c.status !== "in-progress" && c.status !== "planned" ? "muted" : "fg"}
-                      tabular
-                      style={{ width: 56 }}
-                    >
-                      {c.code}
-                    </Text>
-                    <Text size="caption" tone={left ? "muted" : "fg"} style={{ flex: 1, minWidth: 0 }}>
-                      {c.name}
-                    </Text>
-                    <PackageMark status={c.status} whatIf={c.whatIf} />
-                  </View>
+                    title={
+                      <Text size="bodyLarge" style={{ color: notTaken ? v.muted : v.fg, lineHeight: 21 }}>
+                        {c.name}
+                      </Text>
+                    }
+                    meta={c.code}
+                    trailing={<PackageMark status={c.status} whatIf={c.whatIf} />}
+                  />
                 );
               })}
-            </View>
-          </Card>
-        ))}
+            </Group>
+          );
+        })}
       </View>
-    </Section>
+    </View>
   );
 }
 
-/** A package course: a check when done, a word when under way, nothing (just grey) when not taken. */
+/** A package course: a check when done, a pill when under way, nothing (its name greyed) when not taken. */
 function PackageMark({ status, whatIf }: { status: SlotStatus; whatIf: MapCourse["whatIf"] }) {
   const t = useT();
-  const theme = useTheme();
-  if (whatIf)
-    return (
-      <Text size="caption" weight="medium" tone="info">
-        {t(whatIf === "added" ? "planner.whatIfTag" : "planner.droppedTag")}
-      </Text>
-    );
-  if (status === "passed" || status === "exempt") return <Icons.Check size={14} color={theme.color.successFg} weight="bold" />;
-  if (status === "in-progress" || status === "planned" || status === "failed")
-    return (
-      <Text
-        size="caption"
-        weight={status === "planned" ? "regular" : "medium"}
-        tone={status === "in-progress" ? "info" : status === "failed" ? "danger" : "muted"}
-      >
-        {t(`curriculum.status.${status}`)}
-      </Text>
-    );
+  const v = useTheme().v4;
+  if (whatIf) return <Pill tone={whatIf === "added" ? "brand" : "plain"}>{t(whatIf === "added" ? "planner.whatIfTag" : "planner.droppedTag")}</Pill>;
+  if (status === "passed" || status === "exempt") return <Icons.Check size={18} color={v.okFg} weight="bold" />;
+  if (status === "in-progress") return <Pill tone="brand">{t("curriculum.status.in-progress")}</Pill>;
+  if (status === "planned") return <Pill tone="plain">{t("curriculum.status.planned")}</Pill>;
+  if (status === "failed") return <Pill tone="red">{t("curriculum.status.failed")}</Pill>;
   return null;
+}
+
+/** What's worth knowing about the curriculum itself (an older start, courses SIX leaves off): quiet lines under "Sisa saja". */
+function Notes({ startedOn, year, unlisted }: { startedOn: number | null; year: number; unlisted: number }) {
+  const t = useT();
+  const v = useTheme().v4;
+  if (startedOn === null && unlisted === 0) return null;
+  return (
+    <View testID="section.curriculumNotes" style={{ flexDirection: "row", gap: space[2], marginTop: space[3], marginHorizontal: space[1] }}>
+      <View style={{ paddingTop: 2 }}>
+        <Icons.Info size={16} color={v.muted} />
+      </View>
+      <Text size="bodyMedium" style={{ color: v.muted, flex: 1 }}>
+        {[startedOn !== null && t("curriculum.startedOn", { from: startedOn, to: year }), unlisted > 0 && t("curriculum.unlistedNote", { count: unlisted })]
+          .filter(Boolean)
+          .join(" ")}
+      </Text>
+    </View>
+  );
 }
