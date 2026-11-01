@@ -236,15 +236,15 @@ Causes marked "suspected" are read from the code and get proved on a device befo
 
 | Measure | Target | Before (mid / weak) | After (mid / weak) |
 | --- | --- | --- | --- |
-| Tap responds | < 100 ms | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 15–47 ms on every step |
+| Tap responds | < 100 ms | 19–58 / 22–52 ms | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 15–47 ms on every step |
 | Tab switch | < 300 ms | ~505–518 (Tugas first 911) / ~502–524 (Tugas first 1100) ms | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): touch to drawn: first visit 104–160 ms, again 89–149 ms (`[perf] tab` 21–69 ms) |
 | Open a screen with its data | < 500 ms | 564–643, Rencana 808, Nilai 900 / 583–773, Rencana 1076, Nilai 1221 ms | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): class sheet 189, Notifikasi 127, Cari 160, Task 276, exam 167, course 211, module 104 ms; **over: Nilai 602, Rencana 549** (first screenful at ~0.2 s, then `Later`'s parts in 100–190 ms JS chunks during the push animation) |
 | Scrolling long lists | full refresh on mid; < 5% janky on weak | 0.75% janky at 60 fps (120 Hz screen) / 1.20% | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): Tugas, Jadwal, Modul, Nilai 0.00–0.08% janky at **120 fps** (p50 5 ms) on a fresh emulator (the emulator itself slows within a session: `qa/reference.sh` checks) |
 | Cold start, fresh install → first data | < 2 s on mid | 6.6 / 7.8 s | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): median 1.79 s (1.60–2.30; 2 of 5 over 2 s) |
-| Cold start with saved data | | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 1.59 s (1.03–1.74), slower than round 1: a 0.77–0.97 s JS block right after Beranda's first frame (likely the four preloaded tabs rendering at once) |
+| Cold start with saved data | | 1.09 / 1.57 s | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 1.59 s (1.03–1.74), slower than round 1: a 0.77–0.97 s JS block right after Beranda's first frame (likely the four preloaded tabs rendering at once) |
 | Update from SIX/Edunex | saved data at once, background, only what changed; total time down | a start re-read everything: 83 Edunex + 13 SIX requests (SIX 2 s apart) | due-only start: the sign-in checks only (39b9a51) |
 | JS thread blocked | never > 50 ms in use | 253 / 558 ms after a tap; 639 / 1207 ms in a tabs tour | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 0.77–0.97 s after Beranda's first frame on a saved start; 100–233 ms opening Task, Nilai, Rencana, a course; tabs tour worst 208 ms (Kuliah); idle minute on Beranda one 91 ms block. At rest Beranda and Tugas draw 120 fps forever (the wave), Nilai/course/module/Notifikasi/class sheet ~60 fps (loops in hidden screens): fix queued |
-| Flashlight score | | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 68 (FPS 59.7, CPU 114%, RenderThread 75.7%) on an emulator that slowed during the run: to retake |
+| Flashlight score | | 99 / 99 | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 68 (FPS 59.7, CPU 114%, RenderThread 75.7%) on an emulator that slowed during the run: to retake |
 
 Before = round 1's code (9395cea) on the lab's emulators, release builds (`mobile/qa/BASELINE.md`). Shell numbers on
 981d27f (`mobile/qa/shell-notes.md`).
