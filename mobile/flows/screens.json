@@ -2677,6 +2677,57 @@
           }
         }
       ],
+      "byEntry": {
+        "^course\\.[a-z0-9]+\\.course\\.\\d\\d-\\d\\d": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.course"
+                }
+              },
+              "commands": ["back"]
+            }
+          }
+        ],
+        "^course\\.[a-z0-9]+\\.course\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "sheet.course"
+                }
+              },
+              "commands": [
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "action.courseAbout"
+                    },
+                    "direction": "UP",
+                    "optional": true
+                  }
+                },
+                {
+                  "tapOn": {
+                    "id": "action.courseAbout",
+                    "optional": true
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "sheet.course"
+                    },
+                    "timeout": 5000,
+                    "optional": true
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
       "byState": {
         "^[^/]+/modules/": [
           {
