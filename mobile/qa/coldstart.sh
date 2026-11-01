@@ -11,7 +11,7 @@
 #        "[startup] shown".
 # Each also gives START to `Running "main"` (JS starts) and Android's own "Displayed", and, in builds that
 # have it, `[perf] first-data`. Prints a table with every run and the median; keeps each run's logcat
-# and the [perf] summary in C:\qa\runs\<time>-coldstart-<avd>\.
+# and the [perf] summary in F:\qa\runs\<time>-coldstart-<avd>\.
 set -euo pipefail
 here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 . "$here/env.sh"

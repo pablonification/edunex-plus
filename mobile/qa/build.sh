@@ -2,44 +2,55 @@
 # Builds the demo release APK of a git ref the way CI's `apk` job does (.github/workflows/mobile.yml,
 # matrix entry edunex-plus-demo-release), for x86_64 only (the emulators here):
 #
-#   mobile/qa/build.sh <ref> [--slot NAME] [--clean]
+#   mobile/qa/build.sh <ref> --slot gradle-1|gradle-2 [--keep] [--clean]
 #
-# e.g. `mobile/qa/build.sh origin/mobile` or `mobile/qa/build.sh 9395cea`. The last line printed is
-# the APK: C:\qa\apk\<sha>\edunex-plus-demo-release.apk, with build.txt (ref, sha, seconds) and
-# build.log beside it.
+# e.g. `mobile/qa/build.sh origin/mobile --slot gradle-1`. The last line printed is the APK:
+# F:\qa\apk\<sha>\edunex-plus-demo-release.apk, with build.txt (ref, sha, seconds) and build.log beside it.
 #
-# It builds in a detached worktree of this repository at C:\b\<slot> (default slot: this checkout's
-# folder name), so
+# Two slots, so at most two Gradle builds run on this machine at once (mobile/qa/v4-rollout.md); a busy slot
+# refuses, so try the other, or build on GitHub Actions. Each slot has one Gradle home, shared by whoever builds
+# in it (F:\b\<slot>.gradle). Nothing goes on C: ($QA_BUILD_ROOT, env.sh), and the build stops when C: has under
+# 20 GB free. The build copy is deleted once the APK is out (--keep leaves it for a quick rebuild).
+#
+# It builds in a detached worktree of this repository at F:\b\<slot>, so
 # - the path stays short (React Native's CMake builds break past Windows' 260 characters);
 # - files are checked out with LF endings as on CI (this machine's git has core.autocrlf=true, which
 #   would bundle CRLF recordings into the demo);
-# - helpers in other worktrees build in their own slots side by side, sharing ~/.gradle's caches.
-# Repeat builds are fast: node_modules stays while package-lock.json is unchanged, and Gradle's daemon
-# and build cache stay warm. --clean starts the slot from nothing.
+# - two builds can run side by side, each in its slot with its own Gradle home.
+# With --keep, a repeat build is fast: node_modules stays while package-lock.json is unchanged. Gradle's caches
+# stay warm in the slot's Gradle home either way. --clean starts the slot from nothing.
 set -euo pipefail
 here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 . "$here/env.sh"
 
-ref= slot= clean=0
+ref= slot= clean=0 keep=0
 while [ $# -gt 0 ]; do
   case $1 in
     --slot) slot=$2; shift 2 ;;
     --clean) clean=1; shift ;;
+    --keep) keep=1; shift ;;
     -*) echo "Unknown option $1" >&2; exit 2 ;;
     *) ref=$1; shift ;;
   esac
 done
-[ -n "$ref" ] || { sed -n '2,9p' "$0"; exit 2; }
+[ -n "$ref" ] || { sed -n '2,13p' "$0"; exit 2; }
+case $slot in
+  gradle-1 | gradle-2) ;;
+  *) echo "Pass --slot gradle-1 or --slot gradle-2 (at most two builds on this machine)." >&2; exit 2 ;;
+esac
+qa_check_disk
 top=$(git -C "$here" rev-parse --show-toplevel)
-slot=${slot:-$(basename "$top" | tr -cd 'A-Za-z0-9._-' | cut -c1-16)}
-src=C:/b/$slot
+src=$QA_BUILD_ROOT/$slot
 git=(git -c core.autocrlf=false -c core.longpaths=true)
+export GRADLE_USER_HOME
+GRADLE_USER_HOME=$(cygpath -w "$QA_BUILD_ROOT/$slot.gradle")
 
 # One build per slot at a time.
-mkdir -p C:/b
-lock=C:/b/$slot.lock
-mkdir "$lock" 2> /dev/null || { echo "A build is already running in slot $slot ($lock). Wait for it, or pass --slot." >&2; exit 1; }
-trap 'rmdir "$lock"' EXIT
+mkdir -p "$QA_BUILD_ROOT"
+lock=$QA_BUILD_ROOT/$slot.lock
+mkdir "$lock" 2> /dev/null || { echo "Slot $slot is busy ($lock, owner: $(cat "$lock/owner" 2> /dev/null)). Try the other slot, or build on GitHub Actions." >&2; exit 1; }
+echo "$(basename "$top") $$ $(date -Iseconds)" > "$lock/owner"
+trap 'rm -rf "$lock"' EXIT
 
 git -C "$top" fetch origin --quiet
 sha=$(git -C "$top" rev-parse --verify "$ref^{commit}")
@@ -119,4 +130,12 @@ cp app/build/outputs/apk/release/app-release.apk "$out/edunex-plus-demo-release.
 took=$(($(date +%s) - start))
 printf 'ref=%s\nsha=%s\nslot=%s\nseconds=%s\nfinished=%s\n' "$ref" "$sha" "$slot" "$took" "$(date -Iseconds)" > "$out/build.txt"
 step "Done in $((took / 60)) min $((took % 60)) s"
+if [ $keep = 0 ]; then
+  step "Removing the build copy (the APK is out; --keep leaves it)"
+  # Its Gradle daemon goes too (orphaned daemons held locks and disk on 2026-11-01).
+  ./gradlew.bat --stop > /dev/null 2>&1 || true
+  cd "$top"
+  "${git[@]}" -C "$top" worktree remove --force "$src" 2> /dev/null || rm -rf "$src"
+  "${git[@]}" -C "$top" worktree prune
+fi
 cygpath -w "$out/edunex-plus-demo-release.apk"
