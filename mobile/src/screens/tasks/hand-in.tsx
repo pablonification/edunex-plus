@@ -3,12 +3,12 @@
 // files, attaching from the phone) and the bar stuck to the bottom (Simpan draf, Kumpulkan, and why
 // Kumpulkan can't be pressed), within a thumb's reach. The answer box is a plain multi-line text
 // box: an answer Edunex holds with formatting stays as it is, changed on Edunex.
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { ActionError, errorKey } from "../../../../src/app/bridge";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { type Format, type Translate, useClock, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDone } from "../../../../src/app/snoozes";
 import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../../../src/core/actions/tasks";
@@ -37,7 +37,7 @@ import { Panel } from "../../ui/card-list";
 import { Button, IconButton } from "../../ui/controls";
 import { ProgressBar, StatusGlyph } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { useBottomInset } from "../../ui/insets";
+import { reportBarTop, useBottomInset } from "../../ui/insets";
 import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet } from "../../ui/sheet";
 import { Text, type TextTone, useFieldColors } from "../../ui/text";
@@ -146,6 +146,7 @@ export function useHandIn(task: Task, status: TaskStatus) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const clock = useClock();
   const bridge = useBridge();
   const edunex = useStatus("edunex");
   const presence = useDataset("edunex.presence");
@@ -232,7 +233,7 @@ export function useHandIn(task: Task, status: TaskStatus) {
         setAttached([]);
         setRemoved([]);
         setJustDone("draft");
-        toast(t("handIn.draftSaved", { when: f.dayTimeWord(Date.now()) }), "success");
+        toast(t("handIn.draftSaved", { when: f.dayTimeWord(clock.now()) }), "success");
         return;
       case "submitted": {
         setAttached([]);
@@ -697,10 +698,18 @@ export function HandInBar({ h }: { h: HandInState }) {
   const why = useWhy(h);
   // Edge to edge: the bar's tone runs under the phone's navigation bar, its buttons stay clear of it.
   const bottom = useBottomInset();
+  // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
+  const bar = useRef<ComponentRef<typeof View>>(null);
+  useEffect(() => {
+    if (!h.editable) reportBarTop(0);
+    return () => reportBarTop(0);
+  }, [h.editable]);
   if (!h.editable) return null;
   const submitLabel = h.status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
   return (
     <View
+      ref={bar}
+      onLayout={() => bar.current?.measureInWindow((_x, y) => reportBarTop(y))}
       testID="bar.handIn"
       style={{
         backgroundColor: theme.v4.card,

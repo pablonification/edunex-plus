@@ -40,3 +40,26 @@ export function useTabsBottom(): number {
     () => tabsBottom,
   );
 }
+
+// Where a screen's own bar at its foot begins (the Task's Simpan draf and Kumpulkan), in window coordinates: the
+// snackbar sits just above it, never over its buttons. 0 while no such bar is on screen.
+let barTop = 0;
+const barWatchers = new Set<() => void>();
+
+/** A screen's bottom bar reports its top edge (window coordinates), and 0 when it goes. */
+export function reportBarTop(y: number): void {
+  if (Math.abs(y - barTop) < 1) return;
+  barTop = y;
+  for (const watcher of barWatchers) watcher();
+}
+
+/** The top of the bar at the foot of the screen in front, in window coordinates (0 when there is none). */
+export function useBarTop(): number {
+  return useSyncExternalStore(
+    (watcher) => {
+      barWatchers.add(watcher);
+      return () => void barWatchers.delete(watcher);
+    },
+    () => barTop,
+  );
+}
