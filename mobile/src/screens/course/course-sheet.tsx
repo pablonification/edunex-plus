@@ -111,6 +111,7 @@ function Pips({ health }: { health: AttendanceHealth }) {
   return (
     <View style={{ flexDirection: "row", gap: 4 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {Array.from({ length: total }, (_, i) => (
+        // biome-ignore lint/suspicious/noArrayIndexKey: pips are positions, none has an identity of its own
         <View key={i} style={{ width: 14, height: 8, borderRadius: 4, backgroundColor: i < used ? v.redFg : v.line, opacity: i < used ? 0.8 : 1 }} />
       ))}
     </View>

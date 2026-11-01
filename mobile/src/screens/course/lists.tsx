@@ -3,7 +3,7 @@
 // title in its own card (the rows are Tugas's own, each opening its page). Pengumuman: each announcement on a white
 // card, who and when over its text, an online meeting's link as its one button and every other link opening in the
 // browser.
-import { Fragment, type ReactNode, useState } from "react";
+import { Children, Fragment, type ReactNode, useState } from "react";
 import { Text as RNText, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -31,10 +31,9 @@ function Rows({ children, testID }: { children: ReactNode[]; testID?: string }) 
   const v = useTheme().v4;
   return (
     <CardGroup testID={testID}>
-      {children.map((child, i) => (
-        <View key={i} style={i > 0 ? { borderTopWidth: 1, borderTopColor: v.line } : undefined}>
-          {child}
-        </View>
+      {/* Children.map keys each wrapper by its row's own key. */}
+      {Children.map(children, (child, i) => (
+        <View style={i > 0 ? { borderTopWidth: 1, borderTopColor: v.line } : undefined}>{child}</View>
       ))}
     </CardGroup>
   );
