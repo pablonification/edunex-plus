@@ -90,6 +90,15 @@ motion and onboarding are open. The desktop is a reference for data only.
   failed", not a limit), resumed. Local Gradle builds under five helpers took 24+ minutes and failed (JdkImageTransform
   in a fresh Gradle home), so GitHub Actions is the helpers' default build now (`v4-rollout.md`, 0d0f470); the desktop
   keeps its emulators.
+- **09:30: lead's look at the four roll-out branches on Redroid (CI APKs: Kuliah 5ebe58f, Tugas e919ac7, Akademik
+  fcdb79e, Jadwal cd1ed03).** All read as v4 (tiles, a big-number card where there's a key number, one chip per row,
+  dark holds). Sent back: Tugas's meta lines cut with "…", its first screen ~60 words, the Task's three-line Presensi
+  note and the two-line hint over Kumpulkan, and `qa/words.mjs`'s lint (shadows `unescape`); Jadwal's unexplained red
+  hand icon on blocks. One absence scale for the app (Kuliah's): red "Lewat batas"/"Di bawah target", amber when the
+  budget is used up ("Habis", "Jatah habis"), green "Sisa N×"; the home helper makes it a shared helper. The
+  bottleneck is the two emulator slots: Kuliah, Tugas and Akademik wait on them with code done. Before PR #285 leaves
+  draft: run the CI workflow on `mobile` (a run on a helper branch failed test (root CI lacks `mobile/node_modules`),
+  lint (`words.mjs`) and workflows (actionlint)).
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
