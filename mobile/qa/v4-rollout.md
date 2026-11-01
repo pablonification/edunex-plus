@@ -44,6 +44,12 @@ base and branch.
 - **A build copy goes once its APK is out.** `build.sh` deletes it and stops its Gradle daemon. `--keep` is only for an immediate rebuild.
 - **Clean up after yourself.** Uninstall nothing from the lab. Delete your own runs once their pictures are pushed.
 
+**Since 2026-11-01 10:15, the device step runs on GitHub Actions too, and helpers work on the Mac.** At 09:30 the desktop's file system stalled: `df` and `systeminfo` hang, adb sees no emulator, and every helper froze. The Mac has no Android emulator. So:
+- **Run every device check on GitHub Actions:** `gh workflow run mobile.yml --ref <your-branch> -f apks=demo-release -f e2e=true -f desktop-shots=false`. Its e2e job runs the flows, Check A for every scenario, and the judge's walk in light and dark, each on its own emulator.
+- **Read the results** from the run's artifacts: `e2e-results-<group>` (JUnit, screenshots, logs) and `same-data-score` (Check A). Get them with `gh run download <id> -n <artifact> -D <dir>`.
+- **To show a screen** in your report, take its picture from those artifacts. The lead also looks at your APK on a Redroid.
+- **Speed numbers** wait for a healthy desktop. Don't block on them.
+
 **Builds: GitHub Actions by default** (since 2026-11-01 08:45).
 - With five helpers on the desktop, local builds took over 24 minutes and failed: a JdkImageTransform step in a fresh Gradle home, and "paging file too small".
 - So build with `gh workflow run mobile.yml --ref <your-branch> -f apks=demo-release -f e2e=false -f desktop-shots=false`. To wait for it, run `until [ "$(gh run view <id> --json status -q .status)" = completed ]; do sleep 60; done` as a background command, then `t3_background_wait` on it. Then download the artifact `edunex-plus-demo-release-apk` to `F:\qa\<your piece>\`.

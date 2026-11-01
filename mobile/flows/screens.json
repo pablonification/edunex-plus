@@ -307,6 +307,40 @@
             "runFlow": {
               "when": {
                 "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
                   "id": "sheet.nowClass"
                 }
               },
@@ -348,7 +382,199 @@
             }
           }
         ],
+        "^home\\.now\\.11-00": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.today.class:2153983"
+              },
+              "direction": "DOWN",
+              "timeout": 8000,
+              "visibilityPercentage": 50
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.today.class:2153983"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
+        "^home\\.now\\.15-00": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.needs"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.today.class:2194402"
+              },
+              "direction": "DOWN",
+              "timeout": 8000,
+              "visibilityPercentage": 50
+            }
+          },
+          {
+            "tapOn": {
+              "id": "row.today.class:2194402"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.nowClass"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
         "^home\\.now\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
           {
             "runFlow": {
               "when": {
@@ -399,6 +625,40 @@
             "runFlow": {
               "when": {
                 "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
                   "id": "screen.needs"
                 }
               },
@@ -441,6 +701,40 @@
           }
         ],
         "^home\\.class-session\\.komunikasi-pemasaran": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
           {
             "runFlow": {
               "when": {
@@ -490,6 +784,40 @@
             "runFlow": {
               "when": {
                 "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
                   "id": "screen.needs"
                 }
               },
@@ -531,6 +859,40 @@
           }
         ],
         "^home\\.class-session\\.teknik-penyelesaian-masalah-terstruktur": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
           {
             "runFlow": {
               "when": {
@@ -656,6 +1018,30 @@
           {
             "runFlow": {
               "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
                 "visible": {
                   "id": "sheet.nowClass"
                 }
@@ -699,6 +1085,40 @@
           }
         ],
         "^home\\.change\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
           {
             "runFlow": {
               "when": {
@@ -1210,6 +1630,40 @@
           }
         ],
         "^home\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.class"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.home"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "screen.home"
+                    },
+                    "timeout": 10000
+                  }
+                }
+              ]
+            }
+          },
           {
             "runFlow": {
               "when": {
