@@ -90,7 +90,7 @@ function Card({ card, courses }: { card: NowCard; courses: readonly TermCourse[]
   const action = cardAction(card, now, checkInOpen);
   const done = useDone(card);
   const name = nameOf(courses, code, session?.courseName);
-  const { ink, tint } = tile(code);
+  const { ink } = tile(code);
   const place = session?.room ?? (meeting?.online ? t("mobile.home.online") : null);
   const live = card.state === "live" && slot !== null;
   const window = !session && !meeting && card.presence ? card.presence.session : null;
@@ -129,7 +129,7 @@ function Card({ card, courses }: { card: NowCard; courses: readonly TermCourse[]
               <WavyProgress
                 progress={(now - progress.from) / Math.max(1, progress.to - progress.from)}
                 ink={ink}
-                track={tint}
+                track={`${ink}4d`}
                 label={t("home.now.live", { time: f.time(progress.to) })}
               />
             ) : (

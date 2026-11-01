@@ -20,19 +20,21 @@ import Svg, { Circle, Path } from "react-native-svg";
 import { useReduceMotion } from "./motion";
 import { motion } from "./theme";
 
-/** One wavelength of the wave (dp), and its height. */
-const WAVE = 20;
+/** One wavelength of the wave (dp), its rise (about 4 dp either way, M3's), and the height it's drawn in. */
+const WAVE = 32;
+const RISE = 8;
 const WAVE_HEIGHT = 14;
 /** A wave long enough for any phone's card, drawn once: q (rise) t (fall) per wavelength. */
 const WAVE_PATH = (() => {
   let d = `M0 ${WAVE_HEIGHT / 2}`;
-  for (let i = 0; i < 40; i++) d += ` q${WAVE / 4} -5 ${WAVE / 2} 0 t${WAVE / 2} 0`;
+  for (let i = 0; i < 40; i++) d += ` q${WAVE / 4} -${RISE} ${WAVE / 2} 0 t${WAVE / 2} 0`;
   return d;
 })();
 
 /**
  * M3 Expressive's wavy progress: the wave up to how far along (`progress`, 0–1), moving along itself; after it, the
- * flat track and the stop dot. `ink` draws the wave and the dot, `track` the rest.
+ * flat track to the stop dot, drawn in full from the start. `ink` draws the wave and the dot, `track` the rest (give it
+ * enough contrast to read as a track on its card).
  */
 export function WavyProgress({ progress, ink, track, label }: { progress: number; ink: string; track: string; label: string }) {
   const still = useReduceMotion();
@@ -45,7 +47,7 @@ export function WavyProgress({ progress, ink, track, label }: { progress: number
   }, [still, shift]);
   const moving = useAnimatedStyle(() => ({ transform: [{ translateX: shift.value }] }));
   const p = Math.max(0, Math.min(1, progress));
-  // At least a wavelength and a half drawn, so a class just started reads as a wave starting, not a glitch.
+  // At least a wavelength and a half drawn (48 dp), so a class just started reads as a wave starting, not a squiggle.
   const done = Math.min(width - 12, Math.max(WAVE * 1.5, width * p - 2));
   return (
     <View
