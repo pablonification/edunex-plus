@@ -2,9 +2,9 @@
 // block in its course's tint at its time and length (its glyph, a short name, the room), two that overlap side by side,
 // the part of a class already gone a shade deeper, and today's now-line in red. Above the hours, only when there's
 // something: ITB's period ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's hand-ins
-// and deadlines, a line each. A block shows at most one status, as an icon (no absences left, a clash, a new time, not
-// in SIX); the words, the code, the times and the rest are on its sheet. The minute's tick moves only the now-line and
-// the block on now (./clock.ts).
+// and deadlines, a line each. A block shows at most one status, as an icon (a clash, a new time, not in SIX); the
+// absences, the words, the code, the times and the rest are on its sheet (Beranda's class sheet). The minute's tick
+// moves only the now-line and the block on now (./clock.ts).
 import { memo, type ReactNode } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
@@ -28,7 +28,7 @@ import { space, TOUCH, useTheme } from "../../ui/theme";
 import { CourseGlyph, useCourseTile } from "../../ui/tile";
 import { useClockSelect, useDayFormat, usePhase, useToday } from "./clock";
 import type { Picked } from "./details";
-import { periodName, timeRange, useWorld } from "./world";
+import { periodName, timeRange } from "./world";
 
 /** One hour's height (v4: 66). */
 export const HOUR = 66;
@@ -261,15 +261,16 @@ export const nowColour = (scheme: "light" | "dark") => (scheme === "dark" ? "#ff
 /** What reads on today's red circle. */
 export const onNowColour = (scheme: "light" | "dark") => (scheme === "dark" ? "#3a0603" : "#ffffff");
 
-type Status = { icon: (typeof Icons)[keyof typeof Icons]; tone: "red" | "amber" | "quiet"; words: string };
+type Status = { icon: (typeof Icons)[keyof typeof Icons]; tone: "amber" | "quiet"; words: string };
 
-/** A block's one status, the most pressing: no absences left or below target, a clash, a new time or room, extra, may not run, not in SIX. */
-function statusOf(t: ReturnType<typeof useT>, entry: Item, health: ReturnType<ReturnType<typeof useWorld>["health"]>): Status | null {
+/**
+ * A block's one status, the most pressing: a clash, a new time or room, extra, may not run, not in SIX. No absences: a
+ * block stays calm, and the class's sheet has them in the app's absence colours.
+ */
+function statusOf(t: ReturnType<typeof useT>, entry: Item): Status | null {
   if (entry.kind === "meeting") return entry.notInSix ? { icon: Icons.Info, tone: "amber", words: t("mobile.home.chip.notInSix") } : null;
   const { item } = entry;
   if (item.exam) return null;
-  if (health?.state === "none") return { icon: Icons.Hand, tone: "red", words: t("mobile.home.chip.noAbsences") };
-  if (health?.state === "out") return { icon: Icons.Hand, tone: "red", words: t("mobile.home.chip.belowTarget") };
   if (item.overlaps.length) return { icon: Icons.Overlap, tone: "amber", words: t("mobile.home.chip.clash") };
   if (item.moved)
     return {
@@ -301,15 +302,13 @@ const Block = memo(function Block({
   const f = useDayFormat();
   const theme = useTheme();
   const v = theme.v4;
-  const world = useWorld();
   const tile = useCourseTile()(entry.code);
   const phase = usePhase(entry.start, entry.end);
   // How much of the class has gone, while it's on (a deeper shade, as v4's): moves once a minute, on this block only.
   const gone = useClockSelect((now) =>
     now <= entry.start ? 0 : now >= entry.end ? 1 : Math.round(((now - entry.start) / (entry.end - entry.start)) * 100) / 100,
   );
-  const health = entry.kind === "class" ? world.health(entry.code) : undefined;
-  const status = statusOf(t, entry, health);
+  const status = statusOf(t, entry);
   const top = yOf(minuteOfDay(entry.start), from) + 2;
   const height = Math.max(TOUCH, ((entry.end - entry.start) / 3_600_000) * HOUR - 4);
   const session = entry.kind === "class" ? entry.item.session : null;
@@ -324,7 +323,7 @@ const Block = memo(function Block({
     phase === "live" ? t("schedule.live") : null,
     status?.words,
   );
-  const tone = status?.tone === "red" ? v.redFg : status?.tone === "amber" ? v.ambFg : v.muted;
+  const tone = status?.tone === "amber" ? v.ambFg : v.muted;
   return (
     <PressScale
       testID={`row.class.${rowKey(entry.code, entry.start)}`}
