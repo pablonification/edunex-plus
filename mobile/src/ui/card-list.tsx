@@ -3,7 +3,7 @@
 // row (a FlashList) gives each row its own slice of the card (`CardSlice`); a short list wraps its rows in `CardList`.
 // A section's title is Plus Jakarta Sans (`SectionTitle`), with how many in it when that helps.
 import { Children, type ReactNode } from "react";
-import { View } from "react-native";
+import { View, type ViewStyle } from "react-native";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
 
@@ -66,5 +66,18 @@ export function SectionTitle({ title, count, first = false }: { title: string; c
         </Text>
       )}
     </Text>
+  );
+}
+
+/**
+ * A section's white card on a v4 page (a Task's instructions, its files, the answer): radius 20, 16 dp in, no shadow
+ * (the one card that leads a screen has its own). `flush`: no padding, for rows that bring their own.
+ */
+export function Panel({ children, flush = false, testID, style }: { children: ReactNode; flush?: boolean; testID?: string; style?: ViewStyle }) {
+  const v = useTheme().v4;
+  return (
+    <View testID={testID} style={[{ backgroundColor: v.card, borderRadius: CARD_RADIUS, padding: flush ? 0 : space[4], overflow: "hidden" }, style]}>
+      {children}
+    </View>
   );
 }
