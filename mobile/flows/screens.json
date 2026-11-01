@@ -18,7 +18,8 @@
     "The demo signs in and reads after the first frame (mobile/src/host/settling.ts): the launch waits for the top bar's status.settling to go before any check.",
     "schedule (v4): one day at a time under the week strip; next week is a swipe across the strip. A class block shows its short name and room only, so the week's class entries open the class's sheet (Beranda's, sheet.nowClass; a meeting only Edunex announced opens Jadwal's own, sheet.class, as with no SIX) where its code, times and full name are, and every other entry closes it first.",
     "class (v4): a class's sheet is Beranda's (sheet.nowClass), or Jadwal's own (sheet.class) for a meeting only Edunex announced (edunex-only); who teaches it and where its attendance counts are on its course page, so those entries go there with Buka mata kuliah, and the entries after come back to the sheet. A check scrolling up can drag the sheet closed: then the class is tapped again before Buka mata kuliah.",
-    "home (v4): Proposal Tugas Akhir's class is a Friday class on Jadwal; it opens Beranda's sheet with SIX (sheet.nowClass) and Jadwal's own without (sheet.class), so its route waits for either, and every home entry first closes either sheet before going back to Beranda."
+    "home (v4): Proposal Tugas Akhir's class is a Friday class on Jadwal; it opens Beranda's sheet with SIX (sheet.nowClass) and Jadwal's own without (sheet.class), so its route waits for either, and every home entry first closes either sheet before going back to Beranda.",
+    "home (v4): a tap while Beranda is still sliding after a scroll only stops it (Android), so the now card's routes scroll to the greeting, let the page settle, and tap the card once more if its sheet didn't come."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -608,8 +609,45 @@
                   }
                 },
                 {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "action.syncStatus"
+                    },
+                    "direction": "UP",
+                    "timeout": 4000,
+                    "optional": true
+                  }
+                },
+                "waitForAnimationToEnd",
+                {
                   "tapOn": {
                     "id": "action.nowClass"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "sheet.nowClass"
+                    },
+                    "timeout": 3000,
+                    "optional": true
+                  }
+                },
+                {
+                  "runFlow": {
+                    "when": {
+                      "notVisible": {
+                        "id": "sheet.nowClass"
+                      }
+                    },
+                    "commands": [
+                      "waitForAnimationToEnd",
+                      {
+                        "tapOn": {
+                          "id": "action.nowClass"
+                        }
+                      }
+                    ]
                   }
                 },
                 {
@@ -688,8 +726,45 @@
                   }
                 },
                 {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "action.syncStatus"
+                    },
+                    "direction": "UP",
+                    "timeout": 4000,
+                    "optional": true
+                  }
+                },
+                "waitForAnimationToEnd",
+                {
                   "tapOn": {
                     "id": "action.nowClass"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "sheet.nowClass"
+                    },
+                    "timeout": 3000,
+                    "optional": true
+                  }
+                },
+                {
+                  "runFlow": {
+                    "when": {
+                      "notVisible": {
+                        "id": "sheet.nowClass"
+                      }
+                    },
+                    "commands": [
+                      "waitForAnimationToEnd",
+                      {
+                        "tapOn": {
+                          "id": "action.nowClass"
+                        }
+                      }
+                    ]
                   }
                 },
                 {
