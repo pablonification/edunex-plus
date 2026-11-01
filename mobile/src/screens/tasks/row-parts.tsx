@@ -328,29 +328,41 @@ export function StatusPill({ tone, text, icon }: { tone: PillTone; text: string;
   );
 }
 
+/** A row's quick actions (its swipe's and long press's), named for TalkBack's actions menu. */
+export type Quick = readonly { label: string; onPress(): void }[];
+
+const quickActions = (quick: Quick | undefined) =>
+  quick?.length
+    ? {
+        accessibilityActions: quick.map((action, i) => ({ name: `quick${i}`, label: action.label })),
+        onAccessibilityAction: (event: { nativeEvent: { actionName: string } }) => quick[Number(event.nativeEvent.actionName.slice(5))]?.onPress(),
+      }
+    : {};
+
 /**
  * A row of Tugas in v4: the course's tile, a title, one short meta line, and at most one status at the end. The whole
- * row is one target (the press spring); `actions` (a quick action) sit beside it, never inside. Its spoken name says
- * every fact (`label`), the ones the row leaves to the Task's page too.
+ * row is one target (the press spring); its quick actions are a swipe, a long press and TalkBack's actions, never icons
+ * beside it (W11). Its spoken name says every fact (`label`), the ones the row leaves to the Task's page too.
  */
 export function TaskLine({
   testID,
   label,
   onPress,
   onLongPress,
+  quick,
   code,
   course,
   leading,
   title,
   meta,
   status,
-  actions,
-  children,
+  expanded,
 }: {
   testID: string;
   label: string;
   onPress: () => void;
   onLongPress?: () => void;
+  quick?: Quick;
   /** The course whose tile leads the row; none on a course's own page. */
   code?: string | null;
   course?: string;
@@ -359,44 +371,41 @@ export function TaskLine({
   title: string;
   meta?: string | null;
   status?: ReactNode;
-  actions?: ReactNode;
-  children?: ReactNode;
+  /** A row that folds a list open (an exam period). */
+  expanded?: boolean;
 }) {
   const v = useTheme().v4;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center" }}>
-      <PressScale
-        testID={testID}
-        accessibilityLabel={label}
-        onPress={onPress}
-        onLongPress={onLongPress}
-        style={{
-          flex: 1,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: space[3],
-          paddingLeft: 14,
-          paddingRight: actions ? space[1] : 14,
-          paddingVertical: space[3],
-          minHeight: 68,
-        }}
-      >
-        {leading ?? (code ? <CourseTile code={code} name={course} /> : null)}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
-            {title}
+    <PressScale
+      testID={testID}
+      accessibilityLabel={label}
+      accessibilityState={expanded === undefined ? undefined : { expanded }}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      {...quickActions(quick)}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}
+    >
+      {leading ?? (code ? <CourseTile code={code} name={course} /> : null)}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+          {title}
+        </Text>
+        {meta ? (
+          <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted, marginTop: 2 }}>
+            {meta}
           </Text>
-          {meta ? (
-            <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted, marginTop: 2 }}>
-              {meta}
-            </Text>
-          ) : null}
-          {children}
-        </View>
-        {status}
-      </PressScale>
-      {actions}
-    </View>
+        ) : null}
+      </View>
+      {status}
+    </PressScale>
+  );
+}
+
+/** A tile in the course tile's shape for what has no course (an exam period): an icon in the brand's ink on its tint. */
+export function IconTile({ children }: { children: ReactNode }) {
+  const v = useTheme().v4;
+  return (
+    <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}>{children}</View>
   );
 }
 
@@ -409,6 +418,8 @@ export function HeroCard({
   testID,
   label,
   onPress,
+  onLongPress,
+  quick,
   code,
   course,
   kind,
@@ -419,6 +430,8 @@ export function HeroCard({
   testID: string;
   label: string;
   onPress: () => void;
+  onLongPress?: () => void;
+  quick?: Quick;
   code: string;
   course?: string;
   kind: string;
@@ -437,7 +450,9 @@ export function HeroCard({
       testID={testID}
       accessibilityLabel={label}
       onPress={onPress}
-      style={{ backgroundColor: tint, borderRadius: 24, padding: space[4], marginBottom: space[6] }}
+      onLongPress={onLongPress}
+      {...quickActions(quick)}
+      style={{ backgroundColor: tint, borderRadius: 24, padding: space[4] }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         <CourseGlyph code={code} name={course} />

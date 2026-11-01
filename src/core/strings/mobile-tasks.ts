@@ -9,4 +9,6 @@ export const mobileTasksStrings = {
   "mobile.tasks.answerFiles": { id: "Berkas jawaban", en: "Answer files" },
   // The moment a Task is handed in, over the page for a breath: its detail is handIn.recorded ("Edunex mencatatnya hari ini, 10:02").
   "mobile.tasks.handedIn": { id: "Terkumpul", en: "Handed in" },
+  // An exam row's one status when SIX and Edunex give it different days (the days themselves on the exam's page).
+  "mobile.tasks.chip.disagree": { id: "Tanggal beda", en: "Dates differ" },
 } as const satisfies Record<string, Entry>;

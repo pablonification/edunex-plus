@@ -21,6 +21,7 @@ import { taskStatus } from "../../../../src/core/tasks";
 import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { TabHeader, usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
+import { CardSlice, SectionTitle } from "../../ui/card-list";
 import { Button, Chip, ChipRow, Segmented } from "../../ui/controls";
 import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
@@ -53,10 +54,11 @@ interface Place {
 export type Line =
   | { type: "heading"; key: string; title: string; count?: number; first: boolean }
   | ({ type: "todo"; key: string; item: TodoItem } & Place)
+  | { type: "hero"; key: string; item: TodoItem }
   | ({ type: "done"; key: string; task: Task; exam?: Exam } & Place)
   | ({ type: "past"; key: string; past: PastExam } & Place)
   | { type: "putOff"; key: string; putOff: Todo["putOff"] }
-  | { type: "gap"; key: string }
+  | { type: "gap"; key: string; size?: 3 | 6 }
   | { type: "empty"; key: string; title: string; description?: string; showAll: boolean; done: boolean }
   | { type: "loading"; key: string }
   | { type: "examsNoSix"; key: string };
@@ -124,6 +126,9 @@ function tasksView(
 
   const lines: Line[] = [];
   const todoCard = (list: readonly TodoItem[]) => card(list, (item, place): Line => ({ type: "todo", key: item.key, item, ...place }));
+  // The one big card (v4): the nearest Task with a deadline, at the top of its group, out of the group's card.
+  const heroGroup = show === "open" && !nothingToDo && groups[0] && groups[0].group !== "later" && groups[0].group !== "undated" ? groups[0] : undefined;
+  const hero = heroGroup?.items.find((item) => item.kind === "task" && item.task.dueAt !== null);
   if (!todo) lines.push({ type: "loading", key: "loading" });
   else if (show === "done") {
     if (doneCount === 0) lines.push({ type: "empty", key: "empty", title: t("tasks.noneDone"), showAll: false, done: true });
@@ -150,7 +155,8 @@ function tasksView(
           count: todoCount(group.items) || undefined,
           first: lines.length === 0,
         });
-        lines.push(...todoCard(group.items));
+        if (hero && group === heroGroup) lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, { type: "gap", key: "gap-hero", size: 3 });
+        lines.push(...todoCard(group.items.filter((item) => item !== hero)));
         if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
       }
     if (examsNoSix) lines.push({ type: "examsNoSix", key: "examsNoSix" });
@@ -202,7 +208,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   );
 
   return (
-    <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.color.surface }}>
+    <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.v4.page }}>
       <TabHeader title={t("nav.tasks")} />
       <TaskRowWorld>
         <FlashList
@@ -213,7 +219,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
           extraData={putOffOpen}
           renderItem={renderItem}
           ListHeaderComponent={header}
-          contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] }}
+          contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
           // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
           refreshControl={
             <RefreshControl
@@ -292,6 +298,19 @@ export function CardRow({ first, last, children }: Place & { children: ReactNode
   );
 }
 
+/** On Tugas a row is a slice of its group's white card (v4); on a course's page, a tile of its tonal list. */
+function Slice({ first, last, inCourse, children }: Place & { inCourse: boolean; children: ReactNode }) {
+  return inCourse ? (
+    <CardRow first={first} last={last}>
+      {children}
+    </CardRow>
+  ) : (
+    <CardSlice first={first} last={last}>
+      {children}
+    </CardSlice>
+  );
+}
+
 export function LineView({
   line,
   putOffOpen = false,
@@ -309,29 +328,35 @@ export function LineView({
   const theme = useTheme();
   switch (line.type) {
     case "heading":
-      return <Heading title={line.title} count={line.count} first={line.first} />;
+      return inCourse ? (
+        <Heading title={line.title} count={line.count} first={line.first} />
+      ) : (
+        <SectionTitle title={line.title} count={line.count} first={line.first} />
+      );
     case "todo":
       return (
-        <CardRow first={line.first} last={line.last}>
+        <Slice first={line.first} last={line.last} inCourse={inCourse}>
           <TodoRow item={line.item} inCourse={inCourse} />
-        </CardRow>
+        </Slice>
       );
+    case "hero":
+      return <TodoRow item={line.item} hero />;
     case "done":
       return (
-        <CardRow first={line.first} last={line.last}>
+        <Slice first={line.first} last={line.last} inCourse={inCourse}>
           <DoneTaskRow task={line.task} exam={line.exam} inCourse={inCourse} />
-        </CardRow>
+        </Slice>
       );
     case "past":
       return (
-        <CardRow first={line.first} last={line.last}>
+        <Slice first={line.first} last={line.last} inCourse={inCourse}>
           <PastExamRow past={line.past} inCourse={inCourse} />
-        </CardRow>
+        </Slice>
       );
     case "putOff":
-      return <PutOff putOff={line.putOff} open={putOffOpen} onToggle={() => onPutOff?.()} />;
+      return <PutOff putOff={line.putOff} open={putOffOpen} onToggle={() => onPutOff?.()} inCourse={inCourse} />;
     case "gap":
-      return <View style={{ height: space[6] }} />;
+      return <View style={{ height: space[line.size ?? 6] }} />;
     case "empty":
       return (
         <EmptyState icon={<Icons.CheckCircle size={24} color={theme.color.onSecondaryContainer} />} title={line.title} description={line.description}>
@@ -399,19 +424,18 @@ export function NoTasksYet() {
         <View style={{ paddingHorizontal: space[1], marginBottom: space[3] }}>
           <Skeleton width={120} height={20} />
         </View>
+        <View style={{ height: 156, borderRadius: 24, backgroundColor: theme.v4.card, marginBottom: space[3] }} />
         {[0, 1, 2].map((i) => (
-          <GroupTile key={i} first={i === 0} last={i === 2}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: space[4], paddingHorizontal: space[4], paddingVertical: space[4] }}>
+          <CardSlice key={i} first={i === 0} last={i === 2}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
+              <Skeleton width={44} height={44} style={{ borderRadius: 14 }} />
               <View style={{ flex: 1, gap: space[2] }}>
-                <Skeleton width="70%" height={18} />
-                <Skeleton width="45%" height={14} />
+                <Skeleton width="70%" height={16} />
+                <Skeleton width="45%" height={12} />
               </View>
-              <View style={{ alignItems: "flex-end", gap: space[2] }}>
-                <Skeleton width={72} height={14} />
-                <Skeleton width={40} height={14} />
-              </View>
+              <Skeleton width={56} height={24} style={{ borderRadius: 12 }} />
             </View>
-          </GroupTile>
+          </CardSlice>
         ))}
       </View>
     );

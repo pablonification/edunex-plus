@@ -1,14 +1,15 @@
-// The few earned moments (DESIGN.md, "Motion"): something done that matters, answered with a check
-// that draws itself in a green circle and the phone's own "success" haptic. Drawn on the UI thread
+// The few earned moments (DESIGN.md, "Motion"): something done that matters, answered with v4's cookie turning in and
+// its check drawing itself (./expressive.tsx), and the phone's own "success" haptic. Drawn on the UI thread
 // (Reanimated); with Remove animations it only fades in, the check already drawn.
 import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
+import { CookieCheck } from "./expressive";
 import { useReduceMotion } from "./motion";
 import { Text } from "./text";
-import { motion, shape, space, useTheme } from "./theme";
+import { motion, space, useTheme } from "./theme";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -69,6 +70,7 @@ export function Celebration({ title, detail, onDone }: { title: string; detail?:
   const [gone, setGone] = useState(false);
   useEffect(() => {
     AccessibilityInfo.announceForAccessibility(detail ? `${title}. ${detail}` : title);
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
     shown.value = withTiming(1, { duration: motion.duration.short });
     const out = setTimeout(() => {
       shown.value = withTiming(0, { duration: motion.duration.medium });
@@ -98,8 +100,8 @@ export function Celebration({ title, detail, onDone }: { title: string; detail?:
             gap: space[3],
             paddingHorizontal: space[8],
             paddingVertical: space[6],
-            borderRadius: shape.xl,
-            backgroundColor: theme.color.surfaceContainerHigh,
+            borderRadius: 24,
+            backgroundColor: theme.v4.card,
             // Floats over the page: the one place a shadow belongs (DESIGN.md).
             elevation: 6,
             maxWidth: 320,
@@ -107,8 +109,8 @@ export function Celebration({ title, detail, onDone }: { title: string; detail?:
           card,
         ]}
       >
-        <DrawnCheck />
-        <Text size="titleLarge" style={{ textAlign: "center" }}>
+        <CookieCheck size={72} color={theme.v4.okFg} check={theme.v4.card} />
+        <Text size="titleLarge" face="display" weight="bold" style={{ textAlign: "center", color: theme.v4.fg }}>
           {title}
         </Text>
         {detail ? (

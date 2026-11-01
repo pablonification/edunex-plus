@@ -51,16 +51,17 @@ const sideOf = (action: SwipeAction): "start" | "end" => action.side ?? (action.
 const tick = () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Tick).catch(() => undefined);
 const confirm = () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
 
-export function SwipeRow({ actions, children, testID }: { actions: readonly SwipeAction[]; children: ReactNode; testID?: string }) {
+/** `surface`: the row's own colour over the actions (a v4 card's white); else a list tile's. */
+export function SwipeRow({ actions, children, testID, surface }: { actions: readonly SwipeAction[]; children: ReactNode; testID?: string; surface?: string }) {
   if (!actions.length) return <>{children}</>;
   return (
-    <Swiper actions={actions} testID={testID}>
+    <Swiper actions={actions} testID={testID} surface={surface}>
       {children}
     </Swiper>
   );
 }
 
-function Swiper({ actions, children, testID }: { actions: readonly SwipeAction[]; children: ReactNode; testID?: string }) {
+function Swiper({ actions, children, testID, surface }: { actions: readonly SwipeAction[]; children: ReactNode; testID?: string; surface?: string }) {
   const theme = useTheme();
   const still = useReduceMotion();
   const rtl = I18nManager.isRTL;
@@ -198,7 +199,7 @@ function Swiper({ actions, children, testID }: { actions: readonly SwipeAction[]
         {plus && layer(plus, "left", plusLayer, plusMark)}
         {minus && layer(minus, "right", minusLayer, minusMark)}
         <GestureDetector gesture={pan}>
-          <Animated.View style={[{ backgroundColor: theme.color.surfaceContainerLow }, row]}>{children}</Animated.View>
+          <Animated.View style={[{ backgroundColor: surface ?? theme.color.surfaceContainerLow }, row]}>{children}</Animated.View>
         </GestureDetector>
       </View>
     </Animated.View>

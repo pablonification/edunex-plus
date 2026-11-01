@@ -3,7 +3,7 @@
 // decides on (the title, the course, the day and time it's due); the rest of the desktop's facts
 // stay in its accessible name and on the Task's page. A late Task's "Ingatkan nanti" is an alarm on
 // the row, a swipe, and its long press. What rows share is in row-parts.tsx.
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 import { errorKey } from "../../../../src/app/bridge";
 import { type Format, type Translate, useFormat, useT } from "../../../../src/app/i18n";
@@ -18,7 +18,8 @@ import { isOpenStatus, notOpenYet, shortWindow, submittedAt } from "../../../../
 import { lateSnoozable, type TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { canSnooze, useRowActions, useSnooze } from "../../parts/snooze";
-import { Button, IconButton } from "../../ui/controls";
+import { CardSlice } from "../../ui/card-list";
+import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
@@ -33,6 +34,7 @@ import {
   HeroCard,
   inWorld,
   moduleLabel,
+  type Quick,
   RowNote,
   type RowWorldValue,
   type SignalIcon,
@@ -101,7 +103,7 @@ export const TaskRow = inWorld(function TaskRow({
   meta = "course",
   late = false,
   exam,
-  actions,
+  quick,
   onLongPress,
   hero = false,
 }: {
@@ -110,7 +112,7 @@ export const TaskRow = inWorld(function TaskRow({
   meta?: "course" | "module" | "none";
   late?: boolean;
   exam?: Exam;
-  actions?: ReactNode;
+  quick?: Quick;
   onLongPress?: () => void;
   /** Tugas's one big card: the nearest deadline (row-parts.tsx HeroCard), the same item, target and name. */
   hero?: boolean;
@@ -173,6 +175,8 @@ export const TaskRow = inWorld(function TaskRow({
         testID={`row.task.${task.id}`}
         label={label}
         onPress={open}
+        onLongPress={onLongPress}
+        quick={quick}
         code={task.courseCode}
         course={course?.name}
         kind={kind ?? t("mobile.home.kind.task")}
@@ -187,7 +191,7 @@ export const TaskRow = inWorld(function TaskRow({
       label={label}
       onPress={open}
       onLongPress={onLongPress}
-      actions={actions}
+      quick={quick}
       code={meta === "course" ? task.courseCode : null}
       course={course?.name}
       title={name}
@@ -206,28 +210,33 @@ export const lateTitle = (item: TodoItem) =>
  * put off ("Ingatkan nanti") as on Beranda, the same snooze for the same Task: the alarm, a swipe
  * or a long press.
  */
-export const TodoRow = inWorld(function TodoRow({ item, inCourse = false }: { item: TodoItem; inCourse?: boolean }) {
+export const TodoRow = inWorld(function TodoRow({ item, inCourse = false, hero = false }: { item: TodoItem; inCourse?: boolean; hero?: boolean }) {
   const t = useT();
   const { now } = useRowWorld();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const late = lateSnoozable(item, now);
   const snoozable = late && canSnooze(late, now) ? late : null;
   const snooze = useSnooze(snoozable);
   const swipe = useRowActions({ snooze: snoozable ? snooze : null });
   if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} />;
-  const alarm = snoozable ? (
-    <IconButton label={t("snooze.actionFor", { title: lateTitle(item) })} onPress={snooze.open} testID="action.snooze">
-      <Icons.Snooze size={20} color={theme.color.onSurfaceVariant} />
-    </IconButton>
-  ) : undefined;
+  const quick = snoozable ? [{ label: t("snooze.actionFor", { title: lateTitle(item) }), onPress: snooze.open }] : undefined;
   const longPress = snoozable ? snooze.open : undefined;
   return (
     <>
-      <SwipeRow actions={swipe}>
+      {/* The big card isn't swiped: its long press and TalkBack's actions put it off. */}
+      <SwipeRow actions={hero ? [] : swipe} surface={inCourse ? undefined : v.card}>
         {item.kind === "task" ? (
-          <TaskRow task={item.task} status={item.status} meta={inCourse ? "module" : "course"} late={item.late} actions={alarm} onLongPress={longPress} />
+          <TaskRow
+            task={item.task}
+            status={item.status}
+            meta={inCourse ? "module" : "course"}
+            late={item.late}
+            quick={quick}
+            onLongPress={longPress}
+            hero={hero}
+          />
         ) : (
-          <ExamPartRow item={item} inCourse={inCourse} actions={alarm} onLongPress={longPress} />
+          <ExamPartRow item={item} inCourse={inCourse} quick={quick} onLongPress={longPress} />
         )}
       </SwipeRow>
       {snooze.sheet}
@@ -236,7 +245,7 @@ export const TodoRow = inWorld(function TodoRow({ item, inCourse = false }: { it
 });
 
 /** "1 ditunda · Tampilkan" under the late rows, as on Beranda: quiet, opening what's put off, each with Ingatkan sekarang. */
-export function PutOff({ putOff, open, onToggle }: { putOff: Todo["putOff"]; open: boolean; onToggle: () => void }) {
+export function PutOff({ putOff, open, onToggle, inCourse = true }: { putOff: Todo["putOff"]; open: boolean; onToggle: () => void; inCourse?: boolean }) {
   const t = useT();
   const theme = useTheme();
   if (!putOff.length) return null;
@@ -253,11 +262,17 @@ export function PutOff({ putOff, open, onToggle }: { putOff: Todo["putOff"]; ope
       </View>
       {open && (
         <View>
-          {putOff.map(({ item, entry }, i) => (
-            <GroupTile key={item.key} first={i === 0} last={i === putOff.length - 1}>
-              <PutOffRow item={item} entry={entry} />
-            </GroupTile>
-          ))}
+          {putOff.map(({ item, entry }, i) =>
+            inCourse ? (
+              <GroupTile key={item.key} first={i === 0} last={i === putOff.length - 1}>
+                <PutOffRow item={item} entry={entry} />
+              </GroupTile>
+            ) : (
+              <CardSlice key={item.key} first={i === 0} last={i === putOff.length - 1} inset={0}>
+                <PutOffRow item={item} entry={entry} />
+              </CardSlice>
+            ),
+          )}
         </View>
       )}
     </View>
