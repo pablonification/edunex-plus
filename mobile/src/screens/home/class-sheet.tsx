@@ -195,7 +195,19 @@ function Absences({ card }: { card: NowCard }) {
   if (!health) return null;
   return (
     <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />}>
-      <Text size="bodyLarge" weight="medium" tone={STATE_TEXT[health.state]} style={STATE_TEXT[health.state] === "muted" ? { color: v.fg2 } : undefined}>
+      {/* No absences left, or below the target: v4's red, as the row's "Jatah habis" chip on Beranda (amber is for a clash). */}
+      <Text
+        size="bodyLarge"
+        weight="medium"
+        tone={STATE_TEXT[health.state]}
+        style={
+          health.state === "none" || health.state === "out" || health.state === "missed"
+            ? { color: v.redFg }
+            : STATE_TEXT[health.state] === "muted"
+              ? { color: v.fg2 }
+              : undefined
+        }
+      >
         {budgetLabel(t, health)}
       </Text>
       {health.held ? (
