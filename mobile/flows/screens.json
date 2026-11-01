@@ -1481,6 +1481,16 @@
       "status": "ready",
       "steps": [
         {
+          "runFlow": {
+            "when": {
+              "visible": {
+                "id": "sheet.nowClass"
+              }
+            },
+            "commands": ["back"]
+          }
+        },
+        {
           "tapOn": {
             "id": "tab.schedule"
           }
@@ -1493,6 +1503,16 @@
       ],
       "byState": {
         "^next-week$": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "tapOn": {
               "id": "tab.schedule"
@@ -1522,6 +1542,16 @@
           }
         ],
         "^month$": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "tapOn": {
               "id": "tab.schedule"
