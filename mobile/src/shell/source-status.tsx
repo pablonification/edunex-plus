@@ -190,7 +190,7 @@ export function TabHeader({ title, bell = false, actions, v4 = false }: { title:
   const line = useSyncLine();
   const [panel, setPanel] = useState(false);
   return (
-    <BarSurface>
+    <BarSurface v4={v4}>
       <View
         style={{ marginTop: insets.top, flexDirection: "row", alignItems: "center", paddingLeft: space.page, paddingRight: space[1], minHeight: BAR_HEIGHT }}
       >
