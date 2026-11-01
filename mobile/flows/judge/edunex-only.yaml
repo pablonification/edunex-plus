@@ -12,7 +12,8 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-36-tanpa-six-beranda
-- tapOn:
-    id: tab.schedule
-- waitForAnimationToEnd
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: schedule
 - takeScreenshot: ${THEME}-37-tanpa-six-jadwal

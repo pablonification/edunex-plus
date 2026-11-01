@@ -38,9 +38,10 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-02-beranda-hari-ini
 
 # Tugas & Ujian, a Task, an exam
-- tapOn:
-    id: tab.tasks
-- waitForAnimationToEnd
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: tasks
 - takeScreenshot: ${THEME}-03-tugas-ujian
 - scrollUntilVisible:
     element:
@@ -95,8 +96,10 @@ appId: io.github.pablonification.edunexplus.demo
     optional: true
 - tapOn:
     id: action.back
-- tapOn:
-    id: tab.tasks
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: tasks
 # The exam is near the top of the list (the tab's tap brought it back up): no scroll, which at the top would refresh.
 - tapOn:
     id: row.exam.DK4073-UTS
@@ -107,8 +110,10 @@ appId: io.github.pablonification.edunexplus.demo
 
 # Jadwal (v4): today on the hours, a class's sheet (Beranda's), next week with the midterms (a swipe across the week
 # strip), the month (the bar's calendar button), the phone's calendar (in ⋮, kept current rather than exported once)
-- tapOn:
-    id: tab.schedule
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: schedule
 - extendedWaitUntil:
     visible:
       id: row.class.pl3002-08-00
@@ -178,15 +183,17 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-12-ekspor-kalender-selesai
 
 # Kuliah (the courses with their absences left)
-- tapOn:
-    id: tab.courses
-- waitForAnimationToEnd
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: courses
 - takeScreenshot: ${THEME}-13-kuliah
 
 # Akademik, then Nilai and Rencana studi's parts, each its own screen
-- tapOn:
-    id: tab.academic
-- waitForAnimationToEnd
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: academic
 - takeScreenshot: ${THEME}-13b-akademik
 - tapOn:
     id: row.nav.grades
@@ -250,8 +257,10 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 
 # A course (from Kuliah): its page, its meetings, its grade calculator
-- tapOn:
-    id: tab.courses
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: courses
 - scrollUntilVisible:
     element:
       id: row.course.PL3002
@@ -288,8 +297,10 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 
 # Search, the data's state while it's read again, the bell
-- tapOn:
-    id: tab.home
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: home
 # Beranda keeps where it was scrolled (down at 02's 16:00 row): back up to its header.
 - scrollUntilVisible:
     element:
@@ -334,8 +345,10 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 
 # Settings, behind the avatar (on every tab's bar but Beranda's, round 2's v4): the top, notifications, about, the licences
-- tapOn:
-    id: tab.academic
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: academic
 - tapOn:
     id: action.account
 - extendedWaitUntil:
