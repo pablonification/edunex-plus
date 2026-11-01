@@ -140,6 +140,14 @@ motion and onboarding are open. The desktop is a reference for data only.
   the FAST table; `weak` and the perf fixes wait for a healthy desktop (or the Mac). Perf fixes to make (queued, not
   started): loops pause off-screen (`useLoopWhileShown`), `Later` waits for the push transition, hidden tabs render on
   first visit or idle, Beranda's cards hold still during the first read.
+- **2026-11-02 05:30: v4 merged into `mobile` (61c9fdc, from `mobile-r2-v4` 44aea69).** The integration's last device run
+  (41327448485): every scenario group has now passed (signed-in, edunex-only, timetable-unread, check-in-open, quiz,
+  edit, sick, odd in the run before, course-table-changed/-lost/-blank, first-run, after-class-counted and -absent, and
+  the score); its three failures were all test routes, fixed after it started (the dark walk tapping Akademik before
+  its rows drew, ad36f23; Akademik's rows below the fold in after-class-missing, 44aea69; odd cut by a timeout). Mobile
+  tsc, biome and the mobile tests pass on the merge. Confirming run on `mobile`: 41357072001. Arqila was sent one page
+  with all five tabs in light and dark (the judge walk's pictures of run 41311251121) and the 40 s walk recorded on
+  Redroid. Not yet merged: `mobile-r2-perf` (needs measuring).
 - **2026-11-02 04:15: perf fixes by the lead on `mobile-r2-perf` (both helper machines down).** 8a8c454: endless loops
   (wave, now dot, skeleton, spinner) run only while shown (`useLoopWhileShown`: screen focused, app in front, motion
   allowed), and `Later` waits for the push to end before mounting a screen's lower parts; 9c38f38: Beranda's two Perlu
