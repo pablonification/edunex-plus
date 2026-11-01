@@ -1,0 +1,61 @@
+# W4 on Jadwal (round 2): where am I next, and what's this week like. The top bar names it once (round 1 and the shell
+# said "Jadwal" again as the page's heading); it opens on today with the class on now, the week strip above follows
+# the agenda as it scrolls, the next week's line comes by scrolling, and a class opens its sheet with the time and the
+# room big. Round 1 (9395cea): a Week/Month switch, one day at a time, the title twice.
+appId: io.github.pablonification.edunexplus.demo
+name: "w04 Jadwal agenda hierarchy"
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- tapOn:
+    id: tab.schedule
+- extendedWaitUntil:
+    visible:
+      id: row.class.pl3002-08-00
+    timeout: 10000
+# "Jadwal" twice at most: the top bar and the tab's label, never a third heading.
+- assertNotVisible:
+    text: "Jadwal"
+    index: 2
+- assertNotVisible:
+    id: "segment.view.*"
+- assertVisible:
+    id: action.month
+# Days down the page: Friday's class is under Thursday's, a scroll away, and the strip follows.
+- scrollUntilVisible:
+    element:
+      id: row.class.ii4091-15-00
+- assertVisible:
+    id: label.place
+    text: "Minggu ke-7 . 5.11 Okt"
+- scrollUntilVisible:
+    element:
+      id: week.2026-10-12
+- scrollUntilVisible:
+    element:
+      id: agenda.2026-10-15
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: "Minggu ke-8 . 12.18 Okt"
+    timeout: 5000
+- takeScreenshot: w04-1-next-week-by-scrolling
+# Back to today, then a class's sheet.
+- tapOn:
+    id: action.today
+- extendedWaitUntil:
+    visible:
+      id: row.class.dk4073-11-00
+    timeout: 5000
+- tapOn:
+    id: row.class.dk4073-11-00
+- extendedWaitUntil:
+    visible:
+      id: sheet.class
+    timeout: 5000
+- assertVisible: "TVST C"
+- assertVisible: "11:00.12:59"

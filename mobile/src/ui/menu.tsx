@@ -6,7 +6,7 @@ import { type ComponentRef, useCallback, useEffect, useRef, useState } from "rea
 import { Animated, Easing, Modal, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../src/app/i18n";
-import { IconButton } from "./controls";
+import { IconButton, Switch } from "./controls";
 import { Icons } from "./icons";
 import { reduceMotion } from "./motion";
 import type { SheetChoice } from "./sheet";
@@ -95,8 +95,8 @@ export function Menu({
           <Pressable
             key={choice.label}
             testID={choice.testID}
-            accessibilityRole="menuitem"
-            accessibilityState={{ disabled: !!choice.disabled }}
+            accessibilityRole={choice.checked === undefined ? "menuitem" : "checkbox"}
+            accessibilityState={{ disabled: !!choice.disabled, ...(choice.checked === undefined ? {} : { checked: choice.checked }) }}
             disabled={choice.disabled}
             onPress={() => {
               onClose();
@@ -106,7 +106,7 @@ export function Menu({
             style={[styles.item, choice.disabled && { opacity: 0.38 }]}
           >
             {choice.icon && <View style={{ width: 24, alignItems: "center" }}>{choice.icon}</View>}
-            <View style={{ flexShrink: 1 }}>
+            <View style={{ flexShrink: 1, flexGrow: 1 }}>
               <Text size="labelLarge" tone={choice.tone === "danger" ? "danger" : "fg"} style={{ fontWeight: "400", fontSize: 16, lineHeight: 24 }}>
                 {choice.label}
               </Text>
@@ -116,6 +116,12 @@ export function Menu({
                 </Text>
               )}
             </View>
+            {choice.checked !== undefined && (
+              // The setting's state, as Material's switch; the whole item is the target.
+              <View pointerEvents="none" importantForAccessibility="no-hide-descendants">
+                <Switch value={choice.checked} onChange={() => undefined} label={choice.label} />
+              </View>
+            )}
           </Pressable>
         ))}
       </Animated.View>

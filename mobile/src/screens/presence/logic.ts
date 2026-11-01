@@ -1,5 +1,5 @@
 // Presensi's figures and words, copied as they are from the desktop's src/app/screens/presence.tsx
-// (that file draws DOM too): the groups and their order, what needs the Student now (the "zone"),
+// (that file draws DOM too): the groups' order, what needs the Student now (the "zone"),
 // a row's next class and meta line, the clash answer, and the dates the footer names. The screens
 // in this folder only lay them out.
 import type { Attendance, CourseAttendance, OpenWindow } from "../../../../src/app/attendance";
@@ -66,31 +66,6 @@ export function groupsOf(courses: readonly CourseAttendance[], signedOut: boolea
       (c) => c.nextWindow?.session.opensAt ?? null,
     ),
   })).filter(({ items }) => items.length > 0);
-}
-
-/** All the group's courses share a target: the heading names it; else it says "the target". */
-const sharedTarget = (items: readonly CourseAttendance[]) => (new Set(items.map((c) => c.health.target)).size === 1 ? items[0]!.health.target : null);
-
-export function groupLabel(t: Translate, group: PresenceGroup, items: readonly CourseAttendance[]): string {
-  const target = sharedTarget(items);
-  switch (group) {
-    case "out":
-      return target === null ? t("presence.group.outMixed") : t("presence.status.out", { target });
-    case "none":
-      return t("presence.group.none");
-    case "edunex":
-      return t("presence.group.edunex");
-    case "spare":
-      return t("presence.group.spare");
-    case "unknown":
-      return t("presence.budget.unknown");
-    case "missed":
-      return target === null ? t("presence.group.missedMixed") : t("presence.budget.missed", { target });
-    case "met":
-      return target === null ? t("presence.group.metMixed") : t("presence.group.met", { target });
-    case "courses":
-      return t("presence.courses");
-  }
 }
 
 /** "Kam 15 Okt" / "Thu 15 Oct". */

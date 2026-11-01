@@ -2,7 +2,7 @@
 // default first, then every course with its own stepper, an "Own target" tag and the way back to
 // the default. `focus`: the course a row's "Ubah target" opened it for. That course comes first,
 // tinted, and the default goes last, so it isn't the first thing in reach when the Student meant one
-// course. Changing a target is a setting: it never sends an alert.
+// course. Changing a target is a setting: it never sends an alert. On v4's white sheet, its title in the display face.
 import type { ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
@@ -25,6 +25,7 @@ export function TargetsSheet({
   focus: string | null;
 }) {
   const t = useT();
+  const v = useTheme().v4;
   const { target, own, setDefault, setOwn } = useTargets();
   const chosen = focus ? courses.find((course) => course.code === focus) : undefined;
   const ordered = chosen ? [chosen, ...courses.filter((course) => course !== chosen)] : courses;
@@ -71,7 +72,17 @@ export function TargetsSheet({
     ...(chosen ? [everyCourse] : []),
   ];
   return (
-    <Sheet open={open} onClose={onClose} title={t("settings.attendance.target")} testID="sheet.targets">
+    <Sheet
+      open={open}
+      onClose={onClose}
+      background={v.card}
+      title={
+        <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={{ color: v.fg }}>
+          {t("settings.attendance.target")}
+        </Text>
+      }
+      testID="sheet.targets"
+    >
       <Text size="small" tone="muted">
         {t("presence.target.contract")}
       </Text>

@@ -9,7 +9,7 @@
 // the day in time order, each row opening its sheet, and the way to its week.
 import type { ReactNode } from "react";
 import { Pressable, View } from "react-native";
-import { type Format, type Translate, useFormat, useT } from "../../../../src/app/i18n";
+import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { CalendarEvent } from "../../../../src/core/models";
 import { dayNoon, isEmptyDay, type MonthGrid, type ScheduleDay } from "../../../../src/core/schedule";
@@ -22,8 +22,8 @@ import { factsLabel, List } from "../../ui/layout";
 import { Text, type TextTone } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import type { Picked } from "./details";
-import { rowKey } from "./week";
-import { handInLabel, periodName, type ScheduleWorld, timeRange, useWorld } from "./world";
+import { rowKey } from "./rows";
+import { handInLabel, periodName, timeRange, useWorld } from "./world";
 
 /** ITB's periods tinted behind their days; single days (the term's first and last lecture day) get a line instead. */
 const TINTED = new Set(["uts", "uas", "holiday", "drs", "urs"]);
@@ -99,7 +99,8 @@ export function MonthView({
   const f = useFormat();
   const theme = useTheme();
   const world = useWorld();
-  const today = wibDay(world.now);
+  const now = useNow();
+  const today = wibDay(now);
   const tinted = periods.filter((e) => TINTED.has(e.kind));
   const weeks = month.weeks.map((week) => week.map((day) => plan.find((d) => d.day === day)!));
   const picked = plan.find((d) => d.day === chosen) ?? null;
@@ -121,12 +122,12 @@ export function MonthView({
               const inMonth = day.day.startsWith(month.month);
               const period = tinted.find((e) => e.firstDay <= day.day && day.day <= e.lastDay) ?? null;
               const codes = inMonth ? codesOf(day) : [];
-              const marks = inMonth ? cellMarks(day, theme, world.now) : [];
+              const marks = inMonth ? cellMarks(day, theme, now) : [];
               const clashes = inMonth ? clashesOf(day, t, f) : [];
               // Said in full, as the desktop's cell says it to a screen reader.
               const summary = inMonth
                 ? [
-                    ...monthLines(day, t, f, world).map((l) => l.full ?? l.text),
+                    ...monthLines(day, t, f, now).map((l) => l.full ?? l.text),
                     ...clashes.map((c) => c.full),
                     routineCount(day, t),
                     period ? periodName(t, period) : null,
@@ -227,7 +228,7 @@ interface Line {
  * its cells name them to a screen reader): classes the app couldn't read, ITB's marked days, exams,
  * hand-in windows, deadlines, moves, extras, meetings only Edunex announced.
  */
-function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ScheduleWorld): Line[] {
+function monthLines(day: ScheduleDay, t: Translate, f: Format, now: number): Line[] {
   const lines: Line[] = [];
   const time = (ms: number) => f.time(ms);
   if (day.unread.length)
@@ -253,7 +254,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ScheduleWo
     });
   }
   for (const window of day.windows) {
-    const done = window.presence.recorded?.present || (window.task !== null && taskStatus(window.task, world.now) === "submitted");
+    const done = window.presence.recorded?.present || (window.task !== null && taskStatus(window.task, now) === "submitted");
     lines.push({
       key: `w${window.presence.id}`,
       icon: (c) => (done ? <Icons.CheckCircle size={14} color={c} weight="bold" /> : <Icons.Upload size={14} color={c} weight="bold" />),
@@ -341,7 +342,8 @@ function DayPanel({
   const f = useFormat();
   const theme = useTheme();
   const world = useWorld();
-  const lines = monthLines(day, t, f, world);
+  const now = useNow();
+  const lines = monthLines(day, t, f, now);
   const routine = routineCount(day, t);
   const clashes = clashesOf(day, t, f);
   const timed = [

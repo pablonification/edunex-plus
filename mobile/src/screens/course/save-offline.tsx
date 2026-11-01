@@ -14,7 +14,6 @@ import { type SaveProgress, saveProgress } from "../../host/save-offline";
 import { toast } from "../../swaps/overlays";
 import { ProgressBar } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { Notice } from "../../ui/layout";
 import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -75,22 +74,29 @@ export function useSaveOfflineChoice(page: CoursePage): SheetChoice | null {
   };
 }
 
-/** While the course's files are being saved: how far it has got. It keeps going if the Student leaves the page. */
+/**
+ * While the course's files are being saved: how far it has got, on a white card (v4) with its bar. It keeps going if
+ * the Student leaves the page, and the toast says how it ended.
+ */
 export function SaveOfflineProgress({ code }: { code: string }) {
   const t = useT();
+  const v = useTheme().v4;
   const progress = useSaveProgress(code);
   if (!progress) return null;
   const label = t("mobile.offline.saving", { count: progress.total, done: progress.done, total: progress.total });
   return (
-    <View style={{ marginTop: space[4] }}>
-      <Notice tone="info" title={label} testID="notice.course.saveOffline">
-        <View style={{ gap: space[2], paddingTop: space[1] }}>
-          <ProgressBar value={progress.total ? progress.done / progress.total : 0} label={label} />
-          <Text size="small" tone="muted">
-            {t("mobile.offline.savingHint")}
-          </Text>
-        </View>
-      </Notice>
+    <View
+      testID="notice.course.saveOffline"
+      accessibilityLiveRegion="polite"
+      style={{ marginTop: space[3], backgroundColor: v.card, borderRadius: 20, padding: space[4], gap: space[3] }}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+        <Icons.FolderDown size={20} color={v.muted} />
+        <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg, flex: 1 }}>
+          {label}
+        </Text>
+      </View>
+      <ProgressBar value={progress.total ? progress.done / progress.total : 0} label={label} />
     </View>
   );
 }
