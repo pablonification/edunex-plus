@@ -1,32 +1,37 @@
-// Akademik (the tab that replaced Lainnya): where the Student's studies stand at a glance, then what
-// to take care of this term, then every academic screen as a row that answers its own question.
-// 1. One leading card: the IPK big, SKS passed beside it (the whole card opens Nilai; the avatar in the
-//    top bar is the way to the account and Settings, so the card isn't a second one).
-// 2. To-do chips, only while there's something to do (send the KRS, pay UKT, fill in the questionnaire
-//    SIX hides grades behind), each opening its screen.
-// 3. Nilai and Rencana studi's parts (Rencana, Kurikulum, KRS, UKT, Kalender akademik), each a stack
-//    screen, each row with one line of its own state. The screens' content lives in their own files.
-import { memo, type ReactNode, useEffect, useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+// Akademik (round 2, v4; the tab that replaced Lainnya): in three seconds, the IPK and what to do this term.
+// 1. One leading card: the IPK and SKS passed as big numbers that count up once, the name and NIM a quiet line over
+//    them. The whole card is one target that opens Nilai (the avatar in the bar is the way to the account and Settings).
+// 2. To-do chips, only while something's due (send the KRS, pay UKT, fill in the questionnaire SIX hides grades
+//    behind), each opening its screen. Nothing due: nothing shown.
+// 3. Nilai and Rencana studi's parts (Rencana, Kurikulum, KRS, UKT, Kalender akademik) as rows in one card, each with
+//    the one line that answers it and at most one status pill. The screens' content lives in their own files.
+// Before SIX's first read, the card and the rows' lines stand in their own shape; never a spinner.
+import { memo, useEffect, useMemo, useState } from "react";
+import { View } from "react-native";
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
 import { displayName } from "../../../../src/app/names";
-import { type Badge as BadgeValue, usePlanTabBadges } from "../../../../src/app/shell/badges";
+import { usePlanTabBadges } from "../../../../src/app/shell/badges";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import { billUrgency, krsOverlaps, krsStage } from "../../../../src/core/academic";
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
-import { SixEmptyState } from "../../shell/source-status";
-import { Badge, Card, Skeleton } from "../../ui/display";
+import { useSignIn } from "../../shell/source-status";
+import { BigButton } from "../../ui/big-button";
+import { Skeleton } from "../../ui/display";
+import { Rise } from "../../ui/expressive";
+import { Figure, FigureLabel, Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
-import { factsLabel, List, Row, Section } from "../../ui/layout";
-import { Text, type TextTone } from "../../ui/text";
-import { shape, space, TOUCH, useTheme } from "../../ui/theme";
+import { factsLabel } from "../../ui/layout";
+import { PressScale } from "../../ui/press";
+import { Text } from "../../ui/text";
+import { font, space, TOUCH, useTheme } from "../../ui/theme";
 import { shownIndex } from "../grades/transcript";
 
 type IconKind = (typeof Icons)[keyof typeof Icons];
+type MetaTone = "muted" | "red" | "amber" | "ok";
 
 const PART_ICON: Readonly<Record<PlanTab, IconKind>> = {
   planner: Icons.Route,
@@ -37,46 +42,51 @@ const PART_ICON: Readonly<Record<PlanTab, IconKind>> = {
 };
 
 /** What a to-do chip says, for a part whose badge is a warning (something the Student has to do now). */
-const TODO: Partial<Record<PlanTab, "mobile.academic.todo.krs" | "mobile.academic.todo.bills" | "mobile.academic.todo.deadlines">> = {
-  krs: "mobile.academic.todo.krs",
-  bills: "mobile.academic.todo.bills",
-  deadlines: "mobile.academic.todo.deadlines",
-};
+const TODO: Partial<Record<PlanTab, { key: "mobile.academic.todo.krs" | "mobile.academic.todo.bills" | "mobile.academic.todo.deadlines"; icon: IconKind }>> =
+  {
+    krs: { key: "mobile.academic.todo.krs", icon: Icons.CalendarCheck },
+    bills: { key: "mobile.academic.todo.bills", icon: Icons.Wallet },
+    deadlines: { key: "mobile.academic.todo.deadlines", icon: Icons.PenLine },
+  };
+
+/** A source's first read is still running: what it brings stands in its shape until it's here. */
+function useFirstRead(source: "six" | "itb"): boolean {
+  const status = useStatus(source);
+  return status.state === "connecting" || (status.state === "live" && status.updatedAt === null);
+}
 
 export function AcademicContent() {
-  const t = useT();
   const badges = usePlanTabBadges();
   const record = useStudentRecord();
-  const theme = useTheme();
   const six = useStatus("six");
   const student = useDataset("six.student");
   const todos = builtPlanTabs.filter((part) => TODO[part] && badges[part]?.tone === "warning");
   return (
-    <View style={{ gap: space[6] }}>
-      {record?.transcript ? (
-        <Standing record={record} />
-      ) : student || six.state === "connecting" || six.state === "live" ? (
-        <StandingSkeleton />
-      ) : (
-        <SixEmptyState icon={<Icons.GraduationCap size={24} color={theme.color.onSecondaryContainer} />} title={t("mobile.academic.noIpk")} />
+    <View style={{ gap: space[4] }}>
+      <Rise screen="academic" index={0}>
+        {record?.transcript ? (
+          <Standing record={record} />
+        ) : student || six.state === "connecting" || six.state === "live" ? (
+          <StandingSkeleton />
+        ) : (
+          <ConnectSix />
+        )}
+      </Rise>
+      {todos.length > 0 && (
+        <Rise screen="academic" index={1}>
+          <Todos parts={todos} />
+        </Rise>
       )}
-      {todos.length > 0 && <Todos parts={todos} />}
-      <Section title={t("mobile.academic.screens")} first>
-        <List>
-          <ScreenRow icon={Icons.ClipboardCheck} title={t("nav.grades")} meta={<GradesMeta record={record} />} route="grades" testID="row.nav.grades" />
-          {builtPlanTabs.map((part) => (
-            <ScreenRow
-              key={part}
-              icon={PART_ICON[part]}
-              title={t(`plan.tab.${part}`)}
-              meta={<PartMeta part={part} record={record} />}
-              badge={badges[part]}
-              route={part}
-              testID={`row.nav.plan.${part}`}
-            />
-          ))}
-        </List>
-      </Section>
+      <Rise screen="academic" index={2} style={{ marginTop: space[2] }}>
+        <Group testID="section.academic.screens">
+          <GradesRow record={record} />
+          <PlannerRow record={record} />
+          <CurriculumRow record={record} />
+          <KrsRow />
+          <BillsRow />
+          <DeadlinesRow />
+        </Group>
+      </Rise>
     </View>
   );
 }
@@ -87,8 +97,9 @@ export function AcademicContent() {
 const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
   const t = useT();
   const f = useFormat();
+  const lang = useLang();
   const nav = useNav();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
   const name = account?.name ?? student?.name;
@@ -96,168 +107,176 @@ const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
   const ipkText = ipk === null ? "-" : f.number(ipk, 2);
   const sks = passedSks(record);
   const sksText = sks === null ? "-" : String(sks);
+  const of = t("mobile.academic.sksOf", { need: record.graduationSks });
   const who = factsLabel(name ? displayName(name) : null, account?.nim ?? student?.nim);
   return (
-    <Card variant="raised" testID="card.profile">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={factsLabel(
-          `${t("grades.chart.ipk")} ${ipkText}`,
-          `${t("grades.sksPassed")} ${sksText} ${t("mobile.academic.sksOf", { need: record.graduationSks })}`,
-          who,
-        )}
-        accessibilityHint={t("mobile.academic.openGrades")}
+    // The card's ID for the flows (W12 taps it), the press's for what it does.
+    <View testID="card.profile">
+      <Panel
         onPress={() => nav.go({ screen: "grades" })}
-        android_ripple={{ color: theme.color.selected }}
-        style={{ padding: space[4], gap: space[3] }}
+        accessibilityLabel={factsLabel(`${t("grades.chart.ipk")} ${ipkText}`, `${t("grades.sksPassed")} ${sksText} ${of}`, who)}
+        accessibilityHint={t("mobile.academic.openGrades")}
         testID="action.academic.grades"
+        style={{ padding: space[5], gap: space[3] }}
       >
         {who ? (
-          <Text size="bodyMedium" tone="muted" numberOfLines={2}>
+          <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
             {who}
           </Text>
         ) : null}
         {/* Side by side while they fit; at a big font size the SKS goes under the IPK. */}
         <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[8], rowGap: space[3] }}>
           <View>
-            <Text size="labelLarge" tone="muted">
-              {t("grades.chart.ipk")}
-            </Text>
-            <Text size="displaySmall" weight="semibold" tabular>
-              {ipkText}
-            </Text>
+            <FigureLabel>{t("grades.chart.ipk")}</FigureLabel>
+            {ipk === null ? <Dash size={44} /> : <Figure id="academic.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
           </View>
           <View>
-            <Text size="labelLarge" tone="muted">
-              {t("grades.sksPassed")}
-            </Text>
-            <Text size="headlineMedium" weight="semibold" tabular>
-              {sksText}
-              <Text size="bodyLarge" tone="muted" tabular>
-                {` ${t("mobile.academic.sksOf", { need: record.graduationSks })}`}
-              </Text>
-            </Text>
+            <FigureLabel>{t("grades.sksPassed")}</FigureLabel>
+            {sks === null ? <Dash size={32} /> : <Figure id="academic.sks" value={sks} unit={of} size={32} />}
           </View>
         </View>
-      </Pressable>
-    </Card>
+      </Panel>
+    </View>
   );
 });
+
+/** A figure with nothing to count: "-" in the figure's face and size. */
+function Dash({ size }: { size: number }) {
+  const v = useTheme().v4;
+  return <Text style={{ fontFamily: font.display.extrabold, fontSize: size, lineHeight: Math.round(size * 1.15), color: v.fg }}>-</Text>;
+}
 
 /** The card's shape while SIX's record is on its way. */
 function StandingSkeleton() {
   return (
-    <Card variant="raised" style={{ padding: space[4], gap: space[3] }}>
+    <Panel accessibilityState={{ busy: true }} testID="academic.loading" style={{ padding: space[5], gap: space[3] }}>
       <Skeleton width="55%" height={14} />
       <View style={{ flexDirection: "row", gap: space[8] }}>
         <View style={{ gap: space[2] }}>
-          <Skeleton width={40} height={14} />
-          <Skeleton width={96} height={40} />
+          <Skeleton width={32} height={14} />
+          <Skeleton width={104} height={44} />
         </View>
         <View style={{ gap: space[2] }}>
           <Skeleton width={64} height={14} />
-          <Skeleton width={96} height={32} />
+          <Skeleton width={112} height={32} />
         </View>
       </View>
-    </Card>
+    </Panel>
+  );
+}
+
+/** No SIX to read the IPK from: where it will show, and the way to connect while SIX isn't signed in. */
+function ConnectSix() {
+  const t = useT();
+  const v = useTheme().v4;
+  const status = useStatus("six");
+  const { signIn, busy } = useSignIn();
+  return (
+    <Panel style={{ padding: space[5], gap: space[4] }} testID="academic.noSix">
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+        <IconTile icon={(color) => <Icons.GraduationCap size={24} color={color} />} />
+        <Text size="bodyLarge" style={{ color: v.fg, flex: 1 }}>
+          {t("mobile.academic.noIpk")}
+        </Text>
+      </View>
+      {status.state === "signed-out" && (
+        // Quiet: the outline one, so the empty card doesn't shout. Disabled while the sign-in page is open.
+        <BigButton variant="outline" onPress={busy ? undefined : () => void signIn("six")} testID="action.academic.signIn">
+          {t("action.signInTo", { source: "SIX" })}
+        </BigButton>
+      )}
+    </Panel>
   );
 }
 
 // ------------------------------------------------------------ to do
 
-/** What to take care of this term, as assist chips: each opens its screen. */
+/** What to take care of this term, as tonal chips: each opens its screen. */
 function Todos({ parts }: { parts: readonly PlanTab[] }) {
   const t = useT();
   const nav = useNav();
-  const theme = useTheme();
-  const c = theme.color;
+  const v = useTheme().v4;
   return (
-    <View style={{ gap: space[2] }} testID="section.academic.todo">
-      <Text size="titleSmall" tone="muted" accessibilityRole="header">
-        {t("mobile.academic.todo")}
-      </Text>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
-        {parts.map((part) => {
-          const Icon = part === "krs" ? Icons.CalendarCheck : part === "bills" ? Icons.Wallet : Icons.ClipboardCheck;
-          return (
-            <Pressable
-              key={part}
-              accessibilityRole="button"
-              onPress={() => nav.go({ screen: "plan", tab: part })}
-              hitSlop={{ top: (TOUCH - 32) / 2, bottom: (TOUCH - 32) / 2 }}
-              android_ripple={{ color: c.selected }}
-              testID={`action.todo.${part}`}
-              style={{
-                height: 32,
-                flexDirection: "row",
-                alignItems: "center",
-                gap: space[2],
-                paddingLeft: space[2],
-                paddingRight: space[4],
-                borderRadius: shape.sm,
-                overflow: "hidden",
-                backgroundColor: c.warningBg,
-              }}
-            >
-              <Icon size={18} color={c.warningFg} />
-              <Text size="labelLarge" tone="warning">
-                {t(TODO[part]!)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
+    <View accessibilityLabel={t("mobile.academic.todo")} style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }} testID="section.academic.todo">
+      {parts.map((part) => {
+        const { key, icon: Icon } = TODO[part]!;
+        return (
+          <PressScale
+            key={part}
+            onPress={() => nav.go({ screen: "plan", tab: part })}
+            testID={`action.todo.${part}`}
+            style={{
+              minHeight: TOUCH,
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space[2],
+              paddingLeft: space[3.5],
+              paddingRight: space[4],
+              borderRadius: TOUCH / 2,
+              backgroundColor: v.ambBg,
+            }}
+          >
+            <Icon size={20} color={v.ambFg} />
+            <Text size="labelLarge" weight="semibold" style={{ color: v.ambFg }}>
+              {t(key)}
+            </Text>
+          </PressScale>
+        );
+      })}
     </View>
   );
 }
 
 // ------------------------------------------------------------ the screens
 
+/** A screen's row: its tile, its name, the one line that answers it (or that line's shape while SIX reads), one pill. */
 function ScreenRow({
   icon: Icon,
   title,
   meta,
-  badge,
+  tone = "muted",
+  pill,
   route,
+  first = false,
   testID,
 }: {
   icon: IconKind;
   title: string;
-  meta: ReactNode;
-  badge?: BadgeValue;
+  /** The line; `"pending"` while what it says is still on its way. */
+  meta: string | null | "pending";
+  tone?: MetaTone;
+  pill?: { tone: PillTone; text: string } | null;
   route: PlanTab | "grades";
+  first?: boolean;
   testID: string;
 }) {
   const nav = useNav();
-  const theme = useTheme();
   return (
-    <Row
-      leading={<Icon size={24} color={theme.color.onSurfaceVariant} />}
+    <GroupRow
+      first={first}
+      leading={<IconTile icon={(color) => <Icon size={22} color={color} />} />}
       title={title}
-      meta={meta}
-      // A clash still to come counts here, quietly; what must be done now is a chip above, and the tab's badge.
-      trailing={badge && badge.tone !== "warning" ? <Badge>{badge.value}</Badge> : undefined}
+      meta={meta === "pending" ? <Skeleton width={128} height={12} style={{ marginTop: space[1] }} /> : meta}
+      metaTone={tone}
+      trailing={pill ? <Pill tone={pill.tone}>{pill.text}</Pill> : undefined}
       onPress={() => nav.go(route === "grades" ? { screen: "grades" } : { screen: "plan", tab: route })}
       testID={testID}
     />
   );
 }
 
-function MetaLine({ text, tone = "muted", icon }: { text: string | null; tone?: TextTone; icon?: ReactNode }) {
-  if (!text) return null;
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
-      {icon}
-      <Text size="bodyMedium" tone={tone} style={{ flexShrink: 1 }}>
-        {text}
-      </Text>
-    </View>
-  );
+/**
+ * What a row says while its data isn't here: its shape during SIX's first read, else nothing. Without SIX the leading
+ * card says so once, with the way to connect (and the banner under the bar when the session ran out), not every row.
+ */
+function useMissingMeta(): null | "pending" {
+  return useFirstRead("six") ? "pending" : null;
 }
 
-function GradesMeta({ record }: { record: StudentRecord | undefined }) {
+function GradesRow({ record }: { record: StudentRecord | undefined }) {
   const t = useT();
   const f = useFormat();
+  const missing = useMissingMeta();
   const text = useMemo(() => {
     if (!record?.transcript) return null;
     const ipk = shownIndex(record.transcript.ipk);
@@ -268,42 +287,26 @@ function GradesMeta({ record }: { record: StudentRecord | undefined }) {
       ? t("mobile.academic.meta.gradesIpk", { ipk: f.number(ipk, 2) })
       : t("mobile.academic.meta.grades", { ipk: f.number(ipk, 2), ip: f.number(ip, 2) });
   }, [record, t, f]);
-  return <MetaLine text={text} />;
-}
-
-function PartMeta({ part, record }: { part: PlanTab; record: StudentRecord | undefined }) {
-  switch (part) {
-    case "planner":
-      return record ? <PlannerMeta record={record} /> : <NeedSixMeta />;
-    case "curriculum":
-      return record ? <CurriculumMeta record={record} /> : <NeedSixMeta />;
-    case "krs":
-      return <KrsMeta />;
-    case "bills":
-      return <BillsMeta />;
-    case "deadlines":
-      return <DeadlinesMeta />;
-  }
-}
-
-function NeedSixMeta() {
-  const t = useT();
-  const six = useStatus("six");
-  return six.state === "signed-out" || six.state === "expired" ? <MetaLine text={t("mobile.academic.meta.needSix")} /> : null;
+  return (
+    <ScreenRow icon={Icons.ClipboardCheck} title={t("nav.grades")} meta={record?.transcript ? text : missing} route="grades" first testID="row.nav.grades" />
+  );
 }
 
 /**
  * When the plan graduates. The plan's projection is the heaviest thing here, so it's worked out once the tab has
- * drawn, never on its first frame.
+ * drawn, never on its first frame; until then the line stands in its shape.
  */
-function PlannerMeta({ record }: { record: StudentRecord }) {
+function PlannerRow({ record }: { record: StudentRecord | undefined }) {
+  const t = useT();
+  const missing = useMissingMeta();
   const [ready, setReady] = useState(false);
   useEffect(() => {
     // When the JS thread is idle (the tab is mounted ahead, at start-up), at the latest after a second.
     const task = requestIdleCallback(() => setReady(true), { timeout: 1000 });
     return () => cancelIdleCallback(task);
   }, []);
-  return ready ? <PlannerFinish record={record} /> : null;
+  if (record && ready) return <PlannerFinish record={record} />;
+  return <PartRow part="planner" meta={record ? "pending" : missing} title={t("plan.tab.planner")} />;
 }
 
 const PlannerFinish = memo(function PlannerFinish({ record }: { record: StudentRecord }) {
@@ -314,30 +317,43 @@ const PlannerFinish = memo(function PlannerFinish({ record }: { record: StudentR
       state ? checkPlan(state.record, state.plan, state.projection).find((rule): rule is Extract<Rule, { id: "finish" }> => rule.id === "finish") : undefined,
     [state],
   );
-  if (!finish) return null;
-  if (finish.blocked) return <MetaLine text={t("mobile.academic.meta.plannerShort")} tone="warning" />;
-  return <MetaLine text={t("mobile.academic.meta.plannerSemester", { n: finish.semester })} />;
+  const title = t("plan.tab.planner");
+  if (!finish) return <PartRow part="planner" meta={null} title={title} />;
+  if (finish.blocked) return <PartRow part="planner" meta={t("mobile.academic.meta.plannerShort")} tone="amber" title={title} />;
+  return <PartRow part="planner" meta={t("mobile.academic.meta.plannerSemester", { n: finish.semester })} title={title} />;
 });
 
-function CurriculumMeta({ record }: { record: StudentRecord }) {
-  const t = useT();
-  const left = record.requiredLeft.length;
-  return (
-    <MetaLine
-      text={factsLabel(
-        t("mobile.academic.meta.curriculum", { passed: passedSks(record) ?? "-", need: record.graduationSks }),
-        left ? t("mobile.academic.meta.curriculumRequired", { count: left }) : null,
-      )}
-    />
-  );
+/** One of Rencana studi's parts as a row: it opens that part's screen. */
+function PartRow({
+  part,
+  title,
+  meta,
+  tone,
+  pill,
+}: {
+  part: PlanTab;
+  title: string;
+  meta: string | null | "pending";
+  tone?: MetaTone;
+  pill?: { tone: PillTone; text: string } | null;
+}) {
+  return <ScreenRow icon={PART_ICON[part]} title={title} meta={meta} tone={tone} pill={pill} route={part} testID={`row.nav.plan.${part}`} />;
 }
 
-function KrsMeta() {
+function CurriculumRow({ record }: { record: StudentRecord | undefined }) {
+  const t = useT();
+  const missing = useMissingMeta();
+  const meta = record ? t("mobile.academic.meta.curriculum", { passed: passedSks(record) ?? "-", need: record.graduationSks }) : missing;
+  return <PartRow part="curriculum" title={t("plan.tab.curriculum")} meta={meta} />;
+}
+
+function KrsRow() {
   const t = useT();
   const now = useNow();
   const plan = useDataset("six.krs");
   const schedule = useDataset("six.schedule");
-  const text = useMemo(() => {
+  const missing = useMissingMeta();
+  const shown = useMemo(() => {
     if (!plan) return null;
     const stage = krsStage(plan);
     const clashes = krsOverlaps(
@@ -346,41 +362,53 @@ function KrsMeta() {
       now,
     ).filter((o) => o.upcoming).length;
     return {
-      text: factsLabel(t(`krs.stage.${stage}`), clashes ? t("mobile.academic.meta.krsClash", { count: clashes }) : null),
-      tone: (stage === "send" || stage === "ukt" || clashes ? "warning" : stage === "done" ? "success" : "muted") as TextTone,
+      text: t(`krs.stage.${stage}`),
+      tone: (stage === "send" || stage === "ukt" ? "amber" : stage === "done" ? "ok" : "muted") as MetaTone,
+      // A clash still to come: worth a question to the lecturer, said as the row's one status.
+      pill: clashes ? { tone: "amber" as const, text: t("mobile.academic.pill.clash", { count: clashes }) } : null,
     };
   }, [plan, schedule, now, t]);
-  if (!plan) return <NeedSixMeta />;
-  return <MetaLine text={text?.text ?? null} tone={text?.tone} />;
+  return <PartRow part="krs" title={t("plan.tab.krs")} meta={shown ? shown.text : missing} tone={shown?.tone} pill={shown?.pill} />;
 }
 
-function BillsMeta() {
+/** UKT: this term's bill (else the last billed) as the row's one pill: paid, the date it's due by, or overdue. */
+function BillsRow() {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const bills = useDataset("six.bills");
   const term = useThisTerm();
-  if (!bills) return <NeedSixMeta />;
+  const missing = useMissingMeta();
+  const title = t("plan.tab.bills");
+  if (!bills) return <PartRow part="bills" title={title} meta={missing} />;
   const billed = bills.filter((b) => b.status !== "not-billed");
   const bill = (term && bills.find((b) => b.term === term)) || billed.at(-1);
-  if (!bill) return null;
+  if (!bill) return <PartRow part="bills" title={title} meta={null} />;
   const urgency = billUrgency(bill, now);
-  if (urgency === "overdue") return <MetaLine text={t("bills.status.overdue")} tone="danger" />;
-  if ((urgency === "soon" || urgency === "due") && bill.nextDueAt !== null)
-    return <MetaLine text={t("mobile.academic.meta.billsDue", { date: f.dayMonth(bill.nextDueAt) })} tone={urgency === "soon" ? "warning" : "muted"} />;
-  return <MetaLine text={t(`bills.status.${bill.status}`)} tone={bill.status === "paid" ? "success" : "muted"} />;
+  const pill: { tone: PillTone; text: string } =
+    urgency === "overdue"
+      ? { tone: "red", text: t("bills.status.overdue") }
+      : (urgency === "soon" || urgency === "due") && bill.nextDueAt !== null
+        ? { tone: urgency === "soon" ? "amber" : "plain", text: t("mobile.academic.pill.billsDue", { date: f.dayMonth(bill.nextDueAt) }) }
+        : { tone: bill.status === "paid" ? "ok" : "plain", text: t(`bills.status.${bill.status}`) };
+  return <PartRow part="bills" title={title} meta={null} pill={pill} />;
 }
 
-function DeadlinesMeta() {
+function DeadlinesRow() {
   const t = useT();
   const f = useFormat();
   const { upcoming } = useDeadlines();
+  const calendar = useDataset("itb.calendar");
+  const reading = useFirstRead("itb");
   const next = upcoming[0];
-  if (!next) return null;
+  const title = t("plan.tab.deadlines");
+  if (!next) return <PartRow part="deadlines" title={title} meta={!calendar && reading ? "pending" : null} />;
   const what = t(`deadline.kind.${next.event.kind}` as Parameters<typeof t>[0]);
   return (
-    <MetaLine
-      text={
+    <PartRow
+      part="deadlines"
+      title={title}
+      meta={
         next.when === "now"
           ? t("mobile.academic.meta.deadlineNow", { what })
           : t("mobile.academic.meta.deadlineNext", { what, date: f.dayMonth(next.event.start) })
