@@ -13,13 +13,14 @@ unset sdk
 export MSYS_NO_PATHCONV=1
 export MAESTRO_CLI_NO_ANALYTICS=1 EXPO_NO_TELEMETRY=1
 # Where outputs go (outside the repository): APKs, measurements, screenshots, recordings, traces. Paths are
-# kept as X:/... (Windows programs and Git Bash both read those). Never C: (2026-11-01: build copies, Gradle homes
-# and Temp filled C:'s 237 GB and took T3 down with every helper): the big drives F: and H: hold it all.
+# kept as X:/... (Windows programs and Git Bash both read those). Outputs are written once and read rarely, so they
+# go on F:, a big but slow spinning disk.
 export QA_OUT=${QA_OUT:-F:/qa}
-# Build copies (one per slot) and each slot's Gradle home.
-export QA_BUILD_ROOT=${QA_BUILD_ROOT:-F:/b}
-# Temp files of builds, emulators and Perfetto go there too.
-mkdir -p "$QA_OUT/tmp" 2> /dev/null && export TEMP="$(cygpath -w "$QA_OUT/tmp")" TMP="$(cygpath -w "$QA_OUT/tmp")" TMPDIR="$QA_OUT/tmp"
+# Build copies (one per slot, deleted once the APK is out) and each slot's Gradle home, and temp files: on C:, the fast
+# disk. On F:, builds and temp crawled and the machine stalled (2026-11-01); C: filled up only when nothing was ever
+# deleted, which build.sh now does, and it refuses to start with C: under 20 GB (qa_check_disk).
+export QA_BUILD_ROOT=${QA_BUILD_ROOT:-C:/b}
+mkdir -p C:/qa/tmp 2> /dev/null && export TEMP='C:\qa\tmp' TMP='C:\qa\tmp' TMPDIR=C:/qa/tmp
 # Gigabytes free on a drive letter: qa_free_gb C
 qa_free_gb() { df -Pk "/${1,,}" 2> /dev/null | awk 'NR == 2 { print int($4 / 1048576) }'; }
 # Stops with a message unless C: has at least 20 GB free (the lab's rule before any build or emulator session).
