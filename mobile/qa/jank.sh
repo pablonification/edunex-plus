@@ -8,7 +8,7 @@
 # `adb shell input swipe` (250 ms each, 0.7 s apart). The swipes are adb's, not Maestro's: Maestro reads
 # the screen between its steps, which costs the phone CPU and would count against the app.
 # Prints janky frames, frame time percentiles and the rate frames came at (framestats, frame to frame);
-# keeps gfxinfo, framestats, logcat and Maestro's output in C:\qa\runs\<time>-jank-<avd>\.
+# keeps gfxinfo, framestats, logcat and Maestro's output in F:\qa\runs\<time>-jank-<avd>\.
 set -euo pipefail
 here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 . "$here/env.sh"

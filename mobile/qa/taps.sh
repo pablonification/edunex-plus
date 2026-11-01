@@ -13,7 +13,7 @@
 #   settled   the last frame of the burst that follows (frames less than 300 ms apart): the new screen
 #             drawn, its transition and data included;
 # with the longest wait between frames inside it (a freeze) and how long the JS thread ran.
-# Prints each step's median over the passes; keeps the traces in C:\qa\runs\<time>-taps-<avd>\
+# Prints each step's median over the passes; keeps the traces in F:\qa\runs\<time>-taps-<avd>\
 # (open one in https://ui.perfetto.dev to see a tap's frames).
 set -euo pipefail
 here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")

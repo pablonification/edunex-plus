@@ -9,7 +9,7 @@ ad() { adb -s "$S" "$@"; }
 # (stdin from nowhere: adb shell would otherwise eat the input of a `while read` loop around it.)
 dsh() { adb -s "$S" shell "$@" < /dev/null; }
 
-# A fresh folder for this run's files: C:/qa/runs/<time>-<what>-<avd>.
+# A fresh folder for this run's files: F:/qa/runs/<time>-<what>-<avd>.
 qa_run_dir() {
   local dir
   dir=$QA_OUT/runs/$(date +%Y%m%d-%H%M%S)-$1-$AVD

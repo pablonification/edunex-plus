@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Every measurement on one emulator, in order, for one APK: cold start, scrolling, taps, the refresh rate
-# and Flashlight. The summaries go together into C:\qa\runs\<time>-all-<avd>.md.
+# and Flashlight. The summaries go together into F:\qa\runs\<time>-all-<avd>.md.
 #
 #   mobile/qa/measure-all.sh <apk> [--quick]
 #
