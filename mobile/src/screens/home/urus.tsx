@@ -2,6 +2,8 @@
 // a big countdown ("7 hari"; hours under a day, minutes under an hour; red and "lewat" once past), with the course's
 // glyph, its kind in a pill and its title. One card, one target: the item itself. The chevron opens the whole list,
 // with what's put off and away, and everything Beranda leaves out (./needs-screen.tsx). Hidden when there's nothing.
+// While the first read runs, the two cards stand in their shape and show once it's in: picked from half the data,
+// they swapped under the Student's eyes (66% and 100% became 73% and 7 hari on the demo's first start).
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { View } from "react-native";
@@ -15,8 +17,10 @@ import { taskPutAway } from "../../../../src/core/done";
 import { heldBack } from "../../../../src/core/held-back";
 import type { NeedDraft } from "../../../../src/core/needs";
 import { activeSnooze, snoozeKey } from "../../../../src/core/snooze";
+import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
 import { IconButton } from "../../ui/controls";
+import { Skeleton } from "../../ui/display";
 import { CountUp, Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
@@ -96,9 +100,10 @@ export function Urus({ needs, due, courses }: { needs: readonly NeedDraft[]; due
       .filter((card): card is UrusCard => card !== null)
       .slice(0, 2);
   }, [needs, due, entries, handled, now, t, courses]);
+  const reading = useSettling();
   // Nothing to handle: the section's cards go, a single quiet line stays as the way to the whole list (what's put off,
   // the date and term, what changed).
-  if (!cards.length)
+  if (!cards.length && !reading)
     return (
       <Rise screen="home" index={2}>
         <PressScale
@@ -135,14 +140,26 @@ export function Urus({ needs, due, courses }: { needs: readonly NeedDraft[]; due
           </IconButton>
         </View>
       </Rise>
-      <View style={{ flexDirection: "row", alignItems: "stretch", gap: 10 }}>
-        {cards.map((card, i) => (
-          <Rise key={card.need.id} screen="home" index={3 + i} style={{ flex: 1 }}>
-            <Card card={card} />
-          </Rise>
-        ))}
-        {cards.length === 1 && <View style={{ flex: 1 }} />}
-      </View>
+      {reading ? (
+        <View testID="section.needs.reading" accessibilityState={{ busy: true }} style={{ flexDirection: "row", gap: 10 }}>
+          {[0, 1].map((i) => (
+            <View key={i} style={{ flex: 1, height: 148, borderRadius: 20, backgroundColor: v.card, padding: space[4], gap: space[3] }}>
+              <Skeleton height={22} width={22} style={{ borderRadius: 7 }} />
+              <Skeleton height={36} width="45%" />
+              <Skeleton height={14} width="80%" />
+            </View>
+          ))}
+        </View>
+      ) : (
+        <View style={{ flexDirection: "row", alignItems: "stretch", gap: 10 }}>
+          {cards.map((card, i) => (
+            <Rise key={card.need.id} screen="home" index={3 + i} style={{ flex: 1 }}>
+              <Card card={card} />
+            </Rise>
+          ))}
+          {cards.length === 1 && <View style={{ flex: 1 }} />}
+        </View>
+      )}
     </View>
   );
 }
