@@ -255,11 +255,7 @@ function DueCard({ task, status, late, soon, course }: { task: Task; status: Tas
         <>
           {away && (
             // "8 hari", "lewat 2 jam": read as the whole sentence.
-            <View
-              accessible
-              accessibilityLabel={`${f.fromNow(task.dueAt)}`}
-              style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" }}
-            >
+            <View accessible accessibilityLabel={`${f.fromNow(task.dueAt)}`} style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" }}>
               {away.late && (
                 <Text size="bodyLarge" face="display" weight="semibold" style={{ color: fg, fontSize: 16, marginRight: 6 }}>
                   {t("mobile.home.late")}
@@ -517,71 +513,71 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
           <SectionTitle title={t("history.title")} />
           <Panel>
             <View style={{ marginLeft: 4, borderLeftWidth: StyleSheet.hairlineWidth * 2, borderLeftColor: v.line, paddingLeft: space[4], gap: space[3] }}>
-            {steps.map((step) => {
-              const afterSubmit = step.kind === "edited" && sentAt !== null && step.at > sentAt;
-              const known = step.kind === "edited" && step.edit && step.edit.changes.length > 0 ? step.edit : null;
-              const isOpen = opened === step.at;
-              const dot =
-                step.kind === "submitted"
-                  ? { backgroundColor: c.live }
-                  : afterSubmit
-                    ? { backgroundColor: c.meterWarning }
-                    : step.at > now && step.kind !== "draft"
-                      ? { backgroundColor: v.card, borderWidth: 1, borderColor: c.faint }
-                      : // The desktop's faint at 60%: seen on the line in light and dark.
-                        { backgroundColor: `${c.faint}99` };
-              return (
-                <View key={`${step.kind}:${step.at}`}>
-                  <View style={[styles.dot, dot, { borderColor: (dot as { borderColor?: string }).borderColor ?? v.card }]} />
-                  {known ? (
-                    <>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{ expanded: isOpen }}
-                        onPress={() => setOpened(isOpen ? null : step.at)}
-                        style={{ flexDirection: "row", alignItems: "flex-start", gap: space[1], minHeight: 44 }}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text size="small" weight="medium">
-                            {t("history.edited")}
-                          </Text>
-                          <Text size="small" tone="faint" tabular>
-                            {f.dueLabel(step.at)}
-                          </Text>
-                        </View>
-                        <View style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }], marginTop: 2 }}>
-                          <Icons.ChevronDown size={14} color={c.faint} />
-                        </View>
-                      </Pressable>
-                      {isOpen && (
-                        <View style={{ paddingTop: space[1.5], gap: space[2] }}>
-                          <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
-                          {afterSubmit && (
-                            <Text size="small" tone="muted">
-                              {t("task.change.whatToDo")}
+              {steps.map((step) => {
+                const afterSubmit = step.kind === "edited" && sentAt !== null && step.at > sentAt;
+                const known = step.kind === "edited" && step.edit && step.edit.changes.length > 0 ? step.edit : null;
+                const isOpen = opened === step.at;
+                const dot =
+                  step.kind === "submitted"
+                    ? { backgroundColor: c.live }
+                    : afterSubmit
+                      ? { backgroundColor: c.meterWarning }
+                      : step.at > now && step.kind !== "draft"
+                        ? { backgroundColor: v.card, borderWidth: 1, borderColor: c.faint }
+                        : // The desktop's faint at 60%: seen on the line in light and dark.
+                          { backgroundColor: `${c.faint}99` };
+                return (
+                  <View key={`${step.kind}:${step.at}`}>
+                    <View style={[styles.dot, dot, { borderColor: (dot as { borderColor?: string }).borderColor ?? v.card }]} />
+                    {known ? (
+                      <>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityState={{ expanded: isOpen }}
+                          onPress={() => setOpened(isOpen ? null : step.at)}
+                          style={{ flexDirection: "row", alignItems: "flex-start", gap: space[1], minHeight: 44 }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text size="small" weight="medium">
+                              {t("history.edited")}
                             </Text>
-                          )}
-                        </View>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Text size="small" weight="medium">
-                        {t(`history.${step.kind}`)}
-                      </Text>
-                      <Text size="small" tone="faint" tabular>
-                        {f.dueLabel(step.at)}
-                      </Text>
-                      {step.kind === "edited" && (
-                        <Text size="small" tone="muted">
-                          {t(step.edit ? "change.none" : "change.unknown")}
+                            <Text size="small" tone="faint" tabular>
+                              {f.dueLabel(step.at)}
+                            </Text>
+                          </View>
+                          <View style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }], marginTop: 2 }}>
+                            <Icons.ChevronDown size={14} color={c.faint} />
+                          </View>
+                        </Pressable>
+                        {isOpen && (
+                          <View style={{ paddingTop: space[1.5], gap: space[2] }}>
+                            <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
+                            {afterSubmit && (
+                              <Text size="small" tone="muted">
+                                {t("task.change.whatToDo")}
+                              </Text>
+                            )}
+                          </View>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Text size="small" weight="medium">
+                          {t(`history.${step.kind}`)}
                         </Text>
-                      )}
-                    </>
-                  )}
-                </View>
-              );
-            })}
+                        <Text size="small" tone="faint" tabular>
+                          {f.dueLabel(step.at)}
+                        </Text>
+                        {step.kind === "edited" && (
+                          <Text size="small" tone="muted">
+                            {t(step.edit ? "change.none" : "change.unknown")}
+                          </Text>
+                        )}
+                      </>
+                    )}
+                  </View>
+                );
+              })}
             </View>
           </Panel>
         </>
