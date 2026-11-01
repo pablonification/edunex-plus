@@ -194,6 +194,11 @@ appId: io.github.pablonification.edunexplus.demo
     file: tab.yaml
     env:
       TAB: academic
+# Akademik's rows draw once its data is in: wait for the first, so the picture and the tap both find it.
+- extendedWaitUntil:
+    visible:
+      id: row.nav.grades
+    timeout: 15000
 - takeScreenshot: ${THEME}-13b-akademik
 - tapOn:
     id: row.nav.grades
