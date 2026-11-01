@@ -215,7 +215,8 @@ const V4 = {
     muted: "#9aa1ae",
     brand: "#a9c4ff",
     onBrand: "#0a2a66",
-    head: "#163f94",
+    // Dark: a deep, desaturated blue rather than Edunex's bright one (Arqila's review); the status bar's strip takes it too.
+    head: "#1a3158",
     onHead: "#ffffff",
     brandTint: "#22355f",
     brandInk: "#b9ceff",

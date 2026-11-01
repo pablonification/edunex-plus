@@ -26,14 +26,17 @@ appId: io.github.pablonification.edunexplus.demo
 - assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
 - assertNotVisible: ".*Dicek tiap 2 menit.*"
 - assertNotVisible: ".*Presensi Edunex juga dibuka.*"
-# The details are one tap away, in the class's sheet.
+# The details are one tap away, in the class's sheet: three rows (when, where, the absences), no sentence about SIX.
 - tapOn:
     id: action.nowClass
 - extendedWaitUntil:
     visible:
       id: sheet.nowClass
     timeout: 10000
-- assertVisible: ".*Tandai Hadir belum muncul.*"
+- assertVisible: ".*Boleh absen.*"
+- assertVisible: ".*Kehadiran 85%.*"
+- assertNotVisible: ".*Tandai Hadir belum muncul.*"
+- assertNotVisible: ".*Setelah ini.*"
 - back
 - scrollUntilVisible:
     element:
