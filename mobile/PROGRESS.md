@@ -133,6 +133,13 @@ motion and onboarding are open. The desktop is a reference for data only.
   outputs stay on F:. It now measures the FAST table on the v4 APK (run 41311251121, app code = the final head), one
   emulator at a time, `mid` then `weak`. Merges and Check A stay on GitHub Actions: final run 41327448485's app group
   failed only judge-dark (Akademik's rows not drawn yet when the walk tapped Nilai: wait added, ad36f23).
+- **2026-11-02 03:30: the desktop stalled a third time,** during the speed helper's third `mid` session: `df -h /c` hung
+  (unkillable by `timeout`), the helper's turn hung 77 minutes. The common thread of all three stalls: the lab used F:,
+  an old laptop hard disk (Seagate ST9750420AS, 750 GB; C: is an ADATA SX8200 NVMe, H: a Seagate ST3320310CS). The
+  lab now keeps everything on C: and checks C: with `fsutil` only (8ec30a8 on `mobile-r2-v4`). `mid`'s numbers are in
+  the FAST table; `weak` and the perf fixes wait for a healthy desktop (or the Mac). Perf fixes to make (queued, not
+  started): loops pause off-screen (`useLoopWhileShown`), `Later` waits for the push transition, hidden tabs render on
+  first visit or idle, Beranda's cards hold still during the first read.
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
@@ -213,7 +220,7 @@ Causes marked "suspected" are read from the code and get proved on a device befo
 | W2 | Updating from SIX/Edunex is slow | Every start runs every feed at once, fresh or not (`Scheduler.start`); SIX's pages go one at a time 2 s apart, so a full read is many pages × 2 s; each saved dataset is hashed with a pure-JS SHA-1 over a sorted JSON copy on Hermes (no JIT) | Saved data first, only feeds that are due run at start (freshness from each dataset's fetchedAt), the rest on their cadence; pull to refresh still reads all; change detection by string compare, no hashing on the JS thread; measure requests and time per sync | `test/engine/start-due-only.test.ts` (3 of 6 failed before 39b9a51): a start 5 min after a full read sends only the sign-in checks (before: 83 Edunex requests, 13 SIX pages = 28 s of SIX's 2 s gaps); `dataset-hash.test.ts`. First-ever sync: 87 + 67 requests, 242 s pretend time (53 are SIX's public catalog at 3.5 s) | fix pushed; time on the lab |
 | W3 | Moving around lags: frame drops, a freeze before a page shows | Suspected: JS-drawn tabs mount each tab on first visit; screens compute everything before the first frame; the engine's sync work (parse, hash, write) on the same JS thread | Native tabs (preloaded), screens that draw their first screenful first, engine work cut and spread out; measured with `[perf]` lines and Perfetto | `[perf] screen/tab` under target on `weak` and `mid` | todo |
 | W4 | Hierarchy: what to look at first isn't clear | Desktop layout: every fact at once, hairline boxes, grey text | Redesign per screen (plans below) | judge 8+/10 per screen; Beranda: flow `round2/w04-home-hierarchy` | Beranda rebuilt in v4 on `mobile-r2-home` (6d3ab0a): the greeting as the one title, the now card, two cards to handle, the classes left; 50 words; w04 fails on 9395cea, passes on 339318a |
-| W5 | Capped at 60 fps on a 90/120 Hz screen | Suspected: the window asks for no frame rate, so phones that keep apps at 60 Hz (Xiaomi, Samsung's adaptive) do | Ask for the display's fastest mode at the same size (`preferredDisplayModeId`) from MainActivity, by a config plugin | `dumpsys display`/SurfaceFlinger + framestats at ~8.3/11.1 ms on `mid` | plugin pushed (f54ca42, seen in prebuild's MainActivity); device proof |
+| W5 | Capped at 60 fps on a 90/120 Hz screen | Suspected: the window asks for no frame rate, so phones that keep apps at 60 Hz (Xiaomi, Samsung's adaptive) do | Ask for the display's fastest mode at the same size (`preferredDisplayModeId`) from MainActivity, by a config plugin | `dumpsys display`/SurfaceFlinger + framestats at ~8.3/11.1 ms on `mid` | **proven on `mid` (v4 b03d55f, 2026-11-02):** the window asks `preferredRefreshRate=120`, `activeMode=120.00 Hz`, renderFrameRate 120, Jadwal scrolls at a median 8.33 ms |
 | W6 | Swipe-back (Android's back gesture) doesn't work | Found by the shell helper: React Native 0.88 hands Back to JS only on Android 16; with predictive back on, 13–15 closed the app from any screen. And a module open inside the course page (BackHandler): the first swipe did nothing, the second left the course | Predictive back on (RN 0.88 registers its OnBackPressedCallback at targetSdk 36), every drill-down a native stack screen, BackHandler only while a sheet or edit is open | flow `w06-back`: the gesture (`input swipe` from the edge) and Back from every pushed screen | fixed (shell, 181ebcd): `plugins/back-to-js.js`; seen on `mid` (Settings → Back → Beranda; module → edge swipe → course → Back → Kuliah); flow to write |
 | W7 | Swiping on items ("needs you") feels weird | iOS-style reveal-a-button swipe with friction 1.6 | Android's way (Gmail): swipe past a threshold commits with a haptic, the row slides out, a snackbar offers Urungkan; long-press menu stays | flow `round2/w07-swipe` | done on `mobile-r2-home` (`ui/swipe.tsx`: commit past 35% with a haptic tick, row slides out and folds, Urungkan; snooze springs back and opens its times; w07 fails on 9395cea, passes on 339318a) |
 | W8 | A sheet's dark overlay slides up with the sheet | `Modal animationType="slide"` moves the scrim with the sheet | Native sheets (react-native-screens formSheet: Material bottom sheet, scrim fades, predictive back) | recording; flow opens and drags each sheet | fixed (shell): scrim fades while the sheet slides (frame at 150 ms), recording on `media-shell` |
@@ -229,15 +236,15 @@ Causes marked "suspected" are read from the code and get proved on a device befo
 
 | Measure | Target | Before (mid / weak) | After (mid / weak) |
 | --- | --- | --- | --- |
-| Tap responds | < 100 ms | 19–58 / 22–52 ms | |
-| Tab switch | < 300 ms | ~505–518 (Tugas first 911) / ~502–524 (Tugas first 1100) ms | shell: 53–80 / 89–109 ms median |
-| Open a screen with its data | < 500 ms | 564–643, Rencana 808, Nilai 900 / 583–773, Rencana 1076, Nilai 1221 ms | shell: course 46, module 17, Nilai 70, Rencana part 96 / 28, 31, 102, 108 ms |
-| Scrolling long lists | full refresh on mid; < 5% janky on weak | 0.75% janky at 60 fps (120 Hz screen) / 1.20% | refresh fix cff308d to prove |
-| Cold start, fresh install → first data | < 2 s on mid | 6.6 / 7.8 s | mid, same machine and hour: shell 981d27f 6.8 s (2 runs) → r2-home 2.1 s (2.7, 2.1, 2.1; the demo's first read draws Beranda first, f204dbd), its whole first read in the background by ~7 s |
-| Cold start with saved data | | 1.09 / 1.57 s | |
+| Tap responds | < 100 ms | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 15–47 ms on every step |
+| Tab switch | < 300 ms | ~505–518 (Tugas first 911) / ~502–524 (Tugas first 1100) ms | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): touch to drawn: first visit 104–160 ms, again 89–149 ms (`[perf] tab` 21–69 ms) |
+| Open a screen with its data | < 500 ms | 564–643, Rencana 808, Nilai 900 / 583–773, Rencana 1076, Nilai 1221 ms | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): class sheet 189, Notifikasi 127, Cari 160, Task 276, exam 167, course 211, module 104 ms; **over: Nilai 602, Rencana 549** (first screenful at ~0.2 s, then `Later`'s parts in 100–190 ms JS chunks during the push animation) |
+| Scrolling long lists | full refresh on mid; < 5% janky on weak | 0.75% janky at 60 fps (120 Hz screen) / 1.20% | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): Tugas, Jadwal, Modul, Nilai 0.00–0.08% janky at **120 fps** (p50 5 ms) on a fresh emulator (the emulator itself slows within a session: `qa/reference.sh` checks) |
+| Cold start, fresh install → first data | < 2 s on mid | 6.6 / 7.8 s | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): median 1.79 s (1.60–2.30; 2 of 5 over 2 s) |
+| Cold start with saved data | | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 1.59 s (1.03–1.74), slower than round 1: a 0.77–0.97 s JS block right after Beranda's first frame (likely the four preloaded tabs rendering at once) |
 | Update from SIX/Edunex | saved data at once, background, only what changed; total time down | a start re-read everything: 83 Edunex + 13 SIX requests (SIX 2 s apart) | due-only start: the sign-in checks only (39b9a51) |
-| JS thread blocked | never > 50 ms in use | 253 / 558 ms after a tap; 639 / 1207 ms in a tabs tour | shell: 254 / 834 ms in the tabs tour (screens' own renders, for the screen helpers); Beranda (weak, quiet machine): the minute's tick 168–182 → 52–110 ms (held rows), a data change 508–530 → 195–562 ms; hidden tabs now let data pass (d9f080c), not yet measured on a quiet machine |
-| Flashlight score | | 99 / 99 | |
+| JS thread blocked | never > 50 ms in use | 253 / 558 ms after a tap; 639 / 1207 ms in a tabs tour | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 0.77–0.97 s after Beranda's first frame on a saved start; 100–233 ms opening Task, Nilai, Rencana, a course; tabs tour worst 208 ms (Kuliah); idle minute on Beranda one 91 ms block. At rest Beranda and Tugas draw 120 fps forever (the wave), Nilai/course/module/Notifikasi/class sheet ~60 fps (loops in hidden screens): fix queued |
+| Flashlight score | | v4 (b03d55f, `mid` only so far; desktop stalled before `weak`): 68 (FPS 59.7, CPU 114%, RenderThread 75.7%) on an emulator that slowed during the run: to retake |
 
 Before = round 1's code (9395cea) on the lab's emulators, release builds (`mobile/qa/BASELINE.md`). Shell numbers on
 981d27f (`mobile/qa/shell-notes.md`).
@@ -677,6 +684,11 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
+- **2026-11-02 03:30: the desktop stalled a third time.** Every stall involved F:, an old laptop hard disk (Seagate
+  ST9750420AS): `df`, `systeminfo` and anything touching it hung, unkillable. Proposed: (1) restart the desktop; (2)
+  check F:'s health (CrystalDiskInfo's SMART: reallocated or pending sectors), and if it's failing, back up and retire
+  it, or at least keep it from being touched (the lab no longer uses F: or H:, 8ec30a8); (3) tell me when it's back, and
+  the speed helper finishes `weak` and the perf fixes, one emulator at a time.
 - **2026-11-01 ~09:30: the desktop's file system stalled.** `df` and `systeminfo` hang (even for C:), adb sees no
   emulator though two run, four Gradle daemons hold ~5 GB, and every T3 helper there froze. Proposed: look at it when
   you can (a disk or driver stall: is F: an internal drive? the lab now writes temp and builds there), and restart
