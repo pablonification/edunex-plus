@@ -24,6 +24,7 @@
 set -euo pipefail
 here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 . "$here/env.sh"
+qa_check_disk
 
 name=${1:-}
 shift || true

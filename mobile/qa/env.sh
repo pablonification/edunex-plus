@@ -12,9 +12,25 @@ unset sdk
 # Scripts pass Windows programs their local paths with `cygpath -m` instead.
 export MSYS_NO_PATHCONV=1
 export MAESTRO_CLI_NO_ANALYTICS=1 EXPO_NO_TELEMETRY=1
-# Where outputs go (outside the repository): APKs, measurements, screenshots, recordings. Paths are
-# kept as C:/... (Windows programs and Git Bash both read those).
-export QA_OUT=${QA_OUT:-C:/qa}
+# Where outputs go (outside the repository): APKs, measurements, screenshots, recordings, traces. Paths are
+# kept as X:/... (Windows programs and Git Bash both read those). Never C: (2026-11-01: build copies, Gradle homes
+# and Temp filled C:'s 237 GB and took T3 down with every helper): the big drives F: and H: hold it all.
+export QA_OUT=${QA_OUT:-F:/qa}
+# Build copies (one per slot) and each slot's Gradle home.
+export QA_BUILD_ROOT=${QA_BUILD_ROOT:-F:/b}
+# Temp files of builds, emulators and Perfetto go there too.
+mkdir -p "$QA_OUT/tmp" 2> /dev/null && export TEMP="$(cygpath -w "$QA_OUT/tmp")" TMP="$(cygpath -w "$QA_OUT/tmp")" TMPDIR="$QA_OUT/tmp"
+# Gigabytes free on a drive letter: qa_free_gb C
+qa_free_gb() { df -Pk "/${1,,}" 2> /dev/null | awk 'NR == 2 { print int($4 / 1048576) }'; }
+# Stops with a message unless C: has at least 20 GB free (the lab's rule before any build or emulator session).
+qa_check_disk() {
+  local free
+  free=$(qa_free_gb C)
+  if [ -z "$free" ] || [ "$free" -lt 20 ]; then
+    echo "C: has ${free:-?} GB free, under the 20 GB the lab needs. Stop and tell the lead; don't build." >&2
+    return 1
+  fi
+}
 # The demo app the measurements are about.
 export QA_APP=${QA_APP:-io.github.pablonification.edunexplus.demo}
 
