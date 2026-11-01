@@ -37,6 +37,7 @@ import {
   type Quick,
   RowNote,
   type RowWorldValue,
+  rowWhen,
   type SignalIcon,
   StatusPill,
   TaskLine,
@@ -144,19 +145,20 @@ export const TaskRow = inWorld(function TaskRow({
     date.rel,
   );
   const code = meta === "course" ? task.courseCode : null;
-  // v4: one meta line (the code, or the kind of a take-home, and when), one status (the countdown, the score, or
-  // "not handed in"); everything else is in the row's spoken name and on the Task's page.
+  // v4: one meta line that fits in full (the code, or the kind of a take-home, and when), one status (the countdown,
+  // the score, or "not handed in"); everything else is in the row's spoken name and on the Task's page.
   const sentAt = submittedAt(task);
   const kind = exam ? t(`exam.kind.${exam.kind}`) : null;
+  const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
   const when =
     sentAt !== null
       ? t("task.submittedOnDate", { date: world.f.dayMonth(sentAt) })
       : task.dueAt === null
         ? t("task.noDeadline")
-        : `${world.f.relativeDay(task.dueAt)}, ${world.f.time(task.dueAt)}`;
+        : // The time only beside the countdown: a late or closed one's status is too wide for both.
+          rowWhen(world.f, task.dueAt, away !== null && !away.late);
   const lead = kind ?? (meta === "module" && task.module ? t("task.module", { n: task.module.index }) : code);
   const line = [lead, when].filter(Boolean).join(" · ");
-  const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
   const statusPill =
     sentAt !== null ? (
       task.score !== null ? (
@@ -182,7 +184,7 @@ export const TaskRow = inWorld(function TaskRow({
         kind={kind ?? t("mobile.home.kind.task")}
         at={task.dueAt}
         title={name}
-        meta={[exam ? task.courseCode : (module ?? task.courseCode), when].filter(Boolean).join(" · ")}
+        meta={`${task.courseCode} · ${when}`}
       />
     );
   return (

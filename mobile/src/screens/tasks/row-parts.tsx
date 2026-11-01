@@ -314,6 +314,16 @@ export function countdown(t: Translate, now: number, at: number): { value: numbe
   return { value, unit, late, tone, text: late ? `${t("mobile.home.late")} ${value} ${unit}` : `${value} ${unit}` };
 }
 
+/**
+ * When, as a row's meta line says it: "Kam 15 Okt, 11:00", "Hari ini, 23:59"; "Kam 15 Okt" alone (`time` false) beside
+ * a wide status ("lewat 12 hari", "Waktu berubah"). Short enough that the kind or code and this fit one line on a
+ * 412 dp phone; the row's spoken name and its page keep the desktop's full date and range.
+ */
+export function rowWhen(f: Format, at: number, time = true): string {
+  const day = Math.abs(f.dayOffset(at)) <= 1 ? f.relativeDay(at) : `${f.weekdayShort(at)} ${f.dayMonth(at)}`;
+  return time ? `${day}, ${f.time(at)}` : day;
+}
+
 /** A row's one status: a pill in its tone, with a sign when it's red (never the colour alone). */
 export function StatusPill({ tone, text, icon }: { tone: PillTone; text: string; icon?: ReactNode }) {
   const v = useTheme().v4;

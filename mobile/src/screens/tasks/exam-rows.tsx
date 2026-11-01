@@ -21,7 +21,7 @@ import { factsLabel } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { useTheme } from "../../ui/theme";
-import { countdown, IconTile, inWorld, type Quick, reportRowProblem, StatusPill, TaskLine, useRowWorld } from "./row-parts";
+import { countdown, IconTile, inWorld, type Quick, reportRowProblem, rowWhen, StatusPill, TaskLine, useRowWorld } from "./row-parts";
 
 /** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
 export function takeHomeWhy(t: Translate, task: Pick<Task, "kind" | "title">): string | null {
@@ -107,8 +107,11 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const code = inCourse ? "" : exam.courseCode;
   const kind = t(`exam.kind.${exam.kind}`);
   const dayTime = (at: number) => `${f.relativeDay(at)}, ${f.time(at)}`;
+  const moved = part?.kind === "window" && part.moved;
+  const disagree = part?.kind === "sitting" && exam.disagree;
 
-  // Every fact goes in the spoken name; the row shows the kind, when (and where), and one status.
+  // Every fact goes in the spoken name; the row shows the kind and when, in one line that fits in full (where it is,
+  // the range and the rest are on the Exam's page), and one status.
   let facts: string[];
   let shown: string[];
   let when: string | null = null;
@@ -117,20 +120,22 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   if (part?.kind === "takehome") {
     facts = [code, t("exam.takeHome"), part.task.title, part.status === "draft" ? t("taskStatus.draft") : ""];
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
-    shown = [`${kind} ${t("exam.takeHome")}`, when];
+    // "UTS Take-home" is long: its day goes without the weekday and the time (the countdown says how near).
+    const day = part.at === null ? t("task.noDeadline") : Math.abs(f.dayOffset(part.at)) <= 1 ? f.relativeDay(part.at) : f.dayMonth(part.at);
+    shown = [`${kind} ${t("exam.takeHome")}`, day];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
     const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dayTimeWord(part.opensAt) });
     facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     when = f.dueLabel(part.at);
-    shown = [kind, t("exam.onEdunex"), when];
+    shown = [kind, rowWhen(f, part.at, !moved)];
     moment = part.at;
   } else if (part?.kind === "sitting") {
     const place = part.source === "six" ? (part.room ?? "") : (part.title ?? "");
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), place];
     when = part.end !== null ? `${f.relativeDay(part.at)}, ${f.timeRange(part.at, part.end)}` : dayTime(part.at);
-    shown = [kind, when, part.source === "six" ? place : t("exam.onEdunex")];
+    shown = [kind, rowWhen(f, part.at, !disagree)];
     if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
     else moment = part.at;
   } else {
@@ -143,8 +148,6 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   // Only a window of known length, open now: a quiz the Student may already have taken on Edunex.
   const window = part?.kind === "window" && part.opensAt !== null && part.open ? part.edunex : null;
   const late = part?.kind === "takehome" && item.late;
-  const moved = part?.kind === "window" && part.moved;
-  const disagree = part?.kind === "sitting" && exam.disagree;
   // A changed or disputed time is the one status worth more than the countdown: the Student checks it before going.
   if (moved || disagree)
     status = (
@@ -268,7 +271,8 @@ function PeriodExam({ exam }: { exam: Exam }) {
       code={exam.courseCode}
       course={name}
       title={name}
-      meta={`${t(`exam.kind.${exam.kind}`)} · ${t("exam.noDate")}`}
+      // Under its period's row, which names the kind.
+      meta={t("exam.noDate")}
     />
   );
 }
@@ -312,6 +316,8 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
     main = exam.week ? f.dayRange(exam.week.firstDay, exam.week.lastDay) : "";
     sub = exam.kind === "UTS" || exam.kind === "UAS" ? t("exam.period", { kind: exam.kind }) : "";
   }
+  // Its day in the meta line, as the rows ahead say it ("Kam 15 Okt"); the time is in its name and on its page.
+  const at = sitting ? sitting.start : (online?.end ?? online?.start ?? null);
   const title = examName(t, exam, name);
   const unmark = async () => {
     const marked = exam.edunex.filter((e) => past.marks.some((m) => m.id === examMarkKey(e).id));
@@ -332,7 +338,7 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
       code={code || null}
       course={name}
       title={name}
-      meta={[t(`exam.kind.${exam.kind}`), main || t("exam.neverAnnounced")].join(" · ")}
+      meta={[t(`exam.kind.${exam.kind}`), at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")].join(" · ")}
       status={
         mark ? (
           <StatusPill tone="ok" icon={<Icons.Check size={13} weight="bold" color={theme.v4.okFg} />} text={t("exam.markedOn", { date: f.dayMonth(mark.at) })} />
