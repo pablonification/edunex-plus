@@ -195,6 +195,7 @@ function DayScroll({
   );
   const target = day.day === today ? minuteOfDay(Date.now()) - 60 : Number.isFinite(first) ? first - 20 : from * 60;
   const y = Math.max(0, ((target - from * 60) / 60) * HOUR);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new day scrolls to its place even when it's the same height as the last
   useEffect(() => {
     scroll.current?.scrollTo({ y, animated: false });
   }, [day.day, y]);

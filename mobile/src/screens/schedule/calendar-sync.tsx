@@ -109,7 +109,7 @@ export function PhoneCalendarSync() {
   const sync = useSyncExternalStore(subscribe, current);
   const { items, key, span } = useCalendarItems();
   useEffect(() => {
-    if (!needsWrite(sync, key)) return;
+    if (!needsWrite({ on: sync.on, busy: sync.busy, problem: sync.problem, written: sync.written }, key)) return;
     // A moment after the change, off the frame that drew it (a sync's own reads come in bursts).
     const timer = setTimeout(() => {
       set({ busy: true, ask: false });
