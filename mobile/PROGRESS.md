@@ -83,6 +83,13 @@ motion and onboarding are open. The desktop is a reference for data only.
   clones removed (a few locked files in `C:\b\r2sched` left). C: 56 GB free. The first build after (slot gradle-1)
   failed with "the paging file is too small": Gradle's heap cut from 6 to 4 GB in `build.sh`. The restart blocker
   goes once a local build succeeds.
+- **08:20: lead's look at Beranda 231e7f3 (CI run 41257852938, Redroid, light and dark):** Arqila's three fixes pass:
+  the class sheet down to time, room and absences plus one button, a deep blue header in dark, the wave readable on
+  its full track. One small fix sent back: "Jatah absen habis" in the sheet in red like Beranda's chip (it was amber).
+  Merge into `mobile` after the helper's Check A and pictures. Jadwal and Kuliah died at 00:31 and 00:34 ("Provider turn
+  failed", not a limit), resumed. Local Gradle builds under five helpers took 24+ minutes and failed (JdkImageTransform
+  in a fresh Gradle home), so GitHub Actions is the helpers' default build now (`v4-rollout.md`, 0d0f470); the desktop
+  keeps its emulators.
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
