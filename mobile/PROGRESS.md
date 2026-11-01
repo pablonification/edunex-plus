@@ -140,6 +140,17 @@ motion and onboarding are open. The desktop is a reference for data only.
   the FAST table; `weak` and the perf fixes wait for a healthy desktop (or the Mac). Perf fixes to make (queued, not
   started): loops pause off-screen (`useLoopWhileShown`), `Later` waits for the push transition, hidden tabs render on
   first visit or idle, Beranda's cards hold still during the first read.
+- **2026-11-02 04:15: perf fixes by the lead on `mobile-r2-perf` (both helper machines down).** 8a8c454: endless loops
+  (wave, now dot, skeleton, spinner) run only while shown (`useLoopWhileShown`: screen focused, app in front, motion
+  allowed), and `Later` waits for the push to end before mounting a screen's lower parts; 9c38f38: Beranda's two Perlu
+  kamu urus cards wait in their shape during the first read (seen on Redroid: placeholders, not 66%/100% swapping to
+  73%/7 hari). Checks green (mobile tsc, biome, test/mobile). **Not solved yet:** on Redroid every tab still draws
+  ~9 fps at rest with nothing visibly moving (Beranda and Tugas ~15), the same before and after 8a8c454, 0 with
+  Remove animations and 0 in the background, low on a pushed screen (Nilai): so a loop on each tab itself runs while
+  invisible, not (only) the hidden tabs' waves. Suspects: the top bar's status spinner (`shell/source-status.tsx`), a
+  skeleton left mounted under drawn content. For the next measuring helper. Also: the class-now card's top line
+  changes during the first read ("Presensi sedang dibuka" → "Sekarang"). The saved-start JS block (four tabs at
+  once) waits for real measuring.
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
