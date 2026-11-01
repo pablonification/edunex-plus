@@ -126,6 +126,13 @@ motion and onboarding are open. The desktop is a reference for data only.
   of all five tabs light and dark from the walk; a 40 s walk recorded on Redroid (`/tmp/mock/v4/out/v4-five-tabs.mp4`).
   Seen on the way: while the demo's first read runs, Beranda's two Perlu kamu urus cards change completely (66%/100%
   → 73%/7 hari): a jump to fix (cards should wait for the read, or hold their place).
+- **2026-11-02 00:20: the desktop is back (Arqila restarted it; a crash had left `.git/refs/remotes/origin/mobile` as 41
+  NUL bytes, deleted by Arqila).** One helper only (`mobile-r2-fast`, Dev 2), its health check first: git fetch and refs
+  clean, C: 53 GB free, memory fine, no leftover daemons, two stale lock files removed. **F: is a slow spinning laptop
+  disk**: the lab's builds and temp moved back to C: (the fast disk; d07759d: `QA_BUILD_ROOT=C:/b`, TEMP `C:\qa\tmp`),
+  outputs stay on F:. It now measures the FAST table on the v4 APK (run 41311251121, app code = the final head), one
+  emulator at a time, `mid` then `weak`. Merges and Check A stay on GitHub Actions: final run 41327448485's app group
+  failed only judge-dark (Akademik's rows not drawn yet when the walk tapped Nilai: wait added, ad36f23).
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
@@ -675,8 +682,6 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
   you can (a disk or driver stall: is F: an internal drive? the lab now writes temp and builds there), and restart
   it. Until then helpers run on the Mac and every device check on GitHub Actions; the desktop isn't needed for the
   roll-out, only for speed numbers later.
-- **2026-11-01: the desktop was restarted by Arqila (Gradle's stuck locks).** To drop once the home helper's first
-  local build after the restart is clean.
 - **Real sign-in can only be proven with a real ITB account.** On Redroid, ITB's real sign-in
   page loads in the app (sso-edunex → login.microsoftonline.com, the address shown beside the
   lock), and the whole flow after it is proven with the demo's made-up sign-in. Proposed: once the
