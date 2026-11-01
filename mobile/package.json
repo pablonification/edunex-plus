@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.3.0",
+    "patch-package": "8.0.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -58,7 +59,8 @@
     "test": "vitest run",
     "doctor": "expo-doctor",
     "demo:fixtures": "node scripts/demo-fixtures.mjs",
-    "licences": "node scripts/third-party-notices.mjs"
+    "licences": "node scripts/third-party-notices.mjs",
+    "postinstall": "patch-package"
   },
   "private": true
 }

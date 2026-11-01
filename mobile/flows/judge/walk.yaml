@@ -16,10 +16,22 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-01-beranda
-# Beranda's lower half as the desktop's picture shows it: today's rows down to the clash at 16:00.
+# Perlu kamu urus, behind Beranda's chevron (round 2's v4): the desktop's Perlu perhatianmu, in full.
+- tapOn:
+    id: action.needs.all
+- extendedWaitUntil:
+    visible:
+      id: screen.needs
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-02b-perlu-kamu-urus
+- tapOn:
+    id: action.back
+# Beranda's lower half as the desktop's picture shows it: today's rows down to the clash at 16:00 (v4's Nanti hari
+# ini, its last row the class at 16:00; the clash itself is in that class's sheet).
 - scrollUntilVisible:
     element:
-      text: "Bentrok dengan PL3032.*"
+      text: "16:00 · .*"
     direction: DOWN
     centerElement: true
     optional: true

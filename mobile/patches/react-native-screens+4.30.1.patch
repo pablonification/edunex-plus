@@ -1,0 +1,31 @@
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetAnimatorFactory.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetAnimatorFactory.kt
+index 0df8749..93ca2cb 100644
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetAnimatorFactory.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetAnimatorFactory.kt
+@@ -4,7 +4,6 @@ import android.animation.Animator
+ import android.animation.AnimatorSet
+ import android.animation.ValueAnimator
+ import android.view.View
+-import androidx.core.animation.doOnStart
+ import com.swmansion.rnscreens.gamma.modals.dimmingview.DimmingViewManager
+ 
+ internal class FormSheetAnimatorFactory(
+@@ -19,6 +18,10 @@ internal class FormSheetAnimatorFactory(
+     ): Animator {
+         val startY = if (isInterrupting) view.translationY else view.height.toFloat()
+         val startAlpha = if (isInterrupting) dimmingManager.dimmingViewAlpha else 0f
++        // Edunex Plus: the sheet starts off-screen here, not in a start listener. With Android's animations off
++        // the children reach their end values inside AnimatorSet.start(), before its start listeners run: a
++        // listener moving the sheet back left it off-screen for good (upstream's fix: software-mansion/react-native-screens#4581).
++        view.translationY = startY
+ 
+         val slideAnimator =
+             ValueAnimator.ofFloat(startY, 0f).apply {
+@@ -37,7 +40,6 @@ internal class FormSheetAnimatorFactory(
+         return AnimatorSet().apply {
+             playTogether(slideAnimator, alphaAnimator)
+             duration = animationDuration
+-            doOnStart { view.translationY = startY }
+         }
+     }
+ 
