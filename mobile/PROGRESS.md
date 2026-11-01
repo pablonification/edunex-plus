@@ -115,6 +115,17 @@ motion and onboarding are open. The desktop is a reference for data only.
   (Kuliah's `v4` prop and Akademik's page colour, both kept), the string lists, DESIGN.md, PROGRESS. Mobile typecheck,
   biome and typechecks pass on pabs; the tests too but for the five known to fail only here. One device run for all:
   41280498964 (with the desktop app's pictures). Per-branch runs cancelled; the stuck `mobile` run from 00:06 too.
+- **2026-11-01 evening: `mobile-r2-v4` nearly green on GitHub Actions.** Run 41311251121 (b03d55f): app, first-run,
+  signed-in, check-in-open, quiz, edit, odd, sick, course-table-changed/-lost/-blank and the score pass; edunex-only
+  (Kalender akademik below the fold without SIX: fixed 39e1716) and timetable-unread (the now card tapped while the
+  page still slid: 463c139) failed once each; the three after-class groups ran past the e2e job's 180 minutes and
+  were cut before keeping results (limit raised to 330, 5d5e970). Real app bugs the flows helper found on the way, all
+  from Android's animations being off (CI's emulator, "Remove animations"): every native sheet stayed off-screen
+  (react-native-screens patch), cards that rise in stayed invisible (4f213e9), a day picked on Jadwal showed blank
+  (2bc62fd); and "Tersimpan" after Simpan draf covered Kumpulkan (54e9531). Final run: 41327448485 (5d5e970). Pictures
+  of all five tabs light and dark from the walk; a 40 s walk recorded on Redroid (`/tmp/mock/v4/out/v4-five-tabs.mp4`).
+  Seen on the way: while the demo's first read runs, Beranda's two Perlu kamu urus cards change completely (66%/100%
+  → 73%/7 hari): a jump to fix (cards should wait for the read, or hold their place).
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
