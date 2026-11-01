@@ -42,12 +42,11 @@ const PART_ICON: Readonly<Record<PlanTab, IconKind>> = {
 };
 
 /** What a to-do chip says, for a part whose badge is a warning (something the Student has to do now). */
-const TODO: Partial<Record<PlanTab, { key: "mobile.academic.todo.krs" | "mobile.academic.todo.bills" | "mobile.academic.todo.deadlines"; icon: IconKind }>> =
-  {
-    krs: { key: "mobile.academic.todo.krs", icon: Icons.CalendarCheck },
-    bills: { key: "mobile.academic.todo.bills", icon: Icons.Wallet },
-    deadlines: { key: "mobile.academic.todo.deadlines", icon: Icons.PenLine },
-  };
+const TODO: Partial<Record<PlanTab, { key: "mobile.academic.todo.krs" | "mobile.academic.todo.bills" | "mobile.academic.todo.deadlines"; icon: IconKind }>> = {
+  krs: { key: "mobile.academic.todo.krs", icon: Icons.CalendarCheck },
+  bills: { key: "mobile.academic.todo.bills", icon: Icons.Wallet },
+  deadlines: { key: "mobile.academic.todo.deadlines", icon: Icons.PenLine },
+};
 
 /** A source's first read is still running: what it brings stands in its shape until it's here. */
 function useFirstRead(source: "six" | "itb"): boolean {
