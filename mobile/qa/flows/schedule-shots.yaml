@@ -1,0 +1,54 @@
+# Pictures of Jadwal (round 2, v4: mobile/report/img/v4/schedule/), through the lab's shots.sh (${THEME}): today with its
+# classes and the now-line, a class's sheet (Beranda's), next week with its exam period, the month, and ⋮.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 120000
+    optional: true
+- tapOn:
+    id: tab.schedule
+- extendedWaitUntil:
+    visible:
+      id: row.class.pl3002-08-00
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: 1-jadwal
+- tapOn:
+    id: row.class.pl3032-15-00
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 5000
+- waitForAnimationToEnd
+- takeScreenshot: 2-sheet-kelas
+- back
+- swipe:
+    from:
+      id: strip.week
+    direction: LEFT
+- waitForAnimationToEnd
+- takeScreenshot: 3-minggu-depan
+- tapOn:
+    id: action.today
+- tapOn:
+    id: action.month
+- extendedWaitUntil:
+    visible:
+      id: screen.month
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 4-bulan
+- back
+- tapOn:
+    id: action.scheduleMenu
+- waitForAnimationToEnd
+- takeScreenshot: 5-menu
+- back
