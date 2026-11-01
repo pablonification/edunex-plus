@@ -366,12 +366,20 @@ const Block = memo(function Block({
             }}
           />
         )}
-        <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 12, paddingVertical: height < 56 ? 6 : 10 }}>
-          <View style={{ paddingTop: 1 }}>
-            <CourseGlyph code={entry.code} name={name} size={22} />
-          </View>
+        <View style={{ flexDirection: "row", gap: of > 1 ? 6 : 10, paddingHorizontal: of > 1 ? 10 : 12, paddingVertical: height < 56 ? 6 : 10 }}>
+          {/* Sharing its hours with another class, the block gives its glyph's room to the name. */}
+          {of === 1 && (
+            <View style={{ paddingTop: 1 }}>
+              <CourseGlyph code={entry.code} name={name} size={22} />
+            </View>
+          )}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="bodyLarge" weight="semibold" numberOfLines={height < 90 ? 1 : 2} style={{ color: v.fg, fontSize: 15, lineHeight: 19 }}>
+            <Text
+              size="bodyLarge"
+              weight="semibold"
+              numberOfLines={height < 90 ? (of > 1 ? 2 : 1) : of > 1 ? 3 : 2}
+              style={{ color: v.fg, fontSize: 15, lineHeight: 19 }}
+            >
               {title}
             </Text>
             {room && height >= 56 && (
