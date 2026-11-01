@@ -14,10 +14,10 @@
     "the lead replaces them with the real steps and sets status to 'ready' as each screen lands.",
     "'scrollTimeout': how long each item's scroll may take on a long screen (default 4000 ms). 'phoneSkips' (top level): the desktop's items the phone leaves out on purpose, by entry id pattern, with the scope row and why: no checks, not counted.",
     "The shared launch is tried twice: over a course's sixty fresh starts, one now and then stuck on its splash.",
-    "presence: Kuliah shows each course as a slim row (round 2); a course's bar, count, next class and exception are on its page, so those entries open it (byEntry), and every other entry comes back to Kuliah first.",
+    "presence: Kuliah shows each course as a slim row (round 2); a course's bar, count, next class and exception are on its page, so those entries open it (byEntry), and every other entry comes back to Kuliah first. The page's attendance card is there only when it has something to say (none without SIX): the page is waited for, the card a moment more.",
     "The demo signs in and reads after the first frame (mobile/src/host/settling.ts): the launch waits for the top bar's status.settling to go before any check.",
-    "schedule (v4): one day at a time under the week strip; next week is a swipe across the strip. A class block shows its short name and room only, so the week's class entries open the class's sheet (Beranda's, sheet.nowClass) where its code, times and full name are, and every other entry closes it first.",
-    "class (v4): a class's sheet is Beranda's (sheet.nowClass); who teaches it and where its attendance counts are on its course page, so those entries go there with Buka mata kuliah, and the entries after come back to the sheet."
+    "schedule (v4): one day at a time under the week strip; next week is a swipe across the strip. A class block shows its short name and room only, so the week's class entries open the class's sheet (Beranda's, sheet.nowClass; a meeting only Edunex announced opens Jadwal's own, sheet.class, as with no SIX) where its code, times and full name are, and every other entry closes it first.",
+    "class (v4): a class's sheet is Beranda's (sheet.nowClass), or Jadwal's own (sheet.class) for a meeting only Edunex announced (edunex-only); who teaches it and where its attendance counts are on its course page, so those entries go there with Buka mata kuliah, and the entries after come back to the sheet."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -1958,7 +1958,7 @@
           "runFlow": {
             "when": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               }
             },
             "commands": ["back"]
@@ -1981,7 +1981,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2020,7 +2020,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2278,7 +2278,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2305,7 +2305,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2316,7 +2316,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2343,7 +2343,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2354,7 +2354,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2381,7 +2381,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2392,7 +2392,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2419,7 +2419,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2430,7 +2430,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2457,7 +2457,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2468,7 +2468,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2495,7 +2495,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2506,7 +2506,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2533,7 +2533,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2544,7 +2544,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2571,7 +2571,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2582,7 +2582,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2609,7 +2609,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2620,7 +2620,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2637,7 +2637,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2654,7 +2654,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2671,7 +2671,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2688,7 +2688,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": ["back"]
@@ -2726,7 +2726,7 @@
         {
           "extendedWaitUntil": {
             "visible": {
-              "id": "sheet.nowClass"
+              "id": "sheet\\.(nowClass|class)"
             },
             "timeout": 5000
           }
@@ -2774,7 +2774,7 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 5000
             }
@@ -2787,7 +2787,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": [
@@ -2813,7 +2813,7 @@
             "runFlow": {
               "when": {
                 "visible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": [
@@ -2852,7 +2852,7 @@
                 {
                   "extendedWaitUntil": {
                     "visible": {
-                      "id": "sheet.nowClass"
+                      "id": "sheet\\.(nowClass|class)"
                     },
                     "timeout": 5000
                   }
@@ -3052,9 +3052,18 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "meter.courseAttendance"
+                "id": "screen.course"
               },
               "timeout": 30000
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 3000,
+              "optional": true
             }
           }
         ],
@@ -3110,9 +3119,18 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "meter.courseAttendance"
+                "id": "screen.course"
               },
               "timeout": 30000
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 3000,
+              "optional": true
             }
           }
         ],
@@ -3168,9 +3186,18 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "meter.courseAttendance"
+                "id": "screen.course"
               },
               "timeout": 30000
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 3000,
+              "optional": true
             }
           }
         ],
@@ -3226,9 +3253,18 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "meter.courseAttendance"
+                "id": "screen.course"
               },
               "timeout": 30000
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 3000,
+              "optional": true
             }
           }
         ],
@@ -3284,9 +3320,18 @@
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "meter.courseAttendance"
+                "id": "screen.course"
               },
               "timeout": 30000
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "meter.courseAttendance"
+              },
+              "timeout": 3000,
+              "optional": true
             }
           }
         ],
