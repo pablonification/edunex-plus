@@ -49,6 +49,9 @@ export const mobileCourseStrings = {
   "mobile.course.ex.clash": { id: "Bentrok dengan {code}", en: "Clashes with {code}" },
   "mobile.course.ex.uncertain": { id: "Kuliah {date} mungkin tak ada", en: "The class on {date} may not run" },
   "mobile.course.ex.lab": { id: "Cek aturan praktikum", en: "Check the lab's rules" },
+  // Tandai Hadir not on SIX yet, or gone again, in a few words (Beranda's words before its sheet dropped them).
+  "mobile.course.ex.waiting": { id: "Tandai Hadir belum muncul", en: "No Tandai Hadir yet" },
+  "mobile.course.ex.gone": { id: "Tandai Hadir tak tampil lagi", en: "Tandai Hadir is gone" },
   // The class on now: when the Edunex Presence closes, and whether it counts.
   "mobile.course.presenceCloses": { id: "Presensi tutup {time}", en: "Presence closes {time}" },
   "mobile.course.optional": { id: "Tidak wajib", en: "Not required" },

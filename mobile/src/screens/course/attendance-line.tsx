@@ -11,54 +11,32 @@ import { firstUnreadDay, isExamActivity, onUsualSlot, type PresenceGroup, percen
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { dayNoon } from "../../../../src/core/schedule";
+import { type AbsenceTone, absenceInk, absenceTone } from "../../ui/absence";
 import { CountUp } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
-import { shape, space, useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 import { StatusChip } from "../../ui/v4-list";
 import { useCardStyle } from "../home/now";
 import { classOf, dayLabel, GONE_FOR, type RowContext, sideText, uncertainText, windowWhen } from "../presence/logic";
 
-export type ChipTone = "danger" | "warning" | "success" | "neutral";
+/** The chip's tone: the app's absence scale (src/ui/absence.ts), grey before SIX has a count. */
+export type BudgetTone = AbsenceTone | "neutral";
 
 /** The chip's few words ("Sisa 1×", "Habis", "Lewat batas 1×"), its tone, and the whole sentence for a screen reader. */
 export function budgetChip(t: ReturnType<typeof useT>, group: PresenceGroup, health: CourseAttendance["health"], context: RowContext) {
   if (context.signedOut) return null;
+  const tone: BudgetTone = absenceTone(health.state) ?? "neutral";
   if (group === "out" || group === "none" || group === "spare" || group === "unknown") {
     const words = budgetWords(t, health, context.soFar);
     if (!words) return null;
-    const tone: ChipTone = words.tone === "danger" ? "danger" : words.tone === "warning" ? "warning" : group === "spare" ? "success" : "neutral";
     return { text: words.bold.charAt(0).toLocaleUpperCase() + words.bold.slice(1), tone, label: budgetLabel(t, health) };
   }
   const text = sideText(t, group, health);
   if (!text) return null;
-  return { text, tone: (group === "missed" ? "danger" : group === "met" ? "success" : "neutral") as ChipTone, label: text };
+  return { text, tone: group === "missed" || group === "met" ? tone : "neutral", label: text };
 }
-
-/** What's left of a course's absences, on a chip of its tone. */
-export function BudgetChip({ chip }: { chip: { text: string; tone: ChipTone } }) {
-  const theme = useTheme();
-  const c = theme.color;
-  const [bg, fg] =
-    chip.tone === "danger"
-      ? [c.dangerBg, c.dangerFg]
-      : chip.tone === "warning"
-        ? [c.warningBg, c.warningFg]
-        : chip.tone === "success"
-          ? [c.successBg, c.successFg]
-          : [c.surfaceContainerHighest, c.onSurfaceVariant];
-  return (
-    <View style={{ borderRadius: shape.sm, backgroundColor: bg, paddingHorizontal: space[2], paddingVertical: 2 }}>
-      <Text size="labelLarge" tabular style={{ color: fg }}>
-        {chip.text}
-      </Text>
-    </View>
-  );
-}
-
-/** The budget chip's tone as v4's status pill. */
-const PILL = { danger: "red", warning: "amber", success: "ok", neutral: "neutral" } as const;
 
 /**
  * The next class, short: "Hari ini, 16:00–17:50 · 9134"; a class the app couldn't read first. One on now isn't said:
@@ -99,7 +77,9 @@ export function AttendanceCard({ item, context, onOpen }: { item: CourseAttendan
       : over
         ? t("presence.row.final", { percent: share })
         : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share });
-  const color = health.state === "out" || health.state === "missed" ? v.redFg : health.state === "none" ? v.ambFg : v.fg;
+  // Red once the target is out of reach, amber with no absences left (src/ui/absence.ts); plain while there are some.
+  const tone = absenceTone(health.state);
+  const color = tone === "red" || tone === "amber" ? absenceInk(v, tone).fg : v.fg;
   const label = [count, share !== null ? t("presence.row.ownTarget", { value: health.target }) : null, chip?.label, next.join(", "), exception?.short]
     .filter(Boolean)
     .join(". ");
@@ -138,7 +118,7 @@ export function AttendanceCard({ item, context, onOpen }: { item: CourseAttendan
             ...(share !== null ? { borderTopWidth: 1, borderTopColor: v.line, paddingTop: space[3] } : {}),
           }}
         >
-          {chip && <StatusChip tone={PILL[chip.tone]}>{chip.text}</StatusChip>}
+          {chip && <StatusChip tone={chip.tone}>{chip.text}</StatusChip>}
           {next.length > 0 && (
             <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg2, flex: 1 }}>
               {next.join(" · ")}
@@ -195,8 +175,8 @@ export function useCourseException(item: CourseAttendance, context: RowContext):
       (s) => s.courseCode === course.code && !isExamActivity(s.activity) && s.start <= now && now < s.end + GONE_FOR && checkIns[s.id]?.state === "gone",
     );
     if (at?.live && at.session && checkingIn(at.session, now) && (checkIns[at.session.id]?.state ?? "waiting") === "waiting")
-      return { kind: "watching", short: t("mobile.home.checkIn.waiting"), text: t("presence.row.watching"), tone: "muted" };
-    if (recent) return { kind: "gone", short: t("mobile.home.checkIn.gone"), text: t("presence.row.gone"), tone: "muted" };
+      return { kind: "watching", short: t("mobile.course.ex.waiting"), text: t("presence.row.watching"), tone: "muted" };
+    if (recent) return { kind: "gone", short: t("mobile.course.ex.gone"), text: t("presence.row.gone"), tone: "muted" };
   }
   // 3. Out of reach or finished below: a count SIX got wrong, or a wrong target, is the way back.
   if ((health.state === "out" || health.state === "missed") && !zone.results.some((r) => r.code === course.code && r.absent))

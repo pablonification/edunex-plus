@@ -8,6 +8,7 @@ import type { CourseAttendance } from "../../../../src/app/attendance";
 import { type Translate, useT } from "../../../../src/app/i18n";
 import { presenceGroup } from "../../../../src/core/attendance";
 import { useSignIn } from "../../shell/source-status";
+import { type AbsenceTone, absenceInk, absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
 import { CountUp } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
@@ -16,7 +17,8 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { useCardStyle } from "../home/now";
 
-type Tone = "red" | "amber" | "ok" | "neutral";
+/** The number's colour: the app's absence scale (src/ui/absence.ts), plain for the term's courses. */
+type Tone = AbsenceTone | "neutral";
 export interface Lead {
   kind: "out" | "missed" | "none" | "spare" | "met" | "courses";
   count: number;
@@ -33,17 +35,17 @@ export function leadOf(t: Translate, courses: readonly CourseAttendance[]): Lead
     const targets = new Set(out.map((c) => c.health.target));
     const count = out.length;
     const words = targets.size === 1 ? t("mobile.kuliah.lead.out", { count, target: [...targets][0]! }) : t("mobile.kuliah.lead.outMixed", { count });
-    return { kind: "out", count, words, tone: "red" };
+    return { kind: "out", count, words, tone: absenceTone(out[0]!.health.state) ?? "neutral" };
   }
-  const order: [Lead["kind"], Tone][] = [
-    ["missed", "red"],
-    ["none", "amber"],
-    ["spare", "ok"],
-    ["met", "ok"],
-  ];
-  for (const [kind, tone] of order) {
-    const count = of(kind).length;
-    if (count) return { kind, count, words: t(`mobile.kuliah.lead.${kind}`, { count }), tone };
+  for (const kind of ["missed", "none", "spare", "met"] as const) {
+    const group = of(kind);
+    if (group.length)
+      return {
+        kind,
+        count: group.length,
+        words: t(`mobile.kuliah.lead.${kind}`, { count: group.length }),
+        tone: absenceTone(group[0]!.health.state) ?? "neutral",
+      };
   }
   return { kind: "courses", count: courses.length, words: t("mobile.kuliah.lead.courses", { count: courses.length }), tone: "neutral" };
 }
@@ -51,7 +53,7 @@ export function leadOf(t: Translate, courses: readonly CourseAttendance[]): Lead
 export function LeadCard({ lead, onPress }: { lead: Lead; onPress: () => void }) {
   const v = useTheme().v4;
   const surface = useCardStyle();
-  const color = lead.tone === "red" ? v.redFg : lead.tone === "amber" ? v.ambFg : lead.tone === "ok" ? v.okFg : v.fg;
+  const color = lead.tone === "neutral" ? v.fg : absenceInk(v, lead.tone).fg;
   return (
     <PressScale
       onPress={onPress}

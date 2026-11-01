@@ -10,12 +10,9 @@ import { useNav } from "../../nav";
 import { openCourseColorPicker } from "../../parts/course-color-picker";
 import { factsLabel } from "../../ui/layout";
 import { CourseTile } from "../../ui/tile";
-import { type ChipTone, StatusChip, TileRow } from "../../ui/v4-list";
-import { type ChipTone as BudgetTone, budgetChip } from "../course/attendance-line";
+import { StatusChip, TileRow } from "../../ui/v4-list";
+import { budgetChip } from "../course/attendance-line";
 import { metaParts, type RowContext } from "./logic";
-
-/** The budget's tone as v4's chip: lost or over in red, none left in amber, to spare in green. */
-const TONE: Record<BudgetTone, ChipTone> = { danger: "red", warning: "amber", success: "ok", neutral: "neutral" };
 
 export function CourseRow({ item, group, context, first }: { item: CourseAttendance; group: PresenceGroup; context: RowContext; first: boolean }) {
   const t = useT();
@@ -32,7 +29,7 @@ export function CourseRow({ item, group, context, first }: { item: CourseAttenda
       leading={<CourseTile code={course.code} name={title} />}
       title={title}
       meta={course.code}
-      status={chip ? <StatusChip tone={TONE[chip.tone]}>{chip.text}</StatusChip> : undefined}
+      status={chip ? <StatusChip tone={chip.tone}>{chip.text}</StatusChip> : undefined}
       // Kuliah is the way into a course: the row opens its page (one target, one outcome).
       onPress={() => go({ screen: "course", code: course.code })}
       // The course's colour, as a long-press (the desktop's right-click on its sidebar row).

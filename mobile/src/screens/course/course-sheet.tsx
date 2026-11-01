@@ -15,6 +15,7 @@ import { type AttendanceHealth, percent } from "../../../../src/core/attendance"
 import { clashes } from "../../../../src/core/course-meetings";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import { TargetStepper, useTargets } from "../../parts/attendance";
+import { absenceInk, absenceTone } from "../../ui/absence";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
@@ -101,9 +102,11 @@ function Fact({
   );
 }
 
-/** The absences: one pip each, used in red, still allowed in the line's grey (v4's pip meter, as the class sheet's). */
+/** The absences: one pip each, used in the absence scale's colour (src/ui/absence.ts), still allowed in the line's grey (v4's pip meter, as the class sheet's). */
 function Pips({ health }: { health: AttendanceHealth }) {
   const v = useTheme().v4;
+  const tone = absenceTone(health.state);
+  const ink = tone ? absenceInk(v, tone).fg : v.muted;
   const used = health.held !== null && health.attended !== null ? Math.max(0, health.held - health.attended) : 0;
   const left = Math.max(0, health.absencesLeft ?? 0);
   const total = Math.min(8, used + left);
@@ -112,7 +115,7 @@ function Pips({ health }: { health: AttendanceHealth }) {
     <View style={{ flexDirection: "row", gap: 4 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {Array.from({ length: total }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: pips are positions, none has an identity of its own
-        <View key={i} style={{ width: 14, height: 8, borderRadius: 4, backgroundColor: i < used ? v.redFg : v.line, opacity: i < used ? 0.8 : 1 }} />
+        <View key={i} style={{ width: 14, height: 8, borderRadius: 4, backgroundColor: i < used ? ink : v.line, opacity: i < used ? 0.8 : 1 }} />
       ))}
     </View>
   );
@@ -147,7 +150,10 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
   const words = budgetWords(t, health, context.soFar);
   const wordsLine = words ? [words.lead, words.bold].filter(Boolean).join(" · ") : "";
   const budgetLine = wordsLine ? wordsLine.charAt(0).toLocaleUpperCase() + wordsLine.slice(1) : "";
-  const wordsColor = words?.tone === "danger" ? v.redFg : words?.tone === "warning" ? v.ambFg : v.muted;
+  // The absence scale, as the chip on the page (src/ui/absence.ts): red out of reach, amber with none left; the budget's
+  // words stay quiet with some to spare.
+  const tone = absenceTone(health.state);
+  const ink = tone === "red" || tone === "amber" ? absenceInk(v, tone).fg : v.muted;
   // How the course's attendance is counted (round 1's line over the Pertemuan tab).
   const noEdunexPresence = page.presence !== undefined && page.presence.length === 0;
   const how = noEdunexPresence
@@ -192,7 +198,7 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
               : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share })}
         </Text>
         {budgetLine !== "" && (
-          <Text size="bodyMedium" weight="medium" tabular style={{ color: wordsColor }} accessibilityLabel={words?.label}>
+          <Text size="bodyMedium" weight="medium" tabular style={{ color: ink }} accessibilityLabel={words?.label}>
             {budgetLine}
           </Text>
         )}
@@ -215,9 +221,9 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
         </Fact>
       )}
       {risk && (
-        <Fact tone={health.state === "out" ? "danger" : "warning"} icon={(c) => <Icons.AlertTriangle size={22} weight="bold" color={c} />}>
+        <Fact tone={tone === "red" ? "danger" : "warning"} icon={(c) => <Icons.AlertTriangle size={22} weight="bold" color={c} />}>
           <View testID="notice.courseRisk" style={{ gap: 2 }}>
-            <Text size="bodyLarge" weight="semibold" style={{ color: health.state === "out" ? v.redFg : v.ambFg }}>
+            <Text size="bodyLarge" weight="semibold" style={{ color: ink }}>
               {verdictLabel(t, health)}
             </Text>
             {riskText !== "" && (
