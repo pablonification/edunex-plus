@@ -73,6 +73,7 @@ function Month() {
           }
         />
       }
+      background={theme.v4.page}
       {...pull}
     >
       {input ? (

@@ -58,13 +58,15 @@ export function todayDrawing(model: WidgetModel, size: WidgetSize): { light: Rea
  * widget's "now" says what to do. What doesn't fit the height is left out, the class on now and the next first.
  */
 function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetSize; theme: Theme }) {
-  const c = theme.color;
+  // v4's look: the card surface, each course in its ink, today's red on the heading, the class on now in the live green.
+  const v = theme.v4;
+  const red = theme.scheme === "dark" ? "#ff6b5e" : "#d93025";
   const today = model.today;
   if (!today)
     return (
-      <Frame theme={theme}>
-        <Text text="Edunex Plus" size="body" color={c.fg} bold />
-        <Text text={model.status.text} size="micro" color={model.status.problem ? c.warningFg : c.faint} />
+      <Frame theme={theme} surface={v.card}>
+        <Text text="Edunex Plus" size="body" color={v.fg} bold />
+        <Text text={model.status.text} size="micro" color={model.status.problem ? v.ambFg : v.muted} />
       </Frame>
     );
   const scale = Math.max(1, size.fontScale);
@@ -80,10 +82,10 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
   }
   const lines = today.classes.filter((one) => shown.includes(one));
   return (
-    <Frame theme={theme}>
+    <Frame theme={theme} surface={v.card}>
       <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: 4 }}>
-        <Text text={today.heading} size="micro" color={c.muted} bold />
-        {today.none ? <Plain line={today.none} color={c.muted} /> : null}
+        <Text text={today.heading} size="micro" color={red} bold />
+        {today.none ? <Plain line={today.none} color={v.muted} /> : null}
         {lines.map((one) => (
           <FlexWidget
             key={`${one.code}${one.time}`}
@@ -91,16 +93,16 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
             accessibilityLabel={[one.time, one.code, one.room].filter(Boolean).join(", ")}
             style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 6 }}
           >
-            <FlexWidget style={{ width: 4, height: 16, borderRadius: 2, backgroundColor: hex(theme.course(one.tone)) }} />
-            <Text text={one.time} size="small" color={one.live ? c.successFg : one.past ? c.faint : c.fg} bold={one.live} />
-            <Text text={[one.code, one.room].filter(Boolean).join(" · ")} size="small" color={one.past ? c.faint : c.fg} bold={!one.past} />
+            <FlexWidget style={{ width: 4, height: 16, borderRadius: 2, backgroundColor: hex(theme.courseTile(one.tone).ink) }} />
+            <Text text={one.time} size="small" color={one.live ? v.okFg : one.past ? v.muted : v.fg} bold={one.live} />
+            <Text text={[one.code, one.room].filter(Boolean).join(" · ")} size="small" color={one.past ? v.muted : v.fg} bold={!one.past} />
           </FlexWidget>
         ))}
       </FlexWidget>
       {today.deadline ? (
         <FlexWidget style={{ width: "match_parent", flexDirection: "column" }} {...tap(today.deadline.open)}>
-          <Text text={today.deadline.label} size="micro" color={c.muted} bold />
-          <Text text={today.deadline.detail ?? ""} size="small" color={c.fg} />
+          <Text text={today.deadline.label} size="micro" color={v.muted} bold />
+          <Text text={today.deadline.detail ?? ""} size="small" color={v.fg} />
         </FlexWidget>
       ) : null}
     </Frame>
@@ -138,7 +140,8 @@ function NowWidget({ model, size, theme }: { model: WidgetModel; size: WidgetSiz
 }
 
 /** The widget's card: the app's surface, its corners, a tap anywhere else opens the app. */
-function Frame({ theme, children }: { theme: Theme; children: React.ReactNode }) {
+/** `surface`: the widget's own background (the Hari ini widget's v4 card); the app's page colour by default. */
+function Frame({ theme, children, surface }: { theme: Theme; children: React.ReactNode; surface?: string }) {
   return (
     <FlexWidget
       clickAction="OPEN_APP"
@@ -149,7 +152,7 @@ function Frame({ theme, children }: { theme: Theme; children: React.ReactNode })
         justifyContent: "space-between",
         padding: PAD,
         borderRadius: 20,
-        backgroundColor: hex(theme.color.surface),
+        backgroundColor: hex(surface ?? theme.color.surface),
       }}
     >
       {children}

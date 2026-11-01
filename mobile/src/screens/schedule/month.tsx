@@ -20,8 +20,8 @@ import { CourseDot, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, List } from "../../ui/layout";
 import { Text, type TextTone } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
-import { rowKey } from "./day";
+import { space, useTheme } from "../../ui/theme";
+import { nowColour, onNowColour, rowKey } from "./day";
 import type { Picked } from "./details";
 import { handInLabel, periodName, timeRange, useWorld } from "./world";
 
@@ -113,11 +113,9 @@ export function MonthView({
           </Text>
         ))}
       </View>
-      <View
-        style={{ borderRadius: radius.xl, borderWidth: 1, borderColor: theme.color.line, overflow: "hidden", backgroundColor: theme.color.surfaceContainerLow }}
-      >
+      <View style={{ borderRadius: 20, overflow: "hidden", backgroundColor: theme.v4.card }}>
         {weeks.map((week, w) => (
-          <View key={week[0]!.day} style={{ flexDirection: "row", borderTopWidth: w > 0 ? 1 : 0, borderTopColor: theme.color.line }}>
+          <View key={week[0]!.day} style={{ flexDirection: "row", borderTopWidth: w > 0 ? 1 : 0, borderTopColor: theme.v4.line }}>
             {week.map((day) => {
               const inMonth = day.day.startsWith(month.month);
               const period = tinted.find((e) => e.firstDay <= day.day && day.day <= e.lastDay) ?? null;
@@ -161,7 +159,8 @@ export function MonthView({
                       borderRadius: 14,
                       alignItems: "center",
                       justifyContent: "center",
-                      backgroundColor: isToday ? theme.color.accent : undefined,
+                      // Today in red, its one meaning (as on Jadwal's strip and its now-line).
+                      backgroundColor: isToday ? nowColour(theme.scheme) : undefined,
                       borderWidth: isPicked && !isToday ? 1.5 : 0,
                       borderColor: theme.color.fg,
                     }}
@@ -170,7 +169,7 @@ export function MonthView({
                       size="small"
                       weight="semibold"
                       tabular
-                      style={{ color: isToday ? theme.color.onAccent : inMonth ? theme.color.fg : theme.color.faint }}
+                      style={{ color: isToday ? onNowColour(theme.scheme) : inMonth ? theme.v4.fg : theme.v4.muted }}
                     >
                       {String(Number(day.day.slice(8)))}
                     </Text>
@@ -186,7 +185,7 @@ export function MonthView({
                     // The routine, then the clash among it, as the desktop's "4 kuliah" over "Bentrok 16:00".
                     <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "center", alignItems: "center", gap: 2, paddingHorizontal: 2 }}>
                       {codes.slice(0, DOTS).map((code) => (
-                        <CourseDot key={code} color={world.color(code)} size={6} />
+                        <View key={code} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: theme.courseTile(world.color(code)).ink }} />
                       ))}
                       {clashes.length > 0 && (
                         <View style={{ marginLeft: 1 }}>
