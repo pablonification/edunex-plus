@@ -1274,6 +1274,26 @@
         ],
         "^courses\\.course\\.": [
           {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
             "tapOn": {
               "id": "tab.courses"
             }
@@ -1919,7 +1939,149 @@
         }
       ],
       "byEntry": {
-        "^presence.attendance.teknik-penyelesaian-masalah-terstruktur|": [
+        "^presence\\.(attendance|note)\\.hari-ini-ada-4": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "action.back",
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "card.kuliahNumber"
+              },
+              "direction": "UP",
+              "timeout": 4000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "card.kuliahNumber"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.kuliahFacts"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
+        "^presence\\.note\\.jum-4-des": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "action.back",
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.courses"
+            }
+          },
+          {
+            "assertVisible": {
+              "id": "screen.courses"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "card.kuliahNumber"
+              },
+              "direction": "UP",
+              "timeout": 4000,
+              "optional": true
+            }
+          },
+          {
+            "tapOn": {
+              "id": "card.kuliahNumber"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.kuliahFacts"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
+        "^presence\\.attendance\\.teknik-penyelesaian-masalah-terstruktur\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "tapOn": {
               "id": "action.back",
@@ -1957,7 +2119,27 @@
             }
           }
         ],
-        "^presence.attendance.komunikasi-pemasaran|": [
+        "^presence\\.attendance\\.komunikasi-pemasaran\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "tapOn": {
               "id": "action.back",
@@ -1995,7 +2177,27 @@
             }
           }
         ],
-        "^presence.attendance.ekonomi-infrastruktur-dan-transportasi|": [
+        "^presence\\.attendance\\.ekonomi-infrastruktur-dan-transportasi\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "tapOn": {
               "id": "action.back",
@@ -2033,7 +2235,27 @@
             }
           }
         ],
-        "^presence.attendance.ekonomi-dan-inovasi-dalam-perencanaan|": [
+        "^presence\\.attendance\\.ekonomi-dan-inovasi-dalam-perencanaan\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "tapOn": {
               "id": "action.back",
@@ -2071,7 +2293,27 @@
             }
           }
         ],
-        "^presence.attendance.proposal-tugas-akhir|": [
+        "^presence\\.attendance\\.proposal-tugas-akhir\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "tapOn": {
               "id": "action.back",
@@ -2109,7 +2351,27 @@
             }
           }
         ],
-        "^presence.": [
+        "^presence\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.kuliahFacts"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.clash"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
           {
             "tapOn": {
               "id": "action.back",
@@ -2615,6 +2877,11 @@
       "entry": "^settings\\.setting\\.22-00",
       "row": "A18",
       "why": "the phone link's quiet hours (Jam tenang), part of the same desktop-only section (A18)"
+    },
+    {
+      "entry": "^presence\\.note\\.tak-bisa-lagi-capai-",
+      "row": "W11",
+      "why": "the out-of-reach group's heading with its count ('Tak bisa lagi capai 80% 1'): Kuliah's rows no longer spend a heading per group, and the same fact leads the screen as the big number, '1' beside 'mata kuliah tak bisa lagi capai 80%' (card.kuliahNumber), each such course's row carrying its 'Lewat batas' chip"
     }
   ]
 }

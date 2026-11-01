@@ -239,7 +239,7 @@ function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boo
           </View>
         }
         title={t("mobile.kuliah.clash.title", { time })}
-        meta={f.list([a.course.code, b.course.code])}
+        meta={`${a.course.code} · ${b.course.code}`}
         status={pick ? <StatusChip tone="brand">{t("mobile.kuliah.clash.pick", { code: pick })}</StatusChip> : undefined}
         onPress={body ? () => setOpen(true) : undefined}
         label={body ? `${whole}. ${body}` : whole}
