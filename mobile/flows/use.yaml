@@ -104,8 +104,10 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 10000
 - takeScreenshot: use-08-class-sheet
 - back
-- tapOn:
-    id: action.nextWeek
+- swipe:
+    from:
+      id: strip.week
+    direction: LEFT
 - extendedWaitUntil:
     visible:
       id: label.place

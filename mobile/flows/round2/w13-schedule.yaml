@@ -63,7 +63,7 @@ name: "w13 the schedule is part of the app"
 - openLink: "edunexplusdemo://schedule?class=2194342"
 - extendedWaitUntil:
     visible:
-      id: sheet.class
+      id: sheet.nowClass
     timeout: 10000
 - assertVisible: "R.SG PWK LT.6"
 - takeScreenshot: w13-4-sheet-from-widget-link

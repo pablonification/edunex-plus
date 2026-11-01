@@ -122,13 +122,10 @@ appId: io.github.pablonification.edunexplus.demo
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-08-jadwal-detail
 - pressKey: back
-- scrollUntilVisible:
-    element:
-      id: action.nextWeek
-    direction: UP
-    optional: true
-- tapOn:
-    id: action.nextWeek
+- swipe:
+    from:
+      id: strip.week
+    direction: LEFT
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-09-jadwal-masa-uts
 - tapOn:

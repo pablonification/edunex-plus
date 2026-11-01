@@ -14,10 +14,10 @@ import { Page } from "../../ui/layout";
 import { useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { useToday } from "./clock";
-import { DetailSheet, type Picked } from "./details";
 import { useAgendaInput } from "./input";
 import { MonthView } from "./month";
 import { showOnSchedule } from "./schedule-screen";
+import { useScheduleSheets } from "./sheets";
 import { ScheduleWorldProvider } from "./world";
 
 export function MonthScreen() {
@@ -43,7 +43,7 @@ function Month() {
   const pull = usePullToRefresh();
   const [offset, setOffset] = useState(0);
   const [chosen, setChosen] = useState<string | null>(null);
-  const [picked, setPicked] = useState<Picked | null>(null);
+  const { open, sheets } = useScheduleSheets();
   const noon = Date.parse(`${today}T12:00:00+07:00`);
   const month = useMemo(() => monthGrid(noon, offset), [noon, offset]);
   const plan = useMemo(() => (input ? scheduleDays(month.weeks.flat(), input) : []), [month, input]);
@@ -73,6 +73,7 @@ function Month() {
           }
         />
       }
+      background={theme.v4.page}
       {...pull}
     >
       {input ? (
@@ -82,7 +83,7 @@ function Month() {
           periods={input.events}
           chosen={day}
           onChoose={setChosen}
-          onPick={setPicked}
+          onPick={open}
           onShowWeek={(week) => {
             showOnSchedule(week);
             router.back();
@@ -91,7 +92,7 @@ function Month() {
       ) : (
         <Skeleton height={320} />
       )}
-      <DetailSheet picked={picked} onClose={() => setPicked(null)} />
+      {sheets}
     </Page>
   );
 }
