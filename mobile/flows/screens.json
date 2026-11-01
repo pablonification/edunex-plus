@@ -16,7 +16,8 @@
     "The shared launch is tried twice: over a course's sixty fresh starts, one now and then stuck on its splash.",
     "presence: Kuliah shows each course as a slim row (round 2); a course's bar, count, next class and exception are on its page, so those entries open it (byEntry), and every other entry comes back to Kuliah first.",
     "The demo signs in and reads after the first frame (mobile/src/host/settling.ts): the launch waits for the top bar's status.settling to go before any check.",
-    "schedule (v4): one day at a time under the week strip; next week is a swipe across the strip. A class block shows its short name and room only, so the week's class entries open the class's sheet (Beranda's, sheet.nowClass) where its code, times and full name are, and every other entry closes it first."
+    "schedule (v4): one day at a time under the week strip; next week is a swipe across the strip. A class block shows its short name and room only, so the week's class entries open the class's sheet (Beranda's, sheet.nowClass) where its code, times and full name are, and every other entry closes it first.",
+    "class (v4): a class's sheet is Beranda's (sheet.nowClass); who teaches it and where its attendance counts are on its course page, so those entries go there with Buka mata kuliah, and the entries after come back to the sheet."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -2272,6 +2273,87 @@
                 "id": "sheet.nowClass"
               },
               "timeout": 5000
+            }
+          }
+        ]
+      },
+      "byEntry": {
+        "^class\\.[^.]+\\.class-session\\.(dr|dra|prof|ir)-": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "action.openCourse"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^class\\.[^.]+\\.class-session\\.kehadiran-dihitung": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.nowClass"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "action.openCourse"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.course"
+              },
+              "timeout": 30000
+            }
+          }
+        ],
+        "^class\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen.course"
+                }
+              },
+              "commands": [
+                "back",
+                {
+                  "tapOn": {
+                    "id": "row.class.{{state}}"
+                  }
+                },
+                {
+                  "extendedWaitUntil": {
+                    "visible": {
+                      "id": "sheet.nowClass"
+                    },
+                    "timeout": 5000
+                  }
+                }
+              ]
             }
           }
         ]
