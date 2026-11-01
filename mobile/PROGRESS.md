@@ -75,6 +75,14 @@ motion and onboarding are open. The desktop is a reference for data only.
   has under 20 GB free; `v4-rollout.md` says so. No helper is relaunched until the cleanup is reported done; then
   each merges `origin/mobile` first (for the new `build.sh`) and resumes from its pushed branch (tasks-academic at
   3f9e2c5; the others had pushed nothing yet).
+- **2026-11-01 ~07:40: cleanup done (C: 1.2 → 40 GB free), five helpers relaunched** on the new disk rules: Claude:
+  home (first: push every local branch holding 8d2de5a, 6c018e4, f8e687d, 0e756d5, then delete `C:\b`), Jadwal;
+  Dev 1: Kuliah, Tugas; Dev 2: Akademik. Each merges `origin/mobile` first for the new `build.sh`.
+- **07:45 housekeeping (home helper):** the four unpushed commits were on local branches: pushed `mobile-r2-akademik`
+  (to a43b4fe) and `mobile-r2-schedule-courses`, plus `rescue-981d27f` (a detached HEAD in `C:\b\shell`); `C:\b`'s
+  clones removed (a few locked files in `C:\b\r2sched` left). C: 56 GB free. The first build after (slot gradle-1)
+  failed with "the paging file is too small": Gradle's heap cut from 6 to 4 GB in `build.sh`. The restart blocker
+  goes once a local build succeeds.
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
@@ -265,7 +273,7 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
     ("Claude Dev 2"), all Opus 5.5. Every desktop launch names its account (`providerInstanceId` / `modelSelection`),
     so no single 5-hour limit stops every helper at once. Switching a running thread's account ends its run: switch
     at a clean point (pushed, locks freed), then send "continue". Now: Claude: home (Beranda), schedule-courses
-    (Jadwal), the judge later; Dev 1: kuliah; Dev 2: akademik, tasks-academic (Tugas).
+    (Jadwal), the judge later; Dev 1: kuliah, tasks-academic (Tugas); Dev 2: akademik.
 22. **Helpers push their own branches from the desktop** (`gh` signed in as pablonification there since ~19:45,
     2026-10-31; before that they could only commit locally). Pictures go on the piece's branch; screen recordings on a
     separate `media-<piece>` branch, never merged, so videos stay out of `mobile`'s history. The desktop's token has no
@@ -297,8 +305,8 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 | home | Beranda, swipe (W7), one target (W12), onboarding (W15), fresh-install speed | `mobile-r2-home` (from `mobile-shell`) | handed back; notes `mobile/qa/home-notes.md` |
 | schedule-courses | Jadwal agenda, class sheet, W13 (reminder's Tandai Hadir, widget today, calendar sync), Kuliah, course + module, W1 on the device, W5 proof | `mobile-r2-schedule-courses` | running |
 | tasks-academic | Tugas, Task, Exam, Akademik and its screens, Settings, Search, Notifikasi, W9 | `mobile-r2-tasks-academic` | running |
-| kuliah | Kuliah, course page, module in v4 (W1 kept) | `mobile-r2-kuliah` (from `mobile-r2-sched-base`) | running (desktop, Claude Dev 1, launched 2026-11-01 ~06:35) |
-| akademik | Akademik and its screens (Nilai, Rencana, Kurikulum, KRS, UKT, Kalender), Settings, Search, Notifikasi in v4 | `mobile-r2-akademik` (from `mobile-r2-tasks-base`) | running (desktop, Claude Dev 2, launched 2026-11-01 ~06:35) |
+| kuliah | Kuliah, course page, module in v4 (W1 kept) | `mobile-r2-kuliah` (from `mobile-r2-sched-base`) | running (desktop, Claude Dev 1; relaunched 07:40 after the C: crash, from e44dcff) |
+| akademik | Akademik and its screens (Nilai, Rencana, Kurikulum, KRS, UKT, Kalender), Settings, Search, Notifikasi in v4 | `mobile-r2-akademik` (from `mobile-r2-tasks-base`) | running (desktop, Claude Dev 2; relaunched 07:40, first pushes its unpushed 8d2de5a) |
 
 ## Round 1 (done 2026-10-31; kept for its decisions and proofs)
 
