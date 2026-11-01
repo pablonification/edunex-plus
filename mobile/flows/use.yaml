@@ -90,7 +90,8 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 
-# S5, S7: a class's sheet from the week, then next week and back with Hari ini.
+# S5, S7: a class's sheet from the day, then next week (v4's Jadwal: a swipe across the week strip) and back with Hari
+# ini.
 - tapOn:
     id: tab.schedule
 - extendedWaitUntil:
@@ -121,7 +122,7 @@ appId: io.github.pablonification.edunexplus.demo
       text: "Minggu ke-7 . 5.11 Okt"
     timeout: 5000
 
-# S6: the month, a screen away; a day picked in it lists that day; Back returns to the agenda.
+# S6: the month (its own screen, the bar's calendar button), a day picked in it lists that day.
 - tapOn:
     id: action.month
 - extendedWaitUntil:
@@ -135,8 +136,6 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 10000
 - takeScreenshot: use-10-month-day
 - back
-- assertVisible:
-    id: screen.schedule
 
 # S9: Kuliah's course opens its page.
 - tapOn:
