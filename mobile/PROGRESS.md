@@ -78,6 +78,11 @@ motion and onboarding are open. The desktop is a reference for data only.
 - **2026-11-01 ~07:40: cleanup done (C: 1.2 → 40 GB free), five helpers relaunched** on the new disk rules: Claude:
   home (first: push every local branch holding 8d2de5a, 6c018e4, f8e687d, 0e756d5, then delete `C:\b`), Jadwal;
   Dev 1: Kuliah, Tugas; Dev 2: Akademik. Each merges `origin/mobile` first for the new `build.sh`.
+- **07:45 housekeeping (home helper):** the four unpushed commits were on local branches: pushed `mobile-r2-akademik`
+  (to a43b4fe) and `mobile-r2-schedule-courses`, plus `rescue-981d27f` (a detached HEAD in `C:\b\shell`); `C:\b`'s
+  clones removed (a few locked files in `C:\b\r2sched` left). C: 56 GB free. The first build after (slot gradle-1)
+  failed with "the paging file is too small": Gradle's heap cut from 6 to 4 GB in `build.sh`. The restart blocker
+  goes once a local build succeeds.
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
