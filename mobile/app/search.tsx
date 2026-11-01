@@ -1,13 +1,12 @@
-// Search (the desktop's ⌘K palette, src/app/shell/search.tsx) as a screen with the keyboard up:
-// everything the app has saved, so it works offline, grouped by kind with what's pressing first,
-// each with its course's color. With nothing typed: what was opened lately, the next Tasks, the
-// courses, the places and the verbs (refresh, theme). The index is src/core/search.ts's.
-import { File, Paths } from "expo-file-system";
+// Search (the desktop's ⌘K palette, src/app/shell/search.tsx) as a screen with the keyboard up (round 2, v4): Material
+// 3's search bar on v4's grey page, the field its one title. Everything the app has saved is searched, so it works
+// offline; results come grouped by kind with what's pressing first (src/core/search.ts's index and ranking), each group
+// a white card of rows, a course with its tile, anything else with its kind's icon in its course's colour. Before
+// anything is typed the page stays empty under the field's own hint; with no match, one line says so.
 import { router, useNavigation } from "expo-router";
 import { type ComponentRef, type ComponentType, type RefObject, useEffect, useMemo, useRef, useState } from "react";
-import { FlatList, Pressable, StyleSheet, TextInput, View } from "react-native";
+import { FlatList, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useCourseColor, useTermCourses } from "../../src/app/courses";
 import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../../src/app/i18n";
 import { useSaved } from "../../src/app/saved";
 import { useBridge } from "../../src/app/store";
@@ -15,17 +14,20 @@ import { materialKind } from "../../src/core/course-materials";
 import { takeHomeOnly } from "../../src/core/exam-sources";
 import type { Exam } from "../../src/core/exams";
 import type { DatasetName } from "../../src/core/models";
-import { SCREENS, type ScreenId, type SearchItem, search, searchIndex, suggestions } from "../../src/core/search";
+import { SCREENS, type ScreenId, type SearchItem, search, searchIndex } from "../../src/core/search";
 import { isOpenStatus, taskStatus } from "../../src/core/tasks";
 import { useNav } from "../src/nav";
 import { usePerfDrawn } from "../src/perf";
 import { refreshNow } from "../src/shell/source-status";
 import { IconButton } from "../src/ui/controls";
-import { CourseDot, EmptyState } from "../src/ui/display";
+import { CourseIconTile } from "../src/ui/course-icon-tile";
+import { Rise } from "../src/ui/expressive";
+import { Group, GroupRow, Heading, IconTile } from "../src/ui/group";
 import { type IconProps, Icons } from "../src/ui/icons";
-import { factsLabel, Meta } from "../src/ui/layout";
+import { factsLabel } from "../src/ui/layout";
 import { Text, useFieldColors } from "../src/ui/text";
 import { shape, space, TOUCH, type, useTheme } from "../src/ui/theme";
+import { CourseTile } from "../src/ui/tile";
 
 /** Every screen and Rencana studi tab is built on the phone. */
 const BUILT = Object.keys(SCREENS) as ScreenId[];
@@ -68,26 +70,6 @@ const MATERIAL_ICON: Partial<Record<ReturnType<typeof materialKind>, ComponentTy
   link: Icons.Link,
 };
 
-// What the Student opened from search lately, newest first: kept on this phone only, in the app's own files.
-const recentFile = () => new File(Paths.document, "engine", "search-recent.json");
-function readRecent(): string[] {
-  try {
-    const file = recentFile();
-    const saved: unknown = file.exists ? JSON.parse(file.textSync()) : [];
-    return Array.isArray(saved) ? saved.filter((key): key is string => typeof key === "string") : [];
-  } catch {
-    return [];
-  }
-}
-function remember(key: string): void {
-  if (key.startsWith("action:")) return;
-  try {
-    recentFile().writeSync(JSON.stringify([key, ...readRecent().filter((k) => k !== key)].slice(0, 8)));
-  } catch {
-    // Not kept: search still works.
-  }
-}
-
 export default function Search() {
   usePerfDrawn(true);
   const fieldColors = useFieldColors();
@@ -97,27 +79,20 @@ export default function Search() {
   const now = useNow();
   const nav = useNav();
   const theme = useTheme();
-  const c = theme.color;
+  const v = theme.v4;
   const insets = useSafeAreaInsets();
   const saved = useSaved(SEARCHED);
   const bridge = useBridge();
-  const colorOf = useCourseColor();
-  const courses = useTermCourses();
   const [query, setQuery] = useState("");
-  const [recent] = useState(readRecent);
   const field = useRef<ComponentRef<typeof TextInput>>(null);
   const index = useMemo(() => searchIndex(saved, { lang, screens: BUILT, now }), [saved, lang, now]);
-  const groups = useMemo(() => (query.trim() ? search(index, query) : suggestions(index, now, recent)), [index, query, now, recent]);
+  const typed = query.trim();
+  const groups = useMemo(() => (typed ? search(index, typed) : []), [index, typed]);
+  const count = useMemo(() => groups.reduce((sum, group) => sum + group.items.length, 0), [groups]);
   const nextTheme = theme.scheme === "dark" ? "light" : "dark";
   useFocusField(field);
 
-  const rows = groups.flatMap((group) => [
-    { head: group.kind } as const,
-    ...group.items.map((item, i) => ({ item, first: i === 0, last: i === group.items.length - 1 })),
-  ]);
-
   const open = (item: SearchItem) => {
-    remember(item.key);
     const target = item.target;
     if (target === "settings") router.replace("/settings");
     else if ("action" in target) {
@@ -131,12 +106,12 @@ export default function Search() {
   };
 
   return (
-    <View testID="screen.search" style={{ flex: 1, backgroundColor: c.surface, paddingTop: insets.top }}>
-      {/* Material 3's search view: Back, then the field across the bar, in a container of its own. */}
+    <View testID="screen.search" style={{ flex: 1, backgroundColor: v.page, paddingTop: insets.top }}>
+      {/* Material 3's search bar: Back, the field, and × once something's typed, in one white pill on the grey. */}
       <View style={styles.bar}>
-        <View style={[styles.field, { backgroundColor: c.surfaceContainerHigh }]}>
+        <View style={[styles.field, { backgroundColor: v.card }]}>
           <IconButton label={t("action.back")} onPress={() => router.back()} testID="action.back">
-            <Icons.ArrowLeft size={24} color={c.onSurface} />
+            <Icons.ArrowLeft size={24} color={v.fg} />
           </IconButton>
           <TextInput
             {...fieldColors}
@@ -146,7 +121,7 @@ export default function Search() {
             onChangeText={setQuery}
             autoFocus
             placeholder={t("search.placeholder")}
-            placeholderTextColor={c.onSurfaceVariant}
+            placeholderTextColor={v.muted}
             accessibilityLabel={t("search.open")}
             autoCorrect={false}
             autoCapitalize="none"
@@ -155,7 +130,7 @@ export default function Search() {
               const first = groups[0]?.items[0];
               if (first) open(first);
             }}
-            style={{ flex: 1, color: c.onSurface, ...type.bodyLarge, paddingVertical: 0, minHeight: TOUCH }}
+            style={{ flex: 1, color: v.fg, ...type.bodyLarge, paddingVertical: 0, minHeight: TOUCH }}
           />
           {query !== "" && (
             <IconButton
@@ -166,82 +141,73 @@ export default function Search() {
               }}
               testID="action.clearSearch"
             >
-              <Icons.X size={22} color={c.onSurfaceVariant} />
+              <Icons.X size={22} color={v.muted} />
             </IconButton>
           )}
         </View>
       </View>
-      {query.trim() !== "" && (
+      {typed !== "" && count > 0 && (
         <Text
           size="bodySmall"
-          tone="muted"
-          style={{ paddingHorizontal: space.page + space[4], paddingTop: space[1] }}
+          tabular
+          style={{ color: v.muted, paddingHorizontal: space.page + space[1], paddingTop: space[1] }}
           accessibilityLiveRegion="polite"
           testID="search.count"
         >
-          {t("search.count", { count: groups.reduce((sum, group) => sum + group.items.length, 0) })}
+          {t("search.count", { count })}
         </Text>
       )}
       <FlatList
-        data={rows}
+        data={groups}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
-        keyExtractor={(row) => ("head" in row ? `head:${row.head}` : row.item.key)}
+        keyExtractor={(group) => group.kind}
         contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[6] + insets.bottom }}
         ListEmptyComponent={
-          query.trim() ? (
-            <EmptyState
-              icon={<Icons.Search size={24} color={c.onSecondaryContainer} />}
-              title={t("search.noResults", { query: query.trim() })}
-              description={t("search.noResultsHint", { code: courses?.[0]?.code ?? "PL3002" })}
-            />
+          typed ? (
+            <Text
+              size="bodyLarge"
+              accessibilityLiveRegion="polite"
+              style={{ color: v.muted, textAlign: "center", paddingTop: space[10], paddingHorizontal: space[4] }}
+            >
+              {t("search.noResults", { query: typed })}
+            </Text>
           ) : undefined
         }
-        renderItem={({ item: row }) => {
-          if ("head" in row)
-            return (
-              <Text size="titleSmall" tone="primary" accessibilityRole="header" style={styles.head}>
-                {t(`search.group.${row.head}`)}
-              </Text>
-            );
-          const item = row.item;
-          const detail =
-            item.kind === "action" && item.action === "theme"
-              ? t("search.action.themeTo", { theme: t(`settings.theme.${nextTheme}`) })
-              : detailOf(item, t, f, now);
-          return (
-            // A group's rows as one list of tonal tiles, round at its ends (List's look, drawn row by row).
-            <View
-              style={[
-                styles.tile,
-                { backgroundColor: c.surfaceContainerLow },
-                row.first && { borderTopLeftRadius: shape.lgPlus, borderTopRightRadius: shape.lgPlus },
-                row.last && { borderBottomLeftRadius: shape.lgPlus, borderBottomRightRadius: shape.lgPlus },
-                !row.last && { marginBottom: 2 },
-              ]}
-            >
-              <Pressable
-                testID={`row.search.${item.key}`}
-                accessibilityRole="button"
-                onPress={() => open(item)}
-                android_ripple={{ color: c.selected }}
-                style={styles.row}
-              >
-                <ItemMark item={item} color={colorOf(item.code)} />
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text size="bodyLarge" numberOfLines={2}>
-                    {item.title}
-                  </Text>
-                  {detail !== "" && (
-                    <Meta size="small" numberOfLines={1}>
-                      {detail}
-                    </Meta>
-                  )}
-                </View>
-              </Pressable>
-            </View>
-          );
-        }}
+        renderItem={({ item: group, index: at }) => (
+          <Rise screen="search" index={at}>
+            <Heading first={at === 0}>{t(`search.group.${group.kind}`)}</Heading>
+            <Group>
+              {group.items.map((item, i) => {
+                const detail =
+                  item.kind === "action" && item.action === "theme"
+                    ? t("search.action.themeTo", { theme: t(`settings.theme.${nextTheme}`) })
+                    : detailOf(item, t, f, now);
+                return (
+                  <GroupRow
+                    key={item.key}
+                    testID={`row.search.${item.key}`}
+                    first={i === 0}
+                    leading={<ResultTile item={item} />}
+                    title={
+                      <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+                        {item.title}
+                      </Text>
+                    }
+                    meta={
+                      detail ? (
+                        <Text size="bodyMedium" tabular numberOfLines={2} style={{ color: v.muted }}>
+                          {detail}
+                        </Text>
+                      ) : undefined
+                    }
+                    onPress={() => open(item)}
+                  />
+                );
+              })}
+            </Group>
+          </Rise>
+        )}
       />
     </View>
   );
@@ -269,8 +235,9 @@ function useFocusField(field: RefObject<ComponentRef<typeof TextInput> | null>):
   }, [navigation, field]);
 }
 
-function ItemMark({ item, color }: { item: SearchItem; color: string | undefined }) {
-  const theme = useTheme();
+/** A result's leading tile: a course's own tile; else its kind's icon, on its course's tint when it has a course. */
+function ResultTile({ item }: { item: SearchItem }) {
+  if (item.kind === "course" && item.code) return <CourseTile code={item.code} name={item.title} />;
   const Icon =
     item.kind === "screen"
       ? SCREEN_ICON[item.screen]
@@ -281,16 +248,9 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
             ? Icons.RefreshCw
             : Icons.Moon
           : { course: Icons.BookOpen, task: Icons.ListChecks, exam: Icons.GraduationCap, module: Icons.LayoutGrid, announcement: Icons.Megaphone }[item.kind];
-  return (
-    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: theme.color.secondaryContainer, alignItems: "center", justifyContent: "center" }}>
-      <Icon size={20} color={theme.color.onSecondaryContainer} />
-      {item.code && (
-        <View style={{ position: "absolute", right: 0, bottom: 0 }}>
-          <CourseDot color={color} size={10} />
-        </View>
-      )}
-    </View>
-  );
+  const glyph = (color: string) => <Icon size={22} color={color} />;
+  if (item.code) return <CourseIconTile code={item.code} icon={glyph} />;
+  return <IconTile tone={item.kind === "action" ? "plain" : "brand"} icon={glyph} />;
 }
 
 /** When an exam is, as its row says it (the desktop's examWhen). */
@@ -346,7 +306,4 @@ const styles = StyleSheet.create({
   bar: { paddingHorizontal: space.page, paddingTop: space[2], paddingBottom: space[2] },
   // Material 3's search bar: a full pill, 56 high.
   field: { flexDirection: "row", alignItems: "center", gap: space[1], minHeight: 56, borderRadius: shape.full, paddingHorizontal: space[1] },
-  head: { paddingHorizontal: space[4], paddingTop: space[6], paddingBottom: space[2] },
-  tile: { borderRadius: shape.xs, overflow: "hidden" },
-  row: { flexDirection: "row", alignItems: "center", gap: space[4], paddingHorizontal: space[4], paddingVertical: space[3], minHeight: 56 },
 });
