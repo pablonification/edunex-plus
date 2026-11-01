@@ -3532,6 +3532,14 @@
                 }
               },
               {
+                "scrollUntilVisible": {
+                  "element": {
+                    "id": "row.nav.grades"
+                  },
+                  "timeout": 10000
+                }
+              },
+              {
                 "tapOn": {
                   "id": "row.nav.grades"
                 }
@@ -3558,6 +3566,14 @@
                 {
                   "tapOn": {
                     "id": "tab.academic"
+                  }
+                },
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "row.nav.grades"
+                    },
+                    "timeout": 10000
                   }
                 },
                 {
@@ -3628,6 +3644,14 @@
           }
         },
         {
+          "scrollUntilVisible": {
+            "element": {
+              "id": "row.nav.plan.planner"
+            },
+            "timeout": 10000
+          }
+        },
+        {
           "tapOn": {
             "id": "row.nav.plan.planner"
           }
@@ -3646,6 +3670,14 @@
           {
             "tapOn": {
               "id": "tab.academic"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.nav.plan.planner"
+              },
+              "timeout": 10000
             }
           },
           {
@@ -3695,6 +3727,14 @@
             }
           },
           {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.nav.plan.curriculum"
+              },
+              "timeout": 10000
+            }
+          },
+          {
             "tapOn": {
               "id": "row.nav.plan.curriculum"
             }
@@ -3712,6 +3752,14 @@
           {
             "tapOn": {
               "id": "tab.academic"
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.nav.plan.krs"
+              },
+              "timeout": 10000
             }
           },
           {
