@@ -151,6 +151,12 @@ heading → headlineSmall, figure/display → headlineMedium.
 - **Joy in a few earned moments only** (`motion.expressive`, a slight overshoot): Kumpulkan, a swipe that
   commits, Tandai Hadir done. Not on every tap.
 - **Remove animations** (`useReduceMotion()`): moving things only fade; the skeleton stops breathing.
+- **Endless loops run only while shown** (`useLoopWhileShown()` in `ui/motion.ts`): the wave, the "now" dot, a
+  skeleton's breathing and a spinner run while their screen is in front and the app in the foreground, and stop
+  otherwise (a hidden tab, a screen under a pushed one, the background). Use it for any new looping part: a loop
+  left running redraws every frame for nobody (battery), and Android's tools see the app as never idle.
+- **Below the fold waits for the push** (`Later` in `screens/plan/deferred.ts`): a screen's first screenful draws at
+  once; its lower parts mount one per frame after the push transition ends, never during it.
 
 ## Patterns
 

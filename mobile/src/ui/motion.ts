@@ -1,7 +1,8 @@
 // Whether the phone asks for less motion (Android's "Remove animations"): moving things fade instead
 // (DESIGN.md, "Motion"). Read once, then followed.
+import { useIsFocused } from "expo-router";
 import { useSyncExternalStore } from "react";
-import { AccessibilityInfo } from "react-native";
+import { AccessibilityInfo, AppState } from "react-native";
 
 let reduced = false;
 const watchers = new Set<() => void>();
@@ -34,4 +35,38 @@ export function useReduceMotion(): boolean {
     },
     () => reduced,
   );
+}
+
+/** The app in front (Android's foreground); false while it's in the background or behind another app. */
+function useAppActive(): boolean {
+  return useSyncExternalStore(
+    (watcher) => {
+      const subscription = AppState.addEventListener("change", watcher);
+      return () => subscription.remove();
+    },
+    () => AppState.currentState === "active",
+  );
+}
+
+/** Whether this screen is in front; true outside the route tree (a part drawn where no screen holds focus). */
+function useShown(): boolean {
+  try {
+    return useIsFocused();
+  } catch {
+    return true;
+  }
+}
+
+/**
+ * Whether an endless animation (the wave, the "now" dot, a skeleton, a spinner) may run: its screen in front, the
+ * app in the foreground, and no less motion asked for. A loop that runs on a hidden tab, under a pushed screen or in
+ * the background redraws every frame for nobody: battery, and Android's tools see the app as never idle (measured
+ * on v4: Beranda and Tugas at 120 fps at rest, other screens at ~60 under them). Stop the loop when this turns
+ * false, start it again when it turns true.
+ */
+export function useLoopWhileShown(): boolean {
+  const still = useReduceMotion();
+  const shown = useShown();
+  const active = useAppActive();
+  return !still && shown && active;
 }
