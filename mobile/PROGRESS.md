@@ -99,6 +99,14 @@ motion and onboarding are open. The desktop is a reference for data only.
   bottleneck is the two emulator slots: Kuliah, Tugas and Akademik wait on them with code done. Before PR #285 leaves
   draft: run the CI workflow on `mobile` (a run on a helper branch failed test (root CI lacks `mobile/node_modules`),
   lint (`words.mjs`) and workflows (actionlint)).
+- **10:15: the desktop stalled again (since ~09:30) and the roll-out moved to the Mac and GitHub Actions.** A read-only
+  health check found `df` and `systeminfo` hanging (even for C:), both emulators running but invisible to adb, four
+  leftover Gradle daemons (~5 GB), and every helper's provider log stopped at 09:30–09:34. All five desktop threads
+  stopped by the lead (their work was pushed). Beranda's fixes (814a91d, passed the lead's device look) merged into
+  `mobile` (8673697; mobile typecheck, biome, mobile tests green). The device step now runs on GitHub Actions' e2e (flows,
+  Check A per scenario, the judge's walk light/dark): `mobile` run 41268203004, Akademik 41268222659, Kuliah
+  41268225029. On the Mac: Tugas's fixes and proof (Arqila account), and one absence scale in a shared helper applied
+  to Beranda, Kuliah and Jadwal (Contact account). Rules updated (`v4-rollout.md`, 3e55de5).
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
@@ -643,8 +651,11 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
-- **2026-11-01: the Mac (MacBook Air) is unreachable** on T3. Helpers all run on the desktop meanwhile. Proposed: open
-  T3 on the Mac when you can; I'll put helpers there too.
+- **2026-11-01 ~09:30: the desktop's file system stalled.** `df` and `systeminfo` hang (even for C:), adb sees no
+  emulator though two run, four Gradle daemons hold ~5 GB, and every T3 helper there froze. Proposed: look at it when
+  you can (a disk or driver stall: is F: an internal drive? the lab now writes temp and builds there), and restart
+  it. Until then helpers run on the Mac and every device check on GitHub Actions; the desktop isn't needed for the
+  roll-out, only for speed numbers later.
 - **2026-11-01: the desktop was restarted by Arqila (Gradle's stuck locks).** To drop once the home helper's first
   local build after the restart is clean.
 - **Real sign-in can only be proven with a real ITB account.** On Redroid, ITB's real sign-in
