@@ -185,11 +185,6 @@
     "phone": "Halaman masuknya terbuka lagi. Tunggu sebentar, atau tutup lalu coba lagi."
   },
   {
-    "key": "task.note.attendance",
-    "desktop": "Tugas ini sekaligus Presensi-mu. Kamu hanya terhitung hadir jika mengumpulkannya di dalam jendelanya, {date}, {time}.",
-    "phone": "Tugas ini juga Presensi-mu. Kamu dihitung hadir hanya jika mengumpulkannya {date}, {time}."
-  },
-  {
     "key": "task.note.attendanceCounted",
     "desktop": "Terhitung hadir. Kamu mengumpulkan di dalam jendela presensi ({when}).",
     "phone": "Terhitung hadir. Kamu mengumpulkannya selama Presensi dibuka ({when})."

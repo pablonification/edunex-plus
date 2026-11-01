@@ -21,7 +21,7 @@ const attr = (node, name) => {
   const match = new RegExp(` ${name}="([^"]*)"`).exec(node);
   return match ? match[1] : "";
 };
-const unescape = (text) =>
+const decodeXml = (text) =>
   text
     .replace(/&#10;/g, "\n")
     .replace(/&quot;/g, '"')
@@ -31,7 +31,7 @@ const unescape = (text) =>
     .replace(/&amp;/g, "&");
 const nodes = [...xml.matchAll(/<node [^>]*>/g)].map(([node]) => {
   const [x1, y1, x2, y2] = (attr(node, "bounds").match(/\d+/g) ?? [0, 0, 0, 0]).map(Number);
-  return { id: attr(node, "resource-id"), text: unescape(attr(node, "text")), pkg: attr(node, "package"), x1, y1, x2, y2 };
+  return { id: attr(node, "resource-id"), text: decodeXml(attr(node, "text")), pkg: attr(node, "package"), x1, y1, x2, y2 };
 });
 const screen = nodes.find((node) => node.pkg === app && node.y1 === 0) ?? nodes[0];
 const height = Math.max(...nodes.map((node) => node.y2));

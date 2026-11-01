@@ -352,10 +352,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   },
   // tasks and schedule: a Task that is also attendance counts only while its Presence is open. No student
   // says "jendela", so the phone says when Presence is open, or "dalam waktu ini" beside a time.
-  "task.note.attendance": {
-    id: "Tugas ini juga Presensi-mu. Kamu dihitung hadir hanya jika mengumpulkannya {date}, {time}.",
-    en: "This Task is also your attendance. You count as present only if you hand it in {date}, {time}.",
-  },
   "task.note.attendanceCounted": {
     id: "Terhitung hadir. Kamu mengumpulkannya selama Presensi dibuka ({when}).",
     en: "Counted as present. You handed it in while Presence was open ({when}).",

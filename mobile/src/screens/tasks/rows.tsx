@@ -3,7 +3,7 @@
 // decides on (the title, the course, the day and time it's due); the rest of the desktop's facts
 // stay in its accessible name and on the Task's page. A late Task's "Ingatkan nanti" is an alarm on
 // the row, a swipe, and its long press. What rows share is in row-parts.tsx.
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 import { errorKey } from "../../../../src/app/bridge";
 import { type Format, type Translate, useFormat, useT } from "../../../../src/app/i18n";
@@ -18,8 +18,8 @@ import { isOpenStatus, notOpenYet, shortWindow, submittedAt } from "../../../../
 import { lateSnoozable, type TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { canSnooze, useRowActions, useSnooze } from "../../parts/snooze";
-import { Button, IconButton } from "../../ui/controls";
-import { StatusChip } from "../../ui/display";
+import { CardSlice } from "../../ui/card-list";
+import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
@@ -27,24 +27,24 @@ import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { ExamPartRow, PeriodRow } from "./exam-rows";
 import {
-  DateColumn,
+  countdown,
   type DueWhen,
   dueWhen,
-  ExamTitle,
   formatScore,
+  HeroCard,
   inWorld,
   moduleLabel,
-  RowMeta,
+  type Quick,
   RowNote,
   type RowWorldValue,
+  rowWhen,
   type SignalIcon,
+  StatusPill,
+  TaskLine,
   useRowWorld,
 } from "./row-parts";
 
 export { CourseCodeMark, DateColumn, ExamTitle, formatScore, moduleLabel, useDueWhen } from "./row-parts";
-
-/** Statuses worth a chip in a list: the rest are said by the segment, the group and the date. */
-const LOUD: readonly TaskStatus[] = ["draft", "in_review"];
 
 type MarkedHow = Extract<DoneHow, "handedElsewhere" | "notHandingIn" | "groupDone">;
 
@@ -104,16 +104,19 @@ export const TaskRow = inWorld(function TaskRow({
   meta = "course",
   late = false,
   exam,
-  actions,
+  quick,
   onLongPress,
+  hero = false,
 }: {
   task: Task;
   status: TaskStatus;
   meta?: "course" | "module" | "none";
   late?: boolean;
   exam?: Exam;
-  actions?: ReactNode;
+  quick?: Quick;
   onLongPress?: () => void;
+  /** Tugas's one big card: the nearest deadline (row-parts.tsx HeroCard), the same item, target and name. */
+  hero?: boolean;
 }) {
   const t = useT();
   const { go } = useNav();
@@ -122,7 +125,6 @@ export const TaskRow = inWorld(function TaskRow({
   const module = moduleLabel(t, task.module);
   const date = taskDate(t, world.f, world.now, task, status);
   const signal = signalOf(t, world, task, status);
-  const chip = LOUD.includes(status);
   const where = module ?? course?.name ?? null;
   const facts = exam
     ? [meta === "course" ? task.courseCode : "", t("exam.takeHome"), task.title]
@@ -143,39 +145,62 @@ export const TaskRow = inWorld(function TaskRow({
     date.rel,
   );
   const code = meta === "course" ? task.courseCode : null;
-  const rest = exam ? [t("exam.takeHome"), task.title] : meta === "course" ? [where] : meta === "module" ? [module] : [];
+  // v4: one meta line that fits in full (the code, or the kind of a take-home, and when), one status (the countdown,
+  // the score, or "not handed in"); everything else is in the row's spoken name and on the Task's page.
+  const sentAt = submittedAt(task);
+  const kind = exam ? t(`exam.kind.${exam.kind}`) : null;
+  const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
+  const when =
+    sentAt !== null
+      ? t("task.submittedOnDate", { date: world.f.dayMonth(sentAt) })
+      : task.dueAt === null
+        ? t("task.noDeadline")
+        : // The time only beside the countdown: a late or closed one's status is too wide for both.
+          rowWhen(world.f, task.dueAt, away !== null && !away.late);
+  const lead = kind ?? (meta === "module" && task.module ? t("task.module", { n: task.module.index }) : code);
+  const line = [lead, when].filter(Boolean).join(" · ");
+  const statusPill =
+    sentAt !== null ? (
+      task.score !== null ? (
+        <StatusPill tone="ok" text={t("task.scoreValue", { score: formatScore(task.score, world.f) })} />
+      ) : null
+    ) : status === "closed" ? (
+      <StatusPill tone="red" text={t("task.notHandedIn")} />
+    ) : away ? (
+      <StatusPill tone={away.tone} text={away.text} />
+    ) : null;
+  const name = exam ? (course?.name ?? exam.courseCode) : task.title;
+  const open = () => go({ screen: "task", taskId: task.id });
+  if (hero && task.dueAt !== null)
+    return (
+      <HeroCard
+        testID={`row.task.${task.id}`}
+        label={label}
+        onPress={open}
+        onLongPress={onLongPress}
+        quick={quick}
+        code={task.courseCode}
+        course={course?.name}
+        kind={kind ?? task.courseCode}
+        from={task.opensAt}
+        at={task.dueAt}
+        title={name}
+        meta={when}
+      />
+    );
   return (
-    <Row
-      wrapTrailing
+    <TaskLine
       testID={`row.task.${task.id}`}
       label={label}
-      onPress={() => go({ screen: "task", taskId: task.id })}
+      onPress={open}
       onLongPress={onLongPress}
-      actions={actions}
-      title={
-        exam ? (
-          <ExamTitle kind={t(`exam.kind.${exam.kind}`)} name={course?.name ?? exam.courseCode} />
-        ) : (
-          <Text size="bodyLarge" numberOfLines={2}>
-            {task.title}
-          </Text>
-        )
-      }
-      meta={<RowMeta code={code} color={world.colorOf(task.courseCode)} rest={rest} />}
-      trailing={
-        <>
-          {chip && <StatusChip status={status} />}
-          <DateColumn main={date.main} sub={date.sub} tone={date.tone} late={date.late && status === "overdue"} />
-        </>
-      }
-    >
-      {late && <RowNote>{t("home.need.task.overdue")}</RowNote>}
-      {signal && (
-        <RowNote icon={signal.icon} tone={signal.tone}>
-          {signal.facts.join("  ·  ")}
-        </RowNote>
-      )}
-    </Row>
+      quick={quick}
+      code={meta === "course" ? task.courseCode : null}
+      course={course?.name}
+      title={name}
+      meta={line}
+      status={statusPill}
+    />
   );
 });
 
@@ -188,28 +213,33 @@ export const lateTitle = (item: TodoItem) =>
  * put off ("Ingatkan nanti") as on Beranda, the same snooze for the same Task: the alarm, a swipe
  * or a long press.
  */
-export const TodoRow = inWorld(function TodoRow({ item, inCourse = false }: { item: TodoItem; inCourse?: boolean }) {
+export const TodoRow = inWorld(function TodoRow({ item, inCourse = false, hero = false }: { item: TodoItem; inCourse?: boolean; hero?: boolean }) {
   const t = useT();
   const { now } = useRowWorld();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const late = lateSnoozable(item, now);
   const snoozable = late && canSnooze(late, now) ? late : null;
   const snooze = useSnooze(snoozable);
   const swipe = useRowActions({ snooze: snoozable ? snooze : null });
   if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} />;
-  const alarm = snoozable ? (
-    <IconButton label={t("snooze.actionFor", { title: lateTitle(item) })} onPress={snooze.open} testID="action.snooze">
-      <Icons.Snooze size={20} color={theme.color.onSurfaceVariant} />
-    </IconButton>
-  ) : undefined;
+  const quick = snoozable ? [{ label: t("snooze.actionFor", { title: lateTitle(item) }), onPress: snooze.open }] : undefined;
   const longPress = snoozable ? snooze.open : undefined;
   return (
     <>
-      <SwipeRow actions={swipe}>
+      {/* The big card isn't swiped: its long press and TalkBack's actions put it off. */}
+      <SwipeRow actions={hero ? [] : swipe} surface={inCourse ? undefined : v.card}>
         {item.kind === "task" ? (
-          <TaskRow task={item.task} status={item.status} meta={inCourse ? "module" : "course"} late={item.late} actions={alarm} onLongPress={longPress} />
+          <TaskRow
+            task={item.task}
+            status={item.status}
+            meta={inCourse ? "module" : "course"}
+            late={item.late}
+            quick={quick}
+            onLongPress={longPress}
+            hero={hero}
+          />
         ) : (
-          <ExamPartRow item={item} inCourse={inCourse} actions={alarm} onLongPress={longPress} />
+          <ExamPartRow item={item} inCourse={inCourse} quick={quick} onLongPress={longPress} />
         )}
       </SwipeRow>
       {snooze.sheet}
@@ -218,7 +248,7 @@ export const TodoRow = inWorld(function TodoRow({ item, inCourse = false }: { it
 });
 
 /** "1 ditunda · Tampilkan" under the late rows, as on Beranda: quiet, opening what's put off, each with Ingatkan sekarang. */
-export function PutOff({ putOff, open, onToggle }: { putOff: Todo["putOff"]; open: boolean; onToggle: () => void }) {
+export function PutOff({ putOff, open, onToggle, inCourse = true }: { putOff: Todo["putOff"]; open: boolean; onToggle: () => void; inCourse?: boolean }) {
   const t = useT();
   const theme = useTheme();
   if (!putOff.length) return null;
@@ -235,11 +265,17 @@ export function PutOff({ putOff, open, onToggle }: { putOff: Todo["putOff"]; ope
       </View>
       {open && (
         <View>
-          {putOff.map(({ item, entry }, i) => (
-            <GroupTile key={item.key} first={i === 0} last={i === putOff.length - 1}>
-              <PutOffRow item={item} entry={entry} />
-            </GroupTile>
-          ))}
+          {putOff.map(({ item, entry }, i) =>
+            inCourse ? (
+              <GroupTile key={item.key} first={i === 0} last={i === putOff.length - 1}>
+                <PutOffRow item={item} entry={entry} />
+              </GroupTile>
+            ) : (
+              <CardSlice key={item.key} first={i === 0} last={i === putOff.length - 1} inset={0}>
+                <PutOffRow item={item} entry={entry} />
+              </CardSlice>
+            ),
+          )}
         </View>
       )}
     </View>

@@ -7,10 +7,17 @@
 # read to settle, opens the tab, and dumps the screen as it first shows (no scrolling) with uiautomator. words.mjs
 # counts the words of the app's visible text above the bottom navigation (the status bar and the tabs' labels are
 # left out). Prints the count and each text. --keep starts from the app as it is (no fresh start).
-# Raw dump: C:\qa\runs\<time>-words-<tab>-<avd>\.
+# Raw dump: C:\qa\runs\<time>-words-<tab>-<avd>\ in the lab; on GitHub Actions' emulator (scripts/ci/mobile-e2e.sh),
+# $QA_OUT/runs/... with QA_OUT set by the caller.
 set -euo pipefail
-here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
-. "$here/env.sh"
+here=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# The lab's Windows tools (env.sh); elsewhere adb and node are on the PATH already.
+if command -v cygpath > /dev/null; then
+  here=$(cygpath -m "$here")
+  . "$here/env.sh"
+fi
+QA_OUT=${QA_OUT:-/tmp/qa}
+QA_APP=${QA_APP:-io.github.pablonification.edunexplus.demo}
 
 serial=${1:-}
 tab=${2:-}

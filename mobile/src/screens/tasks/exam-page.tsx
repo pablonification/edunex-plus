@@ -1,5 +1,5 @@
 // The exam page on the phone (S4): src/app/screens/exam.tsx's ExamPage in one column, with the same
-// facts. When and where (SIX's sitting with its room, Edunex's, the take-home), what to do when SIX
+// facts, in v4 (round 2): the day, the time and the room big on the course's tint, the rest on white cards. When and where (SIX's sitting with its room, Edunex's, the take-home), what to do when SIX
 // and Edunex disagree, the attendance before it, what to study, the official pages, the other exams.
 // An Edunex window open now can be marked done here too, with Undo (Tandai selesai).
 import * as Clipboard from "expo-clipboard";
@@ -8,7 +8,7 @@ import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { budgetLabel, STATE_TONE } from "../../../../src/app/attendance-labels";
 import { errorKey } from "../../../../src/app/bridge";
-import { type TermCourse, useCourseColor, useTermCourses } from "../../../../src/app/courses";
+import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useExamMarkList, useExamMarks } from "../../../../src/app/exam-marks";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
@@ -25,12 +25,16 @@ import { LecturerFile } from "../../parts/files";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
+import { BigButton } from "../../ui/big-button";
+import { CardList, Panel, SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
-import { Card, CourseDot, EmptyState, Skeleton, StatusChip, Tag } from "../../ui/display";
+import { EmptyState, Skeleton, StatusChip } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { factsLabel, List, Meta, Notice, Page, PageHeader, Row, Section } from "../../ui/layout";
+import { factsLabel, Meta, Notice, Page, Row } from "../../ui/layout";
+import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { radius, shape, space, useTheme } from "../../ui/theme";
+import { CourseTile, useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { addToPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
 import { examCalendarItems } from "./exam-calendar";
@@ -45,7 +49,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   usePerfDrawn(exams !== undefined);
   if (!exams)
     return (
-      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />}>
+      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={theme.v4.page}>
         <Skeleton width={96} />
         <Skeleton width="80%" height={32} style={{ marginTop: space[3] }} />
         <Skeleton height={128} style={{ marginTop: space[8] }} />
@@ -54,7 +58,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   const exam = exams.find((e) => e.id === examId);
   if (!exam)
     return (
-      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />}>
+      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={theme.v4.page}>
         <EmptyState icon={<Icons.GraduationCap size={20} color={theme.color.muted} />} title={t("exam.notFound")} />
       </Page>
     );
@@ -63,12 +67,15 @@ export function ExamScreen({ examId }: { examId: string }) {
 }
 
 function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: TermCourse | undefined }) {
-  const colorOf = useCourseColor();
+  const courses = useTermCourses();
+  const courseOf = (code: string) => courses?.find((c) => c.code === code)?.name;
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const theme = useTheme();
   const c = theme.color;
+  const v = theme.v4;
+  const { ink, tint } = useCourseTile()(exam.courseCode);
   const pull = usePullToRefresh();
   const marks = useExamMarkList();
   const ahead = examAhead(exam, now, marks);
@@ -104,65 +111,58 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
 
   return (
     // One title: the exam's own, on the page; the bar carries only Back.
-    <Page testID="screen.exam" header={<TopBar />} {...pull}>
-      <PageHeader
-        eyebrow={
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-            <Tag tone="info" size="md">
-              {t(`exam.kind.${exam.kind}`)}
-            </Tag>
-            <CourseDot color={colorOf(exam.courseCode)} size={8} />
-            <Text size="labelLarge" tone="muted">
-              {exam.courseCode}
-            </Text>
-          </View>
-        }
-        title={name}
-        description={
-          exam.at !== null ? (
-            <Meta size="small">
-              {f.dateLong(exam.at)}
-              {f.fromNow(exam.at)}
-            </Meta>
-          ) : exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
-            t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")
-          ) : (
-            t("exam.noDate")
-          )
-        }
-      />
+    <Page testID="screen.exam" header={<TopBar />} background={v.page} {...pull}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+        <KindPill kind={t(`exam.kind.${exam.kind}`)} />
+        <CourseTile code={exam.courseCode} name={course?.name} size={24} />
+        <Text size="labelLarge" tabular style={{ color: v.fg2 }}>
+          {exam.courseCode}
+        </Text>
+      </View>
+      <Text size="headlineSmall" face="display" weight="bold" accessibilityRole="header" style={{ marginTop: space[2], color: v.fg, letterSpacing: -0.3 }}>
+        {name}
+      </Text>
+      <Text size="bodyMedium" style={{ marginTop: space[1], color: v.muted }}>
+        {exam.at !== null
+          ? factsLabel(f.dateLong(exam.at), f.fromNow(exam.at))
+          : exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
+            ? t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")
+            : t("exam.noDate")}
+      </Text>
 
-      <Section first title={t("exam.when")} testID="section.when">
+      <View testID="section.when">
+        <SectionTitle title={t("exam.when")} />
         <View style={{ gap: space[3] }}>
           {exam.six.map((session) => (
-            <Card key={session.id} variant="raised" style={styles.card} testID={`card.sitting.${session.id}`}>
-              <Text size="labelLarge" tone="muted">
+            // SIX's sitting: the day, the time and the room, big, on the course's tint (the page's one big card).
+            <View key={session.id} style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]} testID={`card.sitting.${session.id}`}>
+              <Text size="labelLarge" weight="semibold" style={{ color: ink }}>
                 {t("exam.inClass")}
               </Text>
-              <Text size="headlineMedium" weight="semibold" tabular style={{ marginTop: space[1] }}>
+              <Text face="display" weight="extrabold" tabular style={{ marginTop: space[1], color: v.fg, fontSize: 28, lineHeight: 36, letterSpacing: -0.5 }}>
                 {dayLabel(f, session.start)}
               </Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: space[2] }}>
-                <Text size="titleLarge" tabular>
+                <Text size="titleLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
                   {f.timeRange(session.start, session.end)}
                 </Text>
-                <Text size="bodyMedium" tone="muted">
+                <Text size="bodyMedium" style={{ color: v.fg2 }}>
                   {t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}
                 </Text>
               </View>
-              <View style={[styles.room, { backgroundColor: c.surfaceContainerHigh }]}>
-                <Icons.MapPin size={20} color={session.room ? c.primary : c.onSurfaceVariant} />
+              <View style={[styles.room, { backgroundColor: v.card }]}>
+                <Icons.MapPin size={22} weight="fill" color={session.room ? ink : v.muted} />
                 {session.room ? (
-                  <Text size="titleLarge" weight="semibold" style={{ flexShrink: 1 }}>
+                  <Text size="titleLarge" face="display" weight="bold" style={{ flexShrink: 1, color: v.fg }}>
                     {session.room}
                   </Text>
                 ) : (
-                  <Text size="bodyLarge" tone="muted">
+                  <Text size="bodyLarge" style={{ color: v.muted }}>
                     {t("exam.noRoom")}
                   </Text>
                 )}
               </View>
-            </Card>
+            </View>
           ))}
           {exam.edunex.map((e) => (
             <EdunexCard key={e.id} exam={exam} edunex={e} />
@@ -172,20 +172,20 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
           ))}
           {/* The header already says the day isn't known: here only what is, the exam week and where the exam is listed. */}
           {!dated && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
-            <Card variant="raised" style={styles.card}>
-              <Text size="headlineSmall" weight="semibold">
+            <View style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]}>
+              <Text size="titleLarge" face="display" weight="bold" style={{ color: v.fg }}>
                 {examWeekLabel(t, f, exam.kind, exam.week)}
               </Text>
               {exam.inOutline && (
-                <Text size="small" tone="muted" style={{ marginTop: space[1] }}>
+                <Text size="bodyMedium" style={{ marginTop: space[1], color: v.fg2 }}>
                   {t("exam.outlineOnly")}
                 </Text>
               )}
-            </Card>
+            </View>
           ) : (
             !dated &&
             exam.inOutline && (
-              <Text size="body" tone="muted">
+              <Text size="bodyMedium" style={{ color: v.muted }}>
                 {t("exam.outlineOnly")}
               </Text>
             )
@@ -216,50 +216,65 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
         )}
         <ExamToCalendar exam={exam} />
         {ahead && <BeforeExam code={exam.courseCode} />}
-      </Section>
+      </View>
 
       <Study exam={exam} />
 
       {links.length > 0 && (
-        <Section title={t("examPage.official")}>
-          <View style={{ alignItems: "flex-start", marginLeft: -space[3] }}>
+        <View>
+          <SectionTitle title={t("examPage.official")} />
+          <Panel style={{ paddingVertical: space[1], paddingHorizontal: space[1], alignItems: "flex-start" }}>
             {links.map((link) => (
               <Button key={link.key} variant="ghost" icon={<Icons.ArrowUpRight size={18} color={c.primary} />} onPress={() => open(link.url)}>
                 {link.label}
               </Button>
             ))}
-          </View>
-        </Section>
+          </Panel>
+        </View>
       )}
 
       {others.length > 0 && (
-        <Section title={t("exam.others")}>
+        <View>
+          <SectionTitle title={t("exam.others")} count={others.length} />
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
             {others.map((other) => (
-              <Pressable
+              <PressScale
                 key={other.id}
                 testID={`row.exam.${other.id}`}
                 accessibilityRole="button"
                 onPress={() => go({ screen: "exam", examId: other.id })}
-                android_ripple={{ color: c.selected }}
-                style={[styles.other, { backgroundColor: c.surfaceContainerLow }]}
+                style={[styles.other, { backgroundColor: v.card }]}
               >
-                <Tag tone="info">{t(`exam.kind.${other.kind}`)}</Tag>
-                <CourseDot color={colorOf(other.courseCode)} size={8} />
-                <Text size="labelLarge">{other.courseCode}</Text>
-                <Text size="bodyMedium" tone="muted">
+                <KindPill kind={t(`exam.kind.${other.kind}`)} />
+                <CourseTile code={other.courseCode} name={courseOf(other.courseCode)} size={24} />
+                <Text size="labelLarge" style={{ color: v.fg }}>
+                  {other.courseCode}
+                </Text>
+                <Text size="bodyMedium" style={{ color: v.muted }}>
                   {other.at !== null
                     ? f.dayMonth(other.at)
                     : other.week && (other.kind === "UTS" || other.kind === "UAS")
                       ? examWeekLabel(t, f, other.kind, other.week)
                       : t("exam.noDate")}
                 </Text>
-              </Pressable>
+              </PressScale>
             ))}
           </View>
-        </Section>
+        </View>
       )}
     </Page>
+  );
+}
+
+/** "UTS", "UAS", "Kuis": the kind in the brand's ink on its tint. */
+function KindPill({ kind }: { kind: string }) {
+  const v = useTheme().v4;
+  return (
+    <View style={{ backgroundColor: v.brandTint, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 }}>
+      <Text size="labelMedium" weight="semibold" style={{ color: v.brandInk }}>
+        {kind}
+      </Text>
+    </View>
   );
 }
 
@@ -359,7 +374,7 @@ function EdunexCard({ exam, edunex }: { exam: Exam; edunex: Exam["edunex"][numbe
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const c = useTheme().color;
+  const v = useTheme().v4;
   const marks = useExamMarks();
   const list = useExamMarkList();
   const part = examParts(exam, now, list).find((p) => p.kind === "window" && p.edunex.id === edunex.id);
@@ -390,35 +405,33 @@ function EdunexCard({ exam, edunex }: { exam: Exam; edunex: Exam["edunex"][numbe
     }
   };
   return (
-    <Card variant="raised" style={styles.card}>
-      <Text size="labelLarge" tone="muted">
+    <Panel>
+      <Text size="labelLarge" weight="semibold" style={{ color: v.muted }}>
         {t("exam.onEdunex")}
       </Text>
-      <Text size="headlineMedium" weight="semibold" tabular style={{ marginTop: space[1] }}>
+      <Text face="display" weight="extrabold" tabular style={{ marginTop: space[1], color: v.fg, fontSize: 24, lineHeight: 32, letterSpacing: -0.4 }}>
         {edunex.start !== null ? dayLabel(f, edunex.start) : t("exam.noDate")}
       </Text>
       {edunex.start !== null && (
-        <Text size="titleLarge" tabular>
+        <Text size="titleLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
           {edunex.end !== null ? f.timeRange(edunex.start, edunex.end) : f.time(edunex.start)}
         </Text>
       )}
       {edunex.title ? (
-        <Text size="body" tone="muted" style={{ marginTop: space[2] }}>
+        <Text size="bodyMedium" style={{ marginTop: space[2], color: v.fg2 }}>
           {edunex.title}
         </Text>
       ) : null}
       {window && (
         <View style={{ marginTop: space[4], alignItems: "stretch" }}>
-          <Button
-            variant="primary"
-            size="lg"
-            icon={<Icons.CheckCircle size={20} color={c.onPrimary} />}
+          <BigButton
+            icon={<Icons.CheckCircle size={20} weight="bold" color={v.onBrand} />}
             label={t("exam.markDoneFor", { title: name })}
             onPress={() => void markDone()}
             testID="action.markDone"
           >
             {t("exam.markDone")}
-          </Button>
+          </BigButton>
         </View>
       )}
       {failed && (
@@ -443,7 +456,7 @@ function EdunexCard({ exam, edunex }: { exam: Exam; edunex: Exam["edunex"][numbe
           </Button>
         </View>
       )}
-    </Card>
+    </Panel>
   );
 }
 
@@ -452,16 +465,16 @@ function TakeHomeCard({ task }: { task: Task }) {
   const f = useFormat();
   const now = useNow();
   const theme = useTheme();
+  const v = theme.v4;
   const { go } = useNav();
   const status = taskStatus(task, now);
   const open = isOpenStatus(status);
   return (
-    <Pressable
+    <PressScale
       testID={`row.task.${task.id}`}
       accessibilityRole="button"
       onPress={() => go({ screen: "task", taskId: task.id })}
-      android_ripple={{ color: theme.color.selected }}
-      style={[styles.card, styles.takeHome, { backgroundColor: theme.color.surfaceContainerLow }]}
+      style={[styles.card, styles.takeHome, { backgroundColor: v.card }]}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[2] }}>
         {/* How the app knows it's the exam's take-home, said once where it's shown. */}
@@ -473,11 +486,11 @@ function TakeHomeCard({ task }: { task: Task }) {
         </View>
         {status !== "not_started" && <StatusChip status={status} />}
       </View>
-      <Text size="headlineSmall" weight="semibold" tabular style={{ marginTop: space[1] }}>
+      <Text face="display" weight="extrabold" tabular style={{ marginTop: space[1], color: v.fg, fontSize: 24, lineHeight: 32, letterSpacing: -0.4 }}>
         {task.dueAt !== null ? dayLabel(f, task.dueAt) : t("exam.noDate")}
       </Text>
       {task.dueAt !== null && (
-        <Text size="titleMedium" tabular>
+        <Text size="titleMedium" face="display" weight="bold" tabular style={{ color: v.fg }}>
           {t("exam.due", { when: f.time(task.dueAt) })}
         </Text>
       )}
@@ -492,7 +505,7 @@ function TakeHomeCard({ task }: { task: Task }) {
         </Text>
         <Icons.ChevronRight size={16} color={theme.color.primary} />
       </View>
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -511,30 +524,33 @@ function Study({ exam }: { exam: Exam }) {
   const count = (id: number) => materials.filter((m) => m.moduleId === id).length;
   const modulesTitle = t("examPage.modulesBefore", { kind: t(`exam.kind.${exam.kind}`) });
   return (
-    <Section title={t("examPage.study")}>
+    <View>
+      <SectionTitle title={t("examPage.study")} />
       {files.length > 0 && (
-        <View style={{ marginBottom: space[6] }}>
-          <Text size="small" weight="medium" tone="muted" style={{ marginBottom: space[2] }}>
+        <View style={{ marginBottom: space[4] }}>
+          <Text size="labelLarge" style={{ marginBottom: space[2], marginLeft: space[1], color: theme.v4.muted }}>
             {t("examPage.lecturerFiles")}
           </Text>
-          <View style={{ gap: space[2] }}>
+          <Panel style={{ gap: space[2] }}>
             {files.map(({ file, taskId }) => (
               <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(taskId)} />
             ))}
-          </View>
+          </Panel>
         </View>
       )}
       {before.length > 0 && (
         <>
-          <View style={{ marginBottom: space[2], flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[4] }}>
-            <Text size="small" weight="medium" tone="muted" style={{ flex: 1 }}>
+          <View
+            style={{ marginBottom: space[2], marginLeft: space[1], flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[4] }}
+          >
+            <Text size="labelLarge" style={{ flex: 1, color: theme.v4.muted }}>
               {modulesTitle}
             </Text>
             <Pressable
               accessibilityRole="link"
               onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
               hitSlop={8}
-              style={{ flexDirection: "row", alignItems: "center", gap: 2 }}
+              style={{ flexDirection: "row", alignItems: "center", gap: 2, minHeight: 48 }}
             >
               <Text size="small" weight="medium" tone="accent">
                 {t("examPage.openModules")}
@@ -542,13 +558,13 @@ function Study({ exam }: { exam: Exam }) {
               <Icons.ChevronRight size={14} color={theme.color.accentFg} />
             </Pressable>
           </View>
-          <List>
+          <CardList inset={56}>
             {before.map((module, i) => (
               <Row
                 key={module.id}
                 onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules", module: module.id })}
                 leading={
-                  <View style={[styles.number, { backgroundColor: theme.color.fill }]}>
+                  <View style={[styles.number, { backgroundColor: theme.v4.page }]}>
                     <Text size="caption" weight="semibold" tone="muted" tabular>
                       {String(i + 1)}
                     </Text>
@@ -562,10 +578,10 @@ function Study({ exam }: { exam: Exam }) {
                 }
               />
             ))}
-          </List>
+          </CardList>
         </>
       )}
-    </Section>
+    </View>
   );
 }
 
