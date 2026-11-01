@@ -11,7 +11,7 @@ import { router, useScrollToTop } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import Animated, { FadeIn, FadeInLeft, FadeInRight } from "react-native-reanimated";
+import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useLang, useT } from "../../../../src/app/i18n";
@@ -199,14 +199,14 @@ function DayScroll({
   useEffect(() => {
     scroll.current?.scrollTo({ y, animated: false });
   }, [day.day, y]);
+  // With less motion asked for (Android's "Remove animations"), a new day just appears: a fade in its place was
+  // left at nothing on the emulator with animations off, a blank day under the strip.
   const entering =
-    direction === 0
+    direction === 0 || still
       ? undefined
-      : still
-        ? FadeIn.duration(150)
-        : direction > 0
-          ? FadeInRight.springify().damping(20).stiffness(220)
-          : FadeInLeft.springify().damping(20).stiffness(220);
+      : direction > 0
+        ? FadeInRight.springify().damping(20).stiffness(220)
+        : FadeInLeft.springify().damping(20).stiffness(220);
   return (
     <GestureDetector gesture={swipe}>
       <ScrollView
