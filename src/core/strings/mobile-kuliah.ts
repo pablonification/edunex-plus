@@ -41,5 +41,6 @@ export const mobileCourseStrings = {
 } as const satisfies Record<string, Entry>;
 
 export const mobileModuleStrings = {
-  // A module.
+  // A module. Under its materials, once: who posted them ("Dr. Hadi Halim, S.T., M.T."; two or more joined by " · ").
+  "mobile.module.postedBy": { id: "Diunggah oleh {names}", en: "Posted by {names}" },
 } as const satisfies Record<string, Entry>;

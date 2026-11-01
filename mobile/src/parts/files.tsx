@@ -7,7 +7,7 @@
 // Edunex no longer honours is said the desktop viewer's way, with "Buka di Edunex" to its page.
 import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
 import { ActionError } from "../../../src/app/bridge";
 import { useOpenExternal } from "../../../src/app/hooks";
 import { useT } from "../../../src/app/i18n";
@@ -115,7 +115,6 @@ export function FileRow({
 }) {
   const t = useT();
   const theme = useTheme();
-  const openExternal = useOpenExternal();
   const { here, busy, open, share, problem } = useEdunexFile(file, edunexUrl, { inline: true });
   return (
     <View>
@@ -147,34 +146,71 @@ export function FileRow({
         )}
       </View>
       {problem && (
-        <View style={styles.problem} testID={testID ? `${testID}.problem` : undefined} accessibilityLiveRegion="polite">
-          <View style={{ flexDirection: "row", gap: space[2] }}>
-            <View style={{ paddingTop: 2 }}>
-              <Icons.AlertTriangle size={16} color={theme.color.error} weight="bold" />
-            </View>
-            <Text size="bodyMedium" tone="danger" style={{ flex: 1 }}>
-              {problemText(t, problem, file.name)}
-            </Text>
-          </View>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[2], marginLeft: space[6] }}>
-            {(problem === "download" || problem === "openFailed") && (
-              <Button size="sm" variant="secondary" onPress={() => void open()} testID="action.fileRetry">
-                {t("action.tryAgain")}
-              </Button>
-            )}
-            {(problem === "noApp" || problem === "openFailed") && (
-              <Button size="sm" variant="secondary" onPress={share} testID="action.fileShare">
-                {t("mobile.file.share")}
-              </Button>
-            )}
-            {edunexUrl && problem !== "openFailed" && (
-              <Button size="sm" variant="secondary" onPress={() => openExternal(edunexUrl)} testID="action.fileEdunex">
-                {t("action.openInEdunex")}
-              </Button>
-            )}
-          </View>
-        </View>
+        <FileProblemNote
+          problem={problem}
+          name={file.name}
+          edunexUrl={edunexUrl}
+          onRetry={() => void open()}
+          onShare={share}
+          testID={testID ? `${testID}.problem` : undefined}
+        />
       )}
+    </View>
+  );
+}
+
+/**
+ * What went wrong with a file, under its row, in the error colour, with the way forward as buttons (Coba lagi,
+ * Bagikan, Buka di Edunex): FileRow's, and any row drawn from `useEdunexFile` with `inline` (a module's file in v4).
+ * `style`: where it starts (the row's text column).
+ */
+export function FileProblemNote({
+  problem,
+  name,
+  edunexUrl,
+  onRetry,
+  onShare,
+  testID,
+  style,
+}: {
+  problem: FileProblem;
+  name: string;
+  edunexUrl?: string;
+  onRetry: () => void;
+  onShare: () => void;
+  testID?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const t = useT();
+  const theme = useTheme();
+  const openExternal = useOpenExternal();
+  return (
+    <View style={[styles.problem, style]} testID={testID} accessibilityLiveRegion="polite">
+      <View style={{ flexDirection: "row", gap: space[2] }}>
+        <View style={{ paddingTop: 2 }}>
+          <Icons.AlertTriangle size={16} color={theme.color.error} weight="bold" />
+        </View>
+        <Text size="bodyMedium" tone="danger" style={{ flex: 1 }}>
+          {problemText(t, problem, name)}
+        </Text>
+      </View>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2], marginTop: space[2], marginLeft: space[6] }}>
+        {(problem === "download" || problem === "openFailed") && (
+          <Button size="sm" variant="secondary" onPress={onRetry} testID="action.fileRetry">
+            {t("action.tryAgain")}
+          </Button>
+        )}
+        {(problem === "noApp" || problem === "openFailed") && (
+          <Button size="sm" variant="secondary" onPress={onShare} testID="action.fileShare">
+            {t("mobile.file.share")}
+          </Button>
+        )}
+        {edunexUrl && problem !== "openFailed" && (
+          <Button size="sm" variant="secondary" onPress={() => openExternal(edunexUrl)} testID="action.fileEdunex">
+            {t("action.openInEdunex")}
+          </Button>
+        )}
+      </View>
     </View>
   );
 }
