@@ -16,6 +16,7 @@ import { checkingIn } from "../../../../src/core/check-in";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import type { NowCard } from "../../../../src/core/needs";
 import { type Route, useNav } from "../../nav";
+import { absenceInk, absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
 import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
@@ -169,9 +170,11 @@ function Fact({ icon, tone = "fg", end, children }: { icon: (color: string) => R
   );
 }
 
-/** The absences: one pip each, used in the danger colour, still allowed in the track's (v4's pip meter). */
+/** The absences: one pip each, used in the absence scale's colour (src/ui/absence.ts), still allowed in the track's (v4's pip meter). */
 function Pips({ health }: { health: AttendanceHealth }) {
   const v = useTheme().v4;
+  const tone = absenceTone(health.state);
+  const ink = tone ? absenceInk(v, tone).fg : v.muted;
   const used = health.held !== null && health.attended !== null ? Math.max(0, health.held - health.attended) : 0;
   const left = Math.max(0, health.absencesLeft ?? 0);
   const total = Math.min(8, used + left);
@@ -180,7 +183,7 @@ function Pips({ health }: { health: AttendanceHealth }) {
     <View style={{ flexDirection: "row", gap: 4 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {Array.from({ length: total }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: pips are positions
-        <View key={i} style={{ width: 18, height: 8, borderRadius: 4, backgroundColor: i < used ? v.redFg : v.line, opacity: i < used ? 0.8 : 1 }} />
+        <View key={i} style={{ width: 18, height: 8, borderRadius: 4, backgroundColor: i < used ? ink : v.line, opacity: i < used ? 0.8 : 1 }} />
       ))}
     </View>
   );
@@ -193,20 +196,15 @@ function Absences({ card }: { card: NowCard }) {
   const facts = card.class;
   const health = facts?.health && facts.state !== "unknown" ? facts.health : null;
   if (!health) return null;
+  // The absence scale, as the row's chip: below the target red, no absences left amber; absences to spare stay quiet.
+  const tone = absenceTone(health.state);
   return (
     <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />}>
-      {/* No absences left, or below the target: v4's red, as the row's "Jatah habis" chip on Beranda (amber is for a clash). */}
       <Text
         size="bodyLarge"
         weight="medium"
         tone={STATE_TEXT[health.state]}
-        style={
-          health.state === "none" || health.state === "out" || health.state === "missed"
-            ? { color: v.redFg }
-            : STATE_TEXT[health.state] === "muted"
-              ? { color: v.fg2 }
-              : undefined
-        }
+        style={tone === "red" || tone === "amber" ? { color: absenceInk(v, tone).fg } : STATE_TEXT[health.state] === "muted" ? { color: v.fg2 } : undefined}
       >
         {budgetLabel(t, health)}
       </Text>

@@ -106,6 +106,8 @@ export interface SheetChoice {
   tone?: "fg" | "danger";
   /** Shown but not pressable (nothing to do yet); its hint says why. */
   disabled?: boolean;
+  /** A setting the choice turns on and off (Material's checkable menu item): a check at its end while it's on. */
+  checked?: boolean;
   onPress(): void;
   testID?: string;
 }

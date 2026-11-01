@@ -178,14 +178,19 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
  * (tap: each source and "Perbarui sekarang"), then search, the bell with its unread count (`bell`: Beranda), and the
  * Student's avatar, the way to the account and Settings. A banner follows when something needs the Student.
  */
-export function TabHeader({ title, bell = false }: { title: string; bell?: boolean }) {
+/**
+ * A tab's top bar. `actions`: the tab's own one or two (an icon button, ⋮), between its title and Search; M3 allows
+ * two in the bar, the rest in ⋮.
+ */
+/** `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, the tab's name in Plus Jakarta Sans. */
+export function TabHeader({ title, bell = false, actions, v4 = false }: { title: string; bell?: boolean; actions?: ReactNode; v4?: boolean }) {
   const t = useT();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const line = useSyncLine();
   const [panel, setPanel] = useState(false);
   return (
-    <BarSurface>
+    <BarSurface v4={v4}>
       <View
         style={{ marginTop: insets.top, flexDirection: "row", alignItems: "center", paddingLeft: space.page, paddingRight: space[1], minHeight: BAR_HEIGHT }}
       >
@@ -196,11 +201,17 @@ export function TabHeader({ title, bell = false }: { title: string; bell?: boole
           onPress={() => setPanel(true)}
           style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center" }}
         >
-          <Text size="titleLarge" numberOfLines={1} accessibilityRole="header">
+          <Text
+            size="titleLarge"
+            numberOfLines={1}
+            accessibilityRole="header"
+            {...(v4 ? ({ face: "display", weight: "bold", style: { fontSize: 24, letterSpacing: -0.3 } } as const) : {})}
+          >
             {title}
           </Text>
           <StatusLine />
         </Pressable>
+        {actions}
         <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
           <Icons.Search size={24} color={theme.color.onSurfaceVariant} />
         </IconButton>

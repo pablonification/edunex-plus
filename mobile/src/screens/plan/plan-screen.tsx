@@ -7,10 +7,12 @@ import type { ScrollView } from "react-native";
 import { View } from "react-native";
 import { type StringKey, useT } from "../../../../src/app/i18n";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
+import { useDataset, useStatus } from "../../../../src/app/store";
 import { useNav } from "../../nav";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Button } from "../../ui/controls";
+import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
 import { Text } from "../../ui/text";
@@ -46,13 +48,15 @@ export function PlanScreen({ part }: { part?: string }) {
   // Back from another screen that changed the saved plan: the part starts again from what's saved.
   const fresh = useFreshPlan();
   const current = partOf(part);
-  usePerfDrawn(true);
+  const v = useTheme().v4;
+  usePerfDrawn(useDataReady(current));
   if (!builtPlanTabs.length) return null;
   const Part = TAB[current];
   return (
     <Page
       testID={`screen.plan.${current}`}
       scrollRef={scroll}
+      background={v.page}
       header={
         <>
           <TopBar title={t(`plan.tab.${current}` as StringKey)} />
@@ -66,13 +70,32 @@ export function PlanScreen({ part }: { part?: string }) {
         <PageScrollProvider value={scroll}>
           <View testID={`panel.plan.${current}`}>
             <TabBoundary key={`${current}:${fresh}`} name={`plan ${current}`}>
-              <Part onCalendar={() => go({ screen: "plan", tab: "deadlines" })} />
+              {/* Rencana, Kurikulum, KRS and UKT say no time to the minute: the minute's tick doesn't draw them again. */}
+              {current === "deadlines" ? (
+                <Part onCalendar={() => go({ screen: "plan", tab: "deadlines" })} />
+              ) : (
+                <HourClock>
+                  <Part onCalendar={() => go({ screen: "plan", tab: "deadlines" })} />
+                </HourClock>
+              )}
             </TabBoundary>
           </View>
         </PageScrollProvider>
       </PlaceStateProvider>
     </Page>
   );
+}
+
+/** The part's own data is in (or there's none to wait for): its screen is drawn with it. */
+function useDataReady(part: PlanTab): boolean {
+  const curriculum = useDataset("six.curriculum");
+  const krs = useDataset("six.krs");
+  const bills = useDataset("six.bills");
+  const calendar = useDataset("itb.calendar");
+  const six = useStatus("six");
+  const has = { planner: curriculum, curriculum, krs, bills, deadlines: calendar }[part] !== undefined;
+  const waiting = part === "deadlines" ? false : six.state === "connecting" || six.state === "live";
+  return has || !waiting;
 }
 
 /** The crash guard (src/app/ui/panel-boundary.tsx): a bad record breaks one tab with a visible error and a way to try again. */

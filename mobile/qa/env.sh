@@ -13,15 +13,17 @@ unset sdk
 export MSYS_NO_PATHCONV=1
 export MAESTRO_CLI_NO_ANALYTICS=1 EXPO_NO_TELEMETRY=1
 # Where outputs go (outside the repository): APKs, measurements, screenshots, recordings, traces. Paths are
-# kept as X:/... (Windows programs and Git Bash both read those). Never C: (2026-11-01: build copies, Gradle homes
-# and Temp filled C:'s 237 GB and took T3 down with every helper): the big drives F: and H: hold it all.
-export QA_OUT=${QA_OUT:-F:/qa}
-# Build copies (one per slot) and each slot's Gradle home.
-export QA_BUILD_ROOT=${QA_BUILD_ROOT:-F:/b}
-# Temp files of builds, emulators and Perfetto go there too.
-mkdir -p "$QA_OUT/tmp" 2> /dev/null && export TEMP="$(cygpath -w "$QA_OUT/tmp")" TMP="$(cygpath -w "$QA_OUT/tmp")" TMPDIR="$QA_OUT/tmp"
+# kept as C:/... (Windows programs and Git Bash both read those). Everything is on C:, the fast NVMe disk. The two
+# hard disks F: and H: are not used: the machine stalled three times on 2026-11-01 while the lab used F: (an old
+# laptop disk), and anything that touched it hung. C: stays safe because build copies are deleted after the APK and
+# nothing starts under 20 GB free; delete your own runs once their numbers and pictures are pushed.
+export QA_OUT=${QA_OUT:-C:/qa}
+# Build copies (one per slot) and each slot's Gradle home, and temp files.
+export QA_BUILD_ROOT=${QA_BUILD_ROOT:-C:/b}
+mkdir -p C:/qa/tmp 2> /dev/null && export TEMP='C:\qa\tmp' TMP='C:\qa\tmp' TMPDIR=C:/qa/tmp
 # Gigabytes free on a drive letter: qa_free_gb C
-qa_free_gb() { df -Pk "/${1,,}" 2> /dev/null | awk 'NR == 2 { print int($4 / 1048576) }'; }
+# fsutil asks only that one volume; df walks every drive and hung on a stalled disk.
+qa_free_gb() { fsutil volume diskfree "${1^^}:" 2> /dev/null | tr -d ',' | awk '/free bytes/ && !/quota|avail/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9]+$/) { print int($i / 1073741824); exit } }'; }
 # Stops with a message unless C: has at least 20 GB free (the lab's rule before any build or emulator session).
 qa_check_disk() {
   local free

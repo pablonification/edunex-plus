@@ -1,4 +1,4 @@
-# Recording: a course's menu sheet opened and closed.
+# Recording: a course's menu sheet opened and closed (the course from Kuliah; round 1: Lainnya).
 appId: io.github.pablonification.edunexplus.demo
 ---
 - extendedWaitUntil:
@@ -6,7 +6,7 @@ appId: io.github.pablonification.edunexplus.demo
       id: tab.home
     timeout: 60000
 - tapOn:
-    id: tab.more
+    id: 'tab\.(courses|more)'
 - scrollUntilVisible:
     element:
       id: row.course.PL3002

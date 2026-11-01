@@ -138,10 +138,6 @@ export const mobileStrings = {
     id: "Menyimpan {done} dari {total} berkas",
     en: { one: "Saving {done} of {total} file", other: "Saving {done} of {total} files" },
   },
-  "mobile.offline.savingHint": {
-    id: "Tetap berjalan meski kamu pindah halaman. Tiap berkas lalu bisa dibuka tanpa internet.",
-    en: "Keeps going if you leave this page. Each file then opens without internet.",
-  },
   // UKT: once a bill is paid, the other deadline is only a fact, with nothing left to follow.
   "mobile.bills.paidOtherSix": { id: "Di SIX tertulis {date}", en: "SIX says {date}" },
   "mobile.bills.paidOtherItb": { id: "Di kalender ITB tertulis {date}", en: "ITB's calendar says {date}" },
@@ -157,6 +153,34 @@ export const mobileStrings = {
   "mobile.schedule.monthsAhead": { id: "{count} bulan lagi", en: { one: "In {count} month", other: "In {count} months" } },
   "mobile.schedule.today": { id: "Hari ini", en: "Today" },
   "mobile.schedule.todayLabel": { id: "Kembali ke hari ini", en: "Back to today" },
+  // Jadwal's day (v4): a day with no class, a hand-in's time ("II4091 · sebelum 23:59"), and where a class the app
+  // couldn't read is.
+  "mobile.schedule.noClasses": { id: "Tidak ada kuliah", en: "No classes" },
+  "mobile.schedule.before": { id: "sebelum {time}", en: "by {time}" },
+  "mobile.schedule.unreadMeta": { id: "Jam dan ruangnya ada di SIX", en: "Its time and room are on SIX" },
+  // Jadwal's top bar: the month, a screen away.
+  "mobile.schedule.month": { id: "Lihat sebulan", en: "Month view" },
+  // Jadwal's ⋮: the reminder before each class (the engine's "Kuliah sebentar lagi"), with how long before.
+  "mobile.schedule.remind": { id: "Ingatkan sebelum kuliah", en: "Remind me before class" },
+  "mobile.schedule.remind.hint": { id: "15 menit sebelumnya", en: "15 minutes before" },
+  "mobile.schedule.remind.on": { id: "Pengingat menyala, 15 menit sebelum tiap kuliah.", en: "Reminders on, 15 minutes before each class." },
+  "mobile.schedule.remind.off": { id: "Pengingat kuliah dimatikan.", en: "Class reminders are off." },
+  // Jadwal's ⋮: the phone's calendar kept the same as Jadwal, in a calendar of the app's own (W13).
+  "mobile.calendar.sync": { id: "Tampilkan di Kalender HP", en: "Show in phone calendar" },
+  "mobile.calendar.sync.hint": { id: "Kalender Edunex Plus, selalu terbaru", en: "An Edunex Plus calendar, kept up to date" },
+  "mobile.calendar.sync.on": {
+    id: "{count} acara ada di kalender Edunex Plus. Ikut berubah saat jadwal berubah.",
+    en: {
+      one: "{count} event in the Edunex Plus calendar. It changes when your schedule does.",
+      other: "{count} events in the Edunex Plus calendar. They change when your schedule does.",
+    },
+  },
+  "mobile.calendar.sync.off": { id: "Kalender Edunex Plus dihapus dari HP.", en: "The Edunex Plus calendar is off your phone." },
+  "mobile.calendar.sync.failed": { id: "Kalender HP belum bisa diperbarui", en: "Couldn't update your phone's calendar" },
+  "mobile.calendar.sync.failedHint": {
+    id: "Jadwal di sini tetap terbaru. Coba lagi sebentar lagi.",
+    en: "Your schedule here is up to date. Try again in a moment.",
+  },
   // "Tambahkan ke kalender HP" on the phone (S8): the events go into the phone's own calendar, in one called Edunex Plus.
   "mobile.calendar.lead": {
     id: "Kuliah, ujian dan tenggatmu masuk ke kalender HP, di kalender bernama Edunex Plus.",
@@ -196,6 +220,12 @@ export const mobileStrings = {
   // The desktop's calendar file, through the share sheet (Drive, email, another calendar app).
   "mobile.calendar.share": { id: "Bagikan .ics", en: "Share .ics" },
   "mobile.calendar.shareFailed": { id: "Berkas .ics tidak bisa dibagikan. Coba lagi.", en: "Couldn't share the .ics file. Try again." },
+  // widget
+  // The "Hari ini" home-screen widget on a day without classes; a tap opens Jadwal.
+  "mobile.widget.todayNone": { id: "Tidak ada kuliah hari ini.", en: "No classes today." },
+  // presence
+  // Kuliah's ⋮: the attendance targets, with the range in force under it ("80%", "75–80%").
+  "mobile.courses.targets": { id: "Target kehadiran", en: "Attendance targets" },
   // grades-plan
   // The planner's ⋯ on a course: the desktop plans a course in a semester, the phone moves it there from a sheet.
   "mobile.planner.options": { id: "Pilihan untuk {code}", en: "Options for {code}" },
@@ -311,8 +341,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Rencana ini tersimpan di HP ini. Aplikasi tidak pernah mengirim KRS.",
     en: "This plan stays on this phone. The app never sends a KRS.",
   },
-  // schedule: the calendar sheet's button with nothing chosen. On the phone it adds to the calendar, it saves no file.
-  "schedule.export.nothing": { id: "Tidak ada yang bisa ditambahkan", en: "Nothing to add" },
   // grades-plan: Kurikulum's note. A course's corrections open from a tap on its row, not a ⋯ menu.
   "curriculum.unlistedNote": {
     id: "Ada {count} mata kuliah di luar catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”.",
@@ -324,10 +352,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   },
   // tasks and schedule: a Task that is also attendance counts only while its Presence is open. No student
   // says "jendela", so the phone says when Presence is open, or "dalam waktu ini" beside a time.
-  "task.note.attendance": {
-    id: "Tugas ini juga Presensi-mu. Kamu dihitung hadir hanya jika mengumpulkannya {date}, {time}.",
-    en: "This Task is also your attendance. You count as present only if you hand it in {date}, {time}.",
-  },
   "task.note.attendanceCounted": {
     id: "Terhitung hadir. Kamu mengumpulkannya selama Presensi dibuka ({when}).",
     en: "Counted as present. You handed it in while Presence was open ({when}).",

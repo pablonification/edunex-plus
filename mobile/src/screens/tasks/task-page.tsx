@@ -1,11 +1,12 @@
-// The Task page on the phone (S3): src/app/screens/tasks.tsx's TaskPage in one column. The way up
-// (course, module), the title, one line of facts, the exam it's part of, what Edunex doesn't say
-// (attendance, a short window, a lecturer's edit), the instructions, the lecturer's files, the
-// hand-in card and History; Simpan draf and Kumpulkan stay at the bottom of the screen.
+// The Task page on the phone (S3): src/app/screens/tasks.tsx's TaskPage in one column, in v4 (round 2). The way up
+// (course, module), the title, then the deadline as the page's one big card (the course's tint, the countdown large,
+// the day and time, and where the Student stands), the exam it's part of, what Edunex doesn't say (attendance, a short
+// window, a lecturer's edit), then white cards: the instructions, the lecturer's files, the answer, History. Simpan
+// draf and Kumpulkan stay at the bottom of the screen; Kumpulkan is the screen's one filled button.
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, type ScrollView, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
-import { useCourseColor } from "../../../../src/app/courses";
+import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useExams } from "../../../../src/app/schedule-data";
@@ -14,7 +15,7 @@ import { useDataset } from "../../../../src/app/store";
 import { presenceOptional } from "../../../../src/core/attendance";
 import { introModule } from "../../../../src/core/course-materials";
 import { taskDoneKey } from "../../../../src/core/done";
-import type { Task, TaskChange, TaskFile } from "../../../../src/core/models";
+import type { Task, TaskChange, TaskFile, TaskStatus } from "../../../../src/core/models";
 import { editView, titleOnly } from "../../../../src/core/task-edits";
 import {
   attendanceResult,
@@ -33,18 +34,25 @@ import { LecturerFile } from "../../parts/files";
 import { plainText } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { DoneButton } from "../../parts/snooze";
+import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
+import { Panel, SectionTitle } from "../../ui/card-list";
+import { Celebration } from "../../ui/celebrate";
 import { Button } from "../../ui/controls";
-import { CourseDot, EmptyState } from "../../ui/display";
+import { EmptyState } from "../../ui/display";
+import { CountUp } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
-import { factsLabel, Meta, Notice as NoticeBox, Page } from "../../ui/layout";
+import { factsLabel, Notice as NoticeBox, Page } from "../../ui/layout";
+import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
-import { Text, type TextTone } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
+import { Text } from "../../ui/text";
+import { shape, space, useTheme } from "../../ui/theme";
+import { CourseGlyph, CourseTile, useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { takeHomeWhy } from "./exam-rows";
 import { HandInBar, HandInCard, useHandIn } from "./hand-in";
 import { NoTasksYet } from "./list";
+import { countdown, IconTile } from "./row-parts";
 import { moduleLabel } from "./rows";
 
 const MINUTE = 60_000;
@@ -57,9 +65,11 @@ export function TaskScreen({ taskId }: { taskId: number }) {
   const { go } = useNav();
   const tasks = useDataset("edunex.tasks");
   const task = tasks?.find((item) => item.id === taskId);
+  // Drawn with its data: the Task, or the word that it's gone.
+  usePerfDrawn(tasks !== undefined);
   if (task) return <TaskPage key={task.id} task={task} />;
   return (
-    <Page testID="screen.task" header={<TopBar title={t("nav.tasks")} />}>
+    <Page testID="screen.task" header={<TopBar title={t("nav.tasks")} />} background={theme.v4.page}>
       {tasks ? (
         <EmptyState icon={<Icons.ListChecks size={20} color={theme.color.muted} />} title={t("task.notFound")}>
           <Button size="sm" onPress={() => go({ screen: "tasks" })}>
@@ -81,13 +91,16 @@ function TaskPage({ task }: { task: Task }) {
   const c = theme.color;
   const { go } = useNav();
   const pull = usePullToRefresh();
-  const color = useCourseColor()(task.courseCode);
+  const v = theme.v4;
+  const course = useTermCourses()?.find((c) => c.code === task.courseCode);
+  const sentAt = submittedAt(task);
   const exam = useExams()?.find((e) => e.tasks.some((item) => item.id === task.id));
   const status = taskStatus(task, now);
   const late = status === "overdue" || status === "closed";
   const soon = !late && isOpenStatus(status) && task.dueAt !== null && task.dueAt - now < DAY;
   const where = moduleLabel(t, task.module);
   const handIn = useHandIn(task, status);
+  const presence = usePresence(task);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const historyAt = useRef(0);
   /** "Lihat perubahannya" asks History to open its newest edit: which, and how many times asked. */
@@ -95,135 +108,106 @@ function TaskPage({ task }: { task: Task }) {
   useEffect(() => {
     if (reveal) scroll.current?.scrollTo({ y: Math.max(0, historyAt.current - space[4]), animated: true });
   }, [reveal]);
-  const dueTone: TextTone = late ? "danger" : soon ? "warning" : "fg";
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: c.canvas }}>
-      <Page testID="screen.task" header={<TopBar title={t("nav.tasks")} />} scrollRef={scroll} {...pull}>
-        {/* The way up, part by part: the course, and its module. */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[1.5], flexWrap: "wrap" }}>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: v.page }}>
+      {/* One title: the Task's own, on the page; the bar carries only Back. */}
+      <Page testID="screen.task" header={<TopBar />} scrollRef={scroll} background={v.page} {...pull}>
+        {/* The way up, part by part: the course (its tile), and its module. */}
+        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginLeft: -space[2] }}>
           <Pressable
             accessibilityRole="link"
+            accessibilityLabel={factsLabel(task.courseCode, course?.name)}
             onPress={() => go({ screen: "course", code: task.courseCode })}
-            hitSlop={8}
-            style={{ flexDirection: "row", alignItems: "center", gap: 6 }}
+            android_ripple={{ color: c.selected, borderless: false }}
+            style={styles.crumb}
             testID="action.course"
           >
-            <CourseDot color={color} size={8} />
-            <Text size="small" weight="semibold" tone="muted">
+            <CourseTile code={task.courseCode} name={course?.name} size={24} />
+            <Text size="labelLarge" tabular style={{ color: v.fg2 }}>
               {task.courseCode}
             </Text>
           </Pressable>
           {where && (
             <>
-              <Icons.ChevronRight size={12} color={c.muted} />
+              <Icons.ChevronRight size={14} color={v.muted} />
               <Pressable
                 accessibilityRole="link"
                 onPress={() => go({ screen: "course", code: task.courseCode, tab: "modules", module: task.moduleId ?? introModule(task.courseId) })}
-                hitSlop={8}
-                style={{ flexShrink: 1 }}
+                android_ripple={{ color: c.selected, borderless: false }}
+                style={[styles.crumb, { flexShrink: 1 }]}
+                testID="action.module"
               >
-                <Meta numberOfLines={1}>{where}</Meta>
+                <Text size="labelLarge" numberOfLines={1} style={{ flexShrink: 1, color: v.fg2 }}>
+                  {where}
+                </Text>
               </Pressable>
             </>
           )}
         </View>
-        <Text size="display" weight="semibold" accessibilityRole="header" style={{ marginTop: space[2], letterSpacing: -0.4 }}>
+        <Text size="headlineSmall" face="display" weight="bold" accessibilityRole="header" style={{ marginTop: space[1], color: v.fg, letterSpacing: -0.3 }}>
           {task.title}
         </Text>
-        {/* One line of facts; once the Task is open, when it opened is history (Riwayat says it). */}
-        <View style={{ marginTop: space[2.5] }}>
-          {task.dueAt !== null ? (
-            <Facts
-              items={[
-                {
-                  node: (
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                      <Icons.Clock size={14} color={c[late ? "dangerFg" : soon ? "warningFg" : "fg"]} />
-                      <Text size="body" weight="medium" tone={dueTone}>
-                        {t("task.due", { when: f.dayTimeWord(task.dueAt) })}
-                      </Text>
-                    </View>
-                  ),
-                },
-                { text: f.fromNow(task.dueAt), tone: late ? "danger" : soon ? "warning" : "muted" },
-                isOpenStatus(status)
-                  ? { text: task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed"), tone: !task.lateAllowed && soon ? "warning" : "muted" }
-                  : null,
-                task.opensAt !== null && notOpenYet(task, now)
-                  ? { text: t("task.opens", { when: f.dayTimeWord(task.opensAt) }), tone: "warning", strong: true }
-                  : null,
-              ]}
-            />
-          ) : (
-            <Facts
-              items={[
-                { text: t("task.noDeadline"), tone: "muted" },
-                task.opensAt !== null && notOpenYet(task, now)
-                  ? { text: t("task.opens", { when: f.dayTimeWord(task.opensAt) }), tone: "warning", strong: true }
-                  : null,
-              ]}
-            />
-          )}
-        </View>
+
+        {/* By when, and where the Student stands: the first thing to read after the name, the page's one big card. */}
+        <DueCard task={task} status={status} late={late} soon={soon} course={course?.name} presence={presence.due} />
+
         {exam && (
           // The exam it's part of, and how the app knows: Edunex files it there, or its name says so.
-          <View style={{ marginTop: space[3], gap: 2 }}>
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => go({ screen: "exam", examId: exam.id })}
-              hitSlop={8}
-              style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }}
-              testID="action.exam"
-            >
-              <Icons.GraduationCap size={14} color={c.accentFg} />
-              <Text size="small" weight="medium" tone="accent">
+          <PressScale
+            accessibilityRole="link"
+            onPress={() => go({ screen: "exam", examId: exam.id })}
+            style={[styles.examLink, { backgroundColor: v.card }]}
+            testID="action.exam"
+          >
+            <IconTile>
+              <Icons.GraduationCap size={22} color={v.brandInk} />
+            </IconTile>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text size="bodyLarge" weight="medium" style={{ color: v.fg }}>
                 {t("task.partOfExam", { kind: t(`exam.kind.${exam.kind}`), code: exam.courseCode })}
               </Text>
-              <Icons.ChevronRight size={14} color={c.accentFg} />
-            </Pressable>
-            {takeHomeWhy(t, task) && (
-              <Text size="small" tone="muted">
-                {takeHomeWhy(t, task)}
-              </Text>
-            )}
-          </View>
+              {takeHomeWhy(t, task) && (
+                <Text size="bodyMedium" style={{ color: v.muted }}>
+                  {takeHomeWhy(t, task)}
+                </Text>
+              )}
+            </View>
+          </PressScale>
         )}
 
-        <Notes task={task} />
+        <Notes task={task} presence={presence} />
         <EditNotice task={task} onSee={(at) => setReveal((was) => ({ at, asked: (was?.asked ?? 0) + 1 }))} />
 
-        <View style={{ marginTop: space[8] }}>
-          <Text size="title" weight="semibold" accessibilityRole="header" style={{ marginBottom: space[2.5] }}>
-            {t("task.instructions")}
-          </Text>
-          {plainText(task.instructions) ? (
-            <LecturerHtml html={task.instructions} size="lead" />
-          ) : (
-            <Text size="body" tone="muted">
-              {t("task.noInstructions")}
-            </Text>
-          )}
+        <View testID="section.instructions">
+          <SectionTitle title={t("task.instructions")} />
+          <Panel>
+            {plainText(task.instructions) ? (
+              <LecturerHtml html={task.instructions} size="bodyLarge" />
+            ) : (
+              <Text size="bodyLarge" style={{ color: v.muted }}>
+                {t("task.noInstructions")}
+              </Text>
+            )}
+          </Panel>
         </View>
 
         {task.files.length > 0 && (
-          <View style={{ marginTop: space[8] }}>
-            <Text size="title" weight="semibold" accessibilityRole="header" style={{ marginBottom: space[2.5] }}>
-              {t("task.lecturerFiles")}
-            </Text>
-            <View style={{ gap: space[2] }}>
+          <View testID="section.files">
+            <SectionTitle title={t("task.lecturerFiles")} count={task.files.length} />
+            <Panel style={{ gap: space[2] }}>
               {task.files.map((file) => (
                 <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(task.id)} />
               ))}
-            </View>
+            </Panel>
           </View>
         )}
 
-        <View style={{ marginTop: space[8] }}>
+        <View testID="section.answer">
+          <SectionTitle title={t("handIn.yourAnswer")} />
           <HandInCard h={handIn} />
         </View>
         <View
-          style={{ marginTop: space[6] }}
           onLayout={(event) => {
             historyAt.current = event.nativeEvent.layout.y;
           }}
@@ -232,43 +216,152 @@ function TaskPage({ task }: { task: Task }) {
         </View>
       </Page>
       <HandInBar h={handIn} />
+      {handIn.justDone === "submit" && (
+        <Celebration title={t("mobile.tasks.handedIn")} detail={sentAt !== null ? t("handIn.recorded", { when: f.dayTimeWord(sentAt) }) : undefined} />
+      )}
     </KeyboardAvoidingView>
   );
 }
 
-type Fact = { text: string; tone?: TextTone; strong?: boolean } | { node: ReactNode };
-
-/** Facts on one line split by quiet dots, each in its own tone (Meta's look with colours of their own). */
-/** The dot between two facts, in a slot of its own: Meta's (src/ui/layout.tsx), at body size. */
-const SEP = 22;
-
 /**
- * The header's facts on as many lines as they need, the dot between them as Meta draws it: each
- * fact carries its dot in front, and the line's start sits one slot left of the clip, so a fact
- * that wraps starts its line with no stray "·".
+ * The deadline as the page's one big card (v4, Tugas's big card): the course's tint, amber within a day, red with a
+ * warning sign and "lewat" once late (never the colour alone). While it can still be handed in, how long is left leads,
+ * large; under it the day and time, and whether late is still taken. The status as Edunex has it sits in the corner.
  */
-function Facts({ items }: { items: (Fact | null)[] }) {
-  const shown = items.filter((item): item is Fact => item !== null);
+function DueCard({
+  task,
+  status,
+  late,
+  soon,
+  course,
+  presence,
+}: {
+  task: Task;
+  status: TaskStatus;
+  late: boolean;
+  soon: boolean;
+  course?: string;
+  /** When handing it in also counts as present ("Jum 15:00–23:59"), while that's still ahead. */
+  presence: string | null;
+}) {
+  const t = useT();
+  const f = useFormat();
+  const now = useNow();
+  const v = useTheme().v4;
+  const { ink, tint } = useCourseTile()(task.courseCode);
+  const [bg, fg] = late ? [v.redBg, v.redFg] : soon ? [v.ambBg, v.ambFg] : [tint, ink];
+  const away = task.dueAt !== null && isOpenStatus(status) ? countdown(t, now, task.dueAt) : null;
+  const opens = task.opensAt !== null && notOpenYet(task, now) ? t("task.opens", { when: f.dayTimeWord(task.opensAt) }) : null;
+  const lateRule = task.dueAt !== null && isOpenStatus(status) ? (task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")) : null;
   return (
-    <View style={{ overflow: "hidden" }}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", rowGap: 2, marginLeft: -SEP }}>
-        {shown.map((item, i) => (
-          <View key={"node" in item ? "node" : item.text} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1, maxWidth: "100%" }}>
-            <Text size="body" tone="faint" style={{ width: SEP, textAlign: "center" }} accessible={false} importantForAccessibility="no">
-              {i > 0 ? "·" : ""}
-            </Text>
-            {"node" in item ? (
-              item.node
-            ) : (
-              <Text size="body" tone={item.tone ?? "muted"} weight={item.strong ? "medium" : "regular"} style={{ flexShrink: 1 }}>
-                {item.text}
+    <View testID="card.due" style={{ marginTop: space[4], backgroundColor: bg, borderRadius: 24, padding: space[4], gap: space[1] }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3], marginBottom: space[2] }}>
+        {late ? <Icons.AlertTriangle size={22} weight="bold" color={fg} /> : <CourseGlyph code={task.courseCode} name={course} />}
+        <View style={{ flexDirection: "row", gap: space[2], flexShrink: 1 }}>
+          {presence && (
+            <View testID="chip.presence" style={[styles.pill, { backgroundColor: v.card }]}>
+              <Icons.Hand size={13} color={fg} />
+              <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
+                {t("mobile.tasks.presenceChip")}
               </Text>
-            )}
+            </View>
+          )}
+          <View style={[styles.pill, { backgroundColor: v.card, flexShrink: 1 }]}>
+            <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
+              {t(`taskStatus.${status}`)}
+            </Text>
           </View>
-        ))}
+        </View>
       </View>
+      {task.dueAt === null ? (
+        <Text size="titleLarge" face="display" weight="bold" style={{ color: v.fg }}>
+          {t("task.noDeadline")}
+        </Text>
+      ) : (
+        <>
+          {away && (
+            // "8 hari", "lewat 2 jam": read as the whole sentence.
+            <View accessible accessibilityLabel={`${f.fromNow(task.dueAt)}`} style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" }}>
+              {away.late && (
+                <Text size="bodyLarge" face="display" weight="semibold" style={{ color: fg, fontSize: 16, marginRight: 6 }}>
+                  {t("mobile.home.late")}
+                </Text>
+              )}
+              <CountUp
+                id={`task:${task.id}`}
+                value={away.value}
+                style={{ color: fg, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 44, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
+              />
+              <Text size="bodyLarge" face="display" weight="semibold" style={{ color: fg, fontSize: 17, marginLeft: 6 }}>
+                {away.unit}
+              </Text>
+            </View>
+          )}
+          <Text
+            size={away ? "titleMedium" : "titleLarge"}
+            face="display"
+            weight="bold"
+            tabular
+            style={{ color: v.fg }}
+            accessibilityLabel={t("task.due", { when: f.dayTimeWord(task.dueAt) })}
+          >
+            {f.dueLabel(task.dueAt)}
+          </Text>
+          {presence && (
+            <Text size="bodyMedium" weight="medium" tabular style={{ color: fg }}>
+              {t("mobile.tasks.presenceLine", { when: presence })}
+            </Text>
+          )}
+          {lateRule && (
+            <Text size="bodyMedium" style={{ color: v.fg2 }}>
+              {lateRule}
+            </Text>
+          )}
+        </>
+      )}
+      {opens && (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginTop: space[1] }}>
+          <Icons.Lock size={16} color={v.fg2} />
+          <Text size="bodyMedium" weight="medium" style={{ flexShrink: 1, color: v.fg2 }}>
+            {opens}
+          </Text>
+        </View>
+      )}
     </View>
   );
+}
+
+type Presence = ReturnType<typeof usePresence>;
+
+/**
+ * The Task's Presensi, read once for the due card and Notes: whether it's optional (SIX counts the course), how a
+ * hand-in counted, the session still to come. `due`: while handing it in can still count as present, when, as the due
+ * card's line says it: "Jum 15:00–23:59" (the day of its deadline goes without its date), "hari ini 15:00–23:59".
+ */
+function usePresence(task: Task) {
+  const t = useT();
+  const f = useFormat();
+  const now = useNow();
+  const presence = useDataset("edunex.presence");
+  const countedIn = useAttendance()?.courses.find((entry) => entry.course.code === task.courseCode)?.health.countedIn;
+  const optional = presenceOptional(countedIn);
+  const sessions = presence?.[task.courseCode] ?? [];
+  const result = attendanceResult(task, sessions, now);
+  const session = isOpenStatus(taskStatus(task, now)) ? attendanceSession(task, sessions, now) : null;
+  let due: string | null = null;
+  if (!optional && !result && session && session.closesAt > now) {
+    const offset = f.dayOffset(session.opensAt);
+    const day =
+      offset === 0
+        ? t("time.todayWord")
+        : offset === 1
+          ? t("time.tomorrowWord")
+          : task.dueAt !== null && f.dayOffset(task.dueAt) === offset
+            ? f.weekdayShort(session.opensAt)
+            : `${f.weekdayShort(session.opensAt)} ${f.dayMonth(session.opensAt)}`;
+    due = `${day} ${f.timeRange(session.opensAt, session.closesAt)}`;
+  }
+  return { now, optional, result, session, due };
 }
 
 /**
@@ -276,21 +369,14 @@ function Facts({ items }: { items: (Fact | null)[] }) {
  * whether it counted), a short window. Where the course counts in SIX, the attendance window is
  * optional: said once, calmly.
  */
-function Notes({ task }: { task: Task }) {
+function Notes({ task, presence }: { task: Task; presence: Presence }) {
   const t = useT();
   const f = useFormat();
-  const now = useNow();
   const theme = useTheme();
-  const c = theme.color;
-  const presence = useDataset("edunex.presence");
-  const countedIn = useAttendance()?.courses.find((entry) => entry.course.code === task.courseCode)?.health.countedIn;
-  const optional = presenceOptional(countedIn);
-  const sessions = presence?.[task.courseCode] ?? [];
+  const v = theme.v4;
+  const { now, optional, result, session } = presence;
   const notes: { tone: "warning" | "neutral" | "success" | "danger"; icon: "hand" | "check" | "zap"; text: string }[] = [];
   const range = (opensAt: number, closesAt: number) => `${dayWord(f, t, opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
-  const result = attendanceResult(task, sessions, now);
-  const status = taskStatus(task, now);
-  const session = isOpenStatus(status) ? attendanceSession(task, sessions, now) : null;
   if (optional) {
     if (session && session.closesAt > now)
       notes.push({
@@ -308,13 +394,8 @@ function Notes({ task }: { task: Task }) {
         ? { tone: "success", icon: "check", text: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }) }
         : { tone: "danger", icon: "hand", text: t("task.note.attendanceOutside", { when: range(result.session.opensAt, result.session.closesAt) }) },
     );
-  else if (session && session.closesAt > now)
-    notes.push({
-      tone: "warning",
-      icon: "hand",
-      text: t("task.note.attendance", { date: dayWord(f, t, session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }),
-    });
-  else if (session && !session.recorded?.present)
+  // One still ahead is the due card's Presensi chip and line (usePresence's `due`).
+  else if (session && session.closesAt <= now && !session.recorded?.present)
     notes.push({ tone: "neutral", icon: "hand", text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }) });
   const window = shortWindow(task);
   if (window !== null && task.opensAt !== null && task.dueAt !== null)
@@ -328,14 +409,15 @@ function Notes({ task }: { task: Task }) {
       }),
     });
   if (!notes.length) return null;
+  // v4's tonal states; a calm note is a white card on the page.
   const TONE = {
-    warning: { bg: c.warningBg, fg: c.warningFg, tone: "warning" },
-    neutral: { bg: c.fill, fg: c.muted, tone: "muted" },
-    success: { bg: c.successBg, fg: c.successFg, tone: "success" },
-    danger: { bg: c.dangerBg, fg: c.dangerFg, tone: "danger" },
+    warning: { bg: v.ambBg, fg: v.ambFg },
+    neutral: { bg: v.card, fg: v.fg2 },
+    success: { bg: v.okBg, fg: v.okFg },
+    danger: { bg: v.redBg, fg: v.redFg },
   } as const;
   return (
-    <View style={{ marginTop: space[5], gap: space[2] }}>
+    <View style={{ marginTop: space[3], gap: space[2] }}>
       {notes.map((note) => {
         const look = TONE[note.tone];
         const Icon = note.icon === "check" ? Icons.CheckCircle : note.icon === "zap" ? Icons.Zap : Icons.Hand;
@@ -344,7 +426,7 @@ function Notes({ task }: { task: Task }) {
             <View style={{ marginTop: 2 }}>
               <Icon size={16} color={look.fg} />
             </View>
-            <Text size="body" tone={look.tone} style={{ flex: 1 }}>
+            <Text size="bodyMedium" style={{ flex: 1, color: look.fg }}>
               {note.text}
             </Text>
           </View>
@@ -383,7 +465,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
     if (checked.at < shownAt.current) return null;
     const line = t("done.line.checked", { when: f.dayTimeWord(checked.at) });
     return (
-      <View style={{ marginTop: space[5], flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>
+      <View style={{ marginTop: space[3], flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>
         <Icons.Check size={14} weight="bold" color={theme.color.successFg} />
         <Text size="small" tone="muted">
           {line}
@@ -406,7 +488,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
   if (view.state === "unknown") {
     if (!view.afterSubmit || sentAt === null) return null;
     return (
-      <View style={{ marginTop: space[5] }}>
+      <View style={{ marginTop: space[3] }}>
         <NoticeBox
           tone="warning"
           icon={pen(theme.color.warningFg)}
@@ -427,9 +509,9 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
   }
   if (view.state === "none")
     return age < NONE_FOR ? (
-      <View style={[styles.note, { marginTop: space[5], backgroundColor: theme.color.fill }]}>
-        <Icons.Info size={16} color={theme.color.muted} />
-        <Text size="body" tone="muted" style={{ flex: 1 }}>
+      <View style={[styles.note, { marginTop: space[3], backgroundColor: theme.v4.card }]}>
+        <Icons.Info size={16} color={theme.v4.muted} />
+        <Text size="bodyMedium" style={{ flex: 1, color: theme.v4.fg2 }}>
           {t("task.change.none", { edited })}
         </Text>
       </View>
@@ -439,7 +521,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
   const warn = view.afterSubmit || pulledIn;
   const fg = warn ? theme.color.warningFg : theme.color.infoFg;
   return (
-    <View style={{ marginTop: space[5] }}>
+    <View style={{ marginTop: space[3] }}>
       <NoticeBox
         tone={warn ? "warning" : "info"}
         icon={pen(fg)}
@@ -466,6 +548,7 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
   const now = useNow();
   const theme = useTheme();
   const c = theme.color;
+  const v = theme.v4;
   const open = useOpenExternal();
   const edits = useDataset("edunex.taskEdits");
   const steps = taskHistory(task, edits);
@@ -476,94 +559,91 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
     if (reveal) setOpened(reveal.at);
   }, [reveal]);
   return (
-    // Level with the hand-in card's content above, as the desktop's px-4.
-    <View style={{ paddingHorizontal: space[4] }}>
+    <View>
       {steps.length >= 2 && (
         <>
-          <Text size="small" weight="semibold" tone="muted" accessibilityRole="header" style={{ marginBottom: space[3] }}>
-            {t("history.title")}
-          </Text>
-          <View style={{ marginLeft: 4, borderLeftWidth: StyleSheet.hairlineWidth * 2, borderLeftColor: c.line, paddingLeft: space[4], gap: space[3] }}>
-            {steps.map((step) => {
-              const afterSubmit = step.kind === "edited" && sentAt !== null && step.at > sentAt;
-              const known = step.kind === "edited" && step.edit && step.edit.changes.length > 0 ? step.edit : null;
-              const isOpen = opened === step.at;
-              const dot =
-                step.kind === "submitted"
-                  ? { backgroundColor: c.live }
-                  : afterSubmit
-                    ? { backgroundColor: c.meterWarning }
-                    : step.at > now && step.kind !== "draft"
-                      ? { backgroundColor: c.canvas, borderWidth: 1, borderColor: c.faint }
-                      : // The desktop's faint at 60%: seen on the line in light and dark.
-                        { backgroundColor: `${c.faint}99` };
-              return (
-                <View key={`${step.kind}:${step.at}`}>
-                  <View style={[styles.dot, dot, { borderColor: (dot as { borderColor?: string }).borderColor ?? c.canvas }]} />
-                  {known ? (
-                    <>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityState={{ expanded: isOpen }}
-                        onPress={() => setOpened(isOpen ? null : step.at)}
-                        style={{ flexDirection: "row", alignItems: "flex-start", gap: space[1], minHeight: 44 }}
-                      >
-                        <View style={{ flex: 1 }}>
-                          <Text size="small" weight="medium">
-                            {t("history.edited")}
-                          </Text>
-                          <Text size="small" tone="faint" tabular>
-                            {f.dueLabel(step.at)}
-                          </Text>
-                        </View>
-                        <View style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }], marginTop: 2 }}>
-                          <Icons.ChevronDown size={14} color={c.faint} />
-                        </View>
-                      </Pressable>
-                      {isOpen && (
-                        <View style={{ paddingTop: space[1.5], gap: space[2] }}>
-                          <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
-                          {afterSubmit && (
-                            <Text size="small" tone="muted">
-                              {t("task.change.whatToDo")}
+          <SectionTitle title={t("history.title")} />
+          <Panel>
+            <View style={{ marginLeft: 4, borderLeftWidth: StyleSheet.hairlineWidth * 2, borderLeftColor: v.line, paddingLeft: space[4], gap: space[3] }}>
+              {steps.map((step) => {
+                const afterSubmit = step.kind === "edited" && sentAt !== null && step.at > sentAt;
+                const known = step.kind === "edited" && step.edit && step.edit.changes.length > 0 ? step.edit : null;
+                const isOpen = opened === step.at;
+                const dot =
+                  step.kind === "submitted"
+                    ? { backgroundColor: c.live }
+                    : afterSubmit
+                      ? { backgroundColor: c.meterWarning }
+                      : step.at > now && step.kind !== "draft"
+                        ? { backgroundColor: v.card, borderWidth: 1, borderColor: c.faint }
+                        : // The desktop's faint at 60%: seen on the line in light and dark.
+                          { backgroundColor: `${c.faint}99` };
+                return (
+                  <View key={`${step.kind}:${step.at}`}>
+                    <View style={[styles.dot, dot, { borderColor: (dot as { borderColor?: string }).borderColor ?? v.card }]} />
+                    {known ? (
+                      <>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityState={{ expanded: isOpen }}
+                          onPress={() => setOpened(isOpen ? null : step.at)}
+                          style={{ flexDirection: "row", alignItems: "flex-start", gap: space[1], minHeight: 44 }}
+                        >
+                          <View style={{ flex: 1 }}>
+                            <Text size="small" weight="medium">
+                              {t("history.edited")}
                             </Text>
-                          )}
-                        </View>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <Text size="small" weight="medium">
-                        {t(`history.${step.kind}`)}
-                      </Text>
-                      <Text size="small" tone="faint" tabular>
-                        {f.dueLabel(step.at)}
-                      </Text>
-                      {step.kind === "edited" && (
-                        <Text size="small" tone="muted">
-                          {t(step.edit ? "change.none" : "change.unknown")}
+                            <Text size="small" tone="faint" tabular>
+                              {f.dueLabel(step.at)}
+                            </Text>
+                          </View>
+                          <View style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }], marginTop: 2 }}>
+                            <Icons.ChevronDown size={14} color={c.faint} />
+                          </View>
+                        </Pressable>
+                        {isOpen && (
+                          <View style={{ paddingTop: space[1.5], gap: space[2] }}>
+                            <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
+                            {afterSubmit && (
+                              <Text size="small" tone="muted">
+                                {t("task.change.whatToDo")}
+                              </Text>
+                            )}
+                          </View>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Text size="small" weight="medium">
+                          {t(`history.${step.kind}`)}
                         </Text>
-                      )}
-                    </>
-                  )}
-                </View>
-              );
-            })}
-          </View>
+                        <Text size="small" tone="faint" tabular>
+                          {f.dueLabel(step.at)}
+                        </Text>
+                        {step.kind === "edited" && (
+                          <Text size="small" tone="muted">
+                            {t(step.edit ? "change.none" : "change.unknown")}
+                          </Text>
+                        )}
+                      </>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </Panel>
         </>
       )}
-      <Pressable
-        accessibilityRole="link"
-        onPress={() => open(edunexTaskUrl(task.id))}
-        hitSlop={8}
-        style={{ flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start", marginTop: steps.length >= 2 ? space[4] : 0 }}
-        testID="action.openInEdunex"
-      >
-        <Text size="small" weight="medium" tone="accent">
+      <View style={{ alignItems: "flex-start", marginTop: steps.length >= 2 ? space[4] : 0, marginLeft: -space[3] }}>
+        <Button
+          variant="ghost"
+          icon={<Icons.ArrowUpRight size={18} color={c.primary} />}
+          onPress={() => open(edunexTaskUrl(task.id))}
+          testID="action.openInEdunex"
+        >
           {t("action.openInEdunex")}
-        </Text>
-        <Icons.ArrowUpRight size={14} color={c.accentFg} />
-      </Pressable>
+        </Button>
+      </View>
       {compare && <InstructionsCompare change={compare.change} at={compare.at} onClose={() => setCompare(null)} />}
     </View>
   );
@@ -697,13 +777,27 @@ function InstructionsCompare({ change, at, onClose }: { change: Extract<TaskChan
 }
 
 const styles = StyleSheet.create({
+  pill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   note: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: space[2.5],
-    borderRadius: radius.lg,
-    paddingHorizontal: space[3.5],
-    paddingVertical: space[2.5],
+    gap: space[3],
+    borderRadius: shape.md,
+    paddingHorizontal: space[4],
+    paddingVertical: space[3],
   },
   dot: { position: "absolute", left: -space[4] - 5, top: 4, width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
+  crumb: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 48, paddingHorizontal: space[2], borderRadius: shape.sm, overflow: "hidden" },
+  examLink: {
+    marginTop: space[3],
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[4],
+    minHeight: 64,
+    paddingHorizontal: space[4],
+    paddingVertical: space[3],
+    borderRadius: shape.lg,
+    overflow: "hidden",
+  },
+  examIcon: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
 });

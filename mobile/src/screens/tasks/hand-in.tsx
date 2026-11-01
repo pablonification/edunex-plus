@@ -3,12 +3,12 @@
 // files, attaching from the phone) and the bar stuck to the bottom (Simpan draf, Kumpulkan, and why
 // Kumpulkan can't be pressed), within a thumb's reach. The answer box is a plain multi-line text
 // box: an answer Edunex holds with formatting stays as it is, changed on Edunex.
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { ActionError, errorKey } from "../../../../src/app/bridge";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { type Format, type Translate, useClock, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDone } from "../../../../src/app/snoozes";
 import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../../../src/core/actions/tasks";
@@ -32,13 +32,16 @@ import { boxEditable, boxHtml, boxText, editableInApp, plainText } from "../../p
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { useRefresh, useSignIn } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
+import { BigButton } from "../../ui/big-button";
+import { Panel } from "../../ui/card-list";
 import { Button, IconButton } from "../../ui/controls";
-import { Card, ProgressBar, StatusGlyph } from "../../ui/display";
+import { ProgressBar, StatusGlyph } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { reportBarTop, useBottomInset } from "../../ui/insets";
 import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet } from "../../ui/sheet";
 import { Text, type TextTone, useFieldColors } from "../../ui/text";
-import { type Palette, radius, space, useTheme } from "../../ui/theme";
+import { type Palette, shape, space, useTheme } from "../../ui/theme";
 import { formatScore } from "./rows";
 
 /** A file the Student attached in this visit, before it's in Edunex's answer. */
@@ -143,6 +146,7 @@ export function useHandIn(task: Task, status: TaskStatus) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const clock = useClock();
   const bridge = useBridge();
   const edunex = useStatus("edunex");
   const presence = useDataset("edunex.presence");
@@ -152,7 +156,8 @@ export function useHandIn(task: Task, status: TaskStatus) {
   const [busy, setBusy] = useState<"draft" | "submit" | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [justDone, setJustDone] = useState(false);
+  // What was just done here: a draft saved (a snackbar says so) or the Task handed in (the moment, task-page.tsx).
+  const [justDone, setJustDone] = useState<"draft" | "submit" | null>(null);
   const uploads = useRef<Promise<void>>(Promise.resolve());
 
   // Signed in again after the session ended: the way is clear.
@@ -227,13 +232,14 @@ export function useHandIn(task: Task, status: TaskStatus) {
       case "saved":
         setAttached([]);
         setRemoved([]);
-        setJustDone(true);
+        setJustDone("draft");
+        toast(t("handIn.draftSaved", { when: f.dayTimeWord(clock.now()) }), "success");
         return;
       case "submitted": {
         setAttached([]);
         setRemoved([]);
         const at = result.task ? submittedAt(result.task) : null;
-        if (kind === "submit" && at !== null) setJustDone(true);
+        if (kind === "submit" && at !== null) setJustDone("submit");
         else setNotice({ tone: "neutral", text: "handIn.alreadySubmitted" });
         return;
       }
@@ -247,7 +253,7 @@ export function useHandIn(task: Task, status: TaskStatus) {
         setNotice({ tone: "warning", text: "handIn.notOpen" });
         return;
       case "gone":
-        toast(t("handIn.gone"), "danger");
+        setNotice({ tone: "danger", text: "handIn.gone" });
     }
   };
 
@@ -350,22 +356,22 @@ export function HandInCard({ h }: { h: HandInState }) {
   const glyph = c[GLYPH_TONE[status]];
 
   return (
-    <Card testID="card.handIn">
+    <Panel flush testID="card.handIn">
       <View style={{ padding: space[4], gap: space[4] }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
-          <StatusGlyph status={status} size={20} color={glyph} />
+          <StatusGlyph status={status} size={24} color={glyph} />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="lead" weight="semibold">
+            <Text size="titleMedium" face="display" weight="bold" style={{ color: theme.v4.fg }}>
               {t(`taskStatus.${status}`)}
             </Text>
             {subtitle ? <Meta>{subtitle}</Meta> : null}
           </View>
           {(task.score !== null || status === "in_review") && (
             <View style={{ alignItems: "flex-end" }}>
-              <Text size="caption" tone="muted">
+              <Text size="bodySmall" tone="muted">
                 {t("task.score")}
               </Text>
-              <Text size="title" weight="semibold" tabular>
+              <Text size="titleLarge" face="display" weight="extrabold" tabular style={{ color: theme.v4.fg }}>
                 {task.score !== null ? formatScore(task.score, f) : "-"}
               </Text>
             </View>
@@ -373,51 +379,33 @@ export function HandInCard({ h }: { h: HandInState }) {
         </View>
 
         <View>
-          {(!task.group || h.saved.length > 0) && (
-            <Text size="small" weight="semibold" tone="muted" style={{ marginBottom: space[2] }}>
-              {t("handIn.yourAnswer")}
-            </Text>
-          )}
           {h.editable && !h.textLocked ? (
-            <View style={{ marginBottom: space[3] }}>
-              <TextInput
-                {...fieldColors}
-                testID="input.answer"
-                multiline
-                value={h.answer.text}
-                onChangeText={h.answer.setText}
-                placeholder={t("handIn.textPlaceholder")}
-                placeholderTextColor={c.faint}
-                accessibilityLabel={t("handIn.yourAnswer")}
-                textAlignVertical="top"
-                style={[styles.box, { borderColor: c.fieldEdge, color: c.fg, backgroundColor: c.surface }]}
-              />
-              {h.textChanged && (
-                <View style={{ marginTop: space[1.5], flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3] }}>
-                  <Text size="caption" tone="muted">
-                    {t("handIn.textUnsaved")}
-                  </Text>
-                  <Pressable accessibilityRole="button" onPress={h.answer.discard} hitSlop={10} testID="action.discardText">
-                    <Text size="caption" weight="medium" tone="accent">
-                      {t("handIn.textDiscard")}
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
+            <AnswerField
+              value={h.answer.text}
+              onChange={h.answer.setText}
+              label={t("mobile.tasks.answerText")}
+              placeholder={t("handIn.textPlaceholder")}
+              fieldColors={fieldColors}
+              unsaved={h.textChanged}
+              onDiscard={h.answer.discard}
+              hint={h.hasText ? null : t("mobile.tasks.answerRequired")}
+            />
           ) : (
             !task.group &&
             (h.textLocked || plainText(h.answer.saved)) && (
               <View style={{ marginBottom: space[3], gap: space[2] }}>
-                <View style={{ borderRadius: radius.lg, backgroundColor: c.fill, paddingHorizontal: space[3], paddingVertical: space[2.5] }}>
+                <Text size="labelLarge" tone="muted">
+                  {t("mobile.tasks.answerText")}
+                </Text>
+                <View style={{ borderRadius: shape.md, backgroundColor: theme.v4.page, paddingHorizontal: space[3], paddingVertical: space[3] }}>
                   <LecturerHtml html={h.answer.saved} pictureAlt={t("image.altYours")} />
                 </View>
                 {h.editable && h.textLocked && (
                   <View style={{ gap: space[2], alignItems: "flex-start" }}>
-                    <Text size="caption" tone="muted">
+                    <Text size="bodySmall" tone="muted">
                       {h.richLocked ? t("handIn.textRich") : t("mobile.handIn.textPlain")}
                     </Text>
-                    <Button size="sm" icon={<Icons.ArrowUpRight size={14} />} onPress={() => open(edunexTaskUrl(task.id))}>
+                    <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
                       {t("handIn.editOnEdunex")}
                     </Button>
                   </View>
@@ -426,7 +414,10 @@ export function HandInCard({ h }: { h: HandInState }) {
             )
           )}
           {(h.saved.length > 0 || h.attached.length > 0) && (
-            <View style={{ marginBottom: space[2], gap: space[1.5] }}>
+            <View style={{ marginBottom: space[3], gap: 2 }}>
+              <Text size="labelLarge" tone="muted" style={{ marginBottom: space[2] }}>
+                {t("mobile.tasks.answerFiles")}
+              </Text>
               {h.saved.map((file) => (
                 <SavedFileRow
                   key={file.url}
@@ -456,38 +447,35 @@ export function HandInCard({ h }: { h: HandInState }) {
             </View>
           )}
           {h.editable && (
-            <Pressable
-              testID="action.attach"
-              accessibilityRole="button"
-              accessibilityLabel={factsLabel(
-                t("handIn.attach"),
-                task.fileRequired ? t("handIn.fileRequired") : null,
-                h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : null,
-              )}
-              onPress={() => void h.pick()}
-              android_ripple={{ color: c.selected }}
-              style={[styles.attach, { borderColor: c.track }]}
-            >
-              <Icons.Upload size={18} color={c.muted} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text size="small" weight="semibold" tone="accent">
-                  {t("handIn.attach")}
-                </Text>
-                {(task.fileRequired || h.type) && (
-                  <Meta size="caption" tone="faint">
-                    {task.fileRequired ? t("handIn.fileRequired") : ""}
-                    {h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : ""}
-                  </Meta>
+            // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos.
+            <View style={{ gap: space[2], alignItems: "flex-start" }}>
+              <Button
+                variant="tonal"
+                testID="action.attach"
+                label={factsLabel(
+                  t("handIn.attach"),
+                  task.fileRequired ? t("handIn.fileRequired") : null,
+                  h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : null,
                 )}
-              </View>
-            </Pressable>
+                icon={<Icons.Upload size={18} color={c.onSecondaryContainer} />}
+                onPress={() => void h.pick()}
+              >
+                {t("handIn.attach")}
+              </Button>
+              {(task.fileRequired || h.type) && (
+                <Meta size="caption">
+                  {task.fileRequired ? t("handIn.fileRequired") : ""}
+                  {h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : ""}
+                </Meta>
+              )}
+            </View>
           )}
           {task.group && !h.sent && status !== "closed" && (
             <View style={{ gap: space[2], alignItems: "flex-start" }}>
-              <Text size="small" tone="muted">
+              <Text size="bodyMedium" tone="muted">
                 {t("handIn.group")}
               </Text>
-              <Button size="sm" icon={<Icons.ArrowUpRight size={14} />} onPress={() => open(edunexTaskUrl(task.id))}>
+              <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
                 {t("action.openInEdunex")}
               </Button>
               {isOpenStatus(status) && <MarkHandedIn task={task} />}
@@ -500,43 +488,23 @@ export function HandInCard({ h }: { h: HandInState }) {
         </View>
 
         {h.uploading && inFlight.length > 1 && (
-          <View style={{ gap: space[1.5] }}>
-            <Text size="caption" tone="muted">
+          <View style={{ gap: space[2] }}>
+            <Text size="bodySmall" tone="muted">
               {t("handIn.progress", { done, count: inFlight.length })}
             </Text>
             <ProgressBar value={done / inFlight.length} label={t("handIn.progress", { done, count: inFlight.length })} />
           </View>
         )}
 
-        {h.notice && (
-          <View
-            accessibilityRole="alert"
-            style={[styles.notice, { backgroundColor: h.notice.tone === "danger" ? c.dangerBg : h.notice.tone === "warning" ? c.warningBg : c.fill }]}
-          >
-            <Icons.AlertTriangle size={14} color={h.notice.tone === "danger" ? c.dangerFg : h.notice.tone === "warning" ? c.warningFg : c.muted} />
-            <View style={{ flex: 1, minWidth: 0, gap: space[2], alignItems: "flex-start" }}>
-              <Text size="small" tone={h.notice.tone === "danger" ? "danger" : h.notice.tone === "warning" ? "warning" : "muted"}>
-                {t(h.notice.text)}
-              </Text>
-              {h.notice.action === "signIn" && (
-                <Button size="sm" variant="primary" busy={signingIn} onPress={() => void signIn("edunex")}>
-                  {t("action.signInAgain")}
-                </Button>
-              )}
-              {h.notice.action === "edunex" && (
-                <Button size="sm" icon={<Icons.ArrowUpRight size={14} />} onPress={() => open(edunexTaskUrl(task.id))}>
-                  {t("action.openInEdunex")}
-                </Button>
-              )}
-            </View>
-          </View>
-        )}
+        {h.notice && <HandInNotice notice={h.notice} task={task} signingIn={signingIn} onSignIn={() => void signIn("edunex")} />}
 
         {h.editable && (
           <>
             <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-              <Icons.Lock size={14} color={c.muted} />
-              <Text size="caption" tone="muted" style={{ flex: 1 }}>
+              <View style={{ paddingTop: 1 }}>
+                <Icons.Lock size={14} color={c.onSurfaceVariant} />
+              </View>
+              <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
                 {t("handIn.explainer")}
               </Text>
             </View>
@@ -545,22 +513,138 @@ export function HandInCard({ h }: { h: HandInState }) {
         )}
         {h.sent && (
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-            <Icons.ShieldCheck size={14} color={c.successFg} />
-            <Text size="caption" tone="muted" style={{ flex: 1 }}>
+            <View style={{ paddingTop: 1 }}>
+              <Icons.ShieldCheck size={14} color={c.successFg} />
+            </View>
+            <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
               {status === "in_review" ? t("handIn.inReview") : t("handIn.final")}
             </Text>
           </View>
         )}
       </View>
-    </Card>
+    </Panel>
+  );
+}
+
+/** What went wrong with a hand-in, where it happened, with the one fix beside it. */
+function HandInNotice({ notice, task, signingIn, onSignIn }: { notice: Notice; task: Task; signingIn: boolean; onSignIn: () => void }) {
+  const t = useT();
+  const theme = useTheme();
+  const c = theme.color;
+  const open = useOpenExternal();
+  const [bg, fg] =
+    notice.tone === "danger"
+      ? [c.errorContainer, c.onErrorContainer]
+      : notice.tone === "warning"
+        ? [c.warningBg, c.warningFg]
+        : [c.surfaceContainerHigh, c.onSurfaceVariant];
+  return (
+    <View accessibilityRole="alert" accessibilityLiveRegion="polite" testID="notice.handIn" style={[styles.notice, { backgroundColor: bg }]}>
+      <View style={{ paddingTop: 2 }}>
+        <Icons.AlertTriangle size={18} weight="bold" color={fg} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0, gap: space[2], alignItems: "flex-start" }}>
+        <Text size="bodyMedium" style={{ color: fg }}>
+          {t(notice.text)}
+        </Text>
+        {notice.action === "signIn" && (
+          <Button size="sm" variant="tonal" busy={signingIn} onPress={onSignIn}>
+            {t("action.signInAgain")}
+          </Button>
+        )}
+        {notice.action === "edunex" && (
+          <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
+            {t("action.openInEdunex")}
+          </Button>
+        )}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * The written answer as Material's outlined text field: its label above it (a placeholder is no label), the outline
+ * thicker and in the app's blue while typing, and under it whether the change is saved, with the way to drop it.
+ */
+function AnswerField({
+  value,
+  onChange,
+  label,
+  placeholder,
+  fieldColors,
+  unsaved,
+  onDiscard,
+  hint,
+}: {
+  value: string;
+  onChange: (text: string) => void;
+  label: string;
+  placeholder: string;
+  fieldColors: ReturnType<typeof useFieldColors>;
+  unsaved: boolean;
+  onDiscard: () => void;
+  /** Material's supporting text under the box, while there's one to say (it's required, and empty). */
+  hint: string | null;
+}) {
+  const t = useT();
+  const theme = useTheme();
+  const c = theme.color;
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={{ marginBottom: space[4] }}>
+      <Text size="labelLarge" tone={focused ? "primary" : "muted"} style={{ marginBottom: space[2] }}>
+        {label}
+      </Text>
+      <TextInput
+        {...fieldColors}
+        testID="input.answer"
+        multiline
+        value={value}
+        onChangeText={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        placeholder={placeholder}
+        placeholderTextColor={c.onSurfaceVariant}
+        accessibilityLabel={label}
+        accessibilityHint={hint ?? undefined}
+        textAlignVertical="top"
+        style={[
+          styles.box,
+          {
+            borderColor: focused ? c.primary : c.outline,
+            borderWidth: focused ? 2 : 1,
+            // The text stays put when the outline thickens.
+            paddingHorizontal: focused ? space[4] - 1 : space[4],
+            paddingVertical: focused ? space[3] - 1 : space[3],
+            color: c.onSurface,
+            backgroundColor: theme.v4.card,
+          },
+        ]}
+      />
+      {hint && (
+        <Text size="bodySmall" tone="muted" style={{ marginTop: space[1], paddingHorizontal: space[4] }}>
+          {hint}
+        </Text>
+      )}
+      {unsaved && (
+        <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3] }}>
+          <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
+            {t("handIn.textUnsaved")}
+          </Text>
+          <Button size="sm" variant="ghost" onPress={onDiscard} testID="action.discardText">
+            {t("handIn.textDiscard")}
+          </Button>
+        </View>
+      )}
+    </View>
   );
 }
 
 function Quiet({ children }: { children: ReactNode }) {
   const theme = useTheme();
   return (
-    <View style={{ borderRadius: radius.lg, backgroundColor: theme.color.fill, paddingHorizontal: space[3], paddingVertical: space[2.5] }}>
-      <Text size="small" tone="muted">
+    <View style={{ borderRadius: shape.md, backgroundColor: theme.v4.page, paddingHorizontal: space[3], paddingVertical: space[3] }}>
+      <Text size="bodyMedium" tone="muted">
         {children}
       </Text>
     </View>
@@ -598,7 +682,7 @@ function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text:
       ? { tone: "danger", text: t("handIn.why.failed") }
       : { tone: "neutral", text: t("handIn.why.refused") };
   if (h.uploading) return { tone: "neutral", text: t("handIn.why.uploading") };
-  if (!h.hasText) return { tone: "neutral", text: t("handIn.why.noText") };
+  if (!h.hasText) return { tone: "neutral", text: t("mobile.tasks.why.noText") };
   if (!h.hasAnswer) return { tone: "neutral", text: t("handIn.why.noFile") };
   if (h.early)
     return { tone: "warning", text: t(h.changed || h.status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: h.whenWindow }) };
@@ -612,28 +696,39 @@ export function HandInBar({ h }: { h: HandInState }) {
   const t = useT();
   const theme = useTheme();
   const why = useWhy(h);
+  // Edge to edge: the bar's tone runs under the phone's navigation bar, its buttons stay clear of it.
+  const bottom = useBottomInset();
+  // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
+  const bar = useRef<ComponentRef<typeof View>>(null);
+  useEffect(() => {
+    if (!h.editable) reportBarTop(0);
+    return () => reportBarTop(0);
+  }, [h.editable]);
   if (!h.editable) return null;
   const submitLabel = h.status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
   return (
     <View
+      ref={bar}
+      onLayout={() => bar.current?.measureInWindow((_x, y) => reportBarTop(y))}
+      testID="bar.handIn"
       style={{
-        backgroundColor: theme.color.canvas,
+        backgroundColor: theme.v4.card,
         borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: theme.color.line,
+        borderTopColor: theme.v4.line,
         paddingHorizontal: space.page,
         paddingTop: space[3],
-        paddingBottom: space[3],
-        gap: space[2.5],
+        paddingBottom: space[3] + bottom,
+        gap: space[3],
       }}
     >
       {why && !(h.notice?.action === "signIn" && h.guard.blocked) && (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
           {/* The icon on the first line (19 high) when the hint wraps; the hint as a whole level with its fix. */}
           <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-            <View style={{ paddingTop: 2.5 }}>
-              <Icons.Info size={14} color={theme.color[why.tone === "danger" ? "dangerFg" : why.tone === "warning" ? "warningFg" : "muted"]} />
+            <View style={{ paddingTop: 3 }}>
+              <Icons.Info size={14} color={theme.color[why.tone === "danger" ? "error" : why.tone === "warning" ? "warningFg" : "onSurfaceVariant"]} />
             </View>
-            <Text size="small" tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
+            <Text size="bodyMedium" tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
               {why.text}
             </Text>
           </View>
@@ -641,28 +736,26 @@ export function HandInBar({ h }: { h: HandInState }) {
         </View>
       )}
       <View style={{ flexDirection: "row", gap: space[2] }}>
-        <Button
+        <BigButton
           testID="action.saveDraft"
-          size="lg"
-          variant={h.wait && h.canSave ? "primary" : "secondary"}
+          variant={h.wait && h.canSave ? "filled" : "outline"}
           disabled={!h.canSave}
           busy={h.busy === "draft"}
           onPress={() => void h.run("draft")}
-          style={{ flex: 1 }}
         >
           {t("handIn.saveDraft")}
-        </Button>
-        <Button
+        </BigButton>
+        <BigButton
           testID="action.submit"
-          size="lg"
-          variant={h.wait ? "secondary" : "primary"}
+          variant={h.wait ? "outline" : "filled"}
           disabled={!h.canSubmit}
           busy={h.busy === "submit"}
           onPress={() => h.setConfirming(true)}
-          style={{ flex: 1.4 }}
+          flex={1}
+          icon={h.wait ? undefined : <Icons.Upload size={20} weight="bold" color={theme.v4.onBrand} />}
         >
           {submitLabel}
-        </Button>
+        </BigButton>
       </View>
       <HandInSheet h={h} submitLabel={h.status === "overdue" ? submitLabel : t("handIn.submitNow")} />
     </View>
@@ -743,7 +836,7 @@ function HandInSheet({ h, submitLabel }: { h: HandInState; submitLabel: string }
           : t("handIn.confirmBodyText")}
       </Text>
       {guard.checks.length > 0 && (
-        <View style={{ marginTop: space[4], paddingTop: space[4], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line, gap: space[2] }}>
+        <View style={{ marginTop: space[4], gap: space[2] }}>
           {guard.checks.map((check) => {
             const tone = CHECK_TONE[check.tone];
             const color = theme.color[tone === "danger" ? "dangerFg" : tone === "warning" ? "warningFg" : "successFg"];
@@ -835,11 +928,11 @@ function FileRowView({
     <>
       <FileBadge name={name} state={state} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="body" weight="medium" numberOfLines={2}>
+        <Text size="bodyMedium" weight="medium" numberOfLines={2}>
           {name}
         </Text>
         {detail && !failed ? (
-          <Text size="caption" tone="muted">
+          <Text size="bodySmall" tone="muted">
             {detail}
           </Text>
         ) : null}
@@ -847,7 +940,7 @@ function FileRowView({
     </>
   );
   return (
-    <View style={[styles.file, { backgroundColor: failed ? c.dangerBg : c.fill }]}>
+    <View style={[styles.file, { backgroundColor: failed ? c.errorContainer : theme.v4.page }]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2.5] }}>
         {onOpen && !failed ? (
           <Pressable
@@ -855,23 +948,23 @@ function FileRowView({
             accessibilityLabel={t("mobile.file.openFor", { name })}
             accessibilityState={{ busy: opening }}
             onPress={onOpen}
-            style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[2.5], minHeight: 44 }}
+            style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[2.5], minHeight: 48 }}
           >
             {body}
           </Pressable>
         ) : (
-          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[2.5], minHeight: 44 }}>{body}</View>
+          <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[2.5], minHeight: 48 }}>{body}</View>
         )}
         {onRemove && !failed && (
           <IconButton label={t("handIn.remove", { name })} onPress={onRemove} testID="action.removeFile">
-            <Icons.X size={16} color={c.muted} />
+            <Icons.X size={20} color={c.onSurfaceVariant} />
           </IconButton>
         )}
       </View>
       {state === "uploading" && <ProgressBar value={0} indeterminate label={t("handIn.uploading")} />}
       {failed && (
         <View style={{ marginTop: space[1.5], paddingLeft: 42, gap: space[1.5] }}>
-          <Text size="small" tone="danger">
+          <Text size="bodyMedium" tone="danger">
             {detail}
           </Text>
           <View style={{ flexDirection: "row", gap: space[1.5] }}>
@@ -893,7 +986,7 @@ function FileRowView({
           <View style={{ paddingTop: 3 }}>
             <Icons.Info size={12} color={c.warningFg} />
           </View>
-          <Text size="caption" tone="warning" style={{ flex: 1 }}>
+          <Text size="bodySmall" tone="warning" style={{ flex: 1 }}>
             {hint}
           </Text>
         </View>
@@ -916,62 +1009,74 @@ export function MarkHandedIn({ task }: { task: Task }) {
   const theme = useTheme();
   const { done, mark, unmark } = useDone();
   const [menu, setMenu] = useState(false);
+  const [failed, setFailed] = useState<string | null>(null);
   const key = taskDoneKey(task, "due");
   const entry = done(key);
-  const put = (how: MarkedHow) => void mark(key, how).catch((error: unknown) => toast(t(errorKey(error)), "danger"));
-  const link = (text: string, onPress: () => void, testID: string, label?: string) => (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} hitSlop={10} testID={testID}>
-      <Text size="caption" weight="medium" tone="accent">
-        {text}
+  const put = (how: MarkedHow) => {
+    setFailed(null);
+    void mark(key, how).catch((error: unknown) => setFailed(t(errorKey(error))));
+  };
+  const problem = failed ? (
+    <View accessibilityRole="alert" style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+      <View style={{ paddingTop: 2 }}>
+        <Icons.AlertTriangle size={14} weight="bold" color={theme.color.error} />
+      </View>
+      <Text size="bodySmall" tone="danger" style={{ flex: 1 }}>
+        {failed}
       </Text>
-    </Pressable>
-  );
+    </View>
+  ) : null;
   if (entry)
     return (
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <Icons.Check size={14} weight="bold" color={theme.color.successFg} />
-        <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
-          <Text size="caption" tone="muted">
-            {factsLabel(t(`task.marked.${entry.how as MarkedHow}`), f.dayTimeWord(entry.at))}
-          </Text>
-          {link(
-            t("action.undo"),
-            () => void unmark(key.id).catch(() => undefined),
-            "action.unmarkHandled",
-            t("done.undoFor", { what: t(`task.marked.${entry.how as MarkedHow}`) }),
-          )}
-        </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+        <Icons.Check size={16} weight="bold" color={theme.color.successFg} />
+        <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
+          {factsLabel(t(`task.marked.${entry.how as MarkedHow}`), f.dayTimeWord(entry.at))}
+        </Text>
+        <Button
+          size="sm"
+          variant="ghost"
+          label={t("done.undoFor", { what: t(`task.marked.${entry.how as MarkedHow}`) })}
+          onPress={() => void unmark(key.id).catch(() => undefined)}
+          testID="action.unmarkHandled"
+        >
+          {t("action.undo")}
+        </Button>
       </View>
     );
   if (task.group)
     return (
-      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
-        <Text size="caption" tone="muted">
-          {t("done.groupAsk")}
-        </Text>
-        {link(t("done.groupDone"), () => put("groupDone"), "action.groupDone")}
+      <View style={{ gap: space[1] }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+          <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
+            {t("done.groupAsk")}
+          </Text>
+          <Button size="sm" variant="ghost" onPress={() => put("groupDone")} testID="action.groupDone">
+            {t("done.groupDone")}
+          </Button>
+        </View>
+        {problem}
       </View>
     );
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
-      <Text size="caption" tone="muted">
-        {t("done.otherWay")}
-      </Text>
-      {/* The desktop's quiet menu button: a muted "⌄ Tandai" that opens a choice, not a link. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t("done.otherWay.menuFor")}
-        accessibilityState={{ expanded: menu }}
-        onPress={() => setMenu(true)}
-        hitSlop={10}
-        testID="action.markHandled"
-        style={{ flexDirection: "row", alignItems: "center", gap: 4, minHeight: 24 }}
-      >
-        <Icons.ChevronDown size={14} color={theme.color.muted} />
-        <Text size="caption" weight="medium" tone="muted">
-          {t("done.otherWay.menu")}
+    <View style={{ gap: space[1] }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+        <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
+          {t("done.otherWay")}
         </Text>
-      </Pressable>
+        {/* The desktop's quiet menu button: "Tandai ⌄", opening a choice. */}
+        <Button
+          size="sm"
+          variant="ghost"
+          label={t("done.otherWay.menuFor")}
+          icon={<Icons.ChevronDown size={16} color={theme.color.primary} />}
+          onPress={() => setMenu(true)}
+          testID="action.markHandled"
+        >
+          {t("done.otherWay.menu")}
+        </Button>
+      </View>
+      {problem}
       <ActionSheet
         open={menu}
         onClose={() => setMenu(false)}
@@ -989,18 +1094,7 @@ export function MarkHandedIn({ task }: { task: Task }) {
 }
 
 const styles = StyleSheet.create({
-  box: { minHeight: 150, borderWidth: 1, borderRadius: radius.lg, paddingHorizontal: space[3], paddingVertical: space[2.5], fontSize: 16, lineHeight: 22 },
-  attach: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space[3],
-    borderWidth: 1,
-    borderStyle: "dashed",
-    borderRadius: radius.lg,
-    paddingHorizontal: space[3.5],
-    paddingVertical: space[3],
-    minHeight: 56,
-  },
-  notice: { flexDirection: "row", alignItems: "flex-start", gap: space[2], borderRadius: radius.lg, paddingHorizontal: space[3], paddingVertical: space[2.5] },
-  file: { borderRadius: radius.lg, paddingHorizontal: space[2.5], paddingVertical: space[2] },
+  box: { minHeight: 150, borderRadius: shape.xs, fontSize: 16, lineHeight: 24 },
+  notice: { flexDirection: "row", alignItems: "flex-start", gap: space[3], borderRadius: shape.md, paddingHorizontal: space[4], paddingVertical: space[3] },
+  file: { borderRadius: shape.sm, paddingHorizontal: space[3], paddingVertical: space[2] },
 });

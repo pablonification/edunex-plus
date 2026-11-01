@@ -35,9 +35,8 @@ base and branch.
 **Machines.** The Mac is offline, so every helper is on the desktop. Share it.
 
 **C: is never used for builds or output.** On 2026-11-01 helpers' build copies, Gradle homes and Temp filled C:'s 237 GB. T3 crashed and every helper died with it. So:
-- **Big files go on F:** (202 GB free) **or H:** (287 GB free), never C:.
-  - That means build copies, Gradle homes, TEMP/TMP, emulator run output, screenshots, recordings and Perfetto traces.
-  - `mobile/qa/env.sh` already points the lab there: `QA_OUT=F:/qa`, `QA_BUILD_ROOT=F:/b`, and TEMP/TMP set to `F:\qa\tmp`. Every lab script sources it.
+- **Outputs go on F:** (a big, slow spinning disk): emulator run output, screenshots, recordings, Perfetto traces (`QA_OUT=F:/qa`). **Builds and temp go on C:**, the fast disk (`QA_BUILD_ROOT=C:/b`, TEMP/TMP `C:\qa\tmp`), because on F: they crawled and the machine stalled (2026-11-01). C: stays safe because build copies are deleted after the APK and nothing starts under 20 GB free.
+  - `mobile/qa/env.sh` sets all of this. Every lab script sources it.
   - Anything you run by hand writes under `F:\qa\<your piece>\` too.
 - **Before every build and every emulator session, C: needs at least 20 GB free.** `build.sh` and `emu.sh` check this themselves (`qa_check_disk`). If C: is under 20 GB, stop and report it to the lead. Don't clean up other helpers' files.
 - **No Gradle home of your own.** Each build slot has one Gradle home, shared by whoever builds in it (`F:\b\gradle-1.gradle`, `F:\b\gradle-2.gradle`).

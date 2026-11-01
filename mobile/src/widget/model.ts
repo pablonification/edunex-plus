@@ -9,20 +9,29 @@
 //   Tandai Hadir  while SIX shows it for a class on now; the Edunex Presence to fill in when it counts
 //   needs you     Beranda's list with "Hari ini"'s deadlines in, without what's put off or handled
 //   status        "Diperbarui pukul 14:05", or what's wrong (it opens the app, where the fix is)
+//   today         the "Hari ini" widget (W13): today's classes (time, code, room; the one on now marked), each
+//                 opening its sheet on Jadwal, and the next deadline
 import { checkingIn } from "../../../src/core/check-in";
 import { courseTone, legacyAutomatic, resolveCourseColors } from "../../../src/core/course-colors";
 import { makeFormat } from "../../../src/core/format";
 import { heldBack } from "../../../src/core/held-back";
 import { snapshotDataset, snapshotHomeWorld, snapshotTermCourses } from "../../../src/core/home-world";
 import type { Lang, Settings } from "../../../src/core/models";
-import { attentionWithToday, type HomeContext, homeContext, type NowCard, needsRange, nowCard } from "../../../src/core/needs";
+import { attentionWithToday, type HomeContext, homeContext, type NowCard, needsRange, nowCard, todayPlan } from "../../../src/core/needs";
 import type { Route } from "../../../src/core/route";
 import type { Snapshot } from "../../../src/core/snapshot";
 import { type StringKey, translate, type Vars } from "../../../src/core/strings";
+import { isOpenStatus, taskStatus } from "../../../src/core/tasks";
 import { needAction, needLine, statusLine, type TrayAction } from "../../../src/desktop/tray-menu";
 
 /** Where a tap goes: a screen of the app, an official page or a lecturer's link in the browser, SIX's check-in page, or the app as it was. */
-export type WidgetTarget = { kind: "route"; route: Route } | { kind: "url"; url: string } | { kind: "checkIn"; meetingId: string } | { kind: "app" };
+export type WidgetTarget =
+  | { kind: "route"; route: Route }
+  | { kind: "url"; url: string }
+  | { kind: "checkIn"; meetingId: string }
+  /** A class on SIX's timetable: Jadwal on its day, its sheet open. */
+  | { kind: "class"; sessionId: string }
+  | { kind: "app" };
 
 export interface WidgetLine {
   label: string;
@@ -60,6 +69,31 @@ export interface WidgetModel {
   needs: { heading: string; items: WidgetLine[]; empty: WidgetLine | null; all: WidgetLine | null } | null;
   /** When what it says next changes by itself (a class starts or ends, a window closes): the app draws it again then. */
   changesAt: number | null;
+  /** The "Hari ini" widget's: null without a timetable (SIX not signed in). */
+  today: WidgetToday | null;
+}
+
+export interface WidgetTodayClass {
+  /** "08:00–10:00". */
+  time: string;
+  code: string;
+  room: string | null;
+  /** On now: marked. */
+  live: boolean;
+  /** Over: quiet. */
+  past: boolean;
+  tone: string | undefined;
+  open: WidgetTarget;
+}
+
+export interface WidgetToday {
+  /** "Hari ini · Kam 8 Okt". */
+  heading: string;
+  classes: WidgetTodayClass[];
+  /** No class today: "Tidak ada kuliah hari ini.", opening Jadwal. */
+  none: WidgetLine | null;
+  /** The next Task due, still open: "Tenggat 23:59 · DK4073", its title; opens the Task. */
+  deadline: WidgetLine | null;
 }
 
 type Translate = (key: StringKey, vars?: Vars) => string;
@@ -80,7 +114,49 @@ export function widgetModel(snapshot: Pick<Snapshot, "datasets" | "statuses" | "
     now: context ? classLine(snapshot, card, context, f, t) : null,
     actions: actionLines(snapshot, card, now, f, t),
     needs: context ? needsLines(snapshot, context, card, f, t) : null,
-    changesAt: changesAt(card, now),
+    changesAt: earliest(changesAt(card, now), context ? todayTurnsAt(context, now) : null),
+    today: context ? todayLines(snapshot, context, f, t) : null,
+  };
+}
+
+const earliest = (a: number | null, b: number | null) => (a === null ? b : b === null ? a : Math.min(a, b));
+
+/** The next moment a class of today's starts or ends: the widget marks the one on now. */
+function todayTurnsAt(context: HomeContext, now: number): number | null {
+  const plan = todayPlan(context);
+  const moments = plan.classes.flatMap(({ session }) => [session.start, session.end]).filter((at) => at > now);
+  return moments.length ? Math.min(...moments) : null;
+}
+
+/** "Hari ini": SIX's classes today, each opening its sheet, and the next open Task's deadline. */
+function todayLines(snapshot: Pick<Snapshot, "datasets" | "statuses">, context: HomeContext, f: Format, t: Translate): WidgetToday | null {
+  if (context.schedule === null) return null;
+  const { now } = context;
+  const plan = todayPlan(context);
+  const codes = snapshotTermCourses(snapshot)?.map((c) => c.code) ?? [];
+  const classes = plan.classes.map(({ session }) => ({
+    time: f.timeRange(session.start, session.end),
+    code: session.courseCode,
+    room: session.room ?? null,
+    live: session.start <= now && now < session.end,
+    past: session.end <= now,
+    tone: toneOf(snapshot, codes, session.courseCode),
+    open: { kind: "class", sessionId: session.id } as WidgetTarget,
+  }));
+  const next = context.tasks
+    .filter((task) => task.dueAt !== null && task.dueAt > now && isOpenStatus(taskStatus(task, now)))
+    .sort((a, b) => a.dueAt! - b.dueAt!)[0];
+  return {
+    heading: `${t("home.today")} · ${f.weekdayShort(now)} ${f.dayMonth(now)}`,
+    classes,
+    none: classes.length ? null : { label: t("mobile.widget.todayNone"), open: { kind: "route", route: { screen: "schedule" } } },
+    deadline: next
+      ? {
+          label: `${t("home.today.due")} ${f.dayOffset(next.dueAt!) === 0 ? f.time(next.dueAt!) : f.dayTime(next.dueAt!)} · ${next.courseCode}`,
+          detail: next.title,
+          open: { kind: "route", route: { screen: "task", taskId: next.id } },
+        }
+      : null,
   };
 }
 

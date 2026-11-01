@@ -1,0 +1,24 @@
+# A tab brought to the front for a picture: tapped, then waited for by its screen (screen.<tab>; a tab not in front isn't
+# on screen at all), and tapped once more when the first tap didn't land (dark-13-kuliah once caught Jadwal). Run from
+# walk.yaml and edunex-only.yaml with TAB: home, schedule, tasks, courses or academic.
+appId: io.github.pablonification.edunexplus.demo
+---
+- tapOn:
+    id: tab.${TAB}
+- extendedWaitUntil:
+    visible:
+      id: screen.${TAB}
+    timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: screen.${TAB}
+    commands:
+      - tapOn:
+          id: tab.${TAB}
+- extendedWaitUntil:
+    visible:
+      id: screen.${TAB}
+    timeout: 10000
+- waitForAnimationToEnd

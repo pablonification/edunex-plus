@@ -9,10 +9,10 @@
 #
 # Two slots, so at most two Gradle builds run on this machine at once (mobile/qa/v4-rollout.md); a busy slot
 # refuses, so try the other, or build on GitHub Actions. Each slot has one Gradle home, shared by whoever builds
-# in it (F:\b\<slot>.gradle). Nothing goes on C: ($QA_BUILD_ROOT, env.sh), and the build stops when C: has under
-# 20 GB free. The build copy is deleted once the APK is out (--keep leaves it for a quick rebuild).
+# in it (C:\b\<slot>.gradle, $QA_BUILD_ROOT in env.sh: the fast disk). The build stops when C: has under 20 GB free,
+# and the build copy is deleted once the APK is out (--keep leaves it for a quick rebuild).
 #
-# It builds in a detached worktree of this repository at F:\b\<slot>, so
+# It builds in a detached worktree of this repository at C:\b\<slot>, so
 # - the path stays short (React Native's CMake builds break past Windows' 260 characters);
 # - files are checked out with LF endings as on CI (this machine's git has core.autocrlf=true, which
 #   would bundle CRLF recordings into the demo);

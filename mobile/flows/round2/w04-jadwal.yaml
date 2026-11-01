@@ -1,0 +1,58 @@
+# W4 on Jadwal (round 2, v4): where am I next, and what's this week like. One title (the month, in the bar; round 1 and
+# the shell said "Jadwal" again as the page's heading); it opens on today, its classes as blocks on the hours with the
+# now-line; the week strip shows each day's courses as dots; a swipe across the strip is next week, with its exam period
+# on the day; a class opens Beranda's sheet with the time and the room. Round 1 (9395cea): a Week/Month switch, the title
+# twice, rows of text.
+appId: io.github.pablonification.edunexplus.demo
+name: "w04 Jadwal day hierarchy"
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- tapOn:
+    id: tab.schedule
+- extendedWaitUntil:
+    visible:
+      id: row.class.pl3002-08-00
+    timeout: 10000
+# One title: the month; "Jadwal" only on the tab.
+- assertVisible: "Oktober"
+- assertNotVisible:
+    text: "Jadwal"
+    index: 1
+- assertNotVisible:
+    id: "segment.view.*"
+- assertVisible:
+    id: schedule.nowTime
+- assertVisible:
+    id: action.month
+# Next week by a swipe across the strip: its line, and Thursday's exam period.
+- swipe:
+    from:
+      id: strip.week
+    direction: LEFT
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: "Minggu ke-8 . 12.18 Okt"
+    timeout: 5000
+- assertVisible: "Masa UTS . 12.16 Okt"
+- takeScreenshot: w04-1-next-week
+# Back to today, then a class's sheet.
+- tapOn:
+    id: action.today
+- extendedWaitUntil:
+    visible:
+      id: row.class.dk4073-11-00
+    timeout: 5000
+- tapOn:
+    id: row.class.dk4073-11-00
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 5000
+- assertVisible: "TVST C"
+- assertVisible: ".*11:00.12:59.*"

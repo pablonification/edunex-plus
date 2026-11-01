@@ -1,37 +1,41 @@
-// Presensi on the phone (src/app/screens/presence.tsx), "absences left": am I OK, and what do I
-// do? Under the title, the answer for the next class day ("Hari ini ada 4 kuliah. Hanya PL3002 yang
-// masih ada jatah absen."), and the targets a press away (a sheet). Then only what needs the
-// Student now, then every course grouped by what it asks of them (out of reach, no absences left,
-// absences to spare, …), each row its next class, SIX's share over its absences as a bar with
-// words, and one exception at most. How it's recorded and that later dates are estimated is said
-// once, under the groups. Same order, data and words as the desktop, in one column.
-import { type ReactNode, useState } from "react";
+// Kuliah on the phone (round 2, v4; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds, which
+// course is at risk, and the way into each. On v4's grey page under the bar's "Kuliah": one white card led by a big
+// number (how many courses can't reach the target anymore, else have no absences left, …: ./lead.tsx), what needs the
+// Student now (./now.tsx), then every course as a row in a white card: its tile, name and code, what's left of its
+// absences on a chip. The courses at risk (out of reach, none left, finished below) come first in a card of their own,
+// the rest in another, in the desktop's order. The row opens the course. The day's answer ("Hari ini ada 4 kuliah.
+// Hanya PL3002 yang masih ada jatah absen."), the target and how it's counted are one tap deeper, in the big number's
+// sheet (./footer.tsx), also in ⋮ beside the targets. Same data and words as the desktop.
+import { useState } from "react";
 import { View } from "react-native";
-import { type Attendance, type CourseAttendance, useAttendance } from "../../../../src/app/attendance";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { type Attendance, useAttendance } from "../../../../src/app/attendance";
+import { useNow, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
 import { useDataset, useSettings } from "../../../../src/app/store";
-import { dayAnswer, type PresenceGroup } from "../../../../src/core/attendance";
-import { wibDay } from "../../../../src/core/course-meetings";
+import type { PresenceGroup } from "../../../../src/core/attendance";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
-import { Button } from "../../ui/controls";
+import { usePerfDrawn } from "../../perf";
+import { TabHeader } from "../../shell/source-status";
 import { EmptyState, Skeleton } from "../../ui/display";
+import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
-import { List, PageHeader } from "../../ui/layout";
-import { Text } from "../../ui/text";
+import { Page } from "../../ui/layout";
+import { OverflowMenu } from "../../ui/menu";
 import { space, useTheme } from "../../ui/theme";
+import { CardGroup } from "../../ui/v4-list";
+import { useCardStyle } from "../home/now";
 import { CourseRow } from "./course-row";
-import { Footer, HowCounted } from "./footer";
-import { dayLabel, groupLabel, groupsOf, noonOf, nowZone, type RowContext, type Still, targetRange } from "./logic";
-import { NowZone } from "./now";
+import { FactsSheet } from "./footer";
+import { LeadCard, leadOf, SignInCard } from "./lead";
+import { groupsOf, nowZone, type RowContext, type Still, targetRange, type Zone } from "./logic";
+import { NowNotes, NowZone, nowShown } from "./now";
 import { TargetsSheet } from "./targets-sheet";
 
 /**
- * Everything under the tab's header; the route puts it in a Page with pull to refresh. Kuliah (the tab it lives in now)
- * names the page in its top bar, so `title` is left out there.
+ * What every course's row reads besides its own course (the clock, SIX's check-ins, the timetable, the targets): Kuliah
+ * builds it for its rows, a course's page for its own line. `onChangeTarget`: "Ubah target" on a course out of reach.
  */
-export function PresenceContent({ title }: { title?: string } = {}) {
-  const t = useT();
+export function useRowContext(onChangeTarget: (code: string) => void): { attendance: Attendance; context: RowContext; zone: Zone } | undefined {
   const attendance = useAttendance();
   const now = useNow();
   const student = useDataset("six.student");
@@ -39,65 +43,125 @@ export function PresenceContent({ title }: { title?: string } = {}) {
   const unread = useDataset("six.scheduleUnread");
   const calendar = useDataset("itb.calendar");
   const { attendanceTargets } = useSettings();
-  const name = useCourseNames();
-  const [targets, setTargets] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null });
-  const [still, setStill] = useState<Still | null>(null);
-  // SIX changed its course table before it read: the note at the top says why there's nothing to list.
-  const listChanged = useChangedPage(["six.courses"]) !== undefined;
-  if (!attendance) return <Loading />;
-  const { courses, sixConnected } = attendance;
-  const signedOut = !sixConnected;
-  const groups = groupsOf(courses, signedOut, still);
-  const openTargets = (open: boolean, focus: string | null = null) => {
-    setTargets({ open, focus: open ? focus : null });
-    setStill(open ? groups.map(({ group, items }) => ({ group, codes: items.map((c) => c.course.code) })) : null);
-  };
+  if (!attendance) return undefined;
   const zone = nowZone(attendance, { now, student, checkIns, events: calendar?.events ?? [] });
-  const lectures = attendance.lastDay !== null && wibDay(now) > attendance.lastDay;
   const context: RowContext = {
     now,
     student,
     checkIns: checkIns ?? {},
     events: calendar?.events ?? [],
     zone,
-    signedOut,
+    signedOut: !attendance.sixConnected,
     schedule: attendance.schedule,
     unread: unread ?? [],
     own: attendanceTargets,
     soFar: attendance.period === null,
-    onChangeTarget: (code) => openTargets(true, code),
+    onChangeTarget,
   };
-  const showTargets = sixConnected && courses.length > 0;
+  return { attendance, context, zone };
+}
 
+/** The groups that ask the most of the Student: their courses share the first card. */
+const AT_RISK: readonly PresenceGroup[] = ["out", "none", "missed"];
+
+/**
+ * Kuliah (round 2, v4): the big number, what needs the Student now, then the courses, at risk first, each a row that
+ * opens its page. The targets and how it's counted are in ⋮; the day's answer is in the big number's sheet.
+ */
+export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
+  const t = useT();
+  const theme = useTheme();
+  const v = theme.v4;
+  const name = useCourseNames();
+  const [targets, setTargets] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null });
+  const [facts, setFacts] = useState(false);
+  const [still, setStill] = useState<Still | null>(null);
+  const rows = useRowContext((code) => openTargets(true, code));
+  // SIX changed its course table before it read: the note at the top says why there's nothing to list.
+  const listChanged = useChangedPage(["six.courses"]) !== undefined;
+  const courses = rows?.attendance.courses ?? [];
+  const groups = rows ? groupsOf(courses, rows.context.signedOut, still) : [];
+  const openTargets = (open: boolean, focus: string | null = null) => {
+    setTargets({ open, focus: open ? focus : null });
+    setStill(open ? groups.map(({ group, items }) => ({ group, codes: items.map((c) => c.course.code) })) : null);
+  };
+  const connected = Boolean(rows?.attendance.sixConnected);
+  const showTargets = connected && courses.length > 0;
+  const lead = rows && connected ? leadOf(t, courses) : null;
+  usePerfDrawn(rows !== undefined);
+  const muted = theme.color.onSurfaceVariant;
+  const choices = [
+    ...(showTargets
+      ? [
+          {
+            label: t("mobile.courses.targets"),
+            hint: targetRange(courses),
+            icon: <Icons.Target size={20} color={muted} />,
+            onPress: () => openTargets(true),
+            testID: "action.target",
+          },
+        ]
+      : []),
+    ...(courses.length > 0
+      ? [{ label: t("presence.how"), icon: <Icons.Info size={20} color={muted} />, onPress: () => setFacts(true), testID: "action.howCounted" }]
+      : []),
+  ];
+  const menu = choices.length ? <OverflowMenu testID="action.coursesMenu" choices={choices} /> : undefined;
+  const bands = [groups.filter((g) => AT_RISK.includes(g.group)), groups.filter((g) => !AT_RISK.includes(g.group))].filter((band) => band.length > 0);
   return (
-    <>
-      <PageHeader
-        title={title}
-        description={showTargets ? <DayLine attendance={attendance} /> : undefined}
-        actions={showTargets ? <TargetsButton range={targetRange(courses)} onPress={() => openTargets(true)} /> : undefined}
-      />
-
-      {/* What needs the Student now, then the groups, 32 apart (a part with nothing to say takes no room). */}
-      <View style={{ gap: space[8] }}>
-        <SixPageNote datasets={["six.courses", "six.schedule"]} />
-        <NowZone zone={zone} attendance={attendance} />
-        {courses.length === 0
-          ? !listChanged && <EmptyState icon={<Icons.Hand size={20} />} title={t("presence.empty")} description={t("presence.emptyHint")} />
-          : groups.map(({ group, items }) => (
-              <View key={group} testID={`group.presence.${group}`}>
-                <GroupTitle group={group} items={items} />
-                <List>
-                  {items.map((item) => (
-                    <CourseRow key={item.course.code} item={item} group={group} context={context} />
-                  ))}
-                </List>
-              </View>
-            ))}
-      </View>
-
-      {courses.length > 0 && sixConnected && !lectures && <Footer attendance={attendance} />}
-      {courses.length > 0 && <HowCounted lastDay={attendance.lastDay} />}
-
+    <Page
+      testID="screen.courses"
+      header={<TabHeader v4 title={t("mobile.tab.courses")} actions={menu} />}
+      background={v.page}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+    >
+      {!rows ? (
+        <Loading />
+      ) : (
+        <View style={{ gap: space[4] }}>
+          <SixPageNote datasets={["six.courses", "six.schedule"]} />
+          {!connected && courses.length > 0 ? (
+            <Rise screen="courses" index={0}>
+              <SignInCard quiet={rows.zone.windows.length > 0} />
+            </Rise>
+          ) : (
+            lead && (
+              <Rise screen="courses" index={0}>
+                <LeadCard lead={lead} onPress={() => setFacts(true)} />
+              </Rise>
+            )
+          )}
+          {nowShown(rows.zone) && (
+            <Rise screen="courses" index={1}>
+              <NowZone zone={rows.zone} attendance={rows.attendance} />
+            </Rise>
+          )}
+          {courses.length === 0
+            ? !listChanged && (
+                <EmptyState
+                  icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />}
+                  title={t("presence.empty")}
+                  description={t("presence.emptyHint")}
+                />
+              )
+            : bands.map((band, i) => (
+                <Rise key={band[0]!.group} screen="courses" index={2 + i} style={i > 0 ? { marginTop: -space[1] } : undefined}>
+                  <CardGroup>
+                    {band.map(({ group, items }, g) => (
+                      <View key={group} testID={`group.presence.${group}`}>
+                        {items.map((item, r) => (
+                          <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={g === 0 && r === 0} />
+                        ))}
+                      </View>
+                    ))}
+                  </CardGroup>
+                </Rise>
+              ))}
+          <NowNotes zone={rows.zone} />
+        </View>
+      )}
+      {rows && courses.length > 0 && <FactsSheet attendance={rows.attendance} open={facts} onClose={() => setFacts(false)} />}
       {showTargets && (
         <TargetsSheet
           courses={courses.map((c) => ({ code: c.course.code, name: name(c.course.code, c.course.name), color: c.course.color }))}
@@ -106,105 +170,35 @@ export function PresenceContent({ title }: { title?: string } = {}) {
           focus={targets.focus}
         />
       )}
-    </>
+    </Page>
   );
 }
 
+/** Kuliah's shape before its data: the big number's card, then a card of rows. Never a spinner on a blank page. */
 function Loading() {
+  const surface = useCardStyle();
+  const v = useTheme().v4;
   return (
-    <View accessibilityState={{ busy: true }} style={{ gap: space[3] }}>
-      <Skeleton height={32} width={160} />
-      <Skeleton height={20} width="85%" />
-      <Skeleton height={360} style={{ marginTop: space[5], borderRadius: 12 }} />
+    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[4] }}>
+      <View style={[surface, { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: space[4], paddingHorizontal: space[5] }]}>
+        <Skeleton height={52} width={40} style={{ borderRadius: 12 }} />
+        <View style={{ flex: 1, gap: space[2] }}>
+          <Skeleton height={16} width="80%" />
+          <Skeleton height={16} width="55%" />
+        </View>
+      </View>
+      <View style={{ backgroundColor: v.card, borderRadius: 20, overflow: "hidden" }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
+            <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
+            <View style={{ flex: 1, gap: space[2] }}>
+              <Skeleton height={16} width={i % 2 ? "60%" : "80%"} />
+              <Skeleton height={12} width={64} />
+            </View>
+            <Skeleton height={26} width={64} style={{ borderRadius: 999 }} />
+          </View>
+        ))}
+      </View>
     </View>
   );
-}
-
-/** "Target 80%": the targets, a sheet away. */
-function TargetsButton({ range, onPress }: { range: string; onPress: () => void }) {
-  const t = useT();
-  return (
-    <Button icon={<Icons.Target size={16} />} onPress={onPress} testID="action.target">
-      <Text size="small" weight="semibold">
-        {t("presence.targets.button")}{" "}
-        <Text size="small" tone="muted" tabular>
-          {range}
-        </Text>
-      </Text>
-    </Button>
-  );
-}
-
-const GROUP_ICON: Record<
-  PresenceGroup,
-  { Icon: (typeof Icons)[keyof typeof Icons]; tone: "dangerFg" | "warningFg" | "successFg" | "muted" | "faint"; bold: boolean }
-> = {
-  out: { Icon: Icons.AlertTriangle, tone: "dangerFg", bold: true },
-  none: { Icon: Icons.AlertTriangle, tone: "warningFg", bold: true },
-  edunex: { Icon: Icons.Hand, tone: "muted", bold: false },
-  spare: { Icon: Icons.CheckCircle, tone: "successFg", bold: true },
-  unknown: { Icon: Icons.Circle, tone: "faint", bold: false },
-  missed: { Icon: Icons.AlertTriangle, tone: "dangerFg", bold: true },
-  met: { Icon: Icons.CheckCircle, tone: "successFg", bold: true },
-  courses: { Icon: Icons.BookOpen, tone: "faint", bold: false },
-};
-
-/** The group's heading with its count, in one line of text: "Tak bisa lagi capai 80%  1". */
-function GroupTitle({ group, items }: { group: PresenceGroup; items: readonly CourseAttendance[] }) {
-  const t = useT();
-  const theme = useTheme();
-  const { Icon, tone, bold } = GROUP_ICON[group];
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginBottom: space[3] }}>
-      <Icon size={18} color={theme.color[tone]} weight={bold ? "bold" : "regular"} />
-      <Text size="title" weight="semibold" accessibilityRole="header" style={{ flex: 1 }}>
-        {groupLabel(t, group, items)}
-        <Text size="title" weight="medium" tone="faint" tabular>
-          {`  ${items.length}`}
-        </Text>
-      </Text>
-    </View>
-  );
-}
-
-/** "Hari ini ada 4 kuliah. Hanya PL3002 yang masih ada jatah absen.", or the next class day, or when lectures ended. */
-function DayLine({ attendance }: { attendance: Attendance }): ReactNode {
-  const t = useT();
-  const f = useFormat();
-  const now = useNow();
-  const unread = useDataset("six.scheduleUnread");
-  const answer = dayAnswer(
-    attendance.courses.map((c) => c.health),
-    attendance.schedule,
-    attendance.period,
-    now,
-    unread,
-  );
-  if (!answer) return null;
-  const line = (text: string) => (
-    <Text size="lead" tone="muted">
-      {text}
-    </Text>
-  );
-  if (answer.kind === "ended") return line(t("presence.ended", { date: dayLabel(f, noonOf(answer.lastDay)) }));
-  // A class SIX shows that the app couldn't read: counted on its day, and said, with where to look.
-  const unreadLine = answer.unread ? ` ${t("presence.day.unread", { count: answer.unread })}` : "";
-  if (answer.kind === "next") return line(`${t("presence.day.next", { day: dayLabel(f, answer.at) })}${unreadLine}`);
-  const first = `${t(answer.day === "today" ? "presence.day.today" : "presence.day.tomorrow", { count: answer.count })}${unreadLine}`;
-  const { spare } = answer;
-  // Said only of the courses SIX has a count for; with some still uncounted, they're named instead of "only" or "each".
-  const second = !spare
-    ? ""
-    : spare.of < spare.courses
-      ? spare.codes.length
-        ? t("presence.day.some", { codes: f.list(spare.codes), count: spare.codes.length })
-        : ""
-      : spare.of === 1
-        ? t(spare.codes.length ? "presence.day.one" : "presence.day.oneNone")
-        : spare.codes.length === spare.of
-          ? t("presence.day.all")
-          : spare.codes.length === 0
-            ? t("presence.day.none")
-            : t("presence.day.only", { codes: f.list(spare.codes), count: spare.codes.length });
-  return line(second ? `${first} ${second}` : first);
 }

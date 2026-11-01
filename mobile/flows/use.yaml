@@ -90,7 +90,8 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 
-# S5, S7: a class's sheet from the week, then next week and back with Hari ini.
+# S5, S7: a class's sheet from the day, then next week (v4's Jadwal: a swipe across the week strip) and back with Hari
+# ini.
 - tapOn:
     id: tab.schedule
 - extendedWaitUntil:
@@ -104,26 +105,37 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 10000
 - takeScreenshot: use-08-class-sheet
 - back
-- tapOn:
-    id: action.nextWeek
-- assertVisible: "Minggu depan"
-- assertVisible: "Minggu ke-8 · 12–18 Okt"
+- swipe:
+    from:
+      id: strip.week
+    direction: LEFT
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: "Minggu ke-8 . 12.18 Okt"
+    timeout: 5000
 - tapOn:
     id: action.today
-- assertVisible: "Minggu ini"
-- assertVisible: "Minggu ke-7 · 5–11 Okt"
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: "Minggu ke-7 . 5.11 Okt"
+    timeout: 5000
 
-# S6: the month, a day picked in it lists that day.
+# S6: the month (its own screen, the bar's calendar button), a day picked in it lists that day.
 - tapOn:
-    id: segment.view.month
+    id: action.month
+- extendedWaitUntil:
+    visible:
+      id: screen.month
+    timeout: 10000
 - tapOn:
     id: day.2026-10-15
 - extendedWaitUntil:
     visible: "Kamis, 15 Oktober"
     timeout: 10000
 - takeScreenshot: use-10-month-day
-- tapOn:
-    id: segment.view.week
+- back
 
 # S9: Kuliah's course opens its page.
 - tapOn:
@@ -155,34 +167,43 @@ appId: io.github.pablonification.edunexplus.demo
       id: segment.lang
     direction: DOWN
     centerElement: true
+# Bahasa and Tema are rows showing their value; each opens its choices in a sheet, which closes on a pick.
+- tapOn:
+    id: segment.lang
 - tapOn:
     id: segment.lang.en
 - extendedWaitUntil:
     visible:
-      id: segment.lang.en
-      selected: true
+      id: segment.lang
+      text: ".*English.*"
     timeout: 10000
 - assertVisible: "Settings"
+- tapOn:
+    id: segment.theme
 - tapOn:
     id: segment.theme.dark
 - extendedWaitUntil:
     visible:
-      id: segment.theme.dark
-      selected: true
+      id: segment.theme
+      text: ".*Dark.*"
     timeout: 10000
 - takeScreenshot: use-26-english-dark
+- tapOn:
+    id: segment.lang
 - tapOn:
     id: segment.lang.id
 - extendedWaitUntil:
     visible:
-      id: segment.lang.id
-      selected: true
+      id: segment.lang
+      text: ".*Indonesia.*"
     timeout: 10000
+- tapOn:
+    id: segment.theme
 - tapOn:
     id: segment.theme.system
 - extendedWaitUntil:
     visible:
-      id: segment.theme.system
-      selected: true
+      id: segment.theme
+      text: ".*Sistem.*"
     timeout: 10000
 - assertVisible: "Pengaturan"

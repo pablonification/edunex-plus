@@ -16,19 +16,32 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-01-beranda
-# Beranda's lower half as the desktop's picture shows it: today's rows down to the clash at 16:00.
+# Perlu kamu urus, behind Beranda's chevron (round 2's v4): the desktop's Perlu perhatianmu, in full.
+- tapOn:
+    id: action.needs.all
+- extendedWaitUntil:
+    visible:
+      id: screen.needs
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-02b-perlu-kamu-urus
+- tapOn:
+    id: action.back
+# Beranda's lower half as the desktop's picture shows it: today's rows down to the clash at 16:00 (v4's Nanti hari
+# ini, its last row the class at 16:00; the clash itself is in that class's sheet).
 - scrollUntilVisible:
     element:
-      text: "Bentrok dengan PL3032.*"
+      text: "16:00 · .*"
     direction: DOWN
     centerElement: true
     optional: true
 - takeScreenshot: ${THEME}-02-beranda-hari-ini
 
 # Tugas & Ujian, a Task, an exam
-- tapOn:
-    id: tab.tasks
-- waitForAnimationToEnd
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: tasks
 - takeScreenshot: ${THEME}-03-tugas-ujian
 - scrollUntilVisible:
     element:
@@ -83,8 +96,10 @@ appId: io.github.pablonification.edunexplus.demo
     optional: true
 - tapOn:
     id: action.back
-- tapOn:
-    id: tab.tasks
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: tasks
 # The exam is near the top of the list (the tab's tap brought it back up): no scroll, which at the top would refresh.
 - tapOn:
     id: row.exam.DK4073-UTS
@@ -93,74 +108,97 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 
-# Jadwal: the week, a class, the week of the midterms, the month, the phone's calendar
-- tapOn:
-    id: tab.schedule
+# Jadwal (v4): today on the hours, a class's sheet (Beranda's), next week with the midterms (a swipe across the week
+# strip), the month (the bar's calendar button), the phone's calendar (in ⋮, kept current rather than exported once)
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: schedule
+- extendedWaitUntil:
+    visible:
+      id: row.class.pl3002-08-00
+    timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-07-jadwal-minggu
+# The desktop's 08 is KU5014's detail: its class at 16:00 today.
 - scrollUntilVisible:
     element:
-      id: "row\\.class\\.KU5014.*"
+      id: "row\\.class\\.ku5014-.*"
     direction: DOWN
     optional: true
 - tapOn:
-    id: "row\\.class\\.KU5014.*"
+    id: "row\\.class\\.ku5014-.*"
     index: 0
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 10000
     optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-08-jadwal-detail
 - pressKey: back
 - scrollUntilVisible:
     element:
-      id: action.nextWeek
+      id: strip.week
     direction: UP
     optional: true
-- tapOn:
-    id: action.nextWeek
+- swipe:
+    from:
+      id: strip.week
+    direction: LEFT
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: "Minggu ke-8 .*"
+    timeout: 5000
+    optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-09-jadwal-masa-uts
 - tapOn:
-    id: segment.view.month
+    id: action.today
+- tapOn:
+    id: action.month
+- extendedWaitUntil:
+    visible:
+      id: screen.month
+    timeout: 10000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-10-jadwal-bulan
+- pressKey: back
 - tapOn:
-    id: segment.view.week
-- scrollUntilVisible:
-    element:
-      id: action.addToCalendar
-    direction: DOWN
-    optional: true
-- tapOn:
-    id: action.addToCalendar
-    optional: true
+    id: action.scheduleMenu
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-11-ekspor-kalender
-- scrollUntilVisible:
-    element:
-      id: action.addToCalendar.confirm
-    direction: DOWN
-    optional: true
 - tapOn:
-    id: action.addToCalendar.confirm
-    optional: true
+    id: action.calendarSync
 # Android asks for the calendar once.
 - tapOn:
     text: "(Allow|Izinkan|ALLOW|IZINKAN)"
     optional: true
-- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: ".*acara ada di kalender Edunex Plus.*"
+    timeout: 30000
+    optional: true
 - takeScreenshot: ${THEME}-12-ekspor-kalender-selesai
-- pressKey: back
 
 # Kuliah (the courses with their absences left)
-- tapOn:
-    id: tab.courses
-- waitForAnimationToEnd
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: courses
 - takeScreenshot: ${THEME}-13-kuliah
 
 # Akademik, then Nilai and Rencana studi's parts, each its own screen
-- tapOn:
-    id: tab.academic
-- waitForAnimationToEnd
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: academic
+# Akademik's rows draw once its data is in: wait for the first, so the picture and the tap both find it.
+- extendedWaitUntil:
+    visible:
+      id: row.nav.grades
+    timeout: 15000
 - takeScreenshot: ${THEME}-13b-akademik
 - tapOn:
     id: row.nav.grades
@@ -224,8 +262,10 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 
 # A course (from Kuliah): its page, its meetings, its grade calculator
-- tapOn:
-    id: tab.courses
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: courses
 - scrollUntilVisible:
     element:
       id: row.course.PL3002
@@ -262,8 +302,15 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 
 # Search, the data's state while it's read again, the bell
-- tapOn:
-    id: tab.home
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: home
+# Beranda keeps where it was scrolled (down at 02's 16:00 row): back up to its header.
+- scrollUntilVisible:
+    element:
+      id: action.search
+    direction: UP
 - tapOn:
     id: action.search
 # The desktop's own search, for the same results.
@@ -303,8 +350,10 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 
 # Settings, behind the avatar (on every tab's bar but Beranda's, round 2's v4): the top, notifications, about, the licences
-- tapOn:
-    id: tab.academic
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: academic
 - tapOn:
     id: action.account
 - extendedWaitUntil:

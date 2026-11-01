@@ -1,57 +1,85 @@
-// The course page's simple lists on the phone (src/app/screens/course/lists.tsx): its Tasks and
-// exams (what's still ahead in one list, as Tugas & Ujian has it, then Done's groups; each opens its
-// page) and its announcements, with an online-meeting link as a button and every other link opening
-// in the browser.
-import { Fragment, type ReactNode, useState } from "react";
+// The course page's simple lists on the phone (round 2, v4; src/app/screens/course/lists.tsx). Tugas: the course's
+// part of Tugas & Ujian by the same rules, what's still ahead in one white card, then Done's groups, each under its
+// title in its own card (the rows are Tugas's own, each opening its page). Pengumuman: each announcement on a white
+// card, who and when over its text, an online meeting's link as its one button and every other link opening in the
+// browser.
+import { Children, Fragment, type ReactNode, useState } from "react";
 import { Text as RNText, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
-import { useFormat, useT } from "../../../../src/app/i18n";
+import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
 import { useStatus } from "../../../../src/app/store";
 import { meetingLinks } from "../../../../src/core/course-meetings";
 import type { Exam } from "../../../../src/core/exams";
 import { isOfficialUrl, isWebLink, linkHost } from "../../../../src/core/links";
 import type { Announcement } from "../../../../src/core/models";
+import { taskStatus } from "../../../../src/core/tasks";
 import { todoCount, todoForCourse } from "../../../../src/core/todo";
 import { useSignIn } from "../../shell/source-status";
-import { Button } from "../../ui/controls";
-import { Card } from "../../ui/display";
+import { BigButton } from "../../ui/big-button";
 import { Icons } from "../../ui/icons";
-import { Section } from "../../ui/layout";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CardRow, doneLines, LineView } from "../tasks/list";
-import { PutOff, TodoRow } from "../tasks/rows";
+import { CardGroup, SectionTitle } from "../../ui/v4-list";
+import { useCardStyle } from "../home/now";
+import { PastExamRow } from "../tasks/exam-rows";
+import { doneLines, type Line } from "../tasks/list";
+import { PutOff, TaskRow, TodoRow } from "../tasks/rows";
+
+/** Rows in one white card, a line between them. */
+function Rows({ children, testID }: { children: ReactNode[]; testID?: string }) {
+  const v = useTheme().v4;
+  return (
+    <CardGroup testID={testID}>
+      {/* Children.map keys each wrapper by its row's own key. */}
+      {Children.map(children, (child, i) => (
+        <View style={i > 0 ? { borderTopWidth: 1, borderTopColor: v.line } : undefined}>{child}</View>
+      ))}
+    </CardGroup>
+  );
+}
+
+/** A quiet line where a list has nothing. */
+function Quiet({ children }: { children: string }) {
+  const v = useTheme().v4;
+  return (
+    <Text size="bodyLarge" style={{ color: v.muted, marginLeft: space[1] }}>
+      {children}
+    </Text>
+  );
+}
 
 /** No exam known. Signed out of SIX, only Edunex was asked: said so, with the way to SIX's exam timetable. */
 function NoExams() {
   const t = useT();
+  const v = useTheme().v4;
   const sixOut = useStatus("six").state === "signed-out";
   const { signIn, busy } = useSignIn();
   if (!sixOut)
     return (
-      <Text size="body" tone="muted" style={{ marginTop: space[3] }}>
+      <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[3], marginLeft: space[1] }}>
         {t("course.noExams")}
       </Text>
     );
   return (
-    <View style={{ marginTop: space[3], gap: space[2], alignItems: "flex-start" }}>
-      <Text size="body" tone="muted">
+    <View style={{ marginTop: space[3], gap: space[2] }}>
+      <Text size="bodyMedium" style={{ color: v.muted, marginLeft: space[1] }}>
         {t("course.noExamsNoSix")}
       </Text>
-      <Button busy={busy} onPress={() => void signIn("six")}>
+      <BigButton variant="outline" onPress={busy ? undefined : () => void signIn("six")}>
         {t("action.signInTo", { source: "SIX" })}
-      </Button>
+      </BigButton>
     </View>
   );
 }
 
 /**
- * The course's part of Tugas & Ujian, by the same rules: what's still ahead in one list in order
- * (its Tasks, its exams' parts, its exam periods with no day yet), then Done's groups.
+ * The course's part of Tugas & Ujian, by the same rules: what's still ahead in one list in order (its Tasks, its
+ * exams' parts, its exam periods with no day yet), then Done's groups.
  */
 export function TasksTab({ code, exams }: { code: string; exams: Exam[] }) {
   const t = useT();
+  const now = useNow();
   const todo = useTodo();
   const [putOffOpen, setPutOffOpen] = useState(false);
   if (!todo) return null;
@@ -63,34 +91,38 @@ export function TasksTab({ code, exams }: { code: string; exams: Exam[] }) {
     closed: todo.done.closed.filter((task) => task.courseCode === code),
     notHandingIn: todo.done.notHandingIn.filter((task) => task.courseCode === code),
   };
-  const doneGroups = doneLines(done, todo.exams, t, "course");
+  // Done's groups: each title, then its rows in one card.
+  const groups: { key: string; title: string; count?: number; rows: ReactNode[] }[] = [];
+  for (const line of doneLines(done, todo.exams, t, "course") as Line[]) {
+    if (line.type === "heading") groups.push({ key: line.key, title: line.title, count: line.count, rows: [] });
+    else if (line.type === "done")
+      groups.at(-1)?.rows.push(<TaskRow key={line.key} task={line.task} status={taskStatus(line.task, now)} meta="module" exam={line.exam} />);
+    else if (line.type === "past") groups.at(-1)?.rows.push(<PastExamRow key={line.key} past={line.past} inCourse />);
+  }
+  const open = todoCount(items);
   return (
-    <View>
-      <Section first title={t("course.todo")} count={todoCount(items)} testID="section.course.todo">
-        {items.length ? (
-          <View>
-            {items.map((item, i) => (
-              <CardRow key={item.key} first={i === 0} last={i === items.length - 1}>
-                <TodoRow item={item} inCourse />
-              </CardRow>
-            ))}
-          </View>
-        ) : (
-          <Text size="body" tone="muted">
-            {t("course.nothingTodo")}
-          </Text>
-        )}
-        <PutOff putOff={putOff} open={putOffOpen} onToggle={() => setPutOffOpen(!putOffOpen)} />
-        {/* With no exam anywhere, said under the list, never floating between the Task lists. */}
-        {exams.length === 0 && <NoExams />}
-      </Section>
-      {doneGroups.length > 0 && (
-        <View style={{ marginTop: space[8] }}>
-          {doneGroups.map((line) => (
-            <LineView key={line.key} line={line} inCourse />
+    <View testID="section.course.todo">
+      <SectionTitle first>{open ? `${t("course.todo")} · ${open}` : t("course.todo")}</SectionTitle>
+      {items.length ? (
+        <Rows>
+          {items.map((item) => (
+            <TodoRow key={item.key} item={item} inCourse />
           ))}
-        </View>
+        </Rows>
+      ) : (
+        <Quiet>{t("course.nothingTodo")}</Quiet>
       )}
+      <PutOff putOff={putOff} open={putOffOpen} onToggle={() => setPutOffOpen(!putOffOpen)} />
+      {/* With no exam anywhere, said under the list, never floating between the Task lists. */}
+      {exams.length === 0 && <NoExams />}
+      {groups
+        .filter((group) => group.rows.length > 0)
+        .map((group) => (
+          <View key={group.key}>
+            <SectionTitle>{group.count !== undefined ? `${group.title} · ${group.count}` : group.title}</SectionTitle>
+            <Rows>{group.rows}</Rows>
+          </View>
+        ))}
     </View>
   );
 }
@@ -106,52 +138,48 @@ export function AnnouncementsTab({
 }) {
   const t = useT();
   const f = useFormat();
-  const theme = useTheme();
+  const v = useTheme().v4;
+  const surface = useCardStyle();
   const open = useOpenExternal();
   if (!announcements?.length)
     return (
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <Icons.Megaphone size={16} color={theme.color.muted} />
-        <Text size="body" tone="muted">
-          {t("course.noAnnouncements")}
-        </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginLeft: space[1] }}>
+        <Icons.Megaphone size={18} color={v.muted} />
+        <Quiet>{t("course.noAnnouncements")}</Quiet>
       </View>
     );
   return (
     <View style={{ gap: space[3] }}>
       {announcements.map((item) => {
         const [link] = meetingLinks(item.text).filter(isOfficialUrl);
+        // Who and when, then (for the joint class's) where it came from: one line.
+        const meta = [
+          item.postedAt !== null ? f.dueLabel(item.postedAt) : "",
+          item.courseId !== mainCourseId ? t("course.fromJointClass", { code }) : "",
+        ].filter(Boolean);
         return (
-          <Card
-            key={`${item.courseId}:${item.id}`}
-            testID={`row.announcement.${item.courseId}-${item.id}`}
-            style={{ paddingHorizontal: space[4], paddingVertical: space[4] }}
-          >
-            <Text size="small" tone="muted">
-              {item.author && (
-                <Text size="small" weight="semibold">
-                  {item.author}
-                </Text>
-              )}
-              {item.author && item.postedAt !== null ? "  " : ""}
-              {item.postedAt !== null ? f.dueLabel(item.postedAt) : ""}
-            </Text>
-            {item.courseId !== mainCourseId && (
-              <Text size="small" tone="faint" style={{ marginTop: 2 }}>
-                {t("course.fromJointClass", { code })}
+          <View key={`${item.courseId}:${item.id}`} testID={`row.announcement.${item.courseId}-${item.id}`} style={[surface, { padding: space[4] }]}>
+            {item.author && (
+              <Text size="bodyLarge" weight="semibold" style={{ color: v.fg }}>
+                {item.author}
               </Text>
             )}
-            <Text size="body" selectable style={{ marginTop: space[2.5], lineHeight: 24 }}>
+            {meta.length > 0 && (
+              <Text size="bodyMedium" tabular style={{ color: v.muted, marginTop: 2 }}>
+                {meta.join(" · ")}
+              </Text>
+            )}
+            <Text size="bodyLarge" selectable style={{ color: v.fg2, marginTop: space[3], lineHeight: 24 }}>
               <Linked text={item.text} />
             </Text>
             {link && (
-              <View style={{ marginTop: space[3], flexDirection: "row" }}>
-                <Button size="sm" variant="primary" icon={<Icons.Video size={14} color={theme.color.onAccent} />} onPress={() => open(link)}>
+              <View style={{ marginTop: space[4] }}>
+                <BigButton icon={<Icons.Video size={20} color={v.onBrand} />} onPress={() => open(link)} testID="action.announcementJoin">
                   {t("material.joinMeeting")}
-                </Button>
+                </BigButton>
               </View>
             )}
-          </Card>
+          </View>
         );
       })}
     </View>
@@ -161,7 +189,7 @@ export function AnnouncementsTab({
 /** Plain text with its links made pressable: they open in the browser, as on Edunex (any web page: a lecturer's link). */
 function Linked({ text }: { text: string }) {
   const t = useT();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const open = useOpenLink();
   const parts: ReactNode[] = text.split(/(https?:\/\/[^\s<>"]+)/g).map((part, index) =>
     index % 2 === 1 && isWebLink(part) ? (
@@ -171,7 +199,7 @@ function Linked({ text }: { text: string }) {
         accessibilityRole="link"
         accessibilityHint={t("link.opensIn", { host: linkHost(part) ?? part })}
         onPress={() => open(part)}
-        style={{ color: theme.color.accentFg, textDecorationLine: "underline" }}
+        style={{ color: v.brandInk, textDecorationLine: "underline" }}
       >
         {part}
       </RNText>

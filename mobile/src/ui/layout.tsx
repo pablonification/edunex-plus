@@ -18,7 +18,17 @@ import {
   useMemo,
   useRef,
 } from "react";
-import { Animated, Pressable, RefreshControl, type ScrollView, type ScrollViewProps, StyleSheet, View, type ViewStyle } from "react-native";
+import {
+  Animated,
+  Pressable,
+  RefreshControl,
+  type ScrollView,
+  type ScrollViewProps,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type ViewStyle,
+} from "react-native";
 import { Icons } from "./icons";
 import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
 import { Text } from "./text";
@@ -29,6 +39,18 @@ import { radius, shape, space, useTheme } from "./theme";
  * its scrolled-under colour from it (top-bar.tsx).
  */
 const ScrollEdge = createContext<Animated.Value | null>(null);
+
+/**
+ * 0 until the page has scrolled `from` − 24 dp, 1 from `from` on (an Animated value; null outside a Page): a top bar's
+ * title that shows once the page's own big title has gone under it (M3's collapsing top app bar).
+ */
+export function useScrolledPast(from: number): Animated.AnimatedInterpolation<number> | null {
+  const offset = useContext(ScrollEdge);
+  return useMemo(
+    () => offset?.interpolate({ inputRange: [Math.max(0, from - 24), Math.max(1, from)], outputRange: [0, 1], extrapolate: "clamp" }) ?? null,
+    [offset, from],
+  );
+}
 
 /**
  * The title the screen's bar shows (a `TabHeader`'s or `TopBar`'s `title`), for the one-title rule: a screen has one
@@ -52,6 +74,14 @@ function titleOf(header: ReactNode): string | null {
 export function useScrolledUnder(): Animated.AnimatedInterpolation<number> | null {
   const offset = useContext(ScrollEdge);
   return useMemo(() => offset?.interpolate({ inputRange: [0, 8], outputRange: [0, 1], extrapolate: "clamp" }) ?? null, [offset]);
+}
+
+/** The page's own colour (`Page`'s `background`, v4's page grey), so its top bar sits on the same colour at rest. */
+const PageColor = createContext<string | null>(null);
+
+/** The colour of the page a bar is on (null: the surface). */
+export function usePageColor(): string | null {
+  return useContext(PageColor);
 }
 
 /**
@@ -111,7 +141,9 @@ export function Page({
       // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx).
       onLayout={inTabs ? () => frame.current?.measureInWindow((_x, y, _width, height) => reportTabsBottom(y + height)) : undefined}
     >
-      <ScrollEdge.Provider value={offset}>{header}</ScrollEdge.Provider>
+      <PageColor.Provider value={background ?? null}>
+        <ScrollEdge.Provider value={offset}>{header}</ScrollEdge.Provider>
+      </PageColor.Provider>
       <Animated.ScrollView
         ref={ref as never}
         onScroll={scrolled}
@@ -264,6 +296,18 @@ export function List({ children, style, testID }: { children: ReactNode; style?:
 }
 
 /**
+ * Narrow for words: under 340 dp of the normal font size across (a small phone, or a bigger font). Rows then put what
+ * sat at their end under their text, where it can wrap, instead of squeezing the title.
+ */
+export function useNarrow(): boolean {
+  const { width, fontScale } = useWindowDimensions();
+  return width / Math.max(1, fontScale) < 340;
+}
+
+/** True inside a row's end moved under its text (Row's `wrapTrailing`): a date there says itself on one line. */
+export const TrailingInline = createContext(false);
+
+/**
  * One thing in a list (Material 3's list item): what it is (title), when and where (meta, one line), and at
  * the end its state or its one action. A tappable row is one target, the whole row, with one outcome; no
  * chevron (Android's lists open on a tap without one). `actions` sit beside it, never inside it.
@@ -281,6 +325,7 @@ export function Row({
   quick,
   testID,
   children,
+  wrapTrailing = false,
 }: {
   leading?: ReactNode;
   title: ReactNode;
@@ -295,8 +340,12 @@ export function Row({
   quick?: readonly { label: string; onPress(): void }[];
   testID?: string;
   children?: ReactNode;
+  /** On a narrow screen (useNarrow), `trailing` goes under the text instead of beside it. */
+  wrapTrailing?: boolean;
 }) {
   const theme = useTheme();
+  const narrow = useNarrow();
+  const below = wrapTrailing && narrow && trailing !== undefined && trailing !== null;
   const body = (
     <>
       {/* The indicator and the text as one block, centred in the row: the indicator level with the title's first line
@@ -323,9 +372,16 @@ export function Row({
             </View>
           )}
           {children}
+          {below && (
+            <TrailingInline.Provider value>
+              <View style={{ marginTop: space[1], flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>{trailing}</View>
+            </TrailingInline.Provider>
+          )}
         </View>
       </View>
-      {trailing !== undefined && trailing !== null && <View style={{ flexShrink: 0, alignItems: "flex-end", gap: 4, maxWidth: "42%" }}>{trailing}</View>}
+      {!below && trailing !== undefined && trailing !== null && (
+        <View style={{ flexShrink: 0, alignItems: "flex-end", gap: 4, maxWidth: "42%" }}>{trailing}</View>
+      )}
     </>
   );
   const pressable = onPress || onLongPress;
@@ -555,6 +611,31 @@ export function Stat({
         ) : (
           hint
         ))}
+    </View>
+  );
+}
+
+/**
+ * One tile of a `List` drawn row by row, for a virtualized list (FlashList) that can't wrap its rows in a `List`: the
+ * same tonal tile, round at the group's ends (`first`, `last`), 2 dp from the tile above it.
+ */
+export function GroupTile({ first, last, children }: { first: boolean; last: boolean; children: ReactNode }) {
+  const theme = useTheme();
+  const end = shape.lgPlus;
+  const inner = shape.xs;
+  return (
+    <View
+      style={{
+        marginTop: first ? 0 : 2,
+        overflow: "hidden",
+        backgroundColor: theme.color.surfaceContainerLow,
+        borderTopLeftRadius: first ? end : inner,
+        borderTopRightRadius: first ? end : inner,
+        borderBottomLeftRadius: last ? end : inner,
+        borderBottomRightRadius: last ? end : inner,
+      }}
+    >
+      {children}
     </View>
   );
 }

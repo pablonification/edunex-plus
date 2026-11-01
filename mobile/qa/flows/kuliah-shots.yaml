@@ -1,0 +1,98 @@
+# Pictures of Kuliah, a course's page and a module (round 2, v4; mobile/report/img/v4/kuliah/), through the lab's
+# shots.sh (${THEME}). Signed in, Thursday 8 Oct 2026 08:07: KU5014 out of reach, PL3002's class on now.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- tapOn:
+    id: action.notify.later
+    optional: true
+- tapOn:
+    id: tab.courses
+- extendedWaitUntil:
+    visible:
+      id: card.kuliahNumber
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 01-kuliah
+# The big number's sheet: the day's answer, the target, how it's counted.
+- tapOn:
+    id: card.kuliahNumber
+- extendedWaitUntil:
+    visible:
+      id: sheet.kuliahFacts
+    timeout: 5000
+- waitForAnimationToEnd
+- takeScreenshot: 02-kuliah-sheet
+- back
+# The course out of reach: its attendance card, then its sheet.
+- tapOn:
+    id: row.course.KU5014
+- extendedWaitUntil:
+    visible:
+      id: meter.courseAttendance
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 03-course-ku5014
+- tapOn:
+    id: action.courseAbout
+- extendedWaitUntil:
+    visible:
+      id: sheet.course
+    timeout: 5000
+- waitForAnimationToEnd
+- takeScreenshot: 04-course-sheet
+- back
+- tapOn:
+    id: tab.course.meetings
+- waitForAnimationToEnd
+- takeScreenshot: 05-course-pertemuan
+- back
+# The course whose class is on now: the now card and its Tandai Hadir.
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: card.courseNow
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 06-course-pl3002-now
+- back
+# A course's Modul list, then a module.
+- tapOn:
+    id: row.course.II4091
+- extendedWaitUntil:
+    visible:
+      id: list.course.contents
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 07-course-modul
+- scrollUntilVisible:
+    element:
+      id: row.module.2-catatan
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: row.module.2-catatan
+- extendedWaitUntil:
+    visible:
+      id: screen.module
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 08-module-catatan
+- back
+- openLink: "edunexplusdemo://course/II4091?module=450219"
+- extendedWaitUntil:
+    visible:
+      id: screen.module
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: 09-module-berkas

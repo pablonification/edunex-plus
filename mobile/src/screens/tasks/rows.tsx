@@ -1,136 +1,84 @@
 // The rows of Tugas & Ujian on the phone: src/app/screens/tasks.tsx's TaskRow, TodoRow, PutOff and
-// their date column, with the same facts in the same order. A late Task's "Ingatkan nanti" is an
-// alarm on the row, a swipe, and its long press; each row's accessible name says every fact the
-// row shows (and the status the desktop leaves to its screen reader text).
-import type { ReactNode } from "react";
+// their date column, the same facts read the phone's way (round 2). A row shows what the Student
+// decides on (the title, the course, the day and time it's due); the rest of the desktop's facts
+// stay in its accessible name and on the Task's page. A late Task's "Ingatkan nanti" is an alarm on
+// the row, a swipe, and its long press. What rows share is in row-parts.tsx.
+import { useState } from "react";
 import { View } from "react-native";
-import { useAttendance } from "../../../../src/app/attendance";
 import { errorKey } from "../../../../src/app/bridge";
-import { useCourseColor, useTermCourses } from "../../../../src/app/courses";
-import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { type Format, type Translate, useFormat, useT } from "../../../../src/app/i18n";
 import type { Todo } from "../../../../src/app/schedule-data";
-import { useDone, useSnoozes } from "../../../../src/app/snoozes";
-import { useDataset } from "../../../../src/app/store";
+import { useSnoozes } from "../../../../src/app/snoozes";
 import { attendanceWindow, presenceOptional } from "../../../../src/core/attendance";
 import { taskPutAway } from "../../../../src/core/done";
 import type { Exam } from "../../../../src/core/exams";
-import type { DoneHow, Task, TaskModule, TaskStatus } from "../../../../src/core/models";
+import type { DoneHow, Task, TaskStatus } from "../../../../src/core/models";
 import { editView } from "../../../../src/core/task-edits";
-import { isOpenStatus, moduleName, notOpenYet, shortWindow, submittedAt } from "../../../../src/core/tasks";
+import { isOpenStatus, notOpenYet, shortWindow, submittedAt } from "../../../../src/core/tasks";
 import { lateSnoozable, type TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { canSnooze, useRowActions, useSnooze } from "../../parts/snooze";
-import { toast } from "../../swaps/overlays";
-import { Button, IconButton } from "../../ui/controls";
-import { CourseDot, StatusChip, Tag } from "../../ui/display";
+import { CardSlice } from "../../ui/card-list";
+import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
-import { factsLabel, Meta, Row } from "../../ui/layout";
+import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { ExamPartRow, PeriodRow } from "./exam-rows";
+import {
+  countdown,
+  type DueWhen,
+  dueWhen,
+  formatScore,
+  HeroCard,
+  inWorld,
+  moduleLabel,
+  type Quick,
+  RowNote,
+  type RowWorldValue,
+  rowWhen,
+  type SignalIcon,
+  StatusPill,
+  TaskLine,
+  useRowWorld,
+} from "./row-parts";
 
-const DAY = 86_400_000;
-
-/** Statuses worth a chip in a list: the rest are said by the segment and the date. */
-const LOUD: readonly TaskStatus[] = ["draft", "overdue", "in_review"];
-
-export function moduleLabel(t: Translate, module: TaskModule | null): string | null {
-  if (!module) return null;
-  return factsLabel(t("task.module", { n: module.index }), moduleName(module));
-}
-
-export function formatScore(score: number, f: Format): string {
-  return Number.isInteger(score) ? String(score) : f.number(score, 2).replace(/[.,]?0+$/, "");
-}
-
-/** "● DK4073": a course's code with its dot. */
-export function CourseCodeMark({ code }: { code: string }) {
-  const color = useCourseColor()(code);
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <CourseDot color={color} size={8} />
-      <Text size="small" weight="medium">
-        {code}
-      </Text>
-    </View>
-  );
-}
-
-/** The right-hand column: a main line over a quieter one, in the row's tone. */
-export function DateColumn({ main, sub, tone }: { main: string; sub?: string | null; tone?: TextTone }) {
-  return (
-    <View style={{ alignItems: "flex-end" }}>
-      <Text size="small" tone={tone ?? "fg"} tabular numberOfLines={1}>
-        {main}
-      </Text>
-      {sub ? (
-        <Text size="small" tone={tone ?? "faint"} tabular numberOfLines={1}>
-          {sub}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
-/** A deadline's two lines, the desktop's DueWhen: its day and time over how long until it; amber within a day, red once late. */
-export function useDueWhen(): (at: number, late: boolean, under?: string) => { main: string; sub: string | null; tone?: TextTone } {
-  const f = useFormat();
-  const now = useNow();
-  return (at, late, under) => {
-    const soon = !late && at > now && at - now < DAY;
-    const repeats = under === undefined && Math.abs(f.dayOffset(at)) === 1 && Math.abs(at - now) >= DAY;
-    return { main: f.dueLabel(at), sub: repeats ? null : (under ?? f.fromNow(at)), tone: late ? "danger" : soon ? "warning" : undefined };
-  };
-}
-
-/** "Jum, 16 Okt, 23:59 / dalam 8 hari"; "Dikumpulkan 24 Sep" once handed in, with its score over it once graded. */
-function useTaskDate(): (task: Task, status: TaskStatus) => { main: string; sub: string | null; tone?: TextTone } {
-  const t = useT();
-  const f = useFormat();
-  const due = useDueWhen();
-  return (task, status) => {
-    const sentAt = submittedAt(task);
-    if (sentAt !== null) {
-      const sent = t("task.submittedOnDate", { date: f.dayMonth(sentAt) });
-      return task.score !== null ? { main: t("task.scoreValue", { score: formatScore(task.score, f) }), sub: sent, tone: "fg" } : { main: sent, sub: null };
-    }
-    if (task.dueAt === null) return { main: t("task.noDeadline"), sub: null, tone: "faint" };
-    return due(task.dueAt, status === "overdue" || status === "closed", status === "closed" ? t("task.notHandedIn") : undefined);
-  };
-}
+export { CourseCodeMark, DateColumn, ExamTitle, formatScore, moduleLabel, useDueWhen } from "./row-parts";
 
 type MarkedHow = Extract<DoneHow, "handedElsewhere" | "notHandingIn" | "groupDone">;
+
+/** "Jum, 16 Okt / 23:59"; "Dikumpulkan 24 Sep" once handed in, with its score over it once graded. */
+function taskDate(t: Translate, f: Format, now: number, task: Task, status: TaskStatus): DueWhen {
+  const sentAt = submittedAt(task);
+  if (sentAt !== null) {
+    const sent = t("task.submittedOnDate", { date: f.dayMonth(sentAt) });
+    return task.score !== null
+      ? { main: t("task.scoreValue", { score: formatScore(task.score, f) }), sub: sent, tone: "fg", late: false, rel: null }
+      : { main: sent, sub: null, late: false, rel: null };
+  }
+  if (task.dueAt === null) return { main: t("task.noDeadline"), sub: null, tone: "muted", late: false, rel: null };
+  const late = status === "overdue" || status === "closed";
+  return dueWhen(f, now, task.dueAt, late, status === "closed" ? t("task.notHandedIn") : undefined);
+}
 
 /**
  * At most one thing Edunex's list doesn't say, the one that changes what to do (the desktop's
  * Signal): marked on its page, changed after the Student handed in, attendance taken by handing
  * in, not open yet, a short window.
  */
-function useSignal(task: Task, status: TaskStatus): { icon: ReactNode; facts: string[]; tone: TextTone } | null {
-  const t = useT();
-  const f = useFormat();
-  const now = useNow();
-  const theme = useTheme();
-  const presence = useDataset("edunex.presence");
-  const { entries: handled } = useDone();
-  const edits = useDataset("edunex.taskEdits");
-  const countedIn = useAttendance()?.courses.find((entry) => entry.course.code === task.courseCode)?.health.countedIn;
-  const edit = editView(task, edits, handled);
-  const optional = presenceOptional(countedIn);
-  const c = theme.color;
-  const window = isOpenStatus(status) ? attendanceWindow(task, presence, now) : null;
-  const marked = isOpenStatus(status) ? taskPutAway(task, handled) : undefined;
-  if (marked) return { icon: <Icons.Check size={14} weight="bold" color={c.muted} />, facts: [t(`task.marked.${marked.how as MarkedHow}`)], tone: "muted" };
+function signalOf(t: Translate, world: RowWorldValue, task: Task, status: TaskStatus): { icon: SignalIcon; facts: string[]; tone: TextTone } | null {
+  const { f, now } = world;
+  const edit = editView(task, world.edits, world.handled);
+  const optional = presenceOptional(world.countedIn(task.courseCode));
+  const window = isOpenStatus(status) ? attendanceWindow(task, world.presence, now) : null;
+  const marked = isOpenStatus(status) ? taskPutAway(task, world.handled) : undefined;
+  if (marked) return { icon: "check", facts: [t(`task.marked.${marked.how as MarkedHow}`)], tone: "muted" };
   if (edit?.afterSubmit && task.editedAt !== null && !edit.checked && edit.state !== "none")
-    return {
-      icon: <Icons.PenLine size={14} color={c.warningFg} />,
-      facts: [t("task.editedAfterSubmitLine", { date: f.dayMonth(task.editedAt) })],
-      tone: "warning",
-    };
+    return { icon: "pen", facts: [t("task.editedAfterSubmitLine", { date: f.dayMonth(task.editedAt) })], tone: "warning" };
   if (window)
     return {
-      icon: <Icons.Hand size={14} color={c.muted} />,
+      icon: "hand",
       facts: [
         t(optional ? "task.attendanceLineOptional" : "task.attendanceLine", {
           when: `${f.relativeDay(window.opensAt)} ${f.timeRange(window.opensAt, window.closesAt)}`,
@@ -140,54 +88,43 @@ function useSignal(task: Task, status: TaskStatus): { icon: ReactNode; facts: st
     };
   if (task.opensAt !== null && notOpenYet(task, now)) return { icon: null, facts: [t("task.opens", { when: f.dayTimeWord(task.opensAt) })], tone: "muted" };
   if (shortWindow(task) !== null && task.opensAt !== null && task.dueAt !== null)
-    return { icon: <Icons.Zap size={14} color={c.muted} />, facts: [t("task.shortWindow"), f.timeRange(task.opensAt, task.dueAt)], tone: "muted" };
+    return { icon: "zap", facts: [t("task.shortWindow"), f.timeRange(task.opensAt, task.dueAt)], tone: "muted" };
   return null;
 }
 
-/** "UTS Komunikasi Pemasaran": the kind's quiet tag, then the course. */
-export function ExamTitle({ kind, name }: { kind: string; name: string }) {
-  return (
-    // The tag level with the name's first line (22 high): 2 to centre its 18, 2 more to meet the letters, which sit low
-    // in their line.
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-      <View style={{ marginTop: 4 }}>
-        <Tag>{kind}</Tag>
-      </View>
-      <Text size="body" weight="medium" numberOfLines={2} style={{ flexShrink: 1 }}>
-        {name}
-      </Text>
-    </View>
-  );
-}
+// ------------------------------------------------------------ rows
 
 /**
- * A Task as a row, opening its page. Under "Terlambat" the heading says it's late (no chip on every
- * row), and the row says it's still taken. A take-home in Done keeps its exam's look.
+ * A Task as a row, opening its page. Under "Terlambat" the heading says it's late, and the row
+ * says it's still taken. A take-home in Done keeps its exam's look.
  */
-export function TaskRow({
+export const TaskRow = inWorld(function TaskRow({
   task,
   status,
   meta = "course",
   late = false,
   exam,
-  actions,
+  quick,
   onLongPress,
+  hero = false,
 }: {
   task: Task;
   status: TaskStatus;
   meta?: "course" | "module" | "none";
   late?: boolean;
   exam?: Exam;
-  actions?: ReactNode;
+  quick?: Quick;
   onLongPress?: () => void;
+  /** Tugas's one big card: the nearest deadline (row-parts.tsx HeroCard), the same item, target and name. */
+  hero?: boolean;
 }) {
   const t = useT();
   const { go } = useNav();
-  const course = useTermCourses()?.find((c) => c.code === task.courseCode);
+  const world = useRowWorld();
+  const course = world.courses?.find((c) => c.code === task.courseCode);
   const module = moduleLabel(t, task.module);
-  const date = useTaskDate()(task, status);
-  const signal = useSignal(task, status);
-  const chip = LOUD.includes(status) && !(late && status === "overdue");
+  const date = taskDate(t, world.f, world.now, task, status);
+  const signal = signalOf(t, world, task, status);
   const where = module ?? course?.name ?? null;
   const facts = exam
     ? [meta === "course" ? task.courseCode : "", t("exam.takeHome"), task.title]
@@ -205,47 +142,67 @@ export function TaskRow({
     t(`taskStatus.${status}`),
     date.main,
     date.sub,
+    date.rel,
   );
+  const code = meta === "course" ? task.courseCode : null;
+  // v4: one meta line that fits in full (the code, or the kind of a take-home, and when), one status (the countdown,
+  // the score, or "not handed in"); everything else is in the row's spoken name and on the Task's page.
+  const sentAt = submittedAt(task);
+  const kind = exam ? t(`exam.kind.${exam.kind}`) : null;
+  const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
+  const when =
+    sentAt !== null
+      ? t("task.submittedOnDate", { date: world.f.dayMonth(sentAt) })
+      : task.dueAt === null
+        ? t("task.noDeadline")
+        : // The time only beside the countdown: a late or closed one's status is too wide for both.
+          rowWhen(world.f, task.dueAt, away !== null && !away.late);
+  const lead = kind ?? (meta === "module" && task.module ? t("task.module", { n: task.module.index }) : code);
+  const line = [lead, when].filter(Boolean).join(" · ");
+  const statusPill =
+    sentAt !== null ? (
+      task.score !== null ? (
+        <StatusPill tone="ok" text={t("task.scoreValue", { score: formatScore(task.score, world.f) })} />
+      ) : null
+    ) : status === "closed" ? (
+      <StatusPill tone="red" text={t("task.notHandedIn")} />
+    ) : away ? (
+      <StatusPill tone={away.tone} text={away.text} />
+    ) : null;
+  const name = exam ? (course?.name ?? exam.courseCode) : task.title;
+  const open = () => go({ screen: "task", taskId: task.id });
+  if (hero && task.dueAt !== null)
+    return (
+      <HeroCard
+        testID={`row.task.${task.id}`}
+        label={label}
+        onPress={open}
+        onLongPress={onLongPress}
+        quick={quick}
+        code={task.courseCode}
+        course={course?.name}
+        kind={kind ?? task.courseCode}
+        from={task.opensAt}
+        at={task.dueAt}
+        title={name}
+        meta={when}
+      />
+    );
   return (
-    <Row
+    <TaskLine
       testID={`row.task.${task.id}`}
       label={label}
-      onPress={() => go({ screen: "task", taskId: task.id })}
+      onPress={open}
       onLongPress={onLongPress}
-      actions={actions}
-      title={exam ? <ExamTitle kind={t(`exam.kind.${exam.kind}`)} name={course?.name ?? exam.courseCode} /> : task.title}
-      meta={
-        facts.length ? (
-          <Meta>
-            {facts[0] && meta === "course" ? <CourseCodeMark code={task.courseCode} /> : facts[0]}
-            {facts.slice(1)}
-          </Meta>
-        ) : undefined
-      }
-      trailing={
-        <>
-          {chip && <StatusChip status={status} />}
-          <DateColumn {...date} />
-        </>
-      }
-    >
-      {late && (
-        <Text size="small" tone="muted" style={{ marginTop: space[1] }}>
-          {t("home.need.task.overdue")}
-        </Text>
-      )}
-      {signal && (
-        // The icon level with the first line (19 high) when the line wraps.
-        <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
-          {signal.icon && <View style={{ paddingTop: 2.5 }}>{signal.icon}</View>}
-          <Text size="small" tone={signal.tone} weight={signal.tone === "warning" ? "medium" : "regular"} style={{ flexShrink: 1 }}>
-            {signal.facts.join("  ·  ")}
-          </Text>
-        </View>
-      )}
-    </Row>
+      quick={quick}
+      code={meta === "course" ? task.courseCode : null}
+      course={course?.name}
+      title={name}
+      meta={line}
+      status={statusPill}
+    />
   );
-}
+});
 
 /** The Task a late row is about, for its name: a Task, or an exam's take-home. */
 export const lateTitle = (item: TodoItem) =>
@@ -256,62 +213,69 @@ export const lateTitle = (item: TodoItem) =>
  * put off ("Ingatkan nanti") as on Beranda, the same snooze for the same Task: the alarm, a swipe
  * or a long press.
  */
-export function TodoRow({ item, inCourse = false }: { item: TodoItem; inCourse?: boolean }) {
+export const TodoRow = inWorld(function TodoRow({ item, inCourse = false, hero = false }: { item: TodoItem; inCourse?: boolean; hero?: boolean }) {
   const t = useT();
-  const now = useNow();
-  const theme = useTheme();
+  const { now } = useRowWorld();
+  const v = useTheme().v4;
   const late = lateSnoozable(item, now);
   const snoozable = late && canSnooze(late, now) ? late : null;
   const snooze = useSnooze(snoozable);
   const swipe = useRowActions({ snooze: snoozable ? snooze : null });
   if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} />;
-  const alarm = snoozable ? (
-    <IconButton label={t("snooze.actionFor", { title: lateTitle(item) })} onPress={snooze.open} testID="action.snooze">
-      <Icons.Snooze size={20} color={theme.color.faint} />
-    </IconButton>
-  ) : undefined;
+  const quick = snoozable ? [{ label: t("snooze.actionFor", { title: lateTitle(item) }), onPress: snooze.open }] : undefined;
   const longPress = snoozable ? snooze.open : undefined;
   return (
     <>
-      <SwipeRow actions={swipe}>
+      {/* The big card isn't swiped: its long press and TalkBack's actions put it off. */}
+      <SwipeRow actions={hero ? [] : swipe} surface={inCourse ? undefined : v.card}>
         {item.kind === "task" ? (
-          <TaskRow task={item.task} status={item.status} meta={inCourse ? "module" : "course"} late={item.late} actions={alarm} onLongPress={longPress} />
+          <TaskRow
+            task={item.task}
+            status={item.status}
+            meta={inCourse ? "module" : "course"}
+            late={item.late}
+            quick={quick}
+            onLongPress={longPress}
+            hero={hero}
+          />
         ) : (
-          <ExamPartRow item={item} inCourse={inCourse} actions={alarm} onLongPress={longPress} />
+          <ExamPartRow item={item} inCourse={inCourse} quick={quick} onLongPress={longPress} />
         )}
       </SwipeRow>
       {snooze.sheet}
     </>
   );
-}
+});
 
 /** "1 ditunda · Tampilkan" under the late rows, as on Beranda: quiet, opening what's put off, each with Ingatkan sekarang. */
-export function PutOff({ putOff, open, onToggle }: { putOff: Todo["putOff"]; open: boolean; onToggle: () => void }) {
+export function PutOff({ putOff, open, onToggle, inCourse = true }: { putOff: Todo["putOff"]; open: boolean; onToggle: () => void; inCourse?: boolean }) {
   const t = useT();
   const theme = useTheme();
   if (!putOff.length) return null;
   return (
-    <View style={{ marginTop: space[2.5], gap: space[2.5] }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: space[1] }}>
-        <Icons.Snooze size={14} color={theme.color.faint} />
-        <Text size="small" tone="muted" style={{ flex: 1 }}>
+    <View style={{ marginTop: space[2], gap: space[2] }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], paddingLeft: space[4] }}>
+        <Icons.Snooze size={16} color={theme.color.onSurfaceVariant} />
+        <Text size="bodyMedium" tone="muted" style={{ flex: 1 }}>
           {t("snooze.count", { count: putOff.length })}
         </Text>
         <Button size="sm" variant="ghost" onPress={onToggle} testID="action.putOff">
-          <Text size="small" weight="medium" tone="accent">
-            {open ? t("snooze.hideList") : t("snooze.showList")}
-          </Text>
+          {open ? t("snooze.hideList") : t("snooze.showList")}
         </Button>
       </View>
       {open && (
-        <View
-          style={{ borderRadius: 12, borderWidth: 0.5, borderColor: theme.color.edge, backgroundColor: theme.color.surfaceContainerLow, overflow: "hidden" }}
-        >
-          {putOff.map(({ item, entry }, i) => (
-            <View key={item.key} style={i > 0 ? { borderTopWidth: 0.5, borderTopColor: theme.color.line } : null}>
-              <PutOffRow item={item} entry={entry} />
-            </View>
-          ))}
+        <View>
+          {putOff.map(({ item, entry }, i) =>
+            inCourse ? (
+              <GroupTile key={item.key} first={i === 0} last={i === putOff.length - 1}>
+                <PutOffRow item={item} entry={entry} />
+              </GroupTile>
+            ) : (
+              <CardSlice key={item.key} first={i === 0} last={i === putOff.length - 1} inset={0}>
+                <PutOffRow item={item} entry={entry} />
+              </CardSlice>
+            ),
+          )}
         </View>
       )}
     </View>
@@ -323,10 +287,12 @@ function PutOffRow({ item, entry }: Todo["putOff"][number]) {
   const t = useT();
   const f = useFormat();
   const { wake } = useSnoozes();
+  const [failed, setFailed] = useState<string | null>(null);
   const title = lateTitle(item);
   const when = f.dayTimeWord(entry.until);
   return (
     <Row
+      wrapTrailing
       testID={`row.putOff.${item.key}`}
       title={title}
       meta={
@@ -340,11 +306,20 @@ function PutOffRow({ item, entry }: Todo["putOff"][number]) {
           size="sm"
           variant="ghost"
           label={t("snooze.wakeFor", { title })}
-          onPress={() => void wake(entry.id).catch((error: unknown) => toast(t(errorKey(error)), "danger"))}
+          onPress={() => {
+            setFailed(null);
+            void wake(entry.id).catch((error: unknown) => setFailed(t(errorKey(error))));
+          }}
         >
           {t("snooze.wake")}
         </Button>
       }
-    />
+    >
+      {failed && (
+        <RowNote tone="danger" icon="alert">
+          {failed}
+        </RowNote>
+      )}
+    </Row>
   );
 }

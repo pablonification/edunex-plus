@@ -207,8 +207,9 @@ jobs:
     needs: [plan, apk]
     if: ${{ !cancelled() && needs.plan.outputs.e2e == 'true' }}
     runs-on: ubuntu-latest
-    # A scenario's same-data flows take about 100 minutes (a course's 200 items, each module opened afresh).
-    timeout-minutes: 180
+    # A scenario's same-data flows take about 100 minutes (a course's 200 items, each module opened afresh); the
+    # after-class scenarios ran past 180 on v4 (2026-11-01, run 41311251121) and were cut before their results were kept.
+    timeout-minutes: 330
     strategy:
       fail-fast: false
       matrix:

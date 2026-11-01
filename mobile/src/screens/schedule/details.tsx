@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { View } from "react-native";
 import { budgetLabel, STATE_TONE } from "../../../../src/app/attendance-labels";
 import { useOpenCheckIn, useOpenExternal } from "../../../../src/app/hooks";
-import { useFormat, useT } from "../../../../src/app/i18n";
+import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import { presenceAction } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
@@ -37,7 +37,7 @@ export type Picked =
 /** The sheet for what was tapped; going to a course, exam or Task closes it first. */
 export function DetailSheet({ picked, onClose }: { picked: Picked | null; onClose: () => void }) {
   return (
-    <Sheet open={picked !== null} onClose={onClose} testID="sheet.class">
+    <Sheet open={picked !== null} onClose={onClose} background={useTheme().v4.card} testID="sheet.class">
       {picked?.kind === "class" && <ClassDetails item={picked.item} onLeave={onClose} />}
       {picked?.kind === "meeting" && <MeetingDetails meeting={picked.meeting} notInSix={picked.notInSix} onLeave={onClose} />}
       {picked?.kind === "window" && <WindowDetails window={picked.window} onLeave={onClose} />}
@@ -96,19 +96,21 @@ function Actions({ children }: { children: ReactNode }) {
   return <View style={{ marginTop: space[5], marginBottom: space[2], gap: space[2] }}>{children}</View>;
 }
 
-/** Where the course's attendance counts, and what's left: "Kehadiran dihitung di SIX · Sisa jatah absen 1×". */
+/** Where the course's attendance counts and what's left, in one line: "Kehadiran dihitung di SIX · Sisa jatah absen 1×". */
 function AttendanceFact({ code, world }: { code: string; world: ScheduleWorld }) {
   const t = useT();
   const health = world.health(code);
   if (!health || health.countedIn === "unknown") return null;
   return (
     <Fact icon={(color) => <Icons.Hand size={16} color={color} />}>
-      <Text size="body">{t(`schedule.countedIn.${health.countedIn}`)}</Text>
-      {health.state !== "unknown" && (
-        <Text size="body" weight="semibold" tone={toneOf(STATE_TONE[health.state])}>
-          {budgetLabel(t, health)}
-        </Text>
-      )}
+      <Text size="body">
+        {t(`schedule.countedIn.${health.countedIn}`)}
+        {health.state !== "unknown" && (
+          <Text size="body" weight="semibold" tone={toneOf(STATE_TONE[health.state])}>
+            {`  ·  ${budgetLabel(t, health)}`}
+          </Text>
+        )}
+      </Text>
     </Fact>
   );
 }
@@ -118,12 +120,12 @@ function OpenCheckIn({ item, onLeave }: { item: ScheduledClass; onLeave: () => v
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
-  const world = useWorld();
   const checkIns = useDataset("six.checkIn");
   const student = useDataset("six.student");
   const openCheckIn = useOpenCheckIn();
+  const now = useNow();
   const { session } = item;
-  if (!student || checkIns?.[session.id]?.state !== "open" || !checkingIn(session, world.now)) return null;
+  if (!student || checkIns?.[session.id]?.state !== "open" || !checkingIn(session, now)) return null;
   return (
     <View style={{ marginTop: space[4], borderRadius: radius.lg, backgroundColor: theme.color.successBg, padding: space[3], gap: space[3] }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
@@ -158,7 +160,8 @@ function OpenPresence({ code, start, world }: { code: string; start: number; wor
   const f = useFormat();
   const theme = useTheme();
   const open = useOpenExternal();
-  const window = openWindow(world, code, start);
+  const now = useNow();
+  const window = openWindow(world, code, start, now);
   if (!window) return null;
   const action = presenceAction(window, world.tasks);
   return (
@@ -234,51 +237,64 @@ function OpenCourse({ code, primary = false, onLeave }: { code: string; primary?
 
 // ---------------------------------------------------------------- what each row says
 
-/** A class or an exam session on SIX's timetable. */
+/**
+ * A class or an exam session on SIX's timetable: when and where, big (what a Student checks walking to it), the
+ * attendance in one line, what's unusual about it, then Tandai Hadir while it's open, and the way to the course.
+ */
 function ClassDetails({ item, onLeave }: { item: ScheduledClass; onLeave: () => void }) {
   const t = useT();
   const f = useFormat();
+  const theme = useTheme();
   const world = useWorld();
+  const now = useNow();
   const { go } = useNav();
   const checkIns = useDataset("six.checkIn");
   const { session, exam, moved, extra, overlaps, uncertain } = item;
   const code = session.courseCode;
-  const live = session.start <= world.now && world.now < session.end;
+  const live = session.start <= now && now < session.end;
+  const past = session.end <= now;
   const lecturer = world.lecturer(code);
   const examId = exam ? world.examId(session.id) : undefined;
-  const presenceOpen = openWindow(world, code, session.start) !== null;
-  const checkInOpen = checkIns?.[session.id]?.state === "open" && checkingIn(session, world.now);
+  const presenceOpen = openWindow(world, code, session.start, now) !== null;
+  const checkInOpen = checkIns?.[session.id]?.state === "open" && checkingIn(session, now);
   return (
     <>
       <Head code={code} kind={session.activity} title={world.name(code, session.courseName)} world={world} />
-      <Facts>
-        <Fact icon={(color) => <Icons.Clock size={16} color={color} />}>
-          <Text size="body" tabular>
-            {`${f.dateLong(session.start)}  ·  ${timeRange(f, session.start, session.end)}`}
-            {exam ? (
-              <Text size="body" tone="muted">
-                {`  ·  ${t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}`}
-              </Text>
-            ) : null}
+      <View style={{ marginTop: space[4], gap: space[3] }}>
+        <View>
+          <Text size="headlineSmall" tabular tone={past ? "muted" : "fg"}>
+            {timeRange(f, session.start, session.end)}
           </Text>
-          {live && (
-            <Text size="body" weight="semibold" tone="success">
-              {t("schedule.live")}
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
+            <Text size="bodyMedium" tone="muted">
+              {f.dateLong(session.start)}
+              {exam ? `  ·  ${t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}` : ""}
             </Text>
-          )}
-        </Fact>
-        <Fact icon={(color) => <Icons.MapPin size={16} color={color} />}>
+            {live && (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+                <LiveDot />
+                <Text size="bodyMedium" weight="semibold" tone="success">
+                  {t("schedule.live")}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+          <Icons.MapPin size={22} color={session.room ? theme.color.onSurface : theme.color.onSurfaceVariant} weight={session.room ? "bold" : "regular"} />
           {session.room ? (
-            <Text size={exam ? "title" : "body"} weight={exam ? "semibold" : "regular"}>
+            <Text size="titleLarge" weight="semibold" style={{ flex: 1 }}>
               {session.room}
             </Text>
           ) : (
-            <Text size="body" tone="muted">
+            <Text size="bodyLarge" tone="muted" style={{ flex: 1 }}>
               {t("schedule.room.none")}
             </Text>
           )}
-        </Fact>
-        {lecturer && <Fact icon={(color) => <Icons.User size={16} color={color} />}>{lecturer}</Fact>}
+        </View>
+      </View>
+      <Facts>
+        {!exam && <AttendanceFact code={code} world={world} />}
         {uncertain && (
           <Fact icon={(color) => <Icons.Info size={16} color={color} />} tone="warning">
             <Text size="body" tone="warning">
@@ -302,7 +318,13 @@ function ClassDetails({ item, onLeave }: { item: ScheduledClass; onLeave: () => 
             </Text>
           </Fact>
         ))}
-        {!exam && <AttendanceFact code={code} world={world} />}
+        {lecturer && (
+          <Fact icon={(color) => <Icons.User size={16} color={color} />}>
+            <Text size="body" tone="muted">
+              {lecturer}
+            </Text>
+          </Fact>
+        )}
       </Facts>
       {!exam && <OpenCheckIn item={item} onLeave={onLeave} />}
       {!exam && <OpenPresence code={code} start={session.start} world={world} />}
@@ -328,11 +350,11 @@ function ClassDetails({ item, onLeave }: { item: ScheduledClass; onLeave: () => 
 function MovedFacts({ item }: { item: ScheduledClass }) {
   const t = useT();
   const f = useFormat();
-  const world = useWorld();
   const moved = item.moved!;
   const usual = `${clockOf(moved.usual.start)}–${clockOf(moved.usual.end)}`;
   // Noon WIB of that weekday this week: the same weekday in any time zone.
-  const day = f.weekday(Date.parse(`${weekDays(world.now)[moved.usual.weekday]}T12:00:00+07:00`));
+  const now = useNow();
+  const day = f.weekday(Date.parse(`${weekDays(now)[moved.usual.weekday]}T12:00:00+07:00`));
   return (
     <>
       {moved.kinds.includes("time") && (
@@ -402,8 +424,9 @@ function WindowDetails({ window, onLeave }: { window: TaskWindow; onLeave: () =>
   const f = useFormat();
   const world = useWorld();
   const { go } = useNav();
+  const now = useNow();
   const { presence, task, six, code } = window;
-  const status = task ? taskStatus(task, world.now) : null;
+  const status = task ? taskStatus(task, now) : null;
   return (
     <>
       <Head code={code} kind={t("schedule.window.kind")} title={handInLabel(t, f, window)} world={world} />
@@ -461,7 +484,8 @@ function DueDetails({ task, onLeave }: { task: Task; onLeave: () => void }) {
   const f = useFormat();
   const world = useWorld();
   const { go } = useNav();
-  const status = taskStatus(task, world.now);
+  const now = useNow();
+  const status = taskStatus(task, now);
   return (
     <>
       <Head code={task.courseCode} kind={t("schedule.due.kind")} title={task.title} world={world} />

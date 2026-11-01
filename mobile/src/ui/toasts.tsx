@@ -1,5 +1,6 @@
 // What the desktop's hooks raise as toasts (../swaps/overlays.ts), as Material 3's snackbar: one at a
-// time, at the bottom just above the tabs' bar (or the phone's own bar on a screen over the tabs),
+// time, at the bottom just above the tabs' bar (or the phone's own bar on a screen over the tabs, or that screen's
+// own bar at its foot, as the Task's Simpan draf and Kumpulkan),
 // what happened in a line or two with Undo where there is one. It rises and fades in (only fades with
 // less motion asked for). Errors that need reading belong in a banner on the page, not here
 // (DESIGN.md, "Patterns").
@@ -8,7 +9,7 @@ import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dismissToast, useToasts } from "../swaps/overlays";
-import { useTabsBottom } from "./insets";
+import { useBarTop, useTabsBottom } from "./insets";
 import { reduceMotion } from "./motion";
 import { Text } from "./text";
 import { motion, shape, space, TOUCH, useTheme } from "./theme";
@@ -20,6 +21,7 @@ export function Toasts() {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const tabsBottom = useTabsBottom();
+  const barTop = useBarTop();
   const onTab = useSegments()[0] === "(tabs)";
   // The newest one: Material shows one snackbar at a time.
   const item = toasts.at(-1);
@@ -31,7 +33,7 @@ export function Toasts() {
     Animated.timing(rise, { toValue: 1, duration: motion.duration.medium, easing: Easing.bezier(0.05, 0.7, 0.1, 1), useNativeDriver: true }).start();
   }, [item?.id]);
   if (!item) return null;
-  const bottom = (onTab && tabsBottom > 0 ? height - tabsBottom : insets.bottom) + space[3];
+  const bottom = (onTab && tabsBottom > 0 ? height - tabsBottom : !onTab && barTop > 0 ? height - barTop : insets.bottom) + space[3];
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", left: space[3], right: space[3], bottom }}>
       <Animated.View

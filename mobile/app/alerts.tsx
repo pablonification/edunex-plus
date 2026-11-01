@@ -1,23 +1,28 @@
-// The bell: the history of everything the app noticed (src/app/shell/alerts.tsx), as a screen. Every
-// alert the engine raised joined with the changes it can see in the data itself (src/core/needs.ts
-// alertFeed), so Beranda's "Yang berubah" is a preview of this list. Grouped Hari ini / Kemarin /
-// Minggu ini / Sebelumnya; each row opens its screen. Opening it clears the badge; the dots stay until
-// "Tandai semua dibaca". Nothing is ever marked in Edunex.
+// The bell: the history of everything the app noticed (src/app/shell/alerts.tsx), as a screen (round 2, v4). Every
+// alert the engine raised joined with the changes it can see in the data itself (src/core/needs.ts alertFeed), so
+// Beranda's "Yang berubah" is a preview of this list. On v4's grey page, by day (Hari ini, Kemarin, then the date), each
+// day a white card of rows: the kind's icon on its course's colour (amber for what presses), the title, one meta line
+// (the time and what it's about). Opening it clears the badge; the dots stay until "Tandai semua dibaca", the bar's one
+// action while something is unread. Nothing is ever marked in Edunex.
+import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
+import { ChecksIcon } from "phosphor-react-native/src/icons/Checks";
 import { type ComponentType, useEffect, useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
-import { useCourseColor } from "../../src/app/courses";
+import { View } from "react-native";
 import { useHomeWorld } from "../../src/app/home-world";
 import { useOpenCheckIn } from "../../src/app/hooks";
-import { type Format, useFormat, useNow, useT } from "../../src/app/i18n";
+import { type Format, type Translate, useFormat, useNow, useT } from "../../src/app/i18n";
 import { useBridge, useDataset, useStatus } from "../../src/app/store";
 import type { Alert, AlertKind } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
 import { usePerfDrawn } from "../src/perf";
-import { CourseDot, EmptyState } from "../src/ui/display";
+import { IconButton } from "../src/ui/controls";
+import { CourseIconTile } from "../src/ui/course-icon-tile";
+import { Rise } from "../src/ui/expressive";
+import { Group, GroupRow, Heading, IconTile } from "../src/ui/group";
 import { type IconProps, Icons } from "../src/ui/icons";
-import { List, Meta, Page, Section } from "../src/ui/layout";
+import { factsLabel, Page } from "../src/ui/layout";
 import { Text } from "../src/ui/text";
 import { space, useTheme } from "../src/ui/theme";
 import { TopBar } from "../src/ui/top-bar";
@@ -41,26 +46,36 @@ const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
 };
 const PRESSING = new Set<AlertKind>(["deadline", "presenceOpen", "presenceClosing", "attendanceRisk"]);
 
-type Period = "today" | "yesterday" | "week" | "earlier";
-const PERIODS: Period[] = ["today", "yesterday", "week", "earlier"];
-const periodOf = (f: Format, at: number): Period => {
-  const ago = -f.dayOffset(at);
-  return ago <= 0 ? "today" : ago === 1 ? "yesterday" : ago < 7 ? "week" : "earlier";
-};
+/** Days after the first rise together: the rest is below the fold anyway. */
+const RISE_STEPS = 4;
+
+/** A day's items, newest day first: 0 is today (a raised alert a minute ahead of the screen's clock too), -1 yesterday. */
+interface Day {
+  offset: number;
+  /** When its newest item came (the day's date). */
+  at: number;
+  items: Alert[];
+}
+
+/** The day's heading: Hari ini, Kemarin, then the day as the desktop's rows date it ("Sen 5 Okt"). */
+function dayTitle(day: Day, t: Translate, f: Format): string {
+  if (day.offset === 0) return t("alerts.period.today");
+  if (day.offset === -1) return t("alerts.period.yesterday");
+  return `${f.weekdayShort(day.at)} ${f.dayMonth(day.at)}`;
+}
 
 export default function Alerts() {
   usePerfDrawn(true);
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const bridge = useBridge();
   const nav = useNav();
   const openCheckIn = useOpenCheckIn();
   const history = useDataset("app.alerts");
   const sixOut = useStatus("six").state === "signed-out";
   const world = useHomeWorld();
-  const colorOf = useCourseColor();
   // What counted as read when the Student opened it: the dots stay on what came since, until they say so.
   const [readAt, setReadAt] = useState(() => history?.readAt ?? 0);
   useEffect(() => {
@@ -70,103 +85,112 @@ export default function Alerts() {
   const raised = useMemo(() => new Set((history?.items ?? []).map((item) => item.id)), [history]);
   const isUnread = (item: Alert) => raised.has(item.id) && item.at > readAt;
   const anyUnread = items.some(isUnread);
-  const groups = PERIODS.map((period) => ({ period, items: items.filter((item) => periodOf(f, item.at) === period) })).filter((group) => group.items.length);
+  const days = useMemo(() => {
+    const byOffset = new Map<number, Alert[]>();
+    for (const item of items) {
+      const offset = Math.min(0, f.dayOffset(item.at));
+      const day = byOffset.get(offset);
+      if (day) day.push(item);
+      else byOffset.set(offset, [item]);
+    }
+    return [...byOffset].map(([offset, dayItems]): Day => ({ offset, at: dayItems[0]?.at ?? now, items: dayItems })).sort((a, b) => b.offset - a.offset);
+  }, [items, f, now]);
+
+  const markAllRead = () => {
+    setReadAt(now);
+    void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+  };
 
   return (
     <Page
       testID="screen.alerts"
+      background={v.page}
       header={
         <TopBar
           title={t("alerts.title")}
           actions={
             anyUnread ? (
-              <Pressable
-                onPress={() => setReadAt(now)}
-                accessibilityRole="button"
-                hitSlop={8}
-                style={{ paddingHorizontal: space[3] }}
-                testID="action.markAllRead"
-              >
-                <Text size="small" weight="medium" tone="accent">
-                  {t("alerts.markAllRead")}
-                </Text>
-              </Pressable>
+              <IconButton label={t("alerts.markAllRead")} onPress={markAllRead} testID="action.markAllRead">
+                <ChecksIcon size={24} color={v.fg} />
+              </IconButton>
             ) : undefined
           }
         />
       }
     >
       {items.length === 0 && (
-        <EmptyState
-          icon={<Icons.Bell size={18} color={theme.color.muted} />}
-          title={t("alerts.empty")}
-          description={t(sixOut ? "alerts.emptyHintEdunex" : "alerts.emptyHint")}
-        />
+        // Calm: the bell and one line. Atur notifikasi under it is the next step.
+        <Rise screen="alerts" index={0} style={{ alignItems: "center", gap: space[4], paddingTop: space[12], paddingBottom: space[4] }}>
+          <IconTile size={64} icon={(color) => <Icons.Bell size={30} color={color} />} />
+          <Text size="bodyLarge" style={{ color: v.fg2, textAlign: "center" }}>
+            {t("alerts.empty")}
+          </Text>
+        </Rise>
       )}
-      {groups.map(({ period, items: group }, index) => (
-        <Section key={period} title={t(`alerts.period.${period}`)} first={index === 0}>
-          <List>
-            {group.map((item) => {
-              const Icon = KIND_ICON[item.kind];
+      {days.map((day, index) => (
+        <Rise key={day.offset} screen="alerts" index={Math.min(index, RISE_STEPS)}>
+          <Heading first={index === 0}>{dayTitle(day, t, f)}</Heading>
+          <Group>
+            {day.items.map((item, i) => {
               const unread = isUnread(item);
-              const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
+              const title = t(item.title.key, item.title.vars);
+              const body = item.body ? t(item.body.key, item.body.vars) : null;
+              const time = f.time(item.at);
               return (
-                <Pressable
+                <GroupRow
                   key={item.id}
                   testID={`row.alert.${item.id}`}
-                  accessibilityRole="button"
-                  android_ripple={{ color: theme.color.selected }}
+                  first={i === 0}
+                  // Unread first in what's read out, as the dot says it to the eye.
+                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, title, body, time)}
+                  leading={<KindTile item={item} />}
+                  title={
+                    <Text size="bodyLarge" weight={unread ? "semibold" : undefined} numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+                      {title}
+                    </Text>
+                  }
+                  meta={
+                    <Text size="bodyMedium" tabular numberOfLines={2} style={{ color: v.muted }}>
+                      {factsLabel(time, body)}
+                    </Text>
+                  }
+                  // Unread: a dot and the semibold title, never the colour alone.
+                  trailing={unread ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: v.brand }} /> : undefined}
                   onPress={() => (item.checkIn ? openCheckIn(item.checkIn.meetingId, item.checkIn.url) : nav.go(item.target))}
-                  style={{ flexDirection: "row", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] }}
-                >
-                  <View style={{ marginTop: 2, alignSelf: "flex-start" }}>
-                    <Icon size={18} color={PRESSING.has(item.kind) ? theme.color.warningFg : theme.color.faint} />
-                    {code && (
-                      <View style={{ position: "absolute", right: -4, bottom: -2 }}>
-                        <CourseDot color={colorOf(code)} size={8} />
-                      </View>
-                    )}
-                  </View>
-                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                    <Text size="small" weight={unread ? "semibold" : "regular"}>
-                      {t(item.title.key, item.title.vars)}
-                    </Text>
-                    {item.body && <Meta size="caption">{t(item.body.key, item.body.vars)}</Meta>}
-                  </View>
-                  <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingTop: 2 }}>
-                    <Text size="caption" tone="faint" tabular>
-                      {period === "today" || period === "yesterday" ? f.time(item.at) : `${f.weekdayShort(item.at)} ${f.dayMonth(item.at)}`}
-                    </Text>
-                    {/* The dot says "belum dibaca" to a screen reader too, as the desktop's does. */}
-                    <View
-                      accessible={unread}
-                      accessibilityLabel={unread ? t("alerts.unread") : undefined}
-                      style={{ width: 8, height: 8, marginTop: 4, borderRadius: 4, backgroundColor: unread ? theme.color.accent : "transparent" }}
-                    />
-                  </View>
-                </Pressable>
+                />
               );
             })}
-          </List>
-        </Section>
+          </Group>
+        </Rise>
       ))}
-      <View style={{ marginTop: space[6], flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space[3] }}>
-        <View style={{ flex: 1, minWidth: 200 }}>
-          <Meta size="caption">{t(sixOut ? "alerts.footnoteEdunex" : "alerts.footnote")}</Meta>
-        </View>
-        <Pressable
-          onPress={() => router.push({ pathname: "/settings", params: { at: "alerts" } })}
-          accessibilityRole="button"
-          hitSlop={8}
-          style={{ flexDirection: "row", alignItems: "center", gap: 4 }}
-          testID="action.alertSettings"
-        >
-          <Icons.Settings size={14} color={theme.color.accentFg} />
-          <Text size="small" weight="medium" tone="accent">
-            {t("alerts.settings")}
+      <Rise screen="alerts" index={Math.min(days.length, RISE_STEPS + 1)} style={{ marginTop: items.length ? space[6] : 0 }}>
+        <Group>
+          <GroupRow
+            first
+            testID="action.alertSettings"
+            leading={<IconTile tone="plain" icon={(color) => <Icons.Settings size={22} color={color} />} />}
+            title={t("alerts.settings")}
+            trailing={<Icons.ChevronRight size={20} color={v.muted} />}
+            onPress={() => router.push({ pathname: "/settings", params: { at: "alerts" } })}
+          />
+        </Group>
+        {/* Without SIX the bell hears only Edunex: said once, quietly, where the bell's settings are. */}
+        {sixOut && (
+          <Text size="bodySmall" style={{ color: v.muted, marginTop: space[3], marginHorizontal: space[4] }}>
+            {t("alerts.footnoteEdunex")}
           </Text>
-        </Pressable>
-      </View>
+        )}
+      </Rise>
     </Page>
   );
+}
+
+/** A notification's tile: its kind's icon, amber when it presses (a deadline, presence, attendance at risk), else on its course's colour, else the brand's. */
+function KindTile({ item }: { item: Alert }) {
+  const Icon = KIND_ICON[item.kind];
+  const glyph = (color: string) => <Icon size={22} color={color} />;
+  const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
+  if (PRESSING.has(item.kind)) return <IconTile tone="amber" icon={glyph} />;
+  if (code) return <CourseIconTile code={code} icon={glyph} />;
+  return <IconTile tone="brand" icon={glyph} />;
 }
