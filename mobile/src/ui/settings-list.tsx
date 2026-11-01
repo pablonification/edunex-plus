@@ -1,19 +1,37 @@
-// Settings as Android lists them (Material 3's lists, Android 16's grouped settings): a group's title in
-// the primary colour, its rows as tonal tiles (List), each row its label with the current value or a
-// hint under it, the control at the end. A switch row toggles from anywhere on it; a choice row shows
-// its value and opens the choices in a native sheet, one radio each; a plain row opens what it names.
-// One row, one target, one outcome. Errors stay on the page (ErrorBanner), never in a snackbar.
-import { type ReactNode, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+// Settings in round 2's v4 look (DESIGN.md "Round 2's look: v4"): each group a heading in Plus Jakarta Sans over one
+// white card of rows (ui/group.tsx), hairlines inset. A row is its title, at most one short meta line (the current
+// value) and at most one thing at its end (Android's MaterialSwitch, a value, a chevron); what explains it is in its
+// spoken label or one tap deeper. Every row is one target with the press spring. A switch row toggles from anywhere on
+// it, with a haptic; a choice row shows its value and opens the choices in a native sheet, one radio each, picking one
+// closes it. Errors stay on the page (ErrorBanner, under the top bar), never in a snackbar.
+import * as Haptics from "expo-haptics";
+import { Children, createContext, isValidElement, type ReactNode, useContext, useRef, useState } from "react";
+import { type AccessibilityProps, ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useT } from "../../../src/app/i18n";
 import { Switch } from "./controls";
+import { Group, GroupRow, Heading } from "./group";
 import { Icons } from "./icons";
-import { List } from "./layout";
+import { PressScale } from "./press";
 import { Sheet } from "./sheet";
 import { Text } from "./text";
 import { space, TOUCH, useTheme } from "./theme";
 
-/** A group of settings under its title: the rows as one list, a note under it. `lead` sits above the rows (a notice). */
+/** The haptics of a settings commit: a switch's on and off, a pick in a sheet, a step, a confirmed sign-out. */
+export const haptic = {
+  toggle: (on: boolean) =>
+    void Haptics.performAndroidHapticsAsync(on ? Haptics.AndroidHaptics.Toggle_On : Haptics.AndroidHaptics.Toggle_Off).catch(() => undefined),
+  tick: () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Tick).catch(() => undefined),
+  confirm: () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined),
+};
+
+/** Whether a row is its card's first (no hairline above it). */
+const FirstRow = createContext(false);
+
+/**
+ * A group of settings: its heading, `lead` above the card (a notice), the rows in one card, a quiet `note` under it.
+ * Rows that are direct children (or in an array) know which is first; a component drawing several rows passes
+ * `first` itself.
+ */
 export function SettingsGroup({
   title,
   note,
@@ -29,149 +47,168 @@ export function SettingsGroup({
   children: ReactNode;
   testID?: string;
 }) {
+  const v = useTheme().v4;
+  const rows = Children.toArray(children);
   return (
-    <View style={{ marginTop: first ? 0 : space[6] }} testID={testID}>
-      {title && (
-        <Text size="titleSmall" tone="primary" accessibilityRole="header" style={styles.groupTitle}>
-          {title}
-        </Text>
-      )}
+    <View testID={testID}>
+      {title ? <Heading first={first}>{title}</Heading> : <View style={{ height: first ? space[2] : space[6] }} />}
       {lead}
-      <List>{children}</List>
-      {note && (
-        <Text size="bodySmall" tone="muted" style={styles.note}>
+      <Group>
+        {rows.map((row, index) => (
+          <FirstRow.Provider key={isValidElement(row) && row.key !== null ? row.key : index} value={index === 0}>
+            {row}
+          </FirstRow.Provider>
+        ))}
+      </Group>
+      {note ? (
+        <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
           {note}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 }
 
+export type MetaTone = "muted" | "red" | "amber" | "ok";
+
 /**
- * One setting: what it is (`title`), its value or when it applies (`summary`), something at its start (`leading`) and
- * its control at its end (`trailing`). Pressable as a whole when `onPress` is given; `children` sit under the text,
- * inside the same tile (reminder chips, a stepper that needs the width).
+ * One setting as a `GroupRow`: its `title`, its value or state (`meta`), a tile at its start (`leading`, 44 dp) and
+ * one thing at its end (`trailing`). With `onPress` the whole row is one target with the press spring. `hint` is
+ * spoken after the label, for what the row no longer says (TalkBack's hint).
  */
 export function SettingRow({
   title,
-  summary,
+  meta,
+  metaTone,
   leading,
   trailing,
   onPress,
   label,
+  hint,
   role = "button",
   checked,
-  tone = "fg",
   busy,
+  disabled,
+  tone = "fg",
+  first,
   testID,
   children,
 }: {
   title: ReactNode;
-  summary?: ReactNode;
+  meta?: ReactNode;
+  metaTone?: MetaTone;
   leading?: ReactNode;
   trailing?: ReactNode;
   onPress?: () => void;
   /** The accessible name, when the visible words alone don't say all of it. */
   label?: string;
+  hint?: string;
   role?: "button" | "switch" | "link";
   checked?: boolean;
-  tone?: "fg" | "danger";
   busy?: boolean;
+  disabled?: boolean;
+  tone?: "fg" | "danger";
+  first?: boolean;
   testID?: string;
   children?: ReactNode;
 }) {
-  const theme = useTheme();
-  const body = (
-    <>
-      <View style={styles.row}>
-        {leading !== undefined && <View style={styles.leading}>{leading}</View>}
-        <View style={{ flex: 1, minWidth: 0 }}>
-          {typeof title === "string" ? (
-            <Text size="bodyLarge" tone={tone === "danger" ? "danger" : "fg"}>
-              {title}
-            </Text>
-          ) : (
-            title
-          )}
-          {summary !== undefined &&
-            summary !== null &&
-            summary !== "" &&
-            (typeof summary === "string" ? (
-              <Text size="bodyMedium" tone="muted" style={{ marginTop: 2 }}>
-                {summary}
-              </Text>
-            ) : (
-              <View style={{ marginTop: 2 }}>{summary}</View>
-            ))}
-        </View>
-        {trailing !== undefined && trailing !== null && <View style={{ flexShrink: 0 }}>{trailing}</View>}
-      </View>
-      {children && (
-        <View style={{ paddingLeft: leading !== undefined ? space[4] + 40 + space[4] : space[4], paddingRight: space[4], paddingBottom: space[3] }}>
-          {children}
-        </View>
-      )}
-    </>
-  );
-  if (!onPress)
-    return (
-      <View testID={testID} accessibilityLabel={label}>
-        {body}
-      </View>
-    );
+  const v = useTheme().v4;
+  const firstInCard = useContext(FirstRow);
+  const a11y: AccessibilityProps = {
+    accessibilityLabel: label,
+    accessibilityHint: hint,
+    ...(onPress
+      ? {
+          accessibilityRole: role,
+          accessibilityState: { ...(checked !== undefined ? { checked } : {}), ...(busy ? { busy } : {}), ...(disabled ? { disabled } : {}) },
+        }
+      : {}),
+  };
   return (
-    <Pressable
+    <GroupRow
+      first={first ?? firstInCard}
+      leading={leading}
+      title={
+        typeof title === "string" ? (
+          <Text size="bodyLarge" weight="medium" style={{ color: tone === "danger" ? v.redFg : v.fg, lineHeight: 21 }}>
+            {title}
+          </Text>
+        ) : (
+          title
+        )
+      }
+      meta={meta}
+      metaTone={metaTone}
+      trailing={busy ? <ActivityIndicator size="small" color={v.muted} /> : trailing}
+      onPress={onPress && !busy && !disabled ? onPress : undefined}
       testID={testID}
-      onPress={onPress}
-      accessibilityRole={role}
-      accessibilityLabel={label}
-      accessibilityState={{ ...(checked !== undefined ? { checked } : {}), ...(busy ? { busy } : {}) }}
-      android_ripple={{ color: theme.color.selected }}
+      {...a11y}
     >
-      {body}
-    </Pressable>
+      {children}
+    </GroupRow>
   );
 }
 
-/** A setting that's on or off: the whole row toggles it (Android's settings), the switch shows it. */
+/** A row that opens something (a screen, a sheet): the chevron at its end. */
+export function Chevron() {
+  const v = useTheme().v4;
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Icons.ChevronRight size={20} color={v.muted} />
+    </View>
+  );
+}
+
+/**
+ * A setting that's on or off: the whole row toggles it (Android's settings), Android's MaterialSwitch at its end shows
+ * it, a haptic says it took. The row is the switch for TalkBack and the flows (`testID`, role switch, its checked
+ * state); the switch inside isn't read twice. `hint` (what the setting does) is spoken, not shown.
+ */
 export function SwitchRow({
   title,
-  summary,
+  meta,
+  metaTone,
+  hint,
   value,
   onChange,
   testID,
-  rowTestID,
   disabled,
-  children,
 }: {
   title: string;
-  summary?: ReactNode;
+  meta?: ReactNode;
+  metaTone?: MetaTone;
+  hint?: string;
   value: boolean;
   onChange: (value: boolean) => void;
-  /** On the switch itself, as the flows name it. */
   testID?: string;
-  rowTestID?: string;
   disabled?: boolean;
-  children?: ReactNode;
 }) {
+  // A tap on the switch itself reaches both the switch and the row: the second of the two asks is dropped.
+  const last = useRef({ value: value, at: 0 });
+  const flip = (next: boolean) => {
+    const now = Date.now();
+    if (last.current.value === next && now - last.current.at < 400) return;
+    last.current = { value: next, at: now };
+    haptic.toggle(next);
+    onChange(next);
+  };
   return (
     <SettingRow
       title={title}
-      summary={summary}
-      onPress={disabled ? undefined : () => onChange(!value)}
+      meta={meta}
+      metaTone={metaTone}
+      onPress={() => flip(!value)}
+      disabled={disabled}
       role="switch"
       checked={value}
-      label={title}
-      testID={rowTestID}
+      label={hint ? `${title}, ${hint}` : title}
+      testID={testID}
       trailing={
-        // The row is the switch for a screen reader (its name, "switch, on"): the switch inside isn't read twice.
-        <View importantForAccessibility="no-hide-descendants">
-          <Switch value={value} onChange={onChange} label={title} testID={testID} disabled={disabled} />
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Switch value={value} onChange={flip} label={title} disabled={disabled} />
         </View>
       }
-    >
-      {children}
-    </SettingRow>
+    />
   );
 }
 
@@ -182,39 +219,46 @@ export interface Choice<T extends string> {
 }
 
 /**
- * A setting with a few values (Tema, Bahasa): the row says the one picked, a tap opens the choices in a sheet, one
- * radio each; picking one closes it. `testID` is the row's; each choice is `<testID>.<value>`.
+ * A setting with a few values (Tema, Bahasa, Jangkauan): the row shows the one picked, a tap opens the choices in a
+ * native sheet, one radio each; picking one closes it. `note` (what the setting does) sits in the sheet, over the
+ * choices. `testID` is the row's; each choice is `<testID>.<value>`.
  */
 export function ChoiceRow<T extends string>({
   title,
-  hint,
+  note,
   value,
   choices,
   onChange,
+  leading,
   testID,
 }: {
   title: string;
-  hint?: string;
+  note?: string;
   value: T;
   choices: readonly Choice<T>[];
   onChange: (value: T) => void;
+  leading?: ReactNode;
   testID?: string;
 }) {
   const [open, setOpen] = useState(false);
   const picked = choices.find((choice) => choice.value === value)?.label ?? "";
   return (
     <>
-      <SettingRow title={title} summary={picked} label={`${title}, ${picked}`} onPress={() => setOpen(true)} testID={testID}>
-        {hint ? (
-          <Text size="bodySmall" tone="muted">
-            {hint}
-          </Text>
-        ) : undefined}
-      </SettingRow>
+      <SettingRow
+        title={title}
+        meta={picked}
+        leading={leading}
+        label={`${title}, ${picked}`}
+        hint={note}
+        onPress={() => setOpen(true)}
+        trailing={<Chevron />}
+        testID={testID}
+      />
       <ChoiceSheet
         open={open}
         onClose={() => setOpen(false)}
         title={title}
+        note={note}
         value={value}
         choices={choices}
         onChange={(next) => {
@@ -227,11 +271,22 @@ export function ChoiceRow<T extends string>({
   );
 }
 
-/** The choices of one setting in a native sheet: Material's radio list. */
+/** A sheet's title in v4's face. */
+export function SheetTitle({ children }: { children: string }) {
+  const v = useTheme().v4;
+  return (
+    <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={{ color: v.fg }}>
+      {children}
+    </Text>
+  );
+}
+
+/** The choices of one setting in a native sheet (v4's white): Material's radio list, each row springing. */
 export function ChoiceSheet<T extends string>({
   open,
   onClose,
   title,
+  note,
   value,
   choices,
   onChange,
@@ -240,41 +295,50 @@ export function ChoiceSheet<T extends string>({
   open: boolean;
   onClose: () => void;
   title: string;
+  note?: string;
   value: T;
   choices: readonly Choice<T>[];
   onChange: (value: T) => void;
   testID?: string;
 }) {
-  const theme = useTheme();
-  const c = theme.color;
+  const v = useTheme().v4;
   return (
-    <Sheet open={open} onClose={onClose} title={title} testID={testID ? `sheet.${testID}` : undefined}>
+    <Sheet open={open} onClose={onClose} title={<SheetTitle>{title}</SheetTitle>} background={v.card} testID={testID ? `sheet.${testID}` : undefined}>
+      {note ? (
+        <Text size="bodyMedium" style={{ color: v.muted, marginBottom: space[2] }}>
+          {note}
+        </Text>
+      ) : null}
       <View accessibilityRole="radiogroup" accessibilityLabel={title} style={{ marginHorizontal: -space[6] }}>
         {choices.map((choice) => {
           const on = choice.value === value;
           return (
-            <Pressable
+            <PressScale
               key={choice.value}
               testID={testID ? `${testID}.${choice.value}` : undefined}
               accessibilityRole="radio"
               accessibilityState={{ checked: on, selected: on }}
-              onPress={() => onChange(choice.value)}
-              android_ripple={{ color: c.selected }}
+              onPress={() => {
+                if (!on) haptic.tick();
+                onChange(choice.value);
+              }}
               style={styles.choice}
             >
               {/* Material's radio button: a ring, filled at its centre when picked. */}
-              <View style={[styles.radio, { borderColor: on ? c.primary : c.onSurfaceVariant }]}>
-                {on && <View style={[styles.radioDot, { backgroundColor: c.primary }]} />}
+              <View style={[styles.radio, { borderColor: on ? v.brand : v.muted }]}>
+                {on && <View style={[styles.radioDot, { backgroundColor: v.brand }]} />}
               </View>
               <View style={{ flex: 1 }}>
-                <Text size="bodyLarge">{choice.label}</Text>
-                {choice.hint && (
-                  <Text size="bodyMedium" tone="muted">
+                <Text size="bodyLarge" weight={on ? "medium" : undefined} style={{ color: v.fg }}>
+                  {choice.label}
+                </Text>
+                {choice.hint ? (
+                  <Text size="bodyMedium" style={{ color: v.muted }}>
                     {choice.hint}
                   </Text>
-                )}
+                ) : null}
               </View>
-            </Pressable>
+            </PressScale>
           );
         })}
       </View>
@@ -307,10 +371,6 @@ export function ErrorBanner({ text, onClose }: { text: string; onClose: () => vo
 }
 
 const styles = StyleSheet.create({
-  groupTitle: { paddingHorizontal: space[4], marginBottom: space[2] },
-  note: { paddingHorizontal: space[4], marginTop: space[2] },
-  row: { flexDirection: "row", alignItems: "center", gap: space[4], paddingHorizontal: space[4], paddingVertical: space[3], minHeight: 56 },
-  leading: { width: 40, alignItems: "center", justifyContent: "center" },
   choice: { flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 56, paddingVertical: space[2], paddingHorizontal: space[6] },
   radio: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   radioDot: { width: 10, height: 10, borderRadius: 5 },
