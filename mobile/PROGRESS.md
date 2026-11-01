@@ -107,6 +107,14 @@ motion and onboarding are open. The desktop is a reference for data only.
   Check A per scenario, the judge's walk light/dark): `mobile` run 41268203004, Akademik 41268222659, Kuliah
   41268225029. On the Mac: Tugas's fixes and proof (Arqila account), and one absence scale in a shared helper applied
   to Beranda, Kuliah and Jadwal (Contact account). Rules updated (`v4-rollout.md`, 3e55de5).
+- **13:30: one integration branch instead of five device runs.** Each full e2e run on GitHub Actions takes 100+ minutes
+  (16 emulator groups), and five branches at once queued for hours. `mobile-r2-v4` (fa87499) = `mobile` + flows (the
+  off-screen sheet fix: with Android's animations off, as on CI's emulator or "Remove animations", every native sheet
+  stayed below the screen; patched react-native-screens 4.30.1 from upstream's #4581) + absence (`absenceTone`, amber for
+  a used-up budget) + Kuliah + Jadwal + Akademik + Tugas (its four fixes). Conflicts resolved: the top bar's v4 colour
+  (Kuliah's `v4` prop and Akademik's page colour, both kept), the string lists, DESIGN.md, PROGRESS. Mobile typecheck,
+  biome and typechecks pass on pabs; the tests too but for the five known to fail only here. One device run for all:
+  41280498964 (with the desktop app's pictures). Per-branch runs cancelled; the stuck `mobile` run from 00:06 too.
 - **Tasks-academic's look-free report (head 8c068ad, paused for the desktop):** one title on Task, Exam and Nilai
   (d3632e4); `mobile/qa/words.sh` (aabc3f4; words table above); Nilai and Rencana skip the minute tick and mount their
   lower parts one per frame (edb3418); Tugas redraws only when a deadline, window or day turns (9487788, test
