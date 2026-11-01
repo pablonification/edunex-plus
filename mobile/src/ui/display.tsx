@@ -6,7 +6,7 @@ import { ActivityIndicator, Animated, Easing, View, type ViewStyle } from "react
 import Svg, { Circle, Path } from "react-native-svg";
 import { useT } from "../../../src/app/i18n";
 import { Icons } from "./icons";
-import { useReduceMotion } from "./motion";
+import { useLoopWhileShown } from "./motion";
 import { Text } from "./text";
 import { type Palette, radius, shape, space, useTheme } from "./theme";
 
@@ -64,10 +64,10 @@ export function EmptyState({ icon, title, description, children }: { icon: React
 /** A placeholder in the shape of what's coming, breathing slowly (still, when the phone asks for less motion). */
 export function Skeleton({ height = 16, width = "100%", style }: { height?: number; width?: ViewStyle["width"]; style?: ViewStyle }) {
   const theme = useTheme();
-  const still = useReduceMotion();
+  const run = useLoopWhileShown();
   const pulse = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    if (still) return;
+    if (!run) return;
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 0.55, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
@@ -76,7 +76,7 @@ export function Skeleton({ height = 16, width = "100%", style }: { height?: numb
     );
     loop.start();
     return () => loop.stop();
-  }, [pulse, still]);
+  }, [pulse, run]);
   return <Animated.View style={[{ height, width, borderRadius: shape.sm, backgroundColor: theme.color.surfaceContainerHigh, opacity: pulse }, style]} />;
 }
 
@@ -258,12 +258,14 @@ export function CourseCode({
 
 /** The desktop's Loader turning (animate-spin): something is under way right now. */
 export function Spinner({ size = 14, color }: { size?: number; color: string }) {
+  const run = useLoopWhileShown();
   const turn = useRef(new Animated.Value(0)).current;
   useEffect(() => {
+    if (!run) return;
     const loop = Animated.loop(Animated.timing(turn, { toValue: 1, duration: 1000, easing: Easing.linear, useNativeDriver: true }));
     loop.start();
     return () => loop.stop();
-  }, [turn]);
+  }, [turn, run]);
   const rotate = turn.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
   return (
     <Animated.View style={{ transform: [{ rotate }] }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
