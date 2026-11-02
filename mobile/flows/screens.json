@@ -21,7 +21,8 @@
     "class (v4): a class's sheet is Beranda's (sheet.nowClass), or Jadwal's own (sheet.class) for a meeting only Edunex announced (edunex-only); who teaches it and where its attendance counts are on its course page, so those entries go there with Buka mata kuliah, and the entries after come back to the sheet. A check scrolling up can drag the sheet closed: then the class is tapped again before Buka mata kuliah.",
     "home (v4): Proposal Tugas Akhir's class is a Friday class on Jadwal; it opens Beranda's sheet with SIX (sheet.nowClass) and Jadwal's own without (sheet.class), so its route waits for either, and every home entry first closes either sheet before going back to Beranda.",
     "home (v4): a tap while Beranda is still sliding after a scroll only stops it (Android), so the now card's routes scroll to the greeting, let the page settle, and tap the card once more if its sheet didn't come.",
-    "course sheet (round 2): a course page names lecturer, class, SKS, the absences used and left under Jatah absen, and where attendance counts only in its sheet (sheet.course, a tap on its name, action.courseAbout), so the class entries for the lecturer and where it counts, Beranda's absence budgets and Kuliah's courses open it after the page; every other entry of those screens closes it first."
+    "course sheet (round 2): a course page names lecturer, class, SKS, the absences used and left under Jatah absen, and where attendance counts only in its sheet (sheet.course, a tap on its name, action.courseAbout), so the class entries for the lecturer and where it counts, Beranda's absence budgets and Kuliah's courses open it after the page; every other entry of those screens closes it first.",
+    "plan (v4): Rencana is long (card, past semesters, this one, planned ones, rules, outlook, minors), and a check that ends at the rules can't scroll back to the top in time: the entries above this semester's courses (no context, or this semester's own) first scroll up to the card (card.planSummary). Kalender's Evaluasi kemajuan studi says the passed SKS in its sheet, so that entry opens it."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -5102,6 +5103,39 @@
             }
           }
         ],
+        "^plan\\.kalender-akademik\\.academic-date\\.18-19-jan\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.deadline"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "text": "Evaluasi kemajuan studi"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "text": "Evaluasi kemajuan studi"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.deadline"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
         "^plan\\.kalender-akademik\\.": [
           {
             "runFlow": {
@@ -5111,6 +5145,29 @@
                 }
               },
               "commands": ["back"]
+            }
+          }
+        ],
+        "^plan\\.rencana\\.[^|]+\\|(Semester \\d+ · sekarang)?$": [
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "card.planSummary"
+                }
+              },
+              "commands": [
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "card.planSummary"
+                    },
+                    "direction": "UP",
+                    "timeout": 30000,
+                    "optional": true
+                  }
+                }
+              ]
             }
           }
         ]
@@ -5476,6 +5533,11 @@
       "entry": "^home\\.banner\\.",
       "row": "W11",
       "why": "the desktop's banner over Beranda (today's date, the term, a UTS week coming): the judge's round 3 (02b, 6/10) failed Perlu kamu urus for carrying it as a header over its rows, so the screen opens on its rows. The day is on Jadwal and the class sheet, a UTS week on Jadwal (Masa UTS) and Kalender akademik; the term isn't repeated"
+    },
+    {
+      "entry": "^settings\\.setting\\.\\d+-\\d+-\\d+(-[a-z]+-\\d+)?$",
+      "row": "A6",
+      "why": "the app's version number under Tentang: Settings shows the phone's own (from package.json), and the inventory holds the desktop's from the day it was read (0.1.0-alpha.22), so it moves with every release on main, not with what the phone shows"
     }
   ]
 }

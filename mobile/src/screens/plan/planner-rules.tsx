@@ -28,6 +28,7 @@ import {
 import { Button } from "../../ui/controls";
 import { Group, GroupRow, IconTile, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
+import { factsLabel } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
 import type { SheetChoice } from "../../ui/sheet";
 import { Sheet } from "../../ui/sheet";
@@ -309,6 +310,8 @@ export function Rules({ record, rules, plan, undoable }: { record: StudentRecord
               }
               trailing={deeper ? <Icons.ChevronRight size={16} color={v.muted} /> : undefined}
               onPress={deeper ? () => setOpened({ open: true, rule: { title, detail, hide, settle: settles } }) : undefined}
+              // A row that opens its sheet is one target: its label says the mark too ("Perlu dicek"), not the icon alone.
+              accessibilityLabel={deeper ? factsLabel(t(mark.label), title, line) : undefined}
               testID={`rule.${rule.id}`}
             />
           );
