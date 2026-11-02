@@ -152,6 +152,17 @@ export function MeetingNow({ page, shownNext, card, rise }: { page: CoursePage; 
   );
 }
 
+/** Edunex's open Presence for the course where only SIX counts (or nobody can say): ⋮ offers it, the card may not. */
+export function useRecordInEdunexUrl(page: CoursePage): string | null {
+  const now = useNow();
+  const attendance = useAttendance();
+  const countedIn = attendance?.courses.find((x) => x.course.code === page.course.code)?.health.countedIn;
+  if (countedIn !== "six" && countedIn !== "noSix") return null;
+  const window = openPresences(page.presence ?? [], now)[0];
+  if (!window) return null;
+  return window.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
+}
+
 function NowCard({
   page,
   meeting,
@@ -221,8 +232,8 @@ function NowCard({
       key: "six",
       node: (variant) => (
         <BigButton
-          variant={sixState === "open" ? variant : "outline"}
-          icon={<Icons.Hand size={20} weight="fill" color={sixState === "open" && variant === "filled" ? v.onBrand : v.fg} />}
+          variant={variant}
+          icon={<Icons.Hand size={20} weight="fill" color={variant === "filled" ? v.onBrand : v.fg} />}
           onPress={() => {
             void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
             checkIn(sixSession.id, sixTimetableUrl(student, sixSession.start), now);
@@ -264,14 +275,15 @@ function NowCard({
         </BigButton>
       ),
     });
-  // Where only SIX counts, Edunex's Presence is still there to fill in: the quiet second way.
-  if (presence && url && !presenceCounts)
+  // Where only SIX counts, Edunex's Presence is still there to fill in: the card's button when it has no other, else
+  // in ⋮ (the course's menu, recordInEdunexUrl), so the card keeps one button.
+  if (presence && url && !presenceCounts && actions.length === 0)
     actions.push({
       key: "presence",
-      node: () => (
+      node: (variant) => (
         <BigButton
-          variant="outline"
-          icon={<Icons.ArrowUpRight size={20} color={v.fg} />}
+          variant={variant}
+          icon={<Icons.ArrowUpRight size={20} color={variant === "filled" ? v.onBrand : v.fg} />}
           onPress={() => open(url)}
           label={t("home.now.recordLabel", { course: code })}
           testID="action.recordInEdunex"
