@@ -292,11 +292,16 @@ function KindTile({ kind, extension }: { kind: MaterialKind; extension: string |
   );
 }
 
-/** When an item was posted ("4 Sep 09:20"), or when it last changed when that came later. */
+/**
+ * When an item was posted ("25 Agu 19:52"), and when it last changed if that came later ("· Diperbarui 28 Agu
+ * 14:03"), as the desktop's credits say both.
+ */
 function whenOf(t: Translate, f: Format, material: Material): string | null {
   const { postedAt, updatedAt } = material;
-  if (updatedAt !== null && (postedAt === null || Math.abs(updatedAt - postedAt) >= 60_000)) return t("note.updated", { when: dayAndTime(f, updatedAt) });
-  return postedAt === null ? null : dayAndTime(f, postedAt);
+  const posted = postedAt === null ? null : dayAndTime(f, postedAt);
+  if (updatedAt !== null && (postedAt === null || Math.abs(updatedAt - postedAt) >= 60_000))
+    return factsLabel(posted, t("note.updated", { when: dayAndTime(f, updatedAt) }));
+  return posted;
 }
 
 /** `"` and `<` kept out of a picture's address, for the one-picture HTML an image material is drawn from. */
