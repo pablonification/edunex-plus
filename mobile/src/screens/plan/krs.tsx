@@ -217,7 +217,7 @@ function Clashes({ overlaps, plan, past = false }: { overlaps: Overlap[]; plan: 
 }
 
 /**
- * A clash's sheet: when it is, the one thing to do about it once the KRS is approved (ask the lecturers, or change it
+ * A clash's sheet: the one thing to do about it once the KRS is approved (ask the lecturers, or change it
  * in the URS window), and Jadwal at it.
  */
 function ClashSheet({ plan, overlap, onClose }: { plan: KrsPlan; overlap: Overlap | null; onClose: () => void }) {
@@ -226,7 +226,6 @@ function ClashSheet({ plan, overlap, onClose }: { plan: KrsPlan; overlap: Overla
   const now = useNow();
   const nav = useNav();
   const theme = useTheme();
-  const when = useWhen();
   const calendar = useDataset("itb.calendar");
   const stage = krsStage(plan);
   const window = nextKrsWindow(plan, calendar, now);
@@ -243,7 +242,7 @@ function ClashSheet({ plan, overlap, onClose }: { plan: KrsPlan; overlap: Overla
       open={overlap !== null}
       onClose={onClose}
       title={overlap ? t("mobile.krs.clash.title", { a, b }) : undefined}
-      message={overlap ? factsLabel(t("mobile.krs.clash.meta", { when: when(overlap), count: overlap.count }), advice) : undefined}
+      message={advice}
       testID="sheet.krsClash"
       choices={[
         {
