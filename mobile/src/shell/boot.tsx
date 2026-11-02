@@ -6,12 +6,13 @@ import * as SplashScreen from "expo-splash-screen";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useColorScheme } from "react-native";
 import { type Bridge, createBridge } from "../../../src/app/bridge";
-import { I18nProvider, systemClock, type UiClock } from "../../../src/app/i18n";
+import { I18nProvider, type UiClock } from "../../../src/app/i18n";
 import { AppStore, StoreProvider, useSettings } from "../../../src/app/store";
 import type { Event } from "../../../src/core/contract";
 import { scheduleBackgroundSync } from "../host/background";
 import { type Host, host } from "../host/host";
 import { ThemeContext, themeFor } from "../ui/theme";
+import { demoClock } from "./demo-clock";
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -33,8 +34,8 @@ async function boot(): Promise<Booted> {
   const snapshot = await bridge.invoke("app.snapshot", {});
   store = new AppStore(snapshot);
   for (const event of early) store.apply(event);
-  const offset = current.clockOffset();
-  return { host: current, store, bridge, clock: offset ? systemClock(offset) : undefined };
+  // A build with the demo's world runs on its clock; a real one on the phone's (no offset, the app's own clock).
+  return { host: current, store, bridge, clock: current.clockOffset() ? demoClock(current.clockOffset) : undefined };
 }
 
 /** The host of this run, for the few screens that hand it a page (sign-in, SIX's timetable). */
