@@ -6,8 +6,11 @@
 // react-freeze was tried and measured: each switch then drew the whole tab again, 100–270 ms.) The same for the
 // data: a dataset that changes (SIX's check-in read every 2 minutes in class, a feed's page) redrew every tab that reads
 // it, 200–560 ms on a small phone while the Student looked at one; a hidden tab now hears of it when it's shown.
+// A hidden tab also draws for the first time on its own turn: the four drawn at once right after Beranda blocked the
+// JS thread 0.8–1.0 s on every start with saved data (measured on v4, `mid`). Each now waits for the start to settle,
+// then one tab every 300 ms once the JS thread is idle; opened before its turn, it draws at once.
 import { useIsFocused } from "expo-router";
-import { type ReactNode, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ClockProvider, type UiClock, useClock } from "../../../src/app/i18n";
 import { type AppStore, StoreProvider, useBridge, useStore } from "../../../src/app/store";
 
@@ -20,11 +23,21 @@ export function TabClock({ children }: { children: ReactNode }) {
   shown.current = focused;
   const clock = useMemo(() => gated(parent, () => shown.current), [parent]);
   const data = useMemo(() => gatedStore(store, () => shown.current), [store]);
+  const [drawn, setDrawn] = useState(focused);
+  useEffect(() => {
+    if (drawn) return;
+    if (focused) {
+      setDrawn(true);
+      return;
+    }
+    return queueFirstDraw(() => setDrawn(true));
+  }, [focused, drawn]);
   useEffect(() => {
     if (!focused) return;
     data.catchUp();
     clock.catchUp();
   }, [focused, clock, data]);
+  if (!drawn) return null;
   return (
     <StoreProvider store={data} bridge={bridge}>
       <ClockProvider clock={clock}>{children}</ClockProvider>
@@ -86,5 +99,38 @@ function gated(parent: UiClock, open: () => boolean): UiClock & { catchUp(): voi
       missed = false;
       tell();
     },
+  };
+}
+
+/** The hidden tabs' first draws, one at a time: the first after `FIRST_MS`, then one every `NEXT_MS`. */
+const FIRST_MS = 800;
+const NEXT_MS = 300;
+const waiting: (() => void)[] = [];
+let timer: ReturnType<typeof setTimeout> | null = null;
+
+function pump(delay: number): void {
+  timer = setTimeout(() => {
+    whenIdle(() => {
+      waiting.shift()?.();
+      if (waiting.length) pump(NEXT_MS);
+      else timer = null;
+    });
+  }, delay);
+}
+
+/** `run` once the JS thread is idle (React Native's requestIdleCallback), or on the next frame without it. */
+function whenIdle(run: () => void): void {
+  const idle = (globalThis as { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number }).requestIdleCallback;
+  if (idle) idle(run, { timeout: 1000 });
+  else requestAnimationFrame(run);
+}
+
+/** Calls `draw` on its turn; the returned function takes it out of the line (the tab was shown first, or went). */
+function queueFirstDraw(draw: () => void): () => void {
+  waiting.push(draw);
+  if (timer === null) pump(FIRST_MS);
+  return () => {
+    const at = waiting.indexOf(draw);
+    if (at >= 0) waiting.splice(at, 1);
   };
 }
