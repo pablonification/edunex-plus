@@ -31,8 +31,9 @@ export interface Page {
   skipped: Skipped;
 }
 
-export function openPage(html: string, name: string, skipped = new Skipped()): Page {
-  const $ = load(html);
+export function openPage(html: string | CheerioAPI, name: string, skipped = new Skipped()): Page {
+  // A big page comes already parsed, in slices (../../../html-slices.ts).
+  const $ = typeof html === "string" ? load(html) : html;
   const active = $('li.active > a[href^="/pub/locale/"]').attr("href") ?? "";
   return { $, lang: /^\/pub\/locale\/en\b/.test(active) ? "en" : "id", name, skipped };
 }

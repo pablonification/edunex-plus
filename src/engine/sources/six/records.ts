@@ -7,6 +7,7 @@
 import { sixRecordPaths } from "../../../core/links";
 import type { Curriculum, Syllabus } from "../../../core/models";
 import { EngineError } from "../../errors";
+import { breaks, parseInSlices } from "../../html-slices";
 import type { FeedRead } from "../../report/kept-pages";
 import { Skipped } from "../skipped";
 import type { SourceContext } from "../source";
@@ -53,7 +54,7 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
     async run(_current, read) {
       const { context, pages } = noted(read);
       const skipped = new Skipped();
-      await context.set("six.curriculum", await fetchCurriculum(pages, skipped), skipped.rows);
+      await context.set("six.curriculum", await fetchCurriculum(pages, skipped, context.breathe), skipped.rows);
     },
   });
   context.feed({
@@ -78,13 +79,16 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
   });
 }
 
-/** The curriculum in force for the Student's program, its structure, and what the Student registered for. */
-export async function fetchCurriculum(pages: SixPages, skipped?: Skipped): Promise<Curriculum> {
+/**
+ * The curriculum in force for the Student's program, its structure, and what the Student registered for. `pause`: the
+ * structure page is about 300 KB, read in slices with the screens drawing between them (../../html-slices.ts).
+ */
+export async function fetchCurriculum(pages: SixPages, skipped?: Skipped, pause?: () => Promise<void>): Promise<Curriculum> {
   const who = await pages.who();
   const list = readCurriculumList(await pages.page(recordPaths.curricula(who)), skipped);
   const current = list.filter((entry) => entry.active === true).sort((a, b) => b.year - a.year)[0];
   if (!current) changed("curriculum list", "no curriculum is in force");
-  const structure = readCurriculumStructure(await pages.page(current.structurePath), skipped);
+  const structure = readCurriculumStructure(await parseInSlices(await pages.page(current.structurePath), breaks(pause)), skipped);
   const registrations = readSchemes(await pages.page(recordPaths.schemes(who)), skipped);
   return {
     name: structure.name,

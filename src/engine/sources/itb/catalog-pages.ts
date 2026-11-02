@@ -4,14 +4,11 @@
 // multidisciplinary packages and its own course catalog. A page that doesn't
 // look the way it did when this was written is a vendor change.
 //
-// A program's page is up to 320 KB (every program's minors are on each one). Read at once, it held a phone's JS
-// thread about a second (the screens share it with the engine there); so a page is read a slice at a time, and between
-// slices, once the work since the last break passes `BREAK_MS`, the screens get a turn (`pause`).
+// A program's page is up to 320 KB (every program's minors are on each one): it's read in slices (../../html-slices.ts).
 import { type Cheerio, type CheerioAPI, load } from "cheerio/slim";
-import { DomHandler } from "domhandler";
-import { Parser } from "htmlparser2";
 import type { CatalogMinor, CatalogTrack } from "../../../core/models";
 import { EngineError } from "../../errors";
+import { breaks, parseInSlices } from "../../html-slices";
 
 export interface ListedProgram {
   id: string;
@@ -170,38 +167,10 @@ async function readPanels(
   return panels;
 }
 
-/** The longest stretch of reading before the screens get a turn. */
-const BREAK_MS = 8;
-/** How much of the page the parser takes at once (a few ms of work on a small phone). */
-const SLICE = 16_000;
-
-/** Calls `pause` once the work since the last call took over `BREAK_MS`; without `pause`, never stops. */
-function breaks(pause?: () => Promise<void>): () => Promise<void> {
-  if (!pause) return async () => undefined;
-  let since = Date.now();
-  return async () => {
-    if (Date.now() - since < BREAK_MS) return;
-    await pause();
-    since = Date.now();
-  };
-}
-
-/** The page's document, parsed a slice at a time (htmlparser2, as `load` from cheerio/slim). */
-async function documentOf(html: string, breathe: () => Promise<void>): Promise<CheerioAPI> {
-  const handler = new DomHandler();
-  const parser = new Parser(handler, { decodeEntities: true });
-  for (let at = 0; at < html.length; at += SLICE) {
-    parser.write(html.slice(at, at + SLICE));
-    await breathe();
-  }
-  parser.end();
-  return load(handler.root);
-}
-
-/** One program's page. `pause`: lets the screens draw between slices of the work (see the top of this file). */
+/** One program's page. `pause`: lets the screens draw between slices of the work (../../html-slices.ts). */
 export async function readProgramPage(html: string, pause?: () => Promise<void>): Promise<ProgramPage> {
   const breathe = breaks(pause);
-  const $ = await documentOf(html, breathe);
+  const $ = await parseInSlices(html, breathe);
   for (const pane of ["wajib", "spesialisasi", "minor", "katalog"]) if ($(`#${pane}`).length === 0) throw changed(`program page has no "${pane}" tab`);
   const courses: PageCourse[] = [];
   const required = readRequired($, courses);
