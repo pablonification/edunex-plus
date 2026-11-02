@@ -150,7 +150,7 @@ function Choices({ code }: { code: string }) {
                   }}
                 >
                   <View style={{ width: 34, height: 34, borderRadius: radius.md, backgroundColor: tone(id), alignItems: "center", justifyContent: "center" }}>
-                    {checked && <Icons.Check size={18} weight="bold" color="#ffffff" />}
+                    {checked && <Icons.Check size={18} weight="bold" color={theme.v4.onCourse} />}
                   </View>
                 </View>
                 <Text size="micro" tone={checked ? "fg" : "muted"} weight={checked ? "semibold" : "regular"} numberOfLines={1} importantForAccessibility="no">

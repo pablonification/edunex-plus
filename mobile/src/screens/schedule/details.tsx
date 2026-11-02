@@ -139,7 +139,7 @@ function OpenCheckIn({ item, onLeave }: { item: ScheduledClass; onLeave: () => v
       </Text>
       <Button
         variant="primary"
-        icon={<Icons.ArrowUpRight size={16} color={theme.color.onAccent} />}
+        icon={<Icons.ArrowUpRight size={16} color={theme.color.onPrimary} />}
         // The sheet goes first: SIX's page opens as a screen of its own, which a sheet would stay over.
         onPress={() => {
           onLeave();
@@ -177,7 +177,7 @@ function OpenPresence({ code, start, world }: { code: string; start: number; wor
       </Text>
       <Button
         variant="primary"
-        icon={<Icons.ArrowUpRight size={16} color={theme.color.onAccent} />}
+        icon={<Icons.ArrowUpRight size={16} color={theme.color.onPrimary} />}
         onPress={() => open(action.url)}
         testID="action.recordPresence"
       >
@@ -194,7 +194,7 @@ function JoinButton({ link, primary = false }: { link: string; primary?: boolean
   return (
     <Button
       variant={primary ? "primary" : "secondary"}
-      icon={<Icons.Video size={16} color={primary ? theme.color.onAccent : theme.color.fg} />}
+      icon={<Icons.Video size={16} color={primary ? theme.color.onPrimary : theme.color.fg} />}
       onPress={() => open(link)}
       testID="action.join"
     >
@@ -209,10 +209,10 @@ function GoButton({ primary, onPress, testID, children }: { primary: boolean; on
   return (
     <Button variant={primary ? "primary" : "secondary"} onPress={onPress} testID={testID}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <Text size="small" weight="semibold" style={{ color: primary ? theme.color.onAccent : theme.color.fg }}>
+        <Text size="small" weight="semibold" style={{ color: primary ? theme.color.onPrimary : theme.color.fg }}>
           {children}
         </Text>
-        <Icons.ArrowRight size={14} color={primary ? theme.color.onAccent : theme.color.fg} />
+        <Icons.ArrowRight size={14} color={primary ? theme.color.onPrimary : theme.color.fg} />
       </View>
     </Button>
   );

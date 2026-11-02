@@ -22,6 +22,7 @@ import {
 import { taskStatus } from "../../../../src/core/tasks";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { NOW } from "../../ui/palette";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, TOUCH, useTheme } from "../../ui/theme";
@@ -257,9 +258,9 @@ function NowLine({ from, to }: { from: number; to: number }) {
 }
 
 /** Today's red (v4's `--now`): the today mark and the now-line, its one meaning. */
-export const nowColour = (scheme: "light" | "dark") => (scheme === "dark" ? "#ff6b5e" : "#d93025");
+export const nowColour = (scheme: "light" | "dark") => NOW[scheme].now;
 /** What reads on today's red circle. */
-export const onNowColour = (scheme: "light" | "dark") => (scheme === "dark" ? "#3a0603" : "#ffffff");
+export const onNowColour = (scheme: "light" | "dark") => NOW[scheme].on;
 
 type Status = { icon: (typeof Icons)[keyof typeof Icons]; tone: "amber" | "quiet"; words: string };
 

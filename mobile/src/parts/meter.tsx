@@ -100,7 +100,7 @@ export function CountdownBar({
         accessibilityValue={{ min: 0, max: 100, now: Math.round(left * 100) }}
         style={{ flex: 1, minWidth: 64, height: 6, borderRadius: 3, overflow: "hidden", backgroundColor: theme.color.meterTrack }}
       >
-        <View style={{ width: `${left * 100}%`, height: "100%", borderRadius: 3, backgroundColor: soon ? theme.color.meterWarning : theme.color.accent }} />
+        <View style={{ width: `${left * 100}%`, height: "100%", borderRadius: 3, backgroundColor: soon ? theme.color.meterWarning : theme.color.primary }} />
       </View>
       {showLabel && (
         <Text size="small" weight="semibold" tabular tone={soon ? "warning" : "muted"}>

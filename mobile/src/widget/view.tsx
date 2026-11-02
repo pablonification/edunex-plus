@@ -9,6 +9,7 @@
 import { FlexWidget, type HexColor, TextWidget } from "react-native-android-widget";
 import { DEMO } from "../host/version";
 import { hrefOf } from "../nav";
+import { NOW } from "../ui/palette";
 import { THEMES, type Theme } from "../ui/theme";
 import type { WidgetClass, WidgetLine, WidgetModel, WidgetTarget } from "./model";
 
@@ -60,7 +61,7 @@ export function todayDrawing(model: WidgetModel, size: WidgetSize): { light: Rea
 function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetSize; theme: Theme }) {
   // v4's look: the card surface, each course in its ink, today's red on the heading, the class on now in the live green.
   const v = theme.v4;
-  const red = theme.scheme === "dark" ? "#ff6b5e" : "#d93025";
+  const red = NOW[theme.scheme].now;
   const today = model.today;
   if (!today)
     return (
