@@ -292,6 +292,11 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "done.toast.paid": { id: "Sudah dibayar. Kembali jika tagihan berubah atau lewat batas.", en: "Paid. Back if the bill changes or passes its due date." },
   // "Perlu kamu urus"'s row for a Task changed after the hand-in: its meta line, short (what changed is on its page).
   "home.need.task.edited": { id: "Diubah dosen · cek lagi", en: "Changed · check again" },
+  "home.need.task.editedCount": {
+    id: "Diubah dosen · {count} perubahan",
+    en: { one: "Changed · {count} change", other: "Changed · {count} changes" },
+  },
+  "home.need.task.editedMove": { id: "Diubah dosen · {change}", en: "Changed · {change}" },
   // The first-run summary's title, short enough for the top bar.
   "scan.heading": { id: "Ringkasan awal", en: "First summary" },
   // settings: the test notification's body, as Android shows it.

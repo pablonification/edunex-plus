@@ -7,7 +7,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { rupiah } from "../../../../src/core/academic";
@@ -16,6 +16,7 @@ import { heldBack } from "../../../../src/core/held-back";
 import type { DoneEntry, SnoozeEntry } from "../../../../src/core/models";
 import type { NeedDraft, NeedsRange } from "../../../../src/core/needs";
 import { snoozable } from "../../../../src/core/snooze";
+import { dateMove, type EditView, editView } from "../../../../src/core/task-edits";
 import { useNav } from "../../nav";
 import { Button } from "../../ui/controls";
 import { Card, Skeleton } from "../../ui/display";
@@ -262,11 +263,35 @@ interface NeedView {
 /** What an item is, said whole where its facts aren't beside it: a Task's name with its course ("Tugas 02 · II4091"), a window with its class. From src/app/screens/home.tsx. */
 const fullName = (need: NeedDraft, view: NeedView) => factsLabel(view.title, view.titleLacksCourse && need.course, view.which);
 
+/**
+ * A Task changed after the hand-in, as its row's meta says it: how many things, or the one date that moved, by name
+ * (the Task page's History says the rest). Not compared: that it changed. From src/app/screens/home.tsx.
+ */
+function editedLine(t: Translate, f: Format, view: EditView | null): string {
+  if (!view || view.checked || view.state !== "known") return t("home.need.task.edited");
+  const move = dateMove(view.changes);
+  const date = (at: number) => `${f.weekdayShort(at)}, ${f.dayMonth(at)}`;
+  if (!move) return t("home.need.task.editedCount", { count: view.changes.length });
+  const change =
+    move.kind === "deadline"
+      ? move.to === null
+        ? t("home.move.deadlineRemoved")
+        : move.from === null
+          ? t("home.move.deadlineAdded", { date: date(move.to) })
+          : t(move.to < move.from ? "home.move.deadlineEarlier" : "home.move.deadline", { date: date(move.to) })
+      : move.to === null
+        ? t("home.move.opensNow")
+        : t("home.move.opens", { date: date(move.to) });
+  return t("home.need.task.editedMove", { change });
+}
+
 /** An item's title, its one meta line and its status, the desktop's words (src/app/screens/home.tsx, useNeedView) drawn with the phone's text. */
 function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedView {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const edits = useDataset("edunex.taskEdits");
+  const { entries: handled } = useDone();
   const near = (at: number | null): Tone => (at !== null && at - now <= DAY ? "warning" : null);
   return (need) => {
     const course = need.course ? <CourseMark key="course" code={need.course} /> : null;
@@ -317,7 +342,12 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
             title: task.title,
             titleLacksCourse: true,
             // What changed is on the Task page (its History): the row only says it changed.
-            meta: [course, <Text key="e" size="small" tone="warning">{t("home.need.task.edited")}</Text>],
+            meta: [
+              course,
+              <Text key="e" size="small" tone="warning">
+                {editedLine(t, f, editView(task, edits, handled))}
+              </Text>,
+            ],
             when: null,
             tone: "warning",
           };

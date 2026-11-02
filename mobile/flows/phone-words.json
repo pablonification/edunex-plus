@@ -105,6 +105,16 @@
     "phone": "Diubah dosen · cek lagi"
   },
   {
+    "key": "home.need.task.editedCount",
+    "desktop": "Diubah dosen setelah kamu kumpulkan · {count} perubahan",
+    "phone": "Diubah dosen · {count} perubahan"
+  },
+  {
+    "key": "home.need.task.editedMove",
+    "desktop": "Diubah dosen setelah kamu kumpulkan · {change}",
+    "phone": "Diubah dosen · {change}"
+  },
+  {
     "key": "ics.handIn.note",
     "desktop": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.",
     "phone": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini."
