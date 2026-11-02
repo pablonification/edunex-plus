@@ -140,7 +140,7 @@ motion and onboarding are open. The desktop is a reference for data only.
   the FAST table; `weak` and the perf fixes wait for a healthy desktop (or the Mac). Perf fixes to make (queued, not
   started): loops pause off-screen (`useLoopWhileShown`), `Later` waits for the push transition, hidden tabs render on
   first visit or idle, Beranda's cards hold still during the first read.
-- **2026-11-02 11:00: Beranda's cards hold during a real sign-in's first read too (37a4311),** on the same signal as
+- **2026-11-02 (morning): Beranda's cards hold during a real sign-in's first read too (37a4311),** on the same signal as
   the top bar's "Membaca …" (`useFirstReadRunning`: the first scan not seen and Beranda not ready; an offline source
   counts as settled, so nothing waits forever). Seen on Redroid with this build's APK, first-run scenario: the two
   cards in their shape at 6, 12 and 20 s while "Membaca SIX" runs; at 40 s "Semua siap, Dimas" and the real cards.
@@ -149,6 +149,21 @@ motion and onboarding are open. The desktop is a reference for data only.
   course's English name first ("Economics and Innovation in Planning") then the Indonesian one, a "Catat di Edunex"
   button comes and goes, and its line changes ("Presensi sedang dibuka · 80 mnt" → "Sekarang · R.SG PWK LT.6 · 110
   mnt"). Confirming run: 41381102345.
+- **2026-11-02 10:50: run 41381102345 (37a4311): `first-run` green, `app` red again, the cause in the app.** Both judge
+  walks saw "Semua siap" 2 s after signing in, then lost it before the tap (`action.firstScan.open` not found; the
+  picture shows "Membaca SIX · Kehadiran…" and the placeholder cards). A race: right after the Student signs in to
+  Edunex, the app tries SIX by itself on the same Microsoft session ("joining"), and SIX counted as signed out until
+  that try handed back. When Edunex's read ended first, Edunex alone looked like the whole first read, and the card
+  came, then went as SIX joined. Fix (b0fa730): a system still signing in counts as coming (`useReadStatuses` in
+  `screens/first-scan/scan.ts`, used by the card, the top bar's "Membaca …" and Beranda's placeholder cards).
+  Confirming run: 41385356601. The judge's Akademik wait (ad36f23) held: both walks now pass `row.nav.grades`.
+- **2026-11-02 10:50: the saved-start freeze, a fix to measure.** Branch `mobile-lazy-tabs` (b25d69b): a hidden tab
+  draws for the first time on its own turn (the first 800 ms after the start, then one every 300 ms, when the JS
+  thread is idle); opened before its turn, it draws at once. Its APK builds in run 41384528709, then an A/B on Redroid
+  against `mobile` (the `[perf] js-block` lines on a saved start, and each tab's first visit; comparative only).
+- **2026-11-02 10:50: the desktop and the Mac are both unreachable** (T3 links: "did not answer"). The weak-phone
+  numbers, the rest of the FAST table and the at-rest redraw's measured proof wait for one of them. CI and Redroid
+  (quick looks only) carry on.
 - **2026-11-02 10:15: first-run failed on the merged perf work (run 41375320635), two finds.** (1) The Perlu kamu urus
   hold only watched the demo's own settling flag, so after a real sign-in's first read the cards still swapped (seen in
   first-run: 66%/100% under "Membaca SIX"); it now also holds while SIX or Edunex is on its first read (live, nothing
