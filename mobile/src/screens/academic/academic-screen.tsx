@@ -15,7 +15,7 @@ import { usePlanTabBadges } from "../../../../src/app/shell/badges";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { usePlan, useStudentRecord } from "../../../../src/app/study-plan";
-import { billUrgency, krsOverlaps, krsStage } from "../../../../src/core/academic";
+import { billUrgency, type KrsStage, krsOverlaps, krsStage } from "../../../../src/core/academic";
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { useSignIn } from "../../shell/source-status";
@@ -47,6 +47,9 @@ const TODO: Partial<Record<PlanTab, { key: "mobile.academic.todo.krs" | "mobile.
   bills: { key: "mobile.academic.todo.bills", icon: Icons.Wallet },
   deadlines: { key: "mobile.academic.todo.deadlines", icon: Icons.PenLine },
 };
+
+/** The KRS row's pill for each stage: amber while the Student has something to do, green once it's official. */
+const KRS_TONE: Readonly<Record<KrsStage, PillTone>> = { send: "amber", advisor: "plain", ukt: "amber", official: "brand", done: "ok" };
 
 /** A source's first read is still running: what it brings stands in its shape until it's here. */
 function useFirstRead(source: "six" | "itb"): boolean {
@@ -361,13 +364,15 @@ function KrsRow() {
       now,
     ).filter((o) => o.upcoming).length;
     return {
-      text: t(`krs.stage.${stage}`),
-      tone: (stage === "send" || stage === "ukt" ? "amber" : stage === "done" ? "ok" : "muted") as MetaTone,
-      // A clash still to come: worth a question to the lecturer, said as the row's one status.
-      pill: clashes ? { tone: "amber" as const, text: t("mobile.academic.pill.clash", { count: clashes }) } : null,
+      // The SKS taken as the line, the plan's one status as the pill: a clash still to come (worth a question to the
+      // lecturer) over the plan's stage.
+      text: t("krs.sks", { sks: plan.sks ?? "-" }),
+      pill: clashes
+        ? { tone: "amber" as const, text: t("mobile.academic.pill.clash", { count: clashes }) }
+        : { tone: KRS_TONE[stage], text: t(`krs.stage.${stage}`) },
     };
   }, [plan, schedule, now, t]);
-  return <PartRow part="krs" title={t("plan.tab.krs")} meta={shown ? shown.text : missing} tone={shown?.tone} pill={shown?.pill} />;
+  return <PartRow part="krs" title={t("plan.tab.krs")} meta={shown ? shown.text : missing} pill={shown?.pill} />;
 }
 
 /** UKT: this term's bill (else the last billed) as the row's one pill: paid, the date it's due by, or overdue. */
