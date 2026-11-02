@@ -145,8 +145,9 @@ export const TaskRow = inWorld(function TaskRow({
     date.rel,
   );
   const code = meta === "course" ? task.courseCode : null;
-  // v4: one meta line that fits in full (the code, or the kind of a take-home, and when), one status (the countdown,
-  // the score, or "not handed in"); everything else is in the row's spoken name and on the Task's page.
+  // v4: one meta line that fits in full (the code, or the kind of a take-home, and when), one status (the countdown
+  // once it's within a day or late, the score, or "not handed in"); a calm one's day and time say when on their own.
+  // Everything else is in the row's spoken name and on the Task's page.
   const sentAt = submittedAt(task);
   const kind = exam ? t(`exam.kind.${exam.kind}`) : null;
   const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
@@ -166,7 +167,7 @@ export const TaskRow = inWorld(function TaskRow({
       ) : null
     ) : status === "closed" ? (
       <StatusPill tone="red" text={t("task.notHandedIn")} />
-    ) : away ? (
+    ) : away && away.tone !== "neutral" ? (
       <StatusPill tone={away.tone} text={away.text} />
     ) : null;
   const name = exam ? (course?.name ?? exam.courseCode) : task.title;
