@@ -4260,6 +4260,18 @@
       "entry": "^presence\\.note\\.tak-bisa-lagi-capai-",
       "row": "W11",
       "why": "the out-of-reach group's heading with its count ('Tak bisa lagi capai 80% 1'): Kuliah's rows no longer spend a heading per group, and the same fact leads the screen as the big number, '1' beside 'mata kuliah tak bisa lagi capai 80%' (card.kuliahNumber), each such course's row carrying its 'Lewat batas' chip"
+    },
+    {
+      "entry": "^home\\.need\\.need-attendance-",
+      "tokens": "^cek ke dosen",
+      "row": "W4",
+      "why": "Perlu kamu urus's advice to check with the lecturer: Arqila's rules cut explanatory sentences from tab screens; the row keeps the course, its best case against the target and one status"
+    },
+    {
+      "entry": "^home\\.need\\.need-exam-",
+      "tokens": "^(Sen|Sel|Rab|Kam|Jum|Sab|Min) \\d+ [A-Z][a-z]{2}$",
+      "row": "W4",
+      "why": "a take-home exam's hand-in day: on Perlu kamu urus the row keeps one meta line, and the day is on the exam's own page (checked there as exam-detail)"
     }
   ]
 }

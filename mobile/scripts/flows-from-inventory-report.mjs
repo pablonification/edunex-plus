@@ -10,7 +10,7 @@
 // every JUnit .xml (flows that failed outright: the screen wasn't reached, or the app stopped).
 import fs from "node:fs";
 import path from "node:path";
-import { EXPECTED, LABEL, phoneSkip, SCREENS } from "./flows-from-inventory.mjs";
+import { EXPECTED, LABEL, phoneSkip, SCREENS, tokenSkip } from "./flows-from-inventory.mjs";
 
 /** Every file under `at` (or `at` itself). */
 function files(at) {
@@ -106,13 +106,15 @@ function main() {
     });
     for (const entry of counted) {
       const looks = entry.tokens.map((_, i) => `data|${name}|${entry.id}|${i + 1}/${entry.tokens.length}`);
-      const ok = looks.every((l) => completed.has(l));
+      // A text left out on purpose (a "phoneSkips" row with "tokens") counts as found.
+      const seen = (i) => completed.has(looks[i]) || !!tokenSkip(config, entry.id, entry.tokens[i]);
+      const ok = looks.every((_, i) => seen(i));
       const row = byScreen.get(entry.screen) ?? { found: 0, of: 0 };
       row.of++;
       if (ok) {
         row.found++;
         found++;
-      } else missing.push({ entry, unseen: entry.tokens.filter((_, i) => !completed.has(looks[i])) });
+      } else missing.push({ entry, unseen: entry.tokens.filter((_, i) => !seen(i)) });
       byScreen.set(entry.screen, row);
     }
     totalFound += found;
