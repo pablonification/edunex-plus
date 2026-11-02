@@ -164,7 +164,10 @@ heading → headlineSmall, figure/display → headlineMedium.
 - **States, every screen**: saved data at once; else a skeleton in the screen's own shape (never a spinner
   on a blank page); empty says why and the next step; an error is a banner under the top bar with what's
   wrong and "Coba lagi" (`ProblemBanner`); offline keeps the saved data with "Terakhir diperbarui …" in the
-  top bar's status line, never greyed out.
+  top bar's status line, never greyed out. During the first read (`useFirstReadRunning`, or the demo's `useSettling`) a
+  part picked from half the data shows only what won't change and holds the rest in its place, the same size, so
+  nothing swaps or moves as it fills in: Perlu kamu urus's cards wait in their shape; the now card keeps the course's
+  colour and its official name once known, its line, wave, minutes and button held (`screens/home/now-hold.ts`).
 - **Errors never in a snackbar** (it's gone before it's read): inline for a field, a banner for the page, a
   dialog only when it blocks. The snackbar says what happened, with Undo.
 - **Undo over confirm** for routine actions; confirm only what can't be undone, naming it.
