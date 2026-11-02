@@ -58,10 +58,25 @@
       "status": "ready",
       "launch": [
         {
-          "clearState": "{{appId}}"
-        },
-        {
-          "openLink": "{{demoLink}}"
+          "retry": {
+            "maxRetries": 1,
+            "commands": [
+              {
+                "clearState": "{{appId}}"
+              },
+              {
+                "openLink": "{{demoLink}}"
+              },
+              {
+                "extendedWaitUntil": {
+                  "visible": {
+                    "id": "screen.welcome"
+                  },
+                  "timeout": 60000
+                }
+              }
+            ]
+          }
         }
       ],
       "steps": [
@@ -197,25 +212,32 @@
       "status": "ready",
       "launch": [
         {
-          "clearState": "{{appId}}"
-        },
-        {
-          "openLink": "{{demoLink}}"
-        },
-        {
-          "extendedWaitUntil": {
-            "visible": {
-              "id": "(tab\\.home|screen\\.welcome)"
-            },
-            "timeout": 120000
-          }
-        },
-        {
-          "extendedWaitUntil": {
-            "notVisible": {
-              "id": "status.settling"
-            },
-            "timeout": 180000
+          "retry": {
+            "maxRetries": 1,
+            "commands": [
+              {
+                "clearState": "{{appId}}"
+              },
+              {
+                "openLink": "{{demoLink}}"
+              },
+              {
+                "extendedWaitUntil": {
+                  "visible": {
+                    "id": "(tab\\.home|screen\\.welcome)"
+                  },
+                  "timeout": 120000
+                }
+              },
+              {
+                "extendedWaitUntil": {
+                  "notVisible": {
+                    "id": "status.settling"
+                  },
+                  "timeout": 180000
+                }
+              }
+            ]
           }
         }
       ],
