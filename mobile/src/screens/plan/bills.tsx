@@ -182,12 +182,9 @@ function Lead({ bill }: { bill: Bill }) {
   // What's left: the whole bill, or the rest of one partly paid.
   const due = bill.status === "partly-paid" ? billLeft(bill) : bill.amount;
   const deadlineLine = deadline ? t("mobile.bills.deadlineOn", { date: f.dayMonth(dayMs(deadline.day)) }) : null;
-  // Which of two deadlines to follow matters only while there's something to pay: once paid, the other is only a fact.
+  // Which of two deadlines to follow matters only while there's something to pay: once paid, the card keeps one date.
   const other =
-    deadline?.other &&
-    (paid
-      ? t(deadline.other.source === "six" ? "mobile.bills.paidOtherSix" : "mobile.bills.paidOtherItb", { date: f.dayMonth(dayMs(deadline.other.day)) })
-      : t(deadline.other.source === "six" ? "bills.otherSix" : "bills.otherItb", { date: f.dayMonth(dayMs(deadline.other.day)) }));
+    deadline?.other && !paid ? t(deadline.other.source === "six" ? "bills.otherSix" : "bills.otherItb", { date: f.dayMonth(dayMs(deadline.other.day)) }) : null;
   return (
     <Panel testID={`card.bill.${bill.term}`} style={{ padding: space[5], gap: space[2] }}>
       <Text size="bodyMedium" style={{ color: v.muted }}>
@@ -209,11 +206,6 @@ function Lead({ bill }: { bill: Bill }) {
           <Text size="bodyLarge" tabular style={{ color: v.fg2 }}>
             {factsLabel(bill.amount !== null ? rupiah(bill.amount) : null, deadlineLine)}
           </Text>
-          {other ? (
-            <Text size="bodyMedium" style={{ color: v.muted }}>
-              {other}
-            </Text>
-          ) : null}
         </>
       ) : (
         <>
