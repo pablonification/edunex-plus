@@ -3945,6 +3945,166 @@
           }
         ]
       },
+      "byEntry": {
+        "^plan\\.kurikulum\\.curriculum\\.kamu-mulai-": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.curriculumNotes"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "action.curriculumNotes"
+              },
+              "direction": "UP",
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "action.curriculumNotes"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.curriculumNotes"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^plan\\.kurikulum\\.curriculum\\.144-sks\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.curriculumNotes"
+                }
+              },
+              "commands": ["back"]
+            }
+          }
+        ],
+        "^plan\\.kalender-akademik\\.academic-date\\.12-16-okt\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.deadline"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "card.deadlines.next"
+              },
+              "direction": "UP",
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "card.deadlines.next"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.deadline"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^plan\\.kalender-akademik\\.academic-date\\.4-des\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.deadline"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "text": "Hari terakhir kuliah"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "text": "Hari terakhir kuliah"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.deadline"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^plan\\.kalender-akademik\\.academic-date\\.8-jan\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.deadline"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "text": "Batas pemasukan nilai"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "text": "Batas pemasukan nilai"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet.deadline"
+              },
+              "timeout": 5000
+            }
+          }
+        ],
+        "^plan\\.kalender-akademik\\.": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.deadline"
+                }
+              },
+              "commands": ["back"]
+            }
+          }
+        ]
+      },
       "scrollTimeout": 10000
     },
     "course": {
@@ -4252,6 +4412,12 @@
     }
   },
   "phoneSkips": [
+    {
+      "entry": "^plan\\.rencana\\.plan\\.(14-semester-ini|12-direncanakan)$",
+      "tokens": "(semester ini|direncanakan)$",
+      "row": "W4",
+      "why": "the SKS bar's legend on Rencana (this semester's and the planned SKS): the judge's round 2 (15, 7.5/10) kept Rencana's card to its two figures and its chip, so the bar and its legend moved to Kurikulum's card (checked there with the plan's same SKS count)"
+    },
     {
       "entry": "^welcome\\.ready\\.account\\.\\d+-mata-kuliah",
       "row": "W15",

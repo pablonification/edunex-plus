@@ -3,10 +3,12 @@
 // matched the way SIX places them), the specializations and minors with progress, each course's syllabus on SIX's
 // public pages, and the Student's own corrections where SIX's record doesn't match their curriculum, each one marked
 // and reversible.
-// 1. One card led by the SKS passed of the curriculum's total (a big number that counts up once, a thin bar), then
-//    the required courses left and the electives, the same SKS count as the planner.
-// 2. "Sisa saja" with what's left on its line: hides what's done (kept while the app is open). Under it, quietly, what's
-//    worth knowing about the curriculum itself (an older start, courses SIX leaves off).
+// 1. One card led by the SKS passed of the curriculum's total (a big number that counts up once), the bar of passed,
+//    this semester and planned with its legend, then the required courses left and the electives, the same SKS count
+//    as the planner.
+// 2. "Sisa saja" with what's left on its line: hides what's done (kept while the app is open). Under it, in the same
+//    card, what's worth knowing about the curriculum itself (courses SIX leaves off, an older start) as one row whose
+//    sheet says it.
 // 3. Each semester: its heading with its SKS, its courses as rows (name, code and SKS, one status at the end: the
 //    grade once passed, a pill while it needs the Student).
 // 4. Specializations and minors, below the fold.
@@ -33,6 +35,7 @@ import { ActionSheet, Sheet, type SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { Later } from "./deferred";
+import { SksBar } from "./planner-summary";
 import { SixNeeded } from "./six-needed";
 
 /** SIX's public course page (no sign-in): the syllabus. */
@@ -205,8 +208,9 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
         <Totals whatIf={hasWhatIfs(state.plan, record)} name={record.curriculum.name} sks={sks} />
       </Rise>
       <Rise screen={RISE} index={1} style={{ marginTop: space[3] }}>
-        <OnlyLeft sks={sks} onlyLeft={onlyLeft} onToggle={toggleLeft} />
-        <Notes startedOn={map.startedOn} year={record.curriculum.year} unlisted={unlisted} />
+        <OnlyLeft sks={sks} onlyLeft={onlyLeft} onToggle={toggleLeft}>
+          <Notes startedOn={map.startedOn} year={record.curriculum.year} unlisted={unlisted} />
+        </OnlyLeft>
       </Rise>
       {semesters.slice(0, FIRST_SEMESTERS).map((semester, i) => (
         <Rise key={semester.semester} screen={RISE} index={2 + i}>
@@ -288,11 +292,7 @@ function Totals({ whatIf, name, sks }: { /** This semester holds what-ifs: every
         <FigureLabel>{t("grades.sksPassed")}</FigureLabel>
         <Figure id="curriculum.sksPassed" value={sks.passed} unit={of} />
       </View>
-      <Meter
-        value={sks.need ? sks.passed / sks.need : 0}
-        then={sks.need ? sks.inProgress / sks.need : 0}
-        label={`${t("grades.sksPassed")} ${sks.passed} ${of}`}
-      />
+      <SksBar sks={sks} headline={false} />
       {whatIf && (
         <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[1.5] }}>
           <View style={{ paddingTop: 3 }}>
@@ -330,8 +330,8 @@ function Totals({ whatIf, name, sks }: { /** This semester holds what-ifs: every
   );
 }
 
-/** "Sisa saja", with what's left on its line. */
-function OnlyLeft({ sks, onlyLeft, onToggle }: { sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void }) {
+/** "Sisa saja", with what's left on its line; `children`, the card's other rows. */
+function OnlyLeft({ sks, onlyLeft, onToggle, children }: { sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void; children?: ReactNode }) {
   const t = useT();
   const left = factsLabel(
     sks.requiredLeft.count ? t("curriculum.left.required", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks }) : t("curriculum.left.requiredNone"),
@@ -345,6 +345,7 @@ function OnlyLeft({ sks, onlyLeft, onToggle }: { sks: SksModel; onlyLeft: boolea
         meta={`${t("curriculum.left")}: ${left}`}
         trailing={<Switch value={onlyLeft} onChange={onToggle} label={t("curriculum.onlyLeft")} testID="action.onlyLeft" />}
       />
+      {children}
     </Group>
   );
 }
@@ -574,17 +575,34 @@ function PackageMark({ status, whatIf }: { status: SlotStatus; whatIf: MapCourse
 function Notes({ startedOn, year, unlisted }: { startedOn: number | null; year: number; unlisted: number }) {
   const t = useT();
   const v = useTheme().v4;
+  const [open, setOpen] = useState(false);
   if (startedOn === null && unlisted === 0) return null;
+  const started = startedOn !== null ? t("mobile.curriculum.started", { from: startedOn }) : null;
+  const title = unlisted > 0 ? t("mobile.curriculum.offSix", { count: unlisted }) : started!;
   return (
-    <View testID="section.curriculumNotes" style={{ flexDirection: "row", gap: space[2], marginTop: space[3], marginHorizontal: space[1] }}>
-      <View style={{ paddingTop: 2 }}>
-        <Icons.Info size={16} color={v.muted} />
-      </View>
-      <Text size="bodyMedium" style={{ color: v.muted, flex: 1 }}>
-        {[startedOn !== null && t("curriculum.startedOn", { from: startedOn, to: year }), unlisted > 0 && t("curriculum.unlistedNote", { count: unlisted })]
-          .filter(Boolean)
-          .join(" ")}
-      </Text>
-    </View>
+    <>
+      <GroupRow
+        title={title}
+        meta={unlisted > 0 ? started : null}
+        trailing={<Icons.ChevronRight size={20} color={v.muted} />}
+        onPress={() => setOpen(true)}
+        accessibilityRole="button"
+        testID="action.curriculumNotes"
+      />
+      <Sheet open={open} onClose={() => setOpen(false)} title={title} background={v.card} testID="sheet.curriculumNotes">
+        <View style={{ gap: space[3], paddingBottom: space[2] }}>
+          {unlisted > 0 && (
+            <Text size="bodyLarge" style={{ color: v.fg }}>
+              {t("curriculum.unlistedNote", { count: unlisted })}
+            </Text>
+          )}
+          {startedOn !== null && (
+            <Text size="bodyLarge" style={{ color: v.fg }}>
+              {t("curriculum.startedOn", { from: startedOn, to: year })}
+            </Text>
+          )}
+        </View>
+      </Sheet>
+    </>
   );
 }
