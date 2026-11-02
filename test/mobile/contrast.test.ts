@@ -158,7 +158,7 @@ const PAIRS: Pair[] = [
 
   // v4's tinted states.
   ["v4.onBrand on v4.brand", (t) => t.v.onBrand, (t) => t.v.brand, TEXT, "BigButton filled"],
-  ["v4.brandInk on v4.brandTint", (t) => t.v.brandInk, (t) => t.v.brandTint, TEXT, "Pill brand, the picked day"],
+  ["v4.brandInk on v4.brandTint", (t) => t.v.brandInk, (t) => t.v.brandTint, TEXT, "Pill brand, the picked day, Beranda's Semua siap"],
   ["v4.okFg on v4.okBg", (t) => t.v.okFg, (t) => t.v.okBg, TEXT, "Pill ok, BigButton done"],
   ["v4.redFg on v4.redBg", (t) => t.v.redFg, (t) => t.v.redBg, TEXT, "Pill red"],
   ["v4.ambFg on v4.ambBg", (t) => t.v.ambFg, (t) => t.v.ambBg, TEXT, "Pill amber"],

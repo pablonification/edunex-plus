@@ -1,5 +1,5 @@
-// What the first run leaves on Beranda instead of taking over the screen (W15): once the first read is in, a card
-// with what the app found ("Semua siap, Dimas. 5 mata kuliah · 10 tugas · 40 pertemuan") and the way to the summary;
+// What the first run leaves on Beranda instead of taking over the screen (W15): once the first read is in, one line
+// ("Semua siap, Dimas.") that opens the summary;
 // and, the first time there's a class, the one ask for notifications, saying what they're for, with Nyalakan and
 // Nanti, before Android's own prompt. Each goes for good once answered.
 import { File, Paths } from "expo-file-system";
@@ -10,17 +10,16 @@ import { View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
 import { firstName } from "../../../../src/app/names";
 import { useBridge, useDataset, useSettings } from "../../../../src/app/store";
-import { scanSummary } from "../../../../src/core/first-scan";
 import { useSettling } from "../../host/settling";
-import { Button, IconButton } from "../../ui/controls";
+import { IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
-import { shape, space, useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 import { useScanReady } from "../first-scan/scan";
 
-/** "Semua siap": shown once the first read is in, until the Student opens the summary or closes the card. */
+/** "Semua siap": shown once the first read is in, until the Student opens the summary. */
 export function FirstScanCard() {
   const { firstScanDone } = useSettings();
   // The demo's own first sync isn't the Student's first read.
@@ -29,56 +28,38 @@ export function FirstScanCard() {
   return <ScanCard />;
 }
 
+/** One line and its one action: "Semua siap, Dimas." and Lihat ringkasan; the whole card opens the summary. */
 function ScanCard() {
   const t = useT();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const bridge = useBridge();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
-  const { saved, statuses, ready } = useScanReady();
+  const { ready } = useScanReady();
   if (!ready) return null;
-  const summary = scanSummary(saved, statuses);
   const name = account ? firstName(account.name) : student ? firstName(student.name) : null;
-  const seen = () => void bridge.invoke("settings.update", { firstScanDone: true }).catch(() => undefined);
-  const counts = [
-    `${summary.courses} ${t("welcome.count.courses", { count: summary.courses })}`,
-    `${summary.tasks} ${t("welcome.count.tasks", { count: summary.tasks })}`,
-    `${summary.meetings} ${t("welcome.count.meetings", { count: summary.meetings })}`,
-  ].join(" · ");
+  const title = name ? t("welcome.readyTitle", { name }) : t("welcome.readyTitlePlain");
+  const open = () => {
+    void bridge.invoke("settings.update", { firstScanDone: true }).catch(() => undefined);
+    router.push("/first-scan");
+  };
   return (
-    <View
-      testID="card.firstScan"
-      style={{ marginTop: space[4], borderRadius: shape.lg, backgroundColor: theme.color.primaryContainer, paddingLeft: space[4], paddingTop: space[3] }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
-        <View style={{ paddingTop: space[2] + 2 }}>
-          <Icons.CheckCircle size={22} weight="fill" color={theme.color.onPrimaryContainer} />
-        </View>
-        <View style={{ flex: 1, paddingTop: space[2] }}>
-          <Text size="titleMedium" tone="onPrimaryContainer" accessibilityRole="header">
-            {name ? t("welcome.readyTitle", { name }) : t("welcome.readyTitlePlain")}
-          </Text>
-          <Text size="bodyMedium" tone="onPrimaryContainer" style={{ marginTop: 2 }}>
-            {counts}
-          </Text>
-        </View>
-        <IconButton label={t("action.close")} onPress={seen} testID="action.firstScan.close">
-          <Icons.X size={20} color={theme.color.onPrimaryContainer} />
-        </IconButton>
-      </View>
-      <View style={{ flexDirection: "row", marginLeft: space[8], marginBottom: space[2] }}>
-        <Button
-          variant="ghost"
-          onPress={() => {
-            seen();
-            router.push("/first-scan");
-          }}
-          testID="action.firstScan.open"
-          style={{ marginLeft: -space[1] }}
-        >
+    <View testID="card.firstScan" style={{ marginTop: space[4] }}>
+      <PressScale
+        onPress={open}
+        testID="action.firstScan.open"
+        accessibilityRole="button"
+        accessibilityLabel={`${title} ${t("mobile.home.scanOpen")}`}
+        style={{ minHeight: 56, borderRadius: 20, backgroundColor: v.brandTint, paddingHorizontal: space[4], flexDirection: "row", alignItems: "center", gap: space[3] }}
+      >
+        <Icons.CheckCircle size={22} weight="fill" color={v.brandInk} />
+        <Text size="bodyLarge" weight="medium" numberOfLines={1} style={{ flex: 1, color: v.brandInk }}>
+          {title}
+        </Text>
+        <Text size="labelLarge" style={{ color: v.brandInk }}>
           {t("mobile.home.scanOpen")}
-        </Button>
-      </View>
+        </Text>
+      </PressScale>
     </View>
   );
 }
