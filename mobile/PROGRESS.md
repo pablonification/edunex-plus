@@ -140,6 +140,15 @@ motion and onboarding are open. The desktop is a reference for data only.
   the FAST table; `weak` and the perf fixes wait for a healthy desktop (or the Mac). Perf fixes to make (queued, not
   started): loops pause off-screen (`useLoopWhileShown`), `Later` waits for the push transition, hidden tabs render on
   first visit or idle, Beranda's cards hold still during the first read.
+- **2026-11-02 11:00: Beranda's cards hold during a real sign-in's first read too (37a4311),** on the same signal as
+  the top bar's "Membaca …" (`useFirstReadRunning`: the first scan not seen and Beranda not ready; an offline source
+  counts as settled, so nothing waits forever). Seen on Redroid with this build's APK, first-run scenario: the two
+  cards in their shape at 6, 12 and 20 s while "Membaca SIX" runs; at 40 s "Semua siap, Dimas" and the real cards.
+  Check A's first-scan route now takes Settings' way when the card has gone, and every "Akademik, then the avatar"
+  step waits for Akademik. Still jumping during the first read (for a later pass): the class-now card shows the
+  course's English name first ("Economics and Innovation in Planning") then the Indonesian one, a "Catat di Edunex"
+  button comes and goes, and its line changes ("Presensi sedang dibuka · 80 mnt" → "Sekarang · R.SG PWK LT.6 · 110
+  mnt"). Confirming run: 41381102345.
 - **2026-11-02 10:15: first-run failed on the merged perf work (run 41375320635), two finds.** (1) The Perlu kamu urus
   hold only watched the demo's own settling flag, so after a real sign-in's first read the cards still swapped (seen in
   first-run: 66%/100% under "Membaca SIX"); it now also holds while SIX or Edunex is on its first read (live, nothing
