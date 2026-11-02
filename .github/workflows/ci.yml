@@ -109,6 +109,9 @@ jobs:
           persist-credentials: false
       - name: Set up Node and packages
         uses: ./.github/actions/setup
+      # test/mobile reads the phone app's code, whose tsconfig extends Expo's: its packages too.
+      - name: Install the phone app's packages
+        run: npm ci --prefix mobile --no-audit --no-fund --ignore-scripts
       - name: Run the tests
         id: check
         # Failures become notes on their lines; the summary below replaces Vitest's own table.
@@ -244,3 +247,7 @@ jobs:
             pkg:npm/@img/sharp-libvips-linuxmusl-arm64, pkg:npm/@img/sharp-libvips-linuxmusl-x64,
             pkg:npm/@img/sharp-wasm32, pkg:npm/@img/sharp-win32-arm64, pkg:npm/@img/sharp-win32-ia32,
             pkg:npm/@img/sharp-win32-x64
+          # Expo's command line (mobile/) keeps its own zod 3 for its development server's DevTools plugin schema.
+          # The advisory (oversized collections can exhaust memory) is fixed only in zod 4, which that code doesn't
+          # use; it runs on the developer's computer, never in the APK, and never sees a Student's data.
+          allow-ghsas: GHSA-mrhx-c7xc-m3w5

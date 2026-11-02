@@ -196,6 +196,7 @@ jobs:
           else
             kind="Dev client: loads the app's JavaScript from Metro (\`npm run start\` or \`start:demo\` in mobile/)."
           fi
+          # shellcheck disable=SC2016 # the backticks are Markdown, written as they are
           printf '### %s.apk\n\n%s\n\n- For: %s\n- Size: %s\n- Artifact: `%s-apk`\n' "$NAME" "$kind" "$ABIS" "$size" "$NAME" >> "$GITHUB_STEP_SUMMARY"
 
   # The flows in mobile/flows on the demo release APK, on an Android emulator.
@@ -318,6 +319,7 @@ jobs:
             line="**The flows did not run** (no JUnit results). The job's log says why."
           fi
           [ "$OUTCOME" = success ] || line="**Some flows failed.** $line"
+          # shellcheck disable=SC2016 # the backticks are Markdown, written as they are
           printf '### Flows: %s\n\n%s Screenshots and logs: artifact `e2e-results-%s`.\n' "${{ matrix.group }}" "$line" "${{ matrix.group }}" >> "$GITHUB_STEP_SUMMARY"
 
   # The same-data score over every scenario that ran (check A in mobile/PROGRESS.md), in the run's summary.
@@ -396,4 +398,5 @@ jobs:
         run: |
           light=$(find "$RUNNER_TEMP/desktop-shots-light" -name '*.png' | wc -l)
           dark=$(find "$RUNNER_TEMP/desktop-shots-dark" -name '*.png' | wc -l)
+          # shellcheck disable=SC2016 # the backticks are Markdown, written as they are
           printf '### Desktop pictures\n\n%s light (`desktop-shots-light`), %s dark (`desktop-shots-dark`), from the demo'"'"'s made-up data.\n' "$light" "$dark" >> "$GITHUB_STEP_SUMMARY"

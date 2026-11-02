@@ -782,6 +782,12 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
+- **2026-11-02: one security exception in CI, yours to confirm.** The PR's first CI run (41395380915) failed the
+  dependency review on `zod@3.25.76`, a high-severity advisory (GHSA-mrhx-c7xc-m3w5: oversized collections can
+  exhaust memory) fixed only in zod 4. That copy is Expo's own, used only by its command line's development server
+  (the DevTools plugin schema): never in the APK, never fed a Student's data. Forcing Expo onto zod 4 risks breaking
+  it. So `ci.yml` now allows that one advisory, with the reason beside it. Proposed: keep it until Expo moves to zod
+  4, or say no and I'll try the override instead.
 - **2026-11-02 03:30: the desktop stalled a third time.** Every stall involved F:, an old laptop hard disk (Seagate
   ST9750420AS): `df`, `systeminfo` and anything touching it hung, unkillable. Proposed: (1) restart the desktop; (2)
   check F:'s health (CrystalDiskInfo's SMART: reallocated or pending sectors), and if it's failing, back up and retire
