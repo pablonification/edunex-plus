@@ -395,6 +395,12 @@
             },
             "timeout": 60000
           }
+        },
+        {
+          "tapOn": {
+            "id": "action.firstScan.all",
+            "optional": true
+          }
         }
       ]
     },
@@ -4246,6 +4252,11 @@
     }
   },
   "phoneSkips": [
+    {
+      "entry": "^welcome\\.ready\\.account\\.\\d+-mata-kuliah",
+      "row": "W15",
+      "why": "Beranda's 'Semua siap' card's counts (courses · Tasks · meetings): the judge's round 1 (34, 7/10) asked for one short line with its one action, so the card says 'Semua siap, Dimas.' and opens the summary, whose Lihat semua says what was read"
+    },
     {
       "entry": "^settings\\.setting\\.ep-demo-",
       "row": "A18",

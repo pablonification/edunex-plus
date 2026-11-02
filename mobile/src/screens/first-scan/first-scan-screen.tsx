@@ -1,7 +1,8 @@
 // The first-run scan (A8, #81, spec story 68), the desktop's dialog (src/app/shell/first-scan.tsx)
 // as a screen: once the first full sync of Edunex (and SIX when connected) is done, what the app
 // found. One title (the count, big, folding into the top bar on scroll), each finding as one line
-// that opens the screen showing it, the first few at once and the rest behind Lihat semua. Beranda's
+// that opens the screen showing it, the first few at once; Lihat semua shows them all with their
+// specifics and what the read took in. Beranda's
 // "Semua siap" opens it once; Settings opens it again. The findings come from src/core/first-scan.ts.
 import { type ComponentType, useState } from "react";
 import { type LayoutChangeEvent, View } from "react-native";
@@ -72,6 +73,9 @@ export function FirstScanScreen() {
           <Group>
             {shown.map((finding, i) => {
               const Icon: ComponentType<IconProps> = ICON[finding.kind];
+              const { title: line, lines, note } = describe(finding, t, f);
+              // Lihat semua: each finding's specifics under its line, quiet.
+              const more = all ? [...lines, ...(note ? [note] : [])] : [];
               return (
                 <GroupRow
                   key={finding.kind}
@@ -79,12 +83,18 @@ export function FirstScanScreen() {
                   testID={`row.finding.${finding.kind}`}
                   accessibilityRole="button"
                   leading={<IconTile tone={TONE[finding.tone]} icon={(color) => <Icon size={22} color={color} />} />}
-                  title={describe(finding, t, f).title}
+                  title={line}
                   onPress={() => go(finding.routes.find(isBuilt) ?? { screen: "home" })}
-                />
+                >
+                  {more.map((fact) => (
+                    <Text key={fact} size="bodyMedium" style={{ color: v.muted, marginTop: 2 }}>
+                      {fact}
+                    </Text>
+                  ))}
+                </GroupRow>
               );
             })}
-            {!all && findings.length > FIRST && (
+            {!all && (
               <GroupRow
                 testID="action.firstScan.all"
                 accessibilityRole="button"
@@ -102,6 +112,7 @@ export function FirstScanScreen() {
             <GroupRow first leading={<IconTile tone="ok" icon={(color) => <Icons.CheckCircle size={22} color={color} />} />} title={t("scan.empty")} />
           </Group>
         )}
+        {all && <ReadLine summary={summary} />}
       </Page>
       {/* Always in reach, however long the list. */}
       <View style={{ backgroundColor: v.page, paddingHorizontal: space.page, paddingTop: space[3], paddingBottom: space[3] + bottom }}>
@@ -110,5 +121,21 @@ export function FirstScanScreen() {
         </BigButton>
       </View>
     </View>
+  );
+}
+
+/** "Edunex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca": what the first read took in, under Lihat semua. */
+function ReadLine({ summary }: { summary: ReturnType<typeof scanSummary> }) {
+  const t = useT();
+  const f = useFormat();
+  const v = useTheme().v4;
+  if (!summary.read.length) return null;
+  const names = summary.connected.map((source) => t(`source.${source}`));
+  const read = [t("scan.read.courses", { count: summary.courses }), summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null].filter(Boolean);
+  const facts = [names.length ? t("scan.connected", { sources: f.list(names) }) : null, t("scan.read", { list: read.join(", ") })].filter(Boolean);
+  return (
+    <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[4], marginHorizontal: space[1] }}>
+      {facts.join(" · ")}
+    </Text>
   );
 }
