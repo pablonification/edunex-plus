@@ -71,7 +71,8 @@ export function useCourseTile(): (code: string | null | undefined) => { ink: str
   return (code) => theme.courseTile(tone(code));
 }
 
-export function CourseTile({ code, name, size = 44 }: { code: string; name: string | undefined; size?: number }) {
+/** `bare`: the tint alone, while the course's official name (which picks the glyph) is still coming. */
+export function CourseTile({ code, name, size = 44, bare = false }: { code: string; name: string | undefined; size?: number; bare?: boolean }) {
   const { ink, tint } = useCourseTile()(code);
   const Glyph = courseGlyph(name);
   return (
@@ -80,7 +81,7 @@ export function CourseTile({ code, name, size = 44 }: { code: string; name: stri
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), backgroundColor: tint, alignItems: "center", justifyContent: "center" }}
     >
-      <Glyph size={Math.round(size * 0.52)} color={ink} weight="duotone" duotoneOpacity={0.35} />
+      {!bare && <Glyph size={Math.round(size * 0.52)} color={ink} weight="duotone" duotoneOpacity={0.35} />}
     </View>
   );
 }

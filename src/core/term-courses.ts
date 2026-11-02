@@ -18,6 +18,8 @@ export interface TermCourseBase {
   /** The Edunex course pages, when the course has them. */
   edunex: Course["edunex"] | null;
   inSix: boolean;
+  /** Its name is the official one, SIX's or ITB's catalog's, not Edunex's (which can be in English). */
+  official: boolean;
 }
 
 /**
@@ -70,6 +72,7 @@ export function termCourses(input: {
     attendance: null,
     edunex: course.edunex,
     inSix: false,
+    official: official.has(course.code),
   });
   if (!six) return edunex?.map(fromEdunex);
   // Edunex courses of another term, or not in SIX at all, are left out: SIX says what the Student takes.
@@ -88,6 +91,7 @@ export function termCourses(input: {
       attendance: course.attendance,
       edunex: match?.edunex ?? null,
       inSix: true,
+      official: true,
     };
   });
   if (!six.incomplete) return listed;
