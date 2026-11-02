@@ -234,8 +234,11 @@ export const V4 = {
 } as const;
 export type V4Palette = { [K in keyof (typeof V4)["light"]]: string };
 
-/** Today's red (v4's `--now`): the today mark and the now-line, its one meaning; `on` reads on its circle. */
+/**
+ * Today's colour: the today mark and the now-line, its one meaning; `on` reads on its circle. The brand's blue (v4's
+ * `brand`), never the error red: red on Jadwal read as something wrong (judge, round 2).
+ */
 export const NOW = {
-  light: { now: "#d22e24", on: "#ffffff" },
-  dark: { now: "#ff6b5e", on: "#3a0603" },
+  light: { now: "#1f63e0", on: "#ffffff" },
+  dark: { now: "#a9c4ff", on: "#0a2a66" },
 } as const;

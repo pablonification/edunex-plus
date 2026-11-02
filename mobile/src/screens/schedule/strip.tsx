@@ -1,5 +1,5 @@
 // The week strip over Jadwal's day (v4): the week's seven days, a dot under each in the ink of every course that meets
-// that day, today in red (its one meaning on the screen, with the now-line), the day picked, when it isn't today, in the
+// that day, today in the brand's blue (its one meaning on the screen, with the now-line), the day picked, when it isn't today, in the
 // brand's tint. A tap picks a day; a swipe across the strip moves a week.
 import { memo } from "react";
 import { View } from "react-native";

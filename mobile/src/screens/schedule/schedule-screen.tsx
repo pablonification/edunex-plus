@@ -1,20 +1,21 @@
 // Jadwal (round 2, v4: mobile/design/r2-directions/v4, "v4-jadwal"): where am I next, and what's this week like. The
 // month is the screen's one title, the term's week quietly under it; the week strip with each day's courses as dots,
-// today in red; then the day picked (today first) as hours with each class a block in its course's tint, the now-line in
-// red. A swipe across the day moves a day, across the strip a week. A class opens Beranda's class sheet (one sheet for a
-// class, wherever it's opened); a hand-in, a deadline or a meeting only Edunex announced opens its own (./details.tsx).
+// today in the brand's blue; then the day picked (today first) as hours with each class a block in its course's tint,
+// the now-line in the same blue. A swipe across the day moves a day, across the strip a week. A class opens Beranda's
+// class sheet (one sheet for a class, wherever it's opened); a hand-in, a deadline or a meeting only Edunex announced
+// opens its own (./details.tsx).
 // The month is the top bar's calendar button; the reminder before class, the phone's calendar and the .ics are in ⋮.
 // Data and reasoning are the desktop's (scheduleDays over the same input); the minute's tick reaches only the now-line
 // and the block on now (./clock.ts).
 import * as Notifications from "expo-notifications";
-import { router, useScrollToTop } from "expo-router";
+import { router, useIsFocused, useScrollToTop } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTermCourses } from "../../../../src/app/courses";
-import { useLang, useT } from "../../../../src/app/i18n";
+import { useClock, useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useSettings, useStatus } from "../../../../src/app/store";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { isEmptyDay, minuteOfDay, type ScheduleDay, scheduleDays, shiftDay, termWeek, weekStart } from "../../../../src/core/schedule";
@@ -155,8 +156,9 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
 }
 
 /**
- * The day, scrolling down its hours: opens where it matters (today: an hour before now; another day: its first class),
- * pulls to refresh, and moves a day on a swipe across it. A new day comes in from the side it was swiped from.
+ * The day, scrolling down its hours: opens where it matters (today: an hour before now, so the now-line and the class
+ * on now are in view each time Jadwal is opened; another day: its first class), pulls to refresh, and moves a day on a
+ * swipe across it. A new day comes in from the side it was swiped from.
  */
 function DayScroll({
   day,
@@ -177,6 +179,8 @@ function DayScroll({
 }) {
   const theme = useTheme();
   const still = useReduceMotion();
+  const clock = useClock();
+  const focused = useIsFocused();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   useScrollToTop(scroll);
   const swipe = usePanGesture({
@@ -190,11 +194,15 @@ function DayScroll({
     },
   });
   const { from } = hoursOf(day);
-  const y = Math.max(0, ((openAt(day, today) - from * 60) / 60) * HOUR);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new day scrolls to its place even when it's the same height as the last
+  // Now from the app's clock, as the now-line reads it (the demo's is not the phone's): the phone's own time opened the
+  // day hours away from the now-line.
+  const y = Math.max(0, ((openAt(day, today, clock.now()) - from * 60) / 60) * HOUR);
+  const items = day.classes.length + day.outside.length + day.edunex.length;
+  // A new day, its classes coming in, or Jadwal shown again (the tab is drawn ahead, maybe long before): to its place.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `y` moves with the minute, and a tick shouldn't scroll the day under the Student
   useEffect(() => {
-    scroll.current?.scrollTo({ y, animated: false });
-  }, [day.day, y]);
+    if (focused) scroll.current?.scrollTo({ y, animated: false });
+  }, [day.day, items, from, focused]);
   // With less motion asked for (Android's "Remove animations"), a new day just appears: a fade in its place was
   // left at nothing on the emulator with animations off, a blank day under the strip.
   const entering =
@@ -233,12 +241,12 @@ function DayScroll({
  * The minute the day opens at: today an hour before now, another day 20 minutes before its first class. Never inside a
  * block: one the top would cut (the class on now, a long one before it) is shown whole, from 20 minutes before it.
  */
-function openAt(day: ScheduleDay, today: string): number {
+function openAt(day: ScheduleDay, today: string, now: number): number {
   const spans = [...day.classes.map((c) => c.session), ...day.outside, ...day.edunex].map(
     (s) => [minuteOfDay(s.start), minuteOfDay(s.start) + (s.end - s.start) / 60_000] as const,
   );
   const first = Math.min(...spans.map(([start]) => start));
-  let target = day.day === today ? minuteOfDay(Date.now()) - 60 : Number.isFinite(first) ? first - 20 : hoursOf(day).from * 60;
+  let target = day.day === today ? minuteOfDay(now) - 60 : Number.isFinite(first) ? first - 20 : hoursOf(day).from * 60;
   for (;;) {
     const cut = spans.filter(([start, end]) => start < target && target < end).map(([start]) => start);
     if (!cut.length) return target;

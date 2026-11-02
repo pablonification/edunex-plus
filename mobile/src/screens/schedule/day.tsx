@@ -1,6 +1,6 @@
 // One day of Jadwal as v4 draws it (mobile/design/r2-directions/v4, "v4-jadwal"): the hours down the left, each class a
 // block in its course's tint at its time and length (its glyph, a short name, the room), two that overlap side by side,
-// the part of a class already gone a shade deeper, and today's now-line in red. Above the hours, only when there's
+// the part of a class already gone a shade deeper, and today's now-line in the brand's blue. Above the hours, only when there's
 // something: ITB's period ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's hand-ins
 // and deadlines, a line each. A block shows at most one status, as an icon (a clash, a new time, not in SIX); the
 // absences, the words, the code, the times and the rest are on its sheet (Beranda's class sheet). The minute's tick
@@ -197,7 +197,7 @@ function HourLine({ hour, from, hideLabel }: { hour: number; from: number; hideL
   );
 }
 
-/** Today's now-line: red, with its time where the hour labels are; moves once a minute. */
+/** Today's now-line: the brand's blue, with its time where the hour labels are; moves once a minute. */
 function NowLine({ from, to }: { from: number; to: number }) {
   const t = useTheme();
   const f = useDayFormat();
@@ -234,9 +234,9 @@ function NowLine({ from, to }: { from: number; to: number }) {
   );
 }
 
-/** Today's red (v4's `--now`): the today mark and the now-line, its one meaning. */
+/** Today's colour (the brand's blue): the today mark and the now-line, its one meaning. */
 export const nowColour = (scheme: "light" | "dark") => NOW[scheme].now;
-/** What reads on today's red circle. */
+/** What reads on today's circle. */
 export const onNowColour = (scheme: "light" | "dark") => NOW[scheme].on;
 
 type Status = { icon: (typeof Icons)[keyof typeof Icons]; tone: "amber" | "quiet"; words: string };

@@ -98,7 +98,7 @@ const PAIRS: Pair[] = [
   ...each("v4.ambFg", (t) => t.v.ambFg, SURFACES, TEXT, "course/attendance-line.tsx, widget"),
   ...each("v4.brand", (t) => t.v.brand, SURFACES, MARK, "unread dot, radio, checkbox, switch on"),
   ...each("v4.live", (t) => t.v.live, SURFACES, MARK, "PulseDot"),
-  ...each("today's red", (t) => t.now.now, SURFACES, TEXT, "schedule/day.tsx now-line time, strip.tsx, widget"),
+  ...each("today's colour", (t) => t.now.now, SURFACES, TEXT, "schedule/day.tsx now-line time, strip.tsx, widget"),
   ["onSurfaceVariant on sunken", (t) => t.c.onSurfaceVariant, (t) => t.c.sunken, TEXT, "screens/home/needs.tsx"],
   ["successFg on sunken", (t) => t.c.successFg, (t) => t.c.sunken, TEXT, "screens/home/needs.tsx"],
   ["faint on surfaceContainerHigh (placeholder)", (t) => t.c.faint, (t) => t.c.fill, TEXT, "licences-screen.tsx"],
@@ -168,7 +168,7 @@ const PAIRS: Pair[] = [
   ["v4.muted at 0.8 on v4.card (pips)", (t) => over(t.v.muted, t.v.card, 0.8), card, MARK, "home/class-sheet.tsx"],
 
   // Today's red.
-  ["onNow on today's red", (t) => t.now.on, (t) => t.now.now, TEXT, "schedule/strip.tsx, month.tsx"],
+  ["onNow on today's colour", (t) => t.now.on, (t) => t.now.now, TEXT, "schedule/strip.tsx, month.tsx"],
 
   // The course tiles: the ink on its tint and on a card, the words on the tint, every colour and the grey.
   ...[...COURSES, "grey" as const].flatMap((id): Pair[] => {

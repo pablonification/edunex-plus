@@ -59,9 +59,9 @@ export function todayDrawing(model: WidgetModel, size: WidgetSize): { light: Rea
  * widget's "now" says what to do. What doesn't fit the height is left out, the class on now and the next first.
  */
 function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetSize; theme: Theme }) {
-  // v4's look: the card surface, each course in its ink, today's red on the heading, the class on now in the live green.
+  // v4's look: the card surface, each course in its ink, today's blue on the heading, the class on now in the live green.
   const v = theme.v4;
-  const red = NOW[theme.scheme].now;
+  const todayInk = NOW[theme.scheme].now;
   const today = model.today;
   if (!today)
     return (
@@ -85,7 +85,7 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
   return (
     <Frame theme={theme} surface={v.card}>
       <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: 4 }}>
-        <Text text={today.heading} size="micro" color={red} bold />
+        <Text text={today.heading} size="micro" color={todayInk} bold />
         {today.none ? <Plain line={today.none} color={v.muted} /> : null}
         {lines.map((one) => (
           <FlexWidget
