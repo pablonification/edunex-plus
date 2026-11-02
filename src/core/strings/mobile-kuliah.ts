@@ -39,9 +39,8 @@ export const mobileKuliahStrings = {
 export const mobileCourseStrings = {
   // A course's page. Its tab for Tasks and exams, short enough for five tabs.
   "mobile.course.tab.tasks": { id: "Tugas", en: "Tasks" },
-  // Under the attendance card's big percent.
-  "mobile.course.share": { id: "{attended} dari {held} · target {target}%", en: "{attended} of {held} · target {target}%" },
-  "mobile.course.cardHint": { id: "Buka rincian kehadiran", en: "Opens attendance details" },
+  // The course's attendance on one line under its title, before what's left of the absences ("85% hadir · Sisa 1×").
+  "mobile.course.attended": { id: "{percent}% hadir", en: "{percent}% attended" },
   "mobile.course.aboutHint": { id: "Buka rincian mata kuliah", en: "Opens the course's details" },
   // The one exception, in a few words on the card; the whole of it is in the sheet.
   "mobile.course.ex.uncounted": { id: "Ada yang tak tercatat?", en: "A class not counted?" },

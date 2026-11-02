@@ -1,24 +1,20 @@
-// A course's attendance on its page (round 2, v4): one white card led by the share attended as a big number (the
-// count and the target under it), then W4's row (what's left of the absences as a chip, the next class beside it) and
-// the one exception in a few words. The card is one target: the course's sheet (./course-sheet.tsx) says it all, the
-// exception's whole sentence and its way back too. Kuliah's row (src/screens/presence/course-row.tsx) uses budgetChip.
+// A course's attendance on its page (round 2, v4; judge round 3): one line under the course's title, the share
+// attended and what's left of the absences ("85% hadir · Sisa 1×"), and the one exception in a few words. The header
+// is one target: the course's sheet (./course-sheet.tsx) says it all, the count, the target, the exception's whole
+// sentence and its way back too. Kuliah's row (src/screens/presence/course-row.tsx) uses budgetChip.
 // Words and figures are the desktop's (src/app/screens/presence.tsx's CourseRow and Exception).
+import type { ReactNode } from "react";
 import { View } from "react-native";
 import type { CourseAttendance } from "../../../../src/app/attendance";
 import { budgetLabel, budgetWords, useActionLabel } from "../../../../src/app/attendance-labels";
-import { type Format, type Translate, useFormat, useT } from "../../../../src/app/i18n";
-import { firstUnreadDay, isExamActivity, onUsualSlot, type PresenceGroup, percent, presenceGroup } from "../../../../src/core/attendance";
+import { useFormat, useT } from "../../../../src/app/i18n";
+import { isExamActivity, onUsualSlot, type PresenceGroup, percent, presenceGroup } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
-import { dayNoon } from "../../../../src/core/schedule";
 import { type AbsenceTone, absenceInk, absenceTone } from "../../ui/absence";
-import { CountUp } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
-import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { StatusChip } from "../../ui/v4-list";
-import { useCardStyle } from "../home/now";
 import { classOf, dayLabel, GONE_FOR, type RowContext, sideText, uncertainText, windowWhen } from "../presence/logic";
 
 /** The chip's tone: the app's absence scale (src/ui/absence.ts), grey before SIX has a count. */
@@ -39,105 +35,60 @@ export function budgetChip(t: ReturnType<typeof useT>, group: PresenceGroup, hea
 }
 
 /**
- * The next class, short: "Hari ini, 16:00–17:50 · 9134"; a class the app couldn't read first. One on now isn't said:
- * the now card under the attendance card is that class.
+ * The course's attendance as one line under its title, "85% hadir · Sisa 1×" (judge round 3: no card of its own): the
+ * share so far (red once the target is out of reach, amber with no absences left), then the chip's few words in their
+ * tone; the one exception in a few words under it, if any. The next class is the row under the header (./now.tsx).
+ * `label`: the whole of it for a screen reader, the count and the target too (the course's sheet shows them).
  */
-export function nextClassParts(t: Translate, f: Format, item: CourseAttendance, context: RowContext): { parts: string[]; start: number | null } {
-  if (context.signedOut) return { parts: [], start: null };
-  const at = classOf(item, context);
-  if (at?.live) return { parts: [], start: null };
-  const unreadDay = firstUnreadDay(context.unread, context.schedule, context.now, at?.start ?? null, item.course.code);
-  if (unreadDay) return { parts: [t("home.now.unread", { day: f.relativeDay(dayNoon(unreadDay)) })], start: null };
-  if (!at) return { parts: [], start: null };
-  const time = at.session ? f.timeRange(at.session.start, at.session.end) : f.time(at.start);
-  return { parts: [`${f.relativeDay(at.start)}, ${time}`, at.session?.room ?? ""].filter(Boolean), start: at.start };
-}
-
-/**
- * The course's attendance card: the share so far as the one big number (red once the target is out of reach, amber
- * with no absences left), "2 dari 6 · target 80%" under it; then the chip and the next class in one row; then the one
- * exception in a few words. A tap opens the course's sheet.
- */
-export function AttendanceCard({ item, context, onOpen }: { item: CourseAttendance; context: RowContext; onOpen: () => void }) {
+export function useAttendanceLine(item: CourseAttendance | undefined, context: RowContext | undefined): { node: ReactNode; label: string } | null {
   const t = useT();
-  const f = useFormat();
   const v = useTheme().v4;
-  const surface = useCardStyle();
-  const { health, course } = item;
-  const chip = budgetChip(t, presenceGroup(health, context.signedOut), health, context);
-  const next = nextClassParts(t, f, item, context).parts;
-  // Tandai Hadir not out yet isn't said here: the now card under this one is that class, with its button.
   const found = useCourseException(item, context);
+  if (!item || !context) return null;
+  const { health } = item;
+  const chip = budgetChip(t, presenceGroup(health, context.signedOut), health, context);
+  // Tandai Hadir not out yet isn't said here: the now card under the header is that class, with its button.
   const exception = found?.kind === "watching" ? null : found;
   const held = health.held ?? 0;
   const share = held > 0 ? percent(health.attended ?? 0, held) : null;
+  if (share === null && !chip && !exception) return null;
   const over = health.state === "met" || health.state === "missed";
-  if (share === null && !chip && !next.length && !exception) return null;
   const count =
     share === null
       ? null
       : over
         ? t("presence.row.final", { percent: share })
         : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share });
-  // Red once the target is out of reach, amber with no absences left (src/ui/absence.ts); plain while there are some.
   const tone = absenceTone(health.state);
-  const color = tone === "red" || tone === "amber" ? absenceInk(v, tone).fg : v.fg;
-  const label = [count, share !== null ? t("presence.row.ownTarget", { value: health.target }) : null, chip?.label, next.join(", "), exception?.short]
+  const shareColor = tone === "red" || tone === "amber" ? absenceInk(v, tone).fg : v.fg2;
+  const chipColor = !chip || chip.tone === "neutral" ? v.muted : absenceInk(v, chip.tone).fg;
+  const label = [count, share !== null ? t("presence.row.ownTarget", { value: health.target }) : null, chip?.label, exception?.short]
     .filter(Boolean)
     .join(". ");
-  return (
-    <PressScale
-      onPress={onOpen}
-      accessibilityLabel={label}
-      accessibilityHint={t("mobile.course.cardHint")}
-      testID="meter.courseAttendance"
-      style={[surface, { padding: space[4], gap: space[3] }]}
-    >
-      {share !== null && (
-        <View>
-          <View style={{ flexDirection: "row", alignItems: "baseline" }}>
-            <CountUp
-              id={`course:${course.code}:share`}
-              value={share}
-              style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, lineHeight: 46, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
-            />
-            <Text size="titleLarge" face="display" weight="bold" style={{ color, fontSize: 20 }}>
-              %
+  const node = (
+    <View style={{ marginTop: space[2], gap: space[1] }}>
+      {(share !== null || chip) && (
+        <Text testID="meter.courseAttendance" size="bodyMedium" weight="semibold" tabular numberOfLines={1}>
+          {share !== null ? <Text style={{ color: shareColor }}>{t("mobile.course.attended", { percent: share })}</Text> : null}
+          {share !== null && chip ? <Text style={{ color: v.muted }}>{" · "}</Text> : null}
+          {chip ? (
+            <Text testID="line.courseBudget" style={{ color: chipColor }}>
+              {chip.text}
             </Text>
-          </View>
-          <Text size="bodyMedium" tabular style={{ color: v.muted }}>
-            {t("mobile.course.share", { attended: health.attended ?? 0, held, target: health.target })}
-          </Text>
-        </View>
-      )}
-      {(chip || next.length > 0) && (
-        <View
-          testID="line.courseBudget"
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[3],
-            ...(share !== null ? { borderTopWidth: 1, borderTopColor: v.line, paddingTop: space[3] } : {}),
-          }}
-        >
-          {chip && <StatusChip tone={chip.tone}>{chip.text}</StatusChip>}
-          {next.length > 0 && (
-            <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg2, flex: 1 }}>
-              {next.join(" · ")}
-            </Text>
-          )}
-        </View>
+          ) : null}
+        </Text>
       )}
       {exception && (
         <View testID="note.courseException" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-          <ExceptionIcon exception={exception} size={16} />
-          <Text size="bodyMedium" style={{ color: exception.tone === "warning" ? v.ambFg : v.muted, flex: 1 }}>
+          <ExceptionIcon exception={exception} size={14} />
+          <Text size="bodyMedium" numberOfLines={1} style={{ color: exception.tone === "warning" ? v.ambFg : v.muted, flex: 1 }}>
             {exception.short}
           </Text>
         </View>
       )}
-    </PressScale>
+    </View>
   );
+  return { node, label };
 }
 
 export interface CourseExceptionNote {
@@ -162,10 +113,11 @@ export function ExceptionIcon({ exception, size }: { exception: CourseExceptionN
  * through?"); out of reach or finished below, with the fix; the target hanging on a class that may not run; a clash
  * with which to go to; what the next class's Edunex window asks; that the next class may not run; a lab's own rules.
  */
-export function useCourseException(item: CourseAttendance, context: RowContext): CourseExceptionNote | null {
+export function useCourseException(item: CourseAttendance | undefined, context: RowContext | undefined): CourseExceptionNote | null {
   const t = useT();
   const f = useFormat();
   const actionLabel = useActionLabel();
+  if (!item || !context) return null;
   const { course, health, nextWindow } = item;
   const { now, student, checkIns, zone } = context;
   if (context.signedOut) return null;
