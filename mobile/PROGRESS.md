@@ -164,6 +164,19 @@ motion and onboarding are open. The desktop is a reference for data only.
 - **2026-11-02 10:50: the desktop and the Mac are both unreachable** (T3 links: "did not answer"). The weak-phone
   numbers, the rest of the FAST table and the at-rest redraw's measured proof wait for one of them. CI and Redroid
   (quick looks only) carry on.
+- **2026-11-02 11:20: the saved-start A/B on Redroid (comparative only; 3 restarts each, the JS blocks in the first
+  15 s).** `mobile` (37a4311): Beranda with its data at 1093–1175 ms, then blocks of 437–510, 589–639, 896–995,
+  895–987 and 937–997 ms. `mobile-lazy-tabs` (b25d69b): Beranda with its data at 655–786 ms (about 400 ms sooner),
+  but the ~1 s blocks stay (1007–1126, 899–967, 929–973 ms). So the four hidden tabs drawing at once weren't the
+  freeze. The ~1 s blocks each come right after an `itb.catalog` change (SIX's public catalog, 87 KB, saved whole
+  per page: three passes over it to hash and write), and between them each catalog page costs ~58 ms. The engine's
+  alerts are ruled out: in Node, their work on 15 catalog events took 0.1 ms in all. Next: build 41387462664 (lazy
+  tabs, plus a stall now names the dataset the screens just heard of) says which redraw takes the second.
+- **2026-11-02 11:00: the at-rest redraw, solved by the perf merge.** On Redroid with `mobile` (37a4311), after a tab
+  tap: the first 10 s draw the switch (104 frames), then 0 frames in every 10 s window for a minute (Akademik; Jadwal
+  also 0). The ~3 fps measured earlier was the tail of each tap, measured 6 s after it. "Show view updates" showed only
+  the picked tab's item redrawing in that tail. Beranda and Tugas draw ~15 fps for the wave they show, and only while
+  in front (49622f7).
 - **2026-11-02 10:15: first-run failed on the merged perf work (run 41375320635), two finds.** (1) The Perlu kamu urus
   hold only watched the demo's own settling flag, so after a real sign-in's first read the cards still swapped (seen in
   first-run: 66%/100% under "Membaca SIX"); it now also holds while SIX or Edunex is on its first read (live, nothing
