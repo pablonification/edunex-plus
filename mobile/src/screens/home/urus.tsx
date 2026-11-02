@@ -11,6 +11,7 @@ import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Translate, useNow, useT } from "../../../../src/app/i18n";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
+import { useStatus } from "../../../../src/app/store";
 import { rupiah } from "../../../../src/core/academic";
 import { percent } from "../../../../src/core/attendance";
 import { taskPutAway } from "../../../../src/core/done";
@@ -100,7 +101,13 @@ export function Urus({ needs, due, courses }: { needs: readonly NeedDraft[]; due
       .filter((card): card is UrusCard => card !== null)
       .slice(0, 2);
   }, [needs, due, entries, handled, now, t, courses]);
-  const reading = useSettling();
+  // The demo's first sync, or a source's first read after a sign-in (live, nothing read yet). Not "connecting": a
+  // source stuck there (offline) would hold the cards forever.
+  const settling = useSettling();
+  const six = useStatus("six");
+  const edunex = useStatus("edunex");
+  const firstRead = (status: typeof six) => status.state === "live" && status.updatedAt === null;
+  const reading = settling || firstRead(six) || firstRead(edunex);
   // Nothing to handle: the section's cards go, a single quiet line stays as the way to the whole list (what's put off,
   // the date and term, what changed).
   if (!cards.length && !reading)

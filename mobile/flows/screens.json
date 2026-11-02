@@ -103,6 +103,39 @@
             }
           },
           {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.academic"
+              },
+              "timeout": 5000,
+              "optional": true
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "screen.academic"
+                }
+              },
+              "commands": [
+                {
+                  "tapOn": {
+                    "id": "tab.academic"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "action.account"
+              },
+              "timeout": 10000
+            }
+          },
+          {
             "tapOn": {
               "id": "action.account"
             }
