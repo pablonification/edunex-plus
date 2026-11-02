@@ -1,12 +1,11 @@
-// The hand-off page, mobile/report/index.html: every flow a Student goes through, the phone beside the
-// desktop, light and dark, all from the demo's made-up student. The pictures are CI's own (the e2e "app"
-// job's judge walk, mobile/flows/judge/walk.yaml, and the desktop-shots job, scripts/demo/capture.mjs),
-// made small here (WebP) so the page stays light in the repository:
+// The hand-off page, mobile/report/index.html: every flow a Student goes through, round 1 beside round 2
+// (v4), light and dark, all from the demo's made-up student. The new pictures are CI's own (the e2e "app"
+// job's judge walk, mobile/flows/judge/walk.yaml), made small here (WebP) into mobile/report/img/after so
+// the page stays light in the repository; round 1's are the lab's, already in mobile/report/img/before:
 //
-//   node mobile/scripts/make-report.mjs <phone-light> <phone-dark> <desktop-light> <desktop-dark>
+//   node mobile/scripts/make-report.mjs <judge-light> <judge-dark>
 //
-// where each is a folder of PNGs: the phone's "light-01-beranda.png", the desktop's "01-beranda.png".
-// The words around the pictures are in mobile/report/text.mjs.
+// where each is a folder of the walk's PNGs ("light-01-beranda.png"). The words are in mobile/report/text.mjs.
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
@@ -14,8 +13,8 @@ import { FLOWS, SECTIONS, TITLE } from "../report/text.mjs";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
 const out = path.join(root, "mobile/report");
-const [phoneLight, phoneDark, desktopLight, desktopDark] = process.argv.slice(2);
-if (!desktopDark) throw new Error("Usage: make-report.mjs <phone-light> <phone-dark> <desktop-light> <desktop-dark>");
+const [phoneLight, phoneDark] = process.argv.slice(2);
+if (!phoneDark) throw new Error("Usage: make-report.mjs <judge-light> <judge-dark>");
 
 // Any Chromium Playwright already downloaded will do (CHROMIUM=<path> to pick one), as make-icons.mjs.
 const { chromium } = createRequire(path.join(root, "package.json"))("playwright-core");
@@ -52,28 +51,30 @@ async function shrink(file, width, to) {
   return `img/${to}`;
 }
 
-fs.rmSync(path.join(out, "img"), { recursive: true, force: true });
-fs.mkdirSync(path.join(out, "img"), { recursive: true });
+// Only this page's own pictures are made again; img/before and the helpers' folders stay.
+fs.rmSync(path.join(out, "img/after"), { recursive: true, force: true });
+fs.mkdirSync(path.join(out, "img/after"), { recursive: true });
 
 const htmlText = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const figure = (src, alt, kind) =>
+const figure = (src, alt, label) =>
   src
-    ? `<figure class="${kind}"><img src="${src}" alt="${htmlText(alt)}" loading="lazy"><figcaption>${kind === "phone" ? "HP" : "Desktop"}</figcaption></figure>`
-    : `<figure class="${kind} none"><p>No ${kind} picture</p></figure>`;
+    ? `<figure class="phone"><img src="${src}" alt="${htmlText(alt)}" loading="lazy"><figcaption>${label}</figcaption></figure>`
+    : `<figure class="phone none"><p>No picture</p></figure>`;
 
 const flows = [];
 for (const flow of FLOWS) {
   const rows = [];
   for (const shot of flow.shots) {
     const pairs = [];
-    for (const [theme, phoneDir, desktopDir] of [
-      ["light", phoneLight, desktopLight],
-      ["dark", phoneDark, desktopDark],
+    for (const [theme, phoneDir] of [
+      ["light", phoneLight],
+      ["dark", phoneDark],
     ]) {
-      const phone = await shrink(path.join(phoneDir, `${theme}-${shot.phone}.png`), 300, `${theme}-${shot.phone}-phone.webp`);
-      const desktop = shot.desktop ? await shrink(path.join(desktopDir, `${shot.desktop}.png`), 560, `${theme}-${shot.desktop}-desktop.webp`) : null;
+      const after = await shrink(path.join(phoneDir, `${theme}-${shot.phone}.png`), 300, `after/${theme}-${shot.phone}.webp`);
+      const beforeFile = shot.before ? `img/before/mid-${theme}-${shot.before}.webp` : null;
+      const before = beforeFile && fs.existsSync(path.join(out, beforeFile)) ? beforeFile : null;
       pairs.push(
-        `<div class="pair ${theme}"><h4>${theme === "light" ? "Terang" : "Gelap"}</h4>${figure(phone, `${shot.caption}, HP, ${theme}`, "phone")}${shot.desktop ? figure(desktop, `${shot.caption}, desktop, ${theme}`, "desktop") : ""}</div>`,
+        `<div class="pair ${theme}"><h4>${theme === "light" ? "Light" : "Dark"}</h4>${before ? figure(before, `${shot.caption}, round 1, ${theme}`, "Round 1") : ""}${figure(after, `${shot.caption}, round 2, ${theme}`, "Round 2 (v4)")}</div>`,
       );
     }
     rows.push(`<div class="shot"><h3>${htmlText(shot.caption)}</h3><div class="pairs">${pairs.join("")}</div></div>`);
@@ -112,7 +113,7 @@ const html = `<!doctype html>
 <body>
 <main>
 ${SECTIONS.top}
-<nav><h2>Every flow, step by step</h2><ul>${FLOWS.map((flow) => `<li><a href="#${flow.id}">${htmlText(flow.title)}</a></li>`).join("")}</ul></nav>
+<nav><h2>Every screen, round 1 and round 2</h2><ul>${FLOWS.map((flow) => `<li><a href="#${flow.id}">${htmlText(flow.title)}</a></li>`).join("")}</ul></nav>
 ${flows.join("\n")}
 ${SECTIONS.bottom}
 </main>
