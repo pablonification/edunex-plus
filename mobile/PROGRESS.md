@@ -208,6 +208,15 @@ motion and onboarding are open. The desktop is a reference for data only.
   Android launch dropped right after the test cleared the app (11:30:38 the link, no process until the next link at
   11:32:39): the welcome and first-scan routes now retry their start like every other route (0332fc3). Confirming
   run: 41401545153.
+- **2026-11-02 16:40: Arqila: "go nuts in these 2 hours, use my Mac". The Mac runs seven threads at once:**
+  `mobile-r2-fast-mac` (Dev 1: cleaned the Mac, then FAST on its emulators, weak first), `mobile-r2-a11y` (Contact:
+  contrast of every colour pair and 48 dp targets, as tests), the judge's fixes in four (`mobile-r2-fix-first-run`
+  and `-jadwal` on Codex gpt-6-luna, `-beranda` on Contact, `-tugas` on Dev 1), and Arqila's own thread. Merged
+  already: `mobile-r2-first-read` (44ed7eb), the now card holds still through the first read (6 to 40 s, no English
+  name, no stray button, no line flip; a grey shape for about a second before the data). The start's ~410 ms block
+  (Redroid) isn't a hidden tab (labelled e5e3c9c, on `mobile-lazy-tabs`): it follows the engine's start, whose saved
+  data takes 52 ms to load and check in Node (zod 16 ms of it), so likely that and the first alert plan on Hermes.
+  Left for a profiler on a device.
 - **2026-11-02 10:15: first-run failed on the merged perf work (run 41375320635), two finds.** (1) The Perlu kamu urus
   hold only watched the demo's own settling flag, so after a real sign-in's first read the cards still swapped (seen in
   first-run: 66%/100% under "Membaca SIX"); it now also holds while SIX or Edunex is on its first read (live, nothing
@@ -461,6 +470,7 @@ draws itself, a haptic), a swipe that commits, Tandai Hadir done. Reduce Motion 
 
 | Round | Code | Screens judged | Scores | High/medium left |
 | --- | --- | --- | --- | --- |
+| 1 (round 2) | 0332fc3 (CI 41401545153's judge walk) | all 37, light and dark | 27/37 at 8+ in light, 27/37 in dark (judge: Codex gpt-6-luna, high) | under 8: 35 Temuan 5.5, 37 Jadwal without SIX 5, 02b Perlu kamu urus 6, 33 Beranda while reading 6.5 (its "Membaca" line 2.54:1), 04 Task 7, 08 class sheet 7, 34 Semua siap 7, 01 Beranda 7.5 (57 words), 03 Tugas 7.5 (50 words), 32 welcome 7.5. No touch target under 48 dp. Fixes handed out on the Mac (Helpers) |
 
 ### Helpers (round 2, on the desktop)
 
