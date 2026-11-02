@@ -100,6 +100,11 @@
     "phone": "Presensi belum dibuka. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir."
   },
   {
+    "key": "home.need.task.edited",
+    "desktop": "Diubah dosen setelah kamu kumpulkan · cek lagi",
+    "phone": "Diubah dosen · cek lagi"
+  },
+  {
     "key": "ics.handIn.note",
     "desktop": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.",
     "phone": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini."
