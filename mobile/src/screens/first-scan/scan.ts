@@ -4,11 +4,12 @@
 import { useMemo } from "react";
 import { type Format, type Translate, useNow } from "../../../../src/app/i18n";
 import { useSaved } from "../../../../src/app/saved";
-import { useSettings, useStatus } from "../../../../src/app/store";
+import { useSettings, useSignInStep, useStatus } from "../../../../src/app/store";
 import { percent } from "../../../../src/core/attendance";
+import type { SignInStep } from "../../../../src/core/contract";
 import { takeHomeOnly } from "../../../../src/core/exam-sources";
 import { type Finding, firstScan, scanReady } from "../../../../src/core/first-scan";
-import type { DatasetName } from "../../../../src/core/models";
+import type { DatasetName, SourceStatus } from "../../../../src/core/models";
 import { dayAt, dayWord, together } from "../../parts/day-word";
 import { factsLabel } from "../../ui/layout";
 
@@ -38,13 +39,27 @@ const SCANNED: readonly DatasetName[] = [
 /** Lines say at most this many courses, exams or meetings, then "and N more". */
 const SHOWN = 3;
 
-/** Whether the first read is in (Beranda's card says so), and its counts: without working out the findings. */
-export function useScanReady() {
-  const saved = useSaved(SCANNED);
+/**
+ * The three sources as the first read counts them: a system still signing in (the app's own try for SIX right after the
+ * Student signed in to Edunex, on the same Microsoft session) is coming, not signed out. Counted as signed out, Edunex's
+ * read alone looked like the whole first read: Beranda's "Semua siap" came, then went as SIX joined.
+ */
+export function useReadStatuses(): SourceStatus[] {
   const edunex = useStatus("edunex");
   const six = useStatus("six");
   const itb = useStatus("itb");
-  const statuses = useMemo(() => [edunex, six, itb], [edunex, six, itb]);
+  const edunexStep = useSignInStep("edunex");
+  const sixStep = useSignInStep("six");
+  return useMemo(() => [coming(edunex, edunexStep), coming(six, sixStep), itb], [edunex, edunexStep, six, sixStep, itb]);
+}
+
+const coming = (status: SourceStatus, step: SignInStep | null): SourceStatus =>
+  step && (status.state === "signed-out" || status.state === "expired") ? { ...status, state: "connecting" } : status;
+
+/** Whether the first read is in (Beranda's card says so), and its counts: without working out the findings. */
+export function useScanReady() {
+  const saved = useSaved(SCANNED);
+  const statuses = useReadStatuses();
   return { saved, statuses, ready: scanReady(saved, statuses) };
 }
 
@@ -53,10 +68,7 @@ export function useScan(computing: boolean) {
   const { attendanceTarget, attendanceTargets } = useSettings();
   const now = useNow();
   const saved = useSaved(SCANNED);
-  const edunex = useStatus("edunex");
-  const six = useStatus("six");
-  const itb = useStatus("itb");
-  const statuses = useMemo(() => [edunex, six, itb], [edunex, six, itb]);
+  const statuses = useReadStatuses();
   const ready = scanReady(saved, statuses);
   const findings = useMemo(
     () => (computing || ready ? firstScan({ saved, statuses, targets: { attendanceTarget, attendanceTargets }, now }) : []),

@@ -15,6 +15,7 @@ import { firstRead } from "../../../src/core/first-scan";
 import type { DatasetName, SourceId, SourceState } from "../../../src/core/models";
 import { useSettling } from "../host/settling";
 import { ReportButton } from "../parts/report";
+import { useReadStatuses } from "../screens/first-scan/scan";
 import { toast } from "../swaps/overlays";
 import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
@@ -299,10 +300,8 @@ const FIRST_READ: readonly DatasetName[] = [
 export function useFirstReadRunning(): boolean {
   const done = useSettings().firstScanDone;
   const saved = useSaved(FIRST_READ);
-  const edunex = useStatus("edunex");
-  const six = useStatus("six");
-  const itb = useStatus("itb");
-  return !done && firstRead(saved, [edunex, six, itb]).progress < 1;
+  const statuses = useReadStatuses();
+  return !done && firstRead(saved, statuses).progress < 1;
 }
 
 /** "Membaca Edunex · Tugas…" while the first read runs, a calm line with a spinner; once in, the usual line. */
@@ -310,10 +309,7 @@ function FirstReadLine({ children, always = false, color }: { children: ReactNod
   const t = useT();
   const theme = useTheme();
   const saved = useSaved(FIRST_READ);
-  const edunex = useStatus("edunex");
-  const six = useStatus("six");
-  const itb = useStatus("itb");
-  const read = firstRead(saved, [edunex, six, itb]);
+  const read = firstRead(saved, useReadStatuses());
   const part = read.progress < 1 ? read.next : null;
   if (!part && !always) return children;
   return (
