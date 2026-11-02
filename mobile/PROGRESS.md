@@ -140,6 +140,13 @@ motion and onboarding are open. The desktop is a reference for data only.
   the FAST table; `weak` and the perf fixes wait for a healthy desktop (or the Mac). Perf fixes to make (queued, not
   started): loops pause off-screen (`useLoopWhileShown`), `Later` waits for the push transition, hidden tabs render on
   first visit or idle, Beranda's cards hold still during the first read.
+- **2026-11-02 10:15: first-run failed on the merged perf work (run 41375320635), two finds.** (1) The Perlu kamu urus
+  hold only watched the demo's own settling flag, so after a real sign-in's first read the cards still swapped (seen in
+  first-run: 66%/100% under "Membaca SIX"); it now also holds while SIX or Edunex is on its first read (live, nothing
+  read yet; not "connecting", which could hold forever offline). (2) Check A's welcome route tapped the Akademik tab
+  while the first read kept the app busy, the tap didn't land, and the avatar wasn't found; the route now waits for
+  Akademik and taps again if needed. The hidden-tab fix re-checked on Redroid on 2473e2d: 5 of 5 fine (13 of 13 in
+  all). Pushed 3a0b278; confirming run 41378205586.
 - **2026-11-02 09:30: the perf branch merged into `mobile` (2473e2d).** Loops run only while shown, a screen's lower
   parts wait for its push, Beranda's two cards hold their shape during the first read. Lead's mistake, fixed in the same
   push: a68fcf1 (the hidden-tab fix) and the perf branch read focus with hooks inside `try`, which the linter rejects
