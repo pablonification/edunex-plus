@@ -289,6 +289,16 @@ motion and onboarding are open. The desktop is a reference for data only.
   < 2 s, Beranda's stalls), schedule-courses (W1, W5, W13 plumbing, duplicate titles), tasks-academic (duplicate
   titles, the word counter `mobile/qa/words.sh`, stalls in Tugas/Nilai/Rencana, W2 on the device).
 
+- **2026-11-03 05:40: Check A after round 2's redesign: 94% → 98%, and what's left.** The first complete run on v4
+  (41455400716) found 9,802 of 10,379 (94%): round 2 took facts off the tab screens. Two Mac helpers put them one tap
+  deeper (a course's sheet holds the lecturer, where attendance counts, the absence budget; Rencana's checks scroll back to
+  its card; a material's posted and changed dates), and run 41499018655 (1f0ad684, all 16 device groups green) found
+  10,194 of 10,365 (98%). The rest is listed in `mobile/qa/checka-missing-41499018655.md`. Fixed since (f27e244c): a
+  course's next class and room in its sheet (about 70 checks), and a moved class says "Berubah" as the desktop does (15).
+  Left: the after-class scenarios' Beranda, class and course details, the edit scenario's "Diubah setelah kamu
+  kumpulkan", timetable-unread's unread row, and the first scan's details. The Mac's disk filled up at 05:30 (its T3
+  server can't open its database), so the two helpers on those stopped before pushing.
+
 ### Rules from Arqila's verdict (2026-11-01; the judge fails a screen on any of them)
 
 1. **Text budget.** A list row: a title and at most one short meta line. At most one status per row, as a chip or
