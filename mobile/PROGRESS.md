@@ -177,6 +177,25 @@ motion and onboarding are open. The desktop is a reference for data only.
   also 0). The ~3 fps measured earlier was the tail of each tap, measured 6 s after it. "Show view updates" showed only
   the picked tab's item redrawing in that tail. Beranda and Tugas draw ~15 fps for the wave they show, and only while
   in front (49622f7).
+- **2026-11-02 13:00: the one-second freezes found and fixed: SIX's catalog pages.** With each stall labelled by the
+  dataset the screens had just heard of (6f1bf6e), every ~1 s block came right after an `itb.catalog` change. Not the
+  screens: the engine, which on the phone shares the JS thread with them, was parsing the next program page. Three of
+  them are 300–320 KB of HTML (every program's minors are on each page); one took 88–111 ms in Node, about a second on
+  Redroid. Fix (9a10551): the catalog reader uses htmlparser2 like the rest of the engine (`cheerio/slim`, 3× faster
+  than parse5 there) and parses a page in 16 KB slices; on the phone (`EngineDeps.yieldToScreens`) the screens get a
+  turn whenever 8 ms of work has piled up. The desktop and the tests don't pause. Redroid, saved start, 3 + 3 runs
+  (comparative only): the biggest block 1007–1460 ms → 540–745 ms, the time blocked in the first 15 s ~5.5–6 s → ~4 s.
+  Still there in every build: ~0.6 s right after Beranda's first data (labelled `edunex.account`) and ~0.6 s after SIX's
+  transcript (likely its 82 KB curriculum page, the same kind of parse). Next for the speed work, on a real emulator.
+  Also in: hidden tabs drawn one at a time (Beranda's data ~400 ms sooner, b3524f0), and the term's courses kept as
+  one array until a course changes (e30c0a0; it alone didn't shrink the blocks, but stops needless redraws).
+- **2026-11-02 13:00: `main` merged into `mobile` (abdea67).** PR #285 was "conflicting" with `main`, so its CI never
+  ran. 23 commits; six conflicts, all kept both sides. `main`'s new demo options (a Task handed back, SIX's
+  personal-details form, the guide) and its sick-day markup fix moved into the shared `test/pretend/demo.ts`; the phone
+  learnt the "returned" Task status (the draft's colours and a handed-back mark, as on the desktop) and the handed-back
+  and comment alerts. Types (both apps), lint and the tests pass, except five that fail the same on `main` and on
+  `mobile` on pabs alone (`test/app/exam.test.tsx` one, `test/kit/drift-fix-guard.test.ts` four; `main`'s CI is
+  green), so this machine, not the code. The PR's own CI now says for sure.
 - **2026-11-02 10:15: first-run failed on the merged perf work (run 41375320635), two finds.** (1) The Perlu kamu urus
   hold only watched the demo's own settling flag, so after a real sign-in's first read the cards still swapped (seen in
   first-run: 66%/100% under "Membaca SIX"); it now also holds while SIX or Edunex is on its first read (live, nothing
