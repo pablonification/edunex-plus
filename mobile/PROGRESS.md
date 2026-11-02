@@ -140,6 +140,13 @@ motion and onboarding are open. The desktop is a reference for data only.
   the FAST table; `weak` and the perf fixes wait for a healthy desktop (or the Mac). Perf fixes to make (queued, not
   started): loops pause off-screen (`useLoopWhileShown`), `Later` waits for the push transition, hidden tabs render on
   first visit or idle, Beranda's cards hold still during the first read.
+- **2026-11-02 08:30: a real bug the merged run found: a hidden tab's cards could stay invisible.** Run 41357072001's
+  judge-dark found Akademik with only its top bar (Nilai's row missing for 15 s); reproduced on Redroid with the same
+  APK and animations off (the IPK card there, the rows gone, 1 of 3 tries). Cause: native tabs mount every tab at the
+  start, hidden, before Android has said whether animations are off; `Rise` gave their parts an entrance that never
+  finished on a hidden tab with animations off. Fix (`Rise` animates only on the screen in front at mount): 8 of 8
+  tries fine. Merged into `mobile`. Edunex-only's one failure (Jadwal's `day.2026-10-08` not found) is likely the same
+  race (it passed in the run before).
 - **2026-11-02 05:30: v4 merged into `mobile` (61c9fdc, from `mobile-r2-v4` 44aea69).** The integration's last device run
   (41327448485): every scenario group has now passed (signed-in, edunex-only, timetable-unread, check-in-open, quiz,
   edit, sick, odd in the run before, course-table-changed/-lost/-blank, first-run, after-class-counted and -absent, and
