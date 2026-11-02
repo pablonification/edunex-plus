@@ -95,14 +95,14 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
         : result === "missing"
           ? { key: "home.today.notCounted" as const, bg: v.ambBg, fg: v.ambFg }
           : overlap
-    ? { key: "mobile.home.chip.clash" as const, bg: v.ambBg, fg: v.ambFg }
-    : usual
-      ? { key: "mobile.home.chip.moved" as const, bg: v.ambBg, fg: v.ambFg }
-      : live
-        ? { key: "mobile.home.chip.now" as const, bg: v.okBg, fg: v.okFg }
-        : meeting && !card.meeting?.maybeInSix
-          ? { key: "home.today.notInSix" as const, bg: v.ambBg, fg: v.ambFg }
-          : null;
+            ? { key: "mobile.home.chip.clash" as const, bg: v.ambBg, fg: v.ambFg }
+            : usual
+              ? { key: "mobile.home.chip.moved" as const, bg: v.ambBg, fg: v.ambFg }
+              : live
+                ? { key: "mobile.home.chip.now" as const, bg: v.okBg, fg: v.okFg }
+                : meeting && !card.meeting?.maybeInSix
+                  ? { key: "home.today.notInSix" as const, bg: v.ambBg, fg: v.ambFg }
+                  : null;
   // On now, with a move or a clash as its chip: the time's day word says it ("Sekarang · 08:00–10:00").
   const dayWord = when && live && timeChip?.key !== "mobile.home.chip.now" ? t("home.today.now") : when ? f.relativeDay(when.start) : "";
   const place = session?.room ?? (meeting?.online ? t("mobile.home.online") : null);
