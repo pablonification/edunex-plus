@@ -140,6 +140,14 @@ motion and onboarding are open. The desktop is a reference for data only.
   the FAST table; `weak` and the perf fixes wait for a healthy desktop (or the Mac). Perf fixes to make (queued, not
   started): loops pause off-screen (`useLoopWhileShown`), `Later` waits for the push transition, hidden tabs render on
   first visit or idle, Beranda's cards hold still during the first read.
+- **2026-11-02 09:30: the perf branch merged into `mobile` (2473e2d).** Loops run only while shown, a screen's lower
+  parts wait for its push, Beranda's two cards hold their shape during the first read. Lead's mistake, fixed in the same
+  push: a68fcf1 (the hidden-tab fix) and the perf branch read focus with hooks inside `try`, which the linter rejects
+  (I had read only the last line of biome's output); focus now comes from `NavigationContext`. At-rest drawing,
+  measured on Redroid 3 minutes after start (both builds alike): Beranda and Tugas ~15 fps (the visible wave),
+  Jadwal, Kuliah, Akademik ~3 fps with nothing moving, a pushed screen (Nilai) 0. So the hidden tabs aren't drawing
+  (they're detached); what's left comes from what every tab screen has and a pushed screen doesn't: the native tab
+  bar or the tab header's status line. For the measuring helper, on a real emulator. Confirming run: 41375320635.
 - **2026-11-02 08:30: a real bug the merged run found: a hidden tab's cards could stay invisible.** Run 41357072001's
   judge-dark found Akademik with only its top bar (Nilai's row missing for 15 s); reproduced on Redroid with the same
   APK and animations off (the IPK card there, the rows gone, 1 of 3 tries). Cause: native tabs mount every tab at the
