@@ -2,6 +2,7 @@
 // Material 3 Expressive's wavy progress, its cookie shape holding a check that draws itself, a pulsing "now" dot, a
 // number that counts up once, and the stagger a screen's cards rise in on its first showing. With Remove animations
 // they keep still or fade.
+import { useIsFocused } from "expo-router";
 import { type ReactNode, useEffect, useState } from "react";
 import { type LayoutChangeEvent, type StyleProp, StyleSheet, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
 import Animated, {
@@ -196,6 +197,15 @@ export function CountUp({
   );
 }
 
+/** Whether this screen is in front when a part mounts; true outside the route tree (a part where no screen holds focus). */
+function useShownAtMount(): boolean {
+  try {
+    return useIsFocused();
+  } catch {
+    return true;
+  }
+}
+
 /** Screens whose cards have risen once in this run: on a later showing (a tab switch) they're just there. */
 const risen = new Set<string>();
 
@@ -206,7 +216,12 @@ const risen = new Set<string>();
  */
 export function Rise({ screen, index, style, children }: { screen: string; index: number; style?: StyleProp<ViewStyle>; children: ReactNode }) {
   const still = useReduceMotion();
-  const [first] = useState(() => !risen.has(screen));
+  // Only on the screen in front: native tabs mount every tab at the start, hidden, before Android has said whether
+  // animations are off, and an entrance started on a hidden tab with animations off never finished: its parts stayed
+  // invisible (Akademik's rows, Jadwal's days, on CI's emulator and with "Remove animations"). A hidden tab's parts
+  // are simply there when it's first shown.
+  const shown = useShownAtMount();
+  const [first] = useState(() => shown && !risen.has(screen));
   useEffect(() => {
     risen.add(screen);
   }, [screen]);
