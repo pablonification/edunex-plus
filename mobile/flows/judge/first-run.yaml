@@ -11,11 +11,13 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-32-pertama-selamat-datang
 - tapOn:
     id: action.signIn
-# Beranda comes as soon as Edunex is in: its own shape while the semester is read.
+# Beranda comes as soon as Edunex is in: its own shape while the semester is read, the first read's line under the
+# greeting. (The tabs sit under the welcome from the start, so tab.home alone caught the welcome still signing in.)
 - extendedWaitUntil:
     visible:
-      id: tab.home
+      id: status.firstRead
     timeout: 60000
+- waitForAnimationToEnd
 - takeScreenshot: ${THEME}-33-pertama-beranda-mengisi
 - extendedWaitUntil:
     visible:

@@ -3,7 +3,7 @@
 // mobile/src/ui/palette.ts, so a token change that breaks one fails here. A pair a screen starts drawing goes in
 // the list below, with the place it's drawn.
 import { describe, expect, it } from "vitest";
-import { COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, type Palette, V4, type V4Palette } from "../../mobile/src/ui/palette";
+import { BUSY_OPACITY, COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, type Palette, V4, type V4Palette } from "../../mobile/src/ui/palette";
 
 type Scheme = "light" | "dark";
 interface Tones {
@@ -112,6 +112,14 @@ const PAIRS: Pair[] = [
 
   // Filled and tonal pairs.
   ["onPrimary on primary", (t) => t.c.onPrimary, (t) => t.c.primary, TEXT, "Button primary"],
+  // Busy, as drawn over the page at BUSY_OPACITY (the welcome's sign-in while Microsoft's page opens).
+  [
+    "onPrimary on primary, busy",
+    (t) => over(t.c.onPrimary, t.c.surface, BUSY_OPACITY),
+    (t) => over(t.c.primary, t.c.surface, BUSY_OPACITY),
+    TEXT,
+    "Button primary busy, shell/welcome.tsx",
+  ],
   ["primary on v4.card", (t) => t.c.primary, card, MARK, "Switch on"],
   ["onAccent on accent", (t) => t.c.onAccent, (t) => t.c.accent, TEXT, "widget pill"],
   ...each("accent", (t) => t.c.accent, SURFACES, MARK, "the IPK chart's line, spinners"),

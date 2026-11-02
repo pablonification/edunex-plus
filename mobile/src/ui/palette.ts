@@ -139,6 +139,12 @@ export const light: Palette = { ...lightRoles, ...legacy(lightRoles, "light") };
 export const dark: Palette = { ...darkRoles, ...legacy(darkRoles, "dark") };
 
 /** The ten course colors, each with its light and dark tone (`--course-<id>-light/-dark`). */
+/**
+ * How strongly a busy button draws (its label, spinner and fill), over the page: full. Dimmed to 72%, the welcome's
+ * "Masuk dengan akun ITB" read 2.5:1 while signing in.
+ */
+export const BUSY_OPACITY = 1;
+
 export const COURSE = {
   cyan: ["#028dab", "#06bfe7"],
   indigo: ["#6e46fb", "#8370ff"],

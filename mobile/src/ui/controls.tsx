@@ -7,6 +7,7 @@ import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useStat
 import { Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { Spinner } from "./display";
 import { Icons } from "./icons";
+import { BUSY_OPACITY } from "./palette";
 import { BUTTON_HEIGHT, CHIP_HEIGHT, SEGMENT_HEIGHT, SWITCH, SWITCH_SLOP, slopY } from "./sizes";
 import { Text } from "./text";
 import { shape, space, TOUCH, useTheme } from "./theme";
@@ -81,8 +82,8 @@ export function Button({
           backgroundColor: bg,
           borderColor: border ?? "transparent",
           borderWidth: border ? 1 : 0,
-          // Busy keeps its colours, dimmed, beside its turning spinner (the desktop's): at work, not off.
-          opacity: busy ? 0.72 : 1,
+          // Busy keeps its colours beside its turning spinner: at work, not off (BUSY_OPACITY, checked for contrast).
+          opacity: busy ? BUSY_OPACITY : 1,
         },
         style,
       ]}
