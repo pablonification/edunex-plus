@@ -6,9 +6,9 @@
 // react-freeze was tried and measured: each switch then drew the whole tab again, 100–270 ms.) The same for the
 // data: a dataset that changes (SIX's check-in read every 2 minutes in class, a feed's page) redrew every tab that reads
 // it, 200–560 ms on a small phone while the Student looked at one; a hidden tab now hears of it when it's shown.
-// A hidden tab also draws for the first time on its own turn: the four drawn at once right after Beranda blocked the
-// JS thread 0.8–1.0 s on every start with saved data (measured on v4, `mid`). Each now waits for the start to settle,
-// then one tab every 300 ms once the JS thread is idle; opened before its turn, it draws at once.
+// A hidden tab also draws for the first time on its own turn: the four drawn at once with Beranda held Beranda's data
+// back about 400 ms on a start with saved data (Redroid, compared on one machine). Each now waits for the start to
+// settle, then one tab every 300 ms once the JS thread is idle; opened before its turn, it draws at once.
 import { useIsFocused } from "expo-router";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ClockProvider, type UiClock, useClock } from "../../../src/app/i18n";
