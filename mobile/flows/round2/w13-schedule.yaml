@@ -45,7 +45,7 @@ name: "w13 the schedule is part of the app"
     text: "(Allow|Izinkan|ALLOW|IZINKAN)"
     optional: true
 - extendedWaitUntil:
-    visible: ".*acara ada di kalender Edunex Plus.*"
+    visible: ".*acara masuk Kalender HP"
     timeout: 30000
 - takeScreenshot: w13-3-calendar-on
 # The month, a screen away; Back returns to the agenda.

@@ -177,7 +177,7 @@ appId: io.github.pablonification.edunexplus.demo
     text: "(Allow|Izinkan|ALLOW|IZINKAN)"
     optional: true
 - extendedWaitUntil:
-    visible: ".*acara ada di kalender Edunex Plus.*"
+    visible: ".*acara masuk Kalender HP"
     timeout: 30000
     optional: true
 - takeScreenshot: ${THEME}-12-ekspor-kalender-selesai

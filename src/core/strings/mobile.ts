@@ -171,12 +171,10 @@ export const mobileStrings = {
   // Jadwal's ⋮: the phone's calendar kept the same as Jadwal, in a calendar of the app's own (W13).
   "mobile.calendar.sync": { id: "Tampilkan di Kalender HP", en: "Show in phone calendar" },
   "mobile.calendar.sync.hint": { id: "Kalender Edunex Plus, selalu terbaru", en: "An Edunex Plus calendar, kept up to date" },
+  // The snackbar once it's on: one line (the ⋮ row's hint already says it stays up to date).
   "mobile.calendar.sync.on": {
-    id: "{count} acara ada di kalender Edunex Plus. Ikut berubah saat jadwal berubah.",
-    en: {
-      one: "{count} event in the Edunex Plus calendar. It changes when your schedule does.",
-      other: "{count} events in the Edunex Plus calendar. They change when your schedule does.",
-    },
+    id: "{count} acara masuk Kalender HP",
+    en: { one: "{count} event in your phone calendar", other: "{count} events in your phone calendar" },
   },
   "mobile.calendar.sync.off": { id: "Kalender Edunex Plus dihapus dari HP.", en: "The Edunex Plus calendar is off your phone." },
   "mobile.calendar.sync.failed": { id: "Kalender HP belum bisa diperbarui", en: "Couldn't update your phone's calendar" },
