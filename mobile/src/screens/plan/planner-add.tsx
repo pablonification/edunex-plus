@@ -26,6 +26,7 @@ import { Button, Chip, ChipRow } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 import { Sheet } from "../../ui/sheet";
+import { slopY } from "../../ui/sizes";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
 
@@ -241,6 +242,7 @@ export function AddCourse({
                         accessibilityLabel={done ? `${code} ${courseInfo(record, code).name}` : t("planner.addCode", { code })}
                         accessibilityState={{ disabled: done }}
                         onPress={() => add(code, false)}
+                        hitSlop={slopY(32)}
                         style={{
                           flexDirection: "row",
                           alignItems: "center",

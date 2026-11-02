@@ -25,7 +25,7 @@ import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
 import { Text, type TextTone, useFieldColors, useTextWidth } from "../../ui/text";
-import { radius, space, type, useTheme } from "../../ui/theme";
+import { radius, space, TOUCH, type, useTheme } from "../../ui/theme";
 import { ChartLegend, LineChart } from "./chart";
 
 const yearsOf = (term: string) => {
@@ -256,10 +256,10 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
           onBlur={() => setTyping(null)}
           style={{
             width: 80,
-            height: 44,
+            height: TOUCH,
             borderRadius: radius.lg,
             borderWidth: 1,
-            borderColor: invalid ? theme.color.dangerFg : theme.color.edge,
+            borderColor: invalid ? theme.color.dangerFg : theme.color.fieldEdge,
             backgroundColor: theme.color.surfaceContainerLow,
             paddingHorizontal: space[2],
             paddingVertical: 0,

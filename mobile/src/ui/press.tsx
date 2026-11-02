@@ -2,7 +2,7 @@
 // Expressive's spring, on the UI thread; Android's ripple is left to plain rows and buttons. With Remove animations it
 // doesn't move. One target, one outcome: wrap the whole card or row.
 import type { ReactNode } from "react";
-import { type AccessibilityProps, Pressable, type StyleProp, type ViewStyle } from "react-native";
+import { type AccessibilityProps, type Insets, Pressable, type StyleProp, type ViewStyle } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useReduceMotion } from "./motion";
 import { motion } from "./theme";
@@ -16,6 +16,7 @@ export function PressScale({
   style,
   children,
   testID,
+  hitSlop,
   ...a11y
 }: {
   onPress?: () => void;
@@ -24,6 +25,8 @@ export function PressScale({
   style?: StyleProp<ViewStyle>;
   children: ReactNode;
   testID?: string;
+  /** What a part smaller than 48 dp adds to be 48 to touch (ui/sizes). */
+  hitSlop?: Insets | number;
 } & AccessibilityProps) {
   const still = useReduceMotion();
   const scale = useSharedValue(1);
@@ -34,6 +37,7 @@ export function PressScale({
       accessibilityRole="button"
       {...a11y}
       disabled={disabled}
+      hitSlop={hitSlop}
       onPress={onPress}
       onLongPress={onLongPress}
       onPressIn={() => {

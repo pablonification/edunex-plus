@@ -45,6 +45,7 @@ import { Icons } from "../../ui/icons";
 import { factsLabel, Notice as NoticeBox, Page } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
+import { LINK_SLOP, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { shape, space, useTheme } from "../../ui/theme";
 import { CourseGlyph, CourseTile, useCourseTile } from "../../ui/tile";
@@ -474,7 +475,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
           accessibilityRole="button"
           accessibilityLabel={t("done.undoFor", { what: line })}
           onPress={() => void unmark(checked.id).catch(() => undefined)}
-          hitSlop={10}
+          hitSlop={LINK_SLOP}
         >
           <Text size="small" weight="medium" tone="accent">
             {t("action.undo")}
@@ -587,6 +588,7 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
                           accessibilityRole="button"
                           accessibilityState={{ expanded: isOpen }}
                           onPress={() => setOpened(isOpen ? null : step.at)}
+                          hitSlop={slopY(44)}
                           style={{ flexDirection: "row", alignItems: "flex-start", gap: space[1], minHeight: 44 }}
                         >
                           <View style={{ flex: 1 }}>
@@ -680,7 +682,7 @@ function ChangeList({ changes, onCompare }: { changes: readonly TaskChange[]; on
         return (
           <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
             <Text size="small">{t("change.instructions")}</Text>
-            <Pressable accessibilityRole="button" onPress={() => onCompare(change)} hitSlop={10}>
+            <Pressable accessibilityRole="button" onPress={() => onCompare(change)} hitSlop={LINK_SLOP}>
               <Text size="small" weight="medium" tone="accent">
                 {t("change.instructions.show")}
               </Text>

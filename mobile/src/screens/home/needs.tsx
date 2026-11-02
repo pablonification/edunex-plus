@@ -22,6 +22,7 @@ import { Button } from "../../ui/controls";
 import { Card, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
+import { LINK_SLOP } from "../../ui/sizes";
 import { Text, type TextTone } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { facts, heldAt, memoRow } from "./held";
@@ -168,7 +169,7 @@ function AwayLine({ snoozed, done, open, onToggle }: { snoozed: number; done: nu
       ) : (
         ""
       )}
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={onToggle} hitSlop={12} testID="action.heldBack">
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={onToggle} hitSlop={LINK_SLOP} testID="action.heldBack">
         <Text size="small" weight="medium" tone="accent">
           {open ? t("snooze.hideList") : t("snooze.showList")}
         </Text>

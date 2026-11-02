@@ -15,6 +15,7 @@ import { useSettling } from "../../host/settling";
 import { Button, IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
+import { slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { shape, space, useTheme } from "../../ui/theme";
 import { useScanReady } from "../first-scan/scan";
@@ -146,6 +147,7 @@ export function NotifyCard({ hasClass }: { hasClass: boolean }) {
       <PressScale
         onPress={() => void answer(true)}
         testID="action.notify.on"
+        hitSlop={slopY(40)}
         style={{ minHeight: 40, borderRadius: 20, paddingHorizontal: space[4], justifyContent: "center", backgroundColor: v.brand }}
       >
         <Text size="labelLarge" style={{ color: v.onBrand }}>

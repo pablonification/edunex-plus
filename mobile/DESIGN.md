@@ -74,8 +74,8 @@ Meaning colours stay as the desktop names them (`warningBg/Fg`, `successBg/Fg`, 
 the ten course colours via `theme.course(tone)`). The old names (`fg`, `muted`, `faint`, `canvas`, `edge`,
 `line`, `fill`, `accent`, `accentFg`, `raised`, `sunken`, …) still work and point at their roles; new code
 uses the roles. Every text/icon pair above passes 4.5:1 (text) / 3:1 (icons, outlines) in both themes,
-measured with the skill's `scripts/contrast.py` (`mobile/qa/shell-notes.md`, "Contrast"). A new pair gets
-checked the same way before it ships.
+checked by `test/mobile/contrast.test.ts` against the values in `src/ui/palette.ts` (every pair a screen draws,
+light and dark). A screen that starts drawing a new pair adds it there.
 
 **Tonal surfaces, not boxes.** Cards and list groups are separated from the page by tone (surfaceContainerLow
 on surface), never by a hairline border or a shadow. Shadows only on what floats over content: the
@@ -114,7 +114,8 @@ heading → headlineSmall, figure/display → headlineMedium.
   `lgPlus` 20 (a list group's ends, a leading card), `xl` 28 (sheets), `full` (buttons, segments, avatars).
   Nested corners: inner = outer − padding.
 - **Touch targets**: 48 dp (`TOUCH`) for everything that takes a tap, whatever it looks like (`hitSlop`
-  makes up the difference: a 32 dp chip, a 40 dp button). `IconButton` is 48.
+  makes up the difference: a 32 dp chip, a 40 dp button). `IconButton` is 48. The shared controls' sizes and
+  their slop live in `src/ui/sizes.ts`, checked by `test/mobile/touch-targets.test.ts`.
 
 ## Components (`src/ui/`)
 
