@@ -246,7 +246,10 @@ jobs:
             pkg:npm/@img/sharp-libvips-linux-s390x, pkg:npm/@img/sharp-libvips-linux-x64,
             pkg:npm/@img/sharp-libvips-linuxmusl-arm64, pkg:npm/@img/sharp-libvips-linuxmusl-x64,
             pkg:npm/@img/sharp-wasm32, pkg:npm/@img/sharp-win32-arm64, pkg:npm/@img/sharp-win32-ia32,
-            pkg:npm/@img/sharp-win32-x64
+            pkg:npm/@img/sharp-win32-x64,
+            pkg:npm/big-integer, pkg:npm/jsonify, pkg:npm/unicode-match-property-value-ecmascript, pkg:npm/xmlbuilder
+          # Those last four come with the phone app's build tools (Babel, Expo's config plugins and command line): public domain or
+          # Unicode's data licence, both permissive, just not in the list above.
           # Expo's command line (mobile/) keeps its own zod 3 for its development server's DevTools plugin schema.
           # The advisory (oversized collections can exhaust memory) is fixed only in zod 4, which that code doesn't
           # use; it runs on the developer's computer, never in the APK, and never sees a Student's data.
