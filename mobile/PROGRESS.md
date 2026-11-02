@@ -196,6 +196,18 @@ motion and onboarding are open. The desktop is a reference for data only.
   and comment alerts. Types (both apps), lint and the tests pass, except five that fail the same on `main` and on
   `mobile` on pabs alone (`test/app/exam.test.tsx` one, `test/kit/drift-fix-guard.test.ts` four; `main`'s CI is
   green), so this machine, not the code. The PR's own CI now says for sure.
+- **2026-11-02 14:20: SIX's curriculum page sliced too (1b591f6); the PR's CI green; both device failures explained.**
+  SIX's curriculum structure page is 296 KB (every other SIX page 36 KB or less), the second ~0.6 s block. It now
+  goes through the same sliced parsing (`src/engine/html-slices.ts`, shared with the catalog). Redroid, saved start, 3
+  runs each (comparative only), the biggest block / the time blocked in the first 15 s: `mobile` this morning
+  937–1460 ms / ~5.5–6 s, catalog sliced 540–745 ms / ~4 s, curriculum sliced too 405–449 ms / ~2.7 s; Beranda's data
+  at 634–988 ms. Left: ~410 ms right after the start (labelled `edunex.account`) and ~315 ms at SIX's check-in read.
+  The PR's CI (41396864373) passes every check once the phone's tests get the phone's packages, shellcheck's notes
+  on Markdown backticks are silenced and two dependency-review exceptions are written down (Blockers for Arqila).
+  Device run 41381102345 (37a4311): 14 of 16 groups green; `app` was the "Semua siap" race (fixed b0fa730), `odd` an
+  Android launch dropped right after the test cleared the app (11:30:38 the link, no process until the next link at
+  11:32:39): the welcome and first-scan routes now retry their start like every other route (0332fc3). Confirming
+  run: 41401545153.
 - **2026-11-02 10:15: first-run failed on the merged perf work (run 41375320635), two finds.** (1) The Perlu kamu urus
   hold only watched the demo's own settling flag, so after a real sign-in's first read the cards still swapped (seen in
   first-run: 66%/100% under "Membaca SIX"); it now also holds while SIX or Edunex is on its first read (live, nothing
@@ -782,7 +794,9 @@ Measured on Redroid (Android 13, 1.5 CPUs, software GPU, so pessimistic), releas
 
 ## Blockers for Arqila
 
-- **2026-11-02: one security exception in CI, yours to confirm.** The PR's first CI run (41395380915) failed the
+- **2026-11-02: two exceptions in CI's dependency review, yours to confirm.** (2) Four packages of the phone's build
+  tools (big-integer, jsonify, unicode-match-property-value-ecmascript, xmlbuilder) are public domain or under
+  Unicode's data licence: permissive, just not in the list, so they're allowed by name. (1) The PR's first CI run (41395380915) failed the
   dependency review on `zod@3.25.76`, a high-severity advisory (GHSA-mrhx-c7xc-m3w5: oversized collections can
   exhaust memory) fixed only in zod 4. That copy is Expo's own, used only by its command line's development server
   (the DevTools plugin schema): never in the APK, never fed a Student's data. Forcing Expo onto zod 4 risks breaking
