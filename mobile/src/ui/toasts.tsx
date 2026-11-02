@@ -5,7 +5,7 @@
 // less motion asked for). Errors that need reading belong in a banner on the page, not here
 // (DESIGN.md, "Patterns").
 import { useSegments } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { type ComponentRef, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dismissToast, useToasts } from "../swaps/overlays";
@@ -22,7 +22,7 @@ export function Toasts() {
   // The snackbar's own frame (the whole screen), in the same window coordinates the tabs' page and a screen's bar report
   // theirs in. The window's height isn't: on Android it may leave out the phone's bars, and the snackbar landed on the
   // tabs (judge, round 2).
-  const frame = useRef<View>(null);
+  const frame = useRef<ComponentRef<typeof View>>(null);
   const [frameBottom, setFrameBottom] = useState(0);
   const tabsBottom = useTabsBottom();
   const barTop = useBarTop();
@@ -48,42 +48,42 @@ export function Toasts() {
       {item && (
         <View pointerEvents="box-none" style={{ position: "absolute", left: space[3], right: space[3], bottom }}>
           <Animated.View
-        key={item.id}
-        accessibilityLiveRegion="polite"
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          gap: space[2],
-          minHeight: TOUCH,
-          borderRadius: shape.xs,
-          paddingLeft: space[4],
-          paddingRight: item.action ? space[2] : space[4],
-          paddingVertical: space[1.5],
-          backgroundColor: c.inverseSurface,
-          elevation: 3,
-          shadowColor: "#000",
-          opacity: rise,
-          transform: reduceMotion() ? [] : [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-        }}
-      >
-        <Text size="bodyMedium" tone="inverse" style={{ flex: 1, paddingVertical: space[1] }}>
-          {item.text}
-        </Text>
-        {item.action && (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              item.action?.onClick();
-              dismissToast(item.id);
+            key={item.id}
+            accessibilityLiveRegion="polite"
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space[2],
+              minHeight: TOUCH,
+              borderRadius: shape.xs,
+              paddingLeft: space[4],
+              paddingRight: item.action ? space[2] : space[4],
+              paddingVertical: space[1.5],
+              backgroundColor: c.inverseSurface,
+              elevation: 3,
+              shadowColor: "#000",
+              opacity: rise,
+              transform: reduceMotion() ? [] : [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
             }}
-            android_ripple={{ color: "rgba(255,255,255,0.12)" }}
-            style={{ minHeight: TOUCH, justifyContent: "center", paddingHorizontal: space[3], borderRadius: shape.full }}
           >
-            <Text size="labelLarge" style={{ color: c.inversePrimary }}>
-              {item.action.label}
+            <Text size="bodyMedium" tone="inverse" style={{ flex: 1, paddingVertical: space[1] }}>
+              {item.text}
             </Text>
-          </Pressable>
-        )}
+            {item.action && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  item.action?.onClick();
+                  dismissToast(item.id);
+                }}
+                android_ripple={{ color: "rgba(255,255,255,0.12)" }}
+                style={{ minHeight: TOUCH, justifyContent: "center", paddingHorizontal: space[3], borderRadius: shape.full }}
+              >
+                <Text size="labelLarge" style={{ color: c.inversePrimary }}>
+                  {item.action.label}
+                </Text>
+              </Pressable>
+            )}
           </Animated.View>
         </View>
       )}
