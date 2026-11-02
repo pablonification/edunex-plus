@@ -257,20 +257,11 @@ function DueCard({
     <View testID="card.due" style={{ marginTop: space[4], backgroundColor: bg, borderRadius: 24, padding: space[4], gap: space[1] }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3], marginBottom: space[2] }}>
         {late ? <Icons.AlertTriangle size={22} weight="bold" color={fg} /> : <CourseGlyph code={task.courseCode} name={course} />}
-        <View style={{ flexDirection: "row", gap: space[2], flexShrink: 1 }}>
-          {presence && (
-            <View testID="chip.presence" style={[styles.pill, { backgroundColor: v.card }]}>
-              <Icons.Hand size={13} color={fg} />
-              <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
-                {t("mobile.tasks.presenceChip")}
-              </Text>
-            </View>
-          )}
-          <View style={[styles.pill, { backgroundColor: v.card, flexShrink: 1 }]}>
-            <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
-              {t(`taskStatus.${status}`)}
-            </Text>
-          </View>
+        {/* The card's one status. */}
+        <View style={[styles.pill, { backgroundColor: v.card, flexShrink: 1 }]}>
+          <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
+            {t(`taskStatus.${status}`)}
+          </Text>
         </View>
       </View>
       {task.dueAt === null ? (
@@ -308,9 +299,12 @@ function DueCard({
             {f.dueLabel(task.dueAt)}
           </Text>
           {presence && (
-            <Text size="bodyMedium" weight="medium" tabular style={{ color: fg }}>
-              {t("mobile.tasks.presenceLine", { when: presence })}
-            </Text>
+            <View testID="line.presence" style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+              <Icons.Hand size={16} color={fg} />
+              <Text size="bodyMedium" weight="medium" tabular style={{ flexShrink: 1, color: fg }}>
+                {t("mobile.tasks.presenceLine", { when: presence })}
+              </Text>
+            </View>
           )}
           {lateRule && (
             <Text size="bodyMedium" style={{ color: v.fg2 }}>
@@ -394,7 +388,7 @@ function Notes({ task, presence }: { task: Task; presence: Presence }) {
         ? { tone: "success", icon: "check", text: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }) }
         : { tone: "danger", icon: "hand", text: t("task.note.attendanceOutside", { when: range(result.session.opensAt, result.session.closesAt) }) },
     );
-  // One still ahead is the due card's Presensi chip and line (usePresence's `due`).
+  // One still ahead is the due card's Presensi line (usePresence's `due`).
   else if (session && session.closesAt <= now && !session.recorded?.present)
     notes.push({ tone: "neutral", icon: "hand", text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }) });
   const window = shortWindow(task);

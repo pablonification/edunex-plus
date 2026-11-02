@@ -11,11 +11,11 @@ export const mobileTasksStrings = {
   "mobile.tasks.answerRequired": { id: "Wajib diisi, meski kamu melampirkan berkas", en: "Required, even when you attach a file" },
   // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
   "mobile.tasks.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
-  // A Task that is also attendance: a chip on its due card, and one line under the deadline with when to hand it in to
-  // count as present ("Jum 15:00–23:59"). The desktop's task.note.attendance, in the phone's few words.
   // Tugas's big card: what its wave says to a screen reader, how much of a Task's time (from when it opened) has gone.
   "mobile.tasks.timeGone": { id: "Sudah lewat {percent}% dari waktunya", en: "{percent}% of its time has gone" },
-  "mobile.tasks.presenceChip": { id: "Presensi", en: "Presence" },
+  // A Task that is also attendance: one line under the deadline on its due card, with a hand icon (no chip: the card's
+  // one status is Edunex's), saying when to hand it in to count as present ("Jum 15:00–23:59"). The desktop's
+  // task.note.attendance, in the phone's few words.
   "mobile.tasks.presenceLine": { id: "Kumpulkan {when} agar hadir", en: "Hand in {when} to count as present" },
   // The moment a Task is handed in, over the page for a breath: its detail is handIn.recorded ("Edunex mencatatnya hari ini, 10:02").
   "mobile.tasks.handedIn": { id: "Terkumpul", en: "Handed in" },
