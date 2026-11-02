@@ -75,6 +75,8 @@ export const mobileStrings = {
   "mobile.home.chip.belowTarget": { id: "Di bawah target", en: "Below target" },
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   "mobile.home.chip.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
+  // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach.
+  "mobile.needs.best": { id: "Paling tinggi {best}% · target {target}%", en: "Best case {best}% · target {target}%" },
   // The class sheet's time row: the class is on now (a green chip), and where a moved class or room usually is.
   "mobile.home.chip.now": { id: "Sekarang", en: "Now" },
   "mobile.home.movedFrom": { id: "Pindah dari {usual}", en: "Moved from {usual}" },
@@ -288,6 +290,8 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "done.toast.gotItClass": { id: "Sudah tahu. Kembali sehari sebelum kuliah berikutnya.", en: "Got it. Back the day before the next class." },
   "done.toast.gotItCount": { id: "Sudah tahu. Kembali setelah SIX menghitung kuliah berikutnya.", en: "Got it. Back after SIX counts the next class." },
   "done.toast.paid": { id: "Sudah dibayar. Kembali jika tagihan berubah atau lewat batas.", en: "Paid. Back if the bill changes or passes its due date." },
+  // "Perlu kamu urus"'s row for a Task changed after the hand-in: its meta line, short (what changed is on its page).
+  "home.need.task.edited": { id: "Diubah dosen · cek lagi", en: "Changed · check again" },
   // The first-run summary's title, short enough for the top bar.
   "scan.heading": { id: "Ringkasan awal", en: "First summary" },
   // settings: the test notification's body, as Android shows it.
