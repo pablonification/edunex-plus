@@ -190,11 +190,7 @@ function DayScroll({
     },
   });
   const { from } = hoursOf(day);
-  const first = Math.min(
-    ...[...day.classes.map((c) => c.session.start), ...day.outside.map((m) => m.start), ...day.edunex.map((m) => m.start)].map(minuteOfDay),
-  );
-  const target = day.day === today ? minuteOfDay(Date.now()) - 60 : Number.isFinite(first) ? first - 20 : from * 60;
-  const y = Math.max(0, ((target - from * 60) / 60) * HOUR);
+  const y = Math.max(0, ((openAt(day, today) - from * 60) / 60) * HOUR);
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new day scrolls to its place even when it's the same height as the last
   useEffect(() => {
     scroll.current?.scrollTo({ y, animated: false });
@@ -213,6 +209,7 @@ function DayScroll({
         ref={scroll}
         collapsable={false}
         style={{ flex: 1, borderTopWidth: 1, borderTopColor: theme.v4.line }}
+        contentOffset={{ x: 0, y }}
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
           <RefreshControl
@@ -230,6 +227,23 @@ function DayScroll({
       </ScrollView>
     </GestureDetector>
   );
+}
+
+/**
+ * The minute the day opens at: today an hour before now, another day 20 minutes before its first class. Never inside a
+ * block: one the top would cut (the class on now, a long one before it) is shown whole, from 20 minutes before it.
+ */
+function openAt(day: ScheduleDay, today: string): number {
+  const spans = [...day.classes.map((c) => c.session), ...day.outside, ...day.edunex].map(
+    (s) => [minuteOfDay(s.start), minuteOfDay(s.start) + (s.end - s.start) / 60_000] as const,
+  );
+  const first = Math.min(...spans.map(([start]) => start));
+  let target = day.day === today ? minuteOfDay(Date.now()) - 60 : Number.isFinite(first) ? first - 20 : hoursOf(day).from * 60;
+  for (;;) {
+    const cut = spans.filter(([start, end]) => start < target && target < end).map(([start]) => start);
+    if (!cut.length) return target;
+    target = Math.min(...cut) - 20;
+  }
 }
 
 /**
@@ -396,24 +410,27 @@ function ScheduleActions() {
   );
 }
 
-/** Without SIX: what SIX adds, with the way in. */
+/**
+ * Without SIX: what SIX adds, with the way in, as one flat row of a fixed height above the day (never a card), so the
+ * day under it sits where it will stay.
+ */
 function NeedsSix() {
   const t = useT();
+  const v = useTheme().v4;
   const six = useStatus("six");
   const { signIn, busy } = useSignIn();
   return (
-    <Notice
-      tone="neutral"
-      icon={<Icons.Lock size={18} />}
-      title={t("schedule.needsSix")}
-      action={
-        six.state === "signed-out" ? (
-          <Button size="sm" busy={busy} onPress={() => void signIn("six")} testID="action.signInSix">
-            {t("schedule.signInSix")}
-          </Button>
-        ) : undefined
-      }
-    />
+    <View testID="note.needsSix" style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 56 }}>
+      <Icons.Lock size={20} color={v.muted} />
+      <Text size="bodyMedium" numberOfLines={2} style={{ flex: 1, minWidth: 0, color: v.fg2 }}>
+        {t("mobile.schedule.needsSix")}
+      </Text>
+      {six.state === "signed-out" && (
+        <Button size="sm" variant="tonal" busy={busy} onPress={() => void signIn("six")} testID="action.signInSix">
+          {t("schedule.signInSix")}
+        </Button>
+      )}
+    </View>
   );
 }
 
