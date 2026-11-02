@@ -2,8 +2,8 @@
 // Material 3 Expressive's wavy progress, its cookie shape holding a check that draws itself, a pulsing "now" dot, a
 // number that counts up once, and the stagger a screen's cards rise in on its first showing. With Remove animations
 // they keep still or fade.
-import { useIsFocused } from "expo-router";
-import { type ReactNode, useEffect, useState } from "react";
+import { NavigationContext } from "expo-router/react-navigation";
+import { type ReactNode, useContext, useEffect, useState } from "react";
 import { type LayoutChangeEvent, type StyleProp, StyleSheet, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -199,11 +199,9 @@ export function CountUp({
 
 /** Whether this screen is in front when a part mounts; true outside the route tree (a part where no screen holds focus). */
 function useShownAtMount(): boolean {
-  try {
-    return useIsFocused();
-  } catch {
-    return true;
-  }
+  const navigation = useContext(NavigationContext);
+  const [shown] = useState(() => navigation?.isFocused() ?? true);
+  return shown;
 }
 
 /** Screens whose cards have risen once in this run: on a later showing (a tab switch) they're just there. */

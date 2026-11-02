@@ -4,29 +4,20 @@
 // the whole page again. The parts wait for the screen's push to finish first: mounted during it, each was a 100–190 ms
 // JS chunk competing with the slide (one ~180 ms frame on Nilai, measured on v4), while the first screenful was
 // already drawn at ~0.2 s.
-import { useNavigation } from "expo-router";
-import { createElement, Fragment, type ReactNode, useEffect, useState } from "react";
+import { NavigationContext } from "expo-router/react-navigation";
+import { createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
 
 /** The longest a part waits for a push to end; a screen shown without one (a tab, a reload) gets no transitionEnd. */
 const SETTLE_MS = 400;
 
-/** The screen's navigation, or null where there's none (a test, a part drawn outside the route tree). */
-function useNavigationOrNull(): { addListener?: (event: never, callback: never) => () => void } | null {
-  try {
-    return useNavigation() as never;
-  } catch {
-    return null;
-  }
-}
-
 /** True once the screen's opening push has ended (or `SETTLE_MS` passed): what's below the fold may mount. */
 function useScreenSettled(): boolean {
-  const navigation = useNavigationOrNull();
-  const [settled, setSettled] = useState(navigation === null);
+  const navigation = useContext(NavigationContext);
+  const [settled, setSettled] = useState(navigation === undefined);
   useEffect(() => {
     if (settled) return;
     const settle = () => setSettled(true);
-    const stop = navigation?.addListener?.("transitionEnd" as never, settle as never);
+    const stop = navigation?.addListener("transitionEnd" as never, settle as never);
     const timer = setTimeout(settle, SETTLE_MS);
     return () => {
       clearTimeout(timer);

@@ -1,7 +1,7 @@
 // Whether the phone asks for less motion (Android's "Remove animations"): moving things fade instead
 // (DESIGN.md, "Motion"). Read once, then followed.
-import { useIsFocused } from "expo-router";
-import { useSyncExternalStore } from "react";
+import { NavigationContext } from "expo-router/react-navigation";
+import { useContext, useSyncExternalStore } from "react";
 import { AccessibilityInfo, AppState } from "react-native";
 
 let reduced = false;
@@ -50,11 +50,19 @@ function useAppActive(): boolean {
 
 /** Whether this screen is in front; true outside the route tree (a part drawn where no screen holds focus). */
 function useShown(): boolean {
-  try {
-    return useIsFocused();
-  } catch {
-    return true;
-  }
+  const navigation = useContext(NavigationContext);
+  return useSyncExternalStore(
+    (watcher) => {
+      if (!navigation) return () => undefined;
+      const stopFocus = navigation.addListener("focus", watcher);
+      const stopBlur = navigation.addListener("blur", watcher);
+      return () => {
+        stopFocus();
+        stopBlur();
+      };
+    },
+    () => navigation?.isFocused() ?? true,
+  );
 }
 
 /**
