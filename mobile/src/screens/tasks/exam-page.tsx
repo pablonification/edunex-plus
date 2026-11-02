@@ -1,12 +1,13 @@
 // The exam page on the phone (S4): src/app/screens/exam.tsx's ExamPage in one column, with the same
-// facts, in v4 (round 2): the day, the time and the room big on the course's tint, the rest on white cards. When and where (SIX's sitting with its room, Edunex's, the take-home), what to do when SIX
-// and Edunex disagree, the attendance before it, what to study, the official pages, the other exams.
+// facts, in v4 (round 2): one date card (the day, the time and the room big on the course's tint), then one group of
+// rows (the take-home Task, the attendance before it), what to do when SIX and Edunex disagree, what to study, the
+// other exams. The phone's calendar, the lecturer's announcements and the official pages are under ⋮.
 // An Edunex window open now can be marked done here too, with Undo (Tandai selesai).
 import * as Clipboard from "expo-clipboard";
 import { type ReactNode, useMemo, useState } from "react";
 import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
-import { budgetLabel, STATE_TONE } from "../../../../src/app/attendance-labels";
+import { budgetLabel } from "../../../../src/app/attendance-labels";
 import { errorKey } from "../../../../src/app/bridge";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useExamMarkList, useExamMarks } from "../../../../src/app/exam-marks";
@@ -16,29 +17,33 @@ import { useExams } from "../../../../src/app/schedule-data";
 import { useDataset, useStore } from "../../../../src/app/store";
 import { type Exam, examAhead, examKind, examMarkOn, examParts } from "../../../../src/core/exams";
 import { edunexCourseUrl, sixTimetableUrl } from "../../../../src/core/links";
-import type { Task } from "../../../../src/core/models";
+import type { TaskStatus } from "../../../../src/core/models";
 import { phoneItems } from "../../../../src/core/phone-calendar";
-import { edunexTaskUrl, isOpenStatus, taskStatus } from "../../../../src/core/tasks";
+import { edunexTaskUrl, taskStatus } from "../../../../src/core/tasks";
 import { useNav } from "../../nav";
-import { toneOf } from "../../parts/attendance";
+import { dayAt } from "../../parts/day-word";
 import { LecturerFile } from "../../parts/files";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
+import { absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
 import { CardList, Panel, SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
-import { EmptyState, Skeleton, StatusChip } from "../../ui/display";
+import { EmptyState, Skeleton } from "../../ui/display";
+import { Group, GroupRow, IconTile, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
-import { factsLabel, Meta, Notice, Page, Row } from "../../ui/layout";
+import { factsLabel, Notice, Page, Row } from "../../ui/layout";
+import { OverflowMenu } from "../../ui/menu";
 import { PressScale } from "../../ui/press";
+import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { radius, shape, space, useTheme } from "../../ui/theme";
 import { CourseTile, useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { addToPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
 import { examCalendarItems } from "./exam-calendar";
-import { dayLabel, examWeekLabel, sourceDays, takeHomeWhy } from "./exam-rows";
+import { dayLabel, examWeekLabel, sourceDays } from "./exam-rows";
 
 export function ExamScreen({ examId }: { examId: string }) {
   const t = useT();
@@ -99,19 +104,34 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
     }
   };
 
-  const links: { key: string; label: string; url: string }[] = [];
-  if (exam.six.length > 0 && student) links.push({ key: "six", label: t("examPage.seeSix"), url: sixTimetableUrl(student) });
+  // The rare ways out, under ⋮: the phone's calendar, the lecturer's announcements, the official pages.
+  const calendar = useExamCalendar(exam);
+  const menu: SheetChoice[] = [];
+  if (calendar.choice) menu.push(calendar.choice);
+  menu.push({
+    label: t("examPage.checkAnnouncements"),
+    icon: <Icons.Megaphone size={20} color={c.onSurfaceVariant} />,
+    onPress: () => go({ screen: "course", code: exam.courseCode, tab: "announcements" }),
+    testID: "action.announcements",
+  });
+  const external = (label: string, url: string, key: string): SheetChoice => ({
+    label,
+    icon: <Icons.ArrowUpRight size={20} color={c.onSurfaceVariant} />,
+    onPress: () => open(url),
+    testID: `action.official.${key}`,
+  });
+  if (exam.six.length > 0 && student) menu.push(external(t("examPage.seeSix"), sixTimetableUrl(student), "six"));
   for (const task of exam.tasks)
-    links.push({
-      key: `task:${task.id}`,
-      label: exam.tasks.length > 1 ? factsLabel(t("examPage.seeTask"), task.title) : t("examPage.seeTask"),
-      url: edunexTaskUrl(task.id),
-    });
-  if (!exam.tasks.length && course?.edunex) links.push({ key: "course", label: t("examPage.seeCourse"), url: edunexCourseUrl(course.edunex.courseId) });
+    menu.push(
+      external(exam.tasks.length > 1 ? factsLabel(t("examPage.seeTask"), task.title) : t("examPage.seeTask"), edunexTaskUrl(task.id), `task.${task.id}`),
+    );
+  if (!exam.tasks.length && course?.edunex) menu.push(external(t("examPage.seeCourse"), edunexCourseUrl(course.edunex.courseId), "course"));
+  // The date card says the day; the line under the name only when there's no card to say it.
+  const card = exam.six.length > 0 || exam.edunex.length > 0;
 
   return (
-    // One title: the exam's own, on the page; the bar carries only Back.
-    <Page testID="screen.exam" header={<TopBar />} background={v.page} {...pull}>
+    // One title: the exam's own, on the page; the bar carries Back and ⋮.
+    <Page testID="screen.exam" header={<TopBar actions={<OverflowMenu choices={menu} testID="action.examMenu" />} />} background={v.page} {...pull}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
         <KindPill kind={t(`exam.kind.${exam.kind}`)} />
         <CourseTile code={exam.courseCode} name={course?.name} size={24} />
@@ -122,13 +142,15 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
       <Text size="headlineSmall" face="display" weight="bold" accessibilityRole="header" style={{ marginTop: space[2], color: v.fg, letterSpacing: -0.3 }}>
         {name}
       </Text>
-      <Text size="bodyMedium" style={{ marginTop: space[1], color: v.muted }}>
-        {exam.at !== null
-          ? factsLabel(f.dateLong(exam.at), f.fromNow(exam.at))
-          : exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
-            ? t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")
-            : t("exam.noDate")}
-      </Text>
+      {!card && (
+        <Text size="bodyMedium" style={{ marginTop: space[1], color: v.muted }}>
+          {exam.at !== null
+            ? factsLabel(f.dateLong(exam.at), f.fromNow(exam.at))
+            : exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
+              ? t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")
+              : t("exam.noDate")}
+        </Text>
+      )}
 
       <View testID="section.when">
         <SectionTitle title={t("exam.when")} />
@@ -137,7 +159,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
             // SIX's sitting: the day, the time and the room, big, on the course's tint (the page's one big card).
             <View key={session.id} style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]} testID={`card.sitting.${session.id}`}>
               <Text size="labelLarge" weight="semibold" style={{ color: ink }}>
-                {t("exam.inClass")}
+                {factsLabel(t("exam.inClass"), session.start > now && f.fromNow(session.start))}
               </Text>
               <Text face="display" weight="extrabold" tabular style={{ marginTop: space[1], color: v.fg, fontSize: 28, lineHeight: 36, letterSpacing: -0.5 }}>
                 {dayLabel(f, session.start)}
@@ -150,25 +172,23 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
                   {t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}
                 </Text>
               </View>
-              <View style={[styles.room, { backgroundColor: v.card }]}>
-                <Icons.MapPin size={22} weight="fill" color={session.room ? ink : v.muted} />
+              {/* The room on the same tint: no box inside the card. */}
+              <View style={styles.room}>
+                <Icons.MapPin size={20} weight="fill" color={session.room ? ink : v.muted} />
                 {session.room ? (
-                  <Text size="titleLarge" face="display" weight="bold" style={{ flexShrink: 1, color: v.fg }}>
+                  <Text size="titleMedium" face="display" weight="bold" style={{ flexShrink: 1, color: v.fg }}>
                     {session.room}
                   </Text>
                 ) : (
-                  <Text size="bodyLarge" style={{ color: v.muted }}>
+                  <Text size="bodyLarge" style={{ color: v.fg2 }}>
                     {t("exam.noRoom")}
                   </Text>
                 )}
               </View>
             </View>
           ))}
-          {exam.edunex.map((e) => (
-            <EdunexCard key={e.id} exam={exam} edunex={e} />
-          ))}
-          {exam.tasks.map((task) => (
-            <TakeHomeCard key={task.id} task={task} />
+          {exam.edunex.map((e, i) => (
+            <EdunexCard key={e.id} exam={exam} edunex={e} lead={exam.six.length === 0 && i === 0} />
           ))}
           {/* The header already says the day isn't known: here only what is, the exam week and where the exam is listed. */}
           {!dated && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
@@ -190,6 +210,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
               </Text>
             )
           )}
+          <ExamRows exam={exam} ahead={ahead} />
         </View>
         {exam.disagree && (
           <View style={{ marginTop: space[3] }}>
@@ -211,27 +232,10 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
             </Notice>
           </View>
         )}
-        {exam.takeHomeApart !== null && !exam.disagree && (
-          <LinkLine onPress={() => go({ screen: "course", code: exam.courseCode, tab: "announcements" })}>{t("examPage.checkAnnouncements")}</LinkLine>
-        )}
-        <ExamToCalendar exam={exam} />
-        {ahead && <BeforeExam code={exam.courseCode} />}
+        {calendar.problem}
       </View>
 
       <Study exam={exam} />
-
-      {links.length > 0 && (
-        <View>
-          <SectionTitle title={t("examPage.official")} />
-          <Panel style={{ paddingVertical: space[1], paddingHorizontal: space[1], alignItems: "flex-start" }}>
-            {links.map((link) => (
-              <Button key={link.key} variant="ghost" icon={<Icons.ArrowUpRight size={18} color={c.primary} />} onPress={() => open(link.url)}>
-                {link.label}
-              </Button>
-            ))}
-          </Panel>
-        </View>
-      )}
 
       {others.length > 0 && (
         <View>
@@ -279,11 +283,11 @@ function KindPill({ kind }: { kind: string }) {
 }
 
 /**
- * "Tambahkan ke kalender HP": this exam's sittings and take-home deadlines into the phone's "Edunex
- * Plus" calendar, as Jadwal's sheet puts them there (adding again updates them). Only while the
- * exam has a date somewhere.
+ * "Tambahkan ke kalender HP", as a ⋮ choice: this exam's sittings and take-home deadlines into the phone's "Edunex
+ * Plus" calendar, as Jadwal's sheet puts them there (adding again updates them). Only while the exam has a date
+ * somewhere. What went wrong is said on the page under the dates, with its one fix.
  */
-function ExamToCalendar({ exam }: { exam: Exam }) {
+function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: ReactNode } {
   const t = useT();
   const lang = useLang();
   const now = useNow();
@@ -300,12 +304,13 @@ function ExamToCalendar({ exam }: { exam: Exam }) {
       ),
     [store, lang, now, exam],
   );
-  if (items.length === 0) return null;
+  if (items.length === 0) return { choice: null, problem: null };
   const share = () => {
     setProblem(null);
     void shareIcs(items, now).catch(() => setProblem({ text: t("mobile.calendar.shareFailed") }));
   };
   const add = async () => {
+    if (busy) return;
     setBusy(true);
     setProblem(null);
     try {
@@ -319,62 +324,48 @@ function ExamToCalendar({ exam }: { exam: Exam }) {
       setBusy(false);
     }
   };
-  return (
-    <View style={{ marginTop: space[3], gap: space[3], alignItems: "flex-start" }}>
-      <Button icon={<Icons.Smartphone size={18} color={theme.color.primary} />} busy={busy} onPress={() => void add()} testID="action.examToCalendar">
-        {t("schedule.export")}
-      </Button>
-      {problem && (
-        // Said where it happened, with its one fix (a snackbar is gone before it's read).
-        <View style={{ alignSelf: "stretch" }}>
-          <Notice
-            tone="danger"
-            title={problem.text}
-            testID="notice.examToCalendar"
-            action={
-              problem.fix === "settings" ? (
-                <Button size="sm" variant="tonal" onPress={() => void Linking.openSettings()}>
-                  {t("mobile.calendar.settings")}
-                </Button>
-              ) : problem.fix === "share" ? (
-                <Button size="sm" variant="tonal" onPress={share}>
-                  {t("mobile.calendar.share")}
-                </Button>
-              ) : undefined
-            }
-          />
-        </View>
-      )}
-    </View>
-  );
-}
-
-function LinkLine({ onPress, children }: { onPress: () => void; children: ReactNode }) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="link"
-      onPress={onPress}
-      hitSlop={8}
-      style={{ marginTop: space[2], flexDirection: "row", alignItems: "center", gap: 2, alignSelf: "flex-start", minHeight: 48 }}
-    >
-      <Text size="labelLarge" tone="primary">
-        {children}
-      </Text>
-      <Icons.ChevronRight size={16} color={theme.color.primary} />
-    </Pressable>
-  );
+  return {
+    choice: {
+      label: t("schedule.export"),
+      icon: <Icons.Smartphone size={20} color={theme.color.onSurfaceVariant} />,
+      onPress: () => void add(),
+      testID: "action.examToCalendar",
+    },
+    problem: problem && (
+      // Said where it happened, with its one fix (a snackbar is gone before it's read).
+      <View style={{ marginTop: space[3] }}>
+        <Notice
+          tone="danger"
+          title={problem.text}
+          testID="notice.examToCalendar"
+          action={
+            problem.fix === "settings" ? (
+              <Button size="sm" variant="tonal" onPress={() => void Linking.openSettings()}>
+                {t("mobile.calendar.settings")}
+              </Button>
+            ) : problem.fix === "share" ? (
+              <Button size="sm" variant="tonal" onPress={share}>
+                {t("mobile.calendar.share")}
+              </Button>
+            ) : undefined
+          }
+        />
+      </View>
+    ),
+  };
 }
 
 /**
  * Edunex's own exam: its day and time, and its title. A window open now (a quiz open for days) has
- * Tandai selesai under it, the one thing about it the app can't see; once marked, the way back.
+ * Tandai selesai under it, the one thing about it the app can't see; once marked, the way back. With no SIX sitting
+ * (`lead`) it is the page's date card, on the course's tint with how far off it is.
  */
-function EdunexCard({ exam, edunex }: { exam: Exam; edunex: Exam["edunex"][number] }) {
+function EdunexCard({ exam, edunex, lead }: { exam: Exam; edunex: Exam["edunex"][number]; lead: boolean }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const v = useTheme().v4;
+  const { ink, tint } = useCourseTile()(exam.courseCode);
   const marks = useExamMarks();
   const list = useExamMarkList();
   const part = examParts(exam, now, list).find((p) => p.kind === "window" && p.edunex.id === edunex.id);
@@ -405,9 +396,9 @@ function EdunexCard({ exam, edunex }: { exam: Exam; edunex: Exam["edunex"][numbe
     }
   };
   return (
-    <Panel>
-      <Text size="labelLarge" weight="semibold" style={{ color: v.muted }}>
-        {t("exam.onEdunex")}
+    <Panel tint={lead ? tint : undefined} style={lead ? { borderRadius: 24 } : undefined}>
+      <Text size="labelLarge" weight="semibold" style={{ color: lead ? ink : v.muted }}>
+        {factsLabel(t("exam.onEdunex"), lead && edunex.start !== null && edunex.start > now && f.fromNow(edunex.start))}
       </Text>
       <Text face="display" weight="extrabold" tabular style={{ marginTop: space[1], color: v.fg, fontSize: 24, lineHeight: 32, letterSpacing: -0.4 }}>
         {edunex.start !== null ? dayLabel(f, edunex.start) : t("exam.noDate")}
@@ -460,52 +451,68 @@ function EdunexCard({ exam, edunex }: { exam: Exam; edunex: Exam["edunex"][numbe
   );
 }
 
-function TakeHomeCard({ task }: { task: Task }) {
+const TASK_PILL: Partial<Record<TaskStatus, "red" | "amber" | "ok" | "brand" | "plain">> = {
+  draft: "brand",
+  submitted: "ok",
+  in_review: "ok",
+  overdue: "red",
+  closed: "plain",
+  returned: "amber",
+};
+
+/**
+ * What to do before the exam, as rows in one card: each take-home Task (its name, when it's due, its status once it
+ * has one) and the attendance before it (opens Presensi). One target each, no links of their own.
+ */
+function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const theme = useTheme();
-  const v = theme.v4;
+  const v = useTheme().v4;
   const { go } = useNav();
-  const status = taskStatus(task, now);
-  const open = isOpenStatus(status);
+  const attendance = useAttendance();
+  const entry = ahead ? attendance?.courses.find((c) => c.course.code === exam.courseCode) : undefined;
+  const health = entry && entry.health.attended !== null ? entry.health : null;
+  if (!exam.tasks.length && !health) return null;
+  const tone = health ? absenceTone(health.state) : null;
   return (
-    <PressScale
-      testID={`row.task.${task.id}`}
-      accessibilityRole="button"
-      onPress={() => go({ screen: "task", taskId: task.id })}
-      style={[styles.card, styles.takeHome, { backgroundColor: v.card }]}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[2] }}>
-        {/* How the app knows it's the exam's take-home, said once where it's shown. */}
-        <View style={{ flex: 1 }}>
-          <Meta>
-            {t("exam.takeHome")}
-            {takeHomeWhy(t, task) ?? ""}
-          </Meta>
-        </View>
-        {status !== "not_started" && <StatusChip status={status} />}
-      </View>
-      <Text face="display" weight="extrabold" tabular style={{ marginTop: space[1], color: v.fg, fontSize: 24, lineHeight: 32, letterSpacing: -0.4 }}>
-        {task.dueAt !== null ? dayLabel(f, task.dueAt) : t("exam.noDate")}
-      </Text>
-      {task.dueAt !== null && (
-        <Text size="titleMedium" face="display" weight="bold" tabular style={{ color: v.fg }}>
-          {t("exam.due", { when: f.time(task.dueAt) })}
-        </Text>
-      )}
-      <View style={{ marginTop: space[3], flexDirection: "row", alignItems: "center", gap: 4 }}>
-        <Text size="labelLarge" tone="primary" numberOfLines={2} style={{ flexShrink: 1 }}>
-          {open ? t("examPage.openTask") : task.title}
-          {open ? (
-            <Text size="bodyMedium" tone="muted">
-              {`  ·  ${task.title}`}
+    <Group testID="group.examRows">
+      {exam.tasks.map((task, i) => {
+        const status = taskStatus(task, now);
+        const pill = TASK_PILL[status];
+        return (
+          <GroupRow
+            key={task.id}
+            first={i === 0}
+            testID={`row.task.${task.id}`}
+            accessibilityRole="button"
+            onPress={() => go({ screen: "task", taskId: task.id })}
+            leading={<IconTile icon={(color) => <Icons.FileText size={22} color={color} />} />}
+            title={task.title}
+            meta={factsLabel(t("exam.takeHome"), task.dueAt !== null ? dayAt(dayLabel(f, task.dueAt), f.time(task.dueAt)) : t("exam.noDate"))}
+            trailing={pill ? <Pill tone={pill}>{t(`taskStatus.${status}`)}</Pill> : undefined}
+          />
+        );
+      })}
+      {health && (
+        <GroupRow
+          first={!exam.tasks.length}
+          testID="row.examAttendance"
+          accessibilityRole="button"
+          onPress={() => go({ screen: "presence" })}
+          leading={<IconTile tone={tone ?? "plain"} icon={(color) => <Icons.Hand size={22} color={color} />} />}
+          title={t("examPage.attendance")}
+          meta={t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })}
+          trailing={tone ? <Pill tone={tone}>{budgetLabel(t, health)}</Pill> : undefined}
+        >
+          {!tone && (
+            <Text size="bodyMedium" style={{ color: v.muted }}>
+              {budgetLabel(t, health)}
             </Text>
-          ) : null}
-        </Text>
-        <Icons.ChevronRight size={16} color={theme.color.primary} />
-      </View>
-    </PressScale>
+          )}
+        </GroupRow>
+      )}
+    </Group>
   );
 }
 
@@ -585,56 +592,9 @@ function Study({ exam }: { exam: Exam }) {
   );
 }
 
-function BeforeExam({ code }: { code: string }) {
-  const t = useT();
-  const theme = useTheme();
-  const { go } = useNav();
-  const attendance = useAttendance();
-  const entry = attendance?.courses.find((c) => c.course.code === code);
-  if (!entry || entry.health.attended === null) return null;
-  const { health } = entry;
-  return (
-    <View style={{ marginTop: space[4], flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
-      <View style={{ marginTop: 3 }}>
-        <Icons.Hand size={16} color={theme.color.muted} />
-      </View>
-      <View style={{ flex: 1, gap: space[1] }}>
-        <Text size="body" weight="medium">
-          {t("examPage.attendance")}
-        </Text>
-        <Text size="small" tone="muted">
-          {t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })}
-          <Text size="small" weight="semibold" tone={toneOf(STATE_TONE[health.state])}>
-            {`  ·  ${budgetLabel(t, health)}`}
-          </Text>
-        </Text>
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => go({ screen: "presence" })}
-          hitSlop={8}
-          style={{ alignSelf: "flex-start", minHeight: 48, justifyContent: "center" }}
-        >
-          <Text size="labelLarge" tone="primary">
-            {t("examPage.seePresence")}
-          </Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   card: { paddingHorizontal: space[4], paddingVertical: space[4] },
-  takeHome: { borderRadius: shape.lgPlus, overflow: "hidden" },
-  room: {
-    marginTop: space[3],
-    flexDirection: "row",
-    alignItems: "center",
-    gap: space[2],
-    borderRadius: shape.md,
-    paddingHorizontal: space[3],
-    paddingVertical: space[3],
-  },
+  room: { marginTop: space[2], flexDirection: "row", alignItems: "center", gap: space[2] },
   other: {
     flexDirection: "row",
     alignItems: "center",
