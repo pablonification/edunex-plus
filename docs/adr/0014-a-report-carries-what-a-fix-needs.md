@@ -70,8 +70,9 @@ this is the app's side.
 
 - **The relay's address is one constant** (`REPORT_RELAY_URL`, `src/core/links.ts`), shipped
   empty. While it's empty there's no "Kirim", no question, nothing sent by itself: the app is as it
-  was. The maintainer fills it in once the relay runs. Requests go through the engine's door to the
-  network with the app's User-Agent, as every other request it makes (API v1:
+  was. The maintainer fills it in once the relay runs, and has. Tests and the demo never use it:
+  they have no relay unless they ask for the pretend one. Requests go through the engine's door to
+  the network with the app's User-Agent, as every other request it makes (API v1:
   `src/engine/report/relay.ts`).
 - **"Kirim langsung" sits first, with LINE and GitHub**, across the dialog (three tiles side by
   side don't fit it), and posts exactly the report the Student was shown, with their note, which
@@ -109,6 +110,11 @@ this is the app's side.
 
 - A report can be turned into a failing test without asking the Student anything, and says so
   when it can't (`no`, `unknown`).
+- That needs the right page. A report from 0.1.0-alpha.26 said `/course/tasks` didn't fit but
+  carried another course's list, so it said `unknown`: the Tasks feed reads every course before it
+  says one failed, and the report took the last `/course/tasks` it still had. An Edunex answer that
+  fails its check now travels with its error (`AnswerError`, `src/engine/errors.ts`), and that
+  answer is the one kept, however much the read got after it.
 - The re-read already caught one scrubbing slip: an attendance figure under 5% ("1.00%") is made up
   as if it were an IP, so a report can say `no` where the Student's attendance is that low. The
   row's shape still shows "9.9%".

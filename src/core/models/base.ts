@@ -9,10 +9,20 @@ export type SourceId = z.infer<typeof SourceId>;
  * signed-out: no session. connecting: a session exists and is being checked.
  * live: the last check worked. offline: the network or the service is down.
  * expired: the service ended the session. changed: the service answered
- * something the app doesn't understand (a vendor change).
+ * something the app doesn't understand (a vendor change). action-needed: the
+ * service sends the pages the app asks for to one the Student must deal with on
+ * its own site first (SIX's Pengkinian Data Induk form), which the app never
+ * reads; it keeps asking, and reads on once the Student has done it.
  */
-export const SourceState = z.enum(["signed-out", "connecting", "live", "offline", "expired", "changed"]);
+export const SourceState = z.enum(["signed-out", "connecting", "live", "offline", "expired", "changed", "action-needed"]);
 export type SourceState = z.infer<typeof SourceState>;
+
+/**
+ * What a service in "action-needed" wants the Student to do on its own site first: fill in SIX's
+ * Pengkinian Data Induk ("datainduk"), or something on another page of SIX's the app never reads.
+ */
+export const SourceAsks = z.enum(["datainduk", "other"]);
+export type SourceAsks = z.infer<typeof SourceAsks>;
 
 /**
  * A row of a service's page the app didn't understand, so it left that row out and read the rest
@@ -41,6 +51,8 @@ export const SourceStatus = z.object({
   detail: z.string().nullable(),
   /** Pages that changed without the whole source changing (FeedSpec.shows). Saved by a version from 0.1.0-alpha.16 on. */
   changedPages: z.array(ChangedPage).optional(),
+  /** With "action-needed" only: what the service wants the Student to do first. */
+  asks: SourceAsks.optional(),
 });
 export type SourceStatus = z.infer<typeof SourceStatus>;
 
@@ -122,6 +134,13 @@ export const Settings = z.object({
   /** The first full sync's findings were shown (or there were none): the scan doesn't open by itself again. */
   firstScanDone: z.boolean(),
 
+  // The guide (shell/guide.tsx)
+  /**
+   * The Student took the tour of the app or skipped it: it doesn't offer itself again (Settings still starts it).
+   * Saved from 0.1.0-alpha.23 on; before, a Student whose first-run scan was done already knew the app (loadSettings).
+   */
+  guideDone: z.boolean().optional(),
+
   // Problem reports (ADR 0014)
   /** Whether they go by themselves. Saved from 0.1.0-alpha.22 on; "ask" before. */
   reportSending: ReportSending.optional(),
@@ -159,10 +178,16 @@ export const DEFAULT_SETTINGS: Settings = {
   // First-run scan (#81)
   firstScanDone: false,
 
+  // The guide
+  guideDone: false,
+
   // Problem reports (ADR 0014)
   reportSending: "ask",
   reportAsked: false,
 };
+
+/** The guide offers itself after a new Student's first sign-in, until they take it or skip it (not on settings older than it). */
+export const guideDue = (settings: Pick<Settings, "guideDone">): boolean => settings.guideDone === false;
 
 /** Whether problem reports go by themselves, as the Student said: "ask" until they say otherwise. */
 export const reportSendingOf = (settings: Pick<Settings, "reportSending">): ReportSending => settings.reportSending ?? "ask";

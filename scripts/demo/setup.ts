@@ -19,8 +19,14 @@
 //                            app ships without: test/pretend/relay.ts answers, files made-up issues, sends nothing
 //   EDUNEX_DEMO_EDIT=1       after the first sync, the lecturer revises Tugas 01 Bab I (handed in weeks ago):
 //                            new instructions, a later deadline and a new file, so the app knows what changed
+//   EDUNEX_DEMO_HANDED_BACK=1  after the first sync, the lecturer writes under Tugas 01 Bab I (handed in weeks ago)
+//                            and hands it back to work on again, as Edunex's "Revision Request" does, so the Task is
+//                            "Dikembalikan" with her message on its page
 //   EDUNEX_DEMO_SICK=1       SIX writes DK4073's attendance as it does for a Student with sick days (#237): two
 //                            percentages, each with its count, so the app reads the first (its meetings attended)
+//   EDUNEX_DEMO_DATAINDUK=1  SIX makes the Student update their personal data first (Pengkinian Data Induk, #278, #279),
+//                            as it does a new Student: it sends every page of theirs to that form, which the app never
+//                            reads, so SIX's data never arrives and the app says what to do on SIX
 //   EDUNEX_DEMO_ODD=1        SIX writes this term's UKT payment ("Lunas") and FI1101's grade ("A (remedial)") another way,
 //                            as another Student's SIX might: both rows stay, with that cell blank, and UKT and Nilai say so
 //   EDUNEX_DEMO_COURSE_TABLE=changed|lost|blank  SIX's course table on the status page (ADR 0012): after the first

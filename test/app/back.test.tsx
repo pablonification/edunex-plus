@@ -361,6 +361,15 @@ describe("the way up from a Task", () => {
 });
 
 describe("Back to the screen it left", () => {
+  it("the mouse's back button goes back too", async () => {
+    const s = await openCourse("PL3002");
+    expect(s.text()).not.toContain("Mata kuliah semester ini");
+    await act(async () => {
+      window.dispatchEvent(new MouseEvent("mouseup", { button: 3 }));
+    });
+    expect(s.text()).toContain("Mata kuliah semester ini");
+  });
+
   it("Tugas & Ujian on Selesai stays on Selesai; opened again from the sidebar, it starts on Belum selesai", async () => {
     screen = await openApp({ signedIn: true });
     const s = screen;

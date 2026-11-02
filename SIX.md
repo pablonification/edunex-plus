@@ -65,6 +65,15 @@ adds or changes a SIX or ITB request must update this file and keep the guardrai
 
 A redirect that stays on SIX is followed, at most 3 times (then Failed).
 
+**A redirect to a page the app never reads** (a path with `datainduk`, `controlpanel`, `ktm` or
+`pddikti`, `PRIVATE_PAGES` in `six/client.ts`) is not followed: that page is never fetched, since it
+holds family data, and the read stops with ActionNeeded. SIX does this to a Student it wants to update
+their personal data first, often a new one: it sends the pages the app asks for to its Pengkinian Data
+Induk form (#278, #279). SIX then shows as waiting for the Student ("Menunggumu"): the banner says to
+fill in Pengkinian Data Induk on SIX, with "Buka SIX" (the status page, which SIX sends on to the form).
+It isn't a change: nothing is offered or sent as a report, and the session stays. The feeds try again as
+after any failure (30 s, then up to every 15 minutes) and on refresh, and read on once it's done.
+
 **Liveness check:** the `six.status` feed (status page, hourly). Only an Unauthorized answer to
 that feed ends the SIX session (it is deleted from the vault and SIX shows as expired). An
 Unauthorized answer to any other SIX feed just triggers the liveness check right away.
@@ -91,7 +100,7 @@ sign-in, liveness first), then repeat every `every` ± `jitter`.
 | `/app/mahasiswa:{nim}/kurikulum/kurikulum/{id}/struktur` (the link from the list, `returnTo` dropped) | `six.curriculum` | Required courses by semester, specializations, minors, the program's catalog, each course's SIX course id | `readers/curriculum-structure.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/program-integrasi/riwayat/{sid}` | `six.curriculum` | Registered specialization, minor, multidisciplinary program or double major, with advisor and program approval days | `readers/schemes.ts` |
 | `/app/mahasiswa:{nim}+{term}/registrasi/rencanastudi/{sid}` | `six.krs` (24 h ± 1 h) | The KRS: term, advisor name, max SKS, sent / advisor-approved / official stamps (a step done at a time the app can't read counts as done, undated), the change round (URS), UKT paid and amount, courses with class, SKS and per-course approval. The advisor chat on the page is never read | `readers/krs.ts` |
-| `/app/mahasiswa:{nim}/keuangan` | `six.bills` (24 h ± 1 h) | UKT bills per term: billed, paid, last day to pay, instalments (an "SPI" row, the one-off development fee, is left out). With the amount or payment blank, whether a bill is paid is unknown; an instalment the app can't read blanks the bill's deadline | `readers/bills.ts` |
+| `/app/mahasiswa:{nim}/keuangan` | `six.bills` (24 h ± 1 h) | UKT bills per term: billed, paid, last day to pay, instalments (an "SPI" or "IPI" row, the one-off development fee, is left out). With the amount or payment blank, whether a bill is paid is unknown; an instalment the app can't read blanks the bill's deadline | `readers/bills.ts` |
 | `/app/mahasiswa:{nim}+{term}/kelas/pertemuan/{meetingId}/mhs/{sid}?returnTo=…` (a class's popup on the timetable, its `data-url`), with `X-Requested-With: XMLHttpRequest` as SIX's own page asks for it | `six.checkIn` (2 min ± 20 s), only from 5 minutes before a class on the timetable starts to 10 minutes after it ends; outside class it requests nothing. A class whose button came and went isn't read again | Whether SIX's "Tandai Hadir" button shows and can be pressed (not disabled) | `six/check-in.ts` `showsCheckIn` |
 
 **Kept from the status page.** Each time the status page is read, the app also keeps, as SIX data on
@@ -234,11 +243,12 @@ columns by their labels too, so a column added or moved still reads.
 | `429` | Offline | Offline; SIX paused as above |
 | `5xx` from SIX | Offline | Offline |
 | Other `4xx`, or more than 3 redirects | Failed | Changed, with the detail |
+| Redirect to a page the app never reads (Pengkinian Data Induk, control panel, student ID card, PDDikti) | ActionNeeded | Waiting for the Student, with what to do on SIX; still signed in, no report |
 | No answer, unreachable, or timeout | Offline | Offline |
 | Page layout not as recorded | VendorChanged | Changed, with the detail; for a record page, the timetable or the status page's course table, said on its screens instead (below) |
 
-A source's status is the worst of its feeds' latest outcomes: changed (VendorChanged, Failed,
-Rejected) over offline over live. A feed that says which datasets it fills (`FeedSpec.shows`: the
+A source's status is the worst of its feeds' latest outcomes: waiting for the Student (ActionNeeded)
+over changed (VendorChanged, Failed, Rejected) over offline over live. A feed that says which datasets it fills (`FeedSpec.shows`: the
 records and the timetable, not the status page) doesn't count: when its page changes, SIX stays live
 and lists that page under `changedPages`, and the screens showing those datasets say so with when
 their data is from ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-screens.md)). The status
@@ -264,10 +274,17 @@ status page, who the Student is and the term, is still all of SIX.
   (the whole class, or once a lecturer opens it), are not known. The pretend SIX models the
   popup (`test/pretend/six.ts`).
 - **Not recorded, not read:** control panel, master data, student ID card and PDDikti pages
-  are never exported or read.
-- **Attendance with sick days:** seen only as text in a Student's report (#237: "82.35% / 94.12%",
-  14 and 16 of 17 meetings); its tooltip wasn't sent. The reader takes the two numbers in a row in a
-  tooltip that give the first percentage; the tests try the shapes it could take.
+  are never exported or read. A redirect to one stops there (above).
+- **Pengkinian Data Induk first:** seen only in Students' reports (#278, #279), never recorded: a new
+  Student's `/home` read, but `statusmhs` led to a page without the Student's links, and every report
+  that carried it was refused by the relay as a private page. Where SIX sends them and which pages it
+  spares are guesses: the pretend SIX sends every page but `/home` to `/statusmhs/datainduk/summary/{sid}`
+  (`requireDataInduk`).
+- **Attendance with sick days:** seen in Students' reports (#237, #257, #271), not recorded. SIX
+  shows two percentages, "82.35% / 94.12%", each in its own `<span>` with its own tooltip: "Hadir 14
+  dari 17 pertemuan", then "Hadir (termasuk izin dan sakit) 16 dari 17 pertemuan". When attendance
+  is low, only the first is in red. The reader takes the two numbers in a row in a tooltip that give
+  the first percentage, the meetings attended; `test/engine/six-session.test.ts` holds this shape.
 - **Timetable:** only one month was recorded; other months in tests are generated.
 - **KRS:** SIX's look for a step not taken yet and for a course not yet approved was not
   recorded (tests use an empty cell).

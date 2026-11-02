@@ -31,7 +31,7 @@ export async function startEngine(
     checkForUpdates?: boolean;
     /** Only releases carrying a file this matches (the phone's APK). */
     releaseAsset?: RegExp;
-    /** Where problem reports go with one click (the pretend relay); none by default, as the app ships. */
+    /** Where problem reports go with one click (the pretend relay); none by default, never the real one. */
     relay?: string;
     /** Starts as the phone does: only the sign-in checks and what's due (EngineDeps.startDueOnly). */
     startDueOnly?: boolean;
@@ -53,7 +53,7 @@ export async function startEngine(
     emit: (e) => events.push(e),
     random: () => 0.5,
     log,
-    relay: options.relay,
+    relay: options.relay ?? "",
     os: () => "macOS 15.3 (arm64)",
     ...(options.startDueOnly ? { startDueOnly: true } : {}),
   });

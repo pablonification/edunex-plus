@@ -39,6 +39,7 @@ export function errorKey(error: unknown, failed: StringKey = "error.failed"): St
   if (kind === "Offline") return "error.offline";
   if (kind === "Unauthorized") return "error.expired";
   if (kind === "VendorChanged") return "error.changed";
+  if (kind === "ActionNeeded") return "error.actionNeeded";
   return failed;
 }
 

@@ -264,6 +264,49 @@ describe("each system on its own", () => {
     await edunexLive();
   });
 
+  // #278, #279: SIX makes a new Student fill in Pengkinian Data Induk first, and sends every page to that form.
+  it("SIX wanting the Student to update their personal data first says what to do there, opens SIX, and reads again once done", async () => {
+    const world = new PretendWorld();
+    world.six.requireDataInduk();
+    screen = await openApp({ world, signedIn: true, six: true });
+    expect(screen.text()).toContain(
+      "SIX minta kamu memperbarui data diri dulu. Isi Pengkinian Data Induk di SIX, lalu kembali ke sini. Aplikasi membaca SIX lagi sendiri.",
+    );
+    // Not SIX changing: nothing to report.
+    expect(screen.text()).not.toContain("SIX berubah");
+    expect(screen.has("Laporkan")).toBe(false);
+    expect(screen.button(/^Status data:/).getAttribute("aria-label")).toBe("Status data: SIX menunggumu");
+    expect(await screen.sourceState("SIX")).toBe("Menunggumu");
+    await edunexLive();
+    // SIX was never read: its status page by Edunex's NIM, which SIX sends on to the form.
+    await screen.click("Buka SIX");
+    expect(screen.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://six.itb.ac.id/app/mahasiswa:18223901/statusmhs" } });
+    // Settings says it on SIX's row, still signed in.
+    await screen.click(/Dimas Pratama/);
+    expect(screen.text()).toContain("Menunggumu · isi Pengkinian Data Induk di SIX");
+    expect(screen.has("Keluar dari SIX")).toBe(true);
+    await screen.key("Escape");
+
+    // Done on SIX, back in the app.
+    screen.world.six.requireDataInduk(false);
+    await screen.click("Coba lagi");
+    expect(screen.text()).not.toContain("Pengkinian Data Induk");
+    await sixLive();
+    expect(card("DK4073")).toContain("Terpakai 2× · habis");
+  });
+
+  it("in English, SIX waiting for the Student says so in English", async () => {
+    const world = new PretendWorld();
+    world.six.requireDataInduk();
+    screen = await openApp({ world, signedIn: true, six: true });
+    await screen.engineDoes(() => screen!.engine.updateSettings({ lang: "en" }));
+    expect(screen.text()).toContain(
+      "SIX wants you to update your personal details first. Fill in Pengkinian Data Induk on SIX, then come back. The app reads SIX again on its own.",
+    );
+    expect(screen.has("Open SIX")).toBe(true);
+    expect(await screen.sourceState("SIX")).toBe("Waiting for you");
+  });
+
   it("SIX rate-limiting the app shows offline and keeps the data", async () => {
     screen = await openApp({ signedIn: true, six: true });
     screen.world.six.rateLimit(1);

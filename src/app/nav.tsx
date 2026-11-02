@@ -1,5 +1,5 @@
-// Where the Student is in the app, with a back history (mouse back button,
-// ⌘[ via the menu later). Screens move with go(); nothing reads the URL.
+// Where the Student is in the app, with a back history (the mouse's back
+// button and ⌘[, shell.tsx). Screens move with go(); nothing reads the URL.
 // Back comes back to a screen as the Student left it: where on the screen they
 // are (a course's tab and module, a study-plan tab, Tugas & Ujian's "Selesai"),
 // which a link or an alert is compared with, is recorded in its route with
@@ -134,13 +134,6 @@ export function NavProvider({
   useEffect(() => {
     for (const id of kept.current.keys()) if (!history.stack.some((place) => place.id === id)) kept.current.delete(id);
   }, [history]);
-  useEffect(() => {
-    const onMouse = (event: MouseEvent) => {
-      if (event.button === 3) back();
-    };
-    window.addEventListener("mouseup", onMouse);
-    return () => window.removeEventListener("mouseup", onMouse);
-  }, [back]);
   const value = useMemo<Nav>(() => {
     const { stack, returned } = history;
     const { route, id } = stack.at(-1)!;

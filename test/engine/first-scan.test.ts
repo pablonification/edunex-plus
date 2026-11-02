@@ -287,6 +287,16 @@ describe("what couldn't be read", () => {
     expect(of(findings, "unread")?.parts).toEqual([{ source: "six", state: "offline", missing: ["six.schedule"] }]);
   });
 
+  it("SIX wanting a new Student to fill in Pengkinian Data Induk first: the scan doesn't wait, and names SIX as waiting for them", async () => {
+    const h = await firstSync({ before: (h) => h.world.six.requireDataInduk() });
+    expect(h.status("six").state).toBe("action-needed");
+    expect(scanReady(h.saved(), h.statuses())).toBe(true);
+    expect(homeReady(h.saved(), h.statuses())).toBe(true);
+    expect(of(scan(h.saved(), h.statuses(), h.world.clock.now()), "unread")?.parts).toEqual([
+      { source: "six", state: "action-needed", missing: ["six.courses", "six.schedule", "six.transcript"] },
+    ]);
+  });
+
   it("a page of SIX's public catalog changed: the catalog is named, not ITB's calendar", async () => {
     const h = await firstSync({ before: (h) => h.world.itb.changeLayout("/pub/kur2024/182", "<th>Kategori</th>", "<th>Jenis</th>") });
     await h.wait(300_000);

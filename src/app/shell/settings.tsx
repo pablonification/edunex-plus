@@ -56,12 +56,15 @@ export function SettingsDialog({
   onOpenChange,
   startAt = null,
   onShowFirstScan,
+  onShowGuide,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** A group to open at, instead of the top (the sidebar's course colors button). */
   startAt?: "courseColors" | null;
   onShowFirstScan?: () => void;
+  /** Starts the guide's tour (it closes Settings first). */
+  onShowGuide?: () => void;
 }) {
   const t = useT();
   const focusNext = useFocusNext();
@@ -101,6 +104,7 @@ export function SettingsDialog({
             onStarted={() => setStart(null)}
             onSignedOutOfEverything={() => onOpenChange(false)}
             onShowFirstScan={onShowFirstScan}
+            onShowGuide={onShowGuide}
             onShowLicences={() => setPage("licences")}
           />
         )}
@@ -114,12 +118,14 @@ function SettingsBody({
   onStarted,
   onSignedOutOfEverything,
   onShowFirstScan,
+  onShowGuide,
   onShowLicences,
 }: {
   startAt: "courseColors" | null;
   onStarted: () => void;
   onSignedOutOfEverything: () => void;
   onShowFirstScan?: () => void;
+  onShowGuide?: () => void;
   onShowLicences: () => void;
 }) {
   const t = useT();
@@ -226,6 +232,13 @@ function SettingsBody({
 
       <Group title={t("settings.about")} note={t("settings.unofficial")}>
         <About />
+        {onShowGuide && (
+          <Row label={t("settings.guide")} hint={t("settings.guide.hint")}>
+            <Button size="sm" aria-label={`${t("settings.guide.start")}: ${t("settings.guide")}`} onClick={onShowGuide}>
+              {t("settings.guide.start")}
+            </Button>
+          </Row>
+        )}
         <Row label={t("report.title")} hint={t(store.relay ? "report.settingsHintRelay" : "report.settingsHint")}>
           <Button size="sm" aria-label={t("report.title")} icon={<Icons.Flag className="size-3.5" />} onClick={() => openReport({})}>
             {t("report.open")}
@@ -482,6 +495,7 @@ const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: 
   { group: "presence", label: "settings.alerts.presence", hint: "settings.alerts.presenceHint" },
   { group: "attendanceRisk", label: "settings.alerts.attendanceRisk", hint: "settings.alerts.attendanceRiskHint", six: true },
   { group: "changes", label: "settings.alerts.changes", hint: "settings.alerts.changesHint" },
+  { group: "feedback", label: "settings.alerts.feedback", hint: "settings.alerts.feedbackHint" },
   { group: "exams", label: "settings.alerts.exams", hint: "settings.alerts.examsHint" },
   { group: "deadline", label: "settings.alerts.deadline", hint: "settings.alerts.deadlineHint" },
   { group: "newTask", label: "settings.alerts.newTask", hint: "settings.alerts.newTaskHint" },
@@ -762,11 +776,16 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
         ? { text: t("settings.notConnected"), tone: "text-muted" }
         : status.state === "expired"
           ? { text: t("settings.account.expired"), tone: "text-warning-fg" }
-          : status.state === "connecting"
-            ? { text: t("status.connecting"), tone: "text-muted" }
-            : status.state === "live"
-              ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "text-success-fg" }
-              : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "text-warning-fg" };
+          : status.state === "action-needed"
+            ? {
+                text: status.asks === "datainduk" ? t("settings.account.dataInduk") : t("settings.account.actionNeeded", { source: name }),
+                tone: "text-warning-fg",
+              }
+            : status.state === "connecting"
+              ? { text: t("status.connecting"), tone: "text-muted" }
+              : status.state === "live"
+                ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "text-success-fg" }
+                : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "text-warning-fg" };
   return (
     <div ref={row} className="flex scroll-my-3 items-center gap-3.5 px-4 py-3">
       <SourceLogo source={source} className="size-9" />

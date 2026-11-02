@@ -23,7 +23,13 @@ export interface DemoOptions {
   signIn?: "asks" | "fails";
   relay?: boolean;
   edit?: boolean;
+  /** EDUNEX_DEMO_HANDED_BACK: after the first sync, the lecturer writes under Tugas 01 Bab I and hands it back. */
+  handedBack?: boolean;
   sick?: boolean;
+  /** EDUNEX_DEMO_DATAINDUK: SIX sends every page of the Student's to its personal-details form first (#278, #279). */
+  dataInduk?: boolean;
+  /** EDUNEX_DEMO_GUIDE: the first-run guide offers itself here too (for its pictures). */
+  guide?: boolean;
   odd?: boolean;
   courseTable?: "changed" | "lost" | "blank";
   timetable?: "unread";
@@ -47,7 +53,10 @@ export function demoOptions(env: Record<string, string | undefined>): DemoOption
     signIn: oneOf("EDUNEX_DEMO_SIGN_IN", env.EDUNEX_DEMO_SIGN_IN, ["asks", "fails"] as const),
     relay: flag(env.EDUNEX_DEMO_RELAY),
     edit: flag(env.EDUNEX_DEMO_EDIT),
+    handedBack: flag(env.EDUNEX_DEMO_HANDED_BACK),
     sick: flag(env.EDUNEX_DEMO_SICK),
+    dataInduk: flag(env.EDUNEX_DEMO_DATAINDUK),
+    guide: flag(env.EDUNEX_DEMO_GUIDE),
     odd: flag(env.EDUNEX_DEMO_ODD),
     courseTable: oneOf("EDUNEX_DEMO_COURSE_TABLE", env.EDUNEX_DEMO_COURSE_TABLE, ["changed", "lost", "blank"] as const),
     timetable: oneOf("EDUNEX_DEMO_TIMETABLE", env.EDUNEX_DEMO_TIMETABLE, ["unread"] as const),
@@ -69,14 +78,22 @@ export function demoStart(options: DemoOptions): string {
 /** The pretend world with the scenario's variants on its pages (the ones that hold from the start). */
 export function demoWorld(options: DemoOptions): PretendWorld {
   const world = new PretendWorld({ now: demoStart(options) });
+  // The recorded threads' messages are scrubbed to one word: in the demo, made-up ones a lecturer and a Student would write.
+  for (const thread of world.edunex.comments.values())
+    for (const message of thread)
+      message.attributes.comment =
+        message.attributes.user.level === "STUDENT"
+          ? "<p>Baik, Bu. Bab I sudah saya sesuaikan dengan template terbaru.</p>"
+          : "<p>Sudah sesuai template. Lanjutkan ke Bab II.</p>";
   if (options.checkIn === "open") world.six.openCheckIn("2194342");
   if (options.sick)
     world.six.editPage(/\/statusmhs$/, (html) =>
       html.replace(
-        '<span title="Hadir 4 dari 6 pertemuan">66.67%</span>',
-        '<span title="Hadir 4 dari 6 pertemuan">66.67%</span> / <span title="Hadir dan sakit 5 dari 6 pertemuan">83.33%</span>',
+        '<span title="Hadir 4 dari 6 pertemuan">66.67%</span></span>',
+        '<span title="Hadir 4 dari 6 pertemuan">66.67%</span></span> / <span title="Hadir (termasuk izin dan sakit) 5 dari 6 pertemuan">83.33%</span>',
       ),
     );
+  if (options.dataInduk) world.six.requireDataInduk();
   if (options.odd) {
     world.six.editPage(/\/keuangan$/, (html) =>
       html.replace(
@@ -223,11 +240,22 @@ export function demoRun(options: DemoOptions): DemoRun {
         );
         await fastForward(engine.refresh("edunex"));
       }
+      if (options.handedBack) {
+        world.edunex.comment(
+          117001,
+          "<p>Bab I sudah cukup jelas, tapi perlu dilengkapi:</p><ol><li>Tambahkan data pendukung pada latar belakang masalah.</li><li>Rumusan masalah dan tujuan harus saling berpasangan.</li></ol>",
+        );
+        world.edunex.handBack(117001);
+        await fastForward(engine.refresh("edunex"));
+        // The thread is read once the Tasks are.
+        await world.clock.advance(5_000);
+      }
       if (options.courseTable === "changed" && options.scenario === "signed-in") {
         world.six.joinCodeAndName();
         await fastForward(engine.refresh("six"));
       }
-      await engine.updateSettings({ firstScanDone: true });
+      // The guide offers itself after the first run's sign-in (EDUNEX_DEMO_GUIDE=1: here too, for its pictures).
+      await engine.updateSettings({ firstScanDone: true, guideDone: !options.guide });
       await extras.afterSignIn?.(engine);
       if (options.afterClass && options.scenario === "signed-in") await playTheDay(engine, options.afterClass);
       runInRealTime();

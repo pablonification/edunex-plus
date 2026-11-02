@@ -26,7 +26,7 @@ export interface DemoHooks {
   fetchFile?: FetchFile;
   /** The system the page draws itself for, to picture Windows' title bar on a Mac; the window keeps the real system's. */
   platform?: Platform;
-  /** The pretend report relay's address, so "Kirim" and reports that send themselves can be shown; the app ships with none. */
+  /** The pretend report relay's address, so "Kirim" and reports that send themselves can be shown; without it, the demo has none. */
   relay?: string;
 }
 

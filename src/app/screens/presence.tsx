@@ -376,7 +376,7 @@ function NowZone({ zone, attendance }: { zone: Zone; attendance: Attendance }) {
     zone.week !== null;
   if (!any) return null;
   return (
-    <section aria-label={t("presence.now")} className="space-y-3">
+    <section aria-label={t("presence.now")} data-guide="presence-now" className="space-y-3">
       {signIn && <SignInSix quiet={zone.windows.length > 0} />}
       {zone.checkIns.map((session) => (
         <OpenCheckIn key={session.id} session={session} />

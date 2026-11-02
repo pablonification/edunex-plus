@@ -28,6 +28,8 @@ const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
   presenceOpen: Icons.Hand,
   presenceClosing: Icons.Hand,
   taskEdited: Icons.PenLine,
+  taskHandedBack: Icons.HandedBack,
+  taskComment: Icons.Chat,
   scheduleChanged: Icons.CalendarClock,
   meeting: Icons.Megaphone,
   attendanceRisk: Icons.AlertTriangle,
@@ -93,7 +95,7 @@ export function AlertsBell() {
       label={t("alerts.title")}
       className="flex max-h-[min(560px,70vh)] w-[400px] flex-col overflow-hidden"
       trigger={
-        <IconButton label={label} className="relative">
+        <IconButton label={label} data-guide="alerts" className="relative">
           <Icons.Bell className="size-4" />
           {unread > 0 && (
             <span

@@ -3,6 +3,7 @@
 
 import { AlarmIcon } from "phosphor-react-native/src/icons/Alarm";
 import { AppWindowIcon } from "phosphor-react-native/src/icons/AppWindow";
+import { ArrowBendUpLeftIcon } from "phosphor-react-native/src/icons/ArrowBendUpLeft";
 import { ArrowCounterClockwiseIcon } from "phosphor-react-native/src/icons/ArrowCounterClockwise";
 import { ArrowLeftIcon } from "phosphor-react-native/src/icons/ArrowLeft";
 import { ArrowRightIcon } from "phosphor-react-native/src/icons/ArrowRight";
@@ -148,6 +149,7 @@ export const Icons = {
   Flag: icon(FlagIcon),
   GitHub: icon(GithubLogoIcon),
   Chat: icon(ChatCircleTextIcon),
+  HandedBack: icon(ArrowBendUpLeftIcon),
   PenLine: icon(PencilSimpleLineIcon),
   Zap: icon(LightningIcon),
   Layers: icon(StackIcon),

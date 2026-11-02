@@ -304,8 +304,8 @@
             <li class="guide-step">
               <span class="step-n">1</span>
               <div class="guide-text">
-                <h4>Download the installer</h4>
-                <p>For Windows 10 or 11. Few people have downloaded each new version yet, so your browser may hold it back. In Edge: ⋯, then Keep, then Show more, then Keep anyway. In Chrome: Download suspicious file.</p>
+                <h4>Download the zip</h4>
+                <p>For Windows 10 or 11. The installer comes in a zip, so your browser is less likely to hold it back. If Edge still does: ⋯, then Keep, then Show more, then Keep anyway.</p>
                 <div class="guide-files">
                   <a class="btn btn-ghost" href="https://github.com/pablonification/edunex-plus/releases/latest" data-asset="win-x64"><svg width="14" height="14" aria-hidden="true"><use href="#download"/></svg>Intel or AMD (most PCs)</a>
                   <a class="btn btn-ghost" href="https://github.com/pablonification/edunex-plus/releases/latest" data-asset="win-arm"><svg width="14" height="14" aria-hidden="true"><use href="#download"/></svg>ARM (Snapdragon)</a>
@@ -315,8 +315,8 @@
             <li class="guide-step">
               <span class="step-n">2</span>
               <div class="guide-text">
-                <h4>Open it</h4>
-                <p>Each new version is new to Windows, so it may warn you the first time (<a class="inline-link" href="https://github.com/pablonification/edunex-plus/blob/main/docs/code-signing.md" target="_blank" rel="noopener noreferrer">why it warns</a>). Click More info, then Run anyway. It installs and opens by itself.</p>
+                <h4>Open the installer inside it</h4>
+                <p>Open the zip, then the installer in it. Each new version is new to Windows, so it may warn you the first time (<a class="inline-link" href="https://github.com/pablonification/edunex-plus/blob/main/docs/code-signing.md" target="_blank" rel="noopener noreferrer">why it warns</a>). Click More info, then Run anyway. It installs and opens by itself.</p>
               </div>
               <div class="smartscreen" role="img" aria-label="Windows protected your PC. First click More info, then click Run anyway.">
                 <div class="ss">
@@ -467,13 +467,13 @@
       }
     }
 
-    // Each file on the release, by the name it has there. ARM PCs have their own installer from
-    // 0.1.0-alpha.6; before that, one installer served both.
+    // Each file on the release, by the name it has there. Windows gets its installer in a zip
+    // (from 0.1.0-alpha.17): browsers hold a zip back less often than the installer itself.
     const files = {
       "mac-arm": { pattern: /arm64\.dmg$/, name: "Mac with Apple silicon" },
       "mac-intel": { pattern: /x64\.dmg$/, name: "Mac with Intel" },
-      "win-x64": { pattern: /Setup.*\.exe$/, name: "Windows" },
-      "win-arm": { pattern: /-arm64\.exe$/, name: "Windows on ARM" },
+      "win-x64": { pattern: /-windows-x64\.zip$/, name: "Windows" },
+      "win-arm": { pattern: /-windows-arm64\.zip$/, name: "Windows on ARM" },
       "linux-deb": { pattern: /_amd64\.deb$/, name: "Ubuntu or Debian" },
       "linux-deb-arm": { pattern: /_arm64\.deb$/, name: "Ubuntu or Debian on ARM" },
       "linux-appimage": { pattern: /x86_64\.AppImage$/, name: "Linux" },

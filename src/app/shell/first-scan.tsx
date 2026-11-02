@@ -362,7 +362,7 @@ function describe(finding: Finding, t: Translate, f: Format): { title: string; l
         title: t("scan.unread.title", { count: finding.count }),
         lines: finding.parts.map(
           (part) =>
-            `${t(`scan.unread.${part.state as "offline" | "changed" | "expired"}`, { source: part.catalog ? t("scan.unread.catalog") : t(`source.${part.source}`) })}${part.missing.length ? `: ${part.missing.map((name) => t(`scan.part.${name}`)).join(", ")}` : ""}`,
+            `${t(`scan.unread.${part.state as "offline" | "changed" | "expired" | "action-needed"}`, { source: part.catalog ? t("scan.unread.catalog") : t(`source.${part.source}`) })}${part.missing.length ? `: ${part.missing.map((name) => t(`scan.part.${name}`)).join(", ")}` : ""}`,
         ),
         note: null,
       };

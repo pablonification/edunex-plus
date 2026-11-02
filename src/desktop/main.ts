@@ -148,8 +148,8 @@ async function start(): Promise<void> {
     alert: (notice) => void (demo ? undefined : notifier.show(notice)),
     phone: demo ? demoPhone : { ntfy: ntfyClient(ntfySession) },
     log,
-    // The demo's pretend relay, when it asks for one; otherwise the address the app ships with.
-    relay: demo?.relay,
+    // The demo's pretend relay, when it asks for one, and never the real one: its reports are made up.
+    relay: demo ? (demo.relay ?? "") : undefined,
     os: systemName,
   });
   engine = current;
@@ -376,8 +376,12 @@ app.on("before-quit", (event) => {
   if (readyToQuit || !autoUpdates) return;
   event.preventDefault();
   readyToQuit = true;
-  void autoUpdates.beforeQuit().finally(() => app.quit());
+  // Quit again on the next turn, not inside this one: with no update to put in place, beforeQuit settles before
+  // Electron has finished this before-quit, and Electron, seeing this one stopped, would forget the quit that
+  // already closed the window, so the app kept running with no window to show.
+  void autoUpdates.beforeQuit().finally(() => setImmediate(() => app.quit()));
 });
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
+  // On a Mac the app stays with its window closed, unless it was quitting: then it does, whatever got in the way.
+  if (process.platform !== "darwin" || quitting) app.quit();
 });

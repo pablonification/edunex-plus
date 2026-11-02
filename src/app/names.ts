@@ -11,8 +11,11 @@ export function firstName(name: string): string {
   return displayName(name).split(" ")[0] ?? "";
 }
 
+/** A lecturer's name without the titles around it ("Dr. Siti Rahma, S.T., M.T." → "Siti Rahma"): for initials, and where space is short. */
+export const bareName = (name: string) => name.split(",")[0]!.replace(/^((prof|dr|ir|drs|dra|hj?)\.?\s+)+/i, "");
+
 export function initials(name: string): string {
-  return displayName(name)
+  return displayName(bareName(name))
     .split(" ")
     .slice(0, 2)
     .map((word) => word[0] ?? "")

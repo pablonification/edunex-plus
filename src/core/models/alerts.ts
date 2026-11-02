@@ -16,6 +16,8 @@ export const AlertGroup = z.enum([
   "presence",
   "attendanceRisk",
   "changes",
+  /** What a lecturer says about the Student's answer: a Task handed back, a message under the answer. */
+  "feedback",
   "exams",
   "deadline",
   "newTask",
@@ -40,6 +42,10 @@ export const AlertKind = z.enum([
   /** A Presence window closes in 15 minutes and the Student isn't recorded present. */
   "presenceClosing",
   "taskEdited",
+  /** The lecturer handed a Task back to work on again. */
+  "taskHandedBack",
+  /** A lecturer wrote in the thread under the Student's answer. */
+  "taskComment",
   "scheduleChanged",
   "meeting",
   "attendanceRisk",
@@ -61,6 +67,8 @@ export const ALERT_GROUP: Record<AlertKind, AlertGroup> = {
   presenceOpen: "presence",
   presenceClosing: "presence",
   taskEdited: "changes",
+  taskHandedBack: "feedback",
+  taskComment: "feedback",
   scheduleChanged: "changes",
   meeting: "changes",
   attendanceRisk: "attendanceRisk",

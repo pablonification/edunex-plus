@@ -170,13 +170,13 @@ describe("Edunex sign-in → your courses", () => {
     expect(h.status("edunex").state).toBe("offline");
   });
 
-  it("signing out of everything lets the next Student get their own first-run scan", async () => {
+  it("signing out of everything lets the next Student get their own first-run scan and guide", async () => {
     const h = await signedIn();
-    await h.engine.updateSettings({ firstScanDone: true, theme: "dark" });
+    await h.engine.updateSettings({ firstScanDone: true, guideDone: true, theme: "dark" });
     await h.engine.signOut("edunex");
-    expect(h.engine.snapshot().settings.firstScanDone).toBe(true);
+    expect(h.engine.snapshot().settings).toMatchObject({ firstScanDone: true, guideDone: true });
     await h.engine.signOut();
-    expect(h.engine.snapshot().settings).toMatchObject({ firstScanDone: false, theme: "dark" });
+    expect(h.engine.snapshot().settings).toMatchObject({ firstScanDone: false, guideDone: false, theme: "dark" });
   });
 
   it("sign-out removes the session and every saved trace", async () => {

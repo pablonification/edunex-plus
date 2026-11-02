@@ -509,6 +509,10 @@ function SourceTile({
   if (connected && who) {
     line = <Meta truncate>{who}</Meta>;
     says = "who";
+  } else if (status.state === "action-needed") {
+    // SIX wants the Student on its site first (its Pengkinian Data Induk): the banner in the app says what to do.
+    line = t("status.action-needed");
+    says = "asked";
   } else if (connected) {
     line = t("welcome.readingName");
     says = "readingName";
@@ -557,7 +561,7 @@ function SourceTile({
         key={says}
         className={cx(
           "mt-0.5 max-w-full text-small text-balance",
-          connected ? "text-muted" : note?.slow ? "text-warning-fg" : "text-faint",
+          says === "asked" ? "text-warning-fg" : connected ? "text-muted" : note?.slow ? "text-warning-fg" : "text-faint",
           changed && "motion-safe:animate-line-in",
         )}
       >

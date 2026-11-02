@@ -1241,11 +1241,13 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const editAt = edit?.record?.at ?? task.editedAt;
         const changed = edit && editAt !== null && now - editAt < 14 * DAY && !titleOnly(edit.changes) ? editNote(t, f, edit, false) : null;
         const meta =
-          need.reason === "overdue"
-            ? t("home.need.task.overdue")
-            : need.reason === "short"
-              ? t("home.need.task.short", { duration: f.countdown(now + (task.dueAt! - task.opensAt!)) })
-              : t("home.need.task.due", { when: f.dueLabel(task.dueAt!) });
+          need.reason === "returned"
+            ? t("home.need.task.returned")
+            : need.reason === "overdue"
+              ? t("home.need.task.overdue")
+              : need.reason === "short"
+                ? t("home.need.task.short", { duration: f.countdown(now + (task.dueAt! - task.opensAt!)) })
+                : t("home.need.task.due", { when: f.dueLabel(task.dueAt!) });
         return {
           title: task.title,
           titleLacksCourse: true,
@@ -1257,8 +1259,13 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
             need.draft ? t("home.need.task.draft") : null,
           ],
           note: changed ? { text: changed, tone: null } : undefined,
-          when: need.reason === "overdue" ? t("home.need.late") : f.fromNow(task.dueAt!),
-          tone: need.reason === "overdue" ? "danger" : near(task.dueAt),
+          when:
+            need.reason === "overdue" || (need.reason === "returned" && task.dueAt !== null && task.dueAt < now)
+              ? t("home.need.late")
+              : task.dueAt === null
+                ? null
+                : f.fromNow(task.dueAt),
+          tone: need.reason === "overdue" ? "danger" : need.reason === "returned" ? "warning" : near(task.dueAt),
         };
       }
       case "exam": {
@@ -1403,13 +1410,21 @@ const CHANGE_ICON: Partial<Record<AlertKind, typeof Icons.Home>> = {
   newTask: Icons.ListChecks,
   newMaterial: Icons.FileText,
   taskEdited: Icons.PenLine,
+  taskHandedBack: Icons.HandedBack,
+  taskComment: Icons.Chat,
   scheduleChanged: Icons.CalendarClock,
   meeting: Icons.Megaphone,
   exam: Icons.GraduationCap,
   grade: Icons.Star,
   krs: Icons.ShieldCheck,
 };
-const IMPORTANT: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit", "alert.materialToday", "home.change.moved", "home.change.meeting"]);
+const IMPORTANT: ReadonlySet<string> = new Set([
+  "alert.taskEdited.afterSubmit",
+  "alert.handedBack",
+  "alert.materialToday",
+  "home.change.moved",
+  "home.change.meeting",
+]);
 /** An edit after hand-in whose title names the change ("Tenggat diundur ke …") still says so in its body. */
 const IMPORTANT_BODY: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit.body", "alert.taskEdited.count.after"]);
 

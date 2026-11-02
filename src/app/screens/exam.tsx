@@ -163,7 +163,7 @@ export function ExamPartRow({
     facts = [code, t("exam.takeHome"), part.task.title];
     trailing = (
       <span className="flex items-center gap-4">
-        {part.status === "draft" && <StatusChip status={part.status} />}
+        {(part.status === "draft" || part.status === "returned") && <StatusChip status={part.status} />}
         {part.at !== null ? (
           <DueWhen at={part.at} late={item.late} />
         ) : (

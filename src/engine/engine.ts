@@ -25,7 +25,7 @@ import { DETECTORS } from "./alerts/detectors";
 import { type Ntfy, PhoneChannel } from "./alerts/phone";
 import { AppLog, errorLine } from "./app-log";
 import type { Clock } from "./clock";
-import { EngineError, isEngineError, PartChanged } from "./errors";
+import { ActionNeeded, EngineError, isEngineError, PartChanged } from "./errors";
 import { Pace } from "./http/pace";
 import type { Transport } from "./http/transport";
 import { type FeedHistory, type FeedRead, KeptPages, UNNOTED } from "./report/kept-pages";
@@ -72,7 +72,7 @@ export interface EngineDeps {
   releaseAsset?: RegExp;
   /** The app's own log, which main writes to as well (the window's errors, the updater). One of its own without it. */
   log?: AppLog;
-  /** The maintainer's report relay (ADR 0014); REPORT_RELAY_URL by default, which ships empty: no relay. */
+  /** The maintainer's report relay (ADR 0014); REPORT_RELAY_URL by default. */
   relay?: string;
   /** The computer's system, as a report that sends itself names it ("macOS 15.3 (arm64)"). */
   os?(): string;
@@ -149,12 +149,14 @@ const STATE_FORMAT = 1;
  */
 function loadSettings(saved: unknown): Settings {
   const fields = saved !== null && typeof saved === "object" ? (saved as Record<string, unknown>) : {};
-  const whole = Settings.safeParse({ ...DEFAULT_SETTINGS, ...fields });
+  // Saved before the guide: a Student whose first-run scan was done already knows the app, so it isn't offered.
+  const defaults: Settings = { ...DEFAULT_SETTINGS, guideDone: fields.firstScanDone === true };
+  const whole = Settings.safeParse({ ...defaults, ...fields });
   if (whole.success) return whole.data;
-  // Every field, the optional ones too (a choice the Student made, not yet made).
+  // Every field, the optional ones too (a choice the Student made, not yet made). One not saved takes its default, as above.
   const each = Object.keys(Settings.shape).map((key) => {
     const parsed = Settings.shape[key as keyof Settings].safeParse(fields[key]);
-    return [key, parsed.success ? parsed.data : DEFAULT_SETTINGS[key as keyof Settings]];
+    return [key, parsed.success && fields[key] !== undefined ? parsed.data : defaults[key as keyof Settings]];
   });
   return Settings.parse(Object.fromEntries(each.filter(([, value]) => value !== undefined)));
 }
@@ -162,8 +164,12 @@ function loadSettings(saved: unknown): Settings {
 /** Source states that are the app going about its work; the others are worth a warning in the log. */
 const QUIET_STATES = new Set<SourceStatus["state"]>(["connecting", "live", "signed-out"]);
 
-/** How much a failure matters in the log: a page that changed or a refusal is an error, no answer or an ended session a warning. */
-const levelOf = (error: unknown) => (isEngineError(error, "Offline") || isEngineError(error, "Unauthorized") ? "warn" : "error");
+/**
+ * How much a failure matters in the log: a page that changed or a refusal is an error; no answer, an ended session or the
+ * service waiting on the Student a warning.
+ */
+const levelOf = (error: unknown) =>
+  isEngineError(error, "Offline") || isEngineError(error, "Unauthorized") || isEngineError(error, "ActionNeeded") ? "warn" : "error";
 
 /** When each feed last read well and what it stores (report/kept-pages.ts), as saved with the state. */
 /** When each feed last read without an error, by its name. */
@@ -280,7 +286,7 @@ export function createEngine(deps: EngineDeps): Engine {
     get: () => store.get("app.reports"),
     set: async (state) => void (await store.set("app.reports", state, clock.now())),
     // Nothing goes while every source the Student is signed in to gets no answer.
-    online: () => [...statuses.values()].some((status) => status.source !== "itb" && ["connecting", "live", "changed"].includes(status.state)),
+    online: () => [...statuses.values()].some((status) => status.source !== "itb" && ["connecting", "live", "changed", "action-needed"].includes(status.state)),
     log: log.for("reports"),
   });
   const updates = deps.checkForUpdates
@@ -335,6 +341,8 @@ export function createEngine(deps: EngineDeps): Engine {
   function setStatus(source: SourceId, patch: Partial<SourceStatus>): void {
     const current = statuses.get(source)!;
     const next = { ...current, ...patch };
+    // What the service asks of the Student goes with the state that says it.
+    if (next.state !== "action-needed") delete next.asks;
     if (JSON.stringify(next) === JSON.stringify(current)) return;
     if (next.state !== current.state) log.add(QUIET_STATES.has(next.state) ? "info" : "warn", source, `${current.state} → ${next.state}`);
     // Answering again: a report that waited for a connection goes now.
@@ -385,7 +393,12 @@ export function createEngine(deps: EngineDeps): Engine {
     const pagesPatch = { changedPages: changedPages.length ? changedPages : undefined };
     const changed = mine.find(([name, o]) => isChange(o) && !saidOn(name, o!))?.[1];
     const offline = mine.find(([, o]) => o?.kind === "Offline")?.[1];
-    if (changed) setStatus(source, { state: "changed", detail: changed.message, ...pagesPatch });
+    // The service wants the Student on its own site first (SIX's Pengkinian Data Induk): what they can do comes first, and
+    // it isn't a change to report. It ends with the next read that gets past it.
+    const needed = mine.find(([, o]) => o?.kind === "ActionNeeded")?.[1];
+    if (needed)
+      setStatus(source, { state: "action-needed", detail: needed.message, asks: needed instanceof ActionNeeded ? needed.asks : "other", ...pagesPatch });
+    else if (changed) setStatus(source, { state: "changed", detail: changed.message, ...pagesPatch });
     else if (offline) setStatus(source, { state: "offline", detail: offline.message, ...pagesPatch });
     else {
       setStatus(source, { state: "live", detail: null, updatedAt: clock.now(), ...pagesPatch });
@@ -669,14 +682,20 @@ export function createEngine(deps: EngineDeps): Engine {
       }
       // Signing out of everything also forgets what the Student entered (their
       // courses' own attendance targets too), and the next Student on this
-      // computer gets their own first-run scan.
+      // computer gets their own first-run scan and guide.
       if (!only) {
         await store.remove("local.");
         await alerts.reset();
         // Whether reports go by themselves was this Student's to say: the next one is asked again.
         await outbox.reset();
-        if (settings.firstScanDone || Object.keys(settings.attendanceTargets).length > 0 || reportSendingOf(settings) !== "ask" || settings.reportAsked) {
-          settings = { ...settings, firstScanDone: false, attendanceTargets: {}, reportSending: "ask", reportAsked: false };
+        if (
+          settings.firstScanDone ||
+          settings.guideDone !== false ||
+          Object.keys(settings.attendanceTargets).length > 0 ||
+          reportSendingOf(settings) !== "ask" ||
+          settings.reportAsked
+        ) {
+          settings = { ...settings, firstScanDone: false, guideDone: false, attendanceTargets: {}, reportSending: "ask", reportAsked: false };
           await saveState();
           deps.emit({ type: "settings", settings });
         }

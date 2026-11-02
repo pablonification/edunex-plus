@@ -50,7 +50,8 @@ from this computer.
 Nothing leaves your computer except the app's own requests to:
 
 - **Edunex** (`api-edunex.cognisia.id` and its file storage) and **SIX** (`six.itb.ac.id`),
-  with your session, to read your data and to hand in what you choose to submit. During a class
+  with your session, to read your data, to hand in what you choose to submit, and to send a
+  comment you write under your answer to your lecturer. During a class
   that includes the class's popup on SIX's timetable, every 2 minutes, to see whether **Tandai
   Hadir** is open. Opening SIX for it from the app shows SIX in a window of the app, signed in
   with your SIX session; that window keeps nothing after it closes, and the app never presses

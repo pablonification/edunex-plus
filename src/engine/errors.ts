@@ -1,4 +1,6 @@
 import type { ErrorKind } from "../core/contract";
+import type { SourceAsks } from "../core/models";
+import type { AnswerCheck } from "./http/transport";
 
 /** A failure the engine understands; its kind decides the source status and what the screens say. */
 export class EngineError extends Error {
@@ -28,5 +30,34 @@ export const isEngineError = (error: unknown, kind?: ErrorKind): error is Engine
 export class PartChanged extends EngineError {
   constructor(message: string) {
     super("VendorChanged", message);
+  }
+}
+
+/**
+ * The service sent a page the app asked for on to one the Student must deal with on its own site
+ * first (SIX's Pengkinian Data Induk form), and the app never reads that one. Not a page change and
+ * not an ended session: nothing is reported, the session stays, and the next read tries again.
+ * `asks`: what the Student is to do there.
+ */
+export class ActionNeeded extends EngineError {
+  constructor(
+    readonly asks: SourceAsks,
+    message: string,
+  ) {
+    super("ActionNeeded", message);
+  }
+}
+
+/**
+ * An answer that didn't pass its caller's check (an Edunex answer against its schema), carrying that answer as it came.
+ * A read can go on past it (the Tasks feed reads every course's list before it says one failed), so a report keeps this
+ * answer, not the last one the read got (src/engine/report/kept-pages.ts).
+ */
+export class AnswerError extends EngineError {
+  constructor(
+    error: EngineError,
+    readonly answer: { url: string; status: number; body: string; check: AnswerCheck },
+  ) {
+    super(error.kind, error.message, error.unreachable);
   }
 }

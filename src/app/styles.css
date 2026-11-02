@@ -78,6 +78,9 @@
   --status-closed-fg: #3f3f46;
   --status-review-bg: #ebe7fd;
   --status-review-fg: #5a33c8;
+  /* Handed back: the draft's tone (it's the Student's to work on again), its own glyph and word */
+  --status-returned-bg: var(--status-draft-bg);
+  --status-returned-fg: var(--status-draft-fg);
 
   /* Sources */
   --source-itb-bg: #f3ecfd;
@@ -131,7 +134,7 @@
   /* Layers, lowest to highest: z-(--z-dialog). Inside one panel, Tailwind's
      plain z-10 / z-20 are fine; these are for things that float over the window. */
   --z-sticky: 10;
-  --z-float: 40; /* a quiet card in the window's corner (shell/report-ask.tsx): over the page, under any dialog */
+  --z-float: 40; /* a quiet card over the page, under any dialog: the report question (shell/report-ask.tsx), the guide's dimming and card (shell/guide.tsx) */
   --z-dialog: 50;
   --z-confirm: 55; /* a question asked over a dialog */
   --z-popover: 60;
@@ -560,6 +563,13 @@
     outline: 2px solid var(--focus);
     outline-offset: 2px;
   }
+}
+
+/* The guide's step lights its part of the window (shell/guide.tsx): everything around it takes the dialogs' scrim,
+   and the part is ringed in the focus ring's color, which reads on every surface it sits on. */
+.guide-lit {
+  box-shadow: 0 0 0 100vmax var(--scrim);
+  outline: 2px solid var(--focus);
 }
 
 /* The writing box's placeholder: TipTap marks its empty first paragraph (ui/rich-editor.tsx). */

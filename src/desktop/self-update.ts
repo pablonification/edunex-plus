@@ -88,10 +88,47 @@ export interface PickedFiles {
   info: ReleaseFile | null;
 }
 
-/** The release's API address for the tag the update check found (its page ends with the tag). */
+/** The tag the update check found (its release page ends with it). */
+const tagOf = (notice: UpdateNotice) => decodeURIComponent(notice.url.slice(notice.url.lastIndexOf("/") + 1));
+
+/** The release's API address for the tag the update check found. */
 export function releaseApiUrl(notice: UpdateNotice): string {
-  const tag = decodeURIComponent(notice.url.slice(notice.url.lastIndexOf("/") + 1));
-  return `https://api.github.com/repos/${RELEASES_REPO}/releases/tags/${encodeURIComponent(tag)}`;
+  return `https://api.github.com/repos/${RELEASES_REPO}/releases/tags/${encodeURIComponent(tagOf(notice))}`;
+}
+
+/** A file of the release the update check found, at its plain download address (which GitHub doesn't limit as it does its API). */
+export function releaseFileUrl(notice: UpdateNotice, name: string): string {
+  return `https://github.com/${RELEASES_REPO}/releases/download/${encodeURIComponent(tagOf(notice))}/${encodeURIComponent(name)}`;
+}
+
+/** The latest*.yml that lists this computer's file (electron-builder's names). */
+export function updateInfoName(kind: UpdateKind, arch: Arch): string {
+  if (kind === "mac") return "latest-mac.yml";
+  if (kind === "windows") return arch === "arm64" ? "latest-win-arm64.yml" : "latest.yml";
+  return arch === "x64" ? "latest-linux.yml" : "latest-linux-arm64.yml";
+}
+
+/**
+ * The files a latest*.yml lists, with their sizes, at the release's download addresses: the release's
+ * files when GitHub's API won't answer. Only plain names with a size count.
+ */
+export function filesListedIn(yml: string, notice: UpdateNotice): ReleaseFile[] {
+  const files: ReleaseFile[] = [];
+  let current: string | null = null;
+  for (const line of yml.split(/\r?\n/)) {
+    const item = /^\s*-\s+url:\s*(.+)$/.exec(line);
+    if (item) {
+      current = unquote(item[1]);
+      continue;
+    }
+    if (/^\S/.test(line)) current = null;
+    const size = /^\s+size:\s*(\d+)\s*$/.exec(line);
+    if (size && current && isPlainFileName(current)) {
+      files.push({ name: current, url: releaseFileUrl(notice, current), size: Number(size[1]) });
+      current = null;
+    }
+  }
+  return files;
 }
 
 /**
@@ -108,19 +145,14 @@ export function pickReleaseFile(files: ReleaseFile[], kind: UpdateKind, arch: Ar
   const ours = files.filter((file) => isReleaseFileUrl(file.url) && isPlainFileName(file.name));
   const named = (test: (name: string) => boolean) => ours.find((file) => test(file.name)) ?? null;
   const pick = {
-    mac: { file: (name: string) => name.endsWith(`-${arch}-mac.zip`), info: "latest-mac.yml" },
-    windows:
-      arch === "arm64"
-        ? { file: (name: string) => name.endsWith("-arm64.exe"), info: "latest-win-arm64.yml" }
-        : { file: (name: string) => /Setup.*\.exe$/i.test(name), info: "latest.yml" },
-    appImage: {
-      file: (name: string) => name.endsWith(`-${arch === "x64" ? "x86_64" : "arm64"}.AppImage`),
-      info: arch === "x64" ? "latest-linux.yml" : "latest-linux-arm64.yml",
-    },
+    mac: (name: string) => name.endsWith(`-${arch}-mac.zip`),
+    windows: arch === "arm64" ? (name: string) => name.endsWith("-arm64.exe") : (name: string) => /Setup.*\.exe$/i.test(name),
+    appImage: (name: string) => name.endsWith(`-${arch === "x64" ? "x86_64" : "arm64"}.AppImage`),
   }[kind];
-  const file = named(pick.file);
+  const file = named(pick);
   const smaller = kind === "mac" ? named((name) => name.endsWith(`-${arch}-mac.tar.xz`)) : null;
-  return file && { file, smaller, info: named((name) => name === pick.info) };
+  const info = updateInfoName(kind, arch);
+  return file && { file, smaller, info: named((name) => name === info) };
 }
 
 /**
@@ -260,8 +292,11 @@ export interface Updater {
   state(): Promise<UpdateInstall>;
   /** Starts the download (or opens the release page when this copy can't update itself). */
   download(): Promise<UpdateInstall>;
-  /** "Perbarui otomatis": starts the download when there's a newer release this copy can put in place itself; never opens a page. */
-  fetch(): Promise<void>;
+  /**
+   * "Perbarui otomatis": starts the download when there's a newer release this copy can put in place itself; never opens a page.
+   * `again`: the connection is back, so a download that failed for the same version is tried once more (not a file that didn't match).
+   */
+  fetch(again?: boolean): Promise<void>;
   /** Only once a download is ready: puts it in place and restarts. */
   install(): Promise<void>;
   /** The app is quitting: puts a download that's ready in place once it has, without opening it. False when there's none. */
@@ -285,6 +320,13 @@ export function createUpdater(deps: UpdaterDeps): Updater {
   let staged: string | null = null;
   /** Put in place already (restart or quit): once is enough. */
   let installing = false;
+  /** The download running now; one started before it (an older version) no longer moves the bar or says how it went. */
+  let latest = 0;
+  /**
+   * The last download started, until it has stopped. Each download empties and fills the same folder,
+   * so the next one waits for it; one that's no longer the latest stops before its next step on disk.
+   */
+  let working: Promise<void> = Promise.resolve();
 
   async function current(): Promise<UpdateInstall> {
     finding ??= deps.way().then(
@@ -302,17 +344,43 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     return state as UpdateInstall;
   }
 
-  function set(patch: Partial<UpdateInstall>): UpdateInstall {
+  function setState(patch: Partial<UpdateInstall>): UpdateInstall {
     state = { ...(state as UpdateInstall), ...patch };
     deps.send(state);
     return state;
   }
 
-  /** `quiet`: started by itself ("Perbarui otomatis"), so a release without this computer's file opens no page. */
-  async function run(notice: UpdateNotice, kind: UpdateKind, arch: Arch, quiet: boolean): Promise<void> {
+  /**
+   * The release's files, from GitHub's API. When it won't answer (it allows each internet address only so
+   * many questions an hour, and a VPN like WARP shares one address among many), from the release's
+   * latest*.yml instead, at its download address: the same files, each still checked against its sha512 there.
+   */
+  async function releaseFiles(notice: UpdateNotice, kind: UpdateKind, arch: Arch): Promise<ReleaseFile[]> {
     try {
       const release = ReleaseAnswer.parse(await deps.api(releaseApiUrl(notice)));
-      const files = release.assets.map((asset) => ({ name: asset.name, url: asset.browser_download_url, size: asset.size }));
+      return release.assets.map((asset) => ({ name: asset.name, url: asset.browser_download_url, size: asset.size }));
+    } catch (error) {
+      if (isOffline(error)) throw error;
+      deps.log?.("warn", `GitHub's API didn't answer, so the release's files come from its update info: ${errorLine(error)}`);
+      const info = updateInfoName(kind, arch);
+      const url = releaseFileUrl(notice, info);
+      const yml = await deps.text(url);
+      return [...filesListedIn(yml, notice), { name: info, url, size: Buffer.byteLength(yml) }];
+    }
+  }
+
+  /** `quiet`: started by itself ("Perbarui otomatis"), so a release without this computer's file opens no page. */
+  async function run(notice: UpdateNotice, kind: UpdateKind, arch: Arch, quiet: boolean, id: number): Promise<void> {
+    const set = (patch: Partial<UpdateInstall>) => {
+      if (id === latest) setState(patch);
+    };
+    /** A newer download was asked for: this one stops here (its catch says nothing). */
+    const stillLatest = () => {
+      if (id !== latest) throw new Error(`${notice.version} was replaced by a newer download`);
+    };
+    try {
+      stillLatest();
+      const files = await releaseFiles(notice, kind, arch);
       const picked = pickReleaseFile(files, kind, arch);
       if (!picked) {
         set({ blocked: "noFile", step: "idle", progress: null });
@@ -331,6 +399,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
       };
       // Only the parts this computer doesn't have, when the release maps them. Anything that doesn't
       // line up there, and the whole file comes as before; without a connection, neither would.
+      stillLatest();
       const patched =
         yml !== null && expected
           ? await deps
@@ -340,6 +409,7 @@ export function createUpdater(deps: UpdaterDeps): Updater {
                 return null;
               })
           : null;
+      stillLatest();
       if (patched) staged = patched;
       else {
         // The bar starts again for the whole file.
@@ -350,11 +420,15 @@ export function createUpdater(deps: UpdaterDeps): Updater {
         const file = await deps.download(chosen.file, progress);
         if (file.size !== chosen.file.size || (expected && file.sha512 !== expected))
           throw new MismatchError(`${chosen.file.name} isn't the file the release lists`);
-        staged = kind === "mac" ? await deps.unpack(file.path, macArchiveOf(chosen.file.name), notice.version) : file.path;
+        stillLatest();
+        const unpacked = kind === "mac" ? await deps.unpack(file.path, macArchiveOf(chosen.file.name), notice.version) : file.path;
+        stillLatest();
+        staged = unpacked;
       }
       set({ step: "ready", progress: 1 });
       deps.log?.("info", `${notice.version} ready to install${patched ? ", only what changed" : ""}`);
     } catch (error) {
+      if (id !== latest) return;
       const problem: UpdateProblem = error instanceof MismatchError ? "mismatch" : isOffline(error) ? "offline" : "failed";
       deps.log?.(problem === "offline" ? "warn" : "error", `downloading ${notice.version} failed (${problem}): ${errorLine(error)}`);
       set({ step: "failed", progress: null, problem });
@@ -371,8 +445,10 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     if ((now.step === "downloading" || now.step === "ready") && now.version === notice.version) return now;
     staged = null;
     deps.log?.("info", `downloading ${notice.version}${quiet ? " by itself" : ""}`);
-    const started = set({ step: "downloading", version: notice.version, progress: null, problem: null });
-    void run(notice, kind, arch, quiet);
+    const started = setState({ step: "downloading", version: notice.version, progress: null, problem: null });
+    const id = ++latest;
+    // Whatever goes wrong in run ends as a state; were anything to slip past it, the next download still starts.
+    working = working.then(() => run(notice, kind, arch, quiet, id)).catch(() => undefined);
     return started;
   }
 
@@ -388,13 +464,14 @@ export function createUpdater(deps: UpdaterDeps): Updater {
       }
       return start(notice, way.kind, way.arch, false);
     },
-    async fetch() {
+    async fetch(again = false) {
       const now = await current();
       const notice = deps.notice();
       // Nothing newer, or nothing this copy can put in place itself: the notice offers the release page, as before.
       if (!notice || now.blocked || !way || "blocked" in way) return;
-      // A download that failed waits for "Coba lagi": by itself, it isn't tried again for the same version.
-      if (now.step === "failed" && now.version === notice.version) return;
+      // A download that failed waits for "Coba lagi", or for the connection to come back: by itself, it isn't
+      // tried again for the same version otherwise, and a file that didn't match never is.
+      if (now.step === "failed" && now.version === notice.version && (!again || now.problem === "mismatch")) return;
       start(notice, way.kind, way.arch, true);
     },
     async install() {
@@ -421,13 +498,18 @@ export function createUpdater(deps: UpdaterDeps): Updater {
  * Main passes it the engine's events and asks it before quitting.
  */
 export function followAutoUpdates(updater: Pick<Updater, "fetch" | "installOnQuit">, autoUpdate: () => boolean) {
-  const fetch = () => void updater.fetch().catch(() => undefined);
+  const fetch = (again = false) => void updater.fetch(again).catch(() => undefined);
+  /** A system went without a connection since the last try, so the next one that answers means it's back. */
+  let wasOffline = false;
   return {
-    /** A newer release found, or the switch turned on with one already found. */
+    /** A newer release found, the switch turned on with one already found, or the connection back after a download failed without it. */
     onEvent(event: Event): void {
       const found = event.type === "dataset" && event.dataset.name === "app.update";
       const turnedOn = event.type === "settings" && event.settings.autoUpdate;
-      if ((found || turnedOn) && autoUpdate()) fetch();
+      if (event.type === "status" && event.status.state === "offline") wasOffline = true;
+      const back = wasOffline && event.type === "status" && event.status.state === "live";
+      if (back) wasOffline = false;
+      if ((found || turnedOn || back) && autoUpdate()) fetch(back);
     },
     /** At start: a release found before the app last quit. */
     resume(): void {

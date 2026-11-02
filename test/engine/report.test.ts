@@ -220,6 +220,29 @@ describe("an Edunex answer the app couldn't read", () => {
     await h.engine.signOut("edunex");
     expect((await h.engine.report({})).problems).toEqual([]);
   });
+
+  it("keeps the course's Task list that didn't fit, not the last one read after it", async () => {
+    const h = await startEngine();
+    // II4091's second Task has an answer without its id; the courses after it read well.
+    delete h.world.edunex.task(117001).attributes.answers[0].id;
+    await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
+    expect(h.status("edunex").state).toBe("changed");
+    const check = h.status("edunex").detail!;
+    expect(check).toMatch(/^\/course\/tasks: data\.1\.attributes\.answers\.0\.id /);
+
+    // The read went on past it: the other courses' lists and the outlines, more than the six pages a read keeps.
+    const read = h.world.log.map((request) => new URL(request.url)).filter((url) => /^\/course\/(tasks|courses\/\d+)$/.test(url.pathname));
+    const broken = read.findIndex((url) => url.pathname === "/course/tasks" && url.searchParams.get("filter[course_id][is]") === "95326");
+    expect(read.length - broken - 1).toBeGreaterThan(6);
+
+    const [problem] = (await h.engine.report({ source: "edunex" })).problems;
+    expect(problem).toMatchObject({ feed: "edunex.tasks", kind: "changed", check });
+    expect(problem!.pages).toHaveLength(1);
+    const page = new URL(problem!.pages[0]!.path, "https://edunex.invalid");
+    expect([page.pathname, page.searchParams.get("filter[course_id][is]")]).toEqual(["/course/tasks", "95326"]);
+    // Scrubbed and checked again, it fails the same way: the fix can start from it.
+    expect(problem!.reproduces).toBe("yes");
+  });
 });
 
 describe("the app's own log", () => {

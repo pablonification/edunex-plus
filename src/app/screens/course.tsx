@@ -105,13 +105,16 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
           {panel(
             "modules",
             loaded ? (
-              <ModulesTab
-                page={page}
-                module={module}
-                asked={asked}
-                onShown={() => setAsked(false)}
-                onPick={(picked) => show({ tab: "modules", module: picked })}
-              />
+              // The guide points here (shell/guide.tsx).
+              <div data-guide="course-modules">
+                <ModulesTab
+                  page={page}
+                  module={module}
+                  asked={asked}
+                  onShown={() => setAsked(false)}
+                  onPick={(picked) => show({ tab: "modules", module: picked })}
+                />
+              </div>
             ) : (
               <NotLoaded />
             ),

@@ -1,10 +1,24 @@
 // The signed-in window: sidebar, top bar and the current screen, each inside
 // its own crash guard. Settings opens over it (sidebar footer, or ⌘,), quick
-// search too (the top bar, or ⌘K), and once, after the first full sync, the
-// first-run scan. A screen shows in the sidebar once it's built (./built.ts).
+// search too (the top bar, or ⌘K). After a new Student's first sign-in the
+// guide offers a tour of it, and once, after the first full sync, the
+// first-run scan opens. A screen shows in the sidebar once it's built (./built.ts).
 // Beranda comes with the window; every other screen loads after it (../later.tsx).
-import { type ComponentType, type KeyboardEvent, type RefObject, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  Component,
+  type ComponentType,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { edunexCourseUrl, sixStatusUrl } from "../../core/links";
+import { guideDue } from "../../core/models";
 import type { StringKey } from "../../core/strings";
 import { CourseColorPicker } from "../course-color-picker";
 import { useRememberCourseColors } from "../course-colors";
@@ -17,7 +31,7 @@ import { NavProvider, type Route, useNav } from "../nav";
 import { usePdfViewer } from "../pdf";
 import { useReportAsk } from "../report";
 import { Home } from "../screens/home";
-import { useBridge, useCommand, useDataset, useJoined, useNavigateRequests, useStore } from "../store";
+import { useBridge, useCommand, useDataset, useJoined, useNavigateRequests, useSettings, useStore } from "../store";
 import { AppMark } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
@@ -26,6 +40,7 @@ import { type IconProps, Icons } from "../ui/icons";
 import { factsLabel } from "../ui/layout";
 import { Tooltip, toast } from "../ui/overlays";
 import { PanelBoundary } from "../ui/panel-boundary";
+import { windowError } from "../window-errors";
 import { AlertsBell, openAlerts } from "./alerts";
 import { type Badge as BadgeValue, usePlanBadge, usePresenceBadge, useTasksBadge } from "./badges";
 import { isBuilt } from "./built";
@@ -42,9 +57,10 @@ const PlanScreen = later(() => import("../screens/plan").then((screen) => screen
 const CourseScreen = later(() => import("../screens/course").then((screen) => screen.CourseScreen));
 const TaskScreen = later(() => import("../screens/tasks").then((screen) => screen.TaskScreen));
 const ExamScreen = later(() => import("../screens/exam").then((screen) => screen.ExamScreen));
-// What opens over the screen: Settings, quick search, the first-run scan and "Laporkan masalah".
+// What opens over the screen: Settings, quick search, the guide, the first-run scan and "Laporkan masalah".
 const SettingsDialog = later(() => import("./settings").then((dialog) => dialog.SettingsDialog));
 const SearchPalette = later(() => import("./search").then((dialog) => dialog.SearchPalette));
+const Guide = later(() => import("./guide").then((guide) => guide.Guide));
 const FirstScan = later(() => import("./first-scan").then((dialog) => dialog.FirstScan));
 const ReportDialog = later(() => import("./report-dialog").then((dialog) => dialog.ReportDialog));
 
@@ -82,7 +98,32 @@ function Layout({ arriving }: { arriving: boolean }) {
   const [scanOpen, setScanOpen] = useState(false);
   const bridge = useBridge();
   const t = useT();
+  // The guide (./guide.tsx): it offers itself once the app has opened after a new Student's first sign-in (not in the
+  // welcome's preview of it), and Settings starts its tour. Ended, it's remembered, and it doesn't offer itself again.
+  // Each start is a new tour (`run`), from its first part, even over one still running.
+  const due = guideDue(useSettings()) && !arriving;
+  const [guide, setGuide] = useState<{ start: "offer" | "tour"; run: number } | null>(null);
+  const [offered, setOffered] = useState(false);
+  if (due && !offered) {
+    setOffered(true);
+    setGuide({ start: "offer", run: 0 });
+  }
+  const endGuide = (finished: boolean) => {
+    if (guide?.start === "offer" && !finished) toast(t("guide.later"));
+    setGuide(null);
+    if (due) void bridge.invoke("settings.update", { guideDone: true }).catch(() => undefined);
+    // The keyboard carries on from the top of the screen it ends on, once the guide has let go of it, unless something
+    // else has it by then (a dialog the tour ended under).
+    setTimeout(() => {
+      if (document.activeElement && document.activeElement !== document.body) return;
+      const title = main.current?.querySelector<HTMLElement>("h1");
+      if (!title) return;
+      title.tabIndex = -1;
+      title.focus({ preventScroll: true });
+    });
+  };
   const { route, place, go } = useNav();
+  const pdf = usePdfViewer();
   const main = useRef<HTMLElement>(null);
   const settingsLoaded = SettingsDialog.useLoaded();
   const searchLoaded = SearchPalette.useLoaded();
@@ -140,7 +181,8 @@ function Layout({ arriving }: { arriving: boolean }) {
       setSearchOpen(false);
       setScanOpen(false);
     }, []),
-    arriving,
+    // The guide opens each place itself while it runs.
+    arriving || guide !== null,
   );
   useScrollPlace(main);
 
@@ -181,6 +223,12 @@ function Layout({ arriving }: { arriving: boolean }) {
                 setSettingsOpen(false);
                 setScanOpen(true);
               }}
+              onShowGuide={() => {
+                setSettingsOpen(false);
+                // A PDF open over the screen closes first (with filling not saved, the Student says whether to drop it,
+                // and keeping it starts no tour): the tour then opens each place with nothing over it.
+                pdf.close(() => setGuide((last) => ({ start: "tour", run: (last?.run ?? 0) + 1 })));
+              }}
             />
           )}
         </Suspense>
@@ -196,14 +244,43 @@ function Layout({ arriving }: { arriving: boolean }) {
       <PanelBoundary name="report question" compact>
         <ReportAskCard />
       </PanelBoundary>
+      {guide && (
+        <GuideGuard key={guide.run} onBreak={() => endGuide(false)}>
+          <Suspense fallback={null}>
+            {/* It steps aside while a dialog is open, and comes back where it was. */}
+            <Guide start={guide.start} hidden={settingsOpen || searchOpen || reportOpen || scanOpen} onEnd={endGuide} />
+          </Suspense>
+        </GuideGuard>
+      )}
       <PanelBoundary name="first scan" compact>
         <Suspense fallback={null}>
-          {/* It also watches for the first full sync to open itself, so it stays drawn once in. */}
-          {(scanOpen || scanLoaded) && <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen || reportOpen || arriving} />}
+          {/* It also watches for the first full sync to open itself, so it stays drawn once in. It waits for the guide. */}
+          {(scanOpen || scanLoaded) && (
+            <FirstScan open={scanOpen} onOpenChange={setScanOpen} blocked={settingsOpen || searchOpen || reportOpen || arriving || guide !== null} />
+          )}
         </Suspense>
       </PanelBoundary>
     </div>
   );
+}
+
+/**
+ * The guide breaking (its code didn't come in, or a fault in it) ends it, as if skipped: the window never stays held
+ * for a tour that isn't there (the place shortcuts off, the first-run scan waiting).
+ */
+class GuideGuard extends Component<{ onBreak: () => void; children: ReactNode }, { broken: boolean }> {
+  state = { broken: false };
+  static getDerivedStateFromError() {
+    return { broken: true };
+  }
+  componentDidCatch(error: unknown) {
+    console.error("[guide]", error);
+    windowError("panel", error, "guide");
+    this.props.onBreak();
+  }
+  render() {
+    return this.state.broken ? null : this.props.children;
+  }
 }
 
 const SCROLLED = "shell.scrolled";
@@ -279,7 +356,10 @@ function CurrentScreen({ route }: { route: Route }) {
 
 const NAV_ORDER = ["home", "tasks", "schedule", "presence", "grades", "plan"] as const;
 
-/** ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. Either closes what's open over the screen first. */
+/**
+ * ⌘1 to ⌘6 open the six places in the sidebar (Ctrl elsewhere); ⌘[ goes back. Either closes what's open over the screen
+ * first. The mouse's back button goes back too. None of them works while `off` (the welcome's preview, the guide).
+ */
 function useNavShortcuts(closeOverlays: () => void, off: boolean) {
   const store = useStore();
   const { go, back } = useNav();
@@ -300,8 +380,15 @@ function useNavShortcuts(closeOverlays: () => void, off: boolean) {
       closeOverlays();
       go({ screen: NAV_ORDER[index] } as Route, { keep: true });
     };
+    const onMouse = (event: MouseEvent) => {
+      if (event.button === 3) back();
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("mouseup", onMouse);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("mouseup", onMouse);
+    };
   }, [store, go, back, closeOverlays, off]);
 }
 
@@ -374,6 +461,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
       {store.platform === "darwin" && <div className="drag h-10 shrink-0" />}
       {/* The app's own name, under the traffic lights on macOS, level with the top bar elsewhere (clear of window buttons some Linux desktops put at the left). It moves the window. */}
       <div
+        data-guide="intro"
         className={cx(
           "drag flex shrink-0 items-center gap-2.5 pr-5 max-[52rem]:justify-center max-[52rem]:pr-0",
           store.platform === "darwin"
@@ -385,7 +473,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
         <span className="text-body font-semibold tracking-[-0.01em] max-[52rem]:sr-only">Edunex Plus</span>
       </div>
 
-      <nav aria-label={t("nav.menu")} className="space-y-0.5 px-3">
+      <nav aria-label={t("nav.menu")} data-guide="nav" className="space-y-0.5 px-3">
         {items
           .filter((item) => isBuilt({ screen: item.screen } as Route))
           .map(({ screen, label, Icon, badge, owns }, index) => {
@@ -423,7 +511,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
                 </IconButton>
               </Tooltip>
             </div>
-            <ul className="space-y-0.5">
+            <ul data-guide="courses" className="space-y-0.5">
               {courses.map((course) => {
                 const active = route.screen === "course" && route.code === course.code;
                 const site = courseReady ? null : outside(course);
@@ -479,6 +567,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
         <Tooltip side="right" content={factsLabel(t("nav.settings"), store.platform === "darwin" ? "⌘," : "Ctrl+,")}>
           <button
             type="button"
+            data-guide="settings"
             onClick={() => onSettings()}
             className="focus-ring flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-hover max-[52rem]:h-9 max-[52rem]:justify-center max-[52rem]:py-0"
           >

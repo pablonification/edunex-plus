@@ -161,7 +161,7 @@ export function Tag({ tone = "neutral", size = "sm", children }: { tone?: Tone; 
   );
 }
 
-export type TaskStatus = "not_started" | "draft" | "submitted" | "overdue" | "closed" | "in_review";
+export type TaskStatus = "not_started" | "draft" | "submitted" | "overdue" | "closed" | "in_review" | "returned";
 
 const STATUS: Record<TaskStatus, [keyof Palette, keyof Palette]> = {
   not_started: ["neutralBg", "neutralFg"],
@@ -170,6 +170,8 @@ const STATUS: Record<TaskStatus, [keyof Palette, keyof Palette]> = {
   overdue: ["statusOverdueBg", "statusOverdueFg"],
   closed: ["statusClosedBg", "statusClosedFg"],
   in_review: ["statusReviewBg", "statusReviewFg"],
+  // Handed back to work on again: the draft's colours, as on the desktop.
+  returned: ["statusDraftBg", "statusDraftFg"],
 };
 
 export function StatusGlyph({ status, size = 14, color }: { status: TaskStatus; size?: number; color?: string }) {
@@ -184,6 +186,8 @@ export function StatusGlyph({ status, size = 14, color }: { status: TaskStatus; 
       return <Icons.Lock size={size} color={c} weight="bold" />;
     case "in_review":
       return <Icons.Clock size={size} color={c} weight="bold" />;
+    case "returned":
+      return <Icons.HandedBack size={size} color={c} weight="bold" />;
     case "draft":
       return (
         <Svg width={size} height={size} viewBox="0 0 24 24">

@@ -323,6 +323,7 @@ const GLYPH_TONE: Record<TaskStatus, keyof Palette> = {
   overdue: "statusOverdueFg",
   closed: "statusClosedFg",
   in_review: "statusReviewFg",
+  returned: "statusDraftFg",
 };
 
 /** The submission card: status, the Student's answer, its files, attaching from the phone, and what's marked about it. */

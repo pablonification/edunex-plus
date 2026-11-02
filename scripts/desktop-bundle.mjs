@@ -13,7 +13,8 @@ export const desktopBundle = {
   platform: "node",
   format: "cjs",
   target: "node22",
-  external: ["electron"],
+  // original-fs: Electron's fs without its .asar handling (src/desktop/updater.ts).
+  external: ["electron", "original-fs"],
   sourcemap: true,
   logLevel: "warning",
 };

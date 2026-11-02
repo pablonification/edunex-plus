@@ -11,7 +11,7 @@ import type { CalendarEvent, DoneEntry, ExamMark, SnoozeEntry, Task, TaskStatus 
 import { taskNeed } from "./needs";
 import { dayStart, weekStart } from "./schedule";
 import { activeSnooze, type Snoozable, snoozable } from "./snooze";
-import { isOpenStatus, submittedAt, taskStatus } from "./tasks";
+import { isLate, isOpenStatus, submittedAt, taskStatus } from "./tasks";
 
 const DAY = 86_400_000;
 
@@ -51,7 +51,7 @@ export function todoList({ tasks, exams, marks = [], handled = [], now }: TodoIn
     // Not handing it in (said on its page): it's under Done, not to do.
     if (takeHomes.has(task.id) || !isOpenStatus(status) || notHandingIn(task, handled)) continue;
     const putAway = taskPutAway(task, handled) !== undefined;
-    items.push({ kind: "task", key: `task:${task.id}`, at: task.dueAt, course: task.courseCode, task, status, late: status === "overdue", putAway });
+    items.push({ kind: "task", key: `task:${task.id}`, at: task.dueAt, course: task.courseCode, task, status, late: isLate(task, now), putAway });
   }
   const periods = new Map<string, { week: CalendarEvent; examKind: "UTS" | "UAS"; exams: Exam[] }>();
   for (const exam of exams) {

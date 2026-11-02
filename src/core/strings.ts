@@ -15,6 +15,7 @@ import { courseColorStrings } from "./strings/course-colors";
 import { coursePageStrings } from "./strings/course-page";
 import type { Entry } from "./strings/entry";
 import { gradesStrings } from "./strings/grades";
+import { guideStrings } from "./strings/guide";
 import { highlightStrings } from "./strings/highlights";
 import { homeStrings } from "./strings/home";
 import { itbStrings } from "./strings/itb";
@@ -71,6 +72,7 @@ export const STRINGS = {
   ...mobileTasksStrings,
   ...mobileAcademicStrings,
   ...mobileSettingsStrings,
+  ...guideStrings,
 } as const satisfies Record<string, Entry>;
 
 export type StringKey = keyof typeof STRINGS;

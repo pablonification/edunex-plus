@@ -119,6 +119,7 @@ export const homeStrings = {
   "home.need.task.short": { id: "Hanya dibuka {duration}", en: "Open for only {duration}" },
   "home.need.task.due": { id: "Tenggat {when}", en: "Due {when}" },
   "home.need.task.draft": { id: "Draf belum dikumpulkan", en: "Draft not handed in" },
+  "home.need.task.returned": { id: "Dikembalikan dosen", en: "Handed back by your lecturer" },
   "home.need.task.edited": { id: "Diubah dosen setelah kamu kumpulkan · cek lagi", en: "Changed after you handed it in · check again" },
   "home.need.task.editedCount": {
     id: "Diubah dosen setelah kamu kumpulkan · {count} perubahan",

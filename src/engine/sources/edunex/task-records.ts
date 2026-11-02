@@ -12,7 +12,7 @@ import { instructionsText } from "./instructions-text";
 
 const HOUR = 3_600_000;
 
-const Id = z.union([z.number().int(), z.string().regex(/^\d+$/)]).transform(Number);
+export const Id = z.union([z.number().int(), z.string().regex(/^\d+$/)]).transform(Number);
 /** Edunex writes its flags as booleans or as 0/1. */
 const Flag = z.union([z.boolean(), z.literal(0), z.literal(1)]).transform((value) => value === true || value === 1);
 /** The submit bit. Any other value is a vendor change, never a guess. */
@@ -27,6 +27,11 @@ const Score = z
   ])
   .nullable();
 const Time = z.string().nullable();
+/**
+ * The lecturer's check on an answer (`verified_at`), which Edunex can leave out altogether: missing reads as null,
+ * not looked at yet, so it means exactly what null does everywhere it's read.
+ */
+const CheckTime = Time.optional().transform((value) => value ?? null);
 const StoredFile = z.object({ name: z.string(), file: z.string() });
 /** A file in the Student's answer, kept whole: saving a draft sends Edunex's own record back for each file kept, as the website does. */
 const AnswerFile = z.looseObject({ name: z.string(), file: z.string() });
@@ -41,7 +46,9 @@ const EdunexAnswer = z.object({
   sent_at: Time,
   created_at: Time,
   updated_at: Time,
-  verified_at: Time,
+  verified_at: CheckTime,
+  /** The lecturer's note on the answer (HTML), from grading or handing it back; the Student's website never writes it. */
+  comment: z.string().nullable().optional(),
 });
 export type EdunexAnswer = z.infer<typeof EdunexAnswer>;
 
@@ -138,6 +145,9 @@ function taskKind(domain: string | null): Task["kind"] {
 export function toTask(item: EdunexTask, place: Pick<Task, "courseCode" | "courseId">, module: TaskModule | null, now: number): Task {
   const a = item.attributes;
   const raw = studentAnswer(a.answers);
+  // Handed back ("Revision Request" on the lecturer's page): unsent again, with the lecturer's check still on it,
+  // which a draft the Student only saved never has. Edunex keeps the first hand-in's sent_at.
+  const backAt = raw && !raw.is_sent ? edunexTime(raw.verified_at) : null;
   const answer: TaskAnswer | null = raw && {
     id: raw.id,
     sent: raw.is_sent,
@@ -148,6 +158,8 @@ export function toTask(item: EdunexTask, place: Pick<Task, "courseCode" | "cours
     // Edunex stamps sent_at on drafts too: only the submit bit makes it a submission time.
     sentAt: raw.is_sent ? (edunexTime(raw.sent_at) ?? edunexTime(raw.updated_at)) : null,
     reviewedAt: edunexTime(raw.verified_at),
+    note: raw.comment?.trim() ? raw.comment : null,
+    handedBack: backAt === null ? null : { at: backAt, sentAt: edunexTime(raw.sent_at) },
   };
   const dueAt = edunexTime(a.end_at);
   const facts = {

@@ -6,6 +6,7 @@
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { AlarmIcon } from "@phosphor-icons/react/dist/csr/Alarm";
 import { AppWindowIcon } from "@phosphor-icons/react/dist/csr/AppWindow";
+import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
 import { ArrowCounterClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowCounterClockwise";
 import { ArrowRightIcon } from "@phosphor-icons/react/dist/csr/ArrowRight";
 import { ArrowsClockwiseIcon } from "@phosphor-icons/react/dist/csr/ArrowsClockwise";
@@ -58,6 +59,7 @@ import { MoonIcon } from "@phosphor-icons/react/dist/csr/Moon";
 import { NoteIcon } from "@phosphor-icons/react/dist/csr/Note";
 import { PaletteIcon } from "@phosphor-icons/react/dist/csr/Palette";
 import { PaperclipIcon } from "@phosphor-icons/react/dist/csr/Paperclip";
+import { PaperPlaneRightIcon } from "@phosphor-icons/react/dist/csr/PaperPlaneRight";
 import { PathIcon } from "@phosphor-icons/react/dist/csr/Path";
 import { PencilSimpleLineIcon } from "@phosphor-icons/react/dist/csr/PencilSimpleLine";
 import { PlusIcon } from "@phosphor-icons/react/dist/csr/Plus";
@@ -161,6 +163,9 @@ export const Icons = {
   Palette: icon(PaletteIcon),
   ArrowRight: icon(ArrowRightIcon),
   Undo: icon(ArrowCounterClockwiseIcon),
+  /** A Task the lecturer handed back to work on again (never the editor's Undo arrow, which sits beside it). */
+  HandedBack: icon(ArrowBendUpLeftIcon),
+  Send: icon(PaperPlaneRightIcon),
   Plus: icon(PlusIcon),
   Minus: icon(MinusIcon),
   MoreHorizontal: icon(DotsThreeIcon),

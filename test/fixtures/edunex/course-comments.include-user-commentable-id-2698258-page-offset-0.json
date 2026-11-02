@@ -1,0 +1,53 @@
+{
+  "meta": {
+    "count": 1,
+    "total": 1
+  },
+  "data": [
+    {
+      "type": "comments",
+      "id": "99136",
+      "attributes": {
+        "commentable_type": "task_answer",
+        "commentable_id": 2698258,
+        "user_id": 357,
+        "user": {
+          "id": 357,
+          "username": "000000001",
+          "name": "Dr. Fajar Yuliana, S.T., M.T.",
+          "passwordfixture": "CHANGED",
+          "email": "000000001",
+          "is_active": 1,
+          "level": "LECTURER",
+          "lptk_id": 2,
+          "deleted_at": null,
+          "created_at": "2020-03-21 16:18:46",
+          "updated_at": "2026-10-28 12:20:43",
+          "created_by": 6,
+          "updated_by": 357,
+          "deleted_by": null,
+          "thumbnail": null,
+          "last_online": "2026-10-28 12:20:43",
+          "faculty_id": null,
+          "major_id": null,
+          "notification_email": null,
+          "zoom_email": "-"
+        },
+        "comment": "<p>Komentar.</p>",
+        "deleted_at": null,
+        "created_at": "2026-09-22T20:59:02+07:00",
+        "updated_at": "2026-09-22T20:59:02+07:00",
+        "files": []
+      },
+      "links": {
+        "self": "https://api-edunex.cognisia.id/course/comments/99136"
+      }
+    }
+  ],
+  "links": {
+    "first": "https://api-edunex.cognisia.id/course/comments?q=/api/v1/comments&include=user&filter[commentable_type][is]=task_answer&filter[commentable_id][is]=2698258&sort=-created_at&page[limit]=0&page[offset]=0",
+    "last": "https://api-edunex.cognisia.id/course/comments?q=/api/v1/comments&include=user&filter[commentable_type][is]=task_answer&filter[commentable_id][is]=2698258&sort=-created_at&page[limit]=0&page[offset]=0",
+    "next": "https://api-edunex.cognisia.id/course/comments?q=/api/v1/comments&include=user&filter[commentable_type][is]=task_answer&filter[commentable_id][is]=2698258&sort=-created_at&page[limit]=0&page[offset]=0",
+    "prev": null
+  }
+}

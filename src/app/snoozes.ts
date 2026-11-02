@@ -9,7 +9,7 @@ import { activeDone, type DoneSubjects, needDoneKey, pruneDone, putAway, taskDon
 import type { DatasetValue, DoneEntry, DoneHow, SnoozeEntry } from "../core/models";
 import { attention, dueItems, homeContext, nowCard, taskNeed, todayPlan } from "../core/needs";
 import { activeSnooze, attendanceKey, holding, pruneSnoozes, type SnoozeKey, snoozeKey } from "../core/snooze";
-import { takesAnswers, taskStatus } from "../core/tasks";
+import { isLate, takesAnswers } from "../core/tasks";
 import { useAttendance } from "./attendance";
 import { useHomeWorld } from "./home-world";
 import { useNow } from "./i18n";
@@ -164,7 +164,7 @@ export function useHeldBack(): { snoozed: readonly SnoozeEntry[]; done: readonly
   const keys = items.map(snoozeKey);
   // A late Task put off in Tugas & Ujian, also one Beranda leaves to its Presence window.
   for (const task of world.tasks) {
-    const need = taskStatus(task, now) === "overdue" ? taskNeed(task, now) : null;
+    const need = isLate(task, now) ? taskNeed(task, now) : null;
     if (need) keys.push(snoozeKey(need));
   }
   // A banner's key carries its course's state, so only a course still showing that banner matches.

@@ -56,6 +56,18 @@ _Avoid_: attendance (use Presence when referring to the Edunex feature)
 An assignment in Edunex's API (course/tasks); distinct from an exam.
 _Avoid_: assignment in code identifiers (collides with programming terms); use Task
 
+**Handed back**:
+"Dikembalikan": a Task the lecturer gave back to the Student to work on again, Edunex's "Revision Request". The answer is unsent again (still holding its text and files) and can be handed in again until the Task closes. Edunex keeps the first hand-in's time and the lecturer's check on it, which a draft never has. Called `returned` (a Task's status) and `handedBack` (on its answer) in code.
+_Avoid_: rejected, revision (in UI copy), resubmission request
+
+**Catatan dosen**:
+The lecturer's note on the Student's answer (Edunex's `comment` on it), written with a grade or when handing a Task back. The Student never writes one. Called `note` in code.
+_Avoid_: feedback, a bare "Catatan" for the Student's own notes (those are "Catatanku")
+
+**Komentar**:
+The thread under the Student's answer to a Task, where the Student and their lecturers write to each other (Edunex's "Comment / Feedback"). A lecturer's feedback on a hand-back is often a message here. Called `thread` in code.
+_Avoid_: discussion, chat, Story (that's a Problem report's)
+
 **To Do**:
 Edunex's aggregated list of pending items (tasks, exams) for the logged-in account.
 _Avoid_: todo list in UI copy without the Edunex meaning
@@ -97,6 +109,10 @@ _Avoid_: missing class, broken class, error
 **Changed page**:
 "SIX mengubah halaman ini": one SIX page whose layout changed (the fees page, the timetable, the status page's course table) while the rest of SIX still reads. The screens that show its data say so, keep the data from the last good read, and say when that was; SIX itself stays connected. Not "SIX changed" (the banner), which is what the whole session rests on: who the Student is and the term. Called `changedPages` in code ([ADR 0006](docs/adr/0006-a-changed-six-page-is-said-on-its-screens.md), [ADR 0012](docs/adr/0012-six-course-table-changes-alone.md)).
 _Avoid_: broken page, error, SIX is down
+
+**Guide**:
+"Panduan": the tour of the window a new Student is offered after their first sign-in, once the app has opened. It opens each place in the sidebar's order and a course, and lights their parts one at a time, saying what each is for and how to use it, then the menus and tools around them. A part a page doesn't show right now is passed over. It can be skipped at any step, is offered once (again after signing out of everything, for the next Student), and Settings › Tentang starts it again. The first-run scan waits for it. Not offered to a Student who used the app before it existed. Called `guide` in code.
+_Avoid_: onboarding, walkthrough, tutorial (in UI copy)
 
 **Problem report**:
 "Laporan masalah": what a Student can send the maintainer when the app couldn't read a page (a changed page, unrecognised rows, Edunex or SIX changing): the app's version and system, which page and which check, and that page as SIX or Edunex sent it, scrubbed on their computer (names, numbers, contacts, links replaced, grades and amounts made up). It also says whether the scrubbed page still fails the same way, and carries the App log. The page is kept in memory only, until that page reads again or they sign out, and nothing is sent until they choose how (the Report relay, LINE, GitHub), or by itself if they said so when the app asked. Called `report` in code ([ADR 0007](docs/adr/0007-report-a-page-the-app-couldnt-read.md), [ADR 0014](docs/adr/0014-a-report-carries-what-a-fix-needs.md)).
@@ -192,6 +208,10 @@ _Avoid_: "allowance", "skips"
 **Tandai Hadir**:
 SIX's own "mark present" button. During a class, the class's popup on SIX's timetable (Jadwal, then click the class) can show it; the Student presses it to be counted present in SIX's Kehadiran. While a class is on, the app reads that popup every 2 minutes and tells the Student when the button shows, and opens SIX on it; it never presses it. Kept as SIX's words in English copy too: it's what the Student looks for in SIX.
 _Avoid_: check-in, self-attendance
+
+**Pengkinian Data Induk**:
+SIX's form where a Student updates their personal and family details. SIX can make them fill it in before anything else (a new Student, often), sending every page the app asks for to it. The app never reads that page (nor SIX's control panel, student ID card or PDDikti pages): it stops at the redirect, and SIX shows as "Menunggumu" (Waiting for you), with what to do on SIX and "Buka SIX". It isn't "SIX changed": nothing is reported, SIX stays signed in, and the app reads again by itself until it's done. Called `action-needed` (the status) and `datainduk` in code.
+_Avoid_: "SIX changed", error, blocked, "update your profile"
 
 **UKT**:
 Uang Kuliah Tunggal, the single tuition fee paid each term.
