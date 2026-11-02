@@ -292,6 +292,19 @@ const FIRST_READ: readonly DatasetName[] = [
   "itb.calendar",
 ];
 
+/**
+ * Whether the Student's first read is still running (what "Membaca …" says): the first scan not seen yet, and not
+ * everything it reads in. Beranda's two cards hold their shape meanwhile, picked from half the data they swapped.
+ */
+export function useFirstReadRunning(): boolean {
+  const done = useSettings().firstScanDone;
+  const saved = useSaved(FIRST_READ);
+  const edunex = useStatus("edunex");
+  const six = useStatus("six");
+  const itb = useStatus("itb");
+  return !done && firstRead(saved, [edunex, six, itb]).progress < 1;
+}
+
 /** "Membaca Edunex · Tugas…" while the first read runs, a calm line with a spinner; once in, the usual line. */
 function FirstReadLine({ children, always = false, color }: { children: ReactNode; always?: boolean; color?: string }) {
   const t = useT();

@@ -11,7 +11,6 @@ import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Translate, useNow, useT } from "../../../../src/app/i18n";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
-import { useStatus } from "../../../../src/app/store";
 import { rupiah } from "../../../../src/core/academic";
 import { percent } from "../../../../src/core/attendance";
 import { taskPutAway } from "../../../../src/core/done";
@@ -20,6 +19,7 @@ import type { NeedDraft } from "../../../../src/core/needs";
 import { activeSnooze, snoozeKey } from "../../../../src/core/snooze";
 import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
+import { useFirstReadRunning } from "../../shell/source-status";
 import { IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { CountUp, Rise } from "../../ui/expressive";
@@ -101,13 +101,10 @@ export function Urus({ needs, due, courses }: { needs: readonly NeedDraft[]; due
       .filter((card): card is UrusCard => card !== null)
       .slice(0, 2);
   }, [needs, due, entries, handled, now, t, courses]);
-  // The demo's first sync, or a source's first read after a sign-in (live, nothing read yet). Not "connecting": a
-  // source stuck there (offline) would hold the cards forever.
+  // The demo's first sync, or the Student's first read after a sign-in (the top bar's "Membaca …").
   const settling = useSettling();
-  const six = useStatus("six");
-  const edunex = useStatus("edunex");
-  const firstRead = (status: typeof six) => status.state === "live" && status.updatedAt === null;
-  const reading = settling || firstRead(six) || firstRead(edunex);
+  const firstReading = useFirstReadRunning();
+  const reading = settling || firstReading;
   // Nothing to handle: the section's cards go, a single quiet line stays as the way to the whole list (what's put off,
   // the date and term, what changed).
   if (!cards.length && !reading)
