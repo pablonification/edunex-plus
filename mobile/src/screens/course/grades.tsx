@@ -5,7 +5,7 @@
 // changed. Numbers are typed on the number keypad. What the Student enters stays on this phone
 // ("local.courseWeights", saved as the desktop saves it).
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
 import { useBridge, useDataset } from "../../../../src/app/store";
@@ -13,9 +13,10 @@ import { percent } from "../../../../src/core/attendance";
 import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } from "../../../../src/core/course-contract";
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../../src/core/models";
 import { dismissToast, toast } from "../../swaps/overlays";
-import { Button, IconButton, Segmented } from "../../ui/controls";
+import { Button, Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
-import { Notice } from "../../ui/layout";
+import { PressScale } from "../../ui/press";
+import { ActionSheet } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, TOUCH, useTheme } from "../../ui/theme";
 import { useCardStyle } from "../home/now";
@@ -142,12 +143,30 @@ function ScoreInput({
   );
 }
 
-/** A part's name, with a pencil to rename it; renaming types over it in place. */
-function PartName({ name, onRename }: { name: string; onRename: (name: string) => void }) {
+/**
+ * A part's name; its long-press (and a screen reader's actions) offers renaming and removing, so the row carries no
+ * pencil or ✕. The name is the 48 dp target. Renaming types over it in place.
+ */
+function PartName({
+  name,
+  editing,
+  onRename,
+  onMenu,
+  onRemove,
+  onEdit,
+  testID,
+}: {
+  name: string;
+  editing: boolean;
+  onRename: (name: string) => void;
+  onMenu: () => void;
+  onRemove: () => void;
+  onEdit: () => void;
+  testID?: string;
+}) {
   const fieldColors = useFieldColors();
   const t = useT();
   const theme = useTheme();
-  const [editing, setEditing] = useState(false);
   if (editing)
     return (
       <TextInput
@@ -157,10 +176,7 @@ function PartName({ name, onRename }: { name: string; onRename: (name: string) =
         defaultValue={name}
         maxLength={80}
         returnKeyType="done"
-        onEndEditing={(event) => {
-          onRename(event.nativeEvent.text.trim());
-          setEditing(false);
-        }}
+        onEndEditing={(event) => onRename(event.nativeEvent.text.trim())}
         style={[
           styles.input,
           { flex: 1, textAlign: "left", color: theme.color.fg, borderColor: theme.color.fieldEdge, borderWidth: StyleSheet.hairlineWidth * 2 },
@@ -168,14 +184,22 @@ function PartName({ name, onRename }: { name: string; onRename: (name: string) =
       />
     );
   return (
-    <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center" }}>
-      <Text size="body" weight="medium" numberOfLines={2} style={{ flexShrink: 1 }}>
+    <Pressable
+      testID={testID}
+      onLongPress={onMenu}
+      android_ripple={{ color: theme.color.selected, foreground: true }}
+      accessibilityLabel={name}
+      accessibilityActions={[
+        { name: "rename", label: t("grade.rename", { part: name }) },
+        { name: "remove", label: t("grade.remove", { part: name }) },
+      ]}
+      onAccessibilityAction={(event) => (event.nativeEvent.actionName === "remove" ? onRemove() : onEdit())}
+      style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center", borderRadius: radius.md }}
+    >
+      <Text size="body" weight="medium" numberOfLines={2}>
         {name}
       </Text>
-      <IconButton label={t("grade.rename", { part: name })} onPress={() => setEditing(true)}>
-        <Icons.PenLine size={14} color={theme.color.faint} />
-      </IconButton>
-    </View>
+    </Pressable>
   );
 }
 
@@ -195,6 +219,9 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
     setTargetState(letter);
   };
   // Boxes holding something unusable: no answer is given from numbers the Student can't see.
+  // The part being renamed in place, and the part whose long-press menu is open.
+  const [editing, setEditing] = useState<string | null>(null);
+  const [menu, setMenu] = useState<ContractPart | null>(null);
   const [problems, setProblems] = useState<ReadonlySet<string>>(new Set());
   const mark = (key: string) => (bad: boolean) =>
     setProblems((current) => {
@@ -237,6 +264,11 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
     save(null);
     undo.current = toast(t("grade.resetDone"), "neutral", { label: t("action.undo"), onClick: () => save(before) });
   };
+  const remove = (part: ContractPart, name: string) => {
+    const before = contract;
+    save({ ...contract, parts: contract.parts.filter((p) => p.id !== part.id) });
+    undo.current = toast(t("mobile.grade.removed", { part: name }), "neutral", { label: t("action.undo"), onClick: () => save(before) });
+  };
   const setPart = (id: string, patch: Partial<ContractPart>) => save({ ...contract, parts: contract.parts.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
   const nameOf = (part: ContractPart) =>
     part.name ||
@@ -256,28 +288,14 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   else if (need.reached) answer = t("grade.answer.secured", { letter: aim });
   else if (need.need === null) answer = t("grade.answer.out", { letter: aim, best: f.number(best, 1), bestLetter: letterFor(best, contract.cutoffs) });
   else answer = t("grade.answer.need", { letter: aim, need: need.need, parts: listed });
+  // The answer for the letter aimed at as a number: "74" big, "untuk A" beside it, where it's needed under it.
+  const figure = !fix && weightsOk && result.final === null && !need.reached && need.need !== null ? need.need : null;
   const answerTone = !weightsOk ? "warning" : need.need === null && !need.reached && result.final === null ? "danger" : "fg";
 
   return (
     // The warning, then one white card: the answer, then the table it comes from.
     <View>
-      {isExample && (
-        <View style={{ marginBottom: space[4] }}>
-          <Notice
-            tone="warning"
-            title={t("grade.exampleNotice", { code })}
-            action={
-              contractFile && onOpenModules ? (
-                <Button size="sm" onPress={onOpenModules}>
-                  {t("grade.openContract")}
-                </Button>
-              ) : undefined
-            }
-          >
-            {t("grade.exampleHint")}
-          </Notice>
-        </View>
-      )}
+      {isExample && <ExampleBanner code={code} onOpen={contractFile ? onOpenModules : undefined} />}
 
       <View style={[surface, { padding: space[4] }]}>
         <View accessibilityLiveRegion="polite">
@@ -295,9 +313,31 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
               />
             </View>
           )}
-          <Text size="titleLarge" face="display" weight="bold" tone={answerTone} style={{ lineHeight: 28 }}>
-            {answer}
-          </Text>
+          {figure !== null ? (
+            <View accessible accessibilityLabel={answer} testID="figure.gradeNeed">
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
+                <Text
+                  size="displaySmall"
+                  face="display"
+                  weight="extrabold"
+                  tabular
+                  style={{ color: theme.v4.fg, fontSize: 40, lineHeight: 46, letterSpacing: -1 }}
+                >
+                  {String(figure)}
+                </Text>
+                <Text size="titleLarge" face="display" weight="bold" style={{ color: theme.v4.fg, fontSize: 20 }}>
+                  {t("mobile.grade.needFor", { letter: aim })}
+                </Text>
+              </View>
+              <Text size="bodyMedium" style={{ color: theme.v4.muted }}>
+                {t("mobile.grade.needOn", { parts: listed })}
+              </Text>
+            </View>
+          ) : (
+            <Text size="titleLarge" face="display" weight="bold" tone={answerTone} style={{ lineHeight: 28 }}>
+              {answer}
+            </Text>
+          )}
           {weightsOk && result.final === null && (
             <Text size="small" tone="muted" style={{ marginTop: space[2] }}>
               {`${t("grade.answer.others")}:`}
@@ -332,7 +372,6 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
             <Text size="caption" weight="medium" tone="faint" style={{ width: COL_SCORE, textAlign: "right" }}>
               {t("grade.score")}
             </Text>
-            <View style={{ width: 44 }} />
           </View>
           {contract.parts.map((part) => {
             const name = nameOf(part);
@@ -343,7 +382,18 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                 testID={`row.gradePart.${part.id}`}
                 style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }]}
               >
-                <PartName name={name} onRename={(next) => setPart(part.id, { name: next })} />
+                <PartName
+                  name={name}
+                  editing={editing === part.id}
+                  onRename={(next) => {
+                    setEditing(null);
+                    setPart(part.id, { name: next });
+                  }}
+                  onMenu={() => setMenu(part)}
+                  onEdit={() => setEditing(part.id)}
+                  onRemove={() => remove(part, name)}
+                  testID={`action.gradePart.${part.id}`}
+                />
                 <View style={{ width: COL_WEIGHT, flexDirection: "row", justifyContent: "flex-end", alignItems: "flex-start", gap: 4 }}>
                   <ScoreInput
                     testID={`input.gradeWeight.${part.id}`}
@@ -380,12 +430,6 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
                     />
                   )}
                 </View>
-                <IconButton
-                  label={t("grade.remove", { part: name })}
-                  onPress={() => save({ ...contract, parts: contract.parts.filter((p) => p.id !== part.id) })}
-                >
-                  <Icons.X size={14} color={c.muted} />
-                </IconButton>
               </View>
             );
           })}
@@ -417,7 +461,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
             >
               {`${f.number(result.totalWeight, 0)}%`}
             </Text>
-            <View style={{ width: COL_SCORE + 44 }} />
+            <View style={{ width: COL_SCORE }} />
           </View>
           <View style={{ marginTop: space[3], paddingTop: space[3], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
             <Text size="small" tone="muted" style={{ marginBottom: space[2] }} accessibilityRole="header">
@@ -444,7 +488,68 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
           </View>
         </View>
       </View>
+      <ActionSheet
+        open={menu !== null}
+        onClose={() => setMenu(null)}
+        title={menu ? nameOf(menu) : undefined}
+        testID="sheet.gradePart"
+        choices={
+          menu
+            ? [
+                {
+                  label: t("mobile.grade.rename"),
+                  icon: <Icons.PenLine size={18} color={c.muted} />,
+                  onPress: () => setEditing(menu.id),
+                  testID: "action.gradePart.rename",
+                },
+                {
+                  label: t("mobile.grade.remove"),
+                  icon: <Icons.X size={18} color={c.muted} />,
+                  onPress: () => remove(menu, nameOf(menu)),
+                  testID: "action.gradePart.remove",
+                },
+              ]
+            : []
+        }
+      />
     </View>
+  );
+}
+
+/** Example weights, in one line; with the course contract among the modules, the line opens them. */
+function ExampleBanner({ code, onOpen }: { code: string; onOpen?: () => void }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const body = (
+    <>
+      <Icons.AlertTriangle size={18} weight="bold" color={v.ambFg} />
+      <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ color: v.ambFg, flex: 1 }}>
+        {t("mobile.grade.example", { code })}
+      </Text>
+      {onOpen && <Icons.ArrowRight size={18} color={v.ambFg} />}
+    </>
+  );
+  const style = {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[2],
+    minHeight: TOUCH,
+    paddingHorizontal: space[4],
+    borderRadius: 16,
+    backgroundColor: v.ambBg,
+    marginBottom: space[4],
+  } as const;
+  const label = `${t("grade.exampleNotice", { code })} ${t("grade.exampleHint")}`;
+  if (!onOpen)
+    return (
+      <View accessible accessibilityLabel={label} testID="note.gradeExample" style={style}>
+        {body}
+      </View>
+    );
+  return (
+    <PressScale onPress={onOpen} accessibilityLabel={label} accessibilityHint={t("grade.openContract")} testID="note.gradeExample" style={style}>
+      {body}
+    </PressScale>
   );
 }
 

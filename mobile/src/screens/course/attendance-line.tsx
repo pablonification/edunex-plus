@@ -66,7 +66,9 @@ export function AttendanceCard({ item, context, onOpen }: { item: CourseAttendan
   const { health, course } = item;
   const chip = budgetChip(t, presenceGroup(health, context.signedOut), health, context);
   const next = nextClassParts(t, f, item, context).parts;
-  const exception = useCourseException(item, context);
+  // Tandai Hadir not out yet isn't said here: the now card under this one is that class, with its button.
+  const found = useCourseException(item, context);
+  const exception = found?.kind === "watching" ? null : found;
   const held = health.held ?? 0;
   const share = held > 0 ? percent(health.attended ?? 0, held) : null;
   const over = health.state === "met" || health.state === "missed";

@@ -58,6 +58,15 @@ export const mobileCourseStrings = {
   "mobile.course.mayNotCount": { id: "Belum pasti dihitung", en: "May not count" },
   // The course's sheet: its target, changed in place.
   "mobile.course.target": { id: "Target kehadiran", en: "Attendance target" },
+  // The grade calculator. Example weights in one line (the banner opens the course contract when there is one).
+  "mobile.grade.example": { id: "Contoh bobot, bukan bobot {code}", en: "Example weights, not {code}'s" },
+  // The answer as a number: "74" big, then "untuk A", then where that average is needed.
+  "mobile.grade.needFor": { id: "untuk {letter}", en: "for {letter}" },
+  "mobile.grade.needOn": { id: "Rata-rata di {parts}", en: "Average on {parts}" },
+  // A part's long-press menu (and its screen-reader actions).
+  "mobile.grade.rename": { id: "Ganti nama", en: "Rename" },
+  "mobile.grade.remove": { id: "Hapus", en: "Remove" },
+  "mobile.grade.removed": { id: "{part} dihapus", en: "{part} removed" },
 } as const satisfies Record<string, Entry>;
 
 export const mobileModuleStrings = {

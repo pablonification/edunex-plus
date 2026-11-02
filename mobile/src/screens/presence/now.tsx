@@ -16,6 +16,7 @@ import type { CalendarEvent, ClassSession } from "../../../../src/core/models";
 import { useNav } from "../../nav";
 import { CountdownBar } from "../../parts/meter";
 import { BigButton } from "../../ui/big-button";
+import { Button } from "../../ui/controls";
 import { PulseDot } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
@@ -215,8 +216,8 @@ function SixResult({ result, health }: { result: Zone["results"][number]; health
 }
 
 /**
- * Two classes today at the same time: "Bentrok 16:00–16:30", the two courses, and which to go to as the chip ("Pilih
- * PL3032"). The why ("Kalau hanya bisa hadir di salah satunya, …") is in its sheet.
+ * Two classes today at the same time: "Bentrok 16:00–16:30", the two courses, and which to go to as a tonal button
+ * ("Pilih PL3032"). The why ("Kalau hanya bisa hadir di salah satunya, …") is in its sheet.
  */
 function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boolean }) {
   const t = useT();
@@ -240,7 +241,16 @@ function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boo
         }
         title={t("mobile.kuliah.clash.title", { time })}
         meta={`${a.course.code} · ${b.course.code}`}
-        status={pick ? <StatusChip tone="brand">{t("mobile.kuliah.clash.pick", { code: pick })}</StatusChip> : undefined}
+        // Which to go to is the row's action, so it looks like one: a tonal button opening the why, as the row does.
+        status={
+          pick && body ? (
+            <Button variant="tonal" size="sm" onPress={() => setOpen(true)} testID="action.clashPick">
+              {t("mobile.kuliah.clash.pick", { code: pick })}
+            </Button>
+          ) : pick ? (
+            <StatusChip tone="brand">{t("mobile.kuliah.clash.pick", { code: pick })}</StatusChip>
+          ) : undefined
+        }
         onPress={body ? () => setOpen(true) : undefined}
         label={body ? `${whole}. ${body}` : whole}
       />

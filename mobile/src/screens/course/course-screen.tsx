@@ -42,7 +42,7 @@ import { GradesTab } from "./grades";
 import { AnnouncementsTab, TasksTab } from "./lists";
 import { MeetingsTab } from "./meetings";
 import { ModulesTab } from "./modules";
-import { MeetingNow } from "./now";
+import { MeetingNow, useRecordInEdunexUrl } from "./now";
 import { SaveOfflineProgress, useSaveOfflineChoice } from "./save-offline";
 
 const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
@@ -207,7 +207,7 @@ function Header({ page, onOpen, onTitleEnd }: { page: CoursePage; onOpen: () => 
   );
 }
 
-/** ⋮: the rare actions. Its files for offline, the course's color, and its pages on Edunex and SIX. */
+/** ⋮: the rare actions. Edunex's Presence where SIX counts, its files for offline, the course's color, and its pages on Edunex and SIX. */
 function MoreMenu({ page }: { page: CoursePage }) {
   const t = useT();
   const theme = useTheme();
@@ -215,8 +215,20 @@ function MoreMenu({ page }: { page: CoursePage }) {
   const student = useDataset("six.student");
   const [picking, setPicking] = useState(false);
   const saveOffline = useSaveOfflineChoice(page);
+  const record = useRecordInEdunexUrl(page);
   const { course } = page;
   const choices: SheetChoice[] = [
+    // Edunex's open Presence where SIX is what counts: the now card keeps Tandai Hadir as its one button.
+    ...(record
+      ? [
+          {
+            label: t("course.recordInEdunex"),
+            icon: <Icons.Hand size={18} color={theme.color.muted} />,
+            onPress: () => open(record),
+            testID: "action.courseMenu.recordInEdunex",
+          },
+        ]
+      : []),
     ...(saveOffline ? [saveOffline] : []),
     {
       label: t("courseColor.change"),
