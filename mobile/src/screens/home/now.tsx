@@ -117,8 +117,9 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
   const window = !session && !meeting && card.presence ? card.presence.session : null;
   // What the card leads with, the way the class stands: on (time gone, minutes left), next (a countdown), a window open
   // (its time gone, minutes to close), another day (just when).
+  // On now, the breathing dot and the minutes left say "Sekarang": the room alone (the word only when there's no room).
   const kicker = live
-    ? [t("home.today.now"), place]
+    ? [place ?? t("home.today.now")]
     : card.state === "next" && slot
       ? [t("mobile.home.next"), place]
       : card.state === "later" && slot

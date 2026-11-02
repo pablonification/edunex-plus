@@ -14,7 +14,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { ClassSheet, classCard } from "./class-sheet";
-import { nameOf } from "./parts";
+import { nameOf, shortName } from "./parts";
 
 type Item =
   | { kind: "class"; key: string; start: number; end: number; code: string; facts: ClassFacts }
@@ -103,9 +103,11 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
   const place = item.kind === "class" ? item.facts.session.room : item.meeting.meeting.online ? t("mobile.home.online") : null;
   const chip = chipOf(item);
   const ink = chip && absenceInk(v, chip.tone);
+  const meta = [f.time(item.start), place].filter(Boolean).join(" · ");
   return (
     <PressScale
       onPress={onOpen}
+      accessibilityLabel={[name, meta, chip && t(chip.key)].filter(Boolean).join(", ")}
       testID={`row.today.${item.key}`}
       style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}
     >
@@ -113,10 +115,10 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
       <CourseTile code={item.code} name={name} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="bodyLarge" weight="medium" style={{ color: v.fg, lineHeight: 21 }}>
-          {name}
+          {shortName(name)}
         </Text>
         <Text size="bodyMedium" tabular style={{ color: v.muted, marginTop: 2 }}>
-          {[f.time(item.start), place].filter(Boolean).join(" · ")}
+          {meta}
         </Text>
       </View>
       {chip && ink && (
