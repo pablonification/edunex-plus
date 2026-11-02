@@ -4,6 +4,7 @@
 // window, the lecturer's note), and its one status as a chip (Presensi dibuka, Hadir, Berikutnya). An exam period is a
 // line in the card before its first meeting. A row with something to do is one target: the open window, or joining.
 // How SIX and Edunex share the count is said in the course's sheet; signed out of SIX, Edunex's own tally here.
+import { useState } from "react";
 import { View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -21,9 +22,11 @@ import { BigButton } from "../../ui/big-button";
 import { EmptyState } from "../../ui/display";
 import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
+import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CardGroup, type ChipTone, StatusChip, TileRow } from "../../ui/v4-list";
+import { Fact } from "./course-sheet";
 
 type T = ReturnType<typeof useT>;
 
@@ -195,6 +198,7 @@ function MeetingRow({
   const now = useNow();
   const v = useTheme().v4;
   const open = useOpenExternal();
+  const [sheet, setSheet] = useState(false);
   const state = meetingState(meeting, now);
   const { six, presence, announced } = meeting;
   const named = presence?.topic ?? six?.activity ?? null;
@@ -224,9 +228,9 @@ function MeetingRow({
   const notInSix = meeting.notInSix && !status ? { tone: "amber" as const, text: t("meeting.notInSix") } : null;
   const chip = status ?? notInSix;
 
-  // One line of facts, "·" between them; what warns in its own colour.
-  const plain = [
-    f.timeRange(meeting.start, meeting.end),
+  // The row's one meta line is the time; the room, the window, the notes and what SIX did are in its sheet.
+  const time = f.timeRange(meeting.start, meeting.end);
+  const facts = [
     six?.room ?? "",
     announced?.online ? (announced.note ?? t("course.online")) : "",
     window ? t("meeting.window", { range: window }) : "",
@@ -236,36 +240,80 @@ function MeetingRow({
   const warned = [meeting.notInSix && !notInSix ? t("meeting.notInSix") : "", sixResult && sixResult !== "counted" ? t("meeting.sixNotCounted") : ""].filter(
     Boolean,
   );
-  const quietTail = [sixResult === "counted" ? t("meeting.sixCounted") : "", done ? t("meeting.done") : ""].filter(Boolean);
-  const meta = (
-    <Text size="bodyMedium" tabular style={{ color: v.muted }}>
-      {plain.join(" · ")}
-      {warned.map((text) => (
-        <Text key={text} size="bodyMedium" weight="medium" style={{ color: v.ambFg }}>{` · ${text}`}</Text>
-      ))}
-      {quietTail.map((text) => ` · ${text}`).join("")}
-    </Text>
-  );
+  const quietFacts = [sixResult === "counted" ? t("meeting.sixCounted") : "", done ? t("meeting.done") : ""].filter(Boolean);
 
-  // Something to do is the row's one target: the open window, or the online class to join.
+  // Something to do is the sheet's one button: the open window, or the online class to join.
   const join = announced?.link && meeting.end > now ? announced.link : null;
   const record = state === "open" && presenceUrl ? presenceUrl : null;
   const action = record ? { url: record, words: t("course.recordInEdunex") } : join ? { url: join, words: t("material.join") } : null;
-  const label = [date, title, ...plain, ...warned, ...quietTail, chip?.text, action?.words].filter(Boolean).join(", ");
+  const label = [date, title, time, ...facts, ...warned, ...quietFacts, chip?.text].filter(Boolean).join(", ");
   return (
-    <TileRow
-      testID={`row.meeting.${meeting.key}`}
-      first={first}
-      leading={<DateTile at={meeting.start} next={next} past={meeting.end <= now} />}
-      title={
-        <Text size="bodyLarge" weight="medium" numberOfLines={3} style={{ color: placeholder ? v.muted : v.fg, lineHeight: 21 }}>
-          {title}
-        </Text>
-      }
-      meta={meta}
-      status={chip ? <StatusChip tone={chip.tone}>{chip.text}</StatusChip> : undefined}
-      onPress={action ? () => open(action.url) : undefined}
-      label={label}
-    />
+    <>
+      <TileRow
+        testID={`row.meeting.${meeting.key}`}
+        first={first}
+        leading={<DateTile at={meeting.start} next={next} past={meeting.end <= now} />}
+        title={
+          <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: placeholder ? v.muted : v.fg, lineHeight: 21 }}>
+            {title}
+          </Text>
+        }
+        meta={time}
+        status={chip ? <StatusChip tone={chip.tone}>{chip.text}</StatusChip> : undefined}
+        // Every meeting opens its sheet: one target, one outcome.
+        onPress={() => setSheet(true)}
+        label={label}
+      />
+      <Sheet
+        open={sheet}
+        onClose={() => setSheet(false)}
+        background={v.card}
+        testID="sheet.meeting"
+        title={
+          <View style={{ gap: 2 }}>
+            <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted }}>
+              {date}
+            </Text>
+            <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={{ color: v.fg, fontSize: 20, lineHeight: 26 }}>
+              {title}
+            </Text>
+          </View>
+        }
+        footer={
+          action ? (
+            <BigButton
+              icon={<Icons.ArrowUpRight size={18} color={v.onBrand} />}
+              onPress={() => {
+                setSheet(false);
+                open(action.url);
+              }}
+              testID="action.meeting"
+            >
+              {action.words}
+            </BigButton>
+          ) : undefined
+        }
+      >
+        <View style={{ paddingBottom: space[2] }}>
+          <Fact icon={(c) => <Icons.Clock size={22} color={c} />}>{time}</Fact>
+          {chip && <Fact icon={(c) => <Icons.Flag size={22} color={c} />}>{chip.text}</Fact>}
+          {facts.map((text) => (
+            <Fact key={text} icon={(c) => <Icons.Info size={22} color={c} />}>
+              {text}
+            </Fact>
+          ))}
+          {warned.map((text) => (
+            <Fact key={text} tone="warning" icon={(c) => <Icons.AlertTriangle size={22} color={c} />}>
+              {text}
+            </Fact>
+          ))}
+          {quietFacts.map((text) => (
+            <Fact key={text} icon={(c) => <Icons.Check size={22} color={c} />}>
+              {text}
+            </Fact>
+          ))}
+        </View>
+      </Sheet>
+    </>
   );
 }

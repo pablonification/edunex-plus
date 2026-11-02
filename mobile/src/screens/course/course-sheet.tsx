@@ -66,7 +66,7 @@ export function CourseSheet({ page, rows, open, onClose }: { page: CoursePage; r
 }
 
 /** One fact with its icon, as the class sheet draws them: a 48 dp row, the icon in the quiet grey. */
-function Fact({
+export function Fact({
   icon,
   tone = "fg",
   end,
