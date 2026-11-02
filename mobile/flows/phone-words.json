@@ -75,19 +75,9 @@
     "phone": "jika semua A di {sks} SKS semester ini dan rencanamu"
   },
   {
-    "key": "handIn.check.attendanceEarly",
-    "desktop": "Belum masuk jendela presensi ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
-    "phone": "Presensi belum dibuka ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir."
-  },
-  {
     "key": "handIn.check.attendanceIn",
     "desktop": "Di dalam jendela presensi, jadi terhitung hadir.",
     "phone": "Presensi sedang dibuka, jadi terhitung hadir."
-  },
-  {
-    "key": "handIn.check.attendanceMissed",
-    "desktop": "Jendela presensi sudah lewat ({when}). Tugas tetap terkumpul, tapi tidak dihitung hadir.",
-    "phone": "Presensi sudah ditutup ({when}). Tugas tetap terkumpul, tapi tidak dihitung hadir."
   },
   {
     "key": "handIn.submitAnyway",

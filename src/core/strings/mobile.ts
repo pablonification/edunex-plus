@@ -376,14 +376,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Presensi belum dibuka. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir.",
     en: "Presence isn't open yet. Save a draft now, then hand in {when} to be counted present.",
   },
-  "handIn.check.attendanceEarly": {
-    id: "Presensi belum dibuka ({when}). Kalau dikumpulkan sekarang, tugas terkumpul tapi tidak dihitung hadir.",
-    en: "Presence isn't open yet ({when}). Handed in now, it counts as handed in, not as present.",
-  },
-  "handIn.check.attendanceMissed": {
-    id: "Presensi sudah ditutup ({when}). Tugas tetap terkumpul, tapi tidak dihitung hadir.",
-    en: "Presence has closed ({when}). It's still handed in, but not counted as present.",
-  },
   "handIn.check.attendanceIn": { id: "Presensi sedang dibuka, jadi terhitung hadir.", en: "Presence is open, so you'll be counted present." },
   // schedule: a hand-in Presence's details, beside its time, and its event in the phone's calendar.
   "schedule.window.only": {

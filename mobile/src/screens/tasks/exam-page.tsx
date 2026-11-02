@@ -396,7 +396,7 @@ function EdunexCard({ exam, edunex, lead }: { exam: Exam; edunex: Exam["edunex"]
     }
   };
   return (
-    <Panel tint={lead ? tint : undefined} style={lead ? { borderRadius: 24 } : undefined}>
+    <Panel style={lead ? { borderRadius: 24, backgroundColor: tint } : undefined}>
       <Text size="labelLarge" weight="semibold" style={{ color: lead ? ink : v.muted }}>
         {factsLabel(t("exam.onEdunex"), lead && edunex.start !== null && edunex.start > now && f.fromNow(edunex.start))}
       </Text>
