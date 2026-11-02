@@ -154,6 +154,8 @@ export const mobileStrings = {
   "mobile.schedule.monthsAgo": { id: "{count} bulan lalu", en: { one: "{count} month ago", other: "{count} months ago" } },
   "mobile.schedule.monthsAhead": { id: "{count} bulan lagi", en: { one: "In {count} month", other: "In {count} months" } },
   "mobile.schedule.today": { id: "Hari ini", en: "Today" },
+  // Jadwal without SIX, one row above the day beside Masuk ke SIX.
+  "mobile.schedule.needsSix": { id: "Kuliah & ruang ada di SIX", en: "Classes and rooms are in SIX" },
   "mobile.schedule.todayLabel": { id: "Kembali ke hari ini", en: "Back to today" },
   // Jadwal's day (v4): a day with no class, a hand-in's time ("II4091 · sebelum 23:59"), and where a class the app
   // couldn't read is.
