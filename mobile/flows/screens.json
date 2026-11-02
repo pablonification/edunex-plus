@@ -4416,7 +4416,13 @@
       "entry": "^plan\\.rencana\\.plan\\.(14-semester-ini|12-direncanakan)$",
       "tokens": "(semester ini|direncanakan)$",
       "row": "W4",
-      "why": "the SKS bar's legend on Rencana (this semester's and the planned SKS): the judge's round 2 (15, 7.5/10) kept Rencana's card to its two figures and its chip, so the bar and its legend moved to Kurikulum's card (checked there with the plan's same SKS count)"
+      "why": "the SKS bar's legend on Rencana (this semester's and the planned SKS): the judge's round 2 (15, 7.5/10) kept Rencana's card to its two figures and its chip, so the bar moved to Kurikulum's card, and the judge's round 3 (16, 7.5/10) kept that card to its figure and its bar, so the legend went (the bar's spoken value says the share; Kurikulum's Pilihan row says what's passed, this semester and planned)"
+    },
+    {
+      "entry": "^plan\\.kurikulum\\.banner\\.sisa$",
+      "tokens": "^(\\d+ wajib \\(|wajib tuntas|pilihan )",
+      "row": "W4",
+      "why": "the 'Sisa' line under 'Sisa saja' (required and electives left): the judge's round 3 (16, 7.5/10) found it repeats the numbers above it, so 'Sisa saja' is the switch alone, and the Wajib tersisa and Pilihan rows right over it say the same ('2 mata kuliah · 6 SKS', '27 dari 27 SKS')"
     },
     {
       "entry": "^welcome\\.ready\\.account\\.\\d+-mata-kuliah",

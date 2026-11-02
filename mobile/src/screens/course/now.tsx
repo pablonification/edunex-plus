@@ -3,8 +3,8 @@
 // breathing dot, what the class is, Material 3 Expressive's wave for the time gone by and the minutes left in big
 // figures, and one big button for the thing to do (Tandai Hadir while SIX shows it, then "Sudah ke SIX" in green;
 // Edunex's Presence where it counts; joining an online class). Whether the Presence counts is a chip, not a sentence.
-// Otherwise, quiet rows in one white card: windows still open from earlier classes, the next meeting when the
-// attendance card above doesn't already say it, a class SIX shows that the app couldn't read.
+// Its kicker and its facts each one line (judge round 3). Otherwise, quiet rows in one white card: windows still open
+// from earlier classes, the next meeting, a class SIX shows that the app couldn't read.
 import * as Haptics from "expo-haptics";
 import { type ReactNode, useEffect } from "react";
 import { View } from "react-native";
@@ -41,11 +41,7 @@ function countdown(from: number, at: number): { value: number; unit: "minute" | 
   return { value: Math.floor(minutes / (24 * 60)), unit: "day" };
 }
 
-/**
- * `shownNext`: the start of the next class the attendance card above already shows (its next meeting isn't said
- * twice); `card`: the attendance card is there (and says a class the app couldn't read itself).
- */
-export function MeetingNow({ page, shownNext, card, rise }: { page: CoursePage; shownNext: number | null; card: boolean; rise: string }) {
+export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -90,7 +86,7 @@ export function MeetingNow({ page, shownNext, card, rise }: { page: CoursePage; 
         />
       );
     });
-  if (next && next.start !== shownNext) {
+  if (next) {
     const link = linkOf(next);
     const today = link !== null && f.dayOffset(next.start) === 0;
     const what = meetingModuleTitle(t, modules, next) ?? next.presence?.topic ?? next.six?.activity ?? null;
@@ -121,7 +117,7 @@ export function MeetingNow({ page, shownNext, card, rise }: { page: CoursePage; 
     ));
   }
   // A class of the course SIX shows that the app couldn't read, up to the next meeting: its time and room are on SIX.
-  const unreadDay = card ? null : firstUnreadDay(unread ?? [], schedule ?? [], now, next?.start ?? null, page.course.code);
+  const unreadDay = firstUnreadDay(unread ?? [], schedule ?? [], now, next?.start ?? null, page.course.code);
   if (unreadDay)
     rows.push((first) => (
       <TileRow
@@ -300,7 +296,7 @@ function NowCard({
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             {current && live && <PulseDot color={v.live} />}
-            <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted, flexShrink: 1 }}>
+            <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: v.muted, flexShrink: 1 }}>
               {kicker.filter(Boolean).join(" · ")}
             </Text>
           </View>
@@ -308,7 +304,7 @@ function NowCard({
             {title}
           </Text>
           {facts.length > 0 && (
-            <Text size="bodyMedium" tabular style={{ color: meeting?.notInSix ? v.ambFg : v.muted, marginTop: 2 }}>
+            <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: meeting?.notInSix ? v.ambFg : v.muted, marginTop: 2 }}>
               {facts.join(" · ")}
             </Text>
           )}

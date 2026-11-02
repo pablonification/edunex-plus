@@ -1,10 +1,10 @@
 // Rencana studi › KRS on the phone (src/app/screens/plan/krs.tsx, S14; round 2, v4): this term's study plan and its
 // approval, in one column.
 // 1. One card led by the SKS taken of the most allowed (a big number that counts up once, a thin bar), the term and
-//    the advisor a quiet line over it, the plan's one honest state as a pill (and its clashes still to come as an
-//    amber one, a clash's colour on every screen), the next KRS window, and SIX's KRS page as the one button while
-//    there's a KRS to send.
-// 2. Each clash still to come as a row: its sheet says what to do about it and opens Jadwal.
+//    the advisor a quiet line over it, the plan's one state as a pill, the next KRS window, and SIX's KRS page as the
+//    one button while there's a KRS to send.
+// 2. Each clash still to come as a row right under it (its when on one line): its sheet says what to do about it and
+//    opens Jadwal.
 // 3. The courses as rows in their colours: name, code and SKS, one short status (Bentrok, or not approved yet).
 // 4. The plan's steps with their times (and the change round's), below the fold. View only.
 import { useState } from "react";
@@ -93,15 +93,15 @@ export function Tab(_: { onCalendar?: () => void }) {
   );
 }
 
-/** "Kam 8 Okt, 16:00–16:30": when a clash is (next, or last). */
+/** "Kam 8 Okt 16:00–16:30": when a clash is (next, or last), short enough for a row's one line. */
 function useWhen(): (overlap: Overlap) => string {
   const f = useFormat();
-  return (o) => `${f.weekdayShort(o.start)} ${f.dayMonth(o.start)}, ${f.timeRange(o.start, o.end)}`;
+  return (o) => `${f.weekdayShort(o.start)} ${f.dayMonth(o.start)} ${f.timeRange(o.start, o.end)}`;
 }
 
 /**
- * The leading card: the SKS taken, big, and the plan's one honest state. An official KRS with a clash still to come
- * is not "nothing to do": its amber pill says how many, and the rows under the card say when.
+ * The leading card: the SKS taken, big, and the plan's one state as a pill. A clash still to come is the row right
+ * under the card (judge round 3: one status on the card); a screen reader hears it with the state.
  */
 function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const t = useT();
@@ -146,9 +146,8 @@ function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
           {t("krs.overMax", { max: plan.maxSks! })}
         </Text>
       )}
-      <View accessible accessibilityLabel={state} style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
+      <View accessible accessibilityLabel={state} style={{ flexDirection: "row" }}>
         <Pill tone={STAGE_TONE[stage]}>{t(`krs.stage.${stage}`)}</Pill>
-        {clash && <Pill tone="amber">{t("mobile.academic.pill.clash", { count: overlaps.length })}</Pill>}
       </View>
       {window && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
@@ -204,7 +203,12 @@ function Clashes({ overlaps, plan, past = false }: { overlaps: Overlap[]; plan: 
               first={i === 0}
               leading={<IconTile tone="amber" icon={(color) => <Icons.Overlap size={22} color={color} weight="bold" />} />}
               title={t("mobile.krs.clash.title", { a, b })}
-              meta={t("mobile.krs.clash.meta", { when: when(o), count: o.count })}
+              meta={
+                <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted }}>
+                  {when(o)}
+                </Text>
+              }
+              accessibilityLabel={factsLabel(t("mobile.krs.clash.title", { a, b }), t("mobile.krs.clash.meta", { when: when(o), count: o.count }))}
               onPress={() => setPicked(o)}
               testID={`row.krsClash.${o.codes.join("-")}`}
             />

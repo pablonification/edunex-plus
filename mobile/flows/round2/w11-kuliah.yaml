@@ -60,7 +60,7 @@ name: "w11 Kuliah one row one target"
 - assertVisible: "Target 80%"
 - takeScreenshot: w11-2-facts
 - back
-# The row opens its course: the attendance card with the one thing to do about it.
+# The row opens its course: its attendance in one line under the title, with the one thing to do about it.
 - tapOn:
     id: row.course.KU5014
 - extendedWaitUntil:
@@ -71,8 +71,7 @@ name: "w11 Kuliah one row one target"
     id: meter.courseAttendance
 - assertVisible:
     id: note.courseException
-- assertVisible: ".*33%.*"
-- assertVisible: ".*2 dari 6.*"
+- assertVisible: ".*33% hadir.*"
 - takeScreenshot: w11-3-course
 - back
 # The targets, in ⋮.

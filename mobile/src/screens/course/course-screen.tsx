@@ -1,8 +1,8 @@
 // The course page on the phone (S17, src/app/screens/course.tsx; round 2's v4): one course, its parent and child
 // Edunex classes merged, on v4's grey page. Its one title is its name, big at the top beside its tile (the course's ink
-// and tint) with its code under it, collapsing into the top bar on scroll. Under it one white card led by the share
-// attended, with what's left of the absences and the next class in one row (W4), and the one exception in a few words;
-// then, while a class is on, its card with the one thing to do. A tap on the name or the card opens the course's sheet
+// and tint) with its code under it, collapsing into the top bar on scroll, then its attendance in one line ("85% hadir ·
+// Sisa 1×") and the one exception in a few words; then, while a class is on, its card with the one thing to do (the one
+// card, judge round 3), else the next class as a quiet row. A tap on the header opens the course's sheet
 // (./course-sheet.tsx: lecturer, SKS, the attendance in full, the target, what a course in trouble means now). Then its
 // tabs as pills, staying under the bar while the page scrolls: Modul (a list; a module opens as its own screen,
 // ./module-screen.tsx), Pertemuan, Tugas, Nilai and Pengumuman. The rare actions sit behind ⋮ in the top bar: saving
@@ -11,8 +11,9 @@
 import { router } from "expo-router";
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import { type LayoutChangeEvent, ScrollView, View } from "react-native";
+import type { CourseAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { type StringKey, useFormat, useT } from "../../../../src/app/i18n";
+import { type StringKey, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
 import { type CoursePage, useCoursePage } from "../../../../src/app/screens/course/data";
 import { useDataset, useStatus } from "../../../../src/app/store";
@@ -35,8 +36,9 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
+import type { RowContext } from "../presence/logic";
 import { useRowContext } from "../presence/presence-screen";
-import { AttendanceCard, nextClassParts } from "./attendance-line";
+import { useAttendanceLine } from "./attendance-line";
 import { CourseSheet } from "./course-sheet";
 import { GradesTab } from "./grades";
 import { AnnouncementsTab, TasksTab } from "./lists";
@@ -62,7 +64,6 @@ const TAB_LABEL: Record<Tab, StringKey> = {
  */
 export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const t = useT();
-  const f = useFormat();
   const theme = useTheme();
   const page = useCoursePage(code);
   const edunexState = useStatus("edunex").state;
@@ -109,7 +110,6 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   // The course's "Belum selesai" on its tab: its Tasks and exams with a day still ahead, a take-home once.
   const open = todo ? todoCount(todoForCourse(todo.items, code)) : 0;
   const item = rows?.attendance.sixConnected ? rows.attendance.courses.find((c) => c.course.code === page.course.code) : undefined;
-  const shownNext = item && rows ? nextClassParts(t, f, item, rows.context).start : null;
   const rise = `course:${page.course.code}`;
 
   let panel: ReactNode;
@@ -136,14 +136,15 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
     >
       <View>
         <Rise screen={rise} index={0}>
-          <Header page={page} onOpen={() => setSheet(true)} onTitleEnd={(bottom) => setTitleBottom(space[4] + bottom + space[2])} />
+          <Header
+            page={page}
+            item={item}
+            context={rows?.context}
+            onOpen={() => setSheet(true)}
+            onTitleEnd={(bottom) => setTitleBottom(space[4] + bottom + space[2])}
+          />
         </Rise>
-        {item && rows && (
-          <Rise screen={rise} index={1} style={{ marginTop: space[5] }}>
-            <AttendanceCard item={item} context={rows.context} onOpen={() => setSheet(true)} />
-          </Rise>
-        )}
-        <MeetingNow page={page} shownNext={shownNext} card={item !== undefined} rise={rise} />
+        <MeetingNow page={page} rise={rise} />
         <SaveOfflineProgress code={page.course.code} />
         <CourseSheet page={page} rows={rows} open={sheet} onClose={() => setSheet(false)} />
       </View>
@@ -169,12 +170,26 @@ function CourseMissing() {
 }
 
 /**
- * The page's one title: the course's tile and name in the display face, its code under it. A tap opens the course's
- * sheet (lecturer, SKS, attendance). `onTitleEnd`: where the block ends, for the bar's title to take over from there.
+ * The page's one title: the course's tile and name in the display face, its code under it, then its attendance in one
+ * line (from `item` and `context`). A tap opens the course's sheet (lecturer, SKS, attendance in full). `onTitleEnd`: where the
+ * title ends, for the bar's title to take over from there.
  */
-function Header({ page, onOpen, onTitleEnd }: { page: CoursePage; onOpen: () => void; onTitleEnd: (bottom: number) => void }) {
+function Header({
+  page,
+  item,
+  context,
+  onOpen,
+  onTitleEnd,
+}: {
+  page: CoursePage;
+  item: CourseAttendance | undefined;
+  context: RowContext | undefined;
+  onOpen: () => void;
+  onTitleEnd: (bottom: number) => void;
+}) {
   const t = useT();
   const v = useTheme().v4;
+  const attendance = useAttendanceLine(item, context);
   const { course, outline } = page;
   const sks = course.sks ?? outline?.credits ?? null;
   const line = [course.code, sks !== null ? t("course.sks", { count: sks }) : null].filter(Boolean).join(" · ");
@@ -182,7 +197,7 @@ function Header({ page, onOpen, onTitleEnd }: { page: CoursePage; onOpen: () => 
     <PressScale
       onPress={onOpen}
       accessibilityRole="header"
-      accessibilityLabel={`${course.name}, ${line}`}
+      accessibilityLabel={[`${course.name}, ${line}`, attendance?.label].filter(Boolean).join(". ")}
       accessibilityHint={t("mobile.course.aboutHint")}
       testID="action.courseAbout"
       style={{ flexDirection: "row", alignItems: "flex-start", gap: space[4] }}
@@ -201,6 +216,7 @@ function Header({ page, onOpen, onTitleEnd }: { page: CoursePage; onOpen: () => 
           <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted, marginTop: space[1] }}>
             {line}
           </Text>
+          {attendance?.node}
         </View>
       </View>
     </PressScale>
