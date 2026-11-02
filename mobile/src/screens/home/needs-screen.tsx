@@ -20,6 +20,7 @@ import { NeedsYou } from "./needs";
 
 export function NeedsScreen() {
   const t = useT();
+  const theme = useTheme();
   const courses = useTermCourses();
   const world = useHomeWorld();
   const lists = useMemo(() => {
@@ -31,7 +32,7 @@ export function NeedsScreen() {
   }, [world]);
   usePerfDrawn(lists !== null);
   return (
-    <Page testID="screen.needs" header={<TopBar title={t("mobile.home.toHandle")} />}>
+    <Page testID="screen.needs" background={theme.v4.page} header={<TopBar v4 title={t("mobile.home.toHandle")} />}>
       <Today />
       {lists ? (
         <>

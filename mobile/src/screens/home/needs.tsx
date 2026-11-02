@@ -20,6 +20,7 @@ import { dateMove, type EditView, editView } from "../../../../src/core/task-edi
 import { useNav } from "../../nav";
 import { Button } from "../../ui/controls";
 import { Card, Skeleton } from "../../ui/display";
+import { Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
 import { LINK_SLOP } from "../../ui/sizes";
@@ -456,11 +457,15 @@ function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCou
           testID={`row.need.${need.id}`}
           title={view.title}
           label={view.label}
-          meta={<Meta>{view.meta}</Meta>}
+          // One meta line: what doesn't fit is on the item's own page (the full text stays for screen readers).
+          meta={<Meta numberOfLines={1}>{view.meta}</Meta>}
           quick={quick}
           onLongPress={onLongPress}
           trailing={
-            view.when ? (
+            // A state is the row's one pill; a time stays a quiet word.
+            view.when && (view.tone === "danger" || view.tone === "warning") ? (
+              <Pill tone={view.tone === "danger" ? "red" : "amber"}>{view.when}</Pill>
+            ) : view.when ? (
               <Text size="caption" weight="medium" tabular tone={toneOf(view.tone)} style={{ textAlign: "right" }}>
                 {view.when}
               </Text>

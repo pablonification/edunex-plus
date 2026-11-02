@@ -151,13 +151,23 @@ export default function Alerts() {
                       {title}
                     </Text>
                   }
+                  // One meta line, what changed; the time at the row's end.
                   meta={
-                    <Text size="bodyMedium" tabular numberOfLines={2} style={{ color: v.muted }}>
-                      {factsLabel(time, body)}
-                    </Text>
+                    body ? (
+                      <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
+                        {body}
+                      </Text>
+                    ) : undefined
                   }
                   // Unread: a dot and the semibold title, never the colour alone.
-                  trailing={unread ? <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: v.brand }} /> : undefined}
+                  trailing={
+                    <View style={{ alignItems: "flex-end", gap: space[1] }}>
+                      <Text size="labelMedium" tabular style={{ color: v.muted }}>
+                        {time}
+                      </Text>
+                      {unread && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: v.brand }} />}
+                    </View>
+                  }
                   onPress={() => (item.checkIn ? openCheckIn(item.checkIn.meetingId, item.checkIn.url) : nav.go(item.target))}
                 />
               );
