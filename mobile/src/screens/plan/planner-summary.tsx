@@ -1,8 +1,8 @@
 // Rencana's leading card and the semesters behind the Student (round 2, v4). In three seconds: when do I graduate.
-// The card leads with the semester the plan graduates in, big and counting up once, with whether that's on time; the
-// IPK it graduates with beside it; then the SKS against what graduating needs, as a bar with its legend; and, when a
-// rule wants a look, the count of them as the card's one action (it scrolls to the rules). A plan that can't graduate
-// leads with its SKS against the need instead, and what's missing.
+// The card leads with the semester the plan graduates in, big and counting up once, with whether that's on time, and
+// the IPK it graduates with beside it: nothing else (the SKS bar is Kurikulum's, the predicate Nilai's). When a rule
+// wants a look, the count of them is a row of its own under the card (it scrolls to the rules). A plan that can't
+// graduate leads with its SKS against the need instead, and what's missing.
 import { memo, useMemo } from "react";
 import { View } from "react-native";
 import { useFormat, useLang, useT } from "../../../../src/app/i18n";
@@ -12,12 +12,11 @@ import { Skeleton } from "../../ui/display";
 import { Figure, FigureLabel, Group, GroupRow, IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
-import { font, type Palette, radius, space, TOUCH, useTheme } from "../../ui/theme";
+import { font, type Palette, radius, space, useTheme } from "../../ui/theme";
 import { usePlaceState } from "./place-state";
 import { useShortfallText } from "./planner-kit";
-import { predicateFor, usePredicate, useTermLabel } from "./projection";
+import { useTermLabel } from "./projection";
 
 type Finish = Extract<Rule, { id: "finish" }>;
 
@@ -37,87 +36,71 @@ export const PlanHero = memo(function PlanHero({
   const t = useT();
   const lang = useLang();
   const v = useTheme().v4;
-  const predicate = usePredicate();
   const shortfall = useShortfallText();
   const sks = useMemo(() => sksModel(record, plan), [record, plan]);
   const finish = rules.find((r): r is Finish => r.id === "finish");
   const warnings = rules.filter((r) => r.level === "warn" && !isHidden(r, plan)).length;
-  const word = predicate(predicateFor(projection.finalIpk, projection.path));
   const ipk = projection.finalIpk;
   const late = finish && !finish.blocked && finish.semester > finish.normal;
   return (
-    <Panel testID="card.planSummary" style={{ padding: space[5], gap: space[4] }}>
-      {record.program ? (
-        <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
-          {t("planner.program", { name: record.program.name })}
-        </Text>
-      ) : null}
-      {/* Side by side while they fit; at a big font size the IPK goes under the semester. */}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", columnGap: space[8], rowGap: space[4] }}>
-        {finish?.blocked ? (
-          <View style={{ gap: space[1] }} accessibilityLiveRegion="polite">
-            <FigureLabel>{t("mobile.planner.sksInPlan")}</FigureLabel>
-            <Figure id="planner.sks" value={sks.total} unit={t("mobile.academic.sksOf", { need: sks.need })} color={sks.short ? v.redFg : undefined} />
-            <View style={{ alignSelf: "flex-start" }}>
-              <Pill tone="red" icon={(color) => <Icons.AlertTriangle size={14} color={color} weight="bold" />}>
-                {t("planner.notYet")}
-              </Pill>
-            </View>
-          </View>
-        ) : (
-          <View style={{ gap: space[1] }} accessibilityLiveRegion="polite">
-            <FigureLabel>{t("mobile.planner.finishIn")}</FigureLabel>
-            {finish ? <Figure id="planner.finish" value={finish.semester} /> : <Dash size={44} />}
-            {finish ? (
+    <View style={{ gap: space[3] }}>
+      <Panel testID="card.planSummary" style={{ padding: space[5], gap: space[4] }}>
+        {record.program ? (
+          <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
+            {t("planner.program", { name: record.program.name })}
+          </Text>
+        ) : null}
+        {/* Side by side while they fit; at a big font size the IPK goes under the semester. */}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", columnGap: space[8], rowGap: space[4] }}>
+          {finish?.blocked ? (
+            <View style={{ gap: space[1] }} accessibilityLiveRegion="polite">
+              <FigureLabel>{t("mobile.planner.sksInPlan")}</FigureLabel>
+              <Figure id="planner.sks" value={sks.total} unit={t("mobile.academic.sksOf", { need: sks.need })} color={sks.short ? v.redFg : undefined} />
               <View style={{ alignSelf: "flex-start" }}>
-                <Pill tone={late ? "amber" : "ok"}>{late ? t("planner.late", { normal: finish.normal }) : t("planner.onTime")}</Pill>
+                <Pill tone="red" icon={(color) => <Icons.AlertTriangle size={14} color={color} weight="bold" />}>
+                  {t("planner.notYet")}
+                </Pill>
               </View>
-            ) : null}
+            </View>
+          ) : (
+            <View style={{ gap: space[1] }} accessibilityLiveRegion="polite">
+              <FigureLabel>{t("mobile.planner.finishIn")}</FigureLabel>
+              {finish ? <Figure id="planner.finish" value={finish.semester} /> : <Dash size={44} />}
+              {finish ? (
+                <View style={{ alignSelf: "flex-start" }}>
+                  <Pill tone={late ? "amber" : "ok"}>{late ? t("planner.late", { normal: finish.normal }) : t("planner.onTime")}</Pill>
+                </View>
+              ) : null}
+            </View>
+          )}
+          <View style={{ gap: space[1] }}>
+            <FigureLabel>{t("grades.graduation")}</FigureLabel>
+            {ipk === null ? <Dash size={32} /> : <Figure id="planner.ipk" value={ipk} decimals={2} comma={lang === "id"} size={32} />}
           </View>
-        )}
-        <View style={{ gap: space[1] }}>
-          <FigureLabel>{t("grades.graduation")}</FigureLabel>
-          {ipk === null ? <Dash size={32} /> : <Figure id="planner.ipk" value={ipk} decimals={2} comma={lang === "id"} size={32} />}
-          {word ? (
-            <Text size="bodyMedium" weight={projection.honor ? "semibold" : "regular"} style={{ color: projection.honor ? v.okFg : v.muted }}>
-              {word}
-            </Text>
-          ) : null}
         </View>
-      </View>
-      {finish?.blocked ? (
-        <Text size="bodyMedium" weight="medium" style={{ color: v.redFg }}>
-          {t("planner.shortfall", { list: shortfall(finish.blocked) })}
-        </Text>
-      ) : null}
-      <SksBar sks={sks} />
+        {finish?.blocked ? (
+          <Text size="bodyMedium" weight="medium" style={{ color: v.redFg }}>
+            {t("planner.shortfall", { list: shortfall(finish.blocked) })}
+          </Text>
+        ) : null}
+      </Panel>
       {warnings ? (
         // The rules sit beside the plan on the desktop; here they're further down, so the count takes you there.
-        <PressScale
-          onPress={onCheck}
-          accessibilityRole="button"
-          accessibilityHint={t("mobile.planner.toCheckHint")}
-          accessibilityLiveRegion="polite"
-          testID="action.planChecks"
-          style={{
-            minHeight: TOUCH,
-            marginHorizontal: -space[5],
-            marginBottom: -space[5],
-            paddingHorizontal: space[5],
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[2],
-            backgroundColor: v.ambBg,
-          }}
-        >
-          <Icons.AlertTriangle size={18} color={v.ambFg} weight="bold" />
-          <Text size="labelLarge" weight="semibold" style={{ color: v.ambFg, flex: 1 }}>
-            {t("planner.toCheck", { count: warnings })}
-          </Text>
-          <Icons.ChevronRight size={16} color={v.ambFg} weight="bold" />
-        </PressScale>
+        <Group>
+          <GroupRow
+            first
+            leading={<IconTile tone="amber" icon={(color) => <Icons.AlertTriangle size={22} color={color} weight="bold" />} />}
+            title={t("planner.toCheck", { count: warnings })}
+            trailing={<Icons.ChevronRight size={20} color={v.muted} />}
+            onPress={onCheck}
+            accessibilityRole="button"
+            accessibilityHint={t("mobile.planner.toCheckHint")}
+            accessibilityLiveRegion="polite"
+            testID="action.planChecks"
+          />
+        </Group>
       ) : null}
-    </Panel>
+    </View>
   );
 });
 
@@ -127,8 +110,11 @@ function Dash({ size }: { size: number }) {
   return <Text style={{ fontFamily: font.display.extrabold, fontSize: size, lineHeight: Math.round(size * 1.15), color: v.fg }}>-</Text>;
 }
 
-/** The SKS against what graduating needs ("144 SKS terpenuhi +7 cadangan"), then passed, this semester and planned as a bar with its legend. */
-function SksBar({ sks }: { sks: SksModel }) {
+/**
+ * Passed, this semester and planned as a bar with its legend (Kurikulum's card); with `headline`, the SKS against what
+ * graduating needs over it ("144 SKS terpenuhi +7 cadangan").
+ */
+export function SksBar({ sks, headline = true }: { sks: SksModel; headline?: boolean }) {
   const t = useT();
   const theme = useTheme();
   const v = theme.v4;
@@ -143,14 +129,16 @@ function SksBar({ sks }: { sks: SksModel }) {
   ];
   return (
     <View style={{ gap: space[2] }}>
-      <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg }}>
-        {sks.short ? t("planner.sksShort", { total: sks.total, need: sks.need }) : t("planner.sksDone", { need: sks.need })}
-        {sks.short || sks.extra ? (
-          <Text size="bodyMedium" weight="semibold" style={{ color: sks.short ? v.redFg : v.okFg }}>
-            {`  ${sks.short ? t("planner.sksShortBy", { short: sks.short }) : t("planner.sksSpare", { extra: sks.extra })}`}
-          </Text>
-        ) : null}
-      </Text>
+      {headline ? (
+        <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg }}>
+          {sks.short ? t("planner.sksShort", { total: sks.total, need: sks.need }) : t("planner.sksDone", { need: sks.need })}
+          {sks.short || sks.extra ? (
+            <Text size="bodyMedium" weight="semibold" style={{ color: sks.short ? v.redFg : v.okFg }}>
+              {`  ${sks.short ? t("planner.sksShortBy", { short: sks.short }) : t("planner.sksSpare", { extra: sks.extra })}`}
+            </Text>
+          ) : null}
+        </Text>
+      ) : null}
       <View
         accessibilityRole="progressbar"
         accessibilityLabel={t("planner.progress")}

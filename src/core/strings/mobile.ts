@@ -142,9 +142,6 @@ export const mobileStrings = {
     id: "Menyimpan {done} dari {total} berkas",
     en: { one: "Saving {done} of {total} file", other: "Saving {done} of {total} files" },
   },
-  // UKT: once a bill is paid, the other deadline is only a fact, with nothing left to follow.
-  "mobile.bills.paidOtherSix": { id: "Di SIX tertulis {date}", en: "SIX says {date}" },
-  "mobile.bills.paidOtherItb": { id: "Di kalender ITB tertulis {date}", en: "ITB's calendar says {date}" },
   // schedule
   // Between Jadwal's arrows, the week or month on screen, said from today; "Hari ini" beside the view is the way back.
   "mobile.schedule.lastWeek": { id: "Minggu lalu", en: "Last week" },

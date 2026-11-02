@@ -2,13 +2,15 @@
 // academic calendar, two ways. Works without SIX.
 // 1. One card led by the next date: the days to it, big (counting up once), and what and when on one line, today's
 //    date a quiet line over it. A tap offers to add it to the phone's calendar.
-// 2. "Untukmu": this term's deadlines by month, each a row with its date in a small tile, what it is, what it means
-//    for the Student (when the app has something to say) and how soon; running ones say so. Next term's and the
+// 2. "Untukmu": this term's deadlines by month, each a row with its date in a small tile, what it is, its days and how
+//    soon (not on the date the card leads with: the card says it); running ones say so. What a date means for the
+//    Student is in its sheet. Next term's and the
 //    past ones fold away. "Kalender lengkap": every event ITB lists, by month, with chips and a search. The view
 //    picked stays while the app is open.
 // 3. ITB's calendar, named and linked, with when it was last checked, at the end.
-// A tap on a date offers to add it to the phone's calendar (the phone's own calendar app opens with it filled in,
-// nothing is written without the Student).
+// A tap on a date opens its sheet: what it means for the Student, when the app has something to say, and the offer to
+// add it to the phone's calendar (the phone's own calendar app opens with it filled in, nothing is written without the
+// Student).
 import { createEventInCalendarAsync } from "expo-calendar/legacy";
 import { useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
@@ -60,6 +62,8 @@ interface Picked {
   event: CalendarEvent;
   title: string;
   dates: string;
+  /** What it means for the Student, and whether ITB changed it: said in the sheet, never on the row. */
+  about?: string | null;
 }
 
 const noon = (day: string) => Date.parse(`${day}T12:00:00+07:00`);
@@ -159,7 +163,7 @@ function Next({ onPick }: { onPick: (picked: Picked) => void }) {
   const days = offset === 0 ? t("mobile.calendar.today") : `${offset} ${t("mobile.calendar.daysLeft", { count: offset })}`;
   return (
     <Panel
-      onPress={() => onPick({ event: next.event, title, dates: when })}
+      onPress={() => onPick({ event: next.event, title, dates: when, about: next.meaning ? t(next.meaning.key, next.meaning.vars) : null })}
       accessibilityLabel={factsLabel(days, title, when)}
       accessibilityHint={t("mobile.deadline.toCalendar")}
       testID="card.deadlines.next"
@@ -204,6 +208,8 @@ function ForYou({ onPick }: { onPick: (picked: Picked) => void }) {
   const termYears = useTermYears();
   const monthName = useMonthName();
   const { upcoming, past } = useDeadlines();
+  // The date the card leads with: its row leaves the countdown to the card.
+  const lead = upcoming.find((d) => d.when === "next")?.event.id;
   const [nextOpen, setNextOpen] = usePlaceState("deadlines.nextTerm", false);
   const [pastOpen, setPastOpen] = useState(false);
   const termEnd = Math.max(0, ...[...upcoming, ...past].filter((d) => d.event.term === term).map((d) => d.event.end));
@@ -219,7 +225,14 @@ function ForYou({ onPick }: { onPick: (picked: Picked) => void }) {
           <Heading>{monthName(month)}</Heading>
           <Group>
             {items.map((deadline, i) => (
-              <DeadlineRow key={deadline.event.id} first={i === 0} deadline={deadline} showTerm={deadline.event.term !== term} onPick={onPick} />
+              <DeadlineRow
+                key={deadline.event.id}
+                first={i === 0}
+                deadline={deadline}
+                showTerm={deadline.event.term !== term}
+                showSoon={deadline.event.id !== lead}
+                onPick={onPick}
+              />
             ))}
           </Group>
         </View>
@@ -240,6 +253,7 @@ function ForYou({ onPick }: { onPick: (picked: Picked) => void }) {
                 first={false}
                 deadline={deadline}
                 showTerm={deadline.event.term !== term && deadline.event.term !== named}
+                showSoon={deadline.event.id !== lead}
                 onPick={onPick}
               />
             ))}
@@ -319,8 +333,23 @@ function DateTile({ event, when }: { event: CalendarEvent; when: Deadline["when"
   );
 }
 
-/** `showTerm`: the event's term, only where it isn't the one the Student is reading about (this term, or the fold's). */
-function DeadlineRow({ deadline, first, showTerm, onPick }: { deadline: Deadline; first: boolean; showTerm: boolean; onPick: (picked: Picked) => void }) {
+/**
+ * `showTerm`: the event's term, only where it isn't the one the Student is reading about (this term, or the fold's).
+ * `showSoon`: how soon, except on the date the card leads with.
+ */
+function DeadlineRow({
+  deadline,
+  first,
+  showTerm,
+  showSoon = true,
+  onPick,
+}: {
+  deadline: Deadline;
+  first: boolean;
+  showTerm: boolean;
+  showSoon?: boolean;
+  onPick: (picked: Picked) => void;
+}) {
   const t = useT();
   const lang = useLang();
   const f = useFormat();
@@ -349,21 +378,20 @@ function DeadlineRow({ deadline, first, showTerm, onPick }: { deadline: Deadline
           {title}
         </Text>
       }
-      // What it means for the Student when the app has something to say (after its dates when they run past the
-      // tile's month); else its days.
-      meta={means ? factsLabel(event.firstDay.slice(0, 7) !== event.lastDay.slice(0, 7) && range, means, term) : factsLabel(range, days, term)}
+      // Its dates only: what it means for the Student is in its sheet.
+      meta={factsLabel(range, days, term)}
       metaTone={warn ? "amber" : meaning?.done && when !== "past" ? "ok" : "muted"}
       trailing={
         when === "now" ? (
           <Pill tone="ok">{soon}</Pill>
-        ) : (
+        ) : showSoon ? (
           <Text size="bodyMedium" weight={near ? "semibold" : "regular"} tabular style={{ color: near ? v.ambFg : v.muted }}>
             {soon}
           </Text>
-        )
+        ) : undefined
       }
-      onPress={() => onPick({ event, title, dates: range })}
-      accessibilityLabel={factsLabel(title, range, days, soon, means, term)}
+      onPress={() => onPick({ event, title, dates: range, about: means })}
+      accessibilityLabel={factsLabel(title, range, days, (showSoon || when === "now") && soon, term)}
       accessibilityHint={t("mobile.deadline.toCalendar")}
       testID={`row.deadline.${event.id}`}
     />
@@ -573,11 +601,12 @@ function EventRow({ entry, first, onPick }: { entry: CalendarEntry; first: boole
           {entry.title}
         </Text>
       }
-      meta={means || revised ? factsLabel(means, revised) : factsLabel(dates, days)}
+      // Its dates only: what it means, and whether ITB changed it, are in its sheet.
+      meta={factsLabel(dates, days)}
       metaTone={warn ? "amber" : meaning?.done && when !== "past" ? "ok" : "muted"}
       trailing={when === "now" ? <Pill tone="ok">{t("deadlines.now")}</Pill> : undefined}
-      onPress={() => onPick({ event, title: entry.title, dates })}
-      accessibilityLabel={factsLabel(entry.title, dates, days, when === "now" && t("deadlines.now"), means, revised)}
+      onPress={() => onPick({ event, title: entry.title, dates, about: factsLabel(means, revised) || null })}
+      accessibilityLabel={factsLabel(entry.title, dates, days, when === "now" && t("deadlines.now"))}
       accessibilityHint={t("mobile.deadline.toCalendar")}
     />
   );
@@ -607,7 +636,7 @@ function Source() {
   );
 }
 
-/** The sheet a date opens: add it to the phone's calendar (its own app, filled in), or read it on ITB's calendar. */
+/** The sheet a date opens: what it means, then add it to the phone's calendar (its own app, filled in), or read it on ITB's calendar. */
 function AddToCalendar({ picked, onClose, onFailed }: { picked: Picked | null; onClose: () => void; onFailed: (failed: boolean) => void }) {
   const t = useT();
   const theme = useTheme();
@@ -634,6 +663,7 @@ function AddToCalendar({ picked, onClose, onFailed }: { picked: Picked | null; o
       open={picked !== null}
       onClose={onClose}
       title={picked ? `${picked.title} · ${picked.dates}` : undefined}
+      message={picked?.about}
       testID="sheet.deadline"
       choices={
         picked

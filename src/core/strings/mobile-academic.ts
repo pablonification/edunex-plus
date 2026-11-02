@@ -46,6 +46,12 @@ export const mobileAcademicStrings = {
   "mobile.academic.meta.deadlineNext": { id: "{what} · {date}", en: "{what} · {date}" },
   // Kurikulum: the leading figure's unit ("112 dari 144 SKS").
   "mobile.curriculum.ofSks": { id: "dari {need} SKS", en: "of {need} SKS" },
+  // Kurikulum: the one row about the curriculum itself, its sheet saying why. Courses SIX leaves off, an older start.
+  "mobile.curriculum.offSix": {
+    id: "{count} mata kuliah di luar catatan SIX",
+    en: { one: "{count} course not on your SIX record", other: "{count} courses not on your SIX record" },
+  },
+  "mobile.curriculum.started": { id: "Mulai di Kurikulum {from}", en: "Started on Kurikulum {from}" },
   // KRS: the SKS taken as the leading figure, SIX's KRS page while there's one to send, each clash as a row.
   "mobile.krs.sksLabel": { id: "SKS diambil", en: "SKS taken" },
   "mobile.krs.ofMax": { id: "dari maks. {max} SKS", en: "of max. {max} SKS" },

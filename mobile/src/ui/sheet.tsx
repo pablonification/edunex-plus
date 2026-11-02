@@ -117,18 +117,26 @@ export function ActionSheet({
   open,
   onClose,
   title,
+  message,
   choices,
   testID,
 }: {
   open: boolean;
   onClose(): void;
   title?: string;
+  /** What the row it opened from leaves out (a date's meaning, what to do about a clash), under the title. */
+  message?: string | null;
   choices: readonly SheetChoice[];
   testID?: string;
 }) {
   const theme = useTheme();
   return (
     <Sheet open={open} onClose={onClose} title={title} testID={testID}>
+      {message ? (
+        <Text size="bodyMedium" tone="muted" style={{ marginBottom: space[2] }}>
+          {message}
+        </Text>
+      ) : null}
       <View style={{ marginHorizontal: -space[6] }}>
         {choices.map((choice) => (
           <Pressable
