@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tap → response, tab switch and screen open, from a Perfetto trace:
 #
-#   mobile/qa/taps.sh [--passes 3] [--gap 2.5] [--plan <file>]
+#   mobile/qa/taps.sh [--passes 3] [--gap 2.5] [--plan <file>] [--still-discovery]
 #
 # The plan (default mobile/qa/taps/plan.txt) is a list of steps from Beranda: tap an element by its
 # testID (a regex), or press Back. First a discovery pass walks it once, finding each element's centre in
@@ -15,18 +15,22 @@
 # with the longest wait between frames inside it (a freeze) and how long the JS thread ran.
 # Prints each step's median over the passes; keeps the traces in F:\qa\runs\<time>-taps-<avd>\
 # (open one in https://ui.perfetto.dev to see a tap's frames).
+# --still-discovery: the discovery pass runs with Android's animations off, for a screen that's never still
+# (Beranda's wave on the Mac's emulators: uiautomator dump says "could not get idle state"); the measured passes
+# run with them on, as always. Elements sit where they sit either way.
 set -euo pipefail
 here=$(cygpath -m "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)")
 . "$here/env.sh"
 . "$here/lib.sh"
 
-passes=3 gap=2.5 plan=$here/taps/plan.txt
+passes=3 gap=2.5 plan=$here/taps/plan.txt still=0
 while [ $# -gt 0 ]; do
   case $1 in
     --passes) passes=$2; shift 2 ;;
     --gap) gap=$2; shift 2 ;;
     --plan) plan=$(cygpath -m "$2"); shift 2 ;;
-    *) sed -n '2,18p' "$0"; exit 2 ;;
+    --still-discovery) still=1; shift ;;
+    *) sed -n '2,21p' "$0"; exit 2 ;;
   esac
 done
 out=$(qa_run_dir taps)
@@ -48,6 +52,8 @@ start_app() {
 }
 
 # Discovery: where each step's element is, on the screen the steps before it led to.
+animations() { for k in window_animation_scale transition_animation_scale animator_duration_scale; do dsh settings put global "$k" "$1"; done; }
+[ $still = 0 ] || animations 0
 start_app discovery
 : > "$out/steps.tsv"
 while IFS='|' read -r kind name target; do
@@ -85,6 +91,7 @@ while IFS='|' read -r kind name target; do
   sleep "$gap"
 done < "$plan"
 qa_logcat_stop
+[ $still = 0 ] || animations 1
 echo "  $(wc -l < "$out/steps.tsv") steps found"
 
 # Each measured pass runs on the phone as one script: no adb round trips between the taps, and the phone's
