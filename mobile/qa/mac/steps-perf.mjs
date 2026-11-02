@@ -32,18 +32,10 @@ for (const file of passes) {
     .trim()
     .split("\n")
     .map((t) => Number(t) + offset);
-  const log = fs
-    .readFileSync(
-      path.join(dir, file.replace(".times.txt", ".logcat.txt")),
-      "utf8",
-    )
-    .split("\n");
+  const log = fs.readFileSync(path.join(dir, file.replace(".times.txt", ".logcat.txt")), "utf8").split("\n");
   const lines = [];
   for (const l of log) {
-    const m =
-      /^\s*([0-9.]+).*ReactNativeJS.*\[perf\] (tab|screen|js-block) (\S+) ?(.*)$/.exec(
-        l,
-      );
+    const m = /^\s*([0-9.]+).*ReactNativeJS.*\[perf\] (tab|screen|js-block) (\S+) ?(.*)$/.exec(l);
     if (!m) continue;
     const [, at, kind, a, b] = m;
     // tab/screen: "<label> <ms>"; js-block: "<ms> <label>"
@@ -60,15 +52,11 @@ for (const file of passes) {
     per[i].block.push(blocks.length ? Math.max(...blocks) : 0);
   });
 }
-console.log(
-  "| step | kind | [perf] tap → drawn (median) | each pass | worst js-block until the next step (median) | each pass |",
-);
+console.log("| step | kind | [perf] tap → drawn (median) | each pass | worst js-block until the next step (median) | each pass |");
 console.log("| --- | --- | ---: | --- | ---: | --- |");
 steps.forEach(([kind, name], i) => {
   if (kind === "scroll") return;
   const p = per[i];
   const f = (v) => (Number.isFinite(v) ? Math.round(v) : "-");
-  console.log(
-    `| ${name} | ${kind} | ${f(median(p.drawn))} | ${p.drawn.map(f).join(", ")} | ${f(median(p.block))} | ${p.block.map(f).join(", ")} |`,
-  );
+  console.log(`| ${name} | ${kind} | ${f(median(p.drawn))} | ${p.drawn.map(f).join(", ")} | ${f(median(p.block))} | ${p.block.map(f).join(", ")} |`);
 });
