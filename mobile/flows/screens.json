@@ -22,6 +22,7 @@
     "home (v4): Proposal Tugas Akhir's class is a Friday class on Jadwal; it opens Beranda's sheet with SIX (sheet.nowClass) and Jadwal's own without (sheet.class), so its route waits for either, and every home entry first closes either sheet before going back to Beranda.",
     "home (v4): a tap while Beranda is still sliding after a scroll only stops it (Android), so the now card's routes scroll to the greeting, let the page settle, and tap the card once more if its sheet didn't come.",
     "course sheet (round 2): a course page names lecturer, class, SKS, the absences used and left under Jatah absen, and where attendance counts only in its sheet (sheet.course, a tap on its name, action.courseAbout), so the class entries for the lecturer and where it counts, Beranda's absence budgets and Kuliah's courses open it after the page; every other entry of those screens closes it first.",
+    "course page: its next class (or the class on now) is the row under its header, so the entries named for its time or, when it isn't today, its day ('kam-15-okt') close the sheet; the page's other entries open it.",
     "plan (v4): Rencana is long (card, past semesters, this one, planned ones, rules, outlook, minors), and a check that ends at the rules can't scroll back to the top in time: the entries above this semester's courses (no context, or this semester's own) first scroll up to the card (card.planSummary). Kalender's Evaluasi kemajuan studi says the passed SKS in its sheet, so that entry opens it."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
@@ -5205,7 +5206,7 @@
         }
       ],
       "byEntry": {
-        "^course\\.[a-z0-9]+\\.course\\.\\d\\d-\\d\\d": [
+        "^course\\.[a-z0-9]+\\.course\\.(\\d\\d-\\d\\d|(sen|sel|rab|kam|jum|sab|min)-\\d+-[a-z]{3}\\|)": [
           {
             "runFlow": {
               "when": {
