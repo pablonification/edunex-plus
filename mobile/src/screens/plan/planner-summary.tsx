@@ -111,10 +111,10 @@ function Dash({ size }: { size: number }) {
 }
 
 /**
- * Passed, this semester and planned as a bar with its legend (Kurikulum's card); with `headline`, the SKS against what
- * graduating needs over it ("144 SKS terpenuhi +7 cadangan").
+ * Passed, this semester and planned as a bar, with its legend unless `legend` is false (Kurikulum's card keeps the bar
+ * alone); with `headline`, the SKS against what graduating needs over it ("144 SKS terpenuhi +7 cadangan").
  */
-export function SksBar({ sks, headline = true }: { sks: SksModel; headline?: boolean }) {
+export function SksBar({ sks, headline = true, legend = true }: { sks: SksModel; headline?: boolean; legend?: boolean }) {
   const t = useT();
   const theme = useTheme();
   const v = theme.v4;
@@ -151,16 +151,18 @@ export function SksBar({ sks, headline = true }: { sks: SksModel; headline?: boo
         ))}
         {sks.total > sks.need && <View style={{ position: "absolute", top: 0, bottom: 0, width: 2, left: share(sks.need), backgroundColor: v.fg }} />}
       </View>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[4], rowGap: space[1] }}>
-        {parts.map((part) => (
-          <View key={part.label} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color[part.color], opacity: part.opacity }} />
-            <Text size="bodySmall" tabular style={{ color: v.muted }}>
-              {part.label}
-            </Text>
-          </View>
-        ))}
-      </View>
+      {legend ? (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[4], rowGap: space[1] }}>
+          {parts.map((part) => (
+            <View key={part.label} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color[part.color], opacity: part.opacity }} />
+              <Text size="bodySmall" tabular style={{ color: v.muted }}>
+                {part.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }

@@ -3,12 +3,11 @@
 // matched the way SIX places them), the specializations and minors with progress, each course's syllabus on SIX's
 // public pages, and the Student's own corrections where SIX's record doesn't match their curriculum, each one marked
 // and reversible.
-// 1. One card led by the SKS passed of the curriculum's total (a big number that counts up once), the bar of passed,
-//    this semester and planned with its legend, then the required courses left and the electives, the same SKS count
-//    as the planner.
-// 2. "Sisa saja" with what's left on its line: hides what's done (kept while the app is open). Under it, in the same
-//    card, what's worth knowing about the curriculum itself (courses SIX leaves off, an older start) as one row whose
-//    sheet says it.
+// 1. One card: the SKS passed of the curriculum's total (a big number that counts up once) over the bar of passed,
+//    this semester and planned (judge round 3: the figure and the bar only).
+// 2. One group of rows: the required courses left and the electives (the same SKS count as the planner), the
+//    curriculum's name with what's worth knowing about it (courses SIX leaves off, an older start) on its line and in
+//    its sheet, then "Sisa saja", which hides what's done (kept while the app is open).
 // 3. Each semester: its heading with its SKS, its courses as rows (name, code and SKS, one status at the end: the
 //    grade once passed, a pill while it needs the Student).
 // 4. Specializations and minors, below the fold.
@@ -205,12 +204,12 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
       <SixPageNote datasets={["six.curriculum", "six.progress"]} />
       <UnreadNote record={record} />
       <Rise screen={RISE} index={0}>
-        <Totals whatIf={hasWhatIfs(state.plan, record)} name={record.curriculum.name} sks={sks} />
+        <Totals whatIf={hasWhatIfs(state.plan, record)} sks={sks} />
       </Rise>
       <Rise screen={RISE} index={1} style={{ marginTop: space[3] }}>
-        <OnlyLeft sks={sks} onlyLeft={onlyLeft} onToggle={toggleLeft}>
-          <Notes startedOn={map.startedOn} year={record.curriculum.year} unlisted={unlisted} />
-        </OnlyLeft>
+        <Standing sks={sks} onlyLeft={onlyLeft} onToggle={toggleLeft}>
+          <Notes name={record.curriculum.name} startedOn={map.startedOn} year={record.curriculum.year} unlisted={unlisted} />
+        </Standing>
       </Rise>
       {semesters.slice(0, FIRST_SEMESTERS).map((semester, i) => (
         <Rise key={semester.semester} screen={RISE} index={2 + i}>
@@ -262,90 +261,73 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   );
 }
 
-/** The leading card: SKS passed of the curriculum's total, big, then the required courses left and the electives. */
-function Totals({ whatIf, name, sks }: { /** This semester holds what-ifs: every count here includes them. */ whatIf: boolean; name: string; sks: SksModel }) {
+/** The leading card: SKS passed of the curriculum's total, big, over the bar of passed, this semester and planned. */
+function Totals({ whatIf, sks }: { /** This semester holds what-ifs: every count here includes them. */ whatIf: boolean; sks: SksModel }) {
   const t = useT();
   const v = useTheme().v4;
-  const e = sks.electives;
   const of = t("mobile.curriculum.ofSks", { need: sks.need });
-  const stat = (label: string, value: ReactNode, hint?: string) => (
-    <View style={{ gap: 2 }}>
-      <Text size="labelLarge" style={{ color: v.muted }}>
-        {label}
-      </Text>
-      <Text size="bodyLarge" weight="semibold" tabular style={{ color: v.fg }}>
-        {value}
-      </Text>
-      {hint ? (
-        <Text size="bodyMedium" tabular style={{ color: v.muted }}>
-          {hint}
-        </Text>
-      ) : null}
-    </View>
-  );
   return (
     <Panel testID="card.curriculumTotals" style={{ padding: space[5], gap: space[3] }}>
-      <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
-        {name}
-      </Text>
       <View accessible accessibilityLabel={`${t("grades.sksPassed")} ${sks.passed} ${of}`}>
         <FigureLabel>{t("grades.sksPassed")}</FigureLabel>
         <Figure id="curriculum.sksPassed" value={sks.passed} unit={of} />
       </View>
-      <SksBar sks={sks} headline={false} />
+      <SksBar sks={sks} headline={false} legend={false} />
       {whatIf && (
-        <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[1.5] }}>
-          <View style={{ paddingTop: 3 }}>
-            <Icons.Info size={14} color={v.brandInk} weight="bold" />
-          </View>
-          <Text size="bodyMedium" style={{ color: v.brandInk, flex: 1 }}>
-            {t("curriculum.withWhatIfs")}
-          </Text>
-        </View>
+        <Text size="bodyMedium" style={{ color: v.brandInk }}>
+          {t("curriculum.withWhatIfs")}
+        </Text>
       )}
-      <View style={{ height: 1, backgroundColor: v.line, marginVertical: space[1] }} />
-      <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[8], rowGap: space[3] }}>
-        {stat(
-          t("curriculum.requiredLeft"),
-          sks.requiredLeft.count
-            ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks })
-            : t("curriculum.requiredNone"),
-          sks.requiredLeft.count > 0 && sks.requiredUnplanned.count === 0 ? t("curriculum.requiredLeftHint") : undefined,
-        )}
-        {sks.electiveNeed !== null &&
-          stat(
-            t("curriculum.electives"),
-            <>
-              {t("curriculum.electivesValue", { have: Math.min(e.have, sks.electiveNeed), need: sks.electiveNeed })}
-              {e.extra > 0 ? (
-                <Text size="bodyMedium" weight="semibold" style={{ color: v.okFg }}>
-                  {`  +${e.extra}`}
-                </Text>
-              ) : null}
-            </>,
-            t("curriculum.electivesDetail", { passed: e.passed, now: e.inProgress, planned: e.planned }),
-          )}
-      </View>
     </Panel>
   );
 }
 
-/** "Sisa saja", with what's left on its line; `children`, the card's other rows. */
-function OnlyLeft({ sks, onlyLeft, onToggle, children }: { sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void; children?: ReactNode }) {
+/**
+ * Under the card, one group: the required courses left and the electives (the same SKS count as the planner), the
+ * curriculum's name with what's worth knowing about it (`children`), then "Sisa saja".
+ */
+function Standing({ sks, onlyLeft, onToggle, children }: { sks: SksModel; onlyLeft: boolean; onToggle: (on: boolean) => void; children?: ReactNode }) {
   const t = useT();
-  const left = factsLabel(
-    sks.requiredLeft.count ? t("curriculum.left.required", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks }) : t("curriculum.left.requiredNone"),
-    sks.electiveNeed === null ? null : sks.electives.short ? t("curriculum.left.electives", { sks: sks.electives.short }) : t("curriculum.left.electivesNone"),
+  const v = useTheme().v4;
+  const e = sks.electives;
+  const value = (text: string, extra?: number) => (
+    <Text size="bodyMedium" weight="semibold" tabular style={{ color: v.fg }}>
+      {text}
+      {extra ? (
+        <Text size="bodyMedium" weight="semibold" style={{ color: v.okFg }}>
+          {`  +${extra}`}
+        </Text>
+      ) : null}
+    </Text>
   );
   return (
-    <Group>
+    <Group testID="card.curriculumStanding">
       <GroupRow
         first
+        title={t("curriculum.requiredLeft")}
+        meta={sks.requiredLeft.count > 0 && sks.requiredUnplanned.count === 0 ? t("curriculum.requiredLeftHint") : null}
+        trailing={value(
+          sks.requiredLeft.count
+            ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks })
+            : t("curriculum.requiredNone"),
+        )}
+      />
+      {sks.electiveNeed !== null && (
+        <GroupRow
+          title={t("curriculum.electives")}
+          meta={
+            <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted }}>
+              {t("curriculum.electivesDetail", { passed: e.passed, now: e.inProgress, planned: e.planned })}
+            </Text>
+          }
+          trailing={value(t("curriculum.electivesValue", { have: Math.min(e.have, sks.electiveNeed), need: sks.electiveNeed }), e.extra)}
+        />
+      )}
+      {children}
+      <GroupRow
         title={t("curriculum.onlyLeft")}
-        meta={`${t("curriculum.left")}: ${left}`}
         trailing={<Switch value={onlyLeft} onChange={onToggle} label={t("curriculum.onlyLeft")} testID="action.onlyLeft" />}
       />
-      {children}
     </Group>
   );
 }
@@ -571,25 +553,39 @@ function PackageMark({ status, whatIf }: { status: SlotStatus; whatIf: MapCourse
   return null;
 }
 
-/** What's worth knowing about the curriculum itself (an older start, courses SIX leaves off): quiet lines under "Sisa saja". */
-function Notes({ startedOn, year, unlisted }: { startedOn: number | null; year: number; unlisted: number }) {
+/**
+ * The curriculum's name, with what's worth knowing about it (an older start, courses SIX leaves off) on its line; then
+ * the row opens a sheet that says it.
+ */
+function Notes({ name, startedOn, year, unlisted }: { name: string; startedOn: number | null; year: number; unlisted: number }) {
   const t = useT();
   const v = useTheme().v4;
   const [open, setOpen] = useState(false);
-  if (startedOn === null && unlisted === 0) return null;
   const started = startedOn !== null ? t("mobile.curriculum.started", { from: startedOn }) : null;
-  const title = unlisted > 0 ? t("mobile.curriculum.offSix", { count: unlisted }) : started!;
+  const note = factsLabel(unlisted > 0 && t("mobile.curriculum.offSix", { count: unlisted }), started);
+  const title = (
+    <Text size="bodyLarge" weight="medium" numberOfLines={1} style={{ color: v.fg, lineHeight: 21 }}>
+      {name}
+    </Text>
+  );
+  const meta = note ? (
+    <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
+      {note}
+    </Text>
+  ) : null;
+  if (!note) return <GroupRow title={title} />;
   return (
     <>
       <GroupRow
         title={title}
-        meta={unlisted > 0 ? started : null}
+        meta={meta}
         trailing={<Icons.ChevronRight size={20} color={v.muted} />}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
+        accessibilityLabel={factsLabel(name, note)}
         testID="action.curriculumNotes"
       />
-      <Sheet open={open} onClose={() => setOpen(false)} title={title} background={v.card} testID="sheet.curriculumNotes">
+      <Sheet open={open} onClose={() => setOpen(false)} title={name} background={v.card} testID="sheet.curriculumNotes">
         <View style={{ gap: space[3], paddingBottom: space[2] }}>
           {unlisted > 0 && (
             <Text size="bodyLarge" style={{ color: v.fg }}>
