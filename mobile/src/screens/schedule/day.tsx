@@ -246,7 +246,7 @@ type Status = { icon: (typeof Icons)[keyof typeof Icons]; tone: "amber" | "quiet
  * block stays calm, and the class's sheet has them in the app's absence colours.
  */
 function statusOf(t: ReturnType<typeof useT>, entry: Item): Status | null {
-  if (entry.kind === "meeting") return entry.notInSix ? { icon: Icons.Info, tone: "amber", words: t("mobile.home.chip.notInSix") } : null;
+  if (entry.kind === "meeting") return entry.notInSix ? { icon: Icons.Info, tone: "amber", words: t("home.today.notInSix") } : null;
   const { item } = entry;
   if (item.exam) return null;
   if (item.overlaps.length) return { icon: Icons.Overlap, tone: "amber", words: t("mobile.home.chip.clash") };

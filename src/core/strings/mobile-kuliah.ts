@@ -41,6 +41,8 @@ export const mobileCourseStrings = {
   "mobile.course.tab.tasks": { id: "Tugas", en: "Tasks" },
   // The course's attendance on one line under its title, before what's left of the absences ("85% hadir · Sisa 1×").
   "mobile.course.attended": { id: "{percent}% hadir", en: "{percent}% attended" },
+  // The course's sheet: what's used and left of the absences under the desktop's label ("Jatah absen: terpakai 2× · habis").
+  "mobile.course.budget": { id: "Jatah absen: {words}", en: "Absences: {words}" },
   "mobile.course.aboutHint": { id: "Buka rincian mata kuliah", en: "Opens the course's details" },
   // The one exception, in a few words on the card; the whole of it is in the sheet.
   "mobile.course.ex.uncounted": { id: "Ada yang tak tercatat?", en: "A class not counted?" },
