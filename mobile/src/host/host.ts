@@ -147,6 +147,8 @@ async function makeHost(): Promise<Host> {
     version: APP_VERSION,
     emit: (event: Event) => {
       if (DEMO) traceEvent(event);
+      // A stall right after the screens hear of a dataset is likely their redraw for it: its name labels the stall.
+      if (event.type === "dataset") perfDoing(`→ ${event.dataset.name}`);
       if (event.type === "settings" && event.settings.lang !== lang) {
         lang = event.settings.lang;
         void prepareChannels(lang);
