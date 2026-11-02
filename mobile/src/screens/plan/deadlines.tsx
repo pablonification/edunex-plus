@@ -29,6 +29,7 @@ import { Figure, Group, GroupRow, Heading, IconTile, Panel, Pill } from "../../u
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
+import { LINK_SLOP } from "../../ui/sizes";
 import { Text, useFieldColors } from "../../ui/text";
 import { font, space, type, useTheme } from "../../ui/theme";
 import { Later } from "./deferred";
@@ -487,7 +488,7 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
         {filtered && (
           <Pressable
             accessibilityRole="button"
-            hitSlop={12}
+            hitSlop={LINK_SLOP}
             onPress={() => {
               setQuery("");
               setGroups(new Set());

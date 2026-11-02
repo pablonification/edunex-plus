@@ -17,7 +17,7 @@ import { Button, IconButton, Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
 import { Text, useFieldColors } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
+import { radius, space, TOUCH, useTheme } from "../../ui/theme";
 import { useCardStyle } from "../home/now";
 
 // The letter aimed for, per course, while the app runs (the desktop keeps it in the page's place in history).
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
   tableRow: { flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingVertical: space[2] },
   // Android pads a field's text from the top: none, and centred, so the number sits in the middle of its box.
   input: {
-    height: 44,
+    height: TOUCH,
     borderRadius: radius.md,
     paddingHorizontal: space[2],
     paddingVertical: 0,

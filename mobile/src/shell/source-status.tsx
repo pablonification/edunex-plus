@@ -23,6 +23,7 @@ import { EmptyState, LiveDot, Spinner } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta } from "../ui/layout";
 import { Sheet } from "../ui/sheet";
+import { slop } from "../ui/sizes";
 import { Text } from "../ui/text";
 import { radius, space, TOUCH, useTheme } from "../ui/theme";
 import { BAR_HEIGHT, BarSurface } from "../ui/top-bar";
@@ -566,7 +567,7 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
           {detail ? ` ${detail}` : ""}
         </Text>
         {!offline && (
-          <Pressable accessibilityRole="button" accessibilityLabel={t("action.close")} onPress={() => setDismissed(key)} hitSlop={12}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t("action.close")} onPress={() => setDismissed(key)} hitSlop={slop(16)}>
             <Icons.X size={16} color={fg} />
           </Pressable>
         )}

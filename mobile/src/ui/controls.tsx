@@ -7,6 +7,7 @@ import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useStat
 import { Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
 import { Spinner } from "./display";
 import { Icons } from "./icons";
+import { BUTTON_HEIGHT, CHIP_HEIGHT, SEGMENT_HEIGHT, SWITCH, SWITCH_SLOP, slopY } from "./sizes";
 import { Text } from "./text";
 import { shape, space, TOUCH, useTheme } from "./theme";
 
@@ -16,9 +17,6 @@ import { shape, space, TOUCH, useTheme } from "./theme";
  */
 type Variant = "primary" | "tonal" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "lg";
-
-/** Container heights: M3 Expressive's XS (32), S (40, the default) and M (56). Each is 48 to touch. */
-const HEIGHT: Record<Size, number> = { sm: 32, md: 40, lg: 56 };
 
 export function Button({
   variant = "secondary",
@@ -63,7 +61,7 @@ export function Button({
         ripple: "transparent",
       }
     : look[variant];
-  const height = HEIGHT[size];
+  const height = BUTTON_HEIGHT[size];
   return (
     <Pressable
       testID={testID}
@@ -72,7 +70,7 @@ export function Button({
       accessibilityLabel={label}
       accessibilityState={{ disabled: off, busy }}
       // 48 to touch however small it looks.
-      hitSlop={height < TOUCH ? { top: (TOUCH - height) / 2, bottom: (TOUCH - height) / 2 } : undefined}
+      hitSlop={slopY(height)}
       android_ripple={{ color: ripple, foreground: true }}
       style={[
         styles.button,
@@ -258,7 +256,7 @@ function DrawnSwitch({
       accessibilityRole="switch"
       accessibilityLabel={label}
       accessibilityState={{ checked: value, disabled: Boolean(disabled) }}
-      hitSlop={8}
+      hitSlop={SWITCH_SLOP}
       style={{ opacity: disabled ? 0.38 : 1 }}
     >
       <Animated.View
@@ -291,8 +289,6 @@ function DrawnSwitch({
   );
 }
 
-const SWITCH = { width: 52, height: 32 } as const;
-
 /** Material 3's segmented buttons: a few views of one thing ("Belum selesai 6 / Selesai 5", "Minggu / Bulan"). */
 export function Segmented<T extends string>({
   options,
@@ -320,6 +316,8 @@ export function Segmented<T extends string>({
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
             onPress={() => onChange(option.value)}
+            // 40 to see, 48 to touch.
+            hitSlop={slopY(SEGMENT_HEIGHT)}
             android_ripple={{ color: c.selected }}
             style={[styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }]}
           >
@@ -376,7 +374,7 @@ export function Chip({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
-      hitSlop={{ top: 8, bottom: 8 }}
+      hitSlop={slopY(CHIP_HEIGHT)}
       android_ripple={{ color: c.selected }}
       style={[
         styles.chip,
@@ -401,7 +399,7 @@ const styles = StyleSheet.create({
   segmented: { flexDirection: "row", borderRadius: shape.full, borderWidth: 1, overflow: "hidden" },
   segment: {
     flex: 1,
-    minHeight: 40,
+    minHeight: SEGMENT_HEIGHT,
     flexDirection: "row",
     gap: space[2],
     alignItems: "center",
@@ -410,7 +408,7 @@ const styles = StyleSheet.create({
     paddingVertical: space[1],
   },
   chip: {
-    height: 32,
+    height: CHIP_HEIGHT,
     paddingHorizontal: space[4],
     borderRadius: shape.sm,
     borderWidth: 1,

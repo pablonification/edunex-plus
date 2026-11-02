@@ -493,7 +493,7 @@ function Steps({
   const shareButton = (
     <Button
       variant={shared ? "secondary" : "primary"}
-      icon={<Icons.Upload size={16} color={shared ? theme.color.fg : theme.color.onAccent} />}
+      icon={<Icons.Upload size={16} color={shared ? theme.color.fg : theme.color.onPrimary} />}
       onPress={share}
       testID="action.reportShare"
     >
