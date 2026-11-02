@@ -75,9 +75,11 @@ export const mobileStrings = {
   "mobile.home.chip.belowTarget": { id: "Di bawah target", en: "Below target" },
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   "mobile.home.chip.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
-  // The class sheet's time row: the class is on now (a green chip), and where a moved class or room usually is.
+  // The class sheet's one status (a chip), and its one quiet line: what it clashes with, or where it usually is.
   "mobile.home.chip.now": { id: "Sekarang", en: "Now" },
-  "mobile.home.movedFrom": { id: "Pindah dari {usual}", en: "Moved from {usual}" },
+  "mobile.home.chip.moved": { id: "Pindah", en: "Moved" },
+  "mobile.home.clashWith": { id: "Dengan {course} {time}", en: "With {course} {time}" },
+  "mobile.home.usually": { id: "Biasanya {usual}", en: "Usually {usual}" },
   "mobile.home.online": { id: "daring", en: "online" },
   // The class sheet's facts as labels, never the how: the share against the target, Tandai Hadir's state, the Presence.
   "mobile.home.share": { id: "Kehadiran {percent}% · target {target}%", en: "Attendance {percent}% · target {target}%" },
