@@ -78,7 +78,7 @@ export const mobileStrings = {
   "mobile.needs.best": { id: "Paling tinggi {best}% · target {target}%", en: "Best case {best}% · target {target}%" },
   // The class sheet's one status (a chip), and its one quiet line: what it clashes with, or where it usually is.
   "mobile.home.chip.now": { id: "Sekarang", en: "Now" },
-  "mobile.home.chip.moved": { id: "Pindah", en: "Moved" },
+  "mobile.home.chip.moved": { id: "Berubah", en: "Changed" },
   "mobile.home.clashWith": { id: "Dengan {course} {time}", en: "With {course} {time}" },
   "mobile.home.usually": { id: "Biasanya {usual}", en: "Usually {usual}" },
   "mobile.home.online": { id: "daring", en: "online" },

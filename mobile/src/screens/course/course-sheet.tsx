@@ -22,7 +22,7 @@ import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
-import type { RowContext } from "../presence/logic";
+import { metaParts, type RowContext } from "../presence/logic";
 import { type CourseExceptionNote, ExceptionIcon, useCourseException } from "./attendance-line";
 
 export interface CourseRows {
@@ -58,11 +58,24 @@ export function CourseSheet({ page, rows, open, onClose }: { page: CoursePage; r
             </Fact>
           )}
           {sks !== null && <Fact icon={(c) => <Icons.BookOpen size={22} color={c} />}>{t("course.sks", { count: sks })}</Fact>}
+          {item && rows && <NextClassFact item={item} context={rows.context} />}
           {item && rows && <AttendanceFacts page={page} item={item} attendance={rows.attendance} context={rows.context} />}
         </View>
       </View>
     </Sheet>
   );
+}
+
+/**
+ * The course's next class, as round 1's Kuliah row said it under the course (the desktop's Presensi row, metaParts): on
+ * now until when, today's or another day's time, and its room. Kuliah's rows went slim in round 2, so it's said here.
+ */
+function NextClassFact({ item, context }: { item: CourseAttendance; context: RowContext }) {
+  const t = useT();
+  const f = useFormat();
+  const parts = metaParts(t, f, item, context);
+  if (!parts.length) return null;
+  return <Fact icon={(c) => <Icons.CalendarClock size={22} color={c} />}>{parts.join(" · ")}</Fact>;
 }
 
 /** One fact with its icon, as the class sheet draws them: a 48 dp row, the icon in the quiet grey. */
