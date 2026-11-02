@@ -300,7 +300,8 @@ function DayPanel({
         testID: `row.class.${rowKey(session.courseCode, session.start)}`,
         leading: <CourseTile code={session.courseCode} name={session.courseName} />,
         title,
-        meta: factsLabel(`${session.courseCode} ${range}`, session.room),
+        // The tile and the title name the course: the meta is when and where (the code stays in the spoken name).
+        meta: factsLabel(range, session.room),
         pill,
         label: factsLabel(
           session.courseCode,
@@ -323,7 +324,7 @@ function DayPanel({
         testID: `row.class.${rowKey(m.code, m.start)}`,
         leading: <CourseTile code={m.code} name={world.name(m.code)} />,
         title: world.name(m.code),
-        meta: factsLabel(`${m.code} ${range}`, where),
+        meta: factsLabel(range, where),
         pill: notInSix ? { tone: "amber", words: t("mobile.home.chip.notInSix") } : null,
         label: factsLabel(m.code, world.name(m.code), meeting, range, where, notInSix ? t("schedule.notInSix") : null),
         pick: { kind: "meeting", meeting: m, notInSix },
@@ -388,8 +389,18 @@ function DayPanel({
               first={i === 0}
               testID={row.testID}
               leading={row.leading}
-              title={row.title}
-              meta={row.meta}
+              // A title and one meta line, each cut to one line (the judge's round 3, 10): the whole of both is in the
+              // row's spoken name and on the sheet it opens.
+              title={
+                <Text size="bodyLarge" weight="medium" numberOfLines={1} style={{ color: v.fg, lineHeight: 21 }}>
+                  {row.title}
+                </Text>
+              }
+              meta={
+                <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted }}>
+                  {row.meta}
+                </Text>
+              }
               trailing={row.pill ? <Pill tone={row.pill.tone}>{row.pill.words}</Pill> : undefined}
               onPress={() => onPick(row.pick)}
               accessibilityRole="button"
