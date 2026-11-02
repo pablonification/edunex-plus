@@ -72,21 +72,27 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
   const crumb = [code, activity].filter(Boolean).join(" · ");
   const moved = facts?.moved ?? null;
   const usual = moved && moved.usualStart !== null && moved.usualEnd !== null ? f.timeRange(moved.usualStart, moved.usualEnd) : null;
-  // The time's one quiet line: where it moved from, else what it clashes with, else how far off it is.
-  const timeMeta = usual
-    ? { text: t("mobile.home.movedFrom", { usual }), tone: "warning" as const }
-    : facts?.overlap
-      ? { text: t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) }), tone: "warning" as const }
+  const overlap = facts?.overlap ?? null;
+  // The time's one quiet line, never a warning sentence: what it clashes with, else when it usually is, else how far off.
+  const timeMeta = overlap
+    ? t("mobile.home.clashWith", { course: overlap.code, time: f.timeRange(overlap.from, overlap.to) })
+    : usual
+      ? t("mobile.home.usually", { usual })
       : !live && !past && slot
-        ? { text: f.fromNow(slot.start), tone: "muted" as const }
+        ? f.fromNow(slot.start)
         : null;
-  // Its one status: on now, else not on SIX's timetable.
-  const timeChip = live
-    ? { key: "mobile.home.chip.now" as const, bg: v.okBg, fg: v.okFg }
-    : meeting && !card.meeting?.maybeInSix
-      ? { key: "mobile.home.chip.notInSix" as const, bg: v.ambBg, fg: v.ambFg }
-      : null;
+  // Its one status, as a chip: a clash, else moved, else on now, else not on SIX's timetable.
+  const timeChip = overlap
+    ? { key: "mobile.home.chip.clash" as const, bg: v.ambBg, fg: v.ambFg }
+    : usual
+      ? { key: "mobile.home.chip.moved" as const, bg: v.ambBg, fg: v.ambFg }
+      : live
+        ? { key: "mobile.home.chip.now" as const, bg: v.okBg, fg: v.okFg }
+        : meeting && !card.meeting?.maybeInSix
+          ? { key: "mobile.home.chip.notInSix" as const, bg: v.ambBg, fg: v.ambFg }
+          : null;
   const place = session?.room ?? (meeting?.online ? t("mobile.home.online") : null);
+  const usualRoom = moved && !usual ? moved.usualRoom : null;
   return (
     <View style={{ gap: space[4] }}>
       {/* v4: the course's tile, "PL3002 · Kuliah", the name in the display face; read out as "PL3002 Ekonomi …, Kuliah". */}
@@ -108,36 +114,28 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
       </View>
       <View>
         {when && (
-          <Fact
-            icon={(c) => <Icons.Clock size={22} color={c} />}
-            end={
-              timeChip && (
-                <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: timeChip.bg }}>
-                  <Text size="labelMedium" weight="semibold" style={{ color: timeChip.fg }}>
-                    {t(timeChip.key)}
-                  </Text>
-                </View>
-              )
-            }
-          >
+          <Fact icon={(c) => <Icons.Clock size={22} color={c} />} end={timeChip && <Chip text={t(timeChip.key)} bg={timeChip.bg} fg={timeChip.fg} />}>
             <Text size="bodyLarge" tabular style={{ color: v.fg2 }}>
               {`${f.relativeDay(when.start)} · ${f.timeRange(when.start, when.end)}`}
             </Text>
             {timeMeta && (
-              <Text size="bodyMedium" tone={timeMeta.tone} tabular>
-                {timeMeta.text}
+              <Text size="bodyMedium" tone="muted" tabular>
+                {timeMeta}
               </Text>
             )}
           </Fact>
         )}
         {place && (
-          <Fact icon={(c) => <Icons.MapPin size={22} color={c} />}>
+          <Fact
+            icon={(c) => <Icons.MapPin size={22} color={c} />}
+            end={usualRoom && !timeChip && <Chip text={t("mobile.home.chip.moved")} bg={v.ambBg} fg={v.ambFg} />}
+          >
             <Text size="bodyLarge" style={{ color: v.fg2 }}>
               {place}
             </Text>
-            {moved && !usual && moved.usualRoom && (
-              <Text size="bodyMedium" tone="warning">
-                {t("mobile.home.movedFrom", { usual: moved.usualRoom })}
+            {usualRoom && (
+              <Text size="bodyMedium" tone="muted">
+                {t("mobile.home.usually", { usual: usualRoom })}
               </Text>
             )}
           </Fact>
@@ -148,13 +146,41 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
   );
 }
 
+/** The sheet's one status. */
+function Chip({ text, bg, fg }: { text: string; bg: string; fg: string }) {
+  return (
+    <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: bg }}>
+      <Text size="labelMedium" weight="semibold" style={{ color: fg }}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
 /** One fact with its icon (v4: a 48 dp row, the icon in the quiet grey, the words a step softer than a title). */
-function Fact({ icon, tone = "fg", end, children }: { icon: (color: string) => ReactNode; tone?: TextTone; end?: ReactNode; children: ReactNode }) {
+function Fact({
+  icon,
+  tone = "fg",
+  end,
+  label,
+  children,
+}: {
+  icon: (color: string) => ReactNode;
+  tone?: TextTone;
+  end?: ReactNode;
+  /** What a screen reader says for the row, when the words on screen leave out what the colour shows. */
+  label?: string;
+  children: ReactNode;
+}) {
   const theme = useTheme();
   const v = theme.v4;
   const color = tone === "warning" ? theme.color.warningFg : tone === "success" ? theme.color.successFg : v.muted;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 48, paddingVertical: space[2] }}>
+    <View
+      accessible={label !== undefined}
+      accessibilityLabel={label}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 48, paddingVertical: space[2] }}
+    >
       <View style={{ width: 22, alignItems: "center" }}>{icon(color)}</View>
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         {typeof children === "string" ? (
@@ -189,28 +215,36 @@ function Pips({ health }: { health: AttendanceHealth }) {
   );
 }
 
-/** The absences: the pips, "Boleh absen 1× lagi", and the share against the target under it (v4's pip meter row). */
+/**
+ * The absences: the pips, "Boleh absen 1× lagi", and the share against the target under it (v4's pip meter row). Below
+ * the target or with none left, the pips carry the warning in their colour and the row says only the share: never a
+ * red sentence ("Tak bisa lagi capai 80%" is still what a screen reader hears).
+ */
 function Absences({ card }: { card: NowCard }) {
   const t = useT();
   const v = useTheme().v4;
   const facts = card.class;
   const health = facts?.health && facts.state !== "unknown" ? facts.health : null;
   if (!health) return null;
-  // The absence scale, as the row's chip: below the target red, no absences left amber; absences to spare stay quiet.
   const tone = absenceTone(health.state);
+  const budget = budgetLabel(t, health);
+  const share = health.held ? t("mobile.home.share", { percent: percent(health.attended ?? 0, health.held), target: health.target }) : null;
+  const warned = (tone === "red" || tone === "amber") && share !== null;
   return (
-    <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />}>
+    <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />} label={warned ? `${budget}, ${share}` : undefined}>
       <Text
         size="bodyLarge"
         weight="medium"
-        tone={STATE_TEXT[health.state]}
-        style={tone === "red" || tone === "amber" ? { color: absenceInk(v, tone).fg } : STATE_TEXT[health.state] === "muted" ? { color: v.fg2 } : undefined}
+        tone={warned ? undefined : STATE_TEXT[health.state]}
+        style={
+          warned || STATE_TEXT[health.state] === "muted" ? { color: v.fg2 } : tone === "red" || tone === "amber" ? { color: absenceInk(v, tone).fg } : undefined
+        }
       >
-        {budgetLabel(t, health)}
+        {warned ? share : budget}
       </Text>
-      {health.held ? (
+      {share && !warned ? (
         <Text size="bodyMedium" tone="muted">
-          {t("mobile.home.share", { percent: percent(health.attended ?? 0, health.held), target: health.target })}
+          {share}
         </Text>
       ) : null}
     </Fact>
