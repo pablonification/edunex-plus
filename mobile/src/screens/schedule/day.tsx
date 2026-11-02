@@ -27,6 +27,7 @@ import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, TOUCH, useTheme } from "../../ui/theme";
 import { CourseGlyph, useCourseTile } from "../../ui/tile";
+import { shortName } from "../home/parts";
 import { useClockSelect, useDayFormat, usePhase, useToday } from "./clock";
 import type { Picked } from "./details";
 import { periodName, timeRange } from "./world";
@@ -45,30 +46,6 @@ export const rowKey = (code: string, start: number) => {
   const minute = minuteOfDay(start);
   return `${code.toLowerCase()}-${String(Math.floor(minute / 60)).padStart(2, "0")}-${String(minute % 60).padStart(2, "0")}`;
 };
-
-/** Small words left out of a short name. */
-const SMALL = /^(dan|dalam|di|ke|untuk|pada|dengan|of|and|the|in|for|to|&)$/i;
-
-/**
- * A block's name, short as the mockup's ("Ekonomi dan Inovasi" for "Ekonomi dan Inovasi dalam Perencanaan"): a name
- * up to 22 letters stays whole, a longer one keeps its words up to the second that says something. The whole name is
- * on the sheet and in what TalkBack reads.
- */
-export function shortName(name: string): string {
-  if (name.length <= 22) return name;
-  const words = name.split(/\s+/);
-  const kept: string[] = [];
-  let said = 0;
-  for (const word of words) {
-    if (!SMALL.test(word)) {
-      if (said === 2) break;
-      said++;
-    }
-    kept.push(word);
-  }
-  while (kept.length > 1 && SMALL.test(kept[kept.length - 1]!)) kept.pop();
-  return kept.join(" ");
-}
 
 type Item =
   | { kind: "class"; key: string; start: number; end: number; code: string; item: ScheduledClass }

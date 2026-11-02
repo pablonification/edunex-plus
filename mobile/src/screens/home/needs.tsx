@@ -16,7 +16,7 @@ import { heldBack } from "../../../../src/core/held-back";
 import type { DoneEntry, SnoozeEntry } from "../../../../src/core/models";
 import type { NeedDraft, NeedsRange } from "../../../../src/core/needs";
 import { snoozable } from "../../../../src/core/snooze";
-import { dateMove, type EditView, editView, titleOnly } from "../../../../src/core/task-edits";
+import { dateMove, type EditView, editView } from "../../../../src/core/task-edits";
 import { useNav } from "../../nav";
 import { Button } from "../../ui/controls";
 import { Card, Skeleton } from "../../ui/display";
@@ -26,7 +26,7 @@ import { LINK_SLOP } from "../../ui/sizes";
 import { Text, type TextTone } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { facts, heldAt, memoRow } from "./held";
-import { CourseMark, classDayTime, DAY, doneOf, nameOf, QuickRow, toned } from "./parts";
+import { CourseMark, classDayTime, DAY, doneOf, nameOf, QuickRow } from "./parts";
 
 type Tone = "danger" | "warning" | null;
 const TONE: Record<"danger" | "warning" | "none", TextTone> = { danger: "danger", warning: "warning", none: "muted" };
@@ -248,10 +248,8 @@ function DoneRow({ need, entry, courses }: { need: NeedDraft; entry: DoneEntry; 
 
 interface NeedView {
   title: string;
-  /** Short facts: the course, a time, a place. */
+  /** One meta line: the course and at most one fact (the rest is one tap deeper, on the item's own page). */
   meta: ReactNode[];
-  /** A sentence on its own line under the facts ("SIX dan Edunex beda tanggal"), so the facts line stays short. */
-  note?: { text: string; tone: Tone };
   /** The right side: when, said the human way. */
   when: string | null;
   tone: Tone;
@@ -267,31 +265,28 @@ interface NeedView {
 const fullName = (need: NeedDraft, view: NeedView) => factsLabel(view.title, view.titleLacksCourse && need.course, view.which);
 
 /**
- * What a Task's newest edit changed, as a row's note says it: how many things, or the one date
- * that moved, by name. Null when nothing's to say: never edited, checked, not compared, or nothing
- * compared changed. From src/app/screens/home.tsx.
+ * A Task changed after the hand-in, as its row's meta says it: how many things, or the one date that moved, by name
+ * (the Task page's History says the rest). Not compared: that it changed. From src/app/screens/home.tsx.
  */
-function editNote(t: Translate, f: Format, view: EditView | null, afterSubmit: boolean): string | null {
-  if (!view || view.checked || view.state !== "known") return null;
+function editedLine(t: Translate, f: Format, view: EditView | null): string {
+  if (!view || view.checked || view.state !== "known") return t("home.need.task.edited");
   const move = dateMove(view.changes);
   const date = (at: number) => `${f.weekdayShort(at)}, ${f.dayMonth(at)}`;
-  if (move) {
-    const change =
-      move.kind === "deadline"
-        ? move.to === null
-          ? t("home.move.deadlineRemoved")
-          : move.from === null
-            ? t("home.move.deadlineAdded", { date: date(move.to) })
-            : t(move.to < move.from ? "home.move.deadlineEarlier" : "home.move.deadline", { date: date(move.to) })
-        : move.to === null
-          ? t("home.move.opensNow")
-          : t("home.move.opens", { date: date(move.to) });
-    return t(afterSubmit ? "home.need.task.editedMove" : "home.need.task.changedMove", { change });
-  }
-  return t(afterSubmit ? "home.need.task.editedCount" : "home.need.task.changedCount", { count: view.changes.length });
+  if (!move) return t("home.need.task.editedCount", { count: view.changes.length });
+  const change =
+    move.kind === "deadline"
+      ? move.to === null
+        ? t("home.move.deadlineRemoved")
+        : move.from === null
+          ? t("home.move.deadlineAdded", { date: date(move.to) })
+          : t(move.to < move.from ? "home.move.deadlineEarlier" : "home.move.deadline", { date: date(move.to) })
+      : move.to === null
+        ? t("home.move.opensNow")
+        : t("home.move.opens", { date: date(move.to) });
+  return t("home.need.task.editedMove", { change });
 }
 
-/** An item's title, facts, note and when, the desktop's words (src/app/screens/home.tsx, useNeedView) drawn with the phone's text. */
+/** An item's title, its one meta line and its status, the desktop's words (src/app/screens/home.tsx, useNeedView) drawn with the phone's text. */
 function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedView {
   const t = useT();
   const f = useFormat();
@@ -314,8 +309,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
             ? {
                 title: t("home.need.presenceNoSix", { course: need.course ?? "" }),
                 which,
-                meta: [course, which, closes],
-                note: { text: t("home.need.presenceNoSix.note"), tone: null },
+                meta: [course, closes],
                 when: f.fromNow(need.session.closesAt),
                 tone: null,
               }
@@ -323,14 +317,14 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
               ? {
                   title: t("home.need.presenceOptional", { course: need.course ?? "" }),
                   which,
-                  meta: [course, which, t("home.need.presenceOptional.counted"), closes],
+                  meta: [course, closes],
                   when: null,
                   tone: null,
                 }
               : {
                   title: t("home.need.presence", { course: need.course ?? "" }),
                   which,
-                  meta: [course, which, closes],
+                  meta: [course, closes],
                   when: f.fromNow(need.session.closesAt),
                   tone: "warning",
                 };
@@ -338,54 +332,38 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
           titleLacksCourse: need.task !== null,
           meta: [course],
-          note: {
-            text:
-              f.dayOffset(need.session.opensAt) === f.dayOffset(need.session.closesAt)
-                ? t("home.need.presenceAhead.when", {
-                    date: f.relativeDay(need.session.opensAt),
-                    time: f.timeRange(need.session.opensAt, need.session.closesAt),
-                  })
-                : // Open across days: each end with its own day.
-                  t("home.need.presenceAhead.span", { from: f.dayTimeWord(need.session.opensAt), to: f.dayTime(need.session.closesAt) }),
-            tone: null,
-          },
           when: f.fromNow(need.session.opensAt),
           tone: null,
         };
       }
       case "task": {
         const { task } = need;
-        const edit = editView(task, edits, handled);
         if (need.reason === "edited")
           return {
             title: task.title,
             titleLacksCourse: true,
-            meta: [course],
-            // How many things changed (the Task page's History says which); not compared: as before.
-            note: { text: editNote(t, f, edit, true) ?? t("home.need.task.edited"), tone: "warning" },
+            // What changed is on the Task page (its History): the row only says it changed.
+            meta: [
+              course,
+              <Text key="e" size="small" tone="warning">
+                {editedLine(t, f, editView(task, edits, handled))}
+              </Text>,
+            ],
             when: null,
             tone: "warning",
           };
-        // Changed before hand-in: a quiet note on the Task's own row for two weeks, never a second row; title alone is History's.
-        const editAt = edit?.record?.at ?? task.editedAt;
-        const changed = edit && editAt !== null && now - editAt < 14 * DAY && !titleOnly(edit.changes) ? editNote(t, f, edit, false) : null;
-        const meta =
-          need.reason === "overdue"
-            ? t("home.need.task.overdue")
+        // One fact after the course: a draft not handed in, else the deadline (late says itself at the end).
+        const fact = need.draft
+          ? t("home.need.task.draft")
+          : need.reason === "overdue"
+            ? null
             : need.reason === "short"
               ? t("home.need.task.short", { duration: f.countdown(now + (task.dueAt! - task.opensAt!)) })
               : t("home.need.task.due", { when: f.dayTimeWord(task.dueAt!) });
         return {
           title: task.title,
           titleLacksCourse: true,
-          meta: [
-            course,
-            <Text key="m" size="small" tone={need.reason === "overdue" ? "danger" : "muted"}>
-              {meta}
-            </Text>,
-            need.draft ? t("home.need.task.draft") : null,
-          ],
-          note: changed ? { text: changed, tone: null } : undefined,
+          meta: [course, fact],
           when: need.reason === "overdue" ? t("home.need.late") : f.fromNow(task.dueAt!),
           tone: need.reason === "overdue" ? "danger" : near(task.dueAt),
         };
@@ -397,43 +375,26 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const closes = need.window && sitting.end !== null ? sitting.end : null;
         return {
           title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) }),
+          // A take-home and SIX and Edunex disagreeing are on the exam's page.
           meta: [
             course,
             closes !== null ? t("home.need.exam.closes", { when: f.dayTimeWord(closes) }) : `${f.relativeDay(sitting.start)}, ${time}`,
-            sitting.source === "six" ? sitting.room : t("home.need.exam.edunex"),
+            sitting.source === "six" ? sitting.room : null,
           ],
-          note: need.disagree
-            ? { text: t("home.need.exam.disagree"), tone: "warning" }
-            : need.takeHomeDue !== null
-              ? // A take-home due another day is the exam's second part: said plainly, no warning.
-                { text: t("home.need.exam.takeHome", { date: `${f.weekdayShort(need.takeHomeDue)} ${f.dayMonth(need.takeHomeDue)}` }), tone: null }
-              : undefined,
           when: f.fromNow(closes ?? sitting.start),
           tone: near(closes ?? sitting.start),
         };
       }
       case "attendance": {
         const { health } = need;
-        const vars = {
-          attended: health.attended ?? 0,
-          held: health.held ?? 0,
-          target: health.target,
-          best: percent(health.best ?? 0),
-          // The course's name: few Students know their KU and PL codes by heart, so the code goes in the meta.
-          course: need.course ? nameOf(courses, need.course) : "",
-        };
+        const vars = { attended: health.attended ?? 0, held: health.held ?? 0, target: health.target, best: percent(health.best ?? 0) };
         const out = health.state === "out";
-        // No absences left: said the day before each class, with its time; with no class known, every day.
-        const tomorrow = !out && need.at !== null;
+        // The course's name (few Students know their KU and PL codes by heart), the count, and the state as its status:
+        // the same words as Nanti hari ini's chip.
         return {
-          title: t(out ? "home.need.attendance.out" : tomorrow ? "home.need.attendance.tomorrow" : "home.need.attendance.none", vars),
-          meta: [
-            course,
-            tomorrow && need.at !== null ? f.time(need.at) : null,
-            // Each fact in the warning's color, so Meta puts its dot between them.
-            ...toned(t(out ? "home.need.attendance.outMeta" : "home.need.attendance.noneMeta", vars), out ? "danger" : "warning"),
-          ],
-          when: null,
+          title: need.course ? nameOf(courses, need.course) : "",
+          meta: [course, t(out ? "mobile.needs.best" : "home.need.attendance.noneMeta", vars)],
+          when: t(out ? "mobile.home.chip.belowTarget" : "mobile.home.chip.noAbsences"),
           tone: out ? "danger" : "warning",
         };
       }
@@ -441,7 +402,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const { meeting } = need;
         return {
           title: t(meeting.online ? "home.need.meeting.online" : "home.need.meeting", { course: need.course ?? "", day: f.relativeDay(meeting.start) }),
-          meta: [course, f.timeRange(meeting.start, meeting.end), need.maybeInSix ? null : t("home.today.notInSix")],
+          meta: [course, f.timeRange(meeting.start, meeting.end)],
           when: f.fromNow(meeting.start),
           tone: null,
           label: need.action.kind === "open" ? t("home.today.joinLabel", { course: need.course ?? "" }) : undefined,
@@ -506,13 +467,7 @@ function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCou
             ) : undefined
           }
           onPress={act}
-        >
-          {view.note && (
-            <View style={{ marginTop: space[1] }}>
-              <Meta>{toned(view.note.text, toneOf(view.note.tone), { weight: "medium" })}</Meta>
-            </View>
-          )}
-        </Row>
+        />
       )}
     </QuickRow>
   );

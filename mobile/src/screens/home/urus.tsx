@@ -28,7 +28,7 @@ import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseGlyph, useCourseTile } from "../../ui/tile";
-import { DAY, MINUTE, nameOf } from "./parts";
+import { DAY, MINUTE, nameOf, shortName } from "./parts";
 
 const HOUR = 60 * MINUTE;
 
@@ -182,6 +182,7 @@ function Card({ card }: { card: UrusCard }) {
   const value = "percent" in card.figure ? card.figure.percent : (away?.value ?? 0);
   const unit = "percent" in card.figure ? "%" : t(`mobile.home.unit.${away!.unit}`, { count: away!.value });
   const tail = away?.late ? t("mobile.home.late") : null;
+  const said = card.title.toLocaleLowerCase().includes(card.kind.toLocaleLowerCase());
   return (
     <PressScale
       onPress={() => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url))}
@@ -191,11 +192,14 @@ function Card({ card }: { card: UrusCard }) {
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
         {card.code ? <CourseGlyph code={card.code} name={card.title} /> : <Icons.ListChecks size={22} color={ink} />}
-        <View style={{ backgroundColor: v.card, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 }}>
-          <Text size="labelMedium" weight="semibold" style={{ color: ink }}>
-            {card.kind}
-          </Text>
-        </View>
+        {/* The kind once: a Task named "Tugas 02" needs no "Tugas" pill over it. */}
+        {!said && (
+          <View style={{ backgroundColor: v.card, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 }}>
+            <Text size="labelMedium" weight="semibold" style={{ color: ink }}>
+              {card.kind}
+            </Text>
+          </View>
+        )}
       </View>
       <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 14 }}>
         <CountUp
@@ -213,7 +217,7 @@ function Card({ card }: { card: UrusCard }) {
         )}
       </View>
       <Text size="bodyMedium" weight="medium" style={{ color: v.fg, marginTop: "auto", paddingTop: 10 }}>
-        {card.title}
+        {shortName(card.title)}
       </Text>
     </PressScale>
   );
