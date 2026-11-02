@@ -1,11 +1,13 @@
 // Rencana studi › KRS on the phone (src/app/screens/plan/krs.tsx, S14; round 2, v4): this term's study plan and its
 // approval, in one column.
 // 1. One card led by the SKS taken of the most allowed (a big number that counts up once, a thin bar), the term and
-//    the advisor a quiet line over it, the plan's one honest state as a pill (and its clashes still to come as a red
-//    one), the next KRS window, and SIX's KRS page as the one button while there's a KRS to send.
-// 2. Each clash still to come as a row that opens Jadwal.
-// 3. The courses as rows in their colours: name, code and SKS, one status (a clash, or not approved yet).
+//    the advisor a quiet line over it, the plan's one honest state as a pill (and its clashes still to come as an
+//    amber one, a clash's colour on every screen), the next KRS window, and SIX's KRS page as the one button while
+//    there's a KRS to send.
+// 2. Each clash still to come as a row: its sheet says what to do about it and opens Jadwal.
+// 3. The courses as rows in their colours: name, code and SKS, one short status (Bentrok, or not approved yet).
 // 4. The plan's steps with their times (and the change round's), below the fold. View only.
+import { useState } from "react";
 import { View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -22,6 +24,7 @@ import { Figure, FigureLabel, Group, GroupRow, Heading, IconTile, Panel, Pill, t
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Meter } from "../../ui/meter";
+import { ActionSheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { font, space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -75,15 +78,14 @@ export function Tab(_: { onCalendar?: () => void }) {
       </Rise>
       {upcoming.length > 0 && (
         <Rise screen={RISE} index={1} style={{ marginTop: space[3] }}>
-          <Clashes overlaps={upcoming} />
-          <ClashAdvice plan={plan} overlap={upcoming[0]!} />
+          <Clashes overlaps={upcoming} plan={plan} />
         </Rise>
       )}
       <Rise screen={RISE} index={2}>
         <Courses plan={plan} overlaps={overlaps} />
       </Rise>
       <Later>
-        {past.length > 0 && <Clashes overlaps={past} past />}
+        {past.length > 0 && <Clashes overlaps={past} plan={plan} past />}
         <Timeline title={t("krs.round.plan")} steps={steps} />
         {change && <Timeline title={t("krs.round.change")} steps={change} />}
       </Later>
@@ -99,7 +101,7 @@ function useWhen(): (overlap: Overlap) => string {
 
 /**
  * The leading card: the SKS taken, big, and the plan's one honest state. An official KRS with a clash still to come
- * is not "nothing to do": its red pill says how many, and the rows under the card say when.
+ * is not "nothing to do": its amber pill says how many, and the rows under the card say when.
  */
 function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const t = useT();
@@ -146,7 +148,7 @@ function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
       )}
       <View accessible accessibilityLabel={state} style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
         <Pill tone={STAGE_TONE[stage]}>{t(`krs.stage.${stage}`)}</Pill>
-        {clash && <Pill tone="red">{t("mobile.academic.pill.clash", { count: overlaps.length })}</Pill>}
+        {clash && <Pill tone="amber">{t("mobile.academic.pill.clash", { count: overlaps.length })}</Pill>}
       </View>
       {window && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
@@ -173,12 +175,12 @@ function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   );
 }
 
-/** Clashes as rows: each still to come opens Jadwal at it; one that's over is a quiet fact under the courses. */
-function Clashes({ overlaps, past = false }: { overlaps: Overlap[]; past?: boolean }) {
+/** Clashes as rows: each still to come opens its sheet (what to do, and Jadwal); one that's over is a quiet fact under the courses. */
+function Clashes({ overlaps, plan, past = false }: { overlaps: Overlap[]; plan: KrsPlan; past?: boolean }) {
   const t = useT();
-  const nav = useNav();
   const v = useTheme().v4;
   const when = useWhen();
+  const [picked, setPicked] = useState<Overlap | null>(null);
   return (
     <View style={past ? { marginTop: space[3] } : undefined}>
       <Group testID={past ? "section.krsPastClashes" : "section.krsClashes"}>
@@ -200,39 +202,58 @@ function Clashes({ overlaps, past = false }: { overlaps: Overlap[]; past?: boole
             <GroupRow
               key={o.codes.join()}
               first={i === 0}
-              leading={<IconTile tone="red" icon={(color) => <Icons.Overlap size={22} color={color} weight="bold" />} />}
+              leading={<IconTile tone="amber" icon={(color) => <Icons.Overlap size={22} color={color} weight="bold" />} />}
               title={t("mobile.krs.clash.title", { a, b })}
               meta={t("mobile.krs.clash.meta", { when: when(o), count: o.count })}
-              trailing={<Icons.ChevronRight size={20} color={v.muted} />}
-              onPress={() => nav.go({ screen: "schedule" })}
-              accessibilityHint={t("krs.toSchedule")}
-              testID={i === 0 ? "action.toSchedule" : undefined}
+              onPress={() => setPicked(o)}
+              testID={`row.krsClash.${o.codes.join("-")}`}
             />
           );
         })}
       </Group>
+      {!past && <ClashSheet plan={plan} overlap={picked} onClose={() => setPicked(null)} />}
     </View>
   );
 }
 
-/** An official KRS that still clashes: the one thing to do about it (ask the lecturers, or change it in the URS window), quietly under the rows. */
-function ClashAdvice({ plan, overlap }: { plan: KrsPlan; overlap: Overlap }) {
+/**
+ * A clash's sheet: when it is, the one thing to do about it once the KRS is approved (ask the lecturers, or change it
+ * in the URS window), and Jadwal at it.
+ */
+function ClashSheet({ plan, overlap, onClose }: { plan: KrsPlan; overlap: Overlap | null; onClose: () => void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const v = useTheme().v4;
+  const nav = useNav();
+  const theme = useTheme();
+  const when = useWhen();
   const calendar = useDataset("itb.calendar");
   const stage = krsStage(plan);
-  if (stage !== "done" && stage !== "official") return null;
   const window = nextKrsWindow(plan, calendar, now);
   const day = (iso: string) => f.dayMonth(Date.parse(`${iso}T12:00:00+07:00`));
-  const [a, b] = overlap.codes;
-  return (
-    <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
-      {window?.kind === "urs"
+  const [a, b] = overlap?.codes ?? ["", ""];
+  const advice =
+    stage === "done" || stage === "official"
+      ? window?.kind === "urs"
         ? t("krs.clash.nextUrs", { a, b, range: `${day(window.event.firstDay)}–${day(window.event.lastDay)}` })
-        : t("krs.clash.next", { a, b })}
-    </Text>
+        : t("krs.clash.next", { a, b })
+      : null;
+  return (
+    <ActionSheet
+      open={overlap !== null}
+      onClose={onClose}
+      title={overlap ? t("mobile.krs.clash.title", { a, b }) : undefined}
+      message={overlap ? factsLabel(t("mobile.krs.clash.meta", { when: when(overlap), count: overlap.count }), advice) : undefined}
+      testID="sheet.krsClash"
+      choices={[
+        {
+          label: t("krs.toSchedule"),
+          icon: <Icons.Calendar size={20} color={theme.color.fg} />,
+          onPress: () => nav.go({ screen: "schedule" }),
+          testID: "action.toSchedule",
+        },
+      ]}
+    />
   );
 }
 
@@ -263,9 +284,16 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
               title={course.name}
               // A class or approval SIX writes in a way the app can't read yet is "-", never "not approved".
               meta={factsLabel(course.code, t("krs.sks", { sks: course.sks ?? "-" }), !oneClass && t("krs.class", { classNo: course.classNo ?? "-" }))}
+              accessibilityLabel={factsLabel(
+                course.name,
+                course.code,
+                t("krs.sks", { sks: course.sks ?? "-" }),
+                clashes.length > 0 && t("krs.clashWith", { code: clashes.join(", ") }),
+                course.approved === false && t("krs.notApproved"),
+              )}
               trailing={
                 clashes.length ? (
-                  <Pill tone="red">{t("krs.clashWith", { code: clashes.join(", ") })}</Pill>
+                  <Pill tone="amber">{t("mobile.home.chip.clash")}</Pill>
                 ) : course.approved === false ? (
                   <Pill tone="amber">{t("krs.notApproved")}</Pill>
                 ) : undefined
