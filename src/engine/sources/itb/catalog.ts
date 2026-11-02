@@ -198,7 +198,7 @@ export function registerCatalogFeed(context: SourceContext): void {
         const next = waiting.find((p) => p.id === own) ?? waiting.find((p) => courses.has(p.id)) ?? waiting[0]!;
         tried.add(next.id);
         try {
-          const page = readProgramPage(await client.text(`${CATALOG_URL}/${next.id}`));
+          const page = await readProgramPage(await client.text(`${CATALOG_URL}/${next.id}`), context.breathe);
           catalog = withProgramPage(catalog, next.id, page, context.clock.now());
         } catch (error) {
           if (error instanceof PageError && error.status !== 429) catalog = withProgramFailure(catalog, next.id, "missing", context.clock.now());

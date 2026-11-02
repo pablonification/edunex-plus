@@ -67,6 +67,8 @@ export interface SourceContext {
   runNow(match: (feed: string) => boolean): Promise<void>;
   /** The line every source shares for one website ("six.itb.ac.id"), so together they stay at human pace. */
   pace(site: string): Pace;
+  /** In long work (a 300 KB page to read), lets the screens draw first: the phone's (EngineDeps.yieldToScreens); none elsewhere. */
+  breathe?(): Promise<void>;
   /** This context for one feed run: what it stores is noted for that run (FeedSpec.run). */
   for(read: FeedRead): SourceContext;
 }

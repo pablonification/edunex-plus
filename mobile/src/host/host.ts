@@ -145,6 +145,8 @@ async function makeHost(): Promise<Host> {
     storage: world.storage,
     vault: world.vault,
     version: APP_VERSION,
+    // A frame's turn for the screens in the middle of long work (SIX's 300 KB catalog pages): they share this thread.
+    yieldToScreens: () => new Promise((resolve) => setTimeout(resolve, 0)),
     emit: (event: Event) => {
       if (DEMO) traceEvent(event);
       // A stall right after the screens hear of a dataset is likely their redraw for it: its name labels the stall.

@@ -82,6 +82,11 @@ export interface EngineDeps {
    * state). Off, a start reads everything again (the desktop, which starts once and runs all day).
    */
   startDueOnly?: boolean;
+  /**
+   * Hands the JS thread to the screens for a moment, in the middle of long work: the phone, where the engine and the
+   * screens share one thread. Unset on the desktop, whose engine has a process of its own.
+   */
+  yieldToScreens?(): Promise<void>;
 }
 
 export interface Engine {
@@ -530,6 +535,7 @@ export function createEngine(deps: EngineDeps): Engine {
       transport: transportFor(source),
       clock,
       userAgent,
+      breathe: deps.yieldToScreens,
       settings: () => settings,
       get: (name) => store.get(name),
       set: async (name, value, skipped = []) => {
