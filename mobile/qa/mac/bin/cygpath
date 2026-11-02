@@ -1,0 +1,4 @@
+#!/bin/sh
+# cygpath on macOS: paths are already the shell's own; prints the last argument as it is.
+while [ $# -gt 1 ]; do shift; done
+printf '%s\n' "$1"

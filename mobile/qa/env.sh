@@ -1,6 +1,9 @@
 # The QA lab's tools on this Windows machine (README.md, "Setup"). Every script here sources it;
 # by hand: `. mobile/qa/env.sh` in Git Bash. Each path can be overridden from the environment.
 
+# On a Mac the same names point at the Mac's tools (mac/env.sh, mac/README.md).
+if [ "$(uname -s)" = Darwin ]; then . "$(dirname "${BASH_SOURCE[0]}")/mac/env.sh"; return 0; fi
+
 QA_TOOLS=${QA_TOOLS:-C:/qa/tools}
 export ANDROID_HOME=${ANDROID_HOME:-'C:\Android\sdk'}
 export ANDROID_SDK_ROOT=$ANDROID_HOME

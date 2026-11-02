@@ -1,0 +1,3 @@
+#!/bin/sh
+# coldstart.sh times installs with `date +%s%N`; macOS's date has no %N, GNU's (brew coreutils) does.
+exec gdate "$@"

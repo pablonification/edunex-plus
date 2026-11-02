@@ -49,8 +49,8 @@ measure() {
   start=$(qa_time_of "$log" "ActivityTaskManager: START u0 .*$QA_APP")
   js=$(qa_ms "$start" "$(qa_time_of "$log" 'ReactNativeJS: Running "main"')")
   shown=$(qa_ms "$start" "$(qa_time_of "$log" 'ReactNativeJS.*\[startup\] shown')")
-  # "Displayed <activity> for user 0: +1s234ms"
-  displayed=$({ grep -E "Displayed $QA_APP" "$log" || true; } | head -1 | sed -nE 's/.*\+(([0-9]+)s)?([0-9]+)ms.*/\2 \3/p' | awk '{ print ($1 == "" ? 0 : $1) * 1000 + $2 }')
+  # "Displayed <activity> for user 0: +1s234ms" (or +797ms: no seconds; ":" keeps the empty field in its place)
+  displayed=$({ grep -E "Displayed $QA_APP" "$log" || true; } | head -1 | sed -nE 's/.*\+(([0-9]+)s)?([0-9]+)ms.*/\2:\3/p' | awk -F: '{ print ($1 == "" ? 0 : $1) * 1000 + $2 }')
   first=$({ grep -E 'ReactNativeJS.*\[perf\] first-data' "$log" || true; } | head -1 | sed -nE 's/.*first-data ([0-9.]+).*/\1/p')
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$kind" "$run" "$install_ms" "$js" "$shown" "$displayed" "$first" >> "$out/runs.tsv"
   echo "  $kind $run: shown ${shown} ms (JS start ${js}, Displayed ${displayed}${first:+, first-data $first})"

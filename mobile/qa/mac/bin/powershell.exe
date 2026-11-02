@@ -1,0 +1,5 @@
+#!/bin/sh
+# lib.sh asks machine.ps1 what else is busy; on the Mac: the host's load and the emulators running.
+case "$*" in *-Priority*) exit 0 ;; esac
+echo "host: $(sysctl -n machdep.cpu.brand_string), load $(sysctl -n vm.loadavg)"
+pgrep -fl qemu-system | sed -E 's/.*-avd ([^ ]+).*-port ([0-9]+).*/emulator \1 on port \2/'
