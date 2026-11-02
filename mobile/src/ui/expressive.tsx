@@ -63,7 +63,8 @@ export function WavyProgress({ progress, ink, track, label }: { progress: number
       {width > 0 && (
         <>
           <View style={{ position: "absolute", left: 0, top: 0, width: done, height: WAVE_HEIGHT, overflow: "hidden" }}>
-            <Animated.View style={[{ width: done + WAVE * 2, height: WAVE_HEIGHT }, moving]}>
+            {/* Drawn once into a texture that only slides: the path isn't drawn again every frame (Tugas scrolled 20% janky on `weak`). */}
+            <Animated.View renderToHardwareTextureAndroid style={[{ width: done + WAVE * 2, height: WAVE_HEIGHT }, moving]}>
               <Svg width={done + WAVE * 2} height={WAVE_HEIGHT}>
                 <Path d={WAVE_PATH} stroke={ink} strokeWidth={4} strokeLinecap="round" fill="none" />
               </Svg>
