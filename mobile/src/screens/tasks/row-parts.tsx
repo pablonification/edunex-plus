@@ -341,7 +341,7 @@ export function StatusPill({ tone, text, icon }: { tone: PillTone; text: string;
 /** A row's quick actions (its swipe's and long press's), named for TalkBack's actions menu. */
 export type Quick = readonly { label: string; onPress(): void }[];
 
-const quickActions = (quick: Quick | undefined) =>
+export const quickActions = (quick: Quick | undefined) =>
   quick?.length
     ? {
         accessibilityActions: quick.map((action, i) => ({ name: `quick${i}`, label: action.label })),

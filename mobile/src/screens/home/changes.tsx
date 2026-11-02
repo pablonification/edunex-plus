@@ -3,18 +3,16 @@
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { Pressable, View } from "react-native";
-import { useCourseColor } from "../../../../src/app/courses";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import type { Alert, AlertKind } from "../../../../src/core/models";
 import { type HomeContext, recentChanges } from "../../../../src/core/needs";
 import { useNav } from "../../nav";
-import { CourseDot } from "../../ui/display";
+import { CourseIconTile } from "../../ui/course-icon-tile";
+import { Group, GroupRow, Heading, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
-import { List, Meta, Row, Section } from "../../ui/layout";
 import { Text } from "../../ui/text";
 import { useTheme } from "../../ui/theme";
-import { toned } from "./parts";
 
 /** "Yang berubah" shows this many; the bell has the rest. */
 const CHANGES_SHOWN = 5;
@@ -40,68 +38,73 @@ const IMPORTANT_BODY: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubm
 export function Changes({ context }: { context: HomeContext }) {
   const t = useT();
   const { go } = useNav();
+  const v = useTheme().v4;
   const history = useDataset("app.alerts");
   const all = useMemo(() => recentChanges(context, history?.items ?? []), [context, history]);
   const changes = all.slice(0, CHANGES_SHOWN);
   return (
-    <Section
-      title={t("home.changes")}
-      testID="section.changes"
-      action={
-        <Pressable
-          accessibilityRole="link"
-          onPress={() => router.push("/alerts")}
-          hitSlop={12}
-          style={{ minHeight: 48, justifyContent: "center" }}
-          testID="action.changes.all"
-        >
-          <Text size="labelLarge" tone="accent">
-            {t("home.changes.all")}
-          </Text>
-        </Pressable>
-      }
-    >
+    <View testID="section.changes">
+      <Heading
+        trailing={
+          <Pressable
+            accessibilityRole="link"
+            onPress={() => router.push("/alerts")}
+            hitSlop={12}
+            style={{ minHeight: 48, justifyContent: "center" }}
+            testID="action.changes.all"
+          >
+            <Text size="labelLarge" weight="medium" style={{ color: v.brandInk }}>
+              {t("home.changes.all")}
+            </Text>
+          </Pressable>
+        }
+      >
+        {t("home.changes")}
+      </Heading>
       {changes.length === 0 ? (
-        <Text size="bodyMedium" tone="muted">
+        <Text size="bodyMedium" style={{ color: v.muted, marginHorizontal: 4 }}>
           {t("home.changes.none")}
         </Text>
       ) : (
-        <List>
-          {changes.map((item) => (
-            <ChangeRow key={item.id} item={item} onOpen={() => go(item.target)} />
+        <Group>
+          {changes.map((item, i) => (
+            <ChangeRow key={item.id} item={item} first={i === 0} onOpen={() => go(item.target)} />
           ))}
-        </List>
+        </Group>
       )}
-    </Section>
+    </View>
   );
 }
 
-function ChangeRow({ item, onOpen }: { item: Alert; onOpen: () => void }) {
+/** A change as v4's row: its kind's tile (amber when it asks something of the Student), what changed, one meta line, when. */
+function ChangeRow({ item, first, onOpen }: { item: Alert; first: boolean; onOpen: () => void }) {
   const t = useT();
   const f = useFormat();
-  const theme = useTheme();
+  const v = useTheme().v4;
   const Icon = CHANGE_ICON[item.kind] ?? Icons.Bell;
+  const glyph = (color: string) => <Icon size={22} color={color} />;
   const important = IMPORTANT.has(item.title.key) || (item.body !== null && item.body !== undefined && IMPORTANT_BODY.has(item.body.key));
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
-  const colorOf = useCourseColor();
   return (
-    <Row
+    <GroupRow
+      first={first}
       testID={`row.change.${item.id}`}
-      leading={
-        <View style={{ marginTop: 2 }}>
-          <Icon size={18} color={important ? theme.color.warningFg : theme.color.faint} />
-          {code && (
-            <View style={{ position: "absolute", right: -4, bottom: -4, padding: 2, borderRadius: 3, backgroundColor: theme.color.surface }}>
-              <CourseDot color={colorOf(code)} size={8} />
-            </View>
-          )}
-        </View>
+      leading={important ? <IconTile tone="amber" icon={glyph} /> : code ? <CourseIconTile code={code} icon={glyph} /> : <IconTile tone="plain" icon={glyph} />}
+      title={
+        <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+          {t(item.title.key, item.title.vars)}
+        </Text>
       }
-      title={<Meta>{toned(t(item.title.key, item.title.vars), "fg", { size: "body", weight: "medium" })}</Meta>}
-      // Whole on a phone: there's no pointer to show a cut line in full.
-      meta={item.body ? <Meta>{t(item.body.key, item.body.vars)}</Meta> : undefined}
+      // One line; the bell's screen and the item's page keep the whole of it (and TalkBack reads it all).
+      meta={
+        item.body ? (
+          <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
+            {t(item.body.key, item.body.vars)}
+          </Text>
+        ) : undefined
+      }
       trailing={
-        <Text size="caption" tabular tone="faint">
+        <Text size="labelMedium" tabular style={{ color: v.muted }}>
           {f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at)}
         </Text>
       }

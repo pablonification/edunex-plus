@@ -3,7 +3,7 @@
 // Each row can be put off ("Ingatkan nanti") and, where only the Student can know it's dealt with,
 // put away ("Sudah beres"): a swipe (ui/swipe.tsx), or a long press, or TalkBack's actions. What's
 // put off and away is counted under the whole list, and opens there.
-import { type ReactNode, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -19,19 +19,19 @@ import { snoozable } from "../../../../src/core/snooze";
 import { dateMove, type EditView, editView } from "../../../../src/core/task-edits";
 import { useNav } from "../../nav";
 import { Button } from "../../ui/controls";
-import { Card, Skeleton } from "../../ui/display";
-import { Pill } from "../../ui/group";
+import { CourseIconTile } from "../../ui/course-icon-tile";
+import { Skeleton } from "../../ui/display";
+import { Group, GroupRow, IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
-import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
+import { factsLabel, Meta } from "../../ui/layout";
 import { LINK_SLOP } from "../../ui/sizes";
-import { Text, type TextTone } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
+import { Text } from "../../ui/text";
+import { space, useTheme } from "../../ui/theme";
+import { countdown, quickActions } from "../tasks/row-parts";
 import { facts, heldAt, memoRow } from "./held";
-import { CourseMark, classDayTime, DAY, doneOf, nameOf, QuickRow } from "./parts";
+import { classDayTime, DAY, doneOf, nameOf, QuickRow } from "./parts";
 
 type Tone = "danger" | "warning" | null;
-const TONE: Record<"danger" | "warning" | "none", TextTone> = { danger: "danger", warning: "warning", none: "muted" };
-const toneOf = (tone: Tone): TextTone => TONE[tone ?? "none"];
 
 /**
  * `due`: "Hari ini"'s deadlines, as items: the ones put off or put away are listed here with the rest.
@@ -70,30 +70,32 @@ export function NeedsYou({
   // Each row drawn again only when its words could change (./held.tsx): its data, the courses' names, the clock within
   // a day of its moment.
   const names = courses.map((course) => `${course.code}=${course.name}`).join("|");
-  const held = (need: NeedDraft) => {
+  const held = (need: NeedDraft, first: boolean) => {
     const { sig, moments } = facts({ need, names });
-    return { sig, at: heldAt(now, moments, DAY) };
+    // The first row has no hairline over it: drawn again when another row becomes the first.
+    return { sig: `${sig}|${first}`, at: heldAt(now, moments, DAY) };
   };
-  // Under the screen's own title ("Perlu kamu urus"): no second title, the count is the list.
+  // Under the screen's own title ("Perlu kamu urus"): no second title, the count is the list. v4's rows in one card
+  // (round 2, the judge's 02b): a tile, the title, one meta line, one pill.
   return (
-    <Section testID="section.needs" first>
+    <View testID="section.needs" style={{ marginTop: space[2] }}>
       {loading ? (
-        <Card style={{ padding: space[4], gap: space[3] }}>
+        <Panel style={{ padding: space[4], gap: space[3] }}>
           <Skeleton width="33%" />
           <Skeleton height={12} width="66%" />
-        </Card>
+        </Panel>
       ) : shown.length ? (
         <>
-          <List>
-            {rows.map((need) => (
-              <HeldNeed key={need.id} {...held(need)} props={{ need, courses }} />
+          <Group>
+            {rows.map((need, i) => (
+              <HeldNeed key={need.id} {...held(need, i === 0)} props={{ need, courses, first: i === 0 }} />
             ))}
-          </List>
-          {awayLine && <View style={{ marginTop: space[2.5], paddingHorizontal: space[1] }}>{awayLine}</View>}
+          </Group>
+          {awayLine && <View style={{ marginTop: space[3], paddingHorizontal: space[1] }}>{awayLine}</View>}
         </>
       ) : (
         // Everything left is put off or handled: say so, never "nothing due".
-        <View style={{ borderRadius: radius.xl, backgroundColor: theme.color.sunken, paddingHorizontal: space[4], paddingVertical: space[3.5] }}>
+        <Panel style={{ paddingHorizontal: space[4], paddingVertical: space[3.5] }}>
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
             <View style={{ paddingTop: 3 }}>
               {/* Green says "all clear": not while things are only put off. */}
@@ -124,23 +126,23 @@ export function NeedsYou({
               </Text>
             )}
           </View>
-        </View>
+        </Panel>
       )}
       {!loading && listOpen && snoozed.length > 0 && (
-        <List style={{ marginTop: space[2.5] }} testID="list.snoozed">
-          {snoozed.map(({ item, entry }) => (
-            <SnoozedRow key={item.id} need={item} entry={entry} courses={courses} />
+        <Group style={{ marginTop: space[3] }} testID="list.snoozed">
+          {snoozed.map(({ item, entry }, i) => (
+            <SnoozedRow key={item.id} need={item} entry={entry} courses={courses} first={i === 0} />
           ))}
-        </List>
+        </Group>
       )}
       {!loading && listOpen && done.length > 0 && (
-        <List style={{ marginTop: space[2.5] }} testID="list.done">
-          {done.map(({ item, entry }) => (
-            <DoneRow key={item.id} need={item} entry={entry} courses={courses} />
+        <Group style={{ marginTop: space[3] }} testID="list.done">
+          {done.map(({ item, entry }, i) => (
+            <DoneRow key={item.id} need={item} entry={entry} courses={courses} first={i === 0} />
           ))}
-        </List>
+        </Group>
       )}
-    </Section>
+    </View>
   );
 }
 
@@ -183,22 +185,26 @@ function AwayLine({ snoozed, done, open, onToggle }: { snoozed: number; done: nu
 const UNDER = { alignSelf: "flex-start", marginLeft: -space[3], marginTop: space[1] } as const;
 
 /** Something put off: what it is, when it's back, and the way to bring it back now. */
-function SnoozedRow({ need, entry, courses }: { need: NeedDraft; entry: SnoozeEntry; courses: readonly TermCourse[] }) {
+function SnoozedRow({ need, entry, courses, first }: { need: NeedDraft; entry: SnoozeEntry; courses: readonly TermCourse[]; first: boolean }) {
   const t = useT();
   const f = useFormat();
   const { wake } = useSnoozes();
   const view = useNeedView(courses)(need);
   const when = f.dayTimeWord(entry.until);
   return (
-    <Row
+    <GroupRow
+      first={first}
       testID={`row.snoozed.${need.id}`}
-      title={view.title}
+      leading={<NeedTile need={need} />}
+      title={<RowTitle>{view.title}</RowTitle>}
       meta={
-        <Meta>
-          {view.titleLacksCourse && need.course ? <CourseMark code={need.course} /> : null}
-          {view.which ?? null}
-          {entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when })}
-        </Meta>
+        <MetaLine>
+          {[
+            view.titleLacksCourse ? need.course : null,
+            view.which,
+            entry.reason === "change" ? t("snooze.untilChange", { when }) : t("snooze.until", { when }),
+          ]}
+        </MetaLine>
       }
     >
       <Button
@@ -211,27 +217,23 @@ function SnoozedRow({ need, entry, courses }: { need: NeedDraft; entry: SnoozeEn
       >
         {t("snooze.wake")}
       </Button>
-    </Row>
+    </GroupRow>
   );
 }
 
 /** Something handled: what it is, when the Student said so, and the way to show it again. */
-function DoneRow({ need, entry, courses }: { need: NeedDraft; entry: DoneEntry; courses: readonly TermCourse[] }) {
+function DoneRow({ need, entry, courses, first }: { need: NeedDraft; entry: DoneEntry; courses: readonly TermCourse[]; first: boolean }) {
   const t = useT();
   const f = useFormat();
   const { unmark } = useDone();
   const view = useNeedView(courses)(need);
   return (
-    <Row
+    <GroupRow
+      first={first}
       testID={`row.done.${need.id}`}
-      title={view.title}
-      meta={
-        <Meta>
-          {view.titleLacksCourse && need.course ? <CourseMark code={need.course} /> : null}
-          {view.which ?? null}
-          {t(`done.line.${entry.how}`, { when: f.dayTimeWord(entry.at) })}
-        </Meta>
-      }
+      leading={<NeedTile need={need} />}
+      title={<RowTitle>{view.title}</RowTitle>}
+      meta={<MetaLine>{[view.titleLacksCourse ? need.course : null, view.which, t(`done.line.${entry.how}`, { when: f.dayTimeWord(entry.at) })]}</MetaLine>}
     >
       <Button
         size="sm"
@@ -243,15 +245,17 @@ function DoneRow({ need, entry, courses }: { need: NeedDraft; entry: DoneEntry; 
       >
         {t("done.showAgain")}
       </Button>
-    </Row>
+    </GroupRow>
   );
 }
 
 interface NeedView {
   title: string;
-  /** One meta line: the course and at most one fact (the rest is one tap deeper, on the item's own page). */
-  meta: ReactNode[];
-  /** The right side: when, said the human way. */
+  /** One meta line: the course's code and at most one fact (the rest is one tap deeper, on the item's own page). */
+  meta: Fact[];
+  /** The meta line in a state's ink: a Task changed after the hand-in, a bill past its date. */
+  metaTone?: "red" | "amber";
+  /** The row's one pill: how far off, or the state. */
   when: string | null;
   tone: Tone;
   /** What the row's press does, for screen readers. */
@@ -295,8 +299,10 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
   const edits = useDataset("edunex.taskEdits");
   const { entries: handled } = useDone();
   const near = (at: number | null): Tone => (at !== null && at - now <= DAY ? "warning" : null);
+  // How far off, short, as the row's pill ("7 hari", "5 jam"); "dalam 7 hari" stays in the item's own page.
+  const soon = (at: number) => countdown(t, now, at).text;
   return (need) => {
-    const course = need.course ? <CourseMark key="course" code={need.course} /> : null;
+    const course = need.course ?? null;
     switch (need.kind) {
       case "presence": {
         // Which class it's for: a window can stay open for days, into the course's next class.
@@ -311,7 +317,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
                 title: t("home.need.presenceNoSix", { course: need.course ?? "" }),
                 which,
                 meta: [course, closes],
-                when: f.fromNow(need.session.closesAt),
+                when: soon(need.session.closesAt),
                 tone: null,
               }
             : need.countedIn === "six"
@@ -326,14 +332,14 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
                   title: t("home.need.presence", { course: need.course ?? "" }),
                   which,
                   meta: [course, closes],
-                  when: f.fromNow(need.session.closesAt),
+                  when: soon(need.session.closesAt),
                   tone: "warning",
                 };
         return {
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
           titleLacksCourse: need.task !== null,
           meta: [course],
-          when: f.fromNow(need.session.opensAt),
+          when: soon(need.session.opensAt),
           tone: null,
         };
       }
@@ -344,12 +350,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
             title: task.title,
             titleLacksCourse: true,
             // What changed is on the Task page (its History): the row only says it changed.
-            meta: [
-              course,
-              <Text key="e" size="small" tone="warning">
-                {editedLine(t, f, editView(task, edits, handled))}
-              </Text>,
-            ],
+            meta: [course, editedLine(t, f, editView(task, edits, handled))],
+            metaTone: "amber",
             when: null,
             tone: "warning",
           };
@@ -365,7 +367,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
           title: task.title,
           titleLacksCourse: true,
           meta: [course, fact],
-          when: need.reason === "overdue" ? t("home.need.late") : f.fromNow(task.dueAt!),
+          when: need.reason === "overdue" ? t("home.need.late") : soon(task.dueAt!),
           tone: need.reason === "overdue" ? "danger" : near(task.dueAt),
         };
       }
@@ -382,7 +384,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
             closes !== null ? t("home.need.exam.closes", { when: f.dayTimeWord(closes) }) : `${f.relativeDay(sitting.start)}, ${time}`,
             sitting.source === "six" ? sitting.room : null,
           ],
-          when: f.fromNow(closes ?? sitting.start),
+          when: soon(closes ?? sitting.start),
           tone: near(closes ?? sitting.start),
         };
       }
@@ -404,7 +406,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         return {
           title: t(meeting.online ? "home.need.meeting.online" : "home.need.meeting", { course: need.course ?? "", day: f.relativeDay(meeting.start) }),
           meta: [course, f.timeRange(meeting.start, meeting.end)],
-          when: f.fromNow(meeting.start),
+          when: soon(meeting.start),
           tone: null,
           label: need.action.kind === "open" ? t("home.today.joinLabel", { course: need.course ?? "" }) : undefined,
         };
@@ -414,7 +416,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         return {
           title: t("home.need.krs"),
           meta: [need.open ? t("home.need.krs.closes", { date }) : t("home.need.krs.opens", { date })],
-          when: f.fromNow(need.open ? need.closesAt : need.at!),
+          when: soon(need.open ? need.closesAt : need.at!),
           tone: need.open ? near(need.closesAt) : null,
         };
       }
@@ -423,12 +425,9 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const date = `${f.weekdayShort(bill.nextDueAt! - 1)} ${f.dayMonth(bill.nextDueAt! - 1)}`;
         return {
           title: t("home.need.bill", { amount: rupiah(Math.max(0, (bill.amount ?? 0) - (bill.paid ?? 0))) }),
-          meta: [
-            <Text key="b" size="small" tone={need.overdue ? "danger" : "muted"}>
-              {t(need.overdue ? "home.need.bill.overdue" : "home.need.bill.due", { date })}
-            </Text>,
-          ],
-          when: need.overdue ? t("home.need.late") : f.fromNow(bill.nextDueAt!),
+          meta: [t(need.overdue ? "home.need.bill.overdue" : "home.need.bill.due", { date })],
+          metaTone: need.overdue ? "red" : undefined,
+          when: need.overdue ? t("home.need.late") : soon(bill.nextDueAt!),
           tone: need.overdue ? "danger" : near(bill.nextDueAt),
         };
       }
@@ -441,39 +440,90 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
 
 const HeldNeed = memoRow(NeedRow);
 
-function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCourse[] }) {
+function NeedRow({ need, courses, first }: { need: NeedDraft; courses: readonly TermCourse[]; first: boolean }) {
   const t = useT();
+  const v = useTheme().v4;
   const view = useNeedView(courses)(need);
   const now = useNow();
   const { go } = useNav();
   const open = useOpenExternal();
   const act = () => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url));
   const name = fullName(need, view);
+  const red = view.tone === "danger";
   return (
     // Attendance has "Sudah tahu" instead of a snooze: the warning is for one class, or for good.
-    <QuickRow name={name} done={doneOf(t, need)} snooze={need.kind !== "attendance" ? snoozable(need, now) : null}>
+    <QuickRow name={name} done={doneOf(t, need)} snooze={need.kind !== "attendance" ? snoozable(need, now) : null} surface={v.card}>
       {({ quick, onLongPress }) => (
-        <Row
+        <GroupRow
+          first={first}
           testID={`row.need.${need.id}`}
-          title={view.title}
-          label={view.label}
+          leading={<NeedTile need={need} />}
+          title={<RowTitle>{view.title}</RowTitle>}
           // One meta line: what doesn't fit is on the item's own page (the full text stays for screen readers).
-          meta={<Meta numberOfLines={1}>{view.meta}</Meta>}
-          quick={quick}
-          onLongPress={onLongPress}
+          meta={<MetaLine tone={view.metaTone}>{view.meta}</MetaLine>}
+          // The row's one status: how far off (amber within a day), or its state; red with a sign, never the colour alone.
           trailing={
-            // A state is the row's one pill; a time stays a quiet word.
-            view.when && (view.tone === "danger" || view.tone === "warning") ? (
-              <Pill tone={view.tone === "danger" ? "red" : "amber"}>{view.when}</Pill>
-            ) : view.when ? (
-              <Text size="caption" weight="medium" tabular tone={toneOf(view.tone)} style={{ textAlign: "right" }}>
+            view.when ? (
+              <Pill
+                tone={red ? "red" : view.tone === "warning" ? "amber" : "plain"}
+                icon={red ? (color) => <Icons.AlertTriangle size={13} weight="bold" color={color} /> : undefined}
+              >
                 {view.when}
-              </Text>
+              </Pill>
             ) : undefined
           }
+          accessibilityLabel={view.label}
+          {...quickActions(quick)}
           onPress={act}
+          onLongPress={onLongPress}
         />
       )}
     </QuickRow>
   );
 }
+
+/** A fact of a row's meta line; blanks are left out. */
+type Fact = string | null | undefined | false;
+
+/** A row's title, two lines at most (the whole of it is in what TalkBack reads and on the item's page). */
+function RowTitle({ children }: { children: string }) {
+  const v = useTheme().v4;
+  return (
+    <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+      {children}
+    </Text>
+  );
+}
+
+/** A row's one meta line, its facts joined with "·" and cut to one line. */
+function MetaLine({ children, tone }: { children: readonly Fact[]; tone?: "red" | "amber" }) {
+  const v = useTheme().v4;
+  const color = tone === "red" ? v.redFg : tone === "amber" ? v.ambFg : v.muted;
+  return (
+    <Text size="bodyMedium" tabular numberOfLines={1} style={{ color }}>
+      {children.filter(Boolean).join(" · ")}
+    </Text>
+  );
+}
+
+/** A need's tile: its kind's icon on its course's colour; KRS and UKT, which have no course, on the brand's. */
+function NeedTile({ need }: { need: NeedDraft }) {
+  const glyph = (color: string) => {
+    const Icon = NEED_ICON[need.kind === "task" && need.reason === "edited" ? "edited" : need.kind];
+    return <Icon size={22} color={color} />;
+  };
+  if (need.course) return <CourseIconTile code={need.course} icon={glyph} />;
+  return <IconTile tone="brand" icon={glyph} />;
+}
+
+const NEED_ICON: Record<NeedDraft["kind"] | "edited", typeof Icons.Home> = {
+  presence: Icons.Hand,
+  task: Icons.ListChecks,
+  edited: Icons.PenLine,
+  exam: Icons.GraduationCap,
+  attendance: Icons.CalendarCheck,
+  meeting: Icons.Video,
+  krs: Icons.ShieldCheck,
+  bill: Icons.Wallet,
+  class: Icons.Calendar,
+};

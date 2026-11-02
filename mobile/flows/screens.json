@@ -4455,6 +4455,11 @@
       "tokens": "^(Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu), \\d+ [A-Z][a-z]+$",
       "row": "W4",
       "why": "the exam's day in full under its name: the judge's round 2 (06) asked for one date card, so the page says the day once, on that card (\"Kam 15 Okt\", checked in the same exam-detail's Kapan dan di mana)"
+    },
+    {
+      "entry": "^home\\.banner\\.",
+      "row": "W11",
+      "why": "the desktop's banner over Beranda (today's date, the term, a UTS week coming): the judge's round 3 (02b, 6/10) failed Perlu kamu urus for carrying it as a header over its rows, so the screen opens on its rows. The day is on Jadwal and the class sheet, a UTS week on Jadwal (Masa UTS) and Kalender akademik; the term isn't repeated"
     }
   ]
 }

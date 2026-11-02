@@ -1,22 +1,19 @@
-// Small pieces Beranda's sections share: the course mark beside a row's facts, facts said in a
-// status color, and a row's quick actions three ways (the visible ✓ and alarm, a swipe, a long
+// Small pieces Beranda's sections share: a row's quick actions three ways (the visible ✓ and alarm, a swipe, a long
 // press). The helpers marked "from src/app/screens/home.tsx" are the desktop's own, copied as
 // they are because that file draws DOM.
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
-import { useCourseColor } from "../../../../src/app/courses";
 import { type Format, type Translate, useNow, useT } from "../../../../src/app/i18n";
 import type { AttendanceState } from "../../../../src/core/attendance";
 import { type DoneTerms, doneTerms } from "../../../../src/core/done";
 import type { ClassFacts, NeedDraft, NowCard } from "../../../../src/core/needs";
 import type { Snoozable, SnoozeKey } from "../../../../src/core/snooze";
 import { canSnooze, type RowDone, useMarkDone, useRowActions, useSnooze } from "../../parts/snooze";
-import { CourseDot } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
-import { Text, type TextSize, type TextTone, type TextWeight } from "../../ui/text";
+import { Text, type TextTone } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { RealClock } from "./held";
 
@@ -55,37 +52,6 @@ export function movedLabel(t: Translate, f: Format, facts: ClassFacts): string {
     });
   }
   return t("home.today.roomChanged", { room: moved.usualRoom ?? "" });
-}
-
-/**
- * Facts in one tone, for a Meta: text holding " · " becomes one Text per fact, so Meta draws the
- * dots between them and a status color ("Jam berubah · biasanya 08:00–09:30" in amber) carries
- * to each.
- */
-export function toned(text: string, tone: TextTone, { size = "small", weight = "regular" }: { size?: TextSize; weight?: TextWeight } = {}): ReactNode[] {
-  return text
-    .split("·")
-    .map((part) => part.trim())
-    .filter(Boolean)
-    .map((part, i) => (
-      // biome-ignore lint/suspicious/noArrayIndexKey: the facts are positions in one sentence
-      <Text key={i} size={size} weight={weight} tone={tone}>
-        {part}
-      </Text>
-    ));
-}
-
-/** The course's dot and code among a row's facts. */
-export function CourseMark({ code, past = false }: { code: string; past?: boolean }) {
-  const color = useCourseColor()(code);
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-      <CourseDot color={color} size={8} />
-      <Text size="small" weight="medium" tabular tone={past ? "faint" : "fg"}>
-        {code}
-      </Text>
-    </View>
-  );
 }
 
 /** A quiet sentence where a list would be. */
@@ -144,12 +110,15 @@ export function QuickRow({
   name,
   done,
   snooze,
+  surface,
   children,
 }: {
   /** What the item is, whole ("Tugas 02 · II4091"): the sheet's title. */
   name: string;
   done: QuickDone | null;
   snooze: Snoozable | null;
+  /** The row's own colour, under it as it slides (a v4 card's white). */
+  surface?: string;
   children: (quick: { quick: readonly { label: string; onPress(): void }[] | undefined; onLongPress: (() => void) | undefined }) => ReactNode;
 }) {
   const t = useT();
@@ -172,7 +141,9 @@ export function QuickRow({
   const quick = choices.length ? choices.map((choice) => ({ label: choice.label, onPress: choice.onPress })) : undefined;
   return (
     <>
-      <SwipeRow actions={swipe}>{children({ quick, onLongPress })}</SwipeRow>
+      <SwipeRow actions={swipe} surface={surface}>
+        {children({ quick, onLongPress })}
+      </SwipeRow>
       {choices.length > 0 && <ActionSheet open={menu} onClose={() => setMenu(false)} title={name} choices={choices} testID="sheet.row" />}
       {/* The times it offers count from now itself, even where the row's clock is held (./held.tsx). */}
       {later && (
