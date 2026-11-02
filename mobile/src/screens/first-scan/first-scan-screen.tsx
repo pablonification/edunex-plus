@@ -1,22 +1,21 @@
 // The first-run scan (A8, #81, spec story 68), the desktop's dialog (src/app/shell/first-scan.tsx)
 // as a screen: once the first full sync of Edunex (and SIX when connected) is done, what the app
-// found, each line with its number and the screen that shows it. It opens by itself once (./watch.tsx,
-// a setting remembers) and only with something to say; Settings opens it again. The findings come
-// from src/core/first-scan.ts.
-import { type ComponentType, Fragment } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+// found. One title (the count, big, folding into the top bar on scroll), each finding as one line
+// that opens the screen showing it, the first few at once and the rest behind Lihat semua. Beranda's
+// "Semua siap" opens it once; Settings opens it again. The findings come from src/core/first-scan.ts.
+import { type ComponentType, useState } from "react";
+import { type LayoutChangeEvent, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { isBuilt } from "../../../../src/app/shell/built";
 import { type Finding, notable, scanSummary } from "../../../../src/core/first-scan";
-import type { Route } from "../../../../src/core/route";
 import { useNav } from "../../nav";
-import { BottomBar } from "../../parts/bottom-bar";
-import { Button } from "../../ui/controls";
-import { EmptyState } from "../../ui/display";
+import { BigButton } from "../../ui/big-button";
+import { Group, GroupRow, IconTile, type PillTone } from "../../ui/group";
 import { type IconProps, Icons } from "../../ui/icons";
+import { useBottomInset } from "../../ui/insets";
 import { Page } from "../../ui/layout";
 import { Text } from "../../ui/text";
-import { radius, space, useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { describe, useScan } from "./scan";
 
@@ -31,162 +30,85 @@ const ICON: Record<Finding["kind"], ComponentType<IconProps>> = {
   unread: Icons.AlertTriangle,
 };
 
-const TONE = { danger: "dangerFg", warning: "warningFg", info: "infoFg", success: "successFg" } as const;
+const TONE: Record<Finding["tone"], PillTone> = { danger: "red", warning: "amber", info: "brand", success: "ok" };
+
+/** Findings shown before Lihat semua. */
+const FIRST = 3;
 
 export function FirstScanScreen() {
   const t = useT();
+  const f = useFormat();
   const { go } = useNav();
   const theme = useTheme();
+  const v = theme.v4;
+  const bottom = useBottomInset();
   const { saved, statuses, findings } = useScan(true);
+  const [all, setAll] = useState(false);
+  const [titleEnd, setTitleEnd] = useState(80);
   const summary = scanSummary(saved, statuses);
   const count = notable(findings);
-  const heading =
+  const title =
     count === 0
-      ? null
+      ? t("scan.heading")
       : summary.read.length === 1
         ? t(summary.read[0] === "edunex" ? "scan.title.edunex" : "scan.title.six", { count })
         : t("scan.title", { count });
+  const shown = all ? findings : findings.slice(0, FIRST);
   return (
-    <View style={{ flex: 1, backgroundColor: theme.color.canvas }}>
-      <Page testID="screen.firstScan" header={<TopBar title={t("scan.heading")} />}>
-        <Summary summary={summary} />
-        {/* The answer, as big as one in a card, naming the list under it. */}
-        {heading && (
-          <Text size="heading" weight="semibold" style={{ marginTop: space[1.5], letterSpacing: -0.2 }} accessibilityRole="header">
-            {heading}
-          </Text>
-        )}
-        {findings.length ? (
-          <View
-            style={{
-              marginTop: space[4],
-              borderRadius: radius.xl,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: theme.color.edge,
-              backgroundColor: theme.color.surfaceContainerLow,
-              overflow: "hidden",
-            }}
-          >
-            {findings.map((finding, i) => (
-              <View key={finding.kind} style={i > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line } : undefined}>
-                <Line finding={finding} onGo={go} />
-              </View>
-            ))}
-          </View>
-        ) : (
-          <View style={{ marginTop: space[4] }}>
-            <EmptyState icon={<Icons.CheckCircle size={20} color={theme.color.successFg} />} title={t("scan.empty")} />
-          </View>
-        )}
-        <Text size="small" tone="muted" style={{ marginTop: space[5], textAlign: "center" }}>
-          {t("scan.later")}
-        </Text>
-      </Page>
-      {/* Always in reach, however long the list. */}
-      <BottomBar>
-        <Button variant="primary" size="lg" onPress={() => go({ screen: "home" })} style={{ flex: 1 }} testID="action.scanHome">
-          {t("scan.goHome")}
-        </Button>
-      </BottomBar>
-    </View>
-  );
-}
-
-/**
- * "Edunex dan SIX terhubung · 5 mata kuliah, 10 tugas dibaca". No meeting count: the reading step
- * hands over before SIX's timetable is in, so its running count would look contradicted here.
- */
-function Summary({ summary }: { summary: ReturnType<typeof scanSummary> }) {
-  const t = useT();
-  const f = useFormat();
-  const theme = useTheme();
-  if (!summary.read.length) return null;
-  const names = summary.connected.map((source) => t(`source.${source}`));
-  const connected = names.length ? t("scan.connected", { sources: f.list(names) }) : null;
-  const read = [t("scan.read.courses", { count: summary.courses }), summary.tasks ? t("scan.read.tasks", { count: summary.tasks }) : null].filter(Boolean);
-  return (
-    // The check on the first line, however many the facts take.
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-      <View style={{ marginTop: 2 }}>
-        <Icons.CheckCircle size={16} color={theme.color.successFg} weight="bold" />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Facts>{[connected, t("scan.read", { list: read.join(", ") })]}</Facts>
-      </View>
-    </View>
-  );
-}
-
-/** One finding: its number in the title, a few specifics, and the screen that shows it. */
-function Line({ finding, onGo }: { finding: Finding; onGo: (route: Route) => void }) {
-  const t = useT();
-  const f = useFormat();
-  const theme = useTheme();
-  const Icon = ICON[finding.kind];
-  const { title, lines, note } = describe(finding, t, f);
-  const route = finding.routes.find(isBuilt) ?? { screen: "home" };
-  return (
-    <Pressable
-      testID={`row.finding.${finding.kind}`}
-      accessibilityRole="button"
-      onPress={() => onGo(route)}
-      android_ripple={{ color: theme.color.selected }}
-      style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3.5], paddingHorizontal: space[4], paddingVertical: space[3.5] }}
-    >
-      <View style={{ marginTop: 3 }}>
-        <Icon size={16} color={theme.color[TONE[finding.tone]]} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="body" weight="semibold">
+    <View style={{ flex: 1, backgroundColor: v.page }}>
+      <Page testID="screen.firstScan" background={v.page} header={<TopBar v4 title={title} titleFrom={titleEnd} />}>
+        {/* The screen's one title, folding into the bar once scrolled past. */}
+        <Text
+          size="headlineSmall"
+          face="display"
+          weight="bold"
+          accessibilityRole="header"
+          onLayout={(event: LayoutChangeEvent) => setTitleEnd(event.nativeEvent.layout.y + event.nativeEvent.layout.height)}
+          style={{ color: v.fg, fontSize: 24, lineHeight: 30, letterSpacing: -0.4, marginTop: space[2], marginBottom: space[6] }}
+        >
           {title}
         </Text>
-        {(lines.length > 0 || note) && (
-          <View style={{ marginTop: space[1], gap: space[1] }}>
-            {lines.map((line) => (
-              <Facts key={line}>{line.split("·")}</Facts>
-            ))}
-            {note && (
-              <Text size="small" tone="muted">
-                {note}
-              </Text>
+        {findings.length ? (
+          <Group>
+            {shown.map((finding, i) => {
+              const Icon: ComponentType<IconProps> = ICON[finding.kind];
+              return (
+                <GroupRow
+                  key={finding.kind}
+                  first={i === 0}
+                  testID={`row.finding.${finding.kind}`}
+                  accessibilityRole="button"
+                  leading={<IconTile tone={TONE[finding.tone]} icon={(color) => <Icon size={22} color={color} />} />}
+                  title={describe(finding, t, f).title}
+                  onPress={() => go(finding.routes.find(isBuilt) ?? { screen: "home" })}
+                />
+              );
+            })}
+            {!all && findings.length > FIRST && (
+              <GroupRow
+                testID="action.firstScan.all"
+                accessibilityRole="button"
+                title={
+                  <Text size="labelLarge" style={{ color: v.brandInk }}>
+                    {t("home.changes.all")}
+                  </Text>
+                }
+                onPress={() => setAll(true)}
+              />
             )}
-          </View>
+          </Group>
+        ) : (
+          <Group>
+            <GroupRow first leading={<IconTile tone="ok" icon={(color) => <Icons.CheckCircle size={22} color={color} />} />} title={t("scan.empty")} />
+          </Group>
         )}
+      </Page>
+      {/* Always in reach, however long the list. */}
+      <View style={{ backgroundColor: v.page, paddingHorizontal: space.page, paddingTop: space[3], paddingBottom: space[3] + bottom }}>
+        <BigButton onPress={() => go({ screen: "home" })} testID="action.scanHome">
+          {t("scan.goHome")}
+        </BigButton>
       </View>
-      <View style={{ marginTop: 3 }}>
-        <Icons.ChevronRight size={16} color={theme.color.faint} />
-      </View>
-    </Pressable>
-  );
-}
-
-/** A short fact (a room, "TVST C"; a time) is never broken across two lines: its spaces hold. */
-const short = (fact: string) => (fact.length <= 14 ? fact.replace(/ /g, "\u00a0") : fact);
-
-/** Between two facts: a quiet dot that keeps to the fact before it and the one after. */
-const DOT = "\u00a0\u00a0·\u00a0\u00a0";
-
-/**
- * One line of facts that wraps the way a sentence does: "KU5014: hadir 2 dari 6 · paling tinggi 73%
- * dari target 80%". The dot is held to the facts either side of it, so no line starts or ends with
- * one and the part that wraps reads as the same line, not the next. (Meta keeps each fact whole, so
- * on a phone the second fact moves down on its own and loses its dot: here that reads as another item.)
- */
-function Facts({ children }: { children: readonly (string | null)[] }) {
-  const facts = children.map((fact) => fact?.trim()).filter((fact): fact is string => Boolean(fact));
-  return (
-    // Read out without the dots, as Meta's are.
-    <Text size="small" tone="muted" accessibilityLabel={facts.join(", ")}>
-      {facts.map((fact, i) => (
-        <Fragment key={fact}>
-          {i > 0 && (
-            <Text size="small" tone="faint">
-              {DOT}
-            </Text>
-          )}
-          {short(fact)}
-        </Fragment>
-      ))}
-    </Text>
+    </View>
   );
 }
