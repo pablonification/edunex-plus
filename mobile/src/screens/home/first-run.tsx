@@ -50,7 +50,15 @@ function ScanCard() {
         testID="action.firstScan.open"
         accessibilityRole="button"
         accessibilityLabel={`${title} ${t("mobile.home.scanOpen")}`}
-        style={{ minHeight: 56, borderRadius: 20, backgroundColor: v.brandTint, paddingHorizontal: space[4], flexDirection: "row", alignItems: "center", gap: space[3] }}
+        style={{
+          minHeight: 56,
+          borderRadius: 20,
+          backgroundColor: v.brandTint,
+          paddingHorizontal: space[4],
+          flexDirection: "row",
+          alignItems: "center",
+          gap: space[3],
+        }}
       >
         <Icons.CheckCircle size={22} weight="fill" color={v.brandInk} />
         <Text size="bodyLarge" weight="medium" numberOfLines={1} style={{ flex: 1, color: v.brandInk }}>

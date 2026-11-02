@@ -1,5 +1,6 @@
 // The first run on the phone (and after signing out of everything), W15: no deck. One screen in the app's own colours:
-// the mark, what the app is in a line, three reasons as an icon and a few words, and one button, "Masuk dengan akun
+// Beranda's blue holding the mark and three reasons as small cards (the one focal point), the name and what the app
+// is in a line, and one button, "Masuk dengan akun
 // ITB", within the thumb's reach; the language as a small chip in the corner. The button opens ITB's Microsoft page as
 // a screen of its own (./sign-in.tsx: a top bar with close); SIX joins quietly on the same Microsoft session
 // (the desktop's signInToBoth). Once a system is in, this screen fades and Beranda fills in as the data comes, with
@@ -13,22 +14,27 @@ import { errorKey } from "../../../src/app/bridge";
 import { useT } from "../../../src/app/i18n";
 import { useBridge, useSettings } from "../../../src/app/store";
 import { Button } from "../ui/controls";
+import { IconTile, type PillTone } from "../ui/group";
 import { type IconProps, Icons } from "../ui/icons";
 import { useReduceMotion } from "../ui/motion";
 import { Text } from "../ui/text";
 import { motion, shape, space, TOUCH, useTheme } from "../ui/theme";
 
-const MARK = 72;
+/** The mark's size, and the empty edge of its adaptive-icon canvas (a third of it, Android's safe zone). */
+const MARK = 84;
+const MARK_EDGE = 28;
 
-const REASONS: readonly { icon: React.ComponentType<IconProps>; key: "class" | "tasks" | "attendance" }[] = [
-  { icon: Icons.CalendarCheck, key: "class" },
-  { icon: Icons.ListChecks, key: "tasks" },
-  { icon: Icons.Hand, key: "attendance" },
+/** What the app keeps, each in its tone and nudged along (dp) so the three sit like a hand of cards. */
+const REASONS: readonly { icon: React.ComponentType<IconProps>; key: "class" | "tasks" | "attendance"; tone: PillTone; shift: number }[] = [
+  { icon: Icons.CalendarCheck, key: "class", tone: "brand", shift: 0 },
+  { icon: Icons.ListChecks, key: "tasks", tone: "ok", shift: space[4] },
+  { icon: Icons.Hand, key: "attendance", tone: "amber", shift: space[2] },
 ];
 
 export function Welcome() {
   const t = useT();
   const theme = useTheme();
+  const v = theme.v4;
   const insets = useSafeAreaInsets();
   const bridge = useBridge();
   const still = useReduceMotion();
@@ -69,30 +75,51 @@ export function Welcome() {
         overScrollMode="never"
         showsVerticalScrollIndicator={false}
       >
-        <View style={{ flexGrow: 1, justifyContent: "center", paddingVertical: space[6] }}>
-          <Animated.View entering={enter(0)}>
-            <Image source={require("../../assets/icon.png")} style={styles.mark} accessibilityIgnoresInvertColors accessibilityElementsHidden />
-          </Animated.View>
-          <Animated.View entering={enter(1)} style={{ marginTop: space[6] }}>
-            <Text size="headlineMedium" accessibilityRole="header">
+        <View style={{ flexGrow: 1, justifyContent: "center", paddingVertical: space[4] }}>
+          {/* The one focal point: Beranda's blue with the mark and what the app keeps for the Student, each a small
+              card as Beranda's are, a little off-line like a hand of cards. */}
+          <View style={{ backgroundColor: v.head, borderRadius: 28, padding: space[5], paddingBottom: space[6] }}>
+            <Animated.View entering={enter(0)}>
+              {/* The launcher's own one-colour mark, in the header's white; its safe zone's margin trimmed to line up. */}
+              <Image
+                source={require("../../assets/android-icon-monochrome.png")}
+                style={[styles.mark, { tintColor: v.onHead }]}
+                accessibilityIgnoresInvertColors
+                accessibilityElementsHidden
+              />
+            </Animated.View>
+            <View style={{ marginTop: space[5], gap: space[2] }}>
+              {REASONS.map(({ icon: Icon, key, tone, shift }, i) => (
+                <Animated.View
+                  key={key}
+                  entering={enter(1 + i)}
+                  style={{
+                    marginLeft: shift,
+                    marginRight: space[4] - shift,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: space[3],
+                    backgroundColor: v.card,
+                    borderRadius: 20,
+                    padding: space[3],
+                  }}
+                >
+                  <IconTile tone={tone} icon={(color) => <Icon size={22} weight="fill" color={color} />} />
+                  <Text size="bodyLarge" weight="medium" style={{ flex: 1, color: v.fg }}>
+                    {t(`mobile.welcome.reason.${key}`)}
+                  </Text>
+                </Animated.View>
+              ))}
+            </View>
+          </View>
+          <Animated.View entering={enter(4)} style={{ marginTop: space[8] }}>
+            <Text size="headlineMedium" face="display" weight="bold" accessibilityRole="header" style={{ letterSpacing: -0.4 }}>
               Edunex Plus
             </Text>
             <Text size="bodyLarge" tone="muted" style={{ marginTop: space[1] }}>
               {t("mobile.welcome.line")}
             </Text>
           </Animated.View>
-          <View style={{ marginTop: space[8], gap: space[4] }}>
-            {REASONS.map(({ icon: Icon, key }, i) => (
-              <Animated.View key={key} entering={enter(2 + i)} style={{ flexDirection: "row", alignItems: "center", gap: space[4] }}>
-                <View style={[styles.reason, { backgroundColor: theme.color.secondaryContainer }]}>
-                  <Icon size={22} color={theme.color.onSecondaryContainer} />
-                </View>
-                <Text size="bodyLarge" style={{ flex: 1 }}>
-                  {t(`mobile.welcome.reason.${key}`)}
-                </Text>
-              </Animated.View>
-            ))}
-          </View>
         </View>
         <Animated.View entering={enter(5)} style={{ paddingBottom: space[6], gap: space[3] }}>
           {failed && (
@@ -142,8 +169,7 @@ function LanguageChip() {
 }
 
 const styles = StyleSheet.create({
-  mark: { width: MARK, height: MARK, borderRadius: shape.lgPlus },
-  reason: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
+  mark: { width: MARK, height: MARK, margin: -MARK_EDGE + 4 },
   chip: {
     flexDirection: "row",
     alignItems: "center",
