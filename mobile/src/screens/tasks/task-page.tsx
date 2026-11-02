@@ -227,7 +227,8 @@ function TaskPage({ task }: { task: Task }) {
 /**
  * The deadline as the page's one big card (v4, Tugas's big card): the course's tint, amber within a day, red with a
  * warning sign and "lewat" once late (never the colour alone). While it can still be handed in, how long is left leads,
- * large; under it the day and time, and whether late is still taken. The status as Edunex has it sits in the corner.
+ * large; under it the day and time with whether late is still taken, then when handing in counts as present. Edunex's
+ * status is Jawabanmu's, said once there.
  */
 function DueCard({
   task,
@@ -256,14 +257,9 @@ function DueCard({
   const lateRule = task.dueAt !== null && isOpenStatus(status) ? (task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")) : null;
   return (
     <View testID="card.due" style={{ marginTop: space[4], backgroundColor: bg, borderRadius: 24, padding: space[4], gap: space[1] }}>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3], marginBottom: space[2] }}>
+      {/* No status here: Jawabanmu says it, once. */}
+      <View style={{ marginBottom: space[2] }}>
         {late ? <Icons.AlertTriangle size={22} weight="bold" color={fg} /> : <CourseGlyph code={task.courseCode} name={course} />}
-        {/* The card's one status. */}
-        <View style={[styles.pill, { backgroundColor: v.card, flexShrink: 1 }]}>
-          <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: fg }}>
-            {t(`taskStatus.${status}`)}
-          </Text>
-        </View>
       </View>
       {task.dueAt === null ? (
         <Text size="titleLarge" face="display" weight="bold" style={{ color: v.fg }}>
@@ -289,28 +285,28 @@ function DueCard({
               </Text>
             </View>
           )}
-          <Text
-            size={away ? "titleMedium" : "titleLarge"}
-            face="display"
-            weight="bold"
-            tabular
-            style={{ color: v.fg }}
-            accessibilityLabel={t("task.due", { when: f.dayTimeWord(task.dueAt) })}
+          {/* The day and time, and on the same line whether late is still taken. */}
+          <View
+            accessible
+            accessibilityLabel={factsLabel(t("task.due", { when: f.dayTimeWord(task.dueAt) }), lateRule)}
+            style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: space[2] }}
           >
-            {f.dueLabel(task.dueAt)}
-          </Text>
+            <Text size={away ? "titleMedium" : "titleLarge"} face="display" weight="bold" tabular style={{ color: v.fg }}>
+              {f.dueLabel(task.dueAt)}
+            </Text>
+            {lateRule && (
+              <Text size="bodyMedium" style={{ color: v.fg2 }}>
+                {`·  ${lateRule}`}
+              </Text>
+            )}
+          </View>
           {presence && (
             <View testID="line.presence" style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
-              <Icons.Hand size={16} color={fg} />
-              <Text size="bodyMedium" weight="medium" tabular style={{ flexShrink: 1, color: fg }}>
+              <Icons.Hand size={16} color={v.fg2} />
+              <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.fg2 }}>
                 {t("mobile.tasks.presenceLine", { when: presence })}
               </Text>
             </View>
-          )}
-          {lateRule && (
-            <Text size="bodyMedium" style={{ color: v.fg2 }}>
-              {lateRule}
-            </Text>
           )}
         </>
       )}
@@ -773,7 +769,6 @@ function InstructionsCompare({ change, at, onClose }: { change: Extract<TaskChan
 }
 
 const styles = StyleSheet.create({
-  pill: { flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   note: {
     flexDirection: "row",
     alignItems: "flex-start",

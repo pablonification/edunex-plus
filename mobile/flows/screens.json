@@ -4449,6 +4449,12 @@
       "tokens": "^(Sen|Sel|Rab|Kam|Jum|Sab|Min) \\d+ [A-Z][a-z]{2}$",
       "row": "W4",
       "why": "a take-home exam's hand-in day: on Perlu kamu urus the row keeps one meta line, and the day is on the exam's own page (checked there as exam-detail)"
+    },
+    {
+      "entry": "^exam\\.[^.]+\\.exam-detail\\.",
+      "tokens": "^(Senin|Selasa|Rabu|Kamis|Jumat|Sabtu|Minggu), \\d+ [A-Z][a-z]+$",
+      "row": "W4",
+      "why": "the exam's day in full under its name: the judge's round 2 (06) asked for one date card, so the page says the day once, on that card (\"Kam 15 Okt\", checked in the same exam-detail's Kapan dan di mana)"
     }
   ]
 }

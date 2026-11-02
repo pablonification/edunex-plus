@@ -1,5 +1,5 @@
 # W4/W11 (PROGRESS.md): what to look at first is obvious, and the screens aren't crowded. A Task opens on its
-# deadline and status (one card, no scrolling), an exam on its day, time and room, Akademik on the IPK and SKS.
+# deadline (one card, no scrolling; its status is said once, in Jawabanmu), an exam on its day, time and room, Akademik on the IPK and SKS.
 # Fails on round 1 (9395cea): its Task opened on the course line and the title, the deadline one line of many.
 appId: io.github.pablonification.edunexplus.demo
 ---
@@ -22,10 +22,10 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: screen.task
     timeout: 20000
-# The deadline and the status lead, in the first screenful.
+# The deadline leads, in the first screenful, with whether late is still taken on its line.
 - assertVisible:
     id: card.due
-- assertVisible: "Belum dikerjakan"
+- assertVisible: ".*Jum, 16 Okt, 23:59.*"
 - back
 - scrollUntilVisible:
     element:

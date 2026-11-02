@@ -1,7 +1,7 @@
 // Handing in on the phone (S3): src/app/screens/tasks.tsx's HandIn, with the same rules and the same
 // words. The state lives in `useHandIn`, shared by the card in the page (status, the answer, its
-// files, attaching from the phone) and the bar stuck to the bottom (Simpan draf, Kumpulkan, and why
-// Kumpulkan can't be pressed), within a thumb's reach. The answer box is a plain multi-line text
+// files, attaching from the phone) and the bar stuck to the bottom (Simpan draf, Kumpulkan, and what
+// blocks every hand-in), within a thumb's reach. The answer box is a plain multi-line text
 // box: an answer Edunex holds with formatting stays as it is, changed on Edunex.
 import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
@@ -692,11 +692,16 @@ function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text:
 
 const WHY_TONE: Record<"warning" | "neutral" | "danger", TextTone> = { warning: "warning", neutral: "muted", danger: "danger" };
 
-/** Simpan draf and Kumpulkan at the bottom of the screen, with why Kumpulkan can't be pressed above them. */
+/**
+ * Simpan draf and Kumpulkan at the bottom of the screen. Why Kumpulkan can't be pressed yet is said where it's fixed
+ * (the answer box, the attach button, a file's row) and to TalkBack on the button; a line over the buttons only for
+ * what blocks every hand-in (no connection, the session ended), with its fix.
+ */
 export function HandInBar({ h }: { h: HandInState }) {
   const t = useT();
   const theme = useTheme();
   const why = useWhy(h);
+  const blocked = why !== null && h.guard.blocked;
   // Edge to edge: the bar's tone runs under the phone's navigation bar, its buttons stay clear of it.
   const bottom = useBottomInset();
   // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
@@ -722,7 +727,7 @@ export function HandInBar({ h }: { h: HandInState }) {
         gap: space[3],
       }}
     >
-      {why && !(h.notice?.action === "signIn" && h.guard.blocked) && (
+      {why && blocked && h.notice?.action !== "signIn" && (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
           {/* The icon on the first line (19 high) when the hint wraps; the hint as a whole level with its fix. */}
           <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
@@ -750,10 +755,11 @@ export function HandInBar({ h }: { h: HandInState }) {
           testID="action.submit"
           variant={h.wait ? "outline" : "filled"}
           disabled={!h.canSubmit}
+          hint={!h.canSubmit && why ? why.text : undefined}
           busy={h.busy === "submit"}
           onPress={() => h.setConfirming(true)}
           flex={1}
-          icon={h.wait ? undefined : <Icons.Upload size={20} weight="bold" color={theme.v4.onBrand} />}
+          icon={h.wait ? undefined : <Icons.Upload size={20} weight="bold" color={h.canSubmit ? theme.v4.onBrand : theme.v4.muted} />}
         >
           {submitLabel}
         </BigButton>
@@ -765,22 +771,23 @@ export function HandInBar({ h }: { h: HandInState }) {
 
 const CHECK_TONE: Record<HandInCheck["tone"], TextTone> = { block: "danger", warn: "warning", ok: "success" };
 
-/** A check as one honest sentence (the desktop's HandInDialog). */
+/** A check as one short line (the desktop's HandInDialog says each in a sentence or two). */
 function sentence(t: Translate, f: Format, check: HandInCheck): string {
   const range = (opensAt: number, closesAt: number) => dayAt(dayWord(f, t, opensAt), f.timeRange(opensAt, closesAt));
   switch (check.kind) {
     case "attendanceEarly":
-      return t("handIn.check.attendanceEarly", { when: range(check.opensAt, check.closesAt) });
+      return t("mobile.tasks.check.attendanceEarly", { when: range(check.opensAt, check.closesAt) });
     case "attendanceMissed":
-      return t("handIn.check.attendanceMissed", { when: range(check.opensAt, check.closesAt) });
+      return t("mobile.tasks.check.attendanceMissed", { when: range(check.opensAt, check.closesAt) });
     case "attendanceIn":
       return t("handIn.check.attendanceIn");
     case "late":
-      return t("handIn.check.late", { when: f.dayTimeWord(check.dueAt) });
+      return t("mobile.tasks.check.late", { when: f.dayTimeWord(check.dueAt) });
+    // Only for a file that isn't what was asked (handInChecks): which file is on its row.
     case "fileType":
-      return t("handIn.check.fileType", { type: check.type.toUpperCase(), files: f.list(check.files), count: check.files.length });
+      return t("handIn.typeHint", { type: check.type.toUpperCase() });
     case "naming":
-      return t("handIn.check.naming", { pattern: check.pattern });
+      return t("handIn.namingHint", { pattern: check.pattern });
     case "offline":
       return t("handIn.why.offline");
     case "expired":
