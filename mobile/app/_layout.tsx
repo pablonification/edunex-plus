@@ -8,13 +8,12 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { useDataset, useStatus } from "../../src/app/store";
-import { useSettling } from "../src/host/settling";
 import { useWidgetUpdates } from "../src/host/widget";
 import { CourseColorPickerHost } from "../src/parts/course-color-picker";
 import { perfNavigating, perfShown, watchJsThread } from "../src/perf";
 import { ReportAskCard } from "../src/screens/report/ask";
 import { Boot } from "../src/shell/boot";
+import { useNobodyIn } from "../src/shell/nobody";
 import { NotificationTaps } from "../src/shell/notification-taps";
 import { SignInHost } from "../src/shell/sign-in";
 import { Welcome } from "../src/shell/welcome";
@@ -31,17 +30,6 @@ export default function RootLayout() {
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
-}
-
-/** Saved data keeps the app up even while a session is being checked or has ended (the desktop's nobodyIn). */
-function useNobodyIn(): boolean {
-  const edunex = useStatus("edunex");
-  const six = useStatus("six");
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  // The demo signing itself in after the first frame isn't a first run.
-  const settling = useSettling();
-  return edunex.state === "signed-out" && !account && six.state === "signed-out" && !student && !settling;
 }
 
 /** The `[perf]` lines (../src/perf.ts): the JS thread watched, each navigation timed to its screen drawn. */

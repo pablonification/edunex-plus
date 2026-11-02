@@ -209,7 +209,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
 
   return (
     <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.v4.page }}>
-      <TabHeader title={t("nav.tasks")} />
+      <TabHeader v4 title={t("nav.tasks")} />
       <TaskRowWorld>
         <FlashList
           ref={list}

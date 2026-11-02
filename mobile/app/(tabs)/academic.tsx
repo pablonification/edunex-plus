@@ -15,7 +15,7 @@ export default function Screen() {
   usePerfFocused("academic");
   return (
     <TabClock>
-      <Page testID="screen.academic" header={<TabHeader title={t("mobile.tab.academic")} />} background={v.page} {...pull}>
+      <Page testID="screen.academic" header={<TabHeader v4 title={t("mobile.tab.academic")} />} background={v.page} {...pull}>
         <AcademicContent />
       </Page>
     </TabClock>

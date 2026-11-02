@@ -1,12 +1,14 @@
 // Beranda (round 2, v4): its parts are in src/screens/home. The header is the screen's own (Edunex's blue, the
 // greeting, search and the bell), so the page has no top bar: a strip of the header's blue stays under the status bar
-// as the page scrolls, with the status bar's icons light over it while Beranda is in front.
+// as the page scrolls, with the status bar's icons light over it while Beranda is in front (not under the welcome,
+// which is drawn over the tabs on a white page).
 import { useIsFocused } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePerfFocused } from "../../src/perf";
 import { Home } from "../../src/screens/home";
+import { useNobodyIn } from "../../src/shell/nobody";
 import { usePullToRefresh } from "../../src/shell/source-status";
 import { Page } from "../../src/ui/layout";
 import { TabClock } from "../../src/ui/tab-clock";
@@ -17,10 +19,11 @@ export default function Screen() {
   const v = useTheme().v4;
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
+  const nobody = useNobodyIn();
   usePerfFocused("home");
   return (
     <TabClock>
-      {focused && <StatusBar style="light" />}
+      {focused && !nobody && <StatusBar style="light" />}
       <Page
         testID="screen.home"
         header={<View style={{ height: insets.top, backgroundColor: v.head }} />}
