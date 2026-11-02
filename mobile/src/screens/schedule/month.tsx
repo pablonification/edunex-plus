@@ -325,7 +325,7 @@ function DayPanel({
         leading: <CourseTile code={m.code} name={world.name(m.code)} />,
         title: world.name(m.code),
         meta: factsLabel(range, where),
-        pill: notInSix ? { tone: "amber", words: t("mobile.home.chip.notInSix") } : null,
+        pill: notInSix ? { tone: "amber", words: t("home.today.notInSix") } : null,
         label: factsLabel(m.code, world.name(m.code), meeting, range, where, notInSix ? t("schedule.notInSix") : null),
         pick: { kind: "meeting", meeting: m, notInSix },
       };

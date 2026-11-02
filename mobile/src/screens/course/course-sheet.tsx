@@ -1,7 +1,7 @@
 // The course's sheet (round 2, v4), opened from its name at the top of the page and from its attendance card: what the
 // page leaves out to keep to one number and one row. The course's tile, code and class over its name; its lecturer and
 // SKS; then its attendance in full: the share and the count, what's used and left of the absences (a pip each), how it's
-// counted; its target, changed in place; for a course in trouble what that means now (round 1's banner over the page);
+// counted and where; its target, changed in place; for a course in trouble what that means now (round 1's banner over the page);
 // and the one exception's whole sentence with its way back. Built as Beranda's class sheet (../home/class-sheet.tsx).
 import type { ReactNode } from "react";
 import { View } from "react-native";
@@ -149,12 +149,15 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
   const over = health.state === "met" || health.state === "missed";
   const words = budgetWords(t, health, context.soFar);
   const wordsLine = words ? [words.lead, words.bold].filter(Boolean).join(" · ") : "";
-  const budgetLine = wordsLine ? wordsLine.charAt(0).toLocaleUpperCase() + wordsLine.slice(1) : "";
+  // Under its label, as the desktop's row: "Jatah absen: terpakai 2× · habis".
+  const budgetLine = wordsLine ? t("mobile.course.budget", { words: wordsLine.charAt(0).toLocaleLowerCase() + wordsLine.slice(1) }) : "";
   // The absence scale, as the chip on the page (src/ui/absence.ts): red out of reach, amber with none left; the budget's
   // words stay quiet with some to spare.
   const tone = absenceTone(health.state);
   const ink = tone === "red" || tone === "amber" ? absenceInk(v, tone).fg : v.muted;
-  // How the course's attendance is counted (round 1's line over the Pertemuan tab).
+  // Where it counts, as the desktop's class sheet says it ("Kehadiran dihitung di SIX"), then how it's counted (round 1's
+  // line over the Pertemuan tab).
+  const countedIn = health.countedIn === "six" || health.countedIn === "both" ? t(`schedule.countedIn.${health.countedIn}`) : null;
   const noEdunexPresence = page.presence !== undefined && page.presence.length === 0;
   const how = noEdunexPresence
     ? t("meeting.noEdunexPresence")
@@ -200,6 +203,11 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
         {budgetLine !== "" && (
           <Text size="bodyMedium" weight="medium" tabular style={{ color: ink }} accessibilityLabel={words?.label}>
             {budgetLine}
+          </Text>
+        )}
+        {countedIn && (
+          <Text size="bodyMedium" style={{ color: v.muted }}>
+            {countedIn}
           </Text>
         )}
         {how && (

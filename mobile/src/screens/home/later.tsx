@@ -138,14 +138,14 @@ type ChipKey =
   | "mobile.home.chip.clash"
   | "mobile.home.timeMoved"
   | "mobile.home.roomMoved"
-  | "mobile.home.chip.notInSix";
+  | "home.today.notInSix";
 
 /**
  * The row's one chip, the most pressing: no absences left, below target, a clash, a new time or room, not in SIX. The
  * absences take the app's absence scale (src/ui/absence.ts: "Jatah habis" amber, "Di bawah target" red); the rest amber.
  */
 function chipOf(item: Item): { key: ChipKey; tone: AbsenceTone } | null {
-  if (item.kind === "meeting") return item.meeting.maybeInSix ? null : { key: "mobile.home.chip.notInSix", tone: "amber" };
+  if (item.kind === "meeting") return item.meeting.maybeInSix ? null : { key: "home.today.notInSix", tone: "amber" };
   const { facts } = item;
   const absence = absenceTone(facts.state);
   if (absence && (facts.state === "none" || facts.state === "out"))

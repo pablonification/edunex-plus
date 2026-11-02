@@ -105,6 +105,11 @@
     "phone": "Diubah dosen · {change}"
   },
   {
+    "key": "home.today.notInSix",
+    "desktop": "Tidak ada di jadwal SIX",
+    "phone": "Tak di SIX"
+  },
+  {
     "key": "ics.handIn.note",
     "desktop": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.",
     "phone": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini."

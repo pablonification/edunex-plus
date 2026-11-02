@@ -89,8 +89,10 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
       : live
         ? { key: "mobile.home.chip.now" as const, bg: v.okBg, fg: v.okFg }
         : meeting && !card.meeting?.maybeInSix
-          ? { key: "mobile.home.chip.notInSix" as const, bg: v.ambBg, fg: v.ambFg }
+          ? { key: "home.today.notInSix" as const, bg: v.ambBg, fg: v.ambFg }
           : null;
+  // On now, with a move or a clash as its chip: the time's day word says it ("Sekarang · 08:00–10:00").
+  const dayWord = when && live && timeChip?.key !== "mobile.home.chip.now" ? t("home.today.now") : when ? f.relativeDay(when.start) : "";
   const place = session?.room ?? (meeting?.online ? t("mobile.home.online") : null);
   const usualRoom = moved && !usual ? moved.usualRoom : null;
   return (
@@ -116,7 +118,7 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
         {when && (
           <Fact icon={(c) => <Icons.Clock size={22} color={c} />} end={timeChip && <Chip text={t(timeChip.key)} bg={timeChip.bg} fg={timeChip.fg} />}>
             <Text size="bodyLarge" tabular style={{ color: v.fg2 }}>
-              {`${f.relativeDay(when.start)} · ${f.timeRange(when.start, when.end)}`}
+              {`${dayWord} · ${f.timeRange(when.start, when.end)}`}
             </Text>
             {timeMeta && (
               <Text size="bodyMedium" tone="muted" tabular>

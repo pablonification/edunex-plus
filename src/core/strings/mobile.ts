@@ -74,7 +74,6 @@ export const mobileStrings = {
   "mobile.home.chip.noAbsences": { id: "Jatah habis", en: "No absences left" },
   "mobile.home.chip.belowTarget": { id: "Di bawah target", en: "Below target" },
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
-  "mobile.home.chip.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach.
   "mobile.needs.best": { id: "Paling tinggi {best}% · target {target}%", en: "Best case {best}% · target {target}%" },
   // The class sheet's one status (a chip), and its one quiet line: what it clashes with, or where it usually is.
@@ -296,6 +295,8 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     en: { one: "Changed · {count} change", other: "Changed · {count} changes" },
   },
   "home.need.task.editedMove": { id: "Diubah dosen · {change}", en: "Changed · {change}" },
+  // A meeting only Edunex announced, as a row's or a class sheet's one chip.
+  "home.today.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
   // The first-run summary's title, short enough for the top bar.
   "scan.heading": { id: "Ringkasan awal", en: "First summary" },
   // settings: the test notification's body, as Android shows it.
