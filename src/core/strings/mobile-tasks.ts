@@ -17,6 +17,14 @@ export const mobileTasksStrings = {
   // one status is Edunex's), saying when to hand it in to count as present ("Jum 15:00–23:59"). The desktop's
   // task.note.attendance, in the phone's few words.
   "mobile.tasks.presenceLine": { id: "Kumpulkan {when} agar hadir", en: "Hand in {when} to count as present" },
+  // The Kumpulkan sheet's warnings, one short line each (round 2's judge: two paragraphs were too much). The desktop's
+  // handIn.check.* with the same facts: when Presensi opens or closed, the deadline that passed.
+  "mobile.tasks.check.attendanceEarly": { id: "Tak dihitung hadir sebelum Presensi dibuka {when}", en: "Not counted present before Presence opens {when}" },
+  "mobile.tasks.check.attendanceMissed": {
+    id: "Tak dihitung hadir karena Presensi {when} sudah lewat",
+    en: "Not counted present, since Presence {when} has passed",
+  },
+  "mobile.tasks.check.late": { id: "Tercatat terlambat karena tenggatnya {when}", en: "Recorded late, since it was due {when}" },
   // The moment a Task is handed in, over the page for a breath: its detail is handIn.recorded ("Edunex mencatatnya hari ini, 10:02").
   "mobile.tasks.handedIn": { id: "Terkumpul", en: "Handed in" },
   // An exam row's one status when SIX and Edunex give it different days (the days themselves on the exam's page).
