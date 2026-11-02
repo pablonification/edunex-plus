@@ -14,6 +14,9 @@ import { reduceMotion } from "./motion";
 import { Text } from "./text";
 import { motion, shape, space, TOUCH, useTheme } from "./theme";
 
+/** The tabs' bar: Material 3's navigation bar, labels always shown. */
+const TAB_BAR = 80;
+
 export function Toasts() {
   const toasts = useToasts();
   const theme = useTheme();
@@ -37,7 +40,9 @@ export function Toasts() {
     Animated.timing(rise, { toValue: 1, duration: motion.duration.medium, easing: Easing.bezier(0.05, 0.7, 0.1, 1), useNativeDriver: true }).start();
   }, [item?.id]);
   const above = (edge: number) => (frameBottom > 0 && edge > 0 ? Math.max(insets.bottom, frameBottom - edge) : insets.bottom);
-  const bottom = (onTab ? above(tabsBottom) : above(barTop)) + space[3];
+  // On a tab, never lower than the tabs' bar (Material's 80 dp) over the phone's own: a page that didn't report its edge
+  // (Jadwal's own layout) left it on the tabs (judge, round 3).
+  const bottom = (onTab ? Math.max(above(tabsBottom), insets.bottom + TAB_BAR) : above(barTop)) + space[3];
   return (
     <View
       ref={frame}

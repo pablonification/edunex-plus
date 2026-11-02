@@ -238,8 +238,9 @@ export function useSyncText(): string {
  */
 export function StatusLine({ color }: { color?: string }) {
   const line = useSyncLine();
-  // The first read after signing in: which part it's reading, until Beranda has what it shows (W15).
-  const firstReading = !useSettings().firstScanDone && line.signedIn;
+  // The first read after signing in: which part it's reading, until Beranda has what it shows (W15). Once it's in,
+  // nothing until there's something to act on: no "Diperbarui baru saja" beside the "Semua siap" card.
+  const firstReading = useFirstReadRunning() && line.signedIn;
   const now = useNow();
   const stale = line.updatedAt !== null && now - line.updatedAt > STALE;
   const settling = useSettling();
