@@ -22,7 +22,8 @@
     "home (v4): Proposal Tugas Akhir's class is a Friday class on Jadwal; it opens Beranda's sheet with SIX (sheet.nowClass) and Jadwal's own without (sheet.class), so its route waits for either, and every home entry first closes either sheet before going back to Beranda.",
     "home (v4): a tap while Beranda is still sliding after a scroll only stops it (Android), so the now card's routes scroll to the greeting, let the page settle, and tap the card once more if its sheet didn't come.",
     "course sheet (round 2): a course page names lecturer, class, SKS, the absences used and left under Jatah absen, and where attendance counts only in its sheet (sheet.course, a tap on its name, action.courseAbout), so the class entries for the lecturer and where it counts, Beranda's absence budgets and Kuliah's courses open it after the page; every other entry of those screens closes it first.",
-    "plan (v4): Rencana is long (card, past semesters, this one, planned ones, rules, outlook, minors), and a check that ends at the rules can't scroll back to the top in time: the entries above this semester's courses (no context, or this semester's own) first scroll up to the card (card.planSummary). Kalender's Evaluasi kemajuan studi says the passed SKS in its sheet, so that entry opens it."
+    "plan (v4): Rencana is long (card, past semesters, this one, planned ones, rules, outlook, minors), and a check that ends at the rules can't scroll back to the top in time: the entries above this semester's courses (no context, or this semester's own) first scroll up to the card (card.planSummary). Kalender's Evaluasi kemajuan studi says the passed SKS in its sheet, so that entry opens it.",
+    "home (after class): the day goes on to 16:05 (test/pretend/demo.ts), so PL3002 and DK4073 are over and the now card is PL3032 with KU5014 beside it. Hari ini's classes and the now card's two classes open their sheet from Jadwal's day (row.class.<code>-<hh-mm>), the same sheet Beranda opens, at any hour of the demo: it says Sekarang for a class on now and, for one that's over, SIX's verdict as its chip (Dihitung di SIX, Tercatat tidak hadir, Belum dihitung SIX)."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -698,6 +699,204 @@
             }
           }
         ],
+        "^home\\.now\\.(ekonomi-infrastruktur-dan-transportasi|57)\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.course"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet\\.(nowClass|class)"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen\\.(course|needs)"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.schedule"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.schedule"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08",
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.pl3032-15-00"
+              },
+              "timeout": 10000
+            }
+          },
+          "waitForAnimationToEnd",
+          {
+            "tapOn": {
+              "id": "row.class.pl3032-15-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 3000,
+              "optional": true
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "sheet\\.(nowClass|class)"
+                }
+              },
+              "commands": [
+                "waitForAnimationToEnd",
+                {
+                  "tapOn": {
+                    "id": "row.class.pl3032-15-00"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
+        "^home\\.now\\.16-00\\|": [
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet.course"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "sheet\\.(nowClass|class)"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "screen\\.(course|needs)"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.schedule"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.schedule"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08",
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.ku5014-16-00"
+              },
+              "timeout": 10000
+            }
+          },
+          "waitForAnimationToEnd",
+          {
+            "tapOn": {
+              "id": "row.class.ku5014-16-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 3000,
+              "optional": true
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
+                "notVisible": {
+                  "id": "sheet\\.(nowClass|class)"
+                }
+              },
+              "commands": [
+                "waitForAnimationToEnd",
+                {
+                  "tapOn": {
+                    "id": "row.class.ku5014-16-00"
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 10000
+            }
+          }
+        ],
         "^home\\.now\\.": [
           {
             "runFlow": {
@@ -849,106 +1048,78 @@
           {
             "runFlow": {
               "when": {
-                "notVisible": {
-                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
-                }
-              },
-              "commands": [
-                {
-                  "tapOn": {
-                    "id": "tab.home"
-                  }
-                },
-                {
-                  "extendedWaitUntil": {
-                    "visible": {
-                      "id": "screen.home"
-                    },
-                    "timeout": 10000
-                  }
-                }
-              ]
-            }
-          },
-          {
-            "runFlow": {
-              "when": {
                 "visible": {
-                  "id": "screen.needs"
+                  "id": "screen\\.(course|needs)"
                 }
               },
               "commands": ["back"]
             }
           },
           {
+            "tapOn": {
+              "id": "tab.schedule"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.schedule"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08",
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.pl3002-08-00"
+              },
+              "timeout": 10000
+            }
+          },
+          "waitForAnimationToEnd",
+          {
+            "tapOn": {
+              "id": "row.class.pl3002-08-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 3000,
+              "optional": true
+            }
+          },
+          {
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "sheet.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": [
-                {
-                  "scrollUntilVisible": {
-                    "element": {
-                      "id": "action.nowClass"
-                    },
-                    "direction": "UP",
-                    "timeout": 4000,
-                    "optional": true
-                  }
-                },
-                {
-                  "scrollUntilVisible": {
-                    "element": {
-                      "id": "action.syncStatus"
-                    },
-                    "direction": "UP",
-                    "timeout": 4000,
-                    "optional": true
-                  }
-                },
                 "waitForAnimationToEnd",
                 {
                   "tapOn": {
-                    "id": "action.nowClass"
-                  }
-                },
-                {
-                  "extendedWaitUntil": {
-                    "visible": {
-                      "id": "sheet.nowClass"
-                    },
-                    "timeout": 3000,
-                    "optional": true
-                  }
-                },
-                {
-                  "runFlow": {
-                    "when": {
-                      "notVisible": {
-                        "id": "sheet.nowClass"
-                      }
-                    },
-                    "commands": [
-                      "waitForAnimationToEnd",
-                      {
-                        "tapOn": {
-                          "id": "action.nowClass"
-                        }
-                      }
-                    ]
-                  }
-                },
-                {
-                  "extendedWaitUntil": {
-                    "visible": {
-                      "id": "sheet.nowClass"
-                    },
-                    "timeout": 10000
+                    "id": "row.class.pl3002-08-00"
                   }
                 }
               ]
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 10000
             }
           }
         ],
@@ -976,66 +1147,76 @@
           {
             "runFlow": {
               "when": {
+                "visible": {
+                  "id": "screen\\.(course|needs)"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.schedule"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.schedule"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08",
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.dk4073-11-00"
+              },
+              "timeout": 10000
+            }
+          },
+          "waitForAnimationToEnd",
+          {
+            "tapOn": {
+              "id": "row.class.dk4073-11-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 3000,
+              "optional": true
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": [
+                "waitForAnimationToEnd",
                 {
                   "tapOn": {
-                    "id": "tab.home"
-                  }
-                },
-                {
-                  "extendedWaitUntil": {
-                    "visible": {
-                      "id": "screen.home"
-                    },
-                    "timeout": 10000
+                    "id": "row.class.dk4073-11-00"
                   }
                 }
               ]
             }
           },
           {
-            "runFlow": {
-              "when": {
-                "visible": {
-                  "id": "screen.needs"
-                }
-              },
-              "commands": ["back"]
-            }
-          },
-          {
-            "runFlow": {
-              "when": {
-                "visible": {
-                  "id": "sheet.nowClass"
-                }
-              },
-              "commands": ["back"]
-            }
-          },
-          {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "row.today.class:2153983"
-              },
-              "direction": "DOWN",
-              "timeout": 8000,
-              "visibilityPercentage": 50
-            }
-          },
-          {
-            "tapOn": {
-              "id": "row.today.class:2153983"
-            }
-          },
-          {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 10000
             }
@@ -1065,66 +1246,76 @@
           {
             "runFlow": {
               "when": {
+                "visible": {
+                  "id": "screen\\.(course|needs)"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.schedule"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.schedule"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08",
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.pl3032-15-00"
+              },
+              "timeout": 10000
+            }
+          },
+          "waitForAnimationToEnd",
+          {
+            "tapOn": {
+              "id": "row.class.pl3032-15-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 3000,
+              "optional": true
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": [
+                "waitForAnimationToEnd",
                 {
                   "tapOn": {
-                    "id": "tab.home"
-                  }
-                },
-                {
-                  "extendedWaitUntil": {
-                    "visible": {
-                      "id": "screen.home"
-                    },
-                    "timeout": 10000
+                    "id": "row.class.pl3032-15-00"
                   }
                 }
               ]
             }
           },
           {
-            "runFlow": {
-              "when": {
-                "visible": {
-                  "id": "screen.needs"
-                }
-              },
-              "commands": ["back"]
-            }
-          },
-          {
-            "runFlow": {
-              "when": {
-                "visible": {
-                  "id": "sheet.nowClass"
-                }
-              },
-              "commands": ["back"]
-            }
-          },
-          {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "row.today.class:2194402"
-              },
-              "direction": "DOWN",
-              "timeout": 8000,
-              "visibilityPercentage": 50
-            }
-          },
-          {
-            "tapOn": {
-              "id": "row.today.class:2194402"
-            }
-          },
-          {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 10000
             }
@@ -1154,66 +1345,76 @@
           {
             "runFlow": {
               "when": {
+                "visible": {
+                  "id": "screen\\.(course|needs)"
+                }
+              },
+              "commands": ["back"]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "tab.schedule"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "screen.schedule"
+              },
+              "timeout": 10000
+            }
+          },
+          {
+            "tapOn": {
+              "id": "day.2026-10-08",
+              "optional": true
+            }
+          },
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.class.ku5014-16-00"
+              },
+              "timeout": 10000
+            }
+          },
+          "waitForAnimationToEnd",
+          {
+            "tapOn": {
+              "id": "row.class.ku5014-16-00"
+            }
+          },
+          {
+            "extendedWaitUntil": {
+              "visible": {
+                "id": "sheet\\.(nowClass|class)"
+              },
+              "timeout": 3000,
+              "optional": true
+            }
+          },
+          {
+            "runFlow": {
+              "when": {
                 "notVisible": {
-                  "id": "screen\\.(home|needs)|sheet\\.nowClass"
+                  "id": "sheet\\.(nowClass|class)"
                 }
               },
               "commands": [
+                "waitForAnimationToEnd",
                 {
                   "tapOn": {
-                    "id": "tab.home"
-                  }
-                },
-                {
-                  "extendedWaitUntil": {
-                    "visible": {
-                      "id": "screen.home"
-                    },
-                    "timeout": 10000
+                    "id": "row.class.ku5014-16-00"
                   }
                 }
               ]
             }
           },
           {
-            "runFlow": {
-              "when": {
-                "visible": {
-                  "id": "screen.needs"
-                }
-              },
-              "commands": ["back"]
-            }
-          },
-          {
-            "runFlow": {
-              "when": {
-                "visible": {
-                  "id": "sheet.nowClass"
-                }
-              },
-              "commands": ["back"]
-            }
-          },
-          {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "row.today.class:2185658"
-              },
-              "direction": "DOWN",
-              "timeout": 8000,
-              "visibilityPercentage": 50
-            }
-          },
-          {
-            "tapOn": {
-              "id": "row.today.class:2185658"
-            }
-          },
-          {
             "extendedWaitUntil": {
               "visible": {
-                "id": "sheet.nowClass"
+                "id": "sheet\\.(nowClass|class)"
               },
               "timeout": 10000
             }

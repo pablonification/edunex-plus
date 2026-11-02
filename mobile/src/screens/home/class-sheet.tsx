@@ -5,6 +5,7 @@
 // is on the course's page.
 import type { ReactNode } from "react";
 import { View } from "react-native";
+import { useAttendance } from "../../../../src/app/attendance";
 import { budgetLabel } from "../../../../src/app/attendance-labels";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -60,6 +61,7 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
   const f = useFormat();
   const now = useNow();
   const v = useTheme().v4;
+  const attendance = useAttendance();
   const { session, meeting, slot, code, windowFor } = cardSubject(card);
   const facts = card.class;
   const when = slot ?? windowFor;
@@ -81,8 +83,18 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
       : !live && !past && slot
         ? f.fromNow(slot.start)
         : null;
-  // Its one status, as a chip: a clash, else moved, else on now, else not on SIX's timetable.
-  const timeChip = overlap
+  // A class that's over: what SIX's count did after it, when the app saw (the desktop's Hari ini says it on its row).
+  const result = past && session ? attendance?.results[session.id]?.result : undefined;
+  // Its one status, as a chip: SIX's verdict on a class that's over, else a clash, else moved, else on now, else not on
+  // SIX's timetable.
+  const timeChip =
+    result === "counted"
+      ? { key: "home.today.counted" as const, bg: v.okBg, fg: v.okFg }
+      : result === "absent"
+        ? { key: "home.today.absent" as const, bg: v.redBg, fg: v.redFg }
+        : result === "missing"
+          ? { key: "home.today.notCounted" as const, bg: v.ambBg, fg: v.ambFg }
+          : overlap
     ? { key: "mobile.home.chip.clash" as const, bg: v.ambBg, fg: v.ambFg }
     : usual
       ? { key: "mobile.home.chip.moved" as const, bg: v.ambBg, fg: v.ambFg }
