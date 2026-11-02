@@ -14,13 +14,12 @@ import { attention, dueItems, type HomeContext, homeContext, nowCard, todayPlan,
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { perfFirstData, usePerfDrawn } from "../../perf";
 import { ProblemBanner } from "../../shell/source-status";
-import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { space, useTheme } from "../../ui/theme";
 import { FirstScanCard, NotifyCard } from "./first-run";
 import { HomeHeader, OVERLAP } from "./header";
 import { Later } from "./later";
-import { NowSection, useCardStyle } from "./now";
+import { HeldShape, NowSection } from "./now";
 import { cardKey } from "./parts";
 import { Urus } from "./urus";
 
@@ -56,23 +55,17 @@ export function Home() {
   );
 }
 
-/** Beranda's shape before its data: the now card, two cards, two rows. Never a spinner on a blank page. */
+/**
+ * Beranda's shape before its data: the now card as it waits during the first read, then Perlu kamu urus's two cards
+ * where they'll be (under its title's row), so nothing moves when the data comes. Never a spinner on a blank page.
+ */
 function Loading() {
-  const surface = useCardStyle();
   const v = useTheme().v4;
   return (
     <View accessibilityState={{ busy: true }} testID="home.loading">
-      <View style={[surface, { padding: space[4], gap: space[4] }]}>
-        <View style={{ flexDirection: "row", gap: space[3] }}>
-          <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
-          <View style={{ flex: 1, gap: space[2] }}>
-            <Skeleton height={12} width="45%" />
-            <Skeleton height={18} width="85%" />
-          </View>
-        </View>
-        <Skeleton height={14} width="100%" />
-      </View>
-      <View style={{ flexDirection: "row", gap: 10, marginTop: space[12] }}>
+      <HeldShape testID="home.loading.now" />
+      {/* Perlu kamu urus's title row: its margin, the 48 dp chevron, the gap under it. */}
+      <View style={{ flexDirection: "row", gap: 10, marginTop: space[6] + 48 + space[2] }}>
         {[0, 1].map((i) => (
           <View key={i} style={{ flex: 1, height: 148, borderRadius: 20, backgroundColor: v.card }} />
         ))}

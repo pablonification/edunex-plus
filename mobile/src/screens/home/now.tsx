@@ -239,18 +239,21 @@ function HeldLines({ children, style }: { children: string; style: TextStyle }) 
   const [lines, setLines] = useState<readonly number[]>([]);
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Text
-        size="titleMedium"
-        face="display"
-        weight="bold"
-        style={[style, { color: "transparent" }]}
-        onTextLayout={(event) => {
-          const widths = event.nativeEvent.lines.map((line) => Math.round(line.width));
-          setLines((before) => (before.join() === widths.join() ? before : widths));
-        }}
-      >
-        {children}
-      </Text>
+      {/* Unseen by opacity: Android draws a "transparent" text colour as black. */}
+      <View style={{ opacity: 0 }}>
+        <Text
+          size="titleMedium"
+          face="display"
+          weight="bold"
+          style={style}
+          onTextLayout={(event) => {
+            const widths = event.nativeEvent.lines.map((line) => Math.round(line.width));
+            setLines((before) => (before.join() === widths.join() ? before : widths));
+          }}
+        >
+          {children}
+        </Text>
+      </View>
       {lines.map((width, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: a bar per line, in order
         <Skeleton key={i} height={16} width={width} style={{ position: "absolute", left: 0, top: i * 24 + 4 }} />
@@ -259,19 +262,23 @@ function HeldLines({ children, style }: { children: string; style: TextStyle }) 
   );
 }
 
-/** No card yet, SIX's timetable on its way: the card's shape in its place (a tile, the line, the name, the wave). */
-function HeldShape() {
+/**
+ * No card yet, SIX's timetable on its way (or Beranda's data not in yet): the card's shape in its place, a tile, the
+ * line, a name of two lines (most courses' names on a phone), the wave.
+ */
+export function HeldShape({ testID = "card.now.reading" }: { testID?: string }) {
   const surface = useCardStyle();
   return (
-    <View testID="card.now.reading" accessibilityState={{ busy: true }} style={[surface, { padding: space[4], gap: space[4] }]}>
+    <View testID={testID} accessibilityState={{ busy: true }} style={[surface, { padding: space[4], gap: space[4] }]}>
       <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
         <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ height: 20, justifyContent: "center" }}>
             <Skeleton height={12} width="45%" />
           </View>
-          <View style={{ height: 24, marginTop: 3, justifyContent: "center" }}>
+          <View style={{ height: 48, marginTop: 3, justifyContent: "space-around" }}>
             <Skeleton height={16} width="85%" />
+            <Skeleton height={16} width="55%" />
           </View>
         </View>
       </View>
