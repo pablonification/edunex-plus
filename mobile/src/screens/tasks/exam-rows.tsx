@@ -1,8 +1,8 @@
 // Exam rows on the phone: src/app/screens/exam.tsx's ExamPartRow, PeriodRow and PastExamRow with the same facts, in
 // v4's row (round 2): the course's tile, its name, one meta line (the kind, then when and where) and one status (the
-// countdown; "Sekarang" while it's on; a changed time over both). "Tandai selesai" (an Edunex window open now) and its
-// way back from Done are a swipe, the row's long press and TalkBack's actions, each answered with a snackbar and Undo;
-// a failure is said in the list's banner (row-parts.tsx), never in a snackbar.
+// countdown within a day; "Sekarang" while it's on; a changed time over both). "Tandai selesai" (an Edunex window open
+// now) and its way back from Done are a swipe, the row's long press and TalkBack's actions, each answered with a
+// snackbar and Undo; a failure is said in the list's banner (row-parts.tsx), never in a snackbar.
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import { errorKey } from "../../../../src/app/bridge";
@@ -120,7 +120,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   if (part?.kind === "takehome") {
     facts = [code, t("exam.takeHome"), part.task.title, part.status === "draft" ? t("taskStatus.draft") : ""];
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
-    // "UTS Take-home" is long: its day goes without the weekday and the time (the countdown says how near).
+    // "UTS Take-home" is long: its day goes without the weekday and the time (its page and spoken name keep them).
     const day = part.at === null ? t("task.noDeadline") : Math.abs(f.dayOffset(part.at)) <= 1 ? f.relativeDay(part.at) : f.dayMonth(part.at);
     shown = [`${kind} ${t("exam.takeHome")}`, day];
     moment = part.at;
@@ -143,7 +143,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     shown = [kind, t("exam.noDate")];
   }
   const away = moment !== null ? countdown(t, now, moment) : null;
-  if (away && !status) status = <StatusPill tone={away.tone} text={away.text} />;
+  // The countdown only once it's within a day: a calm one's day says when on its own.
+  if (away && !status && away.tone !== "neutral") status = <StatusPill tone={away.tone} text={away.text} />;
 
   // Only a window of known length, open now: a quiz the Student may already have taken on Edunex.
   const window = part?.kind === "window" && part.opensAt !== null && part.open ? part.edunex : null;

@@ -151,8 +151,8 @@ function tasksView(
         lines.push({
           type: "heading",
           key: `tasks-${group.group}`,
+          // No count beside a group: Belum selesai's says how many, and the rows are right under it.
           title: t(group.title),
-          count: todoCount(group.items) || undefined,
           first: lines.length === 0,
         });
         if (hero && group === heroGroup) lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, { type: "gap", key: "gap-hero", size: 6 });
