@@ -1,22 +1,24 @@
-// Settings › Tentang › Lisensi sumber terbuka (src/app/shell/licences.tsx): the open-source software
-// the Android app is built with, how many, and a search; one row each (name, version, licence, a
-// link to its source) whose licence text opens under it. The list loads when the Student opens the
-// page, never with the app. Each row opens and closes on its own: opening one never closes another,
-// which would pull the row the Student pressed, and the text they asked for, out of view.
+// Settings › Tentang › Lisensi sumber terbuka (src/app/shell/licences.tsx; round 2, v4): the open-source
+// software the Android app is built with, how many, and a search; one row each in one white card on v4's
+// grey page (the name, its version and licence as the one meta line). A row is one target: its sheet holds
+// the licence text and the link to its source. The list loads when the Student opens the page, never with
+// the app.
 import { FlashList } from "@shopify/flash-list";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { useOpenLink } from "../../../../src/app/hooks";
 import { useT } from "../../../../src/app/i18n";
 import { findLicences, type Licence, licenceParagraphs } from "../../../../src/app/licences";
 import { isWebLink } from "../../../../src/core/links";
-import { Button, IconButton } from "../../ui/controls";
+import { Button } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
+import { CARD_RADIUS, GroupRow } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { useBottomInset } from "../../ui/insets";
 import { factsLabel, Notice } from "../../ui/layout";
+import { Sheet } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
-import { radius, space, type, useTheme } from "../../ui/theme";
+import { space, type, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { loadLicences } from "./load";
 
@@ -24,22 +26,16 @@ type Loaded = { list: readonly Licence[] } | "loading" | "failed";
 
 const keyOf = (entry: Licence) => `${entry.name}@${entry.version ?? ""}`;
 
-/** The rows that are open, with `key` opened, or closed if it was open. */
-function toggled(open: ReadonlySet<string>, key: string): ReadonlySet<string> {
-  const next = new Set(open);
-  if (!next.delete(key)) next.add(key);
-  return next;
-}
-
 export function LicencesScreen() {
   const fieldColors = useFieldColors();
   const t = useT();
   const theme = useTheme();
+  const v = theme.v4;
   const bottom = useBottomInset();
   const [loaded, setLoaded] = useState<Loaded>("loading");
   const [attempt, setAttempt] = useState(0);
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState<ReadonlySet<string>>(() => new Set());
+  const [picked, setPicked] = useState<Licence | null>(null);
   // biome-ignore lint/correctness/useExhaustiveDependencies: attempt is "Coba lagi"; it changing is what reads the list again
   useEffect(() => {
     let current = true;
@@ -59,7 +55,7 @@ export function LicencesScreen() {
 
   // What the list is, before the search, as the desktop's.
   const intro = list ? (
-    <Text size="small" tone="muted">
+    <Text size="bodyMedium" style={{ color: v.muted }}>
       {t("licences.intro", { count: list.length })}
     </Text>
   ) : loaded === "loading" ? (
@@ -68,28 +64,28 @@ export function LicencesScreen() {
   const header = <View style={{ height: space[3] }} />;
 
   return (
-    <View testID="screen.licences" style={{ flex: 1, backgroundColor: theme.color.canvas }}>
-      <TopBar title={t("licences.title")} />
+    <View testID="screen.licences" style={{ flex: 1, backgroundColor: v.page }}>
+      <TopBar v4 title={t("licences.title")} />
       {/* The intro, then the search, both in view over the rows scrolling under them. */}
       <View style={{ paddingHorizontal: space.page, paddingTop: space[3], gap: space[3] }}>
         {intro}
-        <View style={[styles.search, { backgroundColor: theme.color.fill }]}>
-          <Icons.Search size={16} color={theme.color.faint} />
+        <View style={[styles.search, { backgroundColor: v.card }]}>
+          <Icons.Search size={20} color={v.muted} />
           <TextInput
             {...fieldColors}
             testID="input.licences"
             value={query}
             onChangeText={setQuery}
             placeholder={t("licences.search")}
-            placeholderTextColor={theme.color.faint}
+            placeholderTextColor={v.muted}
             accessibilityLabel={t("licences.search")}
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"
-            style={{ flex: 1, color: theme.color.fg, ...type.body, paddingVertical: 0 }}
+            style={{ flex: 1, color: v.fg, ...type.body, paddingVertical: 0 }}
           />
           {searching && list && (
-            <Text size="small" tone="muted" tabular accessibilityLiveRegion="polite">
+            <Text size="bodyMedium" tabular accessibilityLiveRegion="polite" style={{ color: v.muted }}>
               {t("search.count", { count: shown.length })}
             </Text>
           )}
@@ -116,22 +112,10 @@ export function LicencesScreen() {
         <FlashList
           data={shown as Licence[]}
           keyExtractor={keyOf}
-          extraData={open}
-          renderItem={({ item, index }) => {
-            const key = keyOf(item);
-            return (
-              <LicenceRow
-                entry={item}
-                first={index === 0}
-                last={index === shown.length - 1}
-                open={open.has(key)}
-                onToggle={() => setOpen((was) => toggled(was, key))}
-              />
-            );
-          }}
+          renderItem={({ item, index }) => <LicenceRow entry={item} first={index === 0} last={index === shown.length - 1} onPress={() => setPicked(item)} />}
           ListHeaderComponent={header}
           ListEmptyComponent={
-            <Text size="body" tone="muted" style={{ textAlign: "center", paddingVertical: space[8] }}>
+            <Text size="bodyLarge" style={{ color: v.muted, textAlign: "center", paddingVertical: space[8] }}>
               {t("search.noResults", { query: query.trim() })}
             </Text>
           }
@@ -140,97 +124,82 @@ export function LicencesScreen() {
           keyboardDismissMode="on-drag"
         />
       )}
+      <LicenceSheet entry={picked} onClose={() => setPicked(null)} />
     </View>
   );
 }
 
-/** One piece of software: the row opens its licence text under it; the arrow beside it opens its source in the browser. */
-function LicenceRow({ entry, first, last, open, onToggle }: { entry: Licence; first: boolean; last: boolean; open: boolean; onToggle: () => void }) {
-  const t = useT();
-  const theme = useTheme();
-  const c = theme.color;
-  const openLink = useOpenLink();
-  const source = entry.source && isWebLink(entry.source) ? entry.source : null;
+/** One piece of software as a row of the list's one white card: its name, version and licence. It opens its sheet. */
+function LicenceRow({ entry, first, last, onPress }: { entry: Licence; first: boolean; last: boolean; onPress: () => void }) {
+  const v = useTheme().v4;
   return (
     <View
       style={{
-        backgroundColor: c.surfaceContainerLow,
+        backgroundColor: v.card,
         overflow: "hidden",
-        borderColor: c.edge,
-        borderLeftWidth: StyleSheet.hairlineWidth,
-        borderRightWidth: StyleSheet.hairlineWidth,
-        borderTopWidth: first ? StyleSheet.hairlineWidth : 0,
-        borderBottomWidth: last ? StyleSheet.hairlineWidth : 0,
-        borderTopLeftRadius: first ? radius.xl : 0,
-        borderTopRightRadius: first ? radius.xl : 0,
-        borderBottomLeftRadius: last ? radius.xl : 0,
-        borderBottomRightRadius: last ? radius.xl : 0,
+        borderTopLeftRadius: first ? CARD_RADIUS : 0,
+        borderTopRightRadius: first ? CARD_RADIUS : 0,
+        borderBottomLeftRadius: last ? CARD_RADIUS : 0,
+        borderBottomRightRadius: last ? CARD_RADIUS : 0,
       }}
     >
-      {!first && <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.line }} />}
-      <View style={{ flexDirection: "row", alignItems: "center" }}>
-        <Pressable
-          testID={`row.licence.${entry.name}`}
-          onPress={onToggle}
-          accessibilityRole="button"
-          accessibilityState={{ expanded: open }}
-          // Read as "zod · 4.6.5 · MIT".
-          accessibilityLabel={factsLabel(entry.name, entry.version, entry.licence)}
-          android_ripple={{ color: c.selected }}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[2.5],
-            minHeight: 52,
-            paddingLeft: space[3.5],
-            paddingRight: space[1],
-          }}
-        >
-          <View style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}>
-            <Icons.ChevronRight size={14} color={c.faint} />
-          </View>
-          <View style={{ flex: 1, minWidth: 0, paddingVertical: space[2] }}>
-            {/* A long name wraps instead of being cut off. */}
-            <Text size="body" weight="medium">
-              {entry.name}
-            </Text>
-            <Text size="small" tone="muted">
-              {[entry.version, entry.licence].filter(Boolean).join("  ·  ")}
-            </Text>
-          </View>
-        </Pressable>
-        {source ? (
-          <View style={{ paddingRight: space[1] }}>
-            <IconButton label={t("licences.source", { name: entry.name })} onPress={() => openLink(source)}>
-              <Icons.ArrowUpRight size={16} color={c.muted} />
-            </IconButton>
-          </View>
-        ) : (
-          <View style={{ width: 48 }} />
-        )}
-      </View>
-      {open && (
-        <View
-          style={{
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderTopColor: c.line,
-            backgroundColor: c.sunken,
-            paddingHorizontal: space[4],
-            paddingVertical: space[3],
-          }}
-        >
+      <GroupRow
+        first={first}
+        // A long name wraps instead of being cut off.
+        title={entry.name}
+        meta={factsLabel(entry.version, entry.licence)}
+        onPress={onPress}
+        accessibilityRole="button"
+        // Read as "zod · 4.6.5 · MIT".
+        accessibilityLabel={factsLabel(entry.name, entry.version, entry.licence)}
+        testID={`row.licence.${entry.name}`}
+      />
+    </View>
+  );
+}
+
+/** A piece of software's sheet: its licence text, and its source in the browser as the one button. */
+function LicenceSheet({ entry, onClose }: { entry: Licence | null; onClose: () => void }) {
+  const t = useT();
+  const theme = useTheme();
+  const v = theme.v4;
+  const openLink = useOpenLink();
+  const source = entry?.source && isWebLink(entry.source) ? entry.source : null;
+  return (
+    <Sheet
+      open={entry !== null}
+      onClose={onClose}
+      title={entry?.name}
+      testID="sheet.licence"
+      background={v.card}
+      footer={
+        source ? (
+          <Button
+            variant="tonal"
+            icon={<Icons.ArrowUpRight size={18} color={theme.color.onSecondaryContainer} />}
+            onPress={() => openLink(source)}
+            testID="action.licenceSource"
+          >
+            {t("licences.source", { name: entry!.name })}
+          </Button>
+        ) : undefined
+      }
+    >
+      {entry ? (
+        <View style={{ gap: space[3], paddingBottom: space[2] }}>
+          <Text size="bodyMedium" style={{ color: v.muted }}>
+            {factsLabel(entry.version, entry.licence)}
+          </Text>
           {entry.text !== undefined ? (
             <LicenceText text={entry.text} />
           ) : (
-            <Text size="small" tone="muted">
+            <Text size="bodyMedium" style={{ color: v.muted }}>
               {entry.file ?? ""}
             </Text>
           )}
         </View>
-      )}
-    </View>
+      ) : null}
+    </Sheet>
   );
 }
 
@@ -262,20 +231,14 @@ function Loading() {
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{
-        borderRadius: radius.xl,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.color.edge,
-        backgroundColor: theme.color.surfaceContainerLow,
-        overflow: "hidden",
-      }}
+      style={{ borderRadius: CARD_RADIUS, backgroundColor: theme.v4.card, overflow: "hidden" }}
     >
       {[160, 112, 208, 144, 176, 128].map((width, i) => (
         <View
           key={width}
           style={[
             { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[4], paddingVertical: space[3] },
-            i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.color.line },
+            i > 0 && { borderTopWidth: 1, borderTopColor: theme.v4.line },
           ]}
         >
           <Skeleton width={width} />
@@ -288,5 +251,5 @@ function Loading() {
 }
 
 const styles = StyleSheet.create({
-  search: { flexDirection: "row", alignItems: "center", gap: space[2], height: 44, borderRadius: radius.lg, paddingHorizontal: space[3] },
+  search: { flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48, borderRadius: 24, paddingHorizontal: space[4] },
 });
