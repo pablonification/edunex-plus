@@ -13,6 +13,7 @@ import { useIsFocused } from "expo-router";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { ClockProvider, type UiClock, useClock } from "../../../src/app/i18n";
 import { type AppStore, StoreProvider, useBridge, useStore } from "../../../src/app/store";
+import { perfDoing } from "../perf";
 
 export function TabClock({ children }: { children: ReactNode }) {
   const parent = useClock();
@@ -111,6 +112,8 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 function pump(delay: number): void {
   timer = setTimeout(() => {
     whenIdle(() => {
+      // A stall right after names it (../perf.ts).
+      perfDoing("a hidden tab's first draw");
       waiting.shift()?.();
       if (waiting.length) pump(NEXT_MS);
       else timer = null;
