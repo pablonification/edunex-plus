@@ -14,7 +14,7 @@
     "the lead replaces them with the real steps and sets status to 'ready' as each screen lands.",
     "'scrollTimeout': how long each item's scroll may take on a long screen (default 4000 ms). 'phoneSkips' (top level): the desktop's items the phone leaves out on purpose, by entry id pattern, with the scope row and why: no checks, not counted.",
     "The shared launch is tried twice: over a course's sixty fresh starts, one now and then stuck on its splash.",
-    "After the first sync, a scenario with a row the app doesn't know (odd) asks once about problem reports over the bottom of the screen: the shared launch answers 'Jangan kirim', so it neither covers the taps nor asks again.",
+    "After the first sync, a scenario with a row the app doesn't know (odd) asks once about problem reports over the bottom of the screen: the shared launch waits up to 4 s for it (it can come a moment after the sync settles) and answers 'Jangan kirim', so it doesn't cover the taps.",
     "presence: Kuliah shows each course as a slim row (round 2); a course's bar, count, next class and exception are on its page, so those entries open it (byEntry), and every other entry comes back to Kuliah first. The page's attendance card is there only when it has something to say (none without SIX): the page is waited for, the card a moment more.",
     "The demo signs in and reads after the first frame (mobile/src/host/settling.ts): the launch waits for the top bar's status.settling to go before any check.",
     "schedule (v4): one day at a time under the week strip; next week is a swipe across the strip. A class block shows its short name and room only, so the week's class entries open the class's sheet (Beranda's, sheet.nowClass; a meeting only Edunex announced opens Jadwal's own, sheet.class, as with no SIX) where its code, times and full name are, and every other entry closes it first.",
@@ -51,6 +51,15 @@
             }
           }
         ]
+      }
+    },
+    {
+      "extendedWaitUntil": {
+        "visible": {
+          "id": "card.reportAsk"
+        },
+        "timeout": 4000,
+        "optional": true
       }
     },
     {
@@ -3096,6 +3105,14 @@
               },
               "commands": [
                 "back",
+                {
+                  "scrollUntilVisible": {
+                    "element": {
+                      "id": "row.class.{{state}}"
+                    },
+                    "timeout": 10000
+                  }
+                },
                 {
                   "tapOn": {
                     "id": "row.class.{{state}}"
