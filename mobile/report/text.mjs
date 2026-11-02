@@ -123,7 +123,7 @@ export const SECTIONS = {
 <tr><th>Gate</th><th>Where it stands</th></tr>
 <tr><td>WORKS</td><td>Every item on Arqila's list is a flow or test that failed first. Check A (the desktop's every item, found on the phone) ran at 100% before round 2's last fixes, and runs again on them.</td></tr>
 <tr><td>FAST</td><td>Taps, tab switches, cold starts and scrolling meet the targets on mid. Weak meets them except Tugas' scrolling. The JS thread still blocks ~400 ms once at start (below).</td></tr>
-<tr><td>FEELS MOBILE</td><td>The judge (Claude Opus 5.5, strict) scores 28 of 37 screens at 8/10 or more, in light and in dark, on a2297b16, up from 14 and 16 a pass earlier. The fixes for the rest are in, and pass 4 checks them. Every colour pair passes contrast in light and dark (352 pairs, as tests). Every touch target is at least 48 dp. Predictive back works.</td></tr>
+<tr><td>FEELS MOBILE</td><td>The judge (Claude Opus 5.5, strict) scores 34 of 37 screens at 8/10 or more in light and 35 of 37 in dark, on e261d21a. Under 8 are Beranda (53 words: the per-class attendance chips stay), the Kumpulkan sheet (its second button is cut off) and, in light only, the Jadwal menu's status bar.</td></tr>
 </table>
 `,
   bottom: `
@@ -159,6 +159,8 @@ export const SECTIONS = {
   <li><b>Mid's numbers for today are void.</b> The Mac ran out of memory while measuring. Retake them on the lab machine.</li>
   <li><b>The one-time question about problem reports</b> (from main) is a paragraph and four buttons over a third of a tab, against the text budget. It's main's design, so it's left as it is for Arqila to decide.</li>
   <li><b>For about a second before the first read's data</b>, Beranda's placeholder looks like a grey blob.</li>
+  <li><b>The Kumpulkan sheet's second button</b> is cut off at the bottom in CI's pictures. The sheet already leaves room for the phone's bar, so finding why needs a device.</li>
+  <li><b>Polish the judge still wants.</b> Stack screens use two title faces (Plus Jakarta on Perlu kamu urus and Lisensi, Roboto on the rest). A few one-line metas are cut mid-word where a shorter line would read better. The Jadwal menu's status bar went blank in light in the last pictures.</li>
   <li><b>Signing in with a real ITB account</b> hasn't been tried. Everything after the sign-in page works with the demo's made-up one.</li>
 </ul>
 
@@ -178,6 +180,6 @@ export const SECTIONS = {
 </ol>
 
 <h2 id="how-made">How this was made</h2>
-<p>Made with Claude Opus 5.5 in Claude Code (run from T3 Code), as the lead on one machine. Helpers in separate Claude Code sessions (Claude Opus 5.5) on a Mac and a Windows desktop built pieces on their own branches, and the lead reviewed and merged each. The judge ran four passes over every screen, light and dark. Pass 1 was Codex (gpt-6-luna), with 27 of 37 at 8+. Passes 2 and 3 were Claude Opus 5.5, going from 14 to 28 of 37 in light and from 16 to 28 in dark. Pass 4 checks the newest build.</p>
+<p>Made with Claude Opus 5.5 in Claude Code (run from T3 Code), as the lead on one machine. Helpers in separate Claude Code sessions (Claude Opus 5.5) on a Mac and a Windows desktop built pieces on their own branches, and the lead reviewed and merged each. The judge ran four passes over every screen, light and dark. Pass 1 was Codex (gpt-6-luna), with 27 of 37 at 8+. Passes 2 to 4 were Claude Opus 5.5, going from 14 to 34 of 37 in light and from 16 to 35 in dark.</p>
 `,
 };
