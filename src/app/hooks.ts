@@ -17,7 +17,10 @@ function useLinkFailed(): (url: string) => void {
   );
 }
 
-/** Opens an official page (Edunex, SIX, ITB, an online-class link) in the browser. */
+/**
+ * Opens an official page: Edunex and SIX in the app's own window for each, signed in with the app's
+ * session; ITB's other pages and an online-class link in the browser.
+ */
 export function useOpenExternal(): (url: string) => void {
   const bridge = useBridge();
   const failed = useLinkFailed();
@@ -26,8 +29,8 @@ export function useOpenExternal(): (url: string) => void {
 
 /**
  * "Tandai Hadir": opens SIX in the app's SIX window, on the class's popup, for
- * the Student to press SIX's button. Should that window not open, SIX's
- * timetable (`url`) opens in the browser instead.
+ * the Student to press SIX's button. Should the class not be found, SIX's
+ * timetable (`url`) opens there instead.
  */
 export function useOpenCheckIn(): (meetingId: string, url: string) => void {
   const bridge = useBridge();

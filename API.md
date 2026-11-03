@@ -40,9 +40,9 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 7. **Distinctive User-Agent.** Every API call carries
    `EdunexPlus/<version> (+https://github.com/pablonification/edunex-plus)`
    (`src/engine/engine.ts`). The API client never pretends to be a browser, so Cognisia can
-   recognise — and allowlist or rate-limit — this traffic. (Only the sign-in window, which
-   shows the real ITB, Microsoft and Edunex web pages, uses a plain Chrome identity, because
-   some sign-in pages turn away browsers they don't know.)
+   recognise — and allowlist or rate-limit — this traffic. (Only the sign-in window and the Edunex
+   window, which show the real ITB, Microsoft and Edunex web pages, use a plain Chrome identity,
+   because some sign-in pages turn away browsers they don't know.)
 8. **No presence or read signals.** The app never sends Edunex "online", "viewed", presence or
    "mark read" signals, never calls `PATCH /notifications`, and never marks attendance. When
    something must count as attendance, it opens Edunex itself and the Student acts.
@@ -68,6 +68,14 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
   `Accept: application/json` and the User-Agent above. API calls go through a separate
   in-memory Electron session with cookies off (`credentials: "omit"`,
   `src/desktop/transport.ts`).
+- **The Edunex window** (`src/desktop/edunex-window.ts`, ADR 0017). Every Edunex page the app
+  links to opens in a window of the app on its own in-memory session. Before Edunex's code runs on
+  its first page, the window saves `localStorage.auth` as `{ accessToken, expirationDate, verified:
+  true }`, the shape the website's sign-in saves (no refresh token: the app has none). The
+  `expirationDate` is the token's `exp`, or 12 hours when it has none. That's what the website's
+  `initialize` and `isLoggedIn` check. A refused token sends the Student to Edunex's own sign-in
+  there. What the website then requests is its own doing, as in any browser, so it isn't in the
+  call list below. Closing the window, or signing out of Edunex, wipes its session.
 - **No refresh.** The refresh token is never used and never stored. The saved session is just
   `{ token }`.
 - **What ends a session.** A saved token counts as signed in at once and is checked in the

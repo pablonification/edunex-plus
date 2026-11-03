@@ -12,7 +12,7 @@ import type { Material } from "../../src/core/models";
 
 const system = vi.hoisted(() => ({ root: "", opened: [] as string[], shown: [] as string[], downloads: 0 }));
 vi.mock("electron", () => ({
-  app: { getPath: () => system.root, isPackaged: true },
+  app: { getPath: () => system.root, isPackaged: true, on: () => undefined },
   dialog: {},
   shell: {
     openPath: async (file: string) => {

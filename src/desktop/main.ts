@@ -36,6 +36,7 @@ import { helperPath, readVaultKey } from "./keychain-helper";
 import { installMenu } from "./menu";
 import { createNotifier } from "./notifications";
 import { ntfyClient } from "./ntfy";
+import { openOfficialPage } from "./open-page";
 import { registerAppScheme, serveApp } from "./protocol";
 import { APP_HOST, APP_ORIGIN, APP_SCHEME, contentSecurityPolicy, denyPermissions, guardAppWindow, hardenAllContents } from "./security";
 import { followAutoUpdates } from "./self-update";
@@ -330,10 +331,9 @@ function trayAction(action: TrayAction): void {
       send({ type: "command", command: action.command });
       break;
     case "url":
-      // Only official pages, as the window's own links ("shell.openExternal").
-      if (isOfficialUrl(action.url))
-        void shell.openExternal(action.url).then(
-          () => away?.opened(action.url),
+      // Only official pages, as the window's own links ("shell.openExternal"): Edunex and SIX in their window.
+      if (isOfficialUrl(action.url) && engine)
+        void openOfficialPage({ engine, lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang, packaged, away }, action.url).catch(
           () => undefined,
         );
       break;

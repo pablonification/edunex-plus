@@ -121,7 +121,11 @@ status page shows (name, NIM, program, term); it never reads SIX's profile or ma
 reader (`readers/syllabus.ts`) and `fetchSyllabus` in `six/records.ts`, meant to be read
 on demand, one page at a time. Nothing in the app calls it yet, so the app does not request it today.
 
-## The SIX window ("Tandai Hadir")
+## The SIX window (any SIX page, and "Tandai Hadir")
+
+Every SIX page the app links to opens in the app's SIX window, signed in
+(`src/desktop/open-page.ts`, [ADR 0017](docs/adr/0017-edunex-and-six-open-in-the-apps-own-windows.md)).
+For "Tandai Hadir" it also opens the class's popup.
 
 SIX counts a Student present when they press **Tandai Hadir** in the class's popup on the
 timetable. When the button shows, the app says so (an urgent alert, on the phone too; again 15
@@ -135,7 +139,8 @@ SIX**. That opens `src/desktop/six-window.ts`:
   its popup the way a click does. That's all it does on the page: the Student presses the
   button, and the window is theirs.
 - It may go to SIX and Microsoft's sign-in only (SIX sends a Student whose session ended
-  there); other official links open in the system browser, everything else nowhere. Every
+  there); a SIX page opened in a new tab opens in the window, other official links in the
+  system browser, everything else nowhere. Every
   permission is refused; it can't reach the app. One window at a time; closing it, or signing
   out of SIX, wipes its session.
 - On the phone, a tap on the alert opens SIX's timetable for the month in the phone's browser:
