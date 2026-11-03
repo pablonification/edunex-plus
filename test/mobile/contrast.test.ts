@@ -16,6 +16,12 @@ type Pick = (t: Tones) => string;
 
 const TONES: Record<Scheme, Tones> = { light: { c: light, v: V4.light, now: NOW.light }, dark: { c: dark, v: V4.dark, now: NOW.dark } };
 
+/** The sheets' scrim (react-native-screens' DimmingView: black at 30%) and Android's status bar icons. */
+const SCRIM = "#000000";
+const SCRIM_ALPHA = 0.3;
+const STATUS_DARK = "#00000099";
+const STATUS_LIGHT = "#ffffff";
+
 const TEXT = 4.5;
 const LARGE = 3;
 const MARK = 3;
@@ -169,6 +175,26 @@ const PAIRS: Pair[] = [
 
   // Today's red.
   ["onNow on today's colour", (t) => t.now.on, (t) => t.now.now, TEXT, "schedule/strip.tsx, month.tsx"],
+  ["today's colour on v4.card (the now-line and its time)", (t) => t.now.now, card, TEXT, "schedule/day.tsx"],
+
+  // The status bar's icons while a sheet is open: the screen's style (dark icons in light, white in dark and on Beranda's
+  // blue header) over what's under the sheet's scrim (react-native-screens' 30% black). Android draws dark icons 60% black.
+  ...(
+    [
+      ["v4.page", page],
+      ["v4.card", card],
+      ["surface", (t) => t.c.surface],
+    ] as [string, Pick][]
+  ).map(
+    ([name, under]): Pair => [
+      `status bar icons on ${name} under a sheet's scrim`,
+      (t) => (t === TONES.dark ? STATUS_LIGHT : over(STATUS_DARK, over(SCRIM, under(t), SCRIM_ALPHA))),
+      (t) => over(SCRIM, under(t), SCRIM_ALPHA),
+      MARK,
+      "ui/sheet.tsx (patches/react-native-screens: the sheet takes the app's status bar style)",
+    ],
+  ),
+  ["white status bar icons on v4.head under a sheet's scrim", () => STATUS_LIGHT, (t) => over(SCRIM, t.v.head, SCRIM_ALPHA), MARK, "Beranda's class sheet"],
 
   // The course tiles: the ink on its tint and on a card, the words on the tint, every colour and the grey.
   ...[...COURSES, "grey" as const].flatMap((id): Pair[] => {
