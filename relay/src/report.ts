@@ -38,6 +38,10 @@ const Problem = z.looseObject({
   reproduces: Reproduces.optional().catch(undefined),
   cells: z.array(Cell).max(100).optional().catch(undefined),
   impact: Impact.optional().catch(undefined),
+  item: z
+    .looseObject({ at: z.string().max(300), shape: z.string().max(20_000) })
+    .optional()
+    .catch(undefined),
 });
 export type Problem = z.infer<typeof Problem>;
 

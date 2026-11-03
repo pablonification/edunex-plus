@@ -281,6 +281,10 @@ describe("an Edunex answer the app couldn't read", () => {
     expect([page.pathname, page.searchParams.get("filter[course_id][is]")]).toEqual(["/course/tasks", "95326"]);
     // Scrubbed and checked again, it fails the same way: the fix can start from it.
     expect(problem!.reproduces).toBe("yes");
+    // The answer the check names, as field names and types, the missing id marked: what Edunex changed, at a glance.
+    expect(problem!.item!.at).toBe("data.1.attributes.answers.0");
+    expect(problem!.item!.shape.split("\n")).toContain("  id: (missing)  ← the check");
+    expect(personalHits(problem!.item!.shape)).toEqual([]);
   });
 });
 

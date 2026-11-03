@@ -20,7 +20,8 @@ the app's (`npx vitest run relay/test`, part of `npm run check`).
 - **Counts for the daily caps**: by address, hashed with the day and a secret, gone after a day.
 
 The issue shows only the problem, the check that failed, the rows the app left out as SIX wrote them
-(their HTML, their table's header row, and their shape: letters as `a`, digits as `9`), whether the
+(their HTML, their table's header row, and their shape: letters as `a`, digits as `9`), for an Edunex
+answer the item it failed on (its field names and their types, the failing one marked), whether the
 scrubbed pages fail the same way, what it cost the Student, the app's version and system, the Student's
 study program, entry year and semester (what SIX's pages already show, so reports can be told apart:
 "three first-years in one program"), whether the report was sent by hand or by itself, and the

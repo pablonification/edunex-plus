@@ -190,6 +190,9 @@ export function driftDraft(problem: Problem, envelope: Envelope): Draft {
   // Rows left out each say their own check.
   if (problem.kind === "skipped" && problem.rows.length) body.push(...rowsLeftOut(problem));
   else body.push("**Check**", "", block(problem.check), "");
+  // An Edunex answer: the item the check names, its fields' types and the failing one marked, never a value.
+  if (problem.item)
+    body.push(`**The item it failed on** (${span(clip(problem.item.at, 200))}), its fields with their types:`, "", block(problem.item.shape), "");
   body.push(...affects(problem), ...from(envelope));
   return {
     title: clip(`${heading(problem)} (${clip(problem.check.replace(/\s+/g, " "), 90)})`, 200),

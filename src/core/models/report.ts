@@ -69,6 +69,11 @@ export const ReportProblem = z.object({
   cells: z.array(ReportCell).optional(),
   /** Format 2 on. */
   impact: ReportImpact.optional(),
+  /**
+   * Format 2 on, for an Edunex answer that didn't fit: the item its check names ("data.8", a Task), its fields with
+   * each value's type and the failing one marked (./engine/report/json-shape.ts). Never a value.
+   */
+  item: z.object({ at: z.string(), shape: z.string() }).optional(),
 });
 export type ReportProblem = z.infer<typeof ReportProblem>;
 
