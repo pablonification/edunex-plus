@@ -332,6 +332,19 @@ motion and onboarding are open. The desktop is a reference for data only.
     course's now card "Sekarang · room"), the rest in what TalkBack reads. Pills on cards get a `chip` fill (dark
     #2a2f39). Figures side by side share a size and baseline (`FigureRow`).
   - Beranda's attendance chips (53 words) wait for Arqila's call.
+- **2026-11-04: pass 6, its fixes, and the branch squashed onto main (0.1.0-alpha.30).** Run 41648678914 (526a5c6e):
+  Check A 10,365 of 10,365 (100%) in all 15 scenarios. Pass 6 (`mobile/qa/judge-r2-round6.md`): 34/37 light and dark.
+  Fixed: Beranda's card said "Kehadiran 73%" (the best share it can still reach) beside a sheet's 33%: now "73% maks";
+  a Task marked handed in another way shows the student's words, Edunex's status under them, and no Kumpulkan until
+  Urungkan; one name per state on chips ("Jatah habis", "Lewat batas N×", `ui/absence.ts`); the status bar under a sheet
+  (Material's BottomSheetDialog reset the icons on every layout: the patch removes its handler and hands the window to
+  RN, proven in run 41692335807, 2.3:1 → 4.2:1); neutral tiles and the disabled button on the `chip` fill in dark;
+  four wrapped lines. Arqila asked for the branch rebased on main before merging it: squashed onto 9c1a67cf (history on
+  `mobile-history`), then ported to #294: the desktop's renamed and removed words, Edunex Presence never "optional", no
+  claim of what SIX counted after a class, the first scan's unused-Presence finding gone; leaving an in-app SIX or Edunex
+  page re-reads attendance (`recheckAttendance`). The inventory was taken again from the desktop after #294 (692–714
+  items per scenario). The ITB catalogue pages that name the student's own courses keep their place in SIX's queue
+  (16f1da59 put them all last, so a first sign-in showed Edunex's English names).
 
 ### Rules from Arqila's verdict (2026-11-01; the judge fails a screen on any of them)
 
