@@ -393,12 +393,17 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const vars = { attended: health.attended ?? 0, held: health.held ?? 0, target: health.target, best: percent(health.best ?? 0) };
         const out = health.state === "out";
         // The course's name (few Students know their KU and PL codes by heart), the count, and the state as its status:
-        // the same words as Nanti hari ini's chip.
+        // the same words as Nanti hari ini's chip. Out of reach, the meta is the best it can still reach, short enough for
+        // one line beside the chip; the target is in what TalkBack reads (and on the course's page).
+        const title = need.course ? nameOf(courses, need.course) : "";
+        const fact = t(out ? "mobile.needs.best" : "home.need.attendance.noneMeta", vars);
+        const when = t(out ? "mobile.home.chip.belowTarget" : "mobile.home.chip.noAbsences");
         return {
-          title: need.course ? nameOf(courses, need.course) : "",
-          meta: [course, t(out ? "mobile.needs.best" : "home.need.attendance.noneMeta", vars)],
-          when: t(out ? "mobile.home.chip.belowTarget" : "mobile.home.chip.noAbsences"),
+          title,
+          meta: [course, fact],
+          when,
           tone: out ? "danger" : "warning",
+          label: out ? factsLabel(title, course, fact, t("presence.target", { value: health.target }), when) : undefined,
         };
       }
       case "meeting": {

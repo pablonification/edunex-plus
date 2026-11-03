@@ -14,6 +14,13 @@ import { shape, space, useTheme } from "./theme";
 /** How far under the status bar a sheet may reach at most: the page behind stays in sight above it. */
 const TOP_GAP = 72;
 
+/**
+ * The native grabber's height (Material's BottomSheetDragHandleView: a 48 dp target). react-native-screens 4.30's
+ * FormSheet stacks it over the content in a box only as tall as the content (FormSheetContainer, fitToContents), so the
+ * content's last 48 dp fall outside the sheet: the content ends with that much room to spare.
+ */
+const GRABBER = 48;
+
 export function Sheet({
   open,
   onClose,
@@ -57,9 +64,10 @@ export function Sheet({
         testID={testID}
         accessibilityViewIsModal
         // Never taller than the screen less a strip of the page: the content scrolls, the title and the footer stay. The
-        // sheet runs under the navigation bar (plugins/sheet-theme.js) and sizes itself to the content less the bar, so the
-        // content ends with the bar's height: measured on mid, its last row was cut by exactly that.
-        style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + insets.bottom, backgroundColor: background ?? c.surfaceContainerLow }}
+        // native sheet already keeps the content clear of the navigation bar (it runs under it, plugins/sheet-theme.js),
+        // but cuts the content's end by the grabber's height (GRABBER). That cut once matched the bar's height on mid
+        // (three-button navigation, 48 dp), so padding by the bar hid it there and not with gesture navigation (24 dp).
+        style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + GRABBER, backgroundColor: background ?? c.surfaceContainerLow }}
       >
         {title !== undefined && (
           <View style={{ paddingHorizontal: space[6], paddingBottom: space[3] }}>

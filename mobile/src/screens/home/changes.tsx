@@ -8,9 +8,11 @@ import { useDataset } from "../../../../src/app/store";
 import type { Alert, AlertKind } from "../../../../src/core/models";
 import { type HomeContext, recentChanges } from "../../../../src/core/needs";
 import { useNav } from "../../nav";
+import { changeMeta } from "../../parts/change-meta";
 import { CourseIconTile } from "../../ui/course-icon-tile";
 import { Group, GroupRow, Heading, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
+import { factsLabel } from "../../ui/layout";
 import { Text } from "../../ui/text";
 import { useTheme } from "../../ui/theme";
 
@@ -85,27 +87,31 @@ function ChangeRow({ item, first, onOpen }: { item: Alert; first: boolean; onOpe
   const glyph = (color: string) => <Icon size={22} color={color} />;
   const important = IMPORTANT.has(item.title.key) || (item.body !== null && item.body !== undefined && IMPORTANT_BODY.has(item.body.key));
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
+  const title = t(item.title.key, item.title.vars);
+  const meta = changeMeta(t, item.body);
+  const when = f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at);
   return (
     <GroupRow
       first={first}
       testID={`row.change.${item.id}`}
+      accessibilityLabel={factsLabel(title, meta?.full, when)}
       leading={important ? <IconTile tone="amber" icon={glyph} /> : code ? <CourseIconTile code={code} icon={glyph} /> : <IconTile tone="plain" icon={glyph} />}
       title={
         <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
-          {t(item.title.key, item.title.vars)}
+          {title}
         </Text>
       }
-      // One line; the bell's screen and the item's page keep the whole of it (and TalkBack reads it all).
+      // One line, short where the desktop's runs long (../../parts/change-meta.ts); TalkBack reads it all.
       meta={
-        item.body ? (
+        meta ? (
           <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
-            {t(item.body.key, item.body.vars)}
+            {meta.shown}
           </Text>
         ) : undefined
       }
       trailing={
         <Text size="labelMedium" tabular style={{ color: v.muted }}>
-          {f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at)}
+          {when}
         </Text>
       }
       onPress={onOpen}

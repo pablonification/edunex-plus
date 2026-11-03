@@ -20,7 +20,8 @@ export const BAR_HEIGHT = 64;
 /**
  * `titleFrom`: the page shows the title big at its top (a course's name), so the bar's title stays hidden until the
  * page has scrolled that far (dp), then fades in: M3's collapsing top app bar, without moving any layout.
- * `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, its title in Plus Jakarta Sans.
+ * `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, its title on one line. The title is in Plus
+ * Jakarta Sans on every page.
  */
 export function TopBar({
   title,
@@ -48,12 +49,14 @@ export function TopBar({
           <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
         </IconButton>
         <Animated.View style={{ flex: 1, marginLeft: space[1], opacity: shown ?? 1 }}>
+          {/* Every screen's title in the one face for headings (v4: Plus Jakarta Sans), whatever page it's on. */}
           <Text
             size="titleLarge"
             numberOfLines={v4 ? 1 : undefined}
-            {...(v4 ? ({ face: "display", weight: "bold" } as const) : {})}
+            face="display"
+            weight="bold"
             accessibilityRole="header"
-            style={{ paddingVertical: space[1], ...(v4 ? { letterSpacing: -0.2 } : {}) }}
+            style={{ paddingVertical: space[1], letterSpacing: -0.2 }}
           >
             {title ?? ""}
           </Text>

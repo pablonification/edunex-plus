@@ -300,27 +300,41 @@ function Standing({ sks, onlyLeft, onToggle, children }: { sks: SksModel; onlyLe
       ) : null}
     </Text>
   );
+  // The figure on the title's line, so the meta line under it has the row's whole width ("19 lulus · 12 semester ini ·
+  // 6 direncanakan" was cut beside a figure at the row's end).
+  const headline = (title: string, figure: ReactNode) => (
+    <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[3] }}>
+      <Text size="bodyLarge" weight="medium" style={{ flex: 1, color: v.fg, lineHeight: 21 }}>
+        {title}
+      </Text>
+      {figure}
+    </View>
+  );
   return (
     <Group testID="card.curriculumStanding">
       <GroupRow
         first
-        title={t("curriculum.requiredLeft")}
-        meta={sks.requiredLeft.count > 0 && sks.requiredUnplanned.count === 0 ? t("curriculum.requiredLeftHint") : null}
-        trailing={value(
-          sks.requiredLeft.count
-            ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks })
-            : t("curriculum.requiredNone"),
+        title={headline(
+          t("curriculum.requiredLeft"),
+          value(
+            sks.requiredLeft.count
+              ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks })
+              : t("curriculum.requiredNone"),
+          ),
         )}
+        meta={sks.requiredLeft.count > 0 && sks.requiredUnplanned.count === 0 ? t("curriculum.requiredLeftHint") : null}
       />
       {sks.electiveNeed !== null && (
         <GroupRow
-          title={t("curriculum.electives")}
+          title={headline(
+            t("curriculum.electives"),
+            value(t("curriculum.electivesValue", { have: Math.min(e.have, sks.electiveNeed), need: sks.electiveNeed }), e.extra),
+          )}
           meta={
             <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted }}>
               {t("curriculum.electivesDetail", { passed: e.passed, now: e.inProgress, planned: e.planned })}
             </Text>
           }
-          trailing={value(t("curriculum.electivesValue", { have: Math.min(e.have, sks.electiveNeed), need: sks.electiveNeed }), e.extra)}
         />
       )}
       {children}

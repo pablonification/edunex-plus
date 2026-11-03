@@ -74,8 +74,15 @@ export const mobileStrings = {
   "mobile.home.chip.noAbsences": { id: "Jatah habis", en: "No absences left" },
   "mobile.home.chip.belowTarget": { id: "Di bawah target", en: "Below target" },
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
-  // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach.
-  "mobile.needs.best": { id: "Paling tinggi {best}% · target {target}%", en: "Best case {best}% · target {target}%" },
+  // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough
+  // for one line beside its "Di bawah target" chip (the target itself is on the course's page).
+  "mobile.needs.best": { id: "Maks {best}%", en: "At most {best}%" },
+  // Yang berubah and Notifikasi: a moved class's or an Edunex-only meeting's one meta line, the day and its time or room,
+  // short enough for one line beside the row's time (the title says what changed). The desktop's whole line, with the
+  // usual time or room and "tidak ada di jadwal SIX", is what TalkBack reads; Jadwal and the class sheet show them too.
+  "mobile.change.moved.time": { id: "{dateId} {time}", en: "{dateEn} {time}" },
+  "mobile.change.moved.room": { id: "{dateId} di {room}", en: "{dateEn} in {room}" },
+  "mobile.change.meeting.body": { id: "{dateId} {time}", en: "{dateEn} {time}" },
   // The class sheet's one status (a chip), and its one quiet line: what it clashes with, or where it usually is.
   "mobile.home.chip.now": { id: "Sekarang", en: "Now" },
   "mobile.home.chip.moved": { id: "Berubah", en: "Changed" },
