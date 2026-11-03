@@ -5682,6 +5682,12 @@
   },
   "phoneSkips": [
     {
+      "entry": "^home\\.absence-budget\\.",
+      "tokens": "^Belum ada pertemuan$",
+      "row": "D24",
+      "why": "the desktop's Beranda card says 'Belum ada pertemuan' for a course without SIX's count (course.noMeetingsYet, when held is empty), which isn't true when SIX's course table only lost its attendance column (course-table-blank): the classes did meet, Edunex already records PL3002's as 'Hadir 1 dari 6 di Edunex'. The course's sheet says what's known instead, the desktop Presensi's words for the same courses: 'Belum ada hitungan SIX' (presence.budget.unknown) and the absences the timetable allows, or Edunex's tally for a course Edunex records. The course, its class and SKS of the same entry are still looked for there (Decision 24: less, never less truly)"
+    },
+    {
       "entry": "^plan\\.rencana\\.plan\\.(14-semester-ini|12-direncanakan)$",
       "tokens": "(semester ini|direncanakan)$",
       "row": "W4",
