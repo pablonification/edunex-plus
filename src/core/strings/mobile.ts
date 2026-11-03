@@ -178,7 +178,7 @@ export const mobileStrings = {
   // Jadwal's ⋮: the phone's calendar kept the same as Jadwal, in a calendar of the app's own (W13). Label and hint each
   // on one line in the menu; the calendar's name is in the toast and the off toast.
   "mobile.calendar.sync": { id: "Kalender HP", en: "Phone calendar" },
-  "mobile.calendar.sync.hint": { id: "Selalu sama dengan Jadwal", en: "Always matches your schedule" },
+  "mobile.calendar.sync.hint": { id: "Selalu sama dengan Jadwal", en: "Matches your schedule" },
   // The snackbar once it's on: one line (the ⋮ row's hint already says it stays up to date).
   "mobile.calendar.sync.on": {
     id: "{count} acara masuk Kalender HP",
