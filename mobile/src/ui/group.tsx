@@ -1,9 +1,9 @@
 // v4's building blocks for a screen past Beranda (round 2; DESIGN.md "Round 2's look: v4"): a section's heading in Plus
 // Jakarta Sans, a white card on v4's grey page (`Panel`), a group of rows in one card with hairlines inset past the
 // leading tile (`Group`, `GroupRow`), a tonal pill for a row's one status (`Pill`), a tinted icon tile for what isn't a
-// course (`IconTile`), and a big number that counts up once (`Figure`). Every target springs (press.tsx). A screen that
+// course (`IconTile`), and a big number that counts up once (`Figure`; side by side in a `FigureRow`). Every target springs (press.tsx). A screen that
 // uses them sets its `Page`'s `background` to `theme.v4.page`, so its top bar sits on the same grey.
-import type { ReactNode } from "react";
+import { createContext, type ReactNode, useContext } from "react";
 import { type AccessibilityProps, type StyleProp, View, type ViewStyle } from "react-native";
 import { CountUp } from "./expressive";
 import { PressScale } from "./press";
@@ -220,6 +220,9 @@ export function IconTile({ icon, tone = "brand", size = 44 }: { icon: (color: st
   );
 }
 
+/** The size every figure in a `FigureRow` takes, whatever its own `size`. */
+const RowSize = createContext<number | null>(null);
+
 /**
  * A screen's key number, big, in Plus Jakarta Sans: counts up once per run (`id`), then a smaller `unit` after it
  * ("3,42", "112 dari 144 SKS"). `color` for a state's ink (red when overdue); else the page's text colour.
@@ -243,6 +246,7 @@ export function Figure({
 }) {
   const v = useTheme().v4;
   const ink = color ?? v.fg;
+  const px = useContext(RowSize) ?? size;
   return (
     <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", columnGap: space[2] }}>
       <CountUp
@@ -250,7 +254,7 @@ export function Figure({
         value={value}
         decimals={decimals}
         comma={comma}
-        style={{ fontFamily: font.display.extrabold, fontSize: size, lineHeight: Math.round(size * 1.15), letterSpacing: -1, color: ink }}
+        style={{ fontFamily: font.display.extrabold, fontSize: px, lineHeight: Math.round(px * 1.15), letterSpacing: -1, color: ink }}
       />
       {unit ? (
         <Text size="bodyLarge" weight="medium" style={{ color: ink }}>
@@ -269,4 +273,36 @@ export function FigureLabel({ children }: { children: string }) {
       {children}
     </Text>
   );
+}
+
+/**
+ * Figures side by side ("IPK" 3,26 beside "SKS lulus" 125 dari 144), each a `FigureCell`: the labels on one line, the
+ * numbers on one baseline. Every figure (and `FigureDash`) in the row takes the row's one `size`, so they share a line
+ * box, and with it a baseline, under labels of one height (judge round 5: labels in a stair-step, "8" lower than
+ * "3,30"). Side by side while they fit; at a big font size the next one goes under.
+ */
+export function FigureRow({ children, size = 44 }: { children: ReactNode; size?: number }) {
+  return (
+    <RowSize.Provider value={size}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", columnGap: space[6], rowGap: space[4] }}>{children}</View>
+    </RowSize.Provider>
+  );
+}
+
+/** One figure in a `FigureRow`: its label, the figure, and at most one thing under it (a `Pill`). */
+export function FigureCell({ label, children, under, ...a11y }: { label: string; children: ReactNode; under?: ReactNode } & AccessibilityProps) {
+  return (
+    <View style={{ gap: space[1] }} {...a11y}>
+      <FigureLabel>{label}</FigureLabel>
+      {children}
+      {under ? <View style={{ alignSelf: "flex-start" }}>{under}</View> : null}
+    </View>
+  );
+}
+
+/** A figure with nothing to count: "-" in the figure's face and size (a `FigureRow`'s, inside one). */
+export function FigureDash({ size = 44 }: { size?: number }) {
+  const v = useTheme().v4;
+  const px = useContext(RowSize) ?? size;
+  return <Text style={{ fontFamily: font.display.extrabold, fontSize: px, lineHeight: Math.round(px * 1.15), color: v.fg }}>-</Text>;
 }

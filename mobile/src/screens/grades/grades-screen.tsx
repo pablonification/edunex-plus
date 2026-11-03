@@ -22,13 +22,13 @@ import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { Figure, FigureLabel, Group, GroupRow, Heading, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
+import { Figure, FigureCell, FigureDash, FigureLabel, FigureRow, Group, GroupRow, Heading, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
-import { font, space, useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { Later } from "../plan/deferred";
@@ -139,16 +139,14 @@ const Standing = memo(function Standing({ record, state }: { record: StudentReco
   return (
     <Panel testID="card.standing" style={{ padding: space[5], gap: space[3] }}>
       {/* Side by side while they fit; at a big font size the SKS goes under the IPK. */}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[8], rowGap: space[3] }}>
-        <View>
-          <FigureLabel>{t("grades.chart.ipk")}</FigureLabel>
-          {ipk === null ? <Dash size={44} /> : <Figure id="grades.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
-        </View>
-        <View>
-          <FigureLabel>{t("grades.sksPassed")}</FigureLabel>
-          {sks === null ? <Dash size={32} /> : <Figure id="grades.sks" value={sks} unit={t("mobile.academic.sksOf", { need })} size={32} />}
-        </View>
-      </View>
+      <FigureRow>
+        <FigureCell label={t("grades.chart.ipk")}>
+          {ipk === null ? <FigureDash /> : <Figure id="grades.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
+        </FigureCell>
+        <FigureCell label={t("grades.sksPassed")}>
+          {sks === null ? <FigureDash /> : <Figure id="grades.sks" value={sks} unit={t("mobile.academic.sksOf", { need })} />}
+        </FigureCell>
+      </FigureRow>
       {lastIp !== null && (
         <Text size="bodyMedium" tabular style={{ color: v.muted }}>
           {delta === null
@@ -168,12 +166,6 @@ const Standing = memo(function Standing({ record, state }: { record: StudentReco
   );
 });
 
-/** A figure with nothing to count: "-" in the figure's face and size. */
-function Dash({ size }: { size: number }) {
-  const v = useTheme().v4;
-  return <Text style={{ fontFamily: font.display.extrabold, fontSize: size, lineHeight: Math.round(size * 1.15), color: v.fg }}>-</Text>;
-}
-
 /** The page's shape while SIX's record is on its way: the key card, then a card of rows. */
 function GradesSkeleton() {
   return (
@@ -186,7 +178,7 @@ function GradesSkeleton() {
           </View>
           <View style={{ gap: space[2] }}>
             <Skeleton width={64} height={14} />
-            <Skeleton width={112} height={32} />
+            <Skeleton width={112} height={44} />
           </View>
         </View>
         <Skeleton width="55%" height={14} />
@@ -342,7 +334,7 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
       <Panel style={{ marginTop: space[3], padding: space[5], gap: space[4] }} testID="card.ipkAfter">
         <View>
           <FigureLabel>{t("grades.ipkAfter")}</FigureLabel>
-          {after === null ? <Dash size={32} /> : <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={32} />}
+          {after === null ? <FigureDash size={32} /> : <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={32} />}
         </View>
         <TargetControl record={record} state={state} />
         <NeedText need={termOnly.need(goal)} target={goal} sks={record.inProgressSks} scope="term" />

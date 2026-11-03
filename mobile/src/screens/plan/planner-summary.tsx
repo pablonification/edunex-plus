@@ -9,11 +9,11 @@ import { useFormat, useLang, useT } from "../../../../src/app/i18n";
 import type { StudyPlan } from "../../../../src/core/models";
 import { isHidden, type ProjectedStep, type Projection, passedSks, type Rule, type SksModel, type StudentRecord, sksModel } from "../../../../src/core/planner";
 import { Skeleton } from "../../ui/display";
-import { Figure, FigureLabel, Group, GroupRow, IconTile, Panel, Pill } from "../../ui/group";
+import { Figure, FigureCell, FigureDash, FigureRow, Group, GroupRow, IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Text } from "../../ui/text";
-import { font, type Palette, radius, space, useTheme } from "../../ui/theme";
+import { type Palette, radius, space, useTheme } from "../../ui/theme";
 import { usePlaceState } from "./place-state";
 import { useShortfallText } from "./planner-kit";
 import { useTermLabel } from "./projection";
@@ -51,33 +51,32 @@ export const PlanHero = memo(function PlanHero({
           </Text>
         ) : null}
         {/* Side by side while they fit; at a big font size the IPK goes under the semester. */}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", columnGap: space[8], rowGap: space[4] }}>
+        <FigureRow>
           {finish?.blocked ? (
-            <View style={{ gap: space[1] }} accessibilityLiveRegion="polite">
-              <FigureLabel>{t("mobile.planner.sksInPlan")}</FigureLabel>
-              <Figure id="planner.sks" value={sks.total} unit={t("mobile.academic.sksOf", { need: sks.need })} color={sks.short ? v.redFg : undefined} />
-              <View style={{ alignSelf: "flex-start" }}>
+            <FigureCell
+              label={t("mobile.planner.sksInPlan")}
+              accessibilityLiveRegion="polite"
+              under={
                 <Pill tone="red" icon={(color) => <Icons.AlertTriangle size={14} color={color} weight="bold" />}>
                   {t("planner.notYet")}
                 </Pill>
-              </View>
-            </View>
+              }
+            >
+              <Figure id="planner.sks" value={sks.total} unit={t("mobile.academic.sksOf", { need: sks.need })} color={sks.short ? v.redFg : undefined} />
+            </FigureCell>
           ) : (
-            <View style={{ gap: space[1] }} accessibilityLiveRegion="polite">
-              <FigureLabel>{t("mobile.planner.finishIn")}</FigureLabel>
-              {finish ? <Figure id="planner.finish" value={finish.semester} /> : <Dash size={44} />}
-              {finish ? (
-                <View style={{ alignSelf: "flex-start" }}>
-                  <Pill tone={late ? "amber" : "ok"}>{late ? t("planner.late", { normal: finish.normal }) : t("planner.onTime")}</Pill>
-                </View>
-              ) : null}
-            </View>
+            <FigureCell
+              label={t("mobile.planner.finishIn")}
+              accessibilityLiveRegion="polite"
+              under={finish ? <Pill tone={late ? "amber" : "ok"}>{late ? t("planner.late", { normal: finish.normal }) : t("planner.onTime")}</Pill> : undefined}
+            >
+              {finish ? <Figure id="planner.finish" value={finish.semester} /> : <FigureDash />}
+            </FigureCell>
           )}
-          <View style={{ gap: space[1] }}>
-            <FigureLabel>{t("grades.graduation")}</FigureLabel>
-            {ipk === null ? <Dash size={32} /> : <Figure id="planner.ipk" value={ipk} decimals={2} comma={lang === "id"} size={32} />}
-          </View>
-        </View>
+          <FigureCell label={t("grades.graduation")}>
+            {ipk === null ? <FigureDash /> : <Figure id="planner.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
+          </FigureCell>
+        </FigureRow>
         {finish?.blocked ? (
           <Text size="bodyMedium" weight="medium" style={{ color: v.redFg }}>
             {t("planner.shortfall", { list: shortfall(finish.blocked) })}
@@ -103,12 +102,6 @@ export const PlanHero = memo(function PlanHero({
     </View>
   );
 });
-
-/** A figure with nothing to count: "-" in the figure's face and size. */
-function Dash({ size }: { size: number }) {
-  const v = useTheme().v4;
-  return <Text style={{ fontFamily: font.display.extrabold, fontSize: size, lineHeight: Math.round(size * 1.15), color: v.fg }}>-</Text>;
-}
 
 /**
  * Passed, this semester and planned as a bar, with its legend unless `legend` is false (Kurikulum's card keeps the bar
@@ -224,7 +217,7 @@ export function PlannerSkeleton() {
           </View>
           <View style={{ gap: space[2] }}>
             <Skeleton width={88} height={14} />
-            <Skeleton width={80} height={32} />
+            <Skeleton width={80} height={44} />
           </View>
         </View>
         <Skeleton height={10} />
