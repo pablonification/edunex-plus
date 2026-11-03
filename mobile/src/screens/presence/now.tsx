@@ -19,6 +19,7 @@ import { BigButton } from "../../ui/big-button";
 import { Button } from "../../ui/controls";
 import { PulseDot } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
+import { factsLabel } from "../../ui/layout";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -130,8 +131,10 @@ function OpenCheckIn({ session }: { session: ClassSession }) {
 }
 
 /**
- * An Edunex window open now that may count: "Kumpulkan Tugas 02 Bab II sebelum 23:59", with the way to do it and the
- * time left. Without SIX nobody can say it counts: worth doing just in case, so its button is the quiet one.
+ * An Edunex window open now: what to do ("Isi Presensi", or the action itself) and when it closes, as the desktop's
+ * card says it, with the way to do it and the time left. No system says whether the lecturer uses it, so it's never
+ * optional. Without SIX (or before either has a count) nobody can say it counts: "belum pasti dihitung", and why under
+ * the bar (the desktop's info button); without SIX its button is the quiet one.
  */
 function OpenPresence({ window }: { window: OpenWindow }) {
   const t = useT();
@@ -145,12 +148,21 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   const { session, code, health, action } = window;
   const task = action.activity === "assignment" ? action.task : null;
   const noSix = health?.countedIn === "noSix";
-  const where = noSix ? "presence.open.noSix" : health?.countedIn === "unknown" ? "presence.open.notKnown" : "presence.open.counts";
+  const notKnown = !noSix && health?.countedIn === "unknown";
+  const time = f.time(session.closesAt);
   const iconColor = noSix ? v.fg : v.onBrand;
   return (
     <View style={[surface, { padding: space[4], gap: space[3] }]} testID={`card.presenceOpen.${code}`}>
-      <LiveHead title={t("presence.open.do", { action: actionLabel(window), time: f.time(session.closesAt) })} meta={t(where, { code })} />
+      <LiveHead
+        title={action.activity === "course" ? t("presence.open.fill") : actionLabel(window)}
+        meta={factsLabel(code, t("presence.open.closes", { time }), (noSix || notKnown) && t("presence.open.maybe"))}
+      />
       <CountdownBar opensAt={session.opensAt} closesAt={session.closesAt} now={now} label={t("presence.open.left", { time: f.countdown(session.closesAt) })} />
+      {(noSix || notKnown) && (
+        <Text size="bodyMedium" style={{ color: v.muted }}>
+          {t(noSix ? "presence.open.noSixWhy" : "presence.open.notKnownWhy")}
+        </Text>
+      )}
       {task ? (
         <BigButton
           variant={noSix ? "outline" : "filled"}
@@ -283,7 +295,7 @@ function WeekNote({ event }: { event: CalendarEvent }) {
   const period = t(event.kind === "uts" ? "presence.period.uts" : event.kind === "uas" ? "presence.period.uas" : "presence.period.off");
   return (
     <Quiet icon={<Icons.GraduationCap size={16} weight="bold" color={v.muted} />}>
-      {t("presence.weekNote", { period, range: f.dayRange(event.firstDay, event.lastDay) })}
+      {`${t("presence.weekNote", { period, range: f.dayRange(event.firstDay, event.lastDay) })}. ${t("presence.weekNoteWhy")}`}
     </Quiet>
   );
 }

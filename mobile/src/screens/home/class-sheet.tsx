@@ -275,7 +275,7 @@ export type CardAction = "checkIn" | "presence" | "join" | null;
 export function cardAction(card: NowCard, now: number, checkInOpen: boolean): CardAction {
   const { slot, link } = cardSubject(card);
   if (checkInOpen) return "checkIn";
-  if (card.presence && card.presence.counts !== false) return "presence";
+  if (card.presence) return "presence";
   if (link && card.state !== "later" && (card.state === "live" || (slot !== null && slot.start - now < 15 * MINUTE))) return "join";
   return null;
 }

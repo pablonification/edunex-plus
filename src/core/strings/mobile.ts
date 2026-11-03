@@ -312,8 +312,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     en: { one: "Changed · {count} change", other: "Changed · {count} changes" },
   },
   "home.need.task.editedMove": { id: "Diubah dosen · {change}", en: "Changed · {change}" },
-  // A meeting only Edunex announced, as a row's or a class sheet's one chip.
-  "home.today.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
   // The first-run summary's title, short enough for the top bar.
   "scan.heading": { id: "Ringkasan awal", en: "First summary" },
   // settings: Beranda › how far ahead its list looks. The phone's Beranda calls that list "Perlu kamu urus", not the
@@ -334,9 +332,10 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   },
   // A new Task's notification: the title, then its deadline, the first thing a Student wants to know.
   "alert.newTask.body": { id: "{title} · tenggat {dateId} {time}", en: "{title} · due {dateEn} {time}" },
-  "presence.row.watching": {
-    id: "Tandai Hadir belum muncul. Selama aplikasi terbuka, SIX dicek tiap 2 menit.",
-    en: "Tandai Hadir hasn't shown yet. While the app is open, it checks SIX every 2 minutes.",
+  // Why Tandai Hadir hasn't shown: the phone checks SIX only while the app is open.
+  "presence.row.watchingWhy": {
+    id: "Selama aplikasi terbuka, SIX dicek tiap 2 menit.",
+    en: "While the app is open, it checks SIX every 2 minutes.",
   },
   "presence.footer": {
     id: "Kehadiran dihitung di SIX. Tekan Tandai Hadir di SIX saat tombolnya muncul. Buka aplikasi saat kuliah agar langsung tahu.",
@@ -440,9 +439,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "alert.due.body": { id: "{title} · belum dikumpulkan", en: "{title} · not handed in yet" },
   "alert.due.draft": { id: "{title} · masih draf, belum dikumpulkan", en: "{title} · still a draft, not handed in yet" },
   "settings.alerts.deadlineHint": { id: "Sebelum tenggat, hanya jika belum dikumpulkan", en: "Before the deadline, only if not handed in" },
-  // course: Pertemuan, a past class with no Edunex record (no Presence, or one left unmarked where SIX counts).
-  // "Selesai" read as "you attended". SIX's count is said once, above the list.
-  "meeting.done": { id: "Tanpa catatan Edunex", en: "No Edunex record" },
   // attendance: the absences still allowed, on Beranda, Presensi and a course page.
   "presence.budget.safe": {
     id: "Masih boleh absen {count} kali",
@@ -450,7 +446,7 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   },
   // grades: Nilai's best IPK. The SKS still to grade are this term's and the plan's, not what's left to graduate: the
   // planned ones, in a meta that fits one line beside the figure (the judge's round 2, pass 6).
-  "grades.bestHint": { id: "jika semua A di {sks} SKS terencana", en: "with straight A's in {sks} planned SKS" },
+  "grades.bestHint": { id: "Jika semua A di {sks} SKS terencana", en: "With straight A's in {sks} planned SKS" },
   // grades-plan: Kalender akademik, the last day of classes. "Hari ini" read as today.
   "deadline.lectureEnd": { id: "Jatah absenmu dihitung sampai hari itu.", en: "Your absences left count up to that day." },
   // grades-plan: UKT, when SIX and the ITB calendar give two deadlines for one bill.

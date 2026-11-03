@@ -5,7 +5,6 @@
 // box: an answer Edunex holds with formatting stays as it is, changed on Edunex.
 import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
-import { useAttendance } from "../../../../src/app/attendance";
 import { ActionError, errorKey } from "../../../../src/app/bridge";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useClock, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -150,7 +149,6 @@ export function useHandIn(task: Task, status: TaskStatus) {
   const bridge = useBridge();
   const edunex = useStatus("edunex");
   const presence = useDataset("edunex.presence");
-  const countedIn = useAttendance()?.courses.find((entry) => entry.course.code === task.courseCode)?.health.countedIn;
   const [attached, setAttached] = useState<Attached[]>([]);
   const [removed, setRemoved] = useState<string[]>([]);
   const [busy, setBusy] = useState<"draft" | "submit" | null>(null);
@@ -185,7 +183,7 @@ export function useHandIn(task: Task, status: TaskStatus) {
   const hasAnswer = hasText && (files.length > 0 || !task.fileRequired);
   const textChanged = !textLocked && answer.dirty;
   const changed = uploaded.length > 0 || removed.length > 0 || textChanged;
-  const guard = handInChecks(task, { now, sessions: presence?.[task.courseCode] ?? [], edunex: edunex.state, files, countedIn });
+  const guard = handInChecks(task, { now, sessions: presence?.[task.courseCode] ?? [], edunex: edunex.state, files });
   const wait = guard.waitForWindow && hasAnswer;
   const idle = editable && !uploading && !failed && busy === null;
   const canSave = idle && changed && hasAnswer && !guard.blocked;

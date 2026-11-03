@@ -148,12 +148,12 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
   );
 }
 
-/** Edunex's open Presence for the course where only SIX counts (or nobody can say): ⋮ offers it, the card may not. */
+/** Edunex's open Presence for the course where nobody can say it counts (signed out of SIX): ⋮ offers it, the card may not. */
 export function useRecordInEdunexUrl(page: CoursePage): string | null {
   const now = useNow();
   const attendance = useAttendance();
   const countedIn = attendance?.courses.find((x) => x.course.code === page.course.code)?.health.countedIn;
-  if (countedIn !== "six" && countedIn !== "noSix") return null;
+  if (countedIn !== "noSix") return null;
   const window = openPresences(page.presence ?? [], now)[0];
   if (!window) return null;
   return window.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
@@ -191,10 +191,11 @@ function NowCard({
   const link = meeting && meeting.end > now ? (meeting.announced?.link ?? null) : null;
   const upcoming = meeting !== null && meeting.start > now;
   const url = presence?.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
-  // Edunex's window is the thing to do only where it may be what counts.
-  const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
+  // Edunex's window is the thing to do, never "optional": no system says whether the lecturer uses it. Without SIX
+  // it's said calmly (nobody can say; it's worth doing just in case).
+  const presenceCounts = countedIn !== "noSix";
   // A class SIX counts, on now: SIX's Tandai Hadir is the thing to do, as on Beranda (the app never presses it).
-  const sixSession = current && meeting && countedIn === "six" && meeting.six && student ? meeting.six : null;
+  const sixSession = current && meeting && (countedIn === "six" || countedIn === "both") && meeting.six && student ? meeting.six : null;
   const sixState = sixSession ? (checkIns?.[sixSession.id]?.state ?? "waiting") : null;
   const went = useWentToCheckIn(sixSession?.id ?? null);
   const done = sixState === "gone" && went !== null ? went : null;
@@ -280,8 +281,8 @@ function NowCard({
         </BigButton>
       ),
     });
-  // Where only SIX counts, Edunex's Presence is still there to fill in: the card's button when it has no other, else
-  // in ⋮ (the course's menu, recordInEdunexUrl), so the card keeps one button.
+  // Without SIX, Edunex's Presence is still there to fill in, just in case: the card's button when it has no other,
+  // else in ⋮ (the course's menu, useRecordInEdunexUrl).
   if (presence && url && !presenceCounts && actions.length === 0)
     actions.push({
       key: "presence",
@@ -325,12 +326,8 @@ function NowCard({
             </Text>
           )}
         </View>
-        {/* Whether the open Presence counts, where only SIX does or nobody can say. */}
-        {presence && !presenceCounts && (
-          <StatusChip tone={countedIn === "noSix" ? "amber" : "neutral"}>
-            {t(countedIn === "noSix" ? "mobile.course.mayNotCount" : "mobile.course.optional")}
-          </StatusChip>
-        )}
+        {/* Without SIX nobody can say the open Presence counts. */}
+        {presence && !presenceCounts && <StatusChip tone="amber">{t("mobile.course.mayNotCount")}</StatusChip>}
       </View>
       {left && (
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], marginTop: space[4] }}>
@@ -341,7 +338,7 @@ function NowCard({
               track={tint}
               label={
                 current
-                  ? t("home.now.live", { time: f.time(progress.to) })
+                  ? t("presence.row.now", { time: f.time(progress.to) })
                   : t("course.closesAt", { time: f.dayTime(progress.to), left: f.countdown(progress.to) })
               }
             />

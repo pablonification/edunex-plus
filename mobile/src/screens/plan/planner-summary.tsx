@@ -45,11 +45,6 @@ export const PlanHero = memo(function PlanHero({
   return (
     <View style={{ gap: space[3] }}>
       <Panel testID="card.planSummary" style={{ padding: space[5], gap: space[4] }}>
-        {record.program ? (
-          <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
-            {t("planner.program", { name: record.program.name })}
-          </Text>
-        ) : null}
         {/* Side by side while they fit; at a big font size the IPK goes under the semester. */}
         <FigureRow>
           {finish?.blocked ? (

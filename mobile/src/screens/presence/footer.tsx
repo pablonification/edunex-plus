@@ -109,7 +109,7 @@ function Said({ icon, children }: { icon: ReactNode; children: string }) {
   );
 }
 
-/** "Hari ini ada 4 kuliah. Hanya PL3002 yang masih ada jatah absen.", or the next class day, or when lectures ended. */
+/** "Hari ini, hanya PL3002 yang masih ada jatah absen.", or the next class day, or when lectures ended. */
 function DayLine({ attendance }: { attendance: Attendance }): ReactNode {
   const t = useT();
   const f = useFormat();
@@ -133,21 +133,26 @@ function DayLine({ attendance }: { attendance: Attendance }): ReactNode {
   // A class SIX shows that the app couldn't read: counted on its day, and said, with where to look.
   const unreadLine = answer.unread ? ` ${t("presence.day.unread", { count: answer.unread })}` : "";
   if (answer.kind === "next") return line(`${t("presence.day.next", { day: dayLabel(f, answer.at) })}${unreadLine}`);
-  const first = `${t(answer.day === "today" ? "presence.day.today" : "presence.day.tomorrow", { count: answer.count })}${unreadLine}`;
+  // As src/app/screens/presence.tsx's DayLine: the answer stands alone, how many classes the day has said only without one.
+  const count = t(answer.day === "today" ? "presence.day.today" : "presence.day.tomorrow", { count: answer.count });
   const { spare } = answer;
-  // Said only of the courses SIX has a count for; with some still uncounted, they're named instead of "only" or "each".
-  const second = !spare
-    ? ""
-    : spare.of < spare.courses
-      ? spare.codes.length
-        ? t("presence.day.some", { codes: f.list(spare.codes), count: spare.codes.length })
-        : ""
-      : spare.of === 1
-        ? t(spare.codes.length ? "presence.day.one" : "presence.day.oneNone")
+  const day = t(answer.day === "today" ? "presence.day.when.today" : "presence.day.when.tomorrow");
+  // Said only of the courses SIX has a count for; with some still uncounted (or one course that day), they're named
+  // instead of "only" or "each".
+  const named = spare && { day, codes: f.list(spare.codes), count: spare.codes.length };
+  const answerLine =
+    !spare || !named
+      ? count
+      : spare.of < spare.courses || spare.of === 1
+        ? spare.codes.length
+          ? t("presence.day.some", named)
+          : spare.courses === 1
+            ? `${count} ${t("presence.day.oneNone")}`
+            : count
         : spare.codes.length === spare.of
-          ? t("presence.day.all")
+          ? t("presence.day.all", { day })
           : spare.codes.length === 0
-            ? t("presence.day.none")
-            : t("presence.day.only", { codes: f.list(spare.codes), count: spare.codes.length });
-  return line(second ? `${first} ${second}` : first);
+            ? t("presence.day.none", { day })
+            : t("presence.day.only", named);
+  return line(`${answerLine}${unreadLine}`);
 }

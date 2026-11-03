@@ -55,7 +55,6 @@ export const mobileCourseStrings = {
   "mobile.course.ex.gone": { id: "Tandai Hadir tak tampil lagi", en: "Tandai Hadir is gone" },
   // The class on now: when the Edunex Presence closes, and whether it counts.
   "mobile.course.presenceCloses": { id: "Presensi tutup {time}", en: "Presence closes {time}" },
-  "mobile.course.optional": { id: "Tidak wajib", en: "Not required" },
   "mobile.course.mayNotCount": { id: "Belum pasti dihitung", en: "May not count" },
   // The course's sheet: its target, changed in place.
   "mobile.course.target": { id: "Target kehadiran", en: "Attendance target" },

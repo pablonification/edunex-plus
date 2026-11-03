@@ -118,12 +118,6 @@ export function describe(finding: Finding, t: Translate, f: Format): { title: st
         note: t("scan.clash.krs"),
       };
     }
-    case "unusedPresence":
-      return {
-        title: t("scan.unused.title", { count: finding.count }),
-        lines: few(finding.courses, (c) => t("scan.unused.course", { code: c.code, count: c.absent, attended: c.attended, held: c.held }), t),
-        note: t("scan.unused.note"),
-      };
     case "exams":
       return {
         title: t("scan.exams.title", { count: finding.count }),

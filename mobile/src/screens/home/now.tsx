@@ -179,7 +179,7 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
                 progress={(now - progress.from) / Math.max(1, progress.to - progress.from)}
                 ink={ink}
                 track={`${ink}4d`}
-                label={t("home.now.live", { time: f.time(progress.to) })}
+                label={t("presence.row.now", { time: f.time(progress.to) })}
               />
             ) : (
               <View style={{ flex: 1 }} />

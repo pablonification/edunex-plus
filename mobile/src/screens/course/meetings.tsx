@@ -11,7 +11,7 @@ import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
 import { useDataset, useStatus } from "../../../../src/app/store";
-import type { AfterClass, CountedIn } from "../../../../src/core/attendance";
+import type { CountedIn } from "../../../../src/core/attendance";
 import { type OutlineEntry, outlineEntries } from "../../../../src/core/course-materials";
 import { type Meeting, meetingModules, meetingState, nextMeetingIndex, wibDay } from "../../../../src/core/course-meetings";
 import { edunexCourseUrl } from "../../../../src/core/links";
@@ -93,7 +93,6 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
                   countedIn={countedIn}
                   moduleTitle={meetingModuleTitle(t, modules, meeting)}
                   fallbackUrl={course.edunex ? edunexCourseUrl(course.edunex.courseId) : null}
-                  sixResult={meeting.six ? (attendance?.results[meeting.six.id]?.result ?? null) : null}
                 />
               </View>
             );
@@ -182,7 +181,6 @@ function MeetingRow({
   countedIn,
   moduleTitle,
   fallbackUrl,
-  sixResult,
 }: {
   meeting: Meeting;
   first: boolean;
@@ -190,8 +188,6 @@ function MeetingRow({
   countedIn: CountedIn;
   moduleTitle: string | null;
   fallbackUrl: string | null;
-  /** What SIX's count did after this class, where the app saw (never for two classes sharing one count). */
-  sixResult: AfterClass | null;
 }) {
   const t = useT();
   const f = useFormat();
@@ -210,25 +206,24 @@ function MeetingRow({
   const window =
     presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
-  // An open window asks for you (amber) only where Edunex may be what counts.
-  const quiet = countedIn === "six" || countedIn === "noSix";
+  // An open window asks for you (amber): no system says whether the lecturer uses it. Without SIX (nobody can say),
+  // the intro above says it once and the row stays calm.
+  const quiet = countedIn === "noSix";
 
   // The one status: what asks something first, then what happened, then what's next.
   let status: { tone: ChipTone; text: string } | null = null;
   if (state === "open") status = { tone: quiet ? "neutral" : "amber", text: t("meeting.state.open") };
   else if (state === "present") status = { tone: "ok", text: t("meeting.state.present") };
   else if (next) status = { tone: "brand", text: t("meeting.next") };
-  // Not recorded in Edunex: said only where Edunex is (or, without SIX, may be) what counts.
-  else if (state === "unmarked" && countedIn !== "six")
-    status = { tone: countedIn === "edunex" ? "amber" : "neutral", text: t("meeting.edunexNotRecordedCounts") };
+  // Not recorded in Edunex: said only where Edunex is the only record. Where SIX counts (or may), it says nothing a
+  // student can use, and read row after row it looks like an absence: the course's sheet says the count is SIX's.
+  else if (state === "unmarked" && countedIn === "edunex") status = { tone: "amber", text: t("meeting.edunexNotRecordedCounts") };
   else if (state === "recorded") status = { tone: "neutral", text: t("meeting.state.recorded") };
-  // A meeting that's over and asks nothing: "Selesai", quietly, at the end of its line.
-  const done = !status && (state === "held" || state === "unmarked");
   // Not in SIX: the chip when there's no other, else in the line.
   const notInSix = meeting.notInSix && !status ? { tone: "amber" as const, text: t("meeting.notInSix") } : null;
   const chip = status ?? notInSix;
 
-  // The row's one meta line is the time; the room, the window, the notes and what SIX did are in its sheet.
+  // The row's one meta line is the time; the room, the window and the notes are in its sheet.
   const time = f.timeRange(meeting.start, meeting.end);
   const facts = [
     six?.room ?? "",
@@ -237,16 +232,14 @@ function MeetingRow({
     presence?.note ?? "",
     announced && !presence && announced.note && !announced.online ? announced.note : "",
   ].filter(Boolean);
-  const warned = [meeting.notInSix && !notInSix ? t("meeting.notInSix") : "", sixResult && sixResult !== "counted" ? t("meeting.sixNotCounted") : ""].filter(
-    Boolean,
-  );
-  const quietFacts = [sixResult === "counted" ? t("meeting.sixCounted") : "", done ? t("meeting.done") : ""].filter(Boolean);
+  // Not in SIX, and why, in the sheet (the desktop's tooltip).
+  const warned = meeting.notInSix ? [t("meeting.notInSixWhy")] : [];
 
   // Something to do is the sheet's one button: the open window, or the online class to join.
   const join = announced?.link && meeting.end > now ? announced.link : null;
   const record = state === "open" && presenceUrl ? presenceUrl : null;
   const action = record ? { url: record, words: t("course.recordInEdunex") } : join ? { url: join, words: t("material.join") } : null;
-  const label = [date, title, time, ...facts, ...warned, ...quietFacts, chip?.text].filter(Boolean).join(", ");
+  const label = [date, title, time, ...facts, ...warned, chip?.text].filter(Boolean).join(", ");
   return (
     <>
       <TileRow
@@ -304,11 +297,6 @@ function MeetingRow({
           ))}
           {warned.map((text) => (
             <Fact key={text} tone="warning" icon={(c) => <Icons.AlertTriangle size={22} color={c} />}>
-              {text}
-            </Fact>
-          ))}
-          {quietFacts.map((text) => (
-            <Fact key={text} icon={(c) => <Icons.Check size={22} color={c} />}>
               {text}
             </Fact>
           ))}

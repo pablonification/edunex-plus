@@ -234,7 +234,7 @@ function MoreMenu({ page }: { page: CoursePage }) {
   const record = useRecordInEdunexUrl(page);
   const { course } = page;
   const choices: SheetChoice[] = [
-    // Edunex's open Presence where SIX is what counts: the now card keeps Tandai Hadir as its one button.
+    // Edunex's open Presence without SIX, when the now card has another button.
     ...(record
       ? [
           {

@@ -198,15 +198,11 @@ export function AbsenceBudget({
   if (place === "row")
     return (
       <View style={{ gap: 4 }}>
+        {/* The desktop keeps the count in the share's hover text; a phone has no hover, so it's said here. */}
         {health.held ? (
-          <View style={{ flexDirection: "row", gap: space[3] }}>
-            <Text size="caption" tone="faint" style={{ width: 84 }}>
-              {t("presence.share.label")}
-            </Text>
-            <Text size="small" tone="muted" tabular style={{ flex: 1 }}>
-              <Text size="small" weight="medium" tabular>{`${share}%`}</Text> {t("presence.share.soFar", { attended: health.attended ?? 0, held: health.held })}
-            </Text>
-          </View>
+          <Text size="small" tone="muted" tabular>
+            {t("presence.row.count", { attended: health.attended ?? 0, held: health.held, percent: share })}
+          </Text>
         ) : null}
         <View style={{ flexDirection: "row", gap: space[3] }}>
           <Text size="caption" tone="faint" style={{ width: 84 }}>

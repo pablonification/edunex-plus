@@ -7,12 +7,10 @@
 // minute or the data changed. A row on its own (a course's page) reads them itself.
 import { type ComponentType, createContext, type ReactNode, useContext, useMemo, useSyncExternalStore } from "react";
 import { View } from "react-native";
-import { useAttendance } from "../../../../src/app/attendance";
 import { type TermCourse, useCourseColor, useTermCourses } from "../../../../src/app/courses";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDone } from "../../../../src/app/snoozes";
 import { useDataset } from "../../../../src/app/store";
-import type { CountedIn } from "../../../../src/core/attendance";
 import type { DatasetValue, DoneEntry, TaskModule } from "../../../../src/core/models";
 import { moduleName } from "../../../../src/core/tasks";
 import { toast } from "../../swaps/overlays";
@@ -41,7 +39,6 @@ export interface RowWorldValue {
   presence: Presence;
   handled: readonly DoneEntry[];
   edits: Edits;
-  countedIn: (code: string) => CountedIn | undefined;
 }
 
 const RowWorld = createContext<RowWorldValue | null>(null);
@@ -55,11 +52,7 @@ export function TaskRowWorld({ children }: { children: ReactNode }) {
   const presence = useDataset("edunex.presence");
   const { entries: handled } = useDone();
   const edits = useDataset("edunex.taskEdits");
-  const attendance = useAttendance();
-  const value = useMemo<RowWorldValue>(() => {
-    const counted = new Map((attendance?.courses ?? []).map((entry) => [entry.course.code, entry.health.countedIn] as const));
-    return { now, f, courses, colorOf, presence, handled, edits, countedIn: (code) => counted.get(code) };
-  }, [now, f, courses, colorOf, presence, handled, edits, attendance]);
+  const value = useMemo<RowWorldValue>(() => ({ now, f, courses, colorOf, presence, handled, edits }), [now, f, courses, colorOf, presence, handled, edits]);
   return <RowWorld.Provider value={value}>{children}</RowWorld.Provider>;
 }
 

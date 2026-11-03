@@ -71,8 +71,8 @@
   },
   {
     "key": "grades.bestHint",
-    "desktop": "jika semua A di {sks} SKS tersisa",
-    "phone": "jika semua A di {sks} SKS terencana"
+    "desktop": "Jika semua A di {sks} SKS tersisa",
+    "phone": "Jika semua A di {sks} SKS terencana"
   },
   {
     "key": "handIn.check.attendanceIn",
@@ -105,11 +105,6 @@
     "phone": "Diubah dosen · {change}"
   },
   {
-    "key": "home.today.notInSix",
-    "desktop": "Tidak ada di jadwal SIX",
-    "phone": "Tak di SIX"
-  },
-  {
     "key": "ics.handIn.note",
     "desktop": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.",
     "phone": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini."
@@ -123,11 +118,6 @@
     "key": "krs.stage.done",
     "desktop": "KRS sudah sah",
     "phone": "KRS sudah disahkan"
-  },
-  {
-    "key": "meeting.done",
-    "desktop": "Selesai",
-    "phone": "Tanpa catatan Edunex"
   },
   {
     "key": "planner.local",
@@ -150,9 +140,9 @@
     "phone": "Setelah tiap kuliah, aplikasi mengecek apakah hitungan SIX bertambah, dan memberi tahu jika tidak. Pengecekannya saat aplikasi dibuka, dan sesekali saat tertutup."
   },
   {
-    "key": "presence.row.watching",
-    "desktop": "Tandai Hadir belum muncul. Aplikasi memeriksa SIX tiap 2 menit.",
-    "phone": "Tandai Hadir belum muncul. Selama aplikasi terbuka, SIX dicek tiap 2 menit."
+    "key": "presence.row.watchingWhy",
+    "desktop": "Aplikasi memeriksa SIX tiap 2 menit.",
+    "phone": "Selama aplikasi terbuka, SIX dicek tiap 2 menit."
   },
   {
     "key": "scan.heading",
