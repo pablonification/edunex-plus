@@ -9,7 +9,7 @@ import { errorKey } from "../../../../src/app/bridge";
 import { type Format, type Translate, useFormat, useT } from "../../../../src/app/i18n";
 import type { Todo } from "../../../../src/app/schedule-data";
 import { useSnoozes } from "../../../../src/app/snoozes";
-import { attendanceWindow, presenceOptional } from "../../../../src/core/attendance";
+import { attendanceWindow } from "../../../../src/core/attendance";
 import { taskPutAway } from "../../../../src/core/done";
 import type { Exam } from "../../../../src/core/exams";
 import type { DoneHow, Task, TaskStatus } from "../../../../src/core/models";
@@ -70,7 +70,6 @@ function taskDate(t: Translate, f: Format, now: number, task: Task, status: Task
 function signalOf(t: Translate, world: RowWorldValue, task: Task, status: TaskStatus): { icon: SignalIcon; facts: string[]; tone: TextTone } | null {
   const { f, now } = world;
   const edit = editView(task, world.edits, world.handled);
-  const optional = presenceOptional(world.countedIn(task.courseCode));
   const window = isOpenStatus(status) ? attendanceWindow(task, world.presence, now) : null;
   const marked = isOpenStatus(status) ? taskPutAway(task, world.handled) : undefined;
   if (marked) return { icon: "check", facts: [t(`task.marked.${marked.how as MarkedHow}`)], tone: "muted" };
@@ -80,7 +79,7 @@ function signalOf(t: Translate, world: RowWorldValue, task: Task, status: TaskSt
     return {
       icon: "hand",
       facts: [
-        t(optional ? "task.attendanceLineOptional" : "task.attendanceLine", {
+        t("task.attendanceLine", {
           when: `${f.relativeDay(window.opensAt)} ${f.timeRange(window.opensAt, window.closesAt)}`,
         }),
       ],

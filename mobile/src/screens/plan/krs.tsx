@@ -240,8 +240,8 @@ function ClashSheet({ plan, overlap, onClose }: { plan: KrsPlan; overlap: Overla
   const advice =
     stage === "done" || stage === "official"
       ? window?.kind === "urs"
-        ? t("krs.clash.nextUrs", { a, b, range: `${day(window.event.firstDay)}–${day(window.event.lastDay)}` })
-        : t("krs.clash.next", { a, b })
+        ? t("krs.clash.nextUrs", { range: `${day(window.event.firstDay)}–${day(window.event.lastDay)}` })
+        : t("krs.clash.next")
       : null;
   return (
     <ActionSheet
@@ -271,7 +271,6 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const classes = new Set(plan.courses.map((c) => c.classNo));
   const oneClass = classes.size === 1;
   const sameClass = oneClass ? [...classes][0] : null;
-  const allApproved = plan.courses.every((c) => c.approved === true);
   const clashWith = (code: string) => overlaps.filter((o) => o.upcoming && o.codes.includes(code)).map((o) => o.codes.find((c) => c !== code)!);
   return (
     <View testID="section.krsCourses">
@@ -313,9 +312,11 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
           {t("krs.advisor", { name: plan.advisor })}
         </Text>
       )}
-      <Text size="bodyMedium" style={{ color: v.muted, marginTop: plan.advisor ? 0 : space[2], marginLeft: space[1] }}>
-        {factsLabel(sameClass && t("krs.sameClass", { classNo: sameClass }), allApproved && t("krs.allApproved"), t("krs.from"))}
-      </Text>
+      {sameClass && (
+        <Text size="bodyMedium" style={{ color: v.muted, marginTop: plan.advisor ? 0 : space[2], marginLeft: space[1] }}>
+          {t("krs.sameClass", { classNo: sameClass })}
+        </Text>
+      )}
     </View>
   );
 }

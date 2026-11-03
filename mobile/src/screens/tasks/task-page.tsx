@@ -5,14 +5,12 @@
 // draf and Kumpulkan stay at the bottom of the screen; Kumpulkan is the screen's one filled button.
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, type ScrollView, StyleSheet, View } from "react-native";
-import { useAttendance } from "../../../../src/app/attendance";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useExams } from "../../../../src/app/schedule-data";
 import { useDone } from "../../../../src/app/snoozes";
 import { useDataset } from "../../../../src/app/store";
-import { presenceOptional } from "../../../../src/core/attendance";
 import { introModule } from "../../../../src/core/course-materials";
 import { taskDoneKey } from "../../../../src/core/done";
 import type { Task, TaskChange, TaskFile, TaskStatus } from "../../../../src/core/models";
@@ -325,8 +323,7 @@ function DueCard({
 type Presence = ReturnType<typeof usePresence>;
 
 /**
- * The Task's Presensi, read once for the due card and Notes: whether it's optional (SIX counts the course), how a
- * hand-in counted, the session still to come. `due`: while handing it in can still count as present, when, as the due
+ * The Task's Presensi, read once for the due card and Notes: how a hand-in counted, the session still to come. `due`: while handing it in can still count as present, when, as the due
  * card's line says it: "Jum 15:00–23:59" (the day of its deadline goes without its date), "hari ini 15:00–23:59".
  */
 function usePresence(task: Task) {
@@ -334,13 +331,11 @@ function usePresence(task: Task) {
   const f = useFormat();
   const now = useNow();
   const presence = useDataset("edunex.presence");
-  const countedIn = useAttendance()?.courses.find((entry) => entry.course.code === task.courseCode)?.health.countedIn;
-  const optional = presenceOptional(countedIn);
   const sessions = presence?.[task.courseCode] ?? [];
   const result = attendanceResult(task, sessions, now);
   const session = isOpenStatus(taskStatus(task, now)) ? attendanceSession(task, sessions, now) : null;
   let due: string | null = null;
-  if (!optional && !result && session && session.closesAt > now) {
+  if (!result && session && session.closesAt > now) {
     const offset = f.dayOffset(session.opensAt);
     const day =
       offset === 0
@@ -352,34 +347,23 @@ function usePresence(task: Task) {
             : `${f.weekdayShort(session.opensAt)} ${f.dayMonth(session.opensAt)}`;
     due = `${day} ${f.timeRange(session.opensAt, session.closesAt)}`;
   }
-  return { now, optional, result, session, due };
+  return { now, result, session, due };
 }
 
 /**
  * What Edunex doesn't say on its Task page: attendance taken by handing it in (and, once handed in,
- * whether it counted), a short window. Where the course counts in SIX, the attendance window is
- * optional: said once, calmly.
+ * whether it counted), a short window. No system says whether the lecturer uses Edunex's Presence
+ * where SIX counts too, so it's never called optional.
  */
 function Notes({ task, presence }: { task: Task; presence: Presence }) {
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
   const v = theme.v4;
-  const { now, optional, result, session } = presence;
+  const { now, result, session } = presence;
   const notes: { tone: "warning" | "neutral" | "success" | "danger"; icon: "hand" | "check" | "zap"; text: string }[] = [];
   const range = (opensAt: number, closesAt: number) => `${dayWord(f, t, opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
-  if (optional) {
-    if (session && session.closesAt > now)
-      notes.push({
-        tone: "neutral",
-        icon: "hand",
-        text: t("task.note.attendanceOptional", {
-          date: dayWord(f, t, session.opensAt),
-          time: f.timeRange(session.opensAt, session.closesAt),
-          course: task.courseCode,
-        }),
-      });
-  } else if (result)
+  if (result)
     notes.push(
       result.outcome === "counted"
         ? { tone: "success", icon: "check", text: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }) }

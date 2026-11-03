@@ -299,7 +299,8 @@ function ClassDetails({ item, onLeave }: { item: ScheduledClass; onLeave: () => 
             <Text size="body" tone="warning">
               <Text size="body" tone="warning" weight="semibold">
                 {t("schedule.uncertain.during", { period: periodName(t, uncertain) })}
-              </Text>{" "}
+              </Text>
+              {". "}
               {t("schedule.uncertain.check")}
             </Text>
           </Fact>

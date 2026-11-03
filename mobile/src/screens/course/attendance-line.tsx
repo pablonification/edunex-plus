@@ -133,8 +133,8 @@ export function useCourseException(item: CourseAttendance | undefined, context: 
       (s) => s.courseCode === course.code && !isExamActivity(s.activity) && s.start <= now && now < s.end + GONE_FOR && checkIns[s.id]?.state === "gone",
     );
     if (at?.live && at.session && checkingIn(at.session, now) && (checkIns[at.session.id]?.state ?? "waiting") === "waiting")
-      return { kind: "watching", short: t("mobile.course.ex.waiting"), text: t("presence.row.watching"), tone: "muted" };
-    if (recent) return { kind: "gone", short: t("mobile.course.ex.gone"), text: t("presence.row.gone"), tone: "muted" };
+      return { kind: "watching", short: t("mobile.course.ex.waiting"), text: `${t("presence.row.watching")}. ${t("presence.row.watchingWhy")}`, tone: "muted" };
+    if (recent) return { kind: "gone", short: t("mobile.course.ex.gone"), text: `${t("presence.row.gone")}. ${t("presence.row.goneWhy")}`, tone: "muted" };
   }
   // 3. Out of reach or finished below: a count SIX got wrong, or a wrong target, is the way back.
   if ((health.state === "out" || health.state === "missed") && !zone.results.some((r) => r.code === course.code && r.absent))

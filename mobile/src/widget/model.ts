@@ -209,7 +209,7 @@ function toneOf(snapshot: Pick<Snapshot, "datasets">, codes: readonly string[], 
   return color ? courseTone(color.id) : undefined;
 }
 
-/** SIX's "Tandai Hadir" for any class on now, then the Edunex Presence for the card's class when doing it counts (as the tray lists them). */
+/** SIX's "Tandai Hadir" for any class on now, then the card's open Edunex Presence (as the tray lists them). */
 function actionLines(snapshot: Pick<Snapshot, "datasets">, card: NowCard | null, now: number, f: Format, t: Translate): WidgetLine[] {
   const lines: WidgetLine[] = [];
   const student = snapshotDataset(snapshot, "six.student");
@@ -223,7 +223,7 @@ function actionLines(snapshot: Pick<Snapshot, "datasets">, card: NowCard | null,
       open: { kind: "checkIn", meetingId: s.id },
     });
   const presence = card?.presence;
-  if (presence && presence.counts !== false)
+  if (presence)
     lines.push({
       label: presence.noSix ? t("home.need.presenceNoSix", { course: presence.code }) : t("home.need.presence", { course: presence.code }),
       detail: capital(t("home.need.presence.closes", { time: f.dayTime(presence.session.closesAt) })),

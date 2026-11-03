@@ -23,7 +23,6 @@ import { describe, useScan } from "./scan";
 const ICON: Record<Finding["kind"], ComponentType<IconProps>> = {
   attendance: Icons.Hand,
   clash: Icons.Overlap,
-  unusedPresence: Icons.EyeOff,
   exams: Icons.GraduationCap,
   notInSix: Icons.CalendarClock,
   edited: Icons.PenLine,

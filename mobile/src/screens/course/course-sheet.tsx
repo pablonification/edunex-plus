@@ -137,15 +137,15 @@ function Pips({ health }: { health: AttendanceHealth }) {
   );
 }
 
-/** "7 pertemuan lagi sampai 4 Des. Hadiri semuanya agar tetap 80%." From src/app/screens/course.tsx. */
+/** "Hadiri 7 pertemuan tersisa, sampai 4 Des". From src/app/screens/course.tsx (the target is on the sheet's stepper). */
 function noneLeft(t: Translate, f: Format, health: AttendanceHealth, lastDay: string | null): string {
   const { count, estimated } = health.left;
   // The sure meetings alone fall short: one that may not run has to.
   if (health.needsUncertain) return t("course.risk.noneIfRuns", { target: health.target });
   if (count === 0) return "";
-  if (!lastDay) return t("course.risk.noneNoDate", { target: health.target });
+  if (!lastDay) return t("course.risk.noneAll");
   const date = f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`));
-  return t(estimated ? "course.risk.noneAbout" : "course.risk.none", { count, date, target: health.target });
+  return t(estimated ? "course.risk.noneAbout" : "course.risk.none", { count, date });
 }
 
 function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage; item: CourseAttendance; attendance: Attendance; context: RowContext }) {
@@ -196,7 +196,7 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
           : "",
       ]
         .filter(Boolean)
-        .join(" ")
+        .join(" · ")
     : "";
   // The risk's words already say what the out-of-reach exception says, and a clash its own way.
   const shownException: CourseExceptionNote | null =

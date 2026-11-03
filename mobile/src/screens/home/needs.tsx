@@ -311,7 +311,6 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const which = classDayTime(f, of.start, of.end);
         const closes = t("home.need.presence.closes", { time: f.dayTime(need.session.closesAt) });
         if (need.open)
-          // Where SIX counts, the window is optional: said so, never as a thing to do.
           // Without SIX nobody knows whether it counts: worth doing just in case, so no amber.
           return need.countedIn === "noSix"
             ? {
@@ -321,21 +320,13 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
                 when: soon(need.session.closesAt),
                 tone: null,
               }
-            : need.countedIn === "six"
-              ? {
-                  title: t("home.need.presenceOptional", { course: need.course ?? "" }),
-                  which,
-                  meta: [course, closes],
-                  when: null,
-                  tone: null,
-                }
-              : {
-                  title: t("home.need.presence", { course: need.course ?? "" }),
-                  which,
-                  meta: [course, closes],
-                  when: soon(need.session.closesAt),
-                  tone: "warning",
-                };
+            : {
+                title: t("home.need.presence", { course: need.course ?? "" }),
+                which,
+                meta: [course, closes],
+                when: soon(need.session.closesAt),
+                tone: "warning",
+              };
         return {
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
           titleLacksCourse: need.task !== null,

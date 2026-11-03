@@ -501,8 +501,7 @@ function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
           accessibilityRole="button"
           onPress={() => go({ screen: "presence" })}
           leading={<IconTile tone={tone ?? "plain"} icon={(color) => <Icons.Hand size={22} color={color} />} />}
-          title={t("examPage.attendance")}
-          meta={t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })}
+          title={t("examPage.attendance", { attended: health.attended ?? 0, held: health.held ?? 0 })}
           // None left or over the limit by the name it has on every tab ("Jatah habis"); the rest in the desktop's words.
           trailing={tone ? <Pill tone={tone}>{absenceName(t, health) ?? budgetLabel(t, health)}</Pill> : undefined}
         >

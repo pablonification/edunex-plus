@@ -216,9 +216,20 @@ function Lead({ bill }: { bill: Bill }) {
       {!billedNow ? (
         <>
           {big(t("bills.notBilled"), v.muted, 28)}
+          {/* The deadline to follow, then when a bill shows up (the desktop's tooltip on the date). */}
+          {deadlineLine && (
+            <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg }}>
+              {deadlineLine}
+            </Text>
+          )}
           <Text size="bodyMedium" style={{ color: v.muted }}>
-            {deadline ? t("bills.expect", { date: f.dayMonth(dayMs(deadline.day)).replace(" ", " ") }) : t("bills.expectNoDate")}
+            {deadline ? t("bills.expectWhy") : t("bills.expectNoDate")}
           </Text>
+          {other ? (
+            <Text size="bodyMedium" style={{ color: v.muted }}>
+              {other}
+            </Text>
+          ) : null}
         </>
       ) : paid ? (
         <>

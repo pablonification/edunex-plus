@@ -133,7 +133,7 @@ export function nowZone(
   const shared = [...uncertain.entries()].find(([, codes]) => codes.length >= 2);
   return {
     checkIns: open,
-    windows: attendance.open.filter((w) => w.counts),
+    windows: attendance.open,
     results,
     counted,
     countedLate,

@@ -312,17 +312,18 @@ function Standing({ sks, onlyLeft, onToggle, children }: { sks: SksModel; onlyLe
   );
   return (
     <Group testID="card.curriculumStanding">
+      {/* The required courses left, in the desktop's words ("Sisa: 3 wajib (12 SKS), sudah direncanakan"). */}
       <GroupRow
         first
-        title={headline(
-          t("curriculum.requiredLeft"),
-          value(
-            sks.requiredLeft.count
-              ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks })
-              : t("curriculum.requiredNone"),
-          ),
-        )}
-        meta={sks.requiredLeft.count > 0 && sks.requiredUnplanned.count === 0 ? t("curriculum.requiredLeftHint") : null}
+        title={t("curriculum.left")}
+        meta={
+          sks.requiredLeft.count
+            ? t(sks.requiredUnplanned.count === 0 ? "curriculum.left.requiredPlanned" : "curriculum.left.required", {
+                count: sks.requiredLeft.count,
+                sks: sks.requiredLeft.sks,
+              })
+            : t("curriculum.left.requiredNone")
+        }
       />
       {sks.electiveNeed !== null && (
         <GroupRow
@@ -398,7 +399,7 @@ function CourseRow({ course, first, menuHint, onPress }: { course: MapCourse; fi
   // The code, then how it's counted (under an older code) or its SKS, then what isn't a status but is still true.
   const meta = factsLabel(
     course.code,
-    course.via ? t("curriculum.via", { code: course.via.code, name: course.via.name }) : sks,
+    course.via ? t("curriculum.via", { code: course.via.code }) : sks,
     !course.whatIf && (course.status === "unlisted" || crossed) && t(`curriculum.status.${course.status}`),
     course.fix && t("curriculum.fixed"),
     course.sixLeft && t("curriculum.sixStillLeft"),
@@ -421,13 +422,7 @@ function CourseRow({ course, first, menuHint, onPress }: { course: MapCourse; fi
       onLongPress={onPress}
       // A screen reader hears the row whole, with the word the check stands for.
       accessible
-      accessibilityLabel={factsLabel(
-        course.code,
-        course.name,
-        statusWord,
-        sks,
-        course.via && t("curriculum.via", { code: course.via.code, name: course.via.name }),
-      )}
+      accessibilityLabel={factsLabel(course.code, course.name, statusWord, sks, course.via && t("curriculum.via", { code: course.via.code }))}
       accessibilityHint={onPress && course.courseId ? t("curriculum.syllabusOf", { code: course.code }) : undefined}
     />
   );

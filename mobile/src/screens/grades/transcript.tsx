@@ -51,29 +51,13 @@ export function GradeLetter({ grade, struck = false, label }: { grade: string; s
 
 export function Transcript({ record }: { record: StudentRecord }) {
   const t = useT();
-  const f = useFormat();
-  const v = useTheme().v4;
   const terms = record.transcript!.terms;
-  const stage = record.progress?.stages.at(-1);
-  const stageIp = stage ? shownIndex(stage.ip) : null;
   const lastGraded = [...terms].reverse().find((term) => shownIndex(term.ip) !== null)?.term ?? null;
   const [open, setOpen] = useState<string | null>(lastGraded);
   const toggle = useCallback((term: string) => setOpen((was) => (was === term ? null : term)), []);
-  // SIX's "Tahap Sarjana" IPK is the IPK without TPB: said in the Student's words, quietly by the heading.
-  const stageText = stage && stageIp !== null && !/persiapan/i.test(stage.name) ? t("grades.stageIp", { ip: f.number(stageIp, 2) }) : null;
   return (
     <View testID="section.transcript">
-      <Heading
-        trailing={
-          stageText ? (
-            <Text size="bodyMedium" tabular style={{ color: v.muted }}>
-              {stageText}
-            </Text>
-          ) : undefined
-        }
-      >
-        {t("grades.transcript")}
-      </Heading>
+      <Heading>{t("grades.transcript")}</Heading>
       <Group>
         {[...terms].reverse().map((term, i) => (
           <TermRows key={term.term} record={record} term={term} first={i === 0} open={open === term.term} onToggle={toggle} />
@@ -117,19 +101,15 @@ const TermRows = memo(function TermRows({
           </Text>
         }
         meta={
-          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 6 }}>
-            <Text size="bodyMedium" style={{ color: v.muted }}>
-              {t("grades.courseCount", { count: term.courses.length })}
-            </Text>
-            {!term.ip.agrees ? (
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Icons.AlertTriangle size={12} color={v.ambFg} weight="bold" />
-                <Text size="bodyMedium" tabular style={{ color: v.ambFg }}>
-                  {t("grades.termDisagree", { six: num(term.ip.six), computed: num(term.ip.computed) })}
-                </Text>
-              </View>
-            ) : null}
-          </View>
+          // Only where SIX's IP and the app's disagree: the courses are a tap away (the desktop no longer counts them).
+          !term.ip.agrees ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+              <Icons.AlertTriangle size={12} color={v.ambFg} weight="bold" />
+              <Text size="bodyMedium" tabular style={{ color: v.ambFg }}>
+                {t("grades.termDisagree", { six: num(term.ip.six), computed: num(term.ip.computed) })}
+              </Text>
+            </View>
+          ) : undefined
         }
         trailing={
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>

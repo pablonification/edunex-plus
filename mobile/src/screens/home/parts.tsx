@@ -42,16 +42,15 @@ export const nameOf = (courses: readonly TermCourse[], code: string, fallback?: 
 /** A class's day and time, as the course page names the class a window is for: "Kam, 8 Okt, 08:00–10:00". From src/app/screens/home.tsx. */
 export const classDayTime = (f: Format, start: number, end: number) => `${f.relativeDay(start)}, ${f.timeRange(start, end)}`;
 
-/** From src/app/screens/home.tsx. */
+/** "Jam berubah. Biasanya 08:00–10:00.": the desktop's status and its tooltip (src/app/screens/home.tsx), in one line. */
 export function movedLabel(t: Translate, f: Format, facts: ClassFacts): string {
   const moved = facts.moved!;
   if (moved.usualStart !== null && moved.usualEnd !== null) {
     const time = f.timeRange(moved.usualStart, moved.usualEnd);
-    return t("home.today.changed", {
-      usual: f.dayOffset(moved.usualStart) === f.dayOffset(facts.session.start) ? time : `${f.weekday(moved.usualStart)} ${time}`,
-    });
+    const usual = f.dayOffset(moved.usualStart) === f.dayOffset(facts.session.start) ? time : `${f.weekday(moved.usualStart)} ${time}`;
+    return `${t("home.today.changed")}. ${t("home.today.usual", { usual })}`;
   }
-  return t("home.today.roomChanged", { room: moved.usualRoom ?? "" });
+  return `${t("home.today.roomChanged")}. ${t("home.today.usual", { usual: moved.usualRoom ?? "" })}`;
 }
 
 /** A quiet sentence where a list would be. */
