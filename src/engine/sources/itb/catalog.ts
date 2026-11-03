@@ -163,7 +163,10 @@ function coursePrograms(context: SourceContext, catalog: CourseCatalog): Set<str
 
 export function registerCatalogFeed(context: SourceContext): void {
   // In SIX's own line: the signed-in SIX source reads the same site.
-  // Behind the Student's own SIX pages: the catalog is for the planner, and may take its time (Pace.turn).
+  // Behind the Student's own SIX pages: the catalog is for the planner, and may take its time (Pace.turn). Except the
+  // pages that name the Student's own courses (the list of programs the first time, their program's page, the
+  // programs of their Edunex courses): every screen names a course SIX's table doesn't by them, so they keep their
+  // place in SIX's line, as before the catalog went to the back.
   const client = new PublicClient(context.transport, context.clock, context.userAgent, "SIX", CATALOG_GAP_MS, context.pace(new URL(CATALOG_URL).host), true);
   // Once per launch, pages whose layout looked changed are read again without
   // waiting a day: an update may read them now.
@@ -176,7 +179,7 @@ export function registerCatalogFeed(context: SourceContext): void {
     async run(current) {
       let catalog = context.get("itb.catalog");
       if (!catalog || context.clock.now() - catalog.checkedAt >= FRESH) {
-        const listed = readProgramList(await client.text(CATALOG_URL));
+        const listed = readProgramList(await client.text(CATALOG_URL, undefined, catalog !== undefined));
         if (!current()) return;
         catalog = withProgramList(catalog, listed, context.clock.now());
         await context.set("itb.catalog", catalog);
@@ -198,7 +201,8 @@ export function registerCatalogFeed(context: SourceContext): void {
         const next = waiting.find((p) => p.id === own) ?? waiting.find((p) => courses.has(p.id)) ?? waiting[0]!;
         tried.add(next.id);
         try {
-          const page = await readProgramPage(await client.text(`${CATALOG_URL}/${next.id}`), context.breathe);
+          const names = next.id === own || courses.has(next.id);
+          const page = await readProgramPage(await client.text(`${CATALOG_URL}/${next.id}`, undefined, !names), context.breathe);
           catalog = withProgramPage(catalog, next.id, page, context.clock.now());
         } catch (error) {
           if (error instanceof PageError && error.status !== 429) catalog = withProgramFailure(catalog, next.id, "missing", context.clock.now());

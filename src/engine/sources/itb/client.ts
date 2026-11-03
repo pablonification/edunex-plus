@@ -35,9 +35,9 @@ export class PublicClient {
     private readonly background = false,
   ) {}
 
-  /** The text of a page; requests wait their turn and keep the gap. */
-  text(url: string, accept = "text/html"): Promise<string> {
-    return this.pace.turn(() => this.fetch(url, accept), this.background);
+  /** The text of a page; requests wait their turn and keep the gap. `background`: this one's, else the client's. */
+  text(url: string, accept = "text/html", background = this.background): Promise<string> {
+    return this.pace.turn(() => this.fetch(url, accept), background);
   }
 
   private async fetch(url: string, accept: string): Promise<string> {
