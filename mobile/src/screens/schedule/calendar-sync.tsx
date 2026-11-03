@@ -1,4 +1,4 @@
-// "Tampilkan di Kalender HP" (W13): instead of a one-off "Tambahkan 29 acara", a setting that keeps the phone's
+// Jadwal's ⋮ "Kalender HP" (W13): instead of a one-off "Tambahkan 29 acara", a setting that keeps the phone's
 // own "Edunex Plus" calendar the same as Jadwal. On, the app writes the term's classes, exams, deadlines and ITB's
 // days into it (./phone-calendar.ts, the same events as the .ics file), and again whenever any of them changes (a
 // class moved, a Task posted); off, the calendar is taken off the phone with every event in it. Whether it's on is

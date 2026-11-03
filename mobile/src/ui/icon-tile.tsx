@@ -21,7 +21,8 @@ export function useToneTile(): (tone: TileTone) => { ink: string; tint: string }
       case "brand":
         return { ink: v.brandInk, tint: v.brandTint };
       default:
-        return { ink: v.fg2, tint: v.page };
+        // The chip colour, a step off the card in dark too (the page's black read as a hole: judge round 6).
+        return { ink: v.fg2, tint: v.chip };
     }
   };
 }

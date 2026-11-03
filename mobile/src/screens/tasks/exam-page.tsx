@@ -572,7 +572,7 @@ function Study({ exam }: { exam: Exam }) {
                 key={module.id}
                 onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules", module: module.id })}
                 leading={
-                  <View style={[styles.number, { backgroundColor: theme.v4.page }]}>
+                  <View style={[styles.number, { backgroundColor: theme.v4.chip }]}>
                     <Text size="caption" weight="semibold" tone="muted" tabular>
                       {String(i + 1)}
                     </Text>

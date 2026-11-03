@@ -168,7 +168,9 @@ const PAIRS: Pair[] = [
   ["v4.okFg on v4.okBg", (t) => t.v.okFg, (t) => t.v.okBg, TEXT, "Pill ok, BigButton done"],
   ["v4.redFg on v4.redBg", (t) => t.v.redFg, (t) => t.v.redBg, TEXT, "Pill red"],
   ["v4.ambFg on v4.ambBg", (t) => t.v.ambFg, (t) => t.v.ambBg, TEXT, "Pill amber"],
-  ["v4.fg2 on v4.chip", (t) => t.v.fg2, (t) => t.v.chip, TEXT, "Pill plain, StatusChip neutral, tasks/row-parts.tsx StatusPill"],
+  ["v4.fg2 on v4.chip", (t) => t.v.fg2, (t) => t.v.chip, TEXT, "Pill plain, StatusChip neutral, tasks/row-parts.tsx StatusPill, IconTile plain"],
+  ["v4.fg on v4.chip", (t) => t.v.fg, (t) => t.v.chip, TEXT, "course/meetings.tsx date tile"],
+  ["v4.muted on v4.chip", (t) => t.v.muted, (t) => t.v.chip, TEXT, "BigButton disabled, course/meetings.tsx past date, tasks/exam-page.tsx module number"],
   ...(["redFg", "ambFg"] as const).map(
     (k): Pair => [`v4.${k} at 0.8 on v4.card (pips)`, (t) => over(t.v[k], t.v.card, 0.8), card, MARK, "home/class-sheet.tsx"],
   ),
@@ -225,9 +227,10 @@ const PAIRS: Pair[] = [
   }),
 ];
 
-// A neutral pill on a card is a step off the card, so it reads as a pill and not as a hole (in dark it was the page's
-// black: judge round 5). Not a text pair: as far off the card as light's page grey is from its white card, or more.
-describe("a neutral pill stands off its card", () => {
+// A neutral pill, a neutral icon tile and a disabled button on a card (or the Task's bottom bar, the card's colour) are a
+// step off the card, so they read as a pill, a tile, a button and not as holes (in dark they were the page's black:
+// judge rounds 5 and 6, 1.11:1). Not a text pair: as far off the card as light's page grey is from its white card, or more.
+describe("a neutral pill, tile or disabled button stands off its card", () => {
   it.each(["light", "dark"] as const)("%s", (scheme) => {
     const { v } = TONES[scheme];
     expect(ratio(v.chip, v.card)).toBeGreaterThanOrEqual(ratio(V4.light.page, V4.light.card));

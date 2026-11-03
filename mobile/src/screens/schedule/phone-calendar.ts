@@ -171,7 +171,7 @@ export async function addToPhoneCalendar(
   return { kind: "added", events: items.length };
 }
 
-/** Takes the app's own calendar off the phone, with every event in it (the Student turned "Tampilkan di Kalender HP" off). */
+/** Takes the app's own calendar off the phone, with every event in it (the Student turned Jadwal's ⋮ "Kalender HP" off). */
 export async function removePhoneCalendar(): Promise<void> {
   if (!(await Calendar.getCalendarPermissions()).granted) return;
   const calendars = await Calendar.getCalendars();

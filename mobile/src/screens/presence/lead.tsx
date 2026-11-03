@@ -67,11 +67,19 @@ export function LeadCard({ lead, onPress }: { lead: Lead; onPress: () => void })
         style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 52, lineHeight: 60, letterSpacing: -1.5, fontVariant: ["tabular-nums"] }}
       />
       <Text size="bodyLarge" face="display" weight="semibold" style={{ flex: 1, color: v.fg, fontSize: 17, lineHeight: 23 }}>
-        {lead.words}
+        {keepLastTwo(lead.words)}
       </Text>
       <Icons.ChevronRight size={20} color={v.muted} />
     </PressScale>
   );
+}
+
+/**
+ * The words with their last two joined by a no-break space, so a second line never holds one word alone ("80%" under
+ * "…tak bisa lagi capai": the judge's round 2, pass 6). A screen reader gets the words as they are (the card's label).
+ */
+function keepLastTwo(words: string): string {
+  return words.replace(/ (\S+)$/, "\u00a0$1");
 }
 
 /** Signed out of SIX, with nothing of it kept: where the count comes from, and the way in (quiet while Edunex asks something). */

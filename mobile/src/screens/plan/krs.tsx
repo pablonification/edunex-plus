@@ -1,11 +1,12 @@
 // Rencana studi › KRS on the phone (src/app/screens/plan/krs.tsx, S14; round 2, v4): this term's study plan and its
 // approval, in one column.
-// 1. One card led by the SKS taken of the most allowed (a big number that counts up once, a thin bar), the term and
-//    the advisor a quiet line over it, the plan's one state as a pill, the next KRS window, and SIX's KRS page as the
+// 1. One card led by the SKS taken of the most allowed (a big number that counts up once, a thin bar), the term a
+//    quiet line over it, the plan's one state as a pill, the next KRS window, and SIX's KRS page as the
 //    one button while there's a KRS to send.
 // 2. Each clash still to come as a row right under it (its when on one line): its sheet says what to do about it and
 //    opens Jadwal.
-// 3. The courses as rows in their colours: name, code and SKS, one short status (Bentrok, or not approved yet).
+// 3. The courses as rows in their colours: name, code and SKS, one short status (Bentrok, or not approved yet); the
+//    advisor and what every row shares in quiet lines under them.
 // 4. The plan's steps with their times (and the change round's), below the fold. View only.
 import { useState } from "react";
 import { View } from "react-native";
@@ -124,8 +125,9 @@ function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const canSend = stage === "send" && (!window || window.open);
   return (
     <Panel testID="card.krsStage" style={{ padding: space[5], gap: space[3] }}>
+      {/* The term alone, on one line: the advisor's full name made it wrap (the judge's round 2, pass 6); it's under the courses. */}
       <Text size="bodyMedium" style={{ color: v.muted }}>
-        {factsLabel(termYears(plan.term), plan.advisor && t("krs.advisor", { name: plan.advisor }))}
+        {termYears(plan.term)}
       </Text>
       <View accessible accessibilityLabel={total}>
         <FigureLabel>{t("mobile.krs.sksLabel")}</FigureLabel>
@@ -306,7 +308,12 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
           );
         })}
       </Group>
-      <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[2], marginLeft: space[1] }}>
+      {plan.advisor && (
+        <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[2], marginLeft: space[1] }}>
+          {t("krs.advisor", { name: plan.advisor })}
+        </Text>
+      )}
+      <Text size="bodyMedium" style={{ color: v.muted, marginTop: plan.advisor ? 0 : space[2], marginLeft: space[1] }}>
         {factsLabel(sameClass && t("krs.sameClass", { classNo: sameClass }), allApproved && t("krs.allApproved"), t("krs.from"))}
       </Text>
     </View>

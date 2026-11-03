@@ -41,7 +41,7 @@ export function SixNeeded({
   return (
     // v4: a white card on the page's grey, its icon in a tinted square.
     <Panel style={{ flexDirection: "row", alignItems: "flex-start", gap: space[4], padding: space[5] }} testID="note.sixNeeded">
-      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.page, alignItems: "center", justifyContent: "center" }}>{icon}</View>
+      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.chip, alignItems: "center", justifyContent: "center" }}>{icon}</View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="bodyLarge" weight="semibold" style={{ color: v.fg }}>
           {title}
