@@ -112,7 +112,7 @@ export const homeStrings = {
   "home.needs.noneElse": { id: "Tidak ada lagi yang perlu perhatianmu sekarang", en: "Nothing else needs you now" },
   "home.needs.noneElseHint": { id: "Tenggat berikutnya {when}.", en: "Next due {when}." },
   // Settings: how far ahead Perlu perhatianmu looks, in whole days
-  "settings.needsAhead": { id: "Jangkauan Perlu perhatianmu", en: "How far ahead Needs you looks" },
+  "settings.needsAhead": { id: "Jangkauan Perlu perhatianmu", en: "Days ahead in Needs you" },
   "settings.needsAhead.hint": {
     id: "Yang bertenggat sampai akhir hari terakhir muncul di Beranda.",
     en: "What's due by the end of the last day shows on Home.",

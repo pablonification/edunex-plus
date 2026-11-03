@@ -1,0 +1,84 @@
+# W4/W11 on Kuliah (round 2, v4): in three seconds, which course is at risk and the way in. One big number leads ("1"
+# beside "mata kuliah tak bisa lagi capai 80%"); the courses at risk come first, each one row with one target (its
+# tile, name, code and one chip; no links of its own: round 1's Presensi card carried "Buka jadwal di SIX" and "Ubah
+# target" beside its bar and paragraphs); the row opens the course, where the bar, the count, the target and the one
+# exception are. No explanatory sentence on the first screen: the day's answer and how it's counted are in the big
+# number's sheet; the targets are in the top bar's ⋮.
+# Round 1 (9395cea): no Kuliah tab, Presensi's long cards.
+appId: io.github.pablonification.edunexplus.demo
+name: "w11 Kuliah one row one target"
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- tapOn:
+    id: tab.courses
+- extendedWaitUntil:
+    visible:
+      id: screen.courses
+    timeout: 10000
+# The big number answers first: how many courses can't reach the target anymore.
+- assertVisible:
+    id: card.kuliahNumber
+- assertVisible: ".*tak bisa lagi capai 80%.*"
+# At risk first: the course out of reach heads the list, its chip says how far; then no absences left; then the rest.
+- assertVisible:
+    id: group.presence.out
+- assertVisible:
+    id: row.course.KU5014
+- assertVisible: "Lewat batas 1.*"
+- assertVisible:
+    id: row.course.DK4073
+    below:
+      id: row.course.KU5014
+- assertVisible:
+    id: row.course.PL3002
+    below:
+      id: row.course.PL3032
+# Today's clash: the row says when and which to go to; the why is one tap deeper.
+- assertVisible: "Bentrok 16:00–16:30"
+- assertVisible: "Pilih PL3032"
+# One target per row: no links of their own on Kuliah, and no explanatory sentence on its first screen.
+- assertNotVisible:
+    id: action.checkSix
+- assertNotVisible:
+    id: "action.changeTarget.*"
+- assertNotVisible: "Hari ini ada 4 kuliah.*"
+- assertNotVisible: "Kehadiran dihitung di SIX.*"
+- takeScreenshot: w11-1-kuliah
+# The big number's sheet: the day's answer, the target, how it's counted.
+- tapOn:
+    id: card.kuliahNumber
+- extendedWaitUntil:
+    visible:
+      id: sheet.kuliahFacts
+    timeout: 5000
+- assertVisible: "Hari ini ada 4 kuliah. Hanya PL3002 yang masih ada jatah absen."
+- assertVisible: "Target 80%"
+- takeScreenshot: w11-2-facts
+- back
+# The row opens its course: its attendance in one line under the title, with the one thing to do about it.
+- tapOn:
+    id: row.course.KU5014
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 10000
+- assertVisible:
+    id: meter.courseAttendance
+- assertVisible:
+    id: note.courseException
+- assertVisible: ".*33% hadir.*"
+- takeScreenshot: w11-3-course
+- back
+# The targets, in ⋮.
+- tapOn:
+    id: action.coursesMenu
+- tapOn:
+    id: action.target
+- extendedWaitUntil:
+    visible: "Target umum"
+    timeout: 5000

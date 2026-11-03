@@ -5,6 +5,7 @@
 // remembered automatic one (./course-colors.ts).
 import { useCallback, useMemo } from "react";
 import { courseTone, type PaletteId, pickedColor, resolveCourseColors } from "../core/course-colors";
+import type { DatasetValue } from "../core/models";
 import { type SixList, sixList, type TermCourseBase, termCourses, termOf } from "../core/term-courses";
 import { useCourseColorsValue, withLegacy } from "./course-colors";
 import { useDataset, useStatus } from "./store";
@@ -27,16 +28,39 @@ export function useTermCourses(): TermCourse[] | undefined {
   const catalog = useDataset("itb.catalog");
   const six = useSixList();
   const saved = useCourseColorsValue();
-  return useMemo(() => {
-    const courses = termCourses({ edunex, catalog, six });
-    if (!courses) return undefined;
-    const codes = courses.map((course) => course.code);
-    const { colors } = resolveCourseColors(codes, withLegacy(codes, saved));
-    return courses.map((course) => {
-      const { id, picked } = colors.get(course.code)!;
-      return { ...course, color: courseTone(id), colorId: id, colorPicked: picked };
-    });
-  }, [edunex, catalog, six, saved]);
+  return useMemo(() => shared(edunex, catalog, six, saved), [edunex, catalog, six, saved]);
+}
+
+/**
+ * The term's courses, worked out once for every screen that asks (a dozen on Beranda alone), and the same array for as
+ * long as they say the same: each page of SIX's catalog read in the background (87 KB, a page every few seconds) is a
+ * new dataset that rarely changes a name, and a new array redrew every screen built on the courses, up to a second of a
+ * blocked JS thread on a small phone.
+ */
+let last: { inputs: readonly unknown[]; courses: TermCourse[] | undefined; text: string } | null = null;
+
+function shared(...inputs: Parameters<typeof work>): TermCourse[] | undefined {
+  if (last && inputs.every((input, i) => input === last!.inputs[i])) return last.courses;
+  const courses = work(...inputs);
+  const text = JSON.stringify(courses) ?? "";
+  last = { inputs, courses: last && text === last.text ? last.courses : courses, text };
+  return last.courses;
+}
+
+function work(
+  edunex: DatasetValue<"edunex.courses"> | undefined,
+  catalog: DatasetValue<"itb.catalog"> | undefined,
+  six: SixList | undefined,
+  saved: ReturnType<typeof useCourseColorsValue>,
+): TermCourse[] | undefined {
+  const courses = termCourses({ edunex, catalog, six });
+  if (!courses) return undefined;
+  const codes = courses.map((course) => course.code);
+  const { colors } = resolveCourseColors(codes, withLegacy(codes, saved));
+  return courses.map((course) => {
+    const { id, picked } = colors.get(course.code)!;
+    return { ...course, color: courseTone(id), colorId: id, colorPicked: picked };
+  });
 }
 
 /**

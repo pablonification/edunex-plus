@@ -368,7 +368,8 @@ export function classLink(context: HomeContext, code: string, start: number): st
   return vicons.sort((a, b) => (b.updatedAt ?? b.postedAt ?? 0) - (a.updatedAt ?? a.postedAt ?? 0))[0]?.content ?? null;
 }
 
-function classFacts(context: HomeContext, session: ClassSession): ClassFacts {
+/** A class with what Beranda and its sheet say about it (its attendance, a new time, a clash, its link); Jadwal opens the same sheet. */
+export function classFacts(context: HomeContext, session: ClassSession): ClassFacts {
   const health = context.health.get(session.courseCode);
   return {
     session,

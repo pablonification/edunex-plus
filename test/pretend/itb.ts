@@ -2,10 +2,8 @@
 // short link and the file it leads to) and SIX's public catalog
 // (/pub/kur2024…, no sign-in). Serves the recorded copies (test/fixtures/itb,
 // test/fixtures/pub) and lets a test change, break or take down a page.
-import fs from "node:fs";
-import path from "node:path";
 import type { HttpRequest, HttpResponse } from "../../src/engine/http/transport";
-import { FIXTURES_DIR, publicPage } from "../kit/fixtures";
+import { calendarFeed, publicPage } from "../kit/fixtures";
 
 /** Where the short link on SIX's home page leads (recorded 2026-10-11). */
 export const CALENDAR_FILE_URL = "https://publik.akademik.itb.ac.id/Kalender-Pendidikan-20260710.ics";
@@ -13,7 +11,7 @@ const CALENDAR_HOSTS = new Set(["goitb.id", "publik.akademik.itb.ac.id"]);
 const ERROR_HTML = "<!DOCTYPE html><html><body><h1>Internal Server Error</h1></body></html>";
 
 export function calendarFixture(): string {
-  return fs.readFileSync(path.join(FIXTURES_DIR, "itb", "kalender-pendidikan.ics"), "utf8");
+  return calendarFeed();
 }
 
 export class PretendItb {

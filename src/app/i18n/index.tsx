@@ -63,6 +63,16 @@ export function useT(): Translate {
   return useCallback((key: StringKey, vars?: Vars) => translate(lang, key, vars), [lang]);
 }
 
+/** The clock the screens below read (the system's, or a test's). */
+export function useClock(): UiClock {
+  return useContext(ClockContext) ?? defaultClock;
+}
+
+/** A clock of its own for the screens below (the phone gives a tab not in front one that waits, mobile/src/ui/tab-clock.tsx). */
+export function ClockProvider({ clock, children }: { clock: UiClock; children: ReactNode }) {
+  return <ClockContext.Provider value={clock}>{children}</ClockContext.Provider>;
+}
+
 export function useNow(): number {
   const clock = useContext(ClockContext) ?? defaultClock;
   return useSyncExternalStore(clock.subscribe, clock.now);

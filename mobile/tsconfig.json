@@ -1,0 +1,17 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noUnusedLocals": true,
+    "paths": {
+      "zod": ["./node_modules/zod"],
+      "cheerio": ["./node_modules/cheerio"],
+      "cheerio/slim": ["./node_modules/cheerio/dist/esm/slim"],
+      "domhandler": ["./node_modules/domhandler"],
+      "react": ["./node_modules/@types/react"],
+      "react/jsx-runtime": ["./node_modules/@types/react/jsx-runtime"],
+      "phosphor-react-native/src/icons/*": ["./node_modules/phosphor-react-native/lib/typescript/icons/*"]
+    }
+  },
+  "include": ["index.ts", "app", "src", "app.config.ts", ".expo/types/**/*.ts", "expo-env.d.ts"]
+}

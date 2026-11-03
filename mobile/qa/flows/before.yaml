@@ -1,0 +1,117 @@
+# The "before" pictures (shots.sh): every main screen of the signed-in demo, from a cleared app, in ${THEME}.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- waitForAnimationToEnd
+- takeScreenshot: beranda
+- tapOn:
+    id: action.alerts
+- waitForAnimationToEnd
+- takeScreenshot: notifikasi
+- tapOn:
+    id: action.back
+- tapOn:
+    id: action.search
+- inputText: "bab 2"
+- hideKeyboard
+- waitForAnimationToEnd
+- takeScreenshot: cari
+- tapOn:
+    id: action.back
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd
+- takeScreenshot: tugas-ujian
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+    direction: DOWN
+- tapOn:
+    id: row.task.117003
+- extendedWaitUntil:
+    visible:
+      id: screen.task
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: tugas
+- tapOn:
+    id: action.back
+- tapOn:
+    id: tab.tasks
+- tapOn:
+    id: row.exam.DK4073-UTS
+- waitForAnimationToEnd
+- takeScreenshot: ujian
+- tapOn:
+    id: action.back
+- tapOn:
+    id: tab.schedule
+- waitForAnimationToEnd
+- takeScreenshot: jadwal
+- tapOn:
+    id: tab.presence
+- waitForAnimationToEnd
+- takeScreenshot: presensi
+- tapOn:
+    id: tab.more
+- waitForAnimationToEnd
+- takeScreenshot: lainnya
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: nilai
+- tapOn:
+    id: action.back
+- tapOn:
+    id: row.nav.plan
+- extendedWaitUntil:
+    visible:
+      id: screen.plan
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: rencana-studi
+- tapOn:
+    id: action.back
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- tapOn:
+    id: tab.course.modules
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: mata-kuliah-modul
+- tapOn:
+    id: action.courseMenu
+- waitForAnimationToEnd
+- takeScreenshot: sheet-menu-mata-kuliah
+- pressKey: back
+- tapOn:
+    id: action.back
+- scrollUntilVisible:
+    element:
+      id: row.nav.settings
+    direction: DOWN
+- tapOn:
+    id: row.nav.settings
+- extendedWaitUntil:
+    visible:
+      id: screen.settings
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: pengaturan

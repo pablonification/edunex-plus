@@ -29,8 +29,12 @@ export async function startEngine(
     start?: boolean;
     version?: string;
     checkForUpdates?: boolean;
+    /** Only releases carrying a file this matches (the phone's APK). */
+    releaseAsset?: RegExp;
     /** Where problem reports go with one click (the pretend relay); none by default, never the real one. */
     relay?: string;
+    /** Starts as the phone does: only the sign-in checks and what's due (EngineDeps.startDueOnly). */
+    startDueOnly?: boolean;
   } = {},
 ): Promise<Harness> {
   const world = options.world ?? new PretendWorld({ now: options.now });
@@ -45,11 +49,13 @@ export async function startEngine(
     vault,
     version: options.version ?? "2.0.0-test",
     checkForUpdates: options.checkForUpdates,
+    ...(options.releaseAsset ? { releaseAsset: options.releaseAsset } : {}),
     emit: (e) => events.push(e),
     random: () => 0.5,
     log,
     relay: options.relay ?? "",
     os: () => "macOS 15.3 (arm64)",
+    ...(options.startDueOnly ? { startDueOnly: true } : {}),
   });
   // A first start: the tests read alerts in Bahasa Indonesia, which a Student picks in Settings.
   const firstStart = (await storage.read("state.json")) === null;

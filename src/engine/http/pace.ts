@@ -5,18 +5,41 @@
 import { type Clock, sleep } from "../clock";
 
 export class Pace {
-  private line: Promise<unknown> = Promise.resolve();
+  private readonly waiting: { work: () => Promise<unknown>; background: boolean; done(run: Promise<unknown>): void }[] = [];
+  private busy = false;
   private lastStart = Number.NEGATIVE_INFINITY;
   /** Until when the site asked to be left alone (ms). */
   pausedUntil = 0;
 
   constructor(private readonly clock: Clock) {}
 
-  /** Runs `work` once every request queued before it on this site is done. */
-  turn<T>(work: () => Promise<T>): Promise<T> {
-    const run = this.line.then(work);
-    this.line = run.catch(() => undefined);
-    return run;
+  /**
+   * Runs `work` once the requests before it on this site are done, one at a time. A `background` request (the
+   * public catalog, read for the planner) waits while any other is waiting: the Student's own pages go first.
+   */
+  turn<T>(work: () => Promise<T>, background = false): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+      this.waiting.push({ work, background, done: (run) => (run as Promise<T>).then(resolve, reject) });
+      this.next();
+    });
+  }
+
+  private next(): void {
+    if (this.busy || !this.waiting.length) return;
+    const at = Math.max(
+      0,
+      this.waiting.findIndex((entry) => !entry.background),
+    );
+    const [entry] = this.waiting.splice(at, 1);
+    this.busy = true;
+    const run = Promise.resolve().then(entry!.work);
+    entry!.done(run);
+    void run
+      .catch(() => undefined)
+      .then(() => {
+        this.busy = false;
+        this.next();
+      });
   }
 
   /** Waits until `gapMs` have passed since the last request to the site started, then marks this one's start. */

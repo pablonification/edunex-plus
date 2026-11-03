@@ -185,6 +185,27 @@ describe("new version check", () => {
     expect(notice(h)).toBeUndefined();
   });
 
+  it("on the phone, offers only a release that carries the Android app", async () => {
+    const world = new PretendWorld();
+    world.github.latestTag = "v2.1.0";
+    const h = await startEngine({ world, checkForUpdates: true, releaseAsset: /\.apk$/i });
+    await h.wait(2 * MINUTE);
+    expect(world.github.requests).toHaveLength(1);
+    expect(notice(h)).toBeUndefined();
+    world.github.apkTags.add("v2.1.0");
+    await h.wait(DAY);
+    expect(notice(h)).toMatchObject({ version: "2.1.0" });
+  });
+
+  it("in an alpha on the phone, skips the newest alpha when only an older one carries the Android app", async () => {
+    const world = new PretendWorld();
+    world.github.preReleaseTags = ["v0.1.0-alpha.3", "v0.1.0-alpha.2"];
+    world.github.apkTags.add("v0.1.0-alpha.2");
+    const h = await startEngine({ world, checkForUpdates: true, version: "0.1.0-alpha.1", releaseAsset: /\.apk$/i });
+    await h.wait(2 * MINUTE);
+    expect(notice(h)).toMatchObject({ version: "0.1.0-alpha.2" });
+  });
+
   it("never asks in development", async () => {
     const world = new PretendWorld();
     world.github.latestTag = "v9.0.0";

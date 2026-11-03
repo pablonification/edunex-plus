@@ -1,0 +1,83 @@
+// The app's frame: the engine and the desktop's store (../src/shell/boot), the theme, and a native
+// stack over the bottom tabs for everything a tab opens (a Task, a course, a module, Settings), with
+// Android's own screen transition and Back (the predictive gesture too). The crypto polyfill and the
+// background sync come first, from ../index.ts.
+import { NavigationBar } from "expo-navigation-bar";
+import { Stack, useNavigationContainerRef } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { useWidgetUpdates } from "../src/host/widget";
+import { CourseColorPickerHost } from "../src/parts/course-color-picker";
+import { perfNavigating, perfShown, watchJsThread } from "../src/perf";
+import { ReportAskCard } from "../src/screens/report/ask";
+import { Boot } from "../src/shell/boot";
+import { useNobodyIn } from "../src/shell/nobody";
+import { NotificationTaps } from "../src/shell/notification-taps";
+import { SignInHost } from "../src/shell/sign-in";
+import { Welcome } from "../src/shell/welcome";
+import { useTheme } from "../src/ui/theme";
+import { Toasts } from "../src/ui/toasts";
+
+export default function RootLayout() {
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <Boot>
+          <Frame />
+        </Boot>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+/** The `[perf]` lines (../src/perf.ts): the JS thread watched, each navigation timed to its screen drawn. */
+function usePerfWatch(): void {
+  const navigation = useNavigationContainerRef() as unknown as {
+    addListener(event: "__unsafe_action__" | "state", listener: () => void): () => void;
+    getCurrentRoute(): { name: string } | undefined;
+  };
+  useEffect(() => {
+    watchJsThread();
+    const dispatched = navigation.addListener("__unsafe_action__", () => perfNavigating());
+    const shown = navigation.addListener("state", () => perfShown(navigation.getCurrentRoute()?.name ?? "?"));
+    return () => {
+      dispatched();
+      shown();
+    };
+  }, [navigation]);
+}
+
+function Frame() {
+  const theme = useTheme();
+  const nobody = useNobodyIn();
+  useWidgetUpdates();
+  usePerfWatch();
+  return (
+    <>
+      <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
+      {/* Three-button navigation's buttons: light on the dark theme, else dark. */}
+      <NavigationBar style={theme.scheme === "dark" ? "dark" : "light"} />
+      {/* Edge to edge: a screen over the tabs runs under the phone's navigation bar, and its page keeps its last row
+          clear of it (ui/insets.ts). "default" is Android's own open and close (the system's slide and fade), drawn
+          natively. */}
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.color.surface },
+          animation: "default",
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+      {/* Until a system is in: then it fades, and Beranda fills in under it (the first read's summary is a card there). */}
+      {nobody && <Welcome />}
+      <ReportAskCard />
+      <Toasts />
+      <CourseColorPickerHost />
+      <SignInHost />
+      <NotificationTaps />
+    </>
+  );
+}

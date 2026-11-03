@@ -10,6 +10,7 @@
 import { appendCount, classResults } from "../../../core/attendance";
 import type { ClassSession, DatasetValue, SixCourse, SkippedRow, UnreadSession } from "../../../core/models";
 import { PartChanged } from "../../errors";
+import type { FeedRead } from "../../report/kept-pages";
 import { Skipped } from "../skipped";
 import type { SourceContext } from "../source";
 import type { SixClient } from "./client";
@@ -20,12 +21,15 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
 export function registerSixFeeds(context: SourceContext, client: SixClient): void {
+  // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
+  const noted = (read: FeedRead) => ({ context: context.for(read), client: client.for(read) });
   context.feed({
     name: "six.status",
     every: HOUR,
     jitter: 5 * MINUTE,
     part: ["six.courses"],
-    async run(current) {
+    async run(current, read) {
+      const { context, client } = noted(read);
       const { student, courses, tableChanged, skipped } = await client.status();
       if (!current()) return;
       // A different Student signed in to SIX on this computer: nothing of the last one may show.
@@ -43,7 +47,8 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
     every: 12 * HOUR,
     jitter: 30 * MINUTE,
     shows: ["six.schedule", "six.scheduleMonths", "six.scheduleUnread"],
-    async run() {
+    async run(_current, read) {
+      const { context, client } = noted(read);
       const { sessions, months, unread, skipped } = await readSchedule(client, context.clock.now());
       // The days with a meeting it couldn't read, then the meetings, then the months: for a moment a
       // day may look busier than it is, never free, and the months may lag behind the meetings, never

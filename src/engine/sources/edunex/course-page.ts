@@ -16,6 +16,7 @@ import type {
   UnopenedModule,
 } from "../../../core/models";
 import { EngineError } from "../../errors";
+import type { FeedRead } from "../../report/kept-pages";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
 import { fetchCourses } from "./feeds";
@@ -134,19 +135,28 @@ export const Gradebook = z.object({
 // ---------------------------------------------------------------- feeds
 
 export function registerCoursePageFeeds(context: SourceContext, client: EdunexClient): void {
-  const courses = async () => context.get("edunex.courses") ?? (await fetchCourses(client));
-  const perCourse = <T>(name: string, every: number, read: (course: Course) => Promise<T>, store: (value: Record<string, T>) => Promise<unknown>) =>
+  // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
+  const noted = (read: FeedRead) => ({ context: context.for(read), client: client.for(read) });
+  type Run = ReturnType<typeof noted>;
+  const courses = async ({ context, client }: Run) => context.get("edunex.courses") ?? (await fetchCourses(client));
+  const perCourse = <T>(
+    name: string,
+    every: number,
+    read: (client: EdunexClient, course: Course) => Promise<T>,
+    store: (context: SourceContext, value: Record<string, T>) => Promise<unknown>,
+  ) =>
     context.feed({
       name,
       every,
       jitter: every / 10,
-      async run(current) {
+      async run(current, notes) {
+        const run = noted(notes);
         const value: Record<string, T> = {};
-        for (const course of await courses()) {
+        for (const course of await courses(run)) {
           if (!current()) return;
-          value[course.code] = await read(course);
+          value[course.code] = await read(run.client, course);
         }
-        if (current()) await store(value);
+        if (current()) await store(run.context, value);
       },
     });
 
@@ -155,11 +165,13 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
     name: "edunex.materials",
     every: HOUR,
     jitter: 6 * MINUTE,
-    async run(current) {
+    async run(current, read) {
+      const run = noted(read);
+      const { context, client } = run;
       const nim = context.get("edunex.account")?.nim ?? null;
       const outlines: Record<string, CourseOutline> = {};
       const materials: Record<string, Material[]> = {};
-      for (const course of await courses()) {
+      for (const course of await courses(run)) {
         if (!current()) return;
         outlines[course.code] = await fetchOutline(client, course, nim);
         materials[course.code] = await fetchMaterials(client, course, outlines[course.code].modules);
@@ -169,24 +181,9 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
       await context.set("edunex.materials", materials);
     },
   });
-  perCourse(
-    "edunex.presence",
-    30 * MINUTE,
-    (course) => fetchPresence(client, course),
-    (value) => context.set("edunex.presence", value),
-  );
-  perCourse(
-    "edunex.announcements",
-    HOUR,
-    (course) => fetchAnnouncements(client, course),
-    (value) => context.set("edunex.announcements", value),
-  );
-  perCourse(
-    "edunex.exams",
-    3 * HOUR,
-    (course) => fetchExams(client, course),
-    (value) => context.set("edunex.exams", value),
-  );
+  perCourse("edunex.presence", 30 * MINUTE, fetchPresence, (context, value) => context.set("edunex.presence", value));
+  perCourse("edunex.announcements", HOUR, fetchAnnouncements, (context, value) => context.set("edunex.announcements", value));
+  perCourse("edunex.exams", 3 * HOUR, fetchExams, (context, value) => context.set("edunex.exams", value));
 }
 
 /** The class's own Edunex course first, then its parent's. */

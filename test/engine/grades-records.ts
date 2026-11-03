@@ -29,6 +29,6 @@ export async function records(): Promise<Records> {
     page: async (path) => sixPage(exactPath(path)),
   });
   let catalog = withProgramList(undefined, readProgramList(publicPage("kur2024")), 0);
-  for (const id of ["154", "174", "182"]) catalog = withProgramPage(catalog, id, readProgramPage(publicPage(`kur2024-${id}`)), 0);
+  for (const id of ["154", "174", "182"]) catalog = withProgramPage(catalog, id, await readProgramPage(publicPage(`kur2024-${id}`)), 0);
   return { transcript, progress, curriculum, catalog, calendar: readCalendar(calendarFixture(), 0) };
 }

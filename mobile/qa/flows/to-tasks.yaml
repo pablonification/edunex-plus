@@ -1,0 +1,10 @@
+# From Beranda to Tugas & Ujian, at the top of its list (jank.sh scrolls it after).
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 60000
+- tapOn:
+    id: tab.tasks
+- waitForAnimationToEnd

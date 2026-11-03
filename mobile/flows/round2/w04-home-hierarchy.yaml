@@ -1,0 +1,52 @@
+# W4/W11 (round 2): Beranda answers in three seconds and isn't crowded. On the signed-in demo (Thursday 08:07, PL3002
+# on now): the class on now leads, with its time and one quiet line about Tandai Hadir, and the long explanations
+# ("Dicek tiap 2 menit…", the Presensi paragraph) are gone from the page, its sheet keeping the facts as labels; Perlu perhatianmu shows at most
+# three; Yang berubah is one row; the term's courses aren't repeated here (they're on Kuliah).
+# Fails on round 1 (9395cea: the paragraphs on the card, five changes and five courses on the page); passes after.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: card.now
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
+- assertNotVisible: ".*Dicek tiap 2 menit.*"
+- assertNotVisible: ".*Presensi Edunex juga dibuka.*"
+# The details are one tap away, in the class's sheet: three rows (when, where, the absences), no sentence about SIX.
+- tapOn:
+    id: action.nowClass
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 10000
+- assertVisible: ".*Boleh absen.*"
+- assertVisible: ".*Kehadiran 85%.*"
+- assertNotVisible: ".*Tandai Hadir belum muncul.*"
+- assertNotVisible: ".*Setelah ini.*"
+- back
+- scrollUntilVisible:
+    element:
+      id: section.today
+    direction: DOWN
+    timeout: 10000
+- assertNotVisible:
+    id: section.courses
+- scroll
+- assertNotVisible:
+    id: section.courses
+- assertNotVisible:
+    id: row.course.PL3002

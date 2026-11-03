@@ -1,0 +1,23 @@
+# The "before" pictures of the first run (shots.sh): the welcome and the steps after it, in ${THEME}.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=first-run&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: action.start
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: selamat-datang
+- tapOn:
+    id: action.start
+- waitForAnimationToEnd
+- takeScreenshot: selamat-datang-hubungkan
+- tapOn:
+    id: action.connect.edunex
+- extendedWaitUntil:
+    visible:
+      id: screen.welcome.connected
+    timeout: 180000
+- waitForAnimationToEnd
+- takeScreenshot: selamat-datang-terhubung

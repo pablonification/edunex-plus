@@ -6,6 +6,7 @@
 import { z } from "zod";
 import type { Course, Task, TaskModule } from "../../../core/models";
 import { isEngineError } from "../../errors";
+import type { FeedRead } from "../../report/kept-pages";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
 import { fetchCourses } from "./feeds";
@@ -17,12 +18,15 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
 export function registerTaskFeeds(context: SourceContext, client: EdunexClient): void {
+  // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
+  const noted = (read: FeedRead) => ({ context: context.for(read), client: client.for(read) });
   const outlines = new Map<number, Outline>();
   context.feed({
     name: "edunex.tasks",
     every: 15 * MINUTE,
     jitter: 2 * MINUTE,
-    async run(current) {
+    async run(current, read) {
+      const { context, client } = noted(read);
       const log = writeLog(context);
       const begun = log.count;
       const courses = await termCourses(context, client, current);

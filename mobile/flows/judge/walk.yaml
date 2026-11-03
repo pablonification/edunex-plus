@@ -1,0 +1,385 @@
+# The phone's pictures for the same-feel judge (check B in mobile/PROGRESS.md): each screen in the state
+# the desktop demo's own pictures show it (scripts/demo/capture.mjs), named like them, with the theme
+# in front ("light-01-beranda"). Run through judge-light.yaml and judge-dark.yaml. The desktop's
+# 05 (a file dropped on the hand-in) is the phone's 04b, the file from Android's picker; 27 (offline)
+# needs a phone without a network, and 31 the English app: left out here. The first run (32-35) and Edunex alone (36-37) are
+# judge/first-run.yaml and judge/edunex-only.yaml.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-01-beranda
+# Perlu kamu urus, behind Beranda's chevron (round 2's v4): the desktop's Perlu perhatianmu, in full.
+- tapOn:
+    id: action.needs.all
+- extendedWaitUntil:
+    visible:
+      id: screen.needs
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-02b-perlu-kamu-urus
+- tapOn:
+    id: action.back
+# Beranda's lower half as the desktop's picture shows it: today's rows down to the clash at 16:00 (v4's Nanti hari
+# ini, its last row the class at 16:00; the clash itself is in that class's sheet).
+- scrollUntilVisible:
+    element:
+      text: "16:00 · .*"
+    direction: DOWN
+    centerElement: true
+    optional: true
+- takeScreenshot: ${THEME}-02-beranda-hari-ini
+
+# Tugas & Ujian, a Task, an exam
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: tasks
+- takeScreenshot: ${THEME}-03-tugas-ujian
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+    direction: DOWN
+- tapOn:
+    id: row.task.117003
+- extendedWaitUntil:
+    visible:
+      id: screen.task
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-04-tugas
+# Handing in outside the Presence's time, as the desktop's 05: an answer and a file (mobile/flows/files/jawaban.pdf, put in Downloads by
+# scripts/ci/mobile-e2e.sh) from Android's picker, then Kumpulkan's question with its warning. Closed with Back, the
+# file taken off again: the walk saves nothing.
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    direction: DOWN
+    centerElement: true
+    optional: true
+- tapOn:
+    id: input.answer
+- inputText: "Jawaban sementara"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: action.attach
+- extendedWaitUntil:
+    visible: "jawaban.pdf"
+    timeout: 20000
+- tapOn: "jawaban.pdf"
+- extendedWaitUntil:
+    visible: "Belum disimpan.*"
+    timeout: 20000
+- tapOn:
+    id: action.submit
+- extendedWaitUntil:
+    visible:
+      id: action.submitAnyway
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-04b-tugas-kumpulkan
+- pressKey: back
+- tapOn:
+    id: action.removeFile
+    optional: true
+- tapOn:
+    id: action.back
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: tasks
+# The exam is near the top of the list (the tab's tap brought it back up): no scroll, which at the top would refresh.
+- tapOn:
+    id: row.exam.DK4073-UTS
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-06-ujian
+- tapOn:
+    id: action.back
+
+# Jadwal (v4): today on the hours, a class's sheet (Beranda's), next week with the midterms (a swipe across the week
+# strip), the month (the bar's calendar button), the phone's calendar (in ⋮, kept current rather than exported once)
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: schedule
+- extendedWaitUntil:
+    visible:
+      id: row.class.pl3002-08-00
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-07-jadwal-minggu
+# The desktop's 08 is KU5014's detail: its class at 16:00 today.
+- scrollUntilVisible:
+    element:
+      id: "row\\.class\\.ku5014-.*"
+    direction: DOWN
+    optional: true
+- tapOn:
+    id: "row\\.class\\.ku5014-.*"
+    index: 0
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: sheet.nowClass
+    timeout: 10000
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-08-jadwal-detail
+- pressKey: back
+- scrollUntilVisible:
+    element:
+      id: strip.week
+    direction: UP
+    optional: true
+- swipe:
+    from:
+      id: strip.week
+    direction: LEFT
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: "Minggu ke-8 .*"
+    timeout: 5000
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-09-jadwal-masa-uts
+- tapOn:
+    id: action.today
+- tapOn:
+    id: action.month
+- extendedWaitUntil:
+    visible:
+      id: screen.month
+    timeout: 10000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-10-jadwal-bulan
+- pressKey: back
+- tapOn:
+    id: action.scheduleMenu
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-11-ekspor-kalender
+- tapOn:
+    id: action.calendarSync
+# Android asks for the calendar once.
+- tapOn:
+    text: "(Allow|Izinkan|ALLOW|IZINKAN)"
+    optional: true
+- extendedWaitUntil:
+    visible: ".*acara masuk Kalender HP"
+    timeout: 30000
+    optional: true
+- takeScreenshot: ${THEME}-12-ekspor-kalender-selesai
+
+# Kuliah (the courses with their absences left)
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: courses
+- takeScreenshot: ${THEME}-13-kuliah
+
+# Akademik, then Nilai and Rencana studi's parts, each its own screen
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: academic
+# Akademik's rows draw once its data is in: wait for the first, so the picture and the tap both find it.
+- extendedWaitUntil:
+    visible:
+      id: row.nav.grades
+    timeout: 15000
+- takeScreenshot: ${THEME}-13b-akademik
+- tapOn:
+    id: row.nav.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-14-nilai
+- tapOn:
+    id: action.back
+- tapOn:
+    id: row.nav.plan.planner
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.planner
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-15-rencana
+- tapOn:
+    id: action.back
+- tapOn:
+    id: row.nav.plan.curriculum
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.curriculum
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-16-kurikulum
+- tapOn:
+    id: action.back
+- tapOn:
+    id: row.nav.plan.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-17-krs
+- tapOn:
+    id: action.back
+- tapOn:
+    id: row.nav.plan.bills
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.bills
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-18-ukt
+- tapOn:
+    id: action.back
+- tapOn:
+    id: row.nav.plan.deadlines
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.deadlines
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-19-kalender-akademik
+- tapOn:
+    id: action.back
+
+# A course (from Kuliah): its page, its meetings, its grade calculator
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: courses
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- tapOn:
+    id: row.course.PL3002
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-20-mata-kuliah
+- tapOn:
+    id: tab.course.meetings
+- scrollUntilVisible:
+    element:
+      id: "row\\.meeting\\..*"
+    direction: DOWN
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-21-pertemuan
+- tapOn:
+    id: tab.course.grades
+# The calculator itself, under the course's header.
+- scrollUntilVisible:
+    element:
+      id: "row\\.gradePart\\..*"
+    direction: DOWN
+    centerElement: true
+    optional: true
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-22-kalkulator-nilai
+- tapOn:
+    id: action.back
+
+# Search, the data's state while it's read again, the bell
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: home
+# Beranda keeps where it was scrolled (down at 02's 16:00 row): back up to its header.
+- scrollUntilVisible:
+    element:
+      id: action.search
+    direction: UP
+- tapOn:
+    id: action.search
+# The desktop's own search, for the same results.
+- inputText: "bab 2"
+- hideKeyboard
+- takeScreenshot: ${THEME}-23-cari
+- tapOn:
+    id: action.back
+# A new Task on the pretend Edunex, as the desktop demo's pictures have it here: the read below finds it, and the bell
+# then has an unread alert (the link goes to Beranda).
+- openLink: "edunexplusdemo://demo?post=kuis"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- tapOn:
+    id: action.syncStatus
+- tapOn:
+    id: action.refreshNow
+    optional: true
+# The desktop's picture is mid-read: caught while it says so, if the read isn't over first.
+- extendedWaitUntil:
+    visible: ".*Memperbarui.*"
+    timeout: 5000
+    optional: true
+- takeScreenshot: ${THEME}-24-status-data-memperbarui
+- pressKey: back
+- tapOn:
+    id: action.alerts
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-25-notifikasi
+- tapOn:
+    id: action.back
+
+# Settings, behind the avatar (on every tab's bar but Beranda's, round 2's v4): the top, notifications, about, the licences
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: academic
+- tapOn:
+    id: action.account
+- extendedWaitUntil:
+    visible:
+      id: screen.settings
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-26-pengaturan
+- scrollUntilVisible:
+    element:
+      id: action.testAlert
+    direction: DOWN
+    centerElement: true
+    optional: true
+- takeScreenshot: ${THEME}-26-pengaturan-notifikasi
+- scrollUntilVisible:
+    element:
+      id: action.licences
+    direction: DOWN
+    centerElement: true
+    optional: true
+- takeScreenshot: ${THEME}-26-pengaturan-tentang
+- tapOn:
+    id: action.licences
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-26-pengaturan-lisensi
+- tapOn:
+    id: action.back
+    optional: true

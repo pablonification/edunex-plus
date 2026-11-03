@@ -1,0 +1,655 @@
+// The parts every screen is built from, the phone's versions of the desktop's (src/app/ui/layout.tsx)
+// with the same names and the same rules: the page, its header, sections, lists of rows, one-line
+// facts, notices and figures, in Material 3's look (DESIGN.md). Screens compose these instead of
+// styling their own.
+import { useScrollToTop } from "expo-router";
+import {
+  Children,
+  type ComponentRef,
+  cloneElement,
+  createContext,
+  Fragment,
+  isValidElement,
+  type ReactNode,
+  type Ref,
+  type RefObject,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+} from "react";
+import {
+  Animated,
+  Pressable,
+  RefreshControl,
+  type ScrollView,
+  type ScrollViewProps,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+  type ViewStyle,
+} from "react-native";
+import { Icons } from "./icons";
+import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
+import { Text } from "./text";
+import { radius, shape, space, useTheme } from "./theme";
+
+/**
+ * How far the page under a top bar has scrolled, followed on the UI thread (no JS work while scrolling): the bar takes
+ * its scrolled-under colour from it (top-bar.tsx).
+ */
+const ScrollEdge = createContext<Animated.Value | null>(null);
+
+/**
+ * 0 until the page has scrolled `from` − 24 dp, 1 from `from` on (an Animated value; null outside a Page): a top bar's
+ * title that shows once the page's own big title has gone under it (M3's collapsing top app bar).
+ */
+export function useScrolledPast(from: number): Animated.AnimatedInterpolation<number> | null {
+  const offset = useContext(ScrollEdge);
+  return useMemo(
+    () => offset?.interpolate({ inputRange: [Math.max(0, from - 24), Math.max(1, from)], outputRange: [0, 1], extrapolate: "clamp" }) ?? null,
+    [offset, from],
+  );
+}
+
+/**
+ * The title the screen's bar shows (a `TabHeader`'s or `TopBar`'s `title`), for the one-title rule: a screen has one
+ * title, in its bar; a `PageHeader` under it never repeats it nor draws a second big heading. Null outside a screen
+ * with a bar. A screen that lays out its own list (a FlashList) instead of `Page` wraps it in `TitledBy`.
+ */
+const BarTitle = createContext<string | null>(null);
+
+export function TitledBy({ title, children }: { title: string; children: ReactNode }) {
+  return <BarTitle.Provider value={title}>{children}</BarTitle.Provider>;
+}
+
+/** The bar's `title` prop, when the header is a bar element with one. */
+function titleOf(header: ReactNode): string | null {
+  if (!isValidElement(header)) return null;
+  const title = (header.props as { title?: unknown }).title;
+  return typeof title === "string" ? title : "";
+}
+
+/** 0 at the page's top, 1 once anything has scrolled under the bar (an Animated value; null outside a Page). */
+export function useScrolledUnder(): Animated.AnimatedInterpolation<number> | null {
+  const offset = useContext(ScrollEdge);
+  return useMemo(() => offset?.interpolate({ inputRange: [0, 8], outputRange: [0, 1], extrapolate: "clamp" }) ?? null, [offset]);
+}
+
+/** The page's own colour (`Page`'s `background`, v4's page grey), so its top bar sits on the same colour at rest. */
+const PageColor = createContext<string | null>(null);
+
+/** The colour of the page a bar is on (null: the surface). */
+export function usePageColor(): string | null {
+  return useContext(PageColor);
+}
+
+/**
+ * A screen: scrolls, with the page's sides, and pulls to refresh when `onRefresh` is given ("Perbarui
+ * sekarang"). Its `header` (a top bar) stays on top and takes a tone when the page scrolls under it; the end
+ * keeps clear of the tabs or the phone's own navigation bar.
+ */
+export function Page({
+  children,
+  onRefresh,
+  refreshing = false,
+  header,
+  testID,
+  scrollRef,
+  contentStyle,
+  background,
+  onScroll,
+  ...rest
+}: {
+  children: ReactNode;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+  /** Above the scrolling content, fixed (a top bar). */
+  header?: ReactNode;
+  testID?: string;
+  scrollRef?: Ref<ComponentRef<typeof ScrollView>>;
+  contentStyle?: ViewStyle;
+  /** The page's colour, when it isn't the surface (round 2's Beranda: v4's page grey under white cards). */
+  background?: string;
+} & Omit<ScrollViewProps, "children" | "refreshControl">) {
+  const theme = useTheme();
+  const bottom = useBottomInset();
+  const inTabs = useInTabs();
+  const frame = useRef<ComponentRef<typeof View>>(null);
+  const offset = useRef(new Animated.Value(0)).current;
+  // The offset goes to the UI thread; a screen's own onScroll (if it has one) still hears each event.
+  const scrolled = useMemo(
+    () => Animated.event([{ nativeEvent: { contentOffset: { y: offset } } }], { useNativeDriver: true, listener: onScroll as never }),
+    [offset, onScroll],
+  );
+  // A tap on the tab already open scrolls its page back to the top, as Android apps do.
+  const own = useRef<ComponentRef<typeof ScrollView>>(null);
+  useScrollToTop(own as RefObject<ComponentRef<typeof ScrollView>>);
+  const ref = useCallback(
+    (view: ComponentRef<typeof ScrollView> | null) => {
+      own.current = view;
+      if (typeof scrollRef === "function") scrollRef(view);
+      else if (scrollRef) (scrollRef as RefObject<ComponentRef<typeof ScrollView> | null>).current = view;
+    },
+    [scrollRef],
+  );
+  return (
+    <View
+      ref={frame}
+      style={{ flex: 1, backgroundColor: background ?? theme.color.surface }}
+      testID={testID}
+      // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx).
+      onLayout={inTabs ? () => frame.current?.measureInWindow((_x, y, _width, height) => reportTabsBottom(y + height)) : undefined}
+    >
+      <PageColor.Provider value={background ?? null}>
+        <ScrollEdge.Provider value={offset}>{header}</ScrollEdge.Provider>
+      </PageColor.Provider>
+      <Animated.ScrollView
+        ref={ref as never}
+        onScroll={scrolled}
+        scrollEventThrottle={16}
+        contentContainerStyle={[styles.page, { paddingBottom: space[10] + bottom }, contentStyle]}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={[theme.color.primary]}
+              progressBackgroundColor={theme.color.surfaceContainerHigh}
+            />
+          ) : undefined
+        }
+        keyboardShouldPersistTaps="handled"
+        {...rest}
+      >
+        {header ? <BarTitle.Provider value={titleOf(header)}>{children}</BarTitle.Provider> : children}
+      </Animated.ScrollView>
+    </View>
+  );
+}
+
+/** The top of a screen: what it is, the one line that matters most, and its actions under it. */
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  actions,
+}: {
+  /** A short line above the title (the date on Beranda, the course code on a course). */
+  eyebrow?: ReactNode;
+  /**
+   * Under a bar (any `Page` with a header) the screen's title is the bar's: a title equal to it isn't drawn again, and
+   * any other is drawn as a section's title, never a second big heading (one title per screen).
+   */
+  title?: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+}) {
+  const bar = useContext(BarTitle);
+  const same = bar !== null && typeof title === "string" && title.trim().toLowerCase() === bar.trim().toLowerCase();
+  if (same) title = undefined;
+  if (title === undefined && description === undefined && actions === undefined && (eyebrow === undefined || eyebrow === null)) return null;
+  return (
+    <View style={{ marginBottom: space[6] }}>
+      {eyebrow !== undefined && eyebrow !== null && (
+        <View style={{ marginBottom: space[1.5] }}>
+          {typeof eyebrow === "string" ? (
+            <Text size="small" tone="muted" weight="medium">
+              {eyebrow}
+            </Text>
+          ) : (
+            eyebrow
+          )}
+        </View>
+      )}
+      {title !== undefined && title !== null && (
+        <Text size={bar !== null ? "titleMedium" : "headlineMedium"} weight={bar !== null ? "semibold" : undefined} accessibilityRole="header">
+          {title}
+        </Text>
+      )}
+      {description !== undefined && description !== null && (
+        <View style={{ marginTop: space[1.5] }}>
+          {typeof description === "string" ? (
+            <Text size="lead" tone="muted">
+              {description}
+            </Text>
+          ) : (
+            description
+          )}
+        </View>
+      )}
+      {actions && <View style={{ marginTop: space[4], flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>{actions}</View>}
+    </View>
+  );
+}
+
+/** A part of a screen under its own title; the count says how many before the Student reads them. */
+export function Section({
+  title,
+  count,
+  description,
+  action,
+  first = false,
+  children,
+  testID,
+}: {
+  title?: ReactNode;
+  count?: number;
+  description?: ReactNode;
+  /** A link-like action at the heading's end ("Lihat semua"). */
+  action?: ReactNode;
+  /** The first section on a screen has no space above it. */
+  first?: boolean;
+  children: ReactNode;
+  testID?: string;
+}) {
+  return (
+    <View style={{ marginTop: first ? 0 : space[8] }} testID={testID}>
+      {title !== undefined && (
+        // Title and action level: centred together on a title alone, bottoms lined up when a description follows.
+        <View style={[styles.sectionHead, { alignItems: description === undefined ? "center" : "flex-end" }]}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text size="titleMedium" weight="semibold" accessibilityRole="header">
+              {title}
+              {count !== undefined && (
+                <Text size="titleMedium" tone="muted" tabular>
+                  {`  ${count}`}
+                </Text>
+              )}
+            </Text>
+            {description !== undefined && (
+              <View style={{ marginTop: 2 }}>
+                {typeof description === "string" ? (
+                  <Text size="small" tone="muted">
+                    {description}
+                  </Text>
+                ) : (
+                  description
+                )}
+              </View>
+            )}
+          </View>
+          {action && <View style={{ flexShrink: 0 }}>{action}</View>}
+        </View>
+      )}
+      {children}
+    </View>
+  );
+}
+
+/**
+ * Rows that belong together: one group of tonal tiles a hair apart, round at the group's ends (Android 16's
+ * grouped lists). No borders: tone separates the group from the page.
+ */
+export function List({ children, style, testID }: { children: ReactNode; style?: ViewStyle; testID?: string }) {
+  const theme = useTheme();
+  const rows = Children.toArray(children).filter(Boolean);
+  return (
+    <View testID={testID} style={[styles.list, style]}>
+      {rows.map((row, i) => (
+        <View key={isValidElement(row) && row.key !== null ? row.key : i} style={[styles.tile, { backgroundColor: theme.color.surfaceContainerLow }]}>
+          {row}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * Narrow for words: under 340 dp of the normal font size across (a small phone, or a bigger font). Rows then put what
+ * sat at their end under their text, where it can wrap, instead of squeezing the title.
+ */
+export function useNarrow(): boolean {
+  const { width, fontScale } = useWindowDimensions();
+  return width / Math.max(1, fontScale) < 340;
+}
+
+/** True inside a row's end moved under its text (Row's `wrapTrailing`): a date there says itself on one line. */
+export const TrailingInline = createContext(false);
+
+/**
+ * One thing in a list (Material 3's list item): what it is (title), when and where (meta, one line), and at
+ * the end its state or its one action. A tappable row is one target, the whole row, with one outcome; no
+ * chevron (Android's lists open on a tap without one). `actions` sit beside it, never inside it.
+ */
+export function Row({
+  leading,
+  title,
+  meta,
+  trailing,
+  actions,
+  onPress,
+  onLongPress,
+  label,
+  current,
+  quick,
+  testID,
+  children,
+  wrapTrailing = false,
+}: {
+  leading?: ReactNode;
+  title: ReactNode;
+  meta?: ReactNode;
+  trailing?: ReactNode;
+  actions?: ReactNode;
+  onPress?: () => void;
+  onLongPress?: () => void;
+  label?: string;
+  current?: boolean;
+  /** The row's quick actions (a swipe's, a long press's), named for TalkBack's actions menu. */
+  quick?: readonly { label: string; onPress(): void }[];
+  testID?: string;
+  children?: ReactNode;
+  /** On a narrow screen (useNarrow), `trailing` goes under the text instead of beside it. */
+  wrapTrailing?: boolean;
+}) {
+  const theme = useTheme();
+  const narrow = useNarrow();
+  const below = wrapTrailing && narrow && trailing !== undefined && trailing !== null;
+  const body = (
+    <>
+      {/* The indicator and the text as one block, centred in the row: the indicator level with the title's first line
+          (22 high), however tall either is. */}
+      <View style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
+        {leading !== undefined && <View style={{ flexShrink: 0, minHeight: 22, justifyContent: "center" }}>{leading}</View>}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          {typeof title === "string" ? (
+            <Text size="bodyLarge" numberOfLines={3}>
+              {title}
+            </Text>
+          ) : (
+            title
+          )}
+          {meta !== undefined && meta !== null && meta !== false && (
+            <View style={{ marginTop: 2 }}>
+              {typeof meta === "string" ? (
+                <Text size="bodyMedium" tone="muted">
+                  {meta}
+                </Text>
+              ) : (
+                meta
+              )}
+            </View>
+          )}
+          {children}
+          {below && (
+            <TrailingInline.Provider value>
+              <View style={{ marginTop: space[1], flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space[2] }}>{trailing}</View>
+            </TrailingInline.Provider>
+          )}
+        </View>
+      </View>
+      {!below && trailing !== undefined && trailing !== null && (
+        <View style={{ flexShrink: 0, alignItems: "flex-end", gap: 4, maxWidth: "42%" }}>{trailing}</View>
+      )}
+    </>
+  );
+  const pressable = onPress || onLongPress;
+  return (
+    <View style={[{ flexDirection: "row", alignItems: "center" }, current && { backgroundColor: theme.color.selected }]}>
+      {pressable ? (
+        <Pressable
+          testID={testID}
+          onPress={onPress}
+          onLongPress={onLongPress}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          accessibilityActions={quick?.map((action, i) => ({ name: `quick${i}`, label: action.label }))}
+          onAccessibilityAction={quick ? (event) => quick[Number(event.nativeEvent.actionName.slice(5))]?.onPress() : undefined}
+          android_ripple={{ color: theme.color.selected }}
+          style={[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[4] }]}
+        >
+          {body}
+        </Pressable>
+      ) : (
+        <View testID={testID} style={[styles.row, { flex: 1, paddingRight: space[4] }]}>
+          {body}
+        </View>
+      )}
+      {actions && <View style={{ flexDirection: "row", alignItems: "center", paddingRight: space[2] }}>{actions}</View>}
+    </View>
+  );
+}
+
+/** Splits facts: blanks dropped, text holding "·" split up. */
+function factParts(children: ReactNode): ReactNode[] {
+  const parts: ReactNode[] = [];
+  for (const child of Children.toArray(children)) {
+    if (typeof child === "string")
+      parts.push(
+        ...child
+          .split("·")
+          .map((piece) => piece.trim())
+          .filter(Boolean),
+      );
+    else if (typeof child === "number") parts.push(String(child));
+    else if (isValidElement<{ children?: ReactNode }>(child) && child.type === Fragment) parts.push(...factParts(child.props.children));
+    else parts.push(child);
+  }
+  return parts;
+}
+
+/**
+ * Each fact's dot sits in a slot this wide before it; at the start of a line the slot is clipped away. The desktop's
+ * w-4: wider leaves the dot floating between facts ("Terpakai 4× · lewat batas 1×").
+ */
+const SEP = 16;
+
+/**
+ * Facts on one line, quietly separated: "11:00–12:59 · TVST C". Empty parts drop out, and text
+ * holding " · " becomes separate facts. Each fact carries its own dot, so a fact that wraps takes
+ * its dot along, and the dot of a fact that starts a line sits outside the box, clipped away (the
+ * desktop's way): no line starts or ends with "·". Elements (a course dot, an icon) sit among the
+ * facts. `numberOfLines`: one plain line, cut short.
+ */
+export function Meta({
+  children,
+  tone = "muted",
+  size = "small",
+  numberOfLines,
+}: {
+  children: ReactNode;
+  tone?: "muted" | "faint" | "fg";
+  size?: "small" | "caption";
+  numberOfLines?: number;
+}) {
+  const parts = factParts(children);
+  if (numberOfLines !== undefined && parts.every((part) => typeof part === "string"))
+    return (
+      <Text size={size} tone={tone} numberOfLines={numberOfLines}>
+        {(parts as string[]).join("  ·  ")}
+      </Text>
+    );
+  return (
+    <View style={{ overflow: "hidden" }}>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", rowGap: 2, marginLeft: -SEP }}>
+        {parts.map((part, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the facts are positional children; text has no key of its own
+          <View key={i} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1, maxWidth: "100%" }}>
+            <Text size={size} tone="faint" style={{ width: SEP, textAlign: "center" }} accessible={false} importantForAccessibility="no">
+              {i > 0 ? "·" : ""}
+            </Text>
+            {typeof part === "string" ? (
+              <Text size={size} tone={tone} style={{ flexShrink: 1 }}>
+                {part}
+              </Text>
+            ) : (
+              <View style={{ flexShrink: 1 }}>{part}</View>
+            )}
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** The same facts as one plain string, for an accessible name: "PL3002 · 08:00–10:00 · R.SG PWK LT.6". */
+export function factsLabel(...parts: (string | number | null | undefined | false)[]): string {
+  return parts.filter((part): part is string | number => part !== null && part !== undefined && part !== false && String(part).trim() !== "").join(" · ");
+}
+
+const NOTICE = {
+  info: { bg: "infoBg", fg: "infoFg", Icon: Icons.Info },
+  warning: { bg: "warningBg", fg: "warningFg", Icon: Icons.AlertTriangle },
+  danger: { bg: "dangerBg", fg: "dangerFg", Icon: Icons.AlertTriangle },
+  success: { bg: "successBg", fg: "successFg", Icon: Icons.CheckCircle },
+  neutral: { bg: "fill", fg: "fg", Icon: Icons.Info },
+} as const;
+
+/** Something to know right here, said once, with the one thing to do about it. */
+export function Notice({
+  tone = "info",
+  icon,
+  title,
+  action,
+  snooze,
+  children,
+  testID,
+}: {
+  tone?: keyof typeof NOTICE;
+  icon?: ReactNode;
+  title: ReactNode;
+  action?: ReactNode;
+  snooze?: ReactNode;
+  children?: ReactNode;
+  testID?: string;
+}) {
+  const theme = useTheme();
+  const { bg, fg, Icon } = NOTICE[tone];
+  const color = theme.color[fg];
+  return (
+    <View testID={testID} style={[styles.notice, { backgroundColor: theme.color[bg] }]}>
+      <View style={{ marginTop: 2 }}>{icon ?? <Icon size={18} color={color} weight="bold" />}</View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        {typeof title === "string" ? (
+          <Text size="body" weight="semibold" style={{ color }}>
+            {title}
+          </Text>
+        ) : (
+          title
+        )}
+        {children !== undefined && children !== null && (
+          <View style={{ marginTop: 2, opacity: 0.92 }}>
+            {typeof children === "string" ? (
+              <Text size="small" style={{ color }}>
+                {children}
+              </Text>
+            ) : (
+              children
+            )}
+          </View>
+        )}
+        {(action || snooze) && (
+          <View style={{ marginTop: space[3], flexDirection: "row", flexWrap: "wrap", gap: space[2] }}>
+            {action}
+            {snooze}
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const STAT_TONE = { neutral: "fg", success: "success", warning: "warning", danger: "danger" } as const;
+
+/** Figures read at a glance, side by side, split by hairlines: IPK, SKS, absences left. */
+export function StatRow({ children }: { children: ReactNode }) {
+  const theme = useTheme();
+  const stats = Children.toArray(children).filter(Boolean);
+  return (
+    <View style={{ flexDirection: "row" }}>
+      {stats.map((stat, i) => (
+        <View
+          key={isValidElement(stat) && stat.key !== null ? stat.key : i}
+          style={[
+            { flex: 1, minWidth: 0, paddingHorizontal: space[3] },
+            i === 0 && { paddingLeft: 0 },
+            i > 0 && { borderLeftWidth: StyleSheet.hairlineWidth, borderLeftColor: theme.color.line },
+          ]}
+        >
+          {/* Three or more side by side on a phone: a label may take two lines, so each gets room for two and sits at
+              its bottom, and the figures line up across the row. */}
+          {stats.length >= 3 && isValidElement<{ labelLines?: number }>(stat) ? cloneElement(stat, { labelLines: 2 }) : stat}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function Stat({
+  label,
+  value,
+  hint,
+  tone = "neutral",
+  size = "figure",
+  labelLines,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  hint?: ReactNode;
+  tone?: keyof typeof STAT_TONE;
+  size?: "figure" | "heading";
+  /** Room for this many lines of label, the label at its bottom (StatRow gives it). */
+  labelLines?: number;
+}) {
+  return (
+    <View>
+      <View style={labelLines ? { minHeight: labelLines * 19, justifyContent: "flex-end" } : undefined}>
+        <Text size="small" tone="muted" weight="medium" numberOfLines={labelLines}>
+          {label}
+        </Text>
+      </View>
+      <Text size={size} weight="semibold" tone={STAT_TONE[tone]} tabular>
+        {value}
+      </Text>
+      {hint !== undefined &&
+        hint !== null &&
+        (typeof hint === "string" ? (
+          <Text size="caption" tone="muted">
+            {hint}
+          </Text>
+        ) : (
+          hint
+        ))}
+    </View>
+  );
+}
+
+/**
+ * One tile of a `List` drawn row by row, for a virtualized list (FlashList) that can't wrap its rows in a `List`: the
+ * same tonal tile, round at the group's ends (`first`, `last`), 2 dp from the tile above it.
+ */
+export function GroupTile({ first, last, children }: { first: boolean; last: boolean; children: ReactNode }) {
+  const theme = useTheme();
+  const end = shape.lgPlus;
+  const inner = shape.xs;
+  return (
+    <View
+      style={{
+        marginTop: first ? 0 : 2,
+        overflow: "hidden",
+        backgroundColor: theme.color.surfaceContainerLow,
+        borderTopLeftRadius: first ? end : inner,
+        borderTopRightRadius: first ? end : inner,
+        borderBottomLeftRadius: last ? end : inner,
+        borderBottomRightRadius: last ? end : inner,
+      }}
+    >
+      {children}
+    </View>
+  );
+}
+
+/** Space between the parts of a screen that aren't sections (a card under the header). */
+export function Gap({ size = 4 }: { size?: keyof typeof space }) {
+  return <View style={{ height: space[size] }} />;
+}
+
+const styles = StyleSheet.create({
+  page: { paddingHorizontal: space.page, paddingTop: space[4], paddingBottom: space[10] },
+  sectionHead: { marginBottom: space[3], flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space[4] },
+  list: { borderRadius: shape.lgPlus, overflow: "hidden", gap: 2 },
+  tile: { borderRadius: shape.xs },
+  row: { flexDirection: "row", alignItems: "center", gap: space[4], paddingLeft: space[4], paddingVertical: space[3], minHeight: 56 },
+  notice: { flexDirection: "row", alignItems: "flex-start", gap: space[3], borderRadius: radius.xl, paddingHorizontal: space[4], paddingVertical: space[3] },
+});

@@ -3,7 +3,7 @@
 import type { Event } from "../../src/core/contract";
 import { translate } from "../../src/core/strings";
 import type { AlertNotice } from "../../src/engine/alerts/center";
-import type { Detector } from "../../src/engine/alerts/detector";
+import type { Detector, PlannedAlert } from "../../src/engine/alerts/detector";
 import { DETECTORS } from "../../src/engine/alerts/detectors";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { edunex } from "../../src/engine/sources/edunex";
@@ -27,6 +27,8 @@ export async function startAlerts(
     ntfy?: PretendNtfy;
     signIn?: boolean;
     detectors?: readonly Detector[];
+    /** As the phone app's engine: a reminder at the start of every class SIX counts. */
+    checkInReminders?: boolean;
     /** Defaults to Edunex alone. */
     sources?: Parameters<typeof createEngine>[0]["sources"];
   } = {},
@@ -37,6 +39,8 @@ export async function startAlerts(
   const ntfy = options.ntfy ?? new PretendNtfy();
   const shown: Shown[] = [];
   const events: Event[] = [];
+  /** The planned alerts still to come, as the last replan handed them on to be booked ahead. */
+  let upcoming: readonly PlannedAlert[] = [];
   const engine: Engine = createEngine({
     transport: world,
     clock: world.clock,
@@ -47,6 +51,10 @@ export async function startAlerts(
     random: () => 0.5,
     sources: options.sources ?? [edunex],
     detectors: options.detectors ?? DETECTORS,
+    checkInReminders: options.checkInReminders,
+    upcoming: (planned) => {
+      upcoming = planned;
+    },
     alert: (notice) => {
       const text = [notice.title, notice.body].flatMap((part) => (part ? [translate("id", part.key, part.vars)] : [])).join(" — ");
       shown.push({ ...notice, shownAt: world.clock.now(), text });
@@ -67,6 +75,7 @@ export async function startAlerts(
     ntfy,
     shown,
     events,
+    upcoming: () => upcoming,
     history: () =>
       engine.snapshot().datasets.find((d) => d.name === "app.alerts")?.value as { items: { id: string; kind: string }[]; readAt: number } | undefined,
     wait: (ms: number) => world.clock.advance(ms),

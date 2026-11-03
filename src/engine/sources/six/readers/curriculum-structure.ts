@@ -4,6 +4,7 @@
 // course carries SIX's id, which leads to its syllabus. A course whose code it
 // can't read, or a package or a minor it can't, is left out (skipped); an SKS
 // or category it can't read is left blank and the row noted.
+import type { CheerioAPI } from "cheerio/slim";
 import type { Curriculum, CurriculumCourse } from "../../../../core/models";
 import type { Skipped } from "../../skipped";
 import {
@@ -36,7 +37,7 @@ type CourseColumns = Columns<keyof typeof COURSE_COLUMNS>;
 
 export type CurriculumStructure = Pick<Curriculum, "name" | "required" | "specializations" | "minors" | "catalog">;
 
-export function readCurriculumStructure(html: string, skipped?: Skipped): CurriculumStructure {
+export function readCurriculumStructure(html: string | CheerioAPI, skipped?: Skipped): CurriculumStructure {
   const page = openPage(html, "curriculum structure", skipped);
   const pane = (id: string) => {
     const node = page.$(`.tab-pane#${id}`);
