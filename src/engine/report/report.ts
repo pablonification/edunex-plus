@@ -76,7 +76,7 @@ const HOME = /(\/Users\/|\/home\/|[A-Za-z]:\\(?:Users|Documents and Settings)\\)
 
 async function problem(input: ReportInput, scrub: ReportScrubber, kept: Kept): Promise<ReportProblem> {
   const check = scrub.text(kept.check);
-  const rows = kept.rows.map((row) => ({ row: scrub.text(row.row), why: scrub.text(row.why) }));
+  const rows = kept.rows.map((row) => ({ row: scrub.text(wholeWords(row.row)), why: scrub.text(row.why) }));
   const pages = kept.pages.map((page) => scrub.page(kept.feed, page));
   const changed = kept.kind === "changed";
   const who = sixIdentity(input.get("six.student"));
@@ -125,6 +125,13 @@ function impactOf(input: ReportInput, kept: Kept): ReportImpact {
     lastGoodAt: kept.lastGoodAt ?? (kept.kind === "changed" && stored.length ? Math.max(...stored) : null),
   };
 }
+
+/**
+ * A row kept cut to its length ends in half a word or number ("… · 8.7…"), which no scrubbing rule knows: an amount's
+ * first digits, a name's first letters, left as they were. It goes; the "…" stays, so the row still reads as cut, and
+ * still matches its scrubbed page (`sameText` in ./reread.ts).
+ */
+const wholeWords = (row: string) => (row.endsWith("…") ? row.replace(/[^\s·]*…$/, "…") : row);
 
 const pathOf = (url: string) => {
   const parsed = new URL(url);

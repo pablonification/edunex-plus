@@ -195,6 +195,27 @@ describe("a report whose scrubbing took out what went wrong", () => {
   });
 });
 
+describe("a row cut at its length in the middle of a number", () => {
+  it("loses the half number, which no rule scrubs, and still fails the same way with its markup found", async () => {
+    const h = await signedIn();
+    // This term's bill as words SIX might write, a hundred letters long: the row's cut lands inside the payment ("· 5.4…").
+    const words = "Tagihan menunggu verifikasi bagian keuangan fakultas ".repeat(3).slice(0, 100);
+    h.world.six.editPage(BILLS, (html) =>
+      html.replace(/(Tahun 2026 \/ 2027\s*<\/th><\/tr><tr><td><strong>[^<]*<\/strong><\/td><td class="text-right">)\s*5\.400\.000/, `$1${words}`),
+    );
+    await until(h, h.engine.refresh("six"));
+    const kept = h.dataset("six.skipped")!["six.bills"]!;
+    expect(kept.map((row) => row.row)).toEqual([`1 - Ganjil · ${words} · 5.4…`]);
+
+    const [problem] = (await h.engine.report({ datasets: ["six.bills"] })).problems;
+    // The real payment's first digits never leave: the row ends where its last whole word does.
+    expect(problem!.rows.map((row) => row.row)).toEqual([`1 - Ganjil · ${words} · …`]);
+    expect(problem!.reproduces).toBe("yes");
+    expect(problem!.cells![0]!.html).toContain(words);
+    expect(problem!.cells![0]!.header).toContain("Tagihan");
+  });
+});
+
 describe("an Edunex answer the app couldn't read", () => {
   it("keeps that answer alone, scrubbed, and it fails the same check", async () => {
     const h = await startEngine();
