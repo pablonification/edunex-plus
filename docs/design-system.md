@@ -428,6 +428,16 @@ sidebar's current screen). Sizes: 12 to 14 px in
 chips and meta lines, 16 px in rows and buttons, 18 px in the top bar. Icons
 are decorative; the control around them carries the name.
 
+- A new icon: find its file (one per icon, kebab-case) in
+  `node_modules/@fluentui/react-icons/lib/atoms/headless-svg/`, import its 16
+  and 20 px forms from `@fluentui/react-icons/headless/svg/<name>` and pass
+  them to `icon(at16, at20)` (the 20 px pair twice where Fluent draws no 16).
+- Filled fills shapes, not just lines: check a filled icon still means the
+  same. "Not started" stays an empty ring; filled, it would read as done.
+- The arrows (↗ out of the app, → next) are the app's own, in Fluent's line
+  (`strokes` in `icons.tsx`): Fluent's run corner to corner with a small head
+  and look stretched beside words. A new arrow is drawn the same way.
+
 ## Window chrome
 
 - **macOS**: hidden title bar; the traffic lights sit in the sidebar at
@@ -549,6 +559,12 @@ Beranda went from 332 visible words to 160 this way, losing no fact.
      the statuses it explains stay on screen.
    - `StatusLine`: a row's one line of statuses, each an icon and a few words
      in its tone (`STATUS_TONE`).
+   - The why of one control goes on that control: its `Tooltip` and an
+     `aria-describedby` (Simpan draf says what a draft is), so an ⓘ beside
+     full-width buttons doesn't take their room.
+
+   Every detail behind a hover reaches the keyboard too: `Explained` or
+   `Tooltip`, never a bare `title` (mouse only, late, drawn by the system).
 4. **One status line per row, said as what to do.** At most two statuses,
    each 1 to 3 words, most pressing first ("Tak bisa capai 80%", "Bentrok",
    "Wajib hadir"), not the condition behind them ("Jatah absen habis").
@@ -558,6 +574,12 @@ Beranda went from 332 visible words to 160 this way, losing no fact.
 6. **Leave out what the Student knows or can't use here.** Today's date (the
    system shows it), the semester on every screen, "Kelas 01 · 3 SKS" on every
    row (the course page has it).
+7. **Teach a new idea by showing it.** An idea students haven't met (absences
+   left as a bar) is taught once, with the real thing: Presensi's key draws
+   three real bars, each with its word and what it means, until "Mengerti",
+   then sits behind an ⓘ (a saved setting, reset for the next Student). A
+   label names the condition it rests on rather than a vague word ("IPK
+   tertinggi yang mungkin", never "IPK maksimal").
 
 Measure it: `document.querySelector("main").innerText` split on whitespace,
 in the demo at 1280×800, before and after.
