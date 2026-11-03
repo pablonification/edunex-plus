@@ -25,7 +25,7 @@ import {
 import { Button, Chip, ChipRow } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
-import { Sheet } from "../../ui/sheet";
+import { Sheet, SheetTitle } from "../../ui/sheet";
 import { slopY } from "../../ui/sizes";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, type, useTheme } from "../../ui/theme";
@@ -142,9 +142,7 @@ export function AddCourse({
       title={
         // The search and the tabs stay in view while the list scrolls.
         <View style={{ gap: space[2] }}>
-          <Text size="title" weight="semibold" accessibilityRole="header">
-            {title}
-          </Text>
+          <SheetTitle>{title}</SheetTitle>
           <View
             style={{
               flexDirection: "row",

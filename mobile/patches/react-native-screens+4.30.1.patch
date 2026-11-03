@@ -29,3 +29,53 @@ index 0df8749..93ca2cb 100644
          }
      }
  
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDialog.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDialog.kt
+index 05bc51d..90811c6 100644
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDialog.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDialog.kt
+@@ -1,6 +1,7 @@
+ package com.swmansion.rnscreens.gamma.modals.formsheet
+ 
+ import android.content.Context
++import android.content.ContextWrapper
+ import android.os.Bundle
+ import android.view.View
+ import android.view.ViewGroup
+@@ -8,6 +9,7 @@ import android.view.Window
+ import android.view.WindowManager
+ import android.widget.FrameLayout
+ import androidx.core.view.WindowCompat
++import com.facebook.react.bridge.ReactContext
+ import com.google.android.material.bottomsheet.BottomSheetDialog
+ 
+ /**
+@@ -29,6 +31,29 @@ internal class FormSheetDialog(
+         setupBottomSheetHeight()
+     }
+ 
++    // Edunex Plus: the sheet is its own window, which kept its theme's status bar icons (white) whatever the screen
++    // under it had: white on the light page's scrim, about 2.2:1. Each time it shows, before Material reads the window's
++    // look (on attach) and keeps it, the sheet is handed to React Native as an extra window, as RN's Modal is: it takes
++    // the app's current status bar style, and the app's later ones too.
++    override fun onStart() {
++        super.onStart()
++        window?.let { reactContext()?.onExtraWindowCreate(it) }
++    }
++
++    override fun onStop() {
++        window?.let { reactContext()?.onExtraWindowDestroy(it) }
++        super.onStop()
++    }
++
++    private fun reactContext(): ReactContext? {
++        var current: Context? = context
++        while (current is ContextWrapper) {
++            if (current is ReactContext) return current
++            current = current.baseContext
++        }
++        return null
++    }
++
+     override fun onAttachedToWindow() {
+         super.onAttachedToWindow()
+ 

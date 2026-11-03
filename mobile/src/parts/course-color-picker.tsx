@@ -13,7 +13,7 @@ import { useTermCourses } from "../../../src/app/courses";
 import { type Translate, useFormat, useT } from "../../../src/app/i18n";
 import { applyChoice, courseTone, type PaletteId, PICKER_ORDER, pickedColor, resolveCourseColors } from "../../../src/core/course-colors";
 import { Icons } from "../ui/icons";
-import { Sheet } from "../ui/sheet";
+import { Sheet, SheetTitle } from "../ui/sheet";
 import { Text } from "../ui/text";
 import { radius, space, useTheme } from "../ui/theme";
 
@@ -88,9 +88,7 @@ function Choices({ code }: { code: string }) {
 
   return (
     <View>
-      <Text size="title" weight="semibold" tabular accessibilityRole="header">
-        {t("courseColor.title", { code })}
-      </Text>
+      <SheetTitle>{t("courseColor.title", { code })}</SheetTitle>
       {name && (
         <Text size="small" tone="muted" numberOfLines={1}>
           {name}

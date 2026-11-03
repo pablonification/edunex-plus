@@ -5,7 +5,7 @@
 // `ActionSheet` is a menu of choices. A sheet's main action goes in `footer`: it stays in view under
 // the content however long that runs, as a dialog's buttons do on the desktop.
 import { type ReactNode, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormSheet } from "react-native-screens/experimental";
 import { Text } from "./text";
@@ -70,15 +70,7 @@ export function Sheet({
         style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + GRABBER, backgroundColor: background ?? c.surfaceContainerLow }}
       >
         {title !== undefined && (
-          <View style={{ paddingHorizontal: space[6], paddingBottom: space[3] }}>
-            {typeof title === "string" ? (
-              <Text size="titleLarge" accessibilityRole="header">
-                {title}
-              </Text>
-            ) : (
-              title
-            )}
-          </View>
+          <View style={{ paddingHorizontal: space[6], paddingBottom: space[3] }}>{typeof title === "string" ? <SheetTitle>{title}</SheetTitle> : title}</View>
         )}
         <ScrollView
           style={{ flexGrow: 0, flexShrink: 1 }}
@@ -103,6 +95,18 @@ export function Sheet({
         )}
       </View>
     </FormSheet>
+  );
+}
+
+/**
+ * A sheet's title in the one face for headings (v4: Plus Jakarta Sans bold), as every screen's (./top-bar.tsx). `Sheet`
+ * uses it for a title given as words; a sheet that draws its own heading (with more under it) uses it too.
+ */
+export function SheetTitle({ children, style }: { children: string; style?: TextStyle }) {
+  return (
+    <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={style}>
+      {children}
+    </Text>
   );
 }
 

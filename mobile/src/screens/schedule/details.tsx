@@ -22,7 +22,7 @@ import { Button } from "../../ui/controls";
 import { CourseDot, LiveDot, StatusChip } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
-import { Sheet } from "../../ui/sheet";
+import { Sheet, SheetTitle } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 import { handInLabel, openWindow, periodName, type ScheduleWorld, timeRange, useWorld } from "./world";
@@ -62,9 +62,7 @@ function Head({ code, kind, title, world }: { code: string; kind: string; title:
         </View>
         {kind}
       </Meta>
-      <Text size="title" weight="semibold" accessibilityRole="header" style={{ marginTop: space[1] }}>
-        {title}
-      </Text>
+      <SheetTitle style={{ marginTop: space[1] }}>{title}</SheetTitle>
     </View>
   );
 }
@@ -538,9 +536,7 @@ function UnreadDetails({ day, unread, onLeave }: { day: string; unread: readonly
   const others = skipped?.rows.filter((row) => !shown.has(row.row)) ?? [];
   return (
     <>
-      <Text size="title" weight="semibold" accessibilityRole="header">
-        {t("schedule.unread.title", { count })}
-      </Text>
+      <SheetTitle>{t("schedule.unread.title", { count })}</SheetTitle>
       <Text size="small" tone="muted" style={{ marginTop: space[1] }}>
         {t("schedule.unread.hint", { count })}
       </Text>

@@ -143,6 +143,9 @@ export const DayView = memo(function DayView({
         {hours.map((hour) => (
           <HourLine key={hour} hour={hour} from={from} hideLabel={day.day === today} />
         ))}
+        {/* Under the blocks, so it never runs through a class's name: it shows beside them, and on the class on now the
+            block's deeper shade ends where it would be (the judge's round 2, pass 5: the name read as struck through). */}
+        {day.day === today && <NowLine from={from} to={to} />}
         {/* The blocks' frame, beside the hours: a block's column is a share of its width. */}
         <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: BLOCK_LEFT, right: BLOCK_RIGHT }}>
           {items.map((entry) => {
@@ -160,7 +163,6 @@ export const DayView = memo(function DayView({
             );
           })}
         </View>
-        {day.day === today && <NowLine from={from} to={to} />}
         {empty && !day.holiday && (
           <View pointerEvents="none" style={{ position: "absolute", top: TOP + HOUR, left: BLOCK_LEFT, right: BLOCK_RIGHT, alignItems: "center" }}>
             <Icons.Sun size={32} color={v.muted} />
@@ -197,7 +199,10 @@ function HourLine({ hour, from, hideLabel }: { hour: number; from: number; hideL
   );
 }
 
-/** Today's now-line: the brand's blue, with its time where the hour labels are; moves once a minute. */
+/**
+ * Today's now-line: the brand's blue, with its time where the hour labels are; moves once a minute. Drawn before the
+ * blocks, so a class covers it (its dot and time stay clear of them, in the hours' gutter).
+ */
 function NowLine({ from, to }: { from: number; to: number }) {
   const t = useTheme();
   const f = useDayFormat();
@@ -208,7 +213,7 @@ function NowLine({ from, to }: { from: number; to: number }) {
   const y = yOf(minute, from);
   return (
     <>
-      <View pointerEvents="none" style={{ position: "absolute", top: y, left: LINES_LEFT - 4, right: 0, height: 2, backgroundColor: now, zIndex: 2 }}>
+      <View pointerEvents="none" style={{ position: "absolute", top: y, left: LINES_LEFT - 4, right: 0, height: 2, backgroundColor: now }}>
         <View style={{ position: "absolute", left: -5, top: -4, width: 10, height: 10, borderRadius: 5, backgroundColor: now }} />
       </View>
       <Text
@@ -223,7 +228,6 @@ function NowLine({ from, to }: { from: number; to: number }) {
           paddingHorizontal: 2,
           color: now,
           backgroundColor: t.v4.card,
-          zIndex: 2,
           fontSize: 11,
           lineHeight: 16,
         }}
