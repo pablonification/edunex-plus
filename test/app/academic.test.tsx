@@ -80,13 +80,17 @@ describe("the KRS tab", () => {
     let text = panel();
     expect(text).toContain("Menunggu dosen wali");
     expect(text).toContain("Dosen wali: Prof. Dr. Ir. Wahyu Wijaya, M.T.");
-    expect(text).toMatch(/DikirimMin, 16 Agu · 10:45/);
+    // A step's day; its weekday and time are on hover.
+    expect(text).toContain("Dikirim16 Agu");
+    // The weekday and time a tooltip away, reachable by keyboard too: the control says both.
+    expect(document.querySelector("[role=tabpanel][data-state=active] button[aria-label='16 Agu. Min, 16 Agu · 10:45']")?.textContent).toBe("16 Agu");
     expect(text).toContain("Disetujui dosen waliBelum");
     expect(text).toContain("Perubahan KRS (URS): 15 Sep – 18 Sep");
     expect(text).toContain("14 dari maks. 24 SKS");
     // What every row shares is said once; no chip repeated on every row.
-    expect(text).toContain("PL3032Ekonomi Infrastruktur dan Transportasi3 SKS");
-    expect(text).toContain("Semua di kelas 01 · semua disetujui dosen wali");
+    // A row's SKS is a bare figure under the list's "14 dari maks. 24 SKS"; what every row shares is said once.
+    expect(text).toContain("PL3032Ekonomi Infrastruktur dan Transportasi3Semua di kelas 01");
+    expect(text).not.toContain("3 SKS");
     expect(text).not.toContain("Disetujui3");
     expect(text).not.toContain("Perubahan rencana studi (URS)");
 
@@ -100,9 +104,9 @@ describe("the KRS tab", () => {
     );
     text = panel();
     expect(text).toContain("Disetujui dosen waliTinggal disahkan SIX");
-    expect(text).toContain("Disetujui dosen waliSel, 18 Agu · 14:39");
+    expect(text).toContain("Disetujui dosen wali18 Agu");
     // Only the row that differs gets a chip.
-    expect(text).toContain("KU5014Teknik Penyelesaian Masalah TerstrukturBelum disetujui3 SKS");
+    expect(text).toContain("KU5014Teknik Penyelesaian Masalah TerstrukturBelum disetujui3");
     expect(text).not.toContain("semua disetujui dosen wali");
   });
 
@@ -111,9 +115,11 @@ describe("the KRS tab", () => {
     await inject("six.krs", krs());
     await s.click(/^Rencana studi/);
     await tab("KRS");
-    expect(panel()).toContain("KRS sudah sahTidak ada yang perlu kamu lakukan.2026/2027 Ganjil");
+    // This semester's KRS: the term goes without saying, the advisor is who to ask.
+    expect(panel()).toContain("KRS sudah sahTidak ada yang perlu kamu lakukan.Dosen wali: Prof. Dr. Ir. Wahyu Wijaya, M.T.");
+    expect(panel()).not.toContain("2026/2027 Ganjil");
     expect(panel()).toContain("Perubahan rencana studi (URS)");
-    expect(panel()).toContain("Disahkan (KSM)Rab, 16 Sep · 11:02");
+    expect(panel()).toContain("Disahkan (KSM)16 Sep");
     expect(s.button(/^Rencana studi/).textContent).toBe("Rencana studi");
     s.close();
 
@@ -155,11 +161,11 @@ describe("the KRS tab", () => {
     await tab("KRS");
     const text = panel();
     expect(text).toContain("3 baris belum terbaca utuh");
-    expect(text).toContain("PL3002Ekonomi dan Inovasi dalam Perencanaan- SKS");
+    expect(text).toContain("PL3002Ekonomi dan Inovasi dalam Perencanaan-PL3032");
     expect(text).toContain("Mata kuliah- dari maks. 24 SKS");
     expect(text).not.toContain("0 SKS");
     // Done, at a time the app can't read: done all the same.
-    expect(text).toContain("Perubahan rencana studi (URS)DikirimSel, 15 Sep · 14:15Disetujui dosen wali-Disahkan (KSM)");
+    expect(text).toContain("Perubahan rencana studi (URS)Dikirim15 SepDisetujui dosen wali-Disahkan (KSM)");
     expect(text).toContain("KRS sudah sah");
   });
 
@@ -185,9 +191,10 @@ describe("the KRS tab", () => {
     await tab("KRS");
     // One honest status: official, but a clash to sort out, with the next step and the way to see it (never "nothing to do").
     expect(panel()).toContain(
-      "KRS sah, tapi ada 1 bentrokKU5014 dan PL3002 bentrok di 2 pertemuan, berikutnya Kam 15 Okt, 09:00–10:00. SIX menerima KRS ini tanpa peringatan.",
+      "KRS sah, tapi ada 1 bentrokKU5014 dan PL3002 bentrok di 2 pertemuan, berikutnya Kam 15 Okt, 09:00–10:00.Tanyakan ke dosennya jam mana yang dipakai.",
     );
-    expect(panel()).toContain("Tanyakan ke dosen KU5014 dan PL3002 jam mana yang dipakai.");
+    // That SIX took it without a word is the clash's why.
+    expect(s.has("Penjelasan: SIX menerima KRS ini tanpa peringatan.")).toBe(true);
     expect(panel()).not.toContain("Tidak ada yang perlu kamu lakukan");
     expect(panel()).toContain("Bentrok dengan PL3002");
     await s.click("Lihat di Jadwal");
@@ -219,11 +226,13 @@ describe("the UKT tab", () => {
     await s.click(/^Rencana studi/);
     await tab("UKT");
     let text = panel();
-    expect(text).toContain("Semester ini · 2026/2027 GenapRp5.400.000Belum dibayarBayar paling lambat 31 Jan");
+    // The card's term is "Semester ini"; its years are the history's, and a tooltip away (hover or keyboard).
+    expect(text).toContain("Semester iniRp5.400.000Belum dibayarBayar paling lambat 31 Jan");
+    expect(s.has("Semester ini. 2026/2027 Genap")).toBe(true);
     // SIX and ITB agree here: one deadline, nothing to explain.
     expect(text).toContain("Batas bayar31 Jan");
     expect(text).not.toContain("ikuti yang lebih awal");
-    expect(text).toContain("Semester depan · 2027/2028 GanjilBelum ditagihTagihan biasanya muncul menjelang semester dimulai.");
+    expect(text).toContain("Semester depanBelum ditagihTagihan biasanya muncul menjelang semester dimulai.");
     // History: newest first, instalments said; only a bill that isn't paid says so, and a paid one stays quiet.
     expect(text).toMatch(/Riwayat2026\/2027 GenapRp5\.400\.00031 Jan 2027Belum dibayar2026\/2027 GanjilRp5\.400\.00024 Agu 20262025\/2026 Genap/);
     expect(text).not.toContain("Semua lunas");
@@ -282,7 +291,7 @@ describe("the UKT tab", () => {
     await tab("UKT");
     const text = panel();
     expect(text).toContain("1 baris belum terbaca utuhSebagian isinya belum ditampilkan di sini. Cek di SIX.2 - Genap · 5.400.000 · Lunas · 31 Jan 2027");
-    expect(text).toContain("Semester ini · 2026/2027 GenapRp5.400.000Cek di SIX");
+    expect(text).toContain("Semester iniRp5.400.000Cek di SIX");
     expect(text).toMatch(/Riwayat2026\/2027 GenapRp5\.400\.00031 Jan 2027Cek di SIX2026\/2027 Ganjil/);
     expect(text).not.toContain("Belum dibayar");
     expect(text).not.toContain("Bayar paling lambat");
@@ -345,17 +354,21 @@ describe("the Kalender akademik tab", () => {
     expect(panel()).toContain("Sekarang · Min, 11 Okt");
     // A range says its days ("Sen–Jum"), not just the first.
     // The coming seven days are named as such: next week's exam is never filed under "Minggu ini".
-    expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTSMasa ujian tengah semester.besok"]);
+    // "UTS" says it all: no line that only says it again.
+    expect(rows("7 hari ke depan")).toEqual(["12–16 OktSen–JumUTSbesok"]);
     expect(rows("Minggu ini")).toEqual([]);
     expect(group("7 hari ke depan")!.querySelector("li .text-warning-fg")?.textContent).toBe("besok");
-    expect(rows("Semester ini")[0]).toContain("Kuesioner evaluasi perkuliahanIsi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
+    // What an event means for anyone is its why; what's true for this Student stays a line.
+    expect(rows("Semester ini")[0]).toContain("Kuesioner evaluasi perkuliahandalam");
+    expect(s.has("Penjelasan: Isi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.")).toBe(true);
     expect(rows("Semester ini").find((r) => r.includes("Evaluasi kemajuan studi"))).toContain("Target 72 SKS di akhir tahun ke-3. Kamu sudah lulus 125 SKS.");
     // This term's events don't repeat the term; next semester names its term once, in its heading, and is folded until opened.
     expect(panel()).not.toContain("· 2026/2027 Ganjil");
     expect(group("Semester depan")!.querySelector("h3")!.textContent).toBe("Semester depan · 2026/2027 Genap12");
     expect(rows("Semester depan")).toEqual([]);
     await s.click(/^Semester depan/);
-    expect(rows("Semester depan").find((r) => r.startsWith("20–28 Jan"))).toContain("Pengisian KRS (DRS)Isi KRS di SIX, lalu minta persetujuan dosen wali.");
+    expect(rows("Semester depan").find((r) => r.startsWith("20–28 Jan"))).toContain("Pengisian KRS (DRS)dalam");
+    expect(s.has("Penjelasan: Isi KRS di SIX, lalu minta persetujuan dosen wali.")).toBe(true);
     // Past ones: folded, then opened.
     const past = document.querySelector("details")!;
     expect(past.open).toBe(false);
@@ -388,7 +401,8 @@ describe("the Kalender akademik tab", () => {
       "12–16 OktSen–JumMasa Ujian Tengah Semester I-2026/2027",
     ]);
     // One that tells the Student something keeps its line.
-    expect(rows("November 2026").find((r) => r.includes("Kuesioner"))).toContain("Isi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.");
+    expect(rows("November 2026").find((r) => r.includes("Kuesioner"))).toMatch(/Kuesioner Evaluasi Perkuliahan Semester I-2026\/2027$/);
+    expect(s.has("Penjelasan: Isi kuesioner tiap mata kuliah, atau SIX menyembunyikan nilainya.")).toBe(true);
     // The short semester is there too.
     expect(rows("Juni 2027").some((r) => r.includes("Pendaftaran Rencana Studi (DRS) dan Perwalian Semester Antara 2026/2027"))).toBe(true);
     await s.click("Tampilkan 3 bulan sebelumnya");
@@ -481,12 +495,13 @@ describe("the Kalender akademik tab", () => {
     const s = await openPlan("2026-10-11T09:00:00+07:00");
     await s.click(/^Rencana studi/);
     await tab("Kalender akademik");
-    expect(panel()).toContain("Tenggat semester ini dan semester depan, dengan artinya untukmu.Dari Kalender Pendidikan ITB 2026/2027 · diperiksa baru saja");
+    // No line describing the list: the source and how fresh it is.
+    expect(panel()).toMatch(/^Dari Kalender Pendidikan ITB 2026\/2027 · diperiksa baru saja/);
     // The year's own document, as SIX's home page links it.
     await s.click(document.querySelector<HTMLElement>("[role=tabpanel][data-state=active] a")!);
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://goitb.id/Kalender-Pendidikan-2026" } });
     await s.click("Kalender lengkap");
-    expect(panel()).toContain("Semua acara yang dicantumkan ITB, dengan judul dari ITB, termasuk semester pendek.Dari Kalender Pendidikan ITB 2026/2027");
+    expect(panel()).toMatch(/^Dari Kalender Pendidikan ITB 2026\/2027/);
     // Another tab and back, another screen and back: still the full calendar.
     await tab("KRS");
     await tab("Kalender akademik");
@@ -515,7 +530,7 @@ describe("the Kalender akademik tab", () => {
     await s.click(/^Study plan/);
     await tab("Academic calendar");
     expect(panel()).toContain("From ITB's academic calendar 2026/2027 · checked just now");
-    expect(panel()).toContain("Midterms (UTS)Midterm exam week.tomorrow");
+    expect(panel()).toContain("Midterms (UTS)tomorrow");
     expect(panel()).toContain("Next semester · 2026/2027 Even");
     await s.click("Full calendar");
     expect(panel()).toContain("108 events");

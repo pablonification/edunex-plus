@@ -123,7 +123,7 @@ describe("the ✓ on Beranda", () => {
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside button")].find((b) => b.textContent?.startsWith("KU5014"))!);
     expect(document.querySelector("main .bg-danger-bg")).toBeNull();
     // The header still says where attendance stands.
-    expect(document.querySelector("main header")?.textContent).toMatch(/Jatah absen.*lewat batas \d+×/);
+    expect(document.querySelector("main header")?.textContent).toMatch(/lewat batas \d+×/);
 
     await s.engineDoes(() => s.engine.updateSettings({ attendanceTargets: { KU5014: 70 } }));
     await goTo(/^Beranda/);
@@ -142,17 +142,18 @@ describe("the ✓ on Beranda", () => {
   });
 
   it("with only handled things left: a green 'all handled', never 'nothing due'", async () => {
-    // Thursday, looking 3 days ahead (next Thursday's UTS is a week off): the target out of reach is the one item;
-    // the rest of the day is in Hari ini.
-    const s = await open({ world: new PretendWorld() });
+    // Thursday evening, looking 3 days ahead (next Thursday's UTS is a week off), KU5014's class over: the target out of
+    // reach is back in the list (during the day its class row said it), with the Task edited after handing in.
+    const s = await open({ world: new PretendWorld({ now: "2026-10-08T18:30:00+07:00" }) });
     await s.engineDoes(() => s.engine.updateSettings({ needsAhead: 3 }));
     // Once the page has put focus on its title, as it does when it opens.
     await frame();
-    expect(titles()).toEqual(["KU5014: tak bisa lagi capai 80%Paling tinggi 73% · cek ke dosen kalau ada yang terlewat"]);
+    expect(titles()).toEqual([expect.stringMatching(/^Tugas tentang Imfact/), "KU5014: tak bisa lagi capai 80%Paling tinggi 71%"]);
+    await press(s.button(`Sudah kucek: ${EDITED}`));
     await press(s.button(`Sudah tahu: ${KU5014}`));
     const text = needs()?.textContent ?? "";
     expect(text).toContain("Semua sudah beres untuk sekarang");
-    expect(text).toContain("1 sudah beres");
+    expect(text).toContain("2 sudah beres");
     expect(text).not.toContain("Bebas tenggat");
     expect(needs()?.querySelector(".text-success-fg")).toBeTruthy();
     await frame();

@@ -92,10 +92,7 @@ export function Section({
 /** Rows that belong together, on one card, divided by hairlines. */
 export function List({ label, className, children }: { label?: string; className?: string; children: ReactNode }) {
   return (
-    <ul
-      aria-label={label}
-      className={cx("overflow-hidden rounded-xl border border-edge bg-surface shadow-card [&>li+li]:border-t [&>li+li]:border-line", className)}
-    >
+    <ul aria-label={label} className={cx("overflow-hidden rounded-card border border-edge bg-surface [&>li+li]:border-t [&>li+li]:border-line", className)}>
       {children}
     </ul>
   );
@@ -205,7 +202,7 @@ export function Row({
         >
           {body}
           {!aside && (
-            <Icons.ChevronRight className="-mr-1 size-4 shrink-0 text-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+            <Icons.ChevronRight className="-mr-1 size-4 shrink-0 text-faint opacity-0 transition-opacity duration-quick group-hover:opacity-100 group-focus-visible:opacity-100" />
           )}
         </button>
       ) : (
@@ -365,7 +362,7 @@ export function Notice({
 }) {
   const { box, Icon } = NOTICE[tone];
   return (
-    <div className={cx("flex items-start gap-3 rounded-xl px-4 py-3", box, className)}>
+    <div className={cx("flex items-start gap-3 rounded-card px-4 py-3", box, className)}>
       <span className="mt-0.5 shrink-0">{icon ?? <Icon className="size-4" weight="bold" />}</span>
       {/* The action sits beside the words while they keep a readable width (16rem), and goes under them after that,
           never squeezing them to a word per line (a narrow column, a zoomed-in window). */}

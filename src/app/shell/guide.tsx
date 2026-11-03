@@ -416,7 +416,7 @@ function Scrim({ lit }: { lit: DOMRect | null }) {
       {lit ? (
         <div
           data-guide-lit=""
-          className="guide-lit pointer-events-none absolute rounded-xl"
+          className="guide-lit pointer-events-none absolute rounded-card"
           style={{ top: lit.top, left: lit.left, width: lit.width, height: lit.height }}
         />
       ) : (
@@ -473,7 +473,7 @@ function Card({
           onInteractOutside={keep}
           onEscapeKeyDown={onSkip}
           // Over its own dimming, under any dialog (Settings, search), as the window's other quiet card is.
-          className="no-drag z-(--z-float) w-80 max-w-(--radix-popover-content-available-width) origin-(--radix-popover-content-transform-origin) rounded-xl border border-edge bg-raised p-4 text-fg shadow-pop focus:outline-none motion-safe:animate-popover-in"
+          className="no-drag z-(--z-float) w-80 max-w-(--radix-popover-content-available-width) origin-(--radix-popover-content-transform-origin) rounded-card border border-edge bg-raised p-4 text-fg shadow-popover focus:outline-none motion-safe:animate-popover-in"
         >
           {children({ ...ids, primary })}
         </PopoverPrimitive.Content>

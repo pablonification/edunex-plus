@@ -31,7 +31,7 @@ export function Toolbar({ name, actions, children }: { name: string; actions?: R
 export function Loading({ label }: { label: string }) {
   return (
     <div role="status" className="flex w-full flex-col items-center gap-3">
-      <Skeleton className="aspect-[1/1.414] w-full max-w-[520px] rounded-sm" />
+      <Skeleton className="aspect-[1/1.414] w-full max-w-[520px] rounded-tag" />
       <span className="text-small text-muted">{label}</span>
     </div>
   );
@@ -41,7 +41,7 @@ export function Loading({ label }: { label: string }) {
 export function Failed({ title, detail, children }: { title: string; detail: string; children?: ReactNode }) {
   return (
     <div role="alert" className="flex max-w-[44ch] flex-col items-center gap-3 text-center">
-      <span className="grid size-10 place-items-center rounded-full bg-surface text-muted shadow-card">
+      <span className="grid size-10 place-items-center rounded-full bg-surface text-muted">
         <Icons.FileText className="size-5" />
       </span>
       <div>

@@ -2,8 +2,10 @@
 // read, exams, deadlines, Presence by handing in a Task, moved, extra and
 // clashing classes and meetings only Edunex announced each get a line with its
 // own icon (the words in its name); the routine collapses to a quiet count
-// ("4 kuliah"). ITB's periods (UTS, UAS, holidays) tint their days, named on
-// their first day. A day opens its details in a popover, with the way to its week.
+// ("4 kuliah"). A clash that comes back every week is said in amber in this
+// week only, a quiet icon beside the count on the others. ITB's periods (UTS,
+// UAS, holidays) tint their days, named on their first day. A day opens its
+// details in a popover, with the way to its week.
 import { type ReactNode, useMemo } from "react";
 import { wibDay } from "../../../core/course-meetings";
 import type { CalendarEvent } from "../../../core/models";
@@ -46,6 +48,10 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
   const today = wibDay(world.now);
   const periods = input.events.filter((e) => TINTED.has(e.kind));
   const noon = (day: string) => dayStart(day) + 12 * 3_600_000;
+  const thisWeek = month.weeks.find((week) => week.includes(today)) ?? [];
+  // How many days of the month each pair of classes clashes on: more than one, it's the weekly timetable.
+  const clashDays = new Map<string, number>();
+  for (const day of plan) if (day.day.startsWith(month.month)) for (const c of clashesOf(day, t, f)) clashDays.set(c.pair, (clashDays.get(c.pair) ?? 0) + 1);
 
   return (
     <div className="mt-2">
@@ -57,7 +63,7 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
         ))}
       </div>
       {/* One frame, the days sharing hairlines. */}
-      <div className="grid overflow-hidden rounded-xl border border-line bg-surface" style={{ gridTemplateColumns: COLUMNS }}>
+      <div className="grid overflow-hidden rounded-card border border-line bg-surface" style={{ gridTemplateColumns: COLUMNS }}>
         {plan.map((day, i) => {
           const inMonth = day.day.startsWith(month.month);
           const period = periods.find((e) => e.firstDay <= day.day && day.day <= e.lastDay) ?? null;
@@ -66,6 +72,8 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
           const lines = inMonth ? monthLines(day, t, f, world) : [];
           const routine = inMonth ? routineCount(day, t) : null;
           const clashes = inMonth ? clashesOf(day, t, f) : [];
+          // Said in amber where there's a choice to make: a clash this week, or one that doesn't come back.
+          const loud = clashes.some((c) => thisWeek.includes(day.day) || (clashDays.get(c.pair) ?? 0) < 2);
           const summary = [...lines.map((l) => l.full), ...clashes.map((c) => c.full), routine, period ? periodName(t, period) : null]
             .filter(Boolean)
             .join(", ");
@@ -76,7 +84,7 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
               aria-label={label}
               className={cx(
                 // The ring sits inside the cell, so neighbours and the frame never hide it.
-                "focus-ring flex min-h-[104px] min-w-0 flex-col items-stretch gap-[3px] border-line p-1.5 text-left transition-colors duration-150 focus-visible:-outline-offset-2",
+                "focus-ring flex min-h-[104px] min-w-0 flex-col items-stretch gap-[3px] border-line p-1.5 text-left transition-colors duration-quick focus-visible:-outline-offset-2",
                 i % 7 < 6 && "border-r",
                 i < plan.length - 7 && "border-b",
                 period ? "bg-(--source-itb-bg)/70 hover:bg-(--source-itb-bg)" : inMonth ? "hover:bg-hover" : "bg-sunken",
@@ -104,8 +112,18 @@ export function MonthView({ month, input, onShowWeek }: { month: MonthGrid; inpu
               {(routine || clashes.length > 0) && (
                 // The day's classes first, then the clash among them with its time ("Bentrok 16:00"), so it never reads as all of them clashing.
                 <span className="mt-auto flex min-w-0 flex-col gap-[3px] text-micro leading-[15px]">
-                  {routine && <span className="line-clamp-2 text-faint">{routine}</span>}
-                  {clashes.length > 0 && (
+                  {(routine || !loud) && (
+                    <span className="flex min-w-0 items-start gap-1 text-faint">
+                      {routine && <span className="line-clamp-2 min-w-0">{routine}</span>}
+                      {/* The weekly clash, quietly: the cell's name, its details and this week say it in full. */}
+                      {clashes.length > 0 && !loud && (
+                        <span title={clashes.map((c) => c.full).join(", ")} className="flex h-[15px] shrink-0 items-center text-muted">
+                          <Icons.Overlap className="size-3" weight="bold" />
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {loud && (
                     <span title={clashes.map((c) => c.full).join(", ")} className="flex min-w-0 items-center gap-1 font-semibold text-warning-fg">
                       <Icons.Overlap className="size-3 shrink-0" weight="bold" />
                       <span className="truncate">
@@ -194,7 +212,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
         icon: <Icons.History className="size-3 shrink-0" weight="bold" />,
         text: session.courseCode,
         full: t("schedule.month.moved", { code: session.courseCode, time: time(session.start) }),
-        tone: "font-semibold text-warning-fg",
+        tone: "text-muted",
       });
     if (extra)
       lines.push({
@@ -202,7 +220,7 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
         icon: <Icons.Plus className="size-3 shrink-0" weight="bold" />,
         text: session.courseCode,
         full: t("schedule.month.extra", { code: session.courseCode, time: time(session.start) }),
-        tone: "font-semibold text-warning-fg",
+        tone: "text-muted",
       });
   }
   for (const meeting of day.outside) {
@@ -215,19 +233,19 @@ function monthLines(day: ScheduleDay, t: Translate, f: Format, world: ReturnType
       ),
       text: `${meeting.code} ${time(meeting.start)}`,
       full: t("schedule.month.outside", { code: meeting.code, time: time(meeting.start) }),
-      tone: "font-semibold text-warning-fg",
+      tone: "text-muted",
     });
   }
   return lines;
 }
 
 /** Classes that share time, once per pair: "Bentrok KU5014 · PL3032 · 16:00–16:30", and when it starts. */
-function clashesOf(day: ScheduleDay, t: Translate, f: Format): { full: string; from: string }[] {
-  const seen = new Map<string, { full: string; from: string }>();
+function clashesOf(day: ScheduleDay, t: Translate, f: Format): { pair: string; full: string; from: string }[] {
+  const seen = new Map<string, { pair: string; full: string; from: string }>();
   for (const { session, overlaps } of day.classes) {
     for (const o of overlaps) {
       const pair = factsLabel(...[session.courseCode, o.code].sort());
-      if (!seen.has(pair)) seen.set(pair, { full: t("schedule.month.overlap", { pair, from: f.time(o.from), to: f.time(o.to) }), from: f.time(o.from) });
+      if (!seen.has(pair)) seen.set(pair, { pair, full: t("schedule.month.overlap", { pair, from: f.time(o.from), to: f.time(o.to) }), from: f.time(o.from) });
     }
   }
   return [...seen.values()];
@@ -258,13 +276,8 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
         : world.name(c.session.courseCode, c.session.courseName),
       where: c.session.room,
       exam: c.exam,
-      note: c.overlaps.length
-        ? t("schedule.mark.overlap", { code: c.overlaps[0].code })
-        : c.moved
-          ? t("schedule.mark.moved")
-          : c.extra
-            ? t("schedule.mark.extra")
-            : null,
+      clash: c.overlaps.length ? t("schedule.mark.overlap", { code: c.overlaps[0].code }) : null,
+      note: c.overlaps.length ? null : c.moved ? t("schedule.mark.moved") : c.extra ? t("schedule.mark.extra") : null,
     })),
     ...[...day.outside, ...day.edunex].map((m) => ({
       key: `${m.code}${m.start}`,
@@ -274,6 +287,7 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
       title: m.number !== null ? t("schedule.meeting", { n: m.number }) : t("schedule.meetingEdunex"),
       where: m.online ? t("schedule.online") : null,
       exam: false,
+      clash: null as string | null,
       note: null as string | null,
     })),
   ].sort((a, b) => a.start - b.start);
@@ -303,10 +317,12 @@ function DayDetails({ day, period, onShowWeek }: { day: ScheduleDay; period: Cal
                   <CourseDot color={world.color(item.code)} className="mr-1.5 mb-px size-2 align-middle" />
                   <span className="font-semibold tabular-nums">{item.code}</span> {item.title}
                 </span>
-                {item.where || item.note ? (
+                {item.where || item.note || item.clash ? (
                   <Meta className="text-caption text-muted">
                     {item.where}
                     {item.note}
+                    {/* The clash in full here, where the student looks to choose; the cell only hints at a weekly one. */}
+                    {item.clash && <span className="font-semibold text-warning-fg">{item.clash}</span>}
                   </Meta>
                 ) : (
                   <span className="block text-caption">{"\u00a0"}</span>

@@ -19,6 +19,7 @@ import { Icons } from "../../ui/icons";
 import { List, Section } from "../../ui/layout";
 import { PresenceList } from "../../ui/motion/presence-list";
 import { WebLink } from "../../ui/rich-text";
+import { PLAIN_LIST } from "../plain-list";
 import { DoneGroups, PutOff, TodoRow } from "../tasks";
 
 /** No exam known. Signed out of SIX, only Edunex was asked: said so, with the way to SIX's exam timetable. */
@@ -58,7 +59,7 @@ export function TasksTab({ code, exams }: { code: string; exams: Exam[] }) {
     <div>
       <Section id="course-todo" title={t("course.todo")} count={todoCount(items)}>
         {items.length ? (
-          <List label={t("course.todo")}>
+          <List label={t("course.todo")} className={PLAIN_LIST}>
             <PresenceList>
               {items.map((item) => (
                 <TodoRow key={item.key} item={item} inCourse />

@@ -332,7 +332,7 @@ describe("handing in", () => {
     // A lecturer sees a saved draft on Edunex (as "Answered"): the app never says it's private.
     expect(card()).toContain("Your lecturer can see a saved draft, but only Submit hands it in.");
     expect(card()).toContain("File required · PDF file");
-    expect(card()).toContain("Write your answer first. Edunex needs text, even when you attach a file.");
+    expect(card()).toContain("Write your answer first. A file alone isn't enough.");
     expect(s.text()).toContain("Late submission allowed");
   });
 });
@@ -349,7 +349,7 @@ describe("the written answer", () => {
     await s.click(ATTACH);
     expect(s.button("Kumpulkan").disabled).toBe(true);
     expect(s.button("Simpan draf").disabled).toBe(true);
-    expect(card()).toContain("Tulis jawabanmu dulu. Edunex butuh teks, meski kamu melampirkan berkas.");
+    expect(card()).toContain("Tulis jawabanmu dulu. Berkas saja tidak cukup.");
     // The hint is read with the box.
     expect(document.getElementById((await s.editor()).getAttribute("aria-describedby") ?? "")?.textContent).toContain("Tulis jawabanmu dulu");
     expect((await s.editor()).querySelector("[data-placeholder]")?.getAttribute("data-placeholder")).toBe("Tulis jawabanmu di sini…");
@@ -529,7 +529,7 @@ describe("the written answer", () => {
     const editor = await s.editor(/^Your answer$/);
     expect(editor.querySelector("[data-placeholder]")?.getAttribute("data-placeholder")).toBe("Write your answer here…");
     expect(s.has("Bold")).toBe(true);
-    expect(card()).toContain("Write your answer first. Edunex needs text, even when you attach a file.");
+    expect(card()).toContain("Write your answer first. A file alone isn't enough.");
   });
 });
 
@@ -570,7 +570,11 @@ describe("handing in can't cost the Student their attendance", () => {
     await s.click("Kumpulkan");
     await s.click("Kumpulkan tetap (tidak dihitung hadir)");
     expect(card()).toContain("Terkumpul");
-    expect(article()).toContain("Tidak dihitung hadir karena dikumpulkan di luar jendela presensi (Jum, 16 Okt, 15:00–23:59).");
+    // In a few words in red, the reason behind it.
+    expect(article()).toContain("Tak dihitung hadir");
+    expect(s.button(/^Tak dihitung hadir\./).getAttribute("aria-label")).toBe(
+      "Tak dihitung hadir. Tidak dihitung hadir karena dikumpulkan di luar jendela presensi (Jum, 16 Okt, 15:00–23:59). Tugasnya tetap terkumpul.",
+    );
     expect(article()).not.toContain("hanya terhitung jika dikumpulkan");
   });
 
@@ -585,7 +589,9 @@ describe("handing in can't cost the Student their attendance", () => {
     const submit = s.button("Kumpulkan sekarang");
     expect(submit.className).toContain("bg-accent");
     await s.click(submit);
-    expect(article()).toContain("Terhitung hadir. Kamu mengumpulkan di dalam jendela presensi (Hari ini, 15:00–23:59).");
+    expect(s.button(/^Terhitung hadir\./).getAttribute("aria-label")).toBe(
+      "Terhitung hadir. Terhitung hadir. Kamu mengumpulkan di dalam jendela presensi (Hari ini, 15:00–23:59).",
+    );
   });
 
   it("a file unlike what the lecturer asked for gets a soft hint, and the confirm names it", async () => {

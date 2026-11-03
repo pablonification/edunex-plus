@@ -44,7 +44,7 @@ export function usePresenceBadge(): Badge {
   if (!attendance) return null;
   const codes = new Set(attendance.courses.map((c) => c.course.code));
   const open = student ? attendance.schedule.filter((s) => checkIns?.[s.id]?.state === "open" && checkingIn(s, now)).length : 0;
-  const windows = attendance.open.filter((w) => w.counts).length;
+  const windows = attendance.open.length;
   const results = Object.values(attendance.results).filter((r) => codes.has(r.courseCode) && resultNeedsStudent(r, attendance.countLog, now)).length;
   const value = open + windows + results;
   return value > 0 ? { value, tone: "warning" } : null;

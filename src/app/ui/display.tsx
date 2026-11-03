@@ -8,11 +8,11 @@ import { pauseUnseen } from "./motion/visible";
 
 const CARD = {
   /** Content that sits on the page. */
-  plain: "rounded-xl border border-edge bg-surface shadow-card",
+  plain: "rounded-card border border-edge bg-surface",
   /** What matters most on a screen (what's happening now): lifted a little. */
-  raised: "rounded-2xl border border-edge bg-raised shadow-raised",
+  raised: "rounded-dialog border border-edge bg-raised shadow-raised",
   /** A quiet area inside a card or a page (an empty state, a side note). */
-  sunken: "rounded-xl bg-sunken",
+  sunken: "rounded-card bg-sunken",
 } as const;
 
 export function Card({ variant = "plain", className, children }: { variant?: keyof typeof CARD; className?: string; children: ReactNode }) {
@@ -22,8 +22,8 @@ export function Card({ variant = "plain", className, children }: { variant?: key
 /** Nothing here yet: what would be here, why it's empty, and the way forward when there is one. */
 export function EmptyState({ icon, title, description, children }: { icon: ReactNode; title: string; description?: ReactNode; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl bg-sunken px-6 py-11 text-center">
-      <span className="grid size-10 place-items-center rounded-full bg-surface text-muted shadow-card">{icon}</span>
+    <div className="flex flex-col items-center gap-3 rounded-card bg-sunken px-6 py-11 text-center">
+      <span className="grid size-10 place-items-center rounded-full bg-surface text-muted">{icon}</span>
       <div>
         <p className="text-body font-semibold text-fg">{title}</p>
         {description && <p className="mx-auto mt-1 max-w-[46ch] text-small text-muted">{description}</p>}
@@ -35,15 +35,11 @@ export function EmptyState({ icon, title, description, children }: { icon: React
 
 /** A placeholder block while the first data loads. */
 export function Skeleton({ className }: { className?: string }) {
-  return <span ref={pauseUnseen} data-loop aria-hidden className={cx("block rounded-md bg-fill motion-safe:animate-shimmer", className)} />;
+  return <span ref={pauseUnseen} data-loop aria-hidden className={cx("block rounded-item bg-fill motion-safe:animate-shimmer", className)} />;
 }
 
 export function Kbd({ children }: { children: ReactNode }) {
-  return (
-    <kbd className="rounded-tag border border-black/10 bg-surface px-1 font-sans text-micro font-medium text-faint shadow-[0_1px_0_rgb(0_0_0/0.06)] dark:border-white/10">
-      {children}
-    </kbd>
-  );
+  return <kbd className="rounded-tag border border-black/10 bg-surface px-1 font-sans text-micro font-medium text-faint dark:border-white/10">{children}</kbd>;
 }
 
 export function LiveDot({ className }: { className?: string }) {
@@ -68,7 +64,7 @@ export function Bar({ value, color, label, className }: { value: number; color: 
       className={cx("block h-1.5 overflow-hidden rounded-full bg-meter-track", className)}
     >
       <span
-        className="block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-500"
+        className="block h-full rounded-full motion-safe:transition-[width] motion-safe:duration-slow"
         style={{ width: `${clamped * 100}%`, background: color }}
       />
     </span>
@@ -141,13 +137,15 @@ export function StatusGlyph({ status, className = "size-3.5" }: { status: TaskSt
       return <Icons.HandedBack className={className} weight="bold" />;
     case "draft":
       return (
+        // Half filled, its ring as thick as Fluent's empty circle for "not started" beside it.
         <svg viewBox="0 0 24 24" className={className} aria-hidden focusable="false">
-          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="2" />
+          <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.25" />
           <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />
         </svg>
       );
     default:
-      return <Icons.Circle className={className} weight="bold" />;
+      // Not started: an empty ring (a filled one would read as done).
+      return <Icons.Circle className={className} />;
   }
 }
 
@@ -173,7 +171,7 @@ export function CourseDot({ color, className }: { color: string | undefined; cla
     <span
       aria-hidden
       className={cx(
-        "inline-block size-2.5 shrink-0 rounded-xs forced-color-adjust-none forced-colors:outline forced-colors:outline-1 forced-colors:outline-[CanvasText]",
+        "inline-block size-2.5 shrink-0 rounded-mark forced-color-adjust-none forced-colors:outline forced-colors:outline-1 forced-colors:outline-[CanvasText]",
         !color && "border border-faint",
         className,
       )}
@@ -209,9 +207,7 @@ export function ProgressBar({ value, label, indeterminate = false }: { value: nu
         key={indeterminate ? "unknown" : "known"}
         className={cx(
           "absolute inset-y-0 left-0 rounded-full bg-accent",
-          indeterminate
-            ? "w-1/3 motion-safe:animate-shimmer"
-            : "w-full motion-safe:transition-[translate] motion-safe:duration-(--duration-slow) motion-safe:ease-linear",
+          indeterminate ? "w-1/3 motion-safe:animate-shimmer" : "w-full motion-safe:transition-[translate] motion-safe:duration-slow motion-safe:ease-linear",
         )}
         style={indeterminate ? undefined : { translate: `${(Math.max(0, Math.min(1, value)) - 1) * 100}% 0` }}
       />

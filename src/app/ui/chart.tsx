@@ -200,7 +200,7 @@ export function LineChart({
       )}
       {hover !== null && width > 0 && (
         <div
-          className="pointer-events-none absolute z-10 min-w-[120px] -translate-x-1/2 rounded-lg bg-raised px-2.5 py-2 text-caption shadow-pop ring-1 ring-black/5 dark:ring-white/10"
+          className="pointer-events-none absolute z-10 min-w-[120px] -translate-x-1/2 rounded-control bg-raised px-2.5 py-2 text-caption shadow-popover ring-1 ring-black/5 dark:ring-white/10"
           style={{ left: Math.min(Math.max(x(hover), 70), width - 70), top: 0 }}
         >
           <Meta className="font-semibold text-fg">

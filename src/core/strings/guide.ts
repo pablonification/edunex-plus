@@ -77,8 +77,8 @@ export const guideStrings = {
   },
   "guide.presence.now.title": { id: "Perlu perhatianmu sekarang", en: "Needs you now" },
   "guide.presence.now.body": {
-    id: "Tandai Hadir yang sedang dibuka, Presensi Edunex kecuali yang tidak wajib, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
-    en: "Tandai Hadir when it's open, Edunex Presence unless it's optional, and classes that clash. After class, it shows whether SIX counted you.",
+    id: "Tandai Hadir dan Presensi Edunex yang sedang dibuka, serta kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
+    en: "Tandai Hadir and Edunex Presence while they're open, and classes that clash. After class, it shows whether SIX counted you.",
   },
   "guide.presence.row.title": { id: "Kehadiran dan jatah absen", en: "Attendance and absences" },
   "guide.presence.row.body": {

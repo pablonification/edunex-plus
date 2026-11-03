@@ -118,7 +118,7 @@ export function OpenFile({ url, copy, onChange }: { url: string; copy: LocalCopy
           icon: <Icons.ChevronDown className="size-3" weight="bold" />,
           text: t("file.otherApps"),
           // The open button's own outline and corners, its left edge shared with it.
-          className: "rounded-md rounded-l-none border border-l-0 border-edge bg-surface",
+          className: "rounded-item rounded-l-none border border-l-0 border-edge bg-surface",
         }}
         className="w-[240px]"
       />

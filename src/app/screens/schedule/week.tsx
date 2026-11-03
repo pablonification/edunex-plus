@@ -1,8 +1,9 @@
 // Jadwal's week: a real timetable. A time axis (07:00–18:00, wider when
-// something falls outside), a block per class as tall as it lasts, classes
-// that share time side by side with the shared minutes marked red, a red
-// "now" line across today, today's column tinted, empty days narrow so busy
-// days keep room for every room name, weekends always there. Above the days,
+// something falls outside), a block per class as tall as it lasts, a class
+// that starts during another drawn over it as in a diary (side by side when
+// they start too close together), a "now" line across today, today's column
+// tinted, the weekdays one width so each sits in the same place every week,
+// weekends always there and slim when empty. Above the days,
 // ITB's periods ("Masa UTS · 12–16 Okt"); under them, what isn't a place to
 // be (deadlines, Presence by handing in a Task). Each block opens its
 // details in a popover.
@@ -51,14 +52,12 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
   const hours = timeAxis(plan.flatMap((day) => [...day.classes.map((c) => c.session), ...day.outside, ...day.edunex]));
   const events = input.events.filter((e) => SCHEDULE_EVENT_KINDS.has(e.kind) && e.firstDay <= days[6] && e.lastDay >= days[0]);
 
-  // Busy days share the width, each with room for its blocks side by side (`lanes`); empty ones shrink.
-  // A single-day mark (the last lecture day) needs room for its name.
+  // Weekdays share the width equally, busy or not, so a day is where it was last week; a weekend day only when
+  // something is on it (a single-day mark like the last lecture day needs room for its name).
   const busy = plan.map((day) => !isEmptyDay(day) || events.some((e) => e.firstDay === day.day && e.lastDay === day.day));
-  // A week with nothing on it keeps its weekdays wide: there's nothing to give the room to.
-  const anyBusy = busy.some(Boolean);
   const grid: GridDay[] = plan.map((day, i) => {
     const at = dayStart(day.day);
-    const size = busy[i] || (!anyBusy && i < 5) ? "wide" : i >= 5 ? "slim" : "narrow";
+    const size = i < 5 || busy[i] ? "wide" : "slim";
     const lane = [
       ...day.windows.map((w) => <WindowChip key={`w${w.presence.id}`} window={w} />),
       ...day.due.map((task) => <DueChip key={`t${task.id}`} task={task} />),
@@ -74,7 +73,7 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
         </>
       ),
       size,
-      lanes: lanesOf(day),
+      lanes: Math.max(1, ...layOut(day).map((p) => p.columns)),
       tone: day.day === today ? "today" : day.events.some((e) => NO_LECTURES.has(e.kind)) ? "off" : null,
       lane: lane.length ? lane : undefined,
       children: <DayBlocks day={day} notInSix={input.six} />,
@@ -155,26 +154,60 @@ const dayItems = (day: ScheduleDay): Item[] => [
   ...day.edunex.map((meeting) => ({ kind: "meeting" as const, start: meeting.start, end: meeting.end, meeting })),
 ];
 
-/** The most blocks a day has side by side: its column keeps room for each (TimeGrid). */
-const lanesOf = (day: ScheduleDay) => Math.max(1, ...sideBySide(dayItems(day)).map((p) => p.columns));
+interface Laid {
+  item: Item;
+  /** Side by side: `column` of `columns`. */
+  column: number;
+  columns: number;
+  /** Over blocks still running when it starts (GridBlock's `depth`). */
+  depth: number;
+  /** When a block drawn over it starts: its text stays above that. */
+  until: number;
+}
+
+/**
+ * A day's blocks laid out. A block that starts while another runs is drawn over it, moved right a little, as in a
+ * diary: the one under it keeps the whole width, its text kept to the minutes before the later one starts, so no
+ * text is ever under another block. When a block starts too soon after another for that one to say its time and
+ * code above it, those blocks go side by side instead.
+ */
+function layOut(day: ScheduleDay): Laid[] {
+  const sorted = [...dayItems(day)].sort((a, b) => a.start - b.start || b.end - a.end);
+  const groups: Item[][] = [];
+  let end = Number.NEGATIVE_INFINITY;
+  for (const item of sorted) {
+    if (item.start >= end) groups.push([]);
+    end = item.start >= end ? item.end : Math.max(end, item.end);
+    groups.at(-1)!.push(item);
+  }
+  return groups.flatMap((group) => {
+    const under = (i: number) => group.slice(0, i).filter((other) => other.end > group[i]!.start);
+    const roomAbove = group.every((item, i) => under(i).every((other) => linesFor((item.start - other.start) / 60_000) >= 2));
+    if (!roomAbove) return sideBySide(group).map((p) => ({ ...p, depth: 0, until: p.item.end }));
+    const laid: Laid[] = [];
+    for (const [i, item] of group.entries()) {
+      const below = under(i).map((other) => laid[group.indexOf(other)]!);
+      for (const other of below) other.until = Math.min(other.until, item.start);
+      laid.push({ item, column: 0, columns: 1, depth: Math.max(-1, ...below.map((other) => other.depth)) + 1, until: item.end });
+    }
+    return laid;
+  });
+}
 
 function DayBlocks({ day, notInSix }: { day: ScheduleDay; notInSix: boolean }) {
-  const placed = sideBySide(dayItems(day));
   return (
     <>
-      {placed.map((p) => {
+      {layOut(day).map((p) => {
         const { from, to } = span(p.item.start, p.item.end);
+        // The minutes its text can use: up to a block drawn over it.
+        const minutes = p.until < p.item.end ? Math.round((p.until - p.item.start) / 60_000) : to - from;
         const key = p.item.kind === "class" ? p.item.item.session.id : `${p.item.meeting.code}-${p.item.start}`;
         return (
-          <GridBlock key={key} start={from} end={to} column={p.column} columns={p.columns}>
+          <GridBlock key={key} start={from} end={to} column={p.column} columns={p.columns} depth={p.depth}>
             {p.item.kind === "class" ? (
-              <ClassBlock item={p.item.item} minutes={to - from} narrow={p.columns > 1} />
+              <ClassBlock item={p.item.item} minutes={minutes} narrow={p.columns > 1} />
             ) : (
-              <MeetingBlock
-                meeting={p.item.meeting}
-                minutes={to - from}
-                notInSix={notInSix && !("maybeInSix" in p.item.meeting && p.item.meeting.maybeInSix)}
-              />
+              <MeetingBlock meeting={p.item.meeting} minutes={minutes} notInSix={notInSix && !("maybeInSix" in p.item.meeting && p.item.meeting.maybeInSix)} />
             )}
           </GridBlock>
         );
@@ -187,7 +220,7 @@ function DayBlocks({ day, notInSix }: { day: ScheduleDay; notInSix: boolean }) {
 const linesFor = (minutes: number) => Math.max(1, Math.floor((minutes - 8 * (60 / HOUR_HEIGHT)) / LINE));
 
 const BLOCK =
-  "focus-ring relative flex h-full w-full flex-col overflow-hidden rounded-md text-left text-caption leading-[15px] transition-[box-shadow,border-color] duration-150 [&>*]:shrink-0";
+  "focus-ring relative flex h-full w-full flex-col overflow-hidden rounded-item text-left text-caption leading-[15px] transition-[box-shadow,border-color] duration-quick [&>*]:shrink-0";
 
 function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: number; narrow: boolean }) {
   const t = useT();
@@ -215,11 +248,7 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
       type="button"
       aria-label={label}
       // Past, quieter in token greys that still read at 4.5:1 (as Beranda's rows); never faded with opacity.
-      className={cx(
-        BLOCK,
-        "border border-edge bg-raised py-1 pr-1.5 pl-2.5 text-fg shadow-raised hover:border-track hover:shadow-lift",
-        past && "bg-sunken text-muted shadow-card",
-      )}
+      className={cx(BLOCK, "border border-edge bg-raised py-1 pr-1.5 pl-2.5 text-fg shadow-raised hover:border-track", past && "bg-sunken text-muted")}
     >
       <Stripe color={world.color(code)} />
       <Meta truncate className="font-bold">
@@ -235,50 +264,51 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
       aria-label={label}
       className={cx(
         BLOCK,
-        "border py-1 pr-1.5 pl-2.5 shadow-card hover:border-track hover:shadow-lift",
+        "border py-1 pr-1.5 pl-2.5 hover:border-track",
         uncertain ? "border-dashed border-track bg-sunken text-muted" : "border-edge bg-surface",
         live && "ring-2 ring-live/50",
         past && "bg-sunken text-muted",
       )}
       style={uncertain ? { backgroundImage: "repeating-linear-gradient(135deg, transparent 0 6px, var(--fill) 6px 12px)" } : undefined}
     >
-      <ClashTint item={item} />
-      {/* Over the clash's tint: the course's color stays whole beside the shared minutes. */}
       <Stripe color={world.color(code)} faded={uncertain !== null} />
-      <span className={cx(FITS, "font-semibold tabular-nums", !uncertain && !past && "text-fg")}>
-        {/* One line only (under 50 minutes): its start and its code, so the color is never the only way to tell it. */}
-        <span className="min-w-0 truncate">{lines < 2 ? `${f.time(session.start)} ${code}` : time}</span>
-        {live && <LiveDot className="ml-auto shrink-0" />}
-        {uncertain && !narrow && <Uncertain />}
-        {!live && !narrow && lines < 4 && <MarkIcons item={item} />}
+      {/* Its lines, cut only between them: a room name that takes two lines pushes the last one out whole, never half. */}
+      <span className="flex min-w-0 flex-col overflow-hidden [&>*]:shrink-0" style={{ maxHeight: lines * 15 }}>
+        <span className={cx(FITS, "font-semibold tabular-nums", !uncertain && !past && "text-fg")}>
+          {/* One line only (under 50 minutes): its start and its code, so the color is never the only way to tell it. */}
+          {lines < 2 ? <span className="min-w-0 truncate">{`${f.time(session.start)} ${code}`}</span> : <Time start={session.start} end={session.end} />}
+          {live && <LiveDot className="ml-auto shrink-0" />}
+          {uncertain && !narrow && <Uncertain />}
+          {!live && !narrow && lines < 4 && <MarkIcons item={item} />}
+        </span>
+        {lines >= 2 &&
+          (narrow ? (
+            // Beside another class the time fills the line; the course line holds only the code, so the word goes there.
+            <span className={FITS}>
+              <span className={cx("min-w-0 truncate font-semibold tabular-nums", !uncertain && !past && "text-fg")}>{code}</span>
+              {uncertain && <Uncertain />}
+            </span>
+          ) : (
+            <span className="relative truncate">
+              <span className={cx("font-semibold tabular-nums", !uncertain && !past && "text-fg")}>{code}</span>
+              <span className="text-muted"> {world.name(code, session.courseName)}</span>
+            </span>
+          ))}
+        {/* A narrow block has no room for "Bentrok PL3032": the icon and the other course's code say which class clashes, before the room. */}
+        {clashLine && lines >= 3 && (
+          <span className="relative flex min-w-0 items-center gap-1 font-semibold text-warning-fg tabular-nums">
+            <Icons.Overlap className="size-3 shrink-0" weight="bold" />
+            <span className="truncate">{overlaps.map((o) => o.code).join(", ")}</span>
+          </span>
+        )}
+        {lines >= roomLine && (
+          <span className="relative flex min-w-0 items-start gap-1 text-muted">
+            <Icons.MapPin className="mt-0.5 size-3 shrink-0" />
+            <span className={cx("min-w-0 break-words", !session.room && "italic")}>{room}</span>
+          </span>
+        )}
+        {lines > roomLine && <MarkWords item={item} max={lines - roomLine} narrow={narrow} />}
       </span>
-      {lines >= 2 &&
-        (narrow ? (
-          // Beside another class the time fills the line; the course line holds only the code, so the word goes there.
-          <span className={FITS}>
-            <span className={cx("min-w-0 truncate font-semibold tabular-nums", !uncertain && !past && "text-fg")}>{code}</span>
-            {uncertain && <Uncertain />}
-          </span>
-        ) : (
-          <span className="relative truncate">
-            <span className={cx("font-semibold tabular-nums", !uncertain && !past && "text-fg")}>{code}</span>
-            <span className="text-muted"> {world.name(code, session.courseName)}</span>
-          </span>
-        ))}
-      {/* A narrow block has no room for "Bentrok PL3032": the icon and the other course's code say which class clashes, before the room. */}
-      {clashLine && lines >= 3 && (
-        <span className="relative flex min-w-0 items-center gap-1 font-semibold text-warning-fg tabular-nums">
-          <Icons.Overlap className="size-3 shrink-0" weight="bold" />
-          <span className="truncate">{overlaps.map((o) => o.code).join(", ")}</span>
-        </span>
-      )}
-      {lines >= roomLine && (
-        <span className="relative flex min-w-0 items-start gap-1 text-muted">
-          <Icons.MapPin className="mt-0.5 size-3 shrink-0" />
-          <span className={cx("min-w-0 break-words", !session.room && "italic")}>{room}</span>
-        </span>
-      )}
-      {lines > roomLine && <MarkWords item={item} max={lines - roomLine} narrow={narrow} />}
     </button>
   );
   return (
@@ -291,28 +321,22 @@ function ClassBlock({ item, minutes, narrow }: { item: ScheduledClass; minutes: 
 /** A line whose first fact always wins: what doesn't fit beside it wraps onto a second line, out of sight, never cut to "Bel…". */
 const FITS = "relative flex max-h-3.75 flex-wrap items-center gap-x-1 overflow-hidden";
 
+/** "08:00–10:00", or "08:00" alone where the end doesn't fit (the block's height shows it), never "08:00–10:…". */
+function Time({ start, end }: { start: number; end: number }) {
+  const f = useFormat();
+  return (
+    // As wide as the line leaves it (never narrower than its start): the live dot and the marks keep their place beside it.
+    <span className="flex max-h-3.75 grow basis-0 flex-wrap overflow-hidden">
+      <span>{f.time(start)}</span>
+      <span>–{f.time(end)}</span>
+    </span>
+  );
+}
+
 /** A lecture that may not run in an exam week or a holiday: said once, quietly (the hatch, the band and its details say why). */
 function Uncertain() {
   const t = useT();
   return <span className="ml-auto shrink-0 text-micro font-medium whitespace-nowrap text-muted">{t("schedule.uncertain.short")}</span>;
-}
-
-/** The minutes a class shares with another, tinted amber behind its text (a choice to make, nothing lost yet). */
-function ClashTint({ item }: { item: ScheduledClass }) {
-  const { session } = item;
-  const length = session.end - session.start;
-  return (
-    <>
-      {item.overlaps.map((o) => (
-        <span
-          key={o.code}
-          aria-hidden
-          className="absolute inset-x-0 bg-warning-bg"
-          style={{ top: `${((o.from - session.start) / length) * 100}%`, height: `${((o.to - o.from) / length) * 100}%` }}
-        />
-      ))}
-    </>
-  );
 }
 
 /**
@@ -333,21 +357,28 @@ function Stripe({ color, faded = false, dashed = false }: { color: string | unde
   );
 }
 
-/** What's unusual about a class, in words (as many as fit). */
+/**
+ * What's unusual about a class, in words (as many lines as fit), the clash first. Amber only for a clash, a choice the
+ * student has to make; a move or an extra meeting is a fact, said in the quiet text color (the block already shows
+ * the new time and room). A moved time says "Berubah", then "Biasanya 08:00–09:30" on its own line, so a slim column
+ * loses the second line whole rather than cutting it.
+ */
 function MarkWords({ item, max, narrow }: { item: ScheduledClass; max: number; narrow: boolean }) {
   const t = useT();
   const words: { text: string; tone: string }[] = [];
+  const quiet = "font-medium text-muted";
+  // A narrow block names the clash beside the course code.
+  if (!narrow) for (const o of item.overlaps) words.push({ text: t("schedule.mark.overlap", { code: o.code }), tone: "font-semibold text-warning-fg" });
   if (item.moved?.kinds.some((k) => k !== "room")) {
     const usual = `${clockOf(item.moved.usual.start)}–${clockOf(item.moved.usual.end)}`;
-    words.push({ text: t(narrow ? "schedule.moved.short" : "schedule.moved.time", { usual }), tone: "text-warning-fg" });
-  } else if (item.moved) words.push({ text: t("schedule.mark.room"), tone: "text-warning-fg" });
-  if (item.extra) words.push({ text: t("schedule.mark.extra"), tone: "text-warning-fg" });
-  // A narrow block names the clash beside the course code.
-  if (!narrow) for (const o of item.overlaps) words.push({ text: t("schedule.mark.overlap", { code: o.code }), tone: "text-warning-fg" });
+    if (!narrow) words.push({ text: t("schedule.mark.moved"), tone: quiet });
+    words.push({ text: t("schedule.moved.short", { usual }), tone: quiet });
+  } else if (item.moved) words.push({ text: t("schedule.mark.room"), tone: quiet });
+  if (item.extra) words.push({ text: t("schedule.mark.extra"), tone: quiet });
   return (
     <>
       {words.slice(0, max).map((w) => (
-        <span key={w.text} className={cx("relative truncate font-semibold", w.tone)}>
+        <span key={w.text} className={cx("relative truncate", w.tone)}>
           {w.text}
         </span>
       ))}
@@ -359,8 +390,8 @@ function MarkWords({ item, max, narrow }: { item: ScheduledClass; max: number; n
 function MarkIcons({ item }: { item: ScheduledClass }) {
   return (
     <span aria-hidden className={cx("flex shrink-0 items-center gap-0.5", !item.uncertain && "ml-auto")}>
-      {item.moved && <Icons.History className="size-3 text-warning-fg" weight="bold" />}
-      {item.extra && <Icons.Plus className="size-3 text-warning-fg" weight="bold" />}
+      {item.moved && <Icons.History className="size-3 text-muted" weight="bold" />}
+      {item.extra && <Icons.Plus className="size-3 text-muted" weight="bold" />}
       {item.overlaps.length > 0 && <Icons.Overlap className="size-3 text-warning-fg" weight="bold" />}
     </span>
   );
@@ -390,15 +421,11 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
     <button
       type="button"
       aria-label={label}
-      className={cx(
-        BLOCK,
-        "border border-dashed border-faint/70 bg-surface py-1 pr-1.5 pl-2.5 hover:border-faint hover:shadow-lift",
-        past && "bg-sunken text-muted",
-      )}
+      className={cx(BLOCK, "border border-dashed border-faint/70 bg-surface py-1 pr-1.5 pl-2.5 hover:border-faint", past && "bg-sunken text-muted")}
     >
       <Stripe color={world.color(meeting.code)} dashed />
       <span className={cx("relative flex items-center gap-1 font-semibold tabular-nums", !past && "text-fg")}>
-        <span className="truncate">{lines < 2 ? `${f.time(meeting.start)} ${meeting.code}` : time}</span>
+        {lines < 2 ? <span className="truncate">{`${f.time(meeting.start)} ${meeting.code}`}</span> : <Time start={meeting.start} end={meeting.end} />}
         {meeting.online && !joinable && <Icons.Video className="ml-auto size-3.5 shrink-0 text-muted" />}
       </span>
       {lines >= 2 && (
@@ -408,8 +435,8 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
         </span>
       )}
       {lines >= 3 && where && <span className="truncate text-muted">{where}</span>}
-      {/* Not on SIX's timetable: easy to miss, so amber, as on Beranda and the course page. Without SIX everything is from Edunex: its name and details say so. */}
-      {notInSix && lines >= (where ? 4 : 3) && <span className="truncate font-semibold text-warning-fg">{t("schedule.notInSix")}</span>}
+      {/* Not on SIX's timetable: a fact about the meeting, not something to do, so quiet; its details say more. Without SIX everything is from Edunex: its name and details say so. */}
+      {notInSix && lines >= (where ? 4 : 3) && <span className="truncate font-medium text-muted">{t("schedule.notInSix")}</span>}
     </button>
   );
   return (
@@ -421,7 +448,7 @@ function MeetingBlock({ meeting, minutes, notInSix }: { meeting: OutsideMeeting 
         <button
           type="button"
           onClick={() => open(meeting.link!)}
-          className="focus-ring absolute right-1 bottom-1 z-10 inline-flex h-6 items-center gap-1 rounded-md bg-accent px-2 text-micro font-semibold text-on-accent shadow-button hover:bg-accent-hover"
+          className="focus-ring absolute right-1 bottom-1 z-10 inline-flex h-6 items-center gap-1 rounded-item bg-accent px-2 text-micro font-semibold text-on-accent shadow-button hover:bg-accent-hover"
         >
           <Icons.Video className="size-3" weight="bold" />
           {t("schedule.join")}
@@ -439,7 +466,7 @@ function UnreadChip({ day, unread }: { day: string; unread: readonly UnreadSessi
     <button
       type="button"
       aria-label={text}
-      className="focus-ring mt-1.5 flex w-full items-start gap-1.5 rounded-md border border-dashed border-edge bg-surface px-1.5 py-1 text-left text-caption transition-colors duration-150 hover:bg-hover"
+      className="focus-ring mt-1.5 flex w-full items-start gap-1.5 rounded-item border border-dashed border-edge bg-surface px-1.5 py-1 text-left text-caption transition-colors duration-quick hover:bg-hover"
     >
       <Icons.Info className="mt-0.5 size-3 shrink-0 text-muted" weight="bold" />
       <span className="line-clamp-3 min-w-0">{text}</span>
@@ -465,7 +492,7 @@ function WindowChip({ window }: { window: TaskWindow }) {
       type="button"
       aria-label={factsLabel(window.code, text)}
       className={cx(
-        "focus-ring flex w-full items-start gap-1.5 rounded-md border border-dashed px-1.5 py-1 text-left text-caption transition-colors duration-150 hover:bg-hover",
+        "focus-ring flex w-full items-start gap-1.5 rounded-item border border-dashed px-1.5 py-1 text-left text-caption transition-colors duration-quick hover:bg-hover",
         done ? "border-success-fg/40 text-success-fg" : "border-accent-fg/50 bg-surface",
       )}
     >
@@ -495,7 +522,7 @@ function DueChip({ task }: { task: Task }) {
     <button
       type="button"
       aria-label={factsLabel(task.courseCode, t("schedule.due", { time, title: task.title }))}
-      className="focus-ring flex w-full items-start gap-1.5 rounded-md px-1.5 py-1 text-left text-caption transition-colors duration-150 hover:bg-hover"
+      className="focus-ring flex w-full items-start gap-1.5 rounded-item px-1.5 py-1 text-left text-caption transition-colors duration-quick hover:bg-hover"
     >
       <Icons.Clock className="mt-0.5 size-3 shrink-0 text-muted" weight="bold" />
       <span className="line-clamp-2 min-w-0">

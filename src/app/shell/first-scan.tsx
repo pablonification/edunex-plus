@@ -56,7 +56,6 @@ const IN_DIALOG = 100;
 const ICON: Record<Finding["kind"], ComponentType<IconProps>> = {
   attendance: Icons.Hand,
   clash: Icons.Overlap,
-  unusedPresence: Icons.EyeOff,
   exams: Icons.GraduationCap,
   notInSix: Icons.CalendarClock,
   edited: Icons.PenLine,
@@ -292,12 +291,6 @@ function describe(finding: Finding, t: Translate, f: Format): { title: string; l
         note: t("scan.clash.krs"),
       };
     }
-    case "unusedPresence":
-      return {
-        title: t("scan.unused.title", { count: finding.count }),
-        lines: few(finding.courses, (c) => t("scan.unused.course", { code: c.code, count: c.absent, attended: c.attended, held: c.held }), t),
-        note: t("scan.unused.note"),
-      };
     case "exams":
       return {
         title: t("scan.exams.title", { count: finding.count }),

@@ -2,7 +2,7 @@
 // link from the class's own announcements, the next meeting, and a clash with
 // another course's class.
 import { describe, expect, it } from "vitest";
-import { announcedMeetings, clashes, classMeetingLink, meetingLinks, nextMeetingIndex } from "../../src/core/course-meetings";
+import { announcedMeetings, clashes, classMeetingLink, linkIsFor, meetingLinks, namedDays, nextMeetingIndex } from "../../src/core/course-meetings";
 import type { Announcement, ClassSession } from "../../src/core/models";
 
 const at = (iso: string) => Date.parse(iso);
@@ -43,6 +43,30 @@ describe("online-meeting links", () => {
       ],
     );
     expect(found[0]).toMatchObject({ number: 3, online: true, link: "https://teams.microsoft.com/meet/class" });
+  });
+
+  it("reads the days a lecturer writes in a link's title, with or without the year", () => {
+    expect(namedDays("Link Teams Pertemuan 03: Jumat, 9 Oktober 2026")).toEqual(["2026-10-09"]);
+    expect(namedDays("Link Teams Pertemuan 02, Jumat 11 September 2026")).toEqual(["2026-09-11"]);
+    expect(namedDays("Kuliah 29 April 2026")).toEqual(["2026-04-29"]);
+    expect(namedDays("Kuliah daring Jumat, 30 Okt")).toEqual(["10-30"]);
+    // A meeting's number and a weekday aren't days.
+    expect(namedDays("Link Teams Pertemuan 03 Jumat")).toEqual([]);
+    expect(namedDays("Link Teams Kelas")).toEqual([]);
+  });
+
+  it("an online-class link is for the day its title names, else the day it was posted: last month's is never today's", () => {
+    const link = (title: string, postedAt: string) => ({ title, postedAt: at(postedAt), updatedAt: at(postedAt) });
+    // The recorded II4091 link, three weeks old on Friday 30 October: no Join that day.
+    const old = link("Link Teams Pertemuan 03: Jumat, 9 Oktober 2026", "2026-10-05T16:52:44+07:00");
+    expect(linkIsFor(old, "2026-10-09")).toBe(true);
+    expect(linkIsFor(old, "2026-10-30")).toBe(false);
+    // Named without a year, the day still has to match.
+    expect(linkIsFor(link("Kuliah daring Jumat, 30 Okt", "2026-10-28T09:00:00+07:00"), "2026-10-30")).toBe(true);
+    // Naming no day, it's for the day it went up only.
+    const standing = link("Link Teams Kelas", "2026-10-30T13:30:00+07:00");
+    expect(linkIsFor(standing, "2026-10-30")).toBe(true);
+    expect(linkIsFor(standing, "2026-11-06")).toBe(false);
   });
 });
 

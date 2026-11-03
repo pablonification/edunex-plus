@@ -141,8 +141,9 @@
   --z-tooltip: 70;
   --z-toast: 80;
 
-  /* Motion durations: duration-(--duration-quick). JS animation (element.animate)
+  /* Motion durations. JS animation (element.animate)
      reads the same values from src/app/ui/motion/tokens.ts (a test keeps them equal).
+     In classes: duration-quick, duration-base, duration-slow (@theme inline below).
      quick: press, colors, tooltips, popovers, anything leaving, a highlight sliding.
      base: dialogs, a panel opening, the gap closing after a row or toast leaves.
      slow: a number changing, a bar filling, the first run arriving.
@@ -325,6 +326,10 @@
   --color-meter-success: var(--meter-success);
   --color-pip-ring: var(--pip-ring);
   --color-stage: var(--stage);
+  /* duration-quick, duration-base, duration-slow: the motion durations in :root. */
+  --transition-duration-quick: var(--duration-quick);
+  --transition-duration-base: var(--duration-base);
+  --transition-duration-slow: var(--duration-slow);
 }
 
 @theme {
@@ -365,18 +370,31 @@
   --text-credit-word: 20px;
   --text-credit-word--line-height: 28px;
 
-  /* Radius: Tailwind's scale (md 6px buttons, lg 8px inputs and buttons, xl 12px
-     cards and lists, 2xl 16px raised cards and dialogs, full chips), plus tags. */
-  --radius-tag: 5px;
+  /* Radius, by what the corner belongs to; it grows with the thing, and a corner
+     inside a padded one is the outer less the padding (a 12px popover with 4px
+     padding holds 8px items). rounded-full for pills, dots and switches.
+     Tailwind's own (rounded-md, rounded-xl…) are on their way out: test/app/ui-rules.test.ts. */
+  --radius-mark: 2px; /* a mark in text or a meter: a swatch, a pip, a highlight */
+  --radius-tag: 4px; /* tags, keys, inline code, a page's thumbnail */
+  --radius-item: 6px; /* a small control, or an item inside a padded one: a menu item, a segment, a tooltip */
+  --radius-control: 8px; /* buttons, fields, rows that highlight */
+  --radius-card: 12px; /* cards, lists, popovers, toasts */
+  --radius-dialog: 16px; /* dialogs, sheets, the raised card */
+  --radius-icon: 23%; /* an app's icon: its corners grow with its size, as the platform's own do */
 
-  /* Elevation */
+  /* Shadows: only what floats over the window casts one (popover: tooltips, menus,
+     toasts, popovers; dialog: dialogs and sheets). A card's edge is its border.
+     button and thumb are the controls' own material, not elevation: a primary
+     button's bevel, a switch's knob and the picked segment. raised: the one card
+     that matters most right now. */
+  --shadow-popover: 0 20px 60px -12px rgb(0 0 0 / 0.3);
+  --shadow-dialog: 0 24px 80px -12px rgb(0 0 0 / 0.35);
   --shadow-button: inset 0 1px 0 rgb(255 255 255 / 0.18), 0 1px 2px rgb(16 24 40 / 0.12);
   --shadow-thumb: 0 1px 2px rgb(16 24 40 / 0.2);
-  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.04);
   --shadow-raised: 0 1px 2px rgb(16 24 40 / 0.05), 0 8px 24px -10px rgb(16 24 40 / 0.14);
-  --shadow-lift: 0 6px 20px -8px rgb(16 24 40 / 0.18);
-  --shadow-pop: 0 20px 60px -12px rgb(0 0 0 / 0.3);
-  --shadow-dialog: 0 24px 80px -12px rgb(0 0 0 / 0.35);
+
+  /* A transition that names no duration takes the quick one. */
+  --default-transition-duration: var(--duration-quick);
 
   /* Motion (durations in :root above). Enter with ease-out, leave with
      ease-standard; leaving is quicker than arriving. */
@@ -562,6 +580,14 @@
   &:focus-visible {
     outline: 2px solid var(--focus);
     outline-offset: 2px;
+  }
+}
+
+/* The same, drawn inside: for a pane that fills its frame, where a ring outside would be cut off. */
+@utility focus-ring-inset {
+  &:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
   }
 }
 

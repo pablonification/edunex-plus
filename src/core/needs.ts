@@ -22,10 +22,9 @@ import {
   openWindows,
   type PresenceActivity,
   presenceAction,
-  presenceOptional,
 } from "./attendance";
 import { introModule, materialKind } from "./course-materials";
-import { type AnnouncedMeeting, announcedMeetings, courseMeetings, mayBeInSix, wibDay } from "./course-meetings";
+import { type AnnouncedMeeting, announcedMeetings, courseMeetings, linkIsFor, mayBeInSix, wibDay } from "./course-meetings";
 import { dateVars, localDayStart, sameLocalDay, weekdayVars } from "./dates";
 import { type Exam, examParts, mergeExams } from "./exams";
 import {
@@ -357,14 +356,15 @@ function onlyInEdunex(context: HomeContext, code: string) {
 
 /**
  * The online-class link for a class on a day: the one posted for that
- * meeting in Edunex text, else the course's latest online-class material
- * (lecturers often keep one Teams link all term).
+ * meeting in Edunex text, else the newest online-class material that is for
+ * that day (its title names it, or it was posted that day). None otherwise:
+ * an older meeting's link is no meeting today.
  */
 export function classLink(context: HomeContext, code: string, start: number): string | null {
   const day = wibDay(start);
   const forMeeting = announced(context, code).find((m) => wibDay(m.start) === day && m.link);
   if (forMeeting) return forMeeting.link;
-  const vicons = (context.materials[code] ?? []).filter((m) => materialKind(m.type) === "vicon" && m.content?.startsWith("https://"));
+  const vicons = (context.materials[code] ?? []).filter((m) => materialKind(m.type) === "vicon" && m.content?.startsWith("https://") && linkIsFor(m, day));
   return vicons.sort((a, b) => (b.updatedAt ?? b.postedAt ?? 0) - (a.updatedAt ?? a.postedAt ?? 0))[0]?.content ?? null;
 }
 
@@ -400,11 +400,9 @@ const countedHere = (context: HomeContext, code: string): CountedIn =>
 function presenceTasks(context: HomeContext): Set<number> {
   const ids = new Set<number>();
   const until = rangeEnd(context);
-  for (const [code, sessions] of Object.entries(context.presence))
+  for (const sessions of Object.values(context.presence))
     for (const session of sessions) {
       if (session.closesAt <= context.now || session.opensAt >= until || session.recorded?.present) continue;
-      // Where SIX counts the window is optional: the Task's own deadline speaks for it.
-      if (presenceOptional(countedHere(context, code))) continue;
       const action = presenceAction(session, context.tasks);
       if (action.task) ids.add(action.task.id);
     }
@@ -417,8 +415,8 @@ function presenceTasks(context: HomeContext): Set<number> {
  * Edunex Presence: a window open now (always on top: the action takes
  * seconds and closes soon), and a coming window that counts only by a
  * specific action (hand in a Task, open a module). The weekly View Course
- * default isn't announced ahead: it would repeat every week. Nor is a window
- * of a course that counts in SIX: it's optional.
+ * default isn't announced ahead: it would repeat every week. Every window is
+ * a thing to do: no system says whether the lecturer uses it.
  */
 export const presenceProvider: NeedProvider = {
   area: "presence",
@@ -455,8 +453,8 @@ export const presenceProvider: NeedProvider = {
       for (const session of sessions) {
         if (session.opensAt <= now || session.opensAt >= until || session.recorded?.present) continue;
         const { action, live, countedIn, moved } = facts(code, session);
-        // Viewing the course is every week's default; where SIX counts, the window is optional: neither is a thing to do.
-        if (action.activity === "course" || presenceOptional(countedIn)) continue;
+        // Viewing the course is every week's default: said once it opens, not a week ahead.
+        if (action.activity === "course") continue;
         out.push({
           id: `presence:${session.id}`,
           kind: "presence",
@@ -987,7 +985,7 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
 
 // ---------------------------------------------------------------- Beranda's three answers
 
-/** An Edunex Presence window open now, and whether doing it counts. */
+/** An Edunex Presence window open now, and whether it's the only record. */
 export interface OpenPresence {
   code: string;
   session: PresenceSession;
@@ -998,12 +996,12 @@ export interface OpenPresence {
   /** The Presence itself when Edunex gives its page; else where the action is done. */
   url: string;
   /**
-   * Doing it counts for attendance: Edunex keeps the count. False when SIX
-   * counts and Edunex's record doesn't keep up: the window is open, but
-   * sitting in class is what counts. Null while SIX has no count for the
-   * course (not connected): nobody can say yet, and the app doesn't guess.
+   * Edunex keeps the only count: SIX has none for the course. False where SIX
+   * keeps one too: whether the lecturer also uses Edunex's can't be told, so
+   * it's done all the same. Null while SIX can't say (not connected, or the
+   * course isn't on it): nobody can say yet, and the app doesn't guess.
    */
-  counts: boolean | null;
+  edunexOnly: boolean | null;
   /** Signed out of SIX: whether Edunex counts can't be known, so it's said as a just-in-case. */
   noSix: boolean;
 }
@@ -1049,18 +1047,17 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
   const later = !live && !next ? (items.find((item) => item.start > now && item.start - now <= AHEAD) ?? null) : null;
   const current = live ?? next ?? later;
   const windows = openWindows(context.presence, now);
-  const counts = (code: string): boolean | null => {
+  const edunexOnly = (code: string): boolean | null => {
     if (!context.courses.find((course) => course.code === code)?.six || context.sixConnected === false) return null;
-    return context.health.get(code)?.countedIn !== "six";
+    return context.health.get(code)?.countedIn === "edunex";
   };
   // The class's own window, never an earlier class's still open (that one is in Perlu perhatianmu);
-  // else, between classes, one that counts (it closes first, so it leads); else, with no class at all, any.
-  // A meeting has no Presence window of its own.
+  // else, between classes, the one closing first. A meeting has no Presence window of its own.
   const own =
     current?.kind === "class"
       ? (windows.find((w) => w.code === current.session.courseCode && classOfWindow(context, w.code, w.session)?.id === current.session.id) ?? null)
       : null;
-  const window = own ?? (live ? null : (windows.find((w) => counts(w.code) !== false) ?? (current ? null : (windows[0] ?? null))));
+  const window = own ?? (live ? null : (windows[0] ?? null));
   // A window that isn't the class's own leads the card alone, about its own class.
   const lead = window && window !== own ? null : current;
   if (!lead && !window) return null;
@@ -1074,7 +1071,7 @@ export function nowCard(world: HomeWorld | HomeContext): NowCard | null {
       activity: action.activity,
       task: action.task,
       url: action.url,
-      counts: counts(window.code),
+      edunexOnly: edunexOnly(window.code),
       noSix: context.sixConnected === false,
     };
   }
@@ -1121,8 +1118,8 @@ export function attention(world: HomeWorld | HomeContext, card: NowCard | null =
         case "exam":
           return !(need.sitting.source === "six" && wibDay(need.sitting.start) === day);
         case "attendance":
-          // "No absences left" is on the class row; out of reach is the course's, with its own step.
-          return need.health.state === "out" || !meetsToday.has(need.course ?? "");
+          // While the course still meets today, its class row (or the card) says it, out of reach too; the other days, here.
+          return !meetsToday.has(need.course ?? "");
         default:
           return true;
       }

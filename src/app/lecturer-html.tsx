@@ -100,12 +100,12 @@ export function RemoteImage({ src, alt, className }: { src: string; alt: string;
   if (picture.state === "loading")
     return (
       <span role="img" aria-label={t("image.loading")} className="block">
-        <Skeleton className={cx("aspect-[16/9] w-full max-w-md rounded-lg", className)} />
+        <Skeleton className={cx("aspect-[16/9] w-full max-w-md rounded-control", className)} />
       </span>
     );
   if (picture.state === "failed")
     return (
-      <span className={cx("flex max-w-md items-center gap-2.5 rounded-lg bg-sunken px-3 py-2.5 text-small text-muted", className)}>
+      <span className={cx("flex max-w-md items-center gap-2.5 rounded-control bg-sunken px-3 py-2.5 text-small text-muted", className)}>
         <Icons.ImageBroken className="size-4 shrink-0" />
         {t(`file.problem.${picture.problem}`)}
       </span>
@@ -116,7 +116,7 @@ export function RemoteImage({ src, alt, className }: { src: string; alt: string;
       src={picture.src}
       alt={alt || t("image.alt")}
       decoding="async"
-      className={cx("h-auto max-h-[28rem] w-auto max-w-full rounded-lg outline -outline-offset-1 outline-black/10 dark:outline-white/10", className)}
+      className={cx("h-auto max-h-[28rem] w-auto max-w-full rounded-control outline -outline-offset-1 outline-black/10 dark:outline-white/10", className)}
     />
   );
 }

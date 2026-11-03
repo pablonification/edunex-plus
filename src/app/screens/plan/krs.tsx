@@ -13,9 +13,10 @@ import { useDataset } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Bar, Card, CourseCode } from "../../ui/display";
+import { Explained, WhyButton } from "../../ui/explain";
 import { Icons } from "../../ui/icons";
-import { List, Meta, Row, Section } from "../../ui/layout";
-import { useTermYears } from "./projection";
+import { factsLabel, List, Meta, Row, Section } from "../../ui/layout";
+import { PLAIN_LIST } from "../plain-list";
 import { SixNeeded } from "./six-needed";
 
 function useSchedule(): ClassSession[] {
@@ -70,7 +71,6 @@ function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const f = useFormat();
   const now = useNow();
   const nav = useNav();
-  const termYears = useTermYears();
   const calendar = useDataset("itb.calendar");
   const stage = krsStage(plan);
   const clash = overlaps.length > 0 && (stage === "done" || stage === "official");
@@ -89,22 +89,20 @@ function Stage({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
           </p>
           {clash && first ? (
             <>
-              <p className="mt-0.5 text-body">{t("krs.overlap", { a: first.codes[0], b: first.codes[1], when, count: first.count })}</p>
+              {/* Which classes, how often and the next one; that SIX took it without a word is a hover or focus away. */}
+              <p className="group/row mt-0.5 flex flex-wrap items-center gap-x-1 text-body">
+                {t("krs.overlap", { a: first.codes[0], b: first.codes[1], when, count: first.count })}
+                <WhyButton why={t("krs.overlapWhy")} />
+              </p>
               <p className="mt-1 text-small text-muted">
-                {window?.kind === "urs"
-                  ? t("krs.clash.nextUrs", { a: first.codes[0], b: first.codes[1], range: `${day(window.event.firstDay)}–${day(window.event.lastDay)}` })
-                  : t("krs.clash.next", { a: first.codes[0], b: first.codes[1] })}
+                {window?.kind === "urs" ? t("krs.clash.nextUrs", { range: `${day(window.event.firstDay)}–${day(window.event.lastDay)}` }) : t("krs.clash.next")}
               </p>
             </>
           ) : (
             <p className="mt-0.5 text-small text-muted">{t(`krs.stage.${stage}.hint`)}</p>
           )}
-          <p className="mt-2 text-caption text-muted">
-            <Meta>
-              {termYears(plan.term)}
-              {plan.advisor ? t("krs.advisor", { name: plan.advisor }) : ""}
-            </Meta>
-          </p>
+          {/* Not the term: it's this semester's KRS, as everywhere on this screen. */}
+          {plan.advisor && <p className="mt-2 text-caption text-muted">{t("krs.advisor", { name: plan.advisor })}</p>}
         </div>
         {clash && (
           <Button variant="secondary" onClick={() => nav.go({ screen: "schedule" })}>
@@ -152,7 +150,8 @@ function Timeline({ title, steps }: { title: string; steps: KrsStep[] }) {
                     : t("bills.status.paid")
                   : t("krs.step.uktUnpaid")
                 : step.at !== null
-                  ? [`${f.weekdayShort(step.at)}, ${f.dayMonth(step.at)}`, f.time(step.at)]
+                  ? // The day is enough to follow the steps: the weekday and time are a tooltip away (hover or keyboard).
+                    [<Explained key="day" text={f.dayMonth(step.at)} why={factsLabel(`${f.weekdayShort(step.at)}, ${f.dayMonth(step.at)}`, f.time(step.at))} />]
                   : step.done
                     ? "-"
                     : t("krs.step.notYet")}
@@ -177,7 +176,6 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
   const classes = new Set(plan.courses.map((c) => c.classNo));
   const oneClass = classes.size === 1;
   const sameClass = oneClass ? [...classes][0] : null;
-  const allApproved = plan.courses.every((c) => c.approved === true);
   const clashWith = (code: string) => overlaps.filter((o) => o.upcoming && o.codes.includes(code)).map((o) => o.codes.find((c) => c !== code)!);
   const past = overlaps.filter((o) => !o.upcoming);
   return (
@@ -202,7 +200,7 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
           {over && <p className="mb-3 text-small font-medium text-danger-fg">{t("krs.overMax", { max: plan.maxSks })}</p>}
         </>
       )}
-      <List label={t("krs.courses")}>
+      <List label={t("krs.courses")} className={PLAIN_LIST}>
         {plan.courses.map((course) => {
           const known = term?.find((c) => c.code === course.code);
           const clashes = clashWith(course.code);
@@ -216,8 +214,9 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
                   <Meta>
                     {oneClass ? "" : t("krs.class", { classNo: course.classNo ?? "-" })}
                     {clashes.length ? (
-                      <span className="inline-flex items-center gap-1 font-medium text-warning-fg">
-                        <Icons.Overlap className="size-3" weight="bold" />
+                      // The card above says the clash and what to do in amber: here it's which course, said quietly.
+                      <span className="inline-flex items-center gap-1 font-medium text-fg">
+                        <Icons.Overlap className="size-3 text-warning-fg" weight="bold" />
                         {t("krs.clashWith", { code: clashes.join(", ") })}
                       </span>
                     ) : (
@@ -234,7 +233,10 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
                       {t("krs.notApproved")}
                     </span>
                   )}
-                  <span className="w-[52px] text-right text-small font-medium tabular-nums">{t("krs.sks", { sks: course.sks ?? "-" })}</span>
+                  {/* A bare figure under the list's own "14 dari maks. 24 SKS": the unit isn't said on every row. */}
+                  <span className="w-[28px] text-right text-small font-medium tabular-nums" title={t("krs.sks", { sks: course.sks ?? "-" })}>
+                    {course.sks ?? "-"}
+                  </span>
                 </span>
               }
               onClick={known ? () => go({ screen: "course", code: course.code }) : undefined}
@@ -242,13 +244,8 @@ function Courses({ plan, overlaps }: { plan: KrsPlan; overlaps: Overlap[] }) {
           );
         })}
       </List>
-      <p className="mt-2 text-caption text-faint">
-        <Meta>
-          {sameClass ? t("krs.sameClass", { classNo: sameClass }) : ""}
-          {allApproved ? t("krs.allApproved") : ""}
-          {t("krs.from")}
-        </Meta>
-      </p>
+      {/* What every row shares, said once. Approval is the timeline's (and a row's own "Belum disetujui"). */}
+      {sameClass && <p className="mt-2 text-caption text-faint">{t("krs.sameClass", { classNo: sameClass })}</p>}
       {past.map((overlap) => (
         <p key={overlap.codes.join()} className="mt-2 flex items-start gap-2 text-small text-muted">
           <Icons.Overlap className="mt-0.5 size-3.5 shrink-0" />

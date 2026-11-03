@@ -4,7 +4,7 @@
 // screen that shows it. Only findings with something to say are listed. Pure:
 // the dialog and its tests reason with this.
 import { krsOverlaps, type Overlap } from "./academic";
-import { type AttendanceHealth, attendanceHealth, countedIn, lecturePeriod, needsAttention, type TargetSettings, targetFor } from "./attendance";
+import { type AttendanceHealth, attendanceHealth, lecturePeriod, needsAttention, type TargetSettings, targetFor } from "./attendance";
 import { type AnnouncedMeeting, announcedMeetings, courseMeetings } from "./course-meetings";
 import { examRoute, examsFound } from "./exam-sources";
 import { type Exam, examAhead } from "./exams";
@@ -108,7 +108,6 @@ export type Finding = FindingBase &
   (
     | { kind: "attendance"; courses: AttendanceHealth[] }
     | { kind: "clash"; overlaps: Overlap[] }
-    | { kind: "unusedPresence"; courses: { code: string; absent: number; attended: number; held: number }[] }
     | { kind: "exams"; exams: Exam[] }
     | { kind: "notInSix"; meetings: { code: string; meeting: AnnouncedMeeting }[] }
     | { kind: "edited"; tasks: Task[]; afterSubmit: number }
@@ -144,7 +143,6 @@ export function firstScan(input: ScanInput): Finding[] {
   return [
     attendanceAtRisk(input),
     overlaps(input, codes),
-    unusedPresence(input),
     exams(input),
     meetingsOutsideSix(input, codes),
     editedTasks(input, inTerm(courses)),
@@ -213,20 +211,6 @@ function overlaps({ saved, now }: ScanInput, codes: readonly string[]): Finding 
     routes: [{ screen: "schedule" }, ...(saved["six.krs"] ? [{ screen: "plan", tab: "krs" } as const] : []), meetings],
     overlaps: found,
   };
-}
-
-/** Courses counted in SIX whose Edunex Presence windows went unused: Edunex would show those meetings as absences. */
-function unusedPresence({ saved, now }: ScanInput): Finding | null {
-  const presence = saved["edunex.presence"];
-  if (!presence) return null;
-  const courses = (saved["six.courses"] ?? []).flatMap((course) => {
-    const sessions = presence[course.code] ?? [];
-    const absent = sessions.filter((p) => p.closesAt <= now && !p.recorded?.present).length;
-    if (!course.attendance || absent === 0 || countedIn(course.attendance, sessions, now) !== "six") return [];
-    return [{ code: course.code, absent, attended: course.attendance.attended, held: course.attendance.held }];
-  });
-  if (!courses.length) return null;
-  return { kind: "unusedPresence", count: courses.length, tone: "info", sources: ["edunex", "six"], routes: [{ screen: "presence" }], courses };
 }
 
 /**

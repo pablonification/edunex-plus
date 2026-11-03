@@ -12,6 +12,9 @@ import { describe, expect, it } from "vitest";
 
 const root = path.resolve(import.meta.dirname, "../..");
 
+const RADIUS =
+  "a radius from the scale: rounded-mark (swatches, pips), rounded-tag (tags, keys), rounded-item (small controls, items in a padded one), rounded-control, rounded-card, rounded-dialog, rounded-icon, rounded-full";
+
 /** One rule per thing that stays out, and what to use instead, in plain words. */
 const RULES: { name: string; matches: (token: string) => boolean; instead: string }[] = [
   {
@@ -22,7 +25,7 @@ const RULES: { name: string; matches: (token: string) => boolean; instead: strin
   {
     name: "corner",
     matches: (token) => /^rounded(-[a-z]{1,2})?-\[/.test(token),
-    instead: "a radius from the scale: rounded-xs, rounded-sm, rounded-tag (keys and tags), rounded-md, rounded-lg, rounded-xl, rounded-2xl, rounded-full",
+    instead: RADIUS,
   },
   {
     name: "layer",
@@ -37,7 +40,7 @@ const RULES: { name: string; matches: (token: string) => boolean; instead: strin
   {
     name: "glow",
     matches: (token) => token.startsWith("drop-shadow-[") || token.startsWith("bg-[radial-gradient"),
-    instead: "a shadow token (shadow-card, shadow-raised, shadow-pop, shadow-dialog): no coloured glow",
+    instead: "shadow-popover or shadow-dialog, on what floats over the window: no coloured glow",
   },
   {
     name: "arrival animation",
@@ -51,14 +54,40 @@ const RULES: { name: string; matches: (token: string) => boolean; instead: strin
     instead: "h-dvh for the window's height, or h-full inside the shell",
   },
 ];
+/**
+ * Corners, shadows and durations by their names in styles.css, not Tailwind's own sizes, so the
+ * window keeps one small scale of each (docs/design-system.md).
+ */
+const SCALE_RULES: typeof RULES = [
+  {
+    name: "corner off the scale",
+    matches: (token) => /^rounded(-[trblse]{1,2})?(-(xs|sm|md|lg|xl|[234]xl))?$/.test(token),
+    instead: RADIUS,
+  },
+  {
+    name: "shadow off the scale",
+    matches: (token) => /^shadow(-(2xs|xs|sm|md|lg|xl|2xl|card|lift)|-\[.*)?$/.test(token),
+    instead:
+      "shadow-popover (tooltips, menus, popovers, toasts) or shadow-dialog on what floats; nothing on a card, its border is its edge. A focus ring inside: focus-ring-inset",
+  },
+  {
+    name: "duration off the scale",
+    matches: (token) => /^duration-[\d[(]/.test(token),
+    instead: "duration-quick (150 ms), duration-base (200 ms) or duration-slow (400 ms)",
+  },
+];
+
+/**
+ * Files off the scale on purpose: the first run keeps its own timings and its stage's shadows
+ * (Motion in the design system). The list only shrinks.
+ */
+const OFF_SCALE_FOR_NOW = new Set(["src/app/shell/welcome.tsx"]);
+
 const CAPITALS = "capitals with their own letter-spacing";
 const CAPITALS_INSTEAD = "drop uppercase or the tracking-[…]: labels are sentence case, and the type scale sets the spacing";
 
 /** A real exception, with why: the file and the class it may use. */
 const ALLOWED: { file: string; token: string }[] = [
-  // The app icons' corners grow with their size, like the platform's own icons; no fixed radius does that.
-  { file: "src/app/ui/brand.tsx", token: "rounded-[22%]" },
-  { file: "src/app/ui/brand.tsx", token: "rounded-[24%]" },
   // The first run is seen once, so its parts arrive (Motion in the design system); the classes are named only here.
   { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive" },
   { file: "src/app/ui/motion/arrival.ts", token: "motion-safe:animate-arrive-mark" },
@@ -112,8 +141,9 @@ function broken(file: string, code?: string): string[] {
   return classGroups(file, code).flatMap(({ line, tokens }) => {
     // A variant (hover:, dark:, motion-safe:) doesn't change what the class is.
     const bare = tokens.map((token) => ({ token, base: token.replace(/^([\w-]+:)+/, "") })).filter(({ token }) => !allowed(token));
+    const rules = OFF_SCALE_FOR_NOW.has(file) ? RULES : [...RULES, ...SCALE_RULES];
     const found = bare.flatMap(({ token, base }) =>
-      RULES.filter((rule) => rule.matches(base)).map((rule) => `${file}:${line} ${token} (${rule.name}): use ${rule.instead}`),
+      rules.filter((rule) => rule.matches(base)).map((rule) => `${file}:${line} ${token} (${rule.name}): use ${rule.instead}`),
     );
     const capitals = bare.some(({ base }) => base === "uppercase") && bare.find(({ base }) => base.startsWith("tracking-["));
     if (capitals) found.push(`${file}:${line} uppercase ${capitals.token} (${CAPITALS}): ${CAPITALS_INSTEAD}`);
@@ -134,6 +164,12 @@ describe("the window's classes", () => {
     expect(users.sort()).toEqual(FIRST_RUN);
   });
 
+  it("waits only for files still off the scale: a file moved onto it leaves the list", () => {
+    const scale = (file: string) =>
+      classGroups(file).some(({ tokens }) => tokens.some((token) => SCALE_RULES.some((rule) => rule.matches(token.replace(/^([\w-]+:)+/, "")))));
+    expect([...OFF_SCALE_FOR_NOW].filter((file) => !scale(file))).toEqual([]);
+  });
+
   it("the check sees what it's meant to see", () => {
     const sample = [
       "// A comment may say text-[10px], z-[5] or h-screen.",
@@ -145,6 +181,8 @@ describe("the window's classes", () => {
       'const f = <div className="rounded-tag text-micro z-10 rounded-[22%] uppercase tracking-normal" />;',
       'const g = <h1 className="motion-safe:animate-arrive" />;',
       'const h = <span className="bg-[radial-gradient(closest-side,var(--accent),transparent)]" />;',
+      'const i = <div className="rounded rounded-lg rounded-card rounded-l-none hover:rounded-t-sm shadow-card shadow-popover" />;',
+      'const j = <div className={cx("shadow-[0_1px_0_red] shadow-none duration-150 duration-quick motion-safe:duration-(--x)")} />;',
     ].join("\n");
     expect(broken("sample.tsx", sample).map((found) => found.replace(/ \(.*$/, ""))).toEqual([
       "sample.tsx:2 text-[10px]",
@@ -159,6 +197,13 @@ describe("the window's classes", () => {
       "sample.tsx:7 rounded-[22%]",
       "sample.tsx:8 motion-safe:animate-arrive",
       "sample.tsx:9 bg-[radial-gradient(closest-side,var(--accent),transparent)]",
+      "sample.tsx:10 rounded",
+      "sample.tsx:10 rounded-lg",
+      "sample.tsx:10 hover:rounded-t-sm",
+      "sample.tsx:10 shadow-card",
+      "sample.tsx:11 shadow-[0_1px_0_red]",
+      "sample.tsx:11 duration-150",
+      "sample.tsx:11 motion-safe:duration-(--x)",
     ]);
   });
 });

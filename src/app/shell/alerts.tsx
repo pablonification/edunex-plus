@@ -157,7 +157,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
               onRead(now);
               void bridge.invoke("alerts.markRead", {}).catch(() => undefined);
             }}
-            className="focus-ring rounded px-1 text-small font-medium text-accent-fg hover:underline"
+            className="focus-ring rounded-tag px-1 text-small font-medium text-accent-fg hover:underline"
           >
             {t("alerts.markAllRead")}
           </button>
@@ -217,7 +217,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
       </div>
       <div className="flex shrink-0 items-center justify-between gap-3 border-t border-line px-4 py-2.5 text-caption text-muted">
         <Meta>{t(sixOut ? "alerts.footnoteEdunex" : "alerts.footnote")}</Meta>
-        <button type="button" onClick={settings} className="focus-ring inline-flex items-center gap-1 rounded font-medium text-accent-fg hover:underline">
+        <button type="button" onClick={settings} className="focus-ring inline-flex items-center gap-1 rounded-tag font-medium text-accent-fg hover:underline">
           <Icons.Settings className="size-3.5" />
           {t("alerts.settings")}
         </button>

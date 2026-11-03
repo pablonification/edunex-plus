@@ -4,6 +4,7 @@ import type { Event } from "../../core/contract";
 import type { Lang, Settings } from "../../core/models";
 import type { AppLog } from "../../engine/app-log";
 import type { Engine } from "../../engine/engine";
+import type { Away } from "../away";
 import type { DownloadedFiles } from "../downloaded-files";
 import type { FileCache } from "../file-cache";
 import type { Handlers } from "../ipc";
@@ -42,6 +43,8 @@ export interface DesktopContext {
   updater: Updater;
   /** The app's own log (src/engine/app-log.ts), which the engine writes to too and every report carries. */
   log: AppLog;
+  /** SIX or Edunex opened in the browser: back in the window, their attendance is read again (../away.ts). */
+  away: Away;
 }
 
 /** A group of handlers for some of the bridge's actions. */

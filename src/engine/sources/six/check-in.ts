@@ -37,10 +37,31 @@ export function showsCheckIn(html: string): boolean {
     });
 }
 
-/** What reading the popup again says, from what was known before. */
+/**
+ * What reading the popup again says, from what was known before. Pressed in the SIX window and no button
+ * now, it's gone too, and keeps when it was pressed; still showing, the press didn't take.
+ */
 export function nextCheckIn(before: SixCheckIn | undefined, shows: boolean, now: number): SixCheckIn {
-  const state = shows ? "open" : before?.state === "open" || before?.state === "gone" ? "gone" : "waiting";
-  return before?.state === state ? before : { state, since: now };
+  const pressedAt = before?.pressedAt;
+  const state = shows ? "open" : before?.state === "open" || before?.state === "gone" || pressedAt !== undefined ? "gone" : "waiting";
+  if (before?.state === state) return before;
+  return state === "gone" && pressedAt !== undefined ? { state, since: now, pressedAt } : { state, since: now };
+}
+
+/**
+ * The Student pressed something in a class's popup in the app's SIX window ("Tandai Hadir", most likely):
+ * marked, without changing what was seen (no alert says the button opened), and the popup and SIX's count
+ * read again at once, so Beranda says it within seconds, not at the next two-minute read.
+ */
+export async function checkInPressed(context: SourceContext, meetingId: string): Promise<void> {
+  const session = (context.get("six.schedule") ?? []).find((s) => s.id === meetingId);
+  const now = context.clock.now();
+  if (!session || !checkingIn(session, now)) return;
+  const saved = context.get("six.checkIn") ?? {};
+  const before = saved[meetingId];
+  if (before?.state !== "gone")
+    await context.set("six.checkIn", { ...saved, [meetingId]: { ...(before ?? { state: "waiting", since: now }), pressedAt: now } });
+  await context.runNow((feed) => feed === "six.checkIn" || feed === "six.status");
 }
 
 export function registerSixCheckInFeed(context: SourceContext, pages: SixPages): void {
@@ -75,7 +96,8 @@ export function registerSixCheckInFeed(context: SourceContext, pages: SixPages):
           continue;
         }
         if (!current()) return;
-        next[session.id] = nextCheckIn(next[session.id], showsCheckIn(html), context.clock.now());
+        // A press marked while this read was on the way (checkInPressed) counts too.
+        next[session.id] = nextCheckIn(context.get("six.checkIn")?.[session.id] ?? next[session.id], showsCheckIn(html), context.clock.now());
       }
       await context.set("six.checkIn", next);
       if (failed) throw failed;

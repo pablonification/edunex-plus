@@ -212,7 +212,7 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
           }}
           onClickCapture={ignoreClosingClick}
           className={cx(
-            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-dialog bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
             // Below macOS's traffic lights, and below the top bar where Windows and Linux draw their window buttons.
             platform === "darwin" ? "top-10" : platform ? "top-[calc(var(--title-bar)+--spacing(2))]" : "top-3",
@@ -248,7 +248,7 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                     onMouseLeave={highlighter.onMouseLeave}
                     onMouseUp={highlighter.onMouseUp}
                     className={cx(
-                      "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+                      "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-ring-inset",
                       view.phase !== "ready" && "grid place-items-center p-6",
                     )}
                   >
@@ -279,7 +279,7 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
                         <img
                           src={view.shown.url}
                           alt={name}
-                          className="h-auto max-w-full rounded-sm shadow-card outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+                          className="h-auto max-w-full rounded-tag outline -outline-offset-1 outline-black/10 dark:outline-white/10"
                         />
                       </div>
                     ) : null}
@@ -335,7 +335,7 @@ function TextFile({ text, marks }: { text: string; marks: Marks }) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: each new text
   useLayoutEffect(() => setDrawn((n) => n + 1), [text]);
   return (
-    <div ref={content} className="relative m-6 min-h-[calc(100%-3rem)] rounded-lg bg-surface shadow-card">
+    <div ref={content} className="relative m-6 min-h-[calc(100%-3rem)] rounded-control bg-surface ring-1 ring-black/5 dark:ring-white/10">
       <MarkLayer root={textRoot} origin={content} version={drawn} under {...layer} />
       <pre ref={setRoot} className="relative p-5 font-mono text-small break-words whitespace-pre-wrap text-fg select-text">
         {text}
@@ -429,7 +429,7 @@ function Sheets({ sheets, name, scroller }: { sheets: Sheet[]; name: string; scr
         // biome-ignore lint/a11y/noNoninteractiveTabindex: the table scrolls, so it takes the keyboard (arrows, Page Down)
         tabIndex={0}
         aria-label={sheet.name || name}
-        className="min-h-0 flex-1 overflow-auto overscroll-contain bg-surface outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]"
+        className="min-h-0 flex-1 overflow-auto overscroll-contain bg-surface outline-none focus-ring-inset"
       >
         <table className="border-separate border-spacing-0 text-small">
           <thead>

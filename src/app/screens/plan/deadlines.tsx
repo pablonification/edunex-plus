@@ -21,10 +21,12 @@ import { useDataset } from "../../store";
 import { Button, Segmented } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState } from "../../ui/display";
+import { WhyButton } from "../../ui/explain";
 import { Icons } from "../../ui/icons";
 import { List, Meta } from "../../ui/layout";
 import { WebLink } from "../../ui/rich-text";
 import { useViewChoice } from "../../view-choice";
+import { PLAIN_LIST } from "../plain-list";
 import { useTermYears } from "./projection";
 
 type Group = "now" | "week" | "month" | "term" | "next";
@@ -56,8 +58,8 @@ export function Tab(_: { onCalendar?: () => void }) {
   return (
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        {/* No line describing the list below: the tab and the view's name say it. Where the dates come from stays. */}
         <div className="min-w-0">
-          <p className="text-small text-muted">{t(view === "mine" ? "deadlines.intro" : "calendar.intro")}</p>
           <Source calendar={calendar} />
         </div>
         <Segmented
@@ -82,7 +84,7 @@ function Source({ calendar }: { calendar: AcademicCalendar }) {
   const open = useOpenExternal();
   const { url, year } = itbCalendar(useThisTerm(), calendar);
   return (
-    <p className="mt-0.5 text-caption text-muted">
+    <p className="text-caption text-muted">
       <Meta>
         <span>
           {t("deadlines.from")}{" "}
@@ -137,9 +139,9 @@ function ForYou() {
                       type="button"
                       aria-expanded={!collapsed}
                       onClick={() => setNextOpen(!nextOpen)}
-                      className="focus-ring -mx-1 inline-flex items-center gap-1.5 rounded-md px-1 hover:text-fg"
+                      className="focus-ring -mx-1 inline-flex items-center gap-1.5 rounded-item px-1 hover:text-fg"
                     >
-                      <Icons.ChevronRight className={cx("size-3.5 text-faint transition-transform duration-150", !collapsed && "rotate-90")} />
+                      <Icons.ChevronRight className={cx("size-3.5 text-faint transition-transform duration-quick", !collapsed && "rotate-90")} />
                       {named ? (
                         <Meta>
                           {t(`deadlines.group.${group}`)}
@@ -155,7 +157,7 @@ function ForYou() {
                   <span className="font-medium text-faint tabular-nums">{items.length}</span>
                 </h3>
                 {!collapsed && (
-                  <List className={DEADLINE_COLUMNS}>
+                  <List className={cx(DEADLINE_COLUMNS, PLAIN_LIST)}>
                     {items.map((deadline) => (
                       <DeadlineRow key={deadline.event.id} deadline={deadline} showTerm={deadline.event.term !== term && deadline.event.term !== named} />
                     ))}
@@ -168,12 +170,12 @@ function ForYou() {
       </div>
       {past.length > 0 && (
         <details className="group mt-8">
-          <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-1.5 rounded-md text-small font-medium text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
-            <Icons.ChevronRight className="size-3.5 transition-transform duration-150 group-open:rotate-90" />
+          <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-1.5 rounded-item text-small font-medium text-muted hover:text-fg [&::-webkit-details-marker]:hidden">
+            <Icons.ChevronRight className="size-3.5 transition-transform duration-quick group-open:rotate-90" />
             {t("deadlines.past")}
             <span className="text-faint tabular-nums">{past.length}</span>
           </summary>
-          <List className={cx("mt-3", DEADLINE_COLUMNS)}>
+          <List className={cx("mt-3", DEADLINE_COLUMNS, PLAIN_LIST)}>
             {past.map((deadline) => (
               <DeadlineRow key={deadline.event.id} deadline={deadline} showTerm={deadline.event.term !== term} />
             ))}
@@ -213,31 +215,34 @@ function DeadlineRow({ deadline, showTerm }: { deadline: Deadline; showTerm: boo
   const offset = f.dayOffset(event.start);
   const near = when === "next" && offset < 14;
   const warn = meaning?.warn && when !== "past";
+  // What's true for this Student (sent, paid, short of the target) stays a line; what the event means for anyone is its why.
+  const own = meaning && (meaning.done || warn) ? meaning : null;
+  const why = meaning && !own && !RESTATED.has(meaning.key) ? t(meaning.key, meaning.vars) : null;
   return (
     <li className="col-span-full grid grid-cols-subgrid">
-      <div className={cx("col-span-full grid grid-cols-subgrid items-start px-4 py-3 @max-md:gap-y-1", when === "past" && "text-muted")}>
+      <div className={cx("group/row col-span-full grid grid-cols-subgrid items-start px-4 py-3 @max-md:gap-y-1", when === "past" && "text-muted")}>
         <span className="text-body font-semibold whitespace-nowrap tabular-nums">
           {dates}
           <span className="block text-caption font-normal text-faint">{days}</span>
         </span>
         <span className="min-w-0">
-          <span className="block text-body font-medium" title={event.title}>
+          <span className="flex items-center gap-1 text-body font-medium" title={event.title}>
             <Meta>
               {t(`deadline.kind.${event.kind}` as StringKey)}
               {variant ? <span className="font-normal text-muted">{t(`deadline.variant.${variant}`)}</span> : null}
               {showTerm && event.term ? <span className="font-normal text-faint">{termYears(event.term)}</span> : null}
             </Meta>
+            {why && (
+              <span className="-my-1">
+                <WhyButton why={why} />
+              </span>
+            )}
           </span>
-          {meaning && (
-            <span
-              className={cx(
-                "mt-0.5 flex items-start gap-1.5 text-small",
-                warn ? "font-medium text-warning-fg" : meaning.done ? "text-success-fg" : "text-muted",
-              )}
-            >
-              {meaning.done && <Icons.Check className="mt-[3px] size-3 shrink-0" weight="bold" />}
+          {own && (
+            <span className={cx("mt-0.5 flex items-start gap-1.5 text-small", warn ? "font-medium text-warning-fg" : "text-success-fg")}>
+              {own.done && <Icons.Check className="mt-[3px] size-3 shrink-0" weight="bold" />}
               {warn && <Icons.AlertTriangle className="mt-[3px] size-3 shrink-0" weight="bold" />}
-              {t(meaning.key, meaning.vars)}
+              {t(own.key, own.vars)}
             </span>
           )}
         </span>
@@ -308,7 +313,7 @@ function EveryEvent() {
   return (
     <div>
       {/* The box shows the focus ring: the input itself is borderless inside it. */}
-      <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
+      <label className="flex h-9 items-center gap-2 rounded-control bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
         <Icons.Search className="size-4 text-faint" />
         <input
           ref={search}
@@ -331,7 +336,7 @@ function EveryEvent() {
                 aria-pressed={on}
                 onClick={() => toggle(group)}
                 className={cx(
-                  "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small transition-colors duration-150",
+                  "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small transition-colors duration-quick",
                   on ? "border-fg/60 bg-selected font-semibold text-fg" : "border-edge text-muted hover:bg-hover hover:text-fg",
                 )}
               >
@@ -355,7 +360,7 @@ function EveryEvent() {
               // The button goes with the filters: focus goes back to the search, where the next one starts.
               search.current?.focus();
             }}
-            className="focus-ring rounded font-medium text-accent-fg hover:underline"
+            className="focus-ring rounded-tag font-medium text-accent-fg hover:underline"
           >
             {t("calendar.clear")}
           </button>
@@ -374,7 +379,7 @@ function EveryEvent() {
           {t(earlier ? "calendar.earlierHide" : "calendar.earlier", { count: before.length })}
         </Button>
       )}
-      {shown === 0 && <p className="mt-6 rounded-xl bg-sunken px-4 py-6 text-center text-small text-muted">{t("calendar.none")}</p>}
+      {shown === 0 && <p className="mt-6 rounded-card bg-sunken px-4 py-6 text-center text-small text-muted">{t("calendar.none")}</p>}
       <div className="mt-4 space-y-5">
         {visible.map(({ month, entries }) => {
           // The line for today sits before the month's first event still to come.
@@ -385,7 +390,7 @@ function EveryEvent() {
                 {monthName(month)}
                 <span className="font-medium text-faint tabular-nums">{entries.length}</span>
               </h3>
-              <List>
+              <List className={PLAIN_LIST}>
                 {entries.map((entry, i) => (
                   <Fragment key={entry.event.id}>
                     {i === todayAt && <TodayLine label={t("deadlines.todayAt", { date: `${f.weekdayShort(now)}, ${f.dayMonth(now)}` })} />}
@@ -425,20 +430,30 @@ function EventRow({ entry }: { entry: CalendarEntry }) {
   const days =
     event.firstDay === event.lastDay ? f.weekdayShort(noon(event.firstDay)) : `${f.weekdayShort(noon(event.firstDay))}–${f.weekdayShort(noon(event.lastDay))}`;
   const warn = meaning?.warn && when !== "past";
+  // As in "Untukmu": what's true for this Student is a line, what the event means for anyone is its why.
+  const own = meaning && (meaning.done || meaning.warn) ? meaning : null;
+  const why = meaning && !own ? t(meaning.key, meaning.vars) : null;
   return (
-    <li className={cx("grid grid-cols-[164px_minmax(0,1fr)] items-baseline gap-4 px-4 py-2", when === "past" && "text-muted")}>
+    <li className={cx("group/row grid grid-cols-[164px_minmax(0,1fr)] items-baseline gap-4 px-4 py-2", when === "past" && "text-muted")}>
       <span className="text-small font-semibold whitespace-nowrap tabular-nums">
         {f.dayRange(event.firstDay, event.lastDay)}
         <span className="ml-1.5 font-normal text-faint">{days}</span>
       </span>
       <span className="min-w-0">
-        <span className="block text-body">
-          {entry.title}
-          {when === "now" && <span className="ml-2 text-small font-semibold text-success-fg">{t("deadlines.now")}</span>}
+        <span className="flex items-center gap-1 text-body">
+          <span>
+            {entry.title}
+            {when === "now" && <span className="ml-2 text-small font-semibold text-success-fg">{t("deadlines.now")}</span>}
+          </span>
+          {why && (
+            <span className="-my-1">
+              <WhyButton why={why} />
+            </span>
+          )}
         </span>
-        {(meaning || entry.revised) && (
-          <Meta className={cx("mt-0.5 text-small", warn ? "font-medium text-warning-fg" : meaning?.done && when !== "past" ? "text-success-fg" : "text-muted")}>
-            {meaning ? t(meaning.key, meaning.vars) : null}
+        {(own || entry.revised) && (
+          <Meta className={cx("mt-0.5 text-small", warn ? "font-medium text-warning-fg" : own?.done && when !== "past" ? "text-success-fg" : "text-muted")}>
+            {own ? t(own.key, own.vars) : null}
             {entry.revised ? <span className="text-faint">{t("calendar.revised")}</span> : null}
           </Meta>
         )}

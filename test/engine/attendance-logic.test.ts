@@ -23,7 +23,6 @@ import {
   percent,
   presenceAction,
   presenceGroup,
-  presenceOptional,
   resultGate,
   resultNeedsStudent,
   sortGroup,
@@ -107,13 +106,12 @@ describe("where attendance counts", () => {
     ),
   );
 
-  it("in SIX when SIX counted far more than Edunex recorded (Edunex's unused windows aren't absences)", () => {
-    expect(countedIn({ attended: 6, held: 7 }, viewCourse, now)).toBe("six");
-  });
-
-  it("in both when Edunex's record keeps up with SIX's count", () => {
+  it("in both wherever Edunex has windows: however little Edunex recorded, no system says the lecturer doesn't use it", () => {
+    expect(countedIn({ attended: 6, held: 7 }, viewCourse, now)).toBe("both");
     const kept = viewCourse.map((p, i) => (i < 5 ? { ...p, recorded: { present: true, at: null } } : p));
     expect(countedIn({ attended: 6, held: 7 }, kept, now)).toBe("both");
+    // A first window, still to come: it's there to do too.
+    expect(countedIn({ attended: 3, held: 4 }, [presence(1, "2026-10-15T08:00:00", 90)], now)).toBe("both");
   });
 
   it("in Edunex when only Edunex has a record, in SIX when Edunex has no windows, else unknown", () => {
@@ -121,8 +119,6 @@ describe("where attendance counts", () => {
     expect(countedIn({ attended: 0, held: 0 }, viewCourse, now)).toBe("edunex");
     expect(countedIn({ attended: 3, held: 4 }, [], now)).toBe("six");
     expect(countedIn(null, [], now)).toBe("unknown");
-    // Windows still to come say nothing yet.
-    expect(countedIn({ attended: 3, held: 4 }, [presence(1, "2026-10-15T08:00:00", 90)], now)).toBe("six");
   });
 
   it("signed out of SIX: not known where it counts, so Edunex's record never claims to be the count", () => {
@@ -420,10 +416,6 @@ describe("what counts in an Edunex Presence window", () => {
     expect(presenceAction(window, [task])).toMatchObject({ activity: "assignment", task: { id: 117003 } });
     // Without the Task, the first thing the lecturer chose.
     expect(presenceAction(window, [])).toMatchObject({ activity: "module", task: null, url: "https://edunex.itb.ac.id/courses/95326/preview/450218" });
-  });
-
-  it("an Edunex window is optional only where SIX counts", () => {
-    expect((["six", "both", "edunex", "unknown", "noSix", undefined] as const).map(presenceOptional)).toEqual([true, false, false, false, false, false]);
   });
 
   it("Read Module opens the module; every other category is named", () => {

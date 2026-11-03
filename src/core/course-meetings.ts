@@ -126,6 +126,32 @@ export function announcedMeetings(materials: readonly Material[], announcements:
     .sort((a, b) => a.start - b.start);
 }
 
+// "9 Oktober 2026", "Jumat, 11 September": a day a lecturer writes in a title.
+const NAMED_DAY = /\b(\d{1,2})\s+([A-Za-z]+)\.?(?:\s+(\d{4}))?\b/g;
+
+/** The days a text names: "2026-10-09", or "10-09" when it gives no year. */
+export function namedDays(text: string): string[] {
+  const days: string[] = [];
+  for (const [, day, monthName, year] of text.matchAll(NAMED_DAY)) {
+    const month = MONTHS[monthName.toLowerCase()];
+    if (!month || Number(day) < 1 || Number(day) > 31) continue;
+    const monthDay = `${String(month).padStart(2, "0")}-${day.padStart(2, "0")}`;
+    days.push(year ? `${year}-${monthDay}` : monthDay);
+  }
+  return days;
+}
+
+/**
+ * Whether an online-class link is for a class on `day` ("2026-10-30"): the day
+ * its title names ("Link Teams Pertemuan 03: Jumat, 9 Oktober 2026"), else the
+ * day it was posted or changed. Last month's link is never today's meeting.
+ */
+export function linkIsFor(material: Pick<Material, "title" | "postedAt" | "updatedAt">, day: string): boolean {
+  const named = namedDays(material.title);
+  if (named.length) return named.some((one) => one === day || one === day.slice(5));
+  return [material.postedAt, material.updatedAt].some((at) => at !== null && wibDay(at) === day);
+}
+
 // Online-class services whose links a lecturer posts for a meeting.
 const MEETING_LINK = /https:\/\/(?:teams\.microsoft\.com|teams\.live\.com|[\w-]+\.zoom\.us|zoom\.us|meet\.google\.com|[\w-]+\.webex\.com)\/[^\s<>"')\]]+/gi;
 

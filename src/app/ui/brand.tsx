@@ -13,12 +13,12 @@ import { Icons } from "./icons";
 
 /** A source's logo as a small rounded tile; size it with `className` ("size-9"). */
 export function SourceLogo({ source, className }: { source: SourceId; className?: string }) {
-  if (source === "six") return <img src={sixLogo} alt="" aria-hidden draggable={false} className={cx("shrink-0 rounded-[22%]", className)} />;
+  if (source === "six") return <img src={sixLogo} alt="" aria-hidden draggable={false} className={cx("shrink-0 rounded-icon", className)} />;
   return (
     <span
       aria-hidden
       className={cx(
-        "grid shrink-0 place-items-center overflow-hidden rounded-[24%]",
+        "grid shrink-0 place-items-center overflow-hidden rounded-icon",
         // Edunex's elephant sits on white in both themes, like its own site.
         source === "edunex" ? "bg-white ring-1 ring-black/10 ring-inset" : "bg-(--source-itb-bg) text-(--source-itb-fg)",
         className,

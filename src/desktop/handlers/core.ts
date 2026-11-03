@@ -32,6 +32,7 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
   "shell.openExternal": async ({ url }) => {
     if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
     await shell.openExternal(url);
+    context.away?.opened(url);
     return {};
   },
   // A lecturer's link opens like it does on Edunex: any web page, but in the system browser, never in the app.

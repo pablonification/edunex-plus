@@ -47,7 +47,7 @@ export function ExportButton({ className }: { className?: string }) {
       ) : (
         <Tooltip content={t("schedule.export.disabled")}>
           {/* biome-ignore lint/a11y/noNoninteractiveTabindex: a disabled button can't take focus; its wrapper does, so the keyboard reaches the reason */}
-          <span tabIndex={0} className={cx("focus-ring inline-flex rounded-lg", className)}>
+          <span tabIndex={0} className={cx("focus-ring inline-flex rounded-control", className)}>
             {button}
           </span>
         </Tooltip>
@@ -142,7 +142,7 @@ function ExportDialog({ onClose }: { onClose: () => void }) {
                 <label
                   key={value}
                   className={cx(
-                    "flex cursor-default items-start gap-2.5 rounded-xl border px-3.5 py-2.5 transition-colors duration-150",
+                    "flex cursor-default items-start gap-2.5 rounded-card border px-3.5 py-2.5 transition-colors duration-quick",
                     range === value ? "border-accent bg-info-bg/50" : "border-edge hover:bg-hover",
                   )}
                 >
@@ -208,7 +208,7 @@ function Saved({ file, events, onDone }: { file: string; events: number; onDone:
         <div className="min-w-0 flex-1">
           <p className="text-title font-semibold">{t("schedule.export.saved", { count: events })}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="inline-flex min-w-0 items-center gap-1.5 rounded-lg bg-fill px-2.5 py-1 text-small font-medium">
+            <span className="inline-flex min-w-0 items-center gap-1.5 rounded-control bg-fill px-2.5 py-1 text-small font-medium">
               <Icons.Calendar className="size-3.5 shrink-0 text-muted" />
               <span className="truncate">{file}</span>
             </span>
@@ -222,7 +222,7 @@ function Saved({ file, events, onDone }: { file: string; events: number; onDone:
       <p className="mt-6 text-small font-semibold">{t("schedule.export.toPhone")}</p>
       <div className="mt-2 grid grid-cols-2 gap-2.5">
         {(["iphone", "android"] as const).map((phone) => (
-          <section key={phone} aria-label={t(`schedule.export.${phone}`)} className="rounded-xl bg-sunken px-3.5 py-3">
+          <section key={phone} aria-label={t(`schedule.export.${phone}`)} className="rounded-card bg-sunken px-3.5 py-3">
             <h3 className="flex items-center gap-1.5 text-small font-semibold">
               <Icons.Smartphone className="size-3.5 text-muted" />
               {t(`schedule.export.${phone}`)}
@@ -230,7 +230,7 @@ function Saved({ file, events, onDone }: { file: string; events: number; onDone:
             <ol className="mt-2 space-y-1 text-small text-muted">
               {([1, 2, 3] as const).map((n) => (
                 <li key={n} className="flex gap-2">
-                  <span className="grid size-[18px] shrink-0 place-items-center rounded-full bg-surface text-micro font-semibold text-fg shadow-card tabular-nums">
+                  <span className="grid size-[18px] shrink-0 place-items-center rounded-full bg-surface text-micro font-semibold text-fg tabular-nums">
                     {n}
                   </span>
                   <span>{t(`schedule.export.${phone}.${n}`)}</span>

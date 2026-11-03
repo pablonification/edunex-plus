@@ -32,9 +32,10 @@ import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState, Tag } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { breakAfterSlashes, List, Meta } from "../../ui/layout";
+import { breakAfterSlashes, factsLabel, List, Meta } from "../../ui/layout";
 import { Tooltip, toast } from "../../ui/overlays";
 import { WebLink } from "../../ui/rich-text";
+import { PLAIN_LIST } from "../plain-list";
 import { TaskRows } from "../tasks";
 import { type CoursePage, isOpenTask } from "./data";
 
@@ -60,9 +61,14 @@ interface Entry {
 const latest = (entry: Pick<Entry, "postedAt" | "materials">) =>
   Math.max(entry.postedAt ?? 0, ...entry.materials.map((m) => m.postedAt ?? m.updatedAt ?? 0)) || null;
 
-/** "2 PDF", "4 tugas": what's in it; how many Tasks are still open shows as its own chip. */
-const countFacts = (t: Translate, entry: Entry) =>
-  contentCounts(entry.materials, entry.tasks.length).map(({ kind, count }) => t(`course.kind.${kind}`, { count }));
+/**
+ * "2 PDF", "4 tugas": what's in it. How many Tasks are still open shows as its own chip ("1 terbuka"), so with
+ * every one of them open, the Tasks aren't counted here too.
+ */
+const countFacts = (t: Translate, entry: Entry, open: number) =>
+  contentCounts(entry.materials, entry.tasks.length)
+    .filter(({ kind }) => kind !== "task" || open < entry.tasks.length)
+    .map(({ kind, count }) => t(`course.kind.${kind}`, { count }));
 
 /**
  * The table of contents, Edunex course by Edunex course (the class's own,
@@ -190,38 +196,32 @@ export function ModulesTab({
   if (!entries.length) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("course.noMaterials")} />;
   const firstParent = entries.findIndex((e) => e.parent);
   const anyContent = entries.some((e) => e.tasks.length || e.materials.length);
-  // Said once per list rather than on every greyed row, so grey isn't the only sign; each row says it to a screen reader.
-  const unopenedNote = (
-    <p aria-hidden className="mb-1 px-2 text-caption text-faint">
-      {t("course.unopenedNote")}
-    </p>
-  );
 
   return (
     <div ref={root} className="grid grid-cols-[260px_minmax(0,1fr)] gap-8 max-[1180px]:grid-cols-[220px_minmax(0,1fr)]">
+      {/* The list says what it is: its name is for a screen reader. */}
       <nav aria-label={t("course.contents")} className="self-start">
-        <p className="mb-2 px-2 text-small font-semibold text-muted">{t("course.contents")}</p>
-        {entries.some((e) => e.unopened && !e.parent) && unopenedNote}
         <ol className="space-y-0.5">
           {entries.map((entry, index) => {
-            const heading = index === firstParent && (
-              <>
-                <p className="mt-4 mb-1 px-2 text-small font-semibold text-muted">{t("course.jointClass")}</p>
-                {entries.some((e) => e.unopened && e.parent) && unopenedNote}
-              </>
-            );
+            const heading = index === firstParent && <p className="mt-4 mb-1 px-2 text-small font-semibold text-muted">{t("course.jointClass")}</p>;
             // Heard with the title: two "Pengantar" (or two same-named modules) are told apart without the heading above.
             const whose = entry.parent && <span className="sr-only">{`, ${t("course.jointClass")}`}</span>;
             // An Introduction is named by its title alone; a module by Edunex's label above it.
             const label = entry.intro ? "" : t("course.module", { no: entry.label ?? "" });
             if (entry.unopened)
-              // As on Edunex: listed, greyed, and nothing to open until the lecturer opens it.
+              // As on Edunex: listed, greyed, and nothing to open until the lecturer opens it. A lock says so beside the
+              // grey, so grey isn't the only sign; each row says it to a screen reader.
               return (
                 <li key={entry.id}>
                   {heading}
-                  <div className="px-2 py-1 text-faint">
+                  <div className="px-2 py-1 text-faint" title={t("course.unopened")}>
                     <Meta truncate className="text-caption">
-                      {label}
+                      <span className="inline-flex items-center gap-1">
+                        <span aria-hidden className="flex">
+                          <Icons.Lock className="size-3" />
+                        </span>
+                        {label}
+                      </span>
                       {/* A date already past while it's still closed would read as "opened on" ("Dibuka"): then it's just greyed. */}
                       {entry.opensAt !== null && entry.opensAt > now ? t("course.opensOn", { when: dayAndTime(f, entry.opensAt) }) : ""}
                     </Meta>
@@ -245,7 +245,7 @@ export function ModulesTab({
                   aria-current={isActive ? "true" : undefined}
                   onClick={() => onPick(Number(entry.id))}
                   className={cx(
-                    "focus-ring flex w-full scroll-my-6 items-start gap-2.5 rounded-lg px-2 text-left",
+                    "focus-ring flex w-full scroll-my-6 items-start gap-2.5 rounded-control px-2 text-left",
                     empty ? "py-1" : "py-2",
                     isActive ? "bg-selected" : "hover:bg-hover",
                   )}
@@ -254,7 +254,7 @@ export function ModulesTab({
                     {/* Edunex's own label above the title ("Modul 7"), then what's in it. */}
                     <Meta truncate className={cx("text-caption", isActive ? "text-muted" : "text-faint")}>
                       {label}
-                      {empty ? "" : countFacts(t, entry)}
+                      {empty ? "" : countFacts(t, entry, open)}
                     </Meta>
                     <span className={cx("line-clamp-2", empty ? "text-small text-muted" : "text-body", !empty && (isActive ? "font-semibold" : "font-medium"))}>
                       {entry.title}
@@ -265,8 +265,10 @@ export function ModulesTab({
                     <span className="mt-0.5 flex shrink-0 flex-col items-end gap-1">
                       {open > 0 && (
                         <Tooltip content={t("course.openTasksHint")}>
-                          <span className="inline-flex">
-                            <Tag tone="warning">{t("course.openTasks", { count: open })}</Tag>
+                          {/* A count, not an alarm: plain words with a small dot; the Task's own row says if it's due soon. */}
+                          <span className="inline-flex items-center gap-1.5 text-caption font-medium whitespace-nowrap text-muted">
+                            <span aria-hidden className="size-1.5 rounded-full bg-accent" />
+                            {t("course.openTasks", { count: open })}
                           </span>
                         </Tooltip>
                       )}
@@ -313,14 +315,15 @@ export function ModulesTab({
             <div className="space-y-6">
               {active.tasks.length > 0 && (
                 <div>
-                  <p className="mb-2 text-small font-semibold text-muted">{t("course.tasks")}</p>
+                  {/* Named only beside the other kind: alone, the rows say what they are. */}
+                  {active.materials.length > 0 && <p className="mb-2 text-small font-semibold text-muted">{t("course.tasks")}</p>}
                   <TaskRows tasks={active.tasks} meta="none" label={t("course.tasks")} />
                 </div>
               )}
               {active.materials.length > 0 && (
                 <div>
-                  <p className="mb-2 text-small font-semibold text-muted">{t("course.materials")}</p>
-                  <List label={t("course.materials")}>
+                  {active.tasks.length > 0 && <p className="mb-2 text-small font-semibold text-muted">{t("course.materials")}</p>}
+                  <List label={t("course.materials")} className={PLAIN_LIST}>
                     {active.materials.map((material) => (
                       <MaterialRow key={material.id} material={material} />
                     ))}
@@ -363,7 +366,7 @@ export function MaterialRow({ material }: { material: Material }) {
   const downloaded = useDownloadedToast();
   const Icon = KIND_ICON[kind];
   const icon = (
-    <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-fill text-muted">
+    <span className="grid size-8 shrink-0 place-items-center rounded-control bg-fill text-muted">
       <Icon className="size-4" />
     </span>
   );
@@ -385,7 +388,7 @@ export function MaterialRow({ material }: { material: Material }) {
                 <p className="text-body text-muted">{t("note.empty")}</p>
               )}
             </div>
-            <Credits material={material} className="mt-2.5" />
+            <Meta className="mt-2.5 text-caption text-faint">{credits(t, f, material)}</Meta>
           </div>
         </div>
       </li>
@@ -510,8 +513,8 @@ export function MaterialRow({ material }: { material: Material }) {
             ) : (
               ""
             )}
+            {credits(t, f, material)}
           </Meta>
-          <Credits material={material} className="mt-0.5" />
         </div>
         {button && <span className="flex shrink-0 justify-end">{button}</span>}
       </div>
@@ -522,10 +525,11 @@ export function MaterialRow({ material }: { material: Material }) {
 /** "28 Agu 14:01", as Edunex writes an item's times (it says the year too; a term's items are all this year's); never split across lines. */
 const dayAndTime = (f: Format, when: number) => `${f.dayMonth(when)} ${f.time(when)}`.replace(/ /g, "\u00a0");
 
-/** Under each item, as on Edunex: who posted it and when, and who last changed it and when; once when they're the same moment. */
-function Credits({ material, className }: { material: Material; className?: string }) {
-  const t = useT();
-  const f = useFormat();
+/**
+ * When an item was posted, or last changed, in a few words ("4 Sep", "Diperbarui 5 Sep"); who posted and changed it,
+ * as Edunex says it, on hover and to a screen reader: on a course page it's nearly always the lecturer the header names.
+ */
+function credits(t: Translate, f: Format, material: Material): ReactNode {
   const { postedAt, updatedAt, createdBy, updatedBy } = material;
   const changed = updatedAt !== null && (postedAt === null || Math.abs(updatedAt - postedAt) >= 60_000);
   const posted =
@@ -539,11 +543,14 @@ function Credits({ material, className }: { material: Material; className?: stri
     : updatedBy && updatedBy !== createdBy
       ? t("material.updatedBy", { name: updatedBy, when: dayAndTime(f, updatedAt) })
       : t("note.updated", { when: dayAndTime(f, updatedAt) });
-  if (!posted && !updated) return null;
+  // Nothing, never an empty fact, in the line it joins.
+  if (!posted && !updated) return "";
+  const full = factsLabel(posted, updated);
+  const short = changed ? t("note.updated", { when: f.dayMonth(updatedAt) }) : f.dayMonth(postedAt!);
   return (
-    <Meta className={cx("text-caption text-faint", className)}>
-      {posted}
-      {updated}
-    </Meta>
+    <span key="credits" className="shrink-0 whitespace-nowrap tabular-nums" title={full}>
+      <span aria-hidden>{short}</span>
+      <span className="sr-only">{full}</span>
+    </span>
   );
 }

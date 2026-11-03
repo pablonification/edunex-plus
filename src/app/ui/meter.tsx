@@ -14,7 +14,7 @@ const CONTINUOUS = 12;
 /** The bar's width (px) at each size, and the gap between segments. */
 const WIDTH = { sm: 96, md: 200 } as const;
 const GAP = 2;
-const LEFT_RING = "shadow-[inset_0_0_0_1.5px_var(--pip-ring)]";
+const LEFT_RING = "inset-ring-[1.5px] inset-ring-(--pip-ring)";
 const HATCH = { backgroundImage: "repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 4px)" };
 
 /**
@@ -67,7 +67,7 @@ export function AbsenceBar({
                 // biome-ignore lint/suspicious/noArrayIndexKey: segments are positions, nothing else tells them apart
                 key={i}
                 data-state={state(i)}
-                className={cx("min-w-0 flex-1 rounded-xs transition-colors duration-150", height, state(i) === "used" ? USED[tone] : LEFT_RING)}
+                className={cx("min-w-0 flex-1 rounded-mark transition-colors duration-quick", height, state(i) === "used" ? USED[tone] : LEFT_RING)}
                 style={estimate ? HATCH : undefined}
               />
             ))}
@@ -77,7 +77,7 @@ export function AbsenceBar({
           <span
             aria-hidden
             data-state="continuous"
-            className={cx("relative flex min-w-0 shrink overflow-hidden rounded-xs", height, LEFT_RING, size === "sm" ? "w-24" : "w-50")}
+            className={cx("relative flex min-w-0 shrink overflow-hidden rounded-mark", height, LEFT_RING, size === "sm" ? "w-24" : "w-50")}
             style={estimate ? HATCH : undefined}
           >
             {filled > 0 && <span data-state="used" className={cx("h-full", USED[tone])} style={{ width: `${(filled / allowed) * 100}%` }} />}
@@ -92,7 +92,7 @@ export function AbsenceBar({
               key={i}
               aria-hidden
               data-state="over"
-              className={cx("shrink-0 rounded-xs bg-danger-fg", height)}
+              className={cx("shrink-0 rounded-mark bg-danger-fg", height)}
               style={{ width: `${segment}px` }}
             />
           ))}
@@ -136,7 +136,7 @@ export function CountdownBar({
             left by the time gone. Sliding keeps its moving end round; the clipped track rounds the other. */}
         <span
           className={cx(
-            "block h-full rounded-full motion-safe:transition-[translate] motion-safe:duration-(--duration-slow) motion-safe:ease-out",
+            "block h-full rounded-full motion-safe:transition-[translate] motion-safe:duration-slow motion-safe:ease-out",
             soon ? "bg-meter-warning" : "bg-accent",
           )}
           style={{ translate: `${(left - 1) * 100}% 0` }}

@@ -5,7 +5,10 @@
 // runs on its own in-memory session that holds only SIX's cookie (and
 // Microsoft's, should SIX's session have ended and the Student sign in there),
 // can't reach the app, refuses every permission and is wiped when it closes.
-// Links that leave SIX open in the system browser when they're official.
+// Links that leave SIX open in the system browser when they're official. It
+// notices the Student pressing something in a class's popup (a request that
+// sends, not one that reads, under that class) and closing the window, so the
+// app reads SIX again right then.
 import { randomUUID } from "node:crypto";
 import { BrowserWindow, type Session, session as sessions, shell } from "electron";
 import { isOfficialUrl, SIX_WEB } from "../core/links";
@@ -37,6 +40,22 @@ export function openPopupScript(meetingId: string): string {
 })()`;
 }
 
+/**
+ * The class a request from the SIX window acts on, when it sends something (a POST, as a form's button
+ * does) under that class's meeting on SIX: the Student pressing a button in its popup, "Tandai Hadir" most
+ * likely. The popup was never recorded, so it's told by the class it's under, not by its words.
+ */
+export function pressedMeeting(method: string, url: string): string | null {
+  if (/^(GET|HEAD|OPTIONS)$/i.test(method)) return null;
+  try {
+    const parsed = new URL(url);
+    if (`${parsed.protocol}//${parsed.host}` !== SIX_WEB) return null;
+    return /\/kelas\/pertemuan\/(\d{1,20})(?:\/|$)/.exec(parsed.pathname)?.[1] ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** The engine's SIX session ("khongguan=…") as the cookie to set, or null when it doesn't read as one. */
 export function sixCookie(header: string | null): { name: string; value: string } | null {
   const match = header ? /^([A-Za-z0-9_-]+)=([\w%+/=.-]+)$/.exec(header) : null;
@@ -51,6 +70,10 @@ export interface SixWindowOptions {
   cookie: string | null;
   title: string;
   devTools: boolean;
+  /** The Student pressed something in this class's popup, and SIX answered (pressedMeeting). */
+  onPressed?(meetingId: string): void;
+  /** The window closed: the Student is back from SIX. */
+  onClosed?(): void;
 }
 
 let open: { window: BrowserWindow; session: Session; show(options: SixWindowOptions): Promise<void> } | null = null;
@@ -99,6 +122,23 @@ export function openSixCheckIn(options: SixWindowOptions): Promise<void> {
     return { action: "deny" };
   });
   window.on("page-title-updated", (event) => event.preventDefault());
+
+  // A press counts once SIX has answered it (after a redirect too), so reading the popup again sees what it did.
+  const pressing = new Map<number, string>();
+  const filter = { urls: [`${SIX_WEB}/*`] };
+  session.webRequest.onSendHeaders(filter, (details) => {
+    const meetingId = pressedMeeting(details.method, details.url);
+    if (meetingId) pressing.set(details.id, meetingId);
+  });
+  const answered = (details: { id: number; statusCode: number }) => {
+    const meetingId = pressing.get(details.id);
+    if (meetingId === undefined) return;
+    pressing.delete(details.id);
+    if (details.statusCode < 400) options.onPressed?.(meetingId);
+  };
+  session.webRequest.onBeforeRedirect(filter, answered);
+  session.webRequest.onCompleted(filter, answered);
+  session.webRequest.onErrorOccurred(filter, (details) => pressing.delete(details.id));
   window.once("ready-to-show", () => window.show());
 
   // The class whose popup opens once SIX's timetable has loaded (null: done, or the Student moved on).
@@ -126,6 +166,7 @@ export function openSixCheckIn(options: SixWindowOptions): Promise<void> {
   open = lease;
   window.once("closed", () => {
     if (open === lease) open = null;
+    options.onClosed?.();
     void Promise.allSettled([session.clearStorageData(), session.clearCache(), session.clearAuthCache()]);
   });
   return lease.show(options);

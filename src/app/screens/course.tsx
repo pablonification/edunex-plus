@@ -15,7 +15,7 @@ import { dayNoon } from "../../core/schedule";
 import { attendanceKey, attendanceSnoozable } from "../../core/snooze";
 import { todoCount, todoForCourse } from "../../core/todo";
 import { useAttendance } from "../attendance";
-import { verdictLabel } from "../attendance-labels";
+import { budgetWords, verdictLabel } from "../attendance-labels";
 import { AbsenceBudget, CourseTarget } from "../attendance-parts";
 import { errorKey } from "../bridge";
 import { CourseColorPicker, colorName } from "../course-color-picker";
@@ -28,8 +28,11 @@ import { OpenSixTimetable } from "../six-page-note";
 import { DoneButton, SnoozeMenu } from "../snooze-menu";
 import { useDone, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useSettings, useStatus } from "../store";
+import { SourceLogo } from "../ui/brand";
 import { Button } from "../ui/controls";
+import { cx } from "../ui/cx";
 import { CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
+import { Explained, WhyButton } from "../ui/explain";
 import { Icons } from "../ui/icons";
 import { factsLabel, Meta, Notice, Page, PageHeader } from "../ui/layout";
 import { Menu } from "../ui/menu";
@@ -66,7 +69,7 @@ export function CourseScreen({ code, tab, module }: { code: string; tab?: string
   const pickTab = (next: Tab) => show({ tab: next, ...(module === undefined ? {} : { module }) });
   // Each tab in its own crash guard: one that breaks leaves the tab bar, and the way to another tab.
   const panel = (key: Tab, content: ReactNode) => (
-    <Tabs.Content value={key} className="focus-ring rounded-sm">
+    <Tabs.Content value={key} className="focus-ring rounded-tag">
       <PanelBoundary name={`course ${key}`}>{content}</PanelBoundary>
     </Tabs.Content>
   );
@@ -142,8 +145,9 @@ function Header({ page }: { page: CoursePage }) {
   const sks = course.sks ?? outline?.credits ?? null;
   // The course's color picker hangs from its dot and code, opened there or from "Lainnya".
   const [picking, setPicking] = useState(false);
+  const attendance = useAttendanceMeter(page);
   return (
-    // The "⋯" stays at the top right at every width; only the meter wraps under the class line when the window is narrow.
+    // The "⋯" stays at the top right at every width; only the target wraps under the class line when the window is narrow.
     <div className="mb-6 flex items-start gap-4">
       <PageHeader
         className="mb-0 min-w-0 flex-1 items-start"
@@ -161,11 +165,11 @@ function Header({ page }: { page: CoursePage }) {
                     aria-haspopup="dialog"
                     aria-expanded={picking}
                     aria-label={t("courseColor.current", { code: course.code, color: colorName(t, course.colorId) })}
-                    className="group focus-ring -mx-1 inline-flex items-center gap-1.5 rounded px-1 transition-colors duration-150 hover:bg-hover"
+                    className="group focus-ring -mx-1 inline-flex items-center gap-1.5 rounded-tag px-1 transition-colors duration-quick hover:bg-hover"
                   >
                     <CourseDot color={course.color} className="size-2" />
                     <span className="font-semibold text-fg/80">{course.code}</span>
-                    <Icons.ChevronDown className="size-3 text-muted opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+                    <Icons.ChevronDown className="size-3 text-muted opacity-0 transition-opacity duration-quick group-hover:opacity-100 group-focus-visible:opacity-100" />
                   </button>
                 </Tooltip>
               </span>
@@ -185,9 +189,10 @@ function Header({ page }: { page: CoursePage }) {
             ) : (
               ""
             )}
+            {attendance.meter}
           </Meta>
         }
-        actions={<AttendanceMeter page={page} />}
+        actions={attendance.target}
       />
       <MoreMenu page={page} onChangeColor={() => setPicking(true)} />
     </div>
@@ -195,23 +200,49 @@ function Header({ page }: { page: CoursePage }) {
 }
 
 /**
- * The course's absences ("Jatah absen": the bar and "Terpakai 1× · sisa 1×"),
- * SIX's count with its share (the one place a share is said), and the
- * target, a click from changing it (#85). It stays while the banner below
- * shows: the banner says what to do, the bar how far.
+ * The course's absences, a fact of the class line: the bar and its one word
+ * ("sisa 1×", "habis"), the whole count and SIX's share (the one place a share
+ * is said) a tooltip away; and the target, a click from changing it (#85), at
+ * the header's end. It stays while the banner below shows: the banner says
+ * what to do, the bar how far.
  */
-function AttendanceMeter({ page }: { page: CoursePage }) {
+function useAttendanceMeter(page: CoursePage): { meter: ReactNode; target: ReactNode } {
+  const t = useT();
   const attendance = useAttendance();
   const { attendanceTargets } = useSettings();
   const health = attendance?.courses.find((c) => c.course.code === page.course.code)?.health;
-  if (!health || !attendance?.sixConnected) return null;
-  return (
-    <div className="flex max-w-full flex-wrap items-start gap-x-5 gap-y-2 pt-0.5">
-      <AbsenceBudget health={health} place="header" own={Object.hasOwn(attendanceTargets, page.course.code)} soFar={attendance.period === null} />
-      {health.held ? <CourseTarget code={page.course.code} /> : null}
-    </div>
-  );
+  if (!health || !attendance?.sixConnected) return { meter: "", target: null };
+  const soFar = attendance.period === null;
+  const words = budgetWords(t, health, soFar);
+  const over = health.state === "met" || health.state === "missed";
+  const share = health.held ? percent(health.attended ?? 0, health.held) : null;
+  const count =
+    share === null
+      ? null
+      : over
+        ? t("presence.row.final", { percent: share })
+        : t("presence.row.count", { attended: health.attended ?? 0, held: health.held ?? 0, percent: share });
+  return {
+    // Only a bar (or the final word once lectures are over) is a fact of the class line: with neither, it says nothing about absences.
+    meter:
+      words || over ? (
+        <span key="absences" className="group/row inline-flex items-center gap-1">
+          <AbsenceBudget health={health} place="line" own={Object.hasOwn(attendanceTargets, page.course.code)} soFar={soFar} />
+          <WhyButton why={sentences(words?.label, count)} />
+        </span>
+      ) : (
+        ""
+      ),
+    target: health.held ? <CourseTarget code={page.course.code} /> : null,
+  };
 }
+
+/** Sentences for a tooltip, each ending with its full stop. */
+const sentences = (...texts: (string | null | undefined)[]) =>
+  texts
+    .filter((text): text is string => Boolean(text))
+    .map((text) => (/[.?!]$/.test(text) ? text : `${text}.`))
+    .join(" ");
 
 /**
  * The attendance banner shows with no room left or the target out of reach,
@@ -354,34 +385,40 @@ function RiskStrip({ page }: { page: CoursePage }) {
         </>
       }
     >
-      {[
-        out ? t("course.risk.best", { best: percent(health.best ?? 0) }) : noneLeft(t, f, health, attendance.lastDay),
-        next && !nextShownBelow
+      {/* What to do and what's in the way, as facts: the why behind the first is a tooltip away. */}
+      <Meta>
+        {out ? (
+          <Explained text={t("course.risk.bestShort", { best: percent(health.best ?? 0) })} why={t("course.risk.best", { best: percent(health.best ?? 0) })} />
+        ) : (
+          noneLeft(t, f, health, attendance.lastDay)
+        )}
+        {next && !nextShownBelow
           ? t("course.risk.next", {
               when: `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`,
               room: next.six?.room ? t("course.risk.room", { room: next.six.room }) : "",
             })
-          : "",
-        // The minutes the two classes share, as Beranda and Jadwal say it.
-        next && clash
+          : ""}
+        {/* The minutes the two classes share, as Beranda and Jadwal say it. */}
+        {next && clash
           ? t("course.risk.clash", { code: clash.courseCode, time: f.timeRange(Math.max(next.start, clash.start), Math.min(next.end, clash.end)) })
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
+          : ""}
+      </Meta>
     </Notice>
   );
 }
 
-/** "7 pertemuan lagi sampai 4 Des. Hadiri semuanya agar tetap 80%." ("Sekitar" when part of it is the weekly slot carried on.) */
-function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, health: AttendanceHealth, lastDay: string | null): string {
+/**
+ * "Hadiri 7 pertemuan tersisa, sampai 4 Des" ("sekitar" when part of it is the weekly slot carried on). The target
+ * is on the header's button; a meeting that may not run, why it counts, a tooltip away.
+ */
+function noneLeft(t: ReturnType<typeof useT>, f: ReturnType<typeof useFormat>, health: AttendanceHealth, lastDay: string | null): ReactNode {
   const { count, estimated } = health.left;
   // The sure meetings alone fall short: one that may not run has to.
-  if (health.needsUncertain) return t("course.risk.noneIfRuns", { target: health.target });
+  if (health.needsUncertain) return <Explained text={t("course.risk.noneAll")} why={t("course.risk.noneIfRuns", { target: health.target })} />;
   if (count === 0) return "";
-  if (!lastDay) return t("course.risk.noneNoDate", { target: health.target });
+  if (!lastDay) return t("course.risk.noneAll");
   const date = f.dayMonth(Date.parse(`${lastDay}T12:00:00+07:00`));
-  return t(estimated ? "course.risk.noneAbout" : "course.risk.none", { count, date, target: health.target });
+  return t(estimated ? "course.risk.noneAbout" : "course.risk.none", { count, date });
 }
 
 const DAY = 86_400_000;
@@ -429,9 +466,9 @@ function MeetingNow({ page }: { page: CoursePage }) {
   const countedIn = attendance?.courses.find((c) => c.course.code === page.course.code)?.health.countedIn;
   const courseUrl = page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null;
   const url = presence?.url ?? courseUrl;
-  // Edunex's window is the thing to do only where it may be what counts: not where SIX counts, and
-  // not loudly without SIX (nobody can say; it's worth doing just in case).
-  const presenceCounts = countedIn !== "six" && countedIn !== "noSix";
+  // Edunex's window is the thing to do, never "optional": no system says whether the lecturer uses it.
+  // Without SIX it's said calmly (nobody can say; it's worth doing just in case).
+  const presenceCounts = countedIn !== "noSix";
 
   const linkOf = (m: Meeting) => (m.end > now ? (m.announced?.link ?? null) : null);
   const placeOf = (m: Meeting) => [
@@ -452,7 +489,8 @@ function MeetingNow({ page }: { page: CoursePage }) {
       ""
     ),
   ];
-  const notInSixOf = (m: Meeting) => (m.notInSix ? <span className="text-warning-fg">{t("meeting.notInSix")}</span> : "");
+  // Read from the lecturer's text, not SIX: a few words, and why a tooltip away, as on Beranda.
+  const notInSixOf = (m: Meeting) => (m.notInSix ? <Explained key="notInSix" text={t("meeting.notInSix")} why={t("meeting.notInSixWhy")} /> : "");
 
   // Windows still open from earlier classes, each with its own class and close, under the card.
   const lines: ReactNode[] = windows
@@ -477,7 +515,9 @@ function MeetingNow({ page }: { page: CoursePage }) {
             <span className="tabular-nums">
               {f.relativeDay(of?.start ?? p.start)}, {f.timeRange(of?.start ?? p.start, of?.end ?? p.end)}
             </span>
-            <span className="tabular-nums">{closesLabel(t, f, p.closesAt, now)}</span>
+            <span className="tabular-nums" title={closesLabel(t, f, p.closesAt, now)}>
+              {t("course.closesOn", { time: f.dayTime(p.closesAt) })}
+            </span>
           </Meta>
         </NowLine>
       );
@@ -536,9 +576,11 @@ function MeetingNow({ page }: { page: CoursePage }) {
       time={{ start: f.time(start), end: f.time(end) }}
       eyebrow={
         current ? (
-          <span className="inline-flex items-center gap-2 text-success-fg">
-            {live && <LiveDot />}
-            <Meta>{t("course.nowUntil", { time: f.time(end) })}</Meta>
+          // Green only while the app is reading Edunex: offline, the dot goes grey and the words with it.
+          <span className={cx("inline-flex items-center gap-2", live ? "text-success-fg" : "text-muted")}>
+            {live ? <LiveDot /> : <span aria-hidden className="size-2 shrink-0 rounded-full bg-faint" />}
+            {/* The end is in the time column beside it. */}
+            <Meta>{t("course.nowLive")}</Meta>
           </span>
         ) : upcoming ? (
           <Meta className="text-muted">
@@ -558,38 +600,45 @@ function MeetingNow({ page }: { page: CoursePage }) {
       meta={facts.some(Boolean) ? <Meta>{facts}</Meta> : undefined}
       note={!presence && meeting?.presence?.note ? <p className="mt-1 truncate text-small text-muted">{meeting.presence.note}</p> : undefined}
       action={
-        link || (presence && url) ? (
-          <>
-            {link && (
-              <Button variant={presence ? "secondary" : "primary"} icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
-                {t("course.join")}
-              </Button>
-            )}
-            {presence && url && (
-              <Button variant={presenceCounts ? "primary" : "secondary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(url)}>
-                {t("course.recordInEdunex")}
-              </Button>
-            )}
-          </>
+        link ? (
+          <Button variant={presence ? "secondary" : "primary"} icon={<Icons.Video className="size-3.5" />} onClick={() => open(link)}>
+            {t("course.join")}
+          </Button>
         ) : undefined
       }
     >
       {presence && (
-        <NowZone>
-          {/* With no room for the countdown beside the words, it goes under them. */}
-          <div className="flex max-w-[560px] flex-wrap items-center gap-x-3 gap-y-1 text-small">
-            {/* Said here unless the line above already says it. */}
-            {(current || upcoming) && <span className="shrink-0 font-semibold">{t("course.presenceOpen")}</span>}
-            {/* The same shrinking countdown as on Presensi and Beranda. */}
-            <CountdownBar
-              className="min-w-16 flex-1 basis-64"
-              opensAt={presence.opensAt}
-              closesAt={presence.closesAt}
-              now={now}
-              label={closesLabel(t, f, presence.closesAt, now)}
-            />
+        <NowZone className="py-3">
+          {/* One step, as on Beranda: what to do and when it closes, the bar running down to it, its own button at the end.
+              The words keep 15rem beside the button; with less, the button goes under them. */}
+          <div className="group/row flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1.5">
+            <div className="flex min-w-0 flex-1 basis-60 items-center gap-2">
+              <SourceLogo source="edunex" className="size-4 shrink-0" />
+              <Meta className="text-body">
+                <span className="font-semibold">{t("course.fillPresence")}</span>
+                <span className="text-muted tabular-nums">{t("course.closesOn", { time: f.dayTime(presence.closesAt) })}</span>
+              </Meta>
+              {/* The same shrinking countdown as on Presensi and Beranda; how long is left is its name and hover text. */}
+              <span className="flex w-20 shrink-0" title={closesLabel(t, f, presence.closesAt, now)}>
+                <CountdownBar
+                  className="flex-1"
+                  opensAt={presence.opensAt}
+                  closesAt={presence.closesAt}
+                  now={now}
+                  label={closesLabel(t, f, presence.closesAt, now)}
+                  showLabel={false}
+                />
+              </span>
+              {!presenceCounts && <WhyButton why={t("course.presenceNoSix")} />}
+            </div>
+            {url && (
+              <div className="flex shrink-0 items-center">
+                <Button variant={presenceCounts ? "primary" : "secondary"} icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(url)}>
+                  {t("course.recordInEdunex")}
+                </Button>
+              </div>
+            )}
           </div>
-          {!presenceCounts && <p className="mt-1.5 text-small text-muted">{t(countedIn === "noSix" ? "course.presenceNoSix" : "course.presenceCountsSix")}</p>}
         </NowZone>
       )}
     </NowCard>

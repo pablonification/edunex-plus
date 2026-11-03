@@ -14,8 +14,8 @@
 // courses in view.
 import * as Tabs from "@radix-ui/react-tabs";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { nearestLetter } from "../../../core/honors";
-import type { HideReason, LetterGrade, PlannedCourse, StudyPlan } from "../../../core/models";
+import { letterForAverage, nearestLetter } from "../../../core/honors";
+import { GRADE_POINTS, type HideReason, type LetterGrade, type PlannedCourse, type StudyPlan } from "../../../core/models";
 import {
   activeMinor,
   activeSpecialization,
@@ -35,6 +35,7 @@ import {
   hasWhatIfs,
   hideReasons,
   hideRule,
+  honorsOutlook,
   isHidden,
   leaveOut,
   livePlan,
@@ -84,8 +85,9 @@ import { type PlanState, useCurriculumFix, usePlan, useStudentRecord } from "../
 import { Button, IconButton } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Card, Tag } from "../../ui/display";
+import { Explained, STATUS_TONE, WhyButton } from "../../ui/explain";
 import { Icons } from "../../ui/icons";
-import { breakAfterSlashes, Meta } from "../../ui/layout";
+import { breakAfterSlashes, factsLabel, Meta } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
 import { stillMotion } from "../../ui/motion/animate";
 import { AnimatedNumber } from "../../ui/motion/animated-number";
@@ -238,7 +240,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
           {record.term && (
             <TermBlock
               title={nowLabel}
-              subtitle={whatIf ? t("planner.nowWhatIf") : t("planner.nowSub")}
+              subtitle={whatIf ? t("planner.nowWhatIf") : undefined}
               whatIf={whatIf}
               sks={record.thisTerm.reduce((sum, c) => sum + c.sks, 0)}
               limit={whatIf ? (termKind(record.term) === "short" ? SHORT_SKS : MAX_SKS) : null}
@@ -303,7 +305,6 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
               <TermBlock
                 key={term.term}
                 title={label}
-                subtitle={t("planner.plannedSub")}
                 sks={term.courses.reduce((sum, c) => sum + c.sks, 0)}
                 limit={termKind(term.term) === "short" ? 9 : 24}
                 step={stepOf.get(term.term)}
@@ -353,13 +354,15 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
               <Icons.RefreshCw className="size-3.5" />
               {t("planner.reset")}
             </Button>
+            {/* Where the plan lives, a hover or focus away: a lock says it without a sentence under every plan. */}
+            <Tooltip content={t("planner.local")}>
+              <IconButton label={t("planner.local")} size="sm" className="text-faint">
+                <Icons.Lock className="size-3.5" />
+              </IconButton>
+            </Tooltip>
           </div>
-          <p className="flex items-center gap-1.5 text-caption text-faint">
-            <Icons.Lock className="size-3" />
-            {t("planner.local")}
-          </p>
         </div>
-        <aside className="space-y-4">
+        <aside className="space-y-8">
           <Rules record={record} rules={rules} plan={plan} undoable={undoable} />
           <Outlook record={record} state={state} />
           <Minors record={record} state={state} undoable={undoable} />
@@ -427,11 +430,11 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
   const warnings = rules.filter((r) => r.level === "warn" && !isHidden(r, plan)).length;
   const word = predicate(predicateFor(projection.finalIpk, projection.path));
   return (
-    <Card variant="raised" className="px-6 py-5">
+    // The plan's headline, on the page with no box: the semesters below are the cards.
+    <div>
       <div className="flex flex-wrap items-start justify-between gap-x-10 gap-y-4">
         <div className="min-w-0">
-          {record.program && <p className="text-small font-medium text-muted">{t("planner.program", { name: record.program.name })}</p>}
-          <p className="mt-1 flex flex-wrap items-baseline gap-x-2 text-figure font-semibold tracking-[-0.02em]">
+          <p className="flex flex-wrap items-baseline gap-x-2 text-figure font-semibold tracking-[-0.02em]">
             {sks.short ? t("planner.sksShort", { total: sks.total, need: sks.need }) : t("planner.sksDone", { need: sks.need })}
             <span className={cx("text-body font-semibold tracking-normal", sks.short ? "text-danger-fg" : "text-success-fg")}>
               {sks.short ? t("planner.sksShortBy", { short: sks.short }) : sks.extra ? t("planner.sksSpare", { extra: sks.extra }) : null}
@@ -454,7 +457,8 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
             ) : (
               <>
                 <dd className="text-title font-semibold">{finish ? t("planner.semester", { n: finish.semester }) : "-"}</dd>
-                <dd className={cx("text-caption font-medium", warnings ? "text-warning-fg" : "text-muted")} role="status">
+                {/* A count of things to look at, not an alarm: the rule itself carries the mark. */}
+                <dd className="text-caption text-muted" role="status">
                   {warnings
                     ? t("planner.toCheck", { count: warnings })
                     : finish && finish.semester > finish.normal
@@ -474,11 +478,14 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
         </dl>
       </div>
       <SksBar sks={sks} />
-    </Card>
+    </div>
   );
 }
 
-/** Passed, this semester and planned against what graduating needs, with its legend. */
+/**
+ * Passed, this semester and planned against what graduating needs. Each part's count is said once, where it's
+ * acted on (the semesters below), so the bar's own legend is its hover text and accessible name, not a line to read.
+ */
 function SksBar({ sks }: { sks: SksModel }) {
   const t = useT();
   const scale = Math.max(sks.need, sks.total);
@@ -490,35 +497,29 @@ function SksBar({ sks }: { sks: SksModel }) {
     // Only once the Student said their program will add a required course.
     ...(sks.byProgram ? [{ n: sks.byProgram, label: t("planner.legend.byProgram", { n: sks.byProgram }), color: "bg-info-fg/25" }] : []),
   ];
+  const legend = factsLabel(...parts.map((part) => part.label));
   return (
-    <div className="mt-4">
+    <Tooltip content={legend}>
       <div
         role="progressbar"
         aria-label={t("planner.progress")}
         aria-valuemin={0}
         aria-valuemax={sks.need}
         aria-valuenow={Math.min(sks.total, sks.need)}
+        aria-valuetext={legend}
         // The meters' own track and green, so what has passed reads 3:1 on it in both themes.
-        className="relative flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-meter-track"
+        className="relative mt-4 flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-meter-track"
       >
         {parts.map((part) => (
           <span
             key={part.label}
-            className={cx("h-full first:rounded-l-full last:rounded-r-full motion-safe:transition-[width] motion-safe:duration-500", part.color)}
+            className={cx("h-full first:rounded-l-full last:rounded-r-full motion-safe:transition-[width] motion-safe:duration-slow", part.color)}
             style={{ width: share(part.n) }}
           />
         ))}
         {sks.total > sks.need && <span aria-hidden className="absolute inset-y-0 w-[2px] bg-fg" style={{ left: share(sks.need) }} />}
       </div>
-      <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted tabular-nums">
-        {parts.map((part) => (
-          <li key={part.label} className="inline-flex items-center gap-1.5">
-            <span aria-hidden className={cx("size-2 rounded-full", part.color)} />
-            {part.label}
-          </li>
-        ))}
-      </ul>
-    </div>
+    </Tooltip>
   );
 }
 
@@ -541,7 +542,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
         {...disclosureTrigger(open, id)}
         className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover focus-visible:-outline-offset-2"
       >
-        <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
+        <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-quick", open && "rotate-90")} />
         <Meta className="flex-1 text-body font-semibold">
           {t("planner.past", { n: last })}
           <span className="font-normal text-muted">{t("planner.pastMeta", { sks: passedSks(record) ?? "-", ipk: ipk === null ? "-" : f.number(ipk, 2) })}</span>
@@ -579,7 +580,8 @@ function TermBlock({
   children,
 }: {
   title: string;
-  subtitle: string;
+  /** Only what the Student must know about this semester (its what-ifs are only in the plan): none most of the time. */
+  subtitle?: string;
   /** The semester holds what-ifs: the subtitle says they're only in the plan. */
   whatIf?: boolean;
   sks: number;
@@ -602,13 +604,11 @@ function TermBlock({
         <header className="flex items-center gap-3 border-b border-line px-4 py-2.5">
           <span className="min-w-0 flex-1">
             <h3 className="text-body font-semibold">{title}</h3>
-            {whatIf ? (
+            {whatIf && subtitle && (
               <span className="flex items-center gap-1 text-caption font-medium text-info-fg" role="status">
                 <Icons.Info className="size-3 shrink-0" weight="bold" />
                 <Meta>{subtitle}</Meta>
               </span>
-            ) : (
-              <span className="block text-caption text-faint">{subtitle}</span>
             )}
           </span>
           <span className={cx("text-small font-semibold tabular-nums", over ? "text-danger-fg" : "text-muted")}>
@@ -617,7 +617,12 @@ function TermBlock({
           </span>
           {step && (
             <span className="border-l border-line pl-3 text-right leading-tight">
-              <span className="block text-small font-semibold tabular-nums">IP {step.ip === null ? "-" : f.number(step.ip, 2)}</span>
+              {/* That the IP comes from the grades the Student expects is said once, a hover or focus away. */}
+              <Explained
+                text={`IP ${step.ip === null ? "-" : f.number(step.ip, 2)}`}
+                why={t("planner.ipWhy")}
+                className="text-small font-semibold tabular-nums"
+              />
               <span className="block text-caption text-faint tabular-nums">
                 {t("planner.ipkAfter", { ipk: step.ipk === null ? "-" : f.number(step.ipk, 2) })}
               </span>
@@ -665,7 +670,12 @@ function RoleTag({ record, code, minor, spec }: { record: StudentRecord; code: s
   // An empty cell keeps the row's columns.
   if (courseRole(record, code, minor, spec) !== "required") return <span />;
   const semester = record.required.get(code)?.semester ?? record.requiredLeft.find((c) => c.code === code)?.semester;
-  return <Tag tone="info">{t("planner.role.required", { n: semester ?? "-" })}</Tag>;
+  // Plain words, no pill: "Wajib" is a fact about the course, not a status. Its curriculum semester is on Kurikulum, and here on hover.
+  return (
+    <span className="text-small whitespace-nowrap text-muted" title={t("planner.role.required", { n: semester ?? "-" })}>
+      {t("planner.role.requiredShort")}
+    </span>
+  );
 }
 
 const ruleAnchor = (rule: Rule) => `rule-${rule.id}${"code" in rule ? `-${rule.code}` : ""}${"term" in rule ? `-${rule.term}` : ""}`;
@@ -749,7 +759,7 @@ function CourseLine({
           <button
             type="button"
             onClick={() => goToRule(flag)}
-            className="focus-ring mt-0.5 inline-flex items-center gap-1 rounded text-caption font-medium text-warning-fg hover:underline"
+            className="focus-ring mt-0.5 inline-flex items-center gap-1 rounded-tag text-caption font-medium text-warning-fg hover:underline"
           >
             <Icons.AlertTriangle className="size-3" weight="bold" />
             {flag.id === "parity"
@@ -764,7 +774,7 @@ function CourseLine({
       </span>
       {posted ? (
         <span
-          className="inline-flex h-7 items-center justify-center rounded-md bg-neutral-bg text-small font-bold text-neutral-fg"
+          className="inline-flex h-7 items-center justify-center rounded-item bg-neutral-bg text-small font-bold text-neutral-fg"
           title={t("grades.sixGrade")}
         >
           {grade}
@@ -821,84 +831,83 @@ const LEVEL_MARK: Record<RuleLevel, { tone: string; label: "planner.ruleOk" | "p
   error: { tone: "bg-danger-bg text-danger-fg", label: "planner.ruleError" },
 };
 
-function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; detail: string } {
+/**
+ * A rule in a few words: its title, a short line only where the Student has something to check or do (`detail`),
+ * and the full sentence behind it (`why`), a hover or focus away. A rule that's met is its check and its title.
+ */
+function useRuleText(record: StudentRecord): (rule: Rule) => { title: string; detail: string; why: string } {
   const t = useT();
   const termLabel = useTermLabel();
   const shortfall = useShortfallText();
   const list = (items: { code: string; name: string }[]) => items.map((c) => `${c.code} ${c.name}`).join(", ");
+  const join = (...parts: (string | null | false)[]) => parts.filter(Boolean).join(" ");
   return (rule) => {
     switch (rule.id) {
       case "total": {
+        // Met, the count is the summary's headline: here it's the rule's name, the count a hover away.
+        if (rule.level !== "ok")
+          return { title: t("rule.total", { have: rule.have, need: rule.need }), detail: t("rule.total.short", { short: rule.need - rule.have }), why: "" };
         const extra = rule.have - rule.need;
-        return {
-          title:
-            extra > 0
-              ? t("rule.total.done", { need: rule.need, extra })
-              : extra === 0
-                ? t("rule.total.exact", { need: rule.need })
-                : t("rule.total", { have: rule.have, need: rule.need }),
-          detail: rule.level === "ok" ? t("rule.total.ok") : t("rule.total.short", { short: rule.need - rule.have }),
-        };
+        const count = extra > 0 ? t("rule.total.done", { need: rule.need, extra }) : t("rule.total.exact", { need: rule.need });
+        return { title: t("rule.total.title"), detail: "", why: `${count}. ${t("rule.total.ok")}` };
       }
       case "required": {
-        const detail = rule.missing.length
-          ? t("rule.missing", { list: list(rule.missing) })
-          : rule.total
-            ? t("rule.required.okCount", { count: rule.total })
-            : t("rule.required.ok");
         // Honest about what the Student's own corrections decided.
         const corrected = rule.corrected.length ? t("rule.required.corrected", { list: list(rule.corrected), count: rule.corrected.length }) : null;
         const byProgram = rule.byProgram.length ? t("rule.required.byProgram", { list: list(rule.byProgram) }) : null;
-        return { title: t("rule.required"), detail: [detail, corrected, byProgram].filter(Boolean).join(" ") };
+        if (rule.missing.length) return { title: t("rule.required"), detail: t("rule.missing", { list: list(rule.missing) }), why: join(corrected, byProgram) };
+        const ok = rule.total ? t("rule.required.okCount", { count: rule.total }) : t("rule.required.ok");
+        return { title: t("rule.required"), detail: "", why: join(ok, corrected, byProgram) };
       }
       case "electives": {
         const extra = rule.have - rule.need;
+        if (extra < 0) return { title: t("rule.electives"), detail: t("rule.electives.short", { have: rule.have, need: rule.need, short: -extra }), why: "" };
         return {
           title: t("rule.electives"),
-          detail:
-            extra > 0
-              ? t("rule.electives.done", { need: rule.need, extra })
-              : extra === 0
-                ? t("rule.electives.exact", { need: rule.need })
-                : t("rule.electives.short", { have: rule.have, need: rule.need, short: -extra }),
+          detail: "",
+          why: extra > 0 ? t("rule.electives.done", { need: rule.need, extra }) : t("rule.electives.exact", { need: rule.need }),
         };
       }
       case "specialization":
-        return {
-          title: rule.name,
-          detail: rule.missing.length ? t("rule.missing", { list: list(rule.missing) }) : t("rule.specialization.ok", { count: rule.total }),
-        };
+        return rule.missing.length
+          ? { title: rule.name, detail: t("rule.missing", { list: list(rule.missing) }), why: "" }
+          : { title: rule.name, detail: "", why: t("rule.specialization.ok", { count: rule.total }) };
       case "minor":
-        return { title: t("rule.minor", { name: rule.name }), detail: t("rule.minor.detail", { have: rule.have, need: rule.need }) };
+        return {
+          title: t("rule.minor", { name: rule.name }),
+          detail: rule.level === "ok" ? "" : t("planner.minorSks", { have: rule.have, need: rule.need }),
+          why: t("rule.minor.detail", { have: rule.have, need: rule.need }),
+        };
       case "load":
         return {
           title: termLabel(rule.term, semesterOf(rule.term, record.entryTerm)),
-          detail:
-            rule.level === "error" ? t("rule.load.over", { sks: rule.sks, limit: rule.limit }) : t("rule.load.advisor", { sks: rule.sks, limit: rule.limit }),
+          detail: rule.level === "error" ? t("rule.load.over", { sks: rule.sks, limit: rule.limit }) : t("rule.load.advisorShort"),
+          why: rule.level === "error" ? "" : t("rule.load.advisor", { sks: rule.sks, limit: rule.limit }),
         };
       case "parity": {
         const odd = rule.semester % 2 === 1;
+        const kind = t(odd ? "rule.parity.even" : "rule.parity.odd");
         return {
           title: `${rule.code} ${rule.name}`,
-          detail: t("rule.parity", {
-            semester: rule.semester,
-            parity: t(odd ? "rule.parity.odd" : "rule.parity.even"),
-            kind: t(odd ? "rule.parity.even" : "rule.parity.odd"),
-          }),
+          detail: t("rule.parity.short", { kind }),
+          why: t("rule.parity", { semester: rule.semester, parity: t(odd ? "rule.parity.odd" : "rule.parity.even"), kind }),
         };
       }
       case "early":
-        return { title: `${rule.code} ${rule.name}`, detail: t("rule.early", { semester: rule.semester }) };
+        return { title: `${rule.code} ${rule.name}`, detail: t("planner.flag.early"), why: t("rule.early", { semester: rule.semester }) };
       case "finish":
-        if (rule.blocked) return { title: t("rule.finish.blocked"), detail: t("rule.finish.blockedDetail", { list: shortfall(rule.blocked) }) };
+        if (rule.blocked) return { title: t("rule.finish.blocked"), detail: t("rule.finish.blockedDetail", { list: shortfall(rule.blocked) }), why: "" };
+        // On time, the semester is the summary's: the rule says what it checks.
+        if (rule.level === "ok")
+          return {
+            title: t("rule.finish.onTime"),
+            detail: "",
+            why: `${t("rule.finish", { n: rule.semester })}. ${t("rule.finish.ok", { normal: rule.normal })}`,
+          };
         return {
           title: t("rule.finish", { n: rule.semester }),
-          detail:
-            rule.level === "ok"
-              ? t("rule.finish.ok", { normal: rule.normal })
-              : rule.semester <= 9
-                ? t("rule.finish.late", { normal: rule.normal })
-                : t("rule.finish.tooLate"),
+          detail: t("planner.late", { normal: rule.normal }),
+          why: rule.semester <= 9 ? t("rule.finish.late", { normal: rule.normal }) : t("rule.finish.tooLate"),
         };
     }
   };
@@ -1049,17 +1058,17 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
       ];
     });
   return (
-    <Card className="overflow-hidden">
-      <h3 className="px-4 pt-3.5 text-body font-semibold" tabIndex={-1} data-focus="rules">
+    <section>
+      <h3 className="text-body font-semibold" tabIndex={-1} data-focus="rules">
         {t("planner.rules")}
       </h3>
-      <ul className="space-y-1 px-2 pt-2 pb-3" aria-label={t("planner.rules")}>
+      <ul className="-mx-2 space-y-1 pt-2" aria-label={t("planner.rules")}>
         {/* A warning the Student hides fades out, then the ones below close the gap. */}
         <PresenceList>
           {rules
             .filter((rule) => !isHidden(rule, plan))
             .map((rule) => {
-              const { title, detail } = text(rule);
+              const { title, detail, why } = text(rule);
               const mark = LEVEL_MARK[rule.level];
               const key = ruleKey(rule);
               const settleable = rule.id === "required" ? rule.missing.filter((c): c is { code: string; name: string; slot: string } => c.slot !== null) : [];
@@ -1068,17 +1077,31 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
                   <div
                     id={ruleAnchor(rule)}
                     tabIndex={-1}
-                    className="flex scroll-m-24 items-start gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-500"
+                    className="group/row flex scroll-m-24 items-start gap-2.5 rounded-control px-2 py-1.5 transition-colors duration-slow"
                     data-rule={rule.id}
                     data-level={rule.level}
                   >
-                    <span className={cx("mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full", mark.tone)} title={t(mark.label)}>
+                    {/* The mark says met or not; its word is its name, for a screen reader and on hover. */}
+                    <span
+                      role="img"
+                      aria-label={t(mark.label)}
+                      className={cx("mt-0.5 grid size-[18px] shrink-0 place-items-center rounded-full", mark.tone)}
+                      title={t(mark.label)}
+                    >
                       {rule.level === "ok" ? <Icons.Check className="size-3" weight="bold" /> : <span className="text-micro font-bold">!</span>}
-                      <span className="sr-only">{t(mark.label)}</span>
                     </span>
                     <span className="min-w-0 flex-1 text-small">
-                      <span className="block font-semibold">{title}</span>
-                      <span className="text-muted">{detail}</span>
+                      <span className="flex items-start gap-1">
+                        <span className="min-w-0 flex-1 pt-px font-semibold">{title}</span>
+                        {why && (
+                          <span className="-my-1 shrink-0">
+                            <WhyButton why={why} />
+                          </span>
+                        )}
+                      </span>
+                      {detail && (
+                        <span className={rule.level === "ok" ? "text-muted" : STATUS_TONE[rule.level === "error" ? "danger" : "warning"]}>{detail}</span>
+                      )}
                       {/* Under the words, so a narrow column keeps the warning readable. */}
                       {key && (
                         <span className="-ml-2.5 block" data-focus={`hide-${key}`}>
@@ -1130,13 +1153,13 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
         </PresenceList>
       </ul>
       {hidden.length > 0 && (
-        <div className="border-t border-line px-4 py-2">
+        <div className="mt-2 border-t border-line pt-2">
           <button
             type="button"
             aria-expanded={showHidden}
             data-focus="hidden-toggle"
             onClick={() => setShowHidden(!showHidden)}
-            className="focus-ring -mx-1 rounded px-1 py-0.5 text-caption text-muted hover:text-fg"
+            className="focus-ring -mx-1 rounded-tag px-1 py-0.5 text-caption text-muted hover:text-fg"
           >
             <Meta>
               {t("planner.hidden", { count: hidden.length })}
@@ -1174,31 +1197,58 @@ function Rules({ record, rules, plan, undoable }: { record: StudentRecord; rules
           )}
         </div>
       )}
-    </Card>
+    </section>
   );
 }
 
-/** The one shared target, what the rest needs for it, the IPK path, and the honors ladder. */
+/**
+ * The one shared target, what the rest needs for it, the IPK path, and the honors ladder. The answers stay on
+ * screen in a few words; how to get closer, and ITB's honors rule, are a hover or focus away.
+ */
 function Outlook({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
+  const f = useFormat();
   const { plan, projection } = state;
   const target = targetOf(record, plan);
+  const need = projection.need(target);
+  const honors = honorsOutlook(projection);
+  // Every level out of reach: said once beside the title, not as three rows of "di luar jangkauan".
+  const allOut = honors.every((h) => h.kind === "out");
+  const cum = honors.find((h) => h.level === "cum");
+  const honorsWhy = [allOut && cum ? t("grades.honorsOut", { min: f.number(cum.min, 2) }) : null, t("honors.rule")].filter(Boolean).join(" ");
   return (
-    <Card className="overflow-hidden">
-      <h3 className="px-4 pt-3.5 text-body font-semibold">{t("planner.outlook")}</h3>
-      <div className="space-y-2 px-4 pt-2.5">
+    <section>
+      <h3 className="text-body font-semibold">{t("planner.outlook")}</h3>
+      <div className="space-y-2 pt-2.5">
         <TargetControl record={record} state={state} />
-        <p className="text-small text-muted" role="status">
-          <NeedText need={projection.need(target)} target={target} sks={projection.variableSks} scope="rest" />
+        <p className="group/row flex items-center gap-1 text-small text-muted" role="status">
+          {need.kind === "out" ? (
+            <>
+              <span className="font-medium text-fg">{t("planner.targetOutShort")}</span>
+              <WhyButton why={t("planner.targetOutWhy")} />
+            </>
+          ) : need.kind === "needs" && need.average > GRADE_POINTS.D + 1e-9 ? (
+            <span>{t("planner.targetNeedShort", { avg: f.number(need.average, 2), letter: letterForAverage(need.average), sks: projection.variableSks })}</span>
+          ) : (
+            <span>
+              <NeedText need={need} target={target} sks={projection.variableSks} scope="rest" />
+            </span>
+          )}
         </p>
       </div>
-      <IpkChart steps={projection.steps} target={target} height={148} className="px-3 pt-3" />
-      <div className="mt-3 border-t border-line px-4 py-3">
-        <p className="mb-1.5 text-caption font-medium text-muted">{t("honors.title")}</p>
-        <HonorsList projection={projection} />
+      {/* The IPK at graduation is the summary's: the chart doesn't say it again. */}
+      <IpkChart steps={projection.steps} target={target} height={148} endLabel={false} className="pt-3" />
+      <div className="mt-3 border-t border-line pt-3">
+        <p className="group/row mb-1.5 flex items-center gap-1 text-caption font-medium text-muted">
+          <Meta>
+            {t("honors.title")}
+            {allOut ? <span className="font-normal">{t("honors.out")}</span> : ""}
+          </Meta>
+          <WhyButton why={honorsWhy} />
+        </p>
+        {!allOut && <HonorsList projection={projection} />}
       </div>
-      <p className="border-t border-line px-4 py-2.5 text-small text-faint">{t("honors.rule")}</p>
-    </Card>
+    </section>
   );
 }
 
@@ -1214,9 +1264,9 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
   const shown = [...ranked.filter((m) => pinned(m.key)), ...ranked.filter((m) => !pinned(m.key) && m.have > 0).slice(0, 4)];
   const opened = record.minors.find((m) => m.key === open);
   return (
-    <Card className="overflow-hidden">
-      <h3 className="px-4 pt-3.5 text-body font-semibold">{t("planner.minors")}</h3>
-      <ul className="px-2 pt-2 pb-2">
+    <section>
+      <h3 className="text-body font-semibold">{t("planner.minors")}</h3>
+      <ul className="-mx-2 pt-1.5">
         {shown.map((m) => {
           const on = active === m.key;
           const registered = record.registeredMinor === m.key;
@@ -1227,14 +1277,12 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
                 type="button"
                 aria-haspopup="dialog"
                 onClick={() => setOpen(m.key)}
-                className="focus-ring group flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-hover"
+                className="focus-ring group flex w-full items-center gap-3 rounded-control px-2 py-2 text-left hover:bg-hover"
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-small font-semibold" title={m.name}>
+                  {/* Its program is in the minor's own dialog, and here on hover. */}
+                  <span className="block truncate text-small font-semibold" title={factsLabel(m.name, m.program)}>
                     {m.name}
-                  </span>
-                  <span className="block truncate text-caption text-muted" title={m.program}>
-                    {m.program}
                   </span>
                 </span>
                 <span className="shrink-0 text-right">
@@ -1250,7 +1298,7 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
                     )
                   )}
                 </span>
-                <Icons.ChevronRight className="size-3.5 shrink-0 text-faint opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100" />
+                <Icons.ChevronRight className="size-3.5 shrink-0 text-faint opacity-0 transition-opacity duration-quick group-hover:opacity-100 group-focus-visible:opacity-100" />
               </button>
             </li>
           );
@@ -1258,7 +1306,7 @@ function Minors({ record, state, undoable }: { record: StudentRecord; state: Pla
         {shown.length === 0 && <li className="px-2 py-1 text-small text-faint">{t("planner.minorNone")}</li>}
       </ul>
       {opened && <MinorPanel record={record} state={state} minor={opened} undoable={undoable} onClose={() => setOpen(null)} />}
-    </Card>
+    </section>
   );
 }
 
@@ -1502,7 +1550,7 @@ function AddCourse({
       <Tabs.Root value={tab} onValueChange={(v) => setTab(v as AddTab)} className="-mx-5 -my-5">
         <div className="border-b border-line px-5 pt-3">
           {/* The box shows the focus ring: the input itself is borderless inside it. */}
-          <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
+          <label className="flex h-9 items-center gap-2 rounded-control bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
             <Icons.Search className="size-4 text-faint" />
             <input
               autoFocus
@@ -1572,7 +1620,7 @@ function AddCourse({
                               aria-label={done ? undefined : t("planner.addCode", { code })}
                               onClick={() => add(code, false)}
                               className={cx(
-                                "focus-ring inline-flex items-center gap-1 rounded-md px-2 py-1 text-caption font-semibold tabular-nums",
+                                "focus-ring inline-flex items-center gap-1 rounded-item px-2 py-1 text-caption font-semibold tabular-nums",
                                 done ? "bg-success-bg text-success-fg" : "border border-edge bg-surface hover:bg-hover",
                               )}
                             >

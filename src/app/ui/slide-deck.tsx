@@ -250,7 +250,7 @@ export function SlideDeck({ deck, onOpenLink }: { deck: Deck; onOpenLink: (url: 
           // biome-ignore lint/suspicious/noArrayIndexKey: a presentation's slides are its positions
           key={index}
           aria-label={t("slides.slide", { number: index + 1, total: deck.slides.length })}
-          className="@container relative w-full overflow-hidden bg-white text-black shadow-card select-text"
+          className="@container relative w-full overflow-hidden bg-white text-black ring-1 ring-black/5 select-text"
           style={{
             aspectRatio: `${deck.width} / ${deck.height}`,
             ...(slide.background && "color" in slide.background ? paint(slide.background.color) : {}),

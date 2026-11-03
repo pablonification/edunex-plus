@@ -95,7 +95,7 @@ export function SettingsDialog({
     >
       <PanelBoundary name={page} compact>
         {licences ? (
-          <Suspense fallback={<Skeleton className="h-64 rounded-xl" />}>
+          <Suspense fallback={<Skeleton className="h-64 rounded-card" />}>
             <Licences />
           </Suspense>
         ) : (
@@ -433,7 +433,7 @@ function CourseColorSettings({ start, onStarted }: { start: boolean; onStarted: 
                   type="button"
                   data-color-trigger
                   aria-label={t("courseColor.current", { code: course.code, color: name })}
-                  className="focus-ring inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg border border-edge bg-surface px-2.5 text-small font-medium whitespace-nowrap transition-colors duration-150 hover:bg-hover"
+                  className="focus-ring inline-flex h-8 shrink-0 items-center gap-1.5 rounded-control border border-edge bg-surface px-2.5 text-small font-medium whitespace-nowrap transition-colors duration-quick hover:bg-hover"
                 >
                   <CourseDot color={course.color} />
                   {name}
@@ -631,7 +631,7 @@ function DeadlineTimes({ chosen, onChange }: { chosen: readonly DeadlineReminder
               aria-pressed={on}
               onClick={() => toggle(hours)}
               className={cx(
-                "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small transition-colors duration-150",
+                "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small transition-colors duration-quick",
                 on ? "border-fg/60 bg-selected font-semibold text-fg" : "border-edge text-muted hover:bg-hover hover:text-fg",
               )}
             >

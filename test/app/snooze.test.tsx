@@ -51,7 +51,7 @@ describe("putting off what needs you on Beranda", () => {
   it("offers moments that fit, hides the row, says when it's back, and Undo brings it back", async () => {
     const s = await open();
     expect(heading()).toBe("Perlu perhatianmu 4");
-    expect(titles()).toContain("UTS Komunikasi PemasaranDK4073 · Kam, 15 Okt, 11:00–12:59 · TVST CTake-home tenggat Kam 22 Oktdalam 3 hari");
+    expect(titles()).toContain("UTS Komunikasi PemasaranKam, 15 Okt · 11:00 · TVST Cdalam 3 hari");
 
     await s.click("Ingatkan nanti: UTS Komunikasi Pemasaran");
     expect(menuItems()).toEqual([
@@ -192,12 +192,12 @@ describe("putting off what needs you on Beranda", () => {
   });
 
   it("two Presence windows of one course are named with their own class, so they can be told apart, put off too", async () => {
-    // Thursday 15 October after class: last Thursday's PL3002 window is still open, and so is today's.
-    const world = new PretendWorld({ now: "2026-10-15T10:30:00+07:00" });
+    // Thursday 15 October, in DK4073's UTS: last Thursday's PL3002 window is still open, and so is today's.
+    const world = new PretendWorld({ now: "2026-10-15T11:30:00+07:00" });
     world.edunex.keepPresenceOpen(2194342, "2026-10-16T23:00:00+07:00");
     world.edunex.keepPresenceOpen(2194343, "2026-10-15T23:59:00+07:00");
     const s = await open({ world });
-    const title = "Presensi PL3002 dibuka, tidak wajib";
+    const title = "Isi Presensi PL3002";
     const names = [...document.querySelectorAll(`[aria-label^="Ingatkan nanti: ${title}"]`)].map((el) => el.getAttribute("aria-label")!);
     expect(names).toEqual([`Ingatkan nanti: ${title} · Hari ini, 08:00–09:30`, `Ingatkan nanti: ${title} · Kam, 8 Okt, 08:00–10:00`]);
 
@@ -205,8 +205,8 @@ describe("putting off what needs you on Beranda", () => {
     await s.click("Tampilkan");
     const rows = [...document.querySelectorAll('ul[aria-label="Yang ditunda"] li')].map((li) => li.textContent ?? "");
     expect(rows).toEqual([
-      `${title}Hari ini, 08:00–09:30 · Kembali Hari ini, 13:30Ingatkan sekarang`,
-      `${title}Kam, 8 Okt, 08:00–10:00 · Kembali Hari ini, 13:30Ingatkan sekarang`,
+      `${title}Hari ini, 08:00–09:30 · Kembali Hari ini, 14:30Ingatkan sekarang`,
+      `${title}Kam, 8 Okt, 08:00–10:00 · Kembali Hari ini, 14:30Ingatkan sekarang`,
     ]);
     expect(s.has(`Ingatkan sekarang: ${title} · Kam, 8 Okt, 08:00–10:00`)).toBe(true);
   });
@@ -354,7 +354,7 @@ describe("the course page's attendance banner", () => {
     expect(banner()).toContain("Tak bisa lagi capai 80%");
     // The banner says what to do; the header's bar and words say how far, without the banner's words.
     expect(header()).not.toContain("Tak bisa lagi capai 80%");
-    expect(header()).toMatch(/Terpakai 4× · lewat batas \d×/);
+    expect(header()).toMatch(/lewat batas \d×/);
     expect(s.button(/^Ingatkan nanti: KU5014: /).textContent).toBe("Ingatkan nanti");
 
     await snooze("KU5014: Tak bisa lagi capai 80%", "Sebelum kuliah berikutnya");
@@ -365,7 +365,7 @@ describe("the course page's attendance banner", () => {
     expect(document.activeElement).not.toBe(document.body);
     expect(document.querySelector("main")?.contains(document.activeElement)).toBe(true);
     // The header still says where attendance stands, in words, not by its color alone.
-    expect(header()).toMatch(/Terpakai 4× · lewat batas \d×/);
+    expect(header()).toMatch(/lewat batas \d×/);
 
     await s.click([...document.querySelectorAll<HTMLButtonElement>("aside nav button")].find((b) => b.textContent?.startsWith("Beranda"))!);
     expect(titles().some((t) => t.startsWith("KU5014"))).toBe(false);

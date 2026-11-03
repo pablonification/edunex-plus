@@ -77,6 +77,12 @@ export interface Engine {
   signOut(source?: SourceId): Promise<void>;
   /** Reads again now ("Perbarui sekarang", waking from sleep): every feed but the background ones (FeedSpec.background). */
   refresh(source?: SourceId): Promise<void>;
+  /**
+   * The Student is back from SIX or Edunex, where they may have done their attendance (pressed Tandai
+   * Hadir, recorded a Presence, handed in a Task): reads what shows it again now, not at the next sync
+   * (SIX's count hourly, Edunex's Presence every half hour). At most once a minute per source.
+   */
+  recheckAttendance(source: "six" | "edunex"): Promise<void>;
   /** Runs a write the Student asked for (save a draft, submit) with the source's current session. */
   act(source: SourceId, action: string, input: unknown): Promise<unknown>;
   /** Keeps something the Student entered (course weights, a study plan) on this computer: a "local.*" dataset. */
@@ -151,6 +157,14 @@ const FeedHistories = z.record(z.string().max(60), z.object({ fills: z.array(z.s
 /** Where each source keeps the rows its reads left out. */
 const SKIPPED: Partial<Record<SourceId, "six.skipped">> = { six: "six.skipped" };
 
+/** What says a source's attendance: read again when the Student is back from doing it there (recheckAttendance). */
+const ATTENDANCE_FEEDS: Readonly<Record<"six" | "edunex", readonly string[]>> = {
+  six: ["six.checkIn", "six.status"],
+  edunex: ["edunex.presence", "edunex.tasks"],
+};
+/** Coming back more often than this reads nothing more: a Student flicking between windows isn't many trips. */
+const RECHECK_GAP = 60_000;
+
 export function createEngine(deps: EngineDeps): Engine {
   const { clock, storage, vault } = deps;
   const log = deps.log ?? new AppLog(() => clock.now());
@@ -203,6 +217,8 @@ export function createEngine(deps: EngineDeps): Engine {
   const answered = new Map<SourceId, number>();
   /** Feeds a manual refresh leaves to their own schedule (FeedSpec.background). */
   const background = new Set<string>();
+  /** When each source's attendance was last read again for the Student coming back (recheckAttendance). */
+  const rechecked = new Map<SourceId, number>();
   /** Feeds whose page changing is said on their screens, not as the whole source's (FeedSpec.shows): what each fills. */
   const pages = new Map<string, readonly DatasetName[]>();
   /** Feeds whose page has a part that can change alone (FeedSpec.part): what that part fills. */
@@ -632,10 +648,19 @@ export function createEngine(deps: EngineDeps): Engine {
           settings.firstScanDone ||
           settings.guideDone !== false ||
           Object.keys(settings.attendanceTargets).length > 0 ||
+          settings.budgetExplained ||
           reportSendingOf(settings) !== "ask" ||
           settings.reportAsked
         ) {
-          settings = { ...settings, firstScanDone: false, guideDone: false, attendanceTargets: {}, reportSending: "ask", reportAsked: false };
+          settings = {
+            ...settings,
+            firstScanDone: false,
+            guideDone: false,
+            attendanceTargets: {},
+            budgetExplained: false,
+            reportSending: "ask",
+            reportAsked: false,
+          };
           await saveState();
           deps.emit({ type: "settings", settings });
         }
@@ -656,6 +681,14 @@ export function createEngine(deps: EngineDeps): Engine {
 
     async refresh(source) {
       await scheduler.runNow((name) => (!source || sourceOf(name) === source) && !background.has(name));
+    },
+
+    async recheckAttendance(source) {
+      const now = clock.now();
+      if (now - (rechecked.get(source) ?? Number.NEGATIVE_INFINITY) < RECHECK_GAP) return;
+      rechecked.set(source, now);
+      log.add("info", source, "back from it: attendance read again");
+      await scheduler.runNow((name) => ATTENDANCE_FEEDS[source].includes(name));
     },
 
     async act(id, name, input) {

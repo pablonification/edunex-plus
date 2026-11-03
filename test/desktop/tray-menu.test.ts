@@ -133,10 +133,13 @@ describe("the class", () => {
   it("on now: its code and name, the time and room under it, opening the course's meetings", async () => {
     const h = await startHome();
     const menu = menuOf(h);
-    expect(section(menu, "Sedang berlangsung")).toEqual(["PL3002 Ekonomi dan Inovasi dalam… // 08:00–10:00 · R.SG PWK LT.6"]);
+    expect(section(menu, "Sedang berlangsung")).toEqual([
+      "PL3002 Ekonomi dan Inovasi dalam… // 08:00–10:00 · R.SG PWK LT.6",
+      "Isi Presensi PL3002 // Tutup 09:30",
+    ]);
     expect(line(menu, /^PL3002/).action).toEqual({ kind: "route", route: { screen: "course", code: "PL3002", tab: "meetings" } });
-    // SIX counts PL3002: Edunex's window is optional, so the menu doesn't ask for it.
-    expect(read(menu).some((label) => label.includes("Presensi PL3002"))).toBe(false);
+    // SIX counts PL3002 too, but no system says Edunex's window doesn't: the menu asks for it, opening it on Edunex.
+    expect(line(menu, "Isi Presensi PL3002").action).toEqual({ kind: "url", url: "https://edunex.itb.ac.id/courses/95001" });
   });
 
   it("between classes the next one today, and in the evening tomorrow's, the meeting only Edunex announced included", async () => {
@@ -173,6 +176,7 @@ describe("the class", () => {
     expect(section(menu, "Sedang berlangsung")).toEqual([
       "PL3002 Ekonomi dan Inovasi dalam… // 08:00–10:00 · R.SG PWK LT.6",
       "Tekan Tandai Hadir di SIX // PL3002",
+      "Isi Presensi PL3002 // Tutup 09:30",
     ]);
     expect(line(menu, "Tekan Tandai Hadir di SIX").action).toEqual({ kind: "checkIn", meetingId: "2194342" });
     // Pressed, or closed: the line goes once SIX stops showing it.
@@ -347,6 +351,7 @@ describe("the actions", () => {
     expect(read(menu)).toEqual([
       "[On now]",
       "PL3002 Ekonomi dan Inovasi dalam… // 08:00–10:00 · R.SG PWK LT.6",
+      "Fill in PL3002 Presence // Closes 09:30",
       "---",
       "[Needs you]",
       "Ringkasan K5 // PL3032 · Due Today, 23:59",
