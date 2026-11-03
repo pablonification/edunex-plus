@@ -1,5 +1,5 @@
 # W13 (round 2): the schedule is part of the app, not an export bolted on. Jadwal opens on today's classes (no tap),
-# its ⋮ holds "Ingatkan sebelum kuliah" (15 minutes before) and "Tampilkan di Kalender HP" (a calendar of the app's
+# its ⋮ holds "Pengingat kuliah" (15 minutes before) and "Kalender HP" (a calendar of the app's
 # own, kept current), the month is a screen a tap away that Back leaves, and the "Hari ini" widget's tap on a class
 # (its link, edunexplusdemo://schedule?class=<SIX's id>) opens that class's sheet. Round 1 (9395cea): the week's
 # segment, a one-off "Tambahkan ke kalender HP" at the page's end, no reminder setting here, no widget link.
@@ -23,7 +23,7 @@ name: "w13 the schedule is part of the app"
 # The reminder before class, where the schedule is.
 - tapOn:
     id: action.scheduleMenu
-- assertVisible: "Ingatkan sebelum kuliah"
+- assertVisible: "Pengingat kuliah"
 - assertVisible: "15 menit sebelumnya"
 - tapOn:
     id: action.remindBeforeClass

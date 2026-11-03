@@ -1,4 +1,4 @@
-// What "Tampilkan di Kalender HP" keeps in the phone's "Edunex Plus" calendar (./calendar-sync.tsx), worked out without
+// What Jadwal's ⋮ "Kalender HP" keeps in the phone's "Edunex Plus" calendar (./calendar-sync.tsx), worked out without
 // touching the phone (test/mobile/calendar-plan.test.ts): the term's classes, exams, deadlines and ITB's days from a
 // week ago (a class moved last week is right there too) to the term's end, and a fingerprint of them that changes only
 // when an event does, so the calendar is written again exactly when Jadwal changed.

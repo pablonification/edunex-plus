@@ -1,4 +1,4 @@
-// "Tampilkan di Kalender HP" (mobile/src/screens/schedule/calendar-plan.ts): what the phone's Edunex Plus calendar
+// Jadwal's ⋮ "Kalender HP" (mobile/src/screens/schedule/calendar-plan.ts): what the phone's Edunex Plus calendar
 // holds, over which days, and when it's written again, from the real engine against the pretend Edunex and SIX on the
 // recorded Thursday (8 October 2026).
 import { describe, expect, it } from "vitest";
