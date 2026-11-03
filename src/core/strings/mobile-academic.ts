@@ -30,12 +30,12 @@ export const mobileAcademicStrings = {
   "mobile.academic.todo.krs": { id: "Kirim KRS", en: "Send your KRS" },
   "mobile.academic.todo.bills": { id: "Bayar UKT", en: "Pay UKT" },
   "mobile.academic.todo.deadlines": { id: "Isi kuesioner", en: "Fill in the questionnaire" },
-  // Each screen's row: one line that answers its question.
-  "mobile.academic.meta.grades": { id: "IPK {ipk} · IP terakhir {ip}", en: "IPK {ipk} · last IP {ip}" },
-  "mobile.academic.meta.gradesIpk": { id: "IPK {ipk}", en: "IPK {ipk}" },
+  // Each screen's row: one line that answers its question, never the card's IPK or SKS again.
+  "mobile.academic.meta.grades": { id: "IP terakhir {ip}", en: "Last IP {ip}" },
   "mobile.academic.meta.plannerSemester": { id: "Lulus di semester {n}", en: "Graduating in semester {n}" },
   "mobile.academic.meta.plannerShort": { id: "Rencanamu belum cukup untuk lulus", en: "Your plan isn't enough to graduate yet" },
-  "mobile.academic.meta.curriculum": { id: "{passed} dari {need} SKS lulus", en: "{passed} of {need} SKS passed" },
+  "mobile.academic.meta.curriculum": { id: "{left} SKS lagi untuk lulus", en: "{left} SKS left to graduate" },
+  "mobile.academic.meta.curriculumDone": { id: "SKS untuk lulus terpenuhi", en: "Enough SKS to graduate" },
   // A row's one status, as a pill: KRS's clashes still to come, the date this term's UKT is due by.
   "mobile.academic.pill.clash": {
     id: "{count} bentrok",

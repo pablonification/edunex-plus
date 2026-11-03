@@ -287,15 +287,12 @@ function GradesRow({ record }: { record: StudentRecord | undefined }) {
   const t = useT();
   const f = useFormat();
   const missing = useMissingMeta();
+  // The card over it says the IPK: the row says what the card doesn't, the last term's IP.
   const text = useMemo(() => {
     if (!record?.transcript) return null;
-    const ipk = shownIndex(record.transcript.ipk);
-    if (ipk === null) return null;
     const last = record.transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null).at(-1);
     const ip = last ? shownIndex(last.ip) : null;
-    return ip === null
-      ? t("mobile.academic.meta.gradesIpk", { ipk: f.number(ipk, 2) })
-      : t("mobile.academic.meta.grades", { ipk: f.number(ipk, 2), ip: f.number(ip, 2) });
+    return ip === null ? null : t("mobile.academic.meta.grades", { ip: f.number(ip, 2) });
   }, [record, t, f]);
   return (
     <ScreenRow icon={Icons.ClipboardCheck} title={t("nav.grades")} meta={record?.transcript ? text : missing} route="grades" first testID="row.nav.grades" />
@@ -353,7 +350,15 @@ function PartRow({
 function CurriculumRow({ record }: { record: StudentRecord | undefined }) {
   const t = useT();
   const missing = useMissingMeta();
-  const meta = record ? t("mobile.academic.meta.curriculum", { passed: passedSks(record) ?? "-", need: record.graduationSks }) : missing;
+  // The card over it says the SKS passed of those needed: the row says what's left of them.
+  const passed = record ? passedSks(record) : null;
+  const meta = !record
+    ? missing
+    : passed === null
+      ? null
+      : passed >= record.graduationSks
+        ? t("mobile.academic.meta.curriculumDone")
+        : t("mobile.academic.meta.curriculum", { left: record.graduationSks - passed });
   return <PartRow part="curriculum" title={t("plan.tab.curriculum")} meta={meta} />;
 }
 
