@@ -1084,6 +1084,21 @@ describe("bills", () => {
     expect(read.skipped).toEqual([]);
   });
 
+  it("a bill with how it's worked out under its amount (multiplier, SKS, …) reads the amount alone, as before", () => {
+    const page = sixPage(BILLS);
+    // As a Student's report showed: a small table in the bill's cell, after the amount.
+    const breakdown = page.replace(
+      /(Tahun 2026 \/ 2027\s*<\/th><\/tr><tr><td><strong>[^<]*<\/strong><\/td><td class="text-right">\s*5\.400\.000\s*)/,
+      `$1<table class="table table-condensed table-striped"><tr><th>Pengali</th><td>100%</td></tr><tr><th>Mata Kuliah</th><td>24 SKS</td></tr><tr><th>Matakuliah Kategori TA Untuk BPP 50%</th><td><span class="text-danger"><i class="fa fa-fw fa-times"></i></span></td></tr><tr><th><a href="/app/mahasiswa:18223901/statusmhs/transkrip/kurikulum/2021000001">
+                        Tidak ada sisa beban SKS?
+                    </a></th><td><span class="text-danger"><i class="fa fa-fw fa-times"></i></span></td></tr></table>`,
+    );
+    expect(breakdown).not.toBe(page);
+    const read = skipping((skipped) => readBills(breakdown, skipped));
+    expect(read.value).toEqual(readBills(page));
+    expect(read.skipped).toEqual([]);
+  });
+
   it("a bill whose term it can't read is left out and kept with what it shows; the other bills read", () => {
     const page = sixPage(BILLS);
     const all = readBills(page);
