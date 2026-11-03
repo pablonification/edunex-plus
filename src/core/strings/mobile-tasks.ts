@@ -7,8 +7,16 @@ export const mobileTasksStrings = {
   // A Task's answer, as two labelled parts: the text box, and the files with it.
   "mobile.tasks.answerText": { id: "Teks jawaban", en: "Answer text" },
   "mobile.tasks.answerFiles": { id: "Berkas jawaban", en: "Answer files" },
-  // Under the empty answer box: Edunex takes no hand-in without text (the desktop's handIn.why.noText, said where it's typed).
+  // In the empty answer box, as its placeholder (gone once there's text, as the line under it was): Edunex takes no
+  // hand-in without text (the desktop's handIn.why.noText, said where it's typed). The full sentence for TalkBack.
+  "mobile.tasks.answerPlaceholder": { id: "Tulis jawabanmu. Wajib, meski ada berkas.", en: "Write your answer. Required, even with a file." },
   "mobile.tasks.answerRequired": { id: "Wajib diisi, meski kamu melampirkan berkas", en: "Required, even when you attach a file" },
+  // The snackbar after Simpan draf: saved, and what a draft is (the desktop's handIn.explainer, which sat under the answer
+  // on every open Task, said when it matters). Starts with "Tersimpan", as the card's own line does.
+  "mobile.tasks.draftSaved": {
+    id: "Tersimpan {when}. Dosen bisa melihatnya, tapi hanya Kumpulkan yang menyerahkannya.",
+    en: "Saved {when}. Your lecturer can see it, but only Submit hands it in.",
+  },
   // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
   "mobile.tasks.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
   // Tugas's big card: what its wave says to a screen reader, how much of a Task's time (from when it opened) has gone.

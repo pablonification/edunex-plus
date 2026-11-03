@@ -233,7 +233,7 @@ export function useHandIn(task: Task, status: TaskStatus) {
         setAttached([]);
         setRemoved([]);
         setJustDone("draft");
-        toast(t("handIn.draftSaved", { when: f.dayTimeWord(clock.now()) }), "success");
+        toast(t("mobile.tasks.draftSaved", { when: f.dayTimeWord(clock.now()) }), "success");
         return;
       case "submitted": {
         setAttached([]);
@@ -385,7 +385,7 @@ export function HandInCard({ h }: { h: HandInState }) {
               value={h.answer.text}
               onChange={h.answer.setText}
               label={t("mobile.tasks.answerText")}
-              placeholder={t("handIn.textPlaceholder")}
+              placeholder={t("mobile.tasks.answerPlaceholder")}
               fieldColors={fieldColors}
               unsaved={h.textChanged}
               onDiscard={h.answer.discard}
@@ -499,19 +499,8 @@ export function HandInCard({ h }: { h: HandInState }) {
 
         {h.notice && <HandInNotice notice={h.notice} task={task} signingIn={signingIn} onSignIn={() => void signIn("edunex")} />}
 
-        {h.editable && (
-          <>
-            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-              <View style={{ paddingTop: 1 }}>
-                <Icons.Lock size={14} color={c.onSurfaceVariant} />
-              </View>
-              <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
-                {t("handIn.explainer")}
-              </Text>
-            </View>
-            <MarkHandedIn task={task} />
-          </>
-        )}
+        {/* What a draft is (handIn.explainer) is said when one is saved (its snackbar) and to TalkBack on Simpan draf. */}
+        {h.editable && <MarkHandedIn task={task} />}
         {h.sent && (
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
             <View style={{ paddingTop: 1 }}>
@@ -584,7 +573,7 @@ function AnswerField({
   fieldColors: ReturnType<typeof useFieldColors>;
   unsaved: boolean;
   onDiscard: () => void;
-  /** Material's supporting text under the box, while there's one to say (it's required, and empty). */
+  /** What TalkBack adds while the box is empty (it's required): the placeholder says it on screen. */
   hint: string | null;
 }) {
   const t = useT();
@@ -622,11 +611,6 @@ function AnswerField({
           },
         ]}
       />
-      {hint && (
-        <Text size="bodySmall" tone="muted" style={{ marginTop: space[1], paddingHorizontal: space[4] }}>
-          {hint}
-        </Text>
-      )}
       {unsaved && (
         <View style={{ marginTop: space[1], flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space[3] }}>
           <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
@@ -744,6 +728,7 @@ export function HandInBar({ h }: { h: HandInState }) {
       <View style={{ flexDirection: "row", gap: space[2] }}>
         <BigButton
           testID="action.saveDraft"
+          hint={t("handIn.explainer")}
           variant={h.wait && h.canSave ? "filled" : "outline"}
           disabled={!h.canSave}
           busy={h.busy === "draft"}
@@ -1034,12 +1019,19 @@ export function MarkHandedIn({ task }: { task: Task }) {
       </Text>
     </View>
   ) : null;
+  // One line beside Urungkan: what the Student marked; when, to TalkBack.
   if (entry)
     return (
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
         <Icons.Check size={16} weight="bold" color={theme.color.successFg} />
-        <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
-          {factsLabel(t(`task.marked.${entry.how as MarkedHow}`), f.dayTimeWord(entry.at))}
+        <Text
+          size="bodySmall"
+          tone="muted"
+          numberOfLines={2}
+          accessibilityLabel={factsLabel(t(`task.marked.${entry.how as MarkedHow}`), f.dayTimeWord(entry.at))}
+          style={{ flex: 1 }}
+        >
+          {t(`task.marked.${entry.how as MarkedHow}`)}
         </Text>
         <Button
           size="sm"
