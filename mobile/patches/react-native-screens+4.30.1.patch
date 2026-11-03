@@ -30,10 +30,10 @@ index 0df8749..93ca2cb 100644
      }
  
 diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDialog.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDialog.kt
-index 05bc51d..90811c6 100644
+index 05bc51d..18d7059 100644
 --- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDialog.kt
 +++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDialog.kt
-@@ -1,6 +1,7 @@
+@@ -1,13 +1,16 @@
  package com.swmansion.rnscreens.gamma.modals.formsheet
  
  import android.content.Context
@@ -41,30 +41,26 @@ index 05bc51d..90811c6 100644
  import android.os.Bundle
  import android.view.View
  import android.view.ViewGroup
-@@ -8,6 +9,7 @@ import android.view.Window
+ import android.view.Window
  import android.view.WindowManager
  import android.widget.FrameLayout
++import androidx.core.view.ViewCompat
  import androidx.core.view.WindowCompat
 +import com.facebook.react.bridge.ReactContext
  import com.google.android.material.bottomsheet.BottomSheetDialog
  
  /**
-@@ -29,6 +31,29 @@ internal class FormSheetDialog(
-         setupBottomSheetHeight()
-     }
+@@ -27,12 +30,36 @@ internal class FormSheetDialog(
+         disableNativeWindowAnimation(window)
  
-+    // Edunex Plus: the sheet is its own window, which kept its theme's status bar icons (white) whatever the screen
-+    // under it had: white on the light page's scrim, about 2.2:1. Each time it shows, before Material reads the window's
-+    // look (on attach) and keeps it, the sheet is handed to React Native as an extra window, as RN's Modal is: it takes
-+    // the app's current status bar style, and the app's later ones too.
-+    override fun onStart() {
-+        super.onStart()
-+        window?.let { reactContext()?.onExtraWindowCreate(it) }
-+    }
+         setupBottomSheetHeight()
 +
-+    override fun onStop() {
-+        window?.let { reactContext()?.onExtraWindowDestroy(it) }
-+        super.onStop()
++        // Edunex Plus: Material sets the sheet window's status bar icons itself, on every layout and slide, from what
++        // the window had when it first got insets (its theme's white icons), so whatever React Native sets is undone:
++        // white icons on the light page's scrim, about 2.2:1. Its insets listener on the container only sets that up (and
++        // a top padding for a sheet under the status bar, which ours never reach): without it the icons are left to
++        // React Native.
++        findViewById<View>(com.google.android.material.R.id.container)?.let { ViewCompat.setOnApplyWindowInsetsListener(it, null) }
 +    }
 +
 +    private fun reactContext(): ReactContext? {
@@ -74,8 +70,20 @@ index 05bc51d..90811c6 100644
 +            current = current.baseContext
 +        }
 +        return null
-+    }
-+
+     }
+ 
      override fun onAttachedToWindow() {
          super.onAttachedToWindow()
  
+         forceEdgeToEdge()
++        // Edunex Plus: the sheet's window is handed to React Native as an extra window, as RN's Modal is: it takes the
++        // app's current status bar style (dark icons in light, white in dark and on Beranda's blue header), and later ones.
++        window?.let { reactContext()?.onExtraWindowCreate(it) }
++    }
++
++    override fun onDetachedFromWindow() {
++        window?.let { reactContext()?.onExtraWindowDestroy(it) }
++        super.onDetachedFromWindow()
+     }
+ 
+     /**

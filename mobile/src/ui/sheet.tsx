@@ -5,7 +5,7 @@
 // `ActionSheet` is a menu of choices. A sheet's main action goes in `footer`: it stays in view under
 // the content however long that runs, as a dialog's buttons do on the desktop.
 import { type ReactNode, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
+import { Pressable, ScrollView, StatusBar, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormSheet } from "react-native-screens/experimental";
 import { Text } from "./text";
@@ -46,6 +46,7 @@ export function Sheet({
   const { height } = useWindowDimensions();
   // The native sheet lives while it's open and while it slides away; then it's gone, and with it its content.
   const [shown, setShown] = useState(open);
+  const [appeared, setAppeared] = useState(false);
   if (open && !shown) setShown(true);
   if (!open && !shown) return null;
   return (
@@ -56,7 +57,9 @@ export function Sheet({
       preferredCornerRadius={shape.xl}
       nativeContainerStyle={{ backgroundColor: background ?? c.surfaceContainerLow }}
       onNativeDismiss={onClose}
+      onDidAppear={() => setAppeared(true)}
       onDidDisappear={() => {
+        setAppeared(false);
         if (!open) setShown(false);
       }}
     >
@@ -69,6 +72,10 @@ export function Sheet({
         // (three-button navigation, 48 dp), so padding by the bar hid it there and not with gesture navigation (24 dp).
         style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + GRABBER, backgroundColor: background ?? c.surfaceContainerLow }}
       >
+        {/* The sheet is its own window, which takes the app's status bar style as it opens (patches/react-native-screens…).
+            Once it's up, a StatusBar entry with no style of its own sends the app's current one again, to the screen and
+            to the sheet, as the ⋮ menu does (./menu.tsx): dark icons on the light page's scrim. */}
+        {appeared && <StatusBar />}
         {title !== undefined && (
           <View style={{ paddingHorizontal: space[6], paddingBottom: space[3] }}>{typeof title === "string" ? <SheetTitle>{title}</SheetTitle> : title}</View>
         )}
