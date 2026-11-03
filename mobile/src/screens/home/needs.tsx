@@ -376,16 +376,21 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const time = sitting.end !== null ? f.timeRange(sitting.start, sitting.end) : f.time(sitting.start);
         // Open for days on Edunex: it runs out when it closes, like a deadline.
         const closes = need.window && sitting.end !== null ? sitting.end : null;
+        const title = t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) });
+        const room = sitting.source === "six" ? sitting.room : null;
+        const when = soon(closes ?? sitting.start);
+        // The day and the time it starts, short enough for one line beside the pill: the title names the course, and
+        // the code, the end time and the room are in what TalkBack reads and on the exam's page (with a take-home, and
+        // SIX and Edunex disagreeing).
+        const fact =
+          closes !== null ? t("home.need.exam.closes", { when: f.dayTimeWord(closes) }) : `${f.relativeDay(sitting.start)}, ${f.time(sitting.start)}`;
+        const full = closes !== null ? fact : `${f.relativeDay(sitting.start)}, ${time}`;
         return {
-          title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) }),
-          // A take-home and SIX and Edunex disagreeing are on the exam's page.
-          meta: [
-            course,
-            closes !== null ? t("home.need.exam.closes", { when: f.dayTimeWord(closes) }) : `${f.relativeDay(sitting.start)}, ${time}`,
-            sitting.source === "six" ? sitting.room : null,
-          ],
-          when: soon(closes ?? sitting.start),
+          title,
+          meta: [fact],
+          when,
           tone: near(closes ?? sitting.start),
+          label: factsLabel(title, course, full, room, when),
         };
       }
       case "attendance": {
