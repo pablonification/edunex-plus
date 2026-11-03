@@ -400,6 +400,23 @@ describe("graduation progress (curriculum position)", () => {
     expect([taken("required"), taken("program-elective"), taken("outside-elective")]).toEqual([108, 6, 25]);
   });
 
+  it("a first-year Student's page, before anything is graded, reads: stages by name alone and no IPK yet, nothing noted", () => {
+    // As a Student's report showed: SIX writes each stage's name without its figures, and the IPK cell empty.
+    const page = sixPage(PROGRESS)
+      .replace(/\s*\(IP 3\.81 \/ SKS Lulus 18\)/, "")
+      .replace(/\s*\(IP 3\.18 \/ SKS Lulus 107\)/, "")
+      .replace('<span title="dari 125 SKS">3.26</span>', '<span title="dari 0 SKS"></span>');
+    const { value, skipped } = skipping((into) => readProgress(page, into));
+    expect(skipped).toEqual([]);
+    expect(value.ipk).toEqual({ value: null, sks: 0 });
+    expect(value.progress.ipk).toBeNull();
+    expect(value.progress.stages.map((s) => [s.name, s.ip.six, s.sksPassed])).toEqual([
+      ["Tahap Persiapan Bersama", null, null],
+      ["Tahap Sarjana", null, null],
+    ]);
+    expect(value.progress.stages[1]!.semesters.map((s) => s.semester)).toEqual([2, 3, 4, 5, 6, 7, 8]);
+  });
+
   it("a course passed under an older code already sits in the curriculum, so only truly missing courses are left", () => {
     const { progress } = readProgress(sixPage(PROGRESS));
     const firstSemester = progress.stages[0]!.semesters[0]!.courses;

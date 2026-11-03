@@ -280,7 +280,8 @@ export function rupiah(page: Page, value: string, what: string): number | null {
 /** An IP or IPK ("3.26"); null for "-". */
 export function indexValue(page: Page, value: string, what: string): number | null {
   const text = clean(value);
-  if (text === "-") return null;
+  // "-", or nothing at all before anything is graded (a first-year Student's IPK).
+  if (text === "-" || text === "") return null;
   if (!/^\d[.,]\d{2}$/.test(text)) changed(page, `${what} "${text}" isn't an index`);
   return Number(text.replace(",", "."));
 }
