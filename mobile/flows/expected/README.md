@@ -22,44 +22,44 @@ prints "found N of M" per scenario and per screen. How each screen is reached: `
 
 | Scenario | What's different | Entries |
 | --- | --- | ---: |
-| signed-in | Both systems connected, synced, on the recorded Thursday morning (8 Oct 2026, 08:07 WIB) | 766 |
-| edunex-only | Edunex connected, SIX not | 438 |
-| first-run | Nobody signed in: the welcome screen, signing in, the first scan's summary | 12 |
-| check-in-open | SIX's Tandai Hadir shows in the morning's PL3002 class | 769 |
-| quiz | DK4073 has an Edunex quiz open 19–30 Oct | 777 |
-| after-class-counted | 16:05: SIX counted PL3002's and DK4073's classes | 769 |
-| after-class-absent | 16:05: SIX marked DK4073's 11:00 class absent | 775 |
-| after-class-missing | 16:05: SIX hasn't counted DK4073's 11:00 class | 771 |
-| sick | SIX writes DK4073's attendance with sick days (two percentages) | 766 |
-| odd | SIX writes this term's UKT payment and FI1101's grade another way | 772 |
-| course-table-changed | SIX's course table can't be read after the first sync | 768 |
-| course-table-lost | SIX writes KU5014's code another way, so its row is lost | 762 |
-| course-table-blank | SIX's course table has no attendance column | 748 |
-| timetable-unread | SIX writes the time of DK4073's Thursday class with dots | 769 |
-| edit | The lecturer revised Tugas 01 Bab I after the first sync | 769 |
+| signed-in | Both systems connected, synced, on the recorded Thursday morning (8 Oct 2026, 08:07 WIB) | 703 |
+| edunex-only | Edunex connected, SIX not | 403 |
+| first-run | Nobody signed in: the welcome screen, signing in, the first scan's summary | 11 |
+| check-in-open | SIX's Tandai Hadir shows in the morning's PL3002 class | 706 |
+| quiz | DK4073 has an Edunex quiz open 19–30 Oct | 713 |
+| after-class-counted | 16:05: SIX counted PL3002's and DK4073's classes | 707 |
+| after-class-absent | 16:05: SIX marked DK4073's 11:00 class absent | 714 |
+| after-class-missing | 16:05: SIX hasn't counted DK4073's 11:00 class | 709 |
+| sick | SIX writes DK4073's attendance with sick days (two percentages) | 703 |
+| odd | SIX writes this term's UKT payment and FI1101's grade another way | 709 |
+| course-table-changed | SIX's course table can't be read after the first sync | 705 |
+| course-table-lost | SIX writes KU5014's code another way, so its row is lost | 701 |
+| course-table-blank | SIX's course table has no attendance column | 692 |
+| timetable-unread | SIX writes the time of DK4073's Thursday class with dots | 706 |
+| edit | The lecturer revised Tugas 01 Bab I after the first sync | 706 |
 
 ## Entries per screen
 
 | Screen | signed-in | edunex-only | first-run | check-in-open | quiz | after-class-counted | after-class-absent | after-class-missing | sick | odd | course-table-changed | course-table-lost | course-table-blank | timetable-unread | edit |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| home | 20 | 9 |  | 20 | 20 | 20 | 21 | 20 | 20 | 20 | 21 | 19 | 19 | 20 | 22 |
+| home | 14 | 10 |  | 14 | 14 | 15 | 16 | 15 | 14 | 14 | 15 | 14 | 14 | 14 | 16 |
 | courses | 6 | 6 |  | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 | 6 |
 | changes | 3 | 1 |  | 4 | 3 | 5 | 7 | 6 | 3 | 3 | 3 | 3 | 3 | 3 | 4 |
 | tasks | 15 | 14 |  | 15 | 16 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 15 | 15 |
-| exam | 35 | 28 |  | 35 | 44 | 35 | 35 | 35 | 35 | 35 | 35 | 35 | 34 | 35 | 35 |
-| task | 119 | 119 |  | 119 | 119 | 119 | 119 | 119 | 119 | 119 | 119 | 119 | 119 | 119 | 118 |
+| exam | 34 | 28 |  | 34 | 42 | 34 | 35 | 34 | 34 | 34 | 34 | 34 | 34 | 34 | 34 |
+| task | 85 | 85 |  | 85 | 85 | 85 | 85 | 85 | 85 | 85 | 85 | 85 | 85 | 85 | 84 |
 | schedule | 22 | 16 |  | 22 | 22 | 22 | 22 | 22 | 22 | 22 | 22 | 22 | 22 | 28 | 22 |
 | class | 25 | 6 |  | 25 | 25 | 25 | 26 | 25 | 25 | 25 | 25 | 24 | 22 | 21 | 25 |
-| presence | 9 | 7 |  | 10 | 9 | 9 | 9 | 9 | 9 | 9 | 10 | 10 | 11 | 11 | 9 |
-| grades | 78 | 5 |  | 78 | 78 | 78 | 78 | 78 | 78 | 80 | 78 | 78 | 78 | 78 | 78 |
-| plan | 178 | 11 |  | 178 | 178 | 178 | 178 | 178 | 178 | 182 | 178 | 178 | 178 | 178 | 178 |
-| course | 204 | 174 |  | 204 | 205 | 203 | 203 | 203 | 204 | 204 | 204 | 201 | 191 | 203 | 204 |
+| presence | 11 | 6 |  | 12 | 11 | 10 | 10 | 10 | 11 | 11 | 12 | 12 | 12 | 13 | 11 |
+| grades | 71 | 5 |  | 71 | 71 | 71 | 71 | 71 | 71 | 73 | 71 | 71 | 71 | 71 | 71 |
+| plan | 168 | 11 |  | 168 | 168 | 168 | 168 | 168 | 168 | 172 | 168 | 168 | 168 | 168 | 168 |
+| course | 198 | 173 |  | 198 | 199 | 198 | 198 | 198 | 198 | 198 | 198 | 196 | 190 | 197 | 198 |
 | search | 27 | 27 |  | 27 | 27 | 27 | 27 | 27 | 27 | 27 | 27 | 27 | 27 | 27 | 27 |
 | alerts | 3 | 1 |  | 4 | 3 | 5 | 7 | 6 | 3 | 3 | 3 | 3 | 3 | 3 | 4 |
 | settings | 14 | 11 |  | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 | 14 |
-| first-scan | 8 | 3 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 8 | 6 | 8 | 8 |
+| first-scan | 7 | 3 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 7 | 6 | 7 | 7 |
 | welcome |  |  | 4 |  |  |  |  |  |  |  |  |  |  |  |  |
-| **all** | **766** | **438** | **12** | **769** | **777** | **769** | **775** | **771** | **766** | **772** | **768** | **762** | **748** | **769** | **769** |
+| **all** | **703** | **403** | **11** | **706** | **713** | **707** | **714** | **709** | **703** | **709** | **705** | **701** | **692** | **706** | **706** |
 
 ## Is it complete? The engine's datasets against the screens
 
@@ -78,7 +78,7 @@ counts them, `notShown` lists the ones no screen showed.
 | edunex.notifications | 12/14 | 12/14 | 0/14 | 12/14 | 12/14 | 12/14 | 12/14 | 12/14 | 12/14 | 12/14 | 12/14 | 12/14 | 12/14 | 12/14 | 12/14 |
 | edunex.account | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 | 1/1 |
 | six.student | 3/3 |  | 1/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 | 3/3 |
-| six.courses | 10/10 |  | 0/10 | 10/10 | 10/10 | 10/10 | 10/10 | 10/10 | 10/10 | 10/10 | 10/10 | 8/8 | 5/5 | 10/10 | 10/10 |
+| six.courses | 5/10 |  | 0/10 | 5/10 | 5/10 | 5/10 | 5/10 | 5/10 | 5/10 | 5/10 | 5/10 | 4/8 | 5/5 | 5/10 | 5/10 |
 | six.schedule | 22/22 |  | 0/22 | 22/22 | 22/22 | 22/22 | 22/22 | 22/22 | 22/22 | 22/22 | 22/22 | 22/22 | 22/22 | 21/21 | 22/22 |
 | six.krs | 6/6 |  | 0/6 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 | 6/6 |
 | six.bills | 7/12 |  | 0/12 | 7/12 | 7/12 | 7/12 | 7/12 | 7/12 | 7/12 | 7/12 | 7/12 | 7/12 | 7/12 | 7/12 | 7/12 |
@@ -93,6 +93,7 @@ In signed-in:
 
 - **edunex.courses** (4): DK4073: Edunex's name "Marketing Communication"; II4091: Edunex's name "Final Project Proposal"; PL3002: Edunex's name "Economics and Innovation in Planning"; PL3032: Edunex's name "Infrastructure and Transportation Economics"
 - **edunex.notifications** (2): notification material 92948 "Managing The problem Proccess"; notification material 95001 "Tugas Mandiri Individu Projek Penciptaan/Pengembangan Inovasi"
+- **six.courses** (5): DK4073: attendance "4 dari 6"; II4091: attendance "3 dari 3"; KU5014: attendance "2 dari 6"; PL3002: attendance "6 dari 7"; PL3032: attendance "4 dari 7"
 - **six.bills** (5): bill 2023-3 "Rp0"; bill 2024-3 "Rp0"; bill 2025-3 "Rp0"; bill 2026-2 "Rp0"; bill 2026-3 "Rp0"
 - **itb.calendar** (106): 2026-07-07 urs: Penggantian Rencana Studi Semester Antara 2025/2026 "7 Jul"; 2026-07-22 graduation: Batas Waktu Pemenuhan Persyaratan Administrasi Kelulusan Yudisium Juli 2026 "22 Jul"; 2026-07-28 graduation: Yudisium ITB Bulan Juli 2026 "28 Jul"; 2026-07-31 grade-change-deadline: Batas Akhir Perubahan Nilai Mata Kuliah Semester II-2025/2026 Kategori Non TA/Tesis/Disertasi (Revisi-02 ) "31 Jul"; 2026-08-03 progress-check: Pemantauan dan Evaluasi Akademik Mahasiswa "3 Agu"; 2026-08-05 other: Penetapan Status Mahasiswa Baru Semester I-2026/2027 "5 Agu"; and 100 more
 - **itb.catalog** (72): minor 1366 "Ruang Publik"; minor 1367 "Perancangan dan Rekayasa Tapak"; minor 1368 "Perancangan Berpusat pada Manusia"; minor 1369 "Manajemen Proyek Berkelanjutan"; minor 1370 "Teknologi Bangunan Berkelanjutan"; minor 1371 "Sejarah Arsitektur Indonesia"; and 66 more
@@ -100,6 +101,18 @@ In signed-in:
 Only in edunex-only:
 
 - **itb.catalog** (9): minor 1359 "Fisika"; minor 1403 "Sistem Informasi"; minor 1404 "Teknologi Informasi"; minor 1546 "Perencanaan Wilayah dan Kota"; minor 1547 "Perencanaan Kota"; minor 1549 "Infastruktur Wilayah dan Kota"; and 3 more
+
+Only in after-class-counted:
+
+- **six.courses** (2): DK4073: attendance "5 dari 7"; PL3002: attendance "7 dari 8"
+
+Only in after-class-absent:
+
+- **six.courses** (2): DK4073: attendance "4 dari 7"; PL3002: attendance "7 dari 8"
+
+Only in after-class-missing:
+
+- **six.courses** (1): PL3002: attendance "7 dari 8"
 
 Why, as far as the screens go:
 

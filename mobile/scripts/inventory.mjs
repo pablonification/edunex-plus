@@ -142,6 +142,10 @@ async function capture(scenario) {
       await open.click();
     });
     await attempt("first scan", async () => {
+      // After a first sign-in the guide offers its tour first; skipped, the summary opens.
+      const skipGuide = page.getByRole("button", { name: "Lewati panduan" });
+      await skipGuide.waitFor({ timeout: 10_000 }).catch(() => {});
+      if (await skipGuide.count()) await skipGuide.click();
       const summary = page.getByRole("dialog", { name: "Ringkasan saat pertama terhubung" });
       await summary.waitFor({ timeout: 30_000 }).catch(() => {});
       if (!(await summary.count())) await openFirstScan();
