@@ -6,7 +6,7 @@
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import type { Attendance, CourseAttendance } from "../../../../src/app/attendance";
-import { budgetLabel, budgetWords, verdictLabel } from "../../../../src/app/attendance-labels";
+import { budgetWords, verdictLabel } from "../../../../src/app/attendance-labels";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
@@ -22,7 +22,7 @@ import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
-import { metaParts, type RowContext } from "../presence/logic";
+import { metaParts, noCountLine, type RowContext } from "../presence/logic";
 import { type CourseExceptionNote, ExceptionIcon, useCourseException } from "./attendance-line";
 
 export interface CourseRows {
@@ -35,7 +35,9 @@ export function CourseSheet({ page, rows, open, onClose }: { page: CoursePage; r
   const v = useTheme().v4;
   const { course, outline } = page;
   const sks = course.sks ?? outline?.credits ?? null;
-  const item = rows?.attendance.sixConnected ? rows.attendance.courses.find((c) => c.course.code === course.code) : undefined;
+  // Signed out of SIX the course still has its next Edunex window (the desktop's Presensi row says it then), so the next
+  // class's fact shows without SIX; the attendance in full needs SIX's count.
+  const item = rows?.attendance.courses.find((c) => c.course.code === course.code);
   const crumb = [course.code, course.classNo ? t("course.class", { no: course.classNo }) : null].filter(Boolean).join(" · ");
   return (
     <Sheet open={open} onClose={onClose} background={v.card} testID="sheet.course">
@@ -59,7 +61,7 @@ export function CourseSheet({ page, rows, open, onClose }: { page: CoursePage; r
           )}
           {sks !== null && <Fact icon={(c) => <Icons.BookOpen size={22} color={c} />}>{t("course.sks", { count: sks })}</Fact>}
           {item && rows && <NextClassFact item={item} context={rows.context} />}
-          {item && rows && <AttendanceFacts page={page} item={item} attendance={rows.attendance} context={rows.context} />}
+          {item && rows?.attendance.sixConnected && <AttendanceFacts page={page} item={item} attendance={rows.attendance} context={rows.context} />}
         </View>
       </View>
     </Sheet>
@@ -68,7 +70,8 @@ export function CourseSheet({ page, rows, open, onClose }: { page: CoursePage; r
 
 /**
  * The course's next class, as round 1's Kuliah row said it under the course (the desktop's Presensi row, metaParts): on
- * now until when, today's or another day's time, and its room. Kuliah's rows went slim in round 2, so it's said here.
+ * now until when, today's or another day's time, and its room; signed out of SIX, the next Edunex window ("Presensi Edunex
+ * Jum 16 Okt, kumpulkan sebelum 23:59"). Kuliah's rows went slim in round 2, so it's said here.
  */
 function NextClassFact({ item, context }: { item: CourseAttendance; context: RowContext }) {
   const t = useT();
@@ -208,7 +211,7 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
       <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />}>
         <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg }}>
           {share === null
-            ? budgetLabel(t, health)
+            ? noCountLine(t, health, context.signedOut)
             : over
               ? t("presence.row.final", { percent: share })
               : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share })}
