@@ -1,18 +1,24 @@
 // "Nanti hari ini" (round 2, v4): the classes and meetings still to come today, past the one on the now card. A row
 // each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what matters today (no absences
-// left, below target, a clash, a new time, not in SIX). A row opens the class's sheet. Hidden when nothing's left.
+// left, below target, a clash, a new time, not in SIX). A row opens the class's sheet. A class on SIX's timetable today
+// that the app couldn't read comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX
+// writes it; it opens Jadwal's sheet for it, with SIX's timetable. Hidden when nothing's left.
 import { useState } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { wibDay } from "../../../../src/core/course-meetings";
+import type { UnreadSession } from "../../../../src/core/models";
 import type { ClassFacts, HomeContext, NowCard, TodayPlan } from "../../../../src/core/needs";
 import { type AbsenceTone, absenceInk, absenceTone } from "../../ui/absence";
 import { Rise } from "../../ui/expressive";
+import { IconTile } from "../../ui/group";
+import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
+import { DetailSheet } from "../schedule/details";
 import { ClassSheet, classCard } from "./class-sheet";
 import { nameOf, shortName } from "./parts";
 
@@ -25,7 +31,9 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
   const now = useNow();
   const v = useTheme().v4;
   const [picked, setPicked] = useState<NowCard | null>(null);
+  const [unreadOpen, setUnreadOpen] = useState(false);
   const day = wibDay(context.now);
+  const unread = plan.unread.filter((one) => one.day === day);
   const items: Item[] = [
     ...plan.classes.map(
       (facts): Item => ({
@@ -50,7 +58,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
   ]
     .filter((item) => wibDay(item.start) === day && item.end > now && item.key !== onCard)
     .sort((a, b) => a.start - b.start);
-  if (!items.length) return null;
+  if (!items.length && !unread.length) return null;
   return (
     <View testID="section.today">
       <Rise screen="home" index={5}>
@@ -66,11 +74,14 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
       </Rise>
       <Rise screen="home" index={6}>
         <View style={{ backgroundColor: v.card, borderRadius: 20, overflow: "hidden" }}>
+          {unread.map((one, i) => (
+            <UnreadRow key={`unread:${one.row}`} one={one} first={i === 0} onOpen={() => setUnreadOpen(true)} />
+          ))}
           {items.map((item, i) => (
             <Row
               key={item.key}
               item={item}
-              first={i === 0}
+              first={i === 0 && !unread.length}
               courses={courses}
               onOpen={() =>
                 setPicked(
@@ -91,6 +102,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
         </View>
       </Rise>
       <ClassSheet card={picked} courses={courses} open={picked !== null} onClose={() => setPicked(null)} />
+      <DetailSheet picked={unreadOpen && unread.length ? { kind: "unread", day, unread } : null} onClose={() => setUnreadOpen(false)} />
     </View>
   );
 }
@@ -128,6 +140,32 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
           </Text>
         </View>
       )}
+    </PressScale>
+  );
+}
+
+/** A class SIX shows today that the app couldn't read: the desktop's words for it, and the row as SIX writes it. */
+function UnreadRow({ one, first, onOpen }: { one: UnreadSession; first: boolean; onOpen(): void }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const title = t("schedule.unread.title", { count: 1 });
+  return (
+    <PressScale
+      onPress={onOpen}
+      accessibilityLabel={`${title}, ${one.row}`}
+      testID="row.today.unread"
+      style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}
+    >
+      {!first && <View style={{ position: "absolute", top: 0, left: 70, right: 0, height: 1, backgroundColor: v.line }} />}
+      <IconTile tone="amber" icon={(c) => <Icons.Info size={22} color={c} weight="bold" />} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="bodyLarge" weight="medium" numberOfLines={1} style={{ color: v.fg, lineHeight: 21 }}>
+          {title}
+        </Text>
+        <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted, marginTop: 2 }}>
+          {one.row}
+        </Text>
+      </View>
     </PressScale>
   );
 }
