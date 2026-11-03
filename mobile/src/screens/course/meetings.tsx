@@ -162,7 +162,7 @@ function DateTile({ at, next, past }: { at: number; next: boolean; past: boolean
   const v = useTheme().v4;
   // "8 Okt" / "8 Oct": the day, then the month.
   const [day, month] = f.dayMonth(at).split(/\s+/);
-  const [bg, fg] = next ? [v.brandTint, v.brandInk] : [v.page, past ? v.muted : v.fg];
+  const [bg, fg] = next ? [v.brandTint, v.brandInk] : [v.chip, past ? v.muted : v.fg];
   return (
     <IconTile tint={bg}>
       <Text size="titleMedium" face="display" weight="bold" tabular style={{ color: fg, fontSize: 17, lineHeight: 19 }}>

@@ -204,11 +204,12 @@ export function Pill({ tone, children, icon }: { tone: PillTone; children: strin
 
 /**
  * A tinted square holding an icon, for a row that isn't a course (Nilai, UKT, a setting): `tone` picks the tint and
- * the ink; `icon` draws itself in the ink it's given.
+ * the ink; `icon` draws itself in the ink it's given. A plain one is a neutral pill's chip colour, a step off its card
+ * in dark too (on the page's black it read as a hole in the card: judge round 6).
  */
 export function IconTile({ icon, tone = "brand", size = 44 }: { icon: (color: string) => ReactNode; tone?: PillTone; size?: number }) {
   const v = useTheme().v4;
-  const { bg, fg } = pillColors(v, tone, v.page);
+  const { bg, fg } = pillColors(v, tone);
   return (
     <View
       accessibilityElementsHidden

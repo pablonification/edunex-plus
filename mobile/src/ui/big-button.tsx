@@ -35,7 +35,8 @@ export function BigButton({
   children: ReactNode;
 }) {
   const v = useTheme().v4;
-  const background = disabled ? (variant === "outline" ? "transparent" : v.page) : variant === "filled" ? v.brand : variant === "done" ? v.okBg : "transparent";
+  // Disabled: the chip colour, a step off the card or bar it sits on in dark too (the page's black read as a hole there).
+  const background = disabled ? (variant === "outline" ? "transparent" : v.chip) : variant === "filled" ? v.brand : variant === "done" ? v.okBg : "transparent";
   const color = disabled ? v.muted : variant === "filled" ? v.onBrand : variant === "done" ? v.okFg : v.fg;
   return (
     <PressScale

@@ -74,7 +74,7 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
           key={`p${p.id}`}
           first={first}
           leading={
-            <IconTile tint={v.page}>
+            <IconTile tint={v.chip}>
               <Icons.Hand size={20} color={v.muted} />
             </IconTile>
           }
@@ -102,7 +102,7 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
         key="next"
         first={first}
         leading={
-          <IconTile tint={v.page}>
+          <IconTile tint={v.chip}>
             <Icons.CalendarClock size={20} color={v.muted} />
           </IconTile>
         }
@@ -124,7 +124,7 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
         key="unread"
         first={first}
         leading={
-          <IconTile tint={v.page}>
+          <IconTile tint={v.chip}>
             <Icons.Info size={20} color={v.muted} />
           </IconTile>
         }
