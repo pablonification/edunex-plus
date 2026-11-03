@@ -25,6 +25,7 @@ import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { useCheckIn } from "./checked-in";
+import { type MovedLine, movedLine } from "./moved-line";
 import { MINUTE, nameOf, STATE_TEXT } from "./parts";
 
 /** What the sheet is about: the now card's, or a Hari ini row's class (a card of its own, with nothing beside it). */
@@ -75,14 +76,6 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
   const moved = facts?.moved ?? null;
   const usual = moved && moved.usualStart !== null && moved.usualEnd !== null ? f.timeRange(moved.usualStart, moved.usualEnd) : null;
   const overlap = facts?.overlap ?? null;
-  // The time's one quiet line, never a warning sentence: what it clashes with, else when it usually is, else how far off.
-  const timeMeta = overlap
-    ? t("mobile.home.clashWith", { course: overlap.code, time: f.timeRange(overlap.from, overlap.to) })
-    : usual
-      ? t("mobile.home.usually", { usual })
-      : !live && !past && slot
-        ? f.fromNow(slot.start)
-        : null;
   // A class that's over: what SIX's count did after it, when the app saw (the desktop's Hari ini says it on its row).
   const result = past && session ? attendance?.results[session.id]?.result : undefined;
   // Its one status, as a chip: SIX's verdict on a class that's over, else a clash, else moved, else on now, else not on
@@ -103,6 +96,15 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
                 : meeting && !card.meeting?.maybeInSix
                   ? { key: "home.today.notInSix" as const, bg: v.ambBg, fg: v.ambFg }
                   : null;
+  // The time's one quiet line, never a warning sentence: what it clashes with, else when it usually is (saying it moved
+  // when SIX's verdict took the chip, ./moved-line.ts), else how far off.
+  const timeMeta = overlap
+    ? t("mobile.home.clashWith", { course: overlap.code, time: f.timeRange(overlap.from, overlap.to) })
+    : usual
+      ? line(t, movedLine("time", usual, timeChip?.key === "mobile.home.chip.moved"))
+      : !live && !past && slot
+        ? f.fromNow(slot.start)
+        : null;
   // On now, with a move or a clash as its chip: the time's day word says it ("Sekarang · 08:00–10:00").
   const dayWord = when && live && timeChip?.key !== "mobile.home.chip.now" ? t("home.today.now") : when ? f.relativeDay(when.start) : "";
   const place = session?.room ?? (meeting?.online ? t("mobile.home.online") : null);
@@ -149,7 +151,7 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
             </Text>
             {usualRoom && (
               <Text size="bodyMedium" tone="muted">
-                {t("mobile.home.usually", { usual: usualRoom })}
+                {line(t, movedLine("room", usualRoom, !timeChip))}
               </Text>
             )}
           </Fact>
@@ -159,6 +161,8 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
     </View>
   );
 }
+
+const line = (t: Translate, moved: MovedLine): string => t(moved.key, moved.vars);
 
 /** The sheet's one status. */
 function Chip({ text, bg, fg }: { text: string; bg: string; fg: string }) {
