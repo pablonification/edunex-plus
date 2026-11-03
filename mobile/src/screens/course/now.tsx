@@ -205,11 +205,20 @@ function NowCard({
   // What the card leads with: on now (and where), next (when), or a window alone (the class it's for).
   const place = meeting?.six?.room ?? (meeting?.announced?.online ? t("course.online") : null);
   const day = !current && f.dayOffset(start) !== 0 ? f.relativeDay(start) : null;
+  // One line beside the chip, whole (judge round 5: "R.SG P…"): on now, where (the wave and the minutes left say how
+  // long); next, when it starts and where; a window alone, when its class was. The class's whole time is in what
+  // TalkBack reads, and on Pertemuan.
+  const range = f.timeRange(start, end);
   const kicker = current
-    ? [t("home.today.now"), f.timeRange(start, end), place]
+    ? [t("home.today.now"), place ?? range]
     : upcoming
-      ? [t("mobile.home.next"), day ?? t("time.today"), f.timeRange(start, end), place]
-      : [t("course.presenceOpen"), day, f.timeRange(start, end)];
+      ? [t("mobile.home.next"), `${day ?? t("time.today")}, ${f.time(start)}`, place]
+      : [t("course.presenceOpen"), day ? `${day}, ${f.time(start)}` : range];
+  const kickerFull = current
+    ? [t("home.today.now"), range, place]
+    : upcoming
+      ? [t("mobile.home.next"), day ?? t("time.today"), range, place]
+      : [t("course.presenceOpen"), day, range];
   const title = meeting ? meetingTitle(t, meeting, meetingModuleTitle(t, modules, meeting)) : (presence?.topic ?? t("meeting.untitled"));
   const facts = [
     presence ? t("mobile.course.presenceCloses", { time: f.dayTime(presence.closesAt) }) : null,
@@ -296,7 +305,14 @@ function NowCard({
         <View style={{ flex: 1, minWidth: 0 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             {current && live && <PulseDot color={v.live} />}
-            <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: v.muted, flexShrink: 1 }}>
+            <Text
+              size="bodyMedium"
+              weight="medium"
+              tabular
+              numberOfLines={1}
+              accessibilityLabel={kickerFull.filter(Boolean).join(" · ")}
+              style={{ color: v.muted, flexShrink: 1 }}
+            >
               {kicker.filter(Boolean).join(" · ")}
             </Text>
           </View>

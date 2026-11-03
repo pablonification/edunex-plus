@@ -576,15 +576,18 @@ function Notes({ name, startedOn, year, unlisted }: { name: string; startedOn: n
   const v = useTheme().v4;
   const [open, setOpen] = useState(false);
   const started = startedOn !== null ? t("mobile.curriculum.started", { from: startedOn }) : null;
-  const note = factsLabel(unlisted > 0 && t("mobile.curriculum.offSix", { count: unlisted }), started);
+  const offSix = unlisted > 0 ? t("mobile.curriculum.offSix", { count: unlisted }) : null;
+  const note = factsLabel(offSix, started);
+  // The name on two lines; one fact on the meta line, whole: the older start, which only the sheet says otherwise (the
+  // courses SIX leaves off each say so on their own row). The sheet and TalkBack say both.
   const title = (
-    <Text size="bodyLarge" weight="medium" numberOfLines={1} style={{ color: v.fg, lineHeight: 21 }}>
+    <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
       {name}
     </Text>
   );
   const meta = note ? (
     <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
-      {note}
+      {started ?? offSix}
     </Text>
   ) : null;
   if (!note) return <GroupRow title={title} />;

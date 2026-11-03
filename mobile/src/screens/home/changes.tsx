@@ -8,7 +8,7 @@ import { useDataset } from "../../../../src/app/store";
 import type { Alert, AlertKind } from "../../../../src/core/models";
 import { type HomeContext, recentChanges } from "../../../../src/core/needs";
 import { useNav } from "../../nav";
-import { changeMeta } from "../../parts/change-meta";
+import { changeLines } from "../../parts/change-meta";
 import { CourseIconTile } from "../../ui/course-icon-tile";
 import { Group, GroupRow, Heading, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -87,14 +87,13 @@ function ChangeRow({ item, first, onOpen }: { item: Alert; first: boolean; onOpe
   const glyph = (color: string) => <Icon size={22} color={color} />;
   const important = IMPORTANT.has(item.title.key) || (item.body !== null && item.body !== undefined && IMPORTANT_BODY.has(item.body.key));
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
-  const title = t(item.title.key, item.title.vars);
-  const meta = changeMeta(t, item.body);
+  const { title, meta, spoken } = changeLines(t, item);
   const when = f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at);
   return (
     <GroupRow
       first={first}
       testID={`row.change.${item.id}`}
-      accessibilityLabel={factsLabel(title, meta?.full, when)}
+      accessibilityLabel={factsLabel(...spoken, when)}
       leading={important ? <IconTile tone="amber" icon={glyph} /> : code ? <CourseIconTile code={code} icon={glyph} /> : <IconTile tone="plain" icon={glyph} />}
       title={
         <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
@@ -105,7 +104,7 @@ function ChangeRow({ item, first, onOpen }: { item: Alert; first: boolean; onOpe
       meta={
         meta ? (
           <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
-            {meta.shown}
+            {meta}
           </Text>
         ) : undefined
       }

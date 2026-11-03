@@ -186,6 +186,8 @@ export const V4 = {
   light: {
     page: "#f1f3f7",
     card: "#ffffff",
+    // A neutral pill's fill on a card ("7 hari", "Belum ditagih", "Tidak wajib"): a step off the card in both themes.
+    chip: "#f1f3f7",
     line: "#e6e9ef",
     fg: "#14171c",
     fg2: "#3f4652",
@@ -209,6 +211,8 @@ export const V4 = {
   dark: {
     page: "#0c0e12",
     card: "#171a20",
+    // Lighter than the card, not the page's black: on the page's colour a pill read as a hole in the card (judge round 5).
+    chip: "#2a2f39",
     line: "#262a33",
     fg: "#eef0f4",
     fg2: "#c8cdd6",

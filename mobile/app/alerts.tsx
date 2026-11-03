@@ -16,7 +16,7 @@ import { useBridge, useDataset, useStatus } from "../../src/app/store";
 import type { Alert, AlertKind } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
-import { changeMeta } from "../src/parts/change-meta";
+import { changeLines } from "../src/parts/change-meta";
 import { usePerfDrawn } from "../src/perf";
 import { IconButton } from "../src/ui/controls";
 import { CourseIconTile } from "../src/ui/course-icon-tile";
@@ -136,8 +136,7 @@ export default function Alerts() {
           <Group>
             {day.items.map((item, i) => {
               const unread = isUnread(item);
-              const title = t(item.title.key, item.title.vars);
-              const body = changeMeta(t, item.body);
+              const { title, meta, spoken } = changeLines(t, item);
               const time = f.time(item.at);
               return (
                 <GroupRow
@@ -145,7 +144,7 @@ export default function Alerts() {
                   testID={`row.alert.${item.id}`}
                   first={i === 0}
                   // Unread first in what's read out, as the dot says it to the eye.
-                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, title, body?.full, time)}
+                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken, time)}
                   leading={<KindTile item={item} />}
                   title={
                     <Text size="bodyLarge" weight={unread ? "semibold" : undefined} numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
@@ -155,9 +154,9 @@ export default function Alerts() {
                   // One meta line, what changed (short where the desktop's runs long, ../src/parts/change-meta.ts); the time at
                   // the row's end.
                   meta={
-                    body ? (
+                    meta ? (
                       <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
-                        {body.shown}
+                        {meta}
                       </Text>
                     ) : undefined
                   }

@@ -22,12 +22,12 @@ import { useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { Figure, FigureLabel, Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
+import { Figure, FigureCell, FigureDash, FigureRow, Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
-import { font, space, TOUCH, useTheme } from "../../ui/theme";
+import { space, TOUCH, useTheme } from "../../ui/theme";
 import { shownIndex } from "../grades/transcript";
 
 type IconKind = (typeof Icons)[keyof typeof Icons];
@@ -127,26 +127,16 @@ const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
           </Text>
         ) : null}
         {/* Side by side while they fit; at a big font size the SKS goes under the IPK. */}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[8], rowGap: space[3] }}>
-          <View>
-            <FigureLabel>{t("grades.chart.ipk")}</FigureLabel>
-            {ipk === null ? <Dash size={44} /> : <Figure id="academic.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
-          </View>
-          <View>
-            <FigureLabel>{t("grades.sksPassed")}</FigureLabel>
-            {sks === null ? <Dash size={32} /> : <Figure id="academic.sks" value={sks} unit={of} size={32} />}
-          </View>
-        </View>
+        <FigureRow>
+          <FigureCell label={t("grades.chart.ipk")}>
+            {ipk === null ? <FigureDash /> : <Figure id="academic.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
+          </FigureCell>
+          <FigureCell label={t("grades.sksPassed")}>{sks === null ? <FigureDash /> : <Figure id="academic.sks" value={sks} unit={of} />}</FigureCell>
+        </FigureRow>
       </Panel>
     </View>
   );
 });
-
-/** A figure with nothing to count: "-" in the figure's face and size. */
-function Dash({ size }: { size: number }) {
-  const v = useTheme().v4;
-  return <Text style={{ fontFamily: font.display.extrabold, fontSize: size, lineHeight: Math.round(size * 1.15), color: v.fg }}>-</Text>;
-}
 
 /** The card's shape while SIX's record is on its way. */
 function StandingSkeleton() {
@@ -160,7 +150,7 @@ function StandingSkeleton() {
         </View>
         <View style={{ gap: space[2] }}>
           <Skeleton width={64} height={14} />
-          <Skeleton width={112} height={32} />
+          <Skeleton width={112} height={44} />
         </View>
       </View>
     </Panel>
