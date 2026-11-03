@@ -17,10 +17,12 @@ export const coursePageStrings = {
   "course.tab.announcements": { id: "Pengumuman", en: "Announcements" },
 
   // Pinned meeting
-  "course.nowUntil": { id: "Sedang berlangsung · sampai {time}", en: "On now · until {time}" },
-  "course.next": { id: "Pertemuan berikutnya", en: "Next meeting" },
+  "course.nowLive": { id: "Sedang berlangsung", en: "On now" },
+  "course.next": { id: "Berikutnya", en: "Next" },
   "course.presenceOpen": { id: "Presensi Edunex dibuka", en: "Edunex Presence open" },
   "course.recordInEdunex": { id: "Catat di Edunex", en: "Record in Edunex" },
+  // The card's step: what to do, beside when it closes (course.closesOn) and its countdown.
+  "course.fillPresence": { id: "Isi Presensi", en: "Fill in Presence" },
   "course.presenceStillOpen": { id: "Presensi Edunex masih dibuka", en: "Edunex Presence still open" },
 
   // Modules and materials
@@ -29,9 +31,8 @@ export const coursePageStrings = {
   "course.courseWide": { id: "Seluruh mata kuliah", en: "Course-wide" },
   "course.module": { id: "Modul {no}", en: "Module {no}" },
   "course.moduleEmpty": { id: "Belum ada isi", en: "Nothing here yet" },
-  // Heard after a greyed module's title; the eye gets course.unopenedNote once per list instead.
+  // Heard after a greyed module's title, and on hover; the eye gets a lock beside the grey.
   "course.unopened": { id: "belum dibuka dosen", en: "not opened yet" },
-  "course.unopenedNote": { id: "Yang abu-abu belum dibuka.", en: "Greyed ones aren't open yet." },
   "course.opensOn": { id: "Dibuka {when}", en: "Opens {when}" },
   "course.noMaterials": { id: "Belum ada materi di Edunex", en: "No materials on Edunex yet" },
   "course.materials": { id: "Materi", en: "Materials" },
@@ -106,10 +107,9 @@ export const coursePageStrings = {
   "meeting.module": { id: "Modul {no} · {title}", en: "Module {no} · {title}" },
   "meeting.untitled": { id: "Kuliah", en: "Class" },
   "meeting.window": { id: "Presensi {range}", en: "Presence {range}" },
-  "meeting.notInSix": { id: "Tidak ada di SIX", en: "Not in SIX" },
+  "meeting.notInSix": { id: "Hanya di Edunex", en: "Edunex only" },
+  "meeting.notInSixWhy": { id: "Diumumkan di Edunex, tidak ada di jadwal SIX.", en: "Announced in Edunex, not on SIX's timetable." },
   // What SIX's count did after a class the app watched (SIX gives totals only, so it's said as the count, never "present")
-  "meeting.sixCounted": { id: "Hitungan SIX bertambah setelah kuliah ini", en: "SIX's count went up after this class" },
-  "meeting.sixNotCounted": { id: "Hitungan SIX tak bertambah setelah kuliah ini", en: "SIX's count didn't go up after this class" },
   "meeting.announced": { id: "Diumumkan di Edunex", en: "Announced on Edunex" },
   "meeting.online": { id: "Daring", en: "Online" },
   "meeting.state.present": { id: "Hadir", en: "Present" },
@@ -121,11 +121,8 @@ export const coursePageStrings = {
 
   // Tasks and exams
   "course.noTasks": { id: "Tidak ada tugas", en: "No Tasks" },
-  "course.noExamsNoSix": {
-    id: "Belum ada ujian di Edunex. Jadwal ujian dari SIX muncul setelah SIX terhubung.",
-    en: "No exams in Edunex yet. SIX's exam timetable shows once SIX is connected.",
-  },
-  "course.noExams": { id: "Belum ada ujian di SIX maupun Edunex", en: "No exams in SIX or Edunex yet" },
+  "course.noExamsNoSix": { id: "Belum ada ujian di Edunex", en: "No exams in Edunex yet" },
+  "course.noExams": { id: "Belum ada ujian", en: "No exams yet" },
   "course.due": { id: "Tenggat {when}", en: "Due {when}" },
 
   // Announcements
@@ -133,7 +130,8 @@ export const coursePageStrings = {
 
   // Grades and the course-contract calculator
   "grade.edunex": { id: "Nilai di Edunex", en: "Grade on Edunex" },
-  "grade.unpublished": { id: "Buku nilai Edunex belum dirilis dosen", en: "The lecturer hasn't published Edunex's gradebook" },
+  // Under "Nilai di Edunex" (grade.edunex).
+  "grade.unpublished": { id: "Belum dirilis dosen", en: "Not published yet" },
   "grade.example": { id: "Contoh bobot (kontrak kuliah ITB)", en: "Example weights (an ITB course contract)" },
   "grade.yours": { id: "Bobot dari kontrak kuliahmu", en: "Weights from your course contract" },
   "grade.part": { id: "Komponen", en: "Part" },
@@ -172,38 +170,30 @@ export const coursePageStrings = {
     id: "Tanpa SIX, belum pasti Presensi ini dihitung. Catat saja untuk berjaga-jaga.",
     en: "Without SIX it's not certain this Presence counts. Record it just in case.",
   },
-  "course.presenceCountsSix": {
-    id: "Kehadiranmu dihitung di SIX. Presensi ini tidak wajib.",
-    en: "Your attendance counts in SIX. This Presence is optional.",
-  },
   "course.join": { id: "Gabung", en: "Join" },
   "course.online": { id: "Daring", en: "Online" },
   "course.risk.best": {
     id: "Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di {best}%. Ada yang kamu hadiri tapi tak tercatat? Minta dosen membetulkannya di SIX.",
     en: "Even attending every class left, you'd end at {best}%. Was a class you attended not counted? Ask your lecturer to fix it in SIX.",
   },
+  // The banner's facts, joined by " · ": what to do first. The target is on the header's button.
+  "course.risk.bestShort": { id: "Paling tinggi {best}%", en: "{best}% at most" },
   "course.risk.none": {
-    id: "{count} pertemuan lagi sampai {date}. Hadiri semuanya agar tetap {target}%.",
-    en: {
-      one: "{count} meeting left until {date}. Attend it to stay at {target}%.",
-      other: "{count} meetings left until {date}. Attend them all to stay at {target}%.",
-    },
+    id: "Hadiri {count} pertemuan tersisa, sampai {date}",
+    en: { one: "Attend the {count} meeting left, by {date}", other: "Attend the {count} meetings left, by {date}" },
   },
   "course.risk.noneAbout": {
-    id: "Sekitar {count} pertemuan lagi sampai {date}. Hadiri semuanya agar tetap {target}%.",
-    en: {
-      one: "About {count} meeting left until {date}. Attend it to stay at {target}%.",
-      other: "About {count} meetings left until {date}. Attend them all to stay at {target}%.",
-    },
+    id: "Hadiri sekitar {count} pertemuan tersisa, sampai {date}",
+    en: "Attend every meeting left (about {count}), by {date}",
   },
+  "course.risk.noneAll": { id: "Hadiri semua pertemuan tersisa", en: "Attend every meeting left" },
   "course.risk.noneIfRuns": {
     id: "{target}% hanya masih bisa kalau kuliah di masa ujian atau libur tetap ada. Hadiri semua pertemuan, termasuk yang itu.",
     en: "You can still reach {target}% only if a class in an exam week or holiday still runs. Attend every class, including that one.",
   },
-  "course.risk.noneNoDate": { id: "Hadiri setiap pertemuan yang tersisa agar tetap {target}%.", en: "Attend every meeting left to stay at {target}%." },
-  "course.risk.next": { id: "Pertemuan berikutnya {when}{room}.", en: "Next meeting {when}{room}." },
+  "course.risk.next": { id: "Berikutnya {when}{room}", en: "Next {when}{room}" },
   "course.risk.room": { id: " di {room}", en: " in {room}" },
-  "course.risk.clash": { id: "Bentrok dengan {code} {time}.", en: "Clashes with {code} {time}." },
+  "course.risk.clash": { id: "Bentrok dengan {code} {time}", en: "Clashes with {code} {time}" },
   "course.risk.seePresence": { id: "Ke Presensi", en: "Go to Presence" },
   "offline.files": { id: "{count} berkas · {size}", en: { one: "{count} file · {size}", other: "{count} files · {size}" } },
   "offline.filesNoSize": { id: "{count} berkas", en: { one: "{count} file", other: "{count} files" } },
@@ -228,18 +218,19 @@ export const coursePageStrings = {
 
   // Meetings, the honest attendance story
   "meeting.sixTotalsOnly": {
-    id: "SIX hanya memberi jumlahnya. Di bawah ini catatan Edunex per pertemuan. Yang tidak tercatat di Edunex tetap bisa terhitung di SIX.",
-    en: "SIX gives only the total. Below is Edunex's record of each meeting. One Edunex didn't record can still count in SIX.",
+    id: "SIX hanya memberi jumlahnya. Tanda Hadir di bawah ini dari Presensi Edunex. Yang tidak tercatat di Edunex tetap bisa terhitung di SIX.",
+    en: "SIX gives only the total. Each Present below is from Edunex Presence. A meeting Edunex didn't record can still count in SIX.",
   },
   "meeting.noSixCount": {
     id: "Hitungan resmi ada di SIX. Hubungkan SIX untuk tahu kehadiran mana yang dihitung.",
     en: "The official count is in SIX. Connect SIX to know which attendance counts.",
   },
-  "meeting.edunexCounts": { id: "Kehadiran kelas ini dicatat lewat Presensi Edunex.", en: "This class records attendance through Edunex Presence." },
+  "meeting.edunexCounts": { id: "Kehadiran dicatat lewat Presensi Edunex", en: "Attendance is recorded through Edunex Presence" },
+  // Over the list, where SIX counts (or may): the why (meeting.sixTotalsOnly, meeting.noSixCount) on hover and focus.
+  "meeting.countSix": { id: "Hitungan resmi di SIX", en: "The official count is SIX's" },
   "meeting.next": { id: "Berikutnya", en: "Next" },
   "meeting.edunexPresent": { id: "Tercatat hadir di Edunex", en: "Recorded present in Edunex" },
   "meeting.edunexNotRecordedCounts": { id: "Tidak tercatat di Edunex", en: "Not recorded in Edunex" },
-  "meeting.done": { id: "Selesai", en: "Done" },
   "meeting.examPeriod": { id: "{period} · {from}–{to}", en: "{period} · {from}–{to}" },
 
   // The calculator that can't lie
@@ -257,11 +248,8 @@ export const coursePageStrings = {
   },
   "grade.answer.fix": { id: "Perbaiki angka yang bertanda merah dulu.", en: "Fix the numbers marked in red first." },
   "grade.answer.others": { id: "Huruf lain", en: "Other letters" },
-  "grade.exampleNotice": { id: "Ini contoh bobot, bukan bobot {code}.", en: "These are example weights, not {code}'s." },
-  "grade.exampleHint": {
-    id: "Salin bobot dari kontrak kuliahmu agar hasilnya benar.",
-    en: "Copy the weights from your course contract so the answer is right.",
-  },
+  "grade.exampleNotice": { id: "Bobot contoh, bukan bobot {code}", en: "Example weights, not {code}'s" },
+  "grade.exampleHint": { id: "Salin dari kontrak kuliahmu.", en: "Copy them from your course contract." },
   "grade.openContract": { id: "Buka kontrak kuliah", en: "Open the course contract" },
   "grade.rename": { id: "Ganti nama {part}", en: "Rename {part}" },
   "grade.range": { id: "Isi 0–100", en: "Enter 0–100" },

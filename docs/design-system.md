@@ -304,10 +304,15 @@ the little italic word.
   squeezing them to a word per line (a text block keeps a real `basis-64`),
   nothing runs past the window, and what can't reflow (the week's time grid,
   a tab list) scrolls sideways in its own frame.
-- **Radius**: 5 px keys and tags (`rounded-tag`), 6–8 px buttons and inputs
-  (`rounded-md`, `rounded-lg`), 12 px cards and lists (`rounded-xl`), 16 px
-  raised cards and dialogs (`rounded-2xl`), full for chips and switches. No
-  `rounded-[…]`.
+- **Radius**, by what the corner belongs to, growing with it: `rounded-mark`
+  2 px (a swatch, a pip, a highlight), `rounded-tag` 4 px (tags, keys, inline
+  code), `rounded-item` 6 px (a small control, or an item inside a padded one:
+  a menu item, a segment, a tooltip), `rounded-control` 8 px (buttons, fields,
+  rows that highlight), `rounded-card` 12 px (cards, lists, popovers, toasts),
+  `rounded-dialog` 16 px (dialogs, sheets, the raised card), `rounded-icon`
+  (an app's icon) and `rounded-full` (pills, dots, switches). A corner inside
+  a padded one is the outer less the padding. Not Tailwind's own sizes
+  (`rounded-lg`…) and no `rounded-[…]` (`test/app/ui-rules.test.ts`).
 - **Layers** for what floats over the window, lowest to highest:
   `z-(--z-float)` 40 (over the page, under any dialog: the report question in
   the window's corner, the guide's dimming and card),
@@ -315,10 +320,13 @@ the little italic word.
   `z-(--z-popover)` 60, `z-(--z-tooltip)` 70, `z-(--z-toast)` 80. Inside one
   panel, plain `z-10` and `z-20`. No `z-[…]`.
 - **Depth**: one surface level per region; no card inside a card. Lists and
-  cards sit on the page with a 1 px edge and a faint shadow (`shadow-card`);
-  the one thing that matters most right now is raised (`shadow-raised`);
-  quiet areas inside are sunken (`bg-sunken`). Floating things cast real
-  shadows: `shadow-pop` (tooltips, toasts, popovers), `shadow-dialog`.
+  cards sit on the page with a 1 px edge and no shadow; the one thing that
+  matters most right now is raised (`shadow-raised`); quiet areas inside are
+  sunken (`bg-sunken`). Only what floats over the window casts a shadow:
+  `shadow-popover` (tooltips, menus, toasts, popovers) and `shadow-dialog`.
+  `shadow-button` and `shadow-thumb` are the controls' own material (a primary
+  button's bevel, a switch's knob, the picked segment), not elevation. A focus
+  ring drawn inside a pane is `focus-ring-inset`.
 
 ## Motion
 
@@ -329,7 +337,9 @@ replay entrances.
 
 **Timings.** Tokens in `styles.css`; JS animation reads the same numbers from
 `src/app/ui/motion/tokens.ts`, in milliseconds and CSS easing strings (a test
-keeps them equal).
+keeps them equal). In classes they're `duration-quick`, `duration-base` and
+`duration-slow`, never a number (`duration-150`); a transition that names
+none takes the quick one. The first run keeps its own timings.
 
 | Token | Value | For |
 |---|---|---|
@@ -407,10 +417,14 @@ keeps them equal).
 
 ## Icons
 
-Phosphor (`src/app/ui/icons.tsx`; MIT), each icon imported on its own so only
-the ones in use ship. Regular weight by default; bold where a small icon has
-to read clearly or stand out (chips, notices, a moved class); fill for the
-place the Student is in (the sidebar's current screen). Sizes: 12 to 14 px in
+Microsoft's Fluent UI System Icons (`src/app/ui/icons.tsx`; MIT), drawn for
+desktop apps, from the headless build (plain SVG, no styling runtime), each
+icon imported on its own so only the ones in use ship. Each icon draws the
+form Fluent made for the size it shows at: 16 px and under, the 16 px one;
+above, the 20 px one, so its lines stay crisp. Regular by default; filled
+(`weight="bold"` or `"fill"`) where a small icon has to read clearly or stand
+out (chips, notices, a moved class) and for the place the Student is in (the
+sidebar's current screen). Sizes: 12 to 14 px in
 chips and meta lines, 16 px in rows and buttons, 18 px in the top bar. Icons
 are decorative; the control around them carries the name.
 
@@ -506,6 +520,47 @@ window; never at 100%), the sidebar folds to a rail of icons, course dots
 (each with its code under it, in micro type) and counts that scrolls: the
 words stay as the controls' names and in their tooltips. The data status gives up its words, down to its mark, before
 anything runs past the window. Every screen sits in its own crash guard.
+
+## Less to read
+
+Reading a screen should never feel like reading a page. A screen says each
+thing once, in as few words as still mean it, and lets pictures carry state.
+Beranda went from 332 visible words to 160 this way, losing no fact.
+
+1. **One fact, one place.** Each fact shows once per screen, where the
+   Student acts on it. A class shown on the now card isn't a row in Hari ini;
+   a target out of reach on today's row isn't also in Perlu perhatianmu; a
+   change already shown above isn't in Yang berubah.
+2. **The picture carries the state.** A meter, a dot, an icon or a
+   countdown bar says it; the words keep only the key number or one word
+   ("sisa 1×", "habis", "tutup 09:30"). No label repeating what the picture
+   shows ("Jatah absen · Terpakai 2× · habis" beside the bar). The full
+   count stays in the picture's accessible name and hover text.
+3. **The why is a tooltip away.** Advice and how-to ("Pilih ini kalau…",
+   "Aplikasi memeriksa tiap 2 menit", "cek ke dosen…") go into a tooltip, or
+   the screen that owns the topic. The action and its deadline never move
+   there: only the explanation. Parts in `src/app/ui/explain.tsx`:
+   - `Explained`: a status in a meta line, dotted underneath, its why on
+     hover and focus ("Jam berubah" → "Biasanya 08:00–09:30").
+   - `WhyButton`: an info button beside a row's statuses (a button can't sit
+     in a row's button), shown while its row (`group/row`) is hovered or
+     focused and always where there's no hover. The one exception to "never
+     hidden until hover" (Layout parts): what it hides is an explanation, and
+     the statuses it explains stay on screen.
+   - `StatusLine`: a row's one line of statuses, each an icon and a few words
+     in its tone (`STATUS_TONE`).
+4. **One status line per row, said as what to do.** At most two statuses,
+   each 1 to 3 words, most pressing first ("Tak bisa capai 80%", "Bentrok",
+   "Wajib hadir"), not the condition behind them ("Jatah absen habis").
+5. **No sentences in a list or on a card.** A screen's intro line under its
+   title is one short sentence at most, or none. A sentence that remains is
+   the answer (principle 1), not a description of what's below.
+6. **Leave out what the Student knows or can't use here.** Today's date (the
+   system shows it), the semester on every screen, "Kelas 01 · 3 SKS" on every
+   row (the course page has it).
+
+Measure it: `document.querySelector("main").innerText` split on whitespace,
+in the demo at 1280×800, before and after.
 
 ## Copy
 

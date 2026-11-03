@@ -1,6 +1,7 @@
 // A week as a time grid: a column per day under a time axis, so a block's
-// height is its length and things that share time sit side by side. Days
-// with nothing on them shrink, so busy days get the room; today and special
+// height is its length and things that share time overlap or sit side by
+// side. Days keep one width, so each sits in the same place every week (an
+// empty weekend day may shrink); today and special
 // periods (an exam week, a holiday) are tinted; a band over the columns
 // names a period ("Masa UTS · 12–16 Okt"); a lane under the day headers
 // holds what isn't a place to be (deadlines); a red line marks now. Screens
@@ -19,9 +20,9 @@ export interface GridDay {
   /** The day's name for screen readers ("Kamis, 8 Oktober"). */
   label: string;
   head: ReactNode;
-  /** wide: shares the free width; narrow: an empty weekday; slim: an empty weekend day. */
-  size: "wide" | "narrow" | "slim";
-  /** A wide day's most blocks side by side (a clash): each keeps room for its time and code. */
+  /** wide: shares the free width, the same for every wide day; slim: an empty weekend day. */
+  size: "wide" | "slim";
+  /** A wide day's most blocks side by side: each keeps room for its start and code (every wide day gets that room). */
   lanes?: number;
   /** today, or a period without regular lectures (exam week, holiday). */
   tone?: "today" | "off" | null;
@@ -44,17 +45,17 @@ export interface GridBand {
 }
 
 const AXIS = 48;
-const SIZE = { narrow: "56px", slim: "36px" } as const;
+const SLIM = "40px";
 /**
- * A busy day shares the free width, but never narrower than its blocks need: 6.25rem for a day of blocks one under
- * another (five of them still fit the smallest window), 7rem for each block side by side in a clash, so each keeps
- * its time and code. Where the days can't all have that (a narrow window, zoomed in), the grid scrolls sideways in
- * its own frame instead, the next day showing at the edge.
+ * Wide days share the free width equally, so Monday is where it was last week however busy each day is. None is
+ * narrower than its blocks need: 6rem for blocks one under another (five weekdays and two slim weekend days still
+ * fit the smallest window), 4.5rem for each block side by side, so each keeps its start and code. Where the days
+ * can't all have that (a narrow window, zoomed in), the grid scrolls sideways in its own frame instead, the next day
+ * showing at the edge.
  */
-const columnOf = (day: GridDay) => {
-  if (day.size !== "wide") return SIZE[day.size];
-  const lanes = day.lanes ?? 1;
-  return `minmax(${lanes > 1 ? 7 * lanes : 6.25}rem,1fr)`;
+const wideColumn = (days: readonly GridDay[]) => {
+  const lanes = Math.max(1, ...days.filter((day) => day.size === "wide").map((day) => day.lanes ?? 1));
+  return `minmax(${lanes > 1 ? 4.5 * lanes : 6}rem,1fr)`;
 };
 
 const GridContext = createContext<{ hours: Hours; hourHeight: number }>({ hours: { from: 420, to: 1080 }, hourHeight: 44 });
@@ -83,7 +84,8 @@ export function TimeGrid({
   hourHeight?: number;
   className?: string;
 }) {
-  const columns = `${AXIS}px ${days.map(columnOf).join(" ")}`;
+  const wide = wideColumn(days);
+  const columns = `${AXIS}px ${days.map((day) => (day.size === "wide" ? wide : SLIM)).join(" ")}`;
   const lane = days.some((day) => day.lane);
   const height = ((hours.to - hours.from) * hourHeight) / 60;
   const rows = lane ? `auto auto ${height}px` : `auto ${height}px`;
@@ -108,7 +110,7 @@ export function TimeGrid({
               line.map((band) => (
                 <div
                   key={band.key}
-                  className="flex h-6 min-w-0 items-center gap-1.5 rounded-md bg-(--source-itb-bg) px-2 text-caption font-semibold text-(--source-itb-fg)"
+                  className="flex h-6 min-w-0 items-center gap-1.5 rounded-item bg-(--source-itb-bg) px-2 text-caption font-semibold text-(--source-itb-fg)"
                   style={{ gridColumn: `${band.from + 2} / ${band.to + 3}`, gridRow: row + 1 }}
                 >
                   {band.label}
@@ -162,6 +164,9 @@ export function TimeGrid({
   );
 }
 
+/** How far right a block that starts over another is moved (GridBlock's `depth`). */
+const INDENT = 14;
+
 function NowLine({ minute }: { minute: number }) {
   const y = useY();
   return (
@@ -176,13 +181,16 @@ function NowLine({ minute }: { minute: number }) {
 
 /**
  * A block in a day, placed by its time: `start` and `end` in minutes after
- * midnight, `column` of `columns` when it shares time with others.
+ * midnight, `column` of `columns` when it shares time with others side by
+ * side; `depth` when it starts over one still running, drawn above it and
+ * moved right so the one under it shows down its left edge.
  */
 export function GridBlock({
   start,
   end,
   column = 0,
   columns = 1,
+  depth = 0,
   minHeight = 22,
   className,
   children,
@@ -191,6 +199,7 @@ export function GridBlock({
   end: number;
   column?: number;
   columns?: number;
+  depth?: number;
   minHeight?: number;
   className?: string;
   children: ReactNode;
@@ -199,8 +208,12 @@ export function GridBlock({
   const top = y(start);
   const height = Math.max(minHeight, y(end) - top);
   const width = 100 / columns;
+  const indent = depth * INDENT;
   return (
-    <div className={cx("absolute z-10 px-[3px] pt-px", className)} style={{ top, height, left: `${column * width}%`, width: `${width}%` }}>
+    <div
+      className={cx("absolute px-[3px] pt-px", className)}
+      style={{ top, height, left: `calc(${column * width}% + ${indent}px)`, width: `calc(${width}% - ${indent}px)`, zIndex: 10 + depth }}
+    >
       {children}
     </div>
   );

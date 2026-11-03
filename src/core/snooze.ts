@@ -139,8 +139,8 @@ function ownTerms(need: NeedDraft, now: number): Snoozable {
     case "presence": {
       const { opensAt, closesAt } = need.session;
       if (!need.open) return { key, cap: opensAt, moment: { kind: "opens", at: opensAt }, untilChange: later };
-      // Where SIX counts it's optional: hiding it until it closes costs nothing. Otherwise back before it closes.
-      return { key, cap: need.countedIn === "six" ? closesAt : closesAt - 15 * MINUTE, moment: null, untilChange: false };
+      // Back before it closes, in time to do it.
+      return { key, cap: closesAt - 15 * MINUTE, moment: null, untilChange: false };
     }
     case "task": {
       const { task } = need;

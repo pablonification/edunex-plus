@@ -1,10 +1,9 @@
 // Each term course's attendance as the screens show it (#85): SIX's count,
 // what's left before the course's target (its own, or the Student's
 // default), where it counts, the next Edunex Presence window, the windows
-// open now with the action that counts in each and whether doing it counts
-// at all, what SIX's count did after today's class, and the answer when its
-// next class clashes with another course's. The Presensi screen, its sidebar
-// badge and the course header read it.
+// open now with the action that counts in each, what SIX's count did after
+// today's class, and the answer when its next class clashes with another
+// course's. The Presensi screen, its sidebar badge and the course header read it.
 import { useMemo } from "react";
 import {
   type AttendanceHealth,
@@ -43,8 +42,6 @@ export interface OpenWindow {
   session: PresenceSession;
   action: PresenceAction;
   health: AttendanceHealth | undefined;
-  /** Doing it may count: Edunex keeps the course's count, or nobody can say yet. False where only SIX counts: optional. */
-  counts: boolean;
 }
 
 export interface Attendance {
@@ -132,7 +129,6 @@ export function useAttendance(): Attendance | undefined {
         course: courses.find((c) => c.code === code),
         action: presenceAction(session, tasks ?? []),
         health,
-        counts: health?.countedIn !== "six",
       };
     });
     return {

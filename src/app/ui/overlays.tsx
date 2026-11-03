@@ -115,7 +115,7 @@ export function Dialog({
             // Sized to what it shows, the dialog would shrink and re-centre as a search on the page narrows it,
             // moving the box the Student types in (the search palette hangs from the top for the same reason).
             back && "h-[min(720px,86vh)]",
-            "rounded-2xl bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "rounded-dialog bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
             className,
           )}
@@ -180,7 +180,7 @@ export function ConfirmDialog({
           onCloseAutoFocus={onCloseAutoFocus}
           onClickCapture={ignoreClosingClick}
           className={cx(
-            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(420px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-dialog bg-raised p-5 text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
           )}
         >
@@ -231,7 +231,7 @@ export function Tooltip({
           sideOffset={6}
           // Grows from its control after the wait; moving on to the next control shows its tooltip at
           // once (instant-open), and the one before goes at once, so two never show together.
-          className="z-(--z-tooltip) max-w-[300px] origin-(--radix-tooltip-content-transform-origin) rounded-md bg-tooltip-bg px-2 py-1 text-caption text-tooltip-fg shadow-pop motion-safe:data-[state=delayed-open]:animate-popover-in"
+          className="z-(--z-tooltip) max-w-[300px] origin-(--radix-tooltip-content-transform-origin) rounded-item bg-tooltip-bg px-2 py-1 text-caption text-tooltip-fg shadow-popover motion-safe:data-[state=delayed-open]:animate-popover-in"
         >
           {content}
         </TooltipPrimitive.Content>
@@ -277,9 +277,19 @@ export function Popover({
   const onOpenAutoFocus = (event: Event) => {
     returnFocus.onOpenAutoFocus();
     const target = initialFocus?.();
-    if (!target) return;
-    event.preventDefault();
-    target.focus();
+    if (target) {
+      event.preventDefault();
+      target.focus();
+      return;
+    }
+    // A status whose why is a tooltip (ui/explain.tsx) first in the panel: focus on it would open its tooltip over the
+    // panel by itself. The panel takes focus instead; Tab reaches the status, and its why, next.
+    const panel = event.target instanceof HTMLElement ? event.target : null;
+    const first = panel?.querySelector<HTMLElement>('button:not([disabled]), [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (panel && first?.hasAttribute("data-explained")) {
+      event.preventDefault();
+      panel.focus();
+    }
   };
   return (
     <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
@@ -299,7 +309,7 @@ export function Popover({
           // Grows from its control, so it shows which side it opened on, and fades as it closes. Never bigger
           // than the room the window leaves it (zoomed in, a short window): it scrolls inside instead.
           className={cx(
-            "no-drag z-(--z-popover) max-h-(--radix-popover-content-available-height) max-w-(--radix-popover-content-available-width) origin-(--radix-popover-content-transform-origin) overflow-y-auto overscroll-contain rounded-xl border border-edge bg-raised text-fg shadow-pop focus:outline-none",
+            "no-drag z-(--z-popover) max-h-(--radix-popover-content-available-height) max-w-(--radix-popover-content-available-width) origin-(--radix-popover-content-transform-origin) overflow-y-auto overscroll-contain rounded-card border border-edge bg-raised text-fg shadow-popover focus:outline-none",
             "motion-safe:data-[state=open]:animate-popover-in motion-safe:data-[state=closed]:animate-popover-out",
             className,
           )}
@@ -481,7 +491,7 @@ function Toast({ item }: { item: ToastItem }) {
         }}
         onBlur={(event) => !event.currentTarget.contains(event.relatedTarget) && releaseClock(item.id, "focus")}
         className={cx(
-          "pointer-events-auto flex max-w-xl items-center gap-2.5 rounded-xl py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-pop",
+          "pointer-events-auto flex max-w-xl items-center gap-2.5 rounded-card py-2.5 pr-2.5 pl-3.5 text-small font-medium shadow-popover",
           // The neutral toast is the theme turned over, so its focus ring is the light theme's blue in dark too (3:1 on it).
           item.tone === "danger" ? "bg-danger-bg text-danger-fg" : "bg-tooltip-bg text-tooltip-fg [--focus:var(--accent)]",
         )}
@@ -497,7 +507,7 @@ function Toast({ item }: { item: ToastItem }) {
               item.action?.onClick();
               dismiss(item.id);
             }}
-            className="focus-ring -my-1 rounded-md px-2 py-1 font-semibold underline-offset-2 hover:underline"
+            className="focus-ring -my-1 rounded-item px-2 py-1 font-semibold underline-offset-2 hover:underline"
           >
             {item.action.label}
           </button>

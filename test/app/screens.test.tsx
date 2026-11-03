@@ -83,10 +83,11 @@ describe("first run", () => {
 describe("Home", () => {
   it("greets the Student by name and lists this term's Edunex courses, the parent class merged", async () => {
     screen = await openApp({ signedIn: true });
-    expect(screen.text()).toContain("Kamis, 8 Oktober · Semester 1 2026/2027");
+    // The greeting alone: the system shows the date, and the course page each course's class.
     expect(screen.text()).toContain("Selamat pagi, Dimas");
+    expect(screen.text()).not.toContain("Kamis, 8 Oktober");
     expect(cards().map((card) => card.slice(0, 6))).toEqual(COURSES.map(([code]) => code));
-    expect(cards().every((card) => card.includes("Kelas 01"))).toBe(true);
+    expect(cards().some((card) => card.includes("Kelas 01"))).toBe(false);
     expect(screen.text()).not.toContain("[Parent Class]");
     await live();
   });

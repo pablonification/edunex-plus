@@ -247,6 +247,7 @@ const hooks: DemoHooks = {
   fetchFile: (url, init) => world.fetch(url, init),
   platform,
   relay: run.relay,
+  pressCheckIn: (meetingId) => world.six.closeCheckIn(meetingId),
 };
 
 globalThis.__edunexPlusDemo = hooks;

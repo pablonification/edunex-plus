@@ -32,7 +32,7 @@ export const scheduleStrings = {
   "schedule.room.none": { id: "Ruang belum ada", en: "No room yet" },
   "schedule.room.fromSix": { id: "Ruangnya ada di SIX", en: "The room is in SIX" },
   "schedule.uncertain.short": { id: "Belum pasti", en: "May not run" },
-  "schedule.uncertain.during": { id: "{period}: belum pasti ada kuliah.", en: "{period}: this class may not run." },
+  "schedule.uncertain.during": { id: "{period}: belum pasti ada kuliah", en: "{period}: this class may not run" },
   "schedule.band.uncertain": {
     id: "kuliah lain belum pasti ada, cek pengumuman dosen",
     en: "other classes may not run, so check your lecturers' announcements",
@@ -73,7 +73,10 @@ export const scheduleStrings = {
   "schedule.window.done": { id: "{task} terkumpul", en: "{task} handed in" },
   "schedule.countedIn.six": { id: "Kehadiran dihitung di SIX", en: "Attendance counts in SIX" },
   "schedule.countedIn.edunex": { id: "Kehadiran dicatat di Edunex", en: "Attendance is recorded in Edunex" },
-  "schedule.countedIn.both": { id: "Kehadiran dihitung di SIX dan Edunex", en: "Attendance counts in SIX and Edunex" },
+  "schedule.countedIn.both": {
+    id: "Kehadiran dihitung di SIX, mungkin juga lewat Presensi Edunex",
+    en: "Attendance counts in SIX, and Edunex Presence may count too",
+  },
   "schedule.countedIn.unknown": { id: "Belum ada catatan kehadiran", en: "No attendance record yet" },
   "schedule.countedIn.noSix": { id: "Hitungan resmi kehadiran ada di SIX", en: "The official attendance count is in SIX" },
   "schedule.presenceOpen": { id: "Presensi Edunex dibuka sampai {time}", en: "Edunex Presence open until {time}" },

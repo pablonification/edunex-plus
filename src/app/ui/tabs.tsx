@@ -70,7 +70,7 @@ export function TabBar<T extends string>({
             value={tab.value}
             data-highlight={tab.value}
             className={cx(
-              "focus-ring relative flex shrink-0 items-center rounded-t-sm font-medium whitespace-nowrap text-muted transition-colors duration-150 hover:text-fg data-[state=active]:text-fg",
+              "focus-ring relative flex shrink-0 items-center rounded-t-tag font-medium whitespace-nowrap text-muted transition-colors duration-quick hover:text-fg data-[state=active]:text-fg",
               SIZE[size],
             )}
           >

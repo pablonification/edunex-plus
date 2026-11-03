@@ -75,8 +75,8 @@ describe("what brings a snoozed item back", () => {
     expect(snoozeKey(lateAgain).facts).not.toBe(snoozeKey(again).facts);
   });
 
-  it("a Task whose Presence window is optional (its course counts in SIX): its own item, held through a refresh, back when the deadline moves", async () => {
-    // PL3002 counts in SIX. Its lecturer ties Thursday's window to a Task: the Task keeps its own item, not the window's.
+  it("a Presence window tied to a Task: its item speaks for the Task, held through a refresh, back when the window moves", async () => {
+    // PL3002's lecturer ties Thursday's window to a Task: SIX counts the course too, but the window is never optional.
     const h = await startHome({ now: "2026-10-12T20:00:00+07:00" });
     h.world.edunex.moveDeadline(117873, "2026-10-15T23:59:00+07:00");
     const window = h.world.edunex.schedulePresence(95001, 86778, {
@@ -85,16 +85,16 @@ describe("what brings a snoozed item back", () => {
       patch: { presentable: [{ presentable: "assignment", presentable_id: "117873" }] },
     });
     await h.refresh();
-    expect(needsYou(h.home()).some((n) => n.id === `presence:${window}`)).toBe(false);
-    const key = snoozeKey(need(needsYou(h.home()), "task:117873"));
+    expect(needsYou(h.home()).some((n) => n.id === "task:117873")).toBe(false);
+    const key = snoozeKey(need(needsYou(h.home()), `presence:${window}`));
     const entry: SnoozeEntry = { id: key.id, facts: key.facts, until: at("2026-10-14T07:00:00"), reason: "morning" };
 
     await h.refresh();
-    expect(activeSnooze(snoozeKey(need(needsYou(h.home()), "task:117873")), [entry], h.world.clock.now())).toBe(entry);
+    expect(activeSnooze(snoozeKey(need(needsYou(h.home()), `presence:${window}`)), [entry], h.world.clock.now())).toBe(entry);
 
-    h.world.edunex.moveDeadline(117873, "2026-10-16T23:59:00+07:00");
+    h.world.edunex.keepPresenceOpen(window, "2026-10-16T23:59:00+07:00");
     await h.refresh();
-    expect(activeSnooze(snoozeKey(need(needsYou(h.home()), "task:117873")), [entry], h.world.clock.now())).toBeUndefined();
+    expect(activeSnooze(snoozeKey(need(needsYou(h.home()), `presence:${window}`)), [entry], h.world.clock.now())).toBeUndefined();
   });
 
   it("an exam: new facts when its take-home's deadline moves, since its row says that date", async () => {

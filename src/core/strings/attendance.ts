@@ -47,17 +47,19 @@ export const attendanceStrings = {
   // The Presensi screen: the next class day, on top
   "presence.day.today": { id: "Hari ini ada {count} kuliah.", en: { one: "{count} class today.", other: "{count} classes today." } },
   "presence.day.tomorrow": { id: "Besok ada {count} kuliah.", en: { one: "{count} class tomorrow.", other: "{count} classes tomorrow." } },
+  // The day's answer in one sentence, {day} being presence.day.when.*: how many classes that day is left out.
+  "presence.day.when.today": { id: "Hari ini", en: "today" },
+  "presence.day.when.tomorrow": { id: "Besok", en: "tomorrow" },
   "presence.day.only": {
-    id: "Hanya {codes} yang masih ada jatah absen.",
-    en: { one: "Only {codes} has an absence to spare.", other: "Only {codes} have an absence to spare." },
+    id: "{day}, hanya {codes} yang masih ada jatah absen.",
+    en: { one: "Only {codes} has an absence to spare {day}.", other: "Only {codes} have an absence to spare {day}." },
   },
-  "presence.day.all": { id: "Semuanya masih ada jatah absen.", en: "Each has an absence to spare." },
-  "presence.day.one": { id: "Masih ada jatah absen.", en: "It has an absence to spare." },
-  "presence.day.none": { id: "Tak ada yang masih punya jatah absen.", en: "None has an absence to spare." },
-  // Some of the day's courses have no SIX count yet: only those with one are named.
+  "presence.day.all": { id: "{day}, semua kuliahnya masih ada jatah absen.", en: "Every class {day} has an absence to spare." },
+  "presence.day.none": { id: "{day}, tak ada yang masih punya jatah absen.", en: "No class {day} has an absence to spare." },
+  // Some of the day's courses have no SIX count yet (or the day has one course): only those with an absence to spare are named.
   "presence.day.some": {
-    id: "{codes} masih ada jatah absen.",
-    en: { one: "{codes} has an absence to spare.", other: "{codes} have an absence to spare." },
+    id: "{day}, {codes} masih ada jatah absen.",
+    en: { one: "{codes} has an absence to spare {day}.", other: "{codes} have an absence to spare {day}." },
   },
   "presence.day.oneNone": { id: "Jatah absennya sudah habis.", en: "It has no absences left." },
   "presence.day.next": { id: "Tak ada kuliah hari ini dan besok. Berikutnya {day}.", en: "No classes today or tomorrow. Your next is {day}." },
@@ -119,6 +121,15 @@ export const attendanceStrings = {
 
   // The absence bar ("Jatah absen"): one segment per absence the target allows this term
   "presence.bar.label": { id: "Jatah absen", en: "Absences" },
+  "presence.key.title": { id: "Cara baca jatah absen", en: "How to read absences" },
+  "presence.key.lead": {
+    id: "Tiap kotak = 1 kali boleh tidak hadir, dan kehadiranmu tetap {target}.",
+    en: "Each box is one class you can miss and still keep {target}.",
+  },
+  "presence.key.left": { id: "Boleh absen 2× lagi", en: "You can miss 2 more" },
+  "presence.key.none": { id: "Hadiri semua sisanya", en: "Go to every class left" },
+  "presence.key.over": { id: "{target} tak bisa lagi tercapai", en: "{target} is out of reach" },
+  "presence.key.gotIt": { id: "Mengerti", en: "Got it" },
   "presence.bar.used": { id: "Terpakai {count}×", en: "{count} used" },
   "presence.bar.noneUsed": { id: "Belum terpakai", en: "None used" },
   "presence.bar.left": { id: "sisa {count}×", en: "{count} left" },
@@ -149,38 +160,45 @@ export const attendanceStrings = {
 
   // A course's row
   "presence.courses": { id: "Mata kuliah", en: "Courses" },
-  // A row's share, labeled: "Kehadiran" before "73% sejauh ini (11 dari 15)", the figure stronger
-  "presence.share.label": { id: "Kehadiran", en: "Attendance" },
-  "presence.share.soFar": { id: "sejauh ini ({attended} dari {held})", en: "so far ({attended} of {held})" },
+  // A row's share as one figure, labeled; the count is in its hover text (presence.row.count)
+  "presence.share.short": { id: "Kehadiran {percent}%", en: "Attendance {percent}%" },
   "presence.row.count": { id: "Kehadiran {percent}% sejauh ini ({attended} dari {held})", en: "Attendance {percent}% so far ({attended} of {held})" },
   "presence.row.final": { id: "Selesai dengan kehadiran {percent}%", en: "Finished at {percent}% attended" },
   "presence.row.ownTarget": { id: "target {value}%", en: "target {value}%" },
   "presence.edunexTally": { id: "Hadir {recorded} dari {closed} di Edunex", en: "Present in {recorded} of {closed} in Edunex" },
   "presence.row.now": { id: "Sedang berlangsung sampai {time}", en: "On now until {time}" },
-  "presence.row.nextToday": { id: "Berikutnya hari ini, {time}", en: "Next class today, {time}" },
-  "presence.row.nextTomorrow": { id: "Berikutnya besok, {time}", en: "Next class tomorrow, {time}" },
-  "presence.row.nextOn": { id: "Berikutnya {day}, {time}", en: "Next class {day}, {time}" },
+  // A row's next class: under the course, its time says it's the next one.
+  "presence.row.nextToday": { id: "Hari ini, {time}", en: "Today, {time}" },
+  "presence.row.nextTomorrow": { id: "Besok, {time}", en: "Tomorrow, {time}" },
+  "presence.row.nextOn": { id: "{day}, {time}", en: "{day}, {time}" },
   "presence.row.window": { id: "Presensi Edunex {when}", en: "Edunex Presence {when}" },
-  "presence.row.windowDo": { id: "Presensi Edunex {when}. {action}.", en: "Edunex Presence {when}. {action}." },
+  "presence.row.windowDo": { id: "Presensi Edunex {when} · {action}", en: "Edunex Presence {when} · {action}" },
   // A window that counts by handing something in: its close is a deadline, not a class's time.
   "presence.row.handIn": { id: "{day}, kumpulkan sebelum {time}", en: "{day}, hand in by {time}" },
   "presence.row.byTime": { id: "{action} sebelum {time}", en: "{action} by {time}" },
-  "presence.row.watching": {
-    id: "Tandai Hadir belum muncul. Aplikasi memeriksa SIX tiap 2 menit.",
-    en: "Tandai Hadir hasn't shown yet. The app checks SIX every 2 minutes.",
+  // A row's one line of statuses (a few words each), their why behind its info button
+  "presence.row.watching": { id: "Tandai Hadir belum muncul", en: "Tandai Hadir not showing yet" },
+  "presence.row.watchingWhy": { id: "Aplikasi memeriksa SIX tiap 2 menit.", en: "The app checks SIX every 2 minutes." },
+  "presence.row.gone": { id: "Tandai Hadir tak tampil lagi", en: "Tandai Hadir no longer showing" },
+  "presence.row.goneWhy": {
+    id: "Sudah kamu tekan, atau sudah ditutup. Aplikasi memeriksa hitungan SIX setelah kuliah.",
+    en: "You pressed it, or it closed. The app checks SIX's count after class.",
   },
-  "presence.row.gone": {
-    id: "Tandai Hadir sudah tidak tampil di SIX. Sudah kamu tekan, atau sudah ditutup. Aplikasi memeriksa hitungan SIX setelah kuliah.",
-    en: "Tandai Hadir is gone from SIX. You pressed it, or it closed. The app checks SIX's count after class.",
-  },
+  "presence.row.askLecturer": { id: "Cek ke dosen", en: "Check with your lecturer" },
+  "presence.row.mustAttend": { id: "Wajib hadir {date}", en: "Don't miss {date}" },
+  "presence.row.maybeNot": { id: "{date} mungkin tak ada", en: "{date} may not run" },
+  "presence.row.clash": { id: "Bentrok dengan {code}", en: "Clashes with {code}" },
+  "presence.row.pickThis": { id: "Pilih ini", en: "Go to this one" },
+  "presence.row.pickOther": { id: "Pilih {code}", en: "Go to {code}" },
+  "presence.row.pickAsk": { id: "Tanya kedua dosen", en: "Ask both lecturers" },
+  "presence.row.labRules": { id: "Cek aturan praktikum", en: "Check the lab's rules" },
   "presence.row.clashEvery": { id: "Bentrok dengan {code} tiap {weekday}, {time}.", en: "Clashes with {code} every {weekday}, {time}." },
   "presence.row.clashOn": { id: "Bentrok dengan {code} {day}, {time}.", en: "Clashes with {code} on {day}, {time}." },
   "presence.row.clashPicked": { id: "Pilih ini kalau hanya bisa hadir di salah satunya.", en: "Go to this one if you can make only one." },
   "presence.row.clashOther": { id: "Kalau hanya bisa hadir di salah satunya, pilih {code}.", en: "If you can make only one, go to {code}." },
   "presence.row.clashAsk": { id: "Tanyakan ke kedua dosen mana yang harus dihadiri.", en: "Ask both lecturers which one to attend." },
   "presence.row.lab": { id: "Praktikum biasanya wajib tiap sesi. Cek aturan praktikumnya.", en: "Labs often need every session. Check the lab's own rules." },
-  "presence.record.bothDo": { id: "Tandai Hadir di SIX, lalu {action} sebelum {time}.", en: "Press Tandai Hadir, then {action} by {time}." },
-  "presence.record.edunexDo": { id: "Presensi Edunex. {action} sebelum {time}.", en: "Edunex Presence. {action} by {time}." },
+  "presence.record.bothDo": { id: "Tandai Hadir, lalu {action} sebelum {time}", en: "Press Tandai Hadir, then {action} by {time}" },
   "presence.warn.uncertain": {
     id: "{date} masuk {period}, jadi kuliahnya mungkin tak ada. Kalau tetap ada, hadiri. Tetap dihitung.",
     en: "{date} is in {period}, so the class may not run. If it runs, go. It still counts.",
@@ -197,10 +215,8 @@ export const attendanceStrings = {
     id: "{date} hari libur. {target}% hanya masih bisa kalau kuliah itu tetap ada dan kamu hadir.",
     en: "{date} is a holiday. You reach {target}% only if that class runs and you go.",
   },
-  "presence.weekNote": {
-    id: "Kuliah di {period} ({range}) mungkin tak ada. Kalau tetap ada, hadiri. Tetap dihitung.",
-    en: "Classes in {period} ({range}) may not run. If one runs, go. It still counts.",
-  },
+  "presence.weekNote": { id: "Kuliah di {period} ({range}) mungkin tak ada", en: "Classes in {period} ({range}) may not run" },
+  "presence.weekNoteWhy": { id: "Kalau tetap ada, hadiri. Tetap dihitung.", en: "If one runs, go. It still counts." },
   "presence.period.uts": { id: "masa UTS", en: "the UTS period" },
   "presence.period.uas": { id: "masa UAS", en: "the UAS period" },
   "presence.period.off": { id: "masa ujian atau libur", en: "an exam week or a holiday" },
@@ -227,6 +243,9 @@ export const attendanceStrings = {
 
   // Two classes at once, today
   "presence.clash.today": { id: "{a} dan {b} bentrok hari ini, {time}", en: "{a} and {b} clash today, {time}" },
+  // The answer on the card, its reason (presence.clash.*) on hover
+  "presence.clash.pick": { id: "Pilih {code}", en: "Go to {code}" },
+  "presence.clash.ask": { id: "Tanya dosennya", en: "Ask the lecturers" },
   "presence.clash.none": {
     id: "Kalau hanya bisa hadir di salah satunya, pilih {code}. Jatah absennya sudah habis.",
     en: "If you can make only one, go to {code}. It has no absences left.",
@@ -258,25 +277,30 @@ export const attendanceStrings = {
     id: "Kalau kamu hadir di kuliah itu, minta dosen membetulkannya. Sampai dibetulkan, {code} tak bisa capai {target}%.",
     en: "If you were in class, ask your lecturer to fix it. Until then, {code} can't reach {target}%.",
   },
+  "presence.six.fix": { id: "Kalau kamu hadir, minta dosen membetulkannya hari ini.", en: "If you were there, ask your lecturer to fix it today." },
   "presence.six.counted": { id: "{codes} sudah dihitung di SIX hari ini.", en: "{codes} counted in SIX today." },
   "presence.six.countedLate": { id: "{code} akhirnya dihitung di SIX.", en: "{code} counted in SIX after all." },
 
   // SIX's "Tandai Hadir" open now in a class
   "presence.checkIn.title": { id: "Tandai Hadir yang dibuka sekarang", en: "Tandai Hadir open now" },
-  "presence.checkIn.class": { id: "{code} · belum kamu tekan · kuliah sampai {time}", en: "{code} · not pressed yet · class until {time}" },
+  "presence.checkIn.class": { id: "{code} · kuliah sampai {time}", en: "{code} · class until {time}" },
 
   // An Edunex Presence window open now that counts
   "presence.open.title": { id: "Presensi yang dibuka sekarang", en: "Presence open now" },
   "presence.now": { id: "Perlu perhatianmu sekarang", en: "Needs you now" },
-  "presence.open.do": { id: "{action} sebelum {time}", en: "{action} by {time}" },
-  "presence.open.counts": { id: "{code} · dicatat lewat Presensi Edunex", en: "{code} · recorded through Edunex Presence" },
-  "presence.open.notKnown": {
-    id: "{code} · belum tahu dihitung di mana. Mengisinya tidak ada ruginya.",
-    en: "{code} · not known yet where it counts. Filling it in costs nothing.",
+  "presence.open.do": { id: "{action} sebelum {time}.", en: "{action} by {time}." },
+  // The card's head: what to do in a word or two (the action itself where it isn't just opening the course), and the close
+  "presence.open.fill": { id: "Isi Presensi", en: "Fill in Presence" },
+  "presence.open.closes": { id: "tutup {time}", en: "closes {time}" },
+  "presence.open.maybe": { id: "belum pasti dihitung", en: "may not count" },
+  "presence.open.countsWhy": { id: "Dicatat lewat Presensi Edunex.", en: "Recorded through Edunex Presence." },
+  "presence.open.notKnownWhy": {
+    id: "Belum tahu dihitung di mana. Mengisinya tidak ada ruginya.",
+    en: "Not known yet where it counts. Filling it in costs nothing.",
   },
-  "presence.open.noSix": {
-    id: "{code} · tanpa SIX, belum pasti ini dihitung. Catat saja untuk berjaga-jaga.",
-    en: "{code} · without SIX it's not certain this counts. Record it just in case.",
+  "presence.open.noSixWhy": {
+    id: "Tanpa SIX, belum pasti ini dihitung. Catat saja untuk berjaga-jaga.",
+    en: "Without SIX it's not certain this counts. Record it just in case.",
   },
   "presence.open.left": { id: "{time} lagi", en: "{time} left" },
   "presence.open.record": { id: "Catat di Edunex", en: "Record in Edunex" },

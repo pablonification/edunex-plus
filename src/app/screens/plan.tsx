@@ -45,7 +45,7 @@ export function PlanScreen({ tab }: { tab?: string }) {
         {builtPlanTabs.map((id) => {
           const Tab = TAB[id];
           return (
-            <Tabs.Content key={id} value={id} className="focus-ring rounded-sm pt-6">
+            <Tabs.Content key={id} value={id} className="focus-ring rounded-tag pt-6">
               {/* Its own crash guard: a tab that breaks leaves the tab bar, and the way to another tab. */}
               <PanelBoundary name={`plan ${id}`}>
                 <Tab onCalendar={() => setCurrent("deadlines")} />

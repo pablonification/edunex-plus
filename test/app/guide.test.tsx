@@ -205,7 +205,7 @@ describe("the tour", () => {
       ],
       [
         "Perlu perhatianmu sekarang",
-        "Presensi · 2 dari 3 · Tandai Hadir yang sedang dibuka, Presensi Edunex kecuali yang tidak wajib, dan kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
+        "Presensi · 2 dari 3 · Tandai Hadir dan Presensi Edunex yang sedang dibuka, serta kuliah yang bentrok. Setelah kuliah, di sini terlihat apakah SIX sudah menghitungmu hadir.",
         "presence-now",
         "Presensi",
       ],

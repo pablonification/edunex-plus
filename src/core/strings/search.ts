@@ -109,20 +109,6 @@ export const searchStrings = {
   },
   "scan.clash.krs": { id: "Pilih yang akan kamu hadiri, atau tanyakan ke dosen.", en: "Pick the one you'll attend, or ask the lecturers." },
 
-  // Counted in SIX while Edunex shows its unused windows as absent
-  "scan.unused.title": {
-    id: "Kehadiran {count} mata kuliah dihitung di SIX, bukan Edunex",
-    en: { one: "{count} course counts attendance in SIX, not Edunex", other: "{count} courses count attendance in SIX, not Edunex" },
-  },
-  "scan.unused.course": {
-    id: "SIX mencatat {code} hadir {attended} dari {held}, jadi abaikan {count} “absen” di Edunex",
-    en: {
-      one: "SIX has {code} at {attended} of {held}, so ignore the {count} “absence” Edunex shows",
-      other: "SIX has {code} at {attended} of {held}, so ignore the {count} “absences” Edunex shows",
-    },
-  },
-  "scan.unused.note": { id: "Tandai Hadir di SIX. Presensi Edunex tidak wajib.", en: "Press Tandai Hadir in SIX. Edunex Presence is optional." },
-
   // Exams
   "scan.exams.title": { id: "{count} ujian akan datang", en: { one: "{count} upcoming exam", other: "{count} upcoming exams" } },
   "scan.exams.at": { id: "{name} {code}: {when}", en: "{name} {code}: {when}" },

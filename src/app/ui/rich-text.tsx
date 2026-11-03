@@ -17,7 +17,7 @@ const BLOCK: Record<string, string> = {
   ol: "my-2 list-decimal pl-5",
   li: "my-0.5",
   blockquote: "my-2 border-l-2 border-line pl-3 text-muted",
-  pre: "my-2 overflow-x-auto rounded-lg bg-fill p-3 font-mono text-small whitespace-pre-wrap",
+  pre: "my-2 overflow-x-auto rounded-control bg-fill p-3 font-mono text-small whitespace-pre-wrap",
   figure: "my-3 first:mt-0 last:mb-0",
   figcaption: "mt-1.5 text-small text-muted",
   thead: "",
@@ -33,9 +33,9 @@ const INLINE: Record<string, string> = {
   em: "italic",
   u: "underline",
   s: "line-through",
-  code: "rounded bg-fill px-1 font-mono text-small",
+  code: "rounded-tag bg-fill px-1 font-mono text-small",
   // CKEditor's highlighter.
-  mark: "rounded-sm bg-warning-bg px-0.5 text-fg",
+  mark: "rounded-tag bg-warning-bg px-0.5 text-fg",
   span: "",
   sub: "",
   sup: "",
@@ -102,7 +102,7 @@ export function WebLink({ href, onOpen, children, className }: { href: string; o
           onOpen(href);
         }}
         className={cx(
-          "focus-ring rounded-sm text-accent-fg underline decoration-accent-fg/40 underline-offset-2 transition-colors duration-150 hover:decoration-accent-fg",
+          "focus-ring rounded-tag text-accent-fg underline decoration-accent-fg/40 underline-offset-2 transition-colors duration-quick hover:decoration-accent-fg",
           className,
         )}
       >
@@ -131,7 +131,7 @@ function InlinePicture({ src, alt, fallback }: RichTextImage & { fallback?: stri
     <img
       src={src}
       alt={alt || fallback || t("image.alt")}
-      className="h-auto max-w-full rounded-lg outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+      className="h-auto max-w-full rounded-control outline -outline-offset-1 outline-black/10 dark:outline-white/10"
     />
   );
 }

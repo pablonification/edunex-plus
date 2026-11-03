@@ -7,7 +7,7 @@
 // and minors with progress; each course's syllabus on SIX's public pages; and
 // the Student's own corrections where SIX's record doesn't match their
 // curriculum, each one marked and reversible.
-import { type ReactNode, type Ref, useEffect, useRef, useState } from "react";
+import { type ReactNode, type Ref, useEffect, useId, useRef, useState } from "react";
 import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../core/curriculum-map";
 import type { CurriculumFix } from "../../../core/models";
 import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
@@ -17,7 +17,8 @@ import { SixPageNote, UnreadNote } from "../../six-page-note";
 import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Bar, Card } from "../../ui/display";
+import { Bar } from "../../ui/display";
+import { Explained } from "../../ui/explain";
 import { Icons } from "../../ui/icons";
 import { Meta, Section } from "../../ui/layout";
 import { Menu, type MenuItem } from "../../ui/menu";
@@ -95,7 +96,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
         body={t("curriculum.needSixBody")}
         action={
           onCalendar && (
-            <button type="button" onClick={onCalendar} className="focus-ring rounded-md px-2 py-1 text-small font-semibold text-accent-fg hover:underline">
+            <button type="button" onClick={onCalendar} className="focus-ring rounded-item px-2 py-1 text-small font-semibold text-accent-fg hover:underline">
               {t("plan.toCalendar")}
             </button>
           )
@@ -165,10 +166,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
       />
       <div className="grid grid-cols-1 items-start gap-6 @4xl:grid-cols-[minmax(0,1fr)_320px]">
         {/* A row reached with Shift+Tab scrolls in at the top edge: its controls keep the pinned bar's height clear, or they'd sit under it. */}
-        <div className="min-w-0 space-y-3 [&_a]:scroll-mt-14 [&_button]:scroll-mt-14">
+        <div className="min-w-0 space-y-6 [&_a]:scroll-mt-14 [&_button]:scroll-mt-14">
           <LeftBar sks={sks} onlyLeft={onlyLeft} onToggle={setOnlyLeft} toggleRef={focus.toggle} />
           {semesters.map((semester) => (
-            <Card key={semester.semester} className="overflow-hidden">
+            // A semester's courses on the page, no box: its heading and the hairlines group them. Pulled out by the rows' padding.
+            <div key={semester.semester} className="-mx-4">
               {/* Its width decides its rows' layout (CourseRow). */}
               <section aria-label={t("planner.semester", { n: semester.semester })} className="@container">
                 <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
@@ -195,9 +197,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
                   </>
                 )}
               </section>
-            </Card>
+            </div>
           ))}
-          {onlyLeft && semesters.length === 0 && <p className="rounded-xl bg-sunken px-4 py-6 text-center text-small text-muted">{t("curriculum.allDone")}</p>}
+          {onlyLeft && semesters.length === 0 && (
+            <p className="rounded-card bg-sunken px-4 py-6 text-center text-small text-muted">{t("curriculum.allDone")}</p>
+          )}
           {onlyLeft && hidden > 0 && semesters.length > 0 && <p className="text-caption text-faint">{t("curriculum.hiddenDone", { count: hidden })}</p>}
         </div>
         <aside className="space-y-6">
@@ -222,7 +226,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   );
 }
 
-/** The curriculum's three numbers, each with its label: the total, required left, electives. */
+/**
+ * The curriculum's name and its two numbers, each with its label: the total and the electives. What's left of the
+ * required courses is the bar's under it (it stays in view), so it's said once. Why SIX's record and the curriculum
+ * differ is a hover or focus away, on the few words that say they do.
+ */
 function Totals({
   whatIf,
   name,
@@ -245,7 +253,7 @@ function Totals({
       <dt className="text-caption font-medium text-muted">{label}</dt>
       <dd className="mt-0.5 text-title font-semibold tabular-nums">{value}</dd>
       {hint && (
-        // Fact by fact, so a narrow column wraps between "12 semester ini" and "6 direncanakan", never inside one.
+        // Fact by fact, so a narrow column wraps between them, never inside one.
         <dd className="text-caption text-muted tabular-nums">
           <Meta>{hint}</Meta>
         </dd>
@@ -254,15 +262,14 @@ function Totals({
   );
   const e = sks.electives;
   return (
-    <Card className="px-6 py-4">
-      <p className="text-small font-medium text-muted">{name}</p>
-      {(startedOn !== null || unlisted > 0) && (
-        <p className="mt-0.5 max-w-[72ch] text-small text-muted">
-          {[startedOn !== null && t("curriculum.startedOn", { from: startedOn, to: year }), unlisted > 0 && t("curriculum.unlistedNote", { count: unlisted })]
-            .filter(Boolean)
-            .join(" ")}
-        </p>
-      )}
+    <div>
+      <Meta className="text-small font-medium text-muted">
+        {name}
+        {startedOn !== null ? (
+          <Explained text={t("curriculum.startedOnShort", { from: startedOn })} why={t("curriculum.startedOn", { from: startedOn, to: year })} />
+        ) : null}
+        {unlisted > 0 ? <Explained text={t("curriculum.unlistedShort", { count: unlisted })} why={t("curriculum.unlistedNote", { count: unlisted })} /> : null}
+      </Meta>
       {whatIf && (
         <p className="mt-0.5 flex items-center gap-1 text-caption font-medium text-info-fg">
           <Icons.Info className="size-3 shrink-0" weight="bold" />
@@ -277,24 +284,20 @@ function Totals({
             ? t("curriculum.totalSplit", { required: sks.requiredNeed, electives: sks.electiveNeed })
             : undefined,
         )}
-        {figure(
-          t("curriculum.requiredLeft"),
-          sks.requiredLeft.count
-            ? t("curriculum.requiredLeftValue", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks })
-            : t("curriculum.requiredNone"),
-          sks.requiredLeft.count > 0 && sks.requiredUnplanned.count === 0 ? t("curriculum.requiredLeftHint") : undefined,
-        )}
         {sks.electiveNeed !== null &&
           figure(
             t("curriculum.electives"),
             <>
-              {t("curriculum.electivesValue", { have: Math.min(e.have, sks.electiveNeed), need: sks.electiveNeed })}
+              {/* Where the electives come from, a hover or focus away: the figure is the answer. */}
+              <Explained
+                text={t("curriculum.electivesValue", { have: Math.min(e.have, sks.electiveNeed), need: sks.electiveNeed })}
+                why={t("curriculum.electivesDetail", { passed: e.passed, now: e.inProgress, planned: e.planned })}
+              />
               {e.extra > 0 && <span className="ml-1.5 text-small font-semibold text-success-fg">+{e.extra}</span>}
             </>,
-            t("curriculum.electivesDetail", { passed: e.passed, now: e.inProgress, planned: e.planned }),
           )}
       </dl>
-    </Card>
+    </div>
   );
 }
 
@@ -312,11 +315,16 @@ function LeftBar({
 }) {
   const t = useT();
   const parts = [
-    sks.requiredLeft.count ? t("curriculum.left.required", { count: sks.requiredLeft.count, sks: sks.requiredLeft.sks }) : t("curriculum.left.requiredNone"),
+    sks.requiredLeft.count
+      ? t(sks.requiredUnplanned.count === 0 ? "curriculum.left.requiredPlanned" : "curriculum.left.required", {
+          count: sks.requiredLeft.count,
+          sks: sks.requiredLeft.sks,
+        })
+      : t("curriculum.left.requiredNone"),
     sks.electiveNeed === null ? null : sks.electives.short ? t("curriculum.left.electives", { sks: sks.electives.short }) : t("curriculum.left.electivesNone"),
   ].filter((part): part is string => part !== null);
   return (
-    <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-canvas px-1 py-2">
+    <div className="sticky top-0 z-10 -mx-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-card bg-canvas px-1 py-2">
       <p className="flex min-w-0 items-start gap-1.5 text-small text-muted" role="status">
         <span className="shrink-0 font-semibold text-fg">{t("curriculum.left")}:</span> <Meta>{parts}</Meta>
       </p>
@@ -419,7 +427,8 @@ function CourseRow({ course, menu, ref }: { course: MapCourse; menu?: MenuItem[]
         <CourseName name={course.name} className={cx(crossed && "text-muted")} />
         {(course.via || course.fix) && (
           <Meta className="text-caption text-muted">
-            {course.via && <span>{t("curriculum.via", { code: course.via.code, name: course.via.name })}</span>}
+            {/* The course that stands in, by its code: its name is a tooltip away (and on the Nilai screen). */}
+            {course.via && <Explained text={t("curriculum.via", { code: course.via.code })} why={`${course.via.code} ${course.via.name}`} />}
             {course.fix && <span className="inline-flex items-center gap-1 whitespace-nowrap">{t("curriculum.fixed")}</span>}
             {course.sixLeft && <span>{t("curriculum.sixStillLeft")}</span>}
           </Meta>
@@ -481,7 +490,7 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
               <button
                 type="button"
                 onClick={() => onPick(c.code)}
-                className="focus-ring grid w-full grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-lg px-1 py-2 text-left hover:bg-hover"
+                className="focus-ring grid w-full grid-cols-[64px_minmax(0,1fr)_auto] items-center gap-3 rounded-control px-1 py-2 text-left hover:bg-hover"
               >
                 <span className="text-small font-semibold tabular-nums">{c.code}</span>
                 <span className="min-w-0">
@@ -509,58 +518,76 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
 }
 
 function Packages({ id, title, packages }: { id: string; title: string; packages: PackageProgress[] }) {
-  const t = useT();
   return (
     <Section id={id} title={title} className="mt-0">
-      <div className="space-y-3">
+      <div className="divide-y divide-line">
         {packages.map((p) => (
-          <Card key={`${p.program ?? ""}${p.name}`} className="px-4 py-3">
-            <p className="flex items-start justify-between gap-3">
-              <span className="min-w-0 flex-1">
-                <span className="block text-small font-semibold">{p.name}</span>
-                {(p.program || p.registered) && (
-                  <Meta className="text-caption text-muted">
-                    {p.program && (
-                      <span className="truncate" title={p.program}>
-                        {p.program}
-                      </span>
-                    )}
-                    {p.registered && (
-                      <span className={p.notContinuing ? undefined : "font-medium text-info-fg"}>
-                        {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}
-                      </span>
-                    )}
-                  </Meta>
-                )}
-              </span>
-              <span className="shrink-0 text-small font-semibold tabular-nums">{t("curriculum.packageSks", { have: p.have, need: p.sks })}</span>
-            </p>
-            <Bar
-              className="mt-2"
-              value={p.sks ? p.have / p.sks : 0}
-              color="var(--meter-success)"
-              label={`${p.name}: ${t("curriculum.packageSks", { have: p.have, need: p.sks })}`}
-            />
-            <ul className="mt-2 space-y-1">
-              {p.courses.map((c) => (
-                <li key={c.code} className="flex items-center gap-2 text-caption">
-                  <span
-                    className={cx(
-                      "w-[56px] font-semibold tabular-nums",
-                      isLeft(c.status) && c.status !== "in-progress" && c.status !== "planned" && "text-muted",
-                    )}
-                  >
-                    {c.code}
-                  </span>
-                  <CourseName name={c.name} className={cx("min-w-0 flex-1", isLeft(c.status) ? "text-muted" : "text-fg")} />
-                  <PackageMark status={c.status} whatIf={c.whatIf} />
-                </li>
-              ))}
-            </ul>
-          </Card>
+          <Package key={`${p.program ?? ""}${p.name}`} p={p} />
         ))}
       </div>
     </Section>
+  );
+}
+
+/**
+ * A specialization or minor: its name, progress and bar. Its course list shows for the one the Student registered
+ * on SIX; the others open it on a click, so the column isn't a wall of course names nobody asked for.
+ */
+function Package({ p }: { p: PackageProgress }) {
+  const t = useT();
+  const [open, setOpen] = useState(p.registered);
+  const listId = useId();
+  return (
+    <div className="py-3 first:pt-0">
+      <p className="flex items-start justify-between gap-3">
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => setOpen(!open)}
+          className="focus-ring -mx-1 flex min-w-0 flex-1 items-start gap-1 rounded-item px-1 text-left"
+        >
+          <Icons.ChevronRight className={cx("mt-0.5 size-3.5 shrink-0 text-faint transition-transform duration-quick", open && "rotate-90")} />
+          <span className="min-w-0 flex-1">
+            <span className="block text-small font-semibold">{p.name}</span>
+            {(p.program || p.registered) && (
+              <Meta className="text-caption font-normal text-muted">
+                {p.program && (
+                  <span className="truncate" title={p.program}>
+                    {p.program}
+                  </span>
+                )}
+                {p.registered && (
+                  <span className={p.notContinuing ? undefined : "font-medium text-info-fg"}>
+                    {t(p.notContinuing ? "curriculum.notContinuing" : "curriculum.registered")}
+                  </span>
+                )}
+              </Meta>
+            )}
+          </span>
+        </button>
+        <span className="shrink-0 text-small font-semibold tabular-nums">{t("curriculum.packageSks", { have: p.have, need: p.sks })}</span>
+      </p>
+      <Bar
+        className="mt-2"
+        value={p.sks ? p.have / p.sks : 0}
+        color="var(--meter-success)"
+        label={`${p.name}: ${t("curriculum.packageSks", { have: p.have, need: p.sks })}`}
+      />
+      <ul id={listId} hidden={!open} className="mt-2 space-y-1">
+        {p.courses.map((c) => (
+          <li key={c.code} className="flex items-center gap-2 text-caption">
+            <span
+              className={cx("w-[56px] font-semibold tabular-nums", isLeft(c.status) && c.status !== "in-progress" && c.status !== "planned" && "text-muted")}
+            >
+              {c.code}
+            </span>
+            <CourseName name={c.name} className={cx("min-w-0 flex-1", isLeft(c.status) ? "text-muted" : "text-fg")} />
+            <PackageMark status={c.status} whatIf={c.whatIf} />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

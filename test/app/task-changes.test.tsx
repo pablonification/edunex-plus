@@ -23,6 +23,11 @@ const section = (id: string) => document.querySelector(`main section[aria-labell
 const needsRow = (title: string) => [...(section("home-needs")?.querySelectorAll("li") ?? [])].find((li) => li.textContent?.startsWith(title))?.textContent;
 const article = () => document.querySelector("main article")?.textContent ?? "";
 const history = () => document.querySelector("main section[aria-labelledby=task-history] ol");
+/** History starts closed: opened the way the Student opens it ("Lihat perubahannya" opens it too). */
+const openHistory = async () => {
+  const button = screen!.button(/^(Riwayat|History)$/);
+  if (button.getAttribute("aria-expanded") !== "true") await screen!.click(button);
+};
 const goToTask = async (title: string) => {
   const s = screen!;
   await s.click(/^(Tugas & Ujian|Tasks & Exams)\d*(, (Perlu perhatianmu|Needs you))?$/);
@@ -98,6 +103,7 @@ describe("a change after hand-in", () => {
     expect(article()).not.toContain("Dosen mengubah tugas ini");
     expect(article()).toMatch(/Sudah dicek hari ini, \d\d:\d\dUrungkan/);
     // History keeps the story.
+    await openHistory();
     expect(history()?.textContent).toContain("Diubah dosen");
     await s.click(/^Urungkan: Sudah dicek/);
     expect(article()).toContain("Dosen mengubah tugas ini");
@@ -113,6 +119,7 @@ describe("other edits", () => {
     await goToTask("Tugas tentang Imfact");
     expect(article()).toContain("Edunex menandai tugas ini berubah pada 8 Okt, tetapi tenggat, instruksi, berkas, dan aturan pengumpulannya tetap sama.");
     expect(s.has("Sudah kucek: Tugas tentang Imfact on Innovation The Economy  Kampus Ganesha · PL3002")).toBe(false);
+    await openHistory();
     expect(history()?.textContent).toContain("Tenggat, instruksi, dan berkas sama");
     await s.click(/^Notifikasi/);
     expect(document.querySelector("[role=dialog]")?.textContent).toContain("Tugas ditandai berubah · PL3002");
@@ -130,6 +137,7 @@ describe("other edits", () => {
 
     await goToTask("Tugas 03 Bab III (judul baru)");
     expect(article()).not.toContain("Dosen mengubah tugas ini");
+    await openHistory();
     await s.click(history()!.querySelector<HTMLElement>("button[aria-expanded]")!);
     expect(history()?.textContent).toContain("Judul: Tugas 03 Bab III → Tugas 03 Bab III (judul baru)");
   });

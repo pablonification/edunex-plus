@@ -1,12 +1,13 @@
 // The Pertemuan tab: SIX's timetable (official time and room) merged with
 // Edunex Presence (the window and what Edunex recorded) and meetings
 // announced only in Edunex text. The attendance story is told honestly: SIX's
-// count is the official one and comes first; Edunex's record per meeting is a
-// quiet second line, and a meeting Edunex didn't record never reads as an
-// absence where SIX is (or, signed out of SIX, may be) the one that counts.
+// count is the official one (the header's meter, and one line over the list);
+// a meeting Edunex recorded says so, and one it didn't says nothing unless
+// Edunex is the only record, so it never reads as an absence where SIX is (or,
+// signed out of SIX, may be) the one that counts.
 // A meeting carries one number only: the name Edunex or SIX gives it.
 import type { ReactNode } from "react";
-import type { AfterClass, CountedIn } from "../../../core/attendance";
+import type { CountedIn } from "../../../core/attendance";
 import { type OutlineEntry, outlineEntries } from "../../../core/course-materials";
 import { type Meeting, meetingModules, meetingState, nextMeetingIndex, wibDay } from "../../../core/course-meetings";
 import { edunexCourseUrl } from "../../../core/links";
@@ -20,6 +21,7 @@ import { useDataset, useStatus } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { EmptyState, LiveDot, Tag } from "../../ui/display";
+import { Explained } from "../../ui/explain";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 import type { CoursePage } from "./data";
@@ -40,13 +42,14 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   const periods = (calendar?.events ?? []).filter((e) => e.kind === "uts" || e.kind === "uas");
   // The exam period a meeting falls in, said once, before its first meeting.
   const periodOf = (meeting: Meeting) => periods.find((p) => wibDay(meeting.start) >= p.firstDay && wibDay(meeting.start) <= p.lastDay);
-  const intro = noEdunexPresence
-    ? t("meeting.noEdunexPresence")
-    : countedIn === "edunex"
-      ? t("meeting.edunexCounts")
-      : course.attendance && presence?.length
-        ? t("meeting.sixTotalsOnly")
-        : null;
+  // Where the count is, in a few words; how SIX and Edunex share it, a tooltip away.
+  const intro = noEdunexPresence ? (
+    t("meeting.noEdunexPresence")
+  ) : countedIn === "edunex" ? (
+    t("meeting.edunexCounts")
+  ) : course.attendance && presence?.length ? (
+    <Explained text={t("meeting.countSix")} why={t("meeting.sixTotalsOnly")} />
+  ) : null;
 
   return (
     <div className="max-w-[960px]">
@@ -56,7 +59,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
           <NoSixIntro recorded={health.edunexRecorded} closed={health.edunexClosed} />
         </div>
       ) : intro ? (
-        <p className="mb-5 max-w-[70ch] text-small text-muted">{intro}</p>
+        <p className="mb-4 text-small text-muted">{intro}</p>
       ) : null}
       {meetings.length === 0 ? (
         sixSignedOut ? (
@@ -65,7 +68,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
           <EmptyState icon={<Icons.Calendar className="size-5" />} title={t("meeting.none")} />
         )
       ) : (
-        <ol className="@container overflow-hidden rounded-xl border border-edge bg-surface shadow-card">
+        <ol className="@container -mx-4">
           {meetings.map((meeting, index) => {
             const period = periodOf(meeting);
             const firstInPeriod = period && (index === 0 || periodOf(meetings[index - 1]) !== period);
@@ -79,7 +82,6 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
                 moduleTitle={meetingModuleTitle(t, modules, meeting)}
                 divider={firstInPeriod ? period : undefined}
                 fallbackUrl={course.edunex ? edunexCourseUrl(course.edunex.courseId) : null}
-                sixResult={meeting.six ? (attendance?.results[meeting.six.id]?.result ?? null) : null}
               />
             );
           })}
@@ -116,10 +118,10 @@ function NoSixIntro({ recorded, closed }: { recorded: number; closed: number }) 
   const { signIn, busy } = useSignIn();
   return (
     <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-      <div className="min-w-0 flex-1">
-        {closed > 0 && <p className="text-lead font-semibold">{t("presence.edunexTally", { recorded, closed })}</p>}
-        <p className="mt-1 max-w-[70ch] text-small text-muted">{t("meeting.noSixCount")}</p>
-      </div>
+      <Meta className="min-w-0 flex-1 text-small text-muted">
+        {closed > 0 ? <span className="text-lead font-semibold text-fg">{t("presence.edunexTally", { recorded, closed })}</span> : ""}
+        <Explained text={t("meeting.countSix")} why={t("meeting.noSixCount")} />
+      </Meta>
       <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
         {t("presence.signInSix")}
       </Button>
@@ -131,8 +133,9 @@ function PeriodDivider({ period }: { period: CalendarEvent }) {
   const t = useT();
   const f = useFormat();
   return (
-    <div className="flex items-center gap-2 border-b border-line bg-warning-bg/50 px-4 py-1.5 text-small font-semibold text-warning-fg">
-      <Icons.GraduationCap className="size-3.5" />
+    // A fact about those weeks, not something to do: quiet, marked by ITB's calendar color on its icon.
+    <div className="flex items-center gap-2 border-b border-line bg-sunken px-4 py-1.5 text-small font-semibold text-muted">
+      <Icons.GraduationCap className="size-3.5 text-(--source-itb-fg)" />
       {t("meeting.examPeriod", {
         period: t(period.kind === "uts" ? "calendar.kind.uts" : "calendar.kind.uas"),
         from: f.dayMonth(dayStart(period.firstDay)),
@@ -150,7 +153,6 @@ function MeetingRow({
   moduleTitle,
   divider,
   fallbackUrl,
-  sixResult,
 }: {
   meeting: Meeting;
   index: number;
@@ -159,8 +161,6 @@ function MeetingRow({
   moduleTitle: string | null;
   divider: CalendarEvent | undefined;
   fallbackUrl: string | null;
-  /** What SIX's count did after this class, where the app saw (never for two classes sharing one count). */
-  sixResult: AfterClass | null;
 }) {
   const t = useT();
   const f = useFormat();
@@ -177,9 +177,9 @@ function MeetingRow({
     presence && (presence.opensAt !== meeting.start || presence.closesAt !== meeting.end) ? f.timeRange(presence.opensAt, presence.closesAt) : null;
   const presenceUrl = presence?.url ?? fallbackUrl;
   const future = meeting.start > now;
-  // An open window asks for you (amber, primary) only where Edunex may be what counts; where SIX counts, or
-  // without SIX (nobody can say), the strip above says it once and the row stays calm.
-  const quiet = countedIn === "six" || countedIn === "noSix";
+  // An open window asks for you (amber, primary): no system says whether the lecturer uses it. Without SIX
+  // (nobody can say), the strip above says it once and the row stays calm.
+  const quiet = countedIn === "noSix";
   // Where it is, how, when its window runs and what the lecturer added: one line of facts, "·" between them.
   const facts = [
     six?.room ? (
@@ -201,25 +201,7 @@ function MeetingRow({
     window ? t("meeting.window", { range: window }) : "",
     presence?.note ?? "",
     announced && !presence && announced.note && !announced.online ? announced.note : "",
-    meeting.notInSix ? (
-      <span key="notInSix" className="font-medium text-warning-fg">
-        {t("meeting.notInSix")}
-      </span>
-    ) : (
-      ""
-    ),
-    sixResult === "counted" ? (
-      <span key="six" className="inline-flex items-center gap-1">
-        <Icons.CheckCircle className="size-3 text-success-fg" weight="bold" />
-        {t("meeting.sixCounted")}
-      </span>
-    ) : sixResult ? (
-      <span key="six" className="font-medium text-warning-fg">
-        {t("meeting.sixNotCounted")}
-      </span>
-    ) : (
-      ""
-    ),
+    meeting.notInSix ? <Explained key="notInSix" text={t("meeting.notInSix")} why={t("meeting.notInSixWhy")} /> : "",
   ];
 
   let status: ReactNode = null;
@@ -240,17 +222,11 @@ function MeetingRow({
         </Meta>
       </Tag>
     );
-  // Not recorded in Edunex: a warning only where Edunex is what counts; where SIX
-  // counts the intro says it once and the row stays quiet; without SIX, a plain fact.
-  else if (state === "unmarked")
-    status =
-      countedIn === "six" ? (
-        <span className="text-small text-faint">{t("meeting.done")}</span>
-      ) : (
-        <span className={cx("text-small", countedIn === "edunex" ? "font-medium text-warning-fg" : "text-faint")}>{t("meeting.edunexNotRecordedCounts")}</span>
-      );
+  // Not recorded in Edunex: said only where Edunex is the only record. Where SIX counts (or may), it says nothing a
+  // student can use, and read row after row it looks like an absence: the line over the list says the count is SIX's.
+  else if (state === "unmarked" && countedIn === "edunex")
+    status = <span className="text-small font-medium text-warning-fg">{t("meeting.edunexNotRecordedCounts")}</span>;
   else if (state === "recorded") status = <span className="text-small text-faint">{t("meeting.state.recorded")}</span>;
-  else if (state === "held") status = <span className="text-small text-faint">{t("meeting.done")}</span>;
   else if (next)
     status = (
       <Tag tone="info" size="md">

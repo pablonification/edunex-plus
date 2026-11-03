@@ -117,7 +117,7 @@ function Corner({ label, onClose, children }: { label: string | null; onClose: (
       data-report-ask
       aria-labelledby={label ? title : undefined}
       aria-label={label ? undefined : t("report.sentTitle")}
-      className="fixed right-5 bottom-5 z-(--z-float) w-[calc(100%-2.5rem)] max-w-sm rounded-2xl border border-edge bg-raised p-4 shadow-pop motion-safe:animate-toast-in"
+      className="fixed right-5 bottom-5 z-(--z-float) w-[calc(100%-2.5rem)] max-w-sm rounded-dialog border border-edge bg-raised p-4 shadow-popover motion-safe:animate-toast-in"
     >
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">

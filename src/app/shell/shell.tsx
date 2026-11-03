@@ -485,7 +485,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
                   aria-current={active ? "page" : undefined}
                   onClick={() => go({ screen } as Route, { keep: true })}
                   className={cx(
-                    "focus-ring relative flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-body max-[52rem]:justify-center max-[52rem]:px-0",
+                    "focus-ring relative flex h-[34px] w-full items-center gap-2.5 rounded-control px-2.5 text-body max-[52rem]:justify-center max-[52rem]:px-0",
                     active ? "bg-selected font-semibold" : "font-medium text-fg/90 hover:bg-hover",
                   )}
                 >
@@ -534,7 +534,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
                         }}
                         onKeyDown={contextKey(course.code)}
                         className={cx(
-                          "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-body max-[52rem]:h-[42px] max-[52rem]:flex-col max-[52rem]:justify-center max-[52rem]:gap-1 max-[52rem]:px-0",
+                          "focus-ring flex h-[34px] w-full items-center gap-2.5 rounded-control px-2.5 text-left text-body max-[52rem]:h-[42px] max-[52rem]:flex-col max-[52rem]:justify-center max-[52rem]:gap-1 max-[52rem]:px-0",
                           active || picking ? "bg-selected" : "hover:bg-hover",
                         )}
                       >
@@ -569,7 +569,7 @@ function Sidebar({ onSettings }: { onSettings: (at?: "courseColors" | null) => v
             type="button"
             data-guide="settings"
             onClick={() => onSettings()}
-            className="focus-ring flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left hover:bg-hover max-[52rem]:h-9 max-[52rem]:justify-center max-[52rem]:py-0"
+            className="focus-ring flex w-full items-center gap-2.5 rounded-control px-2 py-1.5 text-left hover:bg-hover max-[52rem]:h-9 max-[52rem]:justify-center max-[52rem]:py-0"
           >
             <span className="grid size-7 shrink-0 place-items-center rounded-full bg-info-bg text-micro font-bold text-info-fg max-[52rem]:hidden">
               {account ? initials(account.name) : <Icons.User className="size-3.5" />}

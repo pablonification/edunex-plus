@@ -27,7 +27,7 @@ describe("after the first full sync of Edunex and SIX", () => {
   it("lists what neither system tells the Student, most pressing first", async () => {
     const h = await firstSync();
     const findings = scan(h.saved(), h.statuses(), h.world.clock.now());
-    expect(kinds(findings)).toEqual(["attendance", "clash", "unusedPresence", "exams", "notInSix", "edited", "ipk"]);
+    expect(kinds(findings)).toEqual(["attendance", "clash", "exams", "notInSix", "edited", "ipk"]);
 
     // SIX's exact counts against 80%, to ITB's last lecture day (4 Dec): KU5014 can't make it, DK4073 and PL3032 have no
     // absences left. PL3002 has one (its 15 Oct lecture in UTS week may not run, so it isn't counted): an absence still
@@ -52,14 +52,6 @@ describe("after the first full sync of Edunex and SIX", () => {
     expect(clash.overlaps).toEqual([
       { codes: ["KU5014", "PL3032"], count: 5, upcoming: true, start: wib("2026-10-08T16:00:00"), end: wib("2026-10-08T16:30:00") },
     ]);
-
-    // PL3002 is counted in SIX (6 of 7); Edunex recorded 1 of its 6 closed windows, so it would show 5 absences.
-    expect(of(findings, "unusedPresence")).toMatchObject({
-      count: 1,
-      tone: "info",
-      sources: ["edunex", "six"],
-      courses: [{ code: "PL3002", absent: 5, attended: 6, held: 7 }],
-    });
 
     // The exams as Tugas & Ujian lists them: DK4073's UTS (SIX's sitting with time and room, and Edunex's take-home
     // due a week later: one exam in two parts), and PL3032's UTS and UAS, named only in its Edunex outline and
@@ -105,7 +97,7 @@ describe("after the first full sync of Edunex and SIX", () => {
       routes: [{ screen: "grades" }],
     });
     // Everything but what couldn't be read counts as something neither system says.
-    expect(notable(findings)).toBe(7);
+    expect(notable(findings)).toBe(6);
   });
 
   it("says what was read", async () => {
@@ -401,13 +393,6 @@ describe("each line's own rules", () => {
     expect(of(scan(onlyTakeHome, statuses, now), "exams")).toMatchObject({ count: 1, sources: ["edunex"], routes: [{ screen: "exam", examId: "DK4073-UTS" }] });
     const onlySix: Saved = { ...saved, "edunex.tasks": saved["edunex.tasks"]!.filter((t) => t.kind !== "uts"), "edunex.outline": {} };
     expect(of(scan(onlySix, statuses, now), "exams")).toMatchObject({ count: 1, sources: ["six"], routes: [{ screen: "exam", examId: "DK4073-UTS" }] });
-  });
-
-  it("a course whose Edunex record keeps up with SIX isn't flagged as counted elsewhere", async () => {
-    const { saved, statuses, now } = await base();
-    const presence = { ...saved["edunex.presence"]! };
-    presence.PL3002 = presence.PL3002.map((p) => (p.closesAt <= now ? { ...p, recorded: { present: true, at: p.opensAt } } : p));
-    expect(of(scan({ ...saved, "edunex.presence": presence }, statuses, now), "unusedPresence")).toBeUndefined();
   });
 
   it("a meeting announced only in Edunex needs SIX's timetable to be called that, and must still be to come", async () => {

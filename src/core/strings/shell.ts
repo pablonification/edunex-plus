@@ -21,6 +21,8 @@ export const shellStrings = {
   "action.close": { id: "Tutup", en: "Close" },
   "action.cancel": { id: "Batal", en: "Cancel" },
   "action.tryAgain": { id: "Coba lagi", en: "Try again" },
+  // What an info button is called beside a status (ui/explain.tsx), for a screen reader: the why it shows, whole.
+  "action.why": { id: "Penjelasan: {what}", en: "About this: {what}" },
   "action.copyDetails": { id: "Salin detail", en: "Copy details" },
   "action.copied": { id: "Tersalin", en: "Copied" },
   "action.openInEdunex": { id: "Buka di Edunex", en: "Open in Edunex" },

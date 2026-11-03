@@ -24,21 +24,26 @@ import { refocus } from "../snooze-menu";
 import { useDataset } from "../store";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, CourseDot, EmptyState, Skeleton, StatusChip, Tag } from "../ui/display";
+import { Card, CourseDot, EmptyState, Skeleton, StatusChip } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { List, Meta, Notice, Page, PageHeader, Row, Section } from "../ui/layout";
 import { DisclosurePanel, disclosureTrigger } from "../ui/motion/disclosure";
 import { PresenceItem } from "../ui/motion/presence-list";
 import { Tooltip, toast } from "../ui/overlays";
+import { PLAIN_LIST } from "./plain-list";
 import { ExportButton } from "./schedule";
 import { DueWhen, LecturerFile } from "./tasks";
 
 const DAY = 86_400_000;
 
-/** UTS, UAS, Kuis: a quiet label; the date is what stands out. */
+/** UTS, UAS, Kuis: a quiet word in front, no chip; the date is what stands out. */
 function KindLabel({ exam }: { exam: Pick<Exam, "kind"> }) {
   const t = useT();
-  return <Tag>{t(`exam.kind.${exam.kind}`)}</Tag>;
+  return (
+    <span data-exam-kind="" className="shrink-0 font-semibold text-muted">
+      {t(`exam.kind.${exam.kind}`)}
+    </span>
+  );
 }
 
 /** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
@@ -258,7 +263,7 @@ export function PeriodRow({ item, inCourse = false }: { item: Extract<TodoItem, 
         {...disclosureTrigger(open, id)}
         className="focus-ring group flex w-full items-center gap-3.5 px-4 py-3 text-left hover:bg-hover focus-visible:-outline-offset-2 active:bg-selected"
       >
-        <span className="grid size-7 shrink-0 place-items-center rounded-md bg-(--source-itb-bg) text-(--source-itb-fg)">
+        <span className="grid size-7 shrink-0 place-items-center rounded-item bg-(--source-itb-bg) text-(--source-itb-fg)">
           <Icons.Calendar className="size-4" />
         </span>
         <span className="min-w-0 flex-1">
@@ -271,7 +276,7 @@ export function PeriodRow({ item, inCourse = false }: { item: Extract<TodoItem, 
           </span>
           <span className="block text-faint">{f.fromNow(item.state === "during" ? week.end - 1 : week.start)}</span>
         </span>
-        <Icons.ChevronDown className={cx("-mr-1 size-4 shrink-0 text-faint transition-transform duration-150", open && "rotate-180")} />
+        <Icons.ChevronDown className={cx("-mr-1 size-4 shrink-0 text-faint transition-transform duration-quick", open && "rotate-180")} />
       </button>
       <DisclosurePanel open={open} id={id}>
         <ul className="border-t border-line bg-sunken [&>li+li]:border-t [&>li+li]:border-line">
@@ -285,7 +290,6 @@ export function PeriodRow({ item, inCourse = false }: { item: Extract<TodoItem, 
 }
 
 function PeriodExam({ exam }: { exam: Exam }) {
-  const t = useT();
   const { go } = useNav();
   const { name } = useExamCourse(exam);
   return (
@@ -293,12 +297,8 @@ function PeriodExam({ exam }: { exam: Exam }) {
       onClick={() => go({ screen: "exam", examId: exam.id })}
       className="pl-[3.75rem]"
       title={<ExamTitle exam={exam} name={name} />}
-      meta={
-        <Meta truncate>
-          <CourseCode code={exam.courseCode} />
-          {t("exam.dayUnknown")}
-        </Meta>
-      }
+      // The period's own line says its day isn't announced: not again on each exam under it.
+      meta={<CourseCode code={exam.courseCode} />}
     />
   );
 }
@@ -457,17 +457,13 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
         }
         title={name}
         description={
-          exam.at !== null ? (
-            <Meta>
-              {f.dateLong(exam.at)}
-              {f.fromNow(exam.at)}
-            </Meta>
-          ) : exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
-            // As its row says: the week is known, the day and time aren't; once the week is over, they never were.
-            t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")
-          ) : (
-            t("exam.noDate")
-          )
+          // The day itself is on its card under "Kapan dan di mana": here only how far off it is.
+          exam.at !== null
+            ? f.fromNow(exam.at)
+            : exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
+              ? // As its row says: the week is known, the day and time aren't; once the week is over, they never were.
+                t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")
+              : t("exam.noDate")
         }
         actions={<ExportButton />}
       />
@@ -501,10 +497,10 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
           ))}
           {/* The header already says the day isn't known: here only what is, the exam week and where the exam is listed. */}
           {!dated && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
-            <Card className="px-5 py-4">
+            <div>
               <p className="text-heading font-semibold">{examWeekLabel(t, f, exam.kind, exam.week)}</p>
               {exam.inOutline && <p className="mt-1 text-small text-muted">{t("exam.outlineOnly")}</p>}
-            </Card>
+            </div>
           ) : (
             !dated && exam.inOutline && <p className="text-body text-muted">{t("exam.outlineOnly")}</p>
           )}
@@ -522,7 +518,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
                 <button
                   type="button"
                   onClick={() => go({ screen: "course", code: exam.courseCode, tab: "announcements" })}
-                  className="focus-ring rounded text-small font-medium underline-offset-2 hover:underline"
+                  className="focus-ring rounded-tag text-small font-medium underline-offset-2 hover:underline"
                 >
                   {t("examPage.announcements")}
                 </button>
@@ -537,7 +533,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
           <button
             type="button"
             onClick={() => go({ screen: "course", code: exam.courseCode, tab: "announcements" })}
-            className="focus-ring mt-3 flex w-fit items-center gap-0.5 rounded text-small font-medium text-accent-fg hover:underline"
+            className="focus-ring mt-3 flex w-fit items-center gap-0.5 rounded-tag text-small font-medium text-accent-fg hover:underline"
           >
             {t("examPage.checkAnnouncements")}
             <Icons.ChevronRight className="size-3.5" />
@@ -557,7 +553,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
                 key={link.url}
                 type="button"
                 onClick={() => open(link.url)}
-                className="focus-ring inline-flex items-center gap-0.5 rounded font-medium text-accent-fg hover:underline"
+                className="focus-ring inline-flex items-center gap-0.5 rounded-tag font-medium text-accent-fg hover:underline"
               >
                 {link.label}
                 <Icons.ArrowUpRight className="size-3.5 shrink-0" />
@@ -569,13 +565,13 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
 
       {others.length > 0 && (
         <Section id="exam-others" title={t("exam.others")}>
-          <ul className="flex flex-wrap gap-2">
+          <ul className="flex flex-col items-start">
             {others.map((other) => (
               <li key={other.id}>
                 <button
                   type="button"
                   onClick={() => go({ screen: "exam", examId: other.id })}
-                  className="focus-ring inline-flex h-8 items-center gap-2 rounded-lg border border-edge bg-surface px-3 text-small font-medium shadow-card transition-colors duration-150 hover:bg-hover"
+                  className="focus-ring -mx-2 inline-flex h-8 items-center gap-2 rounded-control px-2 text-small font-medium transition-colors duration-quick hover:bg-hover"
                 >
                   <KindLabel exam={other} />
                   <CourseDot color={colorOf(other.courseCode)} className="size-2" />
@@ -584,7 +580,8 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
                     {other.at !== null
                       ? f.dayMonth(other.at)
                       : other.week && (other.kind === "UTS" || other.kind === "UAS")
-                        ? examWeekLabel(t, f, other.kind, other.week)
+                        ? // The kind is in front: its period's days only.
+                          f.dayRange(other.week.firstDay, other.week.lastDay)
                         : t("exam.noDate")}
                   </span>
                 </button>
@@ -607,14 +604,11 @@ function TakeHomeCard({ task }: { task: Task }) {
     <button
       type="button"
       onClick={() => go({ screen: "task", taskId: task.id })}
-      className="focus-ring group flex flex-col rounded-xl border border-edge bg-surface px-5 py-4 text-left shadow-card transition-colors duration-150 hover:bg-hover"
+      className="focus-ring group flex flex-col rounded-card border border-edge bg-surface px-5 py-4 text-left transition-colors duration-quick hover:bg-hover"
     >
       <span className="flex items-center justify-between gap-2 text-small font-medium text-muted">
-        {/* How the app knows it's the exam's take-home, said once where it's shown. */}
-        <Meta>
-          {t("exam.takeHome")}
-          <span className="font-normal">{takeHomeWhy(t, task) ?? ""}</span>
-        </Meta>
+        {/* How the app knows it's the exam's take-home is said once, on its Task page. */}
+        {t("exam.takeHome")}
         {status !== "not_started" && <StatusChip status={status} />}
       </span>
       <span className="mt-1 text-heading font-semibold tabular-nums">{task.dueAt !== null ? dayLabel(f, task.dueAt) : t("exam.noDate")}</span>
@@ -650,7 +644,8 @@ function Study({ exam }: { exam: Exam }) {
     <Section id="exam-study" title={t("examPage.study")}>
       {files.length > 0 && (
         <>
-          <p className="mb-2 text-small font-medium text-muted">{t("examPage.lecturerFiles")}</p>
+          {/* Said only to tell the files from the modules under them. */}
+          {before.length > 0 && <p className="mb-2 text-small font-medium text-muted">{t("examPage.lecturerFiles")}</p>}
           <ul className="mb-6 grid gap-2 sm:grid-cols-2">
             {files.map(({ file, taskId }) => (
               <li key={file.url}>
@@ -667,18 +662,20 @@ function Study({ exam }: { exam: Exam }) {
             <button
               type="button"
               onClick={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
-              className="focus-ring inline-flex items-center gap-0.5 rounded text-small font-medium text-accent-fg hover:underline"
+              className="focus-ring inline-flex items-center gap-0.5 rounded-tag text-small font-medium text-accent-fg hover:underline"
             >
               {t("examPage.openModules")}
               <Icons.ChevronRight className="size-3.5" />
             </button>
           </div>
-          <List label={t("examPage.modulesBefore", { kind: t(`exam.kind.${exam.kind}`) })}>
+          <List label={t("examPage.modulesBefore", { kind: t(`exam.kind.${exam.kind}`) })} className={PLAIN_LIST}>
             {before.map((module, i) => (
               <Row
                 key={module.id}
                 onClick={() => go({ screen: "course", code: exam.courseCode, tab: "modules", module: module.id })}
-                leading={<span className="grid size-6 place-items-center rounded-md bg-fill text-caption font-semibold text-muted tabular-nums">{i + 1}</span>}
+                leading={
+                  <span className="grid size-6 place-items-center rounded-item bg-fill text-caption font-semibold text-muted tabular-nums">{i + 1}</span>
+                }
                 title={module.title}
                 trailing={
                   <span className="text-small text-faint">{count(module.id) ? t("examPage.items", { count: count(module.id) }) : t("examPage.noItems")}</span>
@@ -703,14 +700,14 @@ function BeforeExam({ code }: { code: string }) {
     <div className="mt-3 flex items-center gap-3">
       <Icons.Hand className="size-4 shrink-0 text-muted" />
       <Meta className="flex-1 text-body">
-        <span className="font-medium">{t("examPage.attendance")}</span>
-        <span className="text-muted">{t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })}</span>
-        <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</span>
+        <span className="font-medium tabular-nums">{t("examPage.attendance", { attended: health.attended ?? 0, held: health.held ?? 0 })}</span>
+        {/* A fact beside the exam, not this page's thing to act on: amber only on Presensi; lost stays red. */}
+        <span className={cx("font-semibold", health.state === "none" ? "text-fg" : STATE_TONE[health.state])}>{budgetLabel(t, health)}</span>
       </Meta>
       <button
         type="button"
         onClick={() => go({ screen: "presence" })}
-        className="focus-ring shrink-0 rounded text-small font-medium text-accent-fg hover:underline"
+        className="focus-ring shrink-0 rounded-tag text-small font-medium text-accent-fg hover:underline"
       >
         {t("examPage.seePresence")}
       </button>

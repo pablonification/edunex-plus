@@ -109,7 +109,7 @@ export function SearchPalette({ open, onOpenChange, onSettings }: { open: boolea
           onCloseAutoFocus={onCloseAutoFocus}
           className={cx(
             "fixed top-[12vh] left-1/2 z-(--z-dialog) flex w-[min(620px,calc(100vw-48px))] -translate-x-1/2 flex-col overflow-hidden",
-            "rounded-2xl border border-transparent bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "rounded-dialog border border-transparent bg-raised text-fg shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
           )}
         >
           <DialogPrimitive.Title className="sr-only">{t("search.open")}</DialogPrimitive.Title>
@@ -237,7 +237,7 @@ function Palette({ shown, onClose, onSettings }: { shown: boolean; onClose: () =
                   aria-describedby={detail ? `${optionId(mine)}-detail` : undefined}
                   onMouseMove={() => mine !== current && setActive(mine)}
                   onClick={() => open(item)}
-                  className={cx("flex cursor-default items-center gap-3 rounded-lg px-3 py-2", selected && "bg-selected")}
+                  className={cx("flex cursor-default items-center gap-3 rounded-control px-3 py-2", selected && "bg-selected")}
                 >
                   <ItemMark item={item} color={colorOf(item.code)} />
                   <span className="min-w-0 flex-1">
@@ -308,7 +308,7 @@ function ItemMark({ item, color }: { item: SearchItem; color: string | undefined
             : Icons.Moon
           : { course: Icons.BookOpen, task: Icons.ListChecks, exam: Icons.GraduationCap, module: Icons.LayoutGrid, announcement: Icons.Megaphone }[item.kind];
   return (
-    <span className="relative grid size-7 shrink-0 place-items-center rounded-md bg-fill">
+    <span className="relative grid size-7 shrink-0 place-items-center rounded-item bg-fill">
       <Icon className="size-3.5 text-muted" />
       {item.code && <CourseDot color={color} className="absolute -right-0.5 -bottom-0.5 size-2 ring-2 ring-raised" />}
     </span>

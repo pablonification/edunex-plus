@@ -133,7 +133,7 @@ export function ScheduleScreen() {
           <SixPageNote datasets={["six.schedule"]} className="mb-4" />
           {!input.six && !timetableChanged && <NeedsSix />}
           {unpublished && (
-            <p className="mb-3 flex items-center gap-2 rounded-lg bg-sunken px-3.5 py-2 text-small text-muted">
+            <p className="mb-3 flex items-center gap-2 rounded-control bg-sunken px-3.5 py-2 text-small text-muted">
               <Icons.Info className="size-3.5 shrink-0" />
               {t("schedule.notCovered")}
             </p>
@@ -153,7 +153,7 @@ function NeedsSix() {
   const six = useStatus("six");
   const { signIn, busy } = useSignIn();
   return (
-    <div className="mb-3 flex items-center gap-3 rounded-lg border border-edge bg-sunken py-1.5 pr-1.5 pl-3.5 text-small">
+    <div className="mb-3 flex items-center gap-3 rounded-control border border-edge bg-sunken py-1.5 pr-1.5 pl-3.5 text-small">
       <Icons.Lock className="size-3.5 shrink-0 text-muted" />
       <Meta className="flex-1">
         <span className="font-semibold">{t("schedule.needsSix")}</span>

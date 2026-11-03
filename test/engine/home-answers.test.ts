@@ -12,27 +12,28 @@ const at = (iso: string) => Date.parse(`${iso}+07:00`);
 const ids = (world: HomeWorld) => attention(world, nowCard(world)).map((n) => n.id);
 
 describe("Sekarang", () => {
-  it("the class going on, said plainly: SIX counts it, so being in class is enough; Edunex's open window is optional", async () => {
+  it("the class going on, said plainly: SIX counts it, and its open Edunex window is there to do too, never 'optional'", async () => {
     const h = await startHome();
     const card = nowCard(h.home())!;
     expect(card.state).toBe("live");
-    expect(card.class).toMatchObject({ session: { courseCode: "PL3002", room: "R.SG PWK LT.6", end: at("2026-10-08T10:00:00") }, countedIn: "six" });
-    // The window is there, but it doesn't count: it's a quiet extra, not the thing to do.
-    expect(card.presence).toMatchObject({ code: "PL3002", counts: false, url: "https://edunex.itb.ac.id/courses/95001" });
+    expect(card.class).toMatchObject({ session: { courseCode: "PL3002", room: "R.SG PWK LT.6", end: at("2026-10-08T10:00:00") }, countedIn: "both" });
+    // Edunex recorded the Student once in six windows, but no system says the lecturer doesn't use it: it's on the card to do.
+    expect(card.presence).toMatchObject({ code: "PL3002", edunexOnly: false, url: "https://edunex.itb.ac.id/courses/95001" });
     expect(card.after).toMatchObject({ courseCode: "DK4073", start: at("2026-10-08T11:00:00") });
   });
 
-  it("between classes: the next one today; another course's open window stays in Perlu perhatianmu", async () => {
+  it("between classes: the next one today; another course's window opening then leads the card, the thing to do now", async () => {
     const h = await startHome();
     const id = h.world.edunex.schedulePresence(92948, 84725, { start: "2026-10-08T13:00:00+07:00", end: "2026-10-08T14:30:00+07:00" });
     await h.refresh();
     await h.until("2026-10-08T10:30:00+07:00");
     expect(nowCard(h.home())).toMatchObject({ state: "next", class: { session: { courseCode: "DK4073" } }, presence: null });
-    // KU5014's window opens between classes, but SIX counts KU5014: it doesn't push PL3032 off the card; it's a quiet row.
+    // A window opens between classes: SIX counts its course too, but no system says Edunex's doesn't count, so it's to do now.
     await h.until("2026-10-08T13:01:00+07:00");
     const card = nowCard(h.home())!;
-    expect(card).toMatchObject({ state: "next", class: { session: { courseCode: "PL3032" } }, presence: null });
-    expect(attention(h.home(), card).find((n) => n.id === `presence:${id}`)).toMatchObject({ countedIn: "six" });
+    expect(card).toMatchObject({ state: "presence", class: null, presence: { session: { id }, edunexOnly: false } });
+    // The card speaks for it: the list doesn't repeat it.
+    expect(attention(h.home(), card).find((n) => n.id === `presence:${id}`)).toBeUndefined();
   });
 
   it("the class going on gets its own window, never last week's still open; that one stays in Perlu perhatianmu, for its own class", async () => {
@@ -150,27 +151,35 @@ describe("Sekarang", () => {
     const h = await startHome({ now: "2026-10-16T15:01:00" });
     const card = nowCard(h.home())!;
     expect(card.presence).toMatchObject({ code: "II4091", activity: "assignment", task: { id: 117003 } });
-    expect(card.presence!.counts).toBe(true);
+    expect(card.presence!.edunexOnly).toBe(false);
     expect(card).toMatchObject({ state: "live", class: { session: { courseCode: "II4091" } } });
     // The card speaks for it: the list doesn't repeat it.
     expect(ids(h.home())).not.toContain("presence:2243740");
   });
 
+  it("an older meeting's Teams link is no Join today: the class gets a link only when one is posted for its day", async () => {
+    // Friday 16 October, II4091 on: Edunex's newest online-class link is meeting 3's, "Jumat, 9 Oktober 2026".
+    const h = await startHome({ now: "2026-10-16T15:01:00" });
+    expect(nowCard(h.home())!.class).toMatchObject({ session: { courseCode: "II4091" }, link: null });
+  });
+
   it("without SIX: no class is guessed, an open window alone, and where it counts isn't guessed either", async () => {
     const h = await startHome();
     const world: HomeWorld = { ...h.home(), schedule: null, courses: h.home().courses.map((c) => ({ ...c, six: null })) };
-    expect(nowCard(world)).toMatchObject({ state: "presence", class: null, presence: { code: "PL3002", counts: null } });
+    expect(nowCard(world)).toMatchObject({ state: "presence", class: null, presence: { code: "PL3002", edunexOnly: null } });
   });
 });
 
 describe("Perlu perhatianmu", () => {
-  it("never repeats today: classes, their 'no absences left', today's and tomorrow's meetings stay in Hari ini; a target out of reach stays", async () => {
+  it("never repeats today: classes, their 'no absences left' and a target out of reach, today's and tomorrow's meetings stay in Hari ini", async () => {
     const h = await startHome();
     const world = h.home();
     // needsYou still has them all.
     expect(needsYou(world).map((n) => n.id)).toEqual(expect.arrayContaining(["presence:2194342", "class:2153983", "class:2194402"]));
-    // Next Thursday's UTS is a week ahead, not today: it stays.
-    expect(ids(world)).toEqual(["attendance:KU5014:out", "exam:DK4073-UTS"]);
+    // KU5014 meets at 16:00: its row says it can't reach 80%. Next Thursday's UTS is a week ahead, not today: it stays.
+    expect(ids(world)).toEqual(["exam:DK4073-UTS"]);
+    // Once its class is over, the warning is back here.
+    expect(ids({ ...world, now: Date.parse("2026-10-08T18:00:00+07:00") })).toContain("attendance:KU5014:out");
     // Tomorrow's II4091 meeting is in Hari ini's "Besok".
     expect(todayPlan(world).announced.map((m) => m.code)).toEqual(["II4091"]);
   });

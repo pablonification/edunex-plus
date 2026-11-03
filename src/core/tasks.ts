@@ -3,7 +3,7 @@
 // Student submitted, a short answer window) and its history. Status comes
 // only from the answer's submit bit and the Task's own dates and state: never
 // from a draft's timestamps, and never from Edunex's To Do feed.
-import { type CountedIn, presenceAction, presenceOptional } from "./attendance";
+import { presenceAction } from "./attendance";
 import { htmlText } from "./course-materials";
 import { EDUNEX_WEB } from "./links";
 import type { PresenceSession, SourceState, Task, TaskEdit, TaskModule, TaskStatus } from "./models";
@@ -212,8 +212,6 @@ export interface HandInFacts {
   edunex: SourceState;
   /** The files that would be handed in. */
   files: readonly { name: string }[];
-  /** Where the course's attendance counts: where SIX counts, the attendance window is optional and checks nothing. */
-  countedIn?: CountedIn;
 }
 
 /**
@@ -225,7 +223,7 @@ export function handInChecks(task: Task, facts: HandInFacts): { checks: HandInCh
   const checks: HandInCheck[] = [];
   if (facts.edunex === "offline") checks.push({ kind: "offline", tone: "block" });
   else if (facts.edunex === "expired" || facts.edunex === "signed-out") checks.push({ kind: "expired", tone: "block" });
-  const session = isOpenStatus(taskStatus(task, facts.now)) && !presenceOptional(facts.countedIn) ? attendanceSession(task, facts.sessions, facts.now) : null;
+  const session = isOpenStatus(taskStatus(task, facts.now)) ? attendanceSession(task, facts.sessions, facts.now) : null;
   if (session && !session.recorded?.present) {
     if (facts.now < session.opensAt) checks.push({ kind: "attendanceEarly", tone: "warn", opensAt: session.opensAt, closesAt: session.closesAt });
     else if (facts.now > session.closesAt) checks.push({ kind: "attendanceMissed", tone: "warn", opensAt: session.opensAt, closesAt: session.closesAt });

@@ -24,6 +24,17 @@ const row = (title: string) => rows().find((b) => b.textContent?.startsWith(titl
 const takeHomeRow = (title: string) => rows().find((b) => /Take-home · /.test(b.textContent ?? "") && b.textContent?.includes(title));
 const dateOf = (button: HTMLElement | undefined) => button?.querySelector(".w-\\[136px\\]");
 const card = () => document.querySelector("main aside")?.textContent ?? "";
+/** What the Simpan draf button is described by (said by a screen reader, shown as its tooltip), if anything. */
+const draftExplainer = () => {
+  const id = [...document.querySelectorAll("button")].find((button) => button.textContent === "Simpan draf")?.getAttribute("aria-describedby");
+  return id ? document.getElementById(id)?.textContent : undefined;
+};
+/** History's steps, opened the way the Student opens it: it starts closed. */
+const historySteps = async () => {
+  const button = screen!.button(/^(Riwayat|History)$/);
+  if (button.getAttribute("aria-expanded") !== "true") await screen!.click(button);
+  return [...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent ?? "");
+};
 const goToTask = async (s: NonNullable<typeof screen>, title: string) => {
   await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
   const find = () => row(title) ?? takeHomeRow(title);
@@ -35,7 +46,7 @@ const goToTask = async (s: NonNullable<typeof screen>, title: string) => {
 };
 
 describe("Tugas & Ujian", () => {
-  it("lists every Task to hand in by when it's due, with its course, module and true status", async () => {
+  it("lists every Task to hand in by when it's due, with its course and true status", async () => {
     const s = await open();
     await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     // The counts sit in the segments; no subtitle repeats them.
@@ -44,7 +55,9 @@ describe("Tugas & Ujian", () => {
     // Without SIX or ITB's calendar yet, PL3032's UTS and UAS (named only in its outline) have no date: listed last, not counted.
     expect(sections()).toEqual(["Minggu depan 1", "Nanti 4", "Belum ada tanggal"]);
     const bab2 = row("Tugas 02 Bab II")!.textContent;
-    expect(bab2).toContain("II4091 · Modul 5 · Tugas");
+    // Its course, not its module: the way up to the module is on the Task page.
+    expect(bab2).toMatch(/^Tugas 02 Bab IIII4091Presensi/);
+    expect(bab2).not.toContain("Modul 5");
     expect(bab2).toContain("Belum dikerjakan");
     expect(bab2).toContain("Jum, 16 Okt, 23:59");
     // The late rule and edits before handing in belong on the Task page, not on every row.
@@ -61,7 +74,9 @@ describe("Tugas & Ujian", () => {
     const s = await open();
     await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     // The Tasks' titles (an exam's is its tag and course).
-    const titles = [...document.querySelectorAll<HTMLElement>("main section li button .line-clamp-2")].filter((title) => !title.querySelector(".rounded-tag"));
+    const titles = [...document.querySelectorAll<HTMLElement>("main section li button .line-clamp-2")].filter(
+      (title) => !title.querySelector("[data-exam-kind]"),
+    );
     expect(titles.length).toBe(4);
     for (const title of titles) {
       expect(title.className).not.toContain("truncate");
@@ -138,17 +153,21 @@ describe("Tugas & Ujian", () => {
     const s = await open();
     await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     // II4091's Presence on Friday is set to Answer Assignment: handing in Tugas 02 inside 15:00–23:59 is the attendance.
-    expect(row("Tugas 02 Bab II")!.textContent).toContain("Juga presensi: Jum, 16 Okt 15:00–23:59");
-    expect(row("Tugas Mandiri Individu")!.textContent).not.toContain("presensi");
+    // On the deadline's day, its times are enough; the rule is the row's info button.
+    expect(row("Tugas 02 Bab II")!.textContent).toContain("Presensi 15:00–23:59");
+    expect(
+      s.has("Penjelasan: Tugas ini sekaligus Presensi-mu. Kamu hanya terhitung hadir jika mengumpulkannya di dalam jendelanya, Jum, 16 Okt, 15:00–23:59."),
+    ).toBe(true);
+    expect(row("Tugas Mandiri Individu")!.textContent).not.toMatch(/presensi/i);
     await s.click(row("Tugas 02 Bab II")!);
-    // How the app knows: the lecturer linked the Task to that class's Edunex Presence.
-    expect(s.text()).toContain(
-      "Tugas ini sekaligus Presensi-mu. Kamu hanya terhitung hadir jika mengumpulkannya di dalam jendelanya, Jum, 16 Okt, 15:00–23:59.",
+    // How the app knows: the lecturer linked the Task to that class's Edunex Presence. The window on screen, the rule behind it.
+    expect(s.button(/^Presensi 15:00–23:59\./).getAttribute("aria-label")).toBe(
+      "Presensi 15:00–23:59. Tugas ini sekaligus Presensi-mu. Kamu hanya terhitung hadir jika mengumpulkannya di dalam jendelanya, Jum, 16 Okt, 15:00–23:59.",
     );
   });
 
-  it("where the course counts in SIX, the Task's attendance window is optional: said so in the list and on its page, never pushed", async () => {
-    // PL3002 counts in SIX (6 of 7); its lecturer ties Thursday's Edunex window to Tugas Mandiri Individu anyway.
+  it("where SIX counts the course too, the Task's attendance window is never optional: said in the list and on its page", async () => {
+    // PL3002 has SIX's count (6 of 7); its lecturer ties Thursday's Edunex window to Tugas Mandiri Individu.
     const world = new PretendWorld({ now: "2026-10-12T20:00:00+07:00" });
     world.edunex.schedulePresence(95001, 86778, {
       start: "2026-10-15T08:00:00+07:00",
@@ -158,17 +177,11 @@ describe("Tugas & Ujian", () => {
     screen = await openApp({ signedIn: true, six: true, world });
     const s = screen;
     await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
-    expect(row("Tugas Mandiri Individu")!.textContent).toContain("Juga Presensi Edunex, tidak wajib: Kam, 15 Okt 08:00–23:59");
+    // On another day than the deadline: its day too.
+    expect(row("Tugas Mandiri Individu")!.textContent).toContain("Presensi Kam, 15 Okt, 08:00–23:59");
     await s.click(row("Tugas Mandiri Individu")!);
-    expect(s.text()).toContain(
-      "Mengumpulkan tugas ini pada Kam, 15 Okt, 08:00–23:59 juga mengisi Presensi Edunex. Tidak wajib, karena kehadiran PL3002 dihitung di SIX.",
-    );
-    expect(s.text()).not.toContain("hanya terhitung jika dikumpulkan");
-    // Nothing nudges the Student to wait for the window: Kumpulkan stays the main button once there's a file.
-    s.willPick([{ name: "Projek Inovasi.pdf" }]);
-    await s.click(/^Lampirkan berkas · Lepas berkas di sini/);
-    expect(s.button("Kumpulkan").className).toContain("bg-accent");
-    expect(card()).not.toContain("jendela presensi");
+    expect(s.has(/^Presensi Kam, 15 Okt, 08:00–23:59\. Tugas ini sekaligus Presensi-mu\./)).toBe(true);
+    expect(s.text()).not.toContain("Tidak wajib");
   });
 
   it("counts the Tasks to hand in next to Tugas & Ujian in the sidebar", async () => {
@@ -215,7 +228,7 @@ describe("Tugas & Ujian", () => {
     expect(sections()).toEqual(["Next week 1", "Later 4", "No date yet"]);
     expect(takeHomeRow("UTS Markom")!.textContent).toBe("UTSMarketing CommunicationDK4073 · Take-home · UTS MarkomThu, 22 Oct, 23:50in 14 days");
     expect(row("Tugas 02 Bab II")!.textContent).toContain("Fri, 16 Oct, 23:59");
-    expect(row("Tugas 02 Bab II")!.textContent).toContain("Also your attendance: Fri, 16 Oct 15:00–23:59");
+    expect(row("Tugas 02 Bab II")!.textContent).toContain("Attendance 15:00–23:59");
   });
 
   it("one list in order: an exam sits among the Tasks at its moment, and no Exams section sits on top", async () => {
@@ -228,7 +241,8 @@ describe("Tugas & Ujian", () => {
     const order = rows().map((b) => b.textContent ?? "");
     // The UTS week is a quiet line where it falls (Monday 12 Oct), open within two weeks; then the sitting, Tugas 02, the take-home.
     expect(order[0]).toBe("Masa UTSHari ujian PL3032 belum diumumkan12–16 Oktdalam 4 hari");
-    expect(order[1]).toBe("UTSEkonomi Infrastruktur dan TransportasiPL3032 · Hari dan jamnya belum diumumkan");
+    // The period's line says the day isn't announced: not again under it.
+    expect(order[1]).toBe("UTSEkonomi Infrastruktur dan TransportasiPL3032");
     // A sitting's date column is its day over its time range: be there.
     expect(order[2]).toBe("UTSKomunikasi PemasaranDK4073 · Di kelas · TVST CKam, 15 Okt11:00–12:59");
     expect(order[3]).toMatch(/^Tugas 02 Bab II/);
@@ -424,7 +438,7 @@ describe("the Task page", () => {
     expect(document.querySelector("article")?.textContent).toContain("Tidak bisa terlambat");
     // The exam it's part of, and how the app knows.
     expect(s.text()).toContain("Bagian dari UTS DK4073 · Edunex menandainya UTS");
-    const history = [...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent);
+    const history = await historySteps();
     // Edited before the app had a copy to compare: History says what changed isn't known.
     expect(history).toEqual(["Diunggah dosenKam, 17 Sep, 08:45", "Diubah dosenKam, 24 Sep, 11:11Perubahannya tidak diketahui", "TenggatKam, 22 Okt, 23:50"]);
     // An edit before the Student handed in that nobody can describe is history, not a warning.
@@ -470,8 +484,13 @@ describe("the Task page", () => {
     expect(s.button("Simpan draf").disabled).toBe(true);
     expect(s.button("Kumpulkan").disabled).toBe(true);
     // A disabled Kumpulkan says why.
-    expect(card()).toContain("Tulis jawabanmu dulu. Edunex butuh teks, meski kamu melampirkan berkas.");
-    expect(card()).toContain("Dosen bisa melihat draf yang tersimpan, tapi hanya Kumpulkan yang menyerahkannya.");
+    expect(card()).toContain("Tulis jawabanmu dulu. Berkas saja tidak cukup.");
+    // Draft or hand in: told apart on the draft button itself (its tooltip, and its description for a screen reader).
+    expect(draftExplainer()).toBe("Dosen bisa melihat draf yang tersimpan, tapi hanya Kumpulkan yang menyerahkannya.");
+    // Not on screen: only the screen-reader description holds it.
+    const shown = document.querySelector("main aside")?.cloneNode(true) as HTMLElement;
+    for (const hidden of shown.querySelectorAll(".sr-only")) hidden.remove();
+    expect(shown.textContent).not.toContain("Dosen bisa melihat draf");
     expect(document.querySelector("article")?.textContent).toContain("Boleh terlambat");
   });
 
@@ -483,8 +502,8 @@ describe("the Task page", () => {
     expect(card()).toContain("DrafTersimpan Hari ini, 08:12 · belum diserahkan");
     expect(card()).toContain("bab2-draf.pdf");
     expect(s.button("Kumpulkan").disabled).toBe(false);
-    expect(card()).toContain("Dosen bisa melihat draf yang tersimpan");
-    const history = [...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent);
+    expect(draftExplainer()).toMatch(/^Dosen bisa melihat draf yang tersimpan/);
+    const history = await historySteps();
     expect(history).toContain("Kamu menyimpan drafHari ini, 08:12");
   });
 
@@ -561,7 +580,7 @@ describe("the Task page", () => {
     await s.click("Tulis komentar untuk dosen…");
     expect(s.button("Kirim").disabled).toBe(true);
     // Handed in, then handed back.
-    const steps = [...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent ?? "");
+    const steps = await historySteps();
     expect(steps.findIndex((step) => step.startsWith("Kamu mengumpulkan"))).toBeLessThan(steps.findIndex((step) => step.startsWith("Dikembalikan dosen")));
   });
 
@@ -608,15 +627,13 @@ describe("the Task page", () => {
     s.world.edunex.moveDeadline(117003, "2026-10-20T23:59:00+07:00");
     await s.engineDoes(() => s.engine.refresh("edunex"));
     expect(s.text()).toContain("Tenggat Sel, 20 Okt, 23:59");
-    expect([...document.querySelectorAll("main section[aria-labelledby=task-history] ol > li")].map((li) => li.textContent)).toContain(
-      "Diubah dosenHari ini, 11:12",
-    );
+    expect(await historySteps()).toContain("Diubah dosenHari ini, 11:12");
   });
 
   it("a short answer window says how short", async () => {
     const s = await open();
     await goToTask(s, "Tugas Problem Soving");
-    expect(s.text()).toContain("Hanya dibuka 3 jam (16:01–19:01).");
+    expect(s.text()).toContain("Hanya dibuka 3 jam, 16:01–19:01");
   });
 
   it("a Task that isn't open yet says from when", async () => {

@@ -3,13 +3,23 @@
 // formatting. TipTap (ProseMirror) underneath; the screen that needs it loads
 // it lazily, so the rest of the app never carries it. It holds only what
 // Edunex's own editor writes for an answer: no pictures, tables or embeds.
-import { ArrowUUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUUpLeft";
-import { ArrowUUpRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUUpRight";
-import { ListBulletsIcon } from "@phosphor-icons/react/dist/csr/ListBullets";
-import { ListNumbersIcon } from "@phosphor-icons/react/dist/csr/ListNumbers";
-import { QuotesIcon } from "@phosphor-icons/react/dist/csr/Quotes";
-import { TextBIcon } from "@phosphor-icons/react/dist/csr/TextB";
-import { TextItalicIcon } from "@phosphor-icons/react/dist/csr/TextItalic";
+import { ArrowRedo16Filled, ArrowRedo16Regular, ArrowRedo20Filled, ArrowRedo20Regular } from "@fluentui/react-icons/headless/svg/arrow-redo";
+import { ArrowUndo16Filled, ArrowUndo16Regular, ArrowUndo20Filled, ArrowUndo20Regular } from "@fluentui/react-icons/headless/svg/arrow-undo";
+import { TextBold16Filled, TextBold16Regular, TextBold20Filled, TextBold20Regular } from "@fluentui/react-icons/headless/svg/text-bold";
+import {
+  TextBulletListLtr16Filled,
+  TextBulletListLtr16Regular,
+  TextBulletListLtr20Filled,
+  TextBulletListLtr20Regular,
+} from "@fluentui/react-icons/headless/svg/text-bullet-list-ltr";
+import { TextItalic16Filled, TextItalic16Regular, TextItalic20Filled, TextItalic20Regular } from "@fluentui/react-icons/headless/svg/text-italic";
+import {
+  TextNumberListLtr16Filled,
+  TextNumberListLtr16Regular,
+  TextNumberListLtr20Filled,
+  TextNumberListLtr20Regular,
+} from "@fluentui/react-icons/headless/svg/text-number-list-ltr";
+import { TextQuote16Filled, TextQuote16Regular, TextQuote20Filled, TextQuote20Regular } from "@fluentui/react-icons/headless/svg/text-quote";
 import { Placeholder } from "@tiptap/extensions";
 import { closeHistory } from "@tiptap/pm/history";
 import { type Editor, EditorContent, useEditor, useEditorState } from "@tiptap/react";
@@ -23,13 +33,13 @@ import { Tooltip } from "./overlays";
 
 // The toolbar's icons load with the box, not with the rest of the app.
 const Glyph = {
-  Bold: icon(TextBIcon),
-  Italic: icon(TextItalicIcon),
-  ListBullets: icon(ListBulletsIcon),
-  ListNumbers: icon(ListNumbersIcon),
-  Quote: icon(QuotesIcon),
-  Undo: icon(ArrowUUpLeftIcon),
-  Redo: icon(ArrowUUpRightIcon),
+  Bold: icon([TextBold16Regular, TextBold16Filled], [TextBold20Regular, TextBold20Filled]),
+  Italic: icon([TextItalic16Regular, TextItalic16Filled], [TextItalic20Regular, TextItalic20Filled]),
+  ListBullets: icon([TextBulletListLtr16Regular, TextBulletListLtr16Filled], [TextBulletListLtr20Regular, TextBulletListLtr20Filled]),
+  ListNumbers: icon([TextNumberListLtr16Regular, TextNumberListLtr16Filled], [TextNumberListLtr20Regular, TextNumberListLtr20Filled]),
+  Quote: icon([TextQuote16Regular, TextQuote16Filled], [TextQuote20Regular, TextQuote20Filled]),
+  Undo: icon([ArrowUndo16Regular, ArrowUndo16Filled], [ArrowUndo20Regular, ArrowUndo20Filled]),
+  Redo: icon([ArrowRedo16Regular, ArrowRedo16Filled], [ArrowRedo20Regular, ArrowRedo20Filled]),
 };
 
 /** What the screen holding the box can ask of it. */
@@ -99,7 +109,7 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
           "[&_p]:my-1.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_ul]:my-1.5 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:my-1.5 [&_ol]:list-decimal [&_ol]:pl-5",
           "[&_li_p]:my-0 [&_blockquote]:my-1.5 [&_blockquote]:border-l-2 [&_blockquote]:border-track [&_blockquote]:pl-3 [&_blockquote]:text-muted",
           "[&_a]:text-accent-fg [&_a]:underline [&_a]:underline-offset-2 [&_h2]:mt-3 [&_h2]:font-semibold [&_h3]:mt-3 [&_h3]:font-semibold [&_h4]:mt-3 [&_h4]:font-semibold",
-          "[&_code]:rounded [&_code]:bg-fill [&_code]:px-1 [&_code]:font-mono [&_code]:text-small [&_pre]:my-1.5 [&_pre]:rounded-lg [&_pre]:bg-fill [&_pre]:p-3",
+          "[&_code]:rounded-tag [&_code]:bg-fill [&_code]:px-1 [&_code]:font-mono [&_code]:text-small [&_pre]:my-1.5 [&_pre]:rounded-control [&_pre]:bg-fill [&_pre]:p-3",
         ),
       },
       // ⌘K / Ctrl+K adds a link, as in most editors; here it never also opens the app's search.
@@ -138,7 +148,7 @@ export default function RichEditor({ initial, onChange, label, placeholder, desc
   );
 
   return (
-    <div className="rounded-lg border border-field-edge bg-surface transition-colors duration-150 has-[.ProseMirror:focus-visible]:border-(--focus) has-[.ProseMirror:focus-visible]:outline-2 has-[.ProseMirror:focus-visible]:outline-offset-1 has-[.ProseMirror:focus-visible]:outline-(--focus)">
+    <div className="rounded-control border border-field-edge bg-surface transition-colors duration-quick has-[.ProseMirror:focus-visible]:border-(--focus) has-[.ProseMirror:focus-visible]:outline-2 has-[.ProseMirror:focus-visible]:outline-offset-1 has-[.ProseMirror:focus-visible]:outline-(--focus)">
       {!compact && <Toolbar editor={editor} linking={linking} onLink={() => setLinking((open) => !open)} />}
       {linking && <LinkRow editor={editor} onDone={() => setLinking(false)} />}
       <EditorContent editor={editor} />
@@ -318,7 +328,7 @@ function LinkRow({ editor, onDone }: { editor: Editor; onDone: () => void }) {
         onChange={(event) => setHref(event.target.value)}
         onKeyDown={keys}
         placeholder="https://"
-        className="focus-ring h-8 min-w-0 flex-1 rounded-md border border-field-edge bg-canvas px-2.5 text-small"
+        className="focus-ring h-8 min-w-0 flex-1 rounded-item border border-field-edge bg-canvas px-2.5 text-small"
       />
       <Button size="sm" variant="primary" disabled={!valid} onClick={apply}>
         {t("editor.linkApply")}

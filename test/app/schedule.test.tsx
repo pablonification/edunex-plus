@@ -29,6 +29,8 @@ const block = (label: string, name: string) =>
   [...(section(label)?.querySelectorAll("button") ?? [])].find((b) => b.getAttribute("aria-label")?.startsWith(name)) as HTMLButtonElement;
 /** The open popover's text. */
 const popover = () => document.querySelector("[role=dialog]")?.textContent ?? "";
+/** What the open details explain a tooltip away, as a screen reader hears each control. */
+const popoverWhys = () => [...document.querySelectorAll("[role=dialog] button[aria-label]")].map((b) => b.getAttribute("aria-label") ?? "");
 
 async function openSchedule(options: Parameters<typeof openApp>[0] = { signedIn: true, six: true }) {
   screen = await openApp(options);
@@ -80,23 +82,61 @@ describe("Jadwal: the week as a timetable", () => {
     expect(await details(s, /^KU5014 · 16:00/)).toContain("Bentrok dengan PL3032 · 16:00–16:30");
   });
 
-  it("clashing classes side by side: each block names the other course, in amber (a choice to make, nothing lost)", async () => {
+  it("a class that starts during another is drawn over it, and neither hides the other's text", async () => {
     await openSchedule();
     const blocks = [...(section("Kamis, 8 Oktober")?.querySelectorAll("button") ?? [])];
     const block = (code: string) => blocks.find((b) => b.getAttribute("aria-label")?.startsWith(`${code} ·`))!;
-    // Half-width blocks: the overlap icon and the other code on the line under the course code, not words cut short.
-    expect(block("PL3032").textContent).toMatch(/^15:00–16:30PL3032KU5014/);
-    expect(block("KU5014").textContent).toMatch(/^16:00–17:50KU5014PL3032/);
+    /** The block's place in the day (TimeGrid's GridBlock). */
+    const place = (code: string) => (block(code).closest("[style*=top]") as HTMLElement).style;
+    // KU5014 (16:00) sits over PL3032 (15:00), moved right so PL3032's edge shows beside it.
+    expect(Number(place("KU5014").zIndex)).toBeGreaterThan(Number(place("PL3032").zIndex));
+    expect(place("KU5014").left).toContain("14px");
+    expect(place("PL3032").left).not.toContain("14px");
+    // PL3032 says only what fits above 16:00: its time and course, the room in its name and details.
+    expect(block("PL3032").textContent).toMatch(/^15:00–16:30PL3032 Ekonomi Infrastruktur/);
+    expect(block("PL3032").textContent).not.toContain("R.SG PWK LT.6");
+    expect(block("KU5014").textContent).toMatch(/^16:00–17:50KU5014 .*9134Bentrok PL3032$/);
+    // A clash is a choice to make: amber, never red, on both (the icon on PL3032's time line).
     for (const code of ["PL3032", "KU5014"]) {
       expect(block(code).querySelector("[class*=danger]")).toBeNull();
       expect(block(code).querySelector(".text-warning-fg")).not.toBeNull();
     }
   });
 
+  it("classes that start together go side by side instead, each with its code and the clash", async () => {
+    const s = await openSchedule();
+    const pl = { code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", room: "9009", day: "2026-11-11", start: "13:00", end: "14:40" };
+    s.world.six.addMeeting({ ...pl, id: "2194380" });
+    s.world.six.addMeeting({ ...pl, id: "2194381", code: "PL3032", name: "Ekonomi Infrastruktur dan Transportasi" });
+    await s.engineDoes(() => s.engine.refresh("six"));
+    for (let i = 0; i < 5; i++) await s.click("Minggu berikutnya");
+    for (const code of ["PL3002", "PL3032"]) {
+      const it = block("Rabu, 11 November", `${code} ·`);
+      expect((it.closest("[style*=top]") as HTMLElement).style.width).toBe("calc(50% - 0px)");
+      expect(it.textContent).toMatch(new RegExp(`^13:00–14:40${code}(PL3002|PL3032)9009`));
+    }
+  });
+
+  it("the weekdays keep one width, busy or empty, so each is where it was last week; empty weekends stay slim", async () => {
+    const s = await openSchedule();
+    const columns = () => (document.querySelector("main section[aria-label]")!.parentElement as HTMLElement).style.gridTemplateColumns.split(" ");
+    expect(columns()).toEqual(["48px", ...Array(5).fill("minmax(6rem,1fr)"), "40px", "40px"]);
+    await s.click("Minggu berikutnya");
+    expect(columns()).toEqual(["48px", ...Array(5).fill("minmax(6rem,1fr)"), "40px", "40px"]);
+  });
+
   it("a block's details: where attendance counts, the Presence window open now, and the way to the course", async () => {
     const s = await openSchedule();
     await s.click(/^PL3002 · 08:00–10:00/);
-    expect(popover()).toContain("Kehadiran dihitung di SIX · Sisa jatah absen 1×");
+    // What's left, in a few words; where attendance counts, a tooltip away.
+    expect(popover()).toContain("Sisa jatah absen 1×");
+    expect(popover()).not.toContain("Kehadiran dihitung");
+    // Its first control is a status with a tooltip: the panel takes focus, so the tooltip doesn't open by itself over it.
+    expect(document.activeElement?.getAttribute("role")).toBe("dialog");
+    expect(document.querySelector("[role=tooltip]")).toBeNull();
+    expect(popoverWhys()).toContain("Sisa jatah absen 1×. Kehadiran dihitung di SIX, mungkin juga lewat Presensi Edunex.");
+    // "Kuliah" is every class: the head says only the code.
+    expect(popover()).not.toContain("Kuliah");
     expect(popover()).toContain("Presensi Edunex dibuka sampai 09:30");
     await s.click("Catat di Edunex");
     expect(s.calls.at(-1)).toEqual({ name: "shell.openExternal", input: { url: "https://edunex.itb.ac.id/courses/95001" } });
@@ -110,13 +150,15 @@ describe("Jadwal: the week as a timetable", () => {
     expect(day("Rabu, 7 Oktober")).toContain("Kosong");
     expect(items("Jumat, 9 Oktober")).toEqual(["II4091 · Pertemuan 3 · 15:00–17:00 · Daring · Tidak ada di SIX", "Gabung"]);
     expect(day("Jumat, 9 Oktober")).not.toContain("Kosong");
-    // Easy to miss, so amber, as Beranda says it.
+    // A fact, not something to do: in the quiet text color (amber is for a clash, a choice to make).
     const mark = [...(section("Jumat, 9 Oktober")?.querySelectorAll("span") ?? [])].find((el) => el.textContent === "Tidak ada di SIX");
-    expect(mark?.className).toContain("text-warning-fg");
+    expect(mark?.className).toContain("text-muted");
+    expect(mark?.className).not.toContain("text-warning-fg");
     // The Gabung button says it's online: the block doesn't say "Daring" again under it.
     expect(block("Jumat, 9 Oktober", "II4091 · Pertemuan 3").textContent).not.toContain("Daring");
-    const meeting = await details(s, /^II4091 · Pertemuan 3/);
-    expect(meeting).toContain("Diumumkan dosen di Edunex, tidak ada di jadwal SIX.");
+    await s.click(/^II4091 · Pertemuan 3/);
+    expect(popover()).toContain("Tidak ada di SIX");
+    expect(popoverWhys()).toContain("Tidak ada di SIX. Diumumkan dosen di Edunex, tidak ada di jadwal SIX.");
     await s.click("Gabung");
     expect(s.calls.at(-1)?.name).toBe("shell.openExternal");
     expect(String((s.calls.at(-1)!.input as { url: string }).url)).toMatch(/^https:\/\/teams\.microsoft\.com\//);
@@ -141,14 +183,18 @@ describe("Jadwal: the week as a timetable", () => {
     }
     // The exam is raised like any class, not an ink slab.
     expect(block("Kamis, 15 Oktober", "UTS DK4073").className).not.toMatch(/\bbg-fg\b/);
-    expect(await details(s, /^PL3002 · 08:00–09:30/)).toContain("Masa UTS: belum pasti ada kuliah. Cek pengumuman dosen.");
+    await s.click(/^PL3002 · 08:00–09:30/);
+    expect(popover()).toContain("Masa UTS: belum pasti ada kuliah");
+    expect(popoverWhys()).toContain("Masa UTS: belum pasti ada kuliah. Cek pengumuman dosen.");
+    await s.key("Escape");
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 5)));
     const uts = await details(s, /^UTS DK4073/);
     expect(uts).toContain("TVST C");
     expect(uts).toContain("119 menit");
     // SIX's roomless 15:00–23:00 "meeting" is the window to hand in Tugas 02: not a class, and its deadline isn't said twice.
     expect(items("Jumat, 16 Oktober")).toEqual(["II4091 · Kumpulkan Tugas 02 Bab II sebelum 23:59 untuk hadir"]);
     await s.click(/^II4091 · Kumpulkan Tugas 02/);
-    expect(popover()).toContain("Hadir tercatat hanya jika dikumpulkan dalam jendela ini.");
+    expect(popoverWhys()).toContainEqual(expect.stringMatching(/^15:00–23:59\. Hadir tercatat hanya jika dikumpulkan dalam jendela ini\.$/));
     expect(popover()).toContain("Di jadwal SIX: pertemuan 15:00–23:00");
     await s.click("Buka tugas");
     expect(document.querySelector("main h1")?.textContent).toBe("Tugas 02 Bab II");
@@ -300,13 +346,13 @@ describe("Jadwal: each course's color", () => {
   /** The course-color marks in a block: the stripe down its edge. */
   const stripe = (el: Element) => el.querySelector<HTMLElement>('[style*="--course-"]');
 
-  it("stays whole beside a clash: the stripe is drawn over the clash's tint", async () => {
+  it("stays whole beside a clash, with no amber band across the block's text", async () => {
     await openSchedule();
-    const clashing = block("Kamis, 8 Oktober", "PL3032 ·");
-    const tint = clashing.querySelector(".bg-warning-bg")!;
-    expect(stripe(clashing)).not.toBeNull();
-    // Later in the block, so painted above it.
-    expect(tint.compareDocumentPosition(stripe(clashing)!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    for (const name of ["PL3032 ·", "KU5014 ·"]) {
+      const clashing = block("Kamis, 8 Oktober", name);
+      expect(stripe(clashing)).not.toBeNull();
+      expect(clashing.querySelector(".bg-warning-bg")).toBeNull();
+    }
   });
 
   it("a class too short for two lines says its start and its code, so the color is never the only cue", async () => {
@@ -353,6 +399,15 @@ describe("Jadwal: the month", () => {
     expect(cell("Kamis, 8 Oktober")).toContain("4 kuliah");
     // On the cell: the day's classes, then the clash among them with its time, never read as all four clashing.
     expect(s.button(/^Kamis, 8 Oktober/).textContent).toMatch(/4 kuliah\s*Bentrok 16:00$/);
+    // The same clash every Thursday is said in amber this week only: on the others a quiet icon, the words in its name.
+    for (const date of ["Kamis, 1 Oktober", "Kamis, 22 Oktober", "Kamis, 29 Oktober"]) {
+      expect(s.button(new RegExp(`^${date}`)).textContent).not.toContain("Bentrok");
+      expect(s.button(new RegExp(`^${date}`)).querySelector(".text-warning-fg")).toBeNull();
+      expect(cell(date)).toContain("Bentrok KU5014 · PL3032 · 16:00–16:30");
+    }
+    // A moved class and a meeting outside SIX are facts: quiet, not amber.
+    expect(s.button(/^Kamis, 8 Oktober/).querySelectorAll(".text-warning-fg")).toHaveLength(1);
+    expect(s.button(/^Jumat, 9 Oktober/).querySelector(".text-warning-fg")).toBeNull();
     expect(cell("Jumat, 9 Oktober")).toContain("II4091 15:00: tidak ada di SIX");
     expect(cell("Jumat, 16 Oktober")).toContain("II4091 · Kumpulkan Tugas 02 Bab II sebelum 23:59 untuk hadir");
     // The routine is a count, not lines: no class codes on an ordinary Thursday.
@@ -360,6 +415,12 @@ describe("Jadwal: the month", () => {
     await s.click("Bulan berikutnya");
     expect(subtitle()).toBe("November 2026");
     await s.click("Bulan ini");
+    await s.click(/^Kamis, 22 Oktober/);
+    // The day's details say the clash in full, in amber: where the student looks to choose.
+    const clash = [...(document.querySelector("[role=dialog]")?.querySelectorAll(".text-warning-fg") ?? [])].map((el) => el.textContent);
+    expect(clash).toEqual(["Bentrok KU5014", "Bentrok PL3032"]);
+    await s.key("Escape");
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 5)));
     await s.click(/^Kamis, 15 Oktober/);
     expect(popover()).toContain("Masa UTS");
     expect(popover()).toContain("11:00–12:59");

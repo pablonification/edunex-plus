@@ -15,6 +15,7 @@ import { translate } from "../core/strings";
 import { AppLog, errorLine } from "../engine/app-log";
 import { systemClock } from "../engine/clock";
 import { createEngine, type Engine } from "../engine/engine";
+import { type Away, awayFromApp } from "./away";
 import { demo, demoPhone } from "./demo";
 import { createDownloadedFiles, DOWNLOADED_FILES_FOLDER } from "./downloaded-files";
 import { createFileCache, FILE_CACHE_FOLDER } from "./file-cache";
@@ -69,6 +70,8 @@ let engine: Engine | null = null;
 let quitting = false;
 let syncing = false;
 let tray: AppTray | null = null;
+/** SIX or Edunex opened in the browser, from the window or the tray menu (./away.ts). */
+let away: Away | null = null;
 let theme: ReturnType<typeof followTheme> | null = null;
 /** "Perbarui otomatis", once the updater is there. */
 let autoUpdates: ReturnType<typeof followAutoUpdates> | null = null;
@@ -191,6 +194,9 @@ async function start(): Promise<void> {
     }
   };
 
+  // SIX or Edunex opened in the browser: back in the window, their attendance is read again.
+  const trips = awayFromApp({ now: () => clock.now(), recheck: (source) => void current.recheckAttendance(source).catch(() => undefined) });
+  away = trips;
   const context: DesktopContext = {
     engine: current,
     window: () => window,
@@ -210,6 +216,7 @@ async function start(): Promise<void> {
     notifier,
     updater,
     log,
+    away: trips,
   };
   const handlers: Handlers = {
     ...coreHandlers(context),
@@ -243,6 +250,7 @@ async function start(): Promise<void> {
     startSyncing();
   }, 6_000);
   shown.once("show", () => clearTimeout(fallback));
+  shown.on("focus", () => trips.back());
   tray = createTray({ menu: () => trayMenu(current.snapshot(), clock.now()), now: () => clock.now(), act: trayAction });
   shown.on("close", (event) => {
     if (quitting) return;
@@ -323,7 +331,11 @@ function trayAction(action: TrayAction): void {
       break;
     case "url":
       // Only official pages, as the window's own links ("shell.openExternal").
-      if (isOfficialUrl(action.url)) void shell.openExternal(action.url).catch(() => undefined);
+      if (isOfficialUrl(action.url))
+        void shell.openExternal(action.url).then(
+          () => away?.opened(action.url),
+          () => undefined,
+        );
       break;
     case "link":
       // A lecturer's link, as the window's "shell.openLink": any web page, in the browser.

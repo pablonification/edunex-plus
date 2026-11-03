@@ -9,8 +9,8 @@
 // and the mark on a PDF page that has one, which opens the panel there. Escape in the note gives the keyboard back
 // to the file (the viewer does that). The caller saves them (../highlights.ts),
 // kept with the file's highlights by its content.
-import { NotePencilIcon } from "@phosphor-icons/react/dist/csr/NotePencil";
-import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
+import { Delete16Filled, Delete16Regular, Delete20Filled, Delete20Regular } from "@fluentui/react-icons/headless/svg/delete";
+import { NoteEdit20Filled, NoteEdit20Regular } from "@fluentui/react-icons/headless/svg/note-edit";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { noteOn } from "../../core/highlights";
 import { MAX_NOTE, type PageNote } from "../../core/models";
@@ -20,8 +20,8 @@ import { cx } from "./cx";
 import { Icons, icon } from "./icons";
 import { Tooltip, toast } from "./overlays";
 
-const NoteIcon = icon(NotePencilIcon);
-const DeleteIcon = icon(TrashIcon);
+const NoteIcon = icon([NoteEdit20Regular, NoteEdit20Filled], [NoteEdit20Regular, NoteEdit20Filled]);
+const DeleteIcon = icon([Delete16Regular, Delete16Filled], [Delete20Regular, Delete20Filled]);
 
 /** One file's notes and the ways to change them; saved by the caller. `page` none: the note on the whole file. */
 export interface PageNotes {
@@ -190,7 +190,7 @@ export function NotesPanel({
             timer.current = setTimeout(save, 600);
           }}
           onBlur={save}
-          className="min-h-44 w-full resize-y rounded-lg border border-field-edge bg-surface px-3 py-2 text-body text-fg placeholder:text-faint focus:border-focus focus:outline-none"
+          className="min-h-44 w-full resize-y rounded-control border border-field-edge bg-surface px-3 py-2 text-body text-fg placeholder:text-faint focus:border-focus focus:outline-none"
         />
         {/* What the placeholder and "Tersimpan" show, for screen readers whatever is in the box. */}
         <p id={described} className="sr-only">
@@ -201,7 +201,7 @@ export function NotesPanel({
           <span
             aria-hidden
             className={cx(
-              "flex min-w-0 flex-1 items-center gap-1 text-caption text-muted transition-opacity duration-150",
+              "flex min-w-0 flex-1 items-center gap-1 text-caption text-muted transition-opacity duration-quick",
               saved ? "opacity-100" : "opacity-0",
             )}
           >
@@ -237,7 +237,7 @@ export function NotesPanel({
                     type="button"
                     aria-label={t("pageNote.item", { page: note.page ?? 1, text: firstLine(note.text) })}
                     onClick={() => onGoTo?.(note.page ?? 1)}
-                    className="focus-ring flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left hover:bg-hover"
+                    className="focus-ring flex w-full items-baseline gap-2 rounded-item px-2 py-1.5 text-left hover:bg-hover"
                   >
                     <span className="shrink-0 text-caption text-muted tabular-nums">{t("pageNote.page", { page: note.page ?? 1 })}</span>
                     <span className="min-w-0 flex-1 truncate text-small">{firstLine(note.text)}</span>
@@ -266,7 +266,7 @@ export function PageNoteMark({ page, note, onOpen }: { page: number; note: PageN
         type="button"
         aria-label={t("pageNote.title", { page })}
         onClick={onOpen}
-        className="focus-ring absolute -top-3 right-6 z-10 grid h-6 w-7 place-items-center rounded-md bg-(--highlight-yellow) text-black/75 shadow-card ring-1 ring-black/15 hover:text-black"
+        className="focus-ring absolute -top-3 right-6 z-10 grid h-6 w-7 place-items-center rounded-item bg-(--highlight-yellow) text-black/75 ring-1 ring-black/15 hover:text-black"
       >
         <NoteIcon className="size-3.5" />
       </button>

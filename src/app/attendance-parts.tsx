@@ -244,7 +244,7 @@ function TargetRow({
     <li
       className={cx(
         "flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0",
-        chosen && "-mx-2.5 mb-1 rounded-lg bg-fill px-2.5 first:pt-2.5 [&+li]:border-t-0",
+        chosen && "-mx-2.5 mb-1 rounded-control bg-fill px-2.5 first:pt-2.5 [&+li]:border-t-0",
       )}
     >
       <div className="min-w-0 flex-1">
@@ -268,10 +268,11 @@ function TargetRow({
 /**
  * "Jatah absen" with the absence bar and its words ("Terpakai 1× · sisa 1×"),
  * the same on every screen; the one piece the bar's look lives behind.
- * `row`: a Presensi row's two labeled lines, SIX's share over the bar
- * ("Kehadiran 73% sejauh ini (11 dari 15)", "Jatah absen ▬▬▬ Terpakai 1× ·
- * sisa 1×"); `header`: the course page, the share under the words; `card`:
- * Beranda's course cards, no share. `own`: the course has its own target
+ * `row`: a Presensi row's one line, the bar and its one word as on `line`, then SIX's share as one figure
+ * ("▬▬▬ sisa 1×  Kehadiran 73%"), the whole count in each one's hover text; `saidAbove`: the group's heading
+ * already says no absences are left, so the bar says it alone. `header`: the course page, the share under the words; `card`:
+ * Beranda's course cards, no share; `line`: Beranda's course rows, the bar and its one word ("sisa 1×", "habis"),
+ * the label once over the column and the rest in the bar's name and tooltip. `own`: the course has its own target
  * ("· target 75%"). Nothing where the course has no budget to show.
  */
 export function AbsenceBudget({
@@ -279,12 +280,14 @@ export function AbsenceBudget({
   place,
   own = false,
   soFar = false,
+  saidAbove = false,
   className,
 }: {
   health: AttendanceHealth;
-  place: "row" | "header" | "card";
+  place: "row" | "header" | "card" | "line";
   own?: boolean;
   soFar?: boolean;
+  saidAbove?: boolean;
   className?: string;
 }) {
   const t = useT();
@@ -314,7 +317,7 @@ export function AbsenceBudget({
       over={words.bar.over}
       estimate={words.bar.estimate}
       tone={words.tone}
-      size={place === "row" ? "sm" : "md"}
+      size={place === "row" || place === "line" ? "sm" : "md"}
       label={words.label}
     />
   );
@@ -325,26 +328,40 @@ export function AbsenceBudget({
       {own ? t("presence.row.ownTarget", { value: health.target }) : ""}
     </Meta>
   );
-  if (place === "row")
+  if (place === "line")
     return (
-      // Each label over the next, so the values (and the bars, row to row) line up; the words go under the bar when they don't fit beside it.
-      // A label is as tall as its value's first line (16 + 2 px), so it sits level with it, wrapped or not.
-      <dl className={cx("grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-1", className)}>
-        {health.held ? (
-          <>
-            <dt className="py-px text-caption text-faint">{t("presence.share.label")}</dt>
-            <dd className="text-small text-muted tabular-nums">
-              <span className="font-medium text-fg">{share}%</span> {t("presence.share.soFar", { attended: health.attended ?? 0, held: health.held })}
-            </dd>
-          </>
-        ) : null}
-        <dt className="py-px text-caption text-faint">{t("presence.bar.label")}</dt>
-        <dd className="flex min-w-0 flex-wrap items-center gap-x-2.5 gap-y-1">
-          {bar}
-          {text}
-        </dd>
-      </dl>
+      // The bar, then the word that answers, wide enough that the bars line up row to row; the whole count on hover.
+      <div title={words.label} className={cx("flex min-w-0 items-center gap-2.5", className)}>
+        {bar}
+        <span className={cx("min-w-24 text-small font-semibold tabular-nums", BAR_TEXT[words.tone])}>
+          {words.bold}
+          {own ? <span className="font-normal text-muted">{` ${t("presence.row.ownTarget", { value: health.target })}`}</span> : null}
+        </span>
+      </div>
     );
+  if (place === "row") {
+    const quiet = saidAbove && words.tone === "warning";
+    return (
+      // The share at the column's end, so it lines up row to row (beside the words where the row is narrow); under them when both don't fit.
+      <div className={cx("flex min-w-0 flex-wrap items-center gap-x-5 gap-y-1 @[48rem]:justify-between", className)}>
+        <span title={words.label} className="flex min-w-0 items-center gap-2.5">
+          {bar}
+          <span className={cx("text-small font-semibold tabular-nums", BAR_TEXT[words.tone])}>
+            {quiet ? "" : words.bold}
+            {own ? <span className="font-normal text-muted">{` ${t("presence.row.ownTarget", { value: health.target })}`}</span> : null}
+          </span>
+        </span>
+        {health.held ? (
+          <span
+            title={t("presence.row.count", { attended: health.attended ?? 0, held: health.held, percent: share })}
+            className="text-small text-muted tabular-nums"
+          >
+            {t("presence.share.short", { percent: share })}
+          </span>
+        ) : null}
+      </div>
+    );
+  }
   return (
     <div className={cx("min-w-0", className)}>
       <p className={cx("font-medium text-muted", place === "header" ? "text-small" : "text-caption")}>{t("presence.bar.label")}</p>

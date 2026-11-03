@@ -1,17 +1,21 @@
-// Beranda (#77): the ten-second answer. The date and the greeting; then
-// "Sekarang", the class going on (or next) with where its attendance counts
-// and the one thing to do; then two columns: "Hari ini" (today's classes, the
-// meetings outside SIX, what's due today and tomorrow) and "Perlu
-// perhatianmu" (the week ahead, never repeating today); then a short "Yang
-// berubah" (the bell has it all) and this term's courses. A deadline (in either
+// Beranda (#77): the ten-second answer. A quiet line with the greeting and how
+// soon the exams are; then "Sekarang", the one card, the class going on (or
+// next) with its two attendance steps, each a line with its button; then two
+// plain lists: "Hari ini" (the rest of today's classes, the meetings outside
+// SIX, what's due today and tomorrow) and "Perlu perhatianmu" (the week ahead,
+// never repeating today), then a short "Yang berubah" (the bell has it all,
+// and what the card or Hari ini shows isn't said again), and this term's
+// courses with their absences. Each fact is said once, where the Student acts
+// on it, in a few words: a status's why and how are in its tooltip, and its
+// info button's name. A deadline (in either
 // column) and anything in "Perlu perhatianmu" can be put off ("Ingatkan
 // nanti"); a row only the Student can know is dealt with has a ✓ that puts it
 // away for good ("Sudah kucek"). What's put off and what's handled are listed
 // under "Perlu perhatianmu". The reasoning lives in src/core/needs.ts and
 // src/core/done.ts.
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { rupiah } from "../../core/academic";
-import { type AttendanceHealth, type AttendanceState, clashPick, percent } from "../../core/attendance";
+import { type AttendanceHealth, clashPick, percent } from "../../core/attendance";
 import { checkingIn } from "../../core/check-in";
 import { wibDay } from "../../core/course-meetings";
 import { type DoneTerms, doneTerms, taskPutAway } from "../../core/done";
@@ -38,9 +42,9 @@ import {
 import { dayNoon, dayStart } from "../../core/schedule";
 import { activeSnooze, snoozable, snoozeKey } from "../../core/snooze";
 import { dateMove, type EditView, editView, titleOnly } from "../../core/task-edits";
-import { budgetLabel, useActionLabel } from "../attendance-labels";
+import { useActionLabel } from "../attendance-labels";
 import { AbsenceBudget } from "../attendance-parts";
-import { type TermCourse, useCourseColor, useTerm, useTermCourses } from "../courses";
+import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
 import { useHomeWorld } from "../home-world";
 import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
@@ -53,11 +57,13 @@ import { OpenSixTimetable, SixPageNote, useChangedPage } from "../six-page-note"
 import { canSnooze, DoneButton, type RowDone, refocus, rowControls, SnoozeMenu } from "../snooze-menu";
 import { useDone, useSnoozes } from "../snoozes";
 import { useDataset, useStatus } from "../store";
+import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseDot, EmptyState, LiveDot, Skeleton } from "../ui/display";
+import { Explained, STATUS_TONE, type Status, StatusLine, WhyButton } from "../ui/explain";
 import { Icons } from "../ui/icons";
-import { factsLabel, List, Meta, Page, PageHeader, Row, Section } from "../ui/layout";
+import { factsLabel, List, Meta, Page, Row, Section } from "../ui/layout";
 import { CountdownBar } from "../ui/meter";
 import { PresenceList } from "../ui/motion/presence-list";
 import { NowCard as NowCardShell } from "../ui/now-card";
@@ -68,26 +74,19 @@ const DAY = 86_400_000;
 /** A later class says "dalam …" only this close to its start; further off, the time column says enough. */
 const SOON = 2 * 60 * MINUTE;
 /** "Yang berubah" shows this many; the bell has the rest. */
-const CHANGES_SHOWN = 5;
-
-/** Attendance state as a status color for text: quiet while an absence is still allowed. Never the course's color. */
-const STATE_TEXT: Record<AttendanceState, string> = {
-  out: "text-danger-fg",
-  missed: "text-danger-fg",
-  none: "text-warning-fg",
-  risk: "text-muted",
-  safe: "text-muted",
-  met: "text-muted",
-  unknown: "text-faint",
-};
+const CHANGES_SHOWN = 3;
+/**
+ * Beranda's lists, plain: only the now card is a card. Rows split by hairlines and the sections by space; the rows'
+ * padding reaches past the column, so their words line up with the section's title, and the hairlines stay in it.
+ */
+const PLAIN =
+  "-mx-4 rounded-none border-0 bg-transparent shadow-none [&>li+li]:relative [&>li+li]:border-t-0 [&>li+li]:before:absolute [&>li+li]:before:inset-x-4 [&>li+li]:before:top-0 [&>li+li]:before:h-px [&>li+li]:before:bg-line";
 
 export function Home() {
   const f = useFormat();
-  const now = useNow();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
   const courses = useTermCourses();
-  const term = useTerm();
   const name = account?.name ?? student?.name;
   const world = useHomeWorld();
   const context = useMemo(() => (world ? homeContext(world) : undefined), [world]);
@@ -96,17 +95,11 @@ export function Home() {
 
   return (
     <Page>
-      <PageHeader
-        className="mb-6"
-        eyebrow={
-          <Meta>
-            {f.dateLong(now)}
-            {term ? f.term(term) : null}
-          </Meta>
-        }
-        title={`${f.greeting()}${name ? `, ${firstName(name)}` : ""}`}
-        description={<ExamWeek />}
-      />
+      {/* A quiet line, not a title: the eye goes first to what's happening now, under it. The date is the system's to show. */}
+      <header className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 className="text-lead font-semibold">{`${f.greeting()}${name ? `, ${firstName(name)}` : ""}`}</h1>
+        <ExamWeek />
+      </header>
       {timetableChanged && <SixPageNote datasets={["six.schedule"]} className="mb-6" />}
       {context ? <Answers context={context} courses={courses ?? []} /> : <AnswersLoading />}
       <HomeCourses courses={courses} nim={student?.nim} context={context} />
@@ -125,7 +118,7 @@ function AnswersLoading() {
         <Skeleton className="mt-3 h-3 w-1/2" />
       </Card>
       <div className="mt-10 grid gap-8 @container">
-        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-28 w-full rounded-card" />
       </div>
     </div>
   );
@@ -139,15 +132,15 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   const range = useMemo(() => needsRange(context), [context]);
   return (
     <>
-      <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} />
+      <NowSection card={card} courses={courses} context={context} unread={unreadAhead(context, card)} />
       <div className="@container mt-10">
         {/* The day on the left; what needs you and what changed beside it, so neither column runs on alone.
             Narrower, one column that can shrink: a long title with no spaces wraps instead of widening the page. */}
-        <div className="grid grid-cols-1 items-start gap-x-8 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+        <div className="grid grid-cols-1 items-start gap-x-12 gap-y-10 @min-[800px]:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
           <Today context={context} plan={plan} due={due} courses={courses} onCard={cardKey(card)} />
           <div className="grid grid-cols-[minmax(0,1fr)] gap-y-10">
             <NeedsYou needs={needs} due={due} range={range} courses={courses} />
-            <Changes context={context} />
+            <Changes context={context} card={card} plan={plan} />
           </div>
         </div>
       </div>
@@ -155,32 +148,41 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
   );
 }
 
-/** UTS or UAS week starting within two weeks, or going on, from ITB's calendar: a calm line, not a tag. */
+/**
+ * UTS or UAS week starting within two weeks, or going on, from ITB's calendar: a calm line, not a tag. Ahead, how
+ * soon ("UTS 4 hari lagi"), with the day it starts in its tooltip; going on, the day it ends. It opens Jadwal.
+ */
 function ExamWeek() {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const { go } = useNav();
   const calendar = useDataset("itb.calendar");
   const exams = calendar?.events.filter((e) => e.kind === "uts" || e.kind === "uas") ?? [];
   const running = exams.find((e) => e.start <= now && now < e.end);
   const next = exams.find((e) => e.start > now && e.start - now <= PERIOD_NEAR);
   if (!running && !next) return null;
   const date = (at: number) => `${f.weekday(at)}, ${f.dayMonth(at)}`;
-  let facts: string[];
-  if (running) facts = [t(running.kind === "uts" ? "home.utsNow" : "home.uasNow", { date: date(running.end - 1) })];
-  else {
-    const days = f.dayOffset(next!.start);
-    facts = [
-      t(next!.kind === "uts" ? "home.utsStarts" : "home.uasStarts", { date: date(next!.start) }),
-      days === 1 ? t("time.tomorrowWord") : t("home.inDays", { count: days }),
-    ];
-  }
-  return (
-    <span className="flex items-center gap-2 text-body text-muted">
-      <Icons.CalendarClock className="size-4 shrink-0 text-faint" />
-      <Meta>{facts}</Meta>
-    </span>
+  const uts = (running ?? next)!.kind === "uts";
+  const days = next ? f.dayOffset(next.start) : 0;
+  const text = running
+    ? t(uts ? "home.utsNow" : "home.uasNow", { date: date(running.end - 1) })
+    : days === 1
+      ? t(uts ? "home.utsTomorrow" : "home.uasTomorrow")
+      : t(uts ? "home.utsIn" : "home.uasIn", { count: days });
+  const why = next ? t(uts ? "home.utsStarts" : "home.uasStarts", { date: date(next.start) }) : null;
+  const line = (
+    <button
+      type="button"
+      onClick={() => go({ screen: "schedule" })}
+      aria-label={why ? `${text}. ${why}` : undefined}
+      className="focus-ring flex items-center gap-1.5 rounded-tag text-small text-muted hover:text-fg"
+    >
+      <Icons.CalendarClock className="size-3.5 shrink-0 text-faint" />
+      {text}
+    </button>
   );
+  return why ? <Tooltip content={why}>{line}</Tooltip> : line;
 }
 
 // ---------------------------------------------------------------- Sekarang
@@ -188,12 +190,12 @@ function ExamWeek() {
 function NowSection({
   card,
   courses,
-  hasSchedule,
+  context,
   unread,
 }: {
   card: NowCard | null;
   courses: readonly TermCourse[];
-  hasSchedule: boolean;
+  context: HomeContext;
   /** The first day ahead with a class SIX shows that the app couldn't read. */
   unread: string | null;
 }) {
@@ -201,7 +203,7 @@ function NowSection({
   const f = useFormat();
   if (!card) {
     // Without SIX there's no timetable: "Hari ini" says how to get it. With one, a quiet week, unless a class on it can't be read.
-    if (!hasSchedule) return null;
+    if (context.schedule === null) return null;
     return (
       <section aria-labelledby="home-now">
         <h2 id="home-now" className="sr-only">
@@ -228,13 +230,14 @@ function NowSection({
       <h2 id="home-now" className="sr-only">
         {t("home.now")}
       </h2>
-      <NowCardView card={card} courses={courses} />
+      <NowCardView card={card} courses={courses} context={context} />
     </section>
   );
 }
 
-function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermCourse[] }) {
+function NowCardView({ card, courses, context }: { card: NowCard; courses: readonly TermCourse[]; context: HomeContext }) {
   const t = useT();
+  const examIds = useExamIds();
   const f = useFormat();
   const now = useNow();
   const { go } = useNav();
@@ -252,8 +255,9 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
   const windowFor = !session && card.presence ? (card.presence.class ?? card.presence.session) : null;
 
   const eyebrow =
+    // The end is in the time column beside it.
     card.state === "live" && slot
-      ? t("home.now.live", { time: f.time(slot.end) })
+      ? t("home.now.live")
       : card.state === "next" && slot
         ? t("home.now.next", { when: f.fromNow(slot.start) })
         : card.state === "later" && slot
@@ -261,14 +265,19 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
           : t("home.now.presenceOnly");
 
   const open = (): Route => (course?.edunex ? { screen: "course", code, tab: "meetings" } : { screen: "presence" });
+  // A sitting opens its exam's page, as its row in Hari ini did before the card took it.
+  const examId = session ? examIds.get(session.id) : undefined;
+  // The card's class isn't repeated in Hari ini, so its statuses are said here, on its one line of facts.
+  const statuses = facts ? classStatuses(t, f, facts, context) : [];
 
   return (
     <NowCardShell
       // Lifted while it matters now: a class on, or a Presence window to do.
-      raised={card.state === "live" || Boolean(card.presence && card.presence.counts !== false)}
+      raised={card.state === "live" || Boolean(card.presence)}
       time={slot ? { start: f.time(slot.start), end: f.time(slot.end) } : null}
       eyebrow={
-        <span className={cx("flex items-center gap-2", card.state === "live" ? "text-success-fg" : "text-muted")}>
+        // Green only while the app is reading the source: offline, the dot goes grey and the words with it.
+        <span className={cx("flex items-center gap-2", card.state === "live" && fresh ? "text-success-fg" : "text-muted")}>
           {card.state === "live" && (fresh ? <LiveDot /> : <span aria-hidden className="size-2 shrink-0 rounded-full bg-faint" />)}
           <Meta>{eyebrow}</Meta>
         </span>
@@ -276,10 +285,10 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
       title={
         <button
           type="button"
-          onClick={() => go(open())}
+          onClick={() => go(examId ? { screen: "exam", examId } : open())}
           // One line, cut short when the name is long: whole on hover.
           title={nameOf(courses, code, session?.courseName)}
-          className="focus-ring block max-w-full truncate rounded text-left text-heading font-semibold tracking-[-0.01em] hover:underline hover:decoration-faint hover:underline-offset-4"
+          className="focus-ring block max-w-full truncate rounded-tag text-left text-heading font-semibold tracking-[-0.01em] hover:underline hover:decoration-faint hover:underline-offset-4"
         >
           {nameOf(courses, code, session?.courseName)}
         </button>
@@ -306,24 +315,25 @@ function NowCardView({ card, courses }: { card: NowCard; courses: readonly TermC
             ""
           )}
           {meeting ? t(meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: meeting.number }) : ""}
+          {statuses.map((status) => (
+            <Explained key={status.key} text={status.text} why={status.why} className={STATUS_TONE[status.tone]} />
+          ))}
+          {meeting && !card.meeting?.maybeInSix ? (
+            // Read from the lecturer's text, not SIX: said where the Student decides to go. Not on a day SIX shows a class the app couldn't read.
+            <Explained text={t("home.today.notInSix")} why={t("home.today.notInSixWhy")} />
+          ) : (
+            ""
+          )}
         </Meta>
       }
-      note={
-        facts?.moved ? (
-          <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta>
-        ) : meeting && !card.meeting?.maybeInSix ? (
-          // Read from the lecturer's text, not SIX: said where the Student decides to go. Not on a day SIX shows a class the app couldn't read.
-          <span className="mt-1 block text-small font-medium text-warning-fg">{t("home.today.notInSix")}</span>
-        ) : undefined
-      }
       action={
-        link && card.state !== "later" && !card.presence?.counts ? (
+        link && card.state !== "later" && !card.presence?.edunexOnly ? (
           <JoinButton link={link} code={code} primary={card.state === "live" || (slot !== null && slot.start - now < 15 * MINUTE)} />
         ) : undefined
       }
     >
+      {/* What comes after is the next row of Hari ini, right under the card: not said here again. */}
       <Attendance card={card} />
-      {card.after && <AfterThis session={card.after} courses={courses} />}
       {card.unreadDay && <UnreadAhead day={card.unreadDay} />}
     </NowCardShell>
   );
@@ -345,9 +355,9 @@ function UnreadAhead({ day }: { day: string }) {
 }
 
 /**
- * Where attendance counts, and the one thing to do: "Tandai Hadir" in SIX
- * (while the class is on, what the app last saw of SIX's button, and the way
- * to it), or the Edunex Presence before it closes. With both, SIX comes first.
+ * Where attendance counts, and the one thing to do, as steps, one line each with its button: SIX's "Tandai Hadir"
+ * while the class is on (what the app last saw of SIX's button), then the Edunex Presence before it closes. With
+ * both, the one due first is the blue button. How each is done, and where it counts, is in its info button.
  */
 function Attendance({ card }: { card: NowCard }) {
   const t = useT();
@@ -362,12 +372,11 @@ function Attendance({ card }: { card: NowCard }) {
   const presence = card.presence;
   const counted = facts?.countedIn ?? "unknown";
 
-  const budget = facts?.health && facts.state !== "unknown" ? cardBudget(t, facts.health) : null;
-  const where = presence?.counts
+  const where = presence?.edunexOnly
     ? t("home.now.countEdunex")
     : presence?.noSix
       ? t("home.now.countNoSix")
-      : presence && presence.counts === null
+      : presence && presence.edunexOnly === null
         ? t("home.now.countNotKnown")
         : counted === "six" || counted === "both"
           ? t("home.now.countSix")
@@ -382,197 +391,229 @@ function Attendance({ card }: { card: NowCard }) {
     if (viaTask && presence.task) go({ screen: "task", taskId: presence.task.id });
     else external(presence.url);
   };
+  // Edunex's step: what to do and by when are in its info; on the line, the close time and the bar running down to it.
+  const edunexStep = (primary: boolean, why: string | null) => {
+    if (!presence) return null;
+    const { session } = presence;
+    const action = actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } });
+    return (
+      <Step
+        icon={<SourceLogo source="edunex" className="size-4" />}
+        label={t("home.now.edunexStep")}
+        status={t("home.need.presence.closes", { time: f.dayTime(session.closesAt) })}
+        why={sentences(t("home.now.edunexWhy", { action, time: f.dayTime(session.closesAt) }), why)}
+        extra={
+          <CountdownBar
+            className="w-20 shrink-0"
+            opensAt={session.opensAt}
+            closesAt={session.closesAt}
+            now={now}
+            // Under a day, how long is left; a window can stay open for days, and "50 jam" says nothing.
+            label={
+              session.closesAt - now < DAY
+                ? t("home.now.closesIn", { left: f.countdown(session.closesAt) })
+                : t("home.now.closesWhen", { when: f.fromNow(session.closesAt) })
+            }
+            showLabel={false}
+          />
+        }
+        action={
+          <Button
+            variant={primary ? "primary" : "secondary"}
+            icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
+            onClick={openPresence}
+            aria-label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
+          >
+            {viaTask ? t("home.now.openTask") : t("presence.open.record")}
+          </Button>
+        }
+      />
+    );
+  };
 
   // The class on now (or about to start) while the app reads its popup on SIX: where SIX counts, or once SIX showed its button.
   const session = facts?.session ?? null;
   const check = session ? checkIns?.[session.id] : undefined;
   if (session && student && (card.state === "live" || card.state === "next") && checkingIn(session, now)) {
-    if (check || counted === "six" || counted === "both" || counted === "unknown")
+    if (check || counted === "six" || counted === "both" || counted === "unknown") {
+      // The one due first is the blue button: SIX's while it shows (the lecturer can close it any minute), else Edunex's.
+      const open = (check?.state ?? "waiting") === "open";
       return (
-        <CheckIn session={session} check={check} url={sixTimetableUrl(student, session.start)} budget={budget}>
-          {presence && (
-            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line pt-3">
-              <p className="min-w-0 flex-1 basis-64 text-small text-muted">
-                {/* Optional only where it's known not to count; not known yet, it's simply there to do. */}
-                {presence.counts !== false
-                  ? t("presence.record.edunexDo", {
-                      action: actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } }),
-                      time: f.dayTime(presence.session.closesAt),
-                    })
-                  : t("home.now.presenceExtra", { time: f.dayTime(presence.session.closesAt) })}
-              </p>
-              <Button
-                variant="ghost"
-                size="sm"
-                icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
-                onClick={openPresence}
-                aria-label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
-              >
-                {viaTask ? t("home.now.openTask") : t("presence.open.record")}
-              </Button>
-            </div>
-          )}
-        </CheckIn>
+        <Steps>
+          <CheckIn session={session} check={check} url={sixTimetableUrl(student, session.start)} />
+          {/* No system says whether the lecturer uses Edunex's too: it's there to do, never "optional". */}
+          {edunexStep(!open, null)}
+        </Steps>
       );
+    }
   }
 
-  // Doing it counts, or nobody can say yet (doing it costs nothing): the Presence is the action.
-  if (presence && presence.counts !== false) {
-    const { session } = presence;
-    const action = actionLabel({ action: { activity: presence.activity, task: presence.task, url: presence.url } });
-    // Without SIX nobody can say it counts: worth doing just in case, so said calmly, its button quiet.
-    const quiet = presence.noSix;
-    return (
-      <div className="border-t border-line bg-sunken/60 px-5 py-4">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          {/* The words keep 16rem beside the button; with less, the button goes under them. */}
-          <div className="min-w-0 flex-1 basis-64">
-            <p className="flex items-center gap-2 text-body font-semibold">
-              <Icons.Hand className={cx("size-4 shrink-0", quiet ? "text-muted" : "text-accent-fg")} />
-              {t("home.now.presenceDo", { action, time: f.dayTime(session.closesAt) })}
-            </p>
-            <p className="mt-0.5 text-small text-muted">
-              <Meta>
-                {where ?? ""}
-                {budget ?? ""}
-              </Meta>
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-1.5">
-            <Button
-              variant={quiet ? "secondary" : "primary"}
-              icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
-              onClick={openPresence}
-              aria-label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
-            >
-              {viaTask ? t("home.now.openTask") : t("presence.open.record")}
-            </Button>
-          </div>
-        </div>
-        <CountdownBar
-          className="mt-3"
-          opensAt={session.opensAt}
-          closesAt={session.closesAt}
-          now={now}
-          // Under a day, how long is left; a window can stay open for days, and "50 jam" says nothing.
-          label={
-            session.closesAt - now < DAY
-              ? t("home.now.closesIn", { left: f.countdown(session.closesAt) })
-              : t("home.now.closesWhen", { when: f.fromNow(session.closesAt) })
-          }
-          // "tutup besok" under "sebelum besok, 23:00" would say it twice.
-          showLabel={session.closesAt - now < DAY || f.dayOffset(session.closesAt) > 1}
-        />
-      </div>
-    );
-  }
+  // An open Presence is the action: it may be what counts, and doing it costs nothing. Without SIX nobody can say it
+  // counts: worth doing just in case, so said calmly, its button quiet.
+  if (presence) return <Steps>{edunexStep(!presence.noSix, where)}</Steps>;
 
-  if (!where && !presence) return null;
+  if (!where) return null;
+  const six = counted === "six" || counted === "both";
   return (
-    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-line bg-sunken/60 px-5 py-3.5">
-      <div className="min-w-0 flex-1 basis-64">
-        {where && (
-          <p className="flex items-center gap-2 text-body font-medium">
-            <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" />
-            {where}
-          </p>
-        )}
-        <p className="mt-0.5 pl-6 text-small text-muted">
-          <Meta>
-            {budget ?? ""}
-            {presence ? t("home.now.presenceExtra", { time: f.dayTime(presence.session.closesAt) }) : ""}
-          </Meta>
-        </p>
-      </div>
-      {presence && (
-        <Button
-          variant="ghost"
-          size="sm"
-          icon={viaTask ? undefined : <Icons.ArrowUpRight className="size-3.5" />}
-          onClick={openPresence}
-          aria-label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
-        >
-          {viaTask ? t("home.now.openTask") : t("presence.open.record")}
-        </Button>
-      )}
-    </div>
+    <Steps>
+      <Step
+        icon={<Icons.CheckCircle className={cx("size-4 shrink-0", six ? "text-success-fg" : "text-faint")} weight="bold" />}
+        label={six ? t("home.now.whereSix") : where}
+        why={six ? where : null}
+      />
+    </Steps>
   );
 }
 
-/** SIX's "Tandai Hadir" for the class on now: open (the button shows), gone (it showed, and doesn't now), or still to come. */
-function CheckIn({
-  session,
-  check,
-  url,
-  budget,
-  children,
+/** Sentences for a tooltip, each ending with its full stop. */
+const sentences = (...texts: (string | null | undefined)[]) =>
+  texts
+    .filter((text): text is string => Boolean(text))
+    .map((text) => (/[.?!]$/.test(text) ? text : `${text}.`))
+    .join(" ");
+
+/** The card's steps, under its head: a hairline above, a quiet background, one line each. */
+function Steps({ children }: { children: ReactNode }) {
+  return <ul className="flex flex-col gap-2 border-t border-line bg-sunken/60 px-5 py-3">{children}</ul>;
+}
+
+/** One step: its icon, what to do in a word or two, its state, the why a button away, and its own button at the end. */
+function Step({
+  icon,
+  label,
+  status,
+  statusClass,
+  why,
+  extra,
+  action,
 }: {
-  session: ClassSession;
-  check: SixCheckIn | undefined;
-  url: string;
-  budget: ReactNode;
-  children: ReactNode;
+  icon: ReactNode;
+  label: string;
+  status?: string;
+  statusClass?: string;
+  why?: string | null;
+  extra?: ReactNode;
+  action?: ReactNode;
 }) {
+  return (
+    // The words keep 15rem beside the button; with less, the button goes under them.
+    <li className="group/row flex min-h-8 flex-wrap items-center gap-x-4 gap-y-1.5">
+      <div className="flex min-w-0 flex-1 basis-60 items-center gap-2">
+        {icon}
+        <Meta className="text-body">
+          <span className="font-semibold">{label}</span>
+          {status ? <span className={cx("tabular-nums", statusClass ?? "text-muted")}>{status}</span> : ""}
+        </Meta>
+        {extra}
+        {why && <WhyButton why={why} />}
+      </div>
+      {action && <div className="flex shrink-0 items-center">{action}</div>}
+    </li>
+  );
+}
+
+/**
+ * SIX's "Tandai Hadir" for the class on now, as a step: open (the button shows), gone (it showed, and doesn't now),
+ * pressed, or still to come.
+ */
+function CheckIn({ session, check, url }: { session: ClassSession; check: SixCheckIn | undefined; url: string }) {
   const t = useT();
   const f = useFormat();
   const openCheckIn = useOpenCheckIn();
   const state = check?.state ?? "waiting";
+  // Seen pressed in the app's SIX window, and the button gone after: said as done.
+  const pressed = state === "gone" && check?.pressedAt !== undefined;
+  const open = state === "open";
   return (
-    <div className="border-t border-line bg-sunken/60 px-5 py-4">
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        {/* The words keep 16rem beside the button; with less, the button goes under them. */}
-        <div className="min-w-0 flex-1 basis-64">
-          <p className={cx("flex items-center gap-2 text-body", state === "open" ? "font-semibold" : "font-medium")}>
-            <Icons.Hand className={cx("size-4 shrink-0", state === "open" ? "text-accent-fg" : "text-muted")} />
-            {state === "open" ? t("home.now.checkInOpen") : state === "gone" ? t("home.now.checkInGone") : t("home.now.checkInWatch")}
-          </p>
-          <p className="mt-0.5 pl-6 text-small text-muted">
-            <Meta>
-              {state === "open" ? t("home.now.checkInOpenHint", { time: f.time(session.end) }) : state === "waiting" ? t("home.now.checkEvery") : ""}
-              {budget ?? ""}
-            </Meta>
-          </p>
-        </div>
+    <Step
+      icon={pressed ? <Icons.CheckCircle className="size-4 shrink-0 text-success-fg" weight="bold" /> : <SourceLogo source="six" className="size-4" />}
+      label={t("home.now.sixStep")}
+      status={
+        pressed
+          ? t("home.now.sixPressed", { time: f.time(check.pressedAt!) })
+          : open
+            ? t("home.now.sixOpen")
+            : state === "gone"
+              ? t("home.now.sixGone")
+              : t("home.now.sixWaiting")
+      }
+      statusClass={open ? "font-semibold text-fg" : undefined}
+      why={
+        pressed
+          ? null
+          : open
+            ? t("home.now.checkInOpenHint", { time: f.time(session.end) })
+            : state === "gone"
+              ? t("home.now.sixGoneWhy")
+              : t("home.now.sixWaitingWhy")
+      }
+      action={
         <Button
-          variant={state === "open" ? "primary" : state === "waiting" ? "secondary" : "ghost"}
+          variant={open ? "primary" : state === "gone" ? "ghost" : "secondary"}
           icon={<Icons.ArrowUpRight className="size-3.5" />}
           onClick={() => openCheckIn(session.id, url)}
           aria-label={t("home.now.openSixLabel", { course: session.courseCode })}
         >
           {t("home.now.openSix")}
         </Button>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function AfterThis({ session, courses }: { session: NonNullable<NowCard["after"]>; courses: readonly TermCourse[] }) {
-  const t = useT();
-  const f = useFormat();
-  return (
-    <p className="flex items-center gap-2 border-t border-line px-5 py-2.5 text-small text-muted">
-      <Icons.ArrowRight className="size-3.5 shrink-0 text-faint" />
-      <Meta>
-        {`${t("home.now.after", { time: f.time(session.start), course: session.courseCode })} ${nameOf(courses, session.courseCode, session.courseName)}`}
-        {session.room ?? ""}
-      </Meta>
-    </p>
+      }
+    />
   );
 }
 
 /** A class's day and time, as the course page names the class a window is for: "Kam, 8 Okt, 08:00–10:00". */
 const classDayTime = (f: Format, start: number, end: number) => `${f.relativeDay(start)}, ${f.timeRange(start, end)}`;
 
-function movedLabel(t: Translate, f: Format, facts: ClassFacts): string {
-  const moved = facts.moved!;
-  if (moved.usualStart !== null && moved.usualEnd !== null) {
-    const time = f.timeRange(moved.usualStart, moved.usualEnd);
-    return t("home.today.changed", {
-      usual: f.dayOffset(moved.usualStart) === f.dayOffset(facts.session.start) ? time : `${f.weekday(moved.usualStart)} ${time}`,
+/** One status of a class, in a few words, and what's behind it. */
+type ClassStatus = Status;
+
+/**
+ * A class's statuses, most pressing first: its target out of reach, a clash (the pick folded into its why on the
+ * course that needs the Student more, Presensi's answer), a new time or room, no absences left.
+ */
+function classStatuses(t: Translate, f: Format, facts: ClassFacts, context: HomeContext): ClassStatus[] {
+  const out: ClassStatus[] = [];
+  const { health } = facts;
+  if (health && facts.state === "out")
+    out.push({
+      key: "out",
+      text: t("home.today.out", { target: health.target }),
+      why: t("home.today.outWhy", { best: percent(health.best ?? 0) }),
+      tone: "danger",
+    });
+  if (facts.overlap) {
+    const other = context.health.get(facts.overlap.code);
+    const picked = health && other ? clashPick(health, other).pick === facts.session.courseCode : false;
+    out.push({
+      key: "clash",
+      text: t("home.today.overlap"),
+      why: sentences(
+        t("home.today.overlapWhy", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) }),
+        picked ? t("home.today.pick") : null,
+      ),
+      tone: "warning",
     });
   }
-  return t("home.today.roomChanged", { room: moved.usualRoom ?? "" });
+  const moved = facts.moved;
+  if (moved) {
+    const time = moved.usualStart !== null && moved.usualEnd !== null ? f.timeRange(moved.usualStart, moved.usualEnd) : null;
+    out.push({
+      key: "moved",
+      text: t(time ? "home.today.changed" : "home.today.roomChanged"),
+      why: t("home.today.usual", {
+        usual:
+          time === null
+            ? (moved.usualRoom ?? "")
+            : f.dayOffset(moved.usualStart!) === f.dayOffset(facts.session.start)
+              ? time
+              : `${f.weekday(moved.usualStart!)} ${time}`,
+      }),
+      tone: "quiet",
+    });
+  }
+  // No absences left is a fact to keep in mind, not something to do now: quiet, as amber is for that.
+  if (health && facts.state === "none") out.push({ key: "none", text: t("home.today.mustAttend"), why: t("home.today.mustAttendWhy"), tone: "quiet" });
+  return out;
 }
 
 function JoinButton({ link, code, primary = false }: { link: string; code: string; primary?: boolean }) {
@@ -598,7 +639,7 @@ function NoSixToday() {
   const signedOut = useStatus("six").state === "signed-out";
   const { signIn, busy } = useSignIn();
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-1 text-body text-muted">
       {t("home.today.noSix")}
       {signedOut && (
         <Button size="sm" busy={busy} onClick={() => void signIn("six")}>
@@ -622,7 +663,7 @@ const cardKey = (card: NowCard | null) =>
 /**
  * `due`: the deadlines as Beranda's items, so each can be put off; one put off
  * leaves the day and is listed under "Perlu perhatianmu" until it's back.
- * `onCard`: the row key of what the now card above already shows, so its row doesn't say the same again.
+ * `onCard`: the row key of what the now card above already shows, so it isn't listed again.
  */
 function Today({
   context,
@@ -654,38 +695,42 @@ function Today({
   const snoozed = (item: TodayItem) => item.kind === "due" && item.need !== null && activeSnooze(snoozeKey(item.need), entries, now) !== undefined;
   const putAway = (item: TodayItem) => item.kind === "due" && taskPutAway(item.task, handled) !== undefined;
   const putOff = (item: TodayItem) => snoozed(item) || putAway(item);
-  const shown = items.filter((item) => !putOff(item));
+  // What the card above shows isn't listed again: the day goes on from it.
+  const shown = items.filter((item) => !putOff(item) && keyOf(item) !== onCard);
   const today = shown.filter((item) => wibDay(item.at) === day);
   const tomorrow = shown.filter((item) => wibDay(item.at) !== day);
   // Never "no deadlines today" while today's are only put off or handled, and never "snoozed" for what's handled.
   const isToday = (item: TodayItem) => wibDay(item.at) === day;
-  const empty = items.some((item) => snoozed(item) && isToday(item))
-    ? "home.today.noneSnoozed"
-    : items.some((item) => putAway(item) && isToday(item))
-      ? "home.today.noneHandled"
-      : "home.today.none";
+  // With today's class on the card, "no classes today" would be wrong: nothing else, instead.
+  const empty = items.some((item) => keyOf(item) === onCard && isToday(item))
+    ? "home.today.noneElse"
+    : items.some((item) => snoozed(item) && isToday(item))
+      ? "home.today.noneSnoozed"
+      : items.some((item) => putAway(item) && isToday(item))
+        ? "home.today.noneHandled"
+        : "home.today.none";
   return (
     <Section id="home-today" title={t("home.today")} className="mt-0">
       {!context.schedule && <NoSixToday />}
       {today.length > 0 ? (
-        <List label={t("home.today")} className={cx(!context.schedule && "mt-3")}>
+        <List label={t("home.today")} className={cx(PLAIN, !context.schedule && "mt-3")}>
           {/* A deadline put off fades out, and focus moves on to the next row. */}
           <PresenceList>
             {today.map((item) => (
-              <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} />
+              <TodayRow key={keyOf(item)} item={item} courses={courses} context={context} />
             ))}
           </PresenceList>
         </List>
       ) : (
-        context.schedule && <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t(empty)}</p>
+        context.schedule && <p className="py-1 text-body text-muted">{t(empty)}</p>
       )}
       {tomorrow.length > 0 && (
         <>
           <h3 className="mt-5 mb-2 text-small font-semibold text-muted">{t("home.today.tomorrow")}</h3>
-          <List label={t("home.today.tomorrow")}>
+          <List label={t("home.today.tomorrow")} className={PLAIN}>
             <PresenceList>
               {tomorrow.map((item) => (
-                <TodayRow key={keyOf(item)} item={item} courses={courses} onCard={onCard} context={context} />
+                <TodayRow key={keyOf(item)} item={item} courses={courses} context={context} />
               ))}
             </PresenceList>
           </List>
@@ -714,7 +759,7 @@ function When({ start, end, past, tone }: { start: string; end?: string; past?: 
   );
 }
 
-function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses: readonly TermCourse[]; onCard: string | null; context: HomeContext }) {
+function TodayRow({ item, courses, context }: { item: TodayItem; courses: readonly TermCourse[]; context: HomeContext }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -723,7 +768,6 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
   const examIds = useExamIds();
   const fresh = useStatus("six").state === "live";
   const edunexFresh = useStatus("edunex").state === "live";
-  const shownAbove = keyOf(item) === onCard;
 
   if (item.kind === "unread") {
     // As SIX writes it, so the Student knows which class to look for on SIX.
@@ -769,15 +813,16 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
     const { meeting, code } = item;
     const live = meeting.start <= now && now < meeting.end;
     // Not on a day SIX shows a class the app couldn't read: this may be it.
-    const notInSix = !shownAbove && !item.maybeInSix;
+    const notInSix = !item.maybeInSix;
     return (
       <Row
         leading={<When start={f.time(meeting.start)} end={f.time(meeting.end)} />}
         title={nameOf(courses, code)}
         meta={
+          // Its number is the course page's; online with a link, the camera beside it says so.
           <Meta>
             <CourseMark code={code} courses={courses} />
-            {t(meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: meeting.number })}
+            {meeting.online && !meeting.link ? t("home.today.online") : ""}
           </Meta>
         }
         trailing={live ? <NowMark fresh={edunexFresh} /> : meeting.link ? <Icons.Video className="size-4 text-faint" /> : undefined}
@@ -792,10 +837,11 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
               )
             : undefined
         }
+        actions={notInSix ? rowControls(undefined, <WhyButton why={t("home.today.notInSixWhy")} />) : undefined}
         onClick={() => (meeting.link ? open(meeting.link) : go({ screen: "course", code, tab: "meetings" }))}
       >
-        {/* The now card says it for the meeting it shows. */}
-        {notInSix && <span className="mt-1 block text-small font-medium text-warning-fg">{t("home.today.notInSix")}</span>}
+        {/* A fact, not something to do now: quiet. */}
+        {notInSix && <StatusLine statuses={[{ key: "notInSix", text: t("home.today.notInSix"), why: "", tone: "quiet" }]} />}
       </Row>
     );
   }
@@ -807,25 +853,16 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
   const exam = /\b(UTS|UAS)\b/i.test(session.activity);
   // A sitting opens its exam's page: when and where, what to study.
   const examId = examIds.get(session.id);
-  // Said on the day: no absences left, or the target out of reach (so the course doesn't vanish from Beranda); the now card says it for its class.
-  const budget = facts.health && (facts.state === "none" || facts.state === "out") && !past && !shownAbove ? budgetLabel(t, facts.health) : null;
-  // The now card says "Jam berubah · biasanya …" for its class; the row keeps only the amber time.
-  const moved = facts.moved && !shownAbove;
-  // A clash, with the pick folded in on the course that needs the Student more (Presensi's answer).
-  const other = facts.overlap ? context.health.get(facts.overlap.code) : undefined;
-  const picked = facts.health && other ? clashPick(facts.health, other).pick === session.courseCode : false;
-  const clash = facts.overlap
-    ? `${t("home.today.overlap", { course: facts.overlap.code, time: f.timeRange(facts.overlap.from, facts.overlap.to) })}${picked ? `. ${t("home.today.pick")}` : ""}`
-    : null;
+  // Said on the day, at most two, most pressing first: the target out of reach (red, so the course doesn't vanish from
+  // Beranda), a clash, a new time or room, no absences left. What's behind each is in the info button beside the row.
+  const statuses = past ? [] : classStatuses(t, f, facts, context);
   // A class that's over: what SIX's count did after it, when the app saw.
   const result = past ? context.classResults?.[session.id]?.result : undefined;
   return (
     <Row
       // Past, quieter in token greys that still read at 4.5:1; never faded with opacity.
       className={cx(past && "text-muted")}
-      leading={
-        <When start={f.time(session.start)} end={f.time(session.end)} past={past} tone={facts.moved?.usualStart != null ? "text-warning-fg" : undefined} />
-      }
+      leading={<When start={f.time(session.start)} end={f.time(session.end)} past={past} />}
       title={course?.name ?? session.courseName}
       meta={
         <Meta className={cx(past && "text-faint")}>
@@ -853,27 +890,30 @@ function TodayRow({ item, courses, onCard, context }: { item: TodayItem; courses
           <span className="text-caption whitespace-nowrap text-muted tabular-nums">{f.fromNow(session.start)}</span>
         ) : undefined
       }
+      actions={statuses.length ? rowControls(undefined, <WhyButton why={sentences(...statuses.map((status) => status.why))} />) : undefined}
       onClick={() =>
         go(examId ? { screen: "exam", examId } : course?.edunex ? { screen: "course", code: session.courseCode, tab: "meetings" } : { screen: "presence" })
       }
     >
-      {!past && (budget || clash) && (
-        // Kept beside a clash: choosing between two classes is when "Jatah absen habis" matters most.
-        <Meta className="mt-1 text-small font-medium">
-          {budget ? <span className={STATE_TEXT[facts.state]}>{budget}</span> : ""}
-          {clash ? <span className="text-warning-fg">{clash}</span> : ""}
-        </Meta>
-      )}
-      {!past && moved && <Meta className="mt-1 text-small font-medium text-warning-fg">{movedLabel(t, f, facts)}</Meta>}
+      {statuses.length > 0 && <StatusLine statuses={statuses.slice(0, 2)} icons={STATUS_ICON} />}
     </Row>
   );
 }
+
+const STATUS_ICON: Record<string, typeof Icons.Home> = {
+  out: Icons.Target,
+  clash: Icons.Overlap,
+  moved: Icons.Clock,
+  none: Icons.Hand,
+  notInSix: Icons.Megaphone,
+};
 
 /** "Sekarang" on the row of a class or meeting going on. */
 function NowMark({ fresh }: { fresh: boolean }) {
   const t = useT();
   return (
-    <span className="inline-flex items-center gap-1.5 text-caption font-semibold text-success-fg">
+    // Green only while the app is reading the source, as on the card.
+    <span className={cx("inline-flex items-center gap-1.5 text-caption font-semibold", fresh ? "text-success-fg" : "text-muted")}>
       {fresh && <LiveDot className="scale-75" />}
       {t("home.today.now")}
     </span>
@@ -927,13 +967,13 @@ function NeedsYou({
   return (
     <Section id="home-needs" title={t("home.needs")} count={loading || shown.length === 0 ? undefined : shown.length} className="mt-0">
       {loading ? (
-        <Card className="p-4" aria-busy="true">
+        <div className="py-1" aria-busy="true">
           <Skeleton className="h-4 w-1/3" />
           <Skeleton className="mt-3 h-3 w-2/3" />
-        </Card>
+        </div>
       ) : shown.length ? (
         <>
-          <List label={t("home.needs")}>
+          <List label={t("home.needs")} className={PLAIN}>
             {/* A row put off or away fades out, and focus moves on to the next. */}
             <PresenceList>
               {shown.map((need) => (
@@ -941,11 +981,11 @@ function NeedsYou({
               ))}
             </PresenceList>
           </List>
-          {awayLine && <div className="mt-2.5 px-1">{awayLine}</div>}
+          {awayLine && <div className="mt-2.5">{awayLine}</div>}
         </>
       ) : (
         // Everything left is put off or handled: say so, never "nothing due".
-        <div className="rounded-xl bg-sunken px-4 py-3.5">
+        <div className="py-1">
           <p className="flex items-center gap-2 text-body font-medium">
             {/* Green says "all clear": not while things are only put off. */}
             {snoozed.length ? (
@@ -972,14 +1012,14 @@ function NeedsYou({
         </div>
       )}
       {!loading && listOpen && snoozed.length > 0 && (
-        <List label={t("snooze.list")} className="mt-2.5">
+        <List label={t("snooze.list")} className={cx(PLAIN, "mt-2.5")}>
           {snoozed.map(({ item, entry }) => (
             <SnoozedRow key={item.id} need={item} entry={entry} courses={courses} />
           ))}
         </List>
       )}
       {!loading && listOpen && done.length > 0 && (
-        <List label={t("done.list")} className="mt-2.5">
+        <List label={t("done.list")} className={cx(PLAIN, "mt-2.5")}>
           {done.map(({ item, entry }) => (
             <DoneRow key={item.id} need={item} entry={entry} courses={courses} />
           ))}
@@ -1010,7 +1050,13 @@ function AwayLine({ snoozed, done, open, onToggle }: { snoozed: number; done: nu
       ) : (
         ""
       )}
-      <button type="button" data-snoozed="" aria-expanded={open} onClick={onToggle} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+      <button
+        type="button"
+        data-snoozed=""
+        aria-expanded={open}
+        onClick={onToggle}
+        className="focus-ring rounded-tag font-medium text-accent-fg hover:underline"
+      >
         {open ? t("snooze.hideList") : t("snooze.showList")}
       </button>
     </Meta>
@@ -1117,8 +1163,10 @@ interface NeedView {
   title: string;
   /** Short facts: the course, a time, a place. */
   meta: ReactNode[];
-  /** A sentence on its own line under the facts ("SIX dan Edunex beda tanggal"), so the facts line stays short. */
+  /** The last fact of the line, in its own tone ("SIX dan Edunex beda tanggal"). */
   note?: { text: string; tone: "danger" | "warning" | null };
+  /** What to do about it, behind an info button beside the row (an attendance warning has no snooze there). */
+  why?: string;
   /** The right side: when, said the human way. */
   when: string | null;
   tone: "danger" | "warning" | null;
@@ -1179,7 +1227,6 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         );
         const closes = t("home.need.presence.closes", { time: f.dayTime(need.session.closesAt) });
         if (need.open)
-          // Where SIX counts, the window is optional: said so, never as a thing to do.
           // Without SIX nobody knows whether it counts: worth doing just in case, so no amber.
           return need.countedIn === "noSix"
             ? {
@@ -1190,21 +1237,13 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
                 when: f.fromNow(need.session.closesAt),
                 tone: null,
               }
-            : need.countedIn === "six"
-              ? {
-                  title: t("home.need.presenceOptional", { course: need.course ?? "" }),
-                  which,
-                  meta: [course, forClass, t("home.need.presenceOptional.counted"), closes],
-                  when: null,
-                  tone: null,
-                }
-              : {
-                  title: t("home.need.presence", { course: need.course ?? "" }),
-                  which,
-                  meta: [course, forClass, closes],
-                  when: f.fromNow(need.session.closesAt),
-                  tone: "warning",
-                };
+            : {
+                title: t("home.need.presence", { course: need.course ?? "" }),
+                which,
+                meta: [course, forClass, closes],
+                when: f.fromNow(need.session.closesAt),
+                tone: "warning",
+              };
         return {
           title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
           titleLacksCourse: need.task !== null,
@@ -1270,22 +1309,21 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
       }
       case "exam": {
         const { exam, sitting } = need;
-        const time = sitting.end !== null ? f.timeRange(sitting.start, sitting.end) : f.time(sitting.start);
         // Open for days on Edunex: it runs out when it closes, like a deadline.
         const closes = need.window && sitting.end !== null ? sitting.end : null;
+        // The title names the course; the end is on the exam's page, and a take-home part is its own Task.
         return {
           title: t("home.need.exam", { kind: t(`exam.kind.${exam.kind}`), course: nameOf(courses, exam.courseCode) }),
           meta: [
-            course,
-            closes !== null ? t("home.need.exam.closes", { when: f.dueLabel(closes) }) : `${f.relativeDay(sitting.start)}, ${time}`,
+            closes !== null ? t("home.need.exam.closes", { when: f.dueLabel(closes) }) : f.relativeDay(sitting.start),
+            closes !== null ? null : (
+              <span key="time" className="tabular-nums">
+                {f.time(sitting.start)}
+              </span>
+            ),
             sitting.source === "six" ? sitting.room : t("home.need.exam.edunex"),
           ],
-          note: need.disagree
-            ? { text: t("home.need.exam.disagree"), tone: "warning" }
-            : need.takeHomeDue !== null
-              ? // A take-home due another day is the exam's second part: said plainly, no warning.
-                { text: t("home.need.exam.takeHome", { date: `${f.weekdayShort(need.takeHomeDue)} ${f.dayMonth(need.takeHomeDue)}` }), tone: null }
-              : undefined,
+          note: need.disagree ? { text: t("home.need.exam.disagree"), tone: "warning" } : undefined,
           when: f.fromNow(closes ?? sitting.start),
           tone: near(closes ?? sitting.start),
         };
@@ -1314,6 +1352,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
               {t(out ? "home.need.attendance.outMeta" : "home.need.attendance.noneMeta", vars)}
             </span>,
           ],
+          why: out ? t("home.need.attendance.outWhy") : undefined,
           when: null,
           tone: out ? "danger" : "warning",
         };
@@ -1367,14 +1406,27 @@ function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCou
   const act = () => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url));
   const later = snoozable(need, now);
   const name = fullName(need, view);
-  // Attendance has "Sudah tahu" instead of a snooze: the warning is for one class, or for good.
-  const snooze = need.kind !== "attendance" && canSnooze(later, now) ? <SnoozeMenu item={later} name={name} /> : undefined;
+  // Attendance has "Sudah tahu" instead of a snooze: the warning is for one class, or for good. Its why goes there instead.
+  const snooze =
+    need.kind === "attendance" ? view.why && <WhyButton why={view.why} /> : canSnooze(later, now) ? <SnoozeMenu item={later} name={name} /> : undefined;
   return (
     <Row
       id={needRowId(need.id)}
       title={view.title}
       label={view.label}
-      meta={<Meta>{view.meta}</Meta>}
+      meta={
+        // One line of facts: the note, when there is one, is its last.
+        <Meta>
+          {view.meta}
+          {view.note ? (
+            <span
+              className={cx("font-medium", view.note.tone === "danger" ? "text-danger-fg" : view.note.tone === "warning" ? "text-warning-fg" : "text-muted")}
+            >
+              {view.note.text}
+            </span>
+          ) : null}
+        </Meta>
+      }
       actions={rowControls(doneButton(t, need, name), snooze)}
       trailing={
         view.when ? (
@@ -1389,18 +1441,7 @@ function NeedRow({ need, courses }: { need: NeedDraft; courses: readonly TermCou
         ) : undefined
       }
       onClick={act}
-    >
-      {view.note && (
-        <Meta
-          className={cx(
-            "mt-1 text-small font-medium",
-            view.note.tone === "danger" ? "text-danger-fg" : view.note.tone === "warning" ? "text-warning-fg" : "text-muted",
-          )}
-        >
-          {view.note.text}
-        </Meta>
-      )}
-    </Row>
+    />
   );
 }
 
@@ -1428,29 +1469,46 @@ const IMPORTANT: ReadonlySet<string> = new Set([
 /** An edit after hand-in whose title names the change ("Tenggat diundur ke …") still says so in its body. */
 const IMPORTANT_BODY: ReadonlySet<string> = new Set(["alert.taskEdited.afterSubmit.body", "alert.taskEdited.count.after"]);
 
-/** A short look at the last week's changes: the bell keeps all of them, with the same words. */
-function Changes({ context }: { context: HomeContext }) {
+/**
+ * A short look at the last week's changes: the bell keeps all of them, with the same words. A class moved that the
+ * card or a row of Hari ini says is new, and a meeting outside SIX listed there, aren't said again.
+ */
+function Changes({ context, card, plan }: { context: HomeContext; card: NowCard | null; plan: TodayPlan }) {
   const t = useT();
   const f = useFormat();
   const { go } = useNav();
   const history = useDataset("app.alerts");
   const all = useMemo(() => recentChanges(context, history?.items ?? []), [context, history]);
-  const changes = all.slice(0, CHANGES_SHOWN);
+  const above = useMemo(() => {
+    // The card shows every status of its class; a row, its first two.
+    const moved = [
+      ...(card?.class ? [card.class] : []),
+      ...plan.classes.filter((facts) =>
+        classStatuses(t, f, facts, context)
+          .slice(0, 2)
+          .some((status) => status.key === "moved"),
+      ),
+    ].map((facts) => `schedule.moved:${facts.session.id}:`);
+    const meetings = [...(card?.meeting ? [card.meeting] : []), ...plan.announced].map(({ code, meeting }) => `meeting:${code}:${meeting.start}`);
+    return (item: Alert) => moved.some((prefix) => item.id.startsWith(prefix)) || meetings.includes(item.id);
+  }, [card, plan, context, t, f]);
+  const fresh = all.filter((item) => !above(item));
+  const changes = fresh.slice(0, CHANGES_SHOWN);
   return (
     <Section
       id="home-changes"
       className="mt-0"
       title={t("home.changes")}
       action={
-        <button type="button" onClick={openAlerts} className="focus-ring rounded text-small font-medium text-accent-fg hover:underline">
+        <button type="button" onClick={openAlerts} className="focus-ring rounded-tag text-small font-medium text-accent-fg hover:underline">
           {t("home.changes.all")}
         </button>
       }
     >
       {changes.length === 0 ? (
-        <p className="rounded-xl bg-sunken px-4 py-3.5 text-body text-muted">{t("home.changes.none")}</p>
+        <p className="py-1 text-body text-muted">{t(all.length ? "home.changes.shown" : "home.changes.none")}</p>
       ) : (
-        <List label={t("home.changes")}>
+        <List label={t("home.changes")} className={PLAIN}>
           {changes.map((item) => (
             <ChangeRow key={item.id} item={item} f={f} onOpen={() => go(item.target)} />
           ))}
@@ -1466,6 +1524,10 @@ function ChangeRow({ item, f, onOpen }: { item: Alert; f: Format; onOpen: () => 
   const important = IMPORTANT.has(item.title.key) || (item.body !== null && item.body !== undefined && IMPORTANT_BODY.has(item.body.key));
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
   const colorOf = useCourseColor();
+  const title = t(item.title.key, item.title.vars);
+  const when = f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at);
+  // The details, on hover and in its name; whole where it opens.
+  const whole = factsLabel(title, item.body && t(item.body.key, item.body.vars));
   return (
     <Row
       className="py-2.5"
@@ -1475,11 +1537,14 @@ function ChangeRow({ item, f, onOpen }: { item: Alert; f: Format; onOpen: () => 
           {code && <CourseDot color={colorOf(code)} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-surface" />}
         </span>
       }
-      title={<Meta>{t(item.title.key, item.title.vars)}</Meta>}
-      meta={item.body ? <Meta truncate>{t(item.body.key, item.body.vars)}</Meta> : undefined}
-      trailing={
-        <span className="text-caption whitespace-nowrap text-faint tabular-nums">{f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at)}</span>
+      // One line: what changed and when.
+      title={
+        <span className="block" title={whole}>
+          <Meta>{title}</Meta>
+        </span>
       }
+      label={item.body ? factsLabel(whole, when) : undefined}
+      trailing={<span className="text-caption whitespace-nowrap text-faint tabular-nums">{when}</span>}
       onClick={onOpen}
     />
   );
@@ -1495,15 +1560,14 @@ function Courses({ courses, nim, context }: { courses: TermCourse[] | undefined;
   if (!courses) {
     if (statuses.some((status) => status.state === "connecting" || status.state === "live"))
       return (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3" aria-busy="true">
+        <List className={PLAIN}>
           {[0, 1, 2].map((i) => (
-            <Card key={i} className="p-4">
-              <Skeleton className="h-3 w-16" />
-              <Skeleton className="mt-3 h-4 w-4/5" />
-              <Skeleton className="mt-2 h-3 w-12" />
-            </Card>
+            <li key={i} className="flex items-center gap-3 px-4 py-3" aria-busy="true">
+              <Skeleton className="h-3 w-14" />
+              <Skeleton className="h-3 w-2/5" />
+            </li>
           ))}
-        </div>
+        </List>
       );
     return (
       <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("home.coursesUnavailable")}>
@@ -1516,136 +1580,109 @@ function Courses({ courses, nim, context }: { courses: TermCourse[] | undefined;
     );
   }
   if (courses.length === 0) return <EmptyState icon={<Icons.BookOpen className="size-5" />} title={t("home.noCourses")} />;
-  return <CourseGrid courses={courses} nim={nim} context={context} />;
+  return (
+    <List className={PLAIN}>
+      {courses.map((course) => (
+        <CourseRow key={course.code} course={course} nim={nim} health={context?.health.get(course.code)} />
+      ))}
+    </List>
+  );
 }
 
 /**
- * This term's courses. When SIX changed its course table, the ones shown are its last good list (or
- * Edunex's) and say so; with none to show, the note says why on its own. Rows SIX wrote another way are
- * said on Presensi.
+ * This term's courses, one plain row each: what the sidebar can't say (the absences left; class and SKS are on the
+ * course page), under one quiet "Jatah absen" over the bars, and
+ * the list's own states (loading, unavailable, none). When SIX changed its course table, the ones shown are
+ * its last good list (or Edunex's) and say so; with none to show, the note says why on its own. Rows SIX
+ * wrote another way are said on Presensi.
  */
 function HomeCourses({ courses, nim, context }: { courses: TermCourse[] | undefined; nim: string | undefined; context: HomeContext | undefined }) {
   const t = useT();
   const changed = useChangedPage(["six.courses"]);
   const onlyNote = changed && courses?.length === 0;
   return (
-    <Section id="home-courses" title={t("home.coursesThisTerm")} count={onlyNote ? undefined : courses?.length}>
+    <Section
+      id="home-courses"
+      title={t("home.coursesThisTerm")}
+      count={onlyNote ? undefined : courses?.length}
+      // The bars' one label, so no row says it again: laid out as a row's end (the word's column, the gap, the
+      // way-out button's room), so it ends where the bars end and sits right over them.
+      action={
+        courses?.some((course) => course.inSix) ? (
+          <span className="flex items-center gap-x-6">
+            <span className="flex items-center gap-2.5">
+              <span className="text-caption text-faint">{t("presence.bar.label")}</span>
+              <span className="min-w-24" />
+            </span>
+            <span className="size-7" />
+          </span>
+        ) : undefined
+      }
+      className="mt-10"
+    >
       {changed && <SixPageNote datasets={["six.courses"]} className="mb-3" />}
       {!onlyNote && <Courses courses={courses} nim={nim} context={context} />}
     </Section>
   );
 }
 
-const CARD_MIN = 220;
-const CARD_GAP = 12;
-
-/** The cards in even rows: five courses sit 3 + 2, not 4 + 1 with one left alone. */
-function CourseGrid({ courses, nim, context }: { courses: TermCourse[]; nim: string | undefined; context: HomeContext | undefined }) {
-  const list = useRef<HTMLUListElement>(null);
-  const [fits, setFits] = useState<number | null>(null);
-  useEffect(() => {
-    const element = list.current;
-    if (!element || typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(([entry]) => setFits(Math.max(1, Math.floor((entry!.contentRect.width + CARD_GAP) / (CARD_MIN + CARD_GAP)))));
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
-  const columns = fits === null ? null : Math.ceil(courses.length / Math.ceil(courses.length / fits));
-  return (
-    <ul
-      ref={list}
-      className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3"
-      style={columns === null ? undefined : { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-    >
-      {courses.map((course) => (
-        <li key={course.code}>
-          <CourseCard course={course} nim={nim} health={context?.health.get(course.code)} />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function CourseCard({ course, nim, health }: { course: TermCourse; nim: string | undefined; health: AttendanceHealth | undefined }) {
+function CourseRow({ course, nim, health }: { course: TermCourse; nim: string | undefined; health: AttendanceHealth | undefined }) {
   const t = useT();
   const open = useOpenExternal();
   const { go } = useNav();
-  const facts = [course.classNo ? t("course.class", { no: course.classNo }) : null, course.sks !== null ? t("course.sks", { count: course.sks }) : null];
   const external = course.edunex
     ? { label: t("action.openInEdunex"), url: edunexCourseUrl(course.edunex.courseId) }
     : nim
       ? { label: t("action.openInSix"), url: sixStatusUrl(nim) }
       : null;
+  const head = (
+    <>
+      <span className="inline-flex shrink-0 items-center gap-1.5 text-body font-semibold tabular-nums">
+        <CourseDot color={course.color} className="size-2" />
+        {course.code}
+      </span>
+      <span className="min-w-0 truncate text-body" title={course.name}>
+        {course.name}
+      </span>
+    </>
+  );
   return (
-    <Card className={cx("group relative flex h-full flex-col p-4", course.edunex && "transition-shadow duration-150 hover:shadow-lift")}>
-      {/* A course on Edunex opens its course page (the whole card); one only in SIX has none. */}
+    <li className={cx("group relative flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2.5", course.edunex && "hover:bg-hover")}>
+      {/* A course on Edunex opens its course page (the whole row); one only in SIX has none. */}
       {course.edunex ? (
         <button
           type="button"
-          className="focus-ring block rounded pr-6 text-left after:absolute after:inset-0 after:rounded-xl after:content-['']"
+          className="focus-ring flex min-w-[14rem] flex-1 items-baseline gap-2.5 rounded-tag text-left after:absolute after:inset-0 after:content-['']"
           onClick={() => go({ screen: "course", code: course.code })}
         >
-          <CardHead course={course} />
+          {head}
         </button>
       ) : (
-        <div className="pr-6">
-          <CardHead course={course} />
-        </div>
+        <div className="flex min-w-[14rem] flex-1 items-baseline gap-2.5">{head}</div>
       )}
-      {facts.some(Boolean) && <Meta className="mt-0.5 text-small text-muted">{facts}</Meta>}
-      {/* From the top, so the meters of a row of cards line up (the name always takes two lines). */}
-      <div className="pt-3">
-        {course.inSix && <CourseAttendance health={health} />}
-        {!course.edunex && <span className="mt-1 block text-caption text-faint">{t("course.notOnEdunex")}</span>}
-      </div>
+      {course.inSix && <CourseAttendance health={health} />}
+      {!course.edunex && <span className="text-caption text-faint">{t("course.notOnEdunex")}</span>}
       {/* Last in the markup, so Tab reaches the course before its way out to Edunex or SIX. */}
       {external && (
         <Tooltip content={external.label}>
           <IconButton
             size="sm"
             label={`${external.label}: ${course.code}`}
-            // A second way out, the card itself opening the course: shown on hover and keyboard focus, always where there's no hover.
-            className="absolute top-2.5 right-2.5 z-10 transition-opacity duration-150 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
+            // A second way out, the row itself opening the course: shown on hover and keyboard focus, always where there's no hover.
+            className="relative z-10 -my-1 ml-auto transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:group-hover:opacity-100"
             onClick={() => open(external.url)}
           >
             <Icons.ArrowUpRight className="size-3.5" />
           </IconButton>
         </Tooltip>
       )}
-    </Card>
+    </li>
   );
 }
 
-function CardHead({ course }: { course: TermCourse }) {
-  return (
-    <>
-      <span className="inline-flex items-center gap-1.5 text-small font-semibold tabular-nums">
-        <CourseDot color={course.color} className="size-2" />
-        {course.code}
-      </span>
-      <span className="mt-1.5 line-clamp-2 block min-h-[2lh] text-body font-semibold">{course.name}</span>
-    </>
-  );
-}
-
-/** The course's absences, as Presensi draws them: "Jatah absen", the bar, "Terpakai 1× · sisa 1×". */
+/** The course's absences, as Presensi draws them, in one line: the bar and its one word ("sisa 1×", "habis"). */
 function CourseAttendance({ health }: { health: AttendanceHealth | undefined }) {
   const t = useT();
   if (!health?.held) return <span className="text-caption text-faint">{t("course.noMeetingsYet")}</span>;
-  return <AbsenceBudget health={health} place="card" />;
-}
-
-/**
- * The now card's few words for its course's attendance, two facts for its
- * line (a fragment, so Meta puts its dot between them): SIX's share, labeled
- * ("Kehadiran 93%"), then what's left ("Sisa jatah absen 1×", or the state
- * when none is) in the state's color.
- */
-function cardBudget(t: Translate, health: AttendanceHealth): ReactNode {
-  return (
-    <>
-      {health.held ? t("home.now.share", { percent: percent(health.attended ?? 0, health.held) }) : ""}
-      <span className={STATE_TEXT[health.state]}>{budgetLabel(t, health)}</span>
-    </>
-  );
+  return <AbsenceBudget health={health} place="line" className="shrink-0" />;
 }

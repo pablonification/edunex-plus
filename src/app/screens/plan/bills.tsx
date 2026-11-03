@@ -10,8 +10,10 @@ import { SixPageNote } from "../../six-page-note";
 import { useDataset } from "../../store";
 import { cx } from "../../ui/cx";
 import { Card } from "../../ui/display";
+import { Explained } from "../../ui/explain";
 import { Icons } from "../../ui/icons";
 import { List, Meta, Notice, Section } from "../../ui/layout";
+import { PLAIN_LIST } from "../plain-list";
 import { useTermYears } from "./projection";
 import { SixNeeded } from "./six-needed";
 
@@ -84,7 +86,7 @@ export function Tab(_: { onCalendar?: () => void }) {
       )}
       {/* "Lunas" on every row would bury the one that isn't: a paid row stays quiet, and all paid is said once. */}
       <Section id="bills-history" title={t("bills.history")} description={allPaid ? t("bills.allPaid") : undefined} className="mt-0">
-        <List label={t("bills.history")}>
+        <List label={t("bills.history")} className={PLAIN_LIST}>
           {[...billed].reverse().map((bill) => (
             <li
               key={bill.term}
@@ -107,11 +109,9 @@ export function Tab(_: { onCalendar?: () => void }) {
             </li>
           ))}
         </List>
+        {/* That the app never pays is a hover or focus away: the Student pays at the bank, as they always have. */}
         <p className="mt-2 text-caption text-faint">
-          <Meta>
-            {t("bills.from")}
-            {t("bills.viewOnly")}
-          </Meta>
+          <Explained text={t("bills.from")} why={t("bills.viewOnly")} />
         </p>
       </Section>
     </div>
@@ -146,10 +146,10 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
   })();
   return (
     <Card className="flex flex-col px-5 py-4">
-      <Meta className="text-small font-medium text-muted">
-        {label}
-        {termYears(bill.term)}
-      </Meta>
+      {/* "Semester ini", "Semester depan": the years are a tooltip away, and the history's, where the terms are told apart. */}
+      <p className="text-small font-medium text-muted">
+        <Explained text={label} why={termYears(bill.term)} />
+      </p>
       {billedNow ? (
         <>
           <p className="mt-1 text-figure font-semibold tabular-nums">{bill.amount !== null ? rupiah(bill.amount) : "-"}</p>
@@ -167,22 +167,26 @@ function BillCard({ label, bill }: { label: string; bill: Bill }) {
       ) : (
         <>
           <p className="mt-1 text-title font-medium text-muted">{t("bills.notBilled")}</p>
-          <p className="mt-0.5 text-small text-muted">
-            {deadline ? t("bills.expect", { date: f.dayMonth(dayMs(deadline.day)).replace(" ", "\u00a0") }) : t("bills.expectNoDate")}
-          </p>
+          {!deadline && <p className="mt-0.5 text-small text-muted">{t("bills.expectNoDate")}</p>}
         </>
       )}
-      {billedNow && deadline && (
+      {deadline && (
+        // The date to follow; the other source's date, and when a bill shows up, a hover or focus away.
         <div className="mt-3 border-t border-line pt-3 text-small">
           <p className="flex items-center justify-between gap-3">
             <span className="text-muted">{t("bills.deadline")}</span>
-            <span className={cx("font-semibold tabular-nums", bill.status === "paid" && "font-normal text-muted")}>{f.dayMonth(dayMs(deadline.day))}</span>
+            {(() => {
+              const date = f.dayMonth(dayMs(deadline.day));
+              const why = [
+                deadline.other && t(deadline.other.source === "six" ? "bills.otherSix" : "bills.otherItb", { date: f.dayMonth(dayMs(deadline.other.day)) }),
+                !billedNow && t("bills.expectWhy"),
+              ]
+                .filter(Boolean)
+                .join(" ");
+              const tone = cx("font-semibold tabular-nums", bill.status === "paid" && "font-normal text-muted");
+              return why ? <Explained text={date} why={why} className={tone} /> : <span className={tone}>{date}</span>;
+            })()}
           </p>
-          {deadline.other && (
-            <p className="mt-0.5 text-caption text-faint">
-              {t(deadline.other.source === "six" ? "bills.otherSix" : "bills.otherItb", { date: f.dayMonth(dayMs(deadline.other.day)) })}
-            </p>
-          )}
         </div>
       )}
       {bill.instalments.length > 0 && (
