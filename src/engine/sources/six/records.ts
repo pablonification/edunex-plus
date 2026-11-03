@@ -71,11 +71,16 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
   });
 }
 
-/** The curriculum in force for the Student's program, its structure, and what the Student registered for. */
-export async function fetchCurriculum(pages: SixPages, skipped?: Skipped): Promise<Curriculum> {
+/**
+ * The curriculum in force for the Student's program, its structure, and what the Student registered for; null when SIX
+ * marks every curriculum it lists ✗ (a first-year program's, before the Student chooses a major).
+ */
+export async function fetchCurriculum(pages: SixPages, skipped?: Skipped): Promise<Curriculum | null> {
   const who = await pages.who();
   const list = readCurriculumList(await pages.page(recordPaths.curricula(who)), skipped);
   const current = list.filter((entry) => entry.active === true).sort((a, b) => b.year - a.year)[0];
+  if (!current && list.length > 0 && list.every((entry) => entry.active === false)) return null;
+  // A mark the app couldn't read might be the ✓.
   if (!current) changed("curriculum list", "no curriculum is in force");
   const structure = readCurriculumStructure(await pages.page(current.structurePath), skipped);
   const registrations = readSchemes(await pages.page(recordPaths.schemes(who)), skipped);

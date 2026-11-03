@@ -228,18 +228,27 @@ describe("SIX records: grades (#78)", () => {
 });
 
 describe("SIX records: curriculum (#79)", () => {
-  it("no curriculum in force is a change on SIX's side, not an empty planner", async () => {
+  it("every curriculum SIX lists marked ✗ (a first-year program's, before choosing a major) is none in force yet, not a change", async () => {
     const world = new PretendWorld({ now: "2026-10-11T09:00:00+07:00" });
     world.six.editPage(LIST, (html) =>
       html.replace('<span class="text-success"><i class="fa fa-fw fa-check"></i></span>', '<span class="text-danger"><i class="fa fa-fw fa-times"></i></span>'),
     );
+    const h = await signedIn({ world });
+    expect(h.status().state).toBe("live");
+    expect(h.status().changedPages).toBeUndefined();
+    expect(h.dataset("six.curriculum")).toBeNull();
+    expect(h.dataset("six.transcript")).toBeDefined();
+  });
+
+  it("a mark it can't read might be the ✓: with no other in force, that's still a change on SIX's side", async () => {
+    const world = new PretendWorld({ now: "2026-10-11T09:00:00+07:00" });
+    world.six.editPage(LIST, (html) => html.replace('<span class="text-success"><i class="fa fa-fw fa-check"></i></span>', "<span>Ya</span>"));
     const h = await signedIn({ world });
     expect(h.status()).toMatchObject({
       state: "live",
       changedPages: [{ datasets: ["six.curriculum"], detail: "SIX curriculum list page: no curriculum is in force" }],
     });
     expect(h.dataset("six.curriculum")).toBeUndefined();
-    expect(h.dataset("six.transcript")).toBeDefined();
   });
 
   it("a syllabus on demand", async () => {
