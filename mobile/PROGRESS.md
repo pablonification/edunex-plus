@@ -298,6 +298,25 @@ motion and onboarding are open. The desktop is a reference for data only.
   Left: the after-class scenarios' Beranda, class and course details, the edit scenario's "Diubah setelah kamu
   kumpulkan", timetable-unread's unread row, and the first scan's details. The Mac's disk filled up at 05:30 (its T3
   server can't open its database), so the two helpers on those stopped before pushing.
+- **2026-11-03 (afternoon): the finish, from the Mac after pabs went offline.** The lead's thread was on pabs, so a new
+  lead picked up from git. Run 41547909790 (8ba7eb88, checka-2a/2b merged) found 10,340 of 10,365 (99.8%). The Mac's
+  disk was cleared (helper worktrees already merged or pushed, 944 MB → 10 GB free), `mobile-r2-deep-akademik` merged,
+  and three helpers fixed the rest on `mobile-finish-{schedule,data,polish}`:
+  - Check A's last 25. Timetable-unread: Beranda's Nanti hari ini lists today's class SIX's page has but the app couldn't
+    read, and its sheet says how many rows aren't recognised, with Laporkan masalah. A moved class's sheet keeps
+    "Berubah · biasanya 08:00–09:30" once SIX's verdict takes the chip. Edunex-only: Akademik says whose record it is,
+    a course's sheet says its next Edunex Presence, Nilai's rows end in "Butuh berapa?". Course-table-blank: the sheet
+    says Edunex's tally ("Hadir 1 dari 6 di Edunex"). Course-table-changed's "08:07" is found on Kuliah's note.
+  - Left out on purpose (D24, `screens.json` phoneSkips): Beranda's "Belum ada pertemuan" when SIX's table loses its
+    attendance column. Classes did meet (Edunex counts 1 of 6), so the phone says "Belum ada hitungan SIX" as the
+    desktop's Presensi does. The desktop's wording there looks like a bug of its own.
+  - The judge's leftovers: every sheet cut its last 48 dp (react-native-screens' FormSheet stacks the grabber in a box
+    only as tall as the content; padding by the navigation bar hid it only with three-button navigation), so Kumpulkan's
+    second button was cut; sheets now pad by the grabber. Jadwal's ⋮ menu re-sends the status bar style once its window
+    is up. Every top bar title is in Plus Jakarta Sans. Cut meta lines got shorter phone wording ("Maks 73%", the day and
+    time on Yang berubah and Notifikasi), the dropped facts kept in what TalkBack reads. Judge walk (light) on a trimmed
+    throwaway branch: run 41618150249, green.
+  - Waits on the next full run on `mobile`: Check A on every scenario, both judge walks.
 
 ### Rules from Arqila's verdict (2026-11-01; the judge fails a screen on any of them)
 
