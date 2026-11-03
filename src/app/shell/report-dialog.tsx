@@ -9,7 +9,7 @@
 import { type ReactNode, useEffect, useId, useState } from "react";
 import type { ActionOutput } from "../../core/contract";
 import { MAINTAINER_LINE } from "../../core/links";
-import { type ReportImpact, reportSendingOf } from "../../core/models";
+import { type ProblemReport, type ReportImpact, reportSendingOf } from "../../core/models";
 import { pageLabel, problemHeading, type ReportPreview } from "../../core/report";
 import type { StringKey } from "../../core/strings";
 import { errorKey } from "../bridge";
@@ -206,6 +206,7 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
         {report.problems.length === 0 && <p className="px-4 py-3 text-small text-pretty text-muted">{t("report.nothingKept")}</p>}
         {log.length > 0 && <p className="px-4 py-3 text-small text-pretty text-muted">{t("report.logGoes")}</p>}
         <p className="px-4 py-3 text-small text-muted">{t("report.app", { version: report.version, os: preview.os })}</p>
+        <StudentLine student={report.student} />
         {(report.problems.length > 0 || log.length > 0) && (
           <div className="px-2 py-1.5">
             <Button
@@ -449,6 +450,21 @@ function FileItem({ preview, file }: { preview: ReportPreview; file: NonNullable
       <Button size="sm" icon={<Icons.FolderDown className="size-3.5" />} onClick={reveal}>
         {t(`file.reveal.${store.platform}`)}
       </Button>
+    </div>
+  );
+}
+
+/** Who sent it, coarsely, as the report carries it: "Program studi Teknik Informatika · semester 1". */
+function StudentLine({ student }: { student: ProblemReport["student"] }) {
+  const t = useT();
+  if (!student) return null;
+  const program = student.program ?? student.programCode;
+  if (!program && student.semester === null) return null;
+  return (
+    <div className="px-4 py-3">
+      <Meta className="text-small text-muted">
+        {[program && t("report.student.program", { program }), student.semester !== null && t("report.student.semester", { semester: student.semester })]}
+      </Meta>
     </div>
   );
 }

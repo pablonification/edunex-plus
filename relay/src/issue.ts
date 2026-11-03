@@ -157,11 +157,25 @@ function affects(problem: Problem): string[] {
   return out;
 }
 
+/** "In semester 1 (entered 2026), program `169 Tahap Tahun Pertama FTMD`": who sent it, coarsely, when the app said. */
+function student(envelope: Envelope): string[] {
+  const one = envelope.report.student;
+  if (!one) return [];
+  const program = [one.programCode, one.program].filter(Boolean).join(" ");
+  const parts = [
+    one.semester === null ? null : `in semester ${one.semester}${one.semester <= 2 ? " (first year)" : ""}`,
+    one.entryYear === null ? null : `entered ${one.entryYear}`,
+    program ? `program ${span(clip(program, 120))}` : null,
+  ].filter(Boolean);
+  return parts.length ? [`- The student: ${parts.join(", ")}.`] : [];
+}
+
 function from(envelope: Envelope): string[] {
   const out = [
     "### Where it came from",
     "",
     `- Edunex Plus ${envelope.report.version} on ${span(clip(envelope.os, 200))}.`,
+    ...student(envelope),
     envelope.how === "auto" ? "- Sent automatically: the student turned that on." : "- Sent by the student.",
     "",
   ];
