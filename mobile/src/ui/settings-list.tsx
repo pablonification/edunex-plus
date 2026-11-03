@@ -12,7 +12,7 @@ import { Switch } from "./controls";
 import { Group, GroupRow, Heading } from "./group";
 import { Icons } from "./icons";
 import { PressScale } from "./press";
-import { Sheet } from "./sheet";
+import { Sheet, SheetTitle } from "./sheet";
 import { Text } from "./text";
 import { space, TOUCH, useTheme } from "./theme";
 
@@ -271,15 +271,8 @@ export function ChoiceRow<T extends string>({
   );
 }
 
-/** A sheet's title in v4's face. */
-export function SheetTitle({ children }: { children: string }) {
-  const v = useTheme().v4;
-  return (
-    <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={{ color: v.fg }}>
-      {children}
-    </Text>
-  );
-}
+/** A sheet's title in v4's face: the shared one (./sheet.tsx), here too for the settings' sheets. */
+export { SheetTitle };
 
 /** The choices of one setting in a native sheet (v4's white): Material's radio list, each row springing. */
 export function ChoiceSheet<T extends string>({
