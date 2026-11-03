@@ -167,14 +167,22 @@ function StandingSkeleton() {
   );
 }
 
-/** No SIX to read the IPK from: where it will show, and the way to connect while SIX isn't signed in. */
+/** No SIX to read the IPK from: whose record it is (from Edunex), where the IPK will show, and the way to connect while SIX isn't signed in. */
 function ConnectSix() {
   const t = useT();
   const v = useTheme().v4;
   const status = useStatus("six");
   const { signIn, busy } = useSignIn();
+  // Edunex knows the Student too: the card keeps its quiet line of whose record it is, as it does with SIX.
+  const account = useDataset("edunex.account");
+  const who = factsLabel(account?.name ? displayName(account.name) : null, account?.nim);
   return (
     <Panel style={{ padding: space[5], gap: space[4] }} testID="academic.noSix">
+      {who ? (
+        <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
+          {who}
+        </Text>
+      ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
         <IconTile icon={(color) => <Icons.GraduationCap size={24} color={color} />} />
         <Text size="bodyLarge" style={{ color: v.fg, flex: 1 }}>

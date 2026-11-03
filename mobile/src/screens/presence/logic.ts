@@ -3,6 +3,7 @@
 // a row's next class and meta line, the clash answer, and the dates the footer names. The screens
 // in this folder only lay them out.
 import type { Attendance, CourseAttendance, OpenWindow } from "../../../../src/app/attendance";
+import { budgetLabel } from "../../../../src/app/attendance-labels";
 import type { Format, Translate } from "../../../../src/app/i18n";
 import {
   type AttendanceHealth,
@@ -191,6 +192,14 @@ export function sideText(t: Translate, group: PresenceGroup, health: AttendanceH
   if (group === "edunex" && health.edunexClosed > 0) return t("presence.edunexTally", { recorded: health.edunexRecorded, closed: health.edunexClosed });
   if ((group === "met" || group === "missed") && health.held) return t("presence.row.final", { percent: percent(health.attended ?? 0, health.held) });
   return "";
+}
+
+/**
+ * A course's count in its sheet before SIX has one: Edunex's own tally for a course Edunex records, as the desktop's
+ * Presensi row ends ("Hadir 1 dari 6 di Edunex"), else what's left before the target ("Belum ada hitungan SIX").
+ */
+export function noCountLine(t: Translate, health: AttendanceHealth, signedOut: boolean): string {
+  return sideText(t, presenceGroup(health, signedOut), health) || budgetLabel(t, health);
 }
 
 /** The class going on now, else the next one (SIX's, else the weekly slot carried on). */

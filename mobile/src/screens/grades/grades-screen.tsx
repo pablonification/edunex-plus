@@ -485,7 +485,7 @@ function TermNotes({ record }: { record: StudentRecord }) {
 
 // ------------------------------------------------------------ without SIX
 
-/** This term's courses from Edunex, each opening its calculator, and what SIX would add. */
+/** This term's courses from Edunex, each opening its calculator ("Butuh berapa?" at its end), and what SIX would add. */
 function WithoutSix() {
   const t = useT();
   const nav = useNav();
@@ -522,7 +522,12 @@ function WithoutSix() {
                   leading={<CourseTile code={course.code} name={course.name} />}
                   title={course.name}
                   meta={said ? `${course.code} · ${said}` : course.code}
-                  trailing={<Icons.ChevronRight size={18} color={theme.v4.muted} />}
+                  // What the tap answers, as the desktop's row ends (its calculator): no grade yet without SIX, so the question leads.
+                  trailing={
+                    <Text size="labelLarge" style={{ color: theme.v4.muted }}>
+                      {t("grades.whatNeed")}
+                    </Text>
+                  }
                   onPress={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
                   accessibilityHint={t("grades.whatNeed")}
                 />
