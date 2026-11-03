@@ -26,7 +26,7 @@ import { LecturerFile } from "../../parts/files";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
-import { absenceTone } from "../../ui/absence";
+import { absenceName, absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
 import { CardList, Panel, SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
@@ -503,7 +503,8 @@ function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
           leading={<IconTile tone={tone ?? "plain"} icon={(color) => <Icons.Hand size={22} color={color} />} />}
           title={t("examPage.attendance")}
           meta={t("examPage.attendanceLine", { attended: health.attended ?? 0, held: health.held ?? 0 })}
-          trailing={tone ? <Pill tone={tone}>{budgetLabel(t, health)}</Pill> : undefined}
+          // None left or over the limit by the name it has on every tab ("Jatah habis"); the rest in the desktop's words.
+          trailing={tone ? <Pill tone={tone}>{absenceName(t, health) ?? budgetLabel(t, health)}</Pill> : undefined}
         >
           {!tone && (
             <Text size="bodyMedium" style={{ color: v.muted }}>

@@ -1,5 +1,5 @@
 // A course on Kuliah (round 2, v4; W4/W11): one row in a white card, one target, the course's page. Its tile in the
-// course's ink and tint, its name, its code, and what's left of its absences as the row's one chip ("Sisa 1×", "Habis",
+// course's ink and tint, its name, its code, and what's left of its absences as the row's one chip ("Sisa 1×", "Jatah habis",
 // "Lewat batas 1×"). The next class, the bar, the count and the one exception are on the course page, under its name;
 // a screen reader still hears the next class here. Words and figures are the desktop's (src/app/screens/presence.tsx).
 import type { CourseAttendance } from "../../../../src/app/attendance";

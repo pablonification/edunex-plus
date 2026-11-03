@@ -1,16 +1,16 @@
 // "Nanti hari ini" (round 2, v4): the classes and meetings still to come today, past the one on the now card. A row
 // each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what matters today (no absences
-// left, below target, a clash, a new time, not in SIX). A row opens the class's sheet. A class on SIX's timetable today
+// left, over the absence limit, a clash, a new time, not in SIX). A row opens the class's sheet. A class on SIX's timetable today
 // that the app couldn't read comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX
 // writes it; it opens Jadwal's sheet for it, with SIX's timetable. Hidden when nothing's left.
 import { useState } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { UnreadSession } from "../../../../src/core/models";
 import type { ClassFacts, HomeContext, NowCard, TodayPlan } from "../../../../src/core/needs";
-import { type AbsenceTone, absenceInk, absenceTone } from "../../ui/absence";
+import { type AbsenceTone, absenceInk, absenceName, absenceTone } from "../../ui/absence";
 import { Rise } from "../../ui/expressive";
 import { IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -113,13 +113,13 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
   const v = useTheme().v4;
   const name = item.kind === "class" ? nameOf(courses, item.code, item.facts.session.courseName) : nameOf(courses, item.code);
   const place = item.kind === "class" ? item.facts.session.room : item.meeting.meeting.online ? t("mobile.home.online") : null;
-  const chip = chipOf(item);
+  const chip = chipOf(t, item);
   const ink = chip && absenceInk(v, chip.tone);
   const meta = [f.time(item.start), place].filter(Boolean).join(" · ");
   return (
     <PressScale
       onPress={onOpen}
-      accessibilityLabel={[name, meta, chip && t(chip.key)].filter(Boolean).join(", ")}
+      accessibilityLabel={[name, meta, chip?.text].filter(Boolean).join(", ")}
       testID={`row.today.${item.key}`}
       style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}
     >
@@ -136,7 +136,7 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
       {chip && ink && (
         <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: ink.bg }}>
           <Text size="labelMedium" weight="semibold" style={{ color: ink.fg }}>
-            {t(chip.key)}
+            {chip.text}
           </Text>
         </View>
       )}
@@ -170,25 +170,18 @@ function UnreadRow({ one, first, onOpen }: { one: UnreadSession; first: boolean;
   );
 }
 
-type ChipKey =
-  | "mobile.home.chip.noAbsences"
-  | "mobile.home.chip.belowTarget"
-  | "mobile.home.chip.clash"
-  | "mobile.home.timeMoved"
-  | "mobile.home.roomMoved"
-  | "home.today.notInSix";
-
 /**
- * The row's one chip, the most pressing: no absences left, below target, a clash, a new time or room, not in SIX. The
- * absences take the app's absence scale (src/ui/absence.ts: "Jatah habis" amber, "Di bawah target" red); the rest amber.
+ * The row's one chip, the most pressing: no absences left, over the limit, a clash, a new time or room, not in SIX. The
+ * absences go by their one name and colour on every tab (src/ui/absence.ts: "Jatah habis" amber, "Lewat batas 1×" red);
+ * the rest amber.
  */
-function chipOf(item: Item): { key: ChipKey; tone: AbsenceTone } | null {
-  if (item.kind === "meeting") return item.meeting.maybeInSix ? null : { key: "home.today.notInSix", tone: "amber" };
+function chipOf(t: Translate, item: Item): { text: string; tone: AbsenceTone } | null {
+  if (item.kind === "meeting") return item.meeting.maybeInSix ? null : { text: t("home.today.notInSix"), tone: "amber" };
   const { facts } = item;
   const absence = absenceTone(facts.state);
-  if (absence && (facts.state === "none" || facts.state === "out"))
-    return { key: facts.state === "none" ? "mobile.home.chip.noAbsences" : "mobile.home.chip.belowTarget", tone: absence };
-  if (facts.overlap) return { key: "mobile.home.chip.clash", tone: "amber" };
-  if (facts.moved) return { key: facts.moved.usualStart !== null ? "mobile.home.timeMoved" : "mobile.home.roomMoved", tone: "amber" };
+  const named = facts.health ? absenceName(t, facts.health) : null;
+  if (absence && named) return { text: named, tone: absence };
+  if (facts.overlap) return { text: t("mobile.home.chip.clash"), tone: "amber" };
+  if (facts.moved) return { text: t(facts.moved.usualStart !== null ? "mobile.home.timeMoved" : "mobile.home.roomMoved"), tone: "amber" };
   return null;
 }

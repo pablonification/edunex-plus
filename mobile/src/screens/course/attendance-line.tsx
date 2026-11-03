@@ -11,7 +11,7 @@ import { useFormat, useT } from "../../../../src/app/i18n";
 import { isExamActivity, onUsualSlot, type PresenceGroup, percent, presenceGroup } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
-import { type AbsenceTone, absenceInk, absenceTone } from "../../ui/absence";
+import { type AbsenceTone, absenceInk, absenceName, absenceTone } from "../../ui/absence";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -20,14 +20,18 @@ import { classOf, dayLabel, GONE_FOR, type RowContext, sideText, uncertainText, 
 /** The chip's tone: the app's absence scale (src/ui/absence.ts), grey before SIX has a count. */
 export type BudgetTone = AbsenceTone | "neutral";
 
-/** The chip's few words ("Sisa 1×", "Habis", "Lewat batas 1×"), its tone, and the whole sentence for a screen reader. */
+/**
+ * The chip's few words ("Sisa 1×", "Jatah habis", "Lewat batas 1×"), its tone, and the whole sentence for a screen reader.
+ * None left and over the limit go by their one name on every tab (absenceName); the rest by the desktop's bar.
+ */
 export function budgetChip(t: ReturnType<typeof useT>, group: PresenceGroup, health: CourseAttendance["health"], context: RowContext) {
   if (context.signedOut) return null;
   const tone: BudgetTone = absenceTone(health.state) ?? "neutral";
   if (group === "out" || group === "none" || group === "spare" || group === "unknown") {
     const words = budgetWords(t, health, context.soFar);
     if (!words) return null;
-    return { text: words.bold.charAt(0).toLocaleUpperCase() + words.bold.slice(1), tone, label: budgetLabel(t, health) };
+    const text = absenceName(t, health) ?? words.bold.charAt(0).toLocaleUpperCase() + words.bold.slice(1);
+    return { text, tone, label: budgetLabel(t, health) };
   }
   const text = sideText(t, group, health);
   if (!text) return null;

@@ -70,13 +70,20 @@ export const mobileStrings = {
   "mobile.home.kind.meeting": { id: "Pertemuan", en: "Meeting" },
   "mobile.home.kind.bill": { id: "UKT", en: "UKT" },
   "mobile.home.kind.krs": { id: "KRS", en: "KRS" },
+  // A course's absences, one name for each state on every chip and pill (Beranda, Perlu kamu urus, Kuliah, an exam): none
+  // left, or over the limit by how many (the desktop's Presensi bar: "habis", "lewat batas 1×"). Over the limit is the
+  // desktop's "Tak bisa lagi capai 80%": Kuliah's big number and the course's sheet say that, with the target, and it's
+  // what TalkBack hears. Never "Di bawah target": a course with none left can be under its target today too.
+  "mobile.absence.none": { id: "Jatah habis", en: "No absences left" },
+  "mobile.absence.over": { id: "Lewat batas {count}×", en: "{count} over the limit" },
   // A class row's one chip.
-  "mobile.home.chip.noAbsences": { id: "Jatah habis", en: "No absences left" },
-  "mobile.home.chip.belowTarget": { id: "Di bawah target", en: "Below target" },
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough
-  // for one line beside its "Di bawah target" chip (the target itself is on the course's page).
+  // for one line beside its "Lewat batas" chip (the target itself is on the course's page).
   "mobile.needs.best": { id: "Maks {best}%", en: "At most {best}%" },
+  // Beranda's attendance card: after its big figure, which is that best case ("73% maks"), never the share so far (the
+  // class sheet's "Kehadiran 33%"). The same fact as "Maks 73%" in Perlu kamu urus.
+  "mobile.home.atMost": { id: "maks", en: "at most" },
   // Yang berubah and Notifikasi: a moved class's or an Edunex-only meeting's one meta line, the day and its time or room,
   // short enough for one line beside the row's time (the title says what changed). The desktop's whole line, with the
   // usual time or room and "tidak ada di jadwal SIX", is what TalkBack reads; Jadwal and the class sheet show them too.

@@ -37,7 +37,7 @@ interface UrusCard {
   code: string | null;
   kind: string;
   title: string;
-  /** The big figure: a countdown to `at` (or since, when past), or a percent. */
+  /** The big figure: a countdown to `at` (or since, when past), or the best attendance a course can still reach. */
   figure: { at: number } | { percent: number };
 }
 
@@ -55,6 +55,7 @@ function cardOf(t: Translate, need: NeedDraft, courses: readonly TermCourse[]): 
     case "presence":
       return { ...base, kind: t("mobile.home.kind.presence"), title: course, figure: { at: need.open ? need.session.closesAt : need.session.opensAt } };
     case "attendance":
+      // The most it can still reach, never the share so far (the class sheet's "Kehadiran 33%"): "73% maks" (Card).
       return { ...base, kind: t("mobile.home.kind.attendance"), title: course, figure: { percent: percent(need.health.best ?? 0) } };
     case "meeting":
       return { ...base, kind: t("mobile.home.kind.meeting"), title: course, figure: { at: need.meeting.start } };
@@ -181,12 +182,15 @@ function Card({ card }: { card: UrusCard }) {
   const color = red ? v.redFg : ink;
   const value = "percent" in card.figure ? card.figure.percent : (away?.value ?? 0);
   const unit = "percent" in card.figure ? "%" : t(`mobile.home.unit.${away!.unit}`, { count: away!.value });
-  const tail = away?.late ? t("mobile.home.late") : null;
+  // What the figure is when it isn't plain: past ("lewat"), or a percent that's the best case ("maks", as "Maks 73%" in
+  // Perlu kamu urus), so it never reads as the attendance so far.
+  const tail = away?.late ? t("mobile.home.late") : "percent" in card.figure ? t("mobile.home.atMost") : null;
+  const spoken = "percent" in card.figure ? t("mobile.needs.best", { best: value }) : `${value} ${unit}${tail ? ` ${tail}` : ""}`;
   const said = card.title.toLocaleLowerCase().includes(card.kind.toLocaleLowerCase());
   return (
     <PressScale
       onPress={() => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url))}
-      accessibilityLabel={[card.kind, card.title, `${value} ${unit}${tail ? ` ${tail}` : ""}`].join(", ")}
+      accessibilityLabel={[card.kind, card.title, spoken].join(", ")}
       testID={`card.need.${need.id}`}
       style={{ flex: 1, backgroundColor: tint, borderRadius: 20, padding: 14, minHeight: 148 }}
     >
