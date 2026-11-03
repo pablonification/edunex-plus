@@ -317,6 +317,21 @@ motion and onboarding are open. The desktop is a reference for data only.
     time on Yang berubah and Notifikasi), the dropped facts kept in what TalkBack reads. Judge walk (light) on a trimmed
     throwaway branch: run 41618150249, green.
   - Waits on the next full run on `mobile`: Check A on every scenario, both judge walks.
+- **2026-11-03 (evening): judge pass 5 and its fixes.** Run 41623239550 (9ef30e7f): edunex-only 436/436 (was 98%),
+  `app` green. Pass 5 (`mobile/qa/judge-r2-round5.md`): 34/37 light, 34/37 dark; Kumpulkan (04b) and Jadwal's ⋮ (11)
+  back to 8; under 8: Beranda (53 words, attendance said twice), Semua siap (the same), UKT (two deadlines). Fixed on
+  `mobile-finish2-{ukt,jadwal,lines}`:
+  - UKT: no engine bug. SIX's bill says 24 Agu, ITB's calendar 23 Agu; the desktop shows the earlier with a note, the
+    phone's paid card showed 23 while Riwayat said 24. A paid card now shows its amount, Riwayat says "batas bayar di
+    SIX" once. Akademik says IPK and SKS once. The settings row reads "How far ahead to look" (desktop: "Days ahead in
+    Needs you"). Task's answer card: the draft note moved to Simpan draf's snackbar.
+  - Jadwal's now line is drawn under the class blocks, never through a name. Sheet titles in Plus Jakarta Sans
+    (`SheetTitle`). A sheet's window joins React Native's status bar (patch to react-native-screens' FormSheetDialog:
+    `onExtraWindowCreate`, as RN's Modal), so light pages keep dark icons under a sheet.
+  - Cut metas: the useful part first or alone (exam "Kam, 15 Okt, 11:00", a new material's name as the title, a
+    course's now card "Sekarang · room"), the rest in what TalkBack reads. Pills on cards get a `chip` fill (dark
+    #2a2f39). Figures side by side share a size and baseline (`FigureRow`).
+  - Beranda's attendance chips (53 words) wait for Arqila's call.
 
 ### Rules from Arqila's verdict (2026-11-01; the judge fails a screen on any of them)
 
