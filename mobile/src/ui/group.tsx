@@ -161,7 +161,8 @@ export function GroupRow({
 
 export type PillTone = "red" | "amber" | "ok" | "brand" | "plain";
 
-function pillColors(v: V4Palette, tone: PillTone): { bg: string; fg: string } {
+/** A tone's fill and ink; a plain pill on `chip` (a step off the card in dark too), a plain tile on the page's grey. */
+function pillColors(v: V4Palette, tone: PillTone, plain = v.chip): { bg: string; fg: string } {
   switch (tone) {
     case "red":
       return { bg: v.redBg, fg: v.redFg };
@@ -172,7 +173,7 @@ function pillColors(v: V4Palette, tone: PillTone): { bg: string; fg: string } {
     case "brand":
       return { bg: v.brandTint, fg: v.brandInk };
     case "plain":
-      return { bg: v.page, fg: v.fg2 };
+      return { bg: plain, fg: v.fg2 };
   }
 }
 
@@ -207,7 +208,7 @@ export function Pill({ tone, children, icon }: { tone: PillTone; children: strin
  */
 export function IconTile({ icon, tone = "brand", size = 44 }: { icon: (color: string) => ReactNode; tone?: PillTone; size?: number }) {
   const v = useTheme().v4;
-  const { bg, fg } = pillColors(v, tone);
+  const { bg, fg } = pillColors(v, tone, v.page);
   return (
     <View
       accessibilityElementsHidden

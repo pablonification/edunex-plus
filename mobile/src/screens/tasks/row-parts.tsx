@@ -327,7 +327,7 @@ export function rowWhen(f: Format, at: number, time = true): string {
 /** A row's one status: a pill in its tone, with a sign when it's red (never the colour alone). */
 export function StatusPill({ tone, text, icon }: { tone: PillTone; text: string; icon?: ReactNode }) {
   const v = useTheme().v4;
-  const [bg, fg] = tone === "red" ? [v.redBg, v.redFg] : tone === "amber" ? [v.ambBg, v.ambFg] : tone === "ok" ? [v.okBg, v.okFg] : [v.page, v.fg2];
+  const [bg, fg] = tone === "red" ? [v.redBg, v.redFg] : tone === "amber" ? [v.ambBg, v.ambFg] : tone === "ok" ? [v.okBg, v.okFg] : [v.chip, v.fg2];
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: bg }}>
       {icon ?? (tone === "red" ? <Icons.AlertTriangle size={13} weight="bold" color={fg} /> : null)}

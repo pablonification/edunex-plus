@@ -162,6 +162,7 @@ const PAIRS: Pair[] = [
   ["v4.okFg on v4.okBg", (t) => t.v.okFg, (t) => t.v.okBg, TEXT, "Pill ok, BigButton done"],
   ["v4.redFg on v4.redBg", (t) => t.v.redFg, (t) => t.v.redBg, TEXT, "Pill red"],
   ["v4.ambFg on v4.ambBg", (t) => t.v.ambFg, (t) => t.v.ambBg, TEXT, "Pill amber"],
+  ["v4.fg2 on v4.chip", (t) => t.v.fg2, (t) => t.v.chip, TEXT, "Pill plain, StatusChip neutral, tasks/row-parts.tsx StatusPill"],
   ...(["redFg", "ambFg"] as const).map(
     (k): Pair => [`v4.${k} at 0.8 on v4.card (pips)`, (t) => over(t.v[k], t.v.card, 0.8), card, MARK, "home/class-sheet.tsx"],
   ),
@@ -197,6 +198,15 @@ const PAIRS: Pair[] = [
     ];
   }),
 ];
+
+// A neutral pill on a card is a step off the card, so it reads as a pill and not as a hole (in dark it was the page's
+// black: judge round 5). Not a text pair: as far off the card as light's page grey is from its white card, or more.
+describe("a neutral pill stands off its card", () => {
+  it.each(["light", "dark"] as const)("%s", (scheme) => {
+    const { v } = TONES[scheme];
+    expect(ratio(v.chip, v.card)).toBeGreaterThanOrEqual(ratio(V4.light.page, V4.light.card));
+  });
+});
 
 describe("every colour pair on the phone's screens", () => {
   for (const scheme of ["light", "dark"] as const) {

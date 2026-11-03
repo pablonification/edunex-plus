@@ -113,7 +113,7 @@ export function StatusChip({ tone, children, testID }: { tone: ChipTone; childre
           ? [v.okBg, v.okFg]
           : tone === "brand"
             ? [v.brandTint, v.brandInk]
-            : [v.page, v.fg2];
+            : [v.chip, v.fg2];
   return (
     <View testID={testID} style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: bg, flexShrink: 0 }}>
       <Text size="labelMedium" weight="semibold" tabular style={{ color: fg }}>
