@@ -27,7 +27,7 @@ const AGAIN = HOUR;
 const FRESH = 30_000;
 
 /** The recorded reply (test/fixtures/edunex/course-comments.include-user-commentable-id-*.json). */
-const Comments = z.object({
+export const Comments = z.object({
   data: z.array(
     z.object({
       id: Id,

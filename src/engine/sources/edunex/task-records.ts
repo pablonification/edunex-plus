@@ -84,7 +84,7 @@ const EdunexTask = z.object({
 });
 export type EdunexTask = z.infer<typeof EdunexTask>;
 
-const CourseTasks = z.object({ meta: z.object({ total: z.number() }), data: z.array(EdunexTask) });
+export const CourseTasks = z.object({ meta: z.object({ total: z.number() }), data: z.array(EdunexTask) });
 
 /** Every Task of one Edunex course, the Student's answers included. */
 export async function fetchCourseTasks(client: EdunexClient, courseId: number): Promise<EdunexTask[]> {

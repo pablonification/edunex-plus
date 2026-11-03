@@ -86,8 +86,14 @@ Each relay issue's first line is a hidden marker with the report ids, newest fir
 gh issue view 237 --json body --jq '.body | split("\n")[0]'
 mkdir -p .scratch
 curl -sH "Authorization: Bearer $MAINTAINER_TOKEN" https://edunex-plus-relay.<your-subdomain>.workers.dev/v1/reports/<id> > .scratch/report.json
+npm run report:replay -- .scratch/report.json
 npm run fixtures:from-report -- .scratch/report.json <name>
 ```
+
+`report:replay` reads the report's scrubbed pages again with your checkout's readers and says, for
+each problem, whether its pages read whole now, still fail as they did, or fail another way (a page
+with two problems shows the second once the first is fixed). It exits with 1 until every page reads
+whole: run it before and after a fix.
 
 `.scratch/` is git-ignored: keep downloaded reports there. The fixtures script writes each page into
 `test/fixtures` and refuses any that still look personal; read them before committing.
