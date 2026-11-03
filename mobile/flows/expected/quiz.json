@@ -6,7 +6,7 @@
     "EDUNEX_DEMO_QUIZ": "1"
   },
   "lang": "id",
-  "count": 777,
+  "count": 713,
   "states": [
     {
       "screen": "home",
@@ -32,7 +32,7 @@
       "screen": "exam",
       "state": "todo-uts-ekonomi-infrastruktur-dan-transporta",
       "list": "todo",
-      "title": "UTS Ekonomi Infrastruktur dan Transportasi PL3032 · Hari dan jamnya belum diumumkan"
+      "title": "UTS Ekonomi Infrastruktur dan Transportasi PL3032"
     },
     {
       "screen": "exam",
@@ -44,7 +44,7 @@
       "screen": "task",
       "state": "117003",
       "list": "todo",
-      "title": "Tugas 02 Bab II II4091 · Modul 5 · Tugas Juga presensi: Jum, 16 Okt 15:00–23:59 Belum dikerjakan Jum, 16 Okt, 23:59 dalam 8 hari"
+      "title": "Tugas 02 Bab II II4091 Presensi 15:00–23:59 Belum dikerjakan Jum, 16 Okt, 23:59 dalam 8 hari"
     },
     {
       "screen": "task",
@@ -62,55 +62,55 @@
       "screen": "task",
       "state": "117010",
       "list": "todo",
-      "title": "Tugas 03 Bab III II4091 · Modul 5 · Tugas Juga presensi: Jum, 30 Okt 15:00–23:59 Belum dikerjakan Jum, 30 Okt, 23:59 dalam 22 hari"
+      "title": "Tugas 03 Bab III II4091 Presensi 15:00–23:59 Belum dikerjakan Jum, 30 Okt, 23:59 dalam 22 hari"
     },
     {
       "screen": "task",
       "state": "117023",
       "list": "todo",
-      "title": "Tugas 04 Bab IV & V II4091 · Modul 5 · Tugas Juga presensi: Jum, 13 Nov 15:00–23:59 Belum dikerjakan Jum, 13 Nov, 23:59 dalam 36 hari"
+      "title": "Tugas 04 Bab IV & V II4091 Presensi 15:00–23:59 Belum dikerjakan Jum, 13 Nov, 23:59 dalam 36 hari"
     },
     {
       "screen": "task",
       "state": "117873",
       "list": "todo",
-      "title": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha PL3002 · Modul 4 · Production Process Innovation Belum dikerjakan Kam, 26 Nov, 23:59 dalam 49 hari"
+      "title": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha PL3002 Belum dikerjakan Kam, 26 Nov, 23:59 dalam 49 hari"
     },
     {
       "screen": "exam",
       "state": "todo-uas-ekonomi-infrastruktur-dan-transporta",
       "list": "todo",
-      "title": "UAS Ekonomi Infrastruktur dan Transportasi PL3032 · Hari dan jamnya belum diumumkan"
+      "title": "UAS Ekonomi Infrastruktur dan Transportasi PL3032"
     },
     {
       "screen": "task",
       "state": "118842",
       "list": "done",
-      "title": "Tugas Problem Soving KU5014 · Modul 4 · Tugas Problem Solving 5w +2H Waktu singkat · 16:01–19:01 Terkumpul Dikumpulkan 24 Sep"
+      "title": "Tugas Problem Soving KU5014 Waktu singkat · 16:01–19:01 Terkumpul Dikumpulkan 24 Sep"
     },
     {
       "screen": "task",
       "state": "117001",
       "list": "done",
-      "title": "Tugas 01 Bab I II4091 · Modul 5 · Tugas Diubah setelah kamu kumpulkan (22 Sep) · cek lagi Terkumpul Dikumpulkan 18 Sep"
+      "title": "Tugas 01 Bab I II4091 Diubah setelah kamu kumpulkan (22 Sep) · cek lagi Terkumpul Dikumpulkan 18 Sep"
     },
     {
       "screen": "task",
       "state": "117044",
       "list": "done",
-      "title": "TUGAS 1 KU5014 · Modul 3 · Tugas Terkumpul Dikumpulkan 16 Sep"
+      "title": "TUGAS 1 KU5014 Terkumpul Dikumpulkan 16 Sep"
     },
     {
       "screen": "task",
       "state": "117432",
       "list": "done",
-      "title": "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha PL3002 · Modul 2 · Impact of Innovation on the Economy Diubah setelah kamu kumpulkan (8 Okt) · cek lagi Terkumpul Dikumpulkan 16 Sep"
+      "title": "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha PL3002 Diubah setelah kamu kumpulkan (8 Okt) · cek lagi Terkumpul Dikumpulkan 16 Sep"
     },
     {
       "screen": "task",
       "state": "113986",
       "list": "done",
-      "title": "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik II4091 · Modul 3 · 01 Pengantar Proposal TA Diubah setelah kamu kumpulkan (20 Sep) · cek lagi Terkumpul Dikumpulkan 13 Sep"
+      "title": "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik II4091 Diubah setelah kamu kumpulkan (20 Sep) · cek lagi Terkumpul Dikumpulkan 13 Sep"
     },
     {
       "screen": "schedule",
@@ -119,27 +119,27 @@
     {
       "screen": "class",
       "state": "pl3002-08-00",
-      "title": "08:00–10:00 PL3002 Ekonomi dan Inovasi dalam Perencanaan R.SG PWK LT.6 Berubah · biasanya 08:00–09:30"
+      "title": "08:00 –10:00 PL3002 Ekonomi dan Inovasi dalam Perencanaan R.SG PWK LT.6 Berubah Biasanya 08:00–09:30"
     },
     {
       "screen": "class",
       "state": "dk4073-11-00",
-      "title": "11:00–12:59 DK4073 Komunikasi Pemasaran TVST C"
+      "title": "11:00 –12:59 DK4073 Komunikasi Pemasaran TVST C"
     },
     {
       "screen": "class",
       "state": "pl3032-15-00",
-      "title": "15:00–16:30 PL3032 KU5014 R.SG PWK LT.6"
+      "title": "15:00 –16:30 PL3032 Ekonomi Infrastruktur dan Transportasi"
     },
     {
       "screen": "class",
       "state": "ku5014-16-00",
-      "title": "16:00–17:50 KU5014 PL3032 9134"
+      "title": "16:00 –17:50 KU5014 Teknik Penyelesaian Masalah Terstruktur 9134 Bentrok PL3032"
     },
     {
       "screen": "class",
       "state": "ii4091-15-00",
-      "title": "15:00–17:00 II4091 Pertemuan 3 Tidak ada di SIX"
+      "title": "15:00 –17:00 II4091 Pertemuan 3 Tidak ada di SIX"
     },
     {
       "screen": "schedule",
@@ -159,23 +159,7 @@
     },
     {
       "screen": "grades",
-      "state": "transcript/smt-7"
-    },
-    {
-      "screen": "grades",
-      "state": "transcript/smt-6"
-    },
-    {
-      "screen": "grades",
-      "state": "transcript/smt-5"
-    },
-    {
-      "screen": "grades",
-      "state": "transcript/smt-4"
-    },
-    {
-      "screen": "grades",
-      "state": "transcript/smt-3"
+      "state": "transcript/smt-1"
     },
     {
       "screen": "grades",
@@ -183,7 +167,19 @@
     },
     {
       "screen": "grades",
-      "state": "transcript/smt-1"
+      "state": "transcript/smt-3"
+    },
+    {
+      "screen": "grades",
+      "state": "transcript/smt-4"
+    },
+    {
+      "screen": "grades",
+      "state": "transcript/smt-5"
+    },
+    {
+      "screen": "grades",
+      "state": "transcript/smt-6"
     },
     {
       "screen": "plan",
@@ -516,21 +512,12 @@
   ],
   "entries": [
     {
-      "id": "home.banner.kamis-8-oktober",
+      "id": "home.banner.uts-4-hari-lagi",
       "screen": "home",
       "state": null,
       "kind": "banner",
-      "label": "Kamis, 8 Oktober",
-      "tokens": ["Kamis, 8 Oktober", "Semester 1 2026/2027", "Senin, 12 Okt"]
-    },
-    {
-      "id": "home.now.08-00",
-      "screen": "home",
-      "state": null,
-      "kind": "now",
-      "label": "08:00",
-      "context": "Sekarang",
-      "tokens": ["08:00", "10:00"]
+      "label": "UTS 4 hari lagi",
+      "tokens": ["UTS 4 hari lagi"]
     },
     {
       "id": "home.now.ekonomi-dan-inovasi-dalam-perencanaan",
@@ -539,34 +526,16 @@
       "kind": "now",
       "label": "Ekonomi dan Inovasi dalam Perencanaan",
       "context": "Sekarang",
-      "tokens": ["10:00", "Ekonomi dan Inovasi dalam Perencanaan", "PL3002", "R.SG PWK LT.6", "08:00–09:30"]
+      "tokens": ["08:00", "10:00", "Ekonomi dan Inovasi dalam Perencanaan", "PL3002", "R.SG PWK LT.6"]
     },
     {
-      "id": "home.now.85",
+      "id": "home.now.isi-presensi",
       "screen": "home",
       "state": null,
       "kind": "now",
-      "label": "85%",
+      "label": "Isi Presensi",
       "context": "Sekarang",
-      "tokens": ["85%", "1×", "09:30"]
-    },
-    {
-      "id": "home.now.11-00",
-      "screen": "home",
-      "state": null,
-      "kind": "now",
-      "label": "11:00",
-      "context": "Sekarang",
-      "tokens": ["11:00", "DK4073 Komunikasi Pemasaran", "TVST C"]
-    },
-    {
-      "id": "home.class-session.ekonomi-dan-inovasi-dalam-perencanaan",
-      "screen": "home",
-      "state": null,
-      "kind": "class-session",
-      "label": "Ekonomi dan Inovasi dalam Perencanaan",
-      "context": "Hari ini",
-      "tokens": ["08:00", "10:00", "Ekonomi dan Inovasi dalam Perencanaan", "PL3002", "R.SG PWK LT.6", "Sekarang"]
+      "tokens": ["Isi Presensi", "09:30"]
     },
     {
       "id": "home.class-session.komunikasi-pemasaran",
@@ -575,7 +544,7 @@
       "kind": "class-session",
       "label": "Komunikasi Pemasaran",
       "context": "Hari ini",
-      "tokens": ["11:00", "12:59", "Komunikasi Pemasaran", "DK4073", "TVST C", "Jatah absen habis"]
+      "tokens": ["11:00", "12:59", "Komunikasi Pemasaran", "DK4073", "TVST C", "Wajib hadir"]
     },
     {
       "id": "home.class-session.ekonomi-infrastruktur-dan-transportasi",
@@ -584,7 +553,7 @@
       "kind": "class-session",
       "label": "Ekonomi Infrastruktur dan Transportasi",
       "context": "Hari ini",
-      "tokens": ["15:00", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "R.SG PWK LT.6", "Jatah absen habis", "KU5014", "16:00–16:30"]
+      "tokens": ["15:00", "16:30", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "R.SG PWK LT.6", "Bentrok", "Wajib hadir"]
     },
     {
       "id": "home.class-session.teknik-penyelesaian-masalah-terstruktur",
@@ -593,7 +562,7 @@
       "kind": "class-session",
       "label": "Teknik Penyelesaian Masalah Terstruktur",
       "context": "Hari ini",
-      "tokens": ["17:50", "Teknik Penyelesaian Masalah Terstruktur", "KU5014", "9134", "80%", "PL3032", "16:00–16:30"]
+      "tokens": ["16:00", "17:50", "Teknik Penyelesaian Masalah Terstruktur", "KU5014", "9134", "80%", "Bentrok"]
     },
     {
       "id": "home.class-session.proposal-tugas-akhir",
@@ -602,16 +571,7 @@
       "kind": "class-session",
       "label": "Proposal Tugas Akhir",
       "context": "Hari ini",
-      "tokens": ["15:00", "17:00", "Proposal Tugas Akhir", "II4091", "Pertemuan 3", "daring", "Tidak ada di jadwal SIX"]
-    },
-    {
-      "id": "home.need.need-attendance-ku5014-out",
-      "screen": "home",
-      "state": null,
-      "kind": "need",
-      "label": "KU5014",
-      "context": "Perlu perhatianmu 2",
-      "tokens": ["KU5014", "80%", "73%", "cek ke dosen kalau ada yang terlewat"]
+      "tokens": ["15:00", "17:00", "Proposal Tugas Akhir", "II4091", "Hanya di Edunex"]
     },
     {
       "id": "home.need.need-exam-dk4073-uts",
@@ -619,80 +579,62 @@
       "state": null,
       "kind": "need",
       "label": "UTS Komunikasi Pemasaran",
-      "context": "Perlu perhatianmu 2",
-      "tokens": ["UTS Komunikasi Pemasaran", "DK4073", "Kam, 15 Okt", "11:00–12:59", "TVST C", "Kam 22 Okt"]
+      "context": "Perlu perhatianmu 1",
+      "tokens": ["UTS Komunikasi Pemasaran", "Kam, 15 Okt", "11:00", "TVST C"]
     },
     {
-      "id": "home.change.pl3002",
+      "id": "home.change.materi-baru",
       "screen": "home",
       "state": null,
       "kind": "change",
-      "label": "PL3002",
+      "label": "Materi baru",
       "context": "Yang berubah",
-      "tokens": ["PL3002", "Kam, 8 Okt", "08:00–10:00", "08:00–09:30"]
+      "tokens": ["Materi baru", "II4091", "Sen, 5 Okt"]
     },
     {
-      "id": "home.change.pertemuan-3-ii4091-diumumkan-di-edunex",
-      "screen": "home",
-      "state": null,
-      "kind": "change",
-      "label": "Pertemuan 3 II4091 diumumkan di Edunex",
-      "context": "Yang berubah",
-      "tokens": ["Pertemuan 3 II4091 diumumkan di Edunex", "Jum, 9 Okt", "15:00–17:00", "tidak ada di jadwal SIX", "Sen, 5 Okt"]
-    },
-    {
-      "id": "home.change.link-teams-pertemuan-03-jumat-9-oktober-2026",
-      "screen": "home",
-      "state": null,
-      "kind": "change",
-      "label": "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026",
-      "context": "Yang berubah",
-      "tokens": ["Materi baru", "II4091", "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026", "Sen, 5 Okt"]
-    },
-    {
-      "id": "home.absence-budget.dk4073",
+      "id": "home.absence-budget.komunikasi-pemasaran",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "DK4073",
+      "label": "Komunikasi Pemasaran",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["DK4073", "Komunikasi Pemasaran", "Kelas 01", "3 SKS", "Jatah absen", "2×", "habis"]
+      "tokens": ["DK4073", "Komunikasi Pemasaran", "habis"]
     },
     {
-      "id": "home.absence-budget.ii4091",
+      "id": "home.absence-budget.proposal-tugas-akhir",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "II4091",
+      "label": "Proposal Tugas Akhir",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["II4091", "Proposal Tugas Akhir", "Kelas 01", "2 SKS", "Jatah absen", "Belum terpakai", "2×"]
+      "tokens": ["II4091", "Proposal Tugas Akhir", "2×"]
     },
     {
-      "id": "home.absence-budget.ku5014",
+      "id": "home.absence-budget.teknik-penyelesaian-masalah-terstruktur",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "KU5014",
+      "label": "Teknik Penyelesaian Masalah Terstruktur",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "Kelas 01", "3 SKS", "Jatah absen", "4×", "1×"]
+      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "1×"]
     },
     {
-      "id": "home.absence-budget.pl3002",
+      "id": "home.absence-budget.ekonomi-dan-inovasi-dalam-perencanaan",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "PL3002",
+      "label": "Ekonomi dan Inovasi dalam Perencanaan",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "Kelas 01", "3 SKS", "Jatah absen", "1×"]
+      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "1×"]
     },
     {
-      "id": "home.absence-budget.pl3032",
+      "id": "home.absence-budget.ekonomi-infrastruktur-dan-transportasi",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "PL3032",
+      "label": "Ekonomi Infrastruktur dan Transportasi",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "Kelas 01", "3 SKS", "Jatah absen", "3×", "habis"]
+      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "habis"]
     },
     {
       "id": "courses.account.dp",
@@ -785,7 +727,7 @@
       "kind": "exam",
       "label": "UTS",
       "context": "Minggu depan 2",
-      "tokens": ["UTS", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "Hari dan jamnya belum diumumkan"]
+      "tokens": ["UTS", "Ekonomi Infrastruktur dan Transportasi", "PL3032"]
     },
     {
       "id": "tasks.todo.exam.todo-exam-dk4073-uts-six-2179909",
@@ -803,7 +745,7 @@
       "kind": "task",
       "label": "Tugas 02 Bab II",
       "context": "Minggu depan 2",
-      "tokens": ["Tugas 02 Bab II", "II4091", "Modul 5", "15:00–23:59", "Belum dikerjakan", "Jum, 16 Okt"]
+      "tokens": ["Tugas 02 Bab II", "II4091", "15:00–23:59", "Belum dikerjakan", "Jum, 16 Okt"]
     },
     {
       "id": "tasks.todo.exam.todo-exam-dk4073-uts-task-117764",
@@ -830,7 +772,7 @@
       "kind": "task",
       "label": "Tugas 03 Bab III",
       "context": "Nanti 5",
-      "tokens": ["Tugas 03 Bab III", "II4091", "Modul 5", "15:00–23:59", "Belum dikerjakan", "Jum, 30 Okt"]
+      "tokens": ["Tugas 03 Bab III", "II4091", "15:00–23:59", "Belum dikerjakan", "Jum, 30 Okt"]
     },
     {
       "id": "tasks.todo.task.todo-task-117023",
@@ -839,7 +781,7 @@
       "kind": "task",
       "label": "Tugas 04 Bab IV & V",
       "context": "Nanti 5",
-      "tokens": ["Tugas 04 Bab IV & V", "II4091", "Modul 5", "15:00–23:59", "Belum dikerjakan", "Jum, 13 Nov"]
+      "tokens": ["Tugas 04 Bab IV & V", "II4091", "15:00–23:59", "Belum dikerjakan", "Jum, 13 Nov"]
     },
     {
       "id": "tasks.todo.task.todo-task-117873",
@@ -848,7 +790,7 @@
       "kind": "task",
       "label": "Tugas Mandiri Individu tentang Projek",
       "context": "Nanti 5",
-      "tokens": ["Tugas Mandiri Individu tentang Projek", "PL3002", "Modul 4", "Production Process Innovation", "Belum dikerjakan", "Kam, 26 Nov", "23:59"]
+      "tokens": ["Tugas Mandiri Individu tentang Projek", "PL3002", "Belum dikerjakan", "Kam, 26 Nov", "23:59"]
     },
     {
       "id": "tasks.todo.exam-period.masa-uas",
@@ -866,7 +808,7 @@
       "kind": "exam",
       "label": "UAS",
       "context": "Nanti 5",
-      "tokens": ["UAS", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "Hari dan jamnya belum diumumkan"]
+      "tokens": ["UAS", "Ekonomi Infrastruktur dan Transportasi", "PL3032"]
     },
     {
       "id": "tasks.done.task.tugas-problem-soving",
@@ -875,7 +817,7 @@
       "kind": "task",
       "label": "Tugas Problem Soving",
       "context": "Terkumpul 5",
-      "tokens": ["Tugas Problem Soving", "KU5014", "Modul 4", "Tugas Problem Solving 5w +2H", "Waktu singkat", "16:01–19:01", "Terkumpul", "24 Sep"]
+      "tokens": ["Tugas Problem Soving", "KU5014", "Waktu singkat", "16:01–19:01", "Terkumpul", "24 Sep"]
     },
     {
       "id": "tasks.done.task.tugas-01-bab-i",
@@ -884,7 +826,7 @@
       "kind": "task",
       "label": "Tugas 01 Bab I",
       "context": "Terkumpul 5",
-      "tokens": ["Tugas 01 Bab I", "II4091", "Modul 5", "22 Sep", "cek lagi", "Terkumpul", "18 Sep"]
+      "tokens": ["Tugas 01 Bab I", "II4091", "22 Sep", "cek lagi", "Terkumpul", "18 Sep"]
     },
     {
       "id": "tasks.done.task.tugas-1",
@@ -893,7 +835,7 @@
       "kind": "task",
       "label": "TUGAS 1",
       "context": "Terkumpul 5",
-      "tokens": ["TUGAS 1", "KU5014", "Modul 3", "Tugas", "Terkumpul", "16 Sep"]
+      "tokens": ["TUGAS 1", "KU5014", "Terkumpul", "16 Sep"]
     },
     {
       "id": "tasks.done.task.tugas-tentang-imfact-on-innovation-the-economy-k",
@@ -902,16 +844,7 @@
       "kind": "task",
       "label": "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha",
       "context": "Terkumpul 5",
-      "tokens": [
-        "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha",
-        "PL3002",
-        "Modul 2",
-        "Impact of Innovation on the Economy",
-        "8 Okt",
-        "cek lagi",
-        "Terkumpul",
-        "16 Sep"
-      ]
+      "tokens": ["Tugas tentang Imfact on Innovation The Economy Kampus Ganesha", "PL3002", "8 Okt", "cek lagi", "Terkumpul", "16 Sep"]
     },
     {
       "id": "tasks.done.task.tugas-01-submit-usulan-dosen-pembimbing-dan-topi",
@@ -920,16 +853,7 @@
       "kind": "task",
       "label": "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik",
       "context": "Terkumpul 5",
-      "tokens": [
-        "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik",
-        "II4091",
-        "Modul 3",
-        "01 Pengantar Proposal TA",
-        "20 Sep",
-        "cek lagi",
-        "Terkumpul",
-        "13 Sep"
-      ]
+      "tokens": ["Tugas 01 Submit Usulan Dosen Pembimbing dan Topik", "II4091", "20 Sep", "cek lagi", "Terkumpul", "13 Sep"]
     },
     {
       "id": "exam.todo-uts-ekonomi-infrastruktur-dan-transporta.exam-detail.ekonomi-infrastruktur-dan-transportasi",
@@ -946,7 +870,7 @@
       "kind": "exam-detail",
       "label": "12–16 Okt",
       "context": "Kapan dan di mana",
-      "tokens": ["12–16 Okt", "4 dari 7"]
+      "tokens": ["12–16 Okt", "4/7"]
     },
     {
       "id": "exam.todo-uts-ekonomi-infrastruktur-dan-transporta.exam-detail.k2-teori-eko-infrastruktur-pandangan-sisi-permin",
@@ -1044,7 +968,7 @@
       "state": "DK4073-UTS:six:2179909",
       "kind": "exam-detail",
       "label": "Komunikasi Pemasaran",
-      "tokens": ["DK4073", "Komunikasi Pemasaran", "Kamis, 15 Oktober"]
+      "tokens": ["DK4073", "Komunikasi Pemasaran"]
     },
     {
       "id": "exam.dk4073-uts-six-2179909.exam-detail.kam-15-okt",
@@ -1063,15 +987,6 @@
       "label": "Kam 22 Okt",
       "context": "Kapan dan di mana",
       "tokens": ["Kam 22 Okt", "23:50", "UTS Markom"]
-    },
-    {
-      "id": "exam.dk4073-uts-six-2179909.exam-detail.4-dari-6",
-      "screen": "exam",
-      "state": "DK4073-UTS:six:2179909",
-      "kind": "exam-detail",
-      "label": "4 dari 6",
-      "context": "Kapan dan di mana",
-      "tokens": ["4 dari 6"]
     },
     {
       "id": "exam.dk4073-uts-six-2179909.exam-detail.uts-markom-sem-1-2026-2027-pdf",
@@ -1135,22 +1050,22 @@
       "tokens": ["Jum, 16 Okt", "23:59"]
     },
     {
-      "id": "task.117003.task-detail.jum",
+      "id": "task.117003.task-detail.15-00-23-59",
       "screen": "task",
       "state": "117003",
       "kind": "task-detail",
-      "label": "Jum",
+      "label": "15:00–23:59",
       "context": "Tugas 02 Bab II",
-      "tokens": ["Jum", "16 Okt", "15:00–23:59"]
+      "tokens": ["15:00–23:59"]
     },
     {
-      "id": "task.117003.task-detail.kerjakan-bab-ii-dari-template-proposal-ta",
+      "id": "task.117003.task-detail.kerjakan-bab-ii",
       "screen": "task",
       "state": "117003",
       "kind": "task-detail",
-      "label": "Kerjakan Bab II dari template proposal TA.",
+      "label": "Kerjakan Bab II",
       "context": "Instruksi",
-      "tokens": ["Kerjakan Bab II dari template proposal TA.", "Ketentuan Pengumpulan"]
+      "tokens": ["Kerjakan Bab II", "template proposal TA.", "Ketentuan Pengumpulan"]
     },
     {
       "id": "task.117003.task-detail.file-diunggah-dengan-format-pdf-dan-sertakan-jug",
@@ -1171,40 +1086,13 @@
       "tokens": ["Penamaan file ‘NIM Nama - Tugas 02.pdf’."]
     },
     {
-      "id": "task.117003.task-detail.diunggah-dosen",
+      "id": "task.117003.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "117003",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "10:00"]
-    },
-    {
-      "id": "task.117003.task-detail.mulai-bisa-dijawab",
-      "screen": "task",
-      "state": "117003",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Jum, 18 Sep", "15:00"]
-    },
-    {
-      "id": "task.117003.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117003",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Jum, 18 Sep", "15:41", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117003.task-detail.tenggat",
-      "screen": "task",
-      "state": "117003",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 16 Okt", "23:59"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "task.dk4073-uts-task-117764.task-detail.dk4073",
@@ -1259,31 +1147,13 @@
       "tokens": ["UTS MARKOM SEM 1 2026 2027.pdf"]
     },
     {
-      "id": "task.dk4073-uts-task-117764.task-detail.diunggah-dosen",
+      "id": "task.dk4073-uts-task-117764.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "DK4073-UTS:task:117764",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Berkas dari dosen",
-      "tokens": ["Diunggah dosen", "Kam, 17 Sep", "08:45"]
-    },
-    {
-      "id": "task.dk4073-uts-task-117764.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "DK4073-UTS:task:117764",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Berkas dari dosen",
-      "tokens": ["Diubah dosen", "Kam, 24 Sep", "11:11", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.dk4073-uts-task-117764.task-detail.tenggat",
-      "screen": "task",
-      "state": "DK4073-UTS:task:117764",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Berkas dari dosen",
-      "tokens": ["Tenggat", "Kam, 22 Okt", "23:50"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "exam.dk4073-kuis-e88002-edunex-88002.exam-detail.komunikasi-pemasaran",
@@ -1291,7 +1161,7 @@
       "state": "DK4073-KUIS-e88002:edunex:88002",
       "kind": "exam-detail",
       "label": "Komunikasi Pemasaran",
-      "tokens": ["DK4073", "Komunikasi Pemasaran", "Senin, 19 Oktober"]
+      "tokens": ["DK4073", "Komunikasi Pemasaran"]
     },
     {
       "id": "exam.dk4073-kuis-e88002-edunex-88002.exam-detail.sen-19-okt",
@@ -1300,16 +1170,7 @@
       "kind": "exam-detail",
       "label": "Sen 19 Okt",
       "context": "Kapan dan di mana",
-      "tokens": ["Sen 19 Okt", "08:00–23:59", "Kuis Brand Equity"]
-    },
-    {
-      "id": "exam.dk4073-kuis-e88002-edunex-88002.exam-detail.4-dari-6",
-      "screen": "exam",
-      "state": "DK4073-KUIS-e88002:edunex:88002",
-      "kind": "exam-detail",
-      "label": "4 dari 6",
-      "context": "Kapan dan di mana",
-      "tokens": ["4 dari 6"]
+      "tokens": ["Sen 19 Okt", "08:00–23:59", "Kuis Brand Equity", "4/6"]
     },
     {
       "id": "exam.dk4073-kuis-e88002-edunex-88002.exam-detail.uts",
@@ -1364,22 +1225,22 @@
       "tokens": ["Jum, 30 Okt", "23:59"]
     },
     {
-      "id": "task.117010.task-detail.jum",
+      "id": "task.117010.task-detail.15-00-23-59",
       "screen": "task",
       "state": "117010",
       "kind": "task-detail",
-      "label": "Jum",
+      "label": "15:00–23:59",
       "context": "Tugas 03 Bab III",
-      "tokens": ["Jum", "30 Okt", "15:00–23:59"]
+      "tokens": ["15:00–23:59"]
     },
     {
-      "id": "task.117010.task-detail.kerjakan-bab-iii-dari-template-proposal-ta",
+      "id": "task.117010.task-detail.kerjakan-bab-iii",
       "screen": "task",
       "state": "117010",
       "kind": "task-detail",
-      "label": "Kerjakan Bab III dari template proposal TA.",
+      "label": "Kerjakan Bab III",
       "context": "Instruksi",
-      "tokens": ["Kerjakan Bab III dari template proposal TA.", "Ketentuan Pengumpulan"]
+      "tokens": ["Kerjakan Bab III", "template proposal TA.", "Ketentuan Pengumpulan"]
     },
     {
       "id": "task.117010.task-detail.file-diunggah-dengan-format-pdf-dan-sertakan-jug",
@@ -1400,40 +1261,13 @@
       "tokens": ["Penamaan file ‘NIM Nama - Tugas 03.pdf’."]
     },
     {
-      "id": "task.117010.task-detail.diunggah-dosen",
+      "id": "task.117010.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "117010",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "10:50"]
-    },
-    {
-      "id": "task.117010.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117010",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Jum, 18 Sep", "15:41", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117010.task-detail.mulai-bisa-dijawab",
-      "screen": "task",
-      "state": "117010",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Jum, 25 Sep", "15:00"]
-    },
-    {
-      "id": "task.117010.task-detail.tenggat",
-      "screen": "task",
-      "state": "117010",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 30 Okt", "23:59"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "task.117023.task-detail.ii4091",
@@ -1461,22 +1295,22 @@
       "tokens": ["Jum, 13 Nov", "23:59"]
     },
     {
-      "id": "task.117023.task-detail.jum",
+      "id": "task.117023.task-detail.15-00-23-59",
       "screen": "task",
       "state": "117023",
       "kind": "task-detail",
-      "label": "Jum",
+      "label": "15:00–23:59",
       "context": "Tugas 04 Bab IV & V",
-      "tokens": ["Jum", "13 Nov", "15:00–23:59"]
+      "tokens": ["15:00–23:59"]
     },
     {
-      "id": "task.117023.task-detail.kerjakan-bab-iv-v-dari-template-proposal-ta",
+      "id": "task.117023.task-detail.kerjakan-bab-iv-v",
       "screen": "task",
       "state": "117023",
       "kind": "task-detail",
-      "label": "Kerjakan Bab IV & V dari template proposal TA.",
+      "label": "Kerjakan Bab IV & V",
       "context": "Instruksi",
-      "tokens": ["Kerjakan Bab IV & V dari template proposal TA.", "Ketentuan Pengumpulan"]
+      "tokens": ["Kerjakan Bab IV & V", "template proposal TA.", "Ketentuan Pengumpulan"]
     },
     {
       "id": "task.117023.task-detail.file-diunggah-dengan-format-pdf-dan-sertakan-jug",
@@ -1497,40 +1331,13 @@
       "tokens": ["Penamaan file ‘NIM Nama - Tugas 04-05.pdf’."]
     },
     {
-      "id": "task.117023.task-detail.diunggah-dosen",
+      "id": "task.117023.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "117023",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "12:47"]
-    },
-    {
-      "id": "task.117023.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117023",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Jum, 18 Sep", "15:41", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117023.task-detail.mulai-bisa-dijawab",
-      "screen": "task",
-      "state": "117023",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Jum, 2 Okt", "15:00"]
-    },
-    {
-      "id": "task.117023.task-detail.tenggat",
-      "screen": "task",
-      "state": "117023",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 13 Nov", "23:59"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "task.117873.task-detail.pl3002",
@@ -1630,31 +1437,13 @@
       "tokens": ["Tugas dikumpulkan melalui Edunex paling lambat"]
     },
     {
-      "id": "task.117873.task-detail.mulai-bisa-dijawab",
+      "id": "task.117873.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "117873",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Kam, 17 Sep", "10:30"]
-    },
-    {
-      "id": "task.117873.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "117873",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Kam, 17 Sep", "22:14"]
-    },
-    {
-      "id": "task.117873.task-detail.tenggat",
-      "screen": "task",
-      "state": "117873",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Kam, 26 Nov", "23:59"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "exam.todo-uas-ekonomi-infrastruktur-dan-transporta.exam-detail.ekonomi-infrastruktur-dan-transportasi",
@@ -1671,7 +1460,7 @@
       "kind": "exam-detail",
       "label": "7–22 Des",
       "context": "Kapan dan di mana",
-      "tokens": ["7–22 Des", "4 dari 7"]
+      "tokens": ["7–22 Des", "4/7"]
     },
     {
       "id": "exam.todo-uas-ekonomi-infrastruktur-dan-transporta.exam-detail.k2-teori-eko-infrastruktur-pandangan-sisi-permin",
@@ -1866,7 +1655,7 @@
       "state": "118842",
       "kind": "task-detail",
       "label": "Kam, 24 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Kam, 24 Sep", "17:09", "Jawaban."]
     },
     {
@@ -1875,35 +1664,8 @@
       "state": "118842",
       "kind": "task-detail",
       "label": "Tugas 5W2H_18223901_18223902_18223903.pdf",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Tugas 5W2H_18223901_18223902_18223903.pdf"]
-    },
-    {
-      "id": "task.118842.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "118842",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Kam, 24 Sep", "16:03"]
-    },
-    {
-      "id": "task.118842.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "118842",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Kam, 24 Sep", "17:09"]
-    },
-    {
-      "id": "task.118842.task-detail.tenggat",
-      "screen": "task",
-      "state": "118842",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Kam, 24 Sep", "19:01"]
     },
     {
       "id": "task.117001.task-detail.ii4091",
@@ -1931,15 +1693,6 @@
       "tokens": ["Jum, 25 Sep", "23:59"]
     },
     {
-      "id": "task.117001.task-detail.jum-18-sep",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Jum, 18 Sep",
-      "context": "Tugas 01 Bab I",
-      "tokens": ["Jum, 18 Sep", "15:00–23:59"]
-    },
-    {
       "id": "task.117001.task-detail.22-sep",
       "screen": "task",
       "state": "117001",
@@ -1949,13 +1702,13 @@
       "tokens": ["22 Sep", "18 Sep"]
     },
     {
-      "id": "task.117001.task-detail.kerjakan-bab-i-dari-template-proposal-ta",
+      "id": "task.117001.task-detail.kerjakan-bab-i",
       "screen": "task",
       "state": "117001",
       "kind": "task-detail",
-      "label": "Kerjakan Bab I dari template proposal TA.",
+      "label": "Kerjakan Bab I",
       "context": "Instruksi",
-      "tokens": ["Kerjakan Bab I dari template proposal TA.", "Ketentuan Pengumpulan"]
+      "tokens": ["Kerjakan Bab I", "template proposal TA.", "Ketentuan Pengumpulan"]
     },
     {
       "id": "task.117001.task-detail.file-diunggah-dengan-format-pdf-dan-sertakan-jug",
@@ -1976,12 +1729,12 @@
       "tokens": ["Penamaan file ‘NIM Nama - Tugas 01.pdf’."]
     },
     {
-      "id": "task.117001.task-detail.jum-18-sep-2",
+      "id": "task.117001.task-detail.jum-18-sep",
       "screen": "task",
       "state": "117001",
       "kind": "task-detail",
       "label": "Jum, 18 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Jum, 18 Sep", "19:12", "Jawaban."]
     },
     {
@@ -1990,62 +1743,17 @@
       "state": "117001",
       "kind": "task-detail",
       "label": "18223901 Dimas Pratama - Tugas 01.pdf",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["18223901 Dimas Pratama - Tugas 01.pdf"]
     },
     {
-      "id": "task.117001.task-detail.diunggah-dosen",
+      "id": "task.117001.task-detail.fajar-yuliana",
       "screen": "task",
       "state": "117001",
       "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "09:59"]
-    },
-    {
-      "id": "task.117001.task-detail.mulai-bisa-dijawab",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Jum, 11 Sep", "15:00"]
-    },
-    {
-      "id": "task.117001.task-detail.kamu-menyimpan-draf",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Kamu menyimpan draf",
-      "context": "Instruksi",
-      "tokens": ["Kamu menyimpan draf", "Jum, 18 Sep", "17:15"]
-    },
-    {
-      "id": "task.117001.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Jum, 18 Sep", "19:12"]
-    },
-    {
-      "id": "task.117001.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Sel, 22 Sep", "20:08", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117001.task-detail.tenggat",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 25 Sep", "23:59"]
+      "label": "Fajar Yuliana",
+      "context": "Komentar 1",
+      "tokens": ["Fajar Yuliana", "Dosen", "Sel, 22 Sep", "20:59", "Sudah sesuai template", "Lanjutkan ke Bab II."]
     },
     {
       "id": "task.117044.task-detail.ku5014",
@@ -2095,7 +1803,7 @@
       "state": "117044",
       "kind": "task-detail",
       "label": "Rab, 16 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Rab, 16 Sep", "16:15", "Jawaban."]
     },
     {
@@ -2104,35 +1812,8 @@
       "state": "117044",
       "kind": "task-detail",
       "label": "Tugas Ringkasan_18223901_Dimas Pratama.pdf",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Tugas Ringkasan_18223901_Dimas Pratama.pdf"]
-    },
-    {
-      "id": "task.117044.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "117044",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "17:14"]
-    },
-    {
-      "id": "task.117044.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "117044",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Rab, 16 Sep", "16:15"]
-    },
-    {
-      "id": "task.117044.task-detail.tenggat",
-      "screen": "task",
-      "state": "117044",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Kam, 17 Sep", "12:00"]
     },
     {
       "id": "task.117432.task-detail.pl3002",
@@ -2183,7 +1864,7 @@
       "state": "117432",
       "kind": "task-detail",
       "label": "Rab, 16 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Rab, 16 Sep", "15:29", "Jawaban."]
     },
     {
@@ -2192,44 +1873,8 @@
       "state": "117432",
       "kind": "task-detail",
       "label": "TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf"]
-    },
-    {
-      "id": "task.117432.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "117432",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Sel, 15 Sep", "10:54"]
-    },
-    {
-      "id": "task.117432.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "117432",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Rab, 16 Sep", "15:29"]
-    },
-    {
-      "id": "task.117432.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117432",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "09:51", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117432.task-detail.tenggat",
-      "screen": "task",
-      "state": "117432",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "23:59"]
     },
     {
       "id": "task.113986.task-detail.ii4091",
@@ -2281,7 +1926,7 @@
       "kind": "task-detail",
       "label": "Terkait usulan topik & dosen pembimbing TA",
       "context": "Instruksi",
-      "tokens": ["Terkait usulan topik & dosen pembimbing TA"]
+      "tokens": ["Terkait usulan topik & dosen pembimbing TA", "calon dosen pembimbing secara lisan/tertulis, sbb"]
     },
     {
       "id": "task.113986.task-detail.melengkapi-form-usulan-ta-untuk-ta-berkelompok",
@@ -2331,7 +1976,7 @@
       "state": "113986",
       "kind": "task-detail",
       "label": "Min, 13 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Min, 13 Sep", "17:59", "Jawaban."]
     },
     {
@@ -2340,53 +1985,8 @@
       "state": "113986",
       "kind": "task-detail",
       "label": "18223901.jpg",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["18223901.jpg"]
-    },
-    {
-      "id": "task.113986.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Rab, 26 Agu", "21:54"]
-    },
-    {
-      "id": "task.113986.task-detail.kamu-menyimpan-draf",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Kamu menyimpan draf",
-      "context": "Instruksi",
-      "tokens": ["Kamu menyimpan draf", "Sab, 5 Sep", "21:00"]
-    },
-    {
-      "id": "task.113986.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Min, 13 Sep", "17:59"]
-    },
-    {
-      "id": "task.113986.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Min, 20 Sep", "17:43", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.113986.task-detail.tenggat",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 2 Okt", "23:59"]
     },
     {
       "id": "schedule.week.class-session.minggu-ke-7-5-11-okt",
@@ -2397,49 +1997,49 @@
       "tokens": ["Minggu ke-7 · 5–11 Okt"]
     },
     {
-      "id": "schedule.week.class-session.08-00-10-00",
+      "id": "schedule.week.class-session.10-00",
       "screen": "schedule",
       "state": "week",
       "kind": "class-session",
-      "label": "08:00–10:00",
+      "label": "10:00",
       "context": "Kamis, 8 Oktober",
-      "tokens": ["08:00–10:00", "PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "R.SG PWK LT.6", "08:00–09:30"]
+      "tokens": ["10:00", "PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "R.SG PWK LT.6", "08:00–09:30"]
     },
     {
-      "id": "schedule.week.class-session.11-00-12-59",
+      "id": "schedule.week.class-session.11-00",
       "screen": "schedule",
       "state": "week",
       "kind": "class-session",
-      "label": "11:00–12:59",
+      "label": "11:00",
       "context": "Kamis, 8 Oktober",
-      "tokens": ["11:00–12:59", "DK4073", "Komunikasi Pemasaran", "TVST C"]
+      "tokens": ["11:00", "12:59", "DK4073", "Komunikasi Pemasaran", "TVST C"]
     },
     {
-      "id": "schedule.week.class-session.15-00-16-30",
+      "id": "schedule.week.class-session.15-00",
       "screen": "schedule",
       "state": "week",
       "kind": "class-session",
-      "label": "15:00–16:30",
+      "label": "15:00",
       "context": "Kamis, 8 Oktober",
-      "tokens": ["15:00–16:30", "PL3032", "KU5014", "R.SG PWK LT.6"]
+      "tokens": ["15:00", "16:30", "PL3032", "Ekonomi Infrastruktur dan Transportasi"]
     },
     {
-      "id": "schedule.week.class-session.16-00-17-50",
+      "id": "schedule.week.class-session.16-00",
       "screen": "schedule",
       "state": "week",
       "kind": "class-session",
-      "label": "16:00–17:50",
+      "label": "16:00",
       "context": "Kamis, 8 Oktober",
-      "tokens": ["16:00–17:50", "KU5014", "PL3032", "9134"]
+      "tokens": ["16:00", "17:50", "KU5014", "Teknik Penyelesaian Masalah Terstruktur", "9134", "PL3032"]
     },
     {
-      "id": "schedule.week.class-session.15-00-17-00",
+      "id": "schedule.week.class-session.15-00-2",
       "screen": "schedule",
       "state": "week",
       "kind": "class-session",
-      "label": "15:00–17:00",
+      "label": "15:00",
       "context": "Jumat, 9 Oktober",
-      "tokens": ["15:00–17:00", "II4091"]
+      "tokens": ["15:00", "17:00", "II4091"]
     },
     {
       "id": "class.pl3002-08-00.class-session.pl3002",
@@ -2482,12 +2082,12 @@
       "tokens": ["Berubah", "08:00–09:30"]
     },
     {
-      "id": "class.pl3002-08-00.class-session.kehadiran-dihitung-di-six",
+      "id": "class.pl3002-08-00.class-session.1",
       "screen": "class",
       "state": "pl3002-08-00",
       "kind": "class-session",
-      "label": "Kehadiran dihitung di SIX",
-      "tokens": ["Kehadiran dihitung di SIX", "1×"]
+      "label": "1×",
+      "tokens": ["1×"]
     },
     {
       "id": "class.dk4073-11-00.class-session.dk4073",
@@ -2602,12 +2202,12 @@
       "tokens": ["PL3032", "16:00–16:30"]
     },
     {
-      "id": "class.ku5014-16-00.class-session.kehadiran-dihitung-di-six",
+      "id": "class.ku5014-16-00.class-session.80",
       "screen": "class",
       "state": "ku5014-16-00",
       "kind": "class-session",
-      "label": "Kehadiran dihitung di SIX",
-      "tokens": ["Kehadiran dihitung di SIX", "80%"]
+      "label": "80%",
+      "tokens": ["80%"]
     },
     {
       "id": "class.ii4091-15-00.class-session.ii4091",
@@ -2634,12 +2234,12 @@
       "tokens": ["Dr. Hadi Halim, S.T., M.T."]
     },
     {
-      "id": "class.ii4091-15-00.class-session.kehadiran-dihitung-di-six-dan-edunex",
+      "id": "class.ii4091-15-00.class-session.2",
       "screen": "class",
       "state": "ii4091-15-00",
       "kind": "class-session",
-      "label": "Kehadiran dihitung di SIX dan Edunex",
-      "tokens": ["Kehadiran dihitung di SIX dan Edunex", "2×"]
+      "label": "2×",
+      "tokens": ["2×"]
     },
     {
       "id": "schedule.next-week.class-session.minggu-ke-8-12-18-okt",
@@ -2659,13 +2259,13 @@
       "tokens": ["12–16 Okt"]
     },
     {
-      "id": "schedule.next-week.class-session.08-00-09-30",
+      "id": "schedule.next-week.class-session.08-00",
       "screen": "schedule",
       "state": "next-week",
       "kind": "class-session",
-      "label": "08:00–09:30",
+      "label": "08:00",
       "context": "Kamis, 15 Oktober",
-      "tokens": ["08:00–09:30", "PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "R.SG PWK LT.6"]
+      "tokens": ["08:00", "09:30", "PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "R.SG PWK LT.6"]
     },
     {
       "id": "schedule.next-week.class-session.dk4073",
@@ -2677,22 +2277,22 @@
       "tokens": ["DK4073", "TVST C", "11:00–12:59"]
     },
     {
-      "id": "schedule.next-week.class-session.15-00-16-30",
+      "id": "schedule.next-week.class-session.15-00",
       "screen": "schedule",
       "state": "next-week",
       "kind": "class-session",
-      "label": "15:00–16:30",
+      "label": "15:00",
       "context": "Kamis, 15 Oktober",
-      "tokens": ["15:00–16:30", "PL3032", "KU5014", "R.SG PWK LT.6"]
+      "tokens": ["15:00", "16:30", "PL3032", "Ekonomi Infrastruktur dan Transportasi"]
     },
     {
-      "id": "schedule.next-week.class-session.16-00-17-50",
+      "id": "schedule.next-week.class-session.16-00",
       "screen": "schedule",
       "state": "next-week",
       "kind": "class-session",
-      "label": "16:00–17:50",
+      "label": "16:00",
       "context": "Kamis, 15 Oktober",
-      "tokens": ["16:00–17:50", "KU5014", "PL3032", "9134"]
+      "tokens": ["16:00", "17:50", "KU5014", "Teknik Penyelesaian Masalah Terstruktur", "9134", "PL3032"]
     },
     {
       "id": "schedule.next-week.class-session.ii4091",
@@ -2718,7 +2318,7 @@
       "kind": "class-session",
       "label": "4 kuliah",
       "context": "Jadwal",
-      "tokens": ["4 kuliah", "16:00"]
+      "tokens": ["4 kuliah"]
     },
     {
       "id": "schedule.month.class-session.pl3002",
@@ -2745,7 +2345,7 @@
       "kind": "class-session",
       "label": "DK4073",
       "context": "Jadwal",
-      "tokens": ["DK4073", "3 kuliah belum pasti", "16:00"]
+      "tokens": ["DK4073", "3 kuliah belum pasti"]
     },
     {
       "id": "schedule.month.class-session.tugas-02-bab-ii",
@@ -2763,7 +2363,7 @@
       "kind": "class-session",
       "label": "UTS Markom",
       "context": "Jadwal",
-      "tokens": ["UTS Markom", "4 kuliah", "16:00"]
+      "tokens": ["UTS Markom", "4 kuliah"]
     },
     {
       "id": "schedule.month.class-session.4-kuliah-2",
@@ -2772,7 +2372,7 @@
       "kind": "class-session",
       "label": "4 kuliah",
       "context": "Jadwal",
-      "tokens": ["4 kuliah", "16:00"]
+      "tokens": ["4 kuliah"]
     },
     {
       "id": "schedule.month.class-session.tugas-03-bab-iii",
@@ -2784,12 +2384,21 @@
       "tokens": ["Tugas 03 Bab III"]
     },
     {
-      "id": "presence.attendance.hari-ini-ada-4",
+      "id": "presence.attendance.pl3002",
       "screen": "presence",
       "state": null,
       "kind": "attendance",
-      "label": "Hari ini ada 4",
-      "tokens": ["Hari ini ada 4", "Hanya PL3002 yang", "80%"]
+      "label": "PL3002",
+      "tokens": ["PL3002", "80%"]
+    },
+    {
+      "id": "presence.attendance.09-30",
+      "screen": "presence",
+      "state": null,
+      "kind": "attendance",
+      "label": "09:30",
+      "context": "Presensi yang dibuka sekarang",
+      "tokens": ["09:30", "PL3002"]
     },
     {
       "id": "presence.attendance.pl3032",
@@ -2798,7 +2407,25 @@
       "kind": "attendance",
       "label": "PL3032",
       "context": "Perlu perhatianmu sekarang",
-      "tokens": ["PL3032", "KU5014", "16:00–16:30", "80%"]
+      "tokens": ["PL3032", "KU5014", "16:00–16:30"]
+    },
+    {
+      "id": "presence.note.80",
+      "screen": "presence",
+      "state": null,
+      "kind": "note",
+      "label": "80%",
+      "context": "Cara baca jatah absen",
+      "tokens": ["80%"]
+    },
+    {
+      "id": "presence.note.80-2",
+      "screen": "presence",
+      "state": null,
+      "kind": "note",
+      "label": "80%",
+      "context": "Cara baca jatah absen",
+      "tokens": ["80%"]
     },
     {
       "id": "presence.note.tak-bisa-lagi-capai-80-1",
@@ -2816,7 +2443,7 @@
       "kind": "attendance",
       "label": "Teknik Penyelesaian Masalah Terstruktur",
       "context": "Tak bisa lagi capai 80% 1",
-      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "16:00–17:50", "9134", "33%", "2 dari 6", "4×", "1×"]
+      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "16:00–17:50", "9134", "1×", "33%", "Cek ke dosen"]
     },
     {
       "id": "presence.attendance.komunikasi-pemasaran",
@@ -2825,7 +2452,7 @@
       "kind": "attendance",
       "label": "Komunikasi Pemasaran",
       "context": "Jatah absen habis 2",
-      "tokens": ["DK4073", "Komunikasi Pemasaran", "11:00–12:59", "TVST C", "66%", "4 dari 6", "2×", "habis"]
+      "tokens": ["DK4073", "Komunikasi Pemasaran", "11:00–12:59", "TVST C", "66%"]
     },
     {
       "id": "presence.attendance.ekonomi-infrastruktur-dan-transportasi",
@@ -2834,7 +2461,7 @@
       "kind": "attendance",
       "label": "Ekonomi Infrastruktur dan Transportasi",
       "context": "Jatah absen habis 2",
-      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "15:00–16:30", "R.SG PWK LT.6", "57%", "4 dari 7", "3×", "habis"]
+      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "15:00–16:30", "R.SG PWK LT.6", "57%"]
     },
     {
       "id": "presence.attendance.ekonomi-dan-inovasi-dalam-perencanaan",
@@ -2843,7 +2470,7 @@
       "kind": "attendance",
       "label": "Ekonomi dan Inovasi dalam Perencanaan",
       "context": "Masih ada jatah absen 2",
-      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "10:00", "R.SG PWK LT.6", "85%", "6 dari 7", "1×"]
+      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "10:00", "R.SG PWK LT.6", "1×", "85%", "Tandai Hadir belum muncul"]
     },
     {
       "id": "presence.attendance.proposal-tugas-akhir",
@@ -2852,27 +2479,7 @@
       "kind": "attendance",
       "label": "Proposal Tugas Akhir",
       "context": "Masih ada jatah absen 2",
-      "tokens": [
-        "II4091",
-        "Proposal Tugas Akhir",
-        "Jum 16 Okt",
-        "15:00–23:00",
-        "100%",
-        "3 dari 3",
-        "Belum terpakai",
-        "2×",
-        "kumpulkan Tugas 02 Bab II",
-        "23:59"
-      ]
-    },
-    {
-      "id": "presence.note.jum-4-des",
-      "screen": "presence",
-      "state": null,
-      "kind": "note",
-      "label": "Jum 4 Des",
-      "context": "Masih ada jatah absen 2",
-      "tokens": ["Jum 4 Des", "31 Okt"]
+      "tokens": ["II4091", "Proposal Tugas Akhir", "Jum 16 Okt", "15:00–23:00", "2×", "100", "kumpulkan Tugas 02 Bab II", "23:59"]
     },
     {
       "id": "grades.note.3-26",
@@ -2880,7 +2487,17 @@
       "state": null,
       "kind": "note",
       "label": "3,26",
-      "tokens": ["3,26", "3,30", "sangat memuaskan"]
+      "context": "Posisimu",
+      "tokens": ["3,26"]
+    },
+    {
+      "id": "grades.note.3-30",
+      "screen": "grades",
+      "state": null,
+      "kind": "note",
+      "label": "3,30",
+      "context": "Posisimu",
+      "tokens": ["3,30"]
     },
     {
       "id": "grades.note.125",
@@ -2888,8 +2505,8 @@
       "state": null,
       "kind": "note",
       "label": "125",
-      "context": "Nilai",
-      "tokens": ["125", "144"]
+      "context": "Posisimu",
+      "tokens": ["125"]
     },
     {
       "id": "grades.note.3-27",
@@ -2897,7 +2514,7 @@
       "state": null,
       "kind": "note",
       "label": "3,27",
-      "context": "Nilai",
+      "context": "Posisimu",
       "tokens": ["3,27", "+0,17"]
     },
     {
@@ -2906,8 +2523,8 @@
       "state": null,
       "kind": "note",
       "label": "3,39",
-      "context": "Nilai",
-      "tokens": ["3,39", "jika semua A di 26 SKS tersisa"]
+      "context": "Posisimu",
+      "tokens": ["3,39"]
     },
     {
       "id": "grades.ip.3-69",
@@ -2982,15 +2599,6 @@
       "tokens": ["Smt 8 (Perkiraan)", "3,30", "3,50"]
     },
     {
-      "id": "grades.ip.3-30-2",
-      "screen": "grades",
-      "state": null,
-      "kind": "ip",
-      "label": "3,30",
-      "context": "IP dan IPK per semester",
-      "tokens": ["3,30", "2026/2027 Genap", "3,50"]
-    },
-    {
       "id": "grades.grade.komunikasi-pemasaran",
       "screen": "grades",
       "state": null,
@@ -3063,269 +2671,116 @@
       "tokens": ["8 Jan"]
     },
     {
-      "id": "grades.note.3-18",
+      "id": "grades.transcript-smt-1.ip.2023-2024-ganjil",
       "screen": "grades",
-      "state": null,
-      "kind": "note",
-      "label": "3,18",
-      "context": "Transkrip",
-      "tokens": ["3,18"]
-    },
-    {
-      "id": "grades.transcript-smt-7.note.2026-2027-ganjil",
-      "screen": "grades",
-      "state": "transcript/smt-7",
-      "kind": "note",
-      "label": "2026/2027 Ganjil",
-      "tokens": ["2026/2027 Ganjil", "5 mata kuliah", "Berlangsung"]
-    },
-    {
-      "id": "grades.transcript-smt-7.grade.komunikasi-pemasaran",
-      "screen": "grades",
-      "state": "transcript/smt-7",
-      "kind": "grade",
-      "label": "Komunikasi Pemasaran",
-      "tokens": ["DK4073", "Komunikasi Pemasaran", "Belum ada nilai", "3 SKS"]
-    },
-    {
-      "id": "grades.transcript-smt-7.grade.proposal-tugas-akhir",
-      "screen": "grades",
-      "state": "transcript/smt-7",
-      "kind": "grade",
-      "label": "Proposal Tugas Akhir",
-      "tokens": ["II4091", "Proposal Tugas Akhir", "Belum ada nilai", "2 SKS"]
-    },
-    {
-      "id": "grades.transcript-smt-7.grade.teknik-penyelesaian-masalah-terstruktur",
-      "screen": "grades",
-      "state": "transcript/smt-7",
-      "kind": "grade",
-      "label": "Teknik Penyelesaian Masalah Terstruktur",
-      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "Belum ada nilai", "3 SKS"]
-    },
-    {
-      "id": "grades.transcript-smt-7.grade.ekonomi-dan-inovasi-dalam-perencanaan",
-      "screen": "grades",
-      "state": "transcript/smt-7",
-      "kind": "grade",
-      "label": "Ekonomi dan Inovasi dalam Perencanaan",
-      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "Belum ada nilai", "3 SKS"]
-    },
-    {
-      "id": "grades.transcript-smt-7.grade.ekonomi-infrastruktur-dan-transportasi",
-      "screen": "grades",
-      "state": "transcript/smt-7",
-      "kind": "grade",
-      "label": "Ekonomi Infrastruktur dan Transportasi",
-      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "Belum ada nilai", "3 SKS"]
-    },
-    {
-      "id": "grades.transcript-smt-6.ip.2025-2026-genap",
-      "screen": "grades",
-      "state": "transcript/smt-6",
+      "state": "transcript/smt-1",
       "kind": "ip",
-      "label": "2025/2026 Genap",
-      "tokens": ["2025/2026 Genap", "8 mata kuliah", "IP 3,27"]
+      "label": "2023/2024 Ganjil",
+      "tokens": ["2023/2024 Ganjil", "IP 3,69"]
     },
     {
-      "id": "grades.transcript-smt-6.grade.sains-sepak-bola",
+      "id": "grades.transcript-smt-1.grade.fisika-dasar-ia",
       "screen": "grades",
-      "state": "transcript/smt-6",
+      "state": "transcript/smt-1",
       "kind": "grade",
-      "label": "Sains Sepak Bola",
-      "tokens": ["FK3057", "Sains Sepak Bola", "2 SKS"]
+      "label": "Fisika Dasar IA",
+      "tokens": ["FI1101", "Fisika Dasar IA", "4 SKS"]
     },
     {
-      "id": "grades.transcript-smt-6.grade.komputasi-domain-spesifik",
+      "id": "grades.transcript-smt-1.grade.tata-tulis-karya-ilmiah",
       "screen": "grades",
-      "state": "transcript/smt-6",
+      "state": "transcript/smt-1",
       "kind": "grade",
-      "label": "Komputasi Domain Spesifik",
-      "tokens": ["IF3211", "Komputasi Domain Spesifik", "2 SKS", "AB"]
+      "label": "Tata Tulis Karya Ilmiah",
+      "tokens": ["KU1011", "Tata Tulis Karya Ilmiah", "2 SKS", "AB"]
     },
     {
-      "id": "grades.transcript-smt-6.grade.tata-kelola-teknologi-informasi",
+      "id": "grades.transcript-smt-1.grade.bahasa-inggris",
       "screen": "grades",
-      "state": "transcript/smt-6",
+      "state": "transcript/smt-1",
       "kind": "grade",
-      "label": "Tata Kelola Teknologi Informasi",
-      "tokens": ["II3220", "Tata Kelola Teknologi Informasi", "3 SKS", "A"]
+      "label": "Bahasa Inggris",
+      "tokens": ["KU1024", "Bahasa Inggris", "2 SKS", "AB"]
     },
     {
-      "id": "grades.transcript-smt-6.grade.keamanan-informasi",
+      "id": "grades.transcript-smt-1.grade.pengenalan-komputasi",
       "screen": "grades",
-      "state": "transcript/smt-6",
+      "state": "transcript/smt-1",
       "kind": "grade",
-      "label": "Keamanan Informasi",
-      "tokens": ["II3230", "Keamanan Informasi", "3 SKS", "AB"]
+      "label": "Pengenalan Komputasi",
+      "tokens": ["KU1102", "Pengenalan Komputasi", "3 SKS", "AB"]
     },
     {
-      "id": "grades.transcript-smt-6.grade.rekayasa-sistem-dan-teknologi-informasi",
+      "id": "grades.transcript-smt-1.grade.pengantar-rekayasa-dan-desain",
       "screen": "grades",
-      "state": "transcript/smt-6",
+      "state": "transcript/smt-1",
       "kind": "grade",
-      "label": "Rekayasa Sistem dan Teknologi Informasi",
-      "tokens": ["II3240", "Rekayasa Sistem dan Teknologi Informasi", "4 SKS", "A"]
+      "label": "Pengantar Rekayasa dan Desain",
+      "tokens": ["KU1202", "Pengantar Rekayasa dan Desain", "3 SKS", "A"]
     },
     {
-      "id": "grades.transcript-smt-6.grade.inteligensi-artifisial-untuk-bisnis",
+      "id": "grades.transcript-smt-1.grade.matematika-ia",
       "screen": "grades",
-      "state": "transcript/smt-6",
+      "state": "transcript/smt-1",
       "kind": "grade",
-      "label": "Inteligensi Artifisial untuk Bisnis",
-      "tokens": ["II4012", "Inteligensi Artifisial untuk Bisnis", "3 SKS", "C"]
+      "label": "Matematika IA",
+      "tokens": ["MA1101", "Matematika IA", "4 SKS", "AB"]
     },
     {
-      "id": "grades.transcript-smt-6.grade.data-analytics",
+      "id": "grades.transcript-smt-2.ip.2023-2024-genap",
       "screen": "grades",
-      "state": "transcript/smt-6",
-      "kind": "grade",
-      "label": "Data Analytics",
-      "tokens": ["II4013", "Data Analytics", "3 SKS", "AB"]
-    },
-    {
-      "id": "grades.transcript-smt-6.grade.manajemen-proyek",
-      "screen": "grades",
-      "state": "transcript/smt-6",
-      "kind": "grade",
-      "label": "Manajemen Proyek",
-      "tokens": ["WI2022", "Manajemen Proyek", "2 SKS", "C"]
-    },
-    {
-      "id": "grades.transcript-smt-5.ip.2025-2026-ganjil",
-      "screen": "grades",
-      "state": "transcript/smt-5",
+      "state": "transcript/smt-2",
       "kind": "ip",
-      "label": "2025/2026 Ganjil",
-      "tokens": ["2025/2026 Ganjil", "7 mata kuliah", "IP 3,10"]
+      "label": "2023/2024 Genap",
+      "tokens": ["2023/2024 Genap", "IP 3,17"]
     },
     {
-      "id": "grades.transcript-smt-5.grade.dasar-inteligensi-artifisial",
+      "id": "grades.transcript-smt-2.grade.fisika-dasar-iia",
       "screen": "grades",
-      "state": "transcript/smt-5",
+      "state": "transcript/smt-2",
       "kind": "grade",
-      "label": "Dasar Inteligensi Artifisial",
-      "tokens": ["IF3070", "Dasar Inteligensi Artifisial", "3 SKS"]
+      "label": "Fisika Dasar IIA",
+      "tokens": ["FI1201", "Fisika Dasar IIA", "4 SKS", "BC"]
     },
     {
-      "id": "grades.transcript-smt-5.grade.layanan-sistem-dan-teknologi-informasi",
+      "id": "grades.transcript-smt-2.grade.dasar-pemrograman",
       "screen": "grades",
-      "state": "transcript/smt-5",
+      "state": "transcript/smt-2",
       "kind": "grade",
-      "label": "Layanan Sistem dan Teknologi Informasi",
-      "tokens": ["II3120", "Layanan Sistem dan Teknologi Informasi", "3 SKS", "A"]
+      "label": "Dasar Pemrograman",
+      "tokens": ["IF1210", "Dasar Pemrograman", "2 SKS", "A"]
     },
     {
-      "id": "grades.transcript-smt-5.grade.arsitektur-enterprise",
+      "id": "grades.transcript-smt-2.grade.komputasi-dan-masyarakat",
       "screen": "grades",
-      "state": "transcript/smt-5",
+      "state": "transcript/smt-2",
       "kind": "grade",
-      "label": "Arsitektur Enterprise",
-      "tokens": ["II3130", "Arsitektur Enterprise", "3 SKS", "C"]
+      "label": "Komputasi dan Masyarakat",
+      "tokens": ["II1101", "Komputasi dan Masyarakat", "2 SKS", "A"]
     },
     {
-      "id": "grades.transcript-smt-5.grade.interaksi-manusia-komputer",
+      "id": "grades.transcript-smt-2.grade.kimia-dasar-b",
       "screen": "grades",
-      "state": "transcript/smt-5",
+      "state": "transcript/smt-2",
       "kind": "grade",
-      "label": "Interaksi Manusia Komputer",
-      "tokens": ["II3131", "Interaksi Manusia Komputer", "3 SKS", "A"]
+      "label": "Kimia Dasar B",
+      "tokens": ["KI1002", "Kimia Dasar B", "4 SKS", "A"]
     },
     {
-      "id": "grades.transcript-smt-5.grade.pengembangan-aplikasi-web-dan-mobile",
+      "id": "grades.transcript-smt-2.grade.olah-raga",
       "screen": "grades",
-      "state": "transcript/smt-5",
+      "state": "transcript/smt-2",
       "kind": "grade",
-      "label": "Pengembangan Aplikasi Web dan Mobile",
-      "tokens": ["II3140", "Pengembangan Aplikasi Web dan Mobile", "3 SKS", "BC"]
+      "label": "Olah Raga",
+      "tokens": ["KU1001", "Olah Raga", "2 SKS", "BC"]
     },
     {
-      "id": "grades.transcript-smt-5.grade.teknologi-sistem-terintegrasi",
+      "id": "grades.transcript-smt-2.grade.matematika-iia",
       "screen": "grades",
-      "state": "transcript/smt-5",
+      "state": "transcript/smt-2",
       "kind": "grade",
-      "label": "Teknologi Sistem Terintegrasi",
-      "tokens": ["II3160", "Teknologi Sistem Terintegrasi", "3 SKS", "BC"]
-    },
-    {
-      "id": "grades.transcript-smt-5.grade.hukum-dan-etika-teknologi-informasi",
-      "screen": "grades",
-      "state": "transcript/smt-5",
-      "kind": "grade",
-      "label": "Hukum dan Etika Teknologi Informasi",
-      "tokens": ["II3170", "Hukum dan Etika Teknologi Informasi", "2 SKS", "BC"]
-    },
-    {
-      "id": "grades.transcript-smt-4.ip.2024-2025-genap",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "ip",
-      "label": "2024/2025 Genap",
-      "tokens": ["2024/2025 Genap", "8 mata kuliah", "IP 3,24"]
-    },
-    {
-      "id": "grades.transcript-smt-4.grade.pemrograman-berorientasi-objek",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "grade",
-      "label": "Pemrograman Berorientasi Objek",
-      "tokens": ["IF2010", "Pemrograman Berorientasi Objek", "3 SKS", "AB"]
-    },
-    {
-      "id": "grades.transcript-smt-4.grade.dasar-rekayasa-perangkat-lunak",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "grade",
-      "label": "Dasar Rekayasa Perangkat Lunak",
-      "tokens": ["IF2050", "Dasar Rekayasa Perangkat Lunak", "3 SKS", "A"]
-    },
-    {
-      "id": "grades.transcript-smt-4.grade.teknologi-platform",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "grade",
-      "label": "Teknologi Platform",
-      "tokens": ["II2210", "Teknologi Platform", "3 SKS", "AB"]
-    },
-    {
-      "id": "grades.transcript-smt-4.grade.probabilitas-dan-statistik",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "grade",
-      "label": "Probabilitas dan Statistik",
-      "tokens": ["II2211", "Probabilitas dan Statistik", "3 SKS", "AB"]
-    },
-    {
-      "id": "grades.transcript-smt-4.grade.analisis-kebutuhan-enterprise",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "grade",
-      "label": "Analisis Kebutuhan Enterprise",
-      "tokens": ["II2221", "Analisis Kebutuhan Enterprise", "3 SKS", "B"]
-    },
-    {
-      "id": "grades.transcript-smt-4.grade.sistem-multimedia",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "grade",
-      "label": "Sistem Multimedia",
-      "tokens": ["II2240", "Sistem Multimedia", "3 SKS", "B"]
-    },
-    {
-      "id": "grades.transcript-smt-4.grade.manajemen-basis-data",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "grade",
-      "label": "Manajemen Basis Data",
-      "tokens": ["II2250", "Manajemen Basis Data", "2 SKS", "AB"]
-    },
-    {
-      "id": "grades.transcript-smt-4.grade.internet-of-things",
-      "screen": "grades",
-      "state": "transcript/smt-4",
-      "kind": "grade",
-      "label": "Internet of Things",
-      "tokens": ["II2260", "Internet of Things", "3 SKS", "C"]
+      "label": "Matematika IIA",
+      "tokens": ["MA1201", "Matematika IIA", "4 SKS", "BC"]
     },
     {
       "id": "grades.transcript-smt-3.ip.2024-2025-ganjil",
@@ -3333,7 +2788,7 @@
       "state": "transcript/smt-3",
       "kind": "ip",
       "label": "2024/2025 Ganjil",
-      "tokens": ["2024/2025 Ganjil", "9 mata kuliah", "IP 3,17"]
+      "tokens": ["2024/2025 Ganjil", "IP 3,17"]
     },
     {
       "id": "grades.transcript-smt-3.grade.persuasi-media-sosial",
@@ -3408,124 +2863,220 @@
       "tokens": ["WI2011", "Agama Islam", "2 SKS", "BC"]
     },
     {
-      "id": "grades.transcript-smt-2.ip.2023-2024-genap",
+      "id": "grades.transcript-smt-4.ip.2024-2025-genap",
       "screen": "grades",
-      "state": "transcript/smt-2",
+      "state": "transcript/smt-4",
       "kind": "ip",
-      "label": "2023/2024 Genap",
-      "tokens": ["2023/2024 Genap", "6 mata kuliah", "IP 3,17"]
+      "label": "2024/2025 Genap",
+      "tokens": ["2024/2025 Genap", "IP 3,24"]
     },
     {
-      "id": "grades.transcript-smt-2.grade.fisika-dasar-iia",
+      "id": "grades.transcript-smt-4.grade.pemrograman-berorientasi-objek",
       "screen": "grades",
-      "state": "transcript/smt-2",
+      "state": "transcript/smt-4",
       "kind": "grade",
-      "label": "Fisika Dasar IIA",
-      "tokens": ["FI1201", "Fisika Dasar IIA", "4 SKS", "BC"]
+      "label": "Pemrograman Berorientasi Objek",
+      "tokens": ["IF2010", "Pemrograman Berorientasi Objek", "3 SKS", "AB"]
     },
     {
-      "id": "grades.transcript-smt-2.grade.dasar-pemrograman",
+      "id": "grades.transcript-smt-4.grade.dasar-rekayasa-perangkat-lunak",
       "screen": "grades",
-      "state": "transcript/smt-2",
+      "state": "transcript/smt-4",
       "kind": "grade",
-      "label": "Dasar Pemrograman",
-      "tokens": ["IF1210", "Dasar Pemrograman", "2 SKS", "A"]
+      "label": "Dasar Rekayasa Perangkat Lunak",
+      "tokens": ["IF2050", "Dasar Rekayasa Perangkat Lunak", "3 SKS", "A"]
     },
     {
-      "id": "grades.transcript-smt-2.grade.komputasi-dan-masyarakat",
+      "id": "grades.transcript-smt-4.grade.teknologi-platform",
       "screen": "grades",
-      "state": "transcript/smt-2",
+      "state": "transcript/smt-4",
       "kind": "grade",
-      "label": "Komputasi dan Masyarakat",
-      "tokens": ["II1101", "Komputasi dan Masyarakat", "2 SKS", "A"]
+      "label": "Teknologi Platform",
+      "tokens": ["II2210", "Teknologi Platform", "3 SKS", "AB"]
     },
     {
-      "id": "grades.transcript-smt-2.grade.kimia-dasar-b",
+      "id": "grades.transcript-smt-4.grade.probabilitas-dan-statistik",
       "screen": "grades",
-      "state": "transcript/smt-2",
+      "state": "transcript/smt-4",
       "kind": "grade",
-      "label": "Kimia Dasar B",
-      "tokens": ["KI1002", "Kimia Dasar B", "4 SKS", "A"]
+      "label": "Probabilitas dan Statistik",
+      "tokens": ["II2211", "Probabilitas dan Statistik", "3 SKS", "AB"]
     },
     {
-      "id": "grades.transcript-smt-2.grade.olah-raga",
+      "id": "grades.transcript-smt-4.grade.analisis-kebutuhan-enterprise",
       "screen": "grades",
-      "state": "transcript/smt-2",
+      "state": "transcript/smt-4",
       "kind": "grade",
-      "label": "Olah Raga",
-      "tokens": ["KU1001", "Olah Raga", "2 SKS", "BC"]
+      "label": "Analisis Kebutuhan Enterprise",
+      "tokens": ["II2221", "Analisis Kebutuhan Enterprise", "3 SKS", "B"]
     },
     {
-      "id": "grades.transcript-smt-2.grade.matematika-iia",
+      "id": "grades.transcript-smt-4.grade.sistem-multimedia",
       "screen": "grades",
-      "state": "transcript/smt-2",
+      "state": "transcript/smt-4",
       "kind": "grade",
-      "label": "Matematika IIA",
-      "tokens": ["MA1201", "Matematika IIA", "4 SKS", "BC"]
+      "label": "Sistem Multimedia",
+      "tokens": ["II2240", "Sistem Multimedia", "3 SKS", "B"]
     },
     {
-      "id": "grades.transcript-smt-1.ip.2023-2024-ganjil",
+      "id": "grades.transcript-smt-4.grade.manajemen-basis-data",
       "screen": "grades",
-      "state": "transcript/smt-1",
+      "state": "transcript/smt-4",
+      "kind": "grade",
+      "label": "Manajemen Basis Data",
+      "tokens": ["II2250", "Manajemen Basis Data", "2 SKS", "AB"]
+    },
+    {
+      "id": "grades.transcript-smt-4.grade.internet-of-things",
+      "screen": "grades",
+      "state": "transcript/smt-4",
+      "kind": "grade",
+      "label": "Internet of Things",
+      "tokens": ["II2260", "Internet of Things", "3 SKS", "C"]
+    },
+    {
+      "id": "grades.transcript-smt-5.ip.2025-2026-ganjil",
+      "screen": "grades",
+      "state": "transcript/smt-5",
       "kind": "ip",
-      "label": "2023/2024 Ganjil",
-      "tokens": ["2023/2024 Ganjil", "6 mata kuliah", "IP 3,69"]
+      "label": "2025/2026 Ganjil",
+      "tokens": ["2025/2026 Ganjil", "IP 3,10"]
     },
     {
-      "id": "grades.transcript-smt-1.grade.fisika-dasar-ia",
+      "id": "grades.transcript-smt-5.grade.dasar-inteligensi-artifisial",
       "screen": "grades",
-      "state": "transcript/smt-1",
+      "state": "transcript/smt-5",
       "kind": "grade",
-      "label": "Fisika Dasar IA",
-      "tokens": ["FI1101", "Fisika Dasar IA", "4 SKS"]
+      "label": "Dasar Inteligensi Artifisial",
+      "tokens": ["IF3070", "Dasar Inteligensi Artifisial", "3 SKS"]
     },
     {
-      "id": "grades.transcript-smt-1.grade.tata-tulis-karya-ilmiah",
+      "id": "grades.transcript-smt-5.grade.layanan-sistem-dan-teknologi-informasi",
       "screen": "grades",
-      "state": "transcript/smt-1",
+      "state": "transcript/smt-5",
       "kind": "grade",
-      "label": "Tata Tulis Karya Ilmiah",
-      "tokens": ["KU1011", "Tata Tulis Karya Ilmiah", "2 SKS", "AB"]
+      "label": "Layanan Sistem dan Teknologi Informasi",
+      "tokens": ["II3120", "Layanan Sistem dan Teknologi Informasi", "3 SKS", "A"]
     },
     {
-      "id": "grades.transcript-smt-1.grade.bahasa-inggris",
+      "id": "grades.transcript-smt-5.grade.arsitektur-enterprise",
       "screen": "grades",
-      "state": "transcript/smt-1",
+      "state": "transcript/smt-5",
       "kind": "grade",
-      "label": "Bahasa Inggris",
-      "tokens": ["KU1024", "Bahasa Inggris", "2 SKS", "AB"]
+      "label": "Arsitektur Enterprise",
+      "tokens": ["II3130", "Arsitektur Enterprise", "3 SKS", "C"]
     },
     {
-      "id": "grades.transcript-smt-1.grade.pengenalan-komputasi",
+      "id": "grades.transcript-smt-5.grade.interaksi-manusia-komputer",
       "screen": "grades",
-      "state": "transcript/smt-1",
+      "state": "transcript/smt-5",
       "kind": "grade",
-      "label": "Pengenalan Komputasi",
-      "tokens": ["KU1102", "Pengenalan Komputasi", "3 SKS", "AB"]
+      "label": "Interaksi Manusia Komputer",
+      "tokens": ["II3131", "Interaksi Manusia Komputer", "3 SKS", "A"]
     },
     {
-      "id": "grades.transcript-smt-1.grade.pengantar-rekayasa-dan-desain",
+      "id": "grades.transcript-smt-5.grade.pengembangan-aplikasi-web-dan-mobile",
       "screen": "grades",
-      "state": "transcript/smt-1",
+      "state": "transcript/smt-5",
       "kind": "grade",
-      "label": "Pengantar Rekayasa dan Desain",
-      "tokens": ["KU1202", "Pengantar Rekayasa dan Desain", "3 SKS", "A"]
+      "label": "Pengembangan Aplikasi Web dan Mobile",
+      "tokens": ["II3140", "Pengembangan Aplikasi Web dan Mobile", "3 SKS", "BC"]
     },
     {
-      "id": "grades.transcript-smt-1.grade.matematika-ia",
+      "id": "grades.transcript-smt-5.grade.teknologi-sistem-terintegrasi",
       "screen": "grades",
-      "state": "transcript/smt-1",
+      "state": "transcript/smt-5",
       "kind": "grade",
-      "label": "Matematika IA",
-      "tokens": ["MA1101", "Matematika IA", "4 SKS", "AB"]
+      "label": "Teknologi Sistem Terintegrasi",
+      "tokens": ["II3160", "Teknologi Sistem Terintegrasi", "3 SKS", "BC"]
     },
     {
-      "id": "plan.rencana.plan.sistem-dan-teknologi-informasi",
+      "id": "grades.transcript-smt-5.grade.hukum-dan-etika-teknologi-informasi",
+      "screen": "grades",
+      "state": "transcript/smt-5",
+      "kind": "grade",
+      "label": "Hukum dan Etika Teknologi Informasi",
+      "tokens": ["II3170", "Hukum dan Etika Teknologi Informasi", "2 SKS", "BC"]
+    },
+    {
+      "id": "grades.transcript-smt-6.ip.2025-2026-genap",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "ip",
+      "label": "2025/2026 Genap",
+      "tokens": ["2025/2026 Genap", "IP 3,27"]
+    },
+    {
+      "id": "grades.transcript-smt-6.grade.sains-sepak-bola",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "grade",
+      "label": "Sains Sepak Bola",
+      "tokens": ["FK3057", "Sains Sepak Bola", "2 SKS"]
+    },
+    {
+      "id": "grades.transcript-smt-6.grade.komputasi-domain-spesifik",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "grade",
+      "label": "Komputasi Domain Spesifik",
+      "tokens": ["IF3211", "Komputasi Domain Spesifik", "2 SKS", "AB"]
+    },
+    {
+      "id": "grades.transcript-smt-6.grade.tata-kelola-teknologi-informasi",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "grade",
+      "label": "Tata Kelola Teknologi Informasi",
+      "tokens": ["II3220", "Tata Kelola Teknologi Informasi", "3 SKS", "A"]
+    },
+    {
+      "id": "grades.transcript-smt-6.grade.keamanan-informasi",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "grade",
+      "label": "Keamanan Informasi",
+      "tokens": ["II3230", "Keamanan Informasi", "3 SKS", "AB"]
+    },
+    {
+      "id": "grades.transcript-smt-6.grade.rekayasa-sistem-dan-teknologi-informasi",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "grade",
+      "label": "Rekayasa Sistem dan Teknologi Informasi",
+      "tokens": ["II3240", "Rekayasa Sistem dan Teknologi Informasi", "4 SKS", "A"]
+    },
+    {
+      "id": "grades.transcript-smt-6.grade.inteligensi-artifisial-untuk-bisnis",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "grade",
+      "label": "Inteligensi Artifisial untuk Bisnis",
+      "tokens": ["II4012", "Inteligensi Artifisial untuk Bisnis", "3 SKS", "C"]
+    },
+    {
+      "id": "grades.transcript-smt-6.grade.data-analytics",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "grade",
+      "label": "Data Analytics",
+      "tokens": ["II4013", "Data Analytics", "3 SKS", "AB"]
+    },
+    {
+      "id": "grades.transcript-smt-6.grade.manajemen-proyek",
+      "screen": "grades",
+      "state": "transcript/smt-6",
+      "kind": "grade",
+      "label": "Manajemen Proyek",
+      "tokens": ["WI2022", "Manajemen Proyek", "2 SKS", "C"]
+    },
+    {
+      "id": "plan.rencana.plan.144",
       "screen": "plan",
       "state": "rencana",
       "kind": "plan",
-      "label": "Sistem dan Teknologi Informasi",
-      "tokens": ["Sistem dan Teknologi Informasi", "144", "+7 cadangan"]
+      "label": "144",
+      "tokens": ["144", "+7 cadangan"]
     },
     {
       "id": "plan.rencana.plan.3-30",
@@ -3542,30 +3093,6 @@
       "kind": "banner",
       "label": "1 hal perlu dicek",
       "tokens": ["1 hal perlu dicek"]
-    },
-    {
-      "id": "plan.rencana.plan.125",
-      "screen": "plan",
-      "state": "rencana",
-      "kind": "plan",
-      "label": "125",
-      "tokens": ["125"]
-    },
-    {
-      "id": "plan.rencana.plan.14-semester-ini",
-      "screen": "plan",
-      "state": "rencana",
-      "kind": "plan",
-      "label": "14 semester ini",
-      "tokens": ["14 semester ini"]
-    },
-    {
-      "id": "plan.rencana.plan.12-direncanakan",
-      "screen": "plan",
-      "state": "rencana",
-      "kind": "plan",
-      "label": "12 direncanakan",
-      "tokens": ["12 direncanakan"]
     },
     {
       "id": "plan.rencana.plan.semester-1-6",
@@ -3648,7 +3175,7 @@
       "kind": "planned-course",
       "label": "Proposal Tugas Akhir",
       "context": "Semester 7 · sekarang",
-      "tokens": ["II4091", "Proposal Tugas Akhir", "Wajib · smt 7", "AB"]
+      "tokens": ["II4091", "Proposal Tugas Akhir", "Wajib", "AB"]
     },
     {
       "id": "plan.rencana.planned-course.teknik-penyelesaian-masalah-terstruktur",
@@ -3693,7 +3220,7 @@
       "kind": "planned-course",
       "label": "Kerja Praktik",
       "context": "Semester 8 · 2026/2027 Genap",
-      "tokens": ["II4090", "Kerja Praktik", "Wajib · smt 7", "AB"]
+      "tokens": ["II4090", "Kerja Praktik", "Wajib", "AB"]
     },
     {
       "id": "plan.rencana.planned-course.tugas-akhir",
@@ -3702,7 +3229,7 @@
       "kind": "planned-course",
       "label": "Tugas Akhir",
       "context": "Semester 8 · 2026/2027 Genap",
-      "tokens": ["II4092", "Tugas Akhir", "Wajib · smt 8", "AB"]
+      "tokens": ["II4092", "Tugas Akhir", "Wajib", "AB"]
     },
     {
       "id": "plan.rencana.planned-course.manajemen-data",
@@ -3723,67 +3250,31 @@
       "tokens": ["II4011", "Transformasi Digital", "AB"]
     },
     {
-      "id": "plan.rencana.plan.rule-total",
-      "screen": "plan",
-      "state": "rencana",
-      "kind": "plan",
-      "label": "Terpenuhi",
-      "context": "Aturan, dicek langsung",
-      "tokens": ["Terpenuhi", "144 SKS terpenuhi (+7 cadangan)", "Cukup untuk lulus jika semua rencana lulus."]
-    },
-    {
-      "id": "plan.rencana.plan.rule-electives",
-      "screen": "plan",
-      "state": "rencana",
-      "kind": "plan",
-      "label": "Terpenuhi",
-      "context": "Aturan, dicek langsung",
-      "tokens": ["Terpenuhi", "Mata kuliah pilihan", "27 dari 27 SKS terpenuhi (+10 lebih)."]
-    },
-    {
       "id": "plan.rencana.plan.rule-specialization",
       "screen": "plan",
       "state": "rencana",
       "kind": "plan",
-      "label": "Terpenuhi",
-      "context": "Aturan, dicek langsung",
-      "tokens": ["Terpenuhi", "Sistem Informasi Cerdas", "Semua 4 mata kuliah terpenuhi."]
+      "label": "Sistem Informasi Cerdas",
+      "context": "Aturan",
+      "tokens": ["Sistem Informasi Cerdas"]
     },
     {
       "id": "plan.rencana.planned-course.rule-parity-ii4090-2026-2",
       "screen": "plan",
       "state": "rencana",
       "kind": "planned-course",
-      "label": "Perlu dicek",
-      "context": "Aturan, dicek langsung",
-      "tokens": ["Perlu dicek", "II4090 Kerja Praktik"]
+      "label": "II4090 Kerja Praktik",
+      "context": "Aturan",
+      "tokens": ["II4090 Kerja Praktik"]
     },
     {
-      "id": "plan.rencana.plan.rule-finish",
-      "screen": "plan",
-      "state": "rencana",
-      "kind": "plan",
-      "label": "Terpenuhi",
-      "context": "Aturan, dicek langsung",
-      "tokens": ["Terpenuhi", "Lulus di semester 8", "Tepat waktu (8 semester)."]
-    },
-    {
-      "id": "plan.rencana.plan.3-50",
-      "screen": "plan",
-      "state": "rencana",
-      "kind": "plan",
-      "label": "3,50",
-      "context": "Aturan, dicek langsung",
-      "tokens": ["3,50"]
-    },
-    {
-      "id": "plan.rencana.banner.3-50",
+      "id": "plan.rencana.banner.di-luar-jangkauan-walau-semua-a",
       "screen": "plan",
       "state": "rencana",
       "kind": "banner",
-      "label": "3,50",
+      "label": "Di luar jangkauan, walau semua A",
       "context": "IPK dan predikat",
-      "tokens": ["3,50"]
+      "tokens": ["Di luar jangkauan, walau semua A"]
     },
     {
       "id": "plan.rencana.plan.3-69",
@@ -3863,8 +3354,8 @@
       "state": "rencana",
       "kind": "plan",
       "label": "Branding Berbasis Digital",
-      "context": "Minor yang paling dekat",
-      "tokens": ["Branding Berbasis Digital", "Desain Komunikasi Visual", "3 dari 12"]
+      "context": "Minor terdekat",
+      "tokens": ["Branding Berbasis Digital", "3 dari 12"]
     },
     {
       "id": "plan.rencana.plan.rekayasa-perangkat-lunak",
@@ -3872,8 +3363,8 @@
       "state": "rencana",
       "kind": "plan",
       "label": "Rekayasa Perangkat Lunak",
-      "context": "Minor yang paling dekat",
-      "tokens": ["Rekayasa Perangkat Lunak", "Teknik Informatika", "3 dari 13"]
+      "context": "Minor terdekat",
+      "tokens": ["Rekayasa Perangkat Lunak", "3 dari 13"]
     },
     {
       "id": "plan.rencana.plan.teknik-elektro-digital",
@@ -3881,7 +3372,7 @@
       "state": "rencana",
       "kind": "plan",
       "label": "Teknik Elektro Digital",
-      "context": "Minor yang paling dekat",
+      "context": "Minor terdekat",
       "tokens": ["Teknik Elektro Digital", "3 dari 15"]
     },
     {
@@ -3890,8 +3381,8 @@
       "state": "rencana",
       "kind": "plan",
       "label": "Infastruktur Wilayah dan Kota",
-      "context": "Minor yang paling dekat",
-      "tokens": ["Infastruktur Wilayah dan Kota", "Perencanaan Wilayah dan Kota", "3 dari 16"]
+      "context": "Minor terdekat",
+      "tokens": ["Infastruktur Wilayah dan Kota", "3 dari 16"]
     },
     {
       "id": "plan.kurikulum.curriculum.kurikulum-2024-sarjana-sistem-dan-teknologi-info",
@@ -3899,15 +3390,7 @@
       "state": "kurikulum",
       "kind": "curriculum",
       "label": "Kurikulum 2024 - Sarjana Sistem dan Teknologi Informasi",
-      "tokens": ["Kurikulum 2024 - Sarjana Sistem dan Teknologi Informasi"]
-    },
-    {
-      "id": "plan.kurikulum.curriculum.kamu-mulai-dengan-kurikulum-2019-tapi-six",
-      "screen": "plan",
-      "state": "kurikulum",
-      "kind": "curriculum",
-      "label": "Kamu mulai dengan Kurikulum 2019, tapi SIX",
-      "tokens": ["Kamu mulai dengan Kurikulum 2019, tapi SIX"]
+      "tokens": ["Kurikulum 2024 - Sarjana Sistem dan Teknologi Informasi", "2019", "3 tidak di catatan SIX-mu"]
     },
     {
       "id": "plan.kurikulum.curriculum.144-sks",
@@ -3915,23 +3398,7 @@
       "state": "kurikulum",
       "kind": "curriculum",
       "label": "144 SKS",
-      "tokens": ["144 SKS"]
-    },
-    {
-      "id": "plan.kurikulum.curriculum.2-mata-kuliah-6-sks",
-      "screen": "plan",
-      "state": "kurikulum",
-      "kind": "curriculum",
-      "label": "2 mata kuliah · 6 SKS",
-      "tokens": ["2 mata kuliah · 6 SKS"]
-    },
-    {
-      "id": "plan.kurikulum.curriculum.27-dari-27",
-      "screen": "plan",
-      "state": "kurikulum",
-      "kind": "curriculum",
-      "label": "27 dari 27",
-      "tokens": ["27 dari 27", "+10", "19 lulus", "12 semester ini", "6 direncanakan"]
+      "tokens": ["144 SKS", "27 dari 27", "+10"]
     },
     {
       "id": "plan.kurikulum.banner.sisa",
@@ -3975,7 +3442,7 @@
       "kind": "curriculum-course",
       "label": "Kimia Dasar I",
       "context": "Semester 1",
-      "tokens": ["KI1101", "Kimia Dasar I", "KI1002", "Kimia Dasar B", "Lulus", "A"]
+      "tokens": ["KI1101", "Kimia Dasar I", "KI1002", "Lulus", "A"]
     },
     {
       "id": "plan.kurikulum.curriculum-course.pancasila",
@@ -3984,7 +3451,7 @@
       "kind": "curriculum-course",
       "label": "Pancasila",
       "context": "Semester 1",
-      "tokens": ["WI1101", "KU2071", "Pancasila dan Kewarganegaraan", "Lulus", "AB"]
+      "tokens": ["WI1101", "Pancasila", "KU2071", "Lulus", "AB"]
     },
     {
       "id": "plan.kurikulum.curriculum-course.berpikir-komputasional",
@@ -3993,7 +3460,7 @@
       "kind": "curriculum-course",
       "label": "Berpikir Komputasional",
       "context": "Semester 1",
-      "tokens": ["WI1102", "Berpikir Komputasional", "KU1102", "Pengenalan Komputasi", "Lulus", "AB"]
+      "tokens": ["WI1102", "Berpikir Komputasional", "KU1102", "Lulus", "AB"]
     },
     {
       "id": "plan.kurikulum.curriculum-course.pengantar-prinsip-keberlanjutan",
@@ -4065,7 +3532,7 @@
       "kind": "curriculum-course",
       "label": "Pengenalan Rekayasa dan Desain",
       "context": "Semester 2",
-      "tokens": ["WI2001", "Pengenalan Rekayasa dan Desain", "KU1202", "Pengantar Rekayasa dan Desain", "Lulus", "A"]
+      "tokens": ["WI2001", "Pengenalan Rekayasa dan Desain", "KU1202", "Lulus", "A"]
     },
     {
       "id": "plan.kurikulum.curriculum-course.bahasa-indonesia",
@@ -4074,7 +3541,7 @@
       "kind": "curriculum-course",
       "label": "Bahasa Indonesia",
       "context": "Semester 2",
-      "tokens": ["WI2005", "Bahasa Indonesia", "KU1011", "Tata Tulis Karya Ilmiah", "Lulus", "AB"]
+      "tokens": ["WI2005", "Bahasa Indonesia", "KU1011", "Lulus", "AB"]
     },
     {
       "id": "plan.kurikulum.curriculum-course.agama",
@@ -4083,7 +3550,7 @@
       "kind": "curriculum-course",
       "label": "Agama",
       "context": "Semester 2",
-      "tokens": ["WI201X", "WI2011", "Agama Islam", "Lulus", "BC"]
+      "tokens": ["WI201X", "Agama", "WI2011", "Lulus", "BC"]
     },
     {
       "id": "plan.kurikulum.curriculum-course.kewarganegaraan",
@@ -4092,7 +3559,7 @@
       "kind": "curriculum-course",
       "label": "Kewarganegaraan",
       "context": "Semester 2",
-      "tokens": ["WI2006", "KU2071", "Pancasila dan Kewarganegaraan", "Lulus", "AB"]
+      "tokens": ["WI2006", "Kewarganegaraan", "KU2071", "Lulus", "AB"]
     },
     {
       "id": "plan.kurikulum.curriculum-course.literasi-data-dan-inteligensi-artifisial",
@@ -4811,7 +4278,7 @@
       "state": "krs",
       "kind": "krs-row",
       "label": "KRS sah, tapi ada 1 bentrok",
-      "tokens": ["KRS sah, tapi ada 1 bentrok", "KU5014", "PL3032", "Kam 8 Okt", "16:00–16:30", "2026/2027 Ganjil", "Prof. Dr. Ir. Wahyu Wijaya, M.T."]
+      "tokens": ["KRS sah, tapi ada 1 bentrok", "KU5014", "PL3032", "Kam 8 Okt", "16:00–16:30", "Prof. Dr. Ir. Wahyu Wijaya, M.T."]
     },
     {
       "id": "plan.krs.krs.14-dari-maks-24-sks",
@@ -4829,7 +4296,7 @@
       "kind": "krs-row",
       "label": "Komunikasi Pemasaran",
       "context": "Mata kuliah",
-      "tokens": ["DK4073", "Komunikasi Pemasaran", "3 SKS"]
+      "tokens": ["DK4073", "Komunikasi Pemasaran"]
     },
     {
       "id": "plan.krs.krs-row.proposal-tugas-akhir",
@@ -4838,7 +4305,7 @@
       "kind": "krs-row",
       "label": "Proposal Tugas Akhir",
       "context": "Mata kuliah",
-      "tokens": ["II4091", "Proposal Tugas Akhir", "2 SKS"]
+      "tokens": ["II4091", "Proposal Tugas Akhir"]
     },
     {
       "id": "plan.krs.krs-row.teknik-penyelesaian-masalah-terstruktur",
@@ -4847,7 +4314,7 @@
       "kind": "krs-row",
       "label": "Teknik Penyelesaian Masalah Terstruktur",
       "context": "Mata kuliah",
-      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "PL3032", "3 SKS"]
+      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "PL3032"]
     },
     {
       "id": "plan.krs.krs-row.ekonomi-dan-inovasi-dalam-perencanaan",
@@ -4856,7 +4323,7 @@
       "kind": "krs-row",
       "label": "Ekonomi dan Inovasi dalam Perencanaan",
       "context": "Mata kuliah",
-      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "3 SKS"]
+      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan"]
     },
     {
       "id": "plan.krs.krs-row.ekonomi-infrastruktur-dan-transportasi",
@@ -4865,7 +4332,7 @@
       "kind": "krs-row",
       "label": "Ekonomi Infrastruktur dan Transportasi",
       "context": "Mata kuliah",
-      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "KU5014", "3 SKS"]
+      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "KU5014"]
     },
     {
       "id": "plan.krs.krs.dikirim",
@@ -4874,7 +4341,7 @@
       "kind": "krs",
       "label": "Dikirim",
       "context": "Rencana studi",
-      "tokens": ["Dikirim", "Min, 16 Agu", "10:45"]
+      "tokens": ["Dikirim", "16 Agu"]
     },
     {
       "id": "plan.krs.krs.disetujui-dosen-wali",
@@ -4883,7 +4350,7 @@
       "kind": "krs",
       "label": "Disetujui dosen wali",
       "context": "Rencana studi",
-      "tokens": ["Disetujui dosen wali", "Sel, 18 Agu", "14:39"]
+      "tokens": ["Disetujui dosen wali", "18 Agu"]
     },
     {
       "id": "plan.krs.krs.ukt-dibayar",
@@ -4901,7 +4368,7 @@
       "kind": "krs",
       "label": "Disahkan (KSM)",
       "context": "Rencana studi",
-      "tokens": ["Disahkan (KSM)", "Kam, 20 Agu", "14:34"]
+      "tokens": ["Disahkan (KSM)", "20 Agu"]
     },
     {
       "id": "plan.krs.krs.dikirim-2",
@@ -4910,7 +4377,7 @@
       "kind": "krs",
       "label": "Dikirim",
       "context": "Perubahan rencana studi (URS)",
-      "tokens": ["Dikirim", "Sel, 15 Sep", "14:15"]
+      "tokens": ["Dikirim", "15 Sep"]
     },
     {
       "id": "plan.krs.krs.disetujui-dosen-wali-2",
@@ -4919,7 +4386,7 @@
       "kind": "krs",
       "label": "Disetujui dosen wali",
       "context": "Perubahan rencana studi (URS)",
-      "tokens": ["Disetujui dosen wali", "Sel, 15 Sep", "19:18"]
+      "tokens": ["Disetujui dosen wali", "15 Sep"]
     },
     {
       "id": "plan.krs.krs.disahkan-ksm-2",
@@ -4928,26 +4395,26 @@
       "kind": "krs",
       "label": "Disahkan (KSM)",
       "context": "Perubahan rencana studi (URS)",
-      "tokens": ["Disahkan (KSM)", "Rab, 16 Sep", "11:02"]
+      "tokens": ["Disahkan (KSM)", "16 Sep"]
+    },
+    {
+      "id": "plan.ukt.bill.rp5-400-000",
+      "screen": "plan",
+      "state": "ukt",
+      "kind": "bill",
+      "label": "Rp5.400.000",
+      "tokens": ["Rp5.400.000", "23 Agu"]
+    },
+    {
+      "id": "plan.ukt.bill.31-jan",
+      "screen": "plan",
+      "state": "ukt",
+      "kind": "bill",
+      "label": "31 Jan",
+      "tokens": ["31 Jan"]
     },
     {
       "id": "plan.ukt.bill.2026-2027-ganjil",
-      "screen": "plan",
-      "state": "ukt",
-      "kind": "bill",
-      "label": "2026/2027 Ganjil",
-      "tokens": ["2026/2027 Ganjil", "Rp5.400.000", "23 Agu", "24 Agu"]
-    },
-    {
-      "id": "plan.ukt.bill.2026-2027-genap",
-      "screen": "plan",
-      "state": "ukt",
-      "kind": "bill",
-      "label": "2026/2027 Genap",
-      "tokens": ["2026/2027 Genap", "31 Jan"]
-    },
-    {
-      "id": "plan.ukt.bill.2026-2027-ganjil-2",
       "screen": "plan",
       "state": "ukt",
       "kind": "bill",
@@ -5032,7 +4499,7 @@
       "kind": "academic-date",
       "label": "12–16 Okt",
       "context": "7 hari ke depan 1",
-      "tokens": ["12–16 Okt", "UTS", "Masa ujian tengah semester."]
+      "tokens": ["12–16 Okt", "UTS"]
     },
     {
       "id": "plan.kalender-akademik.academic-date.30-nov-11-des",
@@ -5050,7 +4517,7 @@
       "kind": "academic-date",
       "label": "4 Des",
       "context": "Semester ini 6",
-      "tokens": ["4 Des", "Hari terakhir kuliah", "Jatah absenmu dihitung sampai hari ini."]
+      "tokens": ["4 Des", "Hari terakhir kuliah"]
     },
     {
       "id": "plan.kalender-akademik.academic-date.7-22-des",
@@ -5068,7 +4535,7 @@
       "kind": "academic-date",
       "label": "8 Jan",
       "context": "Semester ini 6",
-      "tokens": ["8 Jan", "Batas pemasukan nilai", "Batas dosen memasukkan nilai akhir."]
+      "tokens": ["8 Jan", "Batas pemasukan nilai"]
     },
     {
       "id": "plan.kalender-akademik.academic-date.18-19-jan",
@@ -5103,16 +4570,7 @@
       "state": "DK4073",
       "kind": "course",
       "label": "Komunikasi Pemasaran",
-      "tokens": ["DK4073", "Komunikasi Pemasaran", "3 SKS", "Dra. Joko Hidayat, M.Si."]
-    },
-    {
-      "id": "course.dk4073.course.2",
-      "screen": "course",
-      "state": "DK4073",
-      "kind": "course",
-      "label": "2×",
-      "context": "Komunikasi Pemasaran",
-      "tokens": ["2×", "Kehadiran 66% sejauh ini (4 dari 6)", "80%"]
+      "tokens": ["DK4073", "Komunikasi Pemasaran", "3 SKS", "Dra. Joko Hidayat, M.Si.", "80%"]
     },
     {
       "id": "course.dk4073.course.4-des",
@@ -5121,7 +4579,7 @@
       "kind": "course",
       "label": "4 Des",
       "context": "Komunikasi Pemasaran",
-      "tokens": ["4 Des", "80%"]
+      "tokens": ["4 Des"]
     },
     {
       "id": "course.dk4073.course.11-00-12-59",
@@ -5139,7 +4597,7 @@
       "kind": "module",
       "label": "Modul 1",
       "context": "Daftar isi",
-      "tokens": ["Modul 1", "1 tugas", "UTS Markom", "1 terbuka"]
+      "tokens": ["Modul 1", "UTS Markom", "1 terbuka"]
     },
     {
       "id": "course.dk4073-modules-modul-1.material.uts-markom",
@@ -5165,7 +4623,7 @@
       "state": "DK4073/meetings",
       "kind": "meeting",
       "label": "Kam, 1 Okt",
-      "tokens": ["Kam, 1 Okt", "11:00–12:59", "Kuliah", "TVST C", "Selesai"]
+      "tokens": ["Kam, 1 Okt", "11:00–12:59", "Kuliah", "TVST C"]
     },
     {
       "id": "course.dk4073-meetings.meeting.kam-8-okt",
@@ -5264,16 +4722,7 @@
       "state": "II4091",
       "kind": "course",
       "label": "Proposal Tugas Akhir",
-      "tokens": ["II4091", "Proposal Tugas Akhir", "2 SKS", "Dr. Hadi Halim, S.T., M.T."]
-    },
-    {
-      "id": "course.ii4091.course.2",
-      "screen": "course",
-      "state": "II4091",
-      "kind": "course",
-      "label": "2×",
-      "context": "Proposal Tugas Akhir",
-      "tokens": ["2×", "100", "3 dari 3", "80%"]
+      "tokens": ["II4091", "Proposal Tugas Akhir", "2 SKS", "Dr. Hadi Halim, S.T., M.T.", "2×", "80%"]
     },
     {
       "id": "course.ii4091.course.15-00-17-00",
@@ -5483,11 +4932,11 @@
       "tokens": ["Modul 4", "02 Penyusunan Proposal TA", "Kelas gabungan"]
     },
     {
-      "id": "course.ii4091-modules-2-catatan.material.jadwal-kuliah-ta-mekanisme-pelaksanaan",
+      "id": "course.ii4091-modules-2-catatan.material.dr-hadi-halim-s-t-m-t",
       "screen": "course",
       "state": "II4091/modules/2-catatan",
       "kind": "material",
-      "label": "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "Pengantar",
       "tokens": [
         "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
@@ -5499,11 +4948,11 @@
       ]
     },
     {
-      "id": "course.ii4091-modules-2-catatan.material.course-tokens-fixtur",
+      "id": "course.ii4091-modules-2-catatan.material.dr-hadi-halim-s-t-m-t-2",
       "screen": "course",
       "state": "II4091/modules/2-catatan",
       "kind": "material",
-      "label": "Course Tokens : FIXTUR",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "Pengantar",
       "tokens": ["Course Tokens : FIXTUR", "Dr. Hadi Halim, S.T., M.T.", "25 Agu", "19:52"]
     },
@@ -5517,11 +4966,11 @@
       "tokens": ["List Penawaran Topik TA"]
     },
     {
-      "id": "course.ii4091-modules-modul-1.material.link-penawaran-topik-ta",
+      "id": "course.ii4091-modules-modul-1.material.dr-hadi-halim-s-t-m-t",
       "screen": "course",
       "state": "II4091/modules/modul-1",
       "kind": "material",
-      "label": "Link Penawaran Topik TA",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "List Penawaran Topik TA",
       "tokens": ["Link Penawaran Topik TA", "Penawaran topik TA 2026-2027", "Dr. Hadi Halim, S.T., M.T.", "28 Agu", "14:10"]
     },
@@ -5625,11 +5074,11 @@
       "tokens": ["Tugas 04 Bab IV & V", "15:00–23:59", "Belum dikerjakan", "Jum, 13 Nov"]
     },
     {
-      "id": "course.ii4091-modules-kelas-gabungan-2-kelas-online.material.jadwal-kuliah-ta-mekanisme-pelaksanaan",
+      "id": "course.ii4091-modules-kelas-gabungan-2-kelas-online.material.dr-hadi-halim-s-t-m-t",
       "screen": "course",
       "state": "II4091/modules/kelas-gabungan-2-kelas-online",
       "kind": "material",
-      "label": "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "Pengantar",
       "tokens": [
         "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
@@ -5670,13 +5119,13 @@
       "tokens": ["Penawaran Topik TA Dosen"]
     },
     {
-      "id": "course.ii4091-modules-kelas-gabungan-modul-1.material.topik-ta-dari-dosen",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-1.material.dr-hadi-halim-s-t-m-t",
       "screen": "course",
       "state": "II4091/modules/kelas-gabungan-modul-1",
       "kind": "material",
-      "label": "Topik TA dari Dosen",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "Penawaran Topik TA Dosen",
-      "tokens": ["Topik TA dari Dosen", "Daftar topik dari dosen", "Topik TA Dosen 2026", "Dr. Hadi Halim, S.T., M.T.", "28 Agu", "14:15"]
+      "tokens": ["Daftar topik", "dosen", "Topik TA Dosen 2026", "Dr. Hadi Halim, S.T., M.T.", "28 Agu", "14:15"]
     },
     {
       "id": "course.ii4091-modules-kelas-gabungan-modul-2.material.template-proposal-ta-laporan-ta-latex",
@@ -5737,7 +5186,7 @@
       "state": "II4091/meetings",
       "kind": "meeting",
       "label": "Jum, 11 Sep",
-      "tokens": ["Jum, 11 Sep", "15:00–17:00", "Pertemuan 2", "Online - Link meeting menyusul", "Selesai"]
+      "tokens": ["Jum, 11 Sep", "15:00–17:00", "Pertemuan 2", "Online - Link meeting menyusul"]
     },
     {
       "id": "course.ii4091-meetings.meeting.jum-18-sep",
@@ -5753,7 +5202,7 @@
       "state": "II4091/meetings",
       "kind": "meeting",
       "label": "Jum, 9 Okt",
-      "tokens": ["Jum, 9 Okt", "15:00–17:00", "Pertemuan 3", "Online - Link meeting teams", "Tidak ada di SIX", "Berikutnya"]
+      "tokens": ["Jum, 9 Okt", "15:00–17:00", "Pertemuan 3", "Online - Link meeting teams", "Berikutnya"]
     },
     {
       "id": "course.ii4091-meetings.meeting.12-okt-16-okt",
@@ -5777,7 +5226,7 @@
       "state": "II4091/meetings",
       "kind": "meeting",
       "label": "Jum, 13 Nov",
-      "tokens": ["Jum, 13 Nov", "15:00–23:59", "dengan submit Tugas 04 Bab IV & V", "Tidak ada di SIX"]
+      "tokens": ["Jum, 13 Nov", "15:00–23:59", "dengan submit Tugas 04 Bab IV & V"]
     },
     {
       "id": "course.ii4091-meetings.meeting.rab-18-nov",
@@ -5785,7 +5234,7 @@
       "state": "II4091/meetings",
       "kind": "meeting",
       "label": "Rab, 18 Nov",
-      "tokens": ["Rab, 18 Nov", "14:00–16:00", "Kuliah", "Tidak ada di SIX"]
+      "tokens": ["Rab, 18 Nov", "14:00–16:00", "Kuliah"]
     },
     {
       "id": "course.ii4091-meetings.meeting.rab-25-nov",
@@ -5793,7 +5242,7 @@
       "state": "II4091/meetings",
       "kind": "meeting",
       "label": "Rab, 25 Nov",
-      "tokens": ["Rab, 25 Nov", "14:00–16:00", "Kuliah", "Tidak ada di SIX"]
+      "tokens": ["Rab, 25 Nov", "14:00–16:00", "Kuliah"]
     },
     {
       "id": "course.ii4091-meetings.meeting.rab-2-des",
@@ -5870,7 +5319,7 @@
       "state": "II4091/grades",
       "kind": "grade",
       "label": "Kehadiran",
-      "tokens": ["Kehadiran", "100 dari SIX"]
+      "tokens": ["Kehadiran", "100"]
     },
     {
       "id": "course.ii4091-grades.grade.100",
@@ -5901,16 +5350,7 @@
       "state": "KU5014",
       "kind": "course",
       "label": "Teknik Penyelesaian Masalah Terstruktur",
-      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "3 SKS", "Prof. Dr. Ir. Indra Hartono"]
-    },
-    {
-      "id": "course.ku5014.course.4",
-      "screen": "course",
-      "state": "KU5014",
-      "kind": "course",
-      "label": "4×",
-      "context": "Teknik Penyelesaian Masalah Terstruktur",
-      "tokens": ["4×", "1×", "33%", "2 dari 6", "80%"]
+      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "3 SKS", "Prof. Dr. Ir. Indra Hartono", "1×", "80%"]
     },
     {
       "id": "course.ku5014.course.80",
@@ -5919,7 +5359,7 @@
       "kind": "course",
       "label": "80%",
       "context": "Teknik Penyelesaian Masalah Terstruktur",
-      "tokens": ["80%", "Kalaupun hadir di semua sisa pertemuan, kehadiranmu berakhir di 73%", "Ada yang kamu hadiri tapi tak tercatat? Minta"]
+      "tokens": ["80%", "73%", "PL3032", "16:00–16:30"]
     },
     {
       "id": "course.ku5014.course.16-00-17-50",
@@ -6017,7 +5457,7 @@
       "state": "KU5014/meetings",
       "kind": "meeting",
       "label": "Kam, 1 Okt",
-      "tokens": ["Kam, 1 Okt", "16:00–17:50", "Kuliah", "9134", "Selesai"]
+      "tokens": ["Kam, 1 Okt", "16:00–17:50", "Kuliah", "9134"]
     },
     {
       "id": "course.ku5014-meetings.meeting.kam-8-okt",
@@ -6107,16 +5547,7 @@
       "state": "PL3002",
       "kind": "course",
       "label": "Ekonomi dan Inovasi dalam Perencanaan",
-      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "3 SKS", "Dr. Ir. Maya Saputra, M.Si."]
-    },
-    {
-      "id": "course.pl3002.course.1",
-      "screen": "course",
-      "state": "PL3002",
-      "kind": "course",
-      "label": "1×",
-      "context": "Ekonomi dan Inovasi dalam Perencanaan",
-      "tokens": ["1×", "85%", "6 dari 7", "80%"]
+      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "3 SKS", "Dr. Ir. Maya Saputra, M.Si.", "1×", "80%"]
     },
     {
       "id": "course.pl3002.course.08-00",
@@ -6125,16 +5556,7 @@
       "kind": "course",
       "label": "08:00",
       "context": "Ekonomi dan Inovasi dalam Perencanaan",
-      "tokens": ["08:00", "10:00", "Modul 7 · Inovasi Pelayanan Publik", "R.SG PWK LT.6"]
-    },
-    {
-      "id": "course.pl3002.course.09-30",
-      "screen": "course",
-      "state": "PL3002",
-      "kind": "course",
-      "label": "09:30",
-      "context": "Ekonomi dan Inovasi dalam Perencanaan",
-      "tokens": ["09:30"]
+      "tokens": ["08:00", "10:00", "Modul 7 · Inovasi Pelayanan Publik", "R.SG PWK LT.6", "09:30"]
     },
     {
       "id": "course.pl3002-modules.module.modul-1",
@@ -6170,7 +5592,7 @@
       "kind": "module",
       "label": "Modul 4",
       "context": "Daftar isi",
-      "tokens": ["Modul 4", "1 tugas", "Production Process Innovation", "1 terbuka"]
+      "tokens": ["Modul 4", "Production Process Innovation", "1 terbuka"]
     },
     {
       "id": "course.pl3002-modules.module.modul-5",
@@ -6294,7 +5716,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Inovasi Proses",
-      "tokens": ["Kam, 3 Sep", "08:00–09:30", "Inovasi Proses", "Selesai"]
+      "tokens": ["Kam, 3 Sep", "08:00–09:30", "Inovasi Proses"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-10-sep",
@@ -6302,7 +5724,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 10 Sep",
-      "tokens": ["Kam, 10 Sep", "08:00–09:30", "Kuliah", "Selesai"]
+      "tokens": ["Kam, 10 Sep", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.modul-4-production-process-innovation",
@@ -6310,7 +5732,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Modul 4 · Production Process Innovation",
-      "tokens": ["Kam, 17 Sep", "08:00–09:30", "Modul 4 · Production Process Innovation", "Selesai"]
+      "tokens": ["Kam, 17 Sep", "08:00–09:30", "Modul 4 · Production Process Innovation"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-24-sep",
@@ -6318,7 +5740,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 24 Sep",
-      "tokens": ["Kam, 24 Sep", "08:00–09:30", "Kuliah", "Selesai"]
+      "tokens": ["Kam, 24 Sep", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-1-okt",
@@ -6326,7 +5748,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 1 Okt",
-      "tokens": ["Kam, 1 Okt", "08:00–09:30", "Kuliah", "R.SG PWK LT.6", "Selesai"]
+      "tokens": ["Kam, 1 Okt", "08:00–09:30", "Kuliah", "R.SG PWK LT.6"]
     },
     {
       "id": "course.pl3002-meetings.meeting.modul-7-inovasi-pelayanan-publik",
@@ -6366,7 +5788,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 5 Nov",
-      "tokens": ["Kam, 5 Nov", "08:00–09:30", "Kuliah", "Tidak ada di SIX"]
+      "tokens": ["Kam, 5 Nov", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-12-nov",
@@ -6374,7 +5796,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 12 Nov",
-      "tokens": ["Kam, 12 Nov", "08:00–09:30", "Kuliah", "Tidak ada di SIX"]
+      "tokens": ["Kam, 12 Nov", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-19-nov",
@@ -6382,7 +5804,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 19 Nov",
-      "tokens": ["Kam, 19 Nov", "08:00–09:30", "Kuliah", "Tidak ada di SIX"]
+      "tokens": ["Kam, 19 Nov", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-26-nov",
@@ -6390,7 +5812,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 26 Nov",
-      "tokens": ["Kam, 26 Nov", "08:00–09:30", "Kuliah", "Tidak ada di SIX"]
+      "tokens": ["Kam, 26 Nov", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-3-des",
@@ -6464,25 +5886,16 @@
       "state": "PL3032",
       "kind": "course",
       "label": "Ekonomi Infrastruktur dan Transportasi",
-      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "3 SKS", "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev."]
+      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "3 SKS", "Prof. Dr. Eng. Tegar Nugroho, S.E, M.Ec.Dev.", "80%"]
     },
     {
-      "id": "course.pl3032.course.3",
+      "id": "course.pl3032.course.4-des",
       "screen": "course",
       "state": "PL3032",
       "kind": "course",
-      "label": "3×",
+      "label": "4 Des",
       "context": "Ekonomi Infrastruktur dan Transportasi",
-      "tokens": ["3×", "Kehadiran 57% sejauh ini (4 dari 7)", "80%"]
-    },
-    {
-      "id": "course.pl3032.course.sekitar-8-pertemuan-lagi-sampai-4-des-hadiri-sem",
-      "screen": "course",
-      "state": "PL3032",
-      "kind": "course",
-      "label": "Sekitar 8 pertemuan lagi sampai 4 Des. Hadiri semuanya agar tetap 80%",
-      "context": "Ekonomi Infrastruktur dan Transportasi",
-      "tokens": ["Sekitar 8 pertemuan lagi sampai 4 Des. Hadiri semuanya agar tetap 80%", "KU5014", "16:00–16:30"]
+      "tokens": ["4 Des", "KU5014", "16:00–16:30"]
     },
     {
       "id": "course.pl3032.course.15-00-16-30",
@@ -6805,7 +6218,7 @@
       "state": "PL3032/meetings",
       "kind": "meeting",
       "label": "Kam, 1 Okt",
-      "tokens": ["Kam, 1 Okt", "15:00–16:30", "Kuliah", "R.SG PWK LT.6", "Selesai"]
+      "tokens": ["Kam, 1 Okt", "15:00–16:30", "Kuliah", "R.SG PWK LT.6"]
     },
     {
       "id": "course.pl3032-meetings.meeting.kam-8-okt",
@@ -6855,7 +6268,7 @@
       "kind": "exam",
       "label": "UTS",
       "context": "Perlu dikerjakan 0",
-      "tokens": ["UTS", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "Hari dan jamnya belum diumumkan"]
+      "tokens": ["UTS", "Ekonomi Infrastruktur dan Transportasi", "PL3032"]
     },
     {
       "id": "course.pl3032-tasks.exam.masa-uas",
@@ -6873,7 +6286,7 @@
       "kind": "exam",
       "label": "UAS",
       "context": "Perlu dikerjakan 0",
-      "tokens": ["UAS", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "Hari dan jamnya belum diumumkan"]
+      "tokens": ["UAS", "Ekonomi Infrastruktur dan Transportasi", "PL3032"]
     },
     {
       "id": "course.pl3032-grades.grade.pl3032",
@@ -7178,13 +6591,13 @@
       "tokens": ["Materi baru", "II4091", "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026", "Sen 5 Okt"]
     },
     {
-      "id": "settings.setting.0-1-0-alpha-22",
+      "id": "settings.setting.0-1-0-alpha-30",
       "screen": "settings",
       "state": null,
       "kind": "setting",
-      "label": "0.1.0-alpha.22",
+      "label": "0.1.0-alpha.30",
       "context": "Pengaturan",
-      "tokens": ["0.1.0-alpha.22"]
+      "tokens": ["0.1.0-alpha.30"]
     },
     {
       "id": "settings.banner.diperiksa-sendiri-sekali-sehari",
@@ -7318,7 +6731,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "Kehadiran 3 mata kuliah berisiko",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["Kehadiran 3 mata kuliah berisiko", "KU5014", "2 dari 6", "73%", "80%", "DK4073", "PL3032"]
     },
     {
@@ -7327,17 +6740,8 @@
       "state": null,
       "kind": "first-scan",
       "label": "KU5014",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
-      "tokens": ["KU5014", "PL3032", "16:00–16:30"]
-    },
-    {
-      "id": "first-scan.first-scan.pl3002",
-      "screen": "first-scan",
-      "state": null,
-      "kind": "first-scan",
-      "label": "PL3002",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
-      "tokens": ["PL3002"]
+      "context": "6 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["KU5014", "PL3032", "16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen"]
     },
     {
       "id": "first-scan.first-scan.4-ujian-akan-datang",
@@ -7345,7 +6749,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "4 ujian akan datang",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": [
         "4 ujian akan datang",
         "PL3032",
@@ -7363,7 +6767,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "1 pertemuan hanya diumumkan di Edunex",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["1 pertemuan hanya diumumkan di Edunex", "II4091 pertemuan 3: Besok, 15:00–17:00", "daring"]
     },
     {
@@ -7372,7 +6776,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "Dosen mengubah 6 tugas setelah diunggah",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["Dosen mengubah 6 tugas setelah diunggah", "2 di antaranya setelah kamu mengumpulkan"]
     },
     {
@@ -7381,7 +6785,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "IPK 3,26",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["IPK 3,26", "0,24", "3,50"]
     }
   ],
@@ -7424,7 +6828,7 @@
     },
     "six.courses": {
       "facts": 10,
-      "shown": 10
+      "shown": 5
     },
     "six.schedule": {
       "facts": 22,
@@ -7485,6 +6889,31 @@
       "dataset": "edunex.notifications",
       "what": "notification material 95001",
       "text": "Tugas Mandiri Individu Projek Penciptaan/Pengembangan Inovasi"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "DK4073: attendance",
+      "text": "4 dari 6"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "II4091: attendance",
+      "text": "3 dari 3"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "KU5014: attendance",
+      "text": "2 dari 6"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "PL3002: attendance",
+      "text": "6 dari 7"
+    },
+    {
+      "dataset": "six.courses",
+      "what": "PL3032: attendance",
+      "text": "4 dari 7"
     },
     {
       "dataset": "six.bills",

@@ -5,7 +5,7 @@
     "EDUNEX_DEMO": "first-run"
   },
   "lang": "id",
-  "count": 12,
+  "count": 11,
   "states": [
     {
       "screen": "welcome",
@@ -69,7 +69,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "Kehadiran 3 mata kuliah berisiko",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["Kehadiran 3 mata kuliah berisiko", "KU5014", "2 dari 6", "73%", "80%", "DK4073", "PL3032"]
     },
     {
@@ -78,17 +78,8 @@
       "state": null,
       "kind": "first-scan",
       "label": "KU5014",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
-      "tokens": ["KU5014", "PL3032", "16:00–16:30"]
-    },
-    {
-      "id": "first-scan.first-scan.pl3002",
-      "screen": "first-scan",
-      "state": null,
-      "kind": "first-scan",
-      "label": "PL3002",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
-      "tokens": ["PL3002"]
+      "context": "6 hal yang tidak disampaikan kedua sistem",
+      "tokens": ["KU5014", "PL3032", "16:00–16:30. Pilih yang akan kamu hadiri, atau tanyakan ke dosen"]
     },
     {
       "id": "first-scan.first-scan.3-ujian-akan-datang",
@@ -96,7 +87,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "3 ujian akan datang",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["3 ujian akan datang", "PL3032", "12–16 Okt", "UTS DK4073: Kam 15 Okt, 11:00", "TVST C", "Kam 22 Okt", "7–22 Des"]
     },
     {
@@ -105,7 +96,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "1 pertemuan hanya diumumkan di Edunex",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["1 pertemuan hanya diumumkan di Edunex", "II4091 pertemuan 3: Besok, 15:00–17:00", "daring"]
     },
     {
@@ -114,7 +105,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "Dosen mengubah 6 tugas setelah diunggah",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["Dosen mengubah 6 tugas setelah diunggah", "2 di antaranya setelah kamu mengumpulkan"]
     },
     {
@@ -123,7 +114,7 @@
       "state": null,
       "kind": "first-scan",
       "label": "IPK 3,26",
-      "context": "7 hal yang tidak disampaikan kedua sistem",
+      "context": "6 hal yang tidak disampaikan kedua sistem",
       "tokens": ["IPK 3,26", "0,24", "3,50"]
     }
   ],

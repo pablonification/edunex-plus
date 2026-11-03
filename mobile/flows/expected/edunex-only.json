@@ -5,7 +5,7 @@
     "EDUNEX_DEMO": "edunex-only"
   },
   "lang": "id",
-  "count": 438,
+  "count": 403,
   "states": [
     {
       "screen": "home",
@@ -31,13 +31,13 @@
       "screen": "exam",
       "state": "todo-uts-ekonomi-infrastruktur-dan-transporta",
       "list": "todo",
-      "title": "UTS Ekonomi Infrastruktur dan Transportasi PL3032 · Hari dan jamnya belum diumumkan"
+      "title": "UTS Ekonomi Infrastruktur dan Transportasi PL3032"
     },
     {
       "screen": "task",
       "state": "117003",
       "list": "todo",
-      "title": "Tugas 02 Bab II II4091 · Modul 5 · Tugas Juga presensi: Jum, 16 Okt 15:00–23:59 Belum dikerjakan Jum, 16 Okt, 23:59 dalam 8 hari"
+      "title": "Tugas 02 Bab II II4091 Presensi 15:00–23:59 Belum dikerjakan Jum, 16 Okt, 23:59 dalam 8 hari"
     },
     {
       "screen": "task",
@@ -49,55 +49,55 @@
       "screen": "task",
       "state": "117010",
       "list": "todo",
-      "title": "Tugas 03 Bab III II4091 · Modul 5 · Tugas Juga presensi: Jum, 30 Okt 15:00–23:59 Belum dikerjakan Jum, 30 Okt, 23:59 dalam 22 hari"
+      "title": "Tugas 03 Bab III II4091 Presensi 15:00–23:59 Belum dikerjakan Jum, 30 Okt, 23:59 dalam 22 hari"
     },
     {
       "screen": "task",
       "state": "117023",
       "list": "todo",
-      "title": "Tugas 04 Bab IV & V II4091 · Modul 5 · Tugas Juga presensi: Jum, 13 Nov 15:00–23:59 Belum dikerjakan Jum, 13 Nov, 23:59 dalam 36 hari"
+      "title": "Tugas 04 Bab IV & V II4091 Presensi 15:00–23:59 Belum dikerjakan Jum, 13 Nov, 23:59 dalam 36 hari"
     },
     {
       "screen": "task",
       "state": "117873",
       "list": "todo",
-      "title": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha PL3002 · Modul 4 · Production Process Innovation Belum dikerjakan Kam, 26 Nov, 23:59 dalam 49 hari"
+      "title": "Tugas Mandiri Individu tentang Projek Penciptaan/Pengembangan Inovasi Kampus Ganesha PL3002 Belum dikerjakan Kam, 26 Nov, 23:59 dalam 49 hari"
     },
     {
       "screen": "exam",
       "state": "todo-uas-ekonomi-infrastruktur-dan-transporta",
       "list": "todo",
-      "title": "UAS Ekonomi Infrastruktur dan Transportasi PL3032 · Hari dan jamnya belum diumumkan"
+      "title": "UAS Ekonomi Infrastruktur dan Transportasi PL3032"
     },
     {
       "screen": "task",
       "state": "118842",
       "list": "done",
-      "title": "Tugas Problem Soving KU5014 · Modul 4 · Tugas Problem Solving 5w +2H Waktu singkat · 16:01–19:01 Terkumpul Dikumpulkan 24 Sep"
+      "title": "Tugas Problem Soving KU5014 Waktu singkat · 16:01–19:01 Terkumpul Dikumpulkan 24 Sep"
     },
     {
       "screen": "task",
       "state": "117001",
       "list": "done",
-      "title": "Tugas 01 Bab I II4091 · Modul 5 · Tugas Diubah setelah kamu kumpulkan (22 Sep) · cek lagi Terkumpul Dikumpulkan 18 Sep"
+      "title": "Tugas 01 Bab I II4091 Diubah setelah kamu kumpulkan (22 Sep) · cek lagi Terkumpul Dikumpulkan 18 Sep"
     },
     {
       "screen": "task",
       "state": "117044",
       "list": "done",
-      "title": "TUGAS 1 KU5014 · Modul 3 · Tugas Terkumpul Dikumpulkan 16 Sep"
+      "title": "TUGAS 1 KU5014 Terkumpul Dikumpulkan 16 Sep"
     },
     {
       "screen": "task",
       "state": "117432",
       "list": "done",
-      "title": "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha PL3002 · Modul 2 · Impact of Innovation on the Economy Diubah setelah kamu kumpulkan (8 Okt) · cek lagi Terkumpul Dikumpulkan 16 Sep"
+      "title": "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha PL3002 Diubah setelah kamu kumpulkan (8 Okt) · cek lagi Terkumpul Dikumpulkan 16 Sep"
     },
     {
       "screen": "task",
       "state": "113986",
       "list": "done",
-      "title": "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik II4091 · Modul 3 · 01 Pengantar Proposal TA Diubah setelah kamu kumpulkan (20 Sep) · cek lagi Terkumpul Dikumpulkan 13 Sep"
+      "title": "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik II4091 Diubah setelah kamu kumpulkan (20 Sep) · cek lagi Terkumpul Dikumpulkan 13 Sep"
     },
     {
       "screen": "schedule",
@@ -106,12 +106,12 @@
     {
       "screen": "class",
       "state": "pl3002-08-00",
-      "title": "08:00–09:30 PL3002 Ekonomi dan Inovasi dalam Perencanaan"
+      "title": "08:00 –09:30 PL3002 Ekonomi dan Inovasi dalam Perencanaan"
     },
     {
       "screen": "class",
       "state": "ii4091-15-00",
-      "title": "15:00–17:00 II4091 Pertemuan 3"
+      "title": "15:00 –17:00 II4091 Pertemuan 3"
     },
     {
       "screen": "schedule",
@@ -460,12 +460,12 @@
   ],
   "entries": [
     {
-      "id": "home.banner.kamis-8-oktober",
+      "id": "home.banner.uts-4-hari-lagi",
       "screen": "home",
       "state": null,
       "kind": "banner",
-      "label": "Kamis, 8 Oktober",
-      "tokens": ["Kamis, 8 Oktober", "Semester 1 2026/2027", "Senin, 12 Okt"]
+      "label": "UTS 4 hari lagi",
+      "tokens": ["UTS 4 hari lagi"]
     },
     {
       "id": "home.now.ekonomi-dan-inovasi-dalam-perencanaan",
@@ -477,6 +477,15 @@
       "tokens": ["Ekonomi dan Inovasi dalam Perencanaan", "PL3002", "08:00–09:30"]
     },
     {
+      "id": "home.now.isi-presensi",
+      "screen": "home",
+      "state": null,
+      "kind": "now",
+      "label": "Isi Presensi",
+      "context": "Sekarang",
+      "tokens": ["Isi Presensi", "09:30"]
+    },
+    {
       "id": "home.need.bebas-tenggat-7-hari-ke-depan",
       "screen": "home",
       "state": null,
@@ -486,58 +495,58 @@
       "tokens": ["Bebas tenggat 7 hari ke depan", "Kamis, 15 Okt"]
     },
     {
-      "id": "home.change.link-teams-pertemuan-03-jumat-9-oktober-2026",
+      "id": "home.change.materi-baru",
       "screen": "home",
       "state": null,
       "kind": "change",
-      "label": "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026",
+      "label": "Materi baru",
       "context": "Yang berubah",
-      "tokens": ["Materi baru", "II4091", "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026", "Sen, 5 Okt"]
+      "tokens": ["Materi baru", "II4091", "Sen, 5 Okt"]
     },
     {
-      "id": "home.absence-budget.dk4073",
+      "id": "home.absence-budget.komunikasi-pemasaran",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "DK4073",
+      "label": "Komunikasi Pemasaran",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["DK4073", "Komunikasi Pemasaran", "Kelas 01"]
+      "tokens": ["DK4073", "Komunikasi Pemasaran"]
     },
     {
-      "id": "home.absence-budget.ii4091",
+      "id": "home.absence-budget.proposal-tugas-akhir",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "II4091",
+      "label": "Proposal Tugas Akhir",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["II4091", "Proposal Tugas Akhir", "Kelas 01"]
+      "tokens": ["II4091", "Proposal Tugas Akhir"]
     },
     {
-      "id": "home.absence-budget.ku5014",
+      "id": "home.absence-budget.teknik-penyelesaian-masalah-terstruktur",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "KU5014",
+      "label": "Teknik Penyelesaian Masalah Terstruktur",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur", "Kelas 01"]
+      "tokens": ["KU5014", "Teknik Penyelesaian Masalah Terstruktur"]
     },
     {
-      "id": "home.absence-budget.pl3002",
+      "id": "home.absence-budget.ekonomi-dan-inovasi-dalam-perencanaan",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "PL3002",
+      "label": "Ekonomi dan Inovasi dalam Perencanaan",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan", "Kelas 01"]
+      "tokens": ["PL3002", "Ekonomi dan Inovasi dalam Perencanaan"]
     },
     {
-      "id": "home.absence-budget.pl3032",
+      "id": "home.absence-budget.ekonomi-infrastruktur-dan-transportasi",
       "screen": "home",
       "state": null,
       "kind": "absence-budget",
-      "label": "PL3032",
+      "label": "Ekonomi Infrastruktur dan Transportasi",
       "context": "Mata kuliah semester ini 5",
-      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi", "Kelas 01"]
+      "tokens": ["PL3032", "Ekonomi Infrastruktur dan Transportasi"]
     },
     {
       "id": "courses.account.dp",
@@ -612,7 +621,7 @@
       "kind": "exam",
       "label": "UTS",
       "context": "Minggu depan 1",
-      "tokens": ["UTS", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "Hari dan jamnya belum diumumkan"]
+      "tokens": ["UTS", "Ekonomi Infrastruktur dan Transportasi", "PL3032"]
     },
     {
       "id": "tasks.todo.task.todo-task-117003",
@@ -621,7 +630,7 @@
       "kind": "task",
       "label": "Tugas 02 Bab II",
       "context": "Minggu depan 1",
-      "tokens": ["Tugas 02 Bab II", "II4091", "Modul 5", "15:00–23:59", "Belum dikerjakan", "Jum, 16 Okt"]
+      "tokens": ["Tugas 02 Bab II", "II4091", "15:00–23:59", "Belum dikerjakan", "Jum, 16 Okt"]
     },
     {
       "id": "tasks.todo.exam.todo-exam-dk4073-uts-task-117764",
@@ -639,7 +648,7 @@
       "kind": "task",
       "label": "Tugas 03 Bab III",
       "context": "Nanti 4",
-      "tokens": ["Tugas 03 Bab III", "II4091", "Modul 5", "15:00–23:59", "Belum dikerjakan", "Jum, 30 Okt"]
+      "tokens": ["Tugas 03 Bab III", "II4091", "15:00–23:59", "Belum dikerjakan", "Jum, 30 Okt"]
     },
     {
       "id": "tasks.todo.task.todo-task-117023",
@@ -648,7 +657,7 @@
       "kind": "task",
       "label": "Tugas 04 Bab IV & V",
       "context": "Nanti 4",
-      "tokens": ["Tugas 04 Bab IV & V", "II4091", "Modul 5", "15:00–23:59", "Belum dikerjakan", "Jum, 13 Nov"]
+      "tokens": ["Tugas 04 Bab IV & V", "II4091", "15:00–23:59", "Belum dikerjakan", "Jum, 13 Nov"]
     },
     {
       "id": "tasks.todo.task.todo-task-117873",
@@ -657,7 +666,7 @@
       "kind": "task",
       "label": "Tugas Mandiri Individu tentang Projek",
       "context": "Nanti 4",
-      "tokens": ["Tugas Mandiri Individu tentang Projek", "PL3002", "Modul 4", "Production Process Innovation", "Belum dikerjakan", "Kam, 26 Nov", "23:59"]
+      "tokens": ["Tugas Mandiri Individu tentang Projek", "PL3002", "Belum dikerjakan", "Kam, 26 Nov", "23:59"]
     },
     {
       "id": "tasks.todo.exam-period.masa-uas",
@@ -675,7 +684,7 @@
       "kind": "exam",
       "label": "UAS",
       "context": "Nanti 4",
-      "tokens": ["UAS", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "Hari dan jamnya belum diumumkan"]
+      "tokens": ["UAS", "Ekonomi Infrastruktur dan Transportasi", "PL3032"]
     },
     {
       "id": "tasks.done.task.tugas-problem-soving",
@@ -684,7 +693,7 @@
       "kind": "task",
       "label": "Tugas Problem Soving",
       "context": "Terkumpul 5",
-      "tokens": ["Tugas Problem Soving", "KU5014", "Modul 4", "Tugas Problem Solving 5w +2H", "Waktu singkat", "16:01–19:01", "Terkumpul", "24 Sep"]
+      "tokens": ["Tugas Problem Soving", "KU5014", "Waktu singkat", "16:01–19:01", "Terkumpul", "24 Sep"]
     },
     {
       "id": "tasks.done.task.tugas-01-bab-i",
@@ -693,7 +702,7 @@
       "kind": "task",
       "label": "Tugas 01 Bab I",
       "context": "Terkumpul 5",
-      "tokens": ["Tugas 01 Bab I", "II4091", "Modul 5", "22 Sep", "cek lagi", "Terkumpul", "18 Sep"]
+      "tokens": ["Tugas 01 Bab I", "II4091", "22 Sep", "cek lagi", "Terkumpul", "18 Sep"]
     },
     {
       "id": "tasks.done.task.tugas-1",
@@ -702,7 +711,7 @@
       "kind": "task",
       "label": "TUGAS 1",
       "context": "Terkumpul 5",
-      "tokens": ["TUGAS 1", "KU5014", "Modul 3", "Tugas", "Terkumpul", "16 Sep"]
+      "tokens": ["TUGAS 1", "KU5014", "Terkumpul", "16 Sep"]
     },
     {
       "id": "tasks.done.task.tugas-tentang-imfact-on-innovation-the-economy-k",
@@ -711,16 +720,7 @@
       "kind": "task",
       "label": "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha",
       "context": "Terkumpul 5",
-      "tokens": [
-        "Tugas tentang Imfact on Innovation The Economy Kampus Ganesha",
-        "PL3002",
-        "Modul 2",
-        "Impact of Innovation on the Economy",
-        "8 Okt",
-        "cek lagi",
-        "Terkumpul",
-        "16 Sep"
-      ]
+      "tokens": ["Tugas tentang Imfact on Innovation The Economy Kampus Ganesha", "PL3002", "8 Okt", "cek lagi", "Terkumpul", "16 Sep"]
     },
     {
       "id": "tasks.done.task.tugas-01-submit-usulan-dosen-pembimbing-dan-topi",
@@ -729,16 +729,7 @@
       "kind": "task",
       "label": "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik",
       "context": "Terkumpul 5",
-      "tokens": [
-        "Tugas 01 Submit Usulan Dosen Pembimbing dan Topik",
-        "II4091",
-        "Modul 3",
-        "01 Pengantar Proposal TA",
-        "20 Sep",
-        "cek lagi",
-        "Terkumpul",
-        "13 Sep"
-      ]
+      "tokens": ["Tugas 01 Submit Usulan Dosen Pembimbing dan Topik", "II4091", "20 Sep", "cek lagi", "Terkumpul", "13 Sep"]
     },
     {
       "id": "exam.todo-uts-ekonomi-infrastruktur-dan-transporta.exam-detail.ekonomi-infrastruktur-dan-transportasi",
@@ -864,22 +855,22 @@
       "tokens": ["Jum, 16 Okt", "23:59"]
     },
     {
-      "id": "task.117003.task-detail.jum",
+      "id": "task.117003.task-detail.15-00-23-59",
       "screen": "task",
       "state": "117003",
       "kind": "task-detail",
-      "label": "Jum",
+      "label": "15:00–23:59",
       "context": "Tugas 02 Bab II",
-      "tokens": ["Jum", "16 Okt", "15:00–23:59"]
+      "tokens": ["15:00–23:59"]
     },
     {
-      "id": "task.117003.task-detail.kerjakan-bab-ii-dari-template-proposal-ta",
+      "id": "task.117003.task-detail.kerjakan-bab-ii",
       "screen": "task",
       "state": "117003",
       "kind": "task-detail",
-      "label": "Kerjakan Bab II dari template proposal TA.",
+      "label": "Kerjakan Bab II",
       "context": "Instruksi",
-      "tokens": ["Kerjakan Bab II dari template proposal TA.", "Ketentuan Pengumpulan"]
+      "tokens": ["Kerjakan Bab II", "template proposal TA.", "Ketentuan Pengumpulan"]
     },
     {
       "id": "task.117003.task-detail.file-diunggah-dengan-format-pdf-dan-sertakan-jug",
@@ -900,40 +891,13 @@
       "tokens": ["Penamaan file ‘NIM Nama - Tugas 02.pdf’."]
     },
     {
-      "id": "task.117003.task-detail.diunggah-dosen",
+      "id": "task.117003.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "117003",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "10:00"]
-    },
-    {
-      "id": "task.117003.task-detail.mulai-bisa-dijawab",
-      "screen": "task",
-      "state": "117003",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Jum, 18 Sep", "15:00"]
-    },
-    {
-      "id": "task.117003.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117003",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Jum, 18 Sep", "15:41", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117003.task-detail.tenggat",
-      "screen": "task",
-      "state": "117003",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 16 Okt", "23:59"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "task.dk4073-uts-task-117764.task-detail.dk4073",
@@ -988,31 +952,13 @@
       "tokens": ["UTS MARKOM SEM 1 2026 2027.pdf"]
     },
     {
-      "id": "task.dk4073-uts-task-117764.task-detail.diunggah-dosen",
+      "id": "task.dk4073-uts-task-117764.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "DK4073-UTS:task:117764",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Berkas dari dosen",
-      "tokens": ["Diunggah dosen", "Kam, 17 Sep", "08:45"]
-    },
-    {
-      "id": "task.dk4073-uts-task-117764.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "DK4073-UTS:task:117764",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Berkas dari dosen",
-      "tokens": ["Diubah dosen", "Kam, 24 Sep", "11:11", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.dk4073-uts-task-117764.task-detail.tenggat",
-      "screen": "task",
-      "state": "DK4073-UTS:task:117764",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Berkas dari dosen",
-      "tokens": ["Tenggat", "Kam, 22 Okt", "23:50"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "task.117010.task-detail.ii4091",
@@ -1040,22 +986,22 @@
       "tokens": ["Jum, 30 Okt", "23:59"]
     },
     {
-      "id": "task.117010.task-detail.jum",
+      "id": "task.117010.task-detail.15-00-23-59",
       "screen": "task",
       "state": "117010",
       "kind": "task-detail",
-      "label": "Jum",
+      "label": "15:00–23:59",
       "context": "Tugas 03 Bab III",
-      "tokens": ["Jum", "30 Okt", "15:00–23:59"]
+      "tokens": ["15:00–23:59"]
     },
     {
-      "id": "task.117010.task-detail.kerjakan-bab-iii-dari-template-proposal-ta",
+      "id": "task.117010.task-detail.kerjakan-bab-iii",
       "screen": "task",
       "state": "117010",
       "kind": "task-detail",
-      "label": "Kerjakan Bab III dari template proposal TA.",
+      "label": "Kerjakan Bab III",
       "context": "Instruksi",
-      "tokens": ["Kerjakan Bab III dari template proposal TA.", "Ketentuan Pengumpulan"]
+      "tokens": ["Kerjakan Bab III", "template proposal TA.", "Ketentuan Pengumpulan"]
     },
     {
       "id": "task.117010.task-detail.file-diunggah-dengan-format-pdf-dan-sertakan-jug",
@@ -1076,40 +1022,13 @@
       "tokens": ["Penamaan file ‘NIM Nama - Tugas 03.pdf’."]
     },
     {
-      "id": "task.117010.task-detail.diunggah-dosen",
+      "id": "task.117010.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "117010",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "10:50"]
-    },
-    {
-      "id": "task.117010.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117010",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Jum, 18 Sep", "15:41", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117010.task-detail.mulai-bisa-dijawab",
-      "screen": "task",
-      "state": "117010",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Jum, 25 Sep", "15:00"]
-    },
-    {
-      "id": "task.117010.task-detail.tenggat",
-      "screen": "task",
-      "state": "117010",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 30 Okt", "23:59"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "task.117023.task-detail.ii4091",
@@ -1137,22 +1056,22 @@
       "tokens": ["Jum, 13 Nov", "23:59"]
     },
     {
-      "id": "task.117023.task-detail.jum",
+      "id": "task.117023.task-detail.15-00-23-59",
       "screen": "task",
       "state": "117023",
       "kind": "task-detail",
-      "label": "Jum",
+      "label": "15:00–23:59",
       "context": "Tugas 04 Bab IV & V",
-      "tokens": ["Jum", "13 Nov", "15:00–23:59"]
+      "tokens": ["15:00–23:59"]
     },
     {
-      "id": "task.117023.task-detail.kerjakan-bab-iv-v-dari-template-proposal-ta",
+      "id": "task.117023.task-detail.kerjakan-bab-iv-v",
       "screen": "task",
       "state": "117023",
       "kind": "task-detail",
-      "label": "Kerjakan Bab IV & V dari template proposal TA.",
+      "label": "Kerjakan Bab IV & V",
       "context": "Instruksi",
-      "tokens": ["Kerjakan Bab IV & V dari template proposal TA.", "Ketentuan Pengumpulan"]
+      "tokens": ["Kerjakan Bab IV & V", "template proposal TA.", "Ketentuan Pengumpulan"]
     },
     {
       "id": "task.117023.task-detail.file-diunggah-dengan-format-pdf-dan-sertakan-jug",
@@ -1173,40 +1092,13 @@
       "tokens": ["Penamaan file ‘NIM Nama - Tugas 04-05.pdf’."]
     },
     {
-      "id": "task.117023.task-detail.diunggah-dosen",
+      "id": "task.117023.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "117023",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "12:47"]
-    },
-    {
-      "id": "task.117023.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117023",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Jum, 18 Sep", "15:41", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117023.task-detail.mulai-bisa-dijawab",
-      "screen": "task",
-      "state": "117023",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Jum, 2 Okt", "15:00"]
-    },
-    {
-      "id": "task.117023.task-detail.tenggat",
-      "screen": "task",
-      "state": "117023",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 13 Nov", "23:59"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "task.117873.task-detail.pl3002",
@@ -1306,31 +1198,13 @@
       "tokens": ["Tugas dikumpulkan melalui Edunex paling lambat"]
     },
     {
-      "id": "task.117873.task-detail.mulai-bisa-dijawab",
+      "id": "task.117873.banner.tulis-jawabanmu-dulu-berkas-saja-tidak-cukup",
       "screen": "task",
       "state": "117873",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Kam, 17 Sep", "10:30"]
-    },
-    {
-      "id": "task.117873.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "117873",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Kam, 17 Sep", "22:14"]
-    },
-    {
-      "id": "task.117873.task-detail.tenggat",
-      "screen": "task",
-      "state": "117873",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Kam, 26 Nov", "23:59"]
+      "kind": "banner",
+      "label": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+      "context": "Riwayat",
+      "tokens": ["Tulis jawabanmu dulu. Berkas saja tidak cukup."]
     },
     {
       "id": "exam.todo-uas-ekonomi-infrastruktur-dan-transporta.exam-detail.ekonomi-infrastruktur-dan-transportasi",
@@ -1533,7 +1407,7 @@
       "state": "118842",
       "kind": "task-detail",
       "label": "Kam, 24 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Kam, 24 Sep", "17:09", "Jawaban."]
     },
     {
@@ -1542,35 +1416,8 @@
       "state": "118842",
       "kind": "task-detail",
       "label": "Tugas 5W2H_18223901_18223902_18223903.pdf",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Tugas 5W2H_18223901_18223902_18223903.pdf"]
-    },
-    {
-      "id": "task.118842.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "118842",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Kam, 24 Sep", "16:03"]
-    },
-    {
-      "id": "task.118842.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "118842",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Kam, 24 Sep", "17:09"]
-    },
-    {
-      "id": "task.118842.task-detail.tenggat",
-      "screen": "task",
-      "state": "118842",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Kam, 24 Sep", "19:01"]
     },
     {
       "id": "task.117001.task-detail.ii4091",
@@ -1598,15 +1445,6 @@
       "tokens": ["Jum, 25 Sep", "23:59"]
     },
     {
-      "id": "task.117001.task-detail.jum-18-sep",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Jum, 18 Sep",
-      "context": "Tugas 01 Bab I",
-      "tokens": ["Jum, 18 Sep", "15:00–23:59"]
-    },
-    {
       "id": "task.117001.task-detail.22-sep",
       "screen": "task",
       "state": "117001",
@@ -1616,13 +1454,13 @@
       "tokens": ["22 Sep", "18 Sep"]
     },
     {
-      "id": "task.117001.task-detail.kerjakan-bab-i-dari-template-proposal-ta",
+      "id": "task.117001.task-detail.kerjakan-bab-i",
       "screen": "task",
       "state": "117001",
       "kind": "task-detail",
-      "label": "Kerjakan Bab I dari template proposal TA.",
+      "label": "Kerjakan Bab I",
       "context": "Instruksi",
-      "tokens": ["Kerjakan Bab I dari template proposal TA.", "Ketentuan Pengumpulan"]
+      "tokens": ["Kerjakan Bab I", "template proposal TA.", "Ketentuan Pengumpulan"]
     },
     {
       "id": "task.117001.task-detail.file-diunggah-dengan-format-pdf-dan-sertakan-jug",
@@ -1643,12 +1481,12 @@
       "tokens": ["Penamaan file ‘NIM Nama - Tugas 01.pdf’."]
     },
     {
-      "id": "task.117001.task-detail.jum-18-sep-2",
+      "id": "task.117001.task-detail.jum-18-sep",
       "screen": "task",
       "state": "117001",
       "kind": "task-detail",
       "label": "Jum, 18 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Jum, 18 Sep", "19:12", "Jawaban."]
     },
     {
@@ -1657,62 +1495,17 @@
       "state": "117001",
       "kind": "task-detail",
       "label": "18223901 Dimas Pratama - Tugas 01.pdf",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["18223901 Dimas Pratama - Tugas 01.pdf"]
     },
     {
-      "id": "task.117001.task-detail.diunggah-dosen",
+      "id": "task.117001.task-detail.fajar-yuliana",
       "screen": "task",
       "state": "117001",
       "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "09:59"]
-    },
-    {
-      "id": "task.117001.task-detail.mulai-bisa-dijawab",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Mulai bisa dijawab",
-      "context": "Instruksi",
-      "tokens": ["Mulai bisa dijawab", "Jum, 11 Sep", "15:00"]
-    },
-    {
-      "id": "task.117001.task-detail.kamu-menyimpan-draf",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Kamu menyimpan draf",
-      "context": "Instruksi",
-      "tokens": ["Kamu menyimpan draf", "Jum, 18 Sep", "17:15"]
-    },
-    {
-      "id": "task.117001.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Jum, 18 Sep", "19:12"]
-    },
-    {
-      "id": "task.117001.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Sel, 22 Sep", "20:08", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117001.task-detail.tenggat",
-      "screen": "task",
-      "state": "117001",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 25 Sep", "23:59"]
+      "label": "Fajar Yuliana",
+      "context": "Komentar 1",
+      "tokens": ["Fajar Yuliana", "Dosen", "Sel, 22 Sep", "20:59", "Sudah sesuai template", "Lanjutkan ke Bab II."]
     },
     {
       "id": "task.117044.task-detail.ku5014",
@@ -1762,7 +1555,7 @@
       "state": "117044",
       "kind": "task-detail",
       "label": "Rab, 16 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Rab, 16 Sep", "16:15", "Jawaban."]
     },
     {
@@ -1771,35 +1564,8 @@
       "state": "117044",
       "kind": "task-detail",
       "label": "Tugas Ringkasan_18223901_Dimas Pratama.pdf",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Tugas Ringkasan_18223901_Dimas Pratama.pdf"]
-    },
-    {
-      "id": "task.117044.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "117044",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Jum, 11 Sep", "17:14"]
-    },
-    {
-      "id": "task.117044.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "117044",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Rab, 16 Sep", "16:15"]
-    },
-    {
-      "id": "task.117044.task-detail.tenggat",
-      "screen": "task",
-      "state": "117044",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Kam, 17 Sep", "12:00"]
     },
     {
       "id": "task.117432.task-detail.pl3002",
@@ -1850,7 +1616,7 @@
       "state": "117432",
       "kind": "task-detail",
       "label": "Rab, 16 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Rab, 16 Sep", "15:29", "Jawaban."]
     },
     {
@@ -1859,44 +1625,8 @@
       "state": "117432",
       "kind": "task-detail",
       "label": "TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["TUGAS IMPACT ON INNOVATION THE ECONOMY - 18223901.pdf"]
-    },
-    {
-      "id": "task.117432.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "117432",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Sel, 15 Sep", "10:54"]
-    },
-    {
-      "id": "task.117432.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "117432",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Rab, 16 Sep", "15:29"]
-    },
-    {
-      "id": "task.117432.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "117432",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "09:51", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.117432.task-detail.tenggat",
-      "screen": "task",
-      "state": "117432",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "23:59"]
     },
     {
       "id": "task.113986.task-detail.ii4091",
@@ -1948,7 +1678,7 @@
       "kind": "task-detail",
       "label": "Terkait usulan topik & dosen pembimbing TA",
       "context": "Instruksi",
-      "tokens": ["Terkait usulan topik & dosen pembimbing TA"]
+      "tokens": ["Terkait usulan topik & dosen pembimbing TA", "calon dosen pembimbing secara lisan/tertulis, sbb"]
     },
     {
       "id": "task.113986.task-detail.melengkapi-form-usulan-ta-untuk-ta-berkelompok",
@@ -1998,7 +1728,7 @@
       "state": "113986",
       "kind": "task-detail",
       "label": "Min, 13 Sep",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["Min, 13 Sep", "17:59", "Jawaban."]
     },
     {
@@ -2007,53 +1737,8 @@
       "state": "113986",
       "kind": "task-detail",
       "label": "18223901.jpg",
-      "context": "Instruksi",
+      "context": "Riwayat",
       "tokens": ["18223901.jpg"]
-    },
-    {
-      "id": "task.113986.task-detail.diunggah-dosen",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Diunggah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diunggah dosen", "Rab, 26 Agu", "21:54"]
-    },
-    {
-      "id": "task.113986.task-detail.kamu-menyimpan-draf",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Kamu menyimpan draf",
-      "context": "Instruksi",
-      "tokens": ["Kamu menyimpan draf", "Sab, 5 Sep", "21:00"]
-    },
-    {
-      "id": "task.113986.task-detail.kamu-mengumpulkan",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Kamu mengumpulkan",
-      "context": "Instruksi",
-      "tokens": ["Kamu mengumpulkan", "Min, 13 Sep", "17:59"]
-    },
-    {
-      "id": "task.113986.task-detail.diubah-dosen",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Diubah dosen",
-      "context": "Instruksi",
-      "tokens": ["Diubah dosen", "Min, 20 Sep", "17:43", "Perubahannya tidak diketahui"]
-    },
-    {
-      "id": "task.113986.task-detail.tenggat",
-      "screen": "task",
-      "state": "113986",
-      "kind": "task-detail",
-      "label": "Tenggat",
-      "context": "Instruksi",
-      "tokens": ["Tenggat", "Jum, 2 Okt", "23:59"]
     },
     {
       "id": "schedule.week.class-session.minggu-ke-7-5-11-okt",
@@ -2064,22 +1749,22 @@
       "tokens": ["Minggu ke-7 · 5–11 Okt"]
     },
     {
-      "id": "schedule.week.class-session.08-00-09-30",
+      "id": "schedule.week.class-session.08-00",
       "screen": "schedule",
       "state": "week",
       "kind": "class-session",
-      "label": "08:00–09:30",
+      "label": "08:00",
       "context": "Kamis, 8 Oktober",
-      "tokens": ["08:00–09:30", "PL3002", "Ekonomi dan Inovasi dalam Perencanaan"]
+      "tokens": ["08:00", "09:30", "PL3002", "Ekonomi dan Inovasi dalam Perencanaan"]
     },
     {
-      "id": "schedule.week.class-session.15-00-17-00",
+      "id": "schedule.week.class-session.15-00",
       "screen": "schedule",
       "state": "week",
       "kind": "class-session",
-      "label": "15:00–17:00",
+      "label": "15:00",
       "context": "Jumat, 9 Oktober",
-      "tokens": ["15:00–17:00", "II4091"]
+      "tokens": ["15:00", "17:00", "II4091"]
     },
     {
       "id": "class.pl3002-08-00.class-session.pl3002",
@@ -2147,13 +1832,13 @@
       "tokens": ["12–16 Okt"]
     },
     {
-      "id": "schedule.next-week.class-session.08-00-09-30",
+      "id": "schedule.next-week.class-session.08-00",
       "screen": "schedule",
       "state": "next-week",
       "kind": "class-session",
-      "label": "08:00–09:30",
+      "label": "08:00",
       "context": "Kamis, 15 Oktober",
-      "tokens": ["08:00–09:30", "PL3002", "Ekonomi dan Inovasi dalam Perencanaan"]
+      "tokens": ["08:00", "09:30", "PL3002", "Ekonomi dan Inovasi dalam Perencanaan"]
     },
     {
       "id": "schedule.next-week.class-session.ii4091",
@@ -2243,15 +1928,6 @@
       "label": "Tugas 03 Bab III",
       "context": "Jadwal",
       "tokens": ["Tugas 03 Bab III"]
-    },
-    {
-      "id": "presence.note.six-untuk-melihat-kehadiran-resmimu-dan-berapa-k",
-      "screen": "presence",
-      "state": null,
-      "kind": "note",
-      "label": "SIX untuk melihat kehadiran resmimu dan berapa kali lagi kamu bisa absen di tiap",
-      "context": "Perlu perhatianmu sekarang",
-      "tokens": ["SIX untuk melihat kehadiran resmimu dan berapa kali lagi kamu bisa absen di tiap"]
     },
     {
       "id": "presence.attendance.09-30",
@@ -2375,7 +2051,7 @@
       "kind": "academic-date",
       "label": "12–16 Okt",
       "context": "7 hari ke depan 1",
-      "tokens": ["12–16 Okt", "UTS", "Masa ujian tengah semester."]
+      "tokens": ["12–16 Okt", "UTS"]
     },
     {
       "id": "plan.kalender-akademik.academic-date.30-nov-11-des",
@@ -2393,7 +2069,7 @@
       "kind": "academic-date",
       "label": "4 Des",
       "context": "Semester ini 7",
-      "tokens": ["4 Des", "Hari terakhir kuliah", "Jatah absenmu dihitung sampai hari ini."]
+      "tokens": ["4 Des", "Hari terakhir kuliah"]
     },
     {
       "id": "plan.kalender-akademik.academic-date.7-22-des",
@@ -2411,7 +2087,7 @@
       "kind": "academic-date",
       "label": "8 Jan",
       "context": "Semester ini 7",
-      "tokens": ["8 Jan", "Batas pemasukan nilai", "Batas dosen memasukkan nilai akhir."]
+      "tokens": ["8 Jan", "Batas pemasukan nilai"]
     },
     {
       "id": "plan.kalender-akademik.academic-date.15-jan",
@@ -2429,7 +2105,7 @@
       "kind": "academic-date",
       "label": "18–19 Jan",
       "context": "Semester ini 7",
-      "tokens": ["18–19 Jan", "Evaluasi kemajuan studi", "ITB memeriksa SKS lulus tiap mahasiswa."]
+      "tokens": ["18–19 Jan", "Evaluasi kemajuan studi"]
     },
     {
       "id": "plan.kalender-akademik.academic-date.4-feb",
@@ -2464,7 +2140,7 @@
       "kind": "module",
       "label": "Modul 1",
       "context": "Daftar isi",
-      "tokens": ["Modul 1", "1 tugas", "UTS Markom", "1 terbuka"]
+      "tokens": ["Modul 1", "UTS Markom", "1 terbuka"]
     },
     {
       "id": "course.dk4073-modules-modul-1.material.uts-markom",
@@ -2732,11 +2408,11 @@
       "tokens": ["Modul 4", "02 Penyusunan Proposal TA", "Kelas gabungan"]
     },
     {
-      "id": "course.ii4091-modules-2-catatan.material.jadwal-kuliah-ta-mekanisme-pelaksanaan",
+      "id": "course.ii4091-modules-2-catatan.material.dr-hadi-halim-s-t-m-t",
       "screen": "course",
       "state": "II4091/modules/2-catatan",
       "kind": "material",
-      "label": "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "Pengantar",
       "tokens": [
         "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
@@ -2748,11 +2424,11 @@
       ]
     },
     {
-      "id": "course.ii4091-modules-2-catatan.material.course-tokens-fixtur",
+      "id": "course.ii4091-modules-2-catatan.material.dr-hadi-halim-s-t-m-t-2",
       "screen": "course",
       "state": "II4091/modules/2-catatan",
       "kind": "material",
-      "label": "Course Tokens : FIXTUR",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "Pengantar",
       "tokens": ["Course Tokens : FIXTUR", "Dr. Hadi Halim, S.T., M.T.", "25 Agu", "19:52"]
     },
@@ -2766,11 +2442,11 @@
       "tokens": ["List Penawaran Topik TA"]
     },
     {
-      "id": "course.ii4091-modules-modul-1.material.link-penawaran-topik-ta",
+      "id": "course.ii4091-modules-modul-1.material.dr-hadi-halim-s-t-m-t",
       "screen": "course",
       "state": "II4091/modules/modul-1",
       "kind": "material",
-      "label": "Link Penawaran Topik TA",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "List Penawaran Topik TA",
       "tokens": ["Link Penawaran Topik TA", "Penawaran topik TA 2026-2027", "Dr. Hadi Halim, S.T., M.T.", "28 Agu", "14:10"]
     },
@@ -2874,11 +2550,11 @@
       "tokens": ["Tugas 04 Bab IV & V", "15:00–23:59", "Belum dikerjakan", "Jum, 13 Nov"]
     },
     {
-      "id": "course.ii4091-modules-kelas-gabungan-2-kelas-online.material.jadwal-kuliah-ta-mekanisme-pelaksanaan",
+      "id": "course.ii4091-modules-kelas-gabungan-2-kelas-online.material.dr-hadi-halim-s-t-m-t",
       "screen": "course",
       "state": "II4091/modules/kelas-gabungan-2-kelas-online",
       "kind": "material",
-      "label": "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "Pengantar",
       "tokens": [
         "Jadwal Kuliah TA & Mekanisme Pelaksanaan",
@@ -2919,13 +2595,13 @@
       "tokens": ["Penawaran Topik TA Dosen"]
     },
     {
-      "id": "course.ii4091-modules-kelas-gabungan-modul-1.material.topik-ta-dari-dosen",
+      "id": "course.ii4091-modules-kelas-gabungan-modul-1.material.dr-hadi-halim-s-t-m-t",
       "screen": "course",
       "state": "II4091/modules/kelas-gabungan-modul-1",
       "kind": "material",
-      "label": "Topik TA dari Dosen",
+      "label": "Dr. Hadi Halim, S.T., M.T.",
       "context": "Penawaran Topik TA Dosen",
-      "tokens": ["Topik TA dari Dosen", "Daftar topik dari dosen", "Topik TA Dosen 2026", "Dr. Hadi Halim, S.T., M.T.", "28 Agu", "14:15"]
+      "tokens": ["Daftar topik", "dosen", "Topik TA Dosen 2026", "Dr. Hadi Halim, S.T., M.T.", "28 Agu", "14:15"]
     },
     {
       "id": "course.ii4091-modules-kelas-gabungan-modul-2.material.template-proposal-ta-laporan-ta-latex",
@@ -2994,7 +2670,7 @@
       "state": "II4091/meetings",
       "kind": "meeting",
       "label": "Jum, 11 Sep",
-      "tokens": ["Jum, 11 Sep", "15:00–17:00", "Pertemuan 2", "Online - Link meeting menyusul", "Selesai"]
+      "tokens": ["Jum, 11 Sep", "15:00–17:00", "Pertemuan 2", "Online - Link meeting menyusul"]
     },
     {
       "id": "course.ii4091-meetings.meeting.jum-18-sep",
@@ -3293,15 +2969,6 @@
       "tokens": ["08:00", "09:30", "Modul 7 · Inovasi Pelayanan Publik"]
     },
     {
-      "id": "course.pl3002.course.09-30",
-      "screen": "course",
-      "state": "PL3002",
-      "kind": "course",
-      "label": "09:30",
-      "context": "Ekonomi dan Inovasi dalam Perencanaan",
-      "tokens": ["09:30"]
-    },
-    {
       "id": "course.pl3002-modules.module.modul-1",
       "screen": "course",
       "state": "PL3002/modules",
@@ -3335,7 +3002,7 @@
       "kind": "module",
       "label": "Modul 4",
       "context": "Daftar isi",
-      "tokens": ["Modul 4", "1 tugas", "Production Process Innovation", "1 terbuka"]
+      "tokens": ["Modul 4", "Production Process Innovation", "1 terbuka"]
     },
     {
       "id": "course.pl3002-modules.module.modul-5",
@@ -3467,7 +3134,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Inovasi Proses",
-      "tokens": ["Kam, 3 Sep", "08:00–09:30", "Inovasi Proses", "Tidak tercatat di Edunex"]
+      "tokens": ["Kam, 3 Sep", "08:00–09:30", "Inovasi Proses"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-10-sep",
@@ -3475,7 +3142,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 10 Sep",
-      "tokens": ["Kam, 10 Sep", "08:00–09:30", "Kuliah", "Tidak tercatat di Edunex"]
+      "tokens": ["Kam, 10 Sep", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.modul-4-production-process-innovation",
@@ -3483,7 +3150,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Modul 4 · Production Process Innovation",
-      "tokens": ["Kam, 17 Sep", "08:00–09:30", "Modul 4 · Production Process Innovation", "Tidak tercatat di Edunex"]
+      "tokens": ["Kam, 17 Sep", "08:00–09:30", "Modul 4 · Production Process Innovation"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-24-sep",
@@ -3491,7 +3158,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 24 Sep",
-      "tokens": ["Kam, 24 Sep", "08:00–09:30", "Kuliah", "Tidak tercatat di Edunex"]
+      "tokens": ["Kam, 24 Sep", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.kam-1-okt",
@@ -3499,7 +3166,7 @@
       "state": "PL3002/meetings",
       "kind": "meeting",
       "label": "Kam, 1 Okt",
-      "tokens": ["Kam, 1 Okt", "08:00–09:30", "Kuliah", "Tidak tercatat di Edunex"]
+      "tokens": ["Kam, 1 Okt", "08:00–09:30", "Kuliah"]
     },
     {
       "id": "course.pl3002-meetings.meeting.modul-7-inovasi-pelayanan-publik",
@@ -3953,7 +3620,7 @@
       "kind": "exam",
       "label": "UTS",
       "context": "Perlu dikerjakan 0",
-      "tokens": ["UTS", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "Hari dan jamnya belum diumumkan"]
+      "tokens": ["UTS", "Ekonomi Infrastruktur dan Transportasi", "PL3032"]
     },
     {
       "id": "course.pl3032-tasks.exam.masa-uas",
@@ -3971,7 +3638,7 @@
       "kind": "exam",
       "label": "UAS",
       "context": "Perlu dikerjakan 0",
-      "tokens": ["UAS", "Ekonomi Infrastruktur dan Transportasi", "PL3032", "Hari dan jamnya belum diumumkan"]
+      "tokens": ["UAS", "Ekonomi Infrastruktur dan Transportasi", "PL3032"]
     },
     {
       "id": "course.pl3032-grades.grade.pl3032",
@@ -4250,13 +3917,13 @@
       "tokens": ["Materi baru", "II4091", "Link Teams Pertemuan 03: Jumat, 9 Oktober 2026", "Sen 5 Okt"]
     },
     {
-      "id": "settings.setting.0-1-0-alpha-22",
+      "id": "settings.setting.0-1-0-alpha-30",
       "screen": "settings",
       "state": null,
       "kind": "setting",
-      "label": "0.1.0-alpha.22",
+      "label": "0.1.0-alpha.30",
       "context": "Pengaturan",
-      "tokens": ["0.1.0-alpha.22"]
+      "tokens": ["0.1.0-alpha.30"]
     },
     {
       "id": "settings.banner.diperiksa-sendiri-sekali-sehari",
