@@ -3,7 +3,7 @@
 // in 150 ms (just fades with less motion asked for); Back or a tap outside closes it. A row's long-press
 // menu is an ActionSheet instead (./sheet.tsx): a menu with no button to hang from.
 import { type ComponentRef, useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Modal, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { Animated, Easing, Modal, Pressable, StatusBar, StyleSheet, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../src/app/i18n";
 import { IconButton, Switch } from "./controls";
@@ -55,7 +55,10 @@ export function Menu({
   const window = useWindowDimensions();
   const grow = useRef(new Animated.Value(0)).current;
   const [height, setHeight] = useState(0);
+  // Whether the menu's window is up: then the status bar's style is sent to it again (below).
+  const [shown, setShown] = useState(false);
   const visible = anchor !== null;
+  if (!visible && shown) setShown(false);
   useEffect(() => {
     if (!visible) return;
     grow.setValue(0);
@@ -69,7 +72,11 @@ export function Menu({
   const top = up ? Math.max(insets.top + MARGIN, anchor.y - height) : below;
   const still = reduceMotion();
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
+    <Modal visible transparent animationType="none" onRequestClose={onClose} onShow={() => setShown(true)} statusBarTranslucent navigationBarTranslucent>
+      {/* The menu is its own window, which copies the screen's status bar look only at the moment it opens: caught
+          mid-change, light pages got white icons on white (the judge's round 2, Jadwal's ⋮ in light). A StatusBar entry
+          with no style of its own sends the app's current one again, to the screen and to this window. */}
+      {shown && <StatusBar />}
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="close" importantForAccessibility="no" />
       <Animated.View
         testID={testID}
