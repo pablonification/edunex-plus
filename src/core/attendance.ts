@@ -27,34 +27,27 @@ export function targetFor(settings: TargetSettings, code: string): number {
 // ---------------------------------------------------------------- where it counts
 
 /**
- * six: the lecturer records attendance in SIX; Edunex's Presence windows (if
- * any) go unused, so their "Absent" means nothing. edunex: only Edunex has a
- * record (SIX shows no count). both: Edunex records keep up with SIX's count,
- * so the lecturer uses both. unknown: neither has a record yet. noSix: SIX
- * isn't connected, so which one counts can't be known; what Edunex recorded
- * is only a fact, never an absence.
+ * six: SIX keeps the count and Edunex has no Presence window for the course.
+ * edunex: only Edunex has a record (SIX shows no count). both: SIX keeps a
+ * count and Edunex has Presence windows too. unknown: neither has a record
+ * yet. noSix: SIX isn't connected, so which one counts can't be known; what
+ * Edunex recorded is only a fact, never an absence.
  */
 export type CountedIn = "six" | "edunex" | "both" | "unknown" | "noSix";
 
-/** Where SIX counts, an Edunex Presence window is optional: said so on every screen, never as a thing to do. */
-export const presenceOptional = (where: CountedIn | null | undefined) => where === "six";
-
 /**
  * The rule. SIX's count is official, so wherever SIX has one, SIX counts.
- * Edunex counts too when what it recorded keeps up with SIX: at least SIX's
- * attended count minus one (one meeting of slack for a window the Student
- * missed or a lecturer who records late). A course whose Edunex windows
- * recorded far fewer than SIX counted (the default View Course rule nobody
- * uses: 1 of 15 in Edunex against 6 of 7 in SIX) counts in SIX only.
+ * Whether a course's Edunex Presence counts too can't be told from either
+ * system (a lecturer may copy it into SIX, or never look at it, and SIX gives
+ * totals only), so a course with Presence windows counts in both: every
+ * window is a thing to do, and the app never calls one optional.
  */
 export function countedIn(six: SixCourse["attendance"], presence: readonly PresenceSession[], now: number, sixConnected = true): CountedIn {
   const closed = presence.filter((p) => p.closesAt <= now);
   if (!sixConnected) return closed.length > 0 ? "noSix" : "unknown";
-  const recorded = closed.filter((p) => p.recorded?.present).length;
   const sixCounts = six !== null && six.held > 0;
   if (!sixCounts) return closed.length > 0 ? "edunex" : "unknown";
-  if (closed.length === 0) return "six";
-  return recorded >= six.attended - 1 ? "both" : "six";
+  return presence.length > 0 ? "both" : "six";
 }
 
 // ---------------------------------------------------------------- meetings left

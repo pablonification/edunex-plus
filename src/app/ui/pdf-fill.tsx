@@ -4,9 +4,9 @@
 // moved, made bigger or smaller and deleted. The pages stay paper: white, in
 // the PDF's own black ink, whatever the app's theme. Loads with the viewer.
 
-import { ArrowsOutCardinalIcon } from "@phosphor-icons/react/dist/csr/ArrowsOutCardinal";
-import { ArrowUUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUUpLeft";
-import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
+import { ArrowMove20Filled, ArrowMove20Regular } from "@fluentui/react-icons/headless/svg/arrow-move";
+import { ArrowUndo16Filled, ArrowUndo16Regular, ArrowUndo20Filled, ArrowUndo20Regular } from "@fluentui/react-icons/headless/svg/arrow-undo";
+import { Delete16Filled, Delete16Regular, Delete20Filled, Delete20Regular } from "@fluentui/react-icons/headless/svg/delete";
 import { type CSSProperties, type KeyboardEvent, type PointerEvent, useCallback, useMemo, useRef, useState } from "react";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
@@ -15,9 +15,9 @@ import { Icons, icon } from "./icons";
 import { Tooltip } from "./overlays";
 import { LINE_HEIGHT, OFF, type PdfField, type PdfFill, type PdfText } from "./pdf-engine";
 
-const MoveIcon = icon(ArrowsOutCardinalIcon);
-const DeleteIcon = icon(TrashIcon);
-const UndoIcon = icon(ArrowUUpLeftIcon);
+const MoveIcon = icon([ArrowMove20Regular, ArrowMove20Filled], [ArrowMove20Regular, ArrowMove20Filled]);
+const DeleteIcon = icon([Delete16Regular, Delete16Filled], [Delete20Regular, Delete20Filled]);
+const UndoIcon = icon([ArrowUndo16Regular, ArrowUndo16Filled], [ArrowUndo20Regular, ArrowUndo20Filled]);
 
 /** The sizes added text comes in, in points; 12 to start, like a typed form. */
 export const TEXT_SIZES = [8, 10, 12, 14, 18, 24];
@@ -267,7 +267,7 @@ export function TextBox({
       <div
         role="toolbar"
         aria-label={t("pdf.text")}
-        className="pointer-events-none absolute bottom-full left-0 mb-1.5 flex items-center gap-0.5 rounded-lg bg-raised p-0.5 text-fg opacity-0 shadow-pop ring-1 ring-black/10 transition-opacity duration-150 group-focus-within/text:pointer-events-auto group-focus-within/text:opacity-100 group-hover/text:pointer-events-auto group-hover/text:opacity-100 dark:ring-white/10"
+        className="pointer-events-none absolute bottom-full left-0 mb-1.5 flex items-center gap-0.5 rounded-control bg-raised p-0.5 text-fg opacity-0 shadow-popover ring-1 ring-black/10 transition-opacity duration-quick group-focus-within/text:pointer-events-auto group-focus-within/text:opacity-100 group-hover/text:pointer-events-auto group-hover/text:opacity-100 dark:ring-white/10"
       >
         <Tooltip content={t("pdf.text.moveHint")} side="top">
           <IconButton

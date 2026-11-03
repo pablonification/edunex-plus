@@ -10,7 +10,7 @@ import { Icons } from "./icons";
 import type { Slide } from "./ppt";
 
 /** A page: white with black text in both themes, as Word's own pages are. */
-const PAPER = "flex w-full max-w-3xl flex-col gap-2 bg-white px-16 py-14 text-lead text-black shadow-card ring-1 ring-black/5 [color-scheme:light] select-text";
+const PAPER = "flex w-full max-w-3xl flex-col gap-2 bg-white px-16 py-14 text-lead text-black ring-1 ring-black/5 [color-scheme:light] select-text";
 
 function TextOnlyNote() {
   const t = useT();
@@ -68,8 +68,12 @@ export function SlideCards({ slides }: { slides: Slide[] }) {
     <div className="mx-auto flex max-w-3xl flex-col gap-4 p-6">
       <TextOnlyNote />
       {slides.map((slide, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: a presentation's slides are its positions
-        <article key={i} aria-label={t("slides.slide", { number: i + 1, total: slides.length })} className="rounded-xl bg-surface p-5 shadow-card select-text">
+        <article
+          // biome-ignore lint/suspicious/noArrayIndexKey: a presentation's slides are its positions
+          key={i}
+          aria-label={t("slides.slide", { number: i + 1, total: slides.length })}
+          className="rounded-card bg-surface p-5 ring-1 ring-edge select-text"
+        >
           <p className="text-caption text-faint">{t("slides.slide", { number: i + 1, total: slides.length })}</p>
           {slide.title && <h3 className="mt-1 text-title font-semibold break-words">{slide.title}</h3>}
           {slide.text.length > 0 && (

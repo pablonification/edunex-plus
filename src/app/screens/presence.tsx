@@ -1,16 +1,17 @@
 // Presensi (#85), "absences left": am I OK, and what do I do? Under the title,
-// the answer for the next class day ("4 classes today. Only PL3002 has an
-// absence to spare."). Then only what needs the Student now, each said once:
-// signing in to SIX, Tandai Hadir open, an Edunex window open that may count,
-// SIX's count that didn't go up after a class, today's receipt, a clash today
-// with which class to go to, the exam-week note. Then every course, grouped
-// by what it asks of the Student (out of reach, no absences left, recorded in
-// Edunex, absences to spare, …), each row the course and its next class,
-// SIX's share labeled over its absences as a bar with words ("Kehadiran 85%
-// sejauh ini (6 dari 7)", "Jatah absen", "Terpakai 1× · sisa 1×"), and one
-// exception at most on a line of its own. How it's recorded and that later
-// dates are estimated is said once, under the groups. Targets are one panel
-// from the header. Nothing here is hidden by a snooze elsewhere.
+// the answer for the next class day in one sentence ("Only PL3002 has an
+// absence to spare today."). Then only what needs the Student now, each said
+// once: signing in to SIX, Tandai Hadir open, an Edunex window open that may
+// count, SIX's count that didn't go up after a class, today's receipt, a clash
+// today with which class to go to, the exam-week note. Then every course,
+// grouped by what it asks of the Student (out of reach, no absences left,
+// recorded in Edunex, absences to spare, …), each row the course and its next
+// class, its absences as a bar with one word ("sisa 1×") and SIX's share as one
+// figure ("Kehadiran 85%"), and one line of statuses at most, said as what to
+// do. Each why (the reasoning, the how) is a tooltip away (Less to read,
+// docs/design-system.md); how it's recorded and that later dates are estimated
+// is in "Cara menghitungnya". Targets are one panel from the header. Nothing
+// here is hidden by a snooze elsewhere.
 import { type ReactNode, useState } from "react";
 import {
   type AttendanceHealth,
@@ -32,7 +33,7 @@ import { sixTimetableUrl } from "../../core/links";
 import type { CalendarEvent, ClassSession, SixCheckIn, SixStudent, UnreadSession } from "../../core/models";
 import { dayNoon } from "../../core/schedule";
 import { type Attendance, type CourseAttendance, type OpenWindow, useAttendance } from "../attendance";
-import { budgetWords, useActionLabel } from "../attendance-labels";
+import { BAR_TEXT, budgetWords, useActionLabel } from "../attendance-labels";
 import { AbsenceBudget, TargetsPanel } from "../attendance-parts";
 import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
@@ -40,13 +41,16 @@ import { useNav } from "../nav";
 import { useCourseNames } from "../schedule-data";
 import { useSignIn } from "../shell/source-status";
 import { SixPageNote, useChangedPage } from "../six-page-note";
-import { useDataset, useSettings } from "../store";
-import { Button } from "../ui/controls";
+import { useBridge, useDataset, useSettings } from "../store";
+import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
 import { Card, CourseCode, EmptyState, LiveDot, Skeleton } from "../ui/display";
+import { Explained, type Status, StatusLine, type StatusTone, WhyButton } from "../ui/explain";
 import { Icons } from "../ui/icons";
 import { List, Meta, Notice, Page, PageHeader, Section } from "../ui/layout";
-import { CountdownBar } from "../ui/meter";
+import { AbsenceBar, type BarTone, CountdownBar } from "../ui/meter";
+import { Tooltip } from "../ui/overlays";
+import { PLAIN_LIST } from "./plain-list";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -64,7 +68,11 @@ export function PresenceScreen() {
   const checkIns = useDataset("six.checkIn");
   const unread = useDataset("six.scheduleUnread");
   const calendar = useDataset("itb.calendar");
-  const { attendanceTargets } = useSettings();
+  const { attendanceTargets, budgetExplained } = useSettings();
+  const bridge = useBridge();
+  // The key to the bars: shown until the Student closes it, then one button away in the header.
+  const [keyOpen, setKeyOpen] = useState(false);
+  const showKey = budgetExplained !== true || keyOpen;
   const name = useCourseNames();
   const [targets, setTargets] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null });
   const [still, setStill] = useState<Still | null>(null);
@@ -102,18 +110,27 @@ export function PresenceScreen() {
         description={sixConnected && courses.length > 0 ? <DayLine attendance={attendance} /> : undefined}
         actions={
           sixConnected && courses.length > 0 ? (
-            <TargetsPanel
-              courses={courses.map((c) => ({ code: c.course.code, name: name(c.course.code, c.course.name), color: c.course.color }))}
-              open={targets.open}
-              onOpenChange={(open) => openTargets(open)}
-              focus={targets.focus}
-              trigger={
-                <Button icon={<Icons.Target className="size-3.5" />} data-targets-trigger="">
-                  {t("presence.targets.button")}
-                  <span className="font-normal text-muted tabular-nums">{targetRange(courses)}</span>
-                </Button>
-              }
-            />
+            <div className="flex items-center gap-2">
+              {!showKey && (
+                <Tooltip content={t("presence.key.title")}>
+                  <IconButton label={t("presence.key.title")} data-budget-key="" onClick={() => setKeyOpen(true)}>
+                    <Icons.Info className="size-4" />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <TargetsPanel
+                courses={courses.map((c) => ({ code: c.course.code, name: name(c.course.code, c.course.name), color: c.course.color }))}
+                open={targets.open}
+                onOpenChange={(open) => openTargets(open)}
+                focus={targets.focus}
+                trigger={
+                  <Button icon={<Icons.Target className="size-3.5" />} data-targets-trigger="">
+                    {t("presence.targets.button")}
+                    <span className="font-normal text-muted tabular-nums">{targetRange(courses)}</span>
+                  </Button>
+                }
+              />
+            </div>
           ) : undefined
         }
       />
@@ -122,6 +139,17 @@ export function PresenceScreen() {
       <div>
         <SixPageNote datasets={["six.courses", "six.schedule"]} className="mb-8" />
         <NowZone zone={zone} attendance={attendance} />
+        {showKey && sixConnected && courses.length > 0 && (
+          <BudgetKey
+            target={targetRange(courses)}
+            onClose={() => {
+              setKeyOpen(false);
+              if (budgetExplained !== true) void bridge.invoke("settings.update", { budgetExplained: true }).catch(() => undefined);
+              // Focus goes to the button that opens it again, not lost with the card.
+              requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-budget-key]")?.focus());
+            }}
+          />
+        )}
         {courses.length === 0
           ? !listChanged && (
               <div className="mt-10 first:mt-0">
@@ -130,7 +158,7 @@ export function PresenceScreen() {
             )
           : groups.map(({ group, items }) => (
               <Section key={group} id={`presence-${group}`} title={<GroupTitle group={group} items={items} />} count={items.length}>
-                <List label={groupLabel(t, group, items)} className="@container">
+                <List label={groupLabel(t, group, items)} className={cx("@container", PLAIN_LIST)}>
                   {items.map((item) => (
                     <CourseRow key={item.course.code} item={item} group={group} context={context} />
                   ))}
@@ -139,9 +167,50 @@ export function PresenceScreen() {
             ))}
       </div>
 
-      {courses.length > 0 && sixConnected && !lectures && <Footer attendance={attendance} />}
-      {courses.length > 0 && <HowCounted lastDay={attendance.lastDay} />}
+      {courses.length > 0 && <HowCounted attendance={attendance} recording={sixConnected && !lectures} />}
     </Page>
+  );
+}
+
+/**
+ * The key to the absence bars, drawn with the bars themselves: a new idea (no other app counts absences left), so
+ * the first visit shows what a box, a full bar and a red end mean, before the rows use them. "Mengerti" puts it
+ * behind the header's info button for good.
+ */
+function BudgetKey({ target, onClose }: { target: string; onClose: () => void }) {
+  const t = useT();
+  const examples: { allowed: number; used: number; over?: number; tone: BarTone; word: string; means: string }[] = [
+    { allowed: 3, used: 1, tone: "neutral", word: t("presence.bar.left", { count: 2 }), means: t("presence.key.left") },
+    { allowed: 3, used: 3, tone: "warning", word: t("presence.bar.noneLeft"), means: t("presence.key.none") },
+    { allowed: 3, used: 3, over: 1, tone: "danger", word: t("presence.bar.over", { count: 1 }), means: t("presence.key.over", { target }) },
+  ];
+  return (
+    <section aria-labelledby="budget-key" className="mt-10 rounded-card border border-edge bg-surface p-4 first:mt-0">
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 id="budget-key" className="text-body font-semibold">
+            {t("presence.key.title")}
+          </h2>
+          <p className="mt-0.5 text-small text-muted">{t("presence.key.lead", { target })}</p>
+        </div>
+        <Button size="sm" onClick={onClose}>
+          {t("presence.key.gotIt")}
+        </Button>
+      </div>
+      <ul className="mt-4 grid gap-x-6 gap-y-3 sm:grid-cols-3">
+        {examples.map((example) => (
+          <li key={example.tone}>
+            <span className="flex items-center gap-2.5">
+              <AbsenceBar allowed={example.allowed} used={example.used} over={example.over} tone={example.tone} label={example.word} />
+              <span aria-hidden className={cx("text-small font-semibold tabular-nums", BAR_TEXT[example.tone])}>
+                {example.word}
+              </span>
+            </span>
+            <p className="mt-1 text-small text-muted">{example.means}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -151,7 +220,7 @@ function Loading() {
       <div aria-busy="true">
         <Skeleton className="h-8 w-40" />
         <Skeleton className="mt-3 h-5 w-96" />
-        <Skeleton className="mt-8 h-96 w-full rounded-xl" />
+        <Skeleton className="mt-8 h-96 w-full rounded-card" />
       </div>
     </Page>
   );
@@ -247,7 +316,7 @@ function GroupTitle({ group, items }: { group: PresenceGroup; items: readonly Co
 
 // ---------------------------------------------------------------- the next class day
 
-/** "4 classes today. Only PL3002 has an absence to spare.", or the next class day, or when lectures ended. */
+/** "Only PL3002 has an absence to spare today.", or the next class day, or when lectures ended. */
 function DayLine({ attendance }: { attendance: Attendance }) {
   const t = useT();
   const f = useFormat();
@@ -265,23 +334,27 @@ function DayLine({ attendance }: { attendance: Attendance }) {
   // A class SIX shows that the app couldn't read: counted on its day, and said, with where to look.
   const unreadLine = answer.unread ? ` ${t("presence.day.unread", { count: answer.unread })}` : "";
   if (answer.kind === "next") return <span>{`${t("presence.day.next", { day: dayLabel(f, answer.at) })}${unreadLine}`}</span>;
-  const first = `${t(answer.day === "today" ? "presence.day.today" : "presence.day.tomorrow", { count: answer.count })}${unreadLine}`;
+  const count = t(answer.day === "today" ? "presence.day.today" : "presence.day.tomorrow", { count: answer.count });
   const { spare } = answer;
-  // Said only of the courses SIX has a count for; with some still uncounted, they're named instead of "only" or "each".
-  const second = !spare
-    ? ""
-    : spare.of < spare.courses
-      ? spare.codes.length
-        ? t("presence.day.some", { codes: f.list(spare.codes), count: spare.codes.length })
-        : ""
-      : spare.of === 1
-        ? t(spare.codes.length ? "presence.day.one" : "presence.day.oneNone")
+  const day = t(answer.day === "today" ? "presence.day.when.today" : "presence.day.when.tomorrow");
+  // Said only of the courses SIX has a count for; with some still uncounted (or one course that day), they're named
+  // instead of "only" or "each". The answer stands alone: how many classes the day has is said only without one.
+  const named = spare && { day, codes: f.list(spare.codes), count: spare.codes.length };
+  const answerLine =
+    !spare || !named
+      ? count
+      : spare.of < spare.courses || spare.of === 1
+        ? spare.codes.length
+          ? t("presence.day.some", named)
+          : spare.courses === 1
+            ? `${count} ${t("presence.day.oneNone")}`
+            : count
         : spare.codes.length === spare.of
-          ? t("presence.day.all")
+          ? t("presence.day.all", { day })
           : spare.codes.length === 0
-            ? t("presence.day.none")
-            : t("presence.day.only", { codes: f.list(spare.codes), count: spare.codes.length });
-  return <span>{second ? `${first} ${second}` : first}</span>;
+            ? t("presence.day.none", { day })
+            : t("presence.day.only", named);
+  return <span>{`${answerLine}${unreadLine}`}</span>;
 }
 
 /** "Kam 15 Okt" / "Thu 15 Oct". */
@@ -348,7 +421,7 @@ function nowZone(
   const shared = [...uncertain.entries()].find(([, codes]) => codes.length >= 2);
   return {
     checkIns: open,
-    windows: attendance.open.filter((w) => w.counts),
+    windows: attendance.open,
     results,
     counted,
     countedLate,
@@ -401,10 +474,10 @@ function SignInSix({ quiet }: { quiet: boolean }) {
   const t = useT();
   const { signIn, busy } = useSignIn();
   return (
-    <Card variant="raised" className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
-      <div className="min-w-0 flex-1 basis-64">
+    <Card variant="raised" className="group/row flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
+      <div className="flex min-w-0 flex-1 basis-64 items-center gap-2">
         <p className="text-title font-semibold">{t("presence.answer.noSix")}</p>
-        <p className="mt-1 text-small text-muted">{`${t("presence.noSix.hint")} ${t("presence.noSix.noWatch")}`}</p>
+        <WhyButton why={`${t("presence.noSix.hint")} ${t("presence.noSix.noWatch")}`} />
       </div>
       <Button variant={quiet ? "secondary" : "primary"} busy={busy} onClick={() => void signIn("six")}>
         {t("presence.signInSix")}
@@ -421,7 +494,7 @@ function OpenCheckIn({ session }: { session: ClassSession }) {
   const student = useDataset("six.student");
   if (!student) return null;
   return (
-    <section aria-label={t("presence.checkIn.title")} className="rounded-2xl border border-edge bg-raised px-5 py-4 shadow-raised">
+    <section aria-label={t("presence.checkIn.title")} className="rounded-dialog border border-edge bg-raised px-5 py-4 shadow-raised">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-2 text-title font-semibold">
@@ -444,9 +517,11 @@ function OpenCheckIn({ session }: { session: ClassSession }) {
 }
 
 /**
- * An Edunex window open now that may count: "Kumpulkan Tugas 02 Bab II
- * sebelum 23:59", with the way to do it and the time left. Without SIX
- * nobody can say it counts: worth doing just in case, so said calmly, its
+ * An Edunex window open now that may count: "Isi Presensi · tutup 09:30" (or
+ * the action itself where it's more than opening the course: "Kumpulkan Tugas
+ * 02 Bab II · tutup 23:59"), with the way to do it and the time left; what to
+ * do and where it counts a button away. Without SIX nobody can say it counts:
+ * worth doing just in case, so said calmly ("belum pasti dihitung"), its
  * button quiet.
  */
 function OpenPresence({ window }: { window: OpenWindow }) {
@@ -459,16 +534,31 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   const { session, code, health, action } = window;
   const task = action.activity === "assignment" ? action.task : null;
   const noSix = health?.countedIn === "noSix";
-  const where = noSix ? "presence.open.noSix" : health?.countedIn === "unknown" ? "presence.open.notKnown" : "presence.open.counts";
+  const notKnown = !noSix && health?.countedIn === "unknown";
+  const course = action.activity === "course";
+  const time = f.time(session.closesAt);
+  const why = [
+    course ? t("presence.open.do", { action: actionLabel(window), time }) : null,
+    t(noSix ? "presence.open.noSixWhy" : notKnown ? "presence.open.notKnownWhy" : "presence.open.countsWhy"),
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <section aria-label={t("presence.open.title")} className="rounded-2xl border border-edge bg-raised px-5 py-4 shadow-raised">
+    <section aria-label={t("presence.open.title")} className="group/row rounded-dialog border border-edge bg-raised px-5 py-4 shadow-raised">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-2 text-title font-semibold">
+          <div className="flex items-center gap-2">
             <LiveDot />
-            {t("presence.open.do", { action: actionLabel(window), time: f.time(session.closesAt) })}
-          </p>
-          <Meta className="mt-1 text-small text-muted">{t(where, { code })}</Meta>
+            <Meta className="text-title">
+              <span className="font-semibold">{course ? t("presence.open.fill") : actionLabel(window)}</span>
+              <span className="text-muted tabular-nums">{t("presence.open.closes", { time })}</span>
+            </Meta>
+            <WhyButton why={why} />
+          </div>
+          <Meta className="mt-1 text-small text-muted">
+            {code}
+            {noSix || notKnown ? t("presence.open.maybe") : ""}
+          </Meta>
         </div>
         {task ? (
           <Button variant={noSix ? "secondary" : "primary"} onClick={() => go({ screen: "task", taskId: task.id })}>
@@ -503,10 +593,8 @@ function SixResult({ result, health }: { result: Zone["results"][number]; health
   const title = result.absent
     ? t(today ? "presence.six.absent" : "presence.six.absentOn", vars)
     : t(today ? "presence.six.missing" : "presence.six.missingOn", vars);
-  const body =
-    result.absent && health?.state === "out"
-      ? t("presence.six.absentOut", { code: result.code, target: health.target })
-      : t("alert.six.body", { attended: health?.attended ?? 0, held: health?.held ?? 0 });
+  // SIX's count itself is on the course's row: here, only who fixes it and by when.
+  const body = result.absent && health?.state === "out" ? t("presence.six.absentOut", { code: result.code, target: health.target }) : t("presence.six.fix");
   return (
     <Notice
       tone={result.absent ? "danger" : "warning"}
@@ -544,21 +632,23 @@ function Receipt({ counted, late }: { counted: string[]; late: string[] }) {
   );
 }
 
-/** Two classes today at the same time: when, and which to go to if the Student can make only one, with why. */
+/** Two classes today at the same time: when, and which to go to if the Student can make only one ("Pilih PL3032"), its why on hover. */
 function ClashCard({ clash }: { clash: Zone["clashes"][number] }) {
   const t = useT();
   const f = useFormat();
-  const body = clashAnswer(t, clash.a.health, clash.b.health);
+  const { a, b } = clash;
+  const pick = clashPick(a.health, b.health);
+  const why = clashAnswer(t, a.health, b.health);
+  const answer = pick.pick ? t("presence.clash.pick", { code: pick.pick }) : pick.why === "bothNone" ? t("presence.clash.ask") : null;
   return (
-    <Card className="flex items-start gap-3 px-5 py-4">
+    // A fact about today with its answer, not something to press: on the page, no box.
+    <div className="flex items-start gap-3 py-1">
       <Icons.Overlap className="mt-0.5 size-4 shrink-0 text-warning-fg" weight="bold" />
-      <div className="min-w-0">
-        <p className="text-body font-semibold">
-          {t("presence.clash.today", { a: clash.a.course.code, b: clash.b.course.code, time: f.timeRange(clash.from, clash.to) })}
-        </p>
-        {body && <p className="mt-0.5 text-small text-muted">{body}</p>}
-      </div>
-    </Card>
+      <Meta className="min-w-0 text-body">
+        <span className="font-semibold">{t("presence.clash.today", { a: a.course.code, b: b.course.code, time: f.timeRange(clash.from, clash.to) })}</span>
+        {answer && why ? <Explained text={answer} why={why} className="font-medium text-warning-fg" /> : (why ?? "")}
+      </Meta>
+    </div>
   );
 }
 
@@ -591,10 +681,11 @@ function WeekNote({ event }: { event: CalendarEvent }) {
   const f = useFormat();
   const period = t(event.kind === "uts" ? "presence.period.uts" : event.kind === "uas" ? "presence.period.uas" : "presence.period.off");
   return (
-    <p className="flex items-start gap-2 text-small text-muted">
-      <Icons.GraduationCap className="mt-0.5 size-3.5 shrink-0 text-(--source-itb-fg)" weight="bold" />
-      {t("presence.weekNote", { period, range: f.dayRange(event.firstDay, event.lastDay) })}
-    </p>
+    <div className="group/row flex items-center gap-2 text-small text-muted">
+      <Icons.GraduationCap className="size-3.5 shrink-0 text-(--source-itb-fg)" weight="bold" />
+      <p>{t("presence.weekNote", { period, range: f.dayRange(event.firstDay, event.lastDay) })}</p>
+      <WhyButton why={t("presence.weekNoteWhy")} />
+    </div>
   );
 }
 
@@ -618,9 +709,10 @@ interface RowContext {
 
 /**
  * A course: the course (the strongest thing in the row) and its next class on
- * the left, its absences and SIX's share at the row's end, and one exception
- * at most on a line of its own under both, its actions at the row's end too.
- * The whole row opens the course's meetings; its own controls sit above it.
+ * the left, its absences and SIX's share at the row's end, and one line of
+ * statuses at most under both, its why an info button away and its actions at
+ * the row's end too. The whole row opens the course's meetings; its own
+ * controls sit above it.
  */
 function CourseRow({ item, group, context }: { item: CourseAttendance; group: PresenceGroup; context: RowContext }) {
   const t = useT();
@@ -631,11 +723,10 @@ function CourseRow({ item, group, context }: { item: CourseAttendance; group: Pr
   const meta = metaParts(t, f, item, context);
   const words = context.signedOut ? null : budgetWords(t, health, context.soFar);
   const own = Object.hasOwn(context.own, course.code);
+  // The row's name says in full what its bar and figure show: the whole count, not one word.
   const label = [
     `${course.code} ${name(course.code, course.name)}`,
-    words ? t("presence.bar.label") : "",
-    words?.lead ?? "",
-    words?.bold ?? "",
+    words?.label.replace(/\.$/, "") ?? "",
     words && own ? t("presence.row.ownTarget", { value: health.target }) : "",
     words && health.held
       ? t("presence.row.count", { attended: health.attended ?? 0, held: health.held, percent: percent(health.attended ?? 0, health.held) })
@@ -647,7 +738,7 @@ function CourseRow({ item, group, context }: { item: CourseAttendance; group: Pr
     .join(", ");
 
   return (
-    <li className="group relative has-[>button:hover]:bg-hover">
+    <li className="group/row relative has-[>button:hover]:bg-hover">
       <button
         type="button"
         aria-label={label}
@@ -655,7 +746,7 @@ function CourseRow({ item, group, context }: { item: CourseAttendance; group: Pr
         className="absolute inset-0 z-0 outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid focus-visible:outline-focus"
       />
       {/* Wide: the course and its next class on the left, its attendance on the right, the exception across both. Narrow (the window small, or zoomed in): one under another. */}
-      <div className="pointer-events-none relative grid grid-cols-1 px-5 py-4 @[48rem]:grid-cols-[minmax(0,1fr)_auto] @[48rem]:gap-x-8">
+      <div className="pointer-events-none relative grid grid-cols-1 px-4 py-4 @[48rem]:grid-cols-[minmax(0,1fr)_auto] @[48rem]:gap-x-8">
         <div className="min-w-0">
           <p className="flex min-w-0 items-baseline gap-2">
             <CourseCode code={course.code} color={course.color} className="shrink-0 text-small" />
@@ -678,11 +769,11 @@ function CourseRow({ item, group, context }: { item: CourseAttendance; group: Pr
 function Side({ item, group, own, soFar, signedOut }: { item: CourseAttendance; group: PresenceGroup; own: boolean; soFar: boolean; signedOut: boolean }) {
   const t = useT();
   const { health } = item;
-  // One width on every row, so the labels and bars line up down the list.
-  const place = "mt-2.5 @[48rem]:mt-0.5 @[48rem]:w-104 @[48rem]:self-start";
+  // One width on every row, so the bars and the shares line up down the list.
+  const place = "mt-2 @[48rem]:mt-0.5 @[48rem]:w-96 @[48rem]:self-start";
   if (signedOut) return null;
   if (group === "out" || group === "none" || group === "spare" || group === "unknown")
-    return <AbsenceBudget health={health} place="row" own={own} soFar={soFar} className={place} />;
+    return <AbsenceBudget health={health} place="row" own={own} soFar={soFar} saidAbove={group === "none"} className={place} />;
   const text = sideText(t, group, health);
   if (!text) return null;
   return <p className={cx(place, "text-small", group === "missed" ? "font-semibold text-danger-fg" : "text-muted")}>{text}</p>;
@@ -732,11 +823,12 @@ function metaParts(t: Translate, f: Format, item: CourseAttendance, context: Row
 }
 
 /**
- * One exception at most, the first that applies: Tandai Hadir watched for the
- * class on now; gone from SIX ("did it go through?"); out of reach or finished
- * below, with the fix; the target hanging on a class that may not run; a
- * clash with which to go to; what the next class's Edunex window asks; that
- * the next class may not run; a lab's own rules.
+ * One line of statuses at most, the first case that applies, each in a few
+ * words said as what to do, the why behind its info button: Tandai Hadir
+ * watched for the class on now; gone from SIX ("did it go through?"); out of
+ * reach or finished below, with the fix; the target hanging on a class that
+ * may not run; a clash with which to go to; what the next class's Edunex
+ * window asks; that the next class may not run; a lab's own rules.
  */
 function Exception({ item, context }: { item: CourseAttendance; context: RowContext }) {
   const t = useT();
@@ -748,21 +840,22 @@ function Exception({ item, context }: { item: CourseAttendance; context: RowCont
   if (context.signedOut) return null;
   const at = classOf(item, context);
   const counts = health.countedIn === "six" || health.countedIn === "both" || health.countedIn === "unknown";
+  const one = (key: string, text: string, why: string, tone: StatusTone = "quiet") => <Line statuses={[{ key, text, why, tone }]} />;
   // 1–2. Tandai Hadir for the class on now (or one that ended within the hour).
   if (student && counts) {
     const recent = context.schedule.find(
       (s) => s.courseCode === course.code && !isExamActivity(s.activity) && s.start <= now && now < s.end + GONE_FOR && checkIns[s.id]?.state === "gone",
     );
     if (at?.live && at.session && checkingIn(at.session, now) && (checkIns[at.session.id]?.state ?? "waiting") === "waiting")
-      return <Quiet icon={<Icons.Hand className="mt-0.5 size-3.5 shrink-0" />}>{t("presence.row.watching")}</Quiet>;
-    if (recent) return <Quiet icon={<Icons.Hand className="mt-0.5 size-3.5 shrink-0" />}>{t("presence.row.gone")}</Quiet>;
+      return one("checkIn", t("presence.row.watching"), t("presence.row.watchingWhy"));
+    if (recent) return one("checkIn", t("presence.row.gone"), t("presence.row.goneWhy"));
   }
   // 3. Out of reach or finished below: a count SIX got wrong, or a wrong target, is the way back.
   // The heading and the bar already say what's lost in red; this is the fix, so calm, its actions blue.
   if ((health.state === "out" || health.state === "missed") && !zone.results.some((r) => r.code === course.code && r.absent))
     return (
-      <Quiet
-        icon={<Icons.Info className="mt-0.5 size-3.5 shrink-0" />}
+      <Line
+        statuses={[{ key: "lecturer", text: t("presence.row.askLecturer"), why: t("presence.warn.out"), tone: "quiet" }]}
         action={
           <>
             {student && (
@@ -781,14 +874,18 @@ function Exception({ item, context }: { item: CourseAttendance; context: RowCont
             )}
           </>
         }
-      >
-        {t("presence.warn.out")}
-      </Quiet>
+      />
     );
   // 4. No absences left, and the target hangs on a class that may not run.
   const needed = health.needsUncertain ? health.left.upcoming.find((m) => m.uncertain) : undefined;
-  if (needed) return <Warning>{uncertainText(t, f, needed.start, context.events, health.target)}</Warning>;
-  // 5. The next class clashes with another course's (unless today's clash card says it).
+  if (needed)
+    return one(
+      "needed",
+      t("presence.row.mustAttend", { date: dayLabel(f, needed.start) }),
+      uncertainText(t, f, needed.start, context.events, health.target),
+      "warning",
+    );
+  // 5. The next class clashes with another course's (unless today's clash card says it): the pick in two words, the when on hover.
   const clash = item.clash;
   const onCard = zone.clashes.some((c) => c.a.course.code === course.code || c.b.course.code === course.code);
   if (clash && !onCard) {
@@ -799,43 +896,51 @@ function Exception({ item, context }: { item: CourseAttendance; context: RowCont
       onUsualSlot(clash.session, mine) && onUsualSlot(clash.with, theirs)
         ? t("presence.row.clashEvery", { code: clash.other, weekday: f.weekday(clash.from), time })
         : t("presence.row.clashOn", { code: clash.other, day: dayLabel(f, clash.from), time });
-    const tail =
+    const [pick, tail] =
       clash.pick.pick === course.code
-        ? t("presence.row.clashPicked")
+        ? [t("presence.row.pickThis"), t("presence.row.clashPicked")]
         : clash.pick.pick === clash.other
-          ? t("presence.row.clashOther", { code: clash.other })
-          : t("presence.row.clashAsk");
-    return <Warning>{`${head} ${tail}`}</Warning>;
+          ? [t("presence.row.pickOther", { code: clash.other }), t("presence.row.clashOther", { code: clash.other })]
+          : [t("presence.row.pickAsk"), t("presence.row.clashAsk")];
+    return (
+      <Line
+        statuses={[
+          { key: "clash", text: t("presence.row.clash", { code: clash.other }), why: head, tone: "warning" },
+          { key: "pick", text: pick, why: tail, tone: "quiet" },
+        ]}
+      />
+    );
   }
-  // 6–7. What the next class's Edunex window asks, where Edunex keeps the count too.
+  // 6–7. What the next class's Edunex window asks, where Edunex keeps the count too: a thing to do by a time, said whole.
   const next = health.left.next;
   if (nextWindow && (nextWindow.action.activity !== "course" || health.countedIn === "edunex")) {
     const label = actionLabel(nextWindow);
     const time = f.time(nextWindow.session.closesAt);
     if (health.countedIn === "both" && nextWindow.action.activity !== "course" && next && wibDay(nextWindow.session.opensAt) === wibDay(next.start))
-      return <Quiet>{t("presence.record.bothDo", { action: label.charAt(0).toLowerCase() + label.slice(1), time })}</Quiet>;
+      return one("window", t("presence.record.bothDo", { action: label.charAt(0).toLowerCase() + label.slice(1), time }), "");
     if (health.countedIn === "edunex") {
       const assignment = nextWindow.action.activity === "assignment";
-      return (
-        <Quiet>
-          {t("presence.row.windowDo", {
-            when: assignment ? dayLabel(f, nextWindow.session.closesAt) : windowWhen(t, f, nextWindow),
-            action: assignment ? t("presence.row.byTime", { action: label, time }) : label,
-          })}
-        </Quiet>
+      return one(
+        "window",
+        t("presence.row.windowDo", {
+          when: assignment ? dayLabel(f, nextWindow.session.closesAt) : windowWhen(t, f, nextWindow),
+          action: assignment ? t("presence.row.byTime", { action: label, time }) : label,
+        }),
+        "",
       );
     }
   }
   // 8. The next class may not run (exam week, holiday), unless the note on top says it for every course.
   const first = health.left.upcoming[0];
-  if (first?.uncertain && !(zone.week?.codes.includes(course.code) ?? false)) return <Warning>{uncertainText(t, f, first.start, context.events)}</Warning>;
+  if (first?.uncertain && !(zone.week?.codes.includes(course.code) ?? false))
+    return one("maybe", t("presence.row.maybeNot", { date: dayLabel(f, first.start) }), uncertainText(t, f, first.start, context.events), "warning");
   // 9. A lab next, in a course that also has lectures.
   if (
     at?.session &&
     /praktikum|tutorial/i.test(at.session.activity) &&
     context.schedule.some((s) => s.courseCode === course.code && /^kuliah$/i.test(s.activity))
   )
-    return <Quiet>{t("presence.row.lab")}</Quiet>;
+    return one("lab", t("presence.row.labRules"), t("presence.row.lab"));
   return null;
 }
 
@@ -851,32 +956,35 @@ function uncertainText(t: Translate, f: Format, start: number, events: readonly 
   return target ? t("presence.warn.needed", { date, period, target }) : t("presence.warn.uncertain", { date, period });
 }
 
-/** The exception's line, across the row: its words on one line where they fit, its actions at the row's end (under the words when both don't fit). */
-function Line({ className, icon, action, children }: { className: string; icon?: ReactNode; action?: ReactNode; children: ReactNode }) {
+const STATUS_ICON: Record<string, typeof Icons.Hand> = {
+  checkIn: Icons.Hand,
+  lecturer: Icons.Chat,
+  needed: Icons.AlertTriangle,
+  clash: Icons.Overlap,
+  window: Icons.Hand,
+  maybe: Icons.Calendar,
+  lab: Icons.ClipboardCheck,
+};
+
+/** The row's line of statuses, across the row: the statuses and their why on one line where they fit, its actions at the row's end (under them when both don't fit). */
+function Line({ statuses, action }: { statuses: Status[]; action?: ReactNode }) {
+  const why = statuses
+    .map((status) => status.why)
+    .filter(Boolean)
+    .join(" ");
   return (
-    <div className={cx("mt-3 flex flex-wrap items-start gap-x-6 gap-y-1.5 text-small", className)}>
-      <p className="flex min-w-0 items-start gap-2">
-        {icon}
-        <span className="min-w-0">{children}</span>
-      </p>
+    <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-small">
+      <div className="flex min-w-0 items-center gap-1">
+        <StatusLine statuses={statuses} icons={STATUS_ICON} className="mt-0" />
+        {/* Above the row's button, so the pointer and Tab reach it. */}
+        {why && (
+          <span className="pointer-events-auto relative flex">
+            <WhyButton why={why} />
+          </span>
+        )}
+      </div>
       {action && <span className="ml-auto flex flex-wrap items-center gap-x-4 gap-y-1">{action}</span>}
     </div>
-  );
-}
-
-function Warning({ children }: { children: ReactNode }) {
-  return (
-    <Line className="font-medium text-warning-fg" icon={<Icons.AlertTriangle className="mt-0.5 size-3.5 shrink-0" weight="bold" />}>
-      {children}
-    </Line>
-  );
-}
-
-function Quiet({ icon, action, children }: { icon?: ReactNode; action?: ReactNode; children: ReactNode }) {
-  return (
-    <Line className="text-muted" icon={icon} action={action}>
-      {children}
-    </Line>
   );
 }
 
@@ -885,7 +993,7 @@ function RowLink({ icon, children, ...rest }: { icon: ReactNode; children: React
   return (
     <button
       type="button"
-      className="focus-ring pointer-events-auto relative inline-flex items-center gap-1 rounded font-medium text-accent-fg hover:underline"
+      className="focus-ring pointer-events-auto relative inline-flex items-center gap-1 rounded-tag font-medium text-accent-fg hover:underline"
       {...rest}
     >
       {icon}
@@ -894,54 +1002,48 @@ function RowLink({ icon, children, ...rest }: { icon: ReactNode; children: React
   );
 }
 
-// ---------------------------------------------------------------- said once, under the groups
+// ---------------------------------------------------------------- how it's counted, closed until opened
 
-/** How attendance is recorded, and that later classes are estimated: once for every course. */
-function Footer({ attendance }: { attendance: Attendance }) {
+/** How attendance is recorded and that later classes are estimated: said for every course, in "Cara menghitungnya". */
+function useDates(attendance: Attendance): string {
   const t = useT();
   const f = useFormat();
   const { lastDay, schedule } = attendance;
   const estimated = attendance.courses.some((c) => c.health.left.estimated);
-  let dates: string;
-  if (!lastDay) dates = t("presence.estimateNoDate");
-  else if (!estimated || !schedule.length) dates = t("presence.estimateEnd", { date: dayLabel(f, noonOf(lastDay)) });
-  else {
-    // SIX's timetable comes a month at a time: it covers through the end of its last month.
-    const [year, month] = wibDay(Math.max(...schedule.map((s) => s.start)))
-      .slice(0, 7)
-      .split("-")
-      .map(Number);
-    const covered = Date.UTC(year, month, 1) - 7 * HOUR - DAY / 2;
-    dates = t("presence.estimate", { date: dayLabel(f, noonOf(lastDay)), day: f.dayMonth(covered) });
-  }
-  return (
-    <div className="mt-8 space-y-1.5 text-small text-muted">
-      <p className="flex items-start gap-2">
-        <Icons.Hand className="mt-0.5 size-3.5 shrink-0" />
-        {t("presence.footer")}
-      </p>
-      <p className="flex items-start gap-2">
-        <Icons.Calendar className="mt-0.5 size-3.5 shrink-0" />
-        {dates}
-      </p>
-    </div>
-  );
+  if (!lastDay) return t("presence.estimateNoDate");
+  if (!estimated || !schedule.length) return t("presence.estimateEnd", { date: dayLabel(f, noonOf(lastDay)) });
+  // SIX's timetable comes a month at a time: it covers through the end of its last month.
+  const [year, month] = wibDay(Math.max(...schedule.map((s) => s.start)))
+    .slice(0, 7)
+    .split("-")
+    .map(Number);
+  const covered = Date.UTC(year, month, 1) - 7 * HOUR - DAY / 2;
+  return t("presence.estimate", { date: dayLabel(f, noonOf(lastDay)), day: f.dayMonth(covered) });
 }
 
-function HowCounted({ lastDay }: { lastDay: string | null }) {
+/** `recording`: lectures still on, with SIX: how attendance is recorded and which dates are estimated come first. */
+function HowCounted({ attendance, recording }: { attendance: Attendance; recording: boolean }) {
   const t = useT();
   const f = useFormat();
   const open = useOpenExternal();
   const student = useDataset("six.student");
+  const dates = useDates(attendance);
+  const { lastDay } = attendance;
   const date = lastDay ? dayLabel(f, noonOf(lastDay)) : "-";
   return (
-    <details className="group mt-6">
-      <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-1.5 rounded text-small font-medium text-muted transition-colors duration-150 select-none hover:text-fg [&::-webkit-details-marker]:hidden">
-        <Icons.ChevronRight className="size-3.5 transition-transform duration-150 group-open:rotate-90" />
+    <details className="group mt-8">
+      <summary className="focus-ring inline-flex cursor-pointer list-none items-center gap-1.5 rounded-tag text-small font-medium text-muted transition-colors duration-quick select-none hover:text-fg [&::-webkit-details-marker]:hidden">
+        <Icons.ChevronRight className="size-3.5 transition-transform duration-quick group-open:rotate-90" />
         {t("presence.how")}
       </summary>
       <div className="mt-3 max-w-[72ch] pl-5 text-small leading-[1.6] text-muted">
         <ul className="list-disc space-y-1 pl-4">
+          {recording && (
+            <>
+              <li>{t("presence.footer")}</li>
+              <li>{dates}</li>
+            </>
+          )}
           <li>{t("presence.how.six")}</li>
           <li>{t("presence.how.left", { date })}</li>
           <li>{t("presence.how.uncertain")}</li>

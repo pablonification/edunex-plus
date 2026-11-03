@@ -17,16 +17,14 @@ export const academicStrings = {
     id: "KRS disetujui, tapi ada {count} bentrok",
     en: { one: "KRS approved, but {count} class clashes", other: "KRS approved, but {count} classes clash" },
   },
-  "krs.clash.next": { id: "Tanyakan ke dosen {a} dan {b} jam mana yang dipakai.", en: "Ask the lecturers of {a} and {b} which time counts." },
+  "krs.clash.next": { id: "Tanyakan ke dosennya jam mana yang dipakai.", en: "Ask their lecturers which time counts." },
   "krs.clash.nextUrs": {
-    id: "Tanyakan ke dosen {a} dan {b} jam mana yang dipakai, atau ubah KRS di masa URS {range}.",
-    en: "Ask the lecturers of {a} and {b} which time counts, or change your KRS in the URS window, {range}.",
+    id: "Tanyakan ke dosennya jam mana yang dipakai, atau ubah KRS di masa URS {range}.",
+    en: "Ask their lecturers which time counts, or change your KRS in the URS window, {range}.",
   },
   "krs.toSchedule": { id: "Lihat di Jadwal", en: "See it in Schedule" },
   "krs.clashWith": { id: "Bentrok dengan {code}", en: "Clashes with {code}" },
   "krs.sameClass": { id: "Semua di kelas {classNo}", en: "All in class {classNo}" },
-  "krs.allApproved": { id: "semua disetujui dosen wali", en: "all approved by your advisor" },
-  "krs.from": { id: "Dari SIX", en: "From SIX" },
   "krs.advisor": { id: "Dosen wali: {name}", en: "Academic advisor: {name}" },
   "krs.stage.send": { id: "KRS belum dikirim", en: "KRS not sent yet" },
   "krs.stage.send.hint": {
@@ -64,12 +62,10 @@ export const academicStrings = {
   "krs.approved": { id: "Disetujui", en: "Approved" },
   "krs.notApproved": { id: "Belum disetujui", en: "Not approved" },
   "krs.overlap": {
-    id: "{a} dan {b} bentrok di {count} pertemuan, berikutnya {when}. SIX menerima KRS ini tanpa peringatan.",
-    en: {
-      one: "{a} and {b} overlap at {count} meeting, next {when}. SIX accepted this KRS without a warning.",
-      other: "{a} and {b} overlap at {count} meetings, next {when}. SIX accepted this KRS without a warning.",
-    },
+    id: "{a} dan {b} bentrok di {count} pertemuan, berikutnya {when}.",
+    en: { one: "{a} and {b} overlap at {count} meeting, next {when}.", other: "{a} and {b} overlap at {count} meetings, next {when}." },
   },
+  "krs.overlapWhy": { id: "SIX menerima KRS ini tanpa peringatan.", en: "SIX accepted this KRS without a warning." },
   "krs.overlap.past": {
     id: "{a} dan {b} sempat bentrok, terakhir {when}, {count} pertemuan.",
     en: { one: "{a} and {b} overlapped, last {when}, {count} meeting.", other: "{a} and {b} overlapped, last {when}, {count} meetings." },
@@ -85,10 +81,7 @@ export const academicStrings = {
   "bills.deadline": { id: "Batas bayar", en: "Pay by" },
   "bills.otherSix": { id: "SIX menulis {date}. Ikuti yang lebih awal.", en: "SIX says {date}. Go by the earlier date." },
   "bills.otherItb": { id: "Kalender ITB menulis {date}. Ikuti yang lebih awal.", en: "ITB's calendar says {date}. Go by the earlier date." },
-  "bills.expect": {
-    id: "Tagihan biasanya muncul beberapa minggu sebelum batas bayar, {date}.",
-    en: "The bill usually shows up a few weeks before the deadline, {date}.",
-  },
+  "bills.expectWhy": { id: "Tagihan biasanya muncul beberapa minggu sebelum batas bayar.", en: "The bill usually shows up a few weeks before the deadline." },
   "bills.expectNoDate": { id: "Tagihan biasanya muncul menjelang semester dimulai.", en: "The bill usually shows up shortly before the semester starts." },
   "bills.from": { id: "Dari SIX", en: "From SIX" },
   "bills.thisTerm": { id: "Semester ini", en: "This semester" },
@@ -115,10 +108,6 @@ export const academicStrings = {
 
   // Kalender akademik tab
   "deadlines.empty": { id: "Kalender akademik ITB belum terbaca", en: "ITB's academic calendar isn't read yet" },
-  "deadlines.intro": {
-    id: "Tenggat semester ini dan semester depan, dengan artinya untukmu.",
-    en: "This semester's and next semester's deadlines, with what each means for you.",
-  },
   "deadlines.from": { id: "Dari", en: "From" },
   "deadlines.source": { id: "Kalender Pendidikan ITB {years}", en: "ITB's academic calendar {years}" },
   "deadlines.sourcePlain": { id: "Kalender Pendidikan ITB", en: "ITB's academic calendar" },
@@ -134,10 +123,6 @@ export const academicStrings = {
   "deadlines.view": { id: "Tampilan kalender", en: "Calendar view" },
   "deadlines.view.mine": { id: "Untukmu", en: "For you" },
   "deadlines.view.all": { id: "Kalender lengkap", en: "Full calendar" },
-  "calendar.intro": {
-    id: "Semua acara yang dicantumkan ITB, dengan judul dari ITB, termasuk semester pendek.",
-    en: "Every event ITB lists, as ITB titles it, short semesters included.",
-  },
   "calendar.search": { id: "Cari, mis. cuti, wisuda, UTS", en: "Search, e.g. cuti, wisuda, UTS" },
   "calendar.chips": { id: "Saring menurut jenis", en: "Filter by kind" },
   "calendar.group.exams": { id: "Ujian & nilai", en: "Exams & grades" },

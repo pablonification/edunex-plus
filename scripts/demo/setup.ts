@@ -402,6 +402,7 @@ const hooks: DemoHooks = {
   fetchFile: (url, init) => world.fetch(url, init),
   platform,
   relay: process.env.EDUNEX_DEMO_RELAY === "1" ? PRETEND_RELAY : undefined,
+  pressCheckIn: (meetingId) => world.six.closeCheckIn(meetingId),
 };
 
 globalThis.__edunexPlusDemo = hooks;

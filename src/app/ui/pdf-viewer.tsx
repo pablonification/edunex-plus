@@ -12,7 +12,7 @@
 // note, in a panel beside the pages that follows the page being read, with a
 // mark on each page that has one (./page-notes.tsx). pdf.js loads on first
 // use (./pdf-engine.ts).
-import { TextTIcon } from "@phosphor-icons/react/dist/csr/TextT";
+import { TextT16Filled, TextT16Regular, TextT20Filled, TextT20Regular } from "@fluentui/react-icons/headless/svg/text-t";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   type CSSProperties,
@@ -54,7 +54,7 @@ import {
 import { FILL_AREA, FieldBox, type FillState, SaveBar, TEXT_SIZES, TextBox, useFill } from "./pdf-fill";
 import { Failed, Loading, Toolbar } from "./viewer-frame";
 
-const TextIcon = icon(TextTIcon);
+const TextIcon = icon([TextT16Regular, TextT16Filled], [TextT20Regular, TextT20Filled]);
 
 /** 100%: a page at its printed size (PDF points are 1/72 inch, the screen's CSS pixels 1/96). */
 const ACTUAL = 96 / 72;
@@ -222,7 +222,7 @@ export function PdfViewer({
             if (event.target instanceof HTMLElement && (event.target.dataset.editing || fillEscape.current(event.target))) event.preventDefault();
           }}
           className={cx(
-            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-2xl bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "fixed inset-x-3 bottom-3 z-(--z-dialog) flex flex-col overflow-hidden rounded-dialog bg-raised text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
             // Below macOS's traffic lights, and below the top bar where Windows and Linux draw their window buttons.
             platform === "darwin" ? "top-10" : platform ? "top-[calc(var(--title-bar)+--spacing(2))]" : "top-3",
@@ -563,7 +563,7 @@ function Reader({
                 setDraft(null);
               }
             }}
-            className="h-7 w-11 rounded-md border border-field-edge bg-surface text-center text-small text-fg tabular-nums focus:border-focus focus:outline-none"
+            className="h-7 w-11 rounded-item border border-field-edge bg-surface text-center text-small text-fg tabular-nums focus:border-focus focus:outline-none"
           />
           <span id={total} className="tabular-nums">
             {t("pdf.of", { count: doc.pages })}
@@ -627,7 +627,7 @@ function Reader({
           onMouseLeave={highlighter.onMouseLeave}
           onMouseUp={placing ? undefined : highlighter.onMouseUp}
           className={cx(
-            "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-visible:shadow-[inset_0_0_0_2px_var(--focus)]",
+            "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-ring-inset",
             // Waiting for the spot: a click on a page puts the text there instead of selecting the page's own.
             placing && "cursor-crosshair [&_.pdf-text]:pointer-events-none",
           )}
@@ -871,7 +871,7 @@ function PageView({
         })
       }
       // Paper in both themes: its boxes and controls are drawn light, like the page, and so is the focus ring on its links and fields.
-      className="relative shrink-0 bg-white shadow-card ring-1 ring-black/5 [--focus:var(--accent)] [color-scheme:light]"
+      className="relative shrink-0 bg-white ring-1 ring-black/5 [--focus:var(--accent)] [color-scheme:light]"
     >
       <div ref={paper} aria-hidden />
       {/* Over the drawing, under the text: the mouse selects the text through them. Measured from the text, which covers the page. */}
@@ -890,7 +890,7 @@ function PageView({
       <div ref={text} className="pdf-text" />
       {near &&
         links.map((link) => {
-          const className = "focus-ring absolute rounded-xs hover:bg-accent/12";
+          const className = "focus-ring absolute rounded-mark hover:bg-accent/12";
           return link.url ? (
             <a
               key={`${link.left}:${link.top}`}

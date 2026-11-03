@@ -16,7 +16,7 @@ export function QrCode({ text, label }: { text: string; label: string }) {
   const quiet = 3;
   const box = size + quiet * 2;
   return (
-    <svg role="img" aria-label={label} viewBox={`${-quiet} ${-quiet} ${box} ${box}`} shapeRendering="crispEdges" className="size-36 shrink-0 rounded-lg">
+    <svg role="img" aria-label={label} viewBox={`${-quiet} ${-quiet} ${box} ${box}`} shapeRendering="crispEdges" className="size-36 shrink-0 rounded-control">
       <rect x={-quiet} y={-quiet} width={box} height={box} fill="#fff" />
       <path d={d} fill="#000" />
     </svg>

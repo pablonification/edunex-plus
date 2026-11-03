@@ -152,11 +152,11 @@ function Choices({ code, onDone }: { code: string; onDone: () => void }) {
           type="button"
           {...radio(0)}
           className={cx(
-            "focus-ring flex h-8 w-full items-center gap-2 rounded-lg px-2 text-left text-small transition-colors duration-150 hover:bg-hover",
+            "focus-ring flex h-8 w-full items-center gap-2 rounded-control px-2 text-left text-small transition-colors duration-quick hover:bg-hover",
             choice === null ? "bg-selected font-semibold" : "font-medium",
           )}
         >
-          <Swatch color={courseTone(automatic)} className="size-3 rounded-xs" />
+          <Swatch color={courseTone(automatic)} className="size-3 rounded-mark" />
           <span className="min-w-0 flex-1 truncate">{t("courseColor.autoChoice", { color: colorName(t, automatic) })}</span>
           {choice === null && <Icons.Check className="size-3.5 shrink-0" weight="bold" />}
         </button>
@@ -166,10 +166,10 @@ function Choices({ code, onDone }: { code: string; onDone: () => void }) {
             const held = holders(id);
             return (
               <div key={id} className="flex flex-col items-center gap-0.5">
-                <button type="button" {...radio(index + 1)} aria-label={label(id)} className="focus-ring grid size-9 place-items-center rounded-lg">
+                <button type="button" {...radio(index + 1)} aria-label={label(id)} className="focus-ring grid size-9 place-items-center rounded-control">
                   <Swatch
                     color={courseTone(id)}
-                    className={cx("grid size-7 place-items-center rounded-md", checked && "ring-2 ring-fg ring-offset-2 ring-offset-raised")}
+                    className={cx("grid size-7 place-items-center rounded-item", checked && "ring-2 ring-fg ring-offset-2 ring-offset-raised")}
                   >
                     {checked && <Icons.Check className="size-4 text-raised" weight="bold" />}
                   </Swatch>

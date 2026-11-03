@@ -34,14 +34,14 @@ describe("the recorded Thursday morning (8 Oct, 08:12)", () => {
     ]);
     expect(needs.map((n) => n.rank)).toEqual([1, 2, 3, 4, 5, 6]);
 
-    // PL3002: Edunex's window is open while SIX's class runs (moved: until 10:00, usually 09:30); SIX counts.
+    // PL3002: Edunex's window is open while SIX's class runs (moved: until 10:00, usually 09:30); SIX counts, and Edunex may too.
     const presence = needs[0];
     expect(presence).toMatchObject({
       kind: "presence",
       course: "PL3002",
       open: true,
       activity: "course",
-      countedIn: "six",
+      countedIn: "both",
       sources: ["edunex", "six"],
       at: at("2026-10-08T09:30:00"),
     });
@@ -114,9 +114,9 @@ describe("a Presence window opening midday", () => {
   });
 });
 
-describe("a Presence window of a course that counts in SIX", () => {
-  it("is optional: not announced ahead, and the Task it asks for keeps its own deadline item", async () => {
-    // PL3002 counts in SIX (6 of 7; Edunex recorded 1 of its 6 windows). Its lecturer ties Thursday's window to a Task.
+describe("a Presence window of a course SIX counts too", () => {
+  it("is never optional: announced ahead, and it speaks for the Task it asks for", async () => {
+    // PL3002 has SIX's count (6 of 7) and Edunex recorded 1 of its 6 windows: no system says the lecturer doesn't use Edunex's.
     const h = await startHome({ now: "2026-10-12T20:00:00+07:00" });
     h.world.edunex.moveDeadline(117873, "2026-10-15T23:59:00+07:00");
     const id = h.world.edunex.schedulePresence(95001, 86778, {
@@ -126,12 +126,11 @@ describe("a Presence window of a course that counts in SIX", () => {
     });
     await h.refresh();
     const needs = needsYou(h.home());
-    expect(find(needs, `presence:${id}`)).toBeUndefined();
-    expect(find(needs, "task:117873")).toMatchObject({ band: "later", reason: "due" });
-    // Open, it's said as optional; the Task still stands on its own.
+    expect(find(needs, `presence:${id}`)).toMatchObject({ open: false, countedIn: "both", task: { id: 117873 } });
+    expect(find(needs, "task:117873")).toBeUndefined();
+    // Open, it's the thing to do now.
     await h.until("2026-10-15T08:01:00+07:00");
-    expect(find(needsYou(h.home()), `presence:${id}`)).toMatchObject({ open: true, countedIn: "six", task: { id: 117873 } });
-    expect(find(needsYou(h.home()), "task:117873")).toMatchObject({ band: "now" });
+    expect(find(needsYou(h.home()), `presence:${id}`)).toMatchObject({ open: true, band: "now", countedIn: "both", task: { id: 117873 } });
   });
 });
 

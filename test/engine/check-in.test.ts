@@ -77,6 +77,57 @@ describe("reading a class's popup for Tandai Hadir", () => {
   });
 });
 
+describe("back from SIX or Edunex: read again at once", () => {
+  /** A dataset as the engine holds it now. */
+  const dataset = <T>(app: Awaited<ReturnType<typeof inClass>>, name: string) => app.engine.snapshot().datasets.find((d) => d.name === name)!.value as T;
+  const checkIn = (app: Awaited<ReturnType<typeof inClass>>) => dataset<Record<string, { state: string; pressedAt?: number }>>(app, "six.checkIn")[PL3002];
+
+  it("pressed in the app's SIX window between two looks: read again at once, said as pressed, and no alert says it opened", async () => {
+    const app = await inClass("2026-10-08T07:30:00");
+    await app.until("2026-10-08T08:05:00+07:00");
+    expect(checkIn(app)).toMatchObject({ state: "waiting" });
+    const read = app.popups().length;
+    // The lecturer opened it, and the Student pressed it in the SIX window, all between two looks: SIX counts them.
+    app.world.six.setAttendance("PL3002", 7, 8);
+    const pressed = app.engine.act("six", "checkInPressed", { meetingId: PL3002 });
+    await app.wait(MINUTE);
+    await pressed;
+    expect(app.popups()).toHaveLength(read + 1);
+    expect(checkIn(app)).toMatchObject({ state: "gone", pressedAt: wib("2026-10-08T08:05:00") });
+    expect(app.checkIns()).toEqual([]);
+    // SIX's count is read again with it, not at the next hourly read.
+    const courses = app.engine.snapshot().datasets.find((d) => d.name === "six.courses")?.value as { code: string; attendance: unknown }[];
+    expect(courses.find((c) => c.code === "PL3002")?.attendance).toEqual({ attended: 7, held: 8 });
+  });
+
+  it("pressed, but SIX still shows the button: the press didn't take, so it's open, and said so", async () => {
+    const app = await inClass("2026-10-08T07:30:00");
+    await app.until("2026-10-08T08:05:00+07:00");
+    app.world.six.openCheckIn(PL3002);
+    const pressed = app.engine.act("six", "checkInPressed", { meetingId: PL3002 });
+    await app.wait(MINUTE);
+    await pressed;
+    expect(checkIn(app)).toMatchObject({ state: "open" });
+    expect(checkIn(app).pressedAt).toBeUndefined();
+    expect(app.checkIns().map((n) => n.kind)).toEqual(["presenceOpen"]);
+  });
+
+  it("back from Edunex: the Presence recorded there shows at once, and coming back again within a minute reads nothing more", async () => {
+    const app = await inClass("2026-10-08T08:10:00");
+    const presence = () => dataset<Record<string, { id: number; recorded: unknown }[]>>(app, "edunex.presence").PL3002;
+    expect(presence().find((p) => p.id === 2194342)?.recorded).toBeNull();
+    app.world.edunex.markPresent(2194342);
+    const back = app.engine.recheckAttendance("edunex");
+    await app.wait(MINUTE / 2);
+    await back;
+    expect(presence().find((p) => p.id === 2194342)?.recorded).toMatchObject({ present: true });
+    // Flicking between windows isn't another trip.
+    app.world.edunex.markPresent(2194343);
+    await app.engine.recheckAttendance("edunex");
+    expect(presence().find((p) => p.id === 2194343)?.recorded ?? null).toBeNull();
+  });
+});
+
 describe("the Tandai Hadir alerts", () => {
   it("the moment it shows: one urgent alert that opens SIX on the class, on the phone too, never twice", async () => {
     const app = await inClass("2026-10-08T07:30:00");

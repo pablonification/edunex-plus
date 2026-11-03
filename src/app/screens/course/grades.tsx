@@ -14,7 +14,6 @@ import { usePlaceState } from "../../nav";
 import { useBridge, useDataset } from "../../store";
 import { Button, IconButton, Segmented } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Card } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
 import { dismissToast, toast } from "../../ui/overlays";
@@ -27,7 +26,7 @@ export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenMod
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_260px] items-start gap-8 max-[1180px]:grid-cols-1">
       <Calculator page={page} onOpenModules={onOpenModules} />
-      <Card className="px-4 py-3.5">
+      <div>
         <p className="text-small font-semibold text-muted">{t("grade.edunex")}</p>
         {grade ? (
           <p className="mt-2 text-body">
@@ -40,7 +39,7 @@ export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenMod
             {t("grade.unpublished")}
           </p>
         )}
-      </Card>
+      </div>
     </div>
   );
 }
@@ -108,7 +107,7 @@ function ScoreInput({
           if (!readScore(shown, required).problem) setText(null);
         }}
         className={cx(
-          "focus-ring h-8 rounded-md border bg-surface px-2 text-right text-body tabular-nums shadow-[inset_0_1px_1px_rgb(0_0_0/0.04)] transition-colors duration-150",
+          "focus-ring h-8 rounded-item border bg-surface px-2 text-right text-body tabular-nums transition-colors duration-quick",
           width,
           problem ? "border-danger-fg" : highlight ? "border-warning-fg ring-2 ring-warning-bg" : "border-field-edge",
         )}
@@ -141,7 +140,7 @@ function PartName({ name, onRename }: { name: string; onRename: (name: string) =
           if (event.key === "Enter") event.currentTarget.blur();
           if (event.key === "Escape") setEditing(false);
         }}
-        className="focus-ring h-8 w-full rounded-md border border-field-edge bg-surface px-2 font-medium"
+        className="focus-ring h-8 w-full rounded-item border border-field-edge bg-surface px-2 font-medium"
       />
     );
   return (

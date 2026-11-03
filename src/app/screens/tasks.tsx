@@ -7,7 +7,7 @@
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { type DragEvent, lazy, type ReactNode, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../core/actions/tasks";
-import { attendanceWindow, type CountedIn, presenceOptional } from "../../core/attendance";
+import { attendanceWindow } from "../../core/attendance";
 import { introModule } from "../../core/course-materials";
 import { taskDoneKey, taskPutAway } from "../../core/done";
 import type { Exam } from "../../core/exams";
@@ -36,7 +36,6 @@ import {
 } from "../../core/tasks";
 import { lateSnoozable, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../core/todo";
 import { answerShape, editableInApp } from "../answer-html";
-import { useAttendance } from "../attendance";
 import { ActionError, errorKey } from "../bridge";
 import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
@@ -54,17 +53,19 @@ import { useDone, useSnoozes } from "../snoozes";
 import { useBridge, useDataset, useStatus } from "../store";
 import { Button, Segmented, useRadioKeys } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, CourseDot, EmptyState, ProgressBar, Skeleton, StatusChip, StatusGlyph, Tag } from "../ui/display";
+import { Card, CourseDot, EmptyState, ProgressBar, Skeleton, StatusChip, StatusGlyph } from "../ui/display";
+import { Explained, STATUS_TONE, WhyButton } from "../ui/explain";
 import { Icons } from "../ui/icons";
 import { factsLabel, List, Row as ListRow, Meta, Notice as NoticeBox, Page, PageHeader, Section } from "../ui/layout";
 import { Menu } from "../ui/menu";
 import { stillMotion } from "../ui/motion/animate";
 import { DisclosurePanel, disclosureTrigger } from "../ui/motion/disclosure";
 import { PresenceList } from "../ui/motion/presence-list";
-import { Dialog, ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, toast, useReturnFocus } from "../ui/overlays";
+import { Dialog, ignoreClosingClick, PANEL_MOTION_CLASS, SCRIM_CLASS, Tooltip, toast, useReturnFocus } from "../ui/overlays";
 import type { RichEditorHandle } from "../ui/rich-editor";
 import { plainText } from "../ui/rich-text";
 import { ExamPartRow, PastExamRow, PeriodRow, takeHomeWhy } from "./exam";
+import { PLAIN_LIST } from "./plain-list";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -78,11 +79,6 @@ interface Row {
 /** A course's name and color, for a row's "course · module" line. */
 function useCourse(code: string): TermCourse | undefined {
   return useTermCourses()?.find((course) => course.code === code);
-}
-
-/** Where a course's attendance counts: where SIX counts, a Task's attendance window is optional. */
-function useCountedIn(code: string): CountedIn | undefined {
-  return useAttendance()?.courses.find((entry) => entry.course.code === code)?.health.countedIn;
 }
 
 // ---------------------------------------------------------------- Tugas & Ujian
@@ -197,7 +193,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
       ) : (
         <>
           {during.length > 0 && (
-            <List label={t("exams.title")} className="mb-10">
+            <List label={t("exams.title")} className={cx("mb-10", PLAIN_LIST)}>
               {during.map((item) => (
                 <TodoRow key={item.key} item={item} />
               ))}
@@ -218,7 +214,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
               </EmptyState>
               {/* What's still to know though nothing is to do: an exam period ahead, an exam with no date. */}
               {rest.length > 0 && (
-                <List label={t("exams.title")} className="mt-6">
+                <List label={t("exams.title")} className={cx("mt-6", PLAIN_LIST)}>
                   {rest.map((item) => (
                     <TodoRow key={item.key} item={item} />
                   ))}
@@ -229,7 +225,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
             groups.map((group) => (
               <Section key={group.group} id={`tasks-${group.group}`} title={t(group.title)} count={todoCount(group.items) || undefined}>
                 {group.items.length > 0 && (
-                  <List label={t(group.title)}>
+                  <List label={t(group.title)} className={PLAIN_LIST}>
                     {/* A row put off fades out, and focus moves on to the next (or to "ditunda" under them). */}
                     <PresenceList>
                       {group.items.map((item) => (
@@ -292,14 +288,14 @@ export function PutOff({ putOff }: { putOff: Todo["putOff"] }) {
             data-snoozed=""
             aria-expanded={open}
             onClick={() => setOpen(!open)}
-            className="focus-ring rounded font-medium text-accent-fg hover:underline"
+            className="focus-ring rounded-tag font-medium text-accent-fg hover:underline"
           >
             {open ? t("snooze.hideList") : t("snooze.showList")}
           </button>
         </Meta>
       </div>
       {open && (
-        <List label={t("snooze.list")} className="mt-2.5">
+        <List label={t("snooze.list")} className={cx("mt-2.5", PLAIN_LIST)}>
           {putOff.map(({ item, entry }) => (
             <PutOffRow key={item.key} item={item} entry={entry} />
           ))}
@@ -358,7 +354,7 @@ export function DoneGroups({ done, exams, inCourse = false }: { done: Todo["done
     <>
       {sections.map((section) => (
         <Section key={section.id} id={`${inCourse ? "course" : "tasks"}-${section.id}`} title={t(section.title)} count={section.count}>
-          <List label={t(section.title)}>
+          <List label={t(section.title)} className={PLAIN_LIST}>
             <PresenceList>
               {section.id === "pastExams"
                 ? done.pastExams.map((past) => <PastExamRow key={past.exam.id} past={past} inCourse={inCourse} />)
@@ -379,7 +375,7 @@ function FilterChip({ radio, children }: { radio: ReturnType<ReturnType<typeof u
       type="button"
       {...radio}
       className={cx(
-        "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small font-medium transition-colors duration-150",
+        "focus-ring inline-flex h-7 items-center gap-1.5 rounded-full border px-3 text-small font-medium transition-colors duration-quick",
         radio["aria-checked"] ? "border-transparent bg-selected text-fg" : "border-edge text-muted hover:bg-hover hover:text-fg",
       )}
     >
@@ -439,7 +435,7 @@ const LOUD: readonly TaskStatus[] = ["draft", "overdue", "in_review", "returned"
 export function TaskRows({ tasks, meta = "course", label }: { tasks: readonly Task[]; meta?: "course" | "module" | "none"; label?: string }) {
   const now = useNow();
   return (
-    <List label={label}>
+    <List label={label} className={PLAIN_LIST}>
       {tasks.map((task) => (
         <TaskRow key={task.id} task={task} status={taskStatus(task, now)} meta={meta} />
       ))}
@@ -466,15 +462,27 @@ function TaskRow({
   const course = useCourse(task.courseCode);
   const module = moduleLabel(t, task.module);
   const chip = LOUD.includes(status) && !(late && status === "overdue");
+  const signal = useSignal(task, status);
   return (
     <ListRow
       id={id}
       onClick={() => go({ screen: "task", taskId: task.id })}
-      actions={actions}
+      actions={
+        signal?.why ? (
+          <>
+            <WhyButton why={signal.why} />
+            {actions}
+          </>
+        ) : (
+          actions
+        )
+      }
       title={
         exam ? (
           <span className="flex min-w-0 items-center gap-2">
-            <Tag>{t(`exam.kind.${exam.kind}`)}</Tag>
+            <span data-exam-kind="" className="shrink-0 font-semibold text-muted">
+              {t(`exam.kind.${exam.kind}`)}
+            </span>
             <span className="truncate">{course?.name ?? exam.courseCode}</span>
           </span>
         ) : (
@@ -489,7 +497,9 @@ function TaskRow({
             {task.title}
           </Meta>
         ) : meta === "course" ? (
-          <Place task={task} />
+          <Meta truncate>
+            <CourseCodeMark task={task} />
+          </Meta>
         ) : meta === "module" && module ? (
           <Meta>{module}</Meta>
         ) : undefined
@@ -502,7 +512,7 @@ function TaskRow({
       }
     >
       {late && <span className="mt-1 block text-small text-muted">{t("home.need.task.overdue")}</span>}
-      <Signal task={task} status={status} />
+      {signal && <span className="mt-1 flex text-small text-muted [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.5">{signal.node}</span>}
       <span className="sr-only">{!chip && !late && t(`taskStatus.${status}`)}</span>
     </ListRow>
   );
@@ -556,23 +566,6 @@ function CourseCodeMark({ task }: { task: Task }) {
   );
 }
 
-/** "● II4091 · Modul 5 · Tugas": the course and module, as Edunex lays the course out. */
-function Place({ task }: { task: Task }) {
-  const t = useT();
-  const course = useCourse(task.courseCode);
-  const color = useCourseColor()(task.courseCode);
-  const where = moduleLabel(t, task.module) ?? course?.name ?? null;
-  return (
-    <Meta truncate>
-      <span className="inline-flex items-center gap-1.5 font-medium text-fg/80">
-        <CourseDot color={color} className="size-2" />
-        {task.courseCode}
-      </span>
-      {where}
-    </Meta>
-  );
-}
-
 function moduleLabel(t: Translate, module: TaskModule | null): string | null {
   if (!module) return null;
   const name = moduleName(module);
@@ -581,58 +574,69 @@ function moduleLabel(t: Translate, module: TaskModule | null): string | null {
 
 /**
  * At most one thing Edunex's list doesn't say, the one that changes what to
- * do: changed after the Student handed in, attendance taken by handing in, a
+ * do: changed after the Student handed in, attendance taken by handing in (its
+ * window in a few words, the rule behind it for the row's info button), a
  * short window, not open yet.
  */
-function Signal({ task, status }: Row) {
+function useSignal(task: Task, status: TaskStatus): { node: ReactNode; why?: string } | null {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const presence = useDataset("edunex.presence");
   const { entries: handled } = useDone();
   const edit = editView(task, useDataset("edunex.taskEdits"), handled);
-  const optional = presenceOptional(useCountedIn(task.courseCode));
-  let signal: ReactNode = null;
   const window = isOpenStatus(status) ? attendanceWindow(task, presence, now) : null;
   // What the Student marked on its page: Edunex still says it's to do, so the list says why it isn't.
   const marked = isOpenStatus(status) ? taskPutAway(task, handled) : undefined;
   if (marked)
-    signal = (
-      <span>
-        <Icons.Check className="size-3.5 shrink-0" weight="bold" />
-        {t(`task.marked.${marked.how as MarkedHow}`)}
-      </span>
-    );
+    return {
+      node: (
+        <span>
+          <Icons.Check className="size-3.5 shrink-0" weight="bold" />
+          {t(`task.marked.${marked.how as MarkedHow}`)}
+        </span>
+      ),
+    };
   // Not once checked, nor when nothing the app compares changed.
-  else if (edit?.afterSubmit && task.editedAt !== null && !edit.checked && edit.state !== "none")
-    signal = (
-      <span className="font-medium text-warning-fg">
-        <Icons.PenLine className="size-3.5 shrink-0" />
-        <Meta>{t("task.editedAfterSubmitLine", { date: f.dayMonth(task.editedAt) })}</Meta>
-      </span>
-    );
-  else if (window)
-    signal = (
-      <span>
-        <Icons.Hand className="size-3.5" />
-        {t(optional ? "task.attendanceLineOptional" : "task.attendanceLine", {
-          when: `${f.relativeDay(window.opensAt)} ${f.timeRange(window.opensAt, window.closesAt)}`,
-        })}
-      </span>
-    );
-  else if (task.opensAt !== null && notOpenYet(task, now)) signal = <span>{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span>;
-  else if (shortWindow(task) !== null && task.opensAt !== null && task.dueAt !== null)
-    signal = (
-      <span>
-        <Icons.Zap className="size-3.5" />
-        <Meta>
-          {t("task.shortWindow")}
-          {f.timeRange(task.opensAt, task.dueAt)}
-        </Meta>
-      </span>
-    );
-  if (!signal) return null;
-  return <span className="mt-1 flex text-small text-muted [&>span]:inline-flex [&>span]:items-center [&>span]:gap-1.5">{signal}</span>;
+  if (edit?.afterSubmit && task.editedAt !== null && !edit.checked && edit.state !== "none")
+    return {
+      node: (
+        <span className="font-medium text-warning-fg">
+          <Icons.PenLine className="size-3.5 shrink-0" />
+          <Meta>{t("task.editedAfterSubmitLine", { date: f.dayMonth(task.editedAt) })}</Meta>
+        </span>
+      ),
+    };
+  if (window)
+    return {
+      node: (
+        <span>
+          <Icons.Hand className="size-3.5" />
+          {t("task.attendanceLine", { when: attendanceWhen(f, window, task.dueAt) })}
+        </span>
+      ),
+      why: t("task.note.attendance", { date: f.relativeDay(window.opensAt), time: f.timeRange(window.opensAt, window.closesAt) }),
+    };
+  if (task.opensAt !== null && notOpenYet(task, now)) return { node: <span>{t("task.opens", { when: f.dueLabel(task.opensAt) })}</span> };
+  if (shortWindow(task) !== null && task.opensAt !== null && task.dueAt !== null)
+    return {
+      node: (
+        <span>
+          <Icons.Zap className="size-3.5" />
+          <Meta>
+            {t("task.shortWindow")}
+            {f.timeRange(task.opensAt, task.dueAt)}
+          </Meta>
+        </span>
+      ),
+    };
+  return null;
+}
+
+/** An attendance window in a few words: its times on the deadline's day ("15:00–23:59"), its day too on another. */
+function attendanceWhen(f: Format, window: { opensAt: number; closesAt: number }, dueAt: number | null): string {
+  const range = f.timeRange(window.opensAt, window.closesAt);
+  return dueAt !== null && f.dayOffset(window.opensAt) === f.dayOffset(dueAt) ? range : `${f.relativeDay(window.opensAt)}, ${range}`;
 }
 
 function formatScore(score: number, f: Format): string {
@@ -677,7 +681,7 @@ function TaskPage({ task }: { task: Task }) {
   const linked = isBuilt({ screen: "course", code: task.courseCode });
   const crumb = (route: Route, children: ReactNode, className?: string) =>
     linked ? (
-      <button type="button" onClick={() => go(route)} className={cx("focus-ring flex items-center gap-1.5 rounded hover:text-fg", className)}>
+      <button type="button" onClick={() => go(route)} className={cx("focus-ring flex items-center gap-1.5 rounded-tag hover:text-fg", className)}>
         {children}
       </button>
     ) : (
@@ -737,7 +741,7 @@ function TaskPage({ task }: { task: Task }) {
             <button
               type="button"
               onClick={() => go({ screen: "exam", examId: exam.id })}
-              className="focus-ring inline-flex items-center gap-1.5 rounded-md font-medium text-accent-fg hover:underline"
+              className="focus-ring inline-flex items-center gap-1.5 rounded-item font-medium text-accent-fg hover:underline"
             >
               <Icons.GraduationCap className="size-3.5" />
               {t("task.partOfExam", { kind: t(`exam.kind.${exam.kind}`), code: exam.courseCode })}
@@ -787,65 +791,63 @@ function TaskPage({ task }: { task: Task }) {
 }
 
 /**
- * What Edunex doesn't say on its Task page: attendance taken by handing it in
- * (and, once handed in, whether it counted), a short window. Where the course
- * counts in SIX, the attendance window is optional: said once, calmly, and
- * nothing about it after. A lecturer's edit is EditNotice's.
+ * What Edunex doesn't say on its Task page, as one line of statuses under the
+ * facts: attendance taken by handing it in (its window, and once handed in
+ * whether it counted), a short window. Each says it in a few words, the rule
+ * behind it a tooltip away. A lecturer's edit is EditNotice's.
  */
 function Notes({ task }: { task: Task }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const presence = useDataset("edunex.presence");
-  const optional = presenceOptional(useCountedIn(task.courseCode));
   const sessions = presence?.[task.courseCode] ?? [];
-  const notes: { tone: "warning" | "neutral" | "success" | "danger"; icon: ReactNode; text: string; action?: ReactNode }[] = [];
+  const notes: { key: string; tone: "warning" | "quiet" | "success" | "danger"; icon: ReactNode; text: string; why?: string }[] = [];
   const range = (opensAt: number, closesAt: number) => `${f.relativeDay(opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
   const result = attendanceResult(task, sessions, now);
   const status = taskStatus(task, now);
   const session = isOpenStatus(status) ? attendanceSession(task, sessions, now) : null;
-  if (optional) {
-    if (session && session.closesAt > now)
-      notes.push({
-        tone: "neutral",
-        icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
-        text: t("task.note.attendanceOptional", {
-          date: f.relativeDay(session.opensAt),
-          time: f.timeRange(session.opensAt, session.closesAt),
-          course: task.courseCode,
-        }),
-      });
-  } else if (result)
+  if (result)
     notes.push(
       result.outcome === "counted"
         ? {
+            key: "attendance",
             tone: "success",
-            icon: <Icons.CheckCircle className="mt-0.5 size-4 shrink-0" />,
-            text: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }),
+            icon: <Icons.CheckCircle className="size-4 shrink-0" />,
+            text: t("task.attendanceCounted"),
+            why: t("task.note.attendanceCounted", { when: range(result.session.opensAt, result.session.closesAt) }),
           }
         : {
+            key: "attendance",
             tone: "danger",
-            icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
-            text: t("task.note.attendanceOutside", { when: range(result.session.opensAt, result.session.closesAt) }),
+            icon: <Icons.Hand className="size-4 shrink-0" />,
+            text: t("task.attendanceOutside"),
+            why: t("task.note.attendanceOutside", { when: range(result.session.opensAt, result.session.closesAt) }),
           },
     );
   else if (session && session.closesAt > now)
     notes.push({
+      key: "attendance",
       tone: "warning",
-      icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
-      text: t("task.note.attendance", { date: f.relativeDay(session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }),
+      icon: <Icons.Hand className="size-4 shrink-0" />,
+      // The window stays on screen: handing in outside it doesn't count as present.
+      text: t("task.attendanceLine", { when: attendanceWhen(f, session, task.dueAt) }),
+      why: t("task.note.attendance", { date: f.relativeDay(session.opensAt), time: f.timeRange(session.opensAt, session.closesAt) }),
     });
   else if (session && !session.recorded?.present)
     notes.push({
-      tone: "neutral",
-      icon: <Icons.Hand className="mt-0.5 size-4 shrink-0" />,
-      text: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }),
+      key: "attendance",
+      tone: "quiet",
+      icon: <Icons.Hand className="size-4 shrink-0" />,
+      text: t("task.attendanceMissed"),
+      why: t("task.note.attendanceMissed", { when: range(session.opensAt, session.closesAt) }),
     });
   const window = shortWindow(task);
   if (window !== null && task.opensAt !== null && task.dueAt !== null)
     notes.push({
-      tone: "neutral",
-      icon: <Icons.Zap className="mt-0.5 size-4 shrink-0" />,
+      key: "shortWindow",
+      tone: "quiet",
+      icon: <Icons.Zap className="size-4 shrink-0" />,
       text: t("task.note.shortWindow", {
         duration:
           window >= HOUR ? t("task.duration.hours", { count: Math.round(window / HOUR) }) : t("task.duration.minutes", { count: Math.round(window / MINUTE) }),
@@ -853,22 +855,16 @@ function Notes({ task }: { task: Task }) {
       }),
     });
   if (!notes.length) return null;
-  const TONE = {
-    warning: "bg-warning-bg text-warning-fg",
-    neutral: "bg-fill text-muted",
-    success: "bg-success-bg text-success-fg",
-    danger: "bg-danger-bg text-danger-fg",
-  };
+  const TONE = { ...STATUS_TONE, success: "font-medium text-success-fg" };
   return (
-    <ul className="mt-5 space-y-2">
+    <p className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1.5 text-body">
       {notes.map((note) => (
-        <li key={note.text} className={cx("flex items-start gap-2.5 rounded-lg px-3.5 py-2.5 text-body", TONE[note.tone])}>
+        <span key={note.key} className={cx("inline-flex items-center gap-1.5", TONE[note.tone])}>
           {note.icon}
-          <span className="min-w-0 flex-1">{note.text}</span>
-          {note.action && <span className="shrink-0 self-center">{note.action}</span>}
-        </li>
+          {note.why ? <Explained text={note.text} why={note.why} /> : note.text}
+        </span>
       ))}
-    </ul>
+    </p>
   );
 }
 
@@ -878,7 +874,7 @@ function LecturerNote({ task }: { task: Task }) {
   const note = task.answer?.note ?? null;
   if (!note) return null;
   return (
-    <figure className="rounded-lg bg-fill px-3 py-2">
+    <figure className="rounded-control bg-fill px-3 py-2">
       <figcaption className="mb-0.5 text-caption text-muted">{t("task.note.title")}</figcaption>
       <LecturerHtml html={note} className="text-small leading-relaxed" />
     </figure>
@@ -1021,7 +1017,7 @@ function CommentBox({ taskId }: { taskId: number }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="focus-ring mt-3.5 flex w-full items-center gap-2 rounded-lg border border-field-edge bg-surface px-3 py-2 text-left text-small text-faint transition-colors duration-150 hover:border-muted hover:text-muted"
+        className="focus-ring mt-3.5 flex w-full items-center gap-2 rounded-control border border-field-edge bg-surface px-3 py-2 text-left text-small text-faint transition-colors duration-quick hover:border-muted hover:text-muted"
       >
         <Icons.Chat className="size-4 shrink-0" />
         {t("task.thread.placeholder")}
@@ -1029,7 +1025,7 @@ function CommentBox({ taskId }: { taskId: number }) {
     );
   return (
     <div className="mt-3.5">
-      <Suspense fallback={<Skeleton className="h-[96px] w-full rounded-lg" />}>
+      <Suspense fallback={<Skeleton className="h-[96px] w-full rounded-control" />}>
         <RichEditor
           compact
           initial=""
@@ -1106,7 +1102,7 @@ export function LecturerFile({ file, taskId }: { file: TaskFile; taskId: number 
       type="button"
       aria-label={t(viewable ? "pdf.viewFile" : "task.download", { name: file.name })}
       onClick={() => (viewable ? pdf.open({ kind: "edunex", url: file.url, name: file.name, edunexUrl: edunexTaskUrl(taskId), taskId }) : void download(file))}
-      className="focus-ring flex w-full items-center gap-3 rounded-xl border border-edge bg-surface px-3 py-2.5 text-left shadow-card transition-colors duration-150 hover:bg-hover"
+      className="focus-ring flex w-full items-center gap-3 rounded-card border border-edge bg-surface px-3 py-2.5 text-left transition-colors duration-quick hover:bg-hover"
     >
       <FileBadge name={file.name} />
       <span className="line-clamp-2 min-w-0 flex-1 text-body font-medium break-words" title={file.name}>
@@ -1223,7 +1219,6 @@ function HandIn({ task, status }: Row) {
   const open = useOpenExternal();
   const edunex = useStatus("edunex");
   const presence = useDataset("edunex.presence");
-  const countedIn = useCountedIn(task.courseCode);
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
   const { download, busy: downloading } = useDownload();
@@ -1258,6 +1253,7 @@ function HandIn({ task, status }: Row) {
   // Edunex's website takes any text it wrote itself (a picture alone included); what's typed here needs words.
   const hasText = textLocked ? Boolean(answer.saved.trim()) : Boolean(plainText(answer.text));
   const whyId = useId();
+  const draftId = useId();
   const sentAt = submittedAt(task);
   const saved = (task.answer?.files ?? []).filter((file) => !removed.includes(file.url));
   const uploaded = attached.flatMap((item) => (item.state === "uploaded" && item.file ? [item.file] : []));
@@ -1268,7 +1264,7 @@ function HandIn({ task, status }: Row) {
   const hasAnswer = hasText && (files.length > 0 || !task.fileRequired);
   const textChanged = !textLocked && answer.dirty;
   const changed = uploaded.length > 0 || removed.length > 0 || textChanged;
-  const guard = handInChecks(task, { now, sessions: presence?.[task.courseCode] ?? [], edunex: edunex.state, files, countedIn });
+  const guard = handInChecks(task, { now, sessions: presence?.[task.courseCode] ?? [], edunex: edunex.state, files });
   // Waiting for the attendance window is the default only once there is something to keep as a draft.
   const wait = guard.waitForWindow && hasAnswer;
   // The one primary button: Kumpulkan, or, when waiting is better, Simpan draf (once there is something new to save).
@@ -1469,16 +1465,20 @@ function HandIn({ task, status }: Row) {
                 ? { tone: "warning", text: t(changed || status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: whenWindow }) }
                 : null;
 
+  // Draft or hand in: what tells them apart shows on the draft button itself, where the question comes up.
   const draftButton = (
-    <Button
-      variant={wait && canSave ? "primary" : "secondary"}
-      className="h-9 flex-1"
-      disabled={!canSave}
-      busy={busy === "draft"}
-      onClick={() => void run("draft")}
-    >
-      {t("handIn.saveDraft")}
-    </Button>
+    <Tooltip content={t("handIn.explainer")} hidden={!canSave}>
+      <Button
+        variant={wait && canSave ? "primary" : "secondary"}
+        className="h-9 flex-1"
+        disabled={!canSave}
+        busy={busy === "draft"}
+        aria-describedby={draftId}
+        onClick={() => void run("draft")}
+      >
+        {t("handIn.saveDraft")}
+      </Button>
+    </Tooltip>
   );
   const submitButton = (
     <Button
@@ -1517,7 +1517,7 @@ function HandIn({ task, status }: Row) {
           {(!task.group || saved.length > 0) && <p className="mb-2 text-small font-semibold text-muted">{t("handIn.yourAnswer")}</p>}
           {editable && !textLocked ? (
             <div className="mb-3">
-              <Suspense fallback={<Skeleton className="h-[170px] w-full rounded-lg" />}>
+              <Suspense fallback={<Skeleton className="h-[170px] w-full rounded-control" />}>
                 <RichEditor
                   ref={box}
                   key={answer.version}
@@ -1531,7 +1531,11 @@ function HandIn({ task, status }: Row) {
               {textChanged && (
                 <p className="mt-1.5 flex flex-wrap items-center justify-between gap-x-3 text-caption text-muted">
                   {t("handIn.textUnsaved")}
-                  <button type="button" onClick={() => answer.discard(box.current)} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+                  <button
+                    type="button"
+                    onClick={() => answer.discard(box.current)}
+                    className="focus-ring rounded-tag font-medium text-accent-fg hover:underline"
+                  >
                     {t("handIn.textDiscard")}
                   </button>
                 </p>
@@ -1541,7 +1545,7 @@ function HandIn({ task, status }: Row) {
             !task.group &&
             (textLocked || plainText(answer.saved)) && (
               <div className="mb-3 space-y-2">
-                <div className="rounded-lg bg-fill px-3 py-2.5">
+                <div className="rounded-control bg-fill px-3 py-2.5">
                   <LecturerHtml html={answer.saved} pictureAlt={t("image.altYours")} />
                 </div>
                 {editable && textLocked && (
@@ -1605,7 +1609,7 @@ function HandIn({ task, status }: Row) {
               onDrop={(event) => void drop(event)}
               className={cx(
                 // Start-aligned, so its facts wrap without a dangling "·" (Meta can't do that centered).
-                "focus-ring flex w-full items-center gap-3 rounded-lg border border-dashed px-3.5 py-3 text-left transition-colors duration-150 [&>*]:pointer-events-none",
+                "focus-ring flex w-full items-center gap-3 rounded-control border border-dashed px-3.5 py-3 text-left transition-colors duration-quick [&>*]:pointer-events-none",
                 dragging ? "border-accent bg-info-bg" : "border-track hover:border-accent hover:bg-hover",
               )}
             >
@@ -1634,10 +1638,12 @@ function HandIn({ task, status }: Row) {
             </div>
           )}
           {!task.group && !editable && !sent && status !== "closed" && task.opensAt !== null && (
-            <p className="rounded-lg bg-fill px-3 py-2.5 text-small text-muted">{t("handIn.notOpenYet", { when: f.dueLabel(task.opensAt) })}</p>
+            <p className="rounded-control bg-fill px-3 py-2.5 text-small text-muted">{t("handIn.notOpenYet", { when: f.dueLabel(task.opensAt) })}</p>
           )}
           {status === "closed" && (
-            <p className="rounded-lg bg-fill px-3 py-2.5 text-small text-muted">{task.answer ? t("handIn.draftNeverSent") : t("handIn.nothingHandedIn")}</p>
+            <p className="rounded-control bg-fill px-3 py-2.5 text-small text-muted">
+              {task.answer ? t("handIn.draftNeverSent") : t("handIn.nothingHandedIn")}
+            </p>
           )}
         </div>
 
@@ -1652,7 +1658,7 @@ function HandIn({ task, status }: Row) {
           <div
             role="alert"
             className={cx(
-              "flex items-start gap-2 rounded-lg px-3 py-2.5 text-small",
+              "flex items-start gap-2 rounded-control px-3 py-2.5 text-small",
               notice.tone === "danger" ? "bg-danger-bg text-danger-fg" : notice.tone === "warning" ? "bg-warning-bg text-warning-fg" : "bg-fill text-muted",
             )}
           >
@@ -1678,6 +1684,9 @@ function HandIn({ task, status }: Row) {
             <div className="flex items-center gap-2">
               {draftButton}
               {submitButton}
+              <span id={draftId} className="sr-only">
+                {t("handIn.explainer")}
+              </span>
             </div>
             {why && !(notice?.action === "signIn" && guard.blocked) && (
               <div
@@ -1705,7 +1714,7 @@ function HandIn({ task, status }: Row) {
                       <button
                         type="button"
                         onClick={() => document.getElementById("task-thread")?.scrollIntoView({ block: "start", behavior: stillMotion() ? "auto" : "smooth" })}
-                        className="focus-ring rounded font-medium text-accent-fg hover:underline"
+                        className="focus-ring rounded-tag font-medium text-accent-fg hover:underline"
                       >
                         {t("task.thread.see")}
                       </button>
@@ -1714,10 +1723,6 @@ function HandIn({ task, status }: Row) {
                 </span>
               </p>
             )}
-            <p className="flex items-start gap-2 text-caption text-muted">
-              <Icons.Lock className="mt-px size-3.5 shrink-0" />
-              {t("handIn.explainer")}
-            </p>
             <MarkHandedIn task={task} />
           </>
         )}
@@ -1817,7 +1822,7 @@ function HandInDialog({
           // While it leaves, a second click on "Kumpulkan" (a double-click) must not hand in twice.
           onClickCapture={ignoreClosingClick}
           className={cx(
-            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(460px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-raised p-5 text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
+            "fixed top-1/2 left-1/2 z-(--z-confirm) w-[min(460px,calc(100vw-48px))] -translate-x-1/2 -translate-y-1/2 rounded-dialog bg-raised p-5 text-fg border border-transparent shadow-dialog ring-1 ring-black/10 focus:outline-none dark:ring-white/10",
             PANEL_MOTION_CLASS,
           )}
         >
@@ -1871,7 +1876,7 @@ function FileBadge({ name, state }: { name: string; state?: Attached["state"] })
     <span
       aria-hidden
       className={cx(
-        "grid size-8 shrink-0 place-items-center rounded-md text-micro font-bold",
+        "grid size-8 shrink-0 place-items-center rounded-item text-micro font-bold",
         // Red only for a file that failed: a PDF is no danger, so it is grey like any other kind.
         state === "failed" ? "bg-danger-bg text-danger-fg" : "bg-neutral-bg text-neutral-fg",
       )}
@@ -1912,7 +1917,7 @@ function FileRow({
   const t = useT();
   const failed = state === "failed";
   return (
-    <li className={cx("rounded-lg px-2.5 py-2", failed ? "bg-danger-bg/50 ring-1 ring-danger-fg/30 ring-inset" : "bg-fill")}>
+    <li className={cx("rounded-control px-2.5 py-2", failed ? "bg-danger-bg/50 ring-1 ring-danger-fg/30 ring-inset" : "bg-fill")}>
       <div className="flex items-center gap-2.5">
         <FileBadge name={name} state={state} />
         <span className="min-w-0 flex-1">
@@ -1927,7 +1932,7 @@ function FileRow({
             type="button"
             aria-label={t("handIn.preview", { name })}
             onClick={onPreview}
-            className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
+            className="focus-ring grid size-7 shrink-0 place-items-center rounded-item text-muted transition-colors duration-quick hover:bg-hover hover:text-fg"
           >
             <Icons.Eye className="size-3.5" />
           </button>
@@ -1937,7 +1942,7 @@ function FileRow({
             type="button"
             aria-label={t("handIn.remove", { name })}
             onClick={onRemove}
-            className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
+            className="focus-ring grid size-7 shrink-0 place-items-center rounded-item text-muted transition-colors duration-quick hover:bg-hover hover:text-fg"
           >
             <Icons.X className="size-3.5" />
           </button>
@@ -1947,7 +1952,7 @@ function FileRow({
             type="button"
             aria-label={t("task.download", { name })}
             onClick={onDownload}
-            className="focus-ring grid size-7 shrink-0 place-items-center rounded-md text-muted transition-colors duration-150 hover:bg-hover hover:text-fg"
+            className="focus-ring grid size-7 shrink-0 place-items-center rounded-item text-muted transition-colors duration-quick hover:bg-hover hover:text-fg"
           >
             {downloading ? <Icons.Loader className="size-3.5 animate-spin" /> : <Icons.Download className="size-3.5" />}
           </button>
@@ -2052,7 +2057,7 @@ function MarkHandedIn({ task }: { task: Task }) {
               setMoved("unmarked");
               void unmark(key.id).catch(() => undefined);
             }}
-            className="focus-ring rounded font-medium text-accent-fg hover:underline"
+            className="focus-ring rounded-tag font-medium text-accent-fg hover:underline"
           >
             {t("action.undo")}
           </button>
@@ -2063,7 +2068,7 @@ function MarkHandedIn({ task }: { task: Task }) {
     return (
       <p ref={again} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-muted">
         {t("done.groupAsk")}
-        <button type="button" onClick={() => put("groupDone")} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+        <button type="button" onClick={() => put("groupDone")} className="focus-ring rounded-tag font-medium text-accent-fg hover:underline">
           {t("done.groupDone")}
         </button>
       </p>
@@ -2130,7 +2135,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
           type="button"
           aria-label={t("done.undoFor", { what: t("done.line.checked", { when: f.dayTimeWord(view.checked.at) }) })}
           onClick={() => void unmark(view.checked!.id).catch(() => undefined)}
-          className="focus-ring rounded font-medium text-accent-fg hover:underline"
+          className="focus-ring rounded-tag font-medium text-accent-fg hover:underline"
         >
           {t("action.undo")}
         </button>
@@ -2161,7 +2166,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
   }
   if (view.state === "none")
     return age < NONE_FOR ? (
-      <p className="mt-5 flex items-start gap-2.5 rounded-lg bg-fill px-3.5 py-2.5 text-body text-muted">
+      <p className="mt-5 flex items-start gap-2.5 rounded-control bg-fill px-3.5 py-2.5 text-body text-muted">
         <Icons.Info className="mt-0.5 size-4 shrink-0" />
         {t("task.change.none", { edited })}
       </p>
@@ -2177,7 +2182,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
       title={
         <>
           {view.afterSubmit && sentAt !== null ? t("task.change.afterSubmit", { edited, sent: f.dayMonth(sentAt) }) : t("task.change.before", { edited })}{" "}
-          <button type="button" onClick={() => onSee(at)} className="focus-ring rounded font-semibold underline underline-offset-2">
+          <button type="button" onClick={() => onSee(at)} className="focus-ring rounded-tag font-semibold underline underline-offset-2">
             {t("task.change.see")}
           </button>
         </>
@@ -2199,91 +2204,114 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
   const sentAt = submittedAt(task);
   const [opened, setOpened] = useState<number | null>(null);
   const [compare, setCompare] = useState<{ change: Extract<TaskChange, { kind: "instructions" }>; at: number } | null>(null);
+  // Closed until asked: the story of the Task, under its instructions, not a page to read through each visit.
+  const [shown, setShown] = useState(false);
   const triggers = useRef(new Map<number, HTMLButtonElement>());
+  const answered = useRef<typeof reveal>(null);
   const baseId = useId();
-  // "Lihat perubahannya": the newest edit opens and takes the focus, and the page scrolls down to it.
+  // "Lihat perubahannya": History opens, the newest edit opens and takes the focus, and the page scrolls down to it.
   useEffect(() => {
-    if (!reveal) return;
+    if (!reveal || answered.current === reveal) return;
+    if (!shown) {
+      setShown(true);
+      return;
+    }
+    answered.current = reveal;
     setOpened(reveal.at);
     const button = triggers.current.get(reveal.at);
     if (!button) return;
     button.focus({ preventScroll: true });
     // The step goes to the top, so the list it opens shows under it.
     (button.closest("li") ?? button).scrollIntoView?.({ block: "start", behavior: stillMotion() ? "auto" : "smooth" });
-  }, [reveal]);
+  }, [reveal, shown]);
   return (
     <section className="mt-8" aria-labelledby="task-history">
       {steps.length >= 2 && (
         <>
-          <h2 id="task-history" className="mb-3 text-title font-semibold">
-            {t("history.title")}
+          <h2 id="task-history" className="text-title font-semibold">
+            <button
+              type="button"
+              {...disclosureTrigger(shown, `${baseId}-steps`)}
+              onClick={() => setShown(!shown)}
+              className="focus-ring -mx-1 inline-flex items-center gap-1.5 rounded-tag px-1"
+            >
+              {t("history.title")}
+              <Icons.ChevronDown className={cx("size-4 text-faint transition-transform duration-quick", shown && "rotate-180")} />
+            </button>
           </h2>
-          <ol className="relative ml-1.5 space-y-3 border-l border-line pl-4">
-            {steps.map((step) => {
-              const afterSubmit = step.kind === "edited" && sentAt !== null && step.at > sentAt;
-              const known = step.kind === "edited" && step.edit && step.edit.changes.length > 0 ? step.edit : null;
-              const panelId = `${baseId}-${step.at}`;
-              const isOpen = opened === step.at;
-              return (
-                <li key={`${step.kind}:${step.at}`} className="relative text-small">
-                  <span
-                    aria-hidden
-                    className={cx(
-                      "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-canvas",
-                      step.kind === "submitted"
-                        ? "bg-live"
-                        : step.kind === "handedBack"
-                          ? "bg-meter-warning"
-                          : afterSubmit
+          <DisclosurePanel open={shown} id={`${baseId}-steps`}>
+            <ol className="relative mt-3 ml-1.5 space-y-3 border-l border-line pl-4">
+              {steps.map((step) => {
+                const afterSubmit = step.kind === "edited" && sentAt !== null && step.at > sentAt;
+                const known = step.kind === "edited" && step.edit && step.edit.changes.length > 0 ? step.edit : null;
+                const panelId = `${baseId}-${step.at}`;
+                const isOpen = opened === step.at;
+                return (
+                  <li key={`${step.kind}:${step.at}`} className="relative text-small">
+                    <span
+                      aria-hidden
+                      className={cx(
+                        "absolute top-1 -left-[21px] size-[9px] rounded-full ring-[3px] ring-canvas",
+                        step.kind === "submitted"
+                          ? "bg-live"
+                          : step.kind === "handedBack"
                             ? "bg-meter-warning"
-                            : step.at > now && step.kind !== "draft"
-                              ? "border border-faint bg-canvas"
-                              : "bg-faint/60",
+                            : afterSubmit
+                              ? "bg-meter-warning"
+                              : step.at > now && step.kind !== "draft"
+                                ? "border border-faint bg-canvas"
+                                : "bg-faint/60",
+                      )}
+                    />
+                    {known ? (
+                      <>
+                        <button
+                          type="button"
+                          ref={(element) => {
+                            if (element) triggers.current.set(step.at, element);
+                            else triggers.current.delete(step.at);
+                          }}
+                          {...disclosureTrigger(isOpen, panelId)}
+                          onClick={() => setOpened(isOpen ? null : step.at)}
+                          className="focus-ring -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-1 rounded-tag px-1 text-left"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-medium">{t("history.edited")}</span>
+                            <span className="block text-faint tabular-nums">{f.dueLabel(step.at)}</span>
+                          </span>
+                          <Icons.ChevronDown
+                            className={cx("mt-0.5 size-3.5 shrink-0 text-faint transition-transform duration-quick", isOpen && "rotate-180")}
+                          />
+                        </button>
+                        <DisclosurePanel open={isOpen} id={panelId}>
+                          <div className="pt-1.5 pb-0.5">
+                            <p className="sr-only">{t("history.editedChanges")}</p>
+                            <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
+                            {afterSubmit && <p className="mt-2 text-muted">{t("task.change.whatToDo")}</p>}
+                          </div>
+                        </DisclosurePanel>
+                      </>
+                    ) : (
+                      <>
+                        <span className="block font-medium">{t(`history.${step.kind}`)}</span>
+                        <span className="block text-faint tabular-nums">{f.dueLabel(step.at)}</span>
+                        {step.kind === "edited" && <span className="block text-muted">{t(step.edit ? "change.none" : "change.unknown")}</span>}
+                      </>
                     )}
-                  />
-                  {known ? (
-                    <>
-                      <button
-                        type="button"
-                        ref={(element) => {
-                          if (element) triggers.current.set(step.at, element);
-                          else triggers.current.delete(step.at);
-                        }}
-                        {...disclosureTrigger(isOpen, panelId)}
-                        onClick={() => setOpened(isOpen ? null : step.at)}
-                        className="focus-ring -mx-1 flex w-[calc(100%+0.5rem)] items-start gap-1 rounded px-1 text-left"
-                      >
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-medium">{t("history.edited")}</span>
-                          <span className="block text-faint tabular-nums">{f.dueLabel(step.at)}</span>
-                        </span>
-                        <Icons.ChevronDown className={cx("mt-0.5 size-3.5 shrink-0 text-faint transition-transform duration-150", isOpen && "rotate-180")} />
-                      </button>
-                      <DisclosurePanel open={isOpen} id={panelId}>
-                        <div className="pt-1.5 pb-0.5">
-                          <p className="sr-only">{t("history.editedChanges")}</p>
-                          <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
-                          {afterSubmit && <p className="mt-2 text-muted">{t("task.change.whatToDo")}</p>}
-                        </div>
-                      </DisclosurePanel>
-                    </>
-                  ) : (
-                    <>
-                      <span className="block font-medium">{t(`history.${step.kind}`)}</span>
-                      <span className="block text-faint tabular-nums">{f.dueLabel(step.at)}</span>
-                      {step.kind === "edited" && <span className="block text-muted">{t(step.edit ? "change.none" : "change.unknown")}</span>}
-                    </>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
+                  </li>
+                );
+              })}
+            </ol>
+          </DisclosurePanel>
         </>
       )}
       <button
         type="button"
         onClick={() => open(edunexTaskUrl(task.id))}
-        className={cx("focus-ring inline-flex items-center gap-1 rounded text-small font-medium text-accent-fg hover:underline", steps.length >= 2 && "mt-4")}
+        className={cx(
+          "focus-ring inline-flex items-center gap-1 rounded-tag text-small font-medium text-accent-fg hover:underline",
+          steps.length >= 2 && "mt-4",
+        )}
       >
         {t("action.openInEdunex")}
         <Icons.ArrowUpRight className="size-3.5" />
@@ -2336,7 +2364,7 @@ function ChangeList({ changes, onCompare }: { changes: readonly TaskChange[]; on
         return (
           <span className="flex flex-wrap items-baseline gap-x-2">
             {t("change.instructions")}
-            <button type="button" onClick={() => onCompare(change)} className="focus-ring rounded font-medium text-accent-fg hover:underline">
+            <button type="button" onClick={() => onCompare(change)} className="focus-ring rounded-tag font-medium text-accent-fg hover:underline">
               {t("change.instructions.show")}
             </button>
           </span>

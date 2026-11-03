@@ -9,9 +9,9 @@
 // back what was just removed), and a line said to screen readers after each.
 // The caller saves them (../highlights.ts); each is kept where its text is
 // (./text-anchor.ts), so it comes back at any zoom.
-import { EraserIcon } from "@phosphor-icons/react/dist/csr/Eraser";
-import { HighlighterIcon } from "@phosphor-icons/react/dist/csr/Highlighter";
-import { TrashIcon } from "@phosphor-icons/react/dist/csr/Trash";
+import { Delete16Filled, Delete16Regular, Delete20Filled, Delete20Regular } from "@fluentui/react-icons/headless/svg/delete";
+import { Eraser20Filled, Eraser20Regular } from "@fluentui/react-icons/headless/svg/eraser";
+import { Highlight16Filled, Highlight16Regular, Highlight20Filled, Highlight20Regular } from "@fluentui/react-icons/headless/svg/highlight";
 import { type KeyboardEvent, type MouseEvent, type ReactNode, type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { colorOf, DEFAULT_HIGHLIGHT_COLOR, HIGHLIGHT_COLORS, type HighlightColor, locate, quoteOf, trimmed } from "../../core/highlights";
 import type { Highlight } from "../../core/models";
@@ -22,9 +22,9 @@ import { Icons, icon } from "./icons";
 import { Tooltip, toast } from "./overlays";
 import { around, type Box, boxesOf, offsetsIn, rangeAt, selectedRange, textOf } from "./text-anchor";
 
-const MarkerIcon = icon(HighlighterIcon);
-const DeleteIcon = icon(TrashIcon);
-const ClearIcon = icon(EraserIcon);
+const MarkerIcon = icon([Highlight16Regular, Highlight16Filled], [Highlight20Regular, Highlight20Filled]);
+const DeleteIcon = icon([Delete16Regular, Delete16Filled], [Delete20Regular, Delete20Filled]);
+const ClearIcon = icon([Eraser20Regular, Eraser20Filled], [Eraser20Regular, Eraser20Filled]);
 
 /** One file's highlights and the ways to change them; saved by the caller. */
 export interface Highlights {
@@ -153,12 +153,12 @@ export function MarkLayer({
               onRemove(highlight.id);
             }}
             style={{ left: all.left * scale, top: all.top * scale, width: all.width * scale, height: all.height * scale }}
-            className="focus-ring absolute rounded-xs"
+            className="focus-ring absolute rounded-mark"
           >
             {boxes.map((box) => (
               <span
                 key={`${box.left}:${box.top}`}
-                className={cx("absolute rounded-xs", INK[color], under ? "dark:opacity-30" : "mix-blend-multiply")}
+                className={cx("absolute rounded-mark", INK[color], under ? "dark:opacity-30" : "mix-blend-multiply")}
                 style={{ left: (box.left - all.left) * scale, top: (box.top - all.top) * scale, width: box.width * scale, height: box.height * scale }}
               />
             ))}
@@ -548,7 +548,7 @@ function HighlightBar({
       onMouseDown={(event) => event.preventDefault()}
       style={{ left: at.left, top: at.above ? at.top - 8 : at.bottom + 8 }}
       className={cx(
-        "absolute z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border border-edge bg-raised p-1 text-fg shadow-pop motion-safe:animate-popover-in",
+        "absolute z-20 flex -translate-x-1/2 items-center gap-0.5 rounded-control border border-edge bg-raised p-1 text-fg shadow-popover motion-safe:animate-popover-in",
         at.above ? "origin-bottom -translate-y-full" : "origin-top",
       )}
     >

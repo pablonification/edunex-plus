@@ -64,6 +64,11 @@ export const SixCheckIn = z.object({
   state: z.enum(["waiting", "open", "gone"]),
   /** When the app first saw it in this state (ms). Read again unchanged, it stays as it is: nothing new to say. */
   since: z.number(),
+  /**
+   * When the Student pressed something in the class's popup in the app's SIX window (ms), before the app
+   * saw the button: read again with no button, it's gone (pressed), not still to come.
+   */
+  pressedAt: z.number().optional(),
 });
 export type SixCheckIn = z.infer<typeof SixCheckIn>;
 

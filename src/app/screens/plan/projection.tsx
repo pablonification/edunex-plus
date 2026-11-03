@@ -95,7 +95,7 @@ export function GradeSelect({
       aria-label={label}
       onChange={(event) => onChange(event.target.value as LetterGrade)}
       className={cx(
-        "focus-ring h-7 w-[62px] rounded-md px-1.5 text-small font-semibold transition-colors duration-150 hover:bg-hover",
+        "focus-ring h-7 w-[62px] rounded-item px-1.5 text-small font-semibold transition-colors duration-quick hover:bg-hover",
         guess ? "border border-dashed border-field-edge bg-transparent text-muted" : "border border-field-edge bg-surface text-fg",
         className,
       )}
@@ -116,7 +116,7 @@ export function GradeBadge({ grade, struck = false, title }: { grade: string; st
     <span
       title={title}
       className={cx(
-        "inline-grid h-6 min-w-8 place-items-center rounded-md px-1.5 text-small font-bold tabular-nums",
+        "inline-grid h-6 min-w-8 place-items-center rounded-item px-1.5 text-small font-bold tabular-nums",
         failing ? "bg-danger-bg text-danger-fg" : "bg-neutral-bg text-neutral-fg",
         struck && "line-through",
       )}
@@ -168,7 +168,7 @@ export function TargetControl({ record, state, className }: { record: StudentRec
           }}
           onBlur={() => setTyping(null)}
           className={cx(
-            "focus-ring h-8 w-[76px] rounded-lg border bg-surface px-2 text-right text-small font-semibold text-fg tabular-nums placeholder:font-normal placeholder:text-faint",
+            "focus-ring h-8 w-[76px] rounded-control border bg-surface px-2 text-right text-small font-semibold text-fg tabular-nums placeholder:font-normal placeholder:text-faint",
             parsed?.kind === "invalid" ? "border-danger-fg" : "border-edge",
           )}
         />
@@ -281,9 +281,22 @@ export function HonorsList({ projection, className }: { projection: Projection; 
 
 /**
  * IP per semester (dots) and the IPK after each (a line), estimates dashed,
- * the target as a labelled dashed line, and the IPK at graduation at the end.
+ * the target as a labelled dashed line, and the IPK at graduation at the end
+ * (left off where the page says it in words already, so it shows once).
  */
-export function IpkChart({ steps, target, height, className }: { steps: ProjectedStep[]; target: number | null; height?: number; className?: string }) {
+export function IpkChart({
+  steps,
+  target,
+  height,
+  endLabel = true,
+  className,
+}: {
+  steps: ProjectedStep[];
+  target: number | null;
+  height?: number;
+  endLabel?: boolean;
+  className?: string;
+}) {
   const t = useT();
   const f = useFormat();
   const label = useStepLabel();
@@ -311,7 +324,7 @@ export function IpkChart({ steps, target, height, className }: { steps: Projecte
         max={4}
         gridlines={gridlines}
         reference={target === null ? undefined : { value: target, label: t("grades.chart.target", { value: f.number(target, 2) }) }}
-        endLabel={last.ipk === null ? undefined : t(last.projected ? "grades.chart.end" : "grades.chart.endNow", { value: f.number(last.ipk, 2) })}
+        endLabel={!endLabel || last.ipk === null ? undefined : t(last.projected ? "grades.chart.end" : "grades.chart.endNow", { value: f.number(last.ipk, 2) })}
         estimateWord={t("grades.estimate")}
         format={(v) => f.number(v, 2)}
         height={height}

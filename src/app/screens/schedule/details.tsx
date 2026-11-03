@@ -20,6 +20,7 @@ import { useDataset } from "../../store";
 import { Button } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { CourseDot, LiveDot, StatusChip } from "../../ui/display";
+import { Explained } from "../../ui/explain";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
 
@@ -113,17 +114,19 @@ function Actions({ children }: { children: ReactNode }) {
   return <div className="mt-4 flex flex-wrap items-center justify-end gap-2">{children}</div>;
 }
 
-/** Where the course's attendance counts, and what's left: "Kehadiran dihitung di SIX · Masih bisa absen 2× lagi". */
+/** What's left of the course's absences ("Sisa jatah absen 2×"), and where attendance counts a tooltip away; where alone with nothing left to say. */
 function AttendanceFact({ code, world }: { code: string; world: ScheduleWorld }) {
   const t = useT();
   const health = world.health(code);
   if (!health || health.countedIn === "unknown") return null;
+  const where = t(`schedule.countedIn.${health.countedIn}`);
   return (
     <Fact icon={<Icons.Hand className="size-3.5" />}>
-      <Meta>
-        {t(`schedule.countedIn.${health.countedIn}`)}
-        {health.state !== "unknown" ? <span className={cx("font-semibold", STATE_TONE[health.state])}>{budgetLabel(t, health)}</span> : null}
-      </Meta>
+      {health.state !== "unknown" ? (
+        <Explained text={budgetLabel(t, health)} why={`${where}.`} className={cx("font-semibold", STATE_TONE[health.state])} />
+      ) : (
+        where
+      )}
     </Fact>
   );
 }
@@ -136,18 +139,16 @@ function OpenPresence({ code, start, world }: { code: string; start: number; wor
   const window = openWindow(world, code, start);
   if (!window) return null;
   const action = presenceAction(window, world.tasks);
+  // One line: until when, and its button; how long is left on hover.
   return (
-    <div className="mt-3 rounded-lg bg-success-bg px-3 py-2.5 text-small text-success-fg">
-      <p className="flex items-center gap-2 font-semibold">
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-control bg-success-bg px-3 py-2.5 text-small text-success-fg">
+      <p className="flex items-center gap-2 font-semibold" title={t("schedule.presenceOpen.closes", { time: f.countdown(window.closesAt) })}>
         <LiveDot />
         {t("schedule.presenceOpen", { time: f.time(window.closesAt) })}
       </p>
-      <div className="mt-2 flex items-center justify-between gap-3">
-        <span className="text-caption tabular-nums">{t("schedule.presenceOpen.closes", { time: f.countdown(window.closesAt) })}</span>
-        <Button size="sm" variant="primary" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(action.url)}>
-          {t("schedule.record")}
-        </Button>
-      </div>
+      <Button size="sm" variant="primary" icon={<Icons.ArrowUpRight className="size-3.5" />} onClick={() => open(action.url)}>
+        {t("schedule.record")}
+      </Button>
     </div>
   );
 }
@@ -189,7 +190,8 @@ export function ClassDetails({ item }: { item: ScheduledClass }) {
   const presenceOpen = openWindow(world, code, session.start) !== null;
   return (
     <>
-      <Head code={code} kind={session.activity} title={world.name(code, session.courseName)} world={world} />
+      {/* "Kuliah" is every class: only another kind (an exam, a tutorial) says something. */}
+      <Head code={code} kind={/^kuliah$/i.test(session.activity.trim()) ? "" : session.activity} title={world.name(code, session.courseName)} world={world} />
       <Facts>
         <Fact icon={<Icons.Clock className="size-3.5" />}>
           <Meta className="tabular-nums">
@@ -209,7 +211,11 @@ export function ClassDetails({ item }: { item: ScheduledClass }) {
         {lecturer && <Fact icon={<Icons.User className="size-3.5" />}>{lecturer}</Fact>}
         {uncertain && (
           <Fact icon={<Icons.Info className="size-3.5" />} tone="text-warning-fg">
-            <span className="font-semibold">{t("schedule.uncertain.during", { period: periodName(t, uncertain) })}</span> {t("schedule.uncertain.check")}
+            <Explained
+              text={t("schedule.uncertain.during", { period: periodName(t, uncertain) })}
+              why={t("schedule.uncertain.check")}
+              className="font-semibold"
+            />
           </Fact>
         )}
         {moved && <MovedFacts item={item} />}
@@ -291,7 +297,7 @@ export function MeetingDetails({ meeting, notInSix }: { meeting: OutsideMeeting 
         {lecturer && <Fact icon={<Icons.User className="size-3.5" />}>{lecturer}</Fact>}
         {notInSix && (
           <Fact icon={<Icons.Info className="size-3.5" />} tone="text-warning-fg">
-            {t("schedule.notInSix.long")}
+            <Explained text={t("schedule.notInSix")} why={t("schedule.notInSix.long")} />
           </Fact>
         )}
         <AttendanceFact code={meeting.code} world={world} />
@@ -318,11 +324,11 @@ export function WindowDetails({ window }: { window: TaskWindow }) {
       <Head code={code} kind={t("schedule.window.kind")} title={handInLabel(t, f, window)} world={world} />
       <Facts>
         <Fact icon={<Icons.Clock className="size-3.5" />}>
+          {/* The title says to hand it in before the close; that only then is it counted, on the window itself. */}
           <Meta className="tabular-nums">
             {f.dateLong(presence.opensAt)}
-            {timeRange(f, presence.opensAt, presence.closesAt)}
+            <Explained text={timeRange(f, presence.opensAt, presence.closesAt)} why={t("schedule.window.only")} />
           </Meta>
-          <span className="block text-muted">{t("schedule.window.only")}</span>
         </Fact>
         {six && (
           <Fact icon={<Icons.Calendar className="size-3.5" />} tone="text-muted">

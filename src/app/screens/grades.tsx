@@ -1,29 +1,55 @@
-// Nilai (#78): where the Student stands, answered first. The IPK and where
-// the grades they expect would take them, in one sentence; three figures
-// beside it (SKS passed, last IP, the highest IPK still possible); IP and
-// IPK per semester on one chart with the target; the IPK at graduation with
-// honors in one positive sentence (the ladder lives in the planner); this
-// term's grades as a clearly marked what-if with the one shared target; and
-// the transcript by term. Without SIX, this term's courses from Edunex with
-// their calculators, and what signing in to SIX unlocks.
-import { useId } from "react";
+// Nilai (#78): where the Student stands, answered first. The IPK as the one
+// big figure, the facts around it beside it as figures with a word or two
+// (where the grades they expect would take them by graduation, SKS passed,
+// last IP, the highest IPK still possible), each said once, what's behind each
+// a tooltip away (honors behind the predicate; the ladder lives in the
+// planner); IP and IPK per semester on one chart with the target; this term's
+// grades as a clearly marked what-if with the one shared target; and the
+// transcript by term. Without SIX, this term's courses from Edunex with their
+// calculators, and what signing in to SIX unlocks.
+import { type ReactNode, useId } from "react";
 import type { CalendarEvent, CheckedIndex, TranscriptTerm } from "../../core/models";
-import { checkPlan, expectedGrade, hasWhatIfs, passedSks, project, type StudentRecord, sksModel, targetOf } from "../../core/planner";
+import {
+  checkPlan,
+  expectedGrade,
+  hasWhatIfs,
+  honorsOutlook,
+  type Projection,
+  passedSks,
+  project,
+  type StudentRecord,
+  sksModel,
+  targetOf,
+} from "../../core/planner";
 import { useTermCourses } from "../courses";
 import { useOpenExternal } from "../hooks";
-import { useFormat, useNow, useT } from "../i18n";
+import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav, usePlaceState } from "../nav";
 import { SixPageNote, UnreadNote } from "../six-page-note";
 import { useDataset } from "../store";
 import { type PlanState, usePlan, useStudentRecord } from "../study-plan";
-import { Button } from "../ui/controls";
+import { Button, IconButton } from "../ui/controls";
 import { cx } from "../ui/cx";
-import { Card, CourseCode, Tag } from "../ui/display";
+import { CourseCode, Tag } from "../ui/display";
+import { Explained } from "../ui/explain";
 import { Icons } from "../ui/icons";
-import { breakAfterSlashes, List, Meta, Notice, Page, PageHeader, Row, Section, Stat, StatRow } from "../ui/layout";
+import { breakAfterSlashes, List, Meta, Notice, Page, PageHeader, Row, Section } from "../ui/layout";
 import { AnimatedNumber } from "../ui/motion/animated-number";
 import { DisclosurePanel, disclosureTrigger } from "../ui/motion/disclosure";
-import { GradeBadge, GradeSelect, HonorsSentence, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "./plan/projection";
+import { Tooltip } from "../ui/overlays";
+import { PLAIN_LIST } from "./plain-list";
+import {
+  effortKey,
+  GradeBadge,
+  GradeSelect,
+  HonorsSentence,
+  IpkChart,
+  NeedText,
+  predicateFor,
+  TargetControl,
+  usePredicate,
+  useTermName,
+} from "./plan/projection";
 import { SixNeeded } from "./plan/six-needed";
 
 const SIX_WEB = "https://six.itb.ac.id";
@@ -33,51 +59,40 @@ const shownIndex = (index: CheckedIndex) => index.six ?? index.computed;
 
 export function GradesScreen() {
   const t = useT();
+  const nav = useNav();
   const record = useStudentRecord();
   // SIX's own record: the planner's what-ifs for this term stay in the planner.
   const state = usePlan(record, false);
   if (!record || !state) return <WithoutSix />;
   return (
     <Page className="@container">
-      <Answer record={record} state={state} />
-      <div className="mt-6 mb-6 space-y-2 empty:hidden">
+      <PageHeader title={t("nav.grades")} className="mb-6" />
+      <div className="mb-6 space-y-2 empty:hidden">
         <SixPageNote datasets={["six.transcript", "six.progress"]} />
         <UnreadNote record={record} />
       </div>
       <Disagreement record={record} />
       <Standing record={record} state={state} />
       {/* The guide points here (shell/guide.tsx). */}
-      <div data-guide="grades-outlook" className="mt-10 grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">
-        <Card className="min-w-0 px-5 pt-4 pb-4">
-          <h2 className="mb-3 text-title font-semibold tracking-[-0.01em]">{t("grades.chart")}</h2>
-          <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />
-        </Card>
-        <Graduation record={record} state={state} />
-      </div>
+      <section aria-labelledby="grades-chart" data-guide="grades-outlook" className="mt-12">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+          <h2 id="grades-chart" className="text-title font-semibold tracking-[-0.01em]">
+            {t("grades.chart")}
+          </h2>
+          <Button onClick={() => nav.go({ screen: "plan", tab: "planner" })}>
+            {t("grades.toPlanner")}
+            <Icons.ChevronRight className="size-4" />
+          </Button>
+        </div>
+        {/* The IPK at graduation is said in words above: the chart's end isn't labelled with it again. */}
+        <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} endLabel={false} />
+        {/* Honors sit behind the IPK at graduation above; with no IPK at graduation to hang them on, they're said here. */}
+        {state.projection.finalIpk === null && <HonorsSentence projection={state.projection} className="mt-3" />}
+        {hasWhatIfs(state.plan, record) && <p className="mt-3 text-caption text-muted">{t("grades.withoutWhatIfs")}</p>}
+      </section>
       <ThisTerm record={record} state={state} />
       <Transcript record={record} />
     </Page>
-  );
-}
-
-/** The one line that answers "where is my IPK", under the title. */
-function Answer({ record, state }: { record: StudentRecord; state: PlanState }) {
-  const t = useT();
-  const f = useFormat();
-  const predicate = usePredicate();
-  const ipk = shownIndex(record.transcript!.ipk);
-  const { finalIpk, path, variableSks } = state.projection;
-  const word = predicate(predicateFor(finalIpk, path));
-  return (
-    <PageHeader
-      title={t("nav.grades")}
-      description={
-        <>
-          <span className="font-medium text-fg">{t("grades.answer", { ipk: ipk === null ? "-" : f.number(ipk, 2) })}</span>{" "}
-          {variableSks > 0 && finalIpk !== null && word && t("grades.answerFinal", { final: f.number(finalIpk, 2), predicate: word.toLowerCase() })}
-        </>
-      }
-    />
   );
 }
 
@@ -99,72 +114,119 @@ function Disagreement({ record }: { record: StudentRecord }) {
   );
 }
 
+/**
+ * The honors outlook in one positive sentence, as the planner's HonorsSentence says it: the first level still open
+ * and what it needs, or that cum laude is out of reach. A string, for the tooltip behind the predicate.
+ */
+function honorsWhy(t: Translate, f: Format, projection: Projection): string {
+  const outlook = honorsOutlook(projection).reverse(); // cum, magna, summa
+  const secured = [...outlook].reverse().find((h) => h.kind === "secured");
+  const next = outlook.find((h) => h.kind === "needs");
+  const securedText = secured ? t("grades.honorsSecured", { level: t(`honors.${secured.level}`) }) : null;
+  if (next && next.kind === "needs") {
+    const needs = t("grades.honorsNeeds", {
+      level: t(`honors.${next.level}`),
+      avg: f.number(next.average, 2),
+      sks: projection.variableSks,
+      effort: t(effortKey(next.average)),
+    });
+    return securedText ? `${securedText} ${needs}` : needs;
+  }
+  if (securedText) return securedText;
+  const cum = outlook.find((h) => h.level === "cum")!;
+  return t("grades.honorsOut", { min: f.number(cum.min, 2) });
+}
+
+/**
+ * The IPK, the one big figure on the page, and beside it the facts around it, each a figure and a word or two:
+ * where the grades the Student expects lead by graduation, SKS passed, last semester's IP, the highest IPK still
+ * possible. What's behind a figure (honors, the semester it's compared with, the A's it takes) is a tooltip away.
+ */
 function Standing({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
   const f = useFormat();
+  const predicate = usePredicate();
   const termName = useTermName(record);
   const transcript = record.transcript!;
   const num = (value: number | null) => (value === null ? "-" : f.number(value, 2));
+  /** "Smt 6", without its years. */
+  const short = (term: string) => termName(term).split(" · ")[0];
+  const ipk = shownIndex(transcript.ipk);
   const graded = transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null);
   const last = graded.at(-1);
   const before = graded.at(-2);
   const lastIp = last ? shownIndex(last.ip) : null;
-  const delta = lastIp !== null && before ? lastIp - shownIndex(before.ip)! : null;
+  const beforeIp = before ? shownIndex(before.ip) : null;
+  const delta = lastIp !== null && beforeIp !== null ? lastIp - beforeIp : null;
   const signed = (value: number) => `${value > 0.004 ? "+" : value < -0.004 ? "−" : "±"}${f.number(Math.abs(value), 2)}`;
   const sks = sksModel(record, state.plan);
-  const { bestIpk, variableSks } = state.projection;
-  // The IPK itself is the header's answer; these are the figures around it.
+  const { projection, plan } = state;
+  const { bestIpk, variableSks, finalIpk } = projection;
+  const word = predicate(predicateFor(finalIpk, projection.path));
+  const finish = checkPlan(record, plan, projection).find((r) => r.id === "finish");
+  const lastTerm = [...plan.terms].reverse().find((term) => term.courses.length)?.term ?? record.term;
+  const blocked = finish?.level === "error";
+  const honors = honorsWhy(t, f, projection);
   return (
-    <StatRow>
-      <Stat label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
-      <Stat
-        label={t("grades.lastIp")}
-        value={num(lastIp)}
-        hint={
-          last ? (
-            delta === null ? (
-              termName(last.term)
-            ) : (
-              <Meta>{t("grades.lastIpHint", { term: termName(last.term).split(" · ")[0], delta: signed(delta) })}</Meta>
-            )
-          ) : undefined
-        }
-      />
-      <Stat label={t("grades.best")} value={num(bestIpk)} hint={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} />
-    </StatRow>
+    <section aria-label={t("grades.standing")} className="grid grid-cols-1 items-start gap-x-14 gap-y-5 @2xl:grid-cols-[auto_minmax(0,1fr)]">
+      <div>
+        <p className="text-small font-medium text-muted">{t("grades.ipkNow")}</p>
+        <p className="text-hero font-semibold tracking-[-0.02em] tabular-nums">{num(ipk)}</p>
+      </div>
+      <dl className="grid grid-cols-[auto_auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-small @2xl:pt-0.5">
+        {finalIpk !== null && (
+          <Fact
+            label={t("grades.graduationLabel")}
+            // With no predicate to hang it on, the honors outlook goes behind the label.
+            why={word ? undefined : honors}
+            value={<AnimatedNumber value={finalIpk} format={(value) => f.number(value, 2)} />}
+            hint={
+              <Meta>
+                {word ? <Explained text={word} why={honors} className={cx(projection.honor && "text-success-fg")} /> : null}
+                {blocked ? (
+                  <span className="inline-flex items-center gap-1 text-warning-fg">
+                    <Icons.AlertTriangle className="size-3.5 shrink-0" />
+                    {t("grades.graduationBlocked")}
+                  </span>
+                ) : finish && lastTerm ? (
+                  t("grades.graduationWhen", { term: short(lastTerm) })
+                ) : null}
+              </Meta>
+            }
+          />
+        )}
+        <Fact label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
+        <Fact
+          label={t("grades.lastIp")}
+          value={num(lastIp)}
+          hint={
+            last ? (
+              delta === null || !before ? (
+                short(last.term)
+              ) : (
+                <Explained
+                  text={signed(delta)}
+                  why={t("grades.lastIpWhy", { term: short(last.term), before: short(before.term), ip: num(beforeIp) })}
+                  className="tabular-nums"
+                />
+              )
+            ) : undefined
+          }
+        />
+        <Fact label={t("grades.best")} why={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} value={num(bestIpk)} />
+      </dl>
+    </section>
   );
 }
 
-function Graduation({ record, state }: { record: StudentRecord; state: PlanState }) {
-  const t = useT();
-  const f = useFormat();
-  const nav = useNav();
-  const predicate = usePredicate();
-  const termName = useTermName(record);
-  const { projection, plan } = state;
-  const final = projection.finalIpk;
-  const word = predicate(predicateFor(final, projection.path));
-  const finish = checkPlan(record, plan, projection).find((r) => r.id === "finish");
-  const lastTerm = [...plan.terms].reverse().find((term) => term.courses.length)?.term ?? record.term;
+/** One quiet fact beside the IPK: its name (with what's behind it a tooltip away), its figure, and a word or two. */
+function Fact({ label, why, value, hint }: { label: string; why?: string; value: ReactNode; hint?: ReactNode }) {
   return (
-    <Card className="flex flex-col px-5 py-4">
-      <h2 className="text-title font-semibold tracking-[-0.01em]">{t("grades.graduation")}</h2>
-      <p className="text-caption text-muted">{t("grades.graduationEstimate")}</p>
-      <p className="mt-3 text-display font-semibold">{final === null ? "-" : <AnimatedNumber value={final} format={(value) => f.number(value, 2)} />}</p>
-      {word && <p className={cx("text-small font-semibold", projection.honor ? "text-success-fg" : "text-fg")}>{word}</p>}
-      {finish && (
-        <p className={cx("mt-1 flex items-center gap-1.5 text-small", finish.level === "error" ? "text-warning-fg" : "text-muted")}>
-          {finish.level === "error" ? <Icons.AlertTriangle className="size-3.5 shrink-0" /> : <Icons.Flag className="size-3.5 shrink-0" />}
-          {finish.level === "error" ? t("grades.graduationBlocked") : lastTerm ? t("grades.graduationWhen", { term: termName(lastTerm) }) : null}
-        </p>
-      )}
-      {hasWhatIfs(plan, record) && <p className="mt-1 text-caption text-muted">{t("grades.withoutWhatIfs")}</p>}
-      <HonorsSentence projection={projection} className="mt-3 border-t border-line pt-3" />
-      <Button className="mt-4 self-start" onClick={() => nav.go({ screen: "plan", tab: "planner" })}>
-        {t("grades.toPlanner")}
-        <Icons.ChevronRight className="size-4" />
-      </Button>
-    </Card>
+    <div className="col-span-3 grid grid-cols-subgrid items-start">
+      <dt className="text-muted">{why ? <Explained text={label} why={why} /> : label}</dt>
+      <dd className="text-right font-semibold tabular-nums">{value}</dd>
+      <dd className="min-w-0 text-muted">{hint}</dd>
+    </div>
   );
 }
 
@@ -185,7 +247,7 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
     <Section id="this-term" title={t("grades.thisTerm")} description={pending ? t("grades.whatIf") : undefined}>
       <div className="grid grid-cols-1 items-start gap-6 @3xl:grid-cols-[minmax(0,1fr)_288px]">
         <div className="min-w-0">
-          <List label={t("grades.thisTerm")}>
+          <List label={t("grades.thisTerm")} className={PLAIN_LIST}>
             {record.thisTerm.map((course) => {
               const published = outline?.[course.code]?.grade ?? null;
               return (
@@ -201,16 +263,16 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
                   }
                   trailing={
                     <span className="flex items-center gap-2">
-                      {/* Quiet: one per course, so a column of blue links doesn't outshout the grades beside it. */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-muted hover:text-fg"
-                        aria-label={`${t("grades.whatNeed")} ${course.code}`}
-                        onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
-                      >
-                        {t("grades.whatNeed")}
-                      </Button>
+                      {/* Quiet: one per course, its words a tooltip away, so a column of "Butuh berapa?" doesn't outshout the grades beside it. */}
+                      <Tooltip content={t("grades.whatNeed")}>
+                        <IconButton
+                          size="sm"
+                          label={`${t("grades.whatNeed")} ${course.code}`}
+                          onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
+                        >
+                          <Icons.Target className="size-4" />
+                        </IconButton>
+                      </Tooltip>
                       {course.grade ? (
                         <GradeBadge grade={course.grade} title={t("grades.sixGrade")} />
                       ) : (
@@ -246,7 +308,7 @@ function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }
   );
 }
 
-/** SIX's rule about hidden grades, timed to ITB's questionnaire window, and the grade deadline. */
+/** ITB's questionnaire window and the grade deadline, each a few words with SIX's rule behind it a tooltip away. */
 function TermNotes({ record }: { record: StudentRecord }) {
   const t = useT();
   const f = useFormat();
@@ -279,13 +341,21 @@ function TermNotes({ record }: { record: StudentRecord }) {
         {questionnaire && !during && (
           <li className="flex items-start gap-2">
             <Icons.ClipboardCheck className="mt-0.5 size-3.5 shrink-0" />
-            {t("grades.questionnaireSoon", { start: f.dayMonth(questionnaire.start), end: f.dayMonth(questionnaire.end - 1) })}
+            <Explained
+              text={t("grades.questionnaireSoon", { start: f.dayMonth(questionnaire.start), end: f.dayMonth(questionnaire.end - 1) })}
+              why={t("grades.questionnaireWhy")}
+              className="text-left"
+            />
           </li>
         )}
         {deadline && (
           <li className="flex items-start gap-2">
             <Icons.Calendar className="mt-0.5 size-3.5 shrink-0" />
-            {t("grades.gradeDeadline", { date: f.dayMonth(deadline.start) })}
+            <Explained
+              text={t("grades.gradeDeadline", { date: f.dayMonth(deadline.start) })}
+              why={t("grades.gradeDeadlineWhy", { date: f.dayMonth(deadline.start) })}
+              className="text-left"
+            />
           </li>
         )}
       </ul>
@@ -295,28 +365,18 @@ function TermNotes({ record }: { record: StudentRecord }) {
 
 function Transcript({ record }: { record: StudentRecord }) {
   const t = useT();
-  const f = useFormat();
   const terms = record.transcript!.terms;
-  const stage = record.progress?.stages.at(-1);
-  const stageIp = stage ? shownIndex(stage.ip) : null;
-  const lastGraded = [...terms].reverse().find((term) => shownIndex(term.ip) !== null)?.term ?? null;
-  const [open, setOpen] = usePlaceState<string | null>("grades.open", lastGraded);
+  // Every semester starts closed (its IP on the row is the answer; its courses a click away), oldest first.
+  const [open, setOpen] = usePlaceState<string | null>("grades.open", null);
   return (
-    <Section
-      id="transcript"
-      title={t("grades.transcript")}
-      description={
-        <Meta>
-          {t("grades.transcriptFrom")}
-          {/* SIX's "Tahap Sarjana" IPK is the IPK without TPB: said in the Student's words. */}
-          {stage && stageIp !== null && !/persiapan/i.test(stage.name) ? t("grades.stageIp", { ip: f.number(stageIp, 2) }) : ""}
-        </Meta>
-      }
-    >
-      <List label={t("grades.transcript")}>
-        {[...terms].reverse().map((term) => (
-          <TermRow key={term.term} record={record} term={term} open={open === term.term} onToggle={() => setOpen(open === term.term ? null : term.term)} />
-        ))}
+    <Section id="transcript" title={t("grades.transcript")}>
+      <List label={t("grades.transcript")} className={PLAIN_LIST}>
+        {/* This semester, still without an IP, is Semester ini above: not a row here again. */}
+        {terms
+          .filter((term) => !(term.term === record.term && shownIndex(term.ip) === null && record.thisTerm.length > 0))
+          .map((term) => (
+            <TermRow key={term.term} record={record} term={term} open={open === term.term} onToggle={() => setOpen(open === term.term ? null : term.term)} />
+          ))}
       </List>
     </Section>
   );
@@ -338,7 +398,7 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
         {...disclosureTrigger(open, id)}
         className="focus-ring flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-hover focus-visible:-outline-offset-2"
       >
-        <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-150", open && "rotate-90")} />
+        <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-quick", open && "rotate-90")} />
         <span className="flex-1 text-body font-medium">{termName(term.term)}</span>
         {!term.ip.agrees && (
           <span className="inline-flex items-center gap-1 text-caption font-medium text-warning-fg">
@@ -346,7 +406,6 @@ function TermRow({ record, term, open, onToggle }: { record: StudentRecord; term
             {t("grades.termDisagree", { six: num(term.ip.six), computed: num(term.ip.computed) })}
           </span>
         )}
-        <span className="text-small text-muted">{t("grades.courseCount", { count: term.courses.length })}</span>
         <span className={cx("w-[84px] text-right tabular-nums", now ? "text-small text-muted" : "text-body font-semibold")}>
           {now ? t("grades.inProgress") : `IP ${num(ip)}`}
         </span>
@@ -408,7 +467,7 @@ function WithoutSix() {
       {courses && courses.length > 0 && (
         // With no grade published anywhere, that's said once above the list, not on every row.
         <Section id="edunex-term" title={t("grades.edunexTerm")} description={t(anyGrade ? "grades.edunexTermHint" : "grades.edunexTermNoneHint")}>
-          <List label={t("grades.edunexTerm")}>
+          <List label={t("grades.edunexTerm")} className={PLAIN_LIST}>
             {courses.map((course) => {
               const grade = outline?.[course.code]?.grade ?? null;
               return (

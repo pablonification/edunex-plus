@@ -20,9 +20,9 @@ const VARIANT: Record<Variant, string> = {
 };
 
 const SIZE: Record<Size, string> = {
-  sm: "h-7 gap-1 rounded-md px-2.5 text-small font-medium",
-  md: "h-8 gap-1.5 rounded-lg px-3 text-small font-semibold",
-  lg: "h-10 gap-2 rounded-lg px-5 text-body font-semibold",
+  sm: "h-7 gap-1 rounded-item px-2.5 text-small font-medium",
+  md: "h-8 gap-1.5 rounded-control px-3 text-small font-semibold",
+  lg: "h-10 gap-2 rounded-control px-5 text-body font-semibold",
 };
 
 /**
@@ -30,7 +30,7 @@ const SIZE: Record<Size, string> = {
  * aria-haspopup; Tailwind has no variant for it), and not one that is aria-disabled.
  */
 const PRESS =
-  "transition-[color,background-color,border-color,box-shadow,scale] duration-150 [&:active:not([aria-haspopup]):not([aria-disabled=true])]:scale-[0.97]";
+  "transition-[color,background-color,border-color,box-shadow,scale] duration-quick [&:active:not([aria-haspopup]):not([aria-disabled=true])]:scale-[0.97]";
 
 /**
  * Dimmed while it can't run (aria-disabled): unlike `disabled`, it keeps focus, so a keyboard user who
@@ -101,7 +101,7 @@ export function IconButton({ label, size = "md", className, children, type = "bu
       type={type}
       aria-label={label}
       className={cx(
-        "focus-ring grid shrink-0 place-items-center rounded-lg text-muted hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50",
+        "focus-ring grid shrink-0 place-items-center rounded-control text-muted hover:bg-hover hover:text-fg disabled:pointer-events-none disabled:opacity-50",
         ICON_LIMIT,
         PRESS,
         size === "sm" ? "size-7" : "size-8",
@@ -132,9 +132,9 @@ export function Switch({
       aria-label={label}
       disabled={disabled}
       // Calm when on (ink, not accent): a settings list of ten switches must not shout.
-      className="focus-ring relative inline-flex h-5 w-[34px] shrink-0 items-center rounded-full bg-field-edge transition-colors duration-150 disabled:opacity-50 data-[state=checked]:bg-fg"
+      className="focus-ring relative inline-flex h-5 w-[34px] shrink-0 items-center rounded-full bg-field-edge transition-colors duration-quick disabled:opacity-50 data-[state=checked]:bg-fg"
     >
-      <SwitchPrimitive.Thumb className="block size-4 translate-x-[2px] rounded-full bg-white shadow-thumb transition-transform duration-150 ease-standard data-[state=checked]:translate-x-4 data-[state=checked]:bg-surface" />
+      <SwitchPrimitive.Thumb className="block size-4 translate-x-[2px] rounded-full bg-white shadow-thumb transition-transform duration-quick ease-standard data-[state=checked]:translate-x-4 data-[state=checked]:bg-surface" />
     </SwitchPrimitive.Root>
   );
 }
@@ -162,7 +162,7 @@ export function Stepper({
 }) {
   const set = (next: number) => onChange(Math.max(min, Math.min(max, next)));
   return (
-    <div className="inline-flex h-8 shrink-0 items-center rounded-lg border border-edge bg-surface">
+    <div className="inline-flex h-8 shrink-0 items-center rounded-control border border-edge bg-surface">
       <IconButton size="sm" label={lowerLabel} aria-disabled={value <= min || undefined} onClick={() => set(value - step)} className="rounded-r-none">
         <Icons.Minus className="size-3.5" />
       </IconButton>
@@ -259,9 +259,13 @@ export function Segmented<T extends string>({
     onChange,
   );
   return (
-    <div role="radiogroup" aria-label={label} className="relative flex rounded-lg bg-fill p-0.5 ring-1 ring-black/[0.05] ring-inset dark:ring-white/[0.06]">
+    <div
+      role="radiogroup"
+      aria-label={label}
+      className="relative flex rounded-control bg-fill p-0.5 ring-1 ring-black/[0.05] ring-inset dark:ring-white/[0.06]"
+    >
       {/* High contrast drops fills and shadows: an edge keeps the pick visible there. */}
-      <SlidingHighlight active={value} className="rounded-md bg-segment shadow-thumb forced-colors:border-2" />
+      <SlidingHighlight active={value} className="rounded-item bg-segment shadow-thumb forced-colors:border-2" />
       {options.map((option, index) => (
         <button
           key={option.value}
@@ -270,7 +274,7 @@ export function Segmented<T extends string>({
           aria-label={option.name}
           data-highlight={option.value}
           className={cx(
-            "focus-ring relative h-7 rounded-md px-3 text-small font-medium transition-colors duration-150",
+            "focus-ring relative h-7 rounded-item px-3 text-small font-medium transition-colors duration-quick",
             option.value === value ? "text-fg" : "text-muted hover:text-fg",
           )}
         >

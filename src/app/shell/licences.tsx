@@ -62,7 +62,7 @@ export default function Licences() {
       {/* The search stays in view over the rows scrolling under it. */}
       <div className="sticky -top-5 z-10 -mx-5 bg-raised px-5 py-3">
         {/* The box shows the focus ring: the input itself is borderless inside it. */}
-        <label className="flex h-9 items-center gap-2 rounded-lg bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
+        <label className="flex h-9 items-center gap-2 rounded-control bg-fill px-3 has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-focus">
           <Icons.Search className="size-4 shrink-0 text-faint" />
           <input
             ref={search}
@@ -131,7 +131,7 @@ function LicenceRow({ entry, open, onToggle }: { entry: Licence; open: boolean; 
           {...disclosureTrigger(open, id)}
           className="flex min-w-0 flex-1 items-center gap-2.5 py-2.5 pr-1 pl-3.5 text-left focus-visible:outline-none"
         >
-          <Icons.ChevronRight className={cx("size-3.5 shrink-0 text-faint transition-transform duration-150", open && "rotate-90")} />
+          <Icons.ChevronRight className={cx("size-3.5 shrink-0 text-faint transition-transform duration-quick", open && "rotate-90")} />
           <span className="min-w-0 truncate text-body font-medium" title={entry.name}>
             {entry.name}
           </span>
@@ -188,7 +188,7 @@ function LicenceText({ text }: { text: string }) {
 /** Rows in the shape of the list while it loads. */
 function Loading() {
   return (
-    <div aria-hidden className="overflow-hidden rounded-xl border border-edge bg-surface shadow-card">
+    <div aria-hidden className="overflow-hidden rounded-card border border-edge bg-surface">
       {["w-40", "w-28", "w-52", "w-36", "w-44", "w-32"].map((width) => (
         <div key={width} className="flex items-center gap-3 border-line px-4 py-3 not-first:border-t">
           <Skeleton className={cx("h-4", width)} />

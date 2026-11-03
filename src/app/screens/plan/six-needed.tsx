@@ -35,8 +35,8 @@ export function SixNeeded({
   const signedOut = status.state === "signed-out";
   const connecting = status.state === "connecting" || status.state === "live";
   return (
-    <div className={cx("flex items-start gap-4 rounded-xl border border-edge bg-surface px-5 py-4 shadow-card", className)}>
-      <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-fill text-muted">{icon}</span>
+    <div className={cx("flex items-start gap-4 rounded-card border border-edge bg-surface px-5 py-4", className)}>
+      <span className="grid size-9 shrink-0 place-items-center rounded-control bg-fill text-muted">{icon}</span>
       <div className="min-w-0 flex-1">
         <p className="text-body font-semibold">{title}</p>
         <p className="mt-0.5 text-small text-muted">{connecting ? t("plan.loading") : signedOut ? body : t("plan.needSixWait")}</p>

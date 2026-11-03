@@ -204,7 +204,7 @@ export function SyncStatus() {
           // Whole while the search field and the back button can give up room. Zoomed in (the sidebar a rail), it gives
           // up its words too before anything goes past the window, down to its mark: they stay in its name and panel.
           className={cx(
-            "focus-ring no-drag inline-flex h-8 shrink-0 items-center gap-2 rounded-lg px-2.5 text-small font-medium transition-colors duration-150 max-[52rem]:min-w-11 max-[52rem]:shrink",
+            "focus-ring no-drag inline-flex h-8 shrink-0 items-center gap-2 rounded-control px-2.5 text-small font-medium transition-colors duration-quick max-[52rem]:min-w-11 max-[52rem]:shrink",
             state === "changed"
               ? "bg-danger-bg text-danger-fg"
               : state === "expired" || state === "action-needed"
@@ -256,7 +256,7 @@ function SourceRow({ source }: { source: SourceId }) {
   const hint = needsSignIn && note ? note.text : refreshing ? t("sync.checking") : hintFor(status, name, t);
   const word = status.state === "changed" ? t("status.changedShort") : t(`status.${status.state}`);
   return (
-    <li className="flex items-start gap-3 rounded-lg px-2.5 py-2">
+    <li className="flex items-start gap-3 rounded-control px-2.5 py-2">
       {/* The logo says which system; the mark on its corner, how it's doing. */}
       <span className="relative mt-0.5 shrink-0">
         <SourceLogo source={source} className="size-8" />

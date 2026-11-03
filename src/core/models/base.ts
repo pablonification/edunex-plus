@@ -117,6 +117,8 @@ export const Settings = z.object({
   attendanceTarget: AttendanceTarget,
   /** A course's own target (percent) by course code, from its course contract; see `targetFor`. */
   attendanceTargets: z.record(z.string().min(1).max(32), AttendanceTarget),
+  /** The Student closed Presensi's key to the absence bars ("Mengerti"): it stays behind its button. Saved from 0.1.0-alpha.30 on. */
+  budgetExplained: z.boolean().optional(),
 
   // Beranda
   /** How far ahead "Perlu perhatianmu" looks: what's due by the end of that day shows there (see `needsRange`). */
@@ -165,6 +167,7 @@ export const DEFAULT_SETTINGS: Settings = {
   // Attendance (#85)
   attendanceTarget: 80,
   attendanceTargets: {},
+  budgetExplained: false,
 
   // Beranda
   needsAhead: 7,

@@ -105,7 +105,7 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
       {failed ? (
         <Notice tone="danger" title={t("report.failed")} />
       ) : !preview ? (
-        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-48 rounded-card" />
       ) : sent ? (
         <div className="space-y-6">
           <ReportSent id={sent.id} issue={sent.issue} duplicate={sent.duplicate} />
@@ -137,7 +137,7 @@ export function ReportDialog({ ask, open, onOpenChange }: { ask: ReportAsk | nul
               {relay && (
                 <Way
                   className="min-[30rem]:col-span-2"
-                  logo={<AppMark className="size-8 rounded-lg" />}
+                  logo={<AppMark className="size-8 rounded-control" />}
                   label={t("report.relay")}
                   hint={t("report.relayHint")}
                   busy={saving === "relay"}
@@ -213,7 +213,7 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
               variant="ghost"
               aria-expanded={technical}
               aria-controls={details}
-              icon={<Icons.ChevronRight className={cx("size-3.5 transition-transform duration-150", technical && "rotate-90")} />}
+              icon={<Icons.ChevronRight className={cx("size-3.5 transition-transform duration-quick", technical && "rotate-90")} />}
               onClick={() => setTechnical(!technical)}
             >
               {t("report.details")}
@@ -260,7 +260,7 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
 
 /** Technical text as it goes: the engine's lines, the page's markup. */
 function Code({ children }: { children: string }) {
-  return <pre className="max-h-56 overflow-auto rounded-lg bg-fill p-3 font-mono text-caption whitespace-pre-wrap break-all">{children}</pre>;
+  return <pre className="max-h-56 overflow-auto rounded-control bg-fill p-3 font-mono text-caption whitespace-pre-wrap break-all">{children}</pre>;
 }
 
 /** What a problem cost: what it touched, the rows it left out or left blank, when that data last read whole. */
@@ -311,8 +311,8 @@ function Way({
       onClick={disabled ? undefined : onClick}
       className={cx(
         className,
-        "group focus-ring flex items-start gap-3.5 rounded-xl border border-edge bg-surface p-4 text-left shadow-card",
-        "transition-[border-color,background-color,box-shadow,scale] duration-150 hover:border-accent/50 hover:bg-hover hover:shadow-lift active:scale-[0.99] active:bg-selected",
+        "group focus-ring flex items-start gap-3.5 rounded-card border border-edge bg-surface p-4 text-left",
+        "transition-[border-color,background-color,scale] duration-quick hover:border-accent/50 hover:bg-hover active:scale-[0.99] active:bg-selected",
         "aria-disabled:pointer-events-none aria-disabled:opacity-60",
       )}
     >
@@ -325,8 +325,8 @@ function Way({
         </span>
       </span>
       {/* A round "go" at the end, filled with the accent on hover: this tile is a button. */}
-      <span className="grid size-8 shrink-0 place-items-center self-center rounded-full bg-fill text-fg transition-colors duration-150 group-hover:bg-accent group-hover:text-on-accent">
-        <Icons.ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-px" weight="bold" />
+      <span className="grid size-8 shrink-0 place-items-center self-center rounded-full bg-fill text-fg transition-colors duration-quick group-hover:bg-accent group-hover:text-on-accent">
+        <Icons.ArrowRight className="size-4 transition-transform duration-quick group-hover:translate-x-px" weight="bold" />
       </span>
     </button>
   );
@@ -440,7 +440,7 @@ function FileItem({ preview, file }: { preview: ReportPreview; file: NonNullable
   const store = useStore();
   const reveal = () => void bridge.invoke("report.reveal", { id: preview.id }).catch(() => toast(t("report.revealFailed"), "danger"));
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg border border-line bg-surface px-3 py-2.5">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-control border border-line bg-surface px-3 py-2.5">
       <Icons.FileText className="size-5 shrink-0 text-muted" />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-small font-medium">{file.name}</span>

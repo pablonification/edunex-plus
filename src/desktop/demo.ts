@@ -28,6 +28,8 @@ export interface DemoHooks {
   platform?: Platform;
   /** The pretend report relay's address, so "Kirim" and reports that send themselves can be shown; without it, the demo has none. */
   relay?: string;
+  /** "Buka di SIX": the Student presses Tandai Hadir on the pretend SIX, as the SIX window would see it (no window opens). */
+  pressCheckIn?(meetingId: string): void;
 }
 
 declare global {

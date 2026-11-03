@@ -169,6 +169,8 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
         // The receipt is only what Edunex says when the Task is read back.
         const after = (await readBack(context, client, draft.task))?.task ?? null;
         await remember(context, handIn.taskId, after);
+        // A Presence taken by handing this in shows at once, not at the next half-hourly read.
+        if (after?.answer?.sent) void context.runNow((feed) => feed === "edunex.presence");
         return { outcome: !after ? "gone" : after.answer?.sent ? "submitted" : "unconfirmed", task: after };
       });
     });

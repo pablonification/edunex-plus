@@ -59,11 +59,15 @@ async function type(label: string, value: string) {
 const text = (selector: string) => document.querySelector(selector)?.textContent ?? "";
 
 const stats = () => [...document.querySelectorAll("main dl > div")].map((el) => el.textContent);
+/** The IPK, the page's one big figure. */
+const ipk = () => document.querySelector("main section[aria-label=Posisimu] .text-hero")?.textContent ?? "";
 const chartRows = () =>
   [...document.querySelectorAll("table")]
     .find((table) => table.querySelector("caption")?.textContent?.startsWith("IP dan IPK per semester"))
     ?.querySelectorAll("tbody tr") ?? [];
 const termRow = (name: RegExp) => screen!.button(name);
+/** What a status says behind its tooltip: its button's accessible name after the words on screen. */
+const why = (name: RegExp) => screen!.button(name).getAttribute("aria-label");
 
 describe("Nilai", () => {
   it("before SIX is read: what SIX unlocks, this term's courses from Edunex, and a way in", async () => {
@@ -81,20 +85,27 @@ describe("Nilai", () => {
     expect(screen.text()).toContain("3,26");
   });
 
-  it("answers first: the IPK and where the expected grades lead, then the figures around it, the IPK not again", async () => {
+  it("answers first: the IPK as the one big figure, then the facts around it in quiet words, each said once", async () => {
     const s = await openGrades();
-    expect(text("main header")).toContain("IPK-mu 3,26. Dengan perkiraan nilaimu, lulus dengan sekitar 3,30 (sangat memuaskan).");
+    expect(ipk()).toBe("3,26");
+    // Each a figure and a word or two; what's behind it a tooltip away.
     expect(stats()).toEqual([
-      "SKS lulus125dari 144 SKS untuk lulus",
-      "IP semester lalu3,27Smt 6 · +0,17 dari sebelumnya",
+      "Perkiraan saat lulus3,30Sangat memuaskan · Lulus Smt 8",
+      "SKS lulus125dari 144",
+      "IP semester lalu3,27+0,17",
       // (408 + 4 × 26) / 151
-      "IPK tertinggi yang mungkin3,39jika semua A di 26 SKS tersisa",
+      "IPK tertinggi yang mungkin3,39",
     ]);
+    expect(why(/^\+0,17\./)).toBe("+0,17. Smt 6 dibanding Smt 5 (3,10)");
+    expect(why(/^IPK tertinggi yang mungkin\./)).toBe("IPK tertinggi yang mungkin. Jika semua A di 26 SKS tersisa");
     expect(s.text()).not.toContain("SIX menampilkan IPK");
     expect(s.text()).not.toContain("Tahap Sarjana");
-    // SIX's stage IPK in the Student's words, not SIX's.
-    expect(s.text()).toContain("IPK tanpa TPB: 3,18");
+    // SIX's IPK by stage (without TPB) isn't one more figure to read.
+    expect(s.text()).not.toContain("TPB");
     expect(s.text()).not.toMatch(/tahap sarjana/i);
+    // The IPK at graduation is said once: not again on the chart's end, nor in a card of its own.
+    expect(s.text()).not.toContain("3,30 saat lulus");
+    expect(s.text()).not.toContain("IPK saat lulus");
   });
 
   it("IP and IPK per semester on one chart, this semester and the plan marked as estimates", async () => {
@@ -113,17 +124,18 @@ describe("Nilai", () => {
 
   it("each course's \"Butuh berapa?\" says which course, for a screen reader, and opens that course's grades", async () => {
     const s = await openGrades();
-    const asks = [...document.querySelectorAll("main button")].filter((b) => b.textContent === "Butuh berapa?").map((b) => b.getAttribute("aria-label"));
+    // An icon on each row, its words in the tooltip and its name.
+    const asks = [...document.querySelectorAll("main button")].map((b) => b.getAttribute("aria-label")).filter((label) => label?.startsWith("Butuh berapa? "));
     expect(asks.length).toBeGreaterThan(1);
     expect(new Set(asks).size).toBe(asks.length);
     await s.click(asks[0]!);
     expect(document.querySelector("main h1")?.textContent).not.toBe("Nilai");
   });
 
-  it("IPK at graduation with one positive honors line; the ladder stays in the planner", async () => {
+  it("IPK at graduation with one positive honors line behind its predicate; the ladder stays in the planner", async () => {
     const s = await openGrades();
-    expect(s.text()).toContain("IPK saat lulusPerkiraan, dari nilai perkiraanmu3,30Sangat memuaskanLulus Smt 8 · 2026/2027 Genap");
-    expect(s.text()).toContain("Cum laude (≥ 3,50) sudah di luar jangkauan. Tiap nilai bagus tetap menaikkan IPK-mu.");
+    expect(why(/^Sangat memuaskan\./)).toBe("Sangat memuaskan. Cum laude (≥ 3,50) sudah di luar jangkauan. Tiap nilai bagus tetap menaikkan IPK-mu.");
+    expect(s.text()).not.toContain("Cum laude (≥ 3,50)");
     expect(s.text()).not.toContain("Magna cum laude");
     expect(s.text()).not.toContain("tak tercapai");
     await s.click("Atur di Rencana studi");
@@ -180,7 +192,11 @@ describe("Nilai", () => {
 
   it("the questionnaire reminder: ahead of ITB's window, during it, and gone once every grade is in", async () => {
     let s = await openGrades();
-    expect(s.text()).toContain("SIX menyembunyikan nilai sampai kuesioner mata kuliahnya diisi (30 Nov–11 Des). Kamu akan diingatkan.");
+    // What to do and when on screen, SIX's rule behind it.
+    expect(why(/^Isi kuesioner 30 Nov–11 Des\./)).toBe(
+      "Isi kuesioner 30 Nov–11 Des. SIX menyembunyikan nilai sampai kuesioner mata kuliahnya diisi. Kamu akan diingatkan.",
+    );
+    expect(why(/^Batas nilai akhir 8 Jan\./)).toBe("Batas nilai akhir 8 Jan. Dosen punya waktu sampai 8 Jan untuk memasukkan nilai akhir.");
     s.close();
 
     s = await openGrades({ now: "2026-12-01T10:00:00+07:00" });
@@ -207,18 +223,22 @@ describe("Nilai", () => {
         Object.assign(term.courses.find((c) => c.code === "II4012")!, { standing: "replaced" });
       },
     });
+    // Every semester starts closed, its IP on its row, oldest first.
+    const terms = [...document.querySelectorAll("section[aria-labelledby=transcript] button[aria-expanded]")];
+    expect(terms.map((term) => term.textContent?.slice(0, 5))).toEqual(["Smt 1", "Smt 2", "Smt 3", "Smt 4", "Smt 5", "Smt 6"]);
+    expect(terms.every((term) => term.getAttribute("aria-expanded") === "false")).toBe(true);
     const row = termRow(/^Smt 6 · 2025\/2026 Genap/);
+    await screen!.click(row);
     expect(row.getAttribute("aria-expanded")).toBe("true");
     // The row says which panel it opens.
     expect(document.getElementById(row.getAttribute("aria-controls")!)?.textContent).toContain("FK3057Sains Sepak Bola");
-    expect(row.textContent).toContain("8 mata kuliahIP 3,27");
+    expect(row.textContent).toBe("Smt 6 · 2025/2026 GenapIP 3,27");
     const rows = [...row.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent);
     expect(rows).toContain("FK3057Sains Sepak BolaBelum masuk transkrip2 SKSB");
     expect(rows).toContain("II4012Inteligensi Artifisial untuk BisnisDiganti nilai ulang3 SKSC");
-    const now = termRow(/^Smt 7 · 2026\/2027 Ganjil/);
-    expect(now.textContent).toContain("Berlangsung");
-    await screen!.click(now);
-    expect([...now.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent)).toContain("II4091Proposal Tugas AkhirBelum ada nilai2 SKS-");
+    // This semester, with no IP yet, is Semester ini above: not a transcript row again.
+    expect(screen!.has(/^Smt 7 · 2026\/2027 Ganjil/)).toBe(false);
+    expect(text("section[aria-labelledby=this-term]")).toContain("II4091Proposal Tugas Akhir");
   });
 
   it("a grade SIX writes another way: the course stays, said to check on SIX, its term's IP and the IPK SIX's, and the estimates say they leave it out", async () => {
@@ -231,7 +251,7 @@ describe("Nilai", () => {
         Object.assign(t, readTranscript(page, { value: 3.26, sks: 125 }));
       },
     });
-    expect(text("main header")).toContain("IPK-mu 3,26.");
+    expect(ipk()).toBe("3,26");
     expect(s.text()).not.toContain("SIX menampilkan IPK");
     expect(s.text()).toContain("Perkiraan di sini belum menghitung FI1101 karena nilai atau SKS-nya di SIX belum terbaca.");
     const first = termRow(/^Smt 1 · 2023\/2024 Ganjil/);
@@ -254,7 +274,7 @@ describe("Nilai", () => {
     expect(s.text()).toContain("Perkiraan di sini belum menghitung FI1101");
   });
 
-  it("with a grade SIX writes another way in the last graded semester, that semester still opens first", async () => {
+  it("with a grade SIX writes another way in the last graded semester, that semester opens to say so", async () => {
     await openGrades({
       edit: (t) => {
         const page = sixPage(/\/transkrip\/historis\/\d+$/).replace(
@@ -265,6 +285,7 @@ describe("Nilai", () => {
       },
     });
     const term = termRow(/^Smt 6 · 2025\/2026 Genap/);
+    await screen!.click(term);
     expect(term.getAttribute("aria-expanded")).toBe("true");
     expect(term.textContent).toContain("IP 3,27");
     expect([...term.parentElement!.querySelectorAll("ul li")].map((li) => li.textContent)).toContain("FK3057Sains Sepak BolaCek di SIX2 SKS-");
@@ -278,14 +299,15 @@ describe("Nilai", () => {
       },
     });
     expect(s.text()).toContain("SIX menampilkan IPK 3,30, sedangkan nilai di transkripmu menghasilkan 3,26. Yang ditampilkan angka SIX.");
-    expect(text("main header")).toContain("IPK-mu 3,30.");
+    expect(ipk()).toBe("3,30");
     expect(termRow(/^Smt 1 · 2023\/2024 Ganjil/).textContent).toContain("SIX 3,70 · dari baris 3,69");
   });
 
   it("in English", async () => {
     const s = await openGrades({ lang: "en" });
     expect(s.text()).toContain("SKS passed125");
-    expect(s.text()).toContain("IPK at graduation");
+    expect(s.text()).toContain("Your IPK3,26".replace(",", "."));
+    expect(s.text()).toContain("Expected at graduation3.30");
     expect(s.text()).toContain("Very satisfactory");
     expect(s.text()).toContain("Sem 6 · 2025/2026 Even");
     expect(s.text()).toContain("Highest possible IPK3.39");

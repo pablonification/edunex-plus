@@ -2,8 +2,9 @@
 // /login ends it. Pages are read at human pace, one at a time, through one
 // client (SixPages) that every SIX reader shares, "Tandai Hadir" during class too.
 import { z } from "zod";
+import { EngineError } from "../../errors";
 import type { Source } from "../source";
-import { registerSixCheckInFeed } from "./check-in";
+import { checkInPressed, registerSixCheckInFeed } from "./check-in";
 import { SIX_ORIGIN, SixClient } from "./client";
 import { registerSixFeeds } from "./feeds";
 import { registerSixRecordFeeds } from "./records";
@@ -22,5 +23,14 @@ export const six: Source<SixSession> = {
     registerSixFeeds(context, client);
     registerSixRecordFeeds(context, client);
     registerSixCheckInFeed(context, client);
+  },
+  actions: {
+    /** The app's SIX window saw the Student press something in a class's popup ({ meetingId }). */
+    async checkInPressed(context, _session, input) {
+      const parsed = z.object({ meetingId: z.string().regex(/^\d{1,20}$/) }).safeParse(input);
+      if (!parsed.success) throw new EngineError("Rejected", "Not a SIX meeting");
+      await checkInPressed(context, parsed.data.meetingId);
+      return {};
+    },
   },
 };

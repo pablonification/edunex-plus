@@ -197,9 +197,8 @@ function classSection(
   const checkIns = snapshotDataset(snapshot, "six.checkIn") ?? {};
   const open = student ? (snapshotDataset(snapshot, "six.schedule") ?? []).filter((s) => checkIns[s.id]?.state === "open" && checkingIn(s, now)) : [];
   for (const s of open) lines.push({ type: "item", label: t("tray.checkIn"), detail: s.courseCode, action: { kind: "checkIn", meetingId: s.id } });
-  // Optional where SIX counts: Beranda says so quietly, and the menu leaves it out.
   const presence = card?.presence;
-  if (presence && presence.counts !== false) {
+  if (presence) {
     if (!slot) lines.unshift({ type: "header", label: t("home.now.presenceOnly") });
     const title = presence.noSix ? t("home.need.presenceNoSix", { course: presence.code }) : t("home.need.presence", { course: presence.code });
     lines.push({
@@ -285,12 +284,7 @@ function needLine(need: NeedDraft, f: Format, t: Translate): { label: string; de
         const title = need.task ? need.task.title : t("home.need.presenceAhead", { course });
         return line(title, need.task ? course : null, t("tray.opens", { when: f.dueLabel(need.session.opensAt) }));
       }
-      const title =
-        need.countedIn === "noSix"
-          ? t("home.need.presenceNoSix", { course })
-          : need.countedIn === "six"
-            ? t("home.need.presenceOptional", { course })
-            : t("home.need.presence", { course });
+      const title = need.countedIn === "noSix" ? t("home.need.presenceNoSix", { course }) : t("home.need.presence", { course });
       return line(title, t("home.need.presence.closes", { time: f.dayTime(need.session.closesAt) }));
     }
     case "exam": {
