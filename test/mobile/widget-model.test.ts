@@ -25,8 +25,14 @@ describe("the widget", () => {
     expect(model.now && "tone" in model.now && model.now.tone).toMatch(/^var\(--course-[a-z]+\)$/);
     // Edunex's Presence window for it closes first (09:30), then the class ends (10:00).
     expect(model.changesAt).toBe(Date.parse("2026-10-08T09:30:00+07:00"));
-    // SIX counts PL3002: nothing to press until SIX shows its button.
-    expect(model.actions).toEqual([]);
+    // PL3002's Edunex Presence is open: something to do, never optional, even where SIX counts too (#294).
+    expect(model.actions).toEqual([
+      {
+        label: "Isi Presensi PL3002",
+        detail: "Tutup 09:30",
+        open: { kind: "url", url: "https://edunex.itb.ac.id/courses/95001" },
+      },
+    ]);
     expect(model.status).toEqual({ text: expect.stringMatching(/^Diperbarui pukul \d\d:\d\d$/), problem: false });
   });
 
@@ -38,7 +44,7 @@ describe("the widget", () => {
     expect(modelOf(h).now).toMatchObject({ heading: "Kuliah berikutnya · Besok", code: "II4091", where: "Pertemuan 3 · daring" });
   });
 
-  it("Tandai Hadir open in SIX: the first thing to press, opening SIX's check-in page on the class", async () => {
+  it("Tandai Hadir open in SIX: the first thing to press, opening SIX's check-in page on the class, then the Presence", async () => {
     const h = await startHome();
     h.world.six.openCheckIn("2194342");
     await h.until("2026-10-08T08:40:00+07:00");
@@ -48,6 +54,12 @@ describe("the widget", () => {
         detail: "PL3002",
         a11y: "Buka di SIX untuk Tandai Hadir di PL3002",
         open: { kind: "checkIn", meetingId: "2194342" },
+      },
+      // Then the class's open Edunex Presence, as the tray lists it.
+      {
+        label: "Isi Presensi PL3002",
+        detail: "Tutup 09:30",
+        open: { kind: "url", url: "https://edunex.itb.ac.id/courses/95001" },
       },
     ]);
   });
