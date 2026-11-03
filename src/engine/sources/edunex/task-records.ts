@@ -33,6 +33,11 @@ const Time = z.string().nullable();
  */
 const CheckTime = Time.optional().transform((value) => value ?? null);
 const StoredFile = z.object({ name: z.string(), file: z.string() });
+/** A Task's own files, which Edunex can send as null instead of an empty list: null reads as none. */
+const TaskFiles = z
+  .array(StoredFile)
+  .nullable()
+  .transform((files) => files ?? []);
 /** A file in the Student's answer, kept whole: saving a draft sends Edunex's own record back for each file kept, as the website does. */
 const AnswerFile = z.looseObject({ name: z.string(), file: z.string() });
 export type AnswerFile = z.infer<typeof AnswerFile>;
@@ -64,7 +69,7 @@ const EdunexTask = z.object({
     tasks_type: z.string().nullable().optional(),
     name: z.string(),
     description: z.string().nullable(),
-    files: z.array(StoredFile),
+    files: TaskFiles,
     start_at: Time,
     end_at: Time,
     created_at: Time,
