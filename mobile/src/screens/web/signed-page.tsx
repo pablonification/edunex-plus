@@ -72,6 +72,11 @@ export function SignedPage({ url, meeting, title, testID }: { url: string; meeti
     };
   }, [url]);
 
+  // Back from the page: what the Student may have done there (pressed Tandai Hadir, recorded a Presence, handed in a
+  // Task) shows at once, not at the next sync, as on the desktop when its SIX window closes or the Student comes back
+  // from the browser (Engine.recheckAttendance, src/desktop/away.ts). The engine reads it at most once a minute.
+  useEffect(() => () => void currentHost?.engine.recheckAttendance(site).catch(() => undefined), [site]);
+
   // Signing out of this system closes its page.
   const wasIn = useRef(status.state !== "signed-out");
   useEffect(() => {
