@@ -12,7 +12,7 @@ import { type Format, type Translate, useClock, useFormat, useNow, useT } from "
 import { useDone } from "../../../../src/app/snoozes";
 import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import { answerFileProblem, type HandInResult, type PickedFile } from "../../../../src/core/actions/tasks";
-import { taskDoneKey } from "../../../../src/core/done";
+import { taskDoneKey, taskPutAway } from "../../../../src/core/done";
 import type { DoneHow, Task, TaskFile, TaskStatus } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
 import {
@@ -166,6 +166,10 @@ export function useHandIn(task: Task, status: TaskStatus) {
   }, [edunex.state]);
 
   const sent = status === "submitted" || status === "in_review";
+  // The Student's word that it's handed in another way (or won't be): Edunex still says it's to do, so the card leads
+  // with that word and leaves out the answer box and Kumpulkan until it's taken back (one screen, one answer).
+  const { entries: handled } = useDone();
+  const marked = isOpenStatus(status) ? taskPutAway(task, handled) : undefined;
   // A group Task is handed in by the group on Edunex's own pages.
   const editable = !task.group && takesAnswers(task, now);
   const answer = useAnswerText(task);
@@ -277,6 +281,7 @@ export function useHandIn(task: Task, status: TaskStatus) {
     task,
     status,
     sent,
+    marked,
     editable,
     answer,
     textLocked,
@@ -335,7 +340,7 @@ export function HandInCard({ h }: { h: HandInState }) {
   const c = theme.color;
   const open = useOpenExternal();
   const { signIn, busy: signingIn } = useSignIn();
-  const { task, status } = h;
+  const { task, status, marked } = h;
   const sentAt = submittedAt(task);
   const draftAt = task.answer?.updatedAt ?? task.answer?.createdAt ?? null;
   const subtitle =
@@ -360,12 +365,16 @@ export function HandInCard({ h }: { h: HandInState }) {
     <Panel flush testID="card.handIn">
       <View style={{ padding: space[4], gap: space[4] }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
-          <StatusGlyph status={status} size={24} color={glyph} />
+          {marked ? <Icons.CheckCircle size={24} weight="fill" color={c.successFg} /> : <StatusGlyph status={status} size={24} color={glyph} />}
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="titleMedium" face="display" weight="bold" style={{ color: theme.v4.fg }}>
-              {t(`taskStatus.${status}`)}
+              {marked ? t(`task.marked.${marked.how as MarkedHow}`) : t(`taskStatus.${status}`)}
             </Text>
-            {subtitle ? <Meta>{subtitle}</Meta> : null}
+            {marked ? (
+              <Meta>{t("mobile.tasks.edunexSays", { status: t(`taskStatus.${status}`).toLocaleLowerCase() })}</Meta>
+            ) : subtitle ? (
+              <Meta>{subtitle}</Meta>
+            ) : null}
           </View>
           {(task.score !== null || status === "in_review") && (
             <View style={{ alignItems: "flex-end" }}>
@@ -379,114 +388,117 @@ export function HandInCard({ h }: { h: HandInState }) {
           )}
         </View>
 
-        <View>
-          {h.editable && !h.textLocked ? (
-            <AnswerField
-              value={h.answer.text}
-              onChange={h.answer.setText}
-              label={t("mobile.tasks.answerText")}
-              placeholder={t("mobile.tasks.answerPlaceholder")}
-              fieldColors={fieldColors}
-              unsaved={h.textChanged}
-              onDiscard={h.answer.discard}
-              hint={h.hasText ? null : t("mobile.tasks.answerRequired")}
-            />
-          ) : (
-            !task.group &&
-            (h.textLocked || plainText(h.answer.saved)) && (
-              <View style={{ marginBottom: space[3], gap: space[2] }}>
-                <Text size="labelLarge" tone="muted">
-                  {t("mobile.tasks.answerText")}
-                </Text>
-                <View style={{ borderRadius: shape.md, backgroundColor: theme.v4.page, paddingHorizontal: space[3], paddingVertical: space[3] }}>
-                  <LecturerHtml html={h.answer.saved} pictureAlt={t("image.altYours")} />
-                </View>
-                {h.editable && h.textLocked && (
-                  <View style={{ gap: space[2], alignItems: "flex-start" }}>
-                    <Text size="bodySmall" tone="muted">
-                      {h.richLocked ? t("handIn.textRich") : t("mobile.handIn.textPlain")}
-                    </Text>
-                    <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
-                      {t("handIn.editOnEdunex")}
-                    </Button>
+        {/* Marked as handed in another way: no answer box under it, which would say "not done" again. */}
+        {!(marked && !task.group) && (
+          <View>
+            {h.editable && !h.textLocked ? (
+              <AnswerField
+                value={h.answer.text}
+                onChange={h.answer.setText}
+                label={t("mobile.tasks.answerText")}
+                placeholder={t("mobile.tasks.answerPlaceholder")}
+                fieldColors={fieldColors}
+                unsaved={h.textChanged}
+                onDiscard={h.answer.discard}
+                hint={h.hasText ? null : t("mobile.tasks.answerRequired")}
+              />
+            ) : (
+              !task.group &&
+              (h.textLocked || plainText(h.answer.saved)) && (
+                <View style={{ marginBottom: space[3], gap: space[2] }}>
+                  <Text size="labelLarge" tone="muted">
+                    {t("mobile.tasks.answerText")}
+                  </Text>
+                  <View style={{ borderRadius: shape.md, backgroundColor: theme.v4.page, paddingHorizontal: space[3], paddingVertical: space[3] }}>
+                    <LecturerHtml html={h.answer.saved} pictureAlt={t("image.altYours")} />
                   </View>
+                  {h.editable && h.textLocked && (
+                    <View style={{ gap: space[2], alignItems: "flex-start" }}>
+                      <Text size="bodySmall" tone="muted">
+                        {h.richLocked ? t("handIn.textRich") : t("mobile.handIn.textPlain")}
+                      </Text>
+                      <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
+                        {t("handIn.editOnEdunex")}
+                      </Button>
+                    </View>
+                  )}
+                </View>
+              )
+            )}
+            {(h.saved.length > 0 || h.attached.length > 0) && (
+              <View style={{ marginBottom: space[3], gap: 2 }}>
+                <Text size="labelLarge" tone="muted" style={{ marginBottom: space[2] }}>
+                  {t("mobile.tasks.answerFiles")}
+                </Text>
+                {h.saved.map((file) => (
+                  <SavedFileRow
+                    key={file.url}
+                    file={file}
+                    hint={h.editable ? fileHint(t, file.name, h.pattern, h.type) : null}
+                    onRemove={h.editable ? () => h.removeSaved(file.url) : undefined}
+                  />
+                ))}
+                {h.attached.map((item) => (
+                  <FileRow
+                    key={item.key}
+                    name={item.name}
+                    state={item.state}
+                    detail={
+                      item.state === "failed"
+                        ? t(item.problem ?? "handIn.uploadFailed")
+                        : item.state === "uploaded" || item.state === "uploading"
+                          ? factsLabel(t(item.state === "uploaded" ? "handIn.notSaved" : "handIn.uploading"), f.fileSize(item.size))
+                          : t("handIn.waiting")
+                    }
+                    hint={item.state === "uploaded" ? fileHint(t, item.name, h.pattern, h.type) : null}
+                    onRetry={item.state === "failed" && !refused(item) ? () => h.retry(item) : undefined}
+                    onRemove={h.editable ? () => h.removeAttached(item.key) : undefined}
+                    file={item.file}
+                  />
+                ))}
+              </View>
+            )}
+            {h.editable && (
+              // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos.
+              <View style={{ gap: space[2], alignItems: "flex-start" }}>
+                <Button
+                  variant="tonal"
+                  testID="action.attach"
+                  label={factsLabel(
+                    t("handIn.attach"),
+                    task.fileRequired ? t("handIn.fileRequired") : null,
+                    h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : null,
+                  )}
+                  icon={<Icons.Upload size={18} color={c.onSecondaryContainer} />}
+                  onPress={() => void h.pick()}
+                >
+                  {t("handIn.attach")}
+                </Button>
+                {(task.fileRequired || h.type) && (
+                  <Meta size="caption">
+                    {task.fileRequired ? t("handIn.fileRequired") : ""}
+                    {h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : ""}
+                  </Meta>
                 )}
               </View>
-            )
-          )}
-          {(h.saved.length > 0 || h.attached.length > 0) && (
-            <View style={{ marginBottom: space[3], gap: 2 }}>
-              <Text size="labelLarge" tone="muted" style={{ marginBottom: space[2] }}>
-                {t("mobile.tasks.answerFiles")}
-              </Text>
-              {h.saved.map((file) => (
-                <SavedFileRow
-                  key={file.url}
-                  file={file}
-                  hint={h.editable ? fileHint(t, file.name, h.pattern, h.type) : null}
-                  onRemove={h.editable ? () => h.removeSaved(file.url) : undefined}
-                />
-              ))}
-              {h.attached.map((item) => (
-                <FileRow
-                  key={item.key}
-                  name={item.name}
-                  state={item.state}
-                  detail={
-                    item.state === "failed"
-                      ? t(item.problem ?? "handIn.uploadFailed")
-                      : item.state === "uploaded" || item.state === "uploading"
-                        ? factsLabel(t(item.state === "uploaded" ? "handIn.notSaved" : "handIn.uploading"), f.fileSize(item.size))
-                        : t("handIn.waiting")
-                  }
-                  hint={item.state === "uploaded" ? fileHint(t, item.name, h.pattern, h.type) : null}
-                  onRetry={item.state === "failed" && !refused(item) ? () => h.retry(item) : undefined}
-                  onRemove={h.editable ? () => h.removeAttached(item.key) : undefined}
-                  file={item.file}
-                />
-              ))}
-            </View>
-          )}
-          {h.editable && (
-            // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos.
-            <View style={{ gap: space[2], alignItems: "flex-start" }}>
-              <Button
-                variant="tonal"
-                testID="action.attach"
-                label={factsLabel(
-                  t("handIn.attach"),
-                  task.fileRequired ? t("handIn.fileRequired") : null,
-                  h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : null,
-                )}
-                icon={<Icons.Upload size={18} color={c.onSecondaryContainer} />}
-                onPress={() => void h.pick()}
-              >
-                {t("handIn.attach")}
-              </Button>
-              {(task.fileRequired || h.type) && (
-                <Meta size="caption">
-                  {task.fileRequired ? t("handIn.fileRequired") : ""}
-                  {h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : ""}
-                </Meta>
-              )}
-            </View>
-          )}
-          {task.group && !h.sent && status !== "closed" && (
-            <View style={{ gap: space[2], alignItems: "flex-start" }}>
-              <Text size="bodyMedium" tone="muted">
-                {t("handIn.group")}
-              </Text>
-              <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
-                {t("action.openInEdunex")}
-              </Button>
-              {isOpenStatus(status) && <MarkHandedIn task={task} />}
-            </View>
-          )}
-          {!task.group && !h.editable && !h.sent && status !== "closed" && task.opensAt !== null && (
-            <Quiet>{t("handIn.notOpenYet", { when: f.dayTimeWord(task.opensAt) })}</Quiet>
-          )}
-          {status === "closed" && <Quiet>{task.answer ? t("handIn.draftNeverSent") : t("handIn.nothingHandedIn")}</Quiet>}
-        </View>
+            )}
+            {task.group && !h.sent && status !== "closed" && (
+              <View style={{ gap: space[2], alignItems: "flex-start" }}>
+                <Text size="bodyMedium" tone="muted">
+                  {t("handIn.group")}
+                </Text>
+                <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
+                  {t("action.openInEdunex")}
+                </Button>
+                {isOpenStatus(status) && <MarkHandedIn task={task} />}
+              </View>
+            )}
+            {!task.group && !h.editable && !h.sent && status !== "closed" && task.opensAt !== null && (
+              <Quiet>{t("handIn.notOpenYet", { when: f.dayTimeWord(task.opensAt) })}</Quiet>
+            )}
+            {status === "closed" && <Quiet>{task.answer ? t("handIn.draftNeverSent") : t("handIn.nothingHandedIn")}</Quiet>}
+          </View>
+        )}
 
         {h.uploading && inFlight.length > 1 && (
           <View style={{ gap: space[2] }}>
@@ -500,7 +512,7 @@ export function HandInCard({ h }: { h: HandInState }) {
         {h.notice && <HandInNotice notice={h.notice} task={task} signingIn={signingIn} onSignIn={() => void signIn("edunex")} />}
 
         {/* What a draft is (handIn.explainer) is said when one is saved (its snackbar) and to TalkBack on Simpan draf. */}
-        {h.editable && <MarkHandedIn task={task} />}
+        {(h.editable || (marked && !task.group)) && <MarkHandedIn task={task} />}
         {h.sent && (
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
             <View style={{ paddingTop: 1 }}>
@@ -690,11 +702,13 @@ export function HandInBar({ h }: { h: HandInState }) {
   const bottom = useBottomInset();
   // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
   const bar = useRef<ComponentRef<typeof View>>(null);
+  // Marked as handed in another way: no Kumpulkan until Urungkan takes it back (the card says so).
+  const shown = h.editable && !h.marked;
   useEffect(() => {
-    if (!h.editable) reportBarTop(0);
+    if (!shown) reportBarTop(0);
     return () => reportBarTop(0);
-  }, [h.editable]);
-  if (!h.editable) return null;
+  }, [shown]);
+  if (!shown) return null;
   const submitLabel = h.status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
   return (
     <View
@@ -993,8 +1007,8 @@ type MarkedHow = Extract<DoneHow, "handedElsewhere" | "notHandingIn" | "groupDon
 /**
  * For a Task Edunex won't see handed in: the Student's own word for it, kept on this phone. A Task
  * of their own: "Tidak mengumpulkan lewat Edunex? Tandai" (handed in another way, or not at all), as
- * a sheet; a group Task: "Kelompokku sudah kumpul". Once marked, one quiet line with Undo. The status
- * above stays Edunex's own.
+ * a sheet; a group Task: "Kelompokku sudah kumpul". Once marked, the card leads with it and Edunex's
+ * own status sits under it ("Di Edunex: belum dikerjakan"); here, one quiet line, when, with Undo.
  */
 export function MarkHandedIn({ task }: { task: Task }) {
   const t = useT();
@@ -1019,11 +1033,10 @@ export function MarkHandedIn({ task }: { task: Task }) {
       </Text>
     </View>
   ) : null;
-  // One line beside Urungkan: what the Student marked; when, to TalkBack.
+  // One line beside Urungkan: when the Student marked it (what they marked leads the card); both, to TalkBack.
   if (entry)
     return (
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <Icons.Check size={16} weight="bold" color={theme.color.successFg} />
         <Text
           size="bodySmall"
           tone="muted"
@@ -1031,7 +1044,7 @@ export function MarkHandedIn({ task }: { task: Task }) {
           accessibilityLabel={factsLabel(t(`task.marked.${entry.how as MarkedHow}`), f.dayTimeWord(entry.at))}
           style={{ flex: 1 }}
         >
-          {t(`task.marked.${entry.how as MarkedHow}`)}
+          {t("mobile.tasks.markedAt", { when: f.dayTimeWord(entry.at) })}
         </Text>
         <Button
           size="sm"
