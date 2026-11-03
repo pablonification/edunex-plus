@@ -16,7 +16,8 @@ import { clockOf, type EdunexMeeting, type OutsideMeeting, type ScheduledClass, 
 import { isOpenStatus, taskStatus } from "../../../../src/core/tasks";
 import { useNav } from "../../nav";
 import { toneOf } from "../../parts/attendance";
-import { OpenSixTimetable } from "../../parts/six-page-note";
+import { ReportButton } from "../../parts/report";
+import { OpenSixTimetable, useSkippedRows } from "../../parts/six-page-note";
 import { Button } from "../../ui/controls";
 import { CourseDot, LiveDot, StatusChip } from "../../ui/display";
 import { Icons } from "../../ui/icons";
@@ -42,7 +43,7 @@ export function DetailSheet({ picked, onClose }: { picked: Picked | null; onClos
       {picked?.kind === "meeting" && <MeetingDetails meeting={picked.meeting} notInSix={picked.notInSix} onLeave={onClose} />}
       {picked?.kind === "window" && <WindowDetails window={picked.window} onLeave={onClose} />}
       {picked?.kind === "due" && <DueDetails task={picked.task} onLeave={onClose} />}
-      {picked?.kind === "unread" && <UnreadDetails day={picked.day} unread={picked.unread} />}
+      {picked?.kind === "unread" && <UnreadDetails day={picked.day} unread={picked.unread} onLeave={onClose} />}
     </Sheet>
   );
 }
@@ -523,10 +524,18 @@ function DueDetails({ task, onLeave }: { task: Task; onLeave: () => void }) {
   );
 }
 
-/** A day's meetings SIX shows that the app couldn't read: each as SIX writes it, and SIX's timetable for that month. */
-function UnreadDetails({ day, unread }: { day: string; unread: readonly UnreadSession[] }) {
+/**
+ * A day's meetings SIX shows that the app couldn't read: each as SIX writes it, and SIX's timetable for that month.
+ * Under them, quietly, what the desktop's Jadwal says over the whole page (SixPageNote): how many rows of SIX's
+ * timetable the app doesn't recognise, any not on this day as SIX writes them, and a way to report the page.
+ */
+function UnreadDetails({ day, unread, onLeave }: { day: string; unread: readonly UnreadSession[]; onLeave: () => void }) {
   const t = useT();
+  const theme = useTheme();
+  const skipped = useSkippedRows(["six.schedule"]);
   const count = unread.length;
+  const shown = new Set(unread.map((one) => one.row));
+  const others = skipped?.rows.filter((row) => !shown.has(row.row)) ?? [];
   return (
     <>
       <Text size="title" weight="semibold" accessibilityRole="header">
@@ -542,6 +551,21 @@ function UnreadDetails({ day, unread }: { day: string; unread: readonly UnreadSe
           </Text>
         ))}
       </View>
+      {skipped && (
+        <View style={{ marginTop: space[4], paddingTop: space[3], borderTopWidth: 1, borderTopColor: theme.v4.line, gap: space[2] }} testID="note.sixSkipped">
+          <Text size="small" tone="muted">
+            {t(skipped.blank ? "skipped.blankTitle" : "skipped.title", { count: skipped.rows.length })}
+          </Text>
+          {others.map((row) => (
+            <Text key={row.key} size="caption" tone="muted" tabular>
+              {row.row}
+            </Text>
+          ))}
+          <View style={{ flexDirection: "row" }}>
+            <ReportButton about={{ datasets: ["six.schedule"] }} onOpen={onLeave} />
+          </View>
+        </View>
+      )}
       <Actions>
         <OpenSixTimetable day={day} primary />
       </Actions>

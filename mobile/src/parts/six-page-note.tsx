@@ -40,6 +40,19 @@ export function useChangedPage(datasets: readonly DatasetName[]): ChangedPage | 
   return status.changedPages?.find((page) => page.datasets.some((name) => datasets.includes(name as DatasetName)));
 }
 
+/**
+ * The rows of `datasets`' SIX pages the app left out (or kept with a blank cell), as SIX writes them: what
+ * SixPageNote lists, for a screen that says it one tap deeper (Jadwal's sheet of a class the app couldn't read).
+ * `blank`: every row was kept, just not whole. Null when there are none.
+ */
+export function useSkippedRows(datasets: readonly DatasetName[]) {
+  const skipped = useDataset("six.skipped");
+  const left = datasets.filter((name) => skipped?.[name]?.length);
+  const rows = left.flatMap((name) => skipped![name]!.map((row) => ({ ...row, key: `${name} ${row.row} ${row.why}` })));
+  if (!rows.length) return null;
+  return { rows, left, blank: rows.every((row) => row.blank) };
+}
+
 /** `datasets`: what the screen shows from SIX, the one it shows most first. */
 export function SixPageNote({ datasets }: { datasets: readonly DatasetName[] }) {
   const t = useT();
@@ -47,7 +60,7 @@ export function SixPageNote({ datasets }: { datasets: readonly DatasetName[] }) 
   const open = useOpenExternal();
   const page = useChangedPage(datasets);
   const last = useDatasetPayload(datasets.find((name) => page?.datasets.includes(name)) ?? datasets[0]!);
-  const skipped = useDataset("six.skipped");
+  const skipped = useSkippedRows(datasets);
   const student = useDataset("six.student");
   const openSix = (name: DatasetName) => (
     <>
@@ -66,10 +79,8 @@ export function SixPageNote({ datasets }: { datasets: readonly DatasetName[] }) 
     );
   }
 
-  const left = datasets.filter((name) => skipped?.[name]?.length);
-  const rows = left.flatMap((name) => skipped![name]!.map((row) => ({ ...row, key: `${name} ${row.row} ${row.why}` })));
-  if (!rows.length) return null;
-  const blank = rows.every((row) => row.blank);
+  if (!skipped) return null;
+  const { rows, blank, left } = skipped;
   return (
     <Notice
       tone="neutral"
