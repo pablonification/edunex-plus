@@ -240,8 +240,9 @@ export const mobileStrings = {
   "mobile.planner.moved": { id: "{code} dipindah ke {term}", en: "{code} moved to {term}" },
   // Rencana's summary: the count of things to check scrolls down to the rules, which sit beside the plan on the desktop.
   "mobile.planner.toCheckHint": { id: "Ke daftar aturan di bawah", en: "Goes to the rules below" },
-  // UKT › Riwayat: a past bill's deadline as SIX has it, under its term (a date alone read as when it was paid, and the card
-  // above may go by ITB's earlier one).
+  // UKT › Riwayat: whose date each row shows, said once over the list (a date alone under a term read as when it was paid,
+  // and the card above may go by ITB's earlier one). Each row's date with it, for TalkBack.
+  "mobile.bills.historyDates": { id: "Tanggal: batas bayar di SIX", en: "Dates: last day to pay in SIX" },
   "mobile.bills.due": { id: "Batas bayar di SIX {date}", en: "Due {date} in SIX" },
   // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
   "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },

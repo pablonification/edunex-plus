@@ -3,13 +3,15 @@
 // 1. An overdue bill, said plainly in red at the top.
 // 2. One card for this semester's bill, led by what's still to pay, big (or "Lunas"), with the deadline to follow a
 //    quiet line under it (SIX's last day and ITB's calendar's, the earlier one), and SIX's bill page as the one button
-//    while there's something to pay.
+//    while there's something to pay. Once paid, no date: SIX and ITB's calendar can give one bill two last days (SIX
+//    24 Agu, ITB 23 Agu for 2026/2027 Ganjil), and Riwayat's row already says SIX's. Both stay in what TalkBack reads.
 // 3. Its instalments, then next semester's bill as a row (not billed yet: by when it will be due).
-// 4. Every term's bill as a row: the term, SIX's last day, the amount, and a pill only on one that isn't paid.
+// 4. Every term's bill as a row: the term, SIX's last day, the amount, and a pill only on one that isn't paid. Whose
+//    last day it is is said once, over the list (and on each row to TalkBack).
 import { View } from "react-native";
 import { useThisTerm } from "../../../../src/app/deadlines";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import { type BillUrgency, billLeft, billUrgency, nextTerm, rupiah, uktDeadline } from "../../../../src/core/academic";
 import { SIX_WEB, sixPageOf } from "../../../../src/core/links";
@@ -38,11 +40,13 @@ const TONE: Record<BillUrgency, PillTone> = {
   "no-date": "plain",
 };
 
+const statusText = (bill: Bill, now: number, t: Translate) =>
+  billUrgency(bill, now) === "overdue" ? t("bills.status.overdue") : t(`bills.status.${bill.status}`);
+
 function StatusPill({ bill }: { bill: Bill }) {
   const t = useT();
   const now = useNow();
-  const urgency = billUrgency(bill, now);
-  return <Pill tone={TONE[urgency]}>{urgency === "overdue" ? t("bills.status.overdue") : t(`bills.status.${bill.status}`)}</Pill>;
+  return <Pill tone={TONE[billUrgency(bill, now)]}>{statusText(bill, now, t)}</Pill>;
 }
 
 const notBilled = (term: string): Bill => ({
@@ -118,28 +122,40 @@ export function Tab(_: { onCalendar?: () => void }) {
       <Rise screen={RISE} index={rise++}>
         <View testID="section.billsHistory">
           <Heading trailing={allPaid ? <Pill tone="ok">{t("bills.allPaid")}</Pill> : undefined}>{t("bills.history")}</Heading>
+          {/* A date on its own under a term reads as when it was paid: whose last day it is, once for every row. */}
+          <Text size="bodyMedium" style={{ color: v.muted, marginTop: -space[1], marginBottom: space[3], marginLeft: space[1] }}>
+            {t("mobile.bills.historyDates")}
+          </Text>
           <Group>
-            {[...billed].reverse().map((bill, i) => (
-              <GroupRow
-                key={bill.term}
-                first={i === 0}
-                testID={`row.bill.${bill.term}`}
-                title={termYears(bill.term)}
-                // "Batas bayar di SIX 15 Jan 2026": a date on its own under a term reads as when it was paid.
-                meta={factsLabel(
-                  bill.dueDate && t("mobile.bills.due", { date: `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` }),
-                  bill.instalments.length > 0 && t("bills.inInstalments", { count: bill.instalments.length }),
-                )}
-                trailing={
-                  <View style={{ alignItems: "flex-end", gap: space[1] }}>
-                    <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg }}>
-                      {bill.amount !== null ? rupiah(bill.amount) : "-"}
-                    </Text>
-                    {bill.status !== "paid" && <StatusPill bill={bill} />}
-                  </View>
-                }
-              />
-            ))}
+            {[...billed].reverse().map((bill, i) => {
+              const day = bill.dueDate ? `${f.dayMonth(dayMs(bill.dueDate))} ${bill.dueDate.slice(0, 4)}` : null;
+              const instalments = bill.instalments.length > 0 && t("bills.inInstalments", { count: bill.instalments.length });
+              return (
+                <GroupRow
+                  key={bill.term}
+                  first={i === 0}
+                  testID={`row.bill.${bill.term}`}
+                  title={termYears(bill.term)}
+                  meta={factsLabel(day, instalments)}
+                  accessible
+                  accessibilityLabel={factsLabel(
+                    termYears(bill.term),
+                    day && t("mobile.bills.due", { date: day }),
+                    instalments,
+                    bill.amount !== null ? rupiah(bill.amount) : null,
+                    bill.status !== "paid" && statusText(bill, now, t),
+                  )}
+                  trailing={
+                    <View style={{ alignItems: "flex-end", gap: space[1] }}>
+                      <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg }}>
+                        {bill.amount !== null ? rupiah(bill.amount) : "-"}
+                      </Text>
+                      {bill.status !== "paid" && <StatusPill bill={bill} />}
+                    </View>
+                  }
+                />
+              );
+            })}
           </Group>
         </View>
       </Rise>
@@ -182,11 +198,18 @@ function Lead({ bill }: { bill: Bill }) {
   // What's left: the whole bill, or the rest of one partly paid.
   const due = bill.status === "partly-paid" ? billLeft(bill) : bill.amount;
   const deadlineLine = deadline ? t("mobile.bills.deadlineOn", { date: f.dayMonth(dayMs(deadline.day)) }) : null;
-  // Which of two deadlines to follow matters only while there's something to pay: once paid, the card keeps one date.
-  const other =
-    deadline?.other && !paid ? t(deadline.other.source === "six" ? "bills.otherSix" : "bills.otherItb", { date: f.dayMonth(dayMs(deadline.other.day)) }) : null;
+  const otherLine = deadline?.other
+    ? t(deadline.other.source === "six" ? "bills.otherSix" : "bills.otherItb", { date: f.dayMonth(dayMs(deadline.other.day)) })
+    : null;
+  // Which of two deadlines to follow matters only while there's something to pay.
+  const other = paid ? null : otherLine;
+  // Paid, the card is one thing to read, and says its deadlines (both, when SIX and ITB's calendar differ) to TalkBack:
+  // shown, a paid bill's last day was said twice, once each way (23 Agu here, SIX's 24 Agu in Riwayat).
+  const paidLabel = paid
+    ? factsLabel(t("bills.thisTerm"), termYears(bill.term), t("bills.status.paid"), bill.amount !== null && rupiah(bill.amount), deadlineLine, otherLine)
+    : undefined;
   return (
-    <Panel testID={`card.bill.${bill.term}`} style={{ padding: space[5], gap: space[2] }}>
+    <Panel testID={`card.bill.${bill.term}`} accessible={paid} accessibilityLabel={paidLabel} style={{ padding: space[5], gap: space[2] }}>
       <Text size="bodyMedium" style={{ color: v.muted }}>
         {factsLabel(t("bills.thisTerm"), termYears(bill.term))}
       </Text>
@@ -203,9 +226,11 @@ function Lead({ bill }: { bill: Bill }) {
             <Icons.CheckCircle size={32} color={v.okFg} weight="fill" />
             {big(t("bills.status.paid"), v.okFg)}
           </View>
-          <Text size="bodyLarge" tabular style={{ color: v.fg2 }}>
-            {factsLabel(bill.amount !== null ? rupiah(bill.amount) : null, deadlineLine)}
-          </Text>
+          {bill.amount !== null && (
+            <Text size="bodyLarge" tabular style={{ color: v.fg2 }}>
+              {rupiah(bill.amount)}
+            </Text>
+          )}
         </>
       ) : (
         <>
@@ -296,24 +321,44 @@ function Instalments({ bill }: { bill: Bill }) {
   );
 }
 
-/** Next semester's bill as one row: billed (its amount and state), or not yet (by when it will be due). */
+/**
+ * Next semester's bill as one row: billed (its amount and state), or not yet (by when it will be due). The meta is the
+ * deadline alone, so it stays on one line beside the pill; the term (the card above names this one) and the whole row
+ * are in what TalkBack reads.
+ */
 function NextTerm({ bill }: { bill: Bill }) {
   const t = useT();
   const f = useFormat();
+  const now = useNow();
+  const v = useTheme().v4;
   const termYears = useTermYears();
   const deadline = useDeadline(bill);
+  const deadlineLine = deadline && t("mobile.bills.deadlineOn", { date: f.dayMonth(dayMs(deadline.day)) });
   return (
     <Group testID={`card.bill.${bill.term}`}>
       <GroupRow
         first
         leading={<IconTile tone="plain" icon={(color) => <Icons.Wallet size={22} color={color} />} />}
         title={t("bills.nextTerm")}
-        meta={factsLabel(
+        meta={deadlineLine}
+        accessible
+        accessibilityLabel={factsLabel(
+          t("bills.nextTerm"),
           termYears(bill.term),
           bill.amount !== null && rupiah(bill.amount),
-          deadline && t("mobile.bills.deadlineOn", { date: f.dayMonth(dayMs(deadline.day)) }),
+          deadlineLine,
+          statusText(bill, now, t),
         )}
-        trailing={<StatusPill bill={bill} />}
+        trailing={
+          <View style={{ alignItems: "flex-end", gap: space[1] }}>
+            {bill.amount !== null && (
+              <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg }}>
+                {rupiah(bill.amount)}
+              </Text>
+            )}
+            <StatusPill bill={bill} />
+          </View>
+        }
       />
     </Group>
   );
