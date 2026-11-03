@@ -307,6 +307,9 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "home.today.notInSix": { id: "Tak di SIX", en: "Not in SIX" },
   // The first-run summary's title, short enough for the top bar.
   "scan.heading": { id: "Ringkasan awal", en: "First summary" },
+  // settings: Beranda › how far ahead its list looks. The phone's Beranda calls that list "Perlu kamu urus", not the
+  // desktop's "Perlu perhatianmu", and the group's title already says it's about Beranda.
+  "settings.needsAhead": { id: "Jangkauan Perlu kamu urus", en: "How far ahead to look" },
   // settings: the test notification's body, as Android shows it.
   "alert.test.body": { id: "Ketuk untuk membuka Tugas & Ujian", en: "Tap to open Tasks & Exams" },
   // settings: Notifikasi › Coba notifikasi, once sent.
