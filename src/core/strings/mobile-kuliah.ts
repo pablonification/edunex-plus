@@ -44,8 +44,8 @@ export const mobileCourseStrings = {
   // The course's sheet: what's used and left of the absences under the desktop's label ("Jatah absen: terpakai 2× · habis").
   "mobile.course.budget": { id: "Jatah absen: {words}", en: "Absences: {words}" },
   "mobile.course.aboutHint": { id: "Buka rincian mata kuliah", en: "Opens the course's details" },
-  // The one exception, in a few words on the card; the whole of it is in the sheet.
-  "mobile.course.ex.uncounted": { id: "Ada yang tak tercatat?", en: "A class not counted?" },
+  // The one exception, in a few words on the card; the whole of it is in the sheet. Out of reach, it's the desktop's
+  // own words (presence.row.askLecturer).
   "mobile.course.ex.needed": { id: "Bergantung kuliah {date}", en: "Hangs on the class on {date}" },
   "mobile.course.ex.clash": { id: "Bentrok dengan {code}", en: "Clashes with {code}" },
   "mobile.course.ex.uncertain": { id: "Kuliah {date} mungkin tak ada", en: "The class on {date} may not run" },

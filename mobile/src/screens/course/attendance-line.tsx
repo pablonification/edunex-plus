@@ -138,7 +138,7 @@ export function useCourseException(item: CourseAttendance | undefined, context: 
   }
   // 3. Out of reach or finished below: a count SIX got wrong, or a wrong target, is the way back.
   if ((health.state === "out" || health.state === "missed") && !zone.results.some((r) => r.code === course.code && r.absent))
-    return { kind: "uncounted", short: t("mobile.course.ex.uncounted"), text: t("presence.warn.out"), tone: "muted" };
+    return { kind: "uncounted", short: t("presence.row.askLecturer"), text: t("presence.warn.out"), tone: "muted" };
   // 4. No absences left, and the target hangs on a class that may not run.
   const needed = health.needsUncertain ? health.left.upcoming.find((m) => m.uncertain) : undefined;
   if (needed)

@@ -190,7 +190,8 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
   const clash = next ? clashes(next, code, schedule ?? [])[0] : undefined;
   const riskText = risk
     ? [
-        health.state === "out" ? t("course.risk.best", { best: percent(health.best ?? 0) }) : noneLeft(t, f, health, attendance.lastDay),
+        // Out of reach: the best it can end at, as the desktop's course page says it; the fix is the exception's below.
+        health.state === "out" ? t("course.risk.bestShort", { best: percent(health.best ?? 0) }) : noneLeft(t, f, health, attendance.lastDay),
         next && clash
           ? t("course.risk.clash", { code: clash.courseCode, time: f.timeRange(Math.max(next.start, clash.start), Math.min(next.end, clash.end)) })
           : "",
@@ -198,9 +199,9 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
         .filter(Boolean)
         .join(" · ")
     : "";
-  // The risk's words already say what the out-of-reach exception says, and a clash its own way.
-  const shownException: CourseExceptionNote | null =
-    exception && !(risk && (exception.kind === "uncounted" || (exception.kind === "clash" && clash))) ? exception : null;
+  // Out of reach, the exception is the way back, as the desktop's Presensi row says it ("Cek ke dosen", why, Buka jadwal
+  // di SIX); a clash the risk's words already say their own way.
+  const shownException: CourseExceptionNote | null = exception && !(risk && exception.kind === "clash" && clash) ? exception : null;
   const checkSix = student ? (
     <Link external onPress={() => open(sixTimetableUrl(student))} testID="action.checkSix">
       {t("presence.checkSix")}
@@ -255,12 +256,17 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
                 {riskText}
               </Text>
             )}
-            {health.state === "out" && checkSix}
+            {health.state === "out" && shownException?.kind !== "uncounted" && checkSix}
           </View>
         </Fact>
       )}
       {shownException && (
         <Fact tone={shownException.tone === "warning" ? "warning" : "fg"} icon={() => <ExceptionIcon exception={shownException} size={22} />}>
+          {shownException.kind === "uncounted" && (
+            <Text size="bodyLarge" weight="semibold" style={{ color: v.fg }}>
+              {shownException.short}
+            </Text>
+          )}
           <Text size="bodyMedium" style={{ color: v.fg2 }}>
             {shownException.text}
           </Text>
