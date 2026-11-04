@@ -190,9 +190,15 @@ jobs:
       # The same Mac app as each zip, packed about a third smaller for updating: a .tar.xz beside it, in
       # latest-mac.yml with its sha512, checked to unpack to the signed app
       # (scripts/package-mac-update.mjs). The zip stays: copies up to 0.1.0-alpha.16 update only from it.
+      # Builds that publish nothing pack it at xz level 1 (--quick): the same checks in seconds, not minutes.
       - name: Pack the Mac update smaller (macOS)
         if: matrix.target == 'mac'
-        run: node scripts/package-mac-update.mjs release
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            node scripts/package-mac-update.mjs release
+          else
+            node scripts/package-mac-update.mjs release --quick
+          fi
       # Run by hand: the programs to sign, as they are before signing, for checking SignPath's
       # artifact configuration against (scripts/setup-windows-signing.sh).
       - name: Keep a sample of what SignPath signs first (Windows, run by hand)

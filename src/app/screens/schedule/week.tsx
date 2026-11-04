@@ -83,7 +83,7 @@ export function WeekView({ days, input }: { days: readonly string[]; input: Sche
   });
 
   const bands = events.map((e) => {
-    const from = Math.max(0, days.indexOf(e.firstDay) < 0 ? 0 : days.indexOf(e.firstDay));
+    const from = Math.max(0, days.indexOf(e.firstDay));
     const to = days.indexOf(e.lastDay) < 0 ? 6 : days.indexOf(e.lastDay);
     // Over empty days only, the band is narrow: its name alone (the dates are on hover).
     const short = grid.slice(from, to + 1).every((d) => d.size !== "wide") && grid.slice(from, to + 1).length < 4;

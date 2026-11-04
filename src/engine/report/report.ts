@@ -7,8 +7,20 @@
 // Grades, amounts, IP and IPK and Edunex scores are made up for each report, from `seed`: the
 // shape stays, so the pages read as the real ones did, and two reports can't be compared to work
 // the real values back.
-import type { DatasetName, DatasetValue, LogEntry, ProblemReport, ReportAbout, ReportImpact, ReportPage, ReportProblem, SourceStatus } from "../../core/models";
+import type {
+  DatasetName,
+  DatasetValue,
+  LogEntry,
+  ProblemReport,
+  ReportAbout,
+  ReportImpact,
+  ReportPage,
+  ReportProblem,
+  ReportStudent,
+  SourceStatus,
+} from "../../core/models";
 import { findCells } from "./cells";
+import { checkPath, itemShape } from "./json-shape";
 import type { Kept, KeptPage } from "./kept-pages";
 import { type PageAgain, reproduces, sixIdentity } from "./reread";
 import {
@@ -68,7 +80,42 @@ export async function buildReport(input: ReportInput): Promise<ProblemReport> {
       .map((status) => ({ source: status.source, state: status.state, detail: status.detail === null ? null : scrub.text(status.detail) })),
     problems: await Promise.all(chosen.map((kept) => problem(input, scrub, kept))),
     log: input.log.map((entry) => ({ ...entry, message: scrub.log(entry.message) })),
+    ...studentOf(input),
   };
+}
+
+/**
+ * Who sent it, coarsely (ReportStudent): what SIX's pages in the report already say, put where a reader of many
+ * reports sees it at once ("three reports, all first-years"). Nothing, before SIX's status page first read.
+ */
+function studentOf(input: ReportInput): { student?: ReportStudent } {
+  const student = input.get("six.student");
+  if (!student) return {};
+  // The progress page's entry term, or the year in the NIM ("135 22 045": 2022).
+  const entry = input.get("six.progress")?.entryTerm ?? null;
+  const fromNim = /^\d{3}(\d{2})\d{3}$/.exec(student.nim)?.[1];
+  const entryYear = entry ? Number(entry.slice(0, 4)) : fromNim ? 2000 + Number(fromNim) : null;
+  return {
+    student: {
+      programCode: student.programCode,
+      program: student.program,
+      entryYear,
+      term: student.term || null,
+      semester: semesterOf(entry ?? (entryYear === null ? null : `${entryYear}-1`), student.term),
+    },
+  };
+}
+
+/** The Student's semester in `term`, counted from `entry` ("2026-1" in "2026-1" is 1, in "2027-2" 4); a short term counts with the even one before it. */
+function semesterOf(entry: string | null, term: string): number | null {
+  const parse = (code: string | null) => {
+    const match = code ? /^(\d{4})-([123])$/.exec(code) : null;
+    return match ? { year: Number(match[1]), half: Math.min(Number(match[2]), 2) } : null;
+  };
+  const [from, now] = [parse(entry), parse(term)];
+  if (!from || !now) return null;
+  const semester = (now.year - from.year) * 2 + (now.half - from.half) + 1;
+  return semester >= 1 ? semester : null;
 }
 
 /** A folder in this computer's home ("/Users/name/…", "C:\\Users\\name\\…"): its owner's name. */
@@ -76,7 +123,7 @@ const HOME = /(\/Users\/|\/home\/|[A-Za-z]:\\(?:Users|Documents and Settings)\\)
 
 async function problem(input: ReportInput, scrub: ReportScrubber, kept: Kept): Promise<ReportProblem> {
   const check = scrub.text(kept.check);
-  const rows = kept.rows.map((row) => ({ row: scrub.text(row.row), why: scrub.text(row.why) }));
+  const rows = kept.rows.map((row) => ({ row: scrub.text(wholeWords(row.row)), why: scrub.text(row.why) }));
   const pages = kept.pages.map((page) => scrub.page(kept.feed, page));
   const changed = kept.kind === "changed";
   const who = sixIdentity(input.get("six.student"));
@@ -108,7 +155,16 @@ async function problem(input: ReportInput, scrub: ReportScrubber, kept: Kept): P
     reproduces: again,
     ...(cells.length ? { cells } : {}),
     impact: impactOf(input, kept),
+    ...itemOf(kept, check, pages),
   };
+}
+
+/** For an Edunex answer that didn't fit: the item its check names, as a shape (ReportProblem.item), from the scrubbed answer. */
+function itemOf(kept: Kept, check: string, pages: readonly ReportPage[]): { item?: { at: string; shape: string } } {
+  const path = kept.kind === "changed" && systemOf(kept.feed) === "edunex" ? checkPath(check) : null;
+  const page = path && pages.find((one) => one.system === "edunex" && check.startsWith(`${new URL(one.path, "https://edunex.invalid").pathname}:`));
+  const item = page ? itemShape(page.body, path) : null;
+  return item ? { item } : {};
 }
 
 /**
@@ -125,6 +181,13 @@ function impactOf(input: ReportInput, kept: Kept): ReportImpact {
     lastGoodAt: kept.lastGoodAt ?? (kept.kind === "changed" && stored.length ? Math.max(...stored) : null),
   };
 }
+
+/**
+ * A row kept cut to its length ends in half a word or number ("… · 8.7…"), which no scrubbing rule knows: an amount's
+ * first digits, a name's first letters, left as they were. It goes; the "…" stays, so the row still reads as cut, and
+ * still matches its scrubbed page (`sameText` in ./reread.ts).
+ */
+const wholeWords = (row: string) => (row.endsWith("…") ? row.replace(/[^\s·]*…$/, "…") : row);
 
 const pathOf = (url: string) => {
   const parsed = new URL(url);

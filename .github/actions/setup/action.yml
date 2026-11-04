@@ -5,19 +5,31 @@ description: Installs Node from .nvmrc and runs npm ci.
 
 inputs:
   cache:
-    description: Reuse npm's download cache between runs (turn off in release builds).
+    description: Reuse npm's download cache and the installed packages between runs (turn off in release builds).
     default: "true"
 
 runs:
   using: composite
   steps:
     - name: Set up Node
+      id: node
       uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version-file: .nvmrc
         cache: ${{ inputs.cache == 'true' && 'npm' || '' }}
         package-manager-cache: ${{ inputs.cache }}
 
+    # node_modules as the last npm ci left it for the same lockfile and Node: about 20 seconds less per
+    # job than installing again (Electron's download, mostly). A new lockfile installs afresh.
+    - name: Reuse the installed packages
+      id: modules
+      if: inputs.cache == 'true'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-${{ runner.arch }}-node${{ steps.node.outputs.node-version }}-${{ hashFiles('package-lock.json') }}
+
     - name: Install packages
+      if: steps.modules.outputs.cache-hit != 'true'
       shell: bash
       run: npm ci --no-audit --no-fund

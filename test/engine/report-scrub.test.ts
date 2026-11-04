@@ -219,6 +219,35 @@ describe("a report about a SIX page", () => {
   });
 });
 
+describe("SIX's role menu", () => {
+  it("a Student who was also an applicant has that number too, not shaped like a NIM: it's made up like theirs", async () => {
+    // Made up for this test: an applicant's number, as SIX lists the role above the Student's own.
+    const applicant = "25120345";
+    const role = `<li ><a href="/home?context=calonmhs:${applicant}"><span class="fa fa-user fa-fw"></span> Calon Mahasiswa
+                                            - ${applicant}
+                                    </a></li>`;
+    const html = real(pageOf(STATUS)).replace('<ul class="dropdown-menu" role="menu">', `<ul class="dropdown-menu" role="menu">${role}`);
+    expect(html).toContain(`context=calonmhs:${applicant}`);
+    const sent = await report({
+      feed: "six.status",
+      kind: "skipped",
+      check: "x",
+      rows: [],
+      pages: [{ url: `https://six.itb.ac.id${STATUS.replace("18223901", REAL.nim)}`, status: 200, body: html }],
+    });
+    const body = sent.problems[0]!.pages[0]!.body;
+    expect(body).not.toContain(applicant);
+    expect(body).toMatch(/context=calonmhs:18223902"/);
+    expect(body).toMatch(/Calon Mahasiswa\s*- 18223902/);
+    expect(leaks(sent)).toEqual([]);
+  });
+
+  it("left in a report, the privacy rules find it, so the relay refuses it", () => {
+    expect(personalHits("/home?context=calonmhs:25120345")).toEqual([expect.stringContaining("role number")]);
+    expect(personalHits("/home?context=mahasiswa:18223901")).toEqual([]);
+  });
+});
+
 describe("a report about an Edunex answer", () => {
   it("its people's details are gone, and it fails the same check", async () => {
     const me = {
@@ -478,7 +507,8 @@ describe("a row left out, found on its page", () => {
     });
     expect(sent.problems[0]!.cells).toEqual([
       {
-        row: `${text.slice(0, 119)}…`,
+        // Its last word goes: at the cut, a whole word can't be told from half of one.
+        row: `${text.slice(0, 119).replace(/\S+$/, "")}…`,
         html: row,
         header: "<tr><th>No</th><th>Kode</th><th>Nama</th><th>SKS</th></tr>",
         shape: expect.stringMatching(/^9 · a-9 · a( a)+…$/),

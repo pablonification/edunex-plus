@@ -1,7 +1,7 @@
 {
   "name": "edunex-plus",
   "productName": "Edunex Plus",
-  "version": "0.1.0-alpha.30",
+  "version": "0.1.0-alpha.33",
   "private": true,
   "license": "MIT",
   "description": "Unofficial desktop app for ITB students: Edunex and SIX in one place",
@@ -44,6 +44,7 @@
     "record": "electron scripts/record-session.cjs",
     "fixtures:scrub": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/scrub-recording.mjs",
     "fixtures:from-report": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/report-to-fixtures.mjs",
+    "report:replay": "node scripts/report-replay.mjs",
     "package:mac": "npm run build && electron-builder --config electron-builder.config.mjs --mac",
     "package:win": "npm run build && node scripts/package-win.mjs",
     "package:linux": "npm run build && electron-builder --config electron-builder.config.mjs --linux",
@@ -73,7 +74,7 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.15",
+    "@biomejs/biome": "2.6.3",
     "@electron/fuses": "^2.1.3",
     "@tailwindcss/vite": "^4.1.0",
     "@types/node": "^22.20.5",
@@ -81,17 +82,17 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^4.5.0",
     "domhandler": "5.0.3",
-    "electron": "^44.9.1",
-    "electron-builder": "^26.17.0",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
     "esbuild": "^0.28.2",
     "htmlparser2": "10.1.0",
     "jsdom": "^26.1.0",
-    "knip": "6.42.1",
+    "knip": "6.43.0",
     "playwright-core": "^1.64.1",
     "pngjs": "^7.0.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.8.0",
-    "vite": "^6.4.4",
+    "vite": "^6.4.5",
     "vitest": "^5.0.5"
   }
 }

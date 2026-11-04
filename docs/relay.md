@@ -20,9 +20,12 @@ the app's (`npx vitest run relay/test`, part of `npm run check`).
 - **Counts for the daily caps**: by address, hashed with the day and a secret, gone after a day.
 
 The issue shows only the problem, the check that failed, the rows the app left out as SIX wrote them
-(their HTML, their table's header row, and their shape: letters as `a`, digits as `9`), whether the
-scrubbed pages fail the same way, what it cost the Student, the app's version and system, whether the
-report was sent by hand or by itself, and the Student's note. Never the pages or the log.
+(their HTML, their table's header row, and their shape: letters as `a`, digits as `9`), for an Edunex
+answer the item it failed on (its field names and their types, the failing one marked), whether the
+scrubbed pages fail the same way, what it cost the Student, the app's version and system, the Student's
+study program, entry year and semester (what SIX's pages already show, so reports can be told apart:
+"three first-years in one program"), whether the report was sent by hand or by itself, and the
+Student's note. Never the pages or the log, a name or a number.
 
 A report, a note or a log that still holds something shaped like a personal detail (a student
 number, an email, a phone number, a meeting or file link, a token: `test/kit/privacy-rules.ts`) is
@@ -86,8 +89,14 @@ Each relay issue's first line is a hidden marker with the report ids, newest fir
 gh issue view 237 --json body --jq '.body | split("\n")[0]'
 mkdir -p .scratch
 curl -sH "Authorization: Bearer $MAINTAINER_TOKEN" https://edunex-plus-relay.<your-subdomain>.workers.dev/v1/reports/<id> > .scratch/report.json
+npm run report:replay -- .scratch/report.json
 npm run fixtures:from-report -- .scratch/report.json <name>
 ```
+
+`report:replay` reads the report's scrubbed pages again with your checkout's readers and says, for
+each problem, whether its pages read whole now, still fail as they did, or fail another way (a page
+with two problems shows the second once the first is fixed). It exits with 1 until every page reads
+whole: run it before and after a fix.
 
 `.scratch/` is git-ignored: keep downloaded reports there. The fixtures script writes each page into
 `test/fixtures` and refuses any that still look personal; read them before committing.

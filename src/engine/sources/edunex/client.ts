@@ -49,7 +49,7 @@ export class EdunexClient {
 }
 
 /** An answer as the app takes it: by its status, then its body against `schema`. An EngineError when either doesn't fit. */
-function read<S extends z.ZodType>({ path, status, body }: Answer, schema: S): z.infer<S> {
+export function read<S extends z.ZodType>({ path, status, body }: Answer, schema: S): z.infer<S> {
   if (status === 401) throw new EngineError("Unauthorized", `Edunex refused ${path}`);
   if (status === 429 || status >= 500) throw new EngineError("Offline", `Edunex answered ${status}`);
   if (status >= 400) throw new EngineError("Failed", `Edunex answered ${status} for ${path}`);

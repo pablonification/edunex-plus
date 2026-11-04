@@ -124,6 +124,34 @@ describe("a report the app sends", () => {
     expect(opened.body).not.toContain("read the status page");
   });
 
+  it("says who sent it, coarsely, when the app did: the semester, entry year and program, never who they are", async () => {
+    const r = startRelay();
+    const envelope = billsEnvelope();
+    const student = { programCode: "169", program: "Tahap Tahun Pertama FTMD", entryYear: 2026, term: "2026-1", semester: 1 };
+    const { issue } = await sent(await r.send({ ...envelope, report: { ...envelope.report, student } }));
+    expect(r.github.issue(issue!.number).body).toContain(
+      [
+        "- Edunex Plus 0.1.0-alpha.21 on ` macOS 15.6 (arm64) `.",
+        "- The student: in semester 1 (first year), entered 2026, program ` 169 Tahap Tahun Pertama FTMD `.",
+      ].join("\n"),
+    );
+    // A field that doesn't fit is only left out: the report is still filed.
+    const odd = await sent(await r.send({ ...envelope, report: { ...envelope.report, student: { semester: "first" } } }));
+    expect(odd.duplicate).toBe(true);
+  });
+
+  it("shows the item an Edunex answer failed on as the app shaped it: field names and types, the failing one marked", async () => {
+    const r = startRelay();
+    const envelope = billsEnvelope("/course/tasks: data.1.attributes.files Invalid input: expected array, received null");
+    const [problem] = envelope.report.problems;
+    const item = { at: "data.1", shape: ["{", "  id: string", "  attributes: {", "    files: null  ← the check", "  }", "}"].join("\n") };
+    const sentOne = { ...envelope, report: { ...envelope.report, problems: [{ ...problem!, feed: "edunex.tasks", item }] } };
+    const { issue } = await sent(await r.send(sentOne));
+    expect(r.github.issue(issue!.number).body).toContain(
+      ["**The item it failed on** (` data.1 `), its fields with their types:", "", "```text", item.shape, "```"].join("\n"),
+    );
+  });
+
   it("goes to the issue every report of that problem goes to, whichever rows; the issue's count follows once a burst is over", async () => {
     const r = startRelay();
     const first = await sent(await r.send(statusEnvelope([3, 4, 5])));

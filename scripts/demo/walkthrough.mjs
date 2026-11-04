@@ -70,6 +70,12 @@ const firstRun = [
       await titleCard(h.page, "1 · First launch", "Connect both systems once", "", 2200);
       await h.say("Connect Edunex and SIX once.", "Your password only ever goes to Microsoft's own sign-in page.");
       await h.beat(2400);
+      await attempt("start", async () => {
+        await h.button(/^Mulai/).waitFor({ timeout: 30_000 });
+        await h.click(h.button(/^Mulai/));
+        await h.button("Hubungkan Edunex").waitFor();
+      });
+      await h.beat(1200);
       await attempt("connect Edunex", () => h.click(h.button("Hubungkan Edunex")));
       await h.waitPaused(rec, () => /\d{8}/.test(document.body.innerText), 30_000);
       await h.say("Connected: your name appears right away.", "SIX comes along by itself: the same Microsoft sign-in covers it.");
@@ -80,6 +86,15 @@ const firstRun = [
       await attempt("continue", () => h.click(h.button(/^Lanjut/)));
       await h.say("Reading both systems the first time…");
       await h.beat(1800);
+      await attempt("open the app", async () => {
+        await h.button("Buka Edunex Plus").waitFor({ timeout: 60_000 });
+        await h.click(h.button("Buka Edunex Plus"));
+      });
+      // The tour is offered first; the first-run scan waits for it.
+      await attempt("skip the tour", async () => {
+        await h.button("Lewati panduan").waitFor({ timeout: 30_000 });
+        await h.click(h.button("Lewati panduan"));
+      });
       await h.waitPaused(rec, () => Boolean(document.querySelector("[role=dialog]")), 120_000);
       await h.say("The first check: what neither system tells you on its own.", "Attendance at risk, a clash SIX accepted, exams, lecturer edits…");
       await h.beat(4200);

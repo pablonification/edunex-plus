@@ -195,6 +195,45 @@ describe("a report whose scrubbing took out what went wrong", () => {
   });
 });
 
+describe("who sent a report", () => {
+  it("is said coarsely, as SIX's pages already show it: the program, the entry year and the semester, never who they are", async () => {
+    const h = await signedIn();
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
+    await until(h, h.engine.refresh("six"));
+    const report = await h.engine.report({ datasets: ["six.bills"] });
+    const student = h.dataset("six.student")!;
+    // Entered 2023-1 (the progress page), now in 2026-1: the seventh semester.
+    expect(report.student).toEqual({ programCode: student.programCode, program: student.program, entryYear: 2023, term: "2026-1", semester: 7 });
+    expect(JSON.stringify(report.student)).not.toContain(student.nim);
+  });
+
+  it("before SIX is read, isn't said at all", async () => {
+    const h = await startEngine();
+    expect((await h.engine.report({})).student).toBeUndefined();
+  });
+});
+
+describe("a row cut at its length in the middle of a number", () => {
+  it("loses the half number, which no rule scrubs, and still fails the same way with its markup found", async () => {
+    const h = await signedIn();
+    // This term's bill as words SIX might write, a hundred letters long: the row's cut lands inside the payment ("· 5.4…").
+    const words = "Tagihan menunggu verifikasi bagian keuangan fakultas ".repeat(3).slice(0, 100);
+    h.world.six.editPage(BILLS, (html) =>
+      html.replace(/(Tahun 2026 \/ 2027\s*<\/th><\/tr><tr><td><strong>[^<]*<\/strong><\/td><td class="text-right">)\s*5\.400\.000/, `$1${words}`),
+    );
+    await until(h, h.engine.refresh("six"));
+    const kept = h.dataset("six.skipped")!["six.bills"]!;
+    expect(kept.map((row) => row.row)).toEqual([`1 - Ganjil · ${words} · 5.4…`]);
+
+    const [problem] = (await h.engine.report({ datasets: ["six.bills"] })).problems;
+    // The real payment's first digits never leave: the row ends where its last whole word does.
+    expect(problem!.rows.map((row) => row.row)).toEqual([`1 - Ganjil · ${words} · …`]);
+    expect(problem!.reproduces).toBe("yes");
+    expect(problem!.cells![0]!.html).toContain(words);
+    expect(problem!.cells![0]!.header).toContain("Tagihan");
+  });
+});
+
 describe("an Edunex answer the app couldn't read", () => {
   it("keeps that answer alone, scrubbed, and it fails the same check", async () => {
     const h = await startEngine();
@@ -242,6 +281,10 @@ describe("an Edunex answer the app couldn't read", () => {
     expect([page.pathname, page.searchParams.get("filter[course_id][is]")]).toEqual(["/course/tasks", "95326"]);
     // Scrubbed and checked again, it fails the same way: the fix can start from it.
     expect(problem!.reproduces).toBe("yes");
+    // The answer the check names, as field names and types, the missing id marked: what Edunex changed, at a glance.
+    expect(problem!.item!.at).toBe("data.1.attributes.answers.0");
+    expect(problem!.item!.shape.split("\n")).toContain("  id: (missing)  ← the check");
+    expect(personalHits(problem!.item!.shape)).toEqual([]);
   });
 });
 

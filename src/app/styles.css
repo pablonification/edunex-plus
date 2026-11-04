@@ -456,6 +456,9 @@
   /* A smooth fade, never stepped: held frames read as a stutter on a page-sized placeholder. Only opacity
      changes, so it runs off the main thread and stays smooth while a file is read in. */
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  /* Work under way with no share known yet: a short piece crossing the whole track, never resting
+     anywhere it could be read as how far along it is. */
+  --animate-sweep: sweep 1.4s linear infinite;
 
   @keyframes fade-in {
     from {
@@ -563,6 +566,14 @@
   @keyframes shimmer {
     50% {
       opacity: 0.55;
+    }
+  }
+  @keyframes sweep {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 300% 0;
     }
   }
 }
@@ -934,6 +945,23 @@ html[data-scene]::view-transition-new(root) {
   &.selecting .endOfContent {
     top: 0;
   }
+}
+
+/*
+ * Words found in a file (ui/find.tsx): every match tinted, the one the find bar is on more strongly, the same on
+ * paper and on the app's own surface; dark text on them. A PDF page's text stays invisible over its drawing.
+ */
+::highlight(find) {
+  background-color: rgb(255 228 92 / 0.55);
+  color: #111;
+}
+::highlight(find-current) {
+  background-color: rgb(255 140 0 / 0.6);
+  color: #111;
+}
+.pdf-text ::highlight(find),
+.pdf-text ::highlight(find-current) {
+  color: transparent;
 }
 
 /* Over a highlight (ui/highlights.tsx), a hand: a click opens its bar, to change its color or remove it. */

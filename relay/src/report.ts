@@ -38,10 +38,23 @@ const Problem = z.looseObject({
   reproduces: Reproduces.optional().catch(undefined),
   cells: z.array(Cell).max(100).optional().catch(undefined),
   impact: Impact.optional().catch(undefined),
+  item: z
+    .looseObject({ at: z.string().max(300), shape: z.string().max(20_000) })
+    .optional()
+    .catch(undefined),
 });
 export type Problem = z.infer<typeof Problem>;
 
 const Source = z.looseObject({ source: z.string().max(20), state: z.string().max(20), detail: z.string().max(2000).nullable() });
+
+/** Format 2: who sent it, coarsely (the study program, entry year and semester). Only shown. */
+const Student = z.looseObject({
+  programCode: z.string().max(20).nullable(),
+  program: z.string().max(200).nullable(),
+  entryYear: z.number().int().min(1900).max(2200).nullable(),
+  term: z.string().max(20).nullable(),
+  semester: z.number().int().min(1).max(40).nullable(),
+});
 
 const Report = z.looseObject({
   format: z.number().int().min(1).max(99),
@@ -49,6 +62,7 @@ const Report = z.looseObject({
   at: z.number(),
   sources: z.array(Source).max(5).optional().catch(undefined),
   problems: z.array(Problem).max(20),
+  student: Student.optional().catch(undefined),
 });
 
 /** POST /v1/reports. */

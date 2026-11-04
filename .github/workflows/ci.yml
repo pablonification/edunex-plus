@@ -98,10 +98,16 @@ jobs:
           OUTCOME: ${{ steps.check.outcome }}
         run: node scripts/ci/summary.mjs typecheck "$OUTCOME" "$RUNNER_TEMP/check.log"
 
-  test:
-    name: test
+  # The tests, a third of the files on each of three runners at once: about two minutes instead of six.
+  # The test job below puts their results together.
+  test-part:
+    name: test (part ${{ matrix.part }} of 3)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3]
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -112,18 +118,49 @@ jobs:
       # test/mobile reads the phone app's code, whose tsconfig extends Expo's: its packages too.
       - name: Install the phone app's packages
         run: npm ci --prefix mobile --no-audit --no-fund --ignore-scripts
-      - name: Run the tests
-        id: check
-        # Failures become notes on their lines; the summary below replaces Vitest's own table.
+      - name: Run a third of the tests
+        # Failures become notes on their lines; the test job's summary replaces Vitest's own table.
+        env:
+          PART: ${{ matrix.part }}
         run: >-
           GITHUB_STEP_SUMMARY=''
-          npx vitest run --reporter=default --reporter=github-actions
-          --reporter=json --outputFile.json="$RUNNER_TEMP/vitest.json"
+          npx vitest run --shard="$PART/3" --reporter=default --reporter=github-actions
+          --reporter=json --outputFile.json="$RUNNER_TEMP/vitest/part-$PART.json"
+      - name: Keep the results for the summary
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vitest-part-${{ matrix.part }}
+          path: ${{ runner.temp }}/vitest/part-${{ matrix.part }}.json
+          if-no-files-found: ignore
+          retention-days: 1
+
+  test:
+    name: test
+    needs: test-part
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Collect the three parts' results
+        # A part that crashed left none: the summary says so instead of this step failing.
+        continue-on-error: true
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: vitest-part-*
+          path: ${{ runner.temp }}/vitest
+          merge-multiple: true
+      # The runner's own Node: the summary needs no packages.
       - name: Summarize
-        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
         env:
-          OUTCOME: ${{ steps.check.outcome }}
-        run: node scripts/ci/summary.mjs test "$OUTCOME" "$RUNNER_TEMP/vitest.json"
+          OUTCOME: ${{ needs.test-part.result }}
+        run: |
+          node scripts/ci/summary.mjs test "$OUTCOME" "$RUNNER_TEMP"/vitest/part-{1,2,3}.json
+          [ "$OUTCOME" = success ]
 
   build:
     name: build
@@ -199,7 +236,7 @@ jobs:
           jq -r '.[]? | "::error file=\(.filepath),line=\(.line),col=\(.column)::\(.message)"' "$RUNNER_TEMP/actionlint.json"
           exit "$status"
       - name: Check the workflows for security slips (zizmor)
-        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
         with:
           version: 1.30.1
           advanced-security: false

@@ -187,7 +187,7 @@ jobs:
         id: claude
         # An outage or a used-up quota ends here; the issue is told.
         continue-on-error: true
-        uses: anthropics/claude-code-action@e4a6faad497d33dbc7144135c75e41f82f0bf6c0 # v1.0.255
+        uses: anthropics/claude-code-action@925afb53776cf1a2b738c6bdbed37b4d4000ef13 # v1.0.262
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -196,7 +196,7 @@ jobs:
           prompt: ${{ steps.prompt.outputs.text }}
           claude_args: |
             --max-turns 150
-            --allowedTools "Read,Glob,Grep,Edit,Write,Skill,TodoWrite,Bash(npm run check),Bash(npm run format),Bash(npm run typecheck),Bash(npm run fixtures:from-report:*),Bash(npx vitest run:*),Bash(npx biome check:*),Bash(git status:*),Bash(git diff:*),Bash(git restore:*),Bash(ls:*)"
+            --allowedTools "Read,Glob,Grep,Edit,Write,Skill,TodoWrite,Bash(npm run check),Bash(npm run format),Bash(npm run typecheck),Bash(npm run fixtures:from-report:*),Bash(npm run report:replay:*),Bash(npx vitest run:*),Bash(npx biome check:*),Bash(git status:*),Bash(git diff:*),Bash(git restore:*),Bash(ls:*)"
             --disallowedTools "WebFetch,WebSearch"
             --json-schema '{"type":"object","additionalProperties":false,"required":["outcome","comment","pr_title","pr_body"],"properties":{"outcome":{"type":"string","enum":["fixed","not-reproduced","not-fixed"]},"comment":{"type":"string"},"pr_title":{"type":"string"},"pr_body":{"type":"string"}}}'
 

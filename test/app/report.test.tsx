@@ -52,6 +52,8 @@ describe("reporting a SIX page the app couldn't read, on LINE", () => {
       "SIX mengubah halaman UKTHalaman ini ikut dikirim. Nama, NIM, kontak, dan tautan diganti, nilai dan jumlah uang diganti angka karangan.",
     );
     expect(shown).toContain("Edunex Plus 2.0.0-test di macOS 15.3 (arm64)");
+    // Who sent it, coarsely, as it goes: the program and the semester, never a name or NIM.
+    expect(shown).toContain("Program studi Sistem dan Teknologi Informasi · semester 7");
     expect(shown).toContain("Kirim lewat LINEKe arqilasp12, pengelola aplikasi. Hanya pengelola yang membacanya.");
     expect(shown).toContain("Buka di GitHubButuh akun GitHub. Laporannya bisa dibaca siapa saja.");
     // The engine's own words, the page's address and the page itself only in the technical details.

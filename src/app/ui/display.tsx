@@ -200,14 +200,18 @@ export function ProgressBar({ value, label, indeterminate = false }: { value: nu
       aria-valuenow={indeterminate ? undefined : Math.round(value * 100)}
       className="relative block h-1 overflow-hidden rounded-full bg-meter-track"
     >
-      {/* Its own element per kind, so the known bar never slides in from where the unknown one sat. Known, it
-          moves as CountdownBar does: full width, pushed left by what's left, linear (progress doesn't ease),
-          picking up from wherever it is when the next share comes in. */}
+      {/* Its own element per kind, so the known bar never slides in from where the unknown one sat. Unknown, a
+          short piece sweeps across (a still one read as "a third done", then jumped back when the first share
+          came in); with less motion, only the empty track. Known, it moves as CountdownBar does: full width,
+          pushed left by what's left, linear (progress doesn't ease), picking up from wherever it is when the
+          next share comes in. */}
       <span
         key={indeterminate ? "unknown" : "known"}
         className={cx(
           "absolute inset-y-0 left-0 rounded-full bg-accent",
-          indeterminate ? "w-1/3 motion-safe:animate-shimmer" : "w-full motion-safe:transition-[translate] motion-safe:duration-slow motion-safe:ease-linear",
+          indeterminate
+            ? "w-1/3 motion-safe:animate-sweep motion-reduce:hidden"
+            : "w-full motion-safe:transition-[translate] motion-safe:duration-slow motion-safe:ease-linear",
         )}
         style={indeterminate ? undefined : { translate: `${(Math.max(0, Math.min(1, value)) - 1) * 100}% 0` }}
       />

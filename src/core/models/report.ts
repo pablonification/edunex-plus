@@ -69,6 +69,11 @@ export const ReportProblem = z.object({
   cells: z.array(ReportCell).optional(),
   /** Format 2 on. */
   impact: ReportImpact.optional(),
+  /**
+   * Format 2 on, for an Edunex answer that didn't fit: the item its check names ("data.8", a Task), its fields with
+   * each value's type and the failing one marked (./engine/report/json-shape.ts). Never a value.
+   */
+  item: z.object({ at: z.string(), shape: z.string() }).optional(),
 });
 export type ReportProblem = z.infer<typeof ReportProblem>;
 
@@ -117,6 +122,20 @@ export const reportDatasets = {
   "app.reports": ReportsState,
 } as const;
 
+/**
+ * Who sent a report, coarsely, as SIX's pages already show it: the study program, the entry year and the semester
+ * they're in ("a first-year in program 169"). Never who they are: no name, number or class. Each null when unknown.
+ */
+export const ReportStudent = z.object({
+  programCode: z.string().nullable(),
+  program: z.string().nullable(),
+  entryYear: z.number().nullable(),
+  /** The term SIX is on ("2026-1"), and the Student's semester in it, counted from their entry (1 for a first term). */
+  term: z.string().nullable(),
+  semester: z.number().nullable(),
+});
+export type ReportStudent = z.infer<typeof ReportStudent>;
+
 export const ProblemReport = z.object({
   /**
    * The report's layout, for the script that turns one into test data (scripts/report-to-fixtures.mjs).
@@ -133,5 +152,7 @@ export const ProblemReport = z.object({
   problems: z.array(ReportProblem),
   /** Format 2 on: the app's own log of the last hour, the oldest first, scrubbed like the pages. */
   log: z.array(LogEntry).optional(),
+  /** Format 2 on, once SIX has been read: who sent it, coarsely. */
+  student: ReportStudent.optional(),
 });
 export type ProblemReport = z.infer<typeof ProblemReport>;

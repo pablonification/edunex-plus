@@ -189,11 +189,17 @@ export class Replacements {
 /** Student numbers: a program's three digits, the entry year's last two, then three ("18223901"). */
 export const NIM_SHAPE = /(?<!\d)(1\d{2}(?:1[5-9]|2\d)\d{3})(?!\d)/g;
 
-/** The student numbers in `text`: shaped like one, or in SIX's student addresses ("mahasiswa:23522017"). */
+/**
+ * The student numbers in `text`: shaped like one, in SIX's student addresses ("mahasiswa:23522017"), or in its role
+ * menu, each role with its own number ("context=calonmhs:…", "Calon Mahasiswa - …": an applicant's number, which isn't
+ * shaped like a NIM).
+ */
 export function studentNumbers(text: string): string[] {
   const out = new Set<string>();
   for (const match of text.matchAll(NIM_SHAPE)) out.add(match[1]!);
   for (const match of text.matchAll(/mahasiswa:(\d{6,12})(?!\d)/g)) out.add(match[1]!);
+  for (const match of text.matchAll(/context=[a-z]+:(\d{6,12})(?!\d)/g)) out.add(match[1]!);
+  for (const match of text.matchAll(/\b(?:Calon Mahasiswa|Mahasiswa|Alumni)\s*-\s*(\d{6,12})(?!\d)/g)) out.add(match[1]!);
   for (const match of text.matchAll(/<th>NIM<\/th>\s*<td>\s*(\d{6,12})\s*<\/td>/g)) out.add(match[1]!);
   return [...out];
 }
