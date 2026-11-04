@@ -478,7 +478,8 @@ describe("a row left out, found on its page", () => {
     });
     expect(sent.problems[0]!.cells).toEqual([
       {
-        row: `${text.slice(0, 119)}…`,
+        // Its last word goes: at the cut, a whole word can't be told from half of one.
+        row: `${text.slice(0, 119).replace(/\S+$/, "")}…`,
         html: row,
         header: "<tr><th>No</th><th>Kode</th><th>Nama</th><th>SKS</th></tr>",
         shape: expect.stringMatching(/^9 · a-9 · a( a)+…$/),
