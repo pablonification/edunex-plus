@@ -150,6 +150,9 @@ Notes:
 - **`verified_at` can be missing.** A Student's report (0.1.0-alpha.26) had an answer with no
   `verified_at` key at all, its other fields as usual. The app reads it as null (not looked at yet),
   so the Task still shows. The other answer fields stay required: a missing one is still a change.
+- **A Task's `files` can be null.** Students' reports (0.1.0-alpha.24 to 0.1.0-alpha.28) had a Task
+  with `files: null` where others have `[]`, its other fields as usual. The app reads it as no files,
+  so the course's Tasks still show.
 - **`/course/comments`** is the thread under an answer, the website's "Comment / Feedback" box
   (`ContentAssignmentReply`, every message at once with `page[limit]=0`, newest first). A lecturer's
   feedback is often here, not in `comment`: on the recorded hand-back it was a message written three
