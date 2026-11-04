@@ -4,7 +4,7 @@
 
 import module from "node:module";
 import path from "node:path";
-import { app, type BrowserWindow, dialog, powerMonitor, session, shell } from "electron";
+import { app, BrowserWindow, dialog, powerMonitor, session, shell } from "electron";
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
 import { isOfficialUrl, isWebLink } from "../core/links";
@@ -69,6 +69,8 @@ if (process.platform === "win32") app.setAppUserModelId("id.edunexplus.desktop")
 let window: BrowserWindow | null = null;
 let engine: Engine | null = null;
 let quitting = false;
+/** macOS: the window was closed but the app runs on, so it's out of the Dock until a window shows again. */
+let closedToBackground = false;
 let syncing = false;
 let tray: AppTray | null = null;
 /** SIX or Edunex opened in the browser, from the window or the tray menu (./away.ts). */
@@ -251,6 +253,9 @@ async function start(): Promise<void> {
     startSyncing();
   }, 6_000);
   shown.once("show", () => clearTimeout(fallback));
+  shown.on("show", () => {
+    closedToBackground = false;
+  });
   shown.on("focus", () => trips.back());
   tray = createTray({ menu: () => trayMenu(current.snapshot(), clock.now()), now: () => clock.now(), act: trayAction });
   shown.on("close", (event) => {
@@ -260,7 +265,10 @@ async function start(): Promise<void> {
     if (closeToTray && (process.platform === "darwin" || tray)) {
       event.preventDefault();
       shown.hide();
-      if (!trayExplained) void explainTray(current);
+      closedToBackground = true;
+      // The first time, once its explainer is answered: an app out of the Dock can't bring that to the front.
+      if (trayExplained) leaveDock();
+      else void explainTray(current).finally(leaveDock);
     } else if (!closeToTray && process.platform === "darwin") {
       app.quit();
     }
@@ -300,6 +308,21 @@ function reveal(): void {
   if (window.isMinimized()) window.restore();
   if (!window.isVisible()) window.show();
   window.focus();
+}
+
+/** macOS, the window closed: the app leaves the Dock, unless another of its windows is still on screen. */
+function leaveDock(): void {
+  if (process.platform !== "darwin" || quitting || !closedToBackground) return;
+  if (BrowserWindow.getAllWindows().some((open) => !open.isDestroyed() && open.isVisible())) return;
+  app.dock?.hide();
+}
+
+/** macOS: any window of the app on screen puts it back in the Dock, brought to the front once it's there. */
+function backInDock(shown: BrowserWindow): void {
+  if (process.platform !== "darwin" || !app.dock || app.dock.isVisible()) return;
+  void app.dock.show().then(() => {
+    if (!shown.isDestroyed()) shown.focus();
+  });
 }
 
 /** A notification was clicked: the window comes forward on the alert's screen. */
@@ -381,6 +404,11 @@ function fail(error: unknown): void {
 }
 
 app.on("activate", reveal);
+app.on("browser-window-created", (_event, created) => {
+  created.on("show", () => backInDock(created));
+  // A page window (Edunex, SIX) closed after the main one: the app leaves the Dock with it.
+  created.on("closed", leaveDock);
+});
 app.on("before-quit", (event) => {
   quitting = true;
   engine?.stop();
