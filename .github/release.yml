@@ -1,5 +1,5 @@
-# How GitHub groups the notes of a release (the draft the release workflow
-# makes). Labels come from .github/labeler.yml; bug and enhancement are set by hand.
+# How GitHub groups the notes of a release (the one the release workflow
+# publishes). Labels come from .github/labeler.yml; bug and enhancement are set by hand.
 changelog:
   categories:
     - title: New

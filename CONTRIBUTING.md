@@ -198,12 +198,14 @@ writes it), with its own licence and Electron's and Chromium's.
    marked "Pre-release", and only copies that are pre-releases themselves are
    told about it.
 2. The **Package and release** workflow checks that the tag matches the
-   version, builds for macOS, Windows and Linux, and makes a draft release with
+   version, builds for macOS, Windows and Linux, and publishes the release with
    notes grouped by label. Once SignPath is set up, it emails you twice while
    the Windows build waits: approve each signing request in SignPath (the job
    gives up after 45 minutes each).
-3. Try the draft's installers on real accounts, then publish it. Installed
-   apps offer the update only once it's published.
+3. Installed apps offer the update at their next check, so only tag a build
+   that's ready for students. To try one first, run the workflow by hand from
+   a branch (Actions → Package and release → Run workflow): it builds the
+   installers without publishing anything.
 
 ## Conduct and security
 
