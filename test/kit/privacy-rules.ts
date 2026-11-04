@@ -12,6 +12,8 @@ const plain = (link: string) => link.replace(/\\+\//g, "/");
 // Links match with their "/" escaped too: a page whose "/" are still "\/" would carry a real link past them.
 const RULES: { what: string; pattern: RegExp; allowed: (match: string) => boolean }[] = [
   { what: "student number", pattern: /(?<!\d)1\d{2}(?:1[5-9]|2\d)\d{3}(?!\d)/g, allowed: (m) => FAKE_NIM.test(m) },
+  // SIX's role menu gives each role its own number: an applicant's ("calonmhs") isn't shaped like a NIM.
+  { what: "role number", pattern: /context=[a-z]+:\d{6,12}(?!\d)/g, allowed: (m) => FAKE_NIM.test(m.split(":")[1]!) },
   { what: "meeting link", pattern: /teams\.(?:microsoft|live)\.com\\*\/[^"'\s<]+/g, allowed: (m) => m.includes("000000000000") },
   { what: "file link", pattern: /\.blob\.core\.windows\.net\\*\/[^"'\s<]+/g, allowed: (m) => plain(m).includes("/edunex/fixture-") },
   { what: "signed link", pattern: /[?&]sig=[\w%+/=-]+/g, allowed: (m) => m.endsWith("=fixture") },
