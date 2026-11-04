@@ -111,7 +111,7 @@ describe("ProgressBar", () => {
   it("knowing how far at last, starts a fresh fill instead of sliding over from where the unknown one sat", () => {
     const container = draw(<ProgressBar value={0} indeterminate label="Mengunduh" />);
     const unknown = fillOf(container);
-    expect(unknown.className).toContain("motion-safe:animate-shimmer");
+    expect(unknown.className).toContain("motion-safe:animate-sweep");
     act(() => root!.render(<ProgressBar value={0.5} label="50% terunduh" />));
     expect(fillOf(container)).not.toBe(unknown);
     expect(fillOf(container).style.translate).toBe("-50% 0");
