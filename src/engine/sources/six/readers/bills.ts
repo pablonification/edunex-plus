@@ -82,7 +82,12 @@ function readBill(page: Page, year: number, table: Table, cells: Elem[]): Bill {
   if (!semester) changed(page, `term "${label}" isn't readable`);
   const term = `${year}-${semester}`;
   const detail = details(page);
-  const amount = detail.of("amount", table.cell(cells, "amount"), (cell) => rupiah(page, textOf(cell), `bill of ${term}`));
+  // SIX can put how the bill is worked out in a small table under the amount (multiplier, SKS taken, …): only the amount is read.
+  const amount = detail.of("amount", table.cell(cells, "amount"), (cell) => {
+    const own = cell.clone();
+    own.find("table").remove();
+    return rupiah(page, textOf(own), `bill of ${term}`);
+  });
   const paid = detail.of("paid", table.cell(cells, "paid"), (cell) => rupiah(page, textOf(cell), `payment of ${term}`));
   // An instalment it can't read blanks the whole deadline: a later one is never taken for the next one due.
   const due = detail.of("due", table.cell(cells, "due"), (cell) => {
