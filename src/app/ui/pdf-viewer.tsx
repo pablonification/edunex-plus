@@ -33,6 +33,7 @@ import type { Highlight, PageNote } from "../../core/models";
 import { useT } from "../i18n";
 import { Button, IconButton } from "./controls";
 import { cx } from "./cx";
+import { FIND_AREA, matchesIn, paintMatches, rangesIn, revealMatch, useFind } from "./find";
 import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./highlights";
 import { Icons, icon } from "./icons";
 import { settled } from "./motion/animate";
@@ -459,6 +460,81 @@ function Reader({
     [doc.pages, scroller],
   );
 
+  // Finding words (⌘F) in every page's text, drawn or not, read once per page and kept while the PDF is open.
+  const [found, setFound] = useState<{ query: string; matches: { page: number; start: number }[]; done: boolean }>({ query: "", matches: [], done: true });
+  /** Counts the times a page's text was laid out (drawn, or again at a zoom): the matches on it are tinted again. */
+  const [laidOut, setLaidOut] = useState(0);
+  const onLaidOut = useCallback(() => setLaidOut((n) => n + 1), []);
+  const words = useRef(new Map<number, string>());
+  const find = useFind({
+    total: found.matches.length,
+    searching: !found.done,
+    available: true,
+    mac,
+    onClose: () => scroller.current?.focus(),
+  });
+  const { open: finding, query, at, seek, pick, escape: findEscape } = find;
+  useEffect(() => {
+    if (!finding || !query.trim()) return setFound({ query, matches: [], done: true });
+    let live = true;
+    void (async () => {
+      const matches: { page: number; start: number }[] = [];
+      setFound({ query, matches, done: false });
+      for (let number = 1; number <= doc.pages && live; number++) {
+        let text = words.current.get(number);
+        if (text === undefined) {
+          text = await doc.page(number).then(
+            (page) => page.words(),
+            () => "",
+          );
+          words.current.set(number, text);
+        }
+        for (const match of matchesIn(text, query)) matches.push({ page: number, start: match.start });
+        // Told a few pages at a time, so the first matches show while a long PDF is still being looked through.
+        if (live && (number % 10 === 0 || number === doc.pages)) setFound({ query, matches: [...matches], done: number === doc.pages });
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [finding, query, doc]);
+  // A new search starts on the page being read: its first match there or after, else the first of all once all are found.
+  useEffect(() => {
+    if (at !== null || found.query !== query || !found.matches.length) return;
+    const next = found.matches.findIndex((match) => match.page >= current);
+    if (next >= 0) pick(next);
+    else if (found.done) pick(0);
+  }, [at, found, query, current, pick]);
+  /** The match to bring into view once its page's text is there. */
+  const seeking = useRef<{ page: number; start: number } | null>(null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each move to a match (seek), not each batch of matches found
+  useEffect(() => {
+    const match = at === null ? undefined : found.matches[at];
+    if (!finding || !match) return;
+    seeking.current = match;
+    // On another page: it's gone to, and the match comes into view once that page's text is laid out.
+    if (match.page !== current || !pages.current[match.page - 1]?.querySelector(".pdf-text")?.hasChildNodes()) go(match.page);
+    setLaidOut((n) => n + 1);
+  }, [finding, at, seek, go]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: laidOut and near say a page's text was laid out again
+  useEffect(() => {
+    if (!finding) return;
+    const match = at === null ? undefined : found.matches[at];
+    const all: Range[] = [];
+    let current: Range | null = null;
+    for (const root of textRoots()) {
+      for (const each of rangesIn(root.node, query)) {
+        all.push(each.range);
+        if (match && root.page === match.page && each.start === match.start) current = each.range;
+      }
+    }
+    paintMatches(all, current);
+    if (current && scroller.current && seeking.current === match) {
+      seeking.current = null;
+      revealMatch(current, scroller.current);
+    }
+  }, [finding, query, at, found.matches, laidOut, near, textRoots, scroller]);
+
   // The form as it is now: the file's values with the Student's on top.
   const values = useMemo(() => ({ ...doc.form, ...fill.fill.fields }), [doc.form, fill.fill.fields]);
   const { addText, setField, editText, removeText, undo, redo } = fill;
@@ -481,6 +557,7 @@ function Reader({
 
   useEffect(() => {
     fillEscape.current = (target) => {
+      if (findEscape(target)) return true;
       if (target.closest(NOTES_AREA)) {
         toPages();
         return true;
@@ -494,7 +571,7 @@ function Reader({
       toPages();
       return true;
     };
-  }, [fillEscape, placing, toPages, highlightEscape]);
+  }, [fillEscape, placing, toPages, highlightEscape, findEscape]);
 
   const zoomBy = (direction: 1 | -1) => {
     const next = direction > 0 ? STEPS.find((step) => step > percent + 1) : STEPS.findLast((step) => step < percent - 1);
@@ -507,8 +584,10 @@ function Reader({
     if (!root) return;
     const mod = event.metaKey || event.ctrlKey;
     const target = event.target as HTMLElement;
-    // A note is typed as in any box: its keys are its own (⌘Z undoes the typing), and Escape is the viewer's (above).
-    if (target.closest(NOTES_AREA)) return;
+    // ⌘F wherever the keyboard is. A note and the find bar are typed in as in any box: their keys are their own (⌘Z
+    // undoes the typing), and Escape is the viewer's (above).
+    if (find.onKey(event)) return;
+    if (target.closest(`${NOTES_AREA}, ${FIND_AREA}`)) return;
     // ⌘⇧H highlights what's selected; ⌘Z, just after a highlight was removed, puts it back.
     if (highlighter.onKey(event)) return;
     // Undo and redo are the filling's, in a box too (typing in one box is one step).
@@ -611,69 +690,74 @@ function Reader({
             {t("pdf.addText")}
           </Button>
         </Tooltip>
+        {find.button}
         {highlighter.clearButton}
         {notes && <NotesButton open={notesPanel.open} paged onClick={() => notesPanel.show(!notesPanel.open)} />}
         {actions && <Divider />}
       </Toolbar>
       <div className="flex min-h-0 flex-1">
-        <section
-          ref={scroller}
-          // biome-ignore lint/a11y/noNoninteractiveTabindex: the pages scroll, so they take the keyboard (arrows, Page Down)
-          tabIndex={0}
-          aria-label={name}
-          onScroll={track}
-          onMouseDown={highlighter.onMouseDown}
-          onMouseMove={placing ? undefined : highlighter.onMouseMove}
-          onMouseLeave={highlighter.onMouseLeave}
-          onMouseUp={placing ? undefined : highlighter.onMouseUp}
-          className={cx(
-            "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-ring-inset",
-            // Waiting for the spot: a click on a page puts the text there instead of selecting the page's own.
-            placing && "cursor-crosshair [&_.pdf-text]:pointer-events-none",
-          )}
-        >
-          {/* A page that fails to draw breaks the pages, not the window; the toolbar and Close stay. */}
-          <PanelBoundary name="pdf pages" compact>
-            <div ref={content} className="relative flex w-max min-w-full flex-col items-center gap-4" style={{ padding: PAD }}>
-              {sizes.map((size, index) => (
-                <PageView
-                  // biome-ignore lint/suspicious/noArrayIndexKey: a PDF's pages are its positions
-                  key={index}
-                  ref={(element) => {
-                    pages.current[index] = element;
-                  }}
-                  doc={doc}
-                  number={index + 1}
-                  count={doc.pages}
-                  size={size}
-                  scale={scale}
-                  near={near.has(index + 1)}
-                  onOpenLink={onOpenLink}
-                  onGoTo={go}
-                  values={values}
-                  radios={radios}
-                  onField={(field, value) => setField(field, value, doc.form?.[field])}
-                  texts={fill.fill.texts}
-                  fresh={fresh}
-                  onEditText={editText}
-                  onRemoveText={removeText}
-                  onLeaveText={toPages}
-                  onPlace={placing ? (x, y) => putText(index + 1, x, y - (TEXT_SIZES[2] * LINE_HEIGHT) / 2) : undefined}
-                  highlights={byPage.get(index + 1) ?? NONE}
-                  openHighlight={highlighter.open}
-                  onOpenHighlight={(id) => highlighter.openFor(id, true)}
-                  onRemoveHighlight={(id) => highlighter.remove(id, true)}
-                  note={notesByPage.get(index + 1)}
-                  onOpenNote={() => {
-                    go(index + 1);
-                    notesPanel.show(true);
-                  }}
-                />
-              ))}
-              {highlighter.bar}
-            </div>
-          </PanelBoundary>
-        </section>
+        <div className="relative flex min-h-0 min-w-0 flex-1">
+          <section
+            ref={scroller}
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: the pages scroll, so they take the keyboard (arrows, Page Down)
+            tabIndex={0}
+            aria-label={name}
+            onScroll={track}
+            onMouseDown={highlighter.onMouseDown}
+            onMouseMove={placing ? undefined : highlighter.onMouseMove}
+            onMouseLeave={highlighter.onMouseLeave}
+            onMouseUp={placing ? undefined : highlighter.onMouseUp}
+            className={cx(
+              "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-ring-inset",
+              // Waiting for the spot: a click on a page puts the text there instead of selecting the page's own.
+              placing && "cursor-crosshair [&_.pdf-text]:pointer-events-none",
+            )}
+          >
+            {/* A page that fails to draw breaks the pages, not the window; the toolbar and Close stay. */}
+            <PanelBoundary name="pdf pages" compact>
+              <div ref={content} className="relative flex w-max min-w-full flex-col items-center gap-4" style={{ padding: PAD }}>
+                {sizes.map((size, index) => (
+                  <PageView
+                    // biome-ignore lint/suspicious/noArrayIndexKey: a PDF's pages are its positions
+                    key={index}
+                    ref={(element) => {
+                      pages.current[index] = element;
+                    }}
+                    doc={doc}
+                    number={index + 1}
+                    count={doc.pages}
+                    size={size}
+                    scale={scale}
+                    near={near.has(index + 1)}
+                    onOpenLink={onOpenLink}
+                    onGoTo={go}
+                    values={values}
+                    radios={radios}
+                    onField={(field, value) => setField(field, value, doc.form?.[field])}
+                    texts={fill.fill.texts}
+                    fresh={fresh}
+                    onEditText={editText}
+                    onRemoveText={removeText}
+                    onLeaveText={toPages}
+                    onLaidOut={onLaidOut}
+                    onPlace={placing ? (x, y) => putText(index + 1, x, y - (TEXT_SIZES[2] * LINE_HEIGHT) / 2) : undefined}
+                    highlights={byPage.get(index + 1) ?? NONE}
+                    openHighlight={highlighter.open}
+                    onOpenHighlight={(id) => highlighter.openFor(id, true)}
+                    onRemoveHighlight={(id) => highlighter.remove(id, true)}
+                    note={notesByPage.get(index + 1)}
+                    onOpenNote={() => {
+                      go(index + 1);
+                      notesPanel.show(true);
+                    }}
+                  />
+                ))}
+                {highlighter.bar}
+              </div>
+            </PanelBoundary>
+          </section>
+          {find.bar}
+        </div>
         {notes && notesPanel.open && (
           <NotesPanel
             notes={notes}
@@ -719,6 +803,7 @@ function PageView({
   onEditText,
   onRemoveText,
   onLeaveText,
+  onLaidOut,
   onPlace,
   highlights,
   openHighlight,
@@ -746,6 +831,8 @@ function PageView({
   onEditText: (id: string, patch: Partial<Omit<PdfText, "id">>, what: "text" | "move" | "size") => void;
   onRemoveText: (id: string, quietly: boolean) => void;
   onLeaveText: () => void;
+  /** The page's text was laid out (drawn, or again at a zoom). */
+  onLaidOut: () => void;
   /** "Tambah teks" is waiting: a click here puts it at that spot (at scale 1). */
   onPlace?: (x: number, y: number) => void;
   /** The highlights on this page. */
@@ -822,12 +909,16 @@ function PageView({
     if (!near || !page || !text.current) return;
     let live = true;
     const task = page.text(text.current, scale);
-    void task.promise.then(() => live && setLaidOut((n) => n + 1));
+    void task.promise.then(() => {
+      if (!live) return;
+      setLaidOut((n) => n + 1);
+      onLaidOut();
+    });
     return () => {
       live = false;
       task.cancel();
     };
-  }, [near, page, scale]);
+  }, [near, page, scale, onLaidOut]);
 
   useEffect(() => {
     if (!near || !page) return;

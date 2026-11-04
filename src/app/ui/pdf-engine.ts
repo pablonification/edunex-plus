@@ -80,6 +80,8 @@ export interface PdfPage {
   render(canvas: HTMLCanvasElement, scale: number, pixelRatio: number): PdfTask;
   /** Lays the page's text over it, invisible but selectable and copyable. */
   text(container: HTMLElement, scale: number): PdfTask;
+  /** The page's text as one string, the way the laid-out text reads (each run's text, one after another): what's found in it. */
+  words(): Promise<string>;
   links(): Promise<PdfLink[]>;
   /** The form fields on the page the Student can fill in. */
   fields(): Promise<PdfField[]>;
@@ -262,6 +264,10 @@ export async function openPdf(bytes: Uint8Array): Promise<PdfDocument> {
             ),
             cancel: () => layer.cancel(),
           };
+        },
+        async words() {
+          const content = await page.getTextContent();
+          return content.items.map((item) => ("str" in item ? item.str : "")).join("");
         },
         async links() {
           const out: PdfLink[] = [];

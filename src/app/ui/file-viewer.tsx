@@ -23,6 +23,7 @@ import { useT } from "../i18n";
 import { Button } from "./controls";
 import { cx } from "./cx";
 import type { Block } from "./doc";
+import { FIND_AREA, firstFromView, paintMatches, rangesIn, revealMatch, useFind } from "./find";
 import { type Highlights, MarkLayer, type TextRoot, useHighlighter } from "./highlights";
 import { Icons } from "./icons";
 import { settled } from "./motion/animate";
@@ -148,6 +149,48 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
     bar: highlighter.bar,
   };
 
+  // Finding words (⌘F) in what's shown: a Word document's pages in their shadow root, anything else as the viewer draws it.
+  const [total, setTotal] = useState(0);
+  const [redrawn, setRedrawn] = useState(0);
+  const find = useFind({
+    total,
+    searching: false,
+    available: open && view.phase === "ready" && shown !== "image",
+    mac: platform === "darwin",
+    onClose: () => scroller.current?.focus(),
+  });
+  const { open: finding, query, at, seek, pick } = find;
+  const findRoot = useCallback(() => (shown === "docx" ? textRoot.current : scroller.current), [shown]);
+  // What's shown changes (another sheet picked, the text drawn again): its matches are found again.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new view draws new text
+  useEffect(() => {
+    const root = findRoot();
+    if (!finding || !root || typeof MutationObserver === "undefined") return;
+    const observer = new MutationObserver(() => setRedrawn((n) => n + 1));
+    observer.observe(root, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [finding, findRoot, view]);
+  const revealed = useRef("");
+  // biome-ignore lint/correctness/useExhaustiveDependencies: redrawn and view say the text was drawn again
+  useEffect(() => {
+    const root = findRoot();
+    const ranges = finding && root ? rangesIn(root, query).map((match) => match.range) : [];
+    setTotal(ranges.length);
+    if (!finding) return;
+    if (ranges.length && (at === null || at >= ranges.length)) {
+      paintMatches(ranges, null);
+      pick(at === null ? firstFromView(ranges, scroller.current) : ranges.length - 1);
+      return;
+    }
+    const current = at === null ? null : (ranges[at] ?? null);
+    paintMatches(ranges, current);
+    const asked = `${query}:${at}:${seek}`;
+    if (current && scroller.current && revealed.current !== asked) {
+      revealed.current = asked;
+      revealMatch(current, scroller.current);
+    }
+  }, [finding, findRoot, query, at, seek, pick, redrawn, view]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: "Coba lagi" bumps attempt to read the file again
   useEffect(() => {
     if (!open) return;
@@ -202,10 +245,11 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
           }}
           onCloseAutoFocus={returnFocus.onCloseAutoFocus}
           onPointerDownOutside={keepOpenForToasts}
-          // With a highlight's bar open, Escape closes the bar, and in the note it gives the keyboard back to the file;
-          // the next one closes the viewer.
+          // In the find bar Escape closes the bar; with a highlight's bar open, it closes that bar, and in the note it
+          // gives the keyboard back to the file; the next one closes the viewer.
           onEscapeKeyDown={(event) => {
-            if (event.target instanceof HTMLElement && event.target.closest(NOTES_AREA)) {
+            if (find.escape(event.target)) event.preventDefault();
+            else if (event.target instanceof HTMLElement && event.target.closest(NOTES_AREA)) {
               event.preventDefault();
               scroller.current?.focus();
             } else if (highlighter.escape()) event.preventDefault();
@@ -220,70 +264,78 @@ export function FileViewer({ open, onOpenChange, name, kind, load, actions, fall
         >
           {/* Whatever in the viewer fails breaks the viewer, not the window; its title and Close stay. */}
           <PanelBoundary name="file viewer" compact header={<Toolbar name={name} />}>
-            {/* ⌘⇧H and ⌘Z wherever the keyboard is in the viewer, the toolbar's eraser too, after it removed them all; */}
-            {/* never in the note, whose keys are its own (⌘Z undoes its typing). */}
+            {/* ⌘F wherever the keyboard is in the viewer; ⌘⇧H and ⌘Z there too, the toolbar's eraser too, after it */}
+            {/* removed them all, but never in the note or the find bar, whose keys are their own (⌘Z undoes typing). */}
             {/* biome-ignore lint/a11y/noStaticElementInteractions: keys for the whole viewer, wherever focus is inside it */}
             <div
               className="flex min-h-0 flex-1 flex-col"
               onKeyDown={(event) => {
-                if (!(event.target instanceof Element && event.target.closest(NOTES_AREA))) highlighter.onKey(event);
+                if (find.onKey(event)) return;
+                if (!(event.target instanceof Element && event.target.closest(`${NOTES_AREA}, ${FIND_AREA}`))) highlighter.onKey(event);
               }}
             >
               <Toolbar name={name} actions={view.phase === "failed" ? undefined : actions}>
+                {find.button}
                 {highlighter.clearButton}
                 {notesHere && <NotesButton open={notesPanel.open} paged={false} onClick={() => notesPanel.show(!notesPanel.open)} />}
               </Toolbar>
               {view.phase === "ready" && view.shown.kind === "sheets" ? (
-                <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />
+                <div className="relative flex min-h-0 flex-1 flex-col">
+                  <Sheets sheets={view.shown.sheets} name={name} scroller={scroller} />
+                  {find.bar}
+                </div>
               ) : (
                 <div className="flex min-h-0 flex-1">
-                  <section
-                    ref={scroller}
-                    // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
-                    tabIndex={view.phase === "ready" ? 0 : -1}
-                    aria-label={name}
-                    // Highlighting: what's selected as the mouse comes up, a highlight under a click (a hand over one).
-                    onMouseDown={highlighter.onMouseDown}
-                    onMouseMove={highlighter.onMouseMove}
-                    onMouseLeave={highlighter.onMouseLeave}
-                    onMouseUp={highlighter.onMouseUp}
-                    className={cx(
-                      "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-ring-inset",
-                      view.phase !== "ready" && "grid place-items-center p-6",
-                    )}
-                  >
-                    {view.phase === "loading" ? (
-                      <Loading label={t("viewer.loading")} />
-                    ) : view.phase === "failed" ? (
-                      <Failed title={t("viewer.failed")} detail={view.problem === "broken" ? t("viewer.broken") : t(`file.problem.${view.problem}`)}>
-                        {view.problem === "unreachable" ? (
-                          <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
-                            {t("action.tryAgain")}
-                          </Button>
-                        ) : (
-                          fallback?.(view.problem)
-                        )}
-                      </Failed>
-                    ) : view.shown.kind === "docx" ? (
-                      <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
-                    ) : view.shown.kind === "slides" ? (
-                      <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
-                    ) : view.shown.kind === "text" ? (
-                      <TextFile text={view.shown.text} marks={marks} />
-                    ) : view.shown.kind === "doc" ? (
-                      <DocPages pages={view.shown.pages} />
-                    ) : view.shown.kind === "ppt" ? (
-                      <SlideCards slides={view.shown.slides} />
-                    ) : view.shown.kind === "image" ? (
-                      <div className="grid min-h-full place-items-center p-6">
-                        <img
-                          src={view.shown.url}
-                          alt={name}
-                          className="h-auto max-w-full rounded-tag outline -outline-offset-1 outline-black/10 dark:outline-white/10"
-                        />
-                      </div>
-                    ) : null}
-                  </section>
+                  <div className="relative flex min-h-0 min-w-0 flex-1">
+                    <section
+                      ref={scroller}
+                      // The file scrolls, so once it's there it takes the keyboard (arrows, Page Down).
+                      tabIndex={view.phase === "ready" ? 0 : -1}
+                      aria-label={name}
+                      // Highlighting: what's selected as the mouse comes up, a highlight under a click (a hand over one).
+                      onMouseDown={highlighter.onMouseDown}
+                      onMouseMove={highlighter.onMouseMove}
+                      onMouseLeave={highlighter.onMouseLeave}
+                      onMouseUp={highlighter.onMouseUp}
+                      className={cx(
+                        "min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain bg-sunken outline-none focus-ring-inset",
+                        view.phase !== "ready" && "grid place-items-center p-6",
+                      )}
+                    >
+                      {view.phase === "loading" ? (
+                        <Loading label={t("viewer.loading")} />
+                      ) : view.phase === "failed" ? (
+                        <Failed title={t("viewer.failed")} detail={view.problem === "broken" ? t("viewer.broken") : t(`file.problem.${view.problem}`)}>
+                          {view.problem === "unreachable" ? (
+                            <Button variant="primary" icon={<Icons.RefreshCw className="size-3.5" />} onClick={() => setAttempt((n) => n + 1)}>
+                              {t("action.tryAgain")}
+                            </Button>
+                          ) : (
+                            fallback?.(view.problem)
+                          )}
+                        </Failed>
+                      ) : view.shown.kind === "docx" ? (
+                        <WordPages nodes={view.shown.nodes} onOpenLink={onOpenLink} marks={marks} />
+                      ) : view.shown.kind === "slides" ? (
+                        <SlideDeck deck={view.shown.deck} onOpenLink={onOpenLink} />
+                      ) : view.shown.kind === "text" ? (
+                        <TextFile text={view.shown.text} marks={marks} />
+                      ) : view.shown.kind === "doc" ? (
+                        <DocPages pages={view.shown.pages} />
+                      ) : view.shown.kind === "ppt" ? (
+                        <SlideCards slides={view.shown.slides} />
+                      ) : view.shown.kind === "image" ? (
+                        <div className="grid min-h-full place-items-center p-6">
+                          <img
+                            src={view.shown.url}
+                            alt={name}
+                            className="h-auto max-w-full rounded-tag outline -outline-offset-1 outline-black/10 dark:outline-white/10"
+                          />
+                        </div>
+                      ) : null}
+                    </section>
+                    {find.bar}
+                  </div>
                   {notesHere && notesPanel.open && (
                     <NotesPanel
                       notes={notesHere}
@@ -350,6 +402,8 @@ const WORD_STYLE = `
 :host { color-scheme: light; }
 .docx-wrapper { background: transparent; padding: 24px; }
 .docx-wrapper > section.docx { margin-bottom: 16px; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12), 0 0 0 1px rgb(0 0 0 / 0.05); }
+::highlight(find) { background-color: rgb(255 228 92 / 0.55); color: #111; }
+::highlight(find-current) { background-color: rgb(255 140 0 / 0.6); color: #111; }
 `;
 
 /**
@@ -436,7 +490,7 @@ function Sheets({ sheets, name, scroller }: { sheets: Sheet[]; name: string; scr
             <tr>
               <th aria-hidden className={cx(head, "top-0 left-0 z-20 border-r border-b")} />
               {Array.from({ length: columns }, (_, index) => (
-                <th key={columnName(index)} scope="col" className={cx(head, "top-0 h-7 border-r border-b text-center")}>
+                <th key={columnName(index)} scope="col" data-find-skip className={cx(head, "top-0 h-7 border-r border-b text-center")}>
                   {columnName(index)}
                 </th>
               ))}
@@ -446,7 +500,7 @@ function Sheets({ sheets, name, scroller }: { sheets: Sheet[]; name: string; scr
             {rows.map((row, r) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: a sheet's rows are its positions
               <tr key={r}>
-                <th scope="row" className={cx(head, "left-0 border-r border-b text-right tabular-nums")}>
+                <th scope="row" data-find-skip className={cx(head, "left-0 border-r border-b text-right tabular-nums")}>
                   {r + 1}
                 </th>
                 {Array.from({ length: columns }, (_, c) => (
