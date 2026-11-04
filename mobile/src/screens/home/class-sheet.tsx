@@ -17,6 +17,7 @@ import { checkingIn } from "../../../../src/core/check-in";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import type { NowCard } from "../../../../src/core/needs";
 import { type Route, useNav } from "../../nav";
+import { useCourseHealth } from "../../parts/course-health";
 import { absenceInk, absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
 import { SourceLogo } from "../../ui/brand";
@@ -247,7 +248,9 @@ function Absences({ card }: { card: NowCard }) {
   const t = useT();
   const v = useTheme().v4;
   const facts = card.class;
-  const health = facts?.health && facts.state !== "unknown" ? facts.health : null;
+  // A meeting only Edunex announced has no class of its own: its course's absences, as Jadwal's details say them.
+  const meetingHealth = useCourseHealth(facts ? null : (card.meeting?.code ?? null));
+  const health = facts ? (facts.health && facts.state !== "unknown" ? facts.health : null) : meetingHealth;
   if (!health) return null;
   const tone = absenceTone(health.state);
   const budget = budgetLabel(t, health);
