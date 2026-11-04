@@ -16,6 +16,8 @@ import { uninstallerHook, uninstallerStep } from "./scripts/package-sign-win.mjs
 
 // The uninstaller's step in a two-pass Windows build (scripts/package-win.mjs sets it), or none.
 const uninstallers = uninstallerStep(process.env);
+// The kinds of Mac to build for: both, or only MAC_ARCH's (arm64 or x64).
+const MAC_ARCHS = process.env.MAC_ARCH ? [process.env.MAC_ARCH] : ["arm64", "x64"];
 
 // The Windows installer for ARM PCs (Snapdragon and the like). Each kind of PC has its own, half
 // the size of one carrying both; scripts/package-win.mjs builds this one, then the x64 one under
@@ -62,10 +64,12 @@ export default {
   electronLanguages: ["en-US", "id"],
   mac: {
     // One download per kind of Mac (not one "universal" app twice the size): arm64 for
-    // Apple silicon, x64 for Intel.
+    // Apple silicon, x64 for Intel. MAC_ARCH builds only one of them: the release workflow builds
+    // each on a Mac of its own, at the same time (electron-builder's --arm64 and --x64 don't
+    // override the arch named here).
     target: [
-      { target: "dmg", arch: ["arm64", "x64"] },
-      { target: "zip", arch: ["arm64", "x64"] },
+      { target: "dmg", arch: MAC_ARCHS },
+      { target: "zip", arch: MAC_ARCHS },
     ],
     // The zip's name says which Mac it's for too (the disk image's own name is under dmg). No
     // spaces in any file name: GitHub would turn them into dots, and then the latest*.yml the app
