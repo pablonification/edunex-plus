@@ -292,6 +292,8 @@ export const mobileStrings = {
 // "HP ini" for "komputer ini", a page for a window, a tap for a click. translate() takes them on the
 // phone only (./wording.native.ts), so the desktop's words stay as they are.
 export const phoneWording: Partial<Record<StringKey, Entry>> = {
+  // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
+  "handIn.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
   // The snackbar after "Sudah beres": what happened and when it's back, short enough for two lines beside Urungkan
   // (a snackbar's text never truncates). The same conditions as the desktop's.
   "done.toast.checked": { id: "Sudah dicek. Kembali hanya jika dosen mengubahnya lagi.", en: "Checked. Back only if your lecturer edits it again." },

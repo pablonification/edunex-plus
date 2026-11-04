@@ -22,8 +22,6 @@ export const mobileTasksStrings = {
     id: "Tersimpan {when}. Dosen bisa melihatnya, tapi hanya Kumpulkan yang menyerahkannya.",
     en: "Saved {when}. Your lecturer can see it, but only Submit hands it in.",
   },
-  // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
-  "mobile.tasks.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
   // Tugas's big card: what its wave says to a screen reader, how much of a Task's time (from when it opened) has gone.
   "mobile.tasks.timeGone": { id: "Sudah lewat {percent}% dari waktunya", en: "{percent}% of its time has gone" },
   // A Task that is also attendance: one line under the deadline on its due card, with a hand icon (no chip: the card's

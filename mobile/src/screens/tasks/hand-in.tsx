@@ -677,7 +677,7 @@ function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text:
       ? { tone: "danger", text: t("handIn.why.failed") }
       : { tone: "neutral", text: t("handIn.why.refused") };
   if (h.uploading) return { tone: "neutral", text: t("handIn.why.uploading") };
-  if (!h.hasText) return { tone: "neutral", text: t("mobile.tasks.why.noText") };
+  if (!h.hasText) return { tone: "neutral", text: t("handIn.why.noText") };
   if (!h.hasAnswer) return { tone: "neutral", text: t("handIn.why.noFile") };
   if (h.early)
     return { tone: "warning", text: t(h.changed || h.status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: h.whenWindow }) };

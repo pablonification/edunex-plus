@@ -90,6 +90,11 @@
     "phone": "Presensi belum dibuka. Simpan draf sekarang, lalu kumpulkan {when} agar terhitung hadir."
   },
   {
+    "key": "handIn.why.noText",
+    "desktop": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
+    "phone": "Tulis jawabanmu dulu"
+  },
+  {
     "key": "home.need.task.edited",
     "desktop": "Diubah dosen setelah kamu kumpulkan · cek lagi",
     "phone": "Diubah dosen · cek lagi"

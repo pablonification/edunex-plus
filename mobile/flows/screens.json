@@ -5906,7 +5906,7 @@
           }
         ]
       },
-      "scrollTimeout": 10000
+      "scrollTimeout": 25000
     },
     "course": {
       "status": "ready",
