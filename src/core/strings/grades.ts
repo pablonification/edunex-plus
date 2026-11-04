@@ -480,6 +480,11 @@ export const gradesStrings = {
   },
   "curriculum.empty": { id: "Kurikulum muncul setelah SIX tersambung.", en: "Your curriculum appears once SIX is connected." },
   "curriculum.needSix": { id: "Kurikulum butuh SIX", en: "The curriculum needs SIX" },
+  "curriculum.none": { id: "Belum ada kurikulum yang berlaku", en: "No curriculum in force yet" },
+  "curriculum.noneBody": {
+    id: "SIX belum mencatat kurikulum yang berlaku untuk program studimu. Di tahun pertama, biasanya muncul setelah penjurusan.",
+    en: "SIX lists no curriculum in force for your program. In your first year, it usually shows once you choose a major.",
+  },
   "curriculum.needSixBody": {
     id: "Masuk ke SIX untuk melihat mata kuliah wajib yang sudah dan belum kamu ambil.",
     en: "Sign in to SIX to see which required courses you've taken and which are left.",

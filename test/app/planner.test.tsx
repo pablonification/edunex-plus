@@ -651,6 +651,18 @@ describe("the curriculum map", () => {
     expect(facts("Total kurikulum")).toEqual(["wajib 117", "pilihan 27"]);
   });
 
+  it("SIX lists no curriculum in force for the Student's program (a first-year one): the tab says so, never 'loading'", async () => {
+    const s = await openPlan();
+    await inject("six.curriculum", null);
+    await tab("Kurikulum");
+    expect(s.text()).toContain("Belum ada kurikulum yang berlaku");
+    expect(s.text()).toContain("SIX belum mencatat kurikulum yang berlaku untuk program studimu.");
+    expect(s.text()).not.toContain("Membaca dari SIX");
+    // The plan still works from the transcript.
+    await tab("Rencana");
+    expect(s.text()).not.toContain("Rencana studi butuh SIX");
+  });
+
   it("opens on everything; 'What's left only' hides what's done and keeps a summary in view", async () => {
     const s = await openPlan();
     await tab("Kurikulum");

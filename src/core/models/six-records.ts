@@ -465,7 +465,11 @@ export type Bill = z.infer<typeof Bill>;
 export const sixRecordsDatasets = {
   "six.transcript": Transcript,
   "six.progress": Progress,
-  "six.curriculum": Curriculum,
+  /**
+   * Null when SIX lists no curriculum in force for the Student's program, as for a first-year program before the Student
+   * chooses a major: every curriculum it lists marked ✗.
+   */
+  "six.curriculum": Curriculum.nullable(),
   "six.krs": KrsPlan,
   /** Oldest term first. */
   "six.bills": z.array(Bill),

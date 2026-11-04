@@ -40,7 +40,7 @@ export function useStudentRecord(): StudentRecord | undefined {
       const sks = c.sks ?? sksOf(c.code);
       return sks === null ? [] : [{ ...c, sks }];
     });
-    return studentRecord({ transcript, progress, curriculum, catalog, term, termCourses, fixes: fixes?.slots });
+    return studentRecord({ transcript, progress, curriculum: curriculum ?? undefined, catalog, term, termCourses, fixes: fixes?.slots });
   }, [transcript, progress, curriculum, catalog, krs, student, courses, fixes]);
 }
 
