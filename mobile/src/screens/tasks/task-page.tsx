@@ -1,8 +1,9 @@
 // The Task page on the phone (S3): src/app/screens/tasks.tsx's TaskPage in one column, in v4 (round 2). The way up
 // (course, module), the title, then the deadline as the page's one big card (the course's tint, the countdown large,
 // the day and time, and where the Student stands), the exam it's part of, what Edunex doesn't say (attendance, a short
-// window, a lecturer's edit), then white cards: the instructions, the lecturer's files, the answer, History. Simpan
-// draf and Kumpulkan stay at the bottom of the screen; Kumpulkan is the screen's one filled button.
+// window, a lecturer's edit), then white cards: the instructions, the lecturer's files, the answer, its comments
+// (./thread.tsx), History. Simpan draf and Kumpulkan stay at the bottom of the screen; Kumpulkan is the screen's one
+// filled button.
 import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import { KeyboardAvoidingView, Pressable, type ScrollView, StyleSheet, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
@@ -53,6 +54,7 @@ import { HandInBar, HandInCard, useHandIn } from "./hand-in";
 import { NoTasksYet } from "./list";
 import { countdown, IconTile } from "./row-parts";
 import { moduleLabel } from "./rows";
+import { Thread } from "./thread";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -206,6 +208,7 @@ function TaskPage({ task }: { task: Task }) {
           <SectionTitle title={t("handIn.yourAnswer")} />
           <HandInCard h={handIn} />
         </View>
+        <Thread key={`thread:${task.id}`} task={task} />
         <View
           onLayout={(event) => {
             historyAt.current = event.nativeEvent.layout.y;
