@@ -16,13 +16,39 @@ import { Tooltip } from "./overlays";
 /** The bar, for a viewer's Escape and keys: what's typed there is the bar's own. */
 export const FIND_AREA = "[data-find-bar]";
 
+/** Lower case, each character kept to its own length so offsets in it are offsets in the text ("İ" stays as it is). */
+function fold(text: string): string {
+  let out = "";
+  for (const character of text) {
+    const lower = character.toLowerCase();
+    out += lower.length === character.length ? lower : character;
+  }
+  return out;
+}
+
+const isSpace = (character: string | undefined) => character !== undefined && /\s/.test(character);
+
 /** Where `query` is in `text`, as character offsets; none for an empty query. */
 export function matchesIn(text: string, query: string): { start: number; end: number }[] {
-  const words = query.trim();
-  if (!words) return [];
-  // A space matches any run of space, or none: a PDF's lines meet with nothing between them.
-  const pattern = new RegExp(words.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/\s+/g, "\\s*"), "giu");
-  return [...text.matchAll(pattern)].flatMap((match) => (match[0] ? [{ start: match.index, end: match.index + match[0].length }] : []));
+  const words = fold(query.trim()).split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  const haystack = fold(text);
+  const out: { start: number; end: number }[] = [];
+  for (let start = haystack.indexOf(words[0]); start >= 0; ) {
+    let end = start + words[0].length;
+    // Between two words any run of space, or none: a PDF's lines meet with nothing between them.
+    for (const word of words.slice(1)) {
+      while (isSpace(haystack[end])) end++;
+      if (!haystack.startsWith(word, end)) {
+        end = -1;
+        break;
+      }
+      end += word.length;
+    }
+    if (end > start) out.push({ start, end });
+    start = haystack.indexOf(words[0], end > start ? end : start + 1);
+  }
+  return out;
 }
 
 /** Not the file's own words: style sheets, what's hidden from reading, a sheet's column letters and row numbers, the highlight bar. */
