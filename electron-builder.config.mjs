@@ -74,11 +74,6 @@ export default {
     artifactName: "Edunex-Plus-${version}-${arch}-mac.${ext}",
     icon: "assets/icon.icns",
     category: "public.app-category.education",
-    // Windows and Linux builds carry Electron's and Chromium's licences beside the app; macOS gets them here.
-    extraResources: [
-      { from: "node_modules/electron/dist/LICENSE", to: "LICENSE.electron.txt" },
-      { from: "node_modules/electron/dist/LICENSES.chromium.html", to: "LICENSES.chromium.html" },
-    ],
     // The keychain helper (native/mac-keychain, docs/adr/0003-mac-keychain-helper.md), into
     // Contents/Helpers, with the signature it was committed with: signed again, it would be another
     // build to the keychain, and macOS would ask the Student for their password after updating.
