@@ -1,16 +1,18 @@
 // Writes a CI job's result in plain words to the run's summary page, so the
 // maintainer reads one line instead of a log. Locally it prints to the terminal.
 //
-//   node scripts/ci/summary.mjs <lint|typecheck|test|knip> <success|failure> <output-file>
+//   node scripts/ci/summary.mjs <lint|typecheck|test|knip> <success|failure> <output-file...>
 //
 // The output file is what the check printed (lint, typecheck), Vitest's JSON
-// report (test) or knip's markdown report (knip).
+// report (test; one per part when the tests ran in parts) or knip's markdown
+// report (knip).
 import fs from "node:fs";
 import path from "node:path";
 
-const [kind, outcome, file] = process.argv.slice(2);
+const [kind, outcome, ...files] = process.argv.slice(2);
 const passed = outcome === "success";
-const output = file && fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
+const read = (file) => (file && fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "");
+const output = read(files[0]);
 const plural = (count, one, many = `${one}s`) => `${count} ${count === 1 ? one : many}`;
 
 const writers = {
@@ -38,8 +40,9 @@ const writers = {
   },
 
   test() {
-    if (!output) return "**The tests didn't finish.** The log of this job says why.";
-    const report = JSON.parse(output);
+    const outputs = files.map(read);
+    if (outputs.length === 0 || outputs.some((text) => !text)) return "**The tests didn't finish.** The log of their job says why.";
+    const report = combined(outputs.map((text) => JSON.parse(text)));
     const ended = Math.max(report.startTime, ...report.testResults.map((result) => result.endTime ?? 0));
     const seconds = Math.round((ended - report.startTime) / 1000);
     const failed = [];
@@ -52,10 +55,11 @@ const writers = {
         else if (test.status === "pending" || test.status === "skipped") skipped.push(name);
       }
     }
-    const files = plural(report.testResults.length, "file");
+    const fileCount = plural(report.testResults.length, "file");
     const skips = skipped.length > 0 ? ` (${skipped.length} skipped)` : "";
     const lines = [];
-    if (failed.length === 0 && report.success) lines.push(`All clear: **${plural(report.numPassedTests, "test")} passed**${skips} in ${files} (${seconds} s).`);
+    if (failed.length === 0 && report.success)
+      lines.push(`All clear: **${plural(report.numPassedTests, "test")} passed**${skips} in ${fileCount} (${seconds} s).`);
     else if (failed.length > 0)
       lines.push(
         `**${failed.length} of ${plural(report.numTotalTests, "test")} failed.** Each failure is marked on its line in the pull request's Files tab; run \`npm test\` to see them on your computer.`,
@@ -78,6 +82,17 @@ const writers = {
     ].join("\n\n");
   },
 };
+
+/** Vitest's JSON reports from the parts of one test run, as one report. */
+function combined(reports) {
+  return {
+    startTime: Math.min(...reports.map((report) => report.startTime)),
+    success: reports.every((report) => report.success),
+    numPassedTests: reports.reduce((sum, report) => sum + report.numPassedTests, 0),
+    numTotalTests: reports.reduce((sum, report) => sum + report.numTotalTests, 0),
+    testResults: reports.flatMap((report) => report.testResults),
+  };
+}
 
 const titles = { lint: "Lint and format", typecheck: "Type check", test: "Tests", knip: "Unused code (knip)" };
 if (!writers[kind]) throw new Error(`Unknown summary kind: ${kind}`);

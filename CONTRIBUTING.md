@@ -99,13 +99,15 @@ and stays in the history.
 ## How CI works
 
 Every pull request runs these checks side by side. You don't have to read
-code or logs to know whether a change is good:
+code or logs to know whether a change is good. Each job reuses the packages the
+last run installed for the same `package-lock.json`, so only a change to it
+installs afresh:
 
 | Check | What it guards | |
 |---|---|---|
 | **lint** | Code problems, formatting and import order (Biome). | must pass |
 | **typecheck** | The types of all three parts. | must pass |
-| **test** | All the tests. | must pass |
+| **test** | All the tests, a third on each of three runners at once (**test (part 1 of 3)** and so on); **test** puts their results together. | must pass |
 | **build** | The app builds, and the JavaScript the window loads at start stays under its size budget. | must pass |
 | **knip** | Code and packages nothing uses. | advisory |
 | **workflows** | Mistakes and security slips in `.github/` (actionlint, zizmor), when it changes. | must pass |
@@ -138,7 +140,8 @@ package:win` (one-click installers, one for x64 and one for arm64) and `npm run 
 (AppImage and deb) build installers into `release/`. Windows builds are best
 made on Windows or in CI, Linux builds on Linux. After a Mac build, release builds run
 `node scripts/package-mac-update.mjs release`: the app in each zip again as a `.tar.xz` about a
-third smaller, listed in `latest-mac.yml`, which the app updates from. The zip stays in every release:
+third smaller, listed in `latest-mac.yml`, which the app updates from. Builds that publish nothing add
+`--quick` (xz level 1: the same checks in seconds instead of minutes). The zip stays in every release:
 copies up to 0.1.0-alpha.16 update only from it.
 
 **The Mac app's signature.** Release builds sign the Mac app with the project's own certificate

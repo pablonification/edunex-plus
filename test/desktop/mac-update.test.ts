@@ -56,6 +56,17 @@ describe("the Mac update", () => {
     ]);
   });
 
+  it("is packed at xz level 1 when asked, for builds that publish nothing", () => {
+    expect(packArgs("/a/Edunex Plus.app", "/a/x.tar.xz", { level: 1 })).toContain("xz:compression-level=1");
+  });
+
+  it("is packed at level 9 for a release and quickly for every other build of the release workflow", () => {
+    const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
+    expect(workflow).toMatch(
+      /if \[\[ "\$GITHUB_REF" == refs\/tags\/\* \]\]; then\s+node scripts\/package-mac-update\.mjs release\s+else\s+node scripts\/package-mac-update\.mjs release --quick/,
+    );
+  });
+
   it("is packed by every Mac build of the release workflow, after electron-builder, and kept and summed with the installers", () => {
     const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
     const built = workflow.indexOf('npm run "package:$TARGET"');

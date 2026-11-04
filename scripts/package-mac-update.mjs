@@ -17,7 +17,11 @@
 // needs xz installed, more threads only make it bigger, and xz's newer filter for arm64 code is too
 // new for macOS 12's tar to read.
 //
-//   node scripts/package-mac-update.mjs release
+// Level 9 takes about four minutes on a CI Mac; level 1 about half a minute, for a file a fifth bigger.
+// Builds that publish nothing (pushes to main, runs by hand) pass --quick: the same packing, unpacking
+// and signature check, at level 1. Releases leave it out.
+//
+//   node scripts/package-mac-update.mjs release [--quick]
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -38,8 +42,8 @@ export function updateName(zip) {
  * tar's arguments to pack `app` into `out`: its links and modes as they are, and nothing macOS keeps
  * beside a file (extended attributes, ACLs, flags, ._ files), which is no part of the app or its signature.
  */
-export function packArgs(app, out) {
-  const xz = ["-J", "--options", "xz:compression-level=9"];
+export function packArgs(app, out, { level = 9 } = {}) {
+  const xz = ["-J", "--options", `xz:compression-level=${level}`];
   return ["-c", ...xz, "--no-mac-metadata", "--no-xattrs", "--no-acls", "--no-fflags", "-f", out, "-C", path.dirname(app), path.basename(app)];
 }
 
@@ -54,12 +58,12 @@ async function appIn(folder) {
  * Packs the app in `zip` into `out`, then unpacks `out` as the app does (src/desktop/updater.ts) and
  * checks what comes out as macOS checks an app. Its sha512 and size.
  */
-export async function packMacUpdate(zip, out) {
+export async function packMacUpdate(zip, out, { level = 9 } = {}) {
   const work = await mkdtemp(path.join(os.tmpdir(), "mac-update-"));
   try {
     const fromZip = path.join(work, "zip");
     await run("/usr/bin/ditto", ["-x", "-k", zip, fromZip]);
-    await run("/usr/bin/tar", packArgs(await appIn(fromZip), out));
+    await run("/usr/bin/tar", packArgs(await appIn(fromZip), out, { level }));
     await rm(fromZip, { recursive: true, force: true });
     const fromTar = path.join(work, "tar");
     await mkdir(fromTar);
@@ -78,7 +82,7 @@ export async function packMacUpdate(zip, out) {
 }
 
 /** Packs the update beside each Mac zip `folder`'s latest-mac.yml lists, and lists it there too. */
-export async function packMacUpdatesIn(folder) {
+export async function packMacUpdatesIn(folder, { level = 9 } = {}) {
   const info = path.join(folder, "latest-mac.yml");
   const yml = await readFile(info, "utf8");
   const zips = listedFiles(yml).filter((name) => name.endsWith("-mac.zip"));
@@ -87,7 +91,7 @@ export async function packMacUpdatesIn(folder) {
   const packed = await Promise.all(
     zips.map(async (zip) => {
       const name = updateName(zip);
-      const update = await packMacUpdate(path.join(folder, zip), path.join(folder, name));
+      const update = await packMacUpdate(path.join(folder, zip), path.join(folder, name), { level });
       const { size } = await stat(path.join(folder, zip));
       console.log(`  • packed the update smaller  file=${name} size=${update.size} zip=${size} saved=${Math.round((1 - update.size / size) * 100)}%`);
       return [name, update];
@@ -97,12 +101,14 @@ export async function packMacUpdatesIn(folder) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const folder = process.argv[2];
+  const args = process.argv.slice(2);
+  const quick = args.includes("--quick");
+  const [folder] = args.filter((arg) => arg !== "--quick");
   if (!folder) {
-    console.error("usage: node scripts/package-mac-update.mjs <folder with the Mac zips and latest-mac.yml>");
+    console.error("usage: node scripts/package-mac-update.mjs <folder with the Mac zips and latest-mac.yml> [--quick]");
     process.exit(2);
   }
-  packMacUpdatesIn(path.resolve(folder)).catch((error) => {
+  packMacUpdatesIn(path.resolve(folder), { level: quick ? 1 : 9 }).catch((error) => {
     console.error(error.message);
     process.exit(1);
   });
