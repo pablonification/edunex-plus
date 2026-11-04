@@ -77,7 +77,7 @@ const USER_AGENT = "EdunexPlus (report)";
 class NotKept extends Error {}
 
 /** The feed's read on `reading`'s pages: how it ended, or null when it can't run on them. */
-async function readAgain(input: ReadAgainInput, reading: Reading): Promise<Outcome | null> {
+export async function readAgain(input: ReadAgainInput, reading: Reading): Promise<Outcome | null> {
   if (input.feed.startsWith("edunex.")) return checkAgain(reading);
   if (!input.feed.startsWith("six.")) return null;
   const rows: SkippedRow[] = [];

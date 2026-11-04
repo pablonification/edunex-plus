@@ -196,7 +196,7 @@ jobs:
           prompt: ${{ steps.prompt.outputs.text }}
           claude_args: |
             --max-turns 150
-            --allowedTools "Read,Glob,Grep,Edit,Write,Skill,TodoWrite,Bash(npm run check),Bash(npm run format),Bash(npm run typecheck),Bash(npm run fixtures:from-report:*),Bash(npx vitest run:*),Bash(npx biome check:*),Bash(git status:*),Bash(git diff:*),Bash(git restore:*),Bash(ls:*)"
+            --allowedTools "Read,Glob,Grep,Edit,Write,Skill,TodoWrite,Bash(npm run check),Bash(npm run format),Bash(npm run typecheck),Bash(npm run fixtures:from-report:*),Bash(npm run report:replay:*),Bash(npx vitest run:*),Bash(npx biome check:*),Bash(git status:*),Bash(git diff:*),Bash(git restore:*),Bash(ls:*)"
             --disallowedTools "WebFetch,WebSearch"
             --json-schema '{"type":"object","additionalProperties":false,"required":["outcome","comment","pr_title","pr_body"],"properties":{"outcome":{"type":"string","enum":["fixed","not-reproduced","not-fixed"]},"comment":{"type":"string"},"pr_title":{"type":"string"},"pr_body":{"type":"string"}}}'
 
