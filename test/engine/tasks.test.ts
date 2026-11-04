@@ -234,6 +234,16 @@ describe("Tasks with their true status", () => {
     expect(task(h, 117873)).toMatchObject({ status: "draft", answer: { sent: false, reviewedAt: null, handedBack: null } });
   });
 
+  it("a Task Edunex sends with its files as null reads as one with no files, and every Task still shows", async () => {
+    const h = await signedIn();
+    // `files: null` where others have `[]`, as Students' reports showed.
+    h.world.edunex.task(117044).attributes.files = null;
+    await h.engine.refresh("edunex");
+    expect(h.status("edunex").state).toBe("live");
+    expect(tasks(h)).toHaveLength(10);
+    expect(task(h, 117044).files).toEqual([]);
+  });
+
   it("the Student submitted on the website: submitted on the next check", async () => {
     const h = await signedIn();
     h.world.edunex.submitOnWebsite(117873);

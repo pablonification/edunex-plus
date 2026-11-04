@@ -80,13 +80,16 @@ export function registerSixRecordFeeds(context: SourceContext, pages: SixPages):
 }
 
 /**
- * The curriculum in force for the Student's program, its structure, and what the Student registered for. `pause`: the
+ * The curriculum in force for the Student's program, its structure, and what the Student registered for; null when SIX
+ * marks every curriculum it lists ✗ (a first-year program's, before the Student chooses a major). `pause`: the
  * structure page is about 300 KB, read in slices with the screens drawing between them (../../html-slices.ts).
  */
-export async function fetchCurriculum(pages: SixPages, skipped?: Skipped, pause?: () => Promise<void>): Promise<Curriculum> {
+export async function fetchCurriculum(pages: SixPages, skipped?: Skipped, pause?: () => Promise<void>): Promise<Curriculum | null> {
   const who = await pages.who();
   const list = readCurriculumList(await pages.page(recordPaths.curricula(who)), skipped);
   const current = list.filter((entry) => entry.active === true).sort((a, b) => b.year - a.year)[0];
+  if (!current && list.length > 0 && list.every((entry) => entry.active === false)) return null;
+  // A mark the app couldn't read might be the ✓.
   if (!current) changed("curriculum list", "no curriculum is in force");
   const structure = readCurriculumStructure(await parseInSlices(await pages.page(current.structurePath), breaks(pause)), skipped);
   const registrations = readSchemes(await pages.page(recordPaths.schemes(who)), skipped);

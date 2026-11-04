@@ -28,6 +28,8 @@ export interface DemoOptions {
   sick?: boolean;
   /** EDUNEX_DEMO_DATAINDUK: SIX sends every page of the Student's to its personal-details form first (#278, #279). */
   dataInduk?: boolean;
+  /** EDUNEX_DEMO_CURRICULUM: SIX marks every curriculum of the Student's program ✗, as a first-year program's (#292). */
+  curriculum?: "none";
   /** EDUNEX_DEMO_GUIDE: the first-run guide offers itself here too (for its pictures). */
   guide?: boolean;
   odd?: boolean;
@@ -56,6 +58,7 @@ export function demoOptions(env: Record<string, string | undefined>): DemoOption
     handedBack: flag(env.EDUNEX_DEMO_HANDED_BACK),
     sick: flag(env.EDUNEX_DEMO_SICK),
     dataInduk: flag(env.EDUNEX_DEMO_DATAINDUK),
+    curriculum: oneOf("EDUNEX_DEMO_CURRICULUM", env.EDUNEX_DEMO_CURRICULUM, ["none"] as const),
     guide: flag(env.EDUNEX_DEMO_GUIDE),
     odd: flag(env.EDUNEX_DEMO_ODD),
     courseTable: oneOf("EDUNEX_DEMO_COURSE_TABLE", env.EDUNEX_DEMO_COURSE_TABLE, ["changed", "lost", "blank"] as const),
@@ -94,6 +97,10 @@ export function demoWorld(options: DemoOptions): PretendWorld {
       ),
     );
   if (options.dataInduk) world.six.requireDataInduk();
+  if (options.curriculum === "none")
+    world.six.editPage(/\/kurikulum\/kurikulum\/list$/, (html) =>
+      html.replace('<span class="text-success"><i class="fa fa-fw fa-check"></i></span>', '<span class="text-danger"><i class="fa fa-fw fa-times"></i></span>'),
+    );
   if (options.odd) {
     world.six.editPage(/\/keuangan$/, (html) =>
       html.replace(

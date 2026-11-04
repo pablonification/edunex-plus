@@ -36,6 +36,8 @@
 //                            every course's attendance is blank and the table is noted once (blank)
 //   EDUNEX_DEMO_TIMETABLE=unread  SIX writes the time of DK4073's class this Thursday (8 Oct, 11:00) with dots, so
 //                            the app can't read that meeting: it's left out and its day says so (ADR 0013)
+//   EDUNEX_DEMO_CURRICULUM=none  SIX marks every curriculum of the Student's program ✗, as it does a first-year
+//                            program's before the Student chooses a major (#292): Kurikulum says none is in force yet
 //
 // Every run starts from an empty profile (deleted again on quit), so each begins the same way.
 import fs from "node:fs";

@@ -16,6 +16,11 @@ format`, `npm run demo` (made-up data). The repository is public: never commit r
 (`test/kit/repo-privacy.test.ts` guards it). Background: `CONTEXT.md` (words), `docs/adr/`
 (decisions), `API.md` and `SIX.md` (how each system is read).
 
+On-screen changes (a screen, its words, an icon) are user-centred design, and they show, don't tell:
+judged by what the Student sees in the real window, a picture or an example before a sentence. They
+follow `docs/agents/ui-review.md`: checked in the demo's pictures, judged by `docs/design-system.md`,
+handed over on an audit page.
+
 ## Agent skills
 
 ### Issue tracker

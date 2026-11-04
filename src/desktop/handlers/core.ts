@@ -3,6 +3,7 @@ import { shell } from "electron";
 import { isOfficialUrl, isWebLink } from "../../core/links";
 import { EngineError } from "../../engine/errors";
 import { download, isDownloadable } from "../downloads";
+import { openOfficialPage } from "../open-page";
 import type { HandlerGroup } from "./context";
 import { copyOnThisComputer } from "./files";
 
@@ -31,8 +32,8 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
   },
   "shell.openExternal": async ({ url }) => {
     if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
-    await shell.openExternal(url);
-    context.away?.opened(url);
+    // Edunex and SIX in the app's own window, signed in; the rest in the browser (../open-page.ts).
+    await openOfficialPage(context, url);
     return {};
   },
   // A lecturer's link opens like it does on Edunex: any web page, but in the system browser, never in the app.

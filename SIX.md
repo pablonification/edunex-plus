@@ -95,8 +95,8 @@ sign-in, liveness first), then repeat every `every` ± `jitter`.
 | `/app/mahasiswa:{nim}/statusmhs` | `six.status` (1 h ± 5 min); liveness | Name, `{sid}`, program code and name, the term, this term's courses: code, name, class, SKS, and attendance as "Hadir X dari Y pertemuan" from the tooltip, checked against the percentage shown (with sick days SIX shows two, "82.35% / 94.12%": the first is read). The course table's columns are found by their labels, in any order. A class, SKS or attendance it can't read is left blank and the row noted; the course stays ([ADR 0009](docs/adr/0009-keep-a-course-whose-detail-cant-be-read.md)). A course table it can't read leaves the Student, the term and every other page reading ([ADR 0012](docs/adr/0012-six-course-table-changes-alone.md)) | `six/status.ts` `readStatusPage` |
 | `/app/mahasiswa:{nim}+{term}/kelas/jadwal/mahasiswa/{sid}?bulan={YYYYMM}` | `six.schedule` (12 h ± 30 min): this month (WIB), plus next month when SIX's tabs offer it | Each meeting: SIX meeting id, date, start/end (WIB), course code and name, activity (Kuliah, UTS, …) and room. A meeting it can't read is left out and its day marked (`six.scheduleUnread`), so that day is never shown as free ([ADR 0013](docs/adr/0013-a-meeting-the-app-cant-read-marks-its-day.md)) | `six/timetable.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/transkrip/historis/{sid}` | `six.transcript` (24 h ± 1 h) | Every course per term with grade, SKS, curriculum semester, on-transcript mark; SIX's IP per term; SKS taken. Retakes and IP/IPK are worked out and checked; with a grade, mark or SKS the app can't read in it, SIX's figure shows unchecked | `readers/transcript.ts` |
-| `/app/mahasiswa:{nim}/statusmhs/transkrip/kurikulum/{sid}` | `six.transcript` (same run) | Graduation progress: entry term, IPK (and the SKS it covers), SKS passed and graded T, SKS by kind, courses by stage and curriculum semester (graded, in progress, exempt, not taken). A status label it doesn't know leaves its course out | `readers/progress.ts` |
-| `/app/mahasiswa:{nim}/kurikulum/kurikulum/list` | `six.curriculum` (24 h ± 1 h) | Curricula for the program: year, SKS to graduate, normal length, which one is in force, its structure link | `readers/curriculum-list.ts` |
+| `/app/mahasiswa:{nim}/statusmhs/transkrip/kurikulum/{sid}` | `six.transcript` (same run) | Graduation progress: entry term, IPK (and the SKS it covers), SKS passed and graded T, SKS by kind, courses by stage and curriculum semester (graded, in progress, exempt, not taken). A status label it doesn't know leaves its course out. Before anything is graded (a first-year Student's page), SIX writes each stage's name without its figures and leaves the IPK empty: read as none yet | `readers/progress.ts` |
+| `/app/mahasiswa:{nim}/kurikulum/kurikulum/list` | `six.curriculum` (24 h ± 1 h) | Curricula for the program: year, SKS to graduate, normal length, which one is in force, its structure link. A first-year program ("Tahap Tahun Pertama FTMD") can list only older curricula, all marked ✗: read as none in force yet, which the Curriculum tab says | `readers/curriculum-list.ts` |
 | `/app/mahasiswa:{nim}/kurikulum/kurikulum/{id}/struktur` (the link from the list, `returnTo` dropped) | `six.curriculum` | Required courses by semester, specializations, minors, the program's catalog, each course's SIX course id | `readers/curriculum-structure.ts` |
 | `/app/mahasiswa:{nim}/statusmhs/program-integrasi/riwayat/{sid}` | `six.curriculum` | Registered specialization, minor, multidisciplinary program or double major, with advisor and program approval days | `readers/schemes.ts` |
 | `/app/mahasiswa:{nim}+{term}/registrasi/rencanastudi/{sid}` | `six.krs` (24 h ± 1 h) | The KRS: term, advisor name, max SKS, sent / advisor-approved / official stamps (a step done at a time the app can't read counts as done, undated), the change round (URS), UKT paid and amount, courses with class, SKS and per-course approval. The advisor chat on the page is never read | `readers/krs.ts` |
@@ -121,7 +121,11 @@ status page shows (name, NIM, program, term); it never reads SIX's profile or ma
 reader (`readers/syllabus.ts`) and `fetchSyllabus` in `six/records.ts`, meant to be read
 on demand, one page at a time. Nothing in the app calls it yet, so the app does not request it today.
 
-## The SIX window ("Tandai Hadir")
+## The SIX window (any SIX page, and "Tandai Hadir")
+
+Every SIX page the app links to opens in the app's SIX window, signed in
+(`src/desktop/open-page.ts`, [ADR 0017](docs/adr/0017-edunex-and-six-open-in-the-apps-own-windows.md)).
+For "Tandai Hadir" it also opens the class's popup.
 
 SIX counts a Student present when they press **Tandai Hadir** in the class's popup on the
 timetable. When the button shows, the app says so (an urgent alert, on the phone too; again 15
@@ -135,7 +139,8 @@ SIX**. That opens `src/desktop/six-window.ts`:
   its popup the way a click does. That's all it does on the page: the Student presses the
   button, and the window is theirs.
 - It may go to SIX and Microsoft's sign-in only (SIX sends a Student whose session ended
-  there); other official links open in the system browser, everything else nowhere. Every
+  there); a SIX page opened in a new tab opens in the window, other official links in the
+  system browser, everything else nowhere. Every
   permission is refused; it can't reach the app. One window at a time; closing it, or signing
   out of SIX, wipes its session.
 - On the phone, a tap on the alert opens SIX's timetable for the month in the phone's browser:

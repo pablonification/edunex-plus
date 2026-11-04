@@ -30,5 +30,6 @@ export async function records(): Promise<Records> {
   });
   let catalog = withProgramList(undefined, readProgramList(publicPage("kur2024")), 0);
   for (const id of ["154", "174", "182"]) catalog = withProgramPage(catalog, id, await readProgramPage(publicPage(`kur2024-${id}`)), 0);
+  if (!curriculum) throw new Error("The recorded list has a curriculum in force");
   return { transcript, progress, curriculum, catalog, calendar: readCalendar(calendarFixture(), 0) };
 }

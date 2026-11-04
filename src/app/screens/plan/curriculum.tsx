@@ -14,10 +14,11 @@ import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../.
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
 import { SixPageNote, UnreadNote } from "../../six-page-note";
+import { useDataset } from "../../store";
 import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
-import { Bar } from "../../ui/display";
+import { Bar, EmptyState } from "../../ui/display";
 import { Explained } from "../../ui/explain";
 import { Icons } from "../../ui/icons";
 import { Meta, Section } from "../../ui/layout";
@@ -87,6 +88,15 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
     }))
     .filter((s) => s.required.length + s.others.length > 0);
   const focus = useFocusAfterCorrection(semesters.flatMap((s) => s.required));
+  // Read, and SIX has none in force for the Student's program (a first-year program's): said as it is, not as waiting.
+  const noneInForce = useDataset("six.curriculum") === null;
+  if (noneInForce)
+    return (
+      <div className="space-y-2">
+        <SixPageNote datasets={["six.curriculum", "six.progress"]} />
+        <EmptyState icon={<Icons.Layers className="size-5" />} title={t("curriculum.none")} description={t("curriculum.noneBody")} />
+      </div>
+    );
   if (!record || !state || !record.curriculum || !map)
     return (
       <SixNeeded

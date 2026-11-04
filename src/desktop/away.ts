@@ -1,8 +1,9 @@
 // Back from SIX or Edunex: the Student opened one of them in the browser from
-// the app (to press Tandai Hadir, record a Presence, hand in a Task) and comes
+// the demo (to press Tandai Hadir, record a Presence, hand in a Task) and comes
 // back to the window. What they did there shows at once: the app reads that
 // source's attendance again then (Engine.recheckAttendance), not at its next
-// sync. The SIX window says so itself as it closes (./six-window.ts).
+// sync. Outside the demo they open in the app's own windows, which say so
+// themselves as they close (./open-page.ts).
 import { EDUNEX_WEB, SIX_WEB } from "../core/links";
 
 type Source = "six" | "edunex";

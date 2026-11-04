@@ -34,7 +34,7 @@ export type TrayAction =
   | { kind: "route"; route: Route }
   /** The window, with Settings or the bell open over it. */
   | { kind: "command"; command: "settings" | "alerts" }
-  /** An official page (Edunex, SIX, a Presence) in the browser. */
+  /** An official page (Edunex, SIX, a Presence): Edunex and SIX in the app's window for each, the rest in the browser. */
   | { kind: "url"; url: string }
   /** A lecturer's link (an online class's meeting): any web page, in the browser, as the window opens it. */
   | { kind: "link"; url: string }
@@ -94,7 +94,7 @@ export function trayMenu(snapshot: Pick<Snapshot, "datasets" | "statuses" | "set
     { type: "item", label: t("sync.refreshNow"), ...(status.updated ? { detail: status.updated } : {}), action: signedIn ? { kind: "refresh" } : null },
     {
       type: "submenu",
-      label: t("tray.openInBrowser"),
+      label: t("tray.openSite"),
       entries: [
         { type: "item", label: t("source.edunex"), action: { kind: "url", url: EDUNEX_WEB } },
         { type: "item", label: t("source.six"), action: { kind: "url", url: SIX_WEB } },

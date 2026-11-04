@@ -176,10 +176,12 @@ function readStages(page: Page, table: Elem): ProgressStage[] {
 
 /**
  * "Tahap Sarjana (IP 3.18 / SKS Lulus 107)": the stage's name, which its rows sit under, then SIX's IP and passed SKS.
- * A figure the app can't read is blank, and the heading noted.
+ * A figure the app can't read is blank, and the heading noted. Before anything in a stage is graded (a first-year
+ * Student's), SIX writes its name alone ("Tahap Persiapan Bersama"): it has no figures yet.
  */
 function readStageHeading(page: Page, cell: Elem): Omit<StageDraft, "semesters"> {
   const text = textOf(cell);
+  if (/^[^()]+$/.test(text)) return { name: text, ip: null, sksPassed: null, unread: false };
   const match = /^(.*?)\s*\((.*)\)$/.exec(text);
   if (!match?.[1]) changed(page, `stage "${text}" isn't readable`);
   const [ip, sks] = match[2]!.split("/").map(clean);
