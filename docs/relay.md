@@ -21,8 +21,10 @@ the app's (`npx vitest run relay/test`, part of `npm run check`).
 
 The issue shows only the problem, the check that failed, the rows the app left out as SIX wrote them
 (their HTML, their table's header row, and their shape: letters as `a`, digits as `9`), whether the
-scrubbed pages fail the same way, what it cost the Student, the app's version and system, whether the
-report was sent by hand or by itself, and the Student's note. Never the pages or the log.
+scrubbed pages fail the same way, what it cost the Student, the app's version and system, the Student's
+study program, entry year and semester (what SIX's pages already show, so reports can be told apart:
+"three first-years in one program"), whether the report was sent by hand or by itself, and the
+Student's note. Never the pages or the log, a name or a number.
 
 A report, a note or a log that still holds something shaped like a personal detail (a student
 number, an email, a phone number, a meeting or file link, a token: `test/kit/privacy-rules.ts`) is

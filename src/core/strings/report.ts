@@ -48,6 +48,9 @@ export const reportStrings = {
     en: "This page goes with it. Names, NIM, contacts and links are replaced, and grades and amounts are made up.",
   },
   "report.app": { id: "Edunex Plus {version} di {os}", en: "Edunex Plus {version} on {os}" },
+  // Who sent it, coarsely: what the maintainer groups reports by, never who they are
+  "report.student.program": { id: "Program studi {program}", en: "Program {program}" },
+  "report.student.semester": { id: "semester {semester}", en: "semester {semester}" },
   "report.nothingKept": {
     id: "Saat ini tidak ada halaman yang gagal dibaca. Laporannya berisi versi aplikasi, sistem komputermu, dan ceritamu.",
     en: "No page is failing to read right now. The report has the app's version, your computer's system and what you write.",

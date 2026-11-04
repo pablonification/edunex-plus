@@ -195,6 +195,24 @@ describe("a report whose scrubbing took out what went wrong", () => {
   });
 });
 
+describe("who sent a report", () => {
+  it("is said coarsely, as SIX's pages already show it: the program, the entry year and the semester, never who they are", async () => {
+    const h = await signedIn();
+    h.world.six.changeLayout(BILLS, "<th class='text-left'>Semester</th>", "<th>Periode</th>");
+    await until(h, h.engine.refresh("six"));
+    const report = await h.engine.report({ datasets: ["six.bills"] });
+    const student = h.dataset("six.student")!;
+    // Entered 2023-1 (the progress page), now in 2026-1: the seventh semester.
+    expect(report.student).toEqual({ programCode: student.programCode, program: student.program, entryYear: 2023, term: "2026-1", semester: 7 });
+    expect(JSON.stringify(report.student)).not.toContain(student.nim);
+  });
+
+  it("before SIX is read, isn't said at all", async () => {
+    const h = await startEngine();
+    expect((await h.engine.report({})).student).toBeUndefined();
+  });
+});
+
 describe("a row cut at its length in the middle of a number", () => {
   it("loses the half number, which no rule scrubs, and still fails the same way with its markup found", async () => {
     const h = await signedIn();

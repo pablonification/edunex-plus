@@ -67,14 +67,14 @@ Nothing leaves your computer except the app's own requests to:
   reports like it should go by themselves, ask each time, or never, and **Settings → Laporan
   masalah** changes that any time ("Jangan" stops it). Then each problem goes once (again only if
   it went away and came back a week or more later), never while you're offline, and right after,
-  the app says it went and lets you add a story. A report carries the app's version, your computer's system and language, which
+  the app says it went and lets you add a story. A report carries the app's version, your computer's system and language, your study program and semester, which
   page couldn't be read and why, that page with your name, NIM, contacts and links replaced and
   your grades and amounts made up, the rows that didn't fit, and what the app did in the last hour
   with the same details taken out. The relay checks it for anything personal again and refuses
   it if it finds any. The whole report stays private on the relay, for the maintainer; it files a
   public issue on GitHub with only the summary: which page and check, the rows that didn't fit
   (scrubbed), whether the scrubbed page still fails, what it cost, the app's version and system,
-  and your story if you add one. That issue, and your story, anyone can read. This copy of the
+  your study program, entry year and semester, and your story if you add one. That issue, and your story, anyone can read. This copy of the
   app has no relay address yet: until the maintainer runs it, none of this appears;
 - **A problem report** on LINE or GitHub, only when you send one and only what it showed you
   first: the app's version, your computer's system, which page couldn't be read and why, that page
