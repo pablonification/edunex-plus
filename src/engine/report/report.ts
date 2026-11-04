@@ -20,6 +20,7 @@ import type {
   SourceStatus,
 } from "../../core/models";
 import { findCells } from "./cells";
+import { checkPath, itemShape } from "./json-shape";
 import type { Kept, KeptPage } from "./kept-pages";
 import { type PageAgain, reproduces, sixIdentity } from "./reread";
 import {
@@ -154,7 +155,16 @@ async function problem(input: ReportInput, scrub: ReportScrubber, kept: Kept): P
     reproduces: again,
     ...(cells.length ? { cells } : {}),
     impact: impactOf(input, kept),
+    ...itemOf(kept, check, pages),
   };
+}
+
+/** For an Edunex answer that didn't fit: the item its check names, as a shape (ReportProblem.item), from the scrubbed answer. */
+function itemOf(kept: Kept, check: string, pages: readonly ReportPage[]): { item?: { at: string; shape: string } } {
+  const path = kept.kind === "changed" && systemOf(kept.feed) === "edunex" ? checkPath(check) : null;
+  const page = path && pages.find((one) => one.system === "edunex" && check.startsWith(`${new URL(one.path, "https://edunex.invalid").pathname}:`));
+  const item = page ? itemShape(page.body, path) : null;
+  return item ? { item } : {};
 }
 
 /**

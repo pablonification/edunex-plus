@@ -59,6 +59,8 @@ for (const [i, result] of results.entries()) {
   console.log(`  pages: ${pages}`);
   console.log("  was:");
   for (const line of describe(result.was)) console.log(`    ${line}`);
+  const item = report.problems[i].item;
+  if (item) console.log(`  the item it failed on (${item.at}):\n${item.shape.replace(/^/gm, "    ")}`);
   if (result.now && result.verdict !== "fixed" && result.verdict !== "same") {
     console.log("  now:");
     for (const line of describe(result.now)) console.log(`    ${line}`);

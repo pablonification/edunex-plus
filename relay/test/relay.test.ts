@@ -140,6 +140,18 @@ describe("a report the app sends", () => {
     expect(odd.duplicate).toBe(true);
   });
 
+  it("shows the item an Edunex answer failed on as the app shaped it: field names and types, the failing one marked", async () => {
+    const r = startRelay();
+    const envelope = billsEnvelope("/course/tasks: data.1.attributes.files Invalid input: expected array, received null");
+    const [problem] = envelope.report.problems;
+    const item = { at: "data.1", shape: ["{", "  id: string", "  attributes: {", "    files: null  ← the check", "  }", "}"].join("\n") };
+    const sentOne = { ...envelope, report: { ...envelope.report, problems: [{ ...problem!, feed: "edunex.tasks", item }] } };
+    const { issue } = await sent(await r.send(sentOne));
+    expect(r.github.issue(issue!.number).body).toContain(
+      ["**The item it failed on** (` data.1 `), its fields with their types:", "", "```text", item.shape, "```"].join("\n"),
+    );
+  });
+
   it("goes to the issue every report of that problem goes to, whichever rows; the issue's count follows once a burst is over", async () => {
     const r = startRelay();
     const first = await sent(await r.send(statusEnvelope([3, 4, 5])));
