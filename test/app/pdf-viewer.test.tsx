@@ -53,6 +53,7 @@ vi.mock("../../src/app/ui/pdf-engine", () => {
       container.textContent = `Isi halaman ${number}`;
       return { promise: Promise.resolve(), cancel: () => undefined };
     },
+    words: async () => `Isi halaman ${number}`,
     links: async () =>
       number === 1
         ? [
@@ -114,6 +115,15 @@ async function key(target: Element, key: string, init: KeyboardEventInit = {}) {
   await act(async () => {
     target.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init }));
   });
+}
+
+/** Types into a box, then waits out the find bar's pause and the pages it reads. */
+async function typeIn(box: HTMLInputElement, value: string) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(box, value);
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 250)));
 }
 
 describe("the PDF viewer", () => {
@@ -246,6 +256,44 @@ describe("the PDF viewer", () => {
     // Leaving from a text box, the dialog hands the keyboard back on its next tick.
     await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
     expect(document.activeElement).toBe(view);
+  });
+
+  it("⌘F finds words on every page, drawn or not, from the page being read, and goes from one to the next", async () => {
+    const world = new PretendWorld();
+    world.putFile(BLOB, "%PDF-1.7 Pages: 12");
+    const s = await openPl3032(world);
+    await s.click("Lihat: K1. SAP Ekonomi Infrastruktur dan Transportasi");
+    const pages = document.activeElement!;
+    await key(pages, "f", { metaKey: true });
+    const box = viewer()!.querySelector<HTMLInputElement>("input[aria-label='Cari di berkas']")!;
+    expect(document.activeElement).toBe(box);
+    const said = () => document.getElementById(box.getAttribute("aria-describedby")!)!.textContent;
+    // "halaman 1" is on pages 1, 10, 11 and 12; case doesn't count.
+    await typeIn(box, "Halaman 1");
+    expect(said()).toBe("1 dari 4");
+    expect(pageBox().value).toBe("1");
+    await key(box, "Enter");
+    expect(said()).toBe("2 dari 4");
+    expect(pageBox().value).toBe("10");
+    await key(box, "Enter", { shiftKey: true });
+    expect(pageBox().value).toBe("1");
+    await key(box, "g", { metaKey: true });
+    await key(box, "g", { metaKey: true });
+    expect(said()).toBe("3 dari 4");
+    expect(pageBox().value).toBe("11");
+    // A new search starts where the Student is reading, and goes round to the first page when nothing is after it.
+    await typeIn(box, "halaman 7");
+    expect(said()).toBe("1 dari 1");
+    expect(pageBox().value).toBe("7");
+    await typeIn(box, "tidak ada di sini");
+    expect(said()).toBe("Tidak ada");
+    // Escape closes the bar, not the viewer, and the pages have the keyboard again; ⌘F brings the words back.
+    await key(box, "Escape");
+    expect(viewer()).not.toBeNull();
+    expect(viewer()!.querySelector("[data-find-bar]")).toBeNull();
+    expect(document.activeElement).toBe(pages);
+    await s.click("Cari di berkas");
+    expect(viewer()!.querySelector<HTMLInputElement>("input[aria-label='Cari di berkas']")!.value).toBe("tidak ada di sini");
   });
 
   it("the zoom buttons keep the keyboard at their limits", async () => {

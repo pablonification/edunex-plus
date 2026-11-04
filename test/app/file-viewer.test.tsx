@@ -49,6 +49,15 @@ async function settle() {
     await act(async () => new Promise((resolve) => setTimeout(resolve, 10)));
 }
 
+/** Types into a box, then waits out the find bar's pause. */
+async function typeIn(box: HTMLInputElement, value: string) {
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(box, value);
+    box.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 250)));
+}
+
 describe("files other than PDFs in the viewer", () => {
   it("a Word document opens as its pages, its links go through the app's link rules, and it can still be downloaded", async () => {
     const docx = await aDocx({ lines: ["Notulen rapat kelompok", "Pembagian tugas minggu ini"], link: { text: "formulir", url: "https://forms.gle/fixture" } });
@@ -144,6 +153,44 @@ describe("files other than PDFs in the viewer", () => {
     await settle();
     expect(s.calls).toContainEqual({ name: "files.read", input: { url: `${BLOB}-papan.png`, as: "image" } });
     expect(viewer()!.querySelector("img")?.getAttribute("alt")).toBe("Papan.png");
+  });
+
+  it("⌘F finds words in a text file and in a table, never in its column letters or row numbers", async () => {
+    const s = await openWith([
+      { name: "Catatan", ext: "txt", bytes: "Bawa laptop ke kelas.\nLaptop dicas dulu." },
+      { name: "Nilai", ext: "csv", bytes: "Nama,Nilai\nAni,90\nBudi,85" },
+    ]);
+    await s.click("Lihat: Catatan");
+    await settle();
+    const find = async () => {
+      await act(async () => {
+        document.activeElement!.dispatchEvent(new KeyboardEvent("keydown", { key: "f", metaKey: true, bubbles: true, cancelable: true }));
+      });
+      return viewer()!.querySelector<HTMLInputElement>("input[aria-label='Cari di berkas']")!;
+    };
+    const box = await find();
+    expect(document.activeElement).toBe(box);
+    const said = () => document.getElementById(box.getAttribute("aria-describedby")!)!.textContent;
+    await typeIn(box, "laptop");
+    expect(said()).toBe("1 dari 2");
+    await s.key("Enter");
+    expect(said()).toBe("2 dari 2");
+    await s.key("Enter");
+    expect(said()).toBe("1 dari 2");
+    // A space finds the words over two lines too.
+    await typeIn(box, "kelas. laptop");
+    expect(said()).toBe("1 dari 1");
+    await s.click("Tutup");
+
+    await s.click("Lihat: Nilai");
+    await settle();
+    // Closed with the viewer: the next file opens without it.
+    expect(viewer()!.querySelector("[data-find-bar]")).toBeNull();
+    const table = await find();
+    await typeIn(table, "1");
+    expect(document.getElementById(table.getAttribute("aria-describedby")!)!.textContent).toBe("Tidak ada");
+    await typeIn(table, "budi");
+    expect(document.getElementById(table.getAttribute("aria-describedby")!)!.textContent).toBe("1 dari 1");
   });
 
   it("the panel opens on its own: the file is read meanwhile, and made into what it shows once the panel has stopped moving", async () => {

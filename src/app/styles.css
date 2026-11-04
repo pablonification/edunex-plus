@@ -936,6 +936,23 @@ html[data-scene]::view-transition-new(root) {
   }
 }
 
+/*
+ * Words found in a file (ui/find.tsx): every match tinted, the one the find bar is on more strongly, the same on
+ * paper and on the app's own surface; dark text on them. A PDF page's text stays invisible over its drawing.
+ */
+::highlight(find) {
+  background-color: rgb(255 228 92 / 0.55);
+  color: #111;
+}
+::highlight(find-current) {
+  background-color: rgb(255 140 0 / 0.6);
+  color: #111;
+}
+.pdf-text ::highlight(find),
+.pdf-text ::highlight(find-current) {
+  color: transparent;
+}
+
 /* Over a highlight (ui/highlights.tsx), a hand: a click opens its bar, to change its color or remove it. */
 [data-on-highlight],
 [data-on-highlight] .pdf-text :is(span, br) {
