@@ -456,6 +456,9 @@
   /* A smooth fade, never stepped: held frames read as a stutter on a page-sized placeholder. Only opacity
      changes, so it runs off the main thread and stays smooth while a file is read in. */
   --animate-shimmer: shimmer 1.4s ease-in-out infinite;
+  /* Work under way with no share known yet: a short piece crossing the whole track, never resting
+     anywhere it could be read as how far along it is. */
+  --animate-sweep: sweep 1.4s var(--ease-standard) infinite;
 
   @keyframes fade-in {
     from {
@@ -563,6 +566,14 @@
   @keyframes shimmer {
     50% {
       opacity: 0.55;
+    }
+  }
+  @keyframes sweep {
+    from {
+      translate: -100% 0;
+    }
+    to {
+      translate: 300% 0;
     }
   }
 }
