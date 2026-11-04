@@ -5,9 +5,12 @@ SIX the way students already know them (course → modules, meetings, Jadwal,
 KRS), merged into one calm app that tells the Student what matters. It is not
 a calendar app or a to-do app; productivity ideas appear only as accents.
 
-Every decision starts from the Student: a tired ITB student between classes,
-on a laptop, reading Indonesian, who needs one answer quickly and must never be
-misled about attendance, deadlines or grades. Every screen is checked against
+**User-centred design.** Every decision starts from the Student: a tired ITB
+student between classes, on a laptop, reading Indonesian, who needs one answer
+quickly and must never be misled about attendance, deadlines or grades. A
+change is judged by what the Student sees and does in the real window, never
+by how the code reads, and the developer audits it there
+(`docs/agents/ui-review.md`). Every screen is checked against
 Nielsen's ten usability heuristics
 (https://www.nngroup.com/articles/ten-usability-heuristics/).
 
@@ -533,8 +536,10 @@ anything runs past the window. Every screen sits in its own crash guard.
 
 ## Less to read
 
-Reading a screen should never feel like reading a page. A screen says each
-thing once, in as few words as still mean it, and lets pictures carry state.
+**Show, don't tell.** Reading a screen should never feel like reading a page.
+A screen says each thing once, in as few words as still mean it, and lets
+pictures carry state: a bar, a dot or an example teaches faster than a sentence
+about it. Before adding words, ask what could show it instead.
 Beranda went from 332 visible words to 160 this way, losing no fact.
 
 1. **One fact, one place.** Each fact shows once per screen, where the

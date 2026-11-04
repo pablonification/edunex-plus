@@ -1,6 +1,9 @@
 # Changing what's on screen
 
-How a change to a screen, its words or its icons is made and handed over. The rules it is judged by
+How a change to a screen, its words or its icons is made and handed over. Two ideas run through it:
+**user-centred design** (the Student in the real window is the judge, not the code or the diff) and
+**show, don't tell** (a picture or an example before a sentence, on screen and when asking the
+developer). The rules it is judged by
 are in `docs/design-system.md` (Less to read, Icons, Layout parts); words go through the
 `copywriting` skill. The developer audits the real window, never the code, so every step runs on the
 demo's made-up data.
