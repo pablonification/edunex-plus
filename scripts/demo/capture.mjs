@@ -11,10 +11,13 @@ fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
 
 const log = (...args) => console.log(...args);
+/** The steps that failed: the rest still run, but the script ends in an error naming them, so a missing picture isn't missed. */
+const failed = [];
 async function attempt(what, fn) {
   try {
     await fn();
   } catch (error) {
+    failed.push(what);
     log(`! ${what}: ${String(error).split("\n")[0]}`);
   }
 }
@@ -234,20 +237,38 @@ await session("signed-in", async (demo) => {
 
 await session("first-run", async (demo) => {
   const { page } = demo;
+  const button = (name) => page.getByRole("button", { name }).first();
   await attempt("welcome", async () => {
+    // The credit comes first, then the promise, its button last.
+    await button(/^Mulai/).waitFor({ timeout: 30_000 });
+    await settle(page, 2500);
     await demo.shot("32-pertama-selamat-datang");
-    await page.getByRole("button", { name: "Hubungkan Edunex" }).click();
+    await button(/^Mulai/).click();
+    await button("Hubungkan Edunex").waitFor();
+    await settle(page, 1200);
+    await demo.shot("32a-pertama-hubungkan");
+    await button("Hubungkan Edunex").click();
     // Microsoft handed back: the sign-in window is out of sight while Edunex's session is read.
     await page.getByText("Menyelesaikan masuk ke Edunex…").waitFor({ timeout: 30_000 });
-    await demo.shot("32a-pertama-menyelesaikan");
+    await demo.shot("32b-pertama-menyelesaikan");
     await page.waitForFunction(() => /\d{8}/.test(document.body.innerText), null, { timeout: 30_000 });
     // SIX comes along by itself on the same Microsoft sign-in.
     await page.waitForFunction(() => /Teknik Informasi|Teknologi Informasi/.test(document.body.innerText), null, { timeout: 90_000 });
-    await settle(page, 400);
+    await settle(page, 1200);
     await demo.shot("33-pertama-terhubung");
-    await page.getByRole("button", { name: /^Lanjut/ }).click();
+    await button(/^Lanjut/).click();
     await page.waitForTimeout(1200);
     await demo.shot("34-pertama-membaca");
+    // "Buka Edunex Plus" comes once Beranda is ready (or after 20 s).
+    await button("Buka Edunex Plus").waitFor({ timeout: 60_000 });
+    await settle(page, 1200);
+    await demo.shot("34a-pertama-siap");
+    await button("Buka Edunex Plus").click();
+    // The tour is offered first; the first-run scan waits for it.
+    await button("Lewati panduan").waitFor({ timeout: 30_000 });
+    await settle(page, 1200);
+    await demo.shot("34b-pertama-panduan");
+    await button("Lewati panduan").click();
     await page.waitForFunction(() => Boolean(document.querySelector("[role=dialog]")), null, { timeout: 120_000 });
     await settle(page, 600);
     await demo.shot("35-pertama-temuan");
@@ -263,3 +284,7 @@ await session("edunex-only", async (demo) => {
 });
 
 log(`saved ${fs.readdirSync(out).length} pictures to ${out}`);
+if (failed.length) {
+  log(`${failed.length} step${failed.length === 1 ? "" : "s"} failed, so their pictures are missing: ${failed.join(", ")}`);
+  process.exitCode = 1;
+}
