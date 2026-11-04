@@ -5,9 +5,10 @@
 // and reversible.
 // 1. One card: the SKS passed of the curriculum's total (a big number that counts up once) over the bar of passed,
 //    this semester and planned (judge round 3: the figure and the bar only).
-// 2. One group of rows: the required courses left and the electives (the same SKS count as the planner), the
-//    curriculum's name with what's worth knowing about it (courses SIX leaves off, an older start) on its line and in
-//    its sheet, then "Sisa saja", which hides what's done (kept while the app is open).
+// 2. One group of rows: what's left of the required courses and the electives, in the desktop's words ("Sisa: 2 wajib
+//    (6 SKS) · pilihan terpenuhi"), the electives (the same SKS count as the planner), the curriculum's name with what's
+//    worth knowing about it (an older start, courses SIX leaves off) on its line and why in its sheet, then "Sisa
+//    saja", which hides what's done (kept while the app is open).
 // 3. Each semester: its heading with its SKS, its courses as rows (name, code and SKS, one status at the end: the
 //    grade once passed, a pill while it needs the Student).
 // 4. Specializations and minors, below the fold.
@@ -312,18 +313,19 @@ function Standing({ sks, onlyLeft, onToggle, children }: { sks: SksModel; onlyLe
   );
   return (
     <Group testID="card.curriculumStanding">
-      {/* The required courses left, in the desktop's words ("Sisa: 3 wajib (12 SKS), sudah direncanakan"). */}
+      {/* What's left, in the desktop's words ("Sisa: 3 wajib (12 SKS), sudah direncanakan · pilihan 6 SKS"). */}
       <GroupRow
         first
         title={t("curriculum.left")}
-        meta={
+        meta={factsLabel(
           sks.requiredLeft.count
             ? t(sks.requiredUnplanned.count === 0 ? "curriculum.left.requiredPlanned" : "curriculum.left.required", {
                 count: sks.requiredLeft.count,
                 sks: sks.requiredLeft.sks,
               })
-            : t("curriculum.left.requiredNone")
-        }
+            : t("curriculum.left.requiredNone"),
+          sks.electiveNeed === null ? null : e.short ? t("curriculum.left.electives", { sks: e.short }) : t("curriculum.left.electivesNone"),
+        )}
       />
       {sks.electiveNeed !== null && (
         <GroupRow
@@ -563,26 +565,25 @@ function PackageMark({ status, whatIf }: { status: SlotStatus; whatIf: MapCourse
 }
 
 /**
- * The curriculum's name, with what's worth knowing about it (an older start, courses SIX leaves off) on its line; then
- * the row opens a sheet that says it.
+ * The curriculum's name, with what's worth knowing about it on its line in the desktop's few words (an older start,
+ * courses SIX leaves off: "Mulai di Kurikulum 2019 · 3 tidak di catatan SIX-mu"); the row opens a sheet that says why.
  */
 function Notes({ name, startedOn, year, unlisted }: { name: string; startedOn: number | null; year: number; unlisted: number }) {
   const t = useT();
   const v = useTheme().v4;
   const [open, setOpen] = useState(false);
   const started = startedOn !== null ? t("mobile.curriculum.started", { from: startedOn }) : null;
-  const offSix = unlisted > 0 ? t("mobile.curriculum.offSix", { count: unlisted }) : null;
-  const note = factsLabel(offSix, started);
-  // The name on two lines; one fact on the meta line, whole: the older start, which only the sheet says otherwise (the
-  // courses SIX leaves off each say so on their own row). The sheet and TalkBack say both.
+  const offSix = unlisted > 0 ? t("curriculum.unlistedShort", { count: unlisted }) : null;
+  const note = factsLabel(started, offSix);
+  // The name on two lines; both facts on the meta line, as the desktop's heading says them. The sheet says why.
   const title = (
     <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
       {name}
     </Text>
   );
   const meta = note ? (
-    <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
-      {started ?? offSix}
+    <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
+      {note}
     </Text>
   ) : null;
   if (!note) return <GroupRow title={title} />;
