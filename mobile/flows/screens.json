@@ -24,7 +24,10 @@
     "course sheet (round 2): a course page names lecturer, class, SKS, the absences used and left under Jatah absen, and where attendance counts only in its sheet (sheet.course, a tap on its name, action.courseAbout), so the class entries for the lecturer and where it counts, Beranda's absence budgets and Kuliah's courses open it after the page; every other entry of those screens closes it first.",
     "course page: its next class (or the class on now) is the row under its header, so the entries named for its time or, when it isn't today, its day ('kam-15-okt') close the sheet; the page's other entries open it.",
     "plan (v4): Rencana is long (card, past semesters, this one, planned ones, rules, outlook, minors), and a check that ends at the rules can't scroll back to the top in time: the entries above this semester's courses (no context, or this semester's own) first scroll up to the card (card.planSummary). Kalender's Evaluasi kemajuan studi says the passed SKS in its sheet, so that entry opens it.",
-    "home (after class): the day goes on to 16:05 (test/pretend/demo.ts), so PL3002 and DK4073 are over and the now card is PL3032 with KU5014 beside it. Hari ini's classes and the now card's two classes open their sheet from Jadwal's day (row.class.<code>-<hh-mm>), the same sheet Beranda opens, at any hour of the demo: it says Sekarang for a class on now and, for one that's over, SIX's verdict as its chip (Dihitung di SIX, Tercatat tidak hadir, Belum dihitung SIX)."
+    "home (after class): the day goes on to 16:05 (test/pretend/demo.ts), so PL3002 and DK4073 are over and the now card is PL3032 with KU5014 beside it. Hari ini's classes and the now card's two classes open their sheet from Jadwal's day (row.class.<code>-<hh-mm>), the same sheet Beranda opens, at any hour of the demo: it says Sekarang for a class on now and, for one that's over, SIX's verdict as its chip (Dihitung di SIX, Tercatat tidak hadir, Belum dihitung SIX).",
+    "schedule (moved class): PL3002 on Kamis, 8 Oktober runs 08:00–10:00 instead of its usual 08:00–09:30, and the desktop's block is read as '10:00' (schedule.week.class-session.10-00). Jadwal's block says only 'Jam berubah', so that entry opens the class's sheet, where 'Biasanya 08:00–09:30' is.",
+    "presence: Kuliah's day answer ('Hari ini, PL3002 masih ada jatah absen.'), its target and the key to the absences ('Cara baca jatah absen') are in the big number's sheet (sheet.kuliahFacts), so those entries (presence.attendance.pl3002…, presence.note.80…) open it.",
+    "settings: Warna mata kuliah's rows hold every course code (the desktop's light and dark preview bands, settings.setting.dk4073 and -2); a check run 41783358929 counted PL3032 on screen while it was still below the fold, so those entries first bring the last row into view."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -3466,7 +3469,7 @@
             }
           }
         ],
-        "^schedule\\.week\\.class-session\\.08-00-10-00\\|": [
+        "^schedule\\.week\\.class-session\\.(08-00-)?10-00\\|": [
           {
             "runFlow": {
               "when": {
@@ -4490,7 +4493,7 @@
         }
       ],
       "byEntry": {
-        "^presence\\.(attendance|note)\\.hari-ini-ada-4": [
+        "^presence\\.((attendance|note)\\.hari-ini-ada-4|attendance\\.pl3002(-masih-ada-jatah-absen-\\d+)?\\||note\\.80(-\\d+)?\\|)": [
           {
             "runFlow": {
               "when": {
@@ -6159,6 +6162,20 @@
     },
     "settings": {
       "status": "placeholder",
+      "byEntry": {
+        "^settings\\.setting\\.dk4073(-2)?\\|": [
+          {
+            "scrollUntilVisible": {
+              "element": {
+                "id": "row.courseColor.PL3032"
+              },
+              "direction": "DOWN",
+              "timeout": 25000,
+              "optional": true
+            }
+          }
+        ]
+      },
       "steps": [
         {
           "tapOn": {
