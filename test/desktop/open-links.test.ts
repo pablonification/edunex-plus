@@ -1,25 +1,40 @@
-// Main's own guard on the two ways the window opens a page in the browser:
-// the app's links go only to official pages; a lecturer's link may go to any
-// web page, but never another scheme or an address hiding a name or password.
-// The test bridge copies these rules; this runs the real handlers.
+// Main's own guard on the two ways the window opens a page: the app's links go
+// only to official pages, Edunex's and SIX's in the app's own window for each;
+// a lecturer's link may go to any web page in the browser, but never another
+// scheme or an address hiding a name or password. The test bridge copies these
+// rules; this runs the real handlers.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const opened: string[] = [];
+const windows = vi.hoisted(() => [] as { site: string; url: string; signedIn: boolean }[]);
 vi.mock("electron", () => ({
-  app: {},
+  app: { on: () => undefined },
   shell: {
     openExternal: async (url: string) => {
       opened.push(url);
     },
   },
 }));
+vi.mock("../../src/desktop/edunex-window", () => ({
+  openEdunexWindow: async ({ url, token }: { url: string; token: string | null }) => void windows.push({ site: "edunex", url, signedIn: token !== null }),
+}));
+vi.mock("../../src/desktop/six-window", () => ({
+  openSixWindow: async ({ url, cookie }: { url: string; cookie: string | null }) => void windows.push({ site: "six", url, signedIn: cookie !== null }),
+}));
 
 const { coreHandlers } = await import("../../src/desktop/handlers/core");
 type Context = Parameters<typeof coreHandlers>[0];
-const handlers = coreHandlers({} as Context);
+const sessions: Record<string, unknown> = { edunex: { token: "a.b.c" }, six: { cookie: "khongguan=pretend-six-session" } };
+const handlers = coreHandlers({
+  engine: { session: (source: string) => sessions[source] ?? null },
+  lang: () => "id",
+  packaged: true,
+  away: { opened: () => undefined, back: () => undefined },
+} as unknown as Context);
 
 beforeEach(() => {
   opened.length = 0;
+  windows.length = 0;
 });
 
 describe("opening pages in the browser", () => {
@@ -38,9 +53,23 @@ describe("opening pages in the browser", () => {
   });
 
   it("the app's own links open official pages only", async () => {
-    await handlers["shell.openExternal"]({ url: "https://edunex.itb.ac.id/courses/1" });
+    await handlers["shell.openExternal"]({ url: "https://teams.microsoft.com/meet/000000000000?p=fixture" });
     await expect(handlers["shell.openExternal"]({ url: "https://docs.google.com/x" })).rejects.toMatchObject({ kind: "Rejected" });
-    expect(opened).toEqual(["https://edunex.itb.ac.id/courses/1"]);
+    expect(opened).toEqual(["https://teams.microsoft.com/meet/000000000000?p=fixture"]);
+  });
+
+  it("Edunex and SIX open in the app's own window for each, signed in, never in the browser", async () => {
+    await handlers["shell.openExternal"]({ url: "https://edunex.itb.ac.id/courses/1" });
+    await handlers["shell.openExternal"]({ url: "https://six.itb.ac.id" });
+    await handlers["shell.openExternal"]({ url: "https://six.itb.ac.id/app/mahasiswa:18223901/statusmhs" });
+    expect(windows).toEqual([
+      { site: "edunex", url: "https://edunex.itb.ac.id/courses/1", signedIn: true },
+      { site: "six", url: "https://six.itb.ac.id", signedIn: true },
+      { site: "six", url: "https://six.itb.ac.id/app/mahasiswa:18223901/statusmhs", signedIn: true },
+    ]);
+    // ITB's other pages aren't Edunex or SIX: the browser.
+    await handlers["shell.openExternal"]({ url: "https://akademik.itb.ac.id/" });
+    expect(opened).toEqual(["https://akademik.itb.ac.id/"]);
   });
 
   it("a problem report opens a new issue on the app's repository, and nothing near it", async () => {

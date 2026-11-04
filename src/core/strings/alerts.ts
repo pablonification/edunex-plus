@@ -107,5 +107,5 @@ export const alertsStrings = {
   "tray.attendance.none": { id: "Jangan absen lagi", en: "Don't miss another class" },
   "tray.edited": { id: "diubah dosen", en: "changed by your lecturer" },
   "tray.needs.all": { id: "Lihat semua {count} di Beranda", en: "See all {count} on Home" },
-  "tray.openInBrowser": { id: "Buka di browser", en: "Open in browser" },
+  "tray.openSite": { id: "Buka situs", en: "Open website" },
 } as const satisfies Record<string, Entry>;

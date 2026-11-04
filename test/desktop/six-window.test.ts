@@ -1,4 +1,4 @@
-// The SIX window for "Tandai Hadir", on a small stand-in for Electron: it
+// The SIX window, on a small stand-in for Electron: for "Tandai Hadir" it
 // opens SIX's timetable signed in with the engine's cookie on its own
 // throwaway session, clicks the class to bring up its popup once the page has
 // loaded (and never presses anything), keeps to SIX and Microsoft's sign-in,
@@ -12,8 +12,10 @@ class FakeContents extends EventEmitter {
   url = "";
   readonly scripts: string[] = [];
   openHandler: ((details: { url: string }) => { action: string }) | null = null;
+  readonly loaded: string[] = [];
   async loadURL(url: string): Promise<void> {
     this.url = url;
+    this.loaded.push(url);
     this.emit("did-finish-load");
   }
   getURL(): string {
@@ -34,6 +36,7 @@ class FakeWindow extends EventEmitter {
   destroyed = false;
   visible = false;
   focused = 0;
+  title = "";
   constructor(readonly options: { webPreferences: Record<string, unknown> }) {
     super();
     FakeWindow.windows.push(this);
@@ -49,6 +52,9 @@ class FakeWindow extends EventEmitter {
   }
   focus(): void {
     this.focused += 1;
+  }
+  setTitle(title: string): void {
+    this.title = title;
   }
   destroy(): void {
     this.destroyed = true;
@@ -87,7 +93,7 @@ vi.mock("electron", () => ({
   },
 }));
 
-const { closeSixWindow, openPopupScript, openSixCheckIn, pressedMeeting, sixCookie, staysInSixWindow } = await import("../../src/desktop/six-window");
+const { closeSixWindow, openPopupScript, openSixWindow, pressedMeeting, sixCookie, staysInSixWindow } = await import("../../src/desktop/six-window");
 
 const TIMETABLE = "https://six.itb.ac.id/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001?bulan=202610";
 const options = { url: TIMETABLE, meetingId: "2194342", cookie: "khongguan=pretend-six-session", title: "SIX · Tandai Hadir", devTools: false };
@@ -103,7 +109,7 @@ beforeEach(() => {
 
 describe("the SIX window", () => {
   it("opens SIX's timetable signed in, on a session of its own, and brings up the class's popup once it loaded", async () => {
-    await openSixCheckIn(options);
+    await openSixWindow(options);
     const [window] = FakeWindow.windows;
     expect(window.options.webPreferences).toMatchObject({ sandbox: true, contextIsolation: true, nodeIntegration: false });
     expect(window.options.webPreferences.preload).toBeUndefined();
@@ -111,24 +117,40 @@ describe("the SIX window", () => {
     expect(fake.permissionsRefused).toBeGreaterThan(0);
     expect(window.webContents.url).toBe(TIMETABLE);
     expect(window.webContents.scripts).toEqual([openPopupScript("2194342")]);
+    // On screen at once, on a blank page, rather than after SIX's page has loaded.
+    expect(window.webContents.loaded).toEqual(["about:blank", TIMETABLE]);
 
     // The Student moves around SIX: the popup isn't opened again on every page.
     await window.webContents.loadURL(TIMETABLE);
     expect(window.webContents.scripts).toHaveLength(1);
   });
 
+  it("opens any SIX page signed in, without clicking anything", async () => {
+    const status = "https://six.itb.ac.id/app/mahasiswa:18223901/statusmhs";
+    await openSixWindow({ url: status, cookie: options.cookie, title: "SIX", devTools: false });
+    const [window] = FakeWindow.windows;
+    expect(fake.cookies).toHaveLength(1);
+    expect(window.webContents.url).toBe(status);
+    expect(window.webContents.scripts).toEqual([]);
+    // "Tandai Hadir" then opens in that same window, under its own name.
+    await openSixWindow(options);
+    expect(FakeWindow.windows).toHaveLength(1);
+    expect(window.title).toBe("SIX · Tandai Hadir");
+    expect(window.webContents.scripts).toEqual([openPopupScript("2194342")]);
+  });
+
   it("is one window: another class opens in it, brought forward", async () => {
-    await openSixCheckIn(options);
+    await openSixWindow(options);
     const [window] = FakeWindow.windows;
     window.show();
-    await openSixCheckIn({ ...options, meetingId: "2153982" });
+    await openSixWindow({ ...options, meetingId: "2153982" });
     expect(FakeWindow.windows).toHaveLength(1);
     expect(window.focused).toBe(1);
     expect(window.webContents.scripts.at(-1)).toBe(openPopupScript("2153982"));
   });
 
   it("wipes its session when it closes, and goes with a sign-out", async () => {
-    await openSixCheckIn(options);
+    await openSixWindow(options);
     closeSixWindow();
     await Promise.resolve();
     expect(FakeWindow.windows[0].isDestroyed()).toBe(true);
@@ -136,7 +158,7 @@ describe("the SIX window", () => {
   });
 
   it("keeps to SIX and Microsoft's sign-in; an official link elsewhere goes to the browser, anything else nowhere", async () => {
-    await openSixCheckIn(options);
+    await openSixWindow(options);
     const contents = FakeWindow.windows[0].webContents;
     const navigate = (url: string) => {
       const event = { prevented: false, preventDefault: () => void (event.prevented = true) };
@@ -149,12 +171,16 @@ describe("the SIX window", () => {
     expect(navigate("https://example.com/")).toBe(true);
     expect(fake.external).toEqual(["https://edunex.itb.ac.id/courses/95001"]);
     expect(contents.openHandler?.({ url: "https://example.com/" })).toEqual({ action: "deny" });
+    // A SIX page SIX opens in a new tab opens in this window instead.
+    expect(contents.openHandler?.({ url: "https://six.itb.ac.id/app/mahasiswa:18223901/keuangan" })).toEqual({ action: "deny" });
+    expect(contents.url).toBe("https://six.itb.ac.id/app/mahasiswa:18223901/keuangan");
+    expect(fake.external).toEqual(["https://edunex.itb.ac.id/courses/95001"]);
   });
 
   it("notices a press in a class's popup once SIX has answered it, and the window closing", async () => {
     const pressed: string[] = [];
     let closed = 0;
-    await openSixCheckIn({ ...options, onPressed: (id) => pressed.push(id), onClosed: () => void (closed += 1) });
+    await openSixWindow({ ...options, onPressed: (id: string) => pressed.push(id), onClosed: () => void (closed += 1) });
     const request = (id: number, method: string, path: string, statusCode: number, end = "onCompleted") => {
       const details = { id, method, url: `https://six.itb.ac.id${path}`, statusCode };
       fake.requests.onSendHeaders(details);
@@ -182,7 +208,7 @@ describe("the SIX window", () => {
   });
 
   it("opens only SIX, and only a class by its number", async () => {
-    await expect(openSixCheckIn({ ...options, url: "https://example.com/" })).rejects.toThrow();
+    await expect(openSixWindow({ ...options, url: "https://example.com/" })).rejects.toThrow();
     expect(() => openPopupScript("1'); alert(1); ('")).toThrow();
     expect(staysInSixWindow("http://six.itb.ac.id/")).toBe(false);
     // A name and password inside the address (built, not written: written, it reads as an email address).
