@@ -1,12 +1,15 @@
-// Rencana's outlook (round 2, v4): the one shared IPK target and what the rest needs for it, the IPK path on its own
-// white card, and each honors level as a row with its one status. How honors are decided (ITB's rule) and where the
-// plan is kept are a tap deeper, in the plan's "about" sheet at the end of the page.
+// Rencana's outlook (round 2, v4): the one shared IPK target and what the rest needs for it, in the desktop's few words
+// (why a target is out of reach is a tap on ⓘ away), the IPK path on its own white card, and each honors level as a row
+// with its one status. How honors are decided (ITB's rule) and where the plan is kept are a tap deeper, in the plan's
+// "about" sheet at the end of the page.
 import { useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { PlanState } from "../../../../src/app/study-plan";
 import { letterForAverage } from "../../../../src/core/honors";
-import { honorsOutlook, type Projection, type StudentRecord, targetOf } from "../../../../src/core/planner";
+import { GRADE_POINTS } from "../../../../src/core/models";
+import { honorsOutlook, type Need, type Projection, type StudentRecord, targetOf } from "../../../../src/core/planner";
+import { IconButton } from "../../ui/controls";
 import { Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
@@ -26,7 +29,7 @@ export function Outlook({ record, state }: { record: StudentRecord; state: PlanS
       <View style={{ gap: space[3] }}>
         <Panel style={{ padding: space[4], gap: space[3] }}>
           <TargetControl record={record} state={state} />
-          <NeedText need={projection.need(target)} target={target} sks={projection.variableSks} scope="rest" />
+          <RestNeed need={projection.need(target)} target={target} sks={projection.variableSks} />
         </Panel>
         {charted && (
           <Panel style={{ paddingHorizontal: space[3], paddingTop: space[4], paddingBottom: space[3] }}>
@@ -37,6 +40,42 @@ export function Outlook({ record, state }: { record: StudentRecord; state: PlanS
       </View>
     </View>
   );
+}
+
+/**
+ * What the rest needs for the target, as the desktop's Outlook says it: out of reach in a few words with its why one
+ * tap away, the average needed in a short line, or (nothing left, already secured, safe) NeedText's sentence.
+ */
+function RestNeed({ need, target, sks }: { need: Need; target: number; sks: number }) {
+  const t = useT();
+  const f = useFormat();
+  const v = useTheme().v4;
+  const [why, setWhy] = useState(false);
+  if (need.kind === "out")
+    return (
+      <>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }} testID="planner.targetOut">
+          <Text size="small" weight="medium" tone="fg" accessibilityLiveRegion="polite" style={{ flex: 1 }}>
+            {t("planner.targetOutShort")}
+          </Text>
+          <IconButton label={t("action.why", { what: t("planner.targetOutWhy") })} onPress={() => setWhy(true)} testID="action.planner.targetOutWhy">
+            <Icons.Info size={18} color={v.muted} />
+          </IconButton>
+        </View>
+        <Sheet open={why} onClose={() => setWhy(false)} title={t("planner.targetOutShort")} background={v.card} testID="sheet.planner.targetOutWhy">
+          <Text size="bodyLarge" style={{ color: v.fg, paddingBottom: space[2] }}>
+            {t("planner.targetOutWhy")}
+          </Text>
+        </Sheet>
+      </>
+    );
+  if (need.kind === "needs" && need.average > GRADE_POINTS.D + 1e-9)
+    return (
+      <Text size="small" tone="muted" accessibilityLiveRegion="polite">
+        {t("planner.targetNeedShort", { avg: f.number(need.average, 2), letter: letterForAverage(need.average), sks })}
+      </Text>
+    );
+  return <NeedText need={need} target={target} sks={sks} scope="rest" />;
 }
 
 /** Each honors level as a row (cum, magna, summa): its least IPK, and reached, what the rest needs, or why it's out. */
