@@ -1,8 +1,9 @@
 // "Nanti hari ini" (round 2, v4): the classes and meetings still to come today, past the one on the now card. A row
-// each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what matters today (no absences
-// left, over the absence limit, a clash, a new time, not in SIX). A row opens the class's sheet. A class on SIX's timetable today
-// that the app couldn't read comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX
-// writes it; it opens Jadwal's sheet for it, with SIX's timetable. Hidden when nothing's left.
+// each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what matters today, the first of
+// the desktop's Hari ini statuses in its words (Tak bisa capai 80%, Bentrok, a new time or room, Wajib hadir; Hanya di
+// Edunex for a meeting). A row opens the class's sheet. A class on SIX's timetable today that the app couldn't read
+// comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX writes it; it opens Jadwal's
+// sheet for it, with SIX's timetable. Hidden when nothing's left.
 import { useState } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
@@ -10,7 +11,7 @@ import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { UnreadSession } from "../../../../src/core/models";
 import type { ClassFacts, HomeContext, NowCard, TodayPlan } from "../../../../src/core/needs";
-import { type AbsenceTone, absenceInk, absenceName, absenceTone } from "../../ui/absence";
+import { type AbsenceTone, absenceInk } from "../../ui/absence";
 import { Rise } from "../../ui/expressive";
 import { IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -171,17 +172,17 @@ function UnreadRow({ one, first, onOpen }: { one: UnreadSession; first: boolean;
 }
 
 /**
- * The row's one chip, the most pressing: no absences left, over the limit, a clash, a new time or room, not in SIX. The
- * absences go by their one name and colour on every tab (src/ui/absence.ts: "Jatah habis" amber, "Lewat batas 1×" red);
- * the rest amber.
+ * The row's one chip: the desktop's first status for the class (src/app/screens/home.tsx classStatuses), in its words
+ * and order: the target out of reach (red), a clash, a new time or room, no absences left ("Wajib hadir", amber, as on
+ * the class's sheet). A meeting only Edunex announced says so.
  */
 function chipOf(t: Translate, item: Item): { text: string; tone: AbsenceTone } | null {
   if (item.kind === "meeting") return item.meeting.maybeInSix ? null : { text: t("home.today.notInSix"), tone: "amber" };
   const { facts } = item;
-  const absence = absenceTone(facts.state);
-  const named = facts.health ? absenceName(t, facts.health) : null;
-  if (absence && named) return { text: named, tone: absence };
-  if (facts.overlap) return { text: t("mobile.home.chip.clash"), tone: "amber" };
-  if (facts.moved) return { text: t(facts.moved.usualStart !== null ? "mobile.home.timeMoved" : "mobile.home.roomMoved"), tone: "amber" };
+  const { health } = facts;
+  if (health && facts.state === "out") return { text: t("home.today.out", { target: health.target }), tone: "red" };
+  if (facts.overlap) return { text: t("home.today.overlap"), tone: "amber" };
+  if (facts.moved) return { text: t(facts.moved.usualStart !== null ? "home.today.changed" : "home.today.roomChanged"), tone: "amber" };
+  if (health && facts.state === "none") return { text: t("home.today.mustAttend"), tone: "amber" };
   return null;
 }

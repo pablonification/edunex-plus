@@ -16,6 +16,7 @@ import { perfFirstData, usePerfDrawn } from "../../perf";
 import { ProblemBanner } from "../../shell/source-status";
 import { Rise } from "../../ui/expressive";
 import { space, useTheme } from "../../ui/theme";
+import { TermCourses } from "./courses";
 import { FirstScanCard, NotifyCard } from "./first-run";
 import { HomeHeader, OVERLAP } from "./header";
 import { Later } from "./later";
@@ -45,7 +46,7 @@ export function Home() {
     <>
       <HomeHeader />
       <View style={{ marginTop: -OVERLAP, paddingHorizontal: space[4], paddingBottom: space[4] }}>
-        {context ? <Answers context={context} courses={courses ?? []} /> : <Loading />}
+        {context ? <Answers context={context} courses={courses} /> : <Loading />}
         <View style={{ marginTop: space[4], gap: space[3] }}>
           <ProblemBanner />
           {timetableChanged && <SixPageNote datasets={["six.schedule"]} />}
@@ -75,7 +76,8 @@ function Loading() {
 }
 
 /** The class now, what to handle, and what's left today: one column, in the order a thumb scrolls. */
-function Answers({ context, courses }: { context: HomeContext; courses: readonly TermCourse[] }) {
+function Answers({ context, courses: list }: { context: HomeContext; courses: readonly TermCourse[] | undefined }) {
+  const courses = list ?? [];
   const card = useMemo(() => nowCard(context), [context]);
   const plan = useMemo(() => todayPlan(context), [context]);
   const needs = useMemo(() => attention(context, card, plan), [context, card, plan]);
@@ -90,8 +92,9 @@ function Answers({ context, courses }: { context: HomeContext; courses: readonly
       </Rise>
       <Urus needs={needs} due={due} courses={courses} />
       <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
+      <TermCourses courses={list} context={context} />
       {/* The one ask, after what the Student came for: the now card and Perlu kamu urus stay the first things seen. */}
-      <Rise screen="home" index={7}>
+      <Rise screen="home" index={9}>
         <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
       </Rise>
     </>

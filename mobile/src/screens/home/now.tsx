@@ -3,8 +3,9 @@
 // by and the minutes left in big numbers; and one full-width button when there's something to press: Tandai Hadir while
 // SIX shows it, the Presence when it counts, joining an online class. After the Student went to SIX's Tandai Hadir and
 // SIX no longer shows it, the button turns tonal green, a cookie badge turns in and its check draws itself, with a
-// tap of the phone: their step ("Sudah ke SIX · 09:07"), not a claim they're counted. No class on: the next one with a
-// countdown; none today: tomorrow's first, calmly. A tap on the card opens its class's sheet (./class-sheet.tsx).
+// tap of the phone: their step ("Sudah ke SIX · 09:07"), not a claim they're counted. An Edunex Presence open for the
+// class is its own row over the button, as the desktop's card says it: "Isi Presensi", "tutup 09:30". No class on: the
+// next one with a countdown; none today: tomorrow's first, calmly. A tap on the card opens its class's sheet (./class-sheet.tsx).
 // While the first read runs, the card shows what won't change and holds the rest in its place (./now-hold.ts).
 import * as Haptics from "expo-haptics";
 import { type ReactNode, useEffect, useState } from "react";
@@ -28,7 +29,7 @@ import { space, useTheme } from "../../ui/theme";
 import { CourseTile, useCourseTile } from "../../ui/tile";
 import { useReadStatuses } from "../first-scan/scan";
 import { useWentToCheckIn } from "./checked-in";
-import { ClassSheet, cardAction, cardSubject, MainAction, useCheckInOpen } from "./class-sheet";
+import { ClassSheet, cardAction, cardSubject, MainAction, PresenceStep, useCheckInOpen } from "./class-sheet";
 import { type NowHold, nowHold } from "./now-hold";
 import { MINUTE, nameOf } from "./parts";
 
@@ -200,6 +201,12 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
           </View>
         )}
       </PressScale>
+      {/* Edunex's Presence, open for this class: "Isi Presensi", "tutup 09:30", the desktop's step. */}
+      {!hold.line && card.presence && (
+        <View style={{ marginTop: space[2] }}>
+          <PresenceStep card={card} action={action} />
+        </View>
+      )}
       {hold.line ? null : done !== null ? (
         <View style={{ marginTop: space[4] }}>
           <BigButton variant="done" icon={<CookieCheck color={v.okFg} check={v.okBg} />} testID="card.now.checkedIn">

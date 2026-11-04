@@ -19,7 +19,9 @@ import type { NowCard } from "../../../../src/core/needs";
 import { type Route, useNav } from "../../nav";
 import { absenceInk, absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
+import { SourceLogo } from "../../ui/brand";
 import { Icons } from "../../ui/icons";
+import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -36,7 +38,7 @@ export function ClassSheet({ card, courses, open, onClose }: { card: NowCard | n
     <Sheet open={open && card !== null} onClose={onClose} background={useTheme().v4.card} testID="sheet.nowClass">
       {card && (
         <>
-          <Details card={card} courses={courses} />
+          <Details card={card} courses={courses} onLeave={onClose} />
           <View style={{ marginTop: space[6], marginBottom: space[2] }}>
             <Actions card={card} onLeave={onClose} courses={courses} />
           </View>
@@ -57,10 +59,11 @@ export function cardSubject(card: NowCard) {
   return { session, meeting, slot, code, windowFor, link: card.class?.link ?? meeting?.link ?? null };
 }
 
-function Details({ card, courses }: { card: NowCard; courses: readonly TermCourse[] }) {
+function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly TermCourse[]; onLeave(): void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const action = cardAction(card, now, useCheckInOpen(card));
   const v = useTheme().v4;
   const attendance = useAttendance();
   const { session, meeting, slot, code, windowFor } = cardSubject(card);
@@ -157,6 +160,7 @@ function Details({ card, courses }: { card: NowCard; courses: readonly TermCours
           </Fact>
         )}
         <Absences card={card} />
+        <PresenceStep card={card} action={action} onLeave={onLeave} />
       </View>
     </View>
   );
@@ -236,7 +240,8 @@ function Pips({ health }: { health: AttendanceHealth }) {
 /**
  * The absences: the pips, "Boleh absen 1× lagi", and the share against the target under it (v4's pip meter row). Below
  * the target or with none left, the pips carry the warning in their colour and the row says only the share: never a
- * red sentence ("Tak bisa lagi capai 80%" is still what a screen reader hears).
+ * red sentence ("Tak bisa lagi capai 80%" is still what a screen reader hears). With none left, the desktop's Hari ini
+ * status leads, what to do in two words: "Wajib hadir" in amber, the share under it.
  */
 function Absences({ card }: { card: NowCard }) {
   const t = useT();
@@ -247,6 +252,23 @@ function Absences({ card }: { card: NowCard }) {
   const tone = absenceTone(health.state);
   const budget = budgetLabel(t, health);
   const share = health.held ? t("mobile.home.share", { percent: percent(health.attended ?? 0, health.held), target: health.target }) : null;
+  if (health.state === "none")
+    return (
+      <Fact
+        icon={(c) => <Icons.Hand size={22} color={c} />}
+        end={<Pips health={health} />}
+        label={[t("home.today.mustAttend"), budget, share].filter(Boolean).join(", ")}
+      >
+        <Text size="bodyLarge" weight="medium" style={{ color: absenceInk(v, "amber").fg }}>
+          {t("home.today.mustAttend")}
+        </Text>
+        {share ? (
+          <Text size="bodyMedium" tone="muted">
+            {share}
+          </Text>
+        ) : null}
+      </Fact>
+    );
   const warned = (tone === "red" || tone === "amber") && share !== null;
   return (
     <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />} label={warned ? `${budget}, ${share}` : undefined}>
@@ -365,30 +387,80 @@ export function MainAction({ card, action, onLeave }: { card: NowCard; action: E
   return null;
 }
 
-/** An Edunex Presence's way in: the Task it's recorded by (opened here), or Edunex's page. */
-function PresenceButton({ card, onLeave }: { card: NowCard; onLeave?(): void }) {
-  const t = useT();
-  const theme = useTheme();
+/** An Edunex Presence's way in: the Task it's recorded by (opened here), or Edunex's page. Null without one. */
+function useOpenPresence(card: NowCard, onLeave?: () => void): { viaTask: boolean; open(): void } | null {
   const { go } = useNav();
   const external = useOpenExternal();
   const presence = card.presence;
   if (!presence) return null;
   const viaTask = presence.activity === "assignment" && presence.task !== null;
-  const open = () => {
-    if (viaTask && presence.task) {
-      onLeave?.();
-      go({ screen: "task", taskId: presence.task.id });
-    } else external(presence.url);
+  return {
+    viaTask,
+    open: () => {
+      if (viaTask && presence.task) {
+        onLeave?.();
+        go({ screen: "task", taskId: presence.task.id });
+      } else external(presence.url);
+    },
   };
+}
+
+function PresenceButton({ card, onLeave }: { card: NowCard; onLeave?(): void }) {
+  const t = useT();
+  const theme = useTheme();
+  const way = useOpenPresence(card, onLeave);
+  const presence = card.presence;
+  if (!presence || !way) return null;
   return (
     <BigButton
-      icon={viaTask ? undefined : <Icons.ArrowUpRight size={20} color={theme.v4.onBrand} />}
-      onPress={open}
-      label={viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
+      icon={way.viaTask ? undefined : <Icons.ArrowUpRight size={20} color={theme.v4.onBrand} />}
+      onPress={way.open}
+      label={way.viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
       testID="action.presence"
     >
-      {viaTask ? t("home.now.openTask") : t("presence.open.record")}
+      {way.viaTask ? t("home.now.openTask") : t("presence.open.record")}
     </BigButton>
+  );
+}
+
+/**
+ * Edunex's Presence for the card's class, as the desktop's now card says its step: "Isi Presensi" and when it closes
+ * ("tutup 09:30"). Where the Presence is the filled button, this row says what it's for and by when; with another one
+ * filled (Tandai Hadir), the row itself opens the Presence, as the desktop's step has its own button.
+ */
+export function PresenceStep({ card, action, onLeave }: { card: NowCard; action: CardAction; onLeave?(): void }) {
+  const t = useT();
+  const f = useFormat();
+  const v = useTheme().v4;
+  const way = useOpenPresence(card, onLeave);
+  const presence = card.presence;
+  if (!presence || !way) return null;
+  const closes = t("home.need.presence.closes", { time: f.dayTime(presence.session.closesAt) });
+  const own = action !== "presence";
+  const step = (
+    <Fact
+      icon={() => <SourceLogo source="edunex" size={22} />}
+      end={own ? <Icons.ArrowUpRight size={20} color={v.muted} /> : undefined}
+      label={own ? undefined : `${t("home.now.edunexStep")}, ${closes}`}
+    >
+      <Text size="bodyLarge" weight="medium" style={{ color: v.fg2 }}>
+        {t("home.now.edunexStep")}
+      </Text>
+      <Text size="bodyMedium" tone="muted" tabular>
+        {closes}
+      </Text>
+    </Fact>
+  );
+  if (!own) return <View testID="card.presenceStep">{step}</View>;
+  return (
+    <PressScale
+      onPress={way.open}
+      accessibilityRole="button"
+      accessibilityLabel={`${way.viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}, ${closes}`}
+      testID="action.presenceStep"
+    >
+      {step}
+    </PressScale>
   );
 }
 
