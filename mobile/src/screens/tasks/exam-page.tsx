@@ -505,8 +505,9 @@ function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
           // None left or over the limit by the name it has on every tab ("Jatah habis"); the rest in the desktop's words.
           trailing={tone ? <Pill tone={tone}>{absenceName(t, health) ?? budgetLabel(t, health)}</Pill> : undefined}
         >
-          {!tone && (
-            <Text size="bodyMedium" style={{ color: v.muted }}>
+          {/* Past the limit the pill names it; the desktop's words say what that costs ("Tak bisa lagi capai 80%"), in red. */}
+          {(!tone || health.state === "out") && (
+            <Text size="bodyMedium" style={{ color: health.state === "out" ? v.redFg : v.muted }}>
               {budgetLabel(t, health)}
             </Text>
           )}
