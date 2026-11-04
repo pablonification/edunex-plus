@@ -687,15 +687,17 @@ function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text:
 const WHY_TONE: Record<"warning" | "neutral" | "danger", TextTone> = { warning: "warning", neutral: "muted", danger: "danger" };
 
 /**
- * Simpan draf and Kumpulkan at the bottom of the screen. Why Kumpulkan can't be pressed yet is said where it's fixed
- * (the answer box, the attach button, a file's row) and to TalkBack on the button; a line over the buttons only for
- * what blocks every hand-in (no connection, the session ended), with its fix.
+ * Simpan draf and Kumpulkan at the bottom of the screen, with why Kumpulkan can't be pressed yet (or what pressing it
+ * now would cost) in a line over the buttons, as the desktop says it, and its fix when there is one. Said to TalkBack
+ * on the button too.
  */
 export function HandInBar({ h }: { h: HandInState }) {
   const t = useT();
   const theme = useTheme();
   const why = useWhy(h);
+  // Signing in again is the notice's own button (above): no second line for it.
   const blocked = why !== null && h.guard.blocked;
+  const line = why !== null && !(blocked && h.notice?.action === "signIn");
   // Edge to edge: the bar's tone runs under the phone's navigation bar, its buttons stay clear of it.
   const bottom = useBottomInset();
   // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
@@ -723,7 +725,7 @@ export function HandInBar({ h }: { h: HandInState }) {
         gap: space[3],
       }}
     >
-      {why && blocked && h.notice?.action !== "signIn" && (
+      {why && line && (
         <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
           {/* The icon on the first line (19 high) when the hint wraps; the hint as a whole level with its fix. */}
           <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
