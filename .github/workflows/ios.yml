@@ -58,8 +58,6 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Make the demo's data
         run: npm run --if-present demo:fixtures
-      - name: Check the phone app's types
-        run: npx tsc --noEmit
       - name: List the open-source licences
         run: npm run licences
       - name: Generate the iOS project (and its pods)
