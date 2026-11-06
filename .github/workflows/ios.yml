@@ -1,0 +1,127 @@
+# The phone app (mobile/) on iOS: an unsigned .ipa of the real app, to sideload with an Apple ID
+# (Sideloadly signs it on the way in), and the same app opened on an iPhone simulator, to see it
+# start and take its picture.
+#
+# Fetching the results: `gh run download <run id>` saves the .ipa (`edunex-plus-ipa`) and the
+# simulator's picture and log (`ios-simulator`).
+name: iOS
+
+on:
+  push:
+    branches: [feat/ios-sign-in]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: macos-26
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ipa (iPhone)
+            destination: generic/platform=iOS
+          - name: simulator
+            destination: generic/platform=iOS Simulator
+    env:
+      EXPO_NO_TELEMETRY: "1"
+      DESTINATION: ${{ matrix.destination }}
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Say which Xcode builds it
+        run: xcodebuild -version
+      - name: Install the phone app's packages
+        run: npm ci --no-audit --no-fund
+      - name: Make the demo's data
+        run: npm run --if-present demo:fixtures
+      - name: Check the phone app's types
+        run: npx tsc --noEmit
+      - name: List the open-source licences
+        run: npm run licences
+      - name: Generate the iOS project (and its pods)
+        run: npx expo prebuild --platform ios --clean
+      - name: Build the app, unsigned
+        working-directory: mobile/ios
+        run: |
+          workspace=$(ls -d ./*.xcworkspace | head -1)
+          scheme=$(basename "$workspace" .xcworkspace)
+          # The phone's copy is archived; the simulator's is a plain build (a simulator app can't be archived).
+          if [ "$DESTINATION" = "generic/platform=iOS" ]; then
+            action=(archive -archivePath "$RUNNER_TEMP/app.xcarchive")
+          else
+            action=(build -derivedDataPath "$RUNNER_TEMP/derived")
+          fi
+          xcodebuild "${action[@]}" \
+            -workspace "$workspace" -scheme "$scheme" -configuration Release -destination "$DESTINATION" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 200
+          test "${PIPESTATUS[0]}" -eq 0
+      - name: Pack the .ipa
+        if: ${{ matrix.name == 'ipa (iPhone)' }}
+        run: |
+          app=$(ls -d "$RUNNER_TEMP"/app.xcarchive/Products/Applications/*.app | head -1)
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R "$app" "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry edunex-plus.ipa Payload)
+          du -h "$RUNNER_TEMP/ipa/edunex-plus.ipa"
+      - name: Upload the .ipa
+        if: ${{ matrix.name == 'ipa (iPhone)' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: edunex-plus-ipa
+          path: ${{ runner.temp }}/ipa/edunex-plus.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Open it on a simulator
+        if: ${{ matrix.name == 'simulator' }}
+        run: |
+          out="$RUNNER_TEMP/simulator"
+          mkdir -p "$out"
+          app=$(ls -d "$RUNNER_TEMP"/derived/Build/Products/Release-iphonesimulator/*.app | head -1)
+          id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")
+          exe=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Info.plist")
+          device=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
+          xcrun simctl install "$device" "$app"
+          pid=$(xcrun simctl launch "$device" "$id" | awk '{print $NF}')
+          sleep 30
+          xcrun simctl io "$device" screenshot "$out/start.png"
+          xcrun simctl spawn "$device" log show --last 2m --style compact --predicate "process == \"$exe\"" > "$out/log.txt" 2>&1 || true
+          # Still running 30 seconds in: it didn't crash at start.
+          if ! kill -0 "$pid" 2>/dev/null; then
+            echo "::error::The app quit within 30 seconds of opening. The simulator's log is in the ios-simulator artifact."
+            exit 1
+          fi
+          echo "The app is up after 30 seconds (process $pid)."
+      - name: Upload the simulator's picture and log
+        if: ${{ matrix.name == 'simulator' && !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-simulator
+          path: ${{ runner.temp }}/simulator
+          if-no-files-found: warn
+          retention-days: 14

@@ -224,7 +224,7 @@ function SignInPage({ run }: { run: Run }) {
   }, [quiet, giveUp]);
 
   const onMessage = useCallback(
-    (event: WebViewMessageEvent) => {
+    async (event: WebViewMessageEvent) => {
       if (state.current.done) return;
       let data: { auth?: unknown; signedIn?: unknown };
       try {
@@ -239,7 +239,9 @@ function SignInPage({ run }: { run: Run }) {
           return;
         }
         if (run.source === "six" && data.signedIn === true && isSixAfterSignIn(state.current.url)) {
-          const found = readSixSession(cookiesFor("https://six.itb.ac.id/"));
+          const found = readSixSession(await cookiesFor("https://six.itb.ac.id/"));
+          // The poll goes on while the cookies are read: an earlier read may have finished already.
+          if (state.current.done) return;
           if (found) return finish(found);
           state.current.signedInAt ||= Date.now();
           if (Date.now() - state.current.signedInAt > COOKIE_GRACE_MS)
