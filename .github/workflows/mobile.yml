@@ -2,19 +2,22 @@
 # emulator, and takes the desktop demo's pictures to compare the two. Every
 # native build of the phone app happens here, not on a laptop.
 #
-# Starting a run: GitHub only offers "Run workflow" (and `gh workflow run
-# mobile.yml`) once this file is on the default branch, main. Until it's merged
-# there, runs start from a push to `mobile` (a helper's `mobile-*` branch is
-# tested once it's merged: sixteen emulators per push were holding up the
-# branch's own runs).
+# Two sizes of run:
+# - Quick (a pull request, or a push to main, that changes the app): the APKs,
+#   the desktop pictures and the "app" flows on one emulator, about 30 minutes.
+# - Full (every night, or by hand): the quick run plus every scenario's
+#   same-data flows, one emulator each. Each takes 1.5 to 3 hours, which is
+#   why pull requests don't wait for them.
+#
+# By hand: `gh workflow run mobile.yml --ref <branch>` (add `-f scenarios=false`
+# for the quick run).
 #
 # Fetching the results: `gh run download <run id>` saves every APK, the flows'
 # results and the desktop pictures, one folder per artifact.
 name: Mobile
 
 on:
-  push:
-    branches: [mobile]
+  pull_request:
     paths:
       - mobile/**
       - src/**
@@ -26,6 +29,22 @@ on:
       # Notes and the hand-off report don't change the app.
       - "!mobile/**/*.md"
       - "!mobile/report/**"
+  push:
+    branches: [main]
+    paths:
+      - mobile/**
+      - src/**
+      - test/pretend/**
+      - test/fixtures/**
+      - scripts/demo/**
+      - scripts/ci/mobile-e2e.sh
+      - .github/workflows/mobile.yml
+      # Notes and the hand-off report don't change the app.
+      - "!mobile/**/*.md"
+      - "!mobile/report/**"
+  schedule:
+    # Every night at 02:00 WIB, the full run on main.
+    - cron: "0 19 * * *"
   workflow_dispatch:
     inputs:
       apks:
@@ -35,6 +54,10 @@ on:
         default: all
       e2e:
         description: Run the Maestro flows on an emulator.
+        type: boolean
+        default: true
+      scenarios:
+        description: Also run every scenario's same-data flows (1.5 to 3 hours each), not only the "app" flows.
         type: boolean
         default: true
       flows:
@@ -49,18 +72,20 @@ on:
 permissions:
   contents: read
 
-# A push while a run is going waits for it (only the newest waiting push runs next), so a run of
-# small commits doesn't cancel every build before it finishes.
+# On a pull request a new push cancels the run before it: only the newest commit matters there.
+# Elsewhere a run waits for the one going (only the newest waiting run goes next), so the nightly
+# full run isn't cut short.
 concurrency:
   group: mobile-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
     shell: bash
 
 jobs:
-  # What this run does: on a push, everything; by hand, what the inputs ask for.
+  # What this run does: on a pull request or a push, the quick run; every night, the full run; by hand, what
+  # the inputs ask for.
   plan:
     name: plan
     runs-on: ubuntu-latest
@@ -69,13 +94,16 @@ jobs:
       apks: ${{ steps.plan.outputs.apks }}
       e2e: ${{ steps.plan.outputs.e2e }}
       desktop-shots: ${{ steps.plan.outputs.desktop-shots }}
+      groups: ${{ steps.plan.outputs.groups }}
+      scenarios: ${{ steps.plan.outputs.scenarios }}
     steps:
       - name: Decide which jobs run
         id: plan
         env:
           APKS: ${{ inputs.apks || 'all' }}
-          E2E: ${{ github.event_name == 'push' || inputs.e2e }}
-          SHOTS: ${{ github.event_name == 'push' || inputs.desktop-shots }}
+          E2E: ${{ github.event_name != 'workflow_dispatch' || inputs.e2e }}
+          SHOTS: ${{ github.event_name != 'workflow_dispatch' || inputs.desktop-shots }}
+          SCENARIOS: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.scenarios) }}
         run: |
           # demo: EXPO_PUBLIC_DEMO; abis: only what the APK is for, since each ABI is a whole native build.
           all='[
@@ -89,10 +117,19 @@ jobs:
             *) apks=$(jq -c 'map(select(.name == "edunex-plus-demo-release"))' <<< "$all") ;;
           esac
           if [ "$APKS" = none ] && [ "$E2E" != true ]; then apks='[]'; fi
+          # The emulators: "app" always; each scenario's same-data flows only on a full run.
+          groups='["app"]'
+          if [ "$SCENARIOS" = true ]; then
+            groups='["app", "signed-in", "edunex-only", "first-run", "check-in-open", "quiz", "after-class-counted",
+              "after-class-absent", "after-class-missing", "sick", "odd", "course-table-changed", "course-table-lost",
+              "course-table-blank", "timetable-unread", "edit"]'
+          fi
           {
             echo "apks=$apks"
             echo "e2e=$E2E"
             echo "desktop-shots=$SHOTS"
+            echo "groups=$(jq -c . <<< "$groups")"
+            echo "scenarios=$SCENARIOS"
           } | tee -a "$GITHUB_OUTPUT"
 
   apk:
@@ -130,8 +167,8 @@ jobs:
       - name: Set up Gradle (with its cache)
         uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
-          # The mobile branches are where these builds live, so they keep the cache warm too.
-          cache-read-only: false
+          # Only main writes the cache; pull requests read it.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
       - name: Install the phone app's packages
         # Metro resolves everything, ../src included, from mobile/node_modules: no root install.
         run: npm ci --no-audit --no-fund
@@ -214,23 +251,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group:
-          - app
-          - signed-in
-          - edunex-only
-          - first-run
-          - check-in-open
-          - quiz
-          - after-class-counted
-          - after-class-absent
-          - after-class-missing
-          - sick
-          - odd
-          - course-table-changed
-          - course-table-lost
-          - course-table-blank
-          - timetable-unread
-          - edit
+        group: ${{ fromJSON(needs.plan.outputs.groups) }}
     env:
       MAESTRO_VERSION: 2.12.0
       MAESTRO_CLI_NO_ANALYTICS: "1"
@@ -325,8 +346,8 @@ jobs:
   # The same-data score over every scenario that ran (check A in mobile/PROGRESS.md), in the run's summary.
   score:
     name: score
-    needs: [e2e]
-    if: ${{ !cancelled() }}
+    needs: [plan, e2e]
+    if: ${{ !cancelled() && needs.plan.outputs.scenarios == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
