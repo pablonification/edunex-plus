@@ -105,16 +105,20 @@ jobs:
           xcrun simctl boot "$device"
           xcrun simctl bootstatus "$device" -b
           xcrun simctl install "$device" "$app"
-          pid=$(xcrun simctl launch "$device" "$id" | awk '{print $NF}')
+          # The app's own output (React Native's errors among it) as it starts.
+          xcrun simctl launch --console-pty --terminate-running-process "$device" "$id" > "$out/console.txt" 2>&1 &
           sleep 30
           xcrun simctl io "$device" screenshot "$out/start.png"
-          xcrun simctl spawn "$device" log show --last 2m --style compact --predicate "process == \"$exe\"" > "$out/log.txt" 2>&1 || true
-          # Still running 30 seconds in: it didn't crash at start.
-          if ! kill -0 "$pid" 2>/dev/null; then
-            echo "::error::The app quit within 30 seconds of opening. The simulator's log is in the ios-simulator artifact."
+          xcrun simctl spawn "$device" log show --last 3m --style compact 2>/dev/null \
+            | grep -i -E "$exe|ReactNative|RCT|Expo|hermes" | tail -n 600 > "$out/log.txt" || true
+          # Still running 30 seconds in: it didn't crash at start. Otherwise iOS's crash report goes with the log.
+          if ! xcrun simctl spawn "$device" launchctl list | grep -q "$id"; then
+            cp ~/Library/Logs/DiagnosticReports/"$exe"*.ips "$out/" 2>/dev/null || true
+            echo "::error::The app quit within 30 seconds of opening. Its output, log and crash report are in the ios-simulator artifact."
+            tail -n 60 "$out/console.txt" || true
             exit 1
           fi
-          echo "The app is up after 30 seconds (process $pid)."
+          echo "The app is up after 30 seconds."
       - name: Upload the simulator's picture and log
         if: ${{ matrix.name == 'simulator' && !cancelled() }}
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
