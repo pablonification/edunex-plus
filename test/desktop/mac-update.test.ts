@@ -56,6 +56,12 @@ describe("the Mac update", () => {
     ]);
   });
 
+  it("is packed by the xz program on every core where it's installed, in blocks macOS 12's tar reads", () => {
+    const args = packArgs("/a/Edunex Plus.app", "/a/x.tar.xz", { xz: "/opt/homebrew/bin/xz" });
+    expect(args.slice(0, 3)).toEqual(["-c", "--use-compress-program", "/opt/homebrew/bin/xz -9 --threads=0 --block-size=64MiB"]);
+    expect(args).not.toContain("-J");
+  });
+
   it("is packed at xz level 1 when asked, for builds that publish nothing", () => {
     expect(packArgs("/a/Edunex Plus.app", "/a/x.tar.xz", { level: 1 })).toContain("xz:compression-level=1");
   });

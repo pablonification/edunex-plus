@@ -12,14 +12,14 @@
 // macOS checks an app: with a link lost on the way, the update would leave Students an app that
 // doesn't open.
 //
-// Only macOS's own tools, on the runner and on every Mac the app runs on (macOS 12 and later): ditto,
-// and tar (bsdtar), which writes and reads xz itself. Level 9 is all: `xz -9e` saves 0.1% more and
-// needs xz installed, more threads only make it bigger, and xz's newer filter for arm64 code is too
-// new for macOS 12's tar to read.
+// Unpacked with macOS's own tools, on every Mac the app runs on (macOS 12 and later): tar (bsdtar)
+// reads xz itself. Packed with xz itself where it's installed (the release workflow installs it), on
+// every core: in blocks of 64 MB, about 1% bigger than in one, and about three times as fast on three cores.
+// Without it, macOS's own tar packs it on one core. Level 9 is all: `-9e` saves 0.1% more, and xz's
+// newer filter for arm64 code is too new for macOS 12's tar to read.
 //
-// Level 9 takes about four minutes on a CI Mac; level 1 about half a minute, for a file a fifth bigger.
 // Builds that publish nothing (pushes to main, runs by hand) pass --quick: the same packing, unpacking
-// and signature check, at level 1. Releases leave it out.
+// and signature check, at level 1, a fifth bigger. Releases leave it out.
 //
 //   node scripts/package-mac-update.mjs release [--quick]
 import { execFile } from "node:child_process";
@@ -41,10 +41,17 @@ export function updateName(zip) {
 /**
  * tar's arguments to pack `app` into `out`: its links and modes as they are, and nothing macOS keeps
  * beside a file (extended attributes, ACLs, flags, ._ files), which is no part of the app or its signature.
+ * Packed by the xz program at `xz` on every core, or without it by tar on one.
  */
-export function packArgs(app, out, { level = 9 } = {}) {
-  const xz = ["-J", "--options", `xz:compression-level=${level}`];
-  return ["-c", ...xz, "--no-mac-metadata", "--no-xattrs", "--no-acls", "--no-fflags", "-f", out, "-C", path.dirname(app), path.basename(app)];
+export function packArgs(app, out, { level = 9, xz = null } = {}) {
+  const compress = xz ? ["--use-compress-program", `${xz} -${level} --threads=0 --block-size=64MiB`] : ["-J", "--options", `xz:compression-level=${level}`];
+  return ["-c", ...compress, "--no-mac-metadata", "--no-xattrs", "--no-acls", "--no-fflags", "-f", out, "-C", path.dirname(app), path.basename(app)];
+}
+
+/** Where the xz program is, or null where it isn't installed. */
+async function findXz() {
+  const { stdout } = await run("/bin/sh", ["-c", "command -v xz"]).catch(() => ({ stdout: "" }));
+  return stdout.trim() || null;
 }
 
 /** The one app in a folder an archive was unpacked into. */
@@ -63,7 +70,7 @@ export async function packMacUpdate(zip, out, { level = 9 } = {}) {
   try {
     const fromZip = path.join(work, "zip");
     await run("/usr/bin/ditto", ["-x", "-k", zip, fromZip]);
-    await run("/usr/bin/tar", packArgs(await appIn(fromZip), out, { level }));
+    await run("/usr/bin/tar", packArgs(await appIn(fromZip), out, { level, xz: await findXz() }));
     await rm(fromZip, { recursive: true, force: true });
     const fromTar = path.join(work, "tar");
     await mkdir(fromTar);
@@ -87,7 +94,7 @@ export async function packMacUpdatesIn(folder, { level = 9 } = {}) {
   const yml = await readFile(info, "utf8");
   const zips = listedFiles(yml).filter((name) => name.endsWith("-mac.zip"));
   if (!zips.length) throw new Error(`${info} lists no Mac zip`);
-  // Both kinds of Mac at once: xz packs on one core, and the runner has more.
+  // Both kinds of Mac at once, where one build made both: without the xz program, each packs on one core.
   const packed = await Promise.all(
     zips.map(async (zip) => {
       const name = updateName(zip);

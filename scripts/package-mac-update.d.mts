@@ -4,6 +4,6 @@ export declare function updateName(zip: string): string;
 export interface PackOptions {
   level?: number;
 }
-export declare function packArgs(app: string, out: string, options?: PackOptions): string[];
+export declare function packArgs(app: string, out: string, options?: PackOptions & { xz?: string | null }): string[];
 export declare function packMacUpdate(zip: string, out: string, options?: PackOptions): Promise<{ sha512: string; size: number }>;
 export declare function packMacUpdatesIn(folder: string, options?: PackOptions): Promise<void>;
