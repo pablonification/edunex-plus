@@ -1,0 +1,55 @@
+# W10 (PROGRESS.md): motion that's joyful where it's earned. Handing in a Task (the answer, a file from Android's own
+# picker: jawaban.pdf in Downloads, as use.yaml) ends on a check that draws itself, with a haptic.
+# Fails on round 1 (9395cea): the hand-in ended on the status line changing, nothing else.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- tapOn:
+    id: tab.tasks
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+- tapOn:
+    id: row.task.117003
+- extendedWaitUntil:
+    visible:
+      id: screen.task
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: input.answer
+    centerElement: true
+- tapOn:
+    id: input.answer
+- inputText: "Jawaban"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    centerElement: true
+- tapOn:
+    id: action.attach
+- extendedWaitUntil:
+    visible: "jawaban.pdf"
+    timeout: 20000
+- tapOn: "jawaban.pdf"
+- extendedWaitUntil:
+    visible: "Belum disimpan.*"
+    timeout: 20000
+- tapOn:
+    id: action.submit
+- extendedWaitUntil:
+    visible:
+      id: action.submitAnyway
+    timeout: 10000
+- tapOn:
+    id: action.submitAnyway
+- extendedWaitUntil:
+    visible:
+      id: moment.done
+    timeout: 20000

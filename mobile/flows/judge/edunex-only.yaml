@@ -1,0 +1,19 @@
+# Edunex without SIX, as the desktop demo's pictures 36-37 show it: Beranda and Jadwal. Opened by
+# judge-light.yaml and judge-dark.yaml on the edunex-only scenario.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-36-tanpa-six-beranda
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: schedule
+- takeScreenshot: ${THEME}-37-tanpa-six-jadwal

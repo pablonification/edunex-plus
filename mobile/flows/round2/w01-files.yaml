@@ -1,0 +1,67 @@
+# W1 (round 2): a module's files open in Android's own viewer, and one no app on the phone opens says why on its row,
+# with the way forward. The demo with EDUNEX_DEMO_FILES=1: II4091's Modul 3 holds its PDF slides, a Word file (no app
+# on the lab's emulators opens one) and a PDF its storage names with no extension and no type (only its first bytes
+# say it's a PDF). Drive's PDF viewer is on the emulator image. Then the Pengantar note's picture shows.
+# Round 1 (9395cea): the PDF downloads, and every tap after opens nothing and says nothing (BASELINE.md, seen 2).
+appId: io.github.pablonification.edunexplus.demo
+name: "w01 files open or say why"
+---
+- clearState
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FILES=1"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 120000
+# Modul 3 of II4091, by the address a link or an alert names it.
+- openLink: "edunexplusdemo://course/II4091?module=450219"
+- extendedWaitUntil:
+    visible: "Slide Pengantar Proposal TA"
+    timeout: 30000
+# The PDF: downloaded, then open in Drive's viewer.
+- tapOn: "Slide Pengantar Proposal TA"
+- extendedWaitUntil:
+    visible:
+      id: "com.google.android.apps.docs:id/.*"
+    timeout: 30000
+- takeScreenshot: w01-1-pdf-in-viewer
+- back
+# The Word file: no app here opens it, so the row says so, with Bagikan and Buka di Edunex.
+- extendedWaitUntil:
+    visible: "Rubrik Penilaian Proposal"
+    timeout: 10000
+- tapOn: "Rubrik Penilaian Proposal"
+- extendedWaitUntil:
+    visible: "Belum ada aplikasi di HP ini yang bisa membuka.*"
+    timeout: 20000
+- assertVisible:
+    id: action.fileShare
+- assertVisible:
+    id: action.fileEdunex
+- takeScreenshot: w01-2-docx-says-why
+# The file with no extension and no type: its first bytes say PDF, so the viewer opens it.
+- scrollUntilVisible:
+    element: "Contoh Proposal Terbaik"
+- tapOn: "Contoh Proposal Terbaik"
+- extendedWaitUntil:
+    visible:
+      id: "com.google.android.apps.docs:id/.*"
+    timeout: 30000
+- takeScreenshot: w01-3-bare-pdf-in-viewer
+- back
+# The course, then its Pengantar: the note's picture shows (round 1: "Berkas ini tidak bisa ditampilkan").
+- openLink: "edunexplusdemo://course/II4091"
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: row.module.2-catatan
+- tapOn:
+    id: row.module.2-catatan
+- extendedWaitUntil:
+    visible: "Course Tokens : FIXTUR"
+    timeout: 10000
+- waitForAnimationToEnd
+- assertNotVisible: "Berkas ini tidak bisa ditampilkan di aplikasi."
+- takeScreenshot: w01-4-note-picture

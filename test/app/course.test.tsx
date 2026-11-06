@@ -650,7 +650,8 @@ describe("meetings", () => {
     const card = above().find((el) => el.classList.contains("shadow-raised"))!;
     expect(card.textContent).toContain("Sedang berlangsung");
     // Today's window, closing at 09:30, not last week's at 23:00 tomorrow.
-    expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \(\d+ mnt lagi\)$/)]);
+    // About an hour left, however long the first sync took in pretend time ("59 mnt", "1 jam 0 mnt").
+    expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \((?:\d+|1 jam 0) mnt lagi\)$/)]);
     expect(card.textContent).not.toContain("23:00");
     // Last week's window keeps its own class and close, quietly, with the way to record it.
     const line = above().find((el) => el.textContent?.startsWith("Presensi Edunex masih dibuka · Kam, 8 Okt, 08:00–10:00 · tutup besok, 23:00"));
@@ -672,7 +673,8 @@ describe("meetings", () => {
     });
     await openCourse("PL3002", { world, six: true });
     expect(document.querySelector("main .shadow-raised")?.textContent).toContain("Sedang berlangsung");
-    expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \(\d+ mnt lagi\)$/)]);
+    // About an hour left, however long the first sync took in pretend time ("59 mnt", "1 jam 0 mnt").
+    expect(countdowns()).toEqual([expect.stringMatching(/^tutup 09:30 \((?:\d+|1 jam 0) mnt lagi\)$/)]);
     // Never offered again as the lab's.
     expect(screen!.text()).not.toContain("Presensi Edunex masih dibuka");
   });

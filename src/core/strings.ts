@@ -3,7 +3,10 @@
 // keeps its text in its own file under ./strings. "{name}" placeholders are
 // filled by translate(). Academic terms follow the glossary in
 // docs/design-system.md: SKS, IPK, IP, KRS and UKT stay as they are.
+// The phone says a few of them its own way (no computer, no window, no click):
+// ./strings/wording.native.ts, which Metro takes in place of ./strings/wording.ts.
 
+import { pluralOf } from "./intl";
 import { academicStrings } from "./strings/academic";
 import { alertsStrings } from "./strings/alerts";
 import { attendanceStrings } from "./strings/attendance";
@@ -17,6 +20,11 @@ import { highlightStrings } from "./strings/highlights";
 import { homeStrings } from "./strings/home";
 import { itbStrings } from "./strings/itb";
 import { licencesStrings } from "./strings/licences";
+import { mobileStrings } from "./strings/mobile";
+import { mobileAcademicStrings } from "./strings/mobile-academic";
+import { mobileCourseStrings, mobileKuliahStrings, mobileModuleStrings } from "./strings/mobile-kuliah";
+import { mobileSettingsStrings } from "./strings/mobile-settings";
+import { mobileTasksStrings } from "./strings/mobile-tasks";
 import { pageNoteStrings } from "./strings/page-notes";
 import { phoneStrings } from "./strings/phone";
 import { planStrings } from "./strings/plan";
@@ -29,6 +37,7 @@ import { sixRecordsStrings } from "./strings/six-records";
 import { snoozeStrings } from "./strings/snooze";
 import { tasksStrings } from "./strings/tasks";
 import { updatesStrings } from "./strings/updates";
+import { wording } from "./strings/wording";
 
 export type { Entry } from "./strings/entry";
 
@@ -56,6 +65,13 @@ export const STRINGS = {
   ...highlightStrings,
   ...pageNoteStrings,
   ...reportStrings,
+  ...mobileStrings,
+  ...mobileKuliahStrings,
+  ...mobileCourseStrings,
+  ...mobileModuleStrings,
+  ...mobileTasksStrings,
+  ...mobileAcademicStrings,
+  ...mobileSettingsStrings,
   ...guideStrings,
 } as const satisfies Record<string, Entry>;
 
@@ -63,11 +79,12 @@ export type StringKey = keyof typeof STRINGS;
 export type Lang = "id" | "en";
 export type Vars = Record<string, string | number>;
 
-const plural = { id: new Intl.PluralRules("id"), en: new Intl.PluralRules("en") };
+const plural = { id: pluralOf("id"), en: pluralOf("en") };
 
 export function translate(lang: Lang, key: StringKey, vars?: Vars): string {
-  const entry: Entry = STRINGS[key];
+  const desktop: Entry = STRINGS[key];
+  const entry = wording[key] ?? desktop;
   let text = entry[lang];
-  if (typeof text !== "string") text = plural[lang].select(Number(vars?.count ?? 0)) === "one" ? text.one : text.other;
+  if (typeof text !== "string") text = plural[lang](Number(vars?.count ?? 0)) === "one" ? text.one : text.other;
   return vars ? text.replace(/\{(\w+)\}/g, (all, name: string) => (name in vars ? String(vars[name]) : all)) : text;
 }

@@ -1,0 +1,59 @@
+// Reading Edunex and SIX while the app is closed: Android's WorkManager wakes the app every 15
+// minutes or so (expo-background-task), the engine reads what's due, and its alerts go out as
+// notifications, as the desktop's tray does all day. With the app open, the same: only what's due.
+// The demo never runs it: its world is make-believe.
+import * as BackgroundTask from "expo-background-task";
+import * as TaskManager from "expo-task-manager";
+import { AppState } from "react-native";
+import { host } from "./host";
+import { DEMO } from "./version";
+import { updateWidgets } from "./widget";
+
+export const SYNC_TASK = "edunex-plus.sync";
+/** Android won't wake an app sooner than every 15 minutes. */
+const EVERY_MINUTES = 15;
+
+if (!DEMO)
+  TaskManager.defineTask(SYNC_TASK, async () => {
+    try {
+      console.info("[background] sync starts");
+      const current = await host();
+      if (current.running()) {
+        await current.engine.refreshDue();
+        await current.reminders.settled();
+        console.info("[background] synced, the app open");
+        return BackgroundTask.BackgroundTaskResult.Success;
+      }
+      // Woken with the app closed: one round of every feed that's due (a feed already running isn't run twice), its
+      // alerts sent at once (JS timers may not run in a sync with no screen, so nothing waits for its grouping
+      // window), then quiet again.
+      // Each step in the system log ("[background] …"), so a sync that stops says where.
+      console.info("[background] woken, the app closed");
+      current.start();
+      // Only what's due: a page read ten minutes ago isn't read again (SIX answers one page every 2 s).
+      await current.engine.refreshDue();
+      console.info("[background] read");
+      current.engine.flushAlerts();
+      // What this round planned is booked with Android before the app goes quiet (./reminders.ts).
+      await current.reminders.settled();
+      console.info("[background] reminders booked");
+      // The home-screen widget shows what this round read.
+      await updateWidgets(current).catch(() => undefined);
+      // The Student opened the app meanwhile: its screens keep the feeds going.
+      if (AppState.currentState !== "active") current.stop();
+      console.info("[background] synced, the app closed");
+      return BackgroundTask.BackgroundTaskResult.Success;
+    } catch (error) {
+      console.error("[background] sync failed:", error);
+      return BackgroundTask.BackgroundTaskResult.Failed;
+    }
+  });
+
+/** Asks Android to wake the app for syncing; once is enough, it survives restarts. */
+export async function scheduleBackgroundSync(): Promise<void> {
+  if (DEMO) return;
+  const status = await BackgroundTask.getStatusAsync();
+  if (status !== BackgroundTask.BackgroundTaskStatus.Available) return;
+  if (await TaskManager.isTaskRegisteredAsync(SYNC_TASK)) return;
+  await BackgroundTask.registerTaskAsync(SYNC_TASK, { minimumInterval: EVERY_MINUTES });
+}

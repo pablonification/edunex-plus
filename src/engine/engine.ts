@@ -19,7 +19,8 @@ import {
 } from "../core/models";
 import { isNewerRelease } from "../core/updates";
 import { AlertCenter, type AlertNotice } from "./alerts/center";
-import type { Detector } from "./alerts/detector";
+import { sixClassStart } from "./alerts/check-in";
+import type { Detector, PlannedAlert } from "./alerts/detector";
 import { DETECTORS } from "./alerts/detectors";
 import { type Ntfy, PhoneChannel } from "./alerts/phone";
 import { AppLog, errorLine } from "./app-log";
@@ -27,7 +28,7 @@ import type { Clock } from "./clock";
 import { ActionNeeded, EngineError, isEngineError, PartChanged } from "./errors";
 import { Pace } from "./http/pace";
 import type { Transport } from "./http/transport";
-import { type FeedHistory, KeptPages } from "./report/kept-pages";
+import { type FeedHistory, type FeedRead, KeptPages, UNNOTED } from "./report/kept-pages";
 import { type Noted, Outbox, type Sent } from "./report/outbox";
 import { relayBase } from "./report/relay";
 import { buildReport } from "./report/report";
@@ -52,16 +53,40 @@ export interface EngineDeps {
   alert?(notice: AlertNotice): void;
   /** Alerts on the Student's phone through ntfy (src/desktop/ntfy.ts). Without it, no phone can be linked. */
   phone?: { ntfy: Ntfy; newTopic?: () => string };
+  /**
+   * At every replan, the planned alerts still to come (not raised, not muted, ahead), as ntfy gets
+   * them: the phone app books them as its own notifications (mobile/src/host/reminders.ts).
+   */
+  upcoming?(planned: readonly PlannedAlert[]): void;
   /** Defaults to every alert detector. */
   detectors?: readonly Detector[];
+  /**
+   * A reminder at the start of every class SIX counts, to press Tandai Hadir (alerts/check-in.ts,
+   * sixClassStart): the phone app, which can't read SIX with the app closed. Off on the desktop,
+   * which reads SIX all class while it runs.
+   */
+  checkInReminders?: boolean;
   /** Asks GitHub once a day for a newer release (packaged builds only). */
   checkForUpdates?: boolean;
+  /** Only releases carrying a file this matches are offered (the phone's APK); every release when unset. */
+  releaseAsset?: RegExp;
   /** The app's own log, which main writes to as well (the window's errors, the updater). One of its own without it. */
   log?: AppLog;
   /** The maintainer's report relay (ADR 0014); REPORT_RELAY_URL by default. */
   relay?: string;
   /** The computer's system, as a report that sends itself names it ("macOS 15.3 (arm64)"). */
   os?(): string;
+  /**
+   * Starts like an app opened many times a day (the phone): the saved data shows, the sign-in checks run at once, and
+   * every other feed waits until it's due by its own cadence, counted from its last good read (saved with the app's
+   * state). Off, a start reads everything again (the desktop, which starts once and runs all day).
+   */
+  startDueOnly?: boolean;
+  /**
+   * Hands the JS thread to the screens for a moment, in the middle of long work: the phone, where the engine and the
+   * screens share one thread. Unset on the desktop, whose engine has a process of its own.
+   */
+  yieldToScreens?(): Promise<void>;
 }
 
 export interface Engine {
@@ -83,6 +108,10 @@ export interface Engine {
    * (SIX's count hourly, Edunex's Presence every half hour). At most once a minute per source.
    */
   recheckAttendance(source: "six" | "edunex"): Promise<void>;
+  /** Reads what's due now (a phone's sync with the app closed): the sign-in checks, and each feed whose cadence has come round. */
+  refreshDue(): Promise<void>;
+  /** Sends the alerts waiting to be grouped now (a phone's sync with the app closed, about to stop). */
+  flushAlerts(): void;
   /** Runs a write the Student asked for (save a draft, submit) with the source's current session. */
   act(source: SourceId, action: string, input: unknown): Promise<unknown>;
   /** Keeps something the Student entered (course weights, a study plan) on this computer: a "local.*" dataset. */
@@ -90,6 +119,8 @@ export interface Engine {
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
   /** The Student opened the alert history. */
   markAlertsRead(): Promise<void>;
+  /** Works the timed alerts out again now, not at the next 5-minute check: the phone app, once an alert setting changed. */
+  planAlerts(): void;
   /** Asks GitHub for a newer release now ("Periksa pembaruan"); "off" where the app never asks (development, the demo). */
   checkForUpdates(): Promise<UpdateCheckResult>;
   /**
@@ -152,6 +183,8 @@ const levelOf = (error: unknown) =>
   isEngineError(error, "Offline") || isEngineError(error, "Unauthorized") || isEngineError(error, "ActionNeeded") ? "warn" : "error";
 
 /** When each feed last read well and what it stores (report/kept-pages.ts), as saved with the state. */
+/** When each feed last read without an error, by its name. */
+const LastReads = z.record(z.string().max(60), z.number());
 const FeedHistories = z.record(z.string().max(60), z.object({ fills: z.array(z.string().max(60)).max(30), goodAt: z.number().nullable() }));
 
 /** Where each source keeps the rows its reads left out. */
@@ -189,7 +222,7 @@ export function createEngine(deps: EngineDeps): Engine {
   const alerts = new AlertCenter({
     clock,
     storage,
-    detectors: deps.detectors ?? DETECTORS,
+    detectors: [...(deps.detectors ?? DETECTORS), ...(deps.checkInReminders ? [sixClassStart] : [])],
     get: (name) => store.get(name),
     fetchedAt: (name) => store.fetchedAt(name),
     set: (name, value) => store.set(name, value, clock.now()),
@@ -203,7 +236,10 @@ export function createEngine(deps: EngineDeps): Engine {
         phone.deliver(notice);
       }
     },
-    upcoming: (planned) => phone.upcoming(planned),
+    upcoming: (planned) => {
+      phone.upcoming(planned);
+      deps.upcoming?.(planned);
+    },
     forget: async () => void (await phone.disconnect()),
     log: log.for("alerts"),
   });
@@ -223,6 +259,16 @@ export function createEngine(deps: EngineDeps): Engine {
   const pages = new Map<string, readonly DatasetName[]>();
   /** Feeds whose page has a part that can change alone (FeedSpec.part): what that part fills. */
   const parts = new Map<string, readonly DatasetName[]>();
+  /** Each feed's cadence (FeedSpec.every), and when it last read without an error (saved with the state when startDueOnly). */
+  const cadences = new Map<string, number>();
+  const lastReads = new Map<string, number>();
+  /** How long a feed may still wait: 0 when it's due (never read, or its cadence has come round), or it's a sign-in check. */
+  const freshFor = (name: string): number => {
+    if ([...sources.values()].some((source) => source.liveness === name)) return 0;
+    const at = lastReads.get(name);
+    const every = cadences.get(name);
+    return at === undefined || every === undefined ? 0 : Math.max(0, at + every - clock.now());
+  };
   /** The pages behind each feed's latest read that went wrong, for a report. In memory only. */
   const kept = new KeptPages({ kept: (problem) => outbox.onKept(problem), forgotten: (problem, readWell) => outbox.onForgotten(problem, readWell) });
   /** Each source's current session number. Work started under an earlier one lands nowhere. */
@@ -272,6 +318,7 @@ export function createEngine(deps: EngineDeps): Engine {
         version: deps.version,
         userAgent,
         log: log.for("update"),
+        asset: deps.releaseAsset,
         publish: async (notice) => {
           if (notice) await store.set("app.update", notice, clock.now());
           else await store.remove("app.update");
@@ -282,7 +329,16 @@ export function createEngine(deps: EngineDeps): Engine {
   const generation = (source: SourceId) => generations.get(source) ?? 0;
 
   async function saveState(): Promise<void> {
-    await storage.write("state.json", JSON.stringify({ format: STATE_FORMAT, settings, statuses: [...statuses.values()], feeds: kept.histories() }));
+    await storage.write(
+      "state.json",
+      JSON.stringify({
+        format: STATE_FORMAT,
+        settings,
+        statuses: [...statuses.values()],
+        feeds: kept.histories(),
+        ...(deps.startDueOnly ? { lastReads: Object.fromEntries(lastReads) } : {}),
+      }),
+    );
   }
 
   /** Whose data each source holds now (their NIM). */
@@ -386,6 +442,8 @@ export function createEngine(deps: EngineDeps): Engine {
       scheduler.remove(name);
       outcomes.delete(name);
       unreachableAt.delete(name);
+      // A new session reads everything afresh.
+      lastReads.delete(name);
     }
   }
 
@@ -409,6 +467,7 @@ export function createEngine(deps: EngineDeps): Engine {
     else pages.delete(spec.name);
     if (spec.part) parts.set(spec.name, spec.part);
     else parts.delete(spec.name);
+    cadences.set(spec.name, spec.every);
     scheduler.add({
       name: spec.name,
       every: spec.every,
@@ -418,10 +477,10 @@ export function createEngine(deps: EngineDeps): Engine {
         const current = () => generation(source) === session;
         // Only a signed-in Student's pages are worth a report (ITB's public pages are the same for everyone). A page whose
         // part can change alone is reported for what that part fills, so the screens listing it can send it.
-        const read = () => spec.run(current);
+        const read = (notes: FeedRead) => spec.run(current, notes);
         try {
           if (sources.get(source)?.session) await kept.during({ feed: spec.name, shows: spec.shows ?? spec.part, now: () => clock.now(), current }, read);
-          else await read();
+          else await read(UNNOTED);
         } catch (error) {
           if (current()) {
             log.add(levelOf(error), spec.name, errorLine(error));
@@ -431,7 +490,9 @@ export function createEngine(deps: EngineDeps): Engine {
         }
         if (current()) {
           log.add("info", spec.name, "ok");
+          lastReads.set(spec.name, clock.now());
           await settle(spec.name, null);
+          if (deps.startDueOnly) await saveState();
         }
       },
     });
@@ -459,8 +520,6 @@ export function createEngine(deps: EngineDeps): Engine {
         async request(request) {
           const sent = ++tick;
           const response = await deps.transport.request(request);
-          if (request.method === "GET" && (response.status < 300 || response.status >= 400))
-            kept.saw({ url: request.url, status: response.status, body: response.body, check: request.check });
           if (response.status < 500 && response.status !== 429) answered.set(source, Math.max(answered.get(source) ?? 0, sent));
           return response;
         },
@@ -482,20 +541,23 @@ export function createEngine(deps: EngineDeps): Engine {
     return { name: notes, value: skipped.length ? { ...others, [name]: [...skipped] } : others };
   }
 
-  /** What a source reaches during one session. Writes from an ended session are dropped. */
-  function contextFor(source: SourceId): SourceContext {
-    const session = generation(source);
+  /**
+   * What a source reaches during one session. Writes from an ended session are dropped. `read`: the
+   * feed run whose stores are noted for its report (SourceContext.for), none by default.
+   */
+  function contextFor(source: SourceId, session = generation(source), read: FeedRead = UNNOTED): SourceContext {
     const current = () => generation(source) === session;
     return {
       transport: transportFor(source),
       clock,
       userAgent,
+      breathe: deps.yieldToScreens,
       settings: () => settings,
       get: (name) => store.get(name),
       set: async (name, value, skipped = []) => {
         if (!current()) return false;
         const changed = await store.set(name, value, clock.now());
-        kept.leftOut(name, skipped);
+        read.stored(name, skipped);
         if (skipped.length) log.add("warn", name, skipped.length === 1 ? "1 row left out" : `${skipped.length} rows left out`);
         // Read again but unchanged: plans that look at when it was read still need to know.
         if (!changed) alerts.touched(name);
@@ -511,6 +573,7 @@ export function createEngine(deps: EngineDeps): Engine {
       },
       runNow: (match) => scheduler.runNow((name) => sourceOf(name) === source && match(name)),
       pace,
+      for: (run) => contextFor(source, session, run),
     };
   }
 
@@ -564,6 +627,9 @@ export function createEngine(deps: EngineDeps): Engine {
           }
           const feeds = FeedHistories.safeParse(saved.feeds ?? {});
           if (feeds.success) kept.remember(feeds.data as Record<string, FeedHistory>);
+          const reads = LastReads.safeParse(saved.lastReads ?? {});
+          // A read "later" than now (the phone's clock was set back) counts as due.
+          if (reads.success && deps.startDueOnly) for (const [name, at] of Object.entries(reads.data)) if (at <= clock.now()) lastReads.set(name, at);
         }
       } catch {
         // Unreadable state: start from defaults.
@@ -587,7 +653,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     start() {
-      scheduler.start();
+      scheduler.start(deps.startDueOnly ? (spec) => freshFor(spec.name) : undefined);
       alerts.start();
       updates?.start();
     },
@@ -691,6 +757,14 @@ export function createEngine(deps: EngineDeps): Engine {
       await scheduler.runNow((name) => ATTENDANCE_FEEDS[source].includes(name));
     },
 
+    async refreshDue() {
+      await scheduler.runNow((name) => freshFor(name) === 0);
+    },
+
+    flushAlerts() {
+      alerts.flushNow();
+    },
+
     async act(id, name, input) {
       const source = sources.get(id);
       const action = source?.actions?.[name];
@@ -714,6 +788,10 @@ export function createEngine(deps: EngineDeps): Engine {
 
     markAlertsRead() {
       return alerts.markRead();
+    },
+
+    planAlerts() {
+      alerts.planNow();
     },
 
     async checkForUpdates() {

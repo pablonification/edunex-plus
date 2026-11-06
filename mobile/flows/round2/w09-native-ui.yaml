@@ -1,0 +1,58 @@
+# W9 (PROGRESS.md): Android's own controls. Settings' switches are Material's MaterialSwitch (checked state from
+# Android itself), and a choice (Tema) is picked from a native bottom sheet, its value shown on the row.
+# Fails on round 1 (9395cea): Tema was three JS segments in the page, no sheet.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- tapOn:
+    id: action.account
+- extendedWaitUntil:
+    visible:
+      id: screen.settings
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: segment.theme
+    centerElement: true
+- tapOn:
+    id: segment.theme
+- extendedWaitUntil:
+    visible:
+      id: segment.theme.dark
+    timeout: 10000
+- tapOn:
+    id: segment.theme.dark
+- extendedWaitUntil:
+    visible: ".*Gelap.*"
+    timeout: 10000
+- tapOn:
+    id: segment.theme
+- extendedWaitUntil:
+    visible:
+      id: segment.theme.system
+    timeout: 10000
+- tapOn:
+    id: segment.theme.system
+- scrollUntilVisible:
+    element:
+      id: switch.alert.newTask
+    direction: UP
+    centerElement: true
+- assertVisible:
+    id: switch.alert.newTask
+    checked: true
+- tapOn:
+    id: switch.alert.newTask
+- assertVisible:
+    id: switch.alert.newTask
+    checked: false
+- tapOn:
+    id: switch.alert.newTask
+- assertVisible:
+    id: switch.alert.newTask
+    checked: true

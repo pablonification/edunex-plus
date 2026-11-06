@@ -14,7 +14,13 @@
   "overrides": [
     { "includes": ["src/**"], "plugins": ["./biome-plugins/no-em-dash-copy.grit"] },
     { "includes": ["src/core/strings/**"], "plugins": ["./biome-plugins/no-semicolon-copy.grit"] },
-    { "includes": ["scripts/demo/**"], "linter": { "rules": { "performance": { "useDomNodeTextContent": "off" } } } }
+    { "includes": ["scripts/demo/**"], "linter": { "rules": { "performance": { "useDomNodeTextContent": "off" } } } },
+    {
+      "includes": ["mobile/src/**"],
+      "linter": {
+        "rules": { "correctness": { "noReactNativeRawText": { "level": "error", "options": { "skip": ["Meta", "Pill", "Quiet"] } } } }
+      }
+    }
   ],
   "linter": {
     "enabled": true,

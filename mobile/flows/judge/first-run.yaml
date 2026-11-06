@@ -1,0 +1,35 @@
+# The first run (W15, round 2): the one welcome screen, the sign-in handing back, Beranda filling in with the first
+# read's progress in the top bar, the summary card once the read is in, and the summary it opens. Opened by
+# judge-light.yaml and judge-dark.yaml on the first-run scenario.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: action.signIn
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-32-pertama-selamat-datang
+- tapOn:
+    id: action.signIn
+# Beranda comes as soon as Edunex is in: its own shape while the semester is read, the first read's line under the
+# greeting. (The tabs sit under the welcome from the start, so tab.home alone caught the welcome still signing in.)
+- extendedWaitUntil:
+    visible:
+      id: status.firstRead
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-33-pertama-beranda-mengisi
+- extendedWaitUntil:
+    visible:
+      id: card.firstScan
+    timeout: 600000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-34-pertama-siap
+- tapOn:
+    id: action.firstScan.open
+- extendedWaitUntil:
+    visible:
+      id: screen.firstScan
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: ${THEME}-35-pertama-temuan

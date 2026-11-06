@@ -1,0 +1,10 @@
+# From Beranda to the courses tab, at its top (jank.sh scrolls it after): Jadwal opens on today's agenda.
+appId: io.github.pablonification.edunexplus.demo
+---
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 60000
+- tapOn:
+    id: tab.courses
+- waitForAnimationToEnd

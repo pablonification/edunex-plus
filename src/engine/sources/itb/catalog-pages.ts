@@ -3,9 +3,12 @@
 // tabs: required courses by semester, specializations, minors,
 // multidisciplinary packages and its own course catalog. A page that doesn't
 // look the way it did when this was written is a vendor change.
-import { type Cheerio, type CheerioAPI, load } from "cheerio";
+//
+// A program's page is up to 320 KB (every program's minors are on each one): it's read in slices (../../html-slices.ts).
+import { type Cheerio, type CheerioAPI, load } from "cheerio/slim";
 import type { CatalogMinor, CatalogTrack } from "../../../core/models";
 import { EngineError } from "../../errors";
+import { breaks, parseInSlices } from "../../html-slices";
 
 export interface ListedProgram {
   id: string;
@@ -145,27 +148,38 @@ function readCourseTable($: CheerioAPI, table: Selection, where: string, courses
 }
 
 /** The named panels of a tab ("Keamanan dan Privasi Siber (12 SKS)" with its courses). */
-function readPanels($: CheerioAPI, pane: string, courses: PageCourse[]): { id: string; title: string; sks: number; courses: string[] }[] {
-  return $(`#${pane} .panel`)
-    .map((_, panel) => {
-      const raw = clean($(panel).find(".panel-title").first().text());
-      const head = /^(.*?)\s*\((\d+) SKS\)$/.exec(raw);
-      if (!head) throw changed(`${pane}: "${raw}" has no SKS`);
-      const table = $(panel).find("table").first();
-      const id = /(\d+)$/.exec($(panel).parent().attr("id") ?? "")?.[1] ?? "";
-      return { id, title: head[1]!, sks: Number(head[2]), courses: table.length ? readCourseTable($, table, `${pane} "${head[1]}"`, courses) : [] };
-    })
-    .get();
+async function readPanels(
+  $: CheerioAPI,
+  pane: string,
+  courses: PageCourse[],
+  breathe: () => Promise<void>,
+): Promise<{ id: string; title: string; sks: number; courses: string[] }[]> {
+  const panels: { id: string; title: string; sks: number; courses: string[] }[] = [];
+  for (const panel of $(`#${pane} .panel`).toArray()) {
+    const raw = clean($(panel).find(".panel-title").first().text());
+    const head = /^(.*?)\s*\((\d+) SKS\)$/.exec(raw);
+    if (!head) throw changed(`${pane}: "${raw}" has no SKS`);
+    const table = $(panel).find("table").first();
+    const id = /(\d+)$/.exec($(panel).parent().attr("id") ?? "")?.[1] ?? "";
+    panels.push({ id, title: head[1]!, sks: Number(head[2]), courses: table.length ? readCourseTable($, table, `${pane} "${head[1]}"`, courses) : [] });
+    await breathe();
+  }
+  return panels;
 }
 
-/** One program's page. */
-export function readProgramPage(html: string): ProgramPage {
-  const $ = load(html);
+/** One program's page. `pause`: lets the screens draw between slices of the work (../../html-slices.ts). */
+export async function readProgramPage(html: string, pause?: () => Promise<void>): Promise<ProgramPage> {
+  const breathe = breaks(pause);
+  const $ = await parseInSlices(html, breathe);
   for (const pane of ["wajib", "spesialisasi", "minor", "katalog"]) if ($(`#${pane}`).length === 0) throw changed(`program page has no "${pane}" tab`);
   const courses: PageCourse[] = [];
   const required = readRequired($, courses);
-  const tracks = (pane: string) => readPanels($, pane, courses).map(({ title, sks, courses: codes }) => ({ name: title, sks, courses: codes }));
-  const minors = readPanels($, "minor", courses).map(({ id, title, sks, courses: codes }) => {
+  await breathe();
+  const tracks = async (pane: string) =>
+    (await readPanels($, pane, courses, breathe)).map(({ title, sks, courses: codes }) => ({ name: title, sks, courses: codes }));
+  const specializations = await tracks("spesialisasi");
+  const multidisciplinary = await tracks("multidisiplin");
+  const minors = (await readPanels($, "minor", courses, breathe)).map(({ id, title, sks, courses: codes }) => {
     // "Matematika - Program Minor Matematika": the offering program, then the package.
     const at = title.indexOf(" - ");
     if (at < 0 || !id) throw changed(`minor "${title}" doesn't name its program`);
@@ -185,5 +199,5 @@ export function readProgramPage(html: string): ProgramPage {
   });
   // No row under the columns: a new program with no courses of its own yet, as its required courses.
 
-  return { required, specializations: tracks("spesialisasi"), multidisciplinary: tracks("multidisiplin"), minors, catalog, courses: [...catalog, ...courses] };
+  return { required, specializations, multidisciplinary, minors, catalog, courses: [...catalog, ...courses] };
 }

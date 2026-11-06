@@ -115,6 +115,9 @@ jobs:
           persist-credentials: false
       - name: Set up Node and packages
         uses: ./.github/actions/setup
+      # test/mobile reads the phone app's code, whose tsconfig extends Expo's: its packages too.
+      - name: Install the phone app's packages
+        run: npm ci --prefix mobile --no-audit --no-fund --ignore-scripts
       - name: Run a third of the tests
         # Failures become notes on their lines; the test job's summary replaces Vitest's own table.
         env:
@@ -280,4 +283,11 @@ jobs:
             pkg:npm/@img/sharp-libvips-linux-s390x, pkg:npm/@img/sharp-libvips-linux-x64,
             pkg:npm/@img/sharp-libvips-linuxmusl-arm64, pkg:npm/@img/sharp-libvips-linuxmusl-x64,
             pkg:npm/@img/sharp-wasm32, pkg:npm/@img/sharp-win32-arm64, pkg:npm/@img/sharp-win32-ia32,
-            pkg:npm/@img/sharp-win32-x64
+            pkg:npm/@img/sharp-win32-x64,
+            pkg:npm/big-integer, pkg:npm/jsonify, pkg:npm/unicode-match-property-value-ecmascript, pkg:npm/xmlbuilder
+          # Those last four come with the phone app's build tools (Babel, Expo's config plugins and command line): public domain or
+          # Unicode's data licence, both permissive, just not in the list above.
+          # Expo's command line (mobile/) keeps its own zod 3 for its development server's DevTools plugin schema.
+          # The advisory (oversized collections can exhaust memory) is fixed only in zod 4, which that code doesn't
+          # use; it runs on the developer's computer, never in the APK, and never sees a Student's data.
+          allow-ghsas: GHSA-mrhx-c7xc-m3w5

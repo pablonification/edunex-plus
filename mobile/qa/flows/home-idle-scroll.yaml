@@ -1,0 +1,32 @@
+# Beranda's own numbers (mobile/qa/home-notes.md), the same on round 1's, the shell's and this build: Beranda left
+# alone through two of the minute's ticks (what each tick's redraw costs: the [perf] js-block lines), then scrolled
+# down and up three times (frames).
+appId: io.github.pablonification.edunexplus.demo
+---
+- tapOn:
+    id: tab.home
+# Two minutes on Beranda, untouched: Maestro has no sleep, so a wait for nothing.
+- extendedWaitUntil:
+    visible:
+      id: nothing.here
+    timeout: 125000
+    optional: true
+- repeat:
+    times: 3
+    commands:
+      - swipe:
+          start: 50%, 80%
+          end: 50%, 25%
+          duration: 300
+      - swipe:
+          start: 50%, 80%
+          end: 50%, 25%
+          duration: 300
+      - swipe:
+          start: 50%, 25%
+          end: 50%, 80%
+          duration: 300
+      - swipe:
+          start: 50%, 25%
+          end: 50%, 80%
+          duration: 300

@@ -29,9 +29,11 @@ safe to share.
   answer its check names. The latest read per feed, pages over 2 MB left out. Never on disk, never
   in a dataset or an event, so the window never sees it raw. A read of that feed that goes right
   forgets it, and so does its source signing out, its session ending, or another Student signing in
-  (`src/engine/report/kept-pages.ts`). How: the engine runs each feed's read inside an
-  `AsyncLocalStorage`, and its door to the network and to the store note what passes for the read
-  they're part of, however SIX's requests queue.
+  (`src/engine/report/kept-pages.ts`). How: the engine hands each feed's read its own
+  notes (`FeedRead`), which the read passes down to its doors to the network (the clients'
+  `for(read)`) and to the store (`context.for(read)`); they note what passes for that read alone,
+  however SIX's requests queue. Handed down, not looked up: it was Node's `AsyncLocalStorage`, which
+  the Android app's JavaScript engine (Hermes) doesn't have.
 - **The report is scrubbed on the Student's computer, before it leaves the engine.**
   `engine.report(about)` builds it only when asked (`src/engine/report/report.ts`), with the rules
   the fixtures script uses, now one module both run (`src/engine/report/scrub.ts`; the script

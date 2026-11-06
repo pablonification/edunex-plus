@@ -1,0 +1,573 @@
+// The Nilai tab on the phone (S18, src/app/screens/course/grades.tsx; round 2, v4): Edunex's grade only once the
+// lecturer publishes it, and the course-contract calculator on one white card. The answer comes first, as a sentence
+// for the letter the Student aims for; it's only given when it can be trusted: the weights must add
+// up to 100, example weights say so loudly, and a score outside 0–100 is explained, not quietly
+// changed. Numbers are typed on the number keypad. What the Student enters stays on this phone
+// ("local.courseWeights", saved as the desktop saves it).
+import { useEffect, useRef, useState } from "react";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { useFormat, useT } from "../../../../src/app/i18n";
+import type { CoursePage } from "../../../../src/app/screens/course/data";
+import { useBridge, useDataset } from "../../../../src/app/store";
+import { percent } from "../../../../src/core/attendance";
+import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } from "../../../../src/core/course-contract";
+import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../../src/core/models";
+import { dismissToast, toast } from "../../swaps/overlays";
+import { Button, Segmented } from "../../ui/controls";
+import { Icons } from "../../ui/icons";
+import { PressScale } from "../../ui/press";
+import { ActionSheet } from "../../ui/sheet";
+import { Text, useFieldColors } from "../../ui/text";
+import { radius, space, TOUCH, useTheme } from "../../ui/theme";
+import { useCardStyle } from "../home/now";
+
+// The letter aimed for, per course, while the app runs (the desktop keeps it in the page's place in history).
+const aims = new Map<string, ContractLetter>();
+
+export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenModules?: () => void }) {
+  const t = useT();
+  const f = useFormat();
+  const v = useTheme().v4;
+  const surface = useCardStyle();
+  const grade = page.outline?.grade ?? null;
+  return (
+    <View style={{ gap: space[4] }}>
+      <Calculator page={page} onOpenModules={onOpenModules} />
+      {/* Edunex's own grade, once the lecturer publishes it: the number and the letter, big. */}
+      <View style={[surface, { paddingHorizontal: space[4], paddingVertical: space[4] }]}>
+        <Text size="bodyMedium" weight="medium" style={{ color: v.muted }}>
+          {t("grade.edunex")}
+        </Text>
+        {grade ? (
+          <Text size="headlineSmall" face="display" weight="extrabold" tabular style={{ color: v.fg, marginTop: space[1], fontSize: 28 }}>
+            {`${f.number(grade.total, 1)}  ${grade.letter}`}
+          </Text>
+        ) : (
+          <View style={{ marginTop: space[2], flexDirection: "row", alignItems: "center", gap: space[2] }}>
+            <Icons.EyeOff size={16} color={v.muted} />
+            <Text size="bodyMedium" style={{ color: v.fg2, flex: 1 }}>
+              {t("grade.unpublished")}
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+/** "80" → 80; "" → null; anything else, or outside 0–100, is a problem to say, not to fix silently. */
+function readScore(text: string, required = false): { value: number | null; problem: "range" | "number" | null } {
+  const clean = text.trim().replace(",", ".");
+  if (clean === "") return { value: null, problem: required ? "number" : null };
+  const value = Number(clean);
+  if (!Number.isFinite(value)) return { value: null, problem: "number" };
+  if (value < 0 || value > 100) return { value: null, problem: "range" };
+  return { value, problem: null };
+}
+
+/**
+ * A number from 0 to 100 that keeps what was typed: a valid number is saved at once; an invalid one
+ * stays visible, marked, with the reason under it, and nothing is saved.
+ */
+function ScoreInput({
+  label,
+  value,
+  onValue,
+  placeholder,
+  highlight = false,
+  width = 64,
+  required = false,
+  onProblem,
+  testID,
+}: {
+  label: string;
+  value: number | null;
+  onValue: (value: number | null) => void;
+  placeholder?: string;
+  highlight?: boolean;
+  width?: number;
+  required?: boolean;
+  /** Told whether the box holds something that can't be used, so the answer can wait for it. */
+  onProblem?: (bad: boolean) => void;
+  testID?: string;
+}) {
+  const t = useT();
+  const theme = useTheme();
+  const fieldColors = useFieldColors();
+  const c = theme.color;
+  const [text, setText] = useState<string | null>(null);
+  const shown = text ?? (value === null ? "" : String(value).replace(".", ","));
+  const { problem } = readScore(shown, required);
+  const bad = problem !== null;
+  const report = useRef(onProblem);
+  report.current = onProblem;
+  useEffect(() => report.current?.(bad), [bad]);
+  useEffect(() => () => report.current?.(false), []);
+  return (
+    <View style={{ alignItems: "flex-end" }}>
+      <TextInput
+        {...fieldColors}
+        testID={testID}
+        accessibilityLabel={label}
+        accessibilityHint={problem ? t(problem === "range" ? "grade.range" : "grade.notNumber") : undefined}
+        keyboardType="decimal-pad"
+        placeholder={placeholder}
+        placeholderTextColor={c.faint}
+        value={shown}
+        selectTextOnFocus
+        onChangeText={(next) => {
+          setText(next);
+          const read = readScore(next, required);
+          if (!read.problem) onValue(read.value);
+        }}
+        onBlur={() => {
+          if (!readScore(shown, required).problem) setText(null);
+        }}
+        style={[
+          styles.input,
+          {
+            width,
+            color: c.fg,
+            backgroundColor: c.surfaceContainerLow,
+            borderColor: problem ? c.dangerFg : highlight ? c.warningFg : c.fieldEdge,
+            borderWidth: problem || highlight ? 2 : StyleSheet.hairlineWidth * 2,
+          },
+        ]}
+      />
+      {problem && (
+        <Text size="caption" weight="medium" tone="danger" accessibilityLiveRegion="polite" style={{ marginTop: 2 }}>
+          {t(problem === "range" ? "grade.range" : "grade.notNumber")}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/**
+ * A part's name; its long-press (and a screen reader's actions) offers renaming and removing, so the row carries no
+ * pencil or ✕. The name is the 48 dp target. Renaming types over it in place.
+ */
+function PartName({
+  name,
+  editing,
+  onRename,
+  onMenu,
+  onRemove,
+  onEdit,
+  testID,
+}: {
+  name: string;
+  editing: boolean;
+  onRename: (name: string) => void;
+  onMenu: () => void;
+  onRemove: () => void;
+  onEdit: () => void;
+  testID?: string;
+}) {
+  const fieldColors = useFieldColors();
+  const t = useT();
+  const theme = useTheme();
+  if (editing)
+    return (
+      <TextInput
+        {...fieldColors}
+        accessibilityLabel={t("grade.partName")}
+        autoFocus
+        defaultValue={name}
+        maxLength={80}
+        returnKeyType="done"
+        onEndEditing={(event) => onRename(event.nativeEvent.text.trim())}
+        style={[
+          styles.input,
+          { flex: 1, textAlign: "left", color: theme.color.fg, borderColor: theme.color.fieldEdge, borderWidth: StyleSheet.hairlineWidth * 2 },
+        ]}
+      />
+    );
+  return (
+    <Pressable
+      testID={testID}
+      onLongPress={onMenu}
+      android_ripple={{ color: theme.color.selected, foreground: true }}
+      accessibilityLabel={name}
+      accessibilityActions={[
+        { name: "rename", label: t("grade.rename", { part: name }) },
+        { name: "remove", label: t("grade.remove", { part: name }) },
+      ]}
+      onAccessibilityAction={(event) => (event.nativeEvent.actionName === "remove" ? onRemove() : onEdit())}
+      style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center", borderRadius: radius.md }}
+    >
+      <Text size="body" weight="medium" numberOfLines={2}>
+        {name}
+      </Text>
+    </Pressable>
+  );
+}
+
+function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?: () => void }) {
+  const t = useT();
+  const f = useFormat();
+  const theme = useTheme();
+  const c = theme.color;
+  const surface = useCardStyle();
+  const bridge = useBridge();
+  const code = page.course.code;
+  const saved = useDataset("local.courseWeights");
+  const [draft, setDraft] = useState<CourseContract | null>(null);
+  const [target, setTargetState] = useState<ContractLetter | null>(aims.get(code) ?? null);
+  const setTarget = (letter: ContractLetter) => {
+    aims.set(code, letter);
+    setTargetState(letter);
+  };
+  // Boxes holding something unusable: no answer is given from numbers the Student can't see.
+  // The part being renamed in place, and the part whose long-press menu is open.
+  const [editing, setEditing] = useState<string | null>(null);
+  const [menu, setMenu] = useState<ContractPart | null>(null);
+  const [problems, setProblems] = useState<ReadonlySet<string>>(new Set());
+  const mark = (key: string) => (bad: boolean) =>
+    setProblems((current) => {
+      if (current.has(key) === bad) return current;
+      const next = new Set(current);
+      if (bad) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  const contract = draft ?? saved?.[code] ?? EXAMPLE_CONTRACT;
+  const isExample = !draft && !saved?.[code];
+  const attendance = page.course.attendance && page.course.attendance.held > 0 ? percent(page.course.attendance.attended, page.course.attendance.held) : null;
+  const result = standing(contract, attendance);
+  const fix = problems.size > 0;
+  const sumOk = Math.abs(result.totalWeight - 100) < 1e-9;
+  const weightsOk = !fix && sumOk;
+  // The course contract, when the lecturer put it in a module ("Kontrak Belajar").
+  const contractFile = (page.materials ?? []).some((m) => /kontrak/i.test(m.title)) || (page.outline?.modules ?? []).some((m) => /kontrak/i.test(m.title));
+
+  // "Kembali ke contoh" can be taken back until the table changes again or the tab closes.
+  const undo = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (undo.current !== null) dismissToast(undo.current);
+    },
+    [],
+  );
+
+  const save = (next: CourseContract | null) => {
+    if (undo.current !== null) dismissToast(undo.current);
+    undo.current = null;
+    setDraft(next);
+    const all = { ...(saved ?? {}) };
+    if (next) all[code] = next;
+    else delete all[code];
+    void bridge.invoke("local.set", { name: "local.courseWeights", value: all }).catch(() => undefined);
+  };
+  const reset = () => {
+    const before = contract;
+    save(null);
+    undo.current = toast(t("grade.resetDone"), "neutral", { label: t("action.undo"), onClick: () => save(before) });
+  };
+  const remove = (part: ContractPart, name: string) => {
+    const before = contract;
+    save({ ...contract, parts: contract.parts.filter((p) => p.id !== part.id) });
+    undo.current = toast(t("mobile.grade.removed", { part: name }), "neutral", { label: t("action.undo"), onClick: () => save(before) });
+  };
+  const setPart = (id: string, patch: Partial<ContractPart>) => save({ ...contract, parts: contract.parts.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
+  const nameOf = (part: ContractPart) =>
+    part.name ||
+    ((EXAMPLE_PART_IDS as readonly string[]).includes(part.id) ? t(`grade.part.${part.id as (typeof EXAMPLE_PART_IDS)[number]}`) : t("grade.part.new"));
+
+  // The letter to answer for: the Student's pick, else the best one still open.
+  const aim = target ?? result.needs.find((need) => !need.reached && need.need !== null)?.letter ?? "A";
+  const need = result.needs.find((n) => n.letter === aim)!;
+  const open = contract.parts.filter((part) => partScore(part, attendance) === null && part.weight > 0).map(nameOf);
+  const listed = f.list(open);
+  const best = result.secured + result.openWeight;
+
+  let answer: string;
+  if (fix) answer = t("grade.answer.fix");
+  else if (!weightsOk) answer = t("grade.answer.weights", { total: f.number(result.totalWeight, 0) });
+  else if (result.final !== null) answer = t("grade.answer.final", { score: f.number(result.final, 1), letter: result.letter ?? "E" });
+  else if (need.reached) answer = t("grade.answer.secured", { letter: aim });
+  else if (need.need === null) answer = t("grade.answer.out", { letter: aim, best: f.number(best, 1), bestLetter: letterFor(best, contract.cutoffs) });
+  else answer = t("grade.answer.need", { letter: aim, need: need.need, parts: listed });
+  // The answer for the letter aimed at as a number: "74" big, "untuk A" beside it, where it's needed under it.
+  const figure = !fix && weightsOk && result.final === null && !need.reached && need.need !== null ? need.need : null;
+  const answerTone = !weightsOk ? "warning" : need.need === null && !need.reached && result.final === null ? "danger" : "fg";
+
+  return (
+    // The warning, then one white card: the answer, then the table it comes from.
+    <View>
+      {isExample && <ExampleBanner code={code} onOpen={contractFile ? onOpenModules : undefined} />}
+
+      <View style={[surface, { padding: space[4] }]}>
+        <View accessibilityLiveRegion="polite">
+          {weightsOk && result.final === null && (
+            <View style={{ marginBottom: space[4], gap: space[2] }}>
+              <Text size="bodyMedium" weight="medium" style={{ color: theme.v4.muted }}>
+                {t("grade.target")}
+              </Text>
+              <Segmented
+                testID="segment.gradeTarget"
+                label={t("grade.target")}
+                value={aim}
+                onChange={setTarget}
+                options={CONTRACT_LETTERS.slice(0, 5).map((letter) => ({ value: letter, label: letter }))}
+              />
+            </View>
+          )}
+          {figure !== null ? (
+            <View accessible accessibilityLabel={answer} testID="figure.gradeNeed">
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
+                <Text
+                  size="displaySmall"
+                  face="display"
+                  weight="extrabold"
+                  tabular
+                  style={{ color: theme.v4.fg, fontSize: 40, lineHeight: 46, letterSpacing: -1 }}
+                >
+                  {String(figure)}
+                </Text>
+                <Text size="titleLarge" face="display" weight="bold" style={{ color: theme.v4.fg, fontSize: 20 }}>
+                  {t("mobile.grade.needFor", { letter: aim })}
+                </Text>
+              </View>
+              <Text size="bodyMedium" style={{ color: theme.v4.muted }}>
+                {t("mobile.grade.needOn", { parts: listed })}
+              </Text>
+            </View>
+          ) : (
+            <Text size="titleLarge" face="display" weight="bold" tone={answerTone} style={{ lineHeight: 28 }}>
+              {answer}
+            </Text>
+          )}
+          {weightsOk && result.final === null && (
+            <Text size="small" tone="muted" style={{ marginTop: space[2] }}>
+              {`${t("grade.answer.others")}:`}
+              {result.needs
+                .filter((n) => n.letter !== aim)
+                .map((n) => (
+                  <Text key={n.letter} size="small" tone={n.need === null && !n.reached ? "faint" : "muted"} tabular>
+                    {"   "}
+                    <Text size="small" weight="semibold">
+                      {n.letter}
+                    </Text>
+                    {` ${n.reached ? t("grade.secured") : n.need === null ? t("grade.outOfReach") : `≥ ${n.need}`}`}
+                  </Text>
+                ))}
+            </Text>
+          )}
+        </View>
+
+        <View style={{ marginTop: space[5], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
+          <View style={[styles.tableRow, { paddingVertical: space[1.5] }]}>
+            <Text size="caption" weight="medium" tone="faint" style={{ flex: 1 }}>
+              {t("grade.part")}
+            </Text>
+            <Text
+              size="caption"
+              weight={!fix && !sumOk ? "semibold" : "medium"}
+              tone={!fix && !sumOk ? "warning" : "faint"}
+              style={{ width: COL_WEIGHT, textAlign: "right" }}
+            >
+              {t("grade.weight")}
+            </Text>
+            <Text size="caption" weight="medium" tone="faint" style={{ width: COL_SCORE, textAlign: "right" }}>
+              {t("grade.score")}
+            </Text>
+          </View>
+          {contract.parts.map((part) => {
+            const name = nameOf(part);
+            const fromSix = part.attendance && attendance !== null;
+            return (
+              <View
+                key={part.id}
+                testID={`row.gradePart.${part.id}`}
+                style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }]}
+              >
+                <PartName
+                  name={name}
+                  editing={editing === part.id}
+                  onRename={(next) => {
+                    setEditing(null);
+                    setPart(part.id, { name: next });
+                  }}
+                  onMenu={() => setMenu(part)}
+                  onEdit={() => setEditing(part.id)}
+                  onRemove={() => remove(part, name)}
+                  testID={`action.gradePart.${part.id}`}
+                />
+                <View style={{ width: COL_WEIGHT, flexDirection: "row", justifyContent: "flex-end", alignItems: "flex-start", gap: 4 }}>
+                  <ScoreInput
+                    testID={`input.gradeWeight.${part.id}`}
+                    label={t("grade.weightOf", { part: name })}
+                    value={part.weight}
+                    required
+                    highlight={!fix && !sumOk}
+                    width={52}
+                    onProblem={mark(`w:${part.id}`)}
+                    onValue={(value) => setPart(part.id, { weight: value ?? 0 })}
+                  />
+                  <Text size="body" tone="faint" style={{ paddingTop: 10 }}>
+                    %
+                  </Text>
+                </View>
+                <View style={{ width: COL_SCORE, alignItems: "flex-end" }}>
+                  {fromSix ? (
+                    // One text, the figure over where it comes from ("66 dari SIX").
+                    <Text size="body" weight="semibold" tabular style={{ textAlign: "right", paddingTop: 4 }}>
+                      {String(partScore(part, attendance))}
+                      {"\n"}
+                      <Text size="caption" weight="regular" tone="faint">
+                        {t("grade.fromSixShort")}
+                      </Text>
+                    </Text>
+                  ) : (
+                    <ScoreInput
+                      testID={`input.gradeScore.${part.id}`}
+                      label={t("grade.scoreOf", { part: name })}
+                      value={part.score}
+                      placeholder="-"
+                      onProblem={mark(`s:${part.id}`)}
+                      onValue={(value) => setPart(part.id, { score: value })}
+                    />
+                  )}
+                </View>
+              </View>
+            );
+          })}
+          {/* What changes the table, at its foot: a part more, or the example weights back; and the total. */}
+          <View style={[styles.tableRow, { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line, alignItems: "center" }]}>
+            <View style={{ flex: 1, flexDirection: "row", flexWrap: "wrap", marginLeft: -space[3] }}>
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={<Icons.Plus size={14} color={c.muted} />}
+                disabled={contract.parts.length >= 20}
+                testID="action.gradeAdd"
+                onPress={() => save({ ...contract, parts: [...contract.parts, { id: `p${Date.now().toString(36)}`, name: "", weight: 0, score: null }] })}
+              >
+                {t("grade.add")}
+              </Button>
+              {!isExample && (
+                <Button variant="ghost" size="sm" onPress={reset} testID="action.gradeReset">
+                  {t("grade.reset")}
+                </Button>
+              )}
+            </View>
+            <Text
+              size="body"
+              weight="semibold"
+              tabular
+              tone={fix || sumOk ? "muted" : "warning"}
+              style={{ width: COL_WEIGHT, textAlign: "right", paddingRight: 14 }}
+            >
+              {`${f.number(result.totalWeight, 0)}%`}
+            </Text>
+            <View style={{ width: COL_SCORE }} />
+          </View>
+          <View style={{ marginTop: space[3], paddingTop: space[3], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.v4.line }}>
+            <Text size="small" tone="muted" style={{ marginBottom: space[2] }} accessibilityRole="header">
+              {t("grade.cutoffs")}
+            </Text>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[4], rowGap: space[2] }}>
+              {CONTRACT_LETTERS.map((letter) => (
+                <View key={letter} style={{ flexDirection: "row", alignItems: "flex-start", gap: 6 }}>
+                  <Text size="small" weight="semibold" style={{ paddingTop: 10, minWidth: 30 }}>
+                    {`${letter} ≥`}
+                  </Text>
+                  <ScoreInput
+                    testID={`input.gradeCutoff.${letter}`}
+                    label={t("grade.cutoffOf", { letter })}
+                    value={contract.cutoffs[letter]}
+                    required
+                    width={52}
+                    onProblem={mark(`c:${letter}`)}
+                    onValue={(value) => save({ ...contract, cutoffs: { ...contract.cutoffs, [letter]: value ?? 0 } })}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+        </View>
+      </View>
+      <ActionSheet
+        open={menu !== null}
+        onClose={() => setMenu(null)}
+        title={menu ? nameOf(menu) : undefined}
+        testID="sheet.gradePart"
+        choices={
+          menu
+            ? [
+                {
+                  label: t("mobile.grade.rename"),
+                  icon: <Icons.PenLine size={18} color={c.muted} />,
+                  onPress: () => setEditing(menu.id),
+                  testID: "action.gradePart.rename",
+                },
+                {
+                  label: t("mobile.grade.remove"),
+                  icon: <Icons.X size={18} color={c.muted} />,
+                  onPress: () => remove(menu, nameOf(menu)),
+                  testID: "action.gradePart.remove",
+                },
+              ]
+            : []
+        }
+      />
+    </View>
+  );
+}
+
+/** Example weights, in one line; with the course contract among the modules, the line opens them. */
+function ExampleBanner({ code, onOpen }: { code: string; onOpen?: () => void }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const body = (
+    <>
+      <Icons.AlertTriangle size={18} weight="bold" color={v.ambFg} />
+      <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ color: v.ambFg, flex: 1 }}>
+        {t("mobile.grade.example", { code })}
+      </Text>
+      {onOpen && <Icons.ArrowRight size={18} color={v.ambFg} />}
+    </>
+  );
+  const style = {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[2],
+    minHeight: TOUCH,
+    paddingHorizontal: space[4],
+    borderRadius: 16,
+    backgroundColor: v.ambBg,
+    marginBottom: space[4],
+  } as const;
+  const label = `${t("grade.exampleNotice", { code })} ${t("grade.exampleHint")}`;
+  if (!onOpen)
+    return (
+      <View accessible accessibilityLabel={label} testID="note.gradeExample" style={style}>
+        {body}
+      </View>
+    );
+  return (
+    <PressScale onPress={onOpen} accessibilityLabel={label} accessibilityHint={t("grade.openContract")} testID="note.gradeExample" style={style}>
+      {body}
+    </PressScale>
+  );
+}
+
+const COL_WEIGHT = 76;
+const COL_SCORE = 68;
+
+const styles = StyleSheet.create({
+  tableRow: { flexDirection: "row", alignItems: "flex-start", gap: space[2], paddingVertical: space[2] },
+  // Android pads a field's text from the top: none, and centred, so the number sits in the middle of its box.
+  input: {
+    height: TOUCH,
+    borderRadius: radius.md,
+    paddingHorizontal: space[2],
+    paddingVertical: 0,
+    textAlign: "right",
+    textAlignVertical: "center",
+    includeFontPadding: false,
+    fontSize: 16,
+    fontVariant: ["tabular-nums"],
+  },
+});

@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { Lang, ProblemReport } from "../../core/models";
 import { ReportIssue } from "../../core/models";
 import { NetworkError, type Transport } from "../http/transport";
+import { utf8Length } from "../platform/bytes";
 
 /** What a post carries: the report scrubbed already, the computer's system, the Student's language, how it went, their note. */
 export interface Envelope {
@@ -61,7 +62,7 @@ export function relayBase(address: string): string | null {
 
 export async function postReport(relay: Relay, envelope: Envelope): Promise<Posted> {
   const body = JSON.stringify(envelope);
-  if (Buffer.byteLength(body) > MAX_BODY) return { kind: "refused", reason: "too-big", found: [] };
+  if (utf8Length(body) > MAX_BODY) return { kind: "refused", reason: "too-big", found: [] };
   const answer = await post(relay, "/v1/reports", body);
   if (!answer) return { kind: "later", offline: true, after: null };
   if (answer.status === 201) {

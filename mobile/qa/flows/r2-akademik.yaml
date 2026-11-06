@@ -1,0 +1,108 @@
+# Round 2's v4 pictures of Akademik and its screens, Settings, Search and Notifikasi (shots.sh), from a cleared app,
+# in ${THEME}. Branch mobile-r2-akademik; pictures in mobile/report/img/v4/akademik/.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- tapOn:
+    id: tab.academic
+- extendedWaitUntil:
+    visible:
+      id: card.profile
+    timeout: 60000
+- waitForAnimationToEnd
+- takeScreenshot: 01-akademik
+- tapOn:
+    id: card.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: 02-nilai
+- scrollUntilVisible:
+    element:
+      id: card.chart
+    centerElement: true
+- waitForAnimationToEnd
+- takeScreenshot: 03-nilai-grafik
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.planner
+- tapOn:
+    id: row.nav.plan.planner
+- waitForAnimationToEnd
+- takeScreenshot: 04-rencana
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.curriculum
+- tapOn:
+    id: row.nav.plan.curriculum
+- waitForAnimationToEnd
+- takeScreenshot: 05-kurikulum
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.krs
+- tapOn:
+    id: row.nav.plan.krs
+- waitForAnimationToEnd
+- takeScreenshot: 06-krs
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.bills
+- tapOn:
+    id: row.nav.plan.bills
+- waitForAnimationToEnd
+- takeScreenshot: 07-ukt
+- back
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.deadlines
+- tapOn:
+    id: row.nav.plan.deadlines
+- waitForAnimationToEnd
+- takeScreenshot: 08-kalender
+- back
+- tapOn:
+    id: action.account
+- extendedWaitUntil:
+    visible:
+      id: screen.settings
+    timeout: 20000
+- waitForAnimationToEnd
+- takeScreenshot: 09-pengaturan
+- scrollUntilVisible:
+    element:
+      id: segment.theme
+    centerElement: true
+- waitForAnimationToEnd
+- takeScreenshot: 10-pengaturan-tampilan
+- tapOn:
+    id: segment.theme
+- waitForAnimationToEnd
+- takeScreenshot: 11-pengaturan-tema
+- back
+- back
+- tapOn:
+    id: action.search
+- waitForAnimationToEnd
+- takeScreenshot: 12-cari
+- inputText: "DK4073"
+- hideKeyboard
+- waitForAnimationToEnd
+- takeScreenshot: 13-cari-hasil
+- back
+- tapOn:
+    id: tab.home
+- tapOn:
+    id: action.alerts
+- waitForAnimationToEnd
+- takeScreenshot: 14-notifikasi
