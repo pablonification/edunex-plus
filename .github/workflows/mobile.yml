@@ -26,6 +26,7 @@ on:
       - scripts/demo/**
       - scripts/ci/mobile-e2e.sh
       - .github/workflows/mobile.yml
+      - .nvmrc
       # Notes and the hand-off report don't change the app.
       - "!mobile/**/*.md"
       - "!mobile/report/**"
@@ -39,6 +40,7 @@ on:
       - scripts/demo/**
       - scripts/ci/mobile-e2e.sh
       - .github/workflows/mobile.yml
+      - .nvmrc
       # Notes and the hand-off report don't change the app.
       - "!mobile/**/*.md"
       - "!mobile/report/**"
@@ -74,9 +76,10 @@ permissions:
 
 # On a pull request a new push cancels the run before it: only the newest commit matters there.
 # Elsewhere a run waits for the one going (only the newest waiting run goes next), so the nightly
-# full run isn't cut short.
+# full run isn't cut short. Each kind of run queues on its own, so a push to main can't take a
+# waiting nightly run's place.
 concurrency:
-  group: mobile-${{ github.ref }}
+  group: mobile-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
@@ -349,7 +352,7 @@ jobs:
   score:
     name: score
     needs: [plan, e2e]
-    if: ${{ !cancelled() && needs.plan.outputs.scenarios == 'true' }}
+    if: ${{ !cancelled() && needs.plan.outputs.e2e == 'true' && needs.plan.outputs.scenarios == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
