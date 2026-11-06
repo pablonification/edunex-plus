@@ -253,6 +253,8 @@ jobs:
       matrix:
         group: ${{ fromJSON(needs.plan.outputs.groups) }}
     env:
+      # The group's name for the steps' scripts, as a variable rather than written into them.
+      GROUP: ${{ matrix.group }}
       MAESTRO_VERSION: 2.12.0
       MAESTRO_CLI_NO_ANALYTICS: "1"
     steps:
@@ -286,7 +288,7 @@ jobs:
           node-version-file: .nvmrc
       - name: Make the same-data flows
         if: ${{ matrix.group != 'app' }}
-        run: node mobile/scripts/flows-from-inventory.mjs "${{ matrix.group }}"
+        run: node mobile/scripts/flows-from-inventory.mjs "$GROUP"
       # Sixteen jobs fetch the same system image at once, and now and then one gets a broken zip ("Error on ZipFile
       # unknown archive") and never starts its emulator: fetched here first, again on a failure.
       - name: Fetch the emulator's system image
@@ -341,7 +343,7 @@ jobs:
           fi
           [ "$OUTCOME" = success ] || line="**Some flows failed.** $line"
           # shellcheck disable=SC2016 # the backticks are Markdown, written as they are
-          printf '### Flows: %s\n\n%s Screenshots and logs: artifact `e2e-results-%s`.\n' "${{ matrix.group }}" "$line" "${{ matrix.group }}" >> "$GITHUB_STEP_SUMMARY"
+          printf '### Flows: %s\n\n%s Screenshots and logs: artifact `e2e-results-%s`.\n' "$GROUP" "$line" "$GROUP" >> "$GITHUB_STEP_SUMMARY"
 
   # The same-data score over every scenario that ran (check A in mobile/PROGRESS.md), in the run's summary.
   score:
