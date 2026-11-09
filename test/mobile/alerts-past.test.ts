@@ -65,6 +65,18 @@ describe("pastAlert", () => {
     expect(pastAlert(opened, { schedule: null, presence: { DK4073: [present] } }, wib("2026-11-10T09:00:00"))?.outcome).toBe("present");
   });
 
+  it("is over six hours after it opened when Edunex no longer lists the window, with nothing claimed about it", () => {
+    const opensAt = wib("2026-11-05T08:00:00");
+    const opened = alert(`presence.open:78:${opensAt}`, opensAt, { source: "edunex", title: { key: "alert.presenceOpen", vars: { course: "DK4073" } } });
+    expect(pastAlert(opened, { schedule: null, presence: {} }, wib("2026-11-05T10:00:00"))).toBeNull();
+    expect(pastAlert(opened, { schedule: null, presence: {} }, wib("2026-11-10T09:00:00"))).toEqual({
+      kind: "presence",
+      code: "DK4073",
+      key: "presence:78",
+      outcome: null,
+    });
+  });
+
   it("says whether the Task was handed in once its deadline has passed, every reminder of it one row", () => {
     const due = wib("2026-11-05T23:59:00");
     const oneHour = alert(`task.due1:117003:${due}`, due - 3_600_000, {

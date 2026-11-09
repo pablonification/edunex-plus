@@ -58,9 +58,10 @@ export function pastAlert(item: Alert, world: World | undefined, now: number): P
     const session = Object.values(world?.presence ?? {})
       .flat()
       .find((one) => String(one.id) === id);
-    // An opening's id carries when it opened; its close is the window's, or (gone from the data) a closing's own.
-    const closes = session?.closesAt ?? (which === "closing" ? Number(at) : null);
-    if (closes === null || now < closes) return null;
+    // An opening's id carries when it opened; its close is the window's, or (gone from the data) a closing's own, or
+    // an opening's time and the assumed length, as a class's.
+    const closes = session?.closesAt ?? (which === "closing" ? Number(at) : Number(at) + ASSUMED_LENGTH);
+    if (now < closes) return null;
     return { kind: "presence", code, key: `presence:${id}`, outcome: session ? (session.recorded?.present ? "present" : "notRecorded") : null };
   }
   const deadline = DEADLINE.exec(item.id);
