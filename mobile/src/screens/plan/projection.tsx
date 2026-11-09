@@ -401,7 +401,18 @@ export function HonorsList({ projection }: { projection: Projection }) {
  * ("Target IPK 3,50"), and the IPK at graduation at
  * the line's end only when it isn't today's (the same figure twice reads as a change that isn't one).
  */
-export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; target: number | null; height?: number }): ReactNode {
+export function IpkChart({
+  steps,
+  target,
+  best = null,
+  height,
+}: {
+  steps: ProjectedStep[];
+  target: number | null;
+  /** The highest IPK still possible: a target over it is out of reach, and the line shows this instead. */
+  best?: number | null;
+  height?: number;
+}): ReactNode {
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -410,7 +421,16 @@ export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; ta
   if (shown.length < 2) return null;
   const firstEstimate = shown.findIndex((s) => s.projected);
   const values = shown.flatMap((s) => [s.ip, s.ipk]).filter((v): v is number => v !== null);
-  const low = Math.min(...values, target ?? 4);
+  // A target out of reach isn't drawn as if it were one: the line marks the highest IPK still possible, named so.
+  const out = target !== null && best !== null && target > best + 1e-9;
+  const reference =
+    target === null
+      ? undefined
+      : out && best !== null
+        ? { value: best, label: t("grades.chart.best", { value: f.number(best, 2) }) }
+        : // Named as the control that sets it ("Target IPK", Nilai's Semester ini and the planner), so it's never a bare "Target".
+          { value: target, label: t("grades.targetOf", { value: f.number(target, 2) }) };
+  const low = Math.min(...values, reference?.value ?? 4);
   const min = low < 2 ? Math.max(0, Math.floor(low)) : 2;
   const gridlines = min < 2 ? [min, 2, 3, 4] : [2, 2.5, 3, 3.5, 4];
   const last = shown[shown.length - 1]!;
@@ -432,8 +452,7 @@ export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; ta
         min={min}
         max={4}
         gridlines={gridlines}
-        // Named as the control that sets it ("Target IPK", Nilai's Semester ini and the planner), so it's never a bare "Target".
-        reference={target === null ? undefined : { value: target, label: t("grades.targetOf", { value: f.number(target, 2) }) }}
+        reference={reference}
         endLabel={last.ipk === null || same ? undefined : t(last.projected ? "grades.chart.end" : "grades.chart.endNow", { value: f.number(last.ipk, 2) })}
         estimateWord={t("grades.estimate")}
         format={(v) => f.number(v, 2)}

@@ -361,8 +361,8 @@ function Chart({ record, state }: { record: StudentRecord; state: PlanState }) {
   return (
     <>
       <Heading>{t("grades.chart")}</Heading>
-      <Panel style={{ paddingHorizontal: space[4], paddingTop: space[4], paddingBottom: space[3] }} testID="card.chart">
-        <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />
+      <Panel style={{ paddingHorizontal: space[2], paddingTop: space[4], paddingBottom: space[3] }} testID="card.chart">
+        <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} best={state.projection.bestIpk} />
       </Panel>
     </>
   );
