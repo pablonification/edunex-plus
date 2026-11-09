@@ -17,6 +17,7 @@ import { useNobodyIn } from "../src/shell/nobody";
 import { NotificationTaps } from "../src/shell/notification-taps";
 import { SignInHost } from "../src/shell/sign-in";
 import { Welcome } from "../src/shell/welcome";
+import { DeferredScreens } from "../src/ui/deferred";
 import { useTheme } from "../src/ui/theme";
 import { Toasts } from "../src/ui/toasts";
 
@@ -51,7 +52,6 @@ function usePerfWatch(): void {
 
 function Frame() {
   const theme = useTheme();
-  const nobody = useNobodyIn();
   useWidgetUpdates();
   usePerfWatch();
   return (
@@ -61,18 +61,20 @@ function Frame() {
       <NavigationBar style={theme.scheme === "dark" ? "dark" : "light"} />
       {/* Edge to edge: a screen over the tabs runs under the phone's navigation bar, and its page keeps its last row
           clear of it (ui/insets.ts). "default" is Android's own open and close (the system's slide and fade), drawn
-          natively. */}
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.color.surface },
-          animation: "default",
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+          natively. The screens take new data and the minute's tick as transitions (src/ui/deferred.tsx). */}
+      <DeferredScreens>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.color.surface },
+            animation: "default",
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </DeferredScreens>
       {/* Until a system is in: then it fades, and Beranda fills in under it (the first read's summary is a card there). */}
-      {nobody && <Welcome />}
+      <WelcomeWhileNobody />
       <ReportAskCard />
       <Toasts />
       <CourseColorPickerHost />
@@ -80,4 +82,9 @@ function Frame() {
       <NotificationTaps />
     </>
   );
+}
+
+/** The welcome while nobody is signed in: apart, so a source's state changing doesn't draw the whole frame again. */
+function WelcomeWhileNobody() {
+  return useNobodyIn() ? <Welcome /> : null;
 }

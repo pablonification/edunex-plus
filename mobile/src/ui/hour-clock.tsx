@@ -17,6 +17,7 @@ function hourly(parent: UiClock): UiClock {
   const hourOf = () => Math.floor(parent.now() / HOUR);
   let shown = parent.now();
   return {
+    deferred: parent.deferred,
     now: () => shown,
     subscribe(listener) {
       return parent.subscribe(() => {
