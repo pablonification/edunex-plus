@@ -2,10 +2,12 @@
 // full-width rows in a white card. First the courses at or past their absence limit: Kuliah's calendar-check in the
 // absence tone, the course's name and the state in absence words ("Absen lewat 2×", "Jatah absen habis"), so
 // beside a Task it can't read as an assignment past its deadline, and no pips (they had no key, and the words said
-// them again; Kuliah and the course page draw them); opens the course. Then classes that clash ("Kelas bentrok · A dan
-// B", their day and time under it; opens Jadwal on that day), then what to hand in or do (the Task's own name, its
+// them again; Kuliah and the course page draw them); opens the course. On Beranda, two or more are one row ("Absen di 3
+// mata kuliah", "1 lewat batas · 2 jatah habis") that opens Kuliah: a row each pushed the Tasks under the fold (round 3's
+// fifth review). Then classes that clash ("Kelas bentrok · A dan
+// B", their day and time under it; opens Jadwal on that day), then what to hand in or do, the soonest first (the Task's own name, its
 // deadline under it the one way the app writes a date; "Presensi" at the end when handing it in counts for
-// attendance; red with a warning sign once late). At most five rows; the chevron opens the whole list, with what's put
+// attendance; red with a warning sign once late). At most four rows; the chevron opens the whole list, with what's put
 // off and away (./needs-screen.tsx). Hidden behind one quiet line when there's nothing. While the first read runs, the
 // rows stand in their shape: picked from half the data, they swapped under the Student's eyes.
 import { router } from "expo-router";
@@ -41,7 +43,7 @@ import { nameOf, shortName } from "./parts";
 import { type AbsenceProblem, type ClashProblem, firstRows, type Problems } from "./problems";
 
 /** Rows Beranda shows; the rest are on the whole list. */
-export const URUS_ROWS = 5;
+export const URUS_ROWS = 4;
 
 interface TodoRow {
   need: NeedDraft;
@@ -58,12 +60,14 @@ interface TodoRow {
   presenceTag: boolean;
   /** The course's whole name, for what TalkBack reads (the row shows its tile). */
   course: string;
+  /** When it's due by (or starts), for the soonest first. */
+  at: number;
 }
 
 /** A need as a row: its name and its deadline. Attendance is a problem row above; today's classes are the now card's and Nanti hari ini's. */
 function todoOf(t: Translate, f: Format, now: number, need: NeedDraft, courses: readonly TermCourse[]): TodoRow | null {
   const course = need.course ? nameOf(courses, need.course) : "";
-  const base = { need, code: need.course ?? null, course, late: false, presence: null, presenceTag: false };
+  const base = { need, code: need.course ?? null, course, late: false, presence: null, presenceTag: false, at: dueBy(need) };
   switch (need.kind) {
     case "task": {
       const { task } = need;
@@ -134,13 +138,43 @@ function todoOf(t: Translate, f: Format, now: number, need: NeedDraft, courses: 
   }
 }
 
+/** When a need is due by (or starts): a Task's deadline, an open window's close, otherwise its start. */
+function dueBy(need: NeedDraft): number {
+  switch (need.kind) {
+    case "task":
+      return need.task.dueAt ?? Number.POSITIVE_INFINITY;
+    case "exam":
+      return need.window && need.sitting.end !== null ? need.sitting.end : need.sitting.start;
+    case "presence":
+      return need.task?.dueAt ?? need.session.closesAt;
+    case "meeting":
+      return need.meeting.start;
+    case "krs":
+      return need.open ? need.closesAt : (need.at ?? Number.POSITIVE_INFINITY);
+    case "bill":
+      return need.bill.nextDueAt ?? Number.POSITIVE_INFINITY;
+    default:
+      return Number.POSITIVE_INFINITY;
+  }
+}
+
 export type UrusRow =
   | { kind: "absence"; key: string; item: AbsenceProblem }
+  | { kind: "absences"; key: string; items: readonly AbsenceProblem[] }
   | { kind: "clash"; key: string; item: ClashProblem }
   | { kind: "todo"; key: string; item: TodoRow };
 
-/** Every row the list has, most serious first: absences, clashes, then what to do (today's deadlines, then the week's). */
-export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due: readonly NeedDraft[], courses: readonly TermCourse[]): UrusRow[] {
+/**
+ * Every row the list has, most serious first: absences, clashes, then what to do, the soonest first. `grouped`
+ * (Beranda): two or more absences as one row.
+ */
+export function useUrusRows(
+  problems: Problems,
+  needs: readonly NeedDraft[],
+  due: readonly NeedDraft[],
+  courses: readonly TermCourse[],
+  grouped = false,
+): UrusRow[] {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -152,12 +186,18 @@ export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due
       (need) =>
         need.kind === "task" && !activeSnooze(snoozeKey(need), entries, now) && !taskPutAway(need.task, handled) && !shown.some((s) => s.id === need.id),
     );
-    const todos = [...today, ...shown].flatMap((need) => {
-      const row = todoOf(t, f, now, need, courses);
-      return row ? [{ kind: "todo" as const, key: need.id, item: row }] : [];
-    });
+    const todos = [...today, ...shown]
+      .flatMap((need) => {
+        const row = todoOf(t, f, now, need, courses);
+        return row ? [{ kind: "todo" as const, key: need.id, item: row }] : [];
+      })
+      .sort((x, y) => x.item.at - y.item.at);
+    const absences: UrusRow[] =
+      grouped && problems.absences.length > 1
+        ? [{ kind: "absences", key: "absences", items: problems.absences }]
+        : problems.absences.map((item) => ({ kind: "absence" as const, key: `absence:${item.code}`, item }));
     return [
-      ...problems.absences.map((item) => ({ kind: "absence" as const, key: `absence:${item.code}`, item })),
+      ...absences,
       // A clash later today is on its "Nanti hari ini" row, as the clash's icon (one fact, one place: round 3's fourth
       // review saw the same course three times on Beranda); only one of the pair can be on the now card, so one row has it.
       ...problems.clashes
@@ -165,7 +205,7 @@ export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due
         .map((item) => ({ kind: "clash" as const, key: `clash:${item.key}:${item.from}`, item })),
       ...todos,
     ];
-  }, [problems, needs, due, entries, handled, now, t, f, courses]);
+  }, [problems, needs, due, entries, handled, now, t, f, courses, grouped]);
 }
 
 export function Urus({
@@ -181,7 +221,7 @@ export function Urus({
 }) {
   const t = useT();
   const v = useTheme().v4;
-  const all = useUrusRows(problems, needs, due, courses);
+  const all = useUrusRows(problems, needs, due, courses, true);
   const rows = useMemo(() => firstRows(all, URUS_ROWS), [all]);
   // The demo's first sync, or the Student's first read after a sign-in (the top bar's "Membaca …").
   const settling = useSettling();
@@ -239,6 +279,8 @@ export function UrusList({ rows, courses }: { rows: readonly UrusRow[]; courses:
       {rows.map((row, i) =>
         row.kind === "absence" ? (
           <AbsenceRow key={row.key} item={row.item} first={i === 0} courses={courses} />
+        ) : row.kind === "absences" ? (
+          <AbsencesRow key={row.key} items={row.items} first={i === 0} courses={courses} />
         ) : row.kind === "clash" ? (
           <ClashRow key={row.key} item={row.item} first={i === 0} courses={courses} />
         ) : (
@@ -288,6 +330,35 @@ function AbsenceRow({ item, first, courses }: { item: AbsenceProblem; first: boo
       title={<RowTitle text={shortName(name)} />}
       meta={<Meta tone={over ? "red" : "amber"} text={words} />}
       onPress={() => go({ screen: "course", code: item.code })}
+    />
+  );
+}
+
+/**
+ * Two or more courses at or past their absence limit, as one row: how many, then each state's count ("1 lewat batas · 2
+ * jatah habis") in the worst one's tone. Opens Kuliah, where each course's count is; TalkBack hears each by name.
+ */
+function AbsencesRow({ items, first, courses }: { items: readonly AbsenceProblem[]; first: boolean; courses: readonly TermCourse[] }) {
+  const t = useT();
+  const { go } = useNav();
+  const out = items.filter((item) => item.health.state === "out").length;
+  const tone = out > 0 ? "red" : "amber";
+  const title = t("mobile.absence.courses", { count: items.length });
+  const words = factsLabel(
+    out > 0 && t("mobile.absence.overCount", { count: out }),
+    items.length > out && t("mobile.absence.noneCount", { count: items.length - out }),
+  );
+  const spoken = items.map((item) => `${nameOf(courses, item.code)}, ${absenceName(t, item.health) ?? ""}`).join(". ");
+  return (
+    <GroupRow
+      first={first}
+      testID="row.need.absences"
+      accessibilityRole="button"
+      accessibilityLabel={`${title}. ${spoken}`}
+      leading={<IconTile tone={tone} icon={(color) => <Icons.CalendarCheck size={22} color={color} />} />}
+      title={<RowTitle text={title} />}
+      meta={<Meta tone={tone} text={words} />}
+      onPress={() => go({ screen: "presence" })}
     />
   );
 }

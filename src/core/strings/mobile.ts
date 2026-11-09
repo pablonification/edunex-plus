@@ -75,6 +75,12 @@ export const mobileStrings = {
   // what TalkBack hears. Never "Di bawah target": a course with none left can be under its target today too.
   "mobile.absence.none": { id: "Jatah absen habis", en: "No absences left" },
   "mobile.absence.over": { id: "Absen lewat {count}×", en: { one: "{count} absence too many", other: "{count} absences too many" } },
+  // Beranda's one row for two or more such courses (round 3's fifth review: a row each pushed the Tasks down): how many,
+  // then each state's count in its own words, the worst first ("Absen di 3 mata kuliah", "1 lewat batas · 2 jatah
+  // habis"). It opens Kuliah, where each course's count is; TalkBack hears each course's name and state.
+  "mobile.absence.courses": { id: "Absen di {count} mata kuliah", en: { one: "Absences in {count} course", other: "Absences in {count} courses" } },
+  "mobile.absence.overCount": { id: "{count} lewat batas", en: "{count} over the limit" },
+  "mobile.absence.noneCount": { id: "{count} jatah habis", en: "{count} with none left" },
   // The now card's day for a class two days ahead, before its weekday ("Lusa, Kam 08:00").
   "mobile.home.dayAfter": { id: "Lusa", en: "In 2 days" },
   // A class row's one chip.
