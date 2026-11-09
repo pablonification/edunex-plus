@@ -774,6 +774,7 @@ export function project(record: StudentRecord, rawPlan: StudyPlan): Projection {
     sks += g.sks;
   }
   const variableSks = [...variable.values()].reduce((sum, v) => sum + v, 0);
+  const bestIpk = variableSks ? roundIndex(points + GRADE_POINTS.A * variableSks, sks + variableSks) : finalIpk;
 
   return {
     steps,
@@ -782,12 +783,13 @@ export function project(record: StudentRecord, rawPlan: StudyPlan): Projection {
     path,
     honor: honorFor(finalIpk, path),
     variableSks,
-    bestIpk: variableSks ? roundIndex(points + GRADE_POINTS.A * variableSks, sks + variableSks) : finalIpk,
+    bestIpk,
     need(target) {
       if (variableSks === 0) return { kind: "none" };
       const average = (target * (sks + variableSks) - points) / variableSks;
       if (average <= 1e-9) return { kind: "secured" };
-      if (average > 4 + 1e-9) return { kind: "out" };
+      // Out of reach exactly when the highest IPK shown ("jika semua A") is under it: one comparison, never "needs" over it.
+      if (average > 4 + 1e-9 || (bestIpk !== null && bestIpk < target)) return { kind: "out" };
       return { kind: "needs", average: Math.ceil(average * 100 - 1e-6) / 100 };
     },
   };

@@ -369,6 +369,19 @@ describe("the IPK target, one setting", () => {
     expect(p.need(p.bestIpk!)).toMatchObject({ kind: "needs" });
   });
 
+  it("an honor is out of reach exactly when the highest IPK still possible is under it", () => {
+    for (const p of [project(record, defaultPlan(record)), project(record, plan({ "2026-2": [course("II2260", "A", true)] }))]) {
+      for (const h of honorsOutlook(p)) {
+        if (h.kind === "blocked") continue;
+        expect(h.kind === "out", `${h.level} at ${p.bestIpk}`).toBe(p.bestIpk! < h.min);
+        if (h.kind === "needs") expect(h.average).toBeLessThanOrEqual(4);
+      }
+      // Just under, at and over the best: out, then not.
+      expect(p.need(p.bestIpk! + 0.01)).toEqual({ kind: "out" });
+      expect(p.need(p.bestIpk!).kind).not.toBe("out");
+    }
+  });
+
   it("the predicate is one word for an IPK", () => {
     const path = { retakes: false, semesters: 8 };
     expect(predicateFor(3.3, path)).toBe("very-good");

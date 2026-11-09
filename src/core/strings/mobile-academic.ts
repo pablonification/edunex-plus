@@ -8,9 +8,9 @@ export const mobileAcademicStrings = {
   "mobile.grades.fromSix": { id: "Dari KRS-mu di SIX", en: "From your KRS on SIX" },
   // Beside the IPK, as plain words: the predicate it heads for, named as the one at graduation when today's differs.
   "mobile.grades.predicateAtEnd": { id: "{predicate} saat lulus", en: "{predicate} at graduation" },
-  // An honor still open: the average it needs, as the blind pair preferred it (round 3). Over which SKS is its ⓘ sheet,
-  // so "26 SKS" never sits beside the card's "125 dari 144" (which leaves 19).
-  "mobile.grades.honorsAverage": { id: "Butuh rata-rata {avg}", en: "Needs a {avg} average" },
+  // An honor still open: the average it needs and over how many SKS, so it never reads as an IPK beside the best IPK's
+  // (round 3's final pair read "Butuh rata-rata 3,66" over "IPK tertinggi 3,56" as impossible). Which SKS: its ⓘ sheet.
+  "mobile.grades.honorsAverage": { id: "Butuh rata-rata {avg} di {sks} SKS", en: "Needs a {avg} average over {sks} SKS" },
   // The sheet: the SKS that average is over, where they are, and, when it's more, why it isn't the SKS left to graduate.
   "mobile.grades.honorsWhy": {
     id: "Rata-rata nilai di {sks} SKS yang belum bernilai: {term} SKS semester ini dan {plan} SKS di rencanamu.",

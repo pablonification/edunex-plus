@@ -289,7 +289,7 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
         meta={
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
             <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.muted }}>
-              {t("mobile.grades.honorsAverage", { avg: f.number(next.average, 2) })}
+              {t("mobile.grades.honorsAverage", { avg: f.number(next.average, 2), sks: projection.variableSks })}
             </Text>
             <Icons.Info size={16} color={v.muted} />
           </View>
