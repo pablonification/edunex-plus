@@ -399,7 +399,8 @@ describe("submitting", () => {
     h.world.setLatency(1_000);
     const submitting = submit(h, UTS, [file]);
     const checking = h.engine.refresh("edunex");
-    await h.wait(30_000);
+    // Every call a second, two at a time: the whole of Edunex in under two minutes.
+    await h.wait(120_000);
     await Promise.all([submitting, checking]);
     expect(task(h, UTS).status).toBe("submitted");
   });

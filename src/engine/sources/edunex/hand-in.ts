@@ -11,7 +11,7 @@ import { EngineError, isEngineError } from "../../errors";
 import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import type { SourceAction, SourceContext } from "../source";
 import { answerWords, cleanAnswer } from "./answer-html";
-import { EDUNEX_API, EdunexClient, TIMEOUT_MS } from "./client";
+import { EDUNEX_API, EdunexClient, edunexLine, TIMEOUT_MS } from "./client";
 import { LoginMe } from "./schemas";
 import type { EdunexSession } from "./session";
 import { type AnswerFile, readTaskRecord, remember, type TaskRecord } from "./task-records";
@@ -97,7 +97,7 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
     const { taskId, name, contentType, bytes } = parse(UploadInput, input);
     const problem = answerFileProblem(name, bytes.byteLength);
     if (problem) throw new EngineError("Rejected", problem === "size" ? `${name} is over 100 MB` : `Edunex doesn't take ${name} in an answer`);
-    const client = new EdunexClient(context.transport, session.token, context.userAgent);
+    const client = new EdunexClient(context.transport, session.token, context.userAgent, edunexLine(context), true);
     // What the website knows on the Task's page: the Task, its course and module, and who is signed in.
     const fresh = await readBack(context, client, known(context, taskId));
     // Not the file's fault: said as Edunex not taking the upload, never as a file that can't be read.
@@ -128,7 +128,7 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
   async saveDraft(context, session, input) {
     const handIn = parse(HandIn, input);
     return oneAtATime(context, handIn.taskId, async (): Promise<HandInResult> => {
-      const client = new EdunexClient(context.transport, session.token, context.userAgent);
+      const client = new EdunexClient(context.transport, session.token, context.userAgent, edunexLine(context), true);
       const fresh = await readBack(context, client, known(context, handIn.taskId));
       const refused = await refusal(context, handIn.taskId, fresh);
       if (refused || !fresh) return refused ?? GONE;
@@ -144,7 +144,7 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
   async submit(context, session, input) {
     const handIn = parse(HandIn, input);
     return oneAtATime(context, handIn.taskId, async (): Promise<HandInResult> => {
-      const client = new EdunexClient(context.transport, session.token, context.userAgent);
+      const client = new EdunexClient(context.transport, session.token, context.userAgent, edunexLine(context), true);
       const fresh = await readBack(context, client, known(context, handIn.taskId));
       const refused = await refusal(context, handIn.taskId, fresh);
       if (refused || !fresh) return refused ?? GONE;
@@ -185,7 +185,7 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
   async comment(context, session, input) {
     const { taskId, text } = parse(TaskComment, input);
     return oneAtATime(context, taskId, async (): Promise<TaskCommentResult> => {
-      const client = new EdunexClient(context.transport, session.token, context.userAgent);
+      const client = new EdunexClient(context.transport, session.token, context.userAgent, edunexLine(context), true);
       const fresh = await readBack(context, client, known(context, taskId));
       if (!fresh) {
         await remember(context, taskId, null);
@@ -210,7 +210,7 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
   /** Reads the thread under the Student's answer now, when the Task page opens or comes back to the front (./task-threads.ts). */
   async readThread(context, session, input) {
     const { taskId } = parse(z.object({ taskId: z.number().int().positive() }), input);
-    await readThreadNow(context, new EdunexClient(context.transport, session.token, context.userAgent), taskId);
+    await readThreadNow(context, new EdunexClient(context.transport, session.token, context.userAgent, edunexLine(context), true), taskId);
     return {};
   },
 };
@@ -369,18 +369,23 @@ function parse<S extends z.ZodType>(schema: S, input: unknown): z.infer<S> {
 async function write(context: SourceContext, session: EdunexSession, method: "POST" | "PATCH" | "DELETE", path: string, body?: unknown): Promise<unknown> {
   let response: HttpResponse;
   try {
-    response = await context.transport.request({
-      method,
-      url: new URL(path, EDUNEX_API).toString(),
-      headers: {
-        authorization: `Bearer ${session.token}`,
-        accept: "application/json",
-        ...(body === undefined ? {} : { "content-type": "application/json" }),
-        "user-agent": context.userAgent,
-      },
-      body: body === undefined ? undefined : JSON.stringify(body),
-      timeoutMs: TIMEOUT_MS,
-    });
+    // In Edunex's line like every read, ahead of the feeds': the Student pressed the button.
+    response = await edunexLine(context).turn(
+      () =>
+        context.transport.request({
+          method,
+          url: new URL(path, EDUNEX_API).toString(),
+          headers: {
+            authorization: `Bearer ${session.token}`,
+            accept: "application/json",
+            ...(body === undefined ? {} : { "content-type": "application/json" }),
+            "user-agent": context.userAgent,
+          },
+          body: body === undefined ? undefined : JSON.stringify(body),
+          timeoutMs: TIMEOUT_MS,
+        }),
+      "first",
+    );
   } catch (error) {
     if (error instanceof NetworkError)
       throw new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
