@@ -74,6 +74,13 @@ export const mobileStrings = {
   // what TalkBack hears. Never "Di bawah target": a course with none left can be under its target today too.
   "mobile.absence.none": { id: "Jatah habis", en: "No absences left" },
   "mobile.absence.over": { id: "Lewat batas {count}×", en: "{count} over the limit" },
+  // Perlu kamu urus's row for a course's absences, beside a Task's: said in absence words, so "lewat batas" can't read as
+  // a Task past its deadline (round 3's third review). The calendar-check tile says it's about classes, and the limit is
+  // the course page's.
+  "mobile.home.absence.over": { id: "Absen lewat {count}×", en: { one: "{count} absence too many", other: "{count} absences too many" } },
+  "mobile.home.absence.none": { id: "Jatah absen habis", en: "No absences left" },
+  // The now card's day for a class two days ahead, before its weekday ("Lusa, Kam 08:00").
+  "mobile.home.dayAfter": { id: "Lusa", en: "In 2 days" },
   // A class row's one chip.
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough
@@ -88,8 +95,15 @@ export const mobileStrings = {
   // Notifikasi's and Yang berubah's meta line for a moved class: what moved, old → new, only the day, time or room that
   // changed ("08:00–09:30 → 08:00–10:00"). The whole of both is in what TalkBack reads.
   "mobile.change.moved.diff": { id: "{oldId} → {newId}", en: "{oldEn} → {newEn}" },
-  // Notifikasi's title for two classes at once: both courses by name, kept apart ("A dan B" read as one course).
-  "mobile.change.overlap": { id: "Bentrok · {a} × {b}", en: "Clash · {a} × {b}" },
+  // Notifikasi and Yang berubah: a moved class's day, before what moved when the day itself didn't ("Kam, 19 Nov · 08:00–09:30
+  // → 08:00–10:00").
+  "mobile.change.moved.onDay": { id: "{dayId} · {oldId} → {newId}", en: "{dayEn} · {oldEn} → {newEn}" },
+  // Notifikasi, once a class or a Presence window is over: what happened, never the action any more ("Tandai Hadir · sampai
+  // 17:50" five days later read as still to do). The outcome is SIX's count after the class, or what Edunex recorded.
+  "mobile.alert.classOver": { id: "Kuliah selesai · {course}", en: "Class over · {course}" },
+  "mobile.alert.presenceOver": { id: "Presensi ditutup · {course}", en: "Presence closed · {course}" },
+  "mobile.alert.present": { id: "Hadir", en: "Present" },
+  "mobile.alert.notRecorded": { id: "Tidak tercatat", en: "Not recorded" },
   // Notifikasi's meta line for Tandai Hadir: the action and how long the class runs, never how to press it.
   "mobile.change.classStarted": { id: "Tandai Hadir · sampai {time}", en: "Tandai Hadir · until {time}" },
   "mobile.change.checkIn": { id: "Kuliah sampai {time}", en: "Class until {time}" },
@@ -308,10 +322,13 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   // close), and a problem with SIX's count (a class it didn't record, no absences left).
   "settings.alerts.presence": { id: "Waktunya presensi", en: "Time to check in" },
   "settings.alerts.attendanceRisk": { id: "Masalah kehadiran", en: "Attendance problems" },
-  // Settings › Akun: the row that opens what the app found when Edunex and SIX were first read, named by what's in it
-  // (the screen's own title: "{count} hal yang tidak disampaikan kedua sistem"). "Temuan saat pertama masuk" said
-  // nothing to a student (round 3's judge); when it was found is the row's spoken hint.
-  "settings.firstScan": { id: "Yang tak disampaikan Edunex dan SIX", en: "What Edunex and SIX don't tell you" },
+  // Settings › Akun: the row that opens what the app found when Edunex and SIX were first read, on one line (round 3's
+  // third review preferred a short name to "Yang tak disampaikan Edunex dan SIX" on two); when it was found is the row's
+  // spoken hint.
+  "settings.firstScan": { id: "Ringkasan awal", en: "First summary" },
+  // Settings › Notifikasi: the switch for a class moved, a Task edited or a meeting added, named by what changes ("Ada
+  // perubahan" didn't say what).
+  "settings.alerts.changes": { id: "Jadwal atau Tugas berubah", en: "Class or Task changes" },
   // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
   "handIn.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
   // The snackbar after "Sudah beres": what happened and when it's back, short enough for two lines beside Urungkan

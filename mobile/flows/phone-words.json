@@ -160,6 +160,11 @@
     "phone": "Masalah kehadiran"
   },
   {
+    "key": "settings.alerts.changes",
+    "desktop": "Ada perubahan",
+    "phone": "Jadwal atau Tugas berubah"
+  },
+  {
     "key": "settings.alerts.presence",
     "desktop": "Presensi",
     "phone": "Waktunya presensi"
@@ -177,7 +182,7 @@
   {
     "key": "settings.firstScan",
     "desktop": "Ringkasan saat pertama terhubung",
-    "phone": "Yang tak disampaikan Edunex dan SIX"
+    "phone": "Ringkasan awal"
   },
   {
     "key": "settings.needsAhead",

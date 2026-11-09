@@ -92,13 +92,14 @@ function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly 
         : result === "missing"
           ? { key: "home.today.notCounted" as const, bg: v.ambBg, fg: v.ambFg }
           : overlap
-            ? { key: "mobile.home.chip.clash" as const, bg: v.ambBg, fg: v.ambFg }
-            : usual
-              ? { key: "mobile.home.chip.moved" as const, bg: v.ambBg, fg: v.ambFg }
+            ? { key: "mobile.home.chip.clash" as const, bg: v.ambBg, fg: v.ambFg, clash: true }
+            : // Amber is for the Student's standing (and a clash, with its icon): a new time or a meeting outside SIX is neutral.
+              usual
+              ? { key: "mobile.home.chip.moved" as const, bg: v.chip, fg: v.fg2 }
               : live
                 ? { key: "mobile.home.chip.now" as const, bg: v.okBg, fg: v.okFg }
                 : meeting && !card.meeting?.maybeInSix
-                  ? { key: "home.today.notInSix" as const, bg: v.ambBg, fg: v.ambFg }
+                  ? { key: "home.today.notInSix" as const, bg: v.chip, fg: v.fg2 }
                   : null;
   // The time's one quiet line, never a warning sentence: what it clashes with, else when it usually is (saying it moved
   // when SIX's verdict took the chip, ./moved-line.ts), else how far off.
@@ -134,7 +135,10 @@ function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly 
       </View>
       <View>
         {when && (
-          <Fact icon={(c) => <Icons.Clock size={22} color={c} />} end={timeChip && <Chip text={t(timeChip.key)} bg={timeChip.bg} fg={timeChip.fg} />}>
+          <Fact
+            icon={(c) => <Icons.Clock size={22} color={c} />}
+            end={timeChip && <Chip text={t(timeChip.key)} bg={timeChip.bg} fg={timeChip.fg} clash={"clash" in timeChip} />}
+          >
             <Text size="bodyLarge" tabular style={{ color: v.fg2 }}>
               {`${dayWord} · ${f.timeRange(when.start, when.end)}`}
             </Text>
@@ -148,7 +152,7 @@ function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly 
         {place && (
           <Fact
             icon={(c) => <Icons.MapPin size={22} color={c} />}
-            end={usualRoom && !timeChip && <Chip text={t("mobile.home.chip.moved")} bg={v.ambBg} fg={v.ambFg} />}
+            end={usualRoom && !timeChip && <Chip text={t("mobile.home.chip.moved")} bg={v.chip} fg={v.fg2} />}
           >
             <Text size="bodyLarge" style={{ color: v.fg2 }}>
               {place}
@@ -170,9 +174,13 @@ function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly 
 const line = (t: Translate, moved: MovedLine): string => t(moved.key, moved.vars);
 
 /** The sheet's one status. */
-function Chip({ text, bg, fg }: { text: string; bg: string; fg: string }) {
+/** A status chip; `clash`: led by the clash's own icon, the one thing besides absences that's amber. */
+function Chip({ text, bg, fg, clash = false }: { text: string; bg: string; fg: string; clash?: boolean }) {
   return (
-    <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: bg }}>
+    <View
+      style={{ flexDirection: "row", alignItems: "center", gap: space[1], borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: bg }}
+    >
+      {clash && <Icons.Overlap size={14} weight="bold" color={fg} />}
       <Text size="labelMedium" weight="semibold" style={{ color: fg }}>
         {text}
       </Text>

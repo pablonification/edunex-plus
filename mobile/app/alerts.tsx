@@ -6,7 +6,8 @@
 // thing itself happened (a Task posted, a Presence opening), never when the app read it: nothing when that isn't known
 // (SIX never dates a moved class). A small calm dot on each unread row, and the bell's dot on every tab, until "Tandai
 // semua dibaca", the bar's one action while something is unread: both say the same thing. Nothing is ever marked in
-// Edunex.
+// Edunex. A class's or a Presence's alert whose window is over says what happened, with no action left in it, and opens
+// the course; an exam SIX lists in two weeks is one row with both days (../src/screens/alerts/past.ts).
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { ChecksIcon } from "phosphor-react-native/src/icons/Checks";
@@ -16,11 +17,12 @@ import { useHomeWorld } from "../../src/app/home-world";
 import { useOpenCheckIn } from "../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../src/app/i18n";
 import { useBridge, useDataset, useStatus } from "../../src/app/store";
-import type { Alert, AlertKind } from "../../src/core/models";
+import type { Alert, AlertKind, ClassSession } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
 import { changeLines, eventTime } from "../src/parts/change-meta";
 import { usePerfDrawn } from "../src/perf";
+import { examSittings, type Outcome, type PastAlert, pastAlert } from "../src/screens/alerts/past";
 import { useShortCourseName } from "../src/screens/home/parts";
 import { IconButton } from "../src/ui/controls";
 import { CourseIconTile } from "../src/ui/course-icon-tile";
@@ -61,6 +63,10 @@ interface Row {
   item: Alert;
   happened: number | null;
   at: number;
+  /** Its class or Presence window is over: what happened. */
+  past: PastAlert | null;
+  /** An exam SIX lists more than once: every sitting. */
+  sittings: readonly ClassSession[] | null;
 }
 
 /** A day's rows, newest day first: 0 is today (a raised alert a minute ahead of the screen's clock too), -1 yesterday. */
@@ -97,16 +103,24 @@ export default function Alerts() {
   const items = useMemo(() => (world ? alertFeed(world, history?.items ?? []) : (history?.items ?? [])), [world, history]);
   const raised = useMemo(() => new Set((history?.items ?? []).map((item) => item.id)), [history]);
   // Each row's moment: when the thing happened, or, unknown, when the app saw it (only to place it under a day).
-  const rows = useMemo(
-    () =>
-      items
-        .map((item): Row => {
-          const happened = eventTime(item, raised.has(item.id), world);
-          return { item, happened, at: happened ?? item.at };
-        })
-        .sort((a, b) => b.at - a.at),
-    [items, raised, world],
-  );
+  const rows = useMemo(() => {
+    const { sittings, folded } = examSittings(items, world?.schedule);
+    // A class or window that's over: one row, its newest alert's place.
+    const over = new Set<string>();
+    return items
+      .filter((item) => !folded.has(item.id))
+      .map((item): Row => {
+        const happened = eventTime(item, raised.has(item.id), world);
+        return { item, happened, at: happened ?? item.at, past: pastAlert(item, world, now), sittings: sittings.get(item.id) ?? null };
+      })
+      .sort((a, b) => b.at - a.at)
+      .filter((row) => {
+        if (!row.past) return true;
+        if (over.has(row.past.key)) return false;
+        over.add(row.past.key);
+        return true;
+      });
+  }, [items, raised, world, now]);
   const isUnread = (item: Alert) => raised.has(item.id) && item.at > readAt;
   const anyUnread = items.some(isUnread);
   const days = useMemo(() => {
@@ -156,9 +170,13 @@ export default function Alerts() {
         <Rise key={day.offset} screen="alerts" index={Math.min(index, RISE_STEPS)}>
           <Heading first={index === 0}>{dayTitle(day, t, f)}</Heading>
           <Group>
-            {day.rows.map(({ item, happened }, i) => {
+            {day.rows.map(({ item, happened, past, sittings }, i) => {
               const unread = isUnread(item);
-              const { title, meta, spoken } = changeLines(t, item, name);
+              const lines = changeLines(t, item, name);
+              const outcome = past ? outcomeOf(t, past.outcome) : null;
+              const title = past ? t(past.kind === "class" ? "mobile.alert.classOver" : "mobile.alert.presenceOver", { course: name(past.code) }) : lines.title;
+              const meta = past ? (outcome?.text ?? null) : sittings ? sittingsLine(f, sittings) : lines.meta;
+              const spoken = past ? [title, outcome?.text ?? null] : sittings ? [lines.title, meta] : lines.spoken;
               const time = happened !== null ? f.time(happened) : null;
               return (
                 <GroupRow
@@ -167,7 +185,7 @@ export default function Alerts() {
                   first={i === 0}
                   // Unread first in what's read out, as the dot says it to the eye.
                   accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken, time)}
-                  leading={<KindTile item={item} />}
+                  leading={<KindTile item={item} past={past !== null} />}
                   title={
                     <Text size="bodyLarge" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
                       {title}
@@ -176,8 +194,16 @@ export default function Alerts() {
                   // One meta line: what changed, old → new, or the action and its deadline (short where the desktop's runs
                   // long or says how, ../src/parts/change-meta.ts).
                   meta={
-                    meta ? (
-                      <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
+                    outcome ? (
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+                        <outcome.Icon size={14} weight="bold" color={v[outcome.ink]} />
+                        <Text size="bodyMedium" numberOfLines={1} style={{ color: v[outcome.ink], flexShrink: 1 }}>
+                          {outcome.text}
+                        </Text>
+                      </View>
+                    ) : meta ? (
+                      // Two lines at most: a moved class's day and old → new, an exam's two days, are one fact each.
+                      <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
                         {meta}
                       </Text>
                     ) : undefined
@@ -195,7 +221,13 @@ export default function Alerts() {
                       </View>
                     ) : undefined
                   }
-                  onPress={() => (item.checkIn ? openCheckIn(item.checkIn.meetingId, item.checkIn.url) : nav.go(item.target))}
+                  onPress={() =>
+                    past
+                      ? nav.go(past.kind === "class" ? { screen: "course", code: past.code } : item.target)
+                      : item.checkIn
+                        ? openCheckIn(item.checkIn.meetingId, item.checkIn.url)
+                        : nav.go(item.target)
+                  }
                 />
               );
             })}
@@ -224,12 +256,44 @@ export default function Alerts() {
   );
 }
 
-/** A notification's tile: its kind's icon, amber when it presses (a deadline, presence, attendance at risk), else on its course's colour, else the brand's. */
-function KindTile({ item }: { item: Alert }) {
+/**
+ * A notification's tile: its kind's icon, amber while it presses (a deadline, presence, attendance at risk; `past`: no
+ * longer), else on its course's colour, else the brand's.
+ */
+function KindTile({ item, past }: { item: Alert; past: boolean }) {
   const Icon = KIND_ICON[item.kind];
   const glyph = (color: string) => <Icon size={22} color={color} />;
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
-  if (PRESSING.has(item.kind)) return <IconTile tone="amber" icon={glyph} />;
+  if (PRESSING.has(item.kind) && !past) return <IconTile tone="amber" icon={glyph} />;
   if (code) return <CourseIconTile code={code} icon={glyph} />;
   return <IconTile tone="brand" icon={glyph} />;
+}
+
+/** What happened, once the class or the window is over: its word, its icon and its ink. Null: not known (the title says it's over). */
+function outcomeOf(t: Translate, outcome: Outcome): { text: string; Icon: ComponentType<IconProps>; ink: "okFg" | "redFg" | "muted" } | null {
+  switch (outcome) {
+    case "counted":
+    case "present":
+      return { text: t("mobile.alert.present"), Icon: Icons.CheckCircle, ink: "okFg" };
+    case "absent":
+      return { text: t("home.today.absent"), Icon: Icons.X, ink: "redFg" };
+    case "notRecorded":
+      return { text: t("mobile.alert.notRecorded"), Icon: Icons.X, ink: "redFg" };
+    case "missing":
+      return { text: t("home.today.notCounted"), Icon: Icons.Clock, ink: "muted" };
+    default:
+      return null;
+  }
+}
+
+/** An exam's sittings on one line: "Kam, 10 Des dan 17 Des, 11:00 · 9009"; the weekday, the time and the room once when they're the same. */
+function sittingsLine(f: Format, sittings: readonly ClassSession[]): string {
+  const first = sittings[0]!;
+  const same = <T,>(of: (s: ClassSession) => T) => sittings.every((s) => of(s) === of(first));
+  const days = same((s) => f.weekdayShort(s.start))
+    ? `${f.weekdayShort(first.start)}, ${f.list(sittings.map((s) => f.dayMonth(s.start)))}`
+    : f.list(sittings.map((s) => f.relativeDay(s.start)));
+  const time = same((s) => f.time(s.start)) ? `, ${f.time(first.start)}` : "";
+  const room = first.room && same((s) => s.room) ? ` · ${first.room}` : "";
+  return `${days}${time}${room}`;
 }

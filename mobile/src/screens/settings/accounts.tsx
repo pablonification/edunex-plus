@@ -1,9 +1,9 @@
-// Settings' top: who's signed in (a white card: the initials, the name in Plus Jakarta Sans, the NIM and the program
-// as one quiet line), then Akun: each system's row (a line icon in a tile, as every row's) with its state as the one
-// line under it ("Terhubung"; when it was last checked only once that's stale). Signed out (or the session ended), the
-// row signs in; signed in, it opens a sheet whose one choice signs out of just that system. "Terhubung" in green says
-// it's connected, with no dot beside it saying it again. What the first read found is the group's last row, named by
-// what's in it.
+// Settings' top: who's signed in (a white card: the initials, the name in Plus Jakarta Sans a step under the page's
+// title, the NIM and the program as one quiet line), then Akun: each system's row (a line icon in a tile, as every
+// row's) with its state as the one line under it: the live dot and "Terhubung" (round 3's third review chose that over
+// the word alone); when it was last checked only once that's stale. Signed out (or the session ended), the row signs
+// in; signed in, it opens a sheet whose one choice signs out of just that system. What the first read found is the
+// group's last row, "Ringkasan awal".
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -12,6 +12,7 @@ import { displayName, initials } from "../../../../src/app/names";
 import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import type { SourceId } from "../../../../src/core/models";
 import { useSignInNote } from "../../shell/source-status";
+import { LiveDot } from "../../ui/display";
 import { IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
@@ -41,7 +42,7 @@ export function Profile() {
         </Text>
       </View>
       <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={factsLabel(displayName(name), facts)}>
-        <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, letterSpacing: -0.2 }}>
+        <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, letterSpacing: -0.2 }}>
           {displayName(name)}
         </Text>
         {facts ? (
@@ -83,6 +84,7 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   const note = useSignInNote(source);
   const [busy, setBusy] = useState(false);
   const [menu, setMenu] = useState(false);
+  const v = useTheme().v4;
   const name = t(`source.${source}`);
   const run = async (what: "auth.signIn" | "auth.signOut") => {
     setBusy(true);
@@ -117,7 +119,18 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
           <IconTile icon={(color) => (source === "six" ? <Icons.GraduationCap size={22} color={color} /> : <Icons.BookOpen size={22} color={color} />)} />
         }
         title={name}
-        meta={state.text}
+        meta={
+          status.state === "live" ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <LiveDot />
+              <Text size="bodyMedium" numberOfLines={1} style={{ color: v.okFg, flexShrink: 1 }}>
+                {state.text}
+              </Text>
+            </View>
+          ) : (
+            state.text
+          )
+        }
         metaTone={state.tone}
         busy={busy}
         disabled={status.state === "connecting"}

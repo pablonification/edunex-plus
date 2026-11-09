@@ -57,11 +57,12 @@ describe("changeLines", () => {
       );
     const time = moved("Jum, 9 Okt, 15:00–23:59 · 9009", "15:00–16:40 · 9009");
     expect(time.title).toBe("Jadwal berubah · Proposal Tugas Akhir");
-    expect(time.meta).toBe("15:00–23:59 → 15:00–16:40");
+    // The day it's on, when the day itself didn't move: without it the row didn't say which week.
+    expect(time.meta).toBe("Jum, 9 Okt · 15:00–23:59 → 15:00–16:40");
     // The whole of both stays in what TalkBack reads.
     expect(time.spoken[1]).toBe("Jum, 9 Okt, 15:00–23:59 · 9009 → 15:00–16:40 · 9009");
     expect(moved("Kam, 19 Nov, 08:00–09:30 · R.7602", "Jum, 20 Nov, 08:00–09:30 · R.7602").meta).toBe("Kam, 19 Nov → Jum, 20 Nov");
-    expect(moved("Kam, 19 Nov, 08:00–09:30 · R.7602", "08:00–09:30 · R.9009").meta).toBe("R.7602 → R.9009");
+    expect(moved("Kam, 19 Nov, 08:00–09:30 · R.7602", "08:00–09:30 · R.9009").meta).toBe("Kam, 19 Nov · R.7602 → R.9009");
     expect(moved("Kam, 19 Nov, 08:00–09:30", "Jum, 20 Nov, 10:00–11:30").meta).toBe("Kam, 19 Nov, 08:00–09:30 → Jum, 20 Nov, 10:00–11:30");
   });
 
@@ -73,14 +74,14 @@ describe("changeLines", () => {
         vars: { dateId: "Kam, 8 Okt", dateEn: "Thu, 8 Oct", time: "08:00–10:00", usualId: "08:00–09:30", usualEn: "08:00–09:30", room: "" },
       },
     });
-    expect(lines.meta).toBe("08:00–09:30 → 08:00–10:00");
+    expect(lines.meta).toBe("Kam, 8 Okt · 08:00–09:30 → 08:00–10:00");
   });
 
-  it("names both courses of a clash apart, never as one name", () => {
+  it("says a clash as the desktop does, 'Kelas bentrok · A dan B', by short names (never 'A × B')", () => {
     const short = (code: string) => (code === "PL3032" ? "Teknik Penyelesaian" : code === "KU5014" ? "Ekonomi Infrastruktur" : code);
     const lines = changeLines(t, { title: { key: "alert.overlap", vars: { a: "PL3032", b: "KU5014" } }, body: null }, short);
-    expect(lines.title).toBe("Bentrok · Teknik Penyelesaian × Ekonomi Infrastruktur");
-    expect(lines.spoken[0]).toBe("Kelas bentrok · Teknik Penyelesaian dan Ekonomi Infrastruktur");
+    expect(lines.title).toBe("Kelas bentrok · Teknik Penyelesaian dan Ekonomi Infrastruktur");
+    expect(lines.title).not.toContain("×");
   });
 
   it("says Tandai Hadir's action and how long the class runs, never how to press it", () => {
