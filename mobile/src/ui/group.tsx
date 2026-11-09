@@ -177,7 +177,7 @@ function pillColors(v: V4Palette, tone: PillTone, plain = v.chip): { bg: string;
   }
 }
 
-/** A row's one status as a tonal pill ("Jatah habis", "Lunas"); a few words at most. */
+/** A row's one status as a tonal pill ("Jatah absen habis", "Lunas"); a few words at most. */
 export function Pill({ tone, children, icon }: { tone: PillTone; children: string; icon?: (color: string) => ReactNode }) {
   const v = useTheme().v4;
   const { bg, fg } = pillColors(v, tone);

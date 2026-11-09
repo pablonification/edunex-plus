@@ -2,7 +2,7 @@
 // rest a ring; past the limit a short line, then a red segment per absence over it. Its tone is the app's one absence
 // scale (ui/absence.ts, as Beranda's chips): red once the target is out of reach (or the course finished below it),
 // amber with none left, green with some to spare. Beside it the state in plain words, the same words on every tab
-// ("Lewat batas 2×", "Jatah habis", "Sisa 1×"): Kuliah's rows show only those words (round 3's blind review read
+// ("Absen lewat 2×", "Jatah absen habis", "Sisa 1×"): Kuliah's rows show only those words (round 3's blind review read
 // them at once, the pips needed a key), a course's page draws the picture with them. The whole sentence is its
 // accessible name.
 import { memo } from "react";
@@ -31,7 +31,7 @@ export interface MeterModel {
   tone: MeterTone;
   /** The segments: allowed, used of them, over the limit; `estimate` before SIX counts (dashed rings, nothing used). */
   bar: MeterBar | null;
-  /** The state in a few plain words ("Lewat batas 2×", "Jatah habis", "Sisa 1×"; null: the picture alone). */
+  /** The state in a few plain words ("Absen lewat 2×", "Jatah absen habis", "Sisa 1×"; null: the picture alone). */
   word: string | null;
   /** A finished course: its share, with a mark instead of segments. */
   final: { share: number; met: boolean } | null;

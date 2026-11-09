@@ -1,7 +1,7 @@
 // Kuliah on the phone (round 3; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds, which course
 // is at risk, and the way into each. On v4's grey page under the bar's "Kuliah": what needs the Student now
 // (./now.tsx), then every course as a row in a white card: its tile, its whole name, and under it the state of its
-// absences in plain words ("Lewat batas 1×", "Jatah habis" as a pill in the risk's colour, "Sisa 2×" quiet). The
+// absences in plain words ("Absen lewat 1×", "Jatah absen habis" in the risk's ink, "Sisa 2×" quiet). The
 // courses at risk (out of reach, none left, finished below) come first under "Perlu perhatian", the rest under "Aman"
 // (or "Lainnya" while some have no count yet), in the desktop's order. The row opens the course. The day's answer, the
 // target and how it's counted are in ⋮ (./footer.tsx's sheet), beside the targets. Same data and words as the desktop.

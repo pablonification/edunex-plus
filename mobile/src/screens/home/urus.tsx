@@ -16,7 +16,6 @@ import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
 import { rupiah } from "../../../../src/core/academic";
-import { absenceBudget } from "../../../../src/core/attendance";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { taskPutAway } from "../../../../src/core/done";
 import { heldBack } from "../../../../src/core/held-back";
@@ -26,6 +25,7 @@ import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
 import { meterModel } from "../../parts/attendance-meter";
 import { useFirstReadRunning } from "../../shell/source-status";
+import { absenceName } from "../../ui/absence";
 import { IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
@@ -272,7 +272,7 @@ function AbsenceRow({ item, first, courses }: { item: AbsenceProblem; first: boo
   const { go } = useNav();
   const name = nameOf(courses, item.code);
   const over = item.health.state === "out";
-  const words = over ? t("mobile.home.absence.over", { count: absenceBudget(item.health)?.over ?? 0 }) : t("mobile.home.absence.none");
+  const words = absenceName(t, item.health) ?? "";
   const spoken = useMemo(() => meterModel(t, item)?.label, [t, item]);
   return (
     <GroupRow
