@@ -15,6 +15,7 @@ import { absenceName, absenceTone } from "../ui/absence";
 import { Icons } from "../ui/icons";
 import { Text } from "../ui/text";
 import { useTheme } from "../ui/theme";
+import { type MeterBar, meterMarks } from "./meter-marks";
 
 export type MeterTone = "ok" | "amber" | "red" | "neutral";
 
@@ -26,13 +27,10 @@ export function meterTone(health: AttendanceHealth): MeterTone {
 /** "sisa 1×" → "Sisa 1×": the words stand alone at a row's end. */
 const lead = (words: string) => words.charAt(0).toLocaleUpperCase() + words.slice(1);
 
-/** From this many allowed the segments join into one bar, split where the used part ends. */
-const JOINED = 8;
-
 export interface MeterModel {
   tone: MeterTone;
   /** The segments: allowed, used of them, over the limit; `estimate` before SIX counts (dashed rings, nothing used). */
-  bar: { allowed: number; used: number; over: number; estimate: boolean } | null;
+  bar: MeterBar | null;
   /** The state in a few plain words ("Lewat batas 2×", "Jatah habis", "Sisa 1×"; null: the picture alone). */
   word: string | null;
   /** A finished course: its share, with a mark instead of segments. */
@@ -136,35 +134,37 @@ export const AttendanceMeter = memo(function AttendanceMeter({
   const { bar } = model;
   // The rings of what's left: 3:1 on the card (DESIGN.md's pipRing), so the count reads without the fills.
   const ring = theme.color.pipRing;
-  const segments = bar && bar.allowed > 0 && (
+  const marks = meterMarks(bar);
+  const segments = bar && marks && (
     <View style={{ flexDirection: "row", alignItems: "center", gap: s.gap }}>
-      {bar.allowed < JOINED ? (
-        Array.from({ length: bar.allowed }, (_, i) => {
-          const used = !bar.estimate && i < bar.used;
-          return (
-            <View
-              // biome-ignore lint/suspicious/noArrayIndexKey: segments are positions, nothing else tells them apart
-              key={i}
-              style={{
-                width: s.width,
-                height: s.height,
-                borderRadius: s.height / 2,
-                ...(used ? { backgroundColor: ink } : { borderWidth: 1.5, borderColor: ring, ...(bar.estimate ? { borderStyle: "dashed" as const } : {}) }),
-              }}
-            />
-          );
-        })
-      ) : (
-        <View style={{ width: s.joined, height: s.height, borderRadius: s.height / 2, borderWidth: 1.5, borderColor: ring, overflow: "hidden" }}>
-          {!bar.estimate && bar.used > 0 && (
-            <View style={{ width: `${(Math.min(bar.used, bar.allowed) / bar.allowed) * 100}%`, height: "100%", backgroundColor: ink }} />
-          )}
-        </View>
-      )}
-      {bar.over > 0 && (
+      {marks.allowed > 0 &&
+        (!marks.joined ? (
+          Array.from({ length: marks.allowed }, (_, i) => {
+            const used = !bar.estimate && i < bar.used;
+            return (
+              <View
+                // biome-ignore lint/suspicious/noArrayIndexKey: segments are positions, nothing else tells them apart
+                key={i}
+                style={{
+                  width: s.width,
+                  height: s.height,
+                  borderRadius: s.height / 2,
+                  ...(used ? { backgroundColor: ink } : { borderWidth: 1.5, borderColor: ring, ...(bar.estimate ? { borderStyle: "dashed" as const } : {}) }),
+                }}
+              />
+            );
+          })
+        ) : (
+          <View style={{ width: s.joined, height: s.height, borderRadius: s.height / 2, borderWidth: 1.5, borderColor: ring, overflow: "hidden" }}>
+            {!bar.estimate && bar.used > 0 && (
+              <View style={{ width: `${(Math.min(bar.used, bar.allowed) / bar.allowed) * 100}%`, height: "100%", backgroundColor: ink }} />
+            )}
+          </View>
+        ))}
+      {marks.over > 0 && (
         <>
           <View style={{ width: 2, height: s.height + 6, borderRadius: 1, backgroundColor: v.fg, marginHorizontal: 1 }} />
-          {Array.from({ length: Math.min(bar.over, JOINED) }, (_, i) => (
+          {Array.from({ length: marks.over }, (_, i) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: segments are positions, nothing else tells them apart
             <View key={i} style={{ width: s.width, height: s.height, borderRadius: s.height / 2, backgroundColor: v.redFg }} />
           ))}
