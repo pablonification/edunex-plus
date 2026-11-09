@@ -22,7 +22,15 @@ describe("Perlu kamu urus", () => {
 
   it("keeps room for the first thing to do, however many problems there are", () => {
     const row = (kind: "absence" | "clash" | "todo", key: string) => ({ kind, key });
-    const all = [row("absence", "a1"), row("absence", "a2"), row("absence", "a3"), row("absence", "a4"), row("clash", "c1"), row("todo", "t1"), row("todo", "t2")];
+    const all = [
+      row("absence", "a1"),
+      row("absence", "a2"),
+      row("absence", "a3"),
+      row("absence", "a4"),
+      row("clash", "c1"),
+      row("todo", "t1"),
+      row("todo", "t2"),
+    ];
     expect(firstRows(all, 5).map((r) => r.key)).toEqual(["a1", "a2", "a3", "a4", "t1"]);
     expect(firstRows(all.slice(0, 5), 5).map((r) => r.key)).toEqual(["a1", "a2", "a3", "a4", "c1"]);
     expect(firstRows([row("clash", "c1"), row("todo", "t1"), row("todo", "t2")], 5).map((r) => r.key)).toEqual(["c1", "t1", "t2"]);
