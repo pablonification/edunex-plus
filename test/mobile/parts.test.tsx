@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { markFirstFrameShown, resetFirstFrame } from "../../mobile/src/shell/first-frame";
-import { DRAW_AHEAD_FIRST, Part, PartsProvider, useDrawAhead, useParts } from "../../mobile/src/ui/parts";
+import { DRAW_AHEAD_FIRST, Part, PartsProvider, useDrawAhead, useLinesShown, useParts } from "../../mobile/src/ui/parts";
 
 // The phone's own React (mobile/node_modules), the one the module under test draws with: the root's is another copy.
 const phone = createRequire(path.resolve(import.meta.dirname, "../../mobile/package.json"));
@@ -145,6 +145,35 @@ it("draws a long list further ahead a step each idle once its parts are in, and 
   await act(async () => runNext());
   // Up to its most, then no more asked.
   expect(distances.at(-1)).toBe(550);
+  expect(pending()).toBe(0);
+  await act(async () => root.unmount());
+});
+
+it("a long list is handed its lines a few at a time once the screen's parts are in, then all of them for good", async () => {
+  markFirstFrameShown();
+  const { idle, pending, runNext } = idleQueue();
+  const counts: number[] = [];
+  function List({ total }: { total: number }) {
+    counts.push(useLinesShown(total, 6, { step: 3, idle }));
+    return null;
+  }
+  const root = createRoot(document.createElement("div"));
+  const draw = (part: number, total = 14) => act(async () => root.render(<PartsProvider part={part}>{createElement(List, { total })}</PartsProvider>));
+  // While the screen's parts come: its first lines only, nothing asked for.
+  await draw(2);
+  expect(counts.at(-1)).toBe(6);
+  expect(pending()).toBe(0);
+  await draw(3);
+  expect(counts.at(-1)).toBe(6);
+  await act(async () => runNext());
+  expect(counts.at(-1)).toBe(9);
+  await act(async () => runNext());
+  await act(async () => runNext());
+  expect(counts.at(-1)).toBe(14);
+  expect(pending()).toBe(0);
+  // Once whole, a longer list (a filter changed, a new Task) is whole at once.
+  await draw(3, 30);
+  expect(counts.at(-1)).toBe(30);
   expect(pending()).toBe(0);
   await act(async () => root.unmount());
 });

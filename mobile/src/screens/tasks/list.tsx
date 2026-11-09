@@ -26,7 +26,7 @@ import { Button, Segmented } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, GroupTile } from "../../ui/layout";
-import { useDrawAhead, usePart } from "../../ui/parts";
+import { useDrawAhead, useLinesShown, usePart } from "../../ui/parts";
 import { ChoiceSheet } from "../../ui/settings-list";
 import { SEGMENT_HEIGHT, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
@@ -41,9 +41,9 @@ import { momentsOf, useClockMoments } from "./task-clock";
 
 /**
  * Lines on a first draw ahead (../../ui/parts.tsx): Belum selesai / Selesai and the first three lines, then a screenful
- * (the big card, four rows), then the whole list, and then it draws further ahead while idle (useDrawAhead). Each part
- * is one small commit of its own instead of one block (part 1 with all of a screenful held a mid-range phone's JS thread
- * 100–130 ms).
+ * (the big card, four rows), then the rest a few lines at a time (useLinesShown), and then it draws further ahead while
+ * idle (useDrawAhead). Each part is one small commit of its own instead of one block (part 1 with all of a screenful
+ * held a mid-range phone's JS thread 100–130 ms).
  */
 const FIRST_LINES = [0, 3, 6] as const;
 
@@ -217,10 +217,10 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   if (putOffOpen && !view.hasPutOff) setPutOffOpen(false);
   const listed = usePart(1);
   const chips = usePart(2);
-  const whole = usePart(3);
   const ahead = useDrawAhead();
   const first = FIRST_LINES[chips ? 2 : 1];
-  const lines = useMemo(() => (whole ? view.lines : view.lines.slice(0, first)), [whole, first, view.lines]);
+  const count = useLinesShown(view.lines.length, first);
+  const lines = useMemo(() => (count >= view.lines.length ? view.lines : view.lines.slice(0, count)), [count, view.lines]);
 
   const header = (
     <Header
