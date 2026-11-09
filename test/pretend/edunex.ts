@@ -466,12 +466,22 @@ export class PretendEdunex {
       return found((q.include ? this.courseDetail : this.coursePlain).get(Number(m[1])) ?? this.courseDetail.get(Number(m[1])));
     if ((m = /^\/course\/courses\/(\d+)\/classes$/.exec(path))) return found(this.classes.get(Number(m[1])));
     if ((m = /^\/course\/modules\/(\d+)$/.exec(path))) return found(this.modules.get(Number(m[1])) ?? this.moduleFromOutline(Number(m[1])));
-    if (path === "/course/tasks")
+    if (path === "/course/tasks") {
+      // One course (`[is]`), or several at once (`[in]`, ids joined by commas); `end_at[gte]` keeps those due at or after
+      // a time written as Edunex's own clock reads it, WIB with no zone ("2026-11-09 08:12:00"). No deadline: never kept.
+      const ids = q["filter[course_id][in]"]?.split(",").map(Number) ?? [Number(q["filter[course_id][is]"])];
+      const since = q["filter[end_at][gte]"];
+      const from = since === undefined ? null : Date.parse(`${since.replace(" ", "T")}+07:00`);
+      if (Number.isNaN(from)) throw new Refused();
+      const tasks = ids
+        .flatMap((id) => this.tasks.get(id) ?? [])
+        .filter((task) => from === null || (task.attributes.end_at !== null && Date.parse(task.attributes.end_at) >= from));
       return page(
-        (this.tasks.get(Number(q["filter[course_id][is]"])) ?? []).map((task) => this.asOfNow(task)),
+        tasks.map((task) => this.asOfNow(task)),
         q,
         path,
       );
+    }
     if ((m = /^\/course\/tasks\/(\d+)$/.exec(path))) {
       const item = this.asOfNow(this.task(Number(m[1])));
       return { data: { ...this.singleTaskTemplate.data, type: item.type, id: item.id, attributes: item.attributes, links: item.links } };
