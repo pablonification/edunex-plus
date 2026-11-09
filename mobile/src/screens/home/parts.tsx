@@ -60,7 +60,7 @@ export function useShortCourseName(): (code: string) => string {
  */
 export function dayAndTime(t: Translate, f: Format, at: number): string {
   const offset = f.dayOffset(at);
-  const day = offset === 2 ? t("mobile.home.dayAfter") : offset > 2 && offset < 7 ? f.weekdayShort(at) : f.relativeDay(at);
+  const day = offset === 2 ? t("mobile.home.dayAfter", { weekday: f.weekdayShort(at) }) : offset > 2 && offset < 7 ? f.weekdayShort(at) : f.relativeDay(at);
   return `${day} ${f.time(at)}`;
 }
 

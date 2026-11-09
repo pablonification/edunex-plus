@@ -83,7 +83,7 @@ export const mobileStrings = {
   "mobile.home.clash": { id: "Kelas bentrok · {when}", en: "Classes clash · {when}" },
   "mobile.home.clashPair": { id: "{a} dan {b}", en: "{a} and {b}" },
   // The now card's day for a class two days ahead, said once ("Lusa 08:00").
-  "mobile.home.dayAfter": { id: "Lusa", en: "In 2 days" },
+  "mobile.home.dayAfter": { id: "Lusa", en: "{weekday}" },
   // A class row's one chip.
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough
