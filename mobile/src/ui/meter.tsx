@@ -1,6 +1,6 @@
 // A thin bar under a v4 figure (round 2): how far along, in one colour on the page's grey, with an optional second
 // stretch after it in a lighter tone ("passed", then "this semester"). Plain on purpose: the figure above says the
-// number, the bar only its share. A screen reader hears `label`.
+// number, the bar only its share. A screen reader hears `label`. One continuous track, the fill on it.
 import { View } from "react-native";
 import { useTheme } from "./theme";
 
@@ -37,9 +37,8 @@ export function Meter({
       accessibilityValue={{ min: 0, max: 100, now: Math.round(first * 100) }}
       style={{ height, borderRadius: height / 2, backgroundColor: track ?? v.page, flexDirection: "row", overflow: "hidden" }}
     >
-      <View style={{ width: `${first * 100}%`, backgroundColor: color ?? v.brand }} />
-      {/* On a strong track, M3's gap (the card's colour) where the fill ends, so the two never run together. */}
-      {track && first > 0 && first < 1 && second === 0 && <View style={{ width: 3, backgroundColor: v.card }} />}
+      {/* The fill runs straight into the track, rounded at its end: one bar, not a bar, a gap and a stub (M3's gap read as two pieces). */}
+      <View style={{ width: `${first * 100}%`, borderRadius: second > 0 ? 0 : height / 2, backgroundColor: color ?? v.brand }} />
       {second > 0 && <View style={{ width: `${second * 100}%`, backgroundColor: thenColor ?? v.brandTint }} />}
     </View>
   );
