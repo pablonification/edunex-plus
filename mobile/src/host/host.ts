@@ -227,6 +227,8 @@ async function makeHost(): Promise<Host> {
     os: () => `Android ${Platform.Version}`,
     // Opened many times a day: each start shows what's saved and reads only what's due (W2 in PROGRESS.md).
     startDueOnly: true,
+    // A pull to refresh reads what's on Beranda, not SIX's records and Edunex's materials again within the hour.
+    quickRefresh: true,
   });
   // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).
   const firstRun = (await world.storage.read("state.json")) === null;

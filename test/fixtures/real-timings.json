@@ -1,0 +1,1194 @@
+{
+  "format": 1,
+  "kind": "recording",
+  "note": "Recorded 2026-11-09 from Node on the recorder's network.",
+  "requests": [
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/login/me",
+      "status": 200,
+      "ms": 246,
+      "startedAtMs": 4
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences/list",
+      "status": 200,
+      "ms": 183,
+      "startedAtMs": 39
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/home",
+      "status": 200,
+      "ms": 306,
+      "startedAtMs": 41
+    },
+    {
+      "host": "goitb.id",
+      "method": "GET",
+      "pathPattern": "/KalenderPendidikan-ics",
+      "status": 200,
+      "ms": 2870,
+      "startedAtMs": 43
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/tasks",
+      "status": 200,
+      "ms": 980,
+      "startedAtMs": 247
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences",
+      "status": 200,
+      "ms": 61,
+      "startedAtMs": 250
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences",
+      "status": 200,
+      "ms": 316,
+      "startedAtMs": 312
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences",
+      "status": 200,
+      "ms": 76,
+      "startedAtMs": 632
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences",
+      "status": 200,
+      "ms": 61,
+      "startedAtMs": 709
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences",
+      "status": 200,
+      "ms": 250,
+      "startedAtMs": 770
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences",
+      "status": 200,
+      "ms": 161,
+      "startedAtMs": 1022
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences",
+      "status": 200,
+      "ms": 58,
+      "startedAtMs": 1183
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/tasks",
+      "status": 200,
+      "ms": 3617,
+      "startedAtMs": 1234
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/statusmhs",
+      "status": 200,
+      "ms": 480,
+      "startedAtMs": 2051
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/kelas/jadwal/mahasiswa/:id",
+      "status": 200,
+      "ms": 238,
+      "startedAtMs": 4059
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/tasks",
+      "status": 200,
+      "ms": 66,
+      "startedAtMs": 4853
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/tasks",
+      "status": 200,
+      "ms": 1873,
+      "startedAtMs": 4919
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/kelas/jadwal/mahasiswa/:id",
+      "status": 200,
+      "ms": 222,
+      "startedAtMs": 6060
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/tasks",
+      "status": 200,
+      "ms": 1893,
+      "startedAtMs": 6792
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/tasks",
+      "status": 200,
+      "ms": 62,
+      "startedAtMs": 8689
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 393,
+      "startedAtMs": 8755
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 484,
+      "startedAtMs": 9152
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/pub/:id",
+      "status": 200,
+      "ms": 87,
+      "startedAtMs": 9563
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 246,
+      "startedAtMs": 9638
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 333,
+      "startedAtMs": 9884
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 94,
+      "startedAtMs": 10220
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/notifications/:id",
+      "status": 200,
+      "ms": 146,
+      "startedAtMs": 10221
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/announcements/course/:id",
+      "status": 200,
+      "ms": 77,
+      "startedAtMs": 10315
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/exam/exams",
+      "status": 200,
+      "ms": 90,
+      "startedAtMs": 10369
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 89,
+      "startedAtMs": 10392
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/announcements/course/:id",
+      "status": 200,
+      "ms": 84,
+      "startedAtMs": 10459
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/exam/exams",
+      "status": 200,
+      "ms": 66,
+      "startedAtMs": 10481
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 185,
+      "startedAtMs": 10543
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/announcements/course/:id",
+      "status": 200,
+      "ms": 71,
+      "startedAtMs": 10547
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/exam/exams",
+      "status": 200,
+      "ms": 66,
+      "startedAtMs": 10619
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/announcements/course/:id",
+      "status": 200,
+      "ms": 73,
+      "startedAtMs": 10685
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/exam/exams",
+      "status": 200,
+      "ms": 67,
+      "startedAtMs": 10729
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 85,
+      "startedAtMs": 10758
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/announcements/course/:id",
+      "status": 200,
+      "ms": 76,
+      "startedAtMs": 10796
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/exam/exams",
+      "status": 200,
+      "ms": 69,
+      "startedAtMs": 10843
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 84,
+      "startedAtMs": 10873
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/announcements/course/:id",
+      "status": 200,
+      "ms": 76,
+      "startedAtMs": 10912
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/exam/exams",
+      "status": 200,
+      "ms": 65,
+      "startedAtMs": 10957
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 221,
+      "startedAtMs": 10988
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 355,
+      "startedAtMs": 11028
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 97,
+      "startedAtMs": 11210
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 94,
+      "startedAtMs": 11307
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 117,
+      "startedAtMs": 11387
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 182,
+      "startedAtMs": 11401
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 170,
+      "startedAtMs": 11505
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 157,
+      "startedAtMs": 11584
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/statusmhs/transkrip/historis/:id",
+      "status": 200,
+      "ms": 235,
+      "startedAtMs": 11652
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 95,
+      "startedAtMs": 11676
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 161,
+      "startedAtMs": 11741
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 172,
+      "startedAtMs": 11772
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 185,
+      "startedAtMs": 11903
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 156,
+      "startedAtMs": 11945
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 178,
+      "startedAtMs": 12101
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 175,
+      "startedAtMs": 12102
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 167,
+      "startedAtMs": 12277
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 175,
+      "startedAtMs": 12280
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 171,
+      "startedAtMs": 12455
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 171,
+      "startedAtMs": 12456
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 181,
+      "startedAtMs": 12626
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 255,
+      "startedAtMs": 12627
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 411,
+      "startedAtMs": 12882
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 225,
+      "startedAtMs": 13294
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 177,
+      "startedAtMs": 13520
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 186,
+      "startedAtMs": 13520
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/kurikulum/kurikulum/list",
+      "status": 200,
+      "ms": 313,
+      "startedAtMs": 13654
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 184,
+      "startedAtMs": 13697
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 193,
+      "startedAtMs": 13706
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 167,
+      "startedAtMs": 13899
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 179,
+      "startedAtMs": 13899
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 99,
+      "startedAtMs": 14066
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 188,
+      "startedAtMs": 14078
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 164,
+      "startedAtMs": 14266
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 180,
+      "startedAtMs": 14266
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 161,
+      "startedAtMs": 14431
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 192,
+      "startedAtMs": 14446
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 192,
+      "startedAtMs": 14638
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 261,
+      "startedAtMs": 14830
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 118,
+      "startedAtMs": 15091
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 164,
+      "startedAtMs": 15092
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 176,
+      "startedAtMs": 15209
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 107,
+      "startedAtMs": 15256
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 165,
+      "startedAtMs": 15385
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 318,
+      "startedAtMs": 15550
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/registrasi/rencanastudi/:id",
+      "status": 200,
+      "ms": 517,
+      "startedAtMs": 15655
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 107,
+      "startedAtMs": 15868
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 171,
+      "startedAtMs": 15869
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 154,
+      "startedAtMs": 15975
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 164,
+      "startedAtMs": 16040
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 228,
+      "startedAtMs": 16204
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 228,
+      "startedAtMs": 16205
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 177,
+      "startedAtMs": 16432
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 172,
+      "startedAtMs": 16433
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 97,
+      "startedAtMs": 16609
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 477,
+      "startedAtMs": 16706
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 166,
+      "startedAtMs": 17184
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 174,
+      "startedAtMs": 17184
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 168,
+      "startedAtMs": 17350
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 152,
+      "startedAtMs": 17359
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 156,
+      "startedAtMs": 17518
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 163,
+      "startedAtMs": 17519
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/keuangan",
+      "status": 200,
+      "ms": 327,
+      "startedAtMs": 17658
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 173,
+      "startedAtMs": 17674
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 172,
+      "startedAtMs": 17682
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 160,
+      "startedAtMs": 17854
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 161,
+      "startedAtMs": 17854
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 100,
+      "startedAtMs": 18014
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 102,
+      "startedAtMs": 18015
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 99,
+      "startedAtMs": 18117
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 107,
+      "startedAtMs": 18117
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 104,
+      "startedAtMs": 18217
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 101,
+      "startedAtMs": 18224
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 106,
+      "startedAtMs": 18325
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/pub/:id/:id",
+      "status": 200,
+      "ms": 218,
+      "startedAtMs": 21161
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/statusmhs/transkrip/kurikulum/:id",
+      "status": 200,
+      "ms": 298,
+      "startedAtMs": 23383
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/kurikulum/kurikulum/:id/struktur",
+      "status": 200,
+      "ms": 312,
+      "startedAtMs": 25384
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/pub/:id/:id",
+      "status": 200,
+      "ms": 229,
+      "startedAtMs": 28887
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/statusmhs/program-integrasi/riwayat/:id",
+      "status": 200,
+      "ms": 279,
+      "startedAtMs": 31117
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/pub/:id/:id",
+      "status": 200,
+      "ms": 175,
+      "startedAtMs": 34618
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/pub/:id/:id",
+      "status": 200,
+      "ms": 176,
+      "startedAtMs": 38295
+    }
+  ],
+  "datasets": [
+    {
+      "name": "edunex.courses",
+      "freshAtMs": 245
+    },
+    {
+      "name": "local.owner",
+      "freshAtMs": 251
+    },
+    {
+      "name": "edunex.account",
+      "freshAtMs": 251
+    },
+    {
+      "name": "edunex.presence",
+      "freshAtMs": 1242
+    },
+    {
+      "name": "six.student",
+      "freshAtMs": 2550
+    },
+    {
+      "name": "six.countLog",
+      "freshAtMs": 2550
+    },
+    {
+      "name": "six.classResults",
+      "freshAtMs": 2551
+    },
+    {
+      "name": "six.courses",
+      "freshAtMs": 2551
+    },
+    {
+      "name": "itb.calendar",
+      "freshAtMs": 2956
+    },
+    {
+      "name": "six.scheduleUnread",
+      "freshAtMs": 4309
+    },
+    {
+      "name": "six.schedule",
+      "freshAtMs": 4310
+    },
+    {
+      "name": "six.scheduleMonths",
+      "freshAtMs": 4314
+    },
+    {
+      "name": "app.alerts",
+      "freshAtMs": 6298
+    },
+    {
+      "name": "edunex.tasks",
+      "freshAtMs": 8752
+    },
+    {
+      "name": "itb.catalog",
+      "freshAtMs": 9665
+    },
+    {
+      "name": "edunex.notifications",
+      "freshAtMs": 10369
+    },
+    {
+      "name": "edunex.announcements",
+      "freshAtMs": 10988
+    },
+    {
+      "name": "edunex.exams",
+      "freshAtMs": 11023
+    },
+    {
+      "name": "edunex.taskThreads",
+      "freshAtMs": 11772
+    },
+    {
+      "name": "six.krs",
+      "freshAtMs": 16180
+    },
+    {
+      "name": "six.bills",
+      "freshAtMs": 17998
+    },
+    {
+      "name": "edunex.outline",
+      "freshAtMs": 18431
+    },
+    {
+      "name": "edunex.materials",
+      "freshAtMs": 18432
+    },
+    {
+      "name": "six.transcript",
+      "freshAtMs": 23722
+    },
+    {
+      "name": "six.progress",
+      "freshAtMs": 23723
+    },
+    {
+      "name": "six.curriculum",
+      "freshAtMs": 31405
+    }
+  ],
+  "feeds": [
+    {
+      "name": "edunex.courses",
+      "doneAtMs": 246,
+      "ok": true
+    },
+    {
+      "name": "edunex.account",
+      "doneAtMs": 251,
+      "ok": true
+    },
+    {
+      "name": "edunex.presence",
+      "doneAtMs": 1244,
+      "ok": true
+    },
+    {
+      "name": "six.status",
+      "doneAtMs": 2552,
+      "ok": true
+    },
+    {
+      "name": "itb.calendar",
+      "doneAtMs": 2957,
+      "ok": true
+    },
+    {
+      "name": "six.schedule",
+      "doneAtMs": 6299,
+      "ok": true
+    },
+    {
+      "name": "six.checkIn",
+      "doneAtMs": 6299,
+      "ok": true
+    },
+    {
+      "name": "edunex.tasks",
+      "doneAtMs": 10220,
+      "ok": true
+    },
+    {
+      "name": "edunex.notifications",
+      "doneAtMs": 10369,
+      "ok": true
+    },
+    {
+      "name": "edunex.announcements",
+      "doneAtMs": 10990,
+      "ok": true
+    },
+    {
+      "name": "edunex.exams",
+      "doneAtMs": 11027,
+      "ok": true
+    },
+    {
+      "name": "edunex.taskThreads",
+      "doneAtMs": 11774,
+      "ok": true
+    },
+    {
+      "name": "six.krs",
+      "doneAtMs": 16180,
+      "ok": true
+    },
+    {
+      "name": "six.bills",
+      "doneAtMs": 17998,
+      "ok": true
+    },
+    {
+      "name": "edunex.materials",
+      "doneAtMs": 18436,
+      "ok": true
+    },
+    {
+      "name": "six.transcript",
+      "doneAtMs": 23723,
+      "ok": true
+    },
+    {
+      "name": "six.curriculum",
+      "doneAtMs": 31405,
+      "ok": true
+    }
+  ],
+  "refused": [],
+  "totalMs": 31405
+}

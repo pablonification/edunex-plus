@@ -27,6 +27,8 @@ export interface SixPages {
    * that don't come through the engine's door to the network (a test's) have nothing to note.
    */
   for?(read: FeedRead): SixPages;
+  /** These pages behind the others in SIX's line (the records, after today's pages); as they are where there's no line. */
+  later?(): SixPages;
 }
 
 /** `pages` for one feed run (SixPages.for), or as they are when there's nothing to note. */

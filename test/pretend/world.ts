@@ -7,6 +7,7 @@ import { FakeClock } from "./clock";
 import { PretendEdunex } from "./edunex";
 import { PretendGithub } from "./github";
 import { PretendItb } from "./itb";
+import type { NetworkProfile } from "./network";
 import { PRETEND_RELAY, PretendRelay } from "./relay";
 import { PretendSix } from "./six";
 
@@ -27,6 +28,8 @@ export class PretendWorld implements Transport {
   readonly log: { at: number; method: string; url: string; status: number | "network-error" }[] = [];
   private offline = false;
   private latencyMs = 0;
+  /** Per-request times played back from a timing file ("real network" mode), instead of `latencyMs`. */
+  private network: NetworkProfile | null = null;
   /** Uploads to the storage that fail next: an error status, or "network" for a dropped connection. */
   private uploadFaults: (number | "network")[] = [];
 
@@ -52,6 +55,11 @@ export class PretendWorld implements Transport {
     this.uploadFaults.push(...Array.from({ length: times }, () => status));
   }
 
+  /** Every request takes as long as its kind took on the real services (./network.ts); null: back to `setLatency`. */
+  setNetwork(profile: NetworkProfile | null): void {
+    this.network = profile;
+  }
+
   /** Every answer takes this long (on the fake clock). */
   setLatency(ms: number): void {
     this.latencyMs = ms;
@@ -62,12 +70,13 @@ export class PretendWorld implements Transport {
     const at = this.clock.now();
     try {
       if (this.offline) throw new NetworkError("offline", `${url.host} is unreachable`);
-      if (this.latencyMs > 0) {
-        if (request.timeoutMs !== undefined && this.latencyMs > request.timeoutMs) {
+      const latency = this.network ? this.network.latency(request.method, request.url) : this.latencyMs;
+      if (latency > 0) {
+        if (request.timeoutMs !== undefined && latency > request.timeoutMs) {
           await sleep(this.clock, request.timeoutMs);
           throw new NetworkError("timeout", `${url.host} took longer than ${request.timeoutMs} ms`);
         }
-        await sleep(this.clock, this.latencyMs);
+        await sleep(this.clock, latency);
       }
       const response = await this.route(request, url);
       this.log.push({ at, method: request.method, url: request.url, status: response.status });

@@ -37,7 +37,8 @@ export class PublicClient {
 
   /** The text of a page; requests wait their turn and keep the gap. `background`: this one's, else the client's. */
   text(url: string, accept = "text/html", background = this.background): Promise<string> {
-    return this.pace.turn(() => this.fetch(url, accept), background);
+    // The catalog's pages that name the Student's courses go behind the Student's own SIX pages, the rest behind those.
+    return this.pace.turn(() => this.fetch(url, accept), background ? "background" : this.background ? "behind" : "normal");
   }
 
   private async fetch(url: string, accept: string): Promise<string> {

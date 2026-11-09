@@ -35,6 +35,8 @@ export async function startEngine(
     relay?: string;
     /** Starts as the phone does: only the sign-in checks and what's due (EngineDeps.startDueOnly). */
     startDueOnly?: boolean;
+    /** Refreshes as the phone does: what was read recently and costs many requests is left alone (EngineDeps.quickRefresh). */
+    quickRefresh?: boolean;
   } = {},
 ): Promise<Harness> {
   const world = options.world ?? new PretendWorld({ now: options.now });
@@ -56,6 +58,7 @@ export async function startEngine(
     relay: options.relay ?? "",
     os: () => "macOS 15.3 (arm64)",
     ...(options.startDueOnly ? { startDueOnly: true } : {}),
+    ...(options.quickRefresh ? { quickRefresh: true } : {}),
   });
   // A first start: the tests read alerts in Bahasa Indonesia, which a Student picks in Settings.
   const firstStart = (await storage.read("state.json")) === null;
