@@ -4,6 +4,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 
 const demo = process.env.EXPO_PUBLIC_DEMO === "1";
 const { version } = require("../package.json") as { version: string };
+const { shapesStamp } = require("./scripts/shapes-stamp.js") as { shapesStamp(): string };
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -38,7 +39,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     blockedPermissions: ["android.permission.RECORD_AUDIO", "android.permission.SYSTEM_ALERT_WINDOW"],
   },
   ios: { supportsTablet: false, bundleIdentifier: "io.github.pablonification.edunexplus" },
-  extra: { version, demo },
+  // shapes: the datasets' schemas this build saves under (scripts/shapes-stamp.js); src/host/version.ts.
+  extra: { version, demo, shapes: shapesStamp() },
   plugins: [
     "expo-router",
     // The screen's fastest refresh rate (90 or 120 Hz), not the 60 Hz many phones keep an app at (W5).

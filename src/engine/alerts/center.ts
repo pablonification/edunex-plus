@@ -92,8 +92,9 @@ export class AlertCenter {
     this.watched = new Set(deps.detectors.flatMap((detector) => detector.watches));
   }
 
-  async load(): Promise<void> {
-    await this.ledger.load();
+  /** `before`: what has to be in the store first (the datasets loading); the ledger's own file is read meanwhile. */
+  async load(before: Promise<unknown> = Promise.resolve()): Promise<void> {
+    await Promise.all([this.ledger.load(), before]);
     for (const name of this.watched) {
       const value = this.deps.get(name);
       if (value !== undefined) this.last.set(name, value);

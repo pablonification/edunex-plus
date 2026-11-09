@@ -89,6 +89,12 @@ export interface EngineDeps {
    */
   quickRefresh?: boolean;
   /**
+   * This build's stamp of the datasets' schemas (the phone's release builds: a hash of src/core, mobile/app.config.ts).
+   * Datasets are saved with it, and one saved with the same stamp loads without its schema being checked again, which
+   * was most of a phone's wait for the first frame. Unset (the desktop, a dev build), every saved dataset is checked.
+   */
+  shapes?: string;
+  /**
    * Hands the JS thread to the screens for a moment, in the middle of long work: the phone, where the engine and the
    * screens share one thread. Unset on the desktop, whose engine has a process of its own.
    */
@@ -214,11 +220,15 @@ export function createEngine(deps: EngineDeps): Engine {
   const { clock, storage, vault } = deps;
   const log = deps.log ?? new AppLog(() => clock.now());
   const sources = new Map((deps.sources ?? SOURCES).map((source) => [source.id, source]));
-  const store = new DatasetStore(storage, (event) => {
-    deps.emit(event);
-    alerts.observe(event);
-    followStudent(event);
-  });
+  const store = new DatasetStore(
+    storage,
+    (event) => {
+      deps.emit(event);
+      alerts.observe(event);
+      followStudent(event);
+    },
+    deps.shapes,
+  );
   const statuses = new Map<SourceId, SourceStatus>(SourceId.options.map((source) => [source, { source, state: "signed-out", updatedAt: null, detail: null }]));
   let settings: Settings = DEFAULT_SETTINGS;
   const phone = new PhoneChannel({
@@ -637,9 +647,10 @@ export function createEngine(deps: EngineDeps): Engine {
       const savedSessions = new Map<SourceId, Promise<string | null>>();
       for (const source of sources.values()) if (source.session) savedSessions.set(source.id, handled(vault.get(sessionKey(source.id))));
       const savedState = handled(storage.read("state.json"));
-      await Promise.all([store.load(), phone.load()]);
-      await alerts.load();
-      await outbox.load();
+      // The alerts' and the reports' own files too, in the same order as ever once read: datasets, alerts, reports.
+      const datasets = Promise.all([store.load(), phone.load()]);
+      const alerted = alerts.load(datasets);
+      await Promise.all([datasets, alerted, outbox.load(alerted)]);
       for (const [source, name] of [
         ["edunex", "edunex.account"],
         ["six", "six.student"],
@@ -689,6 +700,9 @@ export function createEngine(deps: EngineDeps): Engine {
       scheduler.start(deps.startDueOnly ? (spec) => freshFor(spec.name) : undefined);
       alerts.start();
       updates?.start();
+      // After an update: what loaded from the old build's files, checked, is saved with this build's stamp. A write
+      // that fails costs nothing but the same check at the next start.
+      void store.restamp().catch(() => undefined);
     },
 
     stop() {

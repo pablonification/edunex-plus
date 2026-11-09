@@ -89,9 +89,11 @@ export class Outbox {
     return this.deps.relay !== null;
   }
 
-  async load(): Promise<void> {
+  /** `before`: what has to be loaded first (the datasets, the alerts); the ledger's own file is read meanwhile. */
+  async load(before: Promise<unknown> = Promise.resolve()): Promise<void> {
+    const [text] = await Promise.all([this.deps.storage.read(LEDGER).catch(() => null), before]);
     try {
-      const saved = JSON.parse((await this.deps.storage.read(LEDGER)) ?? "null");
+      const saved = JSON.parse(text ?? "null");
       if (saved?.format === 1) this.ledger = { sent: times(saved.sent), asked: times(saved.asked), gone: times(saved.gone) };
     } catch {
       // Unreadable: nothing went, as far as the app knows.
