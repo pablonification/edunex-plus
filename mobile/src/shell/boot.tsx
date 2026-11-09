@@ -13,6 +13,7 @@ import { scheduleBackgroundSync } from "../host/background";
 import { type Host, host } from "../host/host";
 import { perfDoing } from "../perf";
 import { JS_START } from "../start";
+import { whenIdle } from "../ui/parts";
 import { ThemeContext, themeFor } from "../ui/theme";
 import { demoClock } from "./demo-clock";
 import { markFirstFrameShown } from "./first-frame";
@@ -101,23 +102,34 @@ function Appearance({ clock, children }: { clock: UiClock | undefined; children:
   );
 }
 
-/** After the first frame: the splash goes and syncing starts. */
+/**
+ * After the first frame: the splash goes, what waited for the frame draws (Beranda's lower parts, the badges), and once
+ * that's done syncing starts. Both in the frame's one task made one stall of 164–170 ms on a mid-range phone, all of it
+ * named "app.ready" (the label set last); apart, each is its own and named for itself.
+ */
 function Ready({ bridge }: { bridge: Bridge }) {
   useEffect(() => {
+    let idle: () => void = () => undefined;
     const frame = requestAnimationFrame(() => {
       // The moment the Student sees the app (the splash goes): what a cold start is timed to, from the system log.
       console.info("[startup] shown");
       // Where the start's time went, from the JS start: the load asked for, the engine loaded, the store made, drawn.
       console.info(`[startup] steps load asked +${steps.asked}, host +${steps.host}, store +${steps.store}, shown +${since()}`);
       void SplashScreen.hideAsync();
-      // What waited for the first frame (the tabs' badges, Beranda's lower parts) draws from the next task on.
+      // What waited for the first frame (the tabs' badges, Beranda's lower parts) draws from the next task on, each
+      // part naming itself ("home, part 1").
       markFirstFrameShown();
-      // The engine's start: a stall right after is its first steps (the feeds, the reminders), not a screen's.
-      perfDoing("app.ready");
-      void bridge.invoke("app.ready", {}).catch(() => undefined);
-      void scheduleBackgroundSync().catch(() => undefined);
+      // The engine's start once those are drawn: a stall right after is its first steps (the feeds), not a screen's.
+      idle = whenIdle(() => {
+        perfDoing("app.ready");
+        void bridge.invoke("app.ready", {}).catch(() => undefined);
+        void scheduleBackgroundSync().catch(() => undefined);
+      }, 1_000);
     });
-    return () => cancelAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(frame);
+      idle();
+    };
   }, [bridge]);
   return null;
 }
