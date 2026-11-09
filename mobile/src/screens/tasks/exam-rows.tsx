@@ -60,6 +60,13 @@ function examCourse(courses: readonly TermCourse[] | undefined, exam: Exam): str
   return courses?.find((c) => c.code === exam.courseCode)?.name ?? exam.six[0]?.courseName ?? exam.courseCode;
 }
 
+/** Whether a name already says its exam's kind ("UTS Markom" says UTS): the kind isn't said twice. */
+export const namesKind = (title: string, kind: string) =>
+  title
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .includes(kind.toLowerCase());
+
 /** "Kuis Komunikasi Pemasaran": the exam's name for a control's label. */
 const examName = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
 /** "UTS Ekonomi Infrastruktur": an exam's row title, its course's name short (the whole name is in the row's spoken name). */
@@ -119,15 +126,15 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   // the range and the rest are on the Exam's page), and one status. Not the course's code: the title names the course
   // (a take-home's, its tile, which the course chips over the list name), and the code is spoken.
   let facts: string[];
-  let shown: string[];
+  let shown: (string | null)[];
   let when: string | null = null;
   let moment: number | null = null;
   let status: ReactNode = null;
   if (part?.kind === "takehome") {
     facts = [code, t("exam.takeHome"), part.task.title, part.status === "draft" ? t("taskStatus.draft") : ""];
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
-    // The day alone beside the kind (its page and spoken name keep the time).
-    shown = [kind, part.at === null ? t("task.noDeadline") : rowWhen(f, part.at, false)];
+    // The day alone beside the kind (its page and spoken name keep the time); not the kind when the name says it ("UTS Markom").
+    shown = [namesKind(part.task.title, kind) ? null : kind, part.at === null ? t("task.noDeadline") : rowWhen(f, part.at, false)];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
@@ -151,7 +158,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
     else moment = part.at;
   } else {
-    facts = [code, exam.inOutline ? t("exam.outlineOnly") : t("exam.noDate")];
+    facts = [code, t("exam.noDate")];
     shown = [t("exam.noDate")];
   }
   const away = moment !== null ? countdown(t, now, moment) : null;
@@ -284,8 +291,9 @@ function PeriodExam({ exam }: { exam: Exam }) {
       onPress={() => go({ screen: "exam", examId: exam.id })}
       code={exam.courseCode}
       course={name}
-      // The title names the course; under its period's row, which says it has no day yet, nothing more to say.
       title={examTitle(t, exam, name)}
+      // Every exam row says when, this one too: no day yet.
+      meta={t("exam.noDate")}
     />
   );
 }

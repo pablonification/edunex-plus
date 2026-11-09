@@ -25,7 +25,7 @@ import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { ExamPartRow, PeriodRow } from "./exam-rows";
+import { ExamPartRow, namesKind, PeriodRow } from "./exam-rows";
 import {
   countdown,
   type DueWhen,
@@ -148,7 +148,9 @@ export const TaskRow = inWorld(function TaskRow({
   // (the countdown once it's within a day or late, the score, or "not handed in"); a calm one's day and time say when on
   // their own. Everything else is in the row's spoken name and on the Task's page.
   const sentAt = submittedAt(task);
-  const kind = exam ? t(`exam.kind.${exam.kind}`) : null;
+  // A take-home's kind, unless its name says it already ("UTS Markom · Kam, 22 Okt", not "· UTS ·").
+  const examKind = exam ? t(`exam.kind.${exam.kind}`) : null;
+  const kind = examKind && !namesKind(task.title, examKind) ? examKind : null;
   const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
   const when =
     sentAt !== null

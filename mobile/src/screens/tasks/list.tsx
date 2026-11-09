@@ -140,9 +140,11 @@ function tasksView(
 
   const lines: Line[] = [];
   const todoCard = (list: readonly TodoItem[]) => card(list, (item, place): Line => ({ type: "todo", key: item.key, item, ...place }));
-  // The one big card (v4): the nearest Task with a deadline, at the top of its group, out of the group's card.
+  // The one big card (v4): the soonest thing, when it's a Task with a deadline, at the top of its group, out of the
+  // group's card. Never a Task over an exam that comes sooner: then no big card, and the group reads in date order.
   const heroGroup = show === "open" && !nothingToDo && groups[0] && groups[0].group !== "later" && groups[0].group !== "undated" ? groups[0] : undefined;
-  const hero = heroGroup?.items.find((item) => item.kind === "task" && item.task.dueAt !== null);
+  const soonest = heroGroup?.items[0];
+  const hero = soonest?.kind === "task" && soonest.task.dueAt !== null ? soonest : undefined;
   if (!todo) lines.push({ type: "loading", key: "loading" });
   else if (show === "done") {
     if (doneCount === 0) lines.push({ type: "empty", key: "empty", title: t("tasks.noneDone"), showAll: false, done: true });
