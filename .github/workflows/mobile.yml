@@ -52,7 +52,7 @@ on:
       apks:
         description: Which APKs to build (the e2e job always gets the demo release APK).
         type: choice
-        options: [all, demo-release, none]
+        options: [all, demo-release, qa, none]
         default: all
       e2e:
         description: Run the Maestro flows on an emulator.
@@ -117,6 +117,10 @@ jobs:
           ]'
           case "$APKS" in
             all) apks=$(jq -c . <<< "$all") ;;
+            # QA builds for a real account on a phone: reads only (EXPO_PUBLIC_R3_GUARD), arm64 only.
+            qa) apks='[{"name": "edunex-plus-qa-release", "demo": "", "guard": "1", "task": "assembleRelease", "out": "release/app-release.apk", "abis": "arm64-v8a"},
+              {"name": "edunex-plus-qa-dev-client", "demo": "", "guard": "1", "task": "assembleDebug", "out": "debug/app-debug.apk", "abis": "arm64-v8a"},
+              {"name": "edunex-plus-demo-release", "demo": "1", "task": "assembleRelease", "out": "release/app-release.apk", "abis": "x86_64,arm64-v8a"}]' ;;
             *) apks=$(jq -c 'map(select(.name == "edunex-plus-demo-release"))' <<< "$all") ;;
           esac
           if [ "$APKS" = none ] && [ "$E2E" != true ]; then apks='[]'; fi
@@ -147,6 +151,7 @@ jobs:
         include: ${{ fromJSON(needs.plan.outputs.apks) }}
     env:
       EXPO_PUBLIC_DEMO: ${{ matrix.demo }}
+      EXPO_PUBLIC_R3_GUARD: ${{ matrix.guard }}
       EXPO_NO_TELEMETRY: "1"
     defaults:
       run:
