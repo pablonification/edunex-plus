@@ -8,7 +8,8 @@
 // semua dibaca", the bar's one action while something is unread: both say the same thing. Nothing is ever marked in
 // Edunex. A class's or a Presence's alert whose window is over says what happened, with no action left in it, and opens
 // the course; a deadline's, once it has passed, says whether the Task was handed in, and opens the Task; an exam SIX lists in two weeks is one row with both days (../src/screens/alerts/past.ts,
-// ../../src/core/exam-sittings.ts).
+// ../../src/core/exam-sittings.ts); a meeting and its Teams link or material posted close by are one row
+// (../src/screens/alerts/same-meeting.ts).
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { ChecksIcon } from "phosphor-react-native/src/icons/Checks";
@@ -25,6 +26,7 @@ import { useNav } from "../src/nav";
 import { changeLines, eventTime } from "../src/parts/change-meta";
 import { usePerfDrawn } from "../src/perf";
 import { type Outcome, type PastAlert, pastAlert } from "../src/screens/alerts/past";
+import { type MeetingExtra, sameMeeting } from "../src/screens/alerts/same-meeting";
 import { useShortCourseName } from "../src/screens/home/parts";
 import { IconButton } from "../src/ui/controls";
 import { CourseIconTile } from "../src/ui/course-icon-tile";
@@ -69,6 +71,8 @@ interface Row {
   past: PastAlert | null;
   /** An exam SIX lists more than once: every sitting. */
   sittings: readonly ClassSession[] | null;
+  /** A meeting's row: its Teams link or material, posted close by, folded into it. */
+  joined: { material: Alert; extra: MeetingExtra } | null;
 }
 
 /** A day's rows, newest day first: 0 is today (a raised alert a minute ahead of the screen's clock too), -1 yesterday. */
@@ -107,13 +111,16 @@ export default function Alerts() {
   // Each row's moment: when the thing happened, or, unknown, when the app saw it (only to place it under a day).
   const rows = useMemo(() => {
     const { sittings, folded } = examSittings(items, world?.schedule);
+    // A meeting and its link or material: one row.
+    const meetings = sameMeeting(items);
     // A class or window that's over: one row, its newest alert's place.
     const over = new Set<string>();
     return items
-      .filter((item) => !folded.has(item.id))
+      .filter((item) => !folded.has(item.id) && !meetings.folded.has(item.id))
       .map((item): Row => {
         const happened = eventTime(item, raised.has(item.id), world);
-        return { item, happened, at: happened ?? item.at, past: pastAlert(item, world, now), sittings: sittings.get(item.id) ?? null };
+        const joined = meetings.joined.get(item.id) ?? null;
+        return { item, happened, at: happened ?? item.at, past: pastAlert(item, world, now), sittings: sittings.get(item.id) ?? null, joined };
       })
       .sort((a, b) => b.at - a.at)
       .filter((row) => {
@@ -172,8 +179,8 @@ export default function Alerts() {
         <Rise key={day.offset} screen="alerts" index={Math.min(index, RISE_STEPS)}>
           <Heading first={index === 0}>{dayTitle(day, t, f)}</Heading>
           <Group>
-            {day.rows.map(({ item, happened, past, sittings }, i) => {
-              const unread = isUnread(item);
+            {day.rows.map(({ item, happened, past, sittings, joined }, i) => {
+              const unread = isUnread(item) || (joined !== null && isUnread(joined.material));
               const lines = changeLines(t, item, name);
               const outcome = past ? outcomeOf(t, past.outcome) : null;
               const title = past ? pastTitle(t, past, name(past.code)) : lines.title;
@@ -185,8 +192,14 @@ export default function Alerts() {
                       .filter((part) => !title.includes(part))
                       .join(" · ") || null
                   : null;
-              const meta = past ? (outcome?.text ?? null) : sittings ? sittingsLine(f, sittings) : said(lines.meta);
-              const spoken = past ? [title, outcome?.text ?? null] : sittings ? [lines.title, meta] : lines.spoken;
+              const meta = past
+                ? (outcome?.text ?? null)
+                : sittings
+                  ? sittingsLine(f, sittings)
+                  : joined
+                    ? t(joined.extra === "link" ? "mobile.change.meeting.withLink" : "mobile.change.meeting.withMaterial", { when: said(lines.meta) ?? "" })
+                    : said(lines.meta);
+              const spoken = past ? [title, outcome?.text ?? null] : sittings || joined ? [lines.title, meta] : lines.spoken;
               // Every row has a time: when the thing happened, else when the app noticed it.
               const time = f.time(happened ?? item.at);
               return (
@@ -233,7 +246,8 @@ export default function Alerts() {
                       ? nav.go(past.kind === "class" ? { screen: "course", code: past.code } : item.target)
                       : item.checkIn
                         ? openCheckIn(item.checkIn.meetingId, item.checkIn.url)
-                        : nav.go(item.target)
+                        : // A meeting with its link or material: where that is (the module), the one thing to open.
+                          nav.go(joined ? joined.material.target : item.target)
                   }
                 />
               );
