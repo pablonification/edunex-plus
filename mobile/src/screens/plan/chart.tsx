@@ -267,7 +267,7 @@ export function Key({ series, dashed }: { series: Pick<ChartSeries, "kind" | "co
 export function ChartLegend({ series, estimate }: { series: Pick<ChartSeries, "kind" | "color" | "name">[]; estimate?: string }) {
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[4], rowGap: space[1], marginTop: space[1] }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[4], rowGap: space[1] }}>
       {series.map((s) => (
         <View key={s.name} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Key series={s} />

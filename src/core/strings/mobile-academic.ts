@@ -6,11 +6,16 @@ export const mobileAcademicStrings = {
   "mobile.grades.lastIp": { id: "IP semester lalu {ip}", en: "Last semester's IP {ip}" },
   "mobile.grades.toGraduation": { id: "Menuju lulus", en: "On the way to graduating" },
   "mobile.grades.fromSix": { id: "Dari KRS-mu di SIX", en: "From your KRS on SIX" },
-  // An honor still open: the average it needs. Over which SKS is the best IPK's row's line, said there once.
-  "mobile.grades.honorsAverage": { id: "Butuh rata-rata {avg}", en: "Needs a {avg} average" },
-  // The best IPK still possible: over the SKS with no grade yet (this term's and the plan's), named as what they are so
-  // they aren't read as the SKS left to graduate.
-  "mobile.grades.bestHint": { id: "Jika semua A di {sks} SKS yang belum bernilai", en: "With straight A's in the {sks} SKS not graded yet" },
+  // Beside the IPK, as plain words: the predicate it heads for, named as the one at graduation when today's differs.
+  "mobile.grades.predicateAtEnd": { id: "{predicate} saat lulus", en: "{predicate} at graduation" },
+  // An honor still open: the average it needs over the SKS still to be graded. Said with its SKS so it never reads as
+  // an IPK beside the highest one possible ("3,66 di 26 SKS" next to "3,56").
+  "mobile.grades.honorsAverage": { id: "Rata-rata {avg} di {sks} SKS", en: "A {avg} average over {sks} SKS" },
+  // An honor even straight A's can't reach: one word in place of a second number.
+  "mobile.grades.honorsOut": { id: "Tak terkejar", en: "Out of reach" },
+  // The best IPK still possible: straight A's in what has no grade yet, named by where those SKS are (this term and the
+  // plan, which can hold more than the SKS left to graduate), never as the SKS left.
+  "mobile.grades.bestHint": { id: "Jika semua A semester ini dan di rencanamu", en: "With straight A's this semester and in your plan" },
   "mobile.grades.questionnaire": { id: "Isi kuesioner agar nilai terlihat", en: "Fill in the questionnaire to see grades" },
   "mobile.grades.questionnaireUntil": { id: "Sampai {date}", en: "Until {date}" },
   "mobile.grades.gradeDeadline": { id: "Batas dosen memasukkan nilai", en: "Lecturers' deadline for grades" },

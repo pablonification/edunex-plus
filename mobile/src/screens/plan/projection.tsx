@@ -396,8 +396,9 @@ export function HonorsList({ projection }: { projection: Projection }) {
 }
 
 /**
- * IP per semester (dots) and the IPK after each (a line), estimates dashed, the target as a
- * labelled dashed line, and the IPK at graduation at the end.
+ * IP per semester (dots) and the IPK after each (a line), estimates dashed and hollow, under a legend that names the
+ * three marks (read before the chart, not after it); the target as a labelled dashed line, and the IPK at graduation at
+ * the line's end only when it isn't today's (the same figure twice reads as a change that isn't one).
  */
 export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; target: number | null; height?: number }): ReactNode {
   const t = useT();
@@ -412,12 +413,15 @@ export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; ta
   const min = low < 2 ? Math.max(0, Math.floor(low)) : 2;
   const gridlines = min < 2 ? [min, 2, 3, 4] : [2, 2.5, 3, 3.5, 4];
   const last = shown[shown.length - 1]!;
+  const today = [...shown].reverse().find((s) => !s.projected && s.ipk !== null)?.ipk ?? null;
+  const same = last.projected && last.ipk !== null && today !== null && f.number(last.ipk, 2) === f.number(today, 2);
   const series = [
     { name: t("grades.chart.ipk"), kind: "line" as const, values: shown.map((s) => s.ipk), color: theme.color.accent },
     { name: t("grades.chart.ip"), kind: "dots" as const, values: shown.map((s) => s.ip), color: theme.color.faint },
   ];
   return (
-    <View>
+    <View style={{ gap: space[3] }}>
+      <ChartLegend series={series} estimate={firstEstimate >= 0 ? t("grades.estimate") : undefined} />
       <LineChart
         label={t("grades.chartLabel")}
         columns={shown.map(label)}
@@ -428,12 +432,11 @@ export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; ta
         max={4}
         gridlines={gridlines}
         reference={target === null ? undefined : { value: target, label: t("grades.chart.target", { value: f.number(target, 2) }) }}
-        endLabel={last.ipk === null ? undefined : t(last.projected ? "grades.chart.end" : "grades.chart.endNow", { value: f.number(last.ipk, 2) })}
+        endLabel={last.ipk === null || same ? undefined : t(last.projected ? "grades.chart.end" : "grades.chart.endNow", { value: f.number(last.ipk, 2) })}
         estimateWord={t("grades.estimate")}
         format={(v) => f.number(v, 2)}
         height={height}
       />
-      <ChartLegend series={series} estimate={firstEstimate >= 0 ? t("grades.estimate") : undefined} />
     </View>
   );
 }
