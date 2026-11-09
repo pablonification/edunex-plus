@@ -63,3 +63,8 @@ versioned docs, `https://docs.expo.dev/versions/v58.0.0/`, or the package's own 
 `. ~/tools/env.sh`, then Redroid (`adb connect localhost:5555`), the dev client APK from the
 GitHub Actions run, and `npm run start` (or `npm run start:demo`) in `mobile/`. Switching
 between demo and real needs `--clear`.
+
+QA on a real Student's account: `EXPO_PUBLIC_R3_GUARD=1 npm run start -- --clear`. Then only reads and
+sign-in reach Edunex, SIX and Microsoft (`src/host/guard.ts`, `[guard] blocked …` on the log), the log
+says `[session] edunex=… six=…`, and a debug build takes
+`edunexplus://qa/restore?port=<n>&key=<hex>` (`src/qa/restore.ts`). Unset, none of it is there.

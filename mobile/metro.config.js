@@ -31,6 +31,9 @@ const swapOf = (file) => {
 
 const demo = process.env.EXPO_PUBLIC_DEMO === "1";
 const demoFolder = path.join(__dirname, "src", "demo") + path.sep;
+// QA session restore (src/qa) is only in a debug QA build: EXPO_PUBLIC_R3_GUARD=1, and not a release bundle.
+const qa = process.env.EXPO_PUBLIC_R3_GUARD === "1";
+const qaFolder = path.join(__dirname, "src", "qa") + path.sep;
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   // cheerio's browser build is its parse5 loader without fromURL (which needs Node's undici):
@@ -48,6 +51,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (resolved.type === "sourceFile") {
     // The real app carries no demo: no pretend Edunex, no recordings.
     if (!demo && resolved.filePath.startsWith(demoFolder)) return { type: "empty" };
+    if ((!qa || context.dev === false) && resolved.filePath.startsWith(qaFolder)) return { type: "empty" };
     const swap = swapOf(resolved.filePath);
     if (swap) return { type: "sourceFile", filePath: swap };
   }
