@@ -28,6 +28,16 @@ export interface Entry {
 export const latest = (entry: Pick<Entry, "postedAt" | "materials">) =>
   Math.max(entry.postedAt ?? 0, ...entry.materials.map((m) => m.postedAt ?? m.updatedAt ?? 0)) || null;
 
+/** The module something new came to in the last 7 days, the newest of them; undefined when nothing did. */
+export function newestEntry(entries: readonly Entry[], now: number): Entry | undefined {
+  let best: { entry: Entry; at: number } | undefined;
+  for (const entry of entries) {
+    const at = entry.unopened ? null : latest(entry);
+    if (at !== null && at > now - WEEK && at <= now && (!best || at > best.at)) best = { entry, at };
+  }
+  return best?.entry;
+}
+
 /** "2 PDF", "4 tugas": what's in it; how many Tasks are still open shows as its own chip. */
 export const countFacts = (t: Translate, entry: Entry) =>
   contentCounts(entry.materials, entry.tasks.length).map(({ kind, count }) => t(`course.kind.${kind}`, { count }));

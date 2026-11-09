@@ -11,11 +11,11 @@
 // colour, its pages on Edunex and SIX. Pull to refresh.
 
 import { router } from "expo-router";
-import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
+import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { type LayoutChangeEvent, ScrollView, View } from "react-native";
 import type { CourseAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { type StringKey, useT } from "../../../../src/app/i18n";
+import { type StringKey, useNow, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
 import { type CoursePage, useCoursePage } from "../../../../src/app/screens/course/data";
 import { useDataset, useStatus } from "../../../../src/app/store";
@@ -41,6 +41,7 @@ import { TopBar } from "../../ui/top-bar";
 import type { RowContext } from "../presence/logic";
 import { useRowContext } from "../presence/presence-screen";
 import { useAttendanceLine } from "./attendance-line";
+import { contentsOf, newestEntry } from "./contents";
 import { CourseSheet } from "./course-sheet";
 import { GradesTab } from "./grades";
 import { AnnouncementsTab, TasksTab } from "./lists";
@@ -139,6 +140,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
       <View>
         <Rise screen={rise} index={0}>
           <Header page={page} item={item} context={rows?.context} onOpen={() => setSheet(true)} />
+          <NewestModule page={page} onPick={pickModule} />
         </Rise>
         <MeetingNow page={page} rise={rise} />
         <SaveOfflineProgress code={page.course.code} />
@@ -202,6 +204,35 @@ function Header({
         </Text>
         {attendance?.node}
       </View>
+    </PressScale>
+  );
+}
+
+/**
+ * The way to this week's material, under the header: "Modul terbaru: {its title}" when something new came to a module in
+ * the last 7 days, a tap away from it (a Student read Kuliah as attendance only and never found the materials).
+ */
+function NewestModule({ page, onPick }: { page: CoursePage; onPick: (module: number) => void }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const now = useNow();
+  const entry = useMemo(() => (page.materials ? newestEntry(contentsOf(page, t), now) : undefined), [page, t, now]);
+  if (!entry) return null;
+  const text = t("mobile.course.newestModule", { title: entry.title });
+  return (
+    <PressScale
+      onPress={() => onPick(Number(entry.id))}
+      accessibilityLabel={text}
+      testID="action.newestModule"
+      style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 48, marginTop: space[2] }}
+    >
+      <View style={{ width: 44, alignItems: "center" }}>
+        <Icons.FileText size={20} color={v.brandInk} />
+      </View>
+      <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ flex: 1, minWidth: 0, color: v.brandInk }}>
+        {text}
+      </Text>
+      <Icons.ChevronRight size={18} color={v.muted} />
     </PressScale>
   );
 }

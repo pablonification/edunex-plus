@@ -29,6 +29,9 @@ export const mobileCourseStrings = {
   // The course's sheet: what's used and left of the absences under the desktop's label ("Jatah absen: terpakai 2× · habis").
   "mobile.course.budget": { id: "Jatah absen: {words}", en: "Absences: {words}" },
   "mobile.course.aboutHint": { id: "Buka rincian mata kuliah", en: "Opens the course's details" },
+  // Under the course's header when something new came to a module in the last 7 days: the way to this week's material
+  // (Kuliah read as attendance only, and a Student couldn't find the materials). A tap opens that module.
+  "mobile.course.newestModule": { id: "Modul terbaru: {title}", en: "Newest module: {title}" },
   // The next class's room, as TalkBack says it (on screen: a pin and the room).
   "mobile.course.room": { id: "Ruang {room}", en: "Room {room}" },
   // The one exception, in a few words on the card; the whole of it is in the sheet. Out of reach, it's the desktop's
