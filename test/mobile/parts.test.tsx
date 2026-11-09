@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 // A screen's first draw in parts (mobile/src/ui/parts.tsx): a tab drawn ahead out of sight commits its top, then what's
-// under it, then the rest, each in a render of its own when the JS thread is idle, so no one commit holds the thread for
+// under it, then more, then the rest, each in a render of its own when the JS thread is idle, so no one commit holds the thread for
 // the whole tab (106–162 ms each on a mid-range phone). Beranda's first frame holds only its top; the rest comes once the
 // frame is up. A tab opened while its parts are still coming draws the rest at once.
 import { createRequire } from "node:module";
 import path from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { markFirstFrameShown, resetFirstFrame } from "../../mobile/src/shell/first-frame";
-import { Part, PartsProvider, useParts } from "../../mobile/src/ui/parts";
+import { DRAW_AHEAD_FIRST, Part, PartsProvider, useDrawAhead, useParts } from "../../mobile/src/ui/parts";
 
 // The phone's own React (mobile/node_modules), the one the module under test draws with: the root's is another copy.
 const phone = createRequire(path.resolve(import.meta.dirname, "../../mobile/package.json"));
@@ -54,6 +54,9 @@ function setup() {
           <Mark name="list" />
         </Part>
         <Part at={2}>
+          <Mark name="more" />
+        </Part>
+        <Part at={3}>
           <Mark name="rest" />
         </Part>
       </PartsProvider>
@@ -73,9 +76,11 @@ it("draws a tab ahead out of sight a part at a time, each when idle", async () =
   await act(async () => s.runNext());
   expect(s.drawn()).toEqual(["header", "list"]);
   await act(async () => s.runNext());
-  expect(s.drawn()).toEqual(["header", "list", "rest"]);
+  expect(s.drawn()).toEqual(["header", "list", "more"]);
+  await act(async () => s.runNext());
+  expect(s.drawn()).toEqual(["header", "list", "more", "rest"]);
   expect(s.pending()).toBe(0);
-  expect(s.said).toEqual([1, 2]);
+  expect(s.said).toEqual([1, 2, 3]);
   await act(async () => s.root.unmount());
 });
 
@@ -85,7 +90,7 @@ it("draws the rest at once when the tab is opened while its parts are coming", a
   await s.render(false);
   expect(s.drawn()).toEqual(["header"]);
   await s.render(true);
-  expect(s.drawn()).toEqual(["header", "list", "rest"]);
+  expect(s.drawn()).toEqual(["header", "list", "more", "rest"]);
   await act(async () => s.root.unmount());
 });
 
@@ -93,7 +98,7 @@ it("draws a tab opened in front whole", async () => {
   markFirstFrameShown();
   const s = setup();
   await s.render(true);
-  expect(s.commits[0]).toEqual(["header", "list", "rest"]);
+  expect(s.commits[0]).toEqual(["header", "list", "more", "rest"]);
   expect(s.pending()).toBe(0);
   await act(async () => s.root.unmount());
 });
@@ -107,6 +112,39 @@ it("holds only Beranda's top in the first frame, the next part once it's up, the
   await act(async () => markFirstFrameShown());
   expect(s.drawn()).toEqual(["header", "list"]);
   await act(async () => s.runNext());
-  expect(s.drawn()).toEqual(["header", "list", "rest"]);
+  await act(async () => s.runNext());
+  expect(s.drawn()).toEqual(["header", "list", "more", "rest"]);
   await act(async () => s.root.unmount());
+});
+
+it("draws a long list further ahead a step each idle once its parts are in, and never a step while it moves", async () => {
+  markFirstFrameShown();
+  const { idle, pending, runNext } = idleQueue();
+  const distances: number[] = [];
+  let handlers: ReturnType<typeof useDrawAhead> | null = null;
+  function List() {
+    handlers = useDrawAhead({ step: 150, most: 550, idle });
+    distances.push(handlers.drawDistance);
+    return null;
+  }
+  const root = createRoot(document.createElement("div"));
+  const draw = (part: number) => act(async () => root.render(<PartsProvider part={part}>{createElement(List)}</PartsProvider>));
+  // While the screen's parts come: FlashList's own distance, nothing asked for.
+  await draw(2);
+  expect(distances.at(-1)).toBe(DRAW_AHEAD_FIRST);
+  expect(pending()).toBe(0);
+  await draw(3);
+  await act(async () => runNext());
+  expect(distances.at(-1)).toBe(400);
+  // The Student scrolls: the step due now is skipped, and none is asked for until the list is still.
+  await act(async () => handlers!.onScrollBeginDrag());
+  await act(async () => runNext());
+  expect(distances.at(-1)).toBe(400);
+  expect(pending()).toBe(0);
+  await act(async () => handlers!.onMomentumScrollEnd());
+  await act(async () => runNext());
+  // Up to its most, then no more asked.
+  expect(distances.at(-1)).toBe(550);
+  expect(pending()).toBe(0);
+  await act(async () => root.unmount());
 });

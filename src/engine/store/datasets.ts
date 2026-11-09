@@ -88,12 +88,14 @@ export class DatasetStore {
    * this build's check (the first start after an update): the next start takes it as is. Unchanged datasets are never
    * written otherwise. Called once the screens are up, not before the first frame.
    */
-  async restamp(): Promise<void> {
+  async restamp(breathe?: () => Promise<void>): Promise<void> {
     const names = [...this.unstamped];
     this.unstamped.clear();
     for (const name of names) {
       const payload = this.sets.get(name);
       if (payload) await this.save(payload);
+      // The screens' turn between two files (the phone, where they share this thread).
+      await breathe?.();
     }
   }
 
