@@ -377,11 +377,12 @@ async function makeHost(): Promise<Host> {
 
 /**
  * How long after app.ready each part of the engine's start that can wait does (ms): the feeds go at once (the network is
- * the long wait), the rest once the screens' first seconds are over, each in a moment the JS thread is idle. Run with
- * the screens drawing, the alerts' plan, its booking with Android and the restamp held a mid-range phone's thread
- * 164-170 ms right after the start ("[perf] js-block … app.ready").
+ * the long wait), the rest once the screens' first seconds are over (the hidden tabs' first draws), each in a moment the
+ * JS thread is idle and apart from the widget's first drawing (./widget.ts, 8 s). Run with the screens drawing, the
+ * alerts' plan, its booking with Android and the restamp were part of a mid-range phone's 164–170 ms stall right after
+ * the start ("[perf] js-block … app.ready").
  */
-const START_LATER: Record<Parameters<StartLater>[0], number> = { alerts: 8_000, restamp: 20_000, updates: 30_000 };
+const START_LATER: Record<Parameters<StartLater>[0], number> = { alerts: 4_000, restamp: 15_000, updates: 30_000 };
 
 /** The engine's start's later slices, each named for a stall right after ("engine: alerts"). */
 const startLater: StartLater = (what, run) => {
