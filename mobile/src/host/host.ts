@@ -28,12 +28,13 @@ import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
 import { type PhoneReminders, phoneReminders } from "./reminders";
 import { phoneReportHandlers } from "./report";
+import { sessionLog } from "./session-log";
 import { setSettling } from "./settling";
 import { PhoneStorage } from "./storage";
 import { phoneTaskHandlers } from "./tasks";
 import { phoneTransport } from "./transport";
 import { PhoneVault } from "./vault";
-import { APP_VERSION, DEMO } from "./version";
+import { APP_VERSION, DEMO, R3_GUARD } from "./version";
 
 export interface Host {
   engine: Engine;
@@ -138,6 +139,8 @@ async function makeHost(): Promise<Host> {
   const send = (event: Event) => {
     for (const listener of listeners) listener(event);
   };
+  // A QA build says on Android's log whether each session is live, ended or none (./session-log.ts).
+  const sessions = R3_GUARD ? sessionLog() : null;
   const engine = createEngine({
     // The demo says on Android's log what its sync reads (../perf.ts perfSync, W2's numbers); the real app doesn't.
     transport: DEMO ? traced(world.transport) : world.transport,
@@ -151,6 +154,7 @@ async function makeHost(): Promise<Host> {
       if (DEMO) traceEvent(event);
       // A stall right after the screens hear of a dataset is likely their redraw for it: its name labels the stall.
       if (event.type === "dataset") perfDoing(`→ ${event.dataset.name}`);
+      if (event.type === "status") sessions?.saw(event.status);
       if (event.type === "settings" && event.settings.lang !== lang) {
         lang = event.settings.lang;
         void prepareChannels(lang);
@@ -181,6 +185,7 @@ async function makeHost(): Promise<Host> {
   // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).
   const firstRun = (await world.storage.read("state.json")) === null;
   await engine.load();
+  sessions?.begin(engine.snapshot().statuses);
   if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
   lang = engine.snapshot().settings.lang;
   void prepareChannels(lang);
