@@ -90,10 +90,12 @@ describe(`a phone's start on a network as slow as the real one (${timings.kind})
     const { h } = await coldStart();
     const saved = (name: DatasetName) => h.engine.snapshot().datasets.some((d) => d.name === name);
     expect(TODAY.every(saved)).toBe(true);
-    const asked = h.world.log.length;
+    // Answers from Edunex, SIX and ITB only: the alert relay isn't one of them.
+    const school = () => h.world.log.filter((r) => /(itb\.ac\.id|cognisia\.id|goitb\.id)$/.test(new URL(r.url).host)).length;
+    const asked = school();
     h.engine.start();
     await h.world.clock.advance(STEP);
-    expect(h.world.log.length).toBe(asked);
+    expect(school()).toBe(asked);
     expect(TODAY.every(saved)).toBe(true);
   });
 
