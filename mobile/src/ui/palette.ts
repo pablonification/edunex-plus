@@ -189,6 +189,8 @@ export const V4 = {
     // A neutral pill's fill on a card ("7 hari", "Belum ditagih", "Tidak wajib"): a step off the card in both themes.
     chip: "#f1f3f7",
     line: "#e6e9ef",
+    // A bar's empty part where it must read on its own (Akademik's and Nilai's SKS bar): 3:1 on the card (round 3).
+    track: "#8a909c",
     fg: "#14171c",
     fg2: "#3f4652",
     muted: "#5f6673",
@@ -214,6 +216,7 @@ export const V4 = {
     // Lighter than the card, not the page's black: on the page's colour a pill read as a hole in the card (judge round 5).
     chip: "#2a2f39",
     line: "#262a33",
+    track: "#646b78",
     fg: "#eef0f4",
     fg2: "#c8cdd6",
     muted: "#9aa1ae",

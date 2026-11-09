@@ -13,6 +13,7 @@ export function Meter({
   thenColor,
   label,
   height = 6,
+  track,
 }: {
   /** The share filled, 0–1. */
   value: number;
@@ -22,6 +23,8 @@ export function Meter({
   thenColor?: string;
   label: string;
   height?: number;
+  /** The empty part's colour, when it must read on its own (v4's `track`, 3:1 on a card); else the page's grey. */
+  track?: string;
 }) {
   const v = useTheme().v4;
   const first = clamp(value);
@@ -32,9 +35,11 @@ export function Meter({
       accessibilityRole="progressbar"
       accessibilityLabel={label}
       accessibilityValue={{ min: 0, max: 100, now: Math.round(first * 100) }}
-      style={{ height, borderRadius: height / 2, backgroundColor: v.page, flexDirection: "row", overflow: "hidden" }}
+      style={{ height, borderRadius: height / 2, backgroundColor: track ?? v.page, flexDirection: "row", overflow: "hidden" }}
     >
       <View style={{ width: `${first * 100}%`, backgroundColor: color ?? v.brand }} />
+      {/* On a strong track, M3's gap (the card's colour) where the fill ends, so the two never run together. */}
+      {track && first > 0 && first < 1 && second === 0 && <View style={{ width: 3, backgroundColor: v.card }} />}
       {second > 0 && <View style={{ width: `${second * 100}%`, backgroundColor: thenColor ?? v.brandTint }} />}
     </View>
   );
