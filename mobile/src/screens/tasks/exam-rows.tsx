@@ -114,7 +114,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const disagree = part?.kind === "sitting" && exam.disagree;
 
   // Every fact goes in the spoken name; the row shows the kind and when, in one line that fits in full (where it is,
-  // the range and the rest are on the Exam's page), and one status.
+  // the range and the rest are on the Exam's page), and one status. Not the course's code: the title names the course
+  // (a take-home's, its tile, which the course chips over the list name), and the code is spoken.
   let facts: string[];
   let shown: string[];
   let when: string | null = null;
@@ -124,25 +125,25 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     facts = [code, t("exam.takeHome"), part.task.title, part.status === "draft" ? t("taskStatus.draft") : ""];
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
     // The day alone beside the kind (its page and spoken name keep the time).
-    shown = [code, kind, part.at === null ? t("task.noDeadline") : rowWhen(f, part.at, false)];
+    shown = [kind, part.at === null ? t("task.noDeadline") : rowWhen(f, part.at, false)];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
     const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dayTimeWord(part.opensAt) });
     facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     when = f.dueLabel(part.at);
-    shown = [code, rowWhen(f, part.at, !moved)];
+    shown = [rowWhen(f, part.at, !moved)];
     moment = part.at;
   } else if (part?.kind === "sitting") {
     const place = part.source === "six" ? (part.room ?? "") : (part.title ?? "");
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), place];
     when = part.end !== null ? f.dayTimeRange(part.at, part.end) : dayTime(part.at);
-    shown = [code, rowWhen(f, part.at, !disagree)];
+    shown = [rowWhen(f, part.at, !disagree)];
     if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
     else moment = part.at;
   } else {
     facts = [code, exam.inOutline ? t("exam.outlineOnly") : t("exam.noDate")];
-    shown = [code, t("exam.noDate")];
+    shown = [t("exam.noDate")];
   }
   const away = moment !== null ? countdown(t, now, moment) : null;
   // The countdown only once it's within a day: a calm one's day says when on its own.
@@ -274,9 +275,8 @@ function PeriodExam({ exam }: { exam: Exam }) {
       onPress={() => go({ screen: "exam", examId: exam.id })}
       code={exam.courseCode}
       course={name}
+      // The title names the course; under its period's row, which says it has no day yet, nothing more to say.
       title={examTitle(t, exam, name)}
-      // Under its period's row, which says it has no day yet.
-      meta={exam.courseCode}
     />
   );
 }
@@ -342,7 +342,8 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
       code={code || null}
       course={name}
       title={examTitle(t, exam, name)}
-      meta={[code, at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")].filter(Boolean).join(" · ")}
+      // The title names the course: the line is when.
+      meta={at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")}
       status={
         mark ? (
           <StatusPill tone="ok" icon={<Icons.Check size={13} weight="bold" color={theme.v4.okFg} />} text={t("exam.markedOn", { date: f.dayMonth(mark.at) })} />

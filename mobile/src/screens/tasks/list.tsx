@@ -9,7 +9,7 @@
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useScrollToTop } from "expo-router";
 import { memo, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import { RefreshControl, View } from "react-native";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { type Translate, useT } from "../../../../src/app/i18n";
 import { type Todo, useTodo } from "../../../../src/app/schedule-data";
@@ -22,8 +22,9 @@ import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoCounted, t
 import { useNav } from "../../nav";
 import { TabHeader, usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
 import { CardSlice, SectionTitle } from "../../ui/card-list";
-import { Button, Chip, ChipRow, Segmented } from "../../ui/controls";
+import { Button, Chip, Segmented } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
+import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Icons } from "../../ui/icons";
 import { GroupTile } from "../../ui/layout";
 import { Text } from "../../ui/text";
@@ -241,7 +242,11 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   );
 }
 
-/** Belum selesai / Selesai with their counts, the course chips under it, and a row's problem when there is one. */
+/**
+ * Belum selesai / Selesai with their counts, the course chips under it, and a row's problem when there is one. The
+ * picked segment and chip say it by their fill alone (a tick too said it twice). The chips scroll sideways, fading at an
+ * edge with more beyond it, each keeping its whole name: never a chip cut to a letter.
+ */
 const Header = memo(function Header({
   show,
   onShow,
@@ -260,6 +265,8 @@ const Header = memo(function Header({
   onCourse: (code: string | null) => void;
 }) {
   const t = useT();
+  const v = useTheme().v4;
+  const fades = useEdges();
   return (
     <View style={{ paddingTop: space[2], paddingBottom: space[6] }}>
       <RowProblemBanner />
@@ -268,27 +275,46 @@ const Header = memo(function Header({
         label={t("tasks.show")}
         value={show}
         onChange={onShow}
+        check={false}
         options={[
           { value: "open", label: t("tasks.filter.open"), count: openCount },
           { value: "done", label: t("tasks.filter.done"), count: doneCount },
         ]}
       />
       {courses.length > 1 && (
-        <View style={{ marginTop: space[3] }} accessibilityRole="radiogroup" accessibilityLabel={t("tasks.filter.course")}>
-          <ChipRow>
-            <Chip testID="chip.course.all" selected={course === null} onPress={() => onCourse(null)}>
+        <View style={{ marginTop: space[3], marginHorizontal: -space.page }} accessibilityRole="radiogroup" accessibilityLabel={t("tasks.filter.course")}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            onLayout={fades.onLayout}
+            onContentSizeChange={fades.onContentSizeChange}
+            onScroll={fades.onScroll}
+            scrollEventThrottle={32}
+            contentContainerStyle={{ gap: space[2], paddingHorizontal: space.page, paddingVertical: space[2] }}
+            style={{ marginVertical: -space[2] }}
+          >
+            <Chip testID="chip.course.all" selected={course === null} onPress={() => onCourse(null)} check={false}>
               {t("tasks.filter.all")}
             </Chip>
             {/* The course as its rows show it (its tile), by a name a student says, short ("Ekonomi dan Inovasi"). */}
             {courses.map((c) => (
-              <Chip key={c.code} testID={`chip.course.${c.code}`} label={`${c.code} ${c.name}`} selected={course === c.code} onPress={() => onCourse(c.code)}>
+              <Chip
+                key={c.code}
+                testID={`chip.course.${c.code}`}
+                label={`${c.code} ${c.name}`}
+                selected={course === c.code}
+                onPress={() => onCourse(c.code)}
+                check={false}
+              >
                 <CourseTile code={c.code} name={c.name} size={20} />
-                <Text size="labelLarge" tone={course === c.code ? "onSecondaryContainer" : "muted"}>
+                <Text size="labelLarge" tone={course === c.code ? "onSecondaryContainer" : "muted"} style={{ flexShrink: 0 }}>
                   {shortName(c.name)}
                 </Text>
               </Chip>
             ))}
-          </ChipRow>
+          </ScrollView>
+          {fades.edges.left && <EdgeFade side="left" color={v.page} />}
+          {fades.edges.right && <EdgeFade side="right" color={v.page} />}
         </View>
       )}
     </View>
