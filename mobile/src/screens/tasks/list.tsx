@@ -27,7 +27,7 @@ import { EmptyState, Skeleton } from "../../ui/display";
 import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Icons } from "../../ui/icons";
 import { GroupTile } from "../../ui/layout";
-import { usePart } from "../../ui/parts";
+import { useDrawAhead, usePart } from "../../ui/parts";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -39,10 +39,12 @@ import { PutOff, TaskRow, TodoRow } from "./rows";
 import { momentsOf, useClockMoments } from "./task-clock";
 
 /**
- * Lines on a first draw ahead (../../ui/parts.tsx): about a screenful (the chips, the big card, four rows), then the
- * whole list in the next part. Each part is one commit of its own instead of one block.
+ * Lines on a first draw ahead (../../ui/parts.tsx): Belum selesai / Selesai and the first three lines, then the chips and
+ * a screenful (the big card, four rows), then the whole list, and then it draws further ahead while idle
+ * (useDrawAhead). Each part is one small commit of its own instead of one block (part 1 with all of a screenful held a
+ * mid-range phone's JS thread 100–130 ms).
  */
-const FIRST_LINES = 6;
+const FIRST_LINES = [0, 3, 6] as const;
 
 const GROUPS: { group: TodoGroup; title: StringKey }[] = [
   { group: "overdue", title: "tasks.group.overdue" },
@@ -211,11 +213,22 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const view = useMemo(() => tasksView(t, todo, courses, course, show, sixOut), [t, todo, courses, course, show, sixOut]);
   if (putOffOpen && !view.hasPutOff) setPutOffOpen(false);
   const listed = usePart(1);
-  const whole = usePart(2);
-  const lines = useMemo(() => (whole ? view.lines : view.lines.slice(0, FIRST_LINES)), [whole, view.lines]);
+  const chips = usePart(2);
+  const whole = usePart(3);
+  const ahead = useDrawAhead();
+  const first = FIRST_LINES[chips ? 2 : 1];
+  const lines = useMemo(() => (whole ? view.lines : view.lines.slice(0, first)), [whole, first, view.lines]);
 
   const header = (
-    <Header show={show} onShow={setShow} openCount={view.openCount} doneCount={view.doneCount} courses={view.withItems} course={course} onCourse={setCourse} />
+    <Header
+      show={show}
+      onShow={setShow}
+      openCount={view.openCount}
+      doneCount={view.doneCount}
+      courses={chips ? view.withItems : NO_COURSES}
+      course={course}
+      onCourse={setCourse}
+    />
   );
   const togglePutOff = useCallback(() => setPutOffOpen((open) => !open), []);
   const showAll = useCallback(() => setCourse(null), [setCourse]);
@@ -237,6 +250,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
             getItemType={lineType}
             extraData={putOffOpen}
             renderItem={renderItem}
+            {...ahead}
             ListHeaderComponent={header}
             contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
             // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
@@ -255,6 +269,9 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
     </View>
   );
 }
+
+/** No chips yet (Tugas's first part). */
+const NO_COURSES: readonly TermCourse[] = [];
 
 /**
  * Belum selesai / Selesai with their counts, the course chips under it, and a row's problem when there is one. The
