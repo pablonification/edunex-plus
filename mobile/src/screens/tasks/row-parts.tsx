@@ -311,6 +311,12 @@ export function countdown(t: Translate, now: number, at: number): { value: numbe
  * When, as a row's meta line says it, the way the whole app writes a date and time: "Kam, 15 Okt, 11:00", "Hari ini,
  * 23:59"; the day alone (`time` false) beside a wide status ("lewat 12 hari", "Waktu berubah").
  */
+/**
+ * Whether a row's day takes its time too: only within a week (round 3, fewer words on Tugas's first screen). What's
+ * further off says its day alone ("Kam, 26 Nov"), its time on its page and in its spoken name.
+ */
+export const timeShown = (now: number, at: number): boolean => at - now < 7 * 24 * 60 * 60_000;
+
 export function rowWhen(f: Format, at: number, time = true): string {
   return time ? f.dueLabel(at) : f.relativeDay(at);
 }
