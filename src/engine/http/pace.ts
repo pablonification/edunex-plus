@@ -40,11 +40,14 @@ export class Pace {
   ) {}
 
   /**
-   * The site didn't answer at all (no connection, or too slow): every request still waiting fails with `error` without
-   * being sent, instead of each waiting its turn to time out too. They're tried again on their own schedule.
+   * The site didn't answer at all (no connection, or too slow): every feed's request still waiting fails with `error`
+   * without being sent, instead of each waiting its turn to time out too. They're tried again on their own schedule.
+   * The Student's own ("first": a hand-in, a comment) stay in line and are sent: they'd only fail without being tried.
    */
   giveUp(error: Error): void {
-    for (const entry of this.waiting.splice(0)) entry.done(Promise.reject(error));
+    const kept = this.waiting.filter((entry) => entry.place === "first");
+    for (const entry of this.waiting.splice(0)) if (entry.place !== "first") entry.done(Promise.reject(error));
+    this.waiting.push(...kept);
   }
 
   /** Runs `work` once a request before it on this site is done (one at a time, or `limit`), in its `place`. */

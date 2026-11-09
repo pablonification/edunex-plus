@@ -84,3 +84,27 @@ describe("a site's line", () => {
     expect(order).toEqual(["status@0", "timetable@2000", "catalog@4000"]);
   });
 });
+
+describe("giving up on a site that didn't answer", () => {
+  it("fails the feeds' waiting requests but still sends the Student's own", async () => {
+    const pace = new Pace(new FakeClock(0));
+    const sent: string[] = [];
+    const work = (name: string) => async () => {
+      await Promise.resolve();
+      sent.push(name);
+      return name;
+    };
+    let release!: () => void;
+    const going = pace.turn(() => new Promise<string>((resolve) => (release = () => resolve("going"))));
+    const feed = pace.turn(work("feed"), "behind");
+    const handIn = pace.turn(work("hand-in"), "first");
+    const settling = Promise.allSettled([going, feed, handIn]);
+    await Promise.resolve();
+    pace.giveUp(new Error("Edunex didn't answer in time"));
+    release();
+    const settled = await settling;
+    expect(settled[1]).toMatchObject({ status: "rejected" });
+    expect(settled[2]).toMatchObject({ status: "fulfilled", value: "hand-in" });
+    expect(sent).toEqual(["hand-in"]);
+  });
+});
