@@ -54,6 +54,13 @@ describe("earlierMeetings", () => {
     });
   });
 
+  it("leaves out a class that just ended and SIX may not have counted yet, so the row isn't one short", () => {
+    // Today's 07:00–09:00 class ended an hour ago; SIX still says 8 held, as before it.
+    const today = Date.parse("2026-11-10T07:00:00+07:00");
+    const meetings = [meeting("a", nov5), meeting("t", today)];
+    expect(earlierMeetings(meetings, NOW, { held: 8, attended: 5 }, { a: result(nov5, "counted") })).toEqual({ count: 7, before: nov5, attended: 4 });
+  });
+
   it("says nothing when every counted meeting is listed", () => {
     expect(earlierMeetings([meeting("a", nov5)], NOW, { held: 1, attended: 1 }, {})).toBeNull();
     expect(earlierMeetings([], NOW, { held: null, attended: null }, {})).toBeNull();
