@@ -1,4 +1,4 @@
-// A course's attendance on its page (round 3): under the course's name, the meter of its absences with one word
+// A course's attendance on its page (round 3): in the header under the bar (beside the course's tile, under its code), the meter of its absences with one word
 // (parts/attendance-meter.tsx, as Kuliah's row draws it) and the one exception when it's a fact. The header is one
 // target: the course's sheet (./course-sheet.tsx) says it all, the count, the target, the exception's whole sentence,
 // the advice and its way back too. Words and figures are the desktop's (src/app/screens/presence.tsx).
@@ -44,7 +44,7 @@ export function useAttendanceLine(item: CourseAttendance | undefined, context: R
     .filter(Boolean)
     .join(". ");
   const node = (
-    <View style={{ marginTop: space[3], gap: space[2] }}>
+    <View style={{ marginTop: space[1], gap: space[1] }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
         {meter && <AttendanceMeter model={meter} size="header" hideLabel testID="meter.courseAttendance" />}
         {/* The why is one step away: the header opens the sheet that says it. */}
@@ -81,6 +81,8 @@ export function ExceptionIcon({ exception, size }: { exception: CourseExceptionN
   const theme = useTheme();
   const color = exception.tone === "warning" ? theme.v4.ambFg : theme.v4.muted;
   if (exception.kind === "watching" || exception.kind === "gone") return <Icons.Hand size={size} color={color} />;
+  // A clash has its own icon everywhere (Jadwal's blocks and strip, the next class's row).
+  if (exception.kind === "clash") return <Icons.Overlap size={size} weight="bold" color={color} />;
   if (exception.tone === "warning") return <Icons.AlertTriangle size={size} weight="bold" color={color} />;
   return <Icons.Info size={size} color={color} />;
 }

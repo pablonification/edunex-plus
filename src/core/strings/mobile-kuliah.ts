@@ -44,14 +44,14 @@ export const mobileCourseStrings = {
   // The class on now: when the Edunex Presence closes, and whether it counts.
   "mobile.course.presenceCloses": { id: "Presensi tutup {time}", en: "Presence closes {time}" },
   "mobile.course.mayNotCount": { id: "Belum pasti dihitung", en: "May not count" },
-  // Pertemuan (round 3, after the blind review): the past meetings under their heading, newest first, SIX's count beside
-  // it ("Hadir 4 dari 6"); each meeting's mark at its row's end. SIX gives totals only: a mark comes from what SIX's
-  // count did after a class the app watched, or from Edunex; else "-", its spoken name saying why.
+  // Pertemuan (round 3, after the blind reviews): the past meetings under their heading, newest first, each one's mark at
+  // its row's end. SIX gives totals only: a mark comes from what SIX's count did after a class the app watched, or from
+  // Edunex, else a quiet "Tak tercatat", its spoken name saying why. Where Edunex alone keeps the count, a meeting it
+  // didn't record counts as absent ("Tidak hadir").
   "mobile.meeting.past": { id: "Sudah lewat", en: "Past" },
-  "mobile.meeting.count": { id: "Hadir {attended} dari {held}", en: "{attended} of {held} attended" },
   "mobile.meeting.absent": { id: "Tidak hadir", en: "Absent" },
   "mobile.meeting.missing": { id: "Belum dihitung", en: "Not counted yet" },
-  "mobile.meeting.unrecorded": { id: "Tidak tercatat", en: "Not recorded" },
+  "mobile.meeting.untracked": { id: "Tak tercatat", en: "No record" },
   "mobile.meeting.countedSix": { id: "Dihitung hadir di SIX", en: "Counted present in SIX" },
   "mobile.meeting.absentSix": { id: "SIX mencatatmu tidak hadir", en: "SIX marked you absent" },
   "mobile.meeting.missingSix": { id: "SIX belum menghitung kuliah ini", en: "SIX hasn't counted this class yet" },
@@ -59,11 +59,16 @@ export const mobileCourseStrings = {
     id: "SIX hanya memberi jumlahnya, jadi tak bisa dipastikan",
     en: "SIX gives only the total, so this one can't be told",
   },
-  // The ⓘ beside the count, where Edunex alone keeps the record.
-  "mobile.meeting.edunexMarks": {
-    id: "Tiap tanda di bawah ini dari Presensi Edunex. Yang tidak tercatat dihitung tidak hadir.",
-    en: "Each mark below is from Edunex Presence. A meeting it didn't record counts as absent.",
+  // Under the listed meetings, the ones SIX counted before the months the app read, so the list adds up to the count
+  // ("8 pertemuan sebelum 5 Nov"); its meta line how many of them were attended, when SIX's count tells it, else why
+  // they aren't listed one by one.
+  "mobile.meeting.earlier": {
+    id: "{count} pertemuan sebelum {date}",
+    en: { one: "{count} meeting before {date}", other: "{count} meetings before {date}" },
   },
+  "mobile.meeting.earlierAll": { id: "{count} pertemuan", en: { one: "{count} meeting", other: "{count} meetings" } },
+  "mobile.meeting.earlierSplit": { id: "Hadir {attended} · tidak hadir {absent}", en: "{attended} attended · {absent} absent" },
+  "mobile.meeting.totalOnly": { id: "SIX hanya mencatat jumlahnya", en: "SIX keeps only the total" },
   // The course's sheet: its target, changed in place.
   "mobile.course.target": { id: "Target kehadiran", en: "Attendance target" },
   // The grade calculator. Example weights in one line (the banner opens the course contract when there is one).

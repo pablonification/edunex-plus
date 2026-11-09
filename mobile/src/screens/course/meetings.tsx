@@ -1,13 +1,15 @@
-// The Pertemuan tab on the phone (round 3, after the blind review; src/app/screens/course/meetings.tsx): SIX's timetable
+// The Pertemuan tab on the phone (round 3, after the blind reviews; src/app/screens/course/meetings.tsx): SIX's timetable
 // (official time and room) merged with Edunex Presence (the window and what Edunex recorded) and meetings announced only
-// in Edunex text. Two cards: "Sudah lewat", newest first, each meeting with its mark at the end (Hadir, Tidak hadir,
-// Belum dihitung, or "-" where nobody can say), SIX's count beside the heading ("Hadir 4 dari 6") and an ⓘ saying why a
-// meeting can show "-" (SIX gives totals only); then "Akan datang". The class on now, the next one and an open window
-// are above the tabs (./now.tsx), so they aren't rows here (one fact, one place). A row: the day's tile, the meeting's
-// topic when it has one (else its weekday and time, never "Kuliah" again and again), its time under a topic. An exam
-// period is a line before its meetings. Every row opens its sheet (the room, the window, the lecturer's note, the way to
-// act). Signed out of SIX, Edunex's own tally here.
-import { useState } from "react";
+// in Edunex text. Two cards: "Sudah lewat", newest first, every past meeting the app knows with its mark at the end
+// (Hadir, Tidak hadir, Belum dihitung, or a quiet "Tak tercatat" where nobody can say), and under them one quiet row
+// for the meetings SIX counted that the app never saw one by one ("8 pertemuan sebelum 5 Nov", with how many of them
+// were attended when SIX's count says it), so the list adds up to the meter at the top; then "Akan datang". The count
+// itself is the header's meter and the course's sheet, not said again here (one fact, one place). The class on now,
+// the next one and an open window are above the tabs (./now.tsx), so they aren't rows here. A row: the day's tile, the
+// meeting's topic when it has one, else its time (the tile says the day). An exam period is a line before its
+// meetings. Every row opens its sheet (the room, the window, the lecturer's note, the way to act). Signed out of SIX,
+// Edunex's own tally here.
+import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -22,7 +24,6 @@ import type { CalendarEvent } from "../../../../src/core/models";
 import { dayStart } from "../../../../src/core/schedule";
 import { SixEmptyState, useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
-import { IconButton } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
 import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
@@ -31,6 +32,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CardGroup, SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
 import { Fact } from "./course-sheet";
+import { type Earlier, earlierMeetings } from "./earlier";
 import { shownAbove } from "./now";
 
 type T = ReturnType<typeof useT>;
@@ -77,20 +79,11 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   const coming = listed.filter((m) => m.end > now);
   // What SIX's count did after a class the app watched (the last two weeks), by SIX's meeting id.
   const results = attendance?.results ?? {};
-  // The official count beside "Sudah lewat": SIX's, or Edunex's where Edunex keeps it. Signed out of SIX, the intro says it.
-  const count =
-    countedIn === "noSix"
-      ? null
-      : countedIn === "edunex"
-        ? health && health.edunexClosed > 0
-          ? t("mobile.meeting.count", { attended: health.edunexRecorded, held: health.edunexClosed })
-          : null
-        : health?.held
-          ? t("mobile.meeting.count", { attended: health.attended ?? 0, held: health.held })
-          : null;
-
+  // The meetings SIX counted that the app never saw one by one (before the months it read): one quiet row under the
+  // rest, so the list adds up to the count. Where Edunex keeps the count, every window is listed already.
+  const earlier = countedIn === "six" || countedIn === "both" || countedIn === "unknown" ? earlierMeetings(meetings, now, health, results) : null;
   /** One card of rows, with an exam period's line before its first meeting (in the order shown). */
-  const card = (list: readonly Meeting[], testID: string) => (
+  const card = (list: readonly Meeting[], testID: string, after?: ReactNode) => (
     <CardGroup testID={testID}>
       {list.map((meeting, index) => {
         const period = periodOf(meeting);
@@ -109,6 +102,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
           </View>
         );
       })}
+      {after}
     </CardGroup>
   );
 
@@ -116,7 +110,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
     <View>
       {/* Signed out of SIX: Edunex's own tally, and the way back to SIX's count. */}
       {countedIn === "noSix" && !noEdunexPresence && health && <NoSixIntro recorded={health.edunexRecorded} closed={health.edunexClosed} />}
-      {meetings.length === 0 ? (
+      {meetings.length === 0 && !earlier ? (
         sixSignedOut ? (
           <SixEmptyState icon={<Icons.Calendar size={20} color={theme.color.muted} />} title={t("meeting.noSix")} />
         ) : (
@@ -124,16 +118,14 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
         )
       ) : (
         <View style={{ gap: space[2] }}>
-          {past.length > 0 && (
+          {(past.length > 0 || earlier) && (
             <View>
-              <SectionTitle first end={<PastEnd count={count} edunex={countedIn === "edunex"} />}>
-                {t("mobile.meeting.past")}
-              </SectionTitle>
-              {card(past, "list.meetings.past")}
+              <SectionTitle first>{t("mobile.meeting.past")}</SectionTitle>
+              {card(past, "list.meetings.past", earlier ? <EarlierRow earlier={earlier} first={past.length === 0} /> : undefined)}
             </View>
           )}
           {coming.length > 0 && (
-            <View style={past.length > 0 ? { marginTop: space[4] } : undefined}>
+            <View style={past.length > 0 || earlier ? { marginTop: space[4] } : undefined}>
               <SectionTitle first>{t("meeting.state.upcoming")}</SectionTitle>
               {card(coming, "list.meetings.coming")}
             </View>
@@ -144,40 +136,36 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   );
 }
 
-/**
- * Beside "Sudah lewat": the official count ("Hadir 4 dari 6"), then an ⓘ whose sheet says where it comes from and why
- * a meeting can show "-" (SIX gives totals only). The why is one step away; the count stays on screen.
- */
-function PastEnd({ count, edunex }: { count: string | null; edunex: boolean }) {
+/** "8 pertemuan sebelum 5 Nov" under the listed ones, with "Hadir 4 · tidak hadir 4" when SIX's count tells it. */
+function EarlierRow({ earlier, first }: { earlier: Earlier; first: boolean }) {
   const t = useT();
+  const f = useFormat();
   const v = useTheme().v4;
-  const [open, setOpen] = useState(false);
+  const title =
+    earlier.before !== null
+      ? t("mobile.meeting.earlier", { count: earlier.count, date: f.dayMonth(earlier.before) })
+      : t("mobile.meeting.earlierAll", { count: earlier.count });
+  const meta =
+    earlier.attended !== null
+      ? t("mobile.meeting.earlierSplit", { attended: earlier.attended, absent: earlier.count - earlier.attended })
+      : t("mobile.meeting.totalOnly");
   return (
-    <View style={{ flexDirection: "row", alignItems: "center" }}>
-      {count && (
-        <Text size="bodyMedium" weight="medium" tabular testID="label.meetingsCount" style={{ color: v.fg2 }}>
-          {count}
+    <TileRow
+      testID="row.meetingsEarlier"
+      first={first}
+      leading={
+        <IconTile tint={v.chip}>
+          <Icons.History size={20} color={v.muted} />
+        </IconTile>
+      }
+      title={
+        <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg2, lineHeight: 21 }}>
+          {title}
         </Text>
-      )}
-      <IconButton label={t("presence.how")} onPress={() => setOpen(true)} testID="action.meetingsHow">
-        <Icons.Info size={20} color={v.muted} />
-      </IconButton>
-      <Sheet
-        open={open}
-        onClose={() => setOpen(false)}
-        background={v.card}
-        testID="sheet.meetingsHow"
-        title={
-          <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={{ color: v.fg, fontSize: 20, lineHeight: 26 }}>
-            {t(edunex ? "meeting.edunexCounts" : "meeting.countSix")}
-          </Text>
-        }
-      >
-        <Text size="bodyLarge" style={{ color: v.fg2, paddingBottom: space[4] }}>
-          {t(edunex ? "mobile.meeting.edunexMarks" : "meeting.sixTotalsOnly")}
-        </Text>
-      </Sheet>
-    </View>
+      }
+      meta={meta}
+      label={`${title}, ${meta}`}
+    />
   );
 }
 
@@ -253,7 +241,7 @@ function DateTile({ at, past }: { at: number; past: boolean }) {
   );
 }
 
-/** A past meeting's mark: what SIX's count or Edunex says about it, or nothing anyone can say ("-"). */
+/** A past meeting's mark: what SIX's count or Edunex says about it, or nothing anyone can say ("Tak tercatat"). */
 type Mark = { kind: "present" | "absent" | "missing" | "unknown"; words: string; label: string };
 
 /**
@@ -268,8 +256,8 @@ function markOf(t: T, meeting: Meeting, countedIn: CountedIn, result: ClassResul
   const state = meetingState(meeting, now);
   if (state === "present") return { kind: "present", words: t("meeting.state.present"), label: t("meeting.edunexPresent") };
   if ((state === "unmarked" || state === "recorded") && countedIn === "edunex")
-    return { kind: "absent", words: t("mobile.meeting.unrecorded"), label: t("meeting.edunexNotRecordedCounts") };
-  return { kind: "unknown", words: "-", label: t("mobile.meeting.unknown") };
+    return { kind: "absent", words: t("mobile.meeting.absent"), label: t("meeting.edunexNotRecordedCounts") };
+  return { kind: "unknown", words: t("mobile.meeting.untracked"), label: t("mobile.meeting.unknown") };
 }
 
 function MeetingRow({
@@ -301,8 +289,9 @@ function MeetingRow({
   const title = meetingTitle(t, meeting, moduleTitle);
   const date = `${f.weekdayShort(meeting.start)}, ${f.dayMonth(meeting.start)}`;
   const time = f.timeRange(meeting.start, meeting.end);
-  // Without a topic the row is its weekday and time ("Kamis, 16:00–17:50"); with one, the time goes under it.
-  const when = `${f.weekday(meeting.start)}, ${time}`;
+  // Without a topic the row is its time ("16:00–17:50": the tile says the day, round 3's third review); with one, the
+  // time goes under it. Its weekday is in what TalkBack reads.
+  const when = time;
   const past = meeting.end <= now;
   // Edunex's Presence window, when it isn't simply the meeting's time.
   const window =
@@ -331,7 +320,7 @@ function MeetingRow({
   const action = record ? { url: record, words: t("course.recordInEdunex") } : join ? { url: join, words: t("material.join") } : null;
   const status =
     state === "open" ? <StatusChip tone={quiet ? "neutral" : "amber"}>{t("meeting.state.open")}</StatusChip> : mark ? <MarkView mark={mark} /> : undefined;
-  const label = [date, topic ?? when, topic ? time : null, ...facts, ...warned, state === "open" ? t("meeting.state.open") : mark?.label, notInSix]
+  const label = [date, topic ?? f.weekday(meeting.start), time, ...facts, ...warned, state === "open" ? t("meeting.state.open") : mark?.label, notInSix]
     .filter(Boolean)
     .join(", ");
   return (
@@ -400,12 +389,12 @@ function MeetingRow({
   );
 }
 
-/** A past meeting's mark at its row's end: an icon and a word in its tone ("Hadir"), or a quiet "-" nobody can fill. */
+/** A past meeting's mark at its row's end: an icon and a word in its tone ("Hadir"), or a quiet "Tak tercatat" nobody can fill. */
 function MarkView({ mark }: { mark: Mark }) {
   const v = useTheme().v4;
   if (mark.kind === "unknown")
     return (
-      <Text size="bodyLarge" weight="medium" style={{ color: v.muted, paddingHorizontal: space[2] }}>
+      <Text testID="mark.meeting.unknown" size="bodyMedium" weight="medium" style={{ color: v.muted, flexShrink: 0 }}>
         {mark.words}
       </Text>
     );
