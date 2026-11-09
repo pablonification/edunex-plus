@@ -271,9 +271,12 @@ function openAt(day: ScheduleDay, today: string, now: number): number {
 }
 
 /**
- * Jadwal's top bar: the month of the week on screen as its one title (Plus Jakarta Sans), the term's week quietly
- * under it ("Minggu ke-7 · 5–11 Okt") with the data's status only when it says something; then "Hari ini" when away
- * from today, the month and ⋮. A tap on the title opens the sources' sheet, as on every tab.
+ * Jadwal's top bar: the month of the week on screen as its one title (Plus Jakarta Sans; another year's as "Jan 2027"),
+ * the term's week quietly under it ("Minggu ke-7"; the week strip under the bar shows its days, so their range is said
+ * only when the week has no number), with the data's status only when it says something. Then, away from today,
+ * "Hari ini" in ⋮'s place (⋮ comes back with today): the bar never holds more than the title, one action of its own and
+ * every tab's three, so the month and its week line stay whole at a large font. A tap on the title opens the sources'
+ * sheet, as on every tab.
  */
 function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: string; onToday: () => void }) {
   const t = useT();
@@ -286,14 +289,16 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const sync = useSyncText();
   const [panel, setPanel] = useState(false);
   const noon = Date.parse(`${picked}T12:00:00+07:00`);
+  const otherYear = picked.slice(0, 4) !== today.slice(0, 4);
   const month = new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", {
-    month: "long",
-    ...(picked.slice(0, 4) !== today.slice(0, 4) ? { year: "numeric" } : {}),
+    month: otherYear ? "short" : "long",
+    ...(otherYear ? { year: "numeric" } : {}),
     timeZone: "Asia/Jakarta",
   }).format(noon);
   const n = input ? termWeek(input.events, monday) : null;
   const range = f.dayRange(monday, shiftDay(monday, 6));
   const place = n ? t("schedule.weekOf", { n, range }) : range;
+  const away = picked !== today;
   return (
     <View style={{ backgroundColor: v.page, paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
@@ -308,16 +313,18 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
             {month}
           </Text>
           <Text size="bodyMedium" tabular numberOfLines={1} testID="label.place" style={{ color: v.muted, marginTop: -2 }}>
-            {place}
+            {n ? t("mobile.schedule.week", { n }) : range}
           </Text>
           <StatusLine />
         </Pressable>
-        {picked !== today && (
+        {away ? (
           <Button size="sm" variant="tonal" onPress={onToday} label={t("mobile.schedule.todayLabel")} testID="action.today">
             {t("mobile.schedule.today")}
           </Button>
+        ) : (
+          <ScheduleMenu />
         )}
-        <ScheduleActions />
+        <TabActions />
       </View>
       <SyncPanel open={panel} onClose={() => setPanel(false)} />
     </View>
@@ -367,8 +374,8 @@ function CalendarProblem({ problem, onRetry }: { problem: "denied" | "failed"; o
   );
 }
 
-/** The top bar's own: ⋮ with the month, the reminder before class, the phone's calendar and the .ics; then every tab's three. */
-function ScheduleActions() {
+/** The top bar's own ⋮ (while today is on screen): the month, the reminder before class, the phone's calendar, the .ics. */
+function ScheduleMenu() {
   const t = useT();
   const v = useTheme().v4;
   const bridge = useBridge();
@@ -385,57 +392,54 @@ function ScheduleActions() {
     if (!sync.on) wasOn.current = false;
   }, [sync.on, sync.written, sync.events, t]);
   return (
-    <>
-      <OverflowMenu
-        testID="action.scheduleMenu"
-        label={t("mobile.schedule.menu")}
-        choices={[
-          {
-            label: t("mobile.schedule.month"),
-            icon: <Icons.Calendar size={20} color={v.muted} />,
-            onPress: () => router.push("/schedule-month"),
-            testID: "action.month",
+    <OverflowMenu
+      testID="action.scheduleMenu"
+      label={t("mobile.schedule.menu")}
+      choices={[
+        {
+          label: t("mobile.schedule.month"),
+          icon: <Icons.Calendar size={20} color={v.muted} />,
+          onPress: () => router.push("/schedule-month"),
+          testID: "action.month",
+        },
+        {
+          label: t("mobile.schedule.remind"),
+          hint: t("mobile.schedule.remind.hint"),
+          icon: <Icons.Bell size={20} color={v.muted} />,
+          checked: classSoonAlerts,
+          onPress: () => {
+            const next = !classSoonAlerts;
+            void bridge.invoke("settings.update", { classSoonAlerts: next }).then(
+              () => toast(t(next ? "mobile.schedule.remind.on" : "mobile.schedule.remind.off")),
+              () => undefined,
+            );
+            // A reminder needs Android's permission for notifications: asked for here, where it's wanted.
+            if (next)
+              void Notifications.getPermissionsAsync()
+                .then((now) => (!now.granted && now.canAskAgain ? Notifications.requestPermissionsAsync() : now))
+                .catch(() => undefined);
           },
-          {
-            label: t("mobile.schedule.remind"),
-            hint: t("mobile.schedule.remind.hint"),
-            icon: <Icons.Bell size={20} color={v.muted} />,
-            checked: classSoonAlerts,
-            onPress: () => {
-              const next = !classSoonAlerts;
-              void bridge.invoke("settings.update", { classSoonAlerts: next }).then(
-                () => toast(t(next ? "mobile.schedule.remind.on" : "mobile.schedule.remind.off")),
-                () => undefined,
-              );
-              // A reminder needs Android's permission for notifications: asked for here, where it's wanted.
-              if (next)
-                void Notifications.getPermissionsAsync()
-                  .then((now) => (!now.granted && now.canAskAgain ? Notifications.requestPermissionsAsync() : now))
-                  .catch(() => undefined);
-            },
-            testID: "action.remindBeforeClass",
+          testID: "action.remindBeforeClass",
+        },
+        {
+          label: t("mobile.calendar.sync"),
+          hint: t("mobile.calendar.sync.hint"),
+          icon: <Icons.Smartphone size={20} color={v.muted} />,
+          checked: sync.on,
+          onPress: () => {
+            if (sync.on) void sync.turnOff().then(() => toast(t("mobile.calendar.sync.off")));
+            else sync.turnOn();
           },
-          {
-            label: t("mobile.calendar.sync"),
-            hint: t("mobile.calendar.sync.hint"),
-            icon: <Icons.Smartphone size={20} color={v.muted} />,
-            checked: sync.on,
-            onPress: () => {
-              if (sync.on) void sync.turnOff().then(() => toast(t("mobile.calendar.sync.off")));
-              else sync.turnOn();
-            },
-            testID: "action.calendarSync",
-          },
-          {
-            label: t("mobile.calendar.share"),
-            icon: <Icons.ArrowUpRight size={20} color={v.muted} />,
-            onPress: () => void share().catch(() => toast(t("mobile.calendar.shareFailed"), "danger")),
-            testID: "action.shareIcs",
-          },
-        ]}
-      />
-      <TabActions />
-    </>
+          testID: "action.calendarSync",
+        },
+        {
+          label: t("mobile.calendar.share"),
+          icon: <Icons.ArrowUpRight size={20} color={v.muted} />,
+          onPress: () => void share().catch(() => toast(t("mobile.calendar.shareFailed"), "danger")),
+          testID: "action.shareIcs",
+        },
+      ]}
+    />
   );
 }
 

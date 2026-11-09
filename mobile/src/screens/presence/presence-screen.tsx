@@ -1,11 +1,10 @@
 // Kuliah on the phone (round 3; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds, which course
 // is at risk, and the way into each. On v4's grey page under the bar's "Kuliah": what needs the Student now
-// (./now.tsx), then every course as a row in a white card: its tile, its name, and under it a meter of its absences
-// (parts/attendance-meter.tsx) with one word or number, then its code. The courses at risk (out of reach, none left,
-// finished below) come first under "Perlu perhatian", the rest in a card under them, in the desktop's order. The
-// meters say what the big number used to, so it's gone (one fact, one place); what SIX counted today is a tick on its
-// row. The row opens the course. The day's answer, the target and how it's counted are in ⋮ (./footer.tsx's sheet),
-// beside the targets. Same data and words as the desktop.
+// (./now.tsx), then every course as a row in a white card: its tile, its name and code, and at its end the state of its
+// absences in plain words ("Lewat batas 1×", "Jatah habis" as a pill in the risk's colour, "Sisa 2×" quiet). The
+// courses at risk (out of reach, none left, finished below) come first under "Perlu perhatian", the rest under "Aman"
+// (or "Lainnya" while some have no count yet), in the desktop's order. The row opens the course. The day's answer, the
+// target and how it's counted are in ⋮ (./footer.tsx's sheet), beside the targets. Same data and words as the desktop.
 import { useState } from "react";
 import { View } from "react-native";
 import { type Attendance, useAttendance } from "../../../../src/app/attendance";
@@ -62,6 +61,8 @@ export function useRowContext(onChangeTarget: (code: string) => void): { attenda
 
 /** The groups that ask the most of the Student: their courses share the first card. */
 const AT_RISK: readonly PresenceGroup[] = ["out", "none", "missed"];
+/** The groups with absences to spare or the target met: their card is "Aman"; with any course still uncounted, "Lainnya". */
+const CALM: readonly PresenceGroup[] = ["spare", "met"];
 
 /**
  * Kuliah (round 3): what needs the Student now, then the courses, at risk first under their heading, each a row that
@@ -86,9 +87,6 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   };
   const connected = Boolean(rows?.attendance.sixConnected);
   const showTargets = connected && courses.length > 0;
-  // What SIX counted today, as a tick on each row (the footer that listed the codes is gone).
-  const zone = rows?.zone;
-  const counted = (code: string) => (zone?.counted.includes(code) ? "onTime" : zone?.countedLate.includes(code) ? "late" : null);
   usePerfDrawn(rows !== undefined);
   const muted = theme.color.onSurfaceVariant;
   const choices = [
@@ -142,20 +140,19 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
               )
             : bands.map((band, i) => (
                 <Rise key={band[0]!.group} screen="courses" index={2 + i}>
-                  {/* The courses at risk under their name, said once for all of them; the rest need none. */}
-                  {i === 0 && bands.length > 1 && AT_RISK.includes(band[0]!.group) && <SectionTitle first>{t("mobile.kuliah.attention")}</SectionTitle>}
+                  {/* With both bands, each under its name (said once for all its courses): never the rest under "Perlu perhatian". */}
+                  {bands.length > 1 && (
+                    <View style={i > 0 ? { marginTop: space[2] } : undefined}>
+                      <SectionTitle first>
+                        {t(i === 0 ? "mobile.kuliah.attention" : band.every((g) => CALM.includes(g.group)) ? "mobile.kuliah.calm" : "mobile.kuliah.rest")}
+                      </SectionTitle>
+                    </View>
+                  )}
                   <CardGroup>
                     {band.map(({ group, items }, g) => (
                       <View key={group} testID={`group.presence.${group}`}>
                         {items.map((item, r) => (
-                          <CourseRow
-                            key={item.course.code}
-                            item={item}
-                            group={group}
-                            context={rows.context}
-                            first={g === 0 && r === 0}
-                            counted={counted(item.course.code)}
-                          />
+                          <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={g === 0 && r === 0} />
                         ))}
                       </View>
                     ))}

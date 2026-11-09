@@ -4,17 +4,16 @@ import type { Entry } from "./entry";
 
 export const mobileKuliahStrings = {
   // Kuliah (the tab).
-  // The heading over the courses out of reach, with no absences left or finished below the target (round 3: the big
-  // number became this heading, the meters on the rows say the rest).
+  // The headings over Kuliah's two cards (round 3, the blind review: one heading read as if it held all five): the
+  // courses out of reach, with no absences left or finished below the target; then the rest, "Aman" when every one of
+  // them has absences to spare or met its target, else (some with no count yet) "Lainnya".
   "mobile.kuliah.attention": { id: "Perlu perhatian", en: "Needs attention" },
-  // A course's absences beside its meter (parts/attendance-meter.tsx): over the limit by how many, the red segments past
-  // the line saying the rest. The whole sentence is the meter's accessible name.
-  "mobile.absence.overShort": { id: "+{count}", en: "+{count}" },
+  "mobile.kuliah.calm": { id: "Aman", en: "On track" },
+  "mobile.kuliah.rest": { id: "Lainnya", en: "Others" },
   // A course Edunex alone records: present in how many of its closed Presence windows.
   "mobile.absence.edunex": { id: "Edunex {recorded}/{closed}", en: "Edunex {recorded}/{closed}" },
-  // The quiet tick on a course SIX counted today, as TalkBack says it (the footer that listed the codes is gone).
-  "mobile.kuliah.counted": { id: "Sudah dihitung di SIX hari ini", en: "Counted in SIX today" },
-  "mobile.kuliah.countedLate": { id: "Akhirnya dihitung di SIX hari ini", en: "Counted in SIX today, after all" },
+  // A finished course's share, where its absences used to be ("Selesai 85%"); the whole sentence is its spoken name.
+  "mobile.absence.final": { id: "Selesai {percent}%", en: "Ended at {percent}%" },
   // The sheet in ⋮: the day's answer, the target, and how it's counted.
   "mobile.kuliah.facts": { id: "Kehadiranmu", en: "Your attendance" },
   // Two of today's classes at once: a row, its pick as the chip; the reason is in its sheet.
@@ -35,7 +34,8 @@ export const mobileCourseStrings = {
   // The one exception, in a few words on the card; the whole of it is in the sheet. Out of reach, it's the desktop's
   // own words (presence.row.askLecturer).
   "mobile.course.ex.needed": { id: "Bergantung kuliah {date}", en: "Hangs on the class on {date}" },
-  "mobile.course.ex.clash": { id: "Bentrok dengan {code}", en: "Clashes with {code}" },
+  // The other course by its short name ("Ekonomi Infrastruktur"), not its code (round 3, the blind review).
+  "mobile.course.ex.clash": { id: "Bentrok dengan {course}", en: "Clashes with {course}" },
   "mobile.course.ex.uncertain": { id: "Kuliah {date} mungkin tak ada", en: "The class on {date} may not run" },
   "mobile.course.ex.lab": { id: "Cek aturan praktikum", en: "Check the lab's rules" },
   // Tandai Hadir not on SIX yet, or gone again, in a few words (Beranda's words before its sheet dropped them).
@@ -44,6 +44,26 @@ export const mobileCourseStrings = {
   // The class on now: when the Edunex Presence closes, and whether it counts.
   "mobile.course.presenceCloses": { id: "Presensi tutup {time}", en: "Presence closes {time}" },
   "mobile.course.mayNotCount": { id: "Belum pasti dihitung", en: "May not count" },
+  // Pertemuan (round 3, after the blind review): the past meetings under their heading, newest first, SIX's count beside
+  // it ("Hadir 4 dari 6"); each meeting's mark at its row's end. SIX gives totals only: a mark comes from what SIX's
+  // count did after a class the app watched, or from Edunex; else "-", its spoken name saying why.
+  "mobile.meeting.past": { id: "Sudah lewat", en: "Past" },
+  "mobile.meeting.count": { id: "Hadir {attended} dari {held}", en: "{attended} of {held} attended" },
+  "mobile.meeting.absent": { id: "Tidak hadir", en: "Absent" },
+  "mobile.meeting.missing": { id: "Belum dihitung", en: "Not counted yet" },
+  "mobile.meeting.unrecorded": { id: "Tidak tercatat", en: "Not recorded" },
+  "mobile.meeting.countedSix": { id: "Dihitung hadir di SIX", en: "Counted present in SIX" },
+  "mobile.meeting.absentSix": { id: "SIX mencatatmu tidak hadir", en: "SIX marked you absent" },
+  "mobile.meeting.missingSix": { id: "SIX belum menghitung kuliah ini", en: "SIX hasn't counted this class yet" },
+  "mobile.meeting.unknown": {
+    id: "SIX hanya memberi jumlahnya, jadi tak bisa dipastikan",
+    en: "SIX gives only the total, so this one can't be told",
+  },
+  // The ⓘ beside the count, where Edunex alone keeps the record.
+  "mobile.meeting.edunexMarks": {
+    id: "Tiap tanda di bawah ini dari Presensi Edunex. Yang tidak tercatat dihitung tidak hadir.",
+    en: "Each mark below is from Edunex Presence. A meeting it didn't record counts as absent.",
+  },
   // The course's sheet: its target, changed in place.
   "mobile.course.target": { id: "Target kehadiran", en: "Attendance target" },
   // The grade calculator. Example weights in one line (the banner opens the course contract when there is one).

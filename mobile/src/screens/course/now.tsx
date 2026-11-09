@@ -11,6 +11,7 @@ import { View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useCourseNames } from "../../../../src/app/schedule-data";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { firstUnreadDay } from "../../../../src/core/attendance";
@@ -29,6 +30,7 @@ import { useCourseTile } from "../../ui/tile";
 import { CardGroup, StatusChip, TileRow } from "../../ui/v4-list";
 import { useCheckIn, useWentToCheckIn } from "../home/checked-in";
 import { useCardStyle } from "../home/now";
+import { shortName } from "../home/parts";
 import { meetingModuleTitle, meetingTitle, pageModules } from "./meetings";
 
 const MINUTE = 60_000;
@@ -39,6 +41,28 @@ function countdown(from: number, at: number): { value: number; unit: "minute" | 
   if (minutes < 120) return { value: minutes, unit: "minute" };
   if (minutes < 48 * 60) return { value: Math.floor(minutes / 60), unit: "hour" };
   return { value: Math.floor(minutes / (24 * 60)), unit: "day" };
+}
+
+/**
+ * What the part above the tabs shows: the class on now (or the window open, with its class), the next meeting, and the
+ * other open windows. Pertemuan leaves those meetings out of its list (`shownAbove`): one fact, one place.
+ */
+function nowAndNext(page: CoursePage, now: number) {
+  const pinned = pinnedMeeting(page.meetings, now);
+  const windows = openPresences(page.presence ?? [], now);
+  const current = pinned?.current ? pinned.meeting : null;
+  // The card's window: the class going on has only its own; with no class on, the one closing first.
+  const presence = current ? (windows.find((p) => p.id === current.presence?.id) ?? null) : (windows[0] ?? null);
+  const meetingOf = (p: PresenceSession) => page.meetings.find((m) => m.presence?.id === p.id) ?? null;
+  const meeting = current ?? (presence ? meetingOf(presence) : null);
+  const next = pinned && !pinned.current && pinned.meeting !== meeting ? pinned.meeting : null;
+  return { windows, current, presence, meeting, next, meetingOf };
+}
+
+/** The keys of the meetings the part above the tabs shows (the class on now, the next one, a window still open). */
+export function shownAbove(page: CoursePage, now: number): ReadonlySet<string> {
+  const { windows, meeting, next, meetingOf } = nowAndNext(page, now);
+  return new Set([meeting, next, ...windows.map(meetingOf)].filter((m): m is Meeting => m !== null).map((m) => m.key));
 }
 
 export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
@@ -52,14 +76,8 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
   const schedule = useDataset("six.schedule");
   const unread = useDataset("six.scheduleUnread");
   const modules = pageModules(page);
-  const pinned = pinnedMeeting(page.meetings, now);
-  const windows = openPresences(page.presence ?? [], now);
-  const current = pinned?.current ? pinned.meeting : null;
-  // The card's window: the class going on has only its own; with no class on, the one closing first.
-  const presence = current ? (windows.find((p) => p.id === current.presence?.id) ?? null) : (windows[0] ?? null);
-  const meetingOf = (p: PresenceSession) => page.meetings.find((m) => m.presence?.id === p.id) ?? null;
-  const meeting = current ?? (presence ? meetingOf(presence) : null);
-  const next = pinned && !pinned.current && pinned.meeting !== meeting ? pinned.meeting : null;
+  const name = useCourseNames();
+  const { windows, current, presence, meeting, next, meetingOf } = nowAndNext(page, now);
   const courseUrl = page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null;
   const linkOf = (m: Meeting) => (m.end > now ? (m.announced?.link ?? null) : null);
 
@@ -101,7 +119,7 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
     const facts = [when, room ? t("mobile.course.room", { room }) : "", ...rest].filter(Boolean);
     // This class shares time with another course's (Jadwal marks it too): said on its row, in the clash's amber.
     const clash = mine?.clash && mine.clash.session.start === next.start ? mine.clash : null;
-    const clashWords = clash ? t("mobile.course.ex.clash", { code: clash.other }) : "";
+    const clashWords = clash ? t("mobile.course.ex.clash", { course: shortName(name(clash.other)) }) : "";
     rows.push((first) => (
       <TileRow
         key="next"

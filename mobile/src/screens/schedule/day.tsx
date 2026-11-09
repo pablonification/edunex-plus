@@ -1,12 +1,14 @@
 // One day of Jadwal as v4 draws it (mobile/design/r2-directions/v4, "v4-jadwal"): the hours down the left, each class a
-// block in its course's tint at its time and length (its glyph, a short name, the room), two that overlap side by side,
+// block in its course's tint at its time and length (its glyph, its name on as many lines as the block holds, up to two,
+// with an ellipsis past them: never a name silently cut short; the room), two that overlap side by side, each with the
+// clash's icon,
 // the part of a class already gone a shade deeper, and today's now-line in the brand's blue. Above the hours, only when there's
 // something: ITB's period ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's hand-ins
 // and deadlines, a line each. A block shows at most one status, as an icon (a clash, a new time, not in SIX); the
 // absences, the words, the code, the times and the rest are on its sheet (Beranda's class sheet). The minute's tick
 // moves only the now-line and the block on now (./clock.ts).
 import { memo, type ReactNode } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useT } from "../../../../src/app/i18n";
 import type { CalendarEvent, Task } from "../../../../src/core/models";
@@ -141,8 +143,6 @@ export const DayView = memo(function DayView({
   const nameOf = (code: string, fallback?: string) => courses.find((c) => c.code === code)?.name ?? fallback ?? code;
   const hours = Array.from({ length: to - from + 1 }, (_, i) => from + i);
   const empty = items.length === 0;
-  // Where two classes share time: an amber stretch in the hours' gutter, beside the blocks that carry the clash's icon.
-  const clashSpans = [...new Map(day.classes.flatMap((c) => c.overlaps.map((o) => [`${o.from}-${o.to}`, o] as const))).values()];
   if (empty)
     return (
       <View testID={`agenda.${day.day}`} style={{ backgroundColor: v.page, flexGrow: 1 }}>
@@ -160,22 +160,6 @@ export const DayView = memo(function DayView({
         {/* Under the blocks, so it never runs through a class's name: it shows beside them, and on the class on now the
             block's deeper shade ends where it would be (the judge's round 2, pass 5: the name read as struck through). */}
         {day.day === today && <NowLine from={from} to={to} />}
-        {clashSpans.map((span) => (
-          <View
-            key={`${span.from}-${span.to}`}
-            testID="mark.clash"
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              left: LINES_LEFT + 1,
-              width: 4,
-              top: yOf(minuteOfDay(span.from), from) + 2,
-              height: Math.max(8, ((span.to - span.from) / 3_600_000) * HOUR - 4),
-              borderRadius: 2,
-              backgroundColor: v.ambFg,
-            }}
-          />
-        ))}
         {/* The blocks' frame, beside the hours: a block's column is a share of its width. */}
         <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: BLOCK_LEFT, right: BLOCK_RIGHT }}>
           {items.map((entry) => {
@@ -185,6 +169,8 @@ export const DayView = memo(function DayView({
                 key={entry.key}
                 entry={entry}
                 name={entry.kind === "class" ? nameOf(entry.code, entry.item.session.courseName) : nameOf(entry.code)}
+                // The class it shares time with by its short name, for TalkBack (on screen: the clash's icon).
+                clashWith={entry.kind === "class" ? entry.item.overlaps.map((o) => shortName(nameOf(o.code))).join(", ") : ""}
                 from={from}
                 column={at.column}
                 of={at.of}
@@ -320,9 +306,15 @@ function statusOf(t: ReturnType<typeof useT>, entry: Item): Status | null {
   return null;
 }
 
+/** A block's padding above and below its words, short and tall; the name's and the room's line heights (sp). */
+const PAD = { short: 6, tall: 10 };
+const NAME_LINE = 19;
+const ROOM_LINE = 17;
+
 const Block = memo(function Block({
   entry,
   name,
+  clashWith,
   from,
   column,
   of,
@@ -330,6 +322,7 @@ const Block = memo(function Block({
 }: {
   entry: Item;
   name: string;
+  clashWith: string;
   from: number;
   column: number;
   of: number;
@@ -351,14 +344,21 @@ const Block = memo(function Block({
   const session = entry.kind === "class" ? entry.item.session : null;
   const room = session ? session.room : entry.kind === "meeting" && entry.meeting.online ? t("schedule.online") : null;
   const exam = entry.kind === "class" && entry.item.exam ? entry.item.session.activity : null;
-  const title = exam ? `${exam} ${shortName(name)}` : shortName(name);
+  const title = exam ? `${exam} ${name}` : name;
+  // As many lines of the name as the block holds beside its room, up to two (three side by side, where it's narrow);
+  // past them an ellipsis. The lines grow with the phone's font size, so they're counted at it.
+  const { fontScale } = useWindowDimensions();
+  const pad = height < 56 ? PAD.short : PAD.tall;
+  const roomShown = Boolean(room) && height >= 56;
+  const fits = Math.floor((height - pad * 2 - (roomShown ? ROOM_LINE * fontScale + 3 : 0)) / (NAME_LINE * fontScale));
+  const lines = Math.max(1, Math.min(of > 1 ? 3 : 2, fits));
   const label = factsLabel(
     exam ? `${exam} ${entry.code}` : entry.code,
     name,
     timeRange(f, entry.start, entry.end),
     room,
     phase === "live" ? t("schedule.live") : null,
-    status?.words,
+    clashWith && status?.icon === Icons.Overlap ? t("mobile.course.ex.clash", { course: clashWith }) : status?.words,
   );
   const tone = status?.tone === "amber" ? v.ambFg : v.muted;
   return (
@@ -402,7 +402,7 @@ const Block = memo(function Block({
             }}
           />
         )}
-        <View style={{ flexDirection: "row", gap: of > 1 ? 6 : 10, paddingHorizontal: of > 1 ? 10 : 12, paddingVertical: height < 56 ? 6 : 10 }}>
+        <View style={{ flexDirection: "row", gap: of > 1 ? 6 : 10, paddingHorizontal: of > 1 ? 10 : 12, paddingVertical: pad }}>
           {/* Sharing its hours with another class, the block gives its glyph's room to the name. */}
           {of === 1 && (
             <View style={{ paddingTop: 1 }}>
@@ -410,16 +410,11 @@ const Block = memo(function Block({
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              size="bodyLarge"
-              weight="semibold"
-              numberOfLines={height < 90 ? (of > 1 ? 2 : 1) : of > 1 ? 3 : 2}
-              style={{ color: v.fg, fontSize: 15, lineHeight: 19 }}
-            >
+            <Text size="bodyLarge" weight="semibold" numberOfLines={lines} ellipsizeMode="tail" style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
               {title}
             </Text>
-            {room && height >= 56 && (
-              <Text size="bodyMedium" numberOfLines={1} style={{ color: v.fg2, fontSize: 13, lineHeight: 17, marginTop: 3 }}>
+            {roomShown && (
+              <Text size="bodyMedium" numberOfLines={1} style={{ color: v.fg2, fontSize: 13, lineHeight: ROOM_LINE, marginTop: 3 }}>
                 {room}
               </Text>
             )}
