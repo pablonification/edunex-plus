@@ -63,13 +63,11 @@ export const mobileStrings = {
   "mobile.home.laterToday": { id: "Nanti hari ini", en: "Later today" },
   // Nothing in "Perlu kamu urus": one line, still the way to its screen.
   "mobile.home.toHandleNone": { id: "Tak ada yang perlu diurus", en: "Nothing to handle" },
-  // A card's kind, in a pill.
-  "mobile.home.kind.task": { id: "Tugas", en: "Task" },
+  // A card's kind where a word says it: "Pertemuan · Jum 13:00" on Perlu kamu urus, a Presence's pill on Jadwal's month.
   "mobile.home.kind.presence": { id: "Presensi", en: "Presence" },
-  "mobile.home.kind.attendance": { id: "Kehadiran", en: "Attendance" },
   "mobile.home.kind.meeting": { id: "Pertemuan", en: "Meeting" },
-  "mobile.home.kind.bill": { id: "UKT", en: "UKT" },
-  "mobile.home.kind.krs": { id: "KRS", en: "KRS" },
+  // Perlu kamu urus: a card whose action counts for attendance shows Edunex's hand, and TalkBack says it.
+  "mobile.home.countsPresence": { id: "Dihitung untuk Presensi", en: "Counts for Presence" },
   // A course's absences, one name for each state on every chip and pill (Beranda, Perlu kamu urus, Kuliah, an exam): none
   // left, or over the limit by how many (the desktop's Presensi bar: "habis", "lewat batas 1×"). Over the limit is the
   // desktop's "Tak bisa lagi capai 80%": Kuliah's big number and the course's sheet say that, with the target, and it's
@@ -81,15 +79,18 @@ export const mobileStrings = {
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough
   // for one line beside its "Lewat batas" chip (the target itself is on the course's page).
   "mobile.needs.best": { id: "Maks {best}%", en: "At most {best}%" },
-  // Beranda's attendance card: after its big figure, which is that best case ("73% maks"), never the share so far (the
-  // class sheet's "Kehadiran 33%"). The same fact as "Maks 73%" in Perlu kamu urus.
-  "mobile.home.atMost": { id: "maks", en: "at most" },
   // Yang berubah and Notifikasi: a moved class's or an Edunex-only meeting's one meta line, the day and its time or room,
   // short enough for one line beside the row's time (the title says what changed). The desktop's whole line, with the
   // usual time or room and "tidak ada di jadwal SIX", is what TalkBack reads; Jadwal and the class sheet show them too.
   "mobile.change.moved.time": { id: "{dateId} {time}", en: "{dateEn} {time}" },
   "mobile.change.moved.room": { id: "{dateId} di {room}", en: "{dateEn} in {room}" },
   "mobile.change.meeting.body": { id: "{dateId} {time}", en: "{dateEn} {time}" },
+  // Notifikasi's meta line for a class SIX moved: the new day, time and room only (the title says it moved; the old one
+  // is in what TalkBack reads).
+  "mobile.change.moved.new": { id: "{newId}", en: "{newEn}" },
+  // Notifikasi's meta line for Tandai Hadir: the action and how long the class runs, never how to press it.
+  "mobile.change.classStarted": { id: "Tandai Hadir · sampai {time}", en: "Tandai Hadir · until {time}" },
+  "mobile.change.checkIn": { id: "Kuliah sampai {time}", en: "Class until {time}" },
   // The class sheet's one status (a chip), and its one quiet line: what it clashes with, or where it usually is.
   "mobile.home.chip.now": { id: "Sekarang", en: "Now" },
   "mobile.home.chip.moved": { id: "Berubah", en: "Changed" },

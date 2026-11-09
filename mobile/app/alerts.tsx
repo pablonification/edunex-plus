@@ -1,9 +1,10 @@
 // The bell: the history of everything the app noticed (src/app/shell/alerts.tsx), as a screen (round 2, v4). Every
 // alert the engine raised joined with the changes it can see in the data itself (src/core/needs.ts alertFeed), so
 // Beranda's "Yang berubah" is a preview of this list. On v4's grey page, by day (Hari ini, Kemarin, then the date), each
-// day a white card of rows: the kind's icon on its course's colour (amber for what presses), the title, one meta line
-// (the time and what it's about). Opening it clears the badge; the dots stay until "Tandai semua dibaca", the bar's one
-// action while something is unread. Nothing is ever marked in Edunex.
+// day a white card of rows: the kind's icon on its course's colour (amber for what presses), the title with the course's
+// name, one meta line (the new value, or the action and its deadline). Opening it clears the bell's dot; a small dot
+// stays on each unread row until "Tandai semua dibaca", the bar's one action while something is unread. Nothing is
+// ever marked in Edunex.
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { ChecksIcon } from "phosphor-react-native/src/icons/Checks";
@@ -18,6 +19,7 @@ import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
 import { changeLines } from "../src/parts/change-meta";
 import { usePerfDrawn } from "../src/perf";
+import { useShortCourseName } from "../src/screens/home/parts";
 import { IconButton } from "../src/ui/controls";
 import { CourseIconTile } from "../src/ui/course-icon-tile";
 import { Rise } from "../src/ui/expressive";
@@ -79,6 +81,7 @@ export default function Alerts() {
   const history = useDataset("app.alerts");
   const sixOut = useStatus("six").state === "signed-out";
   const world = useHomeWorld();
+  const name = useShortCourseName();
   // What counted as read when the Student opened it: the dots stay on what came since, until they say so.
   const [readAt, setReadAt] = useState(() => history?.readAt ?? 0);
   useEffect(() => {
@@ -136,23 +139,23 @@ export default function Alerts() {
           <Group>
             {day.items.map((item, i) => {
               const unread = isUnread(item);
-              const { title, meta, spoken } = changeLines(t, item);
-              const time = f.time(item.at);
+              const { title, meta, spoken } = changeLines(t, item, name);
               return (
                 <GroupRow
                   key={item.id}
                   testID={`row.alert.${item.id}`}
                   first={i === 0}
                   // Unread first in what's read out, as the dot says it to the eye.
-                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken, time)}
+                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken)}
                   leading={<KindTile item={item} />}
                   title={
-                    <Text size="bodyLarge" weight={unread ? "semibold" : undefined} numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+                    <Text size="bodyLarge" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
                       {title}
                     </Text>
                   }
-                  // One meta line, what changed (short where the desktop's runs long, ../src/parts/change-meta.ts); the time at
-                  // the row's end.
+                  // One meta line: the new value, or the action and its deadline (short where the desktop's runs long or
+                  // says how, ../src/parts/change-meta.ts). No clock time at the end: the day's heading says when it
+                  // came, and the time a read saw it (a sync at 00:45) isn't when anything happened.
                   meta={
                     meta ? (
                       <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
@@ -160,14 +163,11 @@ export default function Alerts() {
                       </Text>
                     ) : undefined
                   }
-                  // Unread: a dot and the semibold title, never the colour alone.
+                  // Unread: a small dot, calm, its shape saying it (never the colour alone).
                   trailing={
-                    <View style={{ alignItems: "flex-end", gap: space[1] }}>
-                      <Text size="labelMedium" tabular style={{ color: v.muted }}>
-                        {time}
-                      </Text>
-                      {unread && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: v.brand }} />}
-                    </View>
+                    unread ? (
+                      <View testID={`row.alert.${item.id}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brand }} />
+                    ) : undefined
                   }
                   onPress={() => (item.checkIn ? openCheckIn(item.checkIn.meetingId, item.checkIn.url) : nav.go(item.target))}
                 />

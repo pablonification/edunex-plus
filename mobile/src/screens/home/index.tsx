@@ -1,9 +1,11 @@
 // Beranda (round 2, v4, chosen by Arqila: mobile/design/r2-directions/v4): in three seconds, whether a class is on and
-// what to press, and what to handle next. The blue header with the greeting (the screen's one title), search and the
-// bell (./header.tsx); the now card over its edge (./now.tsx: the wave, the minutes left, Tandai Hadir); "Perlu kamu
-// urus", the two most pressing things as tinted cards (./urus.tsx); "Nanti hari ini", the classes still to come
-// (./later.tsx). Everything else (the whole list, the date and term, what changed) is one tap deeper, on "Perlu kamu
-// urus"'s screen (./needs-screen.tsx). The data and the reasoning are the desktop's (src/core/needs). While the first
+// what to press, and what to handle next. The blue bar with the greeting (the screen's one title) and every tab's
+// actions (./header.tsx, the route's fixed header); the now card over the blue band's edge (./now.tsx: the wave, the
+// minutes left, Tandai Hadir); "Perlu kamu urus", the two most pressing things as tinted cards, each its action and
+// deadline (./urus.tsx); "Nanti hari ini", the classes still to come (./later.tsx). One fact, one place: the term's
+// courses are Kuliah's (round 3 took their list off Beranda), the now card's class is never a row under it. Everything
+// else (the whole list, the date and term, what changed) is one tap deeper, on "Perlu kamu urus"'s screen
+// (./needs-screen.tsx). The data and the reasoning are the desktop's (src/core/needs). While the first
 // read runs, each part stands in its own shape and fills in. Cards rise in a stagger the first time only.
 import { useLayoutEffect, useMemo } from "react";
 import { View } from "react-native";
@@ -16,9 +18,8 @@ import { perfFirstData, usePerfDrawn } from "../../perf";
 import { ProblemBanner } from "../../shell/source-status";
 import { Rise } from "../../ui/expressive";
 import { space, useTheme } from "../../ui/theme";
-import { TermCourses } from "./courses";
 import { FirstScanCard, NotifyCard } from "./first-run";
-import { HomeHeader, OVERLAP } from "./header";
+import { HomeBand, OVERLAP } from "./header";
 import { Later } from "./later";
 import { HeldShape, NowSection } from "./now";
 import { cardKey } from "./parts";
@@ -44,7 +45,7 @@ export function Home() {
   });
   return (
     <>
-      <HomeHeader />
+      <HomeBand />
       <View style={{ marginTop: -OVERLAP, paddingHorizontal: space[4], paddingBottom: space[4] }}>
         {context ? <Answers context={context} courses={courses} /> : <Loading />}
         <View style={{ marginTop: space[4], gap: space[3] }}>
@@ -68,7 +69,7 @@ function Loading() {
       {/* Perlu kamu urus's title row: its margin, the 48 dp chevron, the gap under it. */}
       <View style={{ flexDirection: "row", gap: 10, marginTop: space[6] + 48 + space[2] }}>
         {[0, 1].map((i) => (
-          <View key={i} style={{ flex: 1, height: 148, borderRadius: 20, backgroundColor: v.card }} />
+          <View key={i} style={{ flex: 1, height: 124, borderRadius: 20, backgroundColor: v.card }} />
         ))}
       </View>
     </View>
@@ -92,7 +93,6 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
       </Rise>
       <Urus needs={needs} due={due} courses={courses} />
       <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
-      <TermCourses courses={list} context={context} />
       {/* The one ask, after what the Student came for: the now card and Perlu kamu urus stay the first things seen. */}
       <Rise screen="home" index={9}>
         <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />

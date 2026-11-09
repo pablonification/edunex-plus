@@ -1,9 +1,9 @@
 // Small pieces Beranda's sections share: a row's quick actions three ways (the visible ✓ and alarm, a swipe, a long
 // press). The helpers marked "from src/app/screens/home.tsx" are the desktop's own, copied as
 // they are because that file draws DOM.
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import { View } from "react-native";
-import type { TermCourse } from "../../../../src/app/courses";
+import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { type Format, type Translate, useNow, useT } from "../../../../src/app/i18n";
 import type { AttendanceState } from "../../../../src/core/attendance";
 import { type DoneTerms, doneTerms } from "../../../../src/core/done";
@@ -38,6 +38,21 @@ export const STATE_TEXT: Record<AttendanceState, TextTone> = {
 /** From src/app/screens/home.tsx. */
 export const nameOf = (courses: readonly TermCourse[], code: string, fallback?: string) =>
   courses.find((course) => course.code === code)?.name ?? fallback ?? code;
+
+/**
+ * A course code to the name the app shows for it at a glance (`shortName`), as Notifikasi and Yang berubah name a course:
+ * "Proposal Tugas Akhir", never "PL4099". Anything that isn't one of this term's codes stays as it is.
+ */
+export function useShortCourseName(): (code: string) => string {
+  const courses = useTermCourses();
+  return useCallback(
+    (code: string) => {
+      const course = courses?.find((one) => one.code === code);
+      return course ? shortName(course.name) : code;
+    },
+    [courses],
+  );
+}
 
 /** A class's day and time, as the course page names the class a window is for: "Kam, 8 Okt, 08:00–10:00". From src/app/screens/home.tsx. */
 export const classDayTime = (f: Format, start: number, end: number) => `${f.relativeDay(start)}, ${f.timeRange(start, end)}`;
