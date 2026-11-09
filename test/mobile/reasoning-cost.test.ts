@@ -4,10 +4,10 @@
 // into its WIB day (`wibDay`) about 1,700 times a pass, each a Date and an ISO string. Both are now made once and kept
 // (src/core/intl-formats.ts, src/core/course-meetings.ts).
 import { afterEach, expect, it, vi } from "vitest";
+import { widgetModel } from "../../mobile/src/widget/model";
 import { makeFormat } from "../../src/core/format";
 import { snapshotHomeWorld } from "../../src/core/home-world";
 import { attention, dueItems, homeContext, nowCard, todayPlan } from "../../src/core/needs";
-import { widgetModel } from "../../mobile/src/widget/model";
 import { startEngine } from "../engine/harness";
 import { demoOptions, demoRun } from "../pretend/demo";
 
@@ -16,18 +16,17 @@ afterEach(() => vi.restoreAllMocks());
 /** How many formatters and ISO strings `work` makes. */
 function made(work: () => void): { formatters: number; isoStrings: number } {
   const count = { formatters: 0, isoStrings: 0 };
-  const DateTimeFormat = Intl.DateTimeFormat;
-  const NumberFormat = Intl.NumberFormat;
+  const { DateTimeFormat, NumberFormat } = Intl;
+  const counted = <T extends object>(real: T): T =>
+    new Proxy(real, {
+      construct(target, args) {
+        count.formatters++;
+        return Reflect.construct(target as never, args);
+      },
+    });
+  Intl.DateTimeFormat = counted(DateTimeFormat);
+  Intl.NumberFormat = counted(NumberFormat);
   const iso = Date.prototype.toISOString;
-  // Functions, not arrows: the app calls them with `new`.
-  vi.spyOn(Intl, "DateTimeFormat").mockImplementation(function (...args: ConstructorParameters<typeof Intl.DateTimeFormat>) {
-    count.formatters++;
-    return new DateTimeFormat(...args);
-  } as never);
-  vi.spyOn(Intl, "NumberFormat").mockImplementation(function (...args: ConstructorParameters<typeof Intl.NumberFormat>) {
-    count.formatters++;
-    return new NumberFormat(...args);
-  } as never);
   vi.spyOn(Date.prototype, "toISOString").mockImplementation(function (this: Date) {
     count.isoStrings++;
     return iso.call(this);
@@ -35,6 +34,8 @@ function made(work: () => void): { formatters: number; isoStrings: number } {
   try {
     work();
   } finally {
+    Intl.DateTimeFormat = DateTimeFormat;
+    Intl.NumberFormat = NumberFormat;
     vi.restoreAllMocks();
   }
   return count;
@@ -61,5 +62,8 @@ it("works out Beranda, the widget and the minute's dates again without a new for
   expect(made(() => widgetModel(snapshot, now))).toEqual({ formatters: 0, isoStrings: 0 });
   // Components showing dates, at the minute's tick: each made five formatters before.
   makeFormat("id", now);
-  expect(made(() => [0, 1, 2, 3, 4].forEach((i) => makeFormat("id", now + i * 60_000).time(now))).formatters).toBe(0);
+  const minutes = () => {
+    for (let i = 0; i < 5; i++) makeFormat("id", now + i * 60_000).time(now);
+  };
+  expect(made(minutes).formatters).toBe(0);
 }, 60_000);

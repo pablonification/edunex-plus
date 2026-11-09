@@ -31,7 +31,8 @@ function storeWith(name: string) {
   });
 }
 
-const renamed = (name: string) => ({ type: "dataset", dataset: { name: "edunex.account", value: { nim: "18223901", name }, fetchedAt: 1, hash: name } }) as const;
+const renamed = (name: string) =>
+  ({ type: "dataset", dataset: { name: "edunex.account", value: { nim: "18223901", name }, fetchedAt: 1, hash: name } }) as const;
 
 function Name() {
   return <p>{useDataset("edunex.account")?.name}</p>;

@@ -2,6 +2,8 @@
 // Student. Pure: the KRS and UKT tabs, the Kalender akademik tab and the
 // alerts all reason with these, so they always agree. View only: nothing here
 // changes a KRS or pays a bill.
+
+import { numberFormat } from "./intl-formats";
 import {
   type AcademicCalendar,
   type Bill,
@@ -14,7 +16,6 @@ import {
   stepDone,
 } from "./models";
 import type { StringKey, Vars } from "./strings";
-import { numberFormat } from "./intl-formats";
 
 const HOUR = 3_600_000;
 export const DAY = 24 * HOUR;

@@ -118,13 +118,21 @@ async function makeHost(): Promise<Host> {
   // Where the start's time goes, for the "[startup] host load" line: the disk's and the keystore's last answer.
   const waits = { disk: 0, diskDoneAt: 0, keystore: 0, keystoreDoneAt: 0 };
   const timedStorage: Storage = {
-    read: (key) => timed(world.storage.read(key), () => (waits.disk++, (waits.diskDoneAt = Date.now()))),
+    read: (key) =>
+      timed(world.storage.read(key), () => {
+        waits.disk++;
+        waits.diskDoneAt = Date.now();
+      }),
     write: (key, text) => world.storage.write(key, text),
     remove: (key) => world.storage.remove(key),
     list: (prefix) => world.storage.list(prefix),
   };
   const timedVault: Vault = {
-    get: (name) => timed(world.vault.get(name), () => (waits.keystore++, (waits.keystoreDoneAt = Date.now()))),
+    get: (name) =>
+      timed(world.vault.get(name), () => {
+        waits.keystore++;
+        waits.keystoreDoneAt = Date.now();
+      }),
     set: (name, value) => world.vault.set(name, value),
     delete: (name) => world.vault.delete(name),
   };
