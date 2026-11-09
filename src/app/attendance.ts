@@ -24,7 +24,7 @@ import { clashes } from "../core/course-meetings";
 import type { ClassSession, PresenceSession } from "../core/models";
 import { type TermCourse, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
-import { useDataset, useDatasetPayload, useSettings, useStatus } from "./store";
+import { useDataset, useDatasetPayload, useSettings, useSourceState } from "./store";
 
 export interface CourseAttendance {
   course: TermCourse;
@@ -75,7 +75,7 @@ export function useAttendance(): Attendance | undefined {
   const readAt = useDatasetPayload("six.courses")?.fetchedAt ?? 0;
   const { attendanceTarget: target, attendanceTargets } = useSettings();
   // Signed out of SIX: which system counts can't be known, so nothing reads as counting.
-  const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
+  const sixConnected = useSourceState("six") !== "signed-out" || sixCourses !== undefined;
   // Minute precision is plenty, and keeps the math from rerunning every tick.
   const now = Math.floor(useNow() / 60_000) * 60_000;
   return useMemo(() => {

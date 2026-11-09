@@ -5,7 +5,7 @@
 import { View } from "react-native";
 import { useOpenExternal } from "../../../src/app/hooks";
 import { useFormat, useT } from "../../../src/app/i18n";
-import { useDataset, useDatasetPayload, useStatus } from "../../../src/app/store";
+import { useDataset, useDatasetPayload, useStatusPart } from "../../../src/app/store";
 import { SIX_WEB, sixPageOf, sixTimetableUrl } from "../../../src/core/links";
 import type { ChangedPage, DatasetName } from "../../../src/core/models";
 import { dayNoon } from "../../../src/core/schedule";
@@ -35,9 +35,10 @@ export function OpenSixTimetable({ day, primary }: { day: string; primary?: bool
 
 /** The SIX page among `datasets`' that changed while the rest of SIX reads (SourceStatus.changedPages), if any. */
 export function useChangedPage(datasets: readonly DatasetName[]): ChangedPage | undefined {
-  const status = useStatus("six");
-  if (status.state === "signed-out") return undefined;
-  return status.changedPages?.find((page) => page.datasets.some((name) => datasets.includes(name as DatasetName)));
+  // Only the page that changed: not drawn again for each SIX read's new time (useStatusPart).
+  return useStatusPart("six", (status) =>
+    status.state === "signed-out" ? undefined : status.changedPages?.find((page) => page.datasets.some((name) => datasets.includes(name as DatasetName))),
+  );
 }
 
 /**

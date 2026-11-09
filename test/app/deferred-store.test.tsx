@@ -7,7 +7,7 @@ import { createRoot } from "react-dom/client";
 import { afterEach, describe, expect, it } from "vitest";
 import { createBridge } from "../../src/app/bridge";
 import { ClockProvider, type UiClock, useNow } from "../../src/app/i18n";
-import { AppStore, deferredStore, StoreProvider, useDataset } from "../../src/app/store";
+import { AppStore, deferredStore, StoreProvider, useDataset, useSourceState } from "../../src/app/store";
 import { DEFAULT_SETTINGS } from "../../src/core/models/base";
 
 let unmount: (() => void) | null = null;
@@ -118,5 +118,36 @@ describe("a deferred view of the store", () => {
     store.apply(renamed("Dimas Pratama"));
     await settled();
     expect(container.textContent).toBe("Dimas Pratama");
+  });
+
+  it("a screen that reads only SIX's state isn't drawn again for each read's new time, only when the state changes", async () => {
+    const store = storeWith("Dimas");
+    let draws = 0;
+    function State() {
+      draws++;
+      return <p>{useSourceState("six")}</p>;
+    }
+    for (const view of [store, deferredStore(store)]) {
+      draws = 0;
+      const shown = await draw(
+        <StoreProvider store={view} bridge={bridge}>
+          <State />
+        </StoreProvider>,
+      );
+      const status = (updatedAt: number, state: "live" | "offline" = "live") =>
+        store.apply({ type: "status", status: { source: "six", state, updatedAt, detail: null } });
+      status(1);
+      await settled();
+      expect(shown.textContent).toBe("live");
+      const before = draws;
+      for (let at = 2; at < 6; at++) status(at);
+      await settled();
+      expect(draws).toBe(before);
+      status(6, "offline");
+      await settled();
+      expect(shown.textContent).toBe("offline");
+      unmount?.();
+      unmount = null;
+    }
   });
 });
