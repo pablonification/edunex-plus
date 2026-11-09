@@ -237,6 +237,32 @@ describe("schedule alerts", () => {
     ]);
   });
 
+  it("an exam SIX lists in two weeks is reminded of once, for its first sitting; the second only once the first is over", async () => {
+    const app = await start("2026-10-07T20:00:00+07:00");
+    // DK4073's UTS slot again a week later, as SIX lists the class's slot in both weeks of the exam period.
+    app.world.six.addMeetingOn(22, {
+      id: "2190099",
+      code: "DK4073",
+      name: "Komunikasi Pemasaran",
+      activity: "UTS",
+      start: "11:00",
+      end: "13:00",
+      room: "TVST C",
+    });
+    await app.refresh("six");
+    const dk = () => app.history("exam").filter((text) => text.includes("DK4073") && !text.includes("dijadwalkan"));
+    await app.until("2026-10-15T12:00:00+07:00");
+    expect(dk()).toEqual([
+      "UTS hari ini · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
+      "UTS besok · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
+      "UTS seminggu lagi · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
+    ]);
+    // The day after the first sitting: no "seminggu lagi" for the second, only its evening before and morning.
+    await app.until("2026-10-22T07:01:00+07:00");
+    expect(dk().slice(0, 2)).toEqual(["UTS hari ini · DK4073 — Kam, 22 Okt, 11:00 · TVST C", "UTS besok · DK4073 — Kam, 22 Okt, 11:00 · TVST C"]);
+    expect(dk()).toHaveLength(5);
+  });
+
   it("two quizzes newly in SIX are two exams, each alert opening its own", async () => {
     const app = await start();
     const pl = { code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan", room: "R.SG PWK LT.6", activity: "Kuis" };
