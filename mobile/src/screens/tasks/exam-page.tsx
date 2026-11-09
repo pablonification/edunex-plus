@@ -540,8 +540,8 @@ function Study({ exam }: { exam: Exam }) {
             {t("examPage.lecturerFiles")}
           </Text>
           <Panel style={{ gap: space[2] }}>
-            {files.map(({ file, taskId }) => (
-              <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(taskId)} />
+            {files.map(({ file, taskId }, i) => (
+              <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(taskId)} testID={`row.file.${i}`} />
             ))}
           </Panel>
         </View>

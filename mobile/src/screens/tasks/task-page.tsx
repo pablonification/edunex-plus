@@ -197,8 +197,8 @@ function TaskPage({ task }: { task: Task }) {
           <View testID="section.files">
             <SectionTitle title={t("task.lecturerFiles")} count={task.files.length} />
             <Panel style={{ gap: space[2] }}>
-              {task.files.map((file) => (
-                <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(task.id)} />
+              {task.files.map((file, i) => (
+                <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(task.id)} testID={`row.file.${i}`} />
               ))}
             </Panel>
           </View>
