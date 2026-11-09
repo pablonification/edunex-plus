@@ -6,7 +6,7 @@
 // lines, so the answer box shows on the first screen: ./folded.tsx), the lecturer's files, the answer,
 // its comments (./thread.tsx), History. Kumpulkan stays at the bottom of the screen, the screen's one filled button,
 // with Simpan draf beside it while there's something to save.
-import { type ComponentRef, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type ComponentRef, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Keyboard, KeyboardAvoidingView, Pressable, type ScrollView, StyleSheet, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -55,6 +55,7 @@ import { shortName } from "../home/parts";
 import { takeHomeWhy } from "./exam-rows";
 import { Folded } from "./folded";
 import { HandInBar, HandInCard, useHandIn } from "./hand-in";
+import { withoutTitleLine } from "./instructions";
 import { NoTasksYet } from "./list";
 import { countdown, IconTile } from "./row-parts";
 import { moduleLabel } from "./rows";
@@ -91,6 +92,8 @@ export function TaskScreen({ taskId }: { taskId: number }) {
 
 function TaskPage({ task }: { task: Task }) {
   const t = useT();
+  // The bar already names the Task: the instructions' first line goes when it's that name again.
+  const instructions = useMemo(() => withoutTitleLine(task.instructions, task.title), [task.instructions, task.title]);
   const f = useFormat();
   const now = useNow();
   const theme = useTheme();
@@ -183,7 +186,7 @@ function TaskPage({ task }: { task: Task }) {
           <Panel>
             {plainText(task.instructions) ? (
               <Folded>
-                <LecturerHtml html={task.instructions} size="bodyLarge" />
+                <LecturerHtml html={instructions} size="bodyLarge" />
               </Folded>
             ) : (
               <Text size="bodyLarge" style={{ color: v.muted }}>

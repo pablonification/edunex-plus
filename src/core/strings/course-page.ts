@@ -201,6 +201,9 @@ export const coursePageStrings = {
   "course.openEdunex": { id: "Buka di Edunex", en: "Open in Edunex" },
   "course.openSix": { id: "Buka jadwal di SIX", en: "Open the timetable in SIX" },
   "course.new": { id: "Baru", en: "New" },
+  // The Modul tab's mark on the module the course is on: new material came to it this week, else it got the newest.
+  "course.thisWeek": { id: "Minggu ini", en: "This week" },
+  "course.latest": { id: "Terbaru", en: "Latest" },
   "course.newHint": { id: "Ada materi baru minggu ini", en: "New material this week" },
   "course.openTasks": { id: "{count} terbuka", en: "{count} open" },
   "course.openTasksHint": { id: "Tugas yang belum dikumpulkan", en: "Tasks not handed in yet" },
