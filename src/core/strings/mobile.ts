@@ -85,9 +85,11 @@ export const mobileStrings = {
   "mobile.change.moved.time": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
   "mobile.change.moved.room": { id: "{dateId} di {room}", en: "{dateEn} in {room}" },
   "mobile.change.meeting.body": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
-  // Notifikasi's meta line for a class SIX moved: the new day, time and room only (the title says it moved; the old one
-  // is in what TalkBack reads).
-  "mobile.change.moved.new": { id: "{newId}", en: "{newEn}" },
+  // Notifikasi's and Yang berubah's meta line for a moved class: what moved, old → new, only the day, time or room that
+  // changed ("08:00–09:30 → 08:00–10:00"). The whole of both is in what TalkBack reads.
+  "mobile.change.moved.diff": { id: "{oldId} → {newId}", en: "{oldEn} → {newEn}" },
+  // Notifikasi's title for two classes at once: both courses by name, kept apart ("A dan B" read as one course).
+  "mobile.change.overlap": { id: "Bentrok · {a} × {b}", en: "Clash · {a} × {b}" },
   // Notifikasi's meta line for Tandai Hadir: the action and how long the class runs, never how to press it.
   "mobile.change.classStarted": { id: "Tandai Hadir · sampai {time}", en: "Tandai Hadir · until {time}" },
   "mobile.change.checkIn": { id: "Kuliah sampai {time}", en: "Class until {time}" },
