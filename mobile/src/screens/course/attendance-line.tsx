@@ -7,6 +7,7 @@ import { View } from "react-native";
 import type { CourseAttendance } from "../../../../src/app/attendance";
 import { useActionLabel } from "../../../../src/app/attendance-labels";
 import { useFormat, useT } from "../../../../src/app/i18n";
+import { useCourseNames } from "../../../../src/app/schedule-data";
 import { isExamActivity, onUsualSlot, percent } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
@@ -14,6 +15,7 @@ import { AttendanceMeter, meterModel } from "../../parts/attendance-meter";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
+import { shortName } from "../home/parts";
 import { classOf, dayLabel, GONE_FOR, type RowContext, uncertainText, windowWhen } from "../presence/logic";
 
 /**
@@ -92,6 +94,7 @@ export function useCourseException(item: CourseAttendance | undefined, context: 
   const t = useT();
   const f = useFormat();
   const actionLabel = useActionLabel();
+  const name = useCourseNames();
   if (!item || !context) return null;
   const { course, health, nextWindow } = item;
   const { now, student, checkIns, zone } = context;
@@ -135,7 +138,7 @@ export function useCourseException(item: CourseAttendance | undefined, context: 
         : clash.pick.pick === clash.other
           ? t("presence.row.clashOther", { code: clash.other })
           : t("presence.row.clashAsk");
-    return { kind: "clash", short: t("mobile.course.ex.clash", { code: clash.other }), text: `${head} ${tail}`, tone: "warning" };
+    return { kind: "clash", short: t("mobile.course.ex.clash", { course: shortName(name(clash.other)) }), text: `${head} ${tail}`, tone: "warning" };
   }
   // 6–7. What the next class's Edunex window asks, where Edunex keeps the count too.
   const next = health.left.next;
