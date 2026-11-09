@@ -215,6 +215,8 @@ export function demoRun(options: DemoOptions): DemoRun {
         onStep("finishing");
         await wait(1_500);
       }
+      // Signing in makes a fresh session: one that ended (expireSession) is good again.
+      (source === "edunex" ? world.edunex : world.six).sessionValid = true;
       return source === "edunex" ? PRETEND_TOKEN : PRETEND_SIX_COOKIE;
     },
     async prepare(engine, extras = {}) {

@@ -64,8 +64,11 @@ export function signInToBoth(deps: {
     deps.background?.(trying);
   };
 
-  /** `ridesOn`: the other system's sign-in this quiet one rides on. What it finds waits for that one to be in. */
-  function signIn(source: SignInSource, quiet: boolean, ridesOn?: Promise<void>): Promise<boolean> {
+  /**
+   * `ridesOn`: the other system's sign-in this quiet one rides on. What it finds waits for that one to be in.
+   * `silent`: a quiet try that says nothing while it runs (no "joining", no "joined"): a session that ended, brought back.
+   */
+  function signIn(source: SignInSource, quiet: boolean, ridesOn?: Promise<void>, silent = false): Promise<boolean> {
     const onStep = (step: SignInStep | null) => {
       if (step) deps.log?.add("info", source, `sign-in ${step}`);
       deps.send({ type: "signIn", source, step });
@@ -84,7 +87,7 @@ export function signInToBoth(deps: {
     attempt.result = (async () => {
       try {
         // The app's own try says so, for the Student who would otherwise press "Hubungkan" again.
-        if (quiet) onStep("joining");
+        if (quiet && !silent) onStep("joining");
         else deps.log?.add("info", source, "sign-in window opened");
         const session = await deps.windows.open(source, { quiet, onStep });
         attempt.handedBack = true;
@@ -98,7 +101,7 @@ export function signInToBoth(deps: {
         if (!rodeIn || attempt.stopped) return false;
         const connecting = deps.engine.signIn(source, source === "edunex" ? { token: session } : { cookie: session });
         // The hidden window saw the system signed in: say so now, not after its first full read (SIX reads at human pace).
-        if (attempt.quiet) deps.send({ type: "signIn.joined", source });
+        if (attempt.quiet && !silent) deps.send({ type: "signIn.joined", source });
         // The other one now, on the Microsoft session just used, alongside this one's first full read.
         after(source, attempt.quiet, connecting);
         await connecting;
@@ -119,6 +122,11 @@ export function signInToBoth(deps: {
   return {
     /** The Student's sign-in: true once the system is connected, false when they closed the window. */
     signIn: (source: SignInSource) => signIn(source, false),
+    /**
+     * A session that ended, signed in again by itself on Microsoft's session, without a word: true once it's connected,
+     * false when the quiet try gave up (a page waited for the Student). The Student's own sign-in meanwhile takes it over.
+     */
+    retry: (source: SignInSource) => signIn(source, true, undefined, true),
     /** The Student signed out: the app's own tries stop, nothing they find is kept, and none keeps what rode on a sign-in from before. */
     stopQuiet(): void {
       for (const [source, attempt] of running) {

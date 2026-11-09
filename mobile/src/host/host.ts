@@ -28,6 +28,7 @@ import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
 import { type PhoneReminders, phoneReminders } from "./reminders";
 import { phoneReportHandlers } from "./report";
+import { quietResignIn } from "./resignin";
 import { sessionLog } from "./session-log";
 import { setSettling } from "./settling";
 import { PhoneStorage } from "./storage";
@@ -141,6 +142,24 @@ async function makeHost(): Promise<Host> {
   };
   // A QA build says on Android's log whether each session is live, ended or none (./session-log.ts).
   const sessions = R3_GUARD ? sessionLog() : null;
+  // A session that ended while Microsoft's is still alive: signed in again out of sight, the screens never told
+  // (./resignin.ts). Nothing is tried until the sign-ins below are ready.
+  let both: ReturnType<typeof signInToBoth> | null = null;
+  const resign = quietResignIn({
+    now: () => Date.now(),
+    inFront: () => both !== null && AppState.currentState === "active",
+    status: (source) => (both ? engine.snapshot().statuses.find((status) => status.source === source) : undefined),
+    retry: (source) => both?.retry(source) ?? Promise.resolve(false),
+    show: (status) => send({ type: "status", status }),
+    later: (ms, fn) => {
+      const timer = setTimeout(fn, ms);
+      return () => clearTimeout(timer);
+    },
+    log: (line) => {
+      console.info(line);
+      log.add("info", "resignin", line.replace(/^\[resignin\] /, ""));
+    },
+  });
   const engine = createEngine({
     // The demo says on Android's log what its sync reads (../perf.ts perfSync, W2's numbers); the real app doesn't.
     transport: DEMO ? traced(world.transport) : world.transport,
@@ -154,7 +173,12 @@ async function makeHost(): Promise<Host> {
       if (DEMO) traceEvent(event);
       // A stall right after the screens hear of a dataset is likely their redraw for it: its name labels the stall.
       if (event.type === "dataset") perfDoing(`→ ${event.dataset.name}`);
-      if (event.type === "status") sessions?.saw(event.status);
+      if (event.type === "status") {
+        sessions?.saw(event.status);
+        // The screens hear of it from ./resignin.ts: held back while a quiet try may bring the session back.
+        resign.saw(event.status);
+        return;
+      }
       if (event.type === "settings" && event.settings.lang !== lang) {
         lang = event.settings.lang;
         void prepareChannels(lang);
@@ -208,7 +232,13 @@ async function makeHost(): Promise<Host> {
   }
 
   // One Microsoft sign-in covers both systems, exactly as on the desktop.
-  const both = signInToBoth({ engine, send, windows: world.signInWindows, log });
+  both = signInToBoth({ engine, send, windows: world.signInWindows, log });
+  const signIns = both;
+  // A session that ended while the app was closed: tried now, and whenever the app comes back to the front.
+  resign.wake();
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") resign.wake();
+  });
 
   let started = false;
   const start = () => {
@@ -242,8 +272,8 @@ async function makeHost(): Promise<Host> {
   const handlers = {
     ...phoneHandlers({
       engine,
-      signIn: (source) => both.signIn(source),
-      stopQuietSignIn: () => both.stopQuiet(),
+      signIn: (source) => signIns.signIn(source),
+      stopQuietSignIn: () => signIns.stopQuiet(),
       ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId), openPage: (url) => ui.openPage(url) },
       log,
       demo: DEMO,
@@ -291,6 +321,13 @@ async function makeHost(): Promise<Host> {
     // "Laporkan masalah" (./report.ts): the engine builds and scrubs it; nothing leaves until the Student says.
     ...phoneReportHandlers({ engine, log, demo: DEMO }),
   };
+  // The screens start from the engine's snapshot, with a session being brought back as they'd see it.
+  const snapshot = handlers["app.snapshot"];
+  if (snapshot)
+    handlers["app.snapshot"] = async (input) => {
+      const now = await snapshot(input);
+      return { ...now, statuses: resign.shown(now.statuses) };
+    };
   const api: BridgeApi = {
     invoke: (name, input) => answer(handlers, log, name, input),
     onEvent(listener) {

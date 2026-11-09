@@ -68,3 +68,7 @@ QA on a real Student's account: `EXPO_PUBLIC_R3_GUARD=1 npm run start -- --clear
 sign-in reach Edunex, SIX and Microsoft (`src/host/guard.ts`, `[guard] blocked …` on the log), the log
 says `[session] edunex=… six=…`, and a debug build takes
 `edunexplus://qa/restore?port=<n>&key=<hex>` (`src/qa/restore.ts`). Unset, none of it is there.
+
+A session that ends while Microsoft's is still alive signs back in out of sight (`src/host/resignin.ts`), the
+screens seeing "connecting", never "ended": `[resignin] six trying`, then `… ok in <ms>` or `… needs the Student in
+<ms>` (the banner then shows, as before). In the demo, `edunexplusdemo://demo?end=six` ends SIX's pretend session.
