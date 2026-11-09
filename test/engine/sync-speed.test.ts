@@ -60,7 +60,7 @@ async function coldStart() {
   await run.world.clock.advance(25 * HOUR);
   run.world.setNetwork(new NetworkProfile(timings));
   const requests = watchRequests(run.world);
-  const h = await startEngine({ world: run.world, storage, vault: first.vault, start: false, startDueOnly: true });
+  const h = await startEngine({ world: run.world, storage, vault: first.vault, start: false, startDueOnly: true, quickRefresh: true });
   engines.push(h.engine);
   return { h, requests };
 }
@@ -68,9 +68,10 @@ async function coldStart() {
 /** When each dataset is first stored at or after `from` (ms after it), while the clock runs for `forMs`. */
 async function freshTimes(h: Harness, from: number, forMs: number, until?: () => boolean): Promise<Map<string, number>> {
   const fresh = new Map<string, number>();
-  for (let t = 0; t <= forMs && !until?.(); t += STEP) {
+  for (let t = 0; t <= forMs; t += STEP) {
     for (const dataset of h.engine.snapshot().datasets)
       if (!fresh.has(dataset.name) && dataset.fetchedAt >= from) fresh.set(dataset.name, h.world.clock.now() - from);
+    if (until?.()) break;
     await h.world.clock.advance(STEP);
   }
   return fresh;
@@ -102,6 +103,13 @@ describe(`a phone's start on a network as slow as the real one (${timings.kind})
     h.engine.start();
     const fresh = await freshTimes(h, start, 60_000);
     report("cold start", fresh);
+    if (process.env.SYNC_SPEED_LOG)
+      console.info(
+        h.world.log
+          .filter((r) => r.at >= start && r.at < start + 30_000)
+          .map((r) => `${r.at - start} ${new URL(r.url).host} ${new URL(r.url).pathname.slice(0, 70)} ${r.status}`)
+          .join("\n"),
+      );
     expect(TODAY.filter((name) => !fresh.has(name))).toEqual([]);
     expect(Math.max(...TODAY.map((name) => fresh.get(name)!))).toBeLessThanOrEqual(5_000);
     // Kind to ITB's servers all the while.
@@ -122,10 +130,11 @@ describe(`a phone's start on a network as slow as the real one (${timings.kind})
     const took = h.world.clock.now() - start;
     report(`pull to refresh, done in ${(took / 1000).toFixed(1)} s`, fresh);
     expect(took).toBeLessThanOrEqual(15_000);
-    // Everything a feed fills was read within the last hour.
+    // Everything a feed fills was read within the last hour (but the catalog, read in the background for the planner,
+    // and Tandai Hadir's button, read only while a class is on).
     const stale = h.engine
       .snapshot()
-      .datasets.filter((d) => !/^(local|app)\./.test(d.name) && d.name !== "itb.catalog" && d.fetchedAt < h.world.clock.now() - HOUR)
+      .datasets.filter((d) => !/^(local|app)\./.test(d.name) && !["itb.catalog", "six.checkIn"].includes(d.name) && d.fetchedAt < h.world.clock.now() - HOUR)
       .map((d) => d.name);
     expect(stale).toEqual([]);
     for (const [host, most] of requests.most) expect(most, host).toBeLessThanOrEqual(2);

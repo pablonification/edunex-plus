@@ -90,7 +90,7 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 | Feed | Every (± jitter) | Calls |
 | --- | --- | --- |
 | `edunex.account` (liveness) | 10 min ± 1 min | `/login/me` |
-| `edunex.notifications` | 2.5 min ± 30 s | `/login/me` once per session (for the user id), then `/notifications/{userId}` |
+| `edunex.notifications` | 2.5 min ± 30 s | `/notifications/{userId}`, the user id from `edunex.account`'s `/login/me` |
 | `edunex.tasks` | 15 min ± 2 min, and at once on a new `ASSIGNMENT` notification | `/course/tasks` per Edunex course; `/course/courses/{id}` for module names (once per session, again at most hourly) |
 | `edunex.courses` | 30 min ± 3 min | `/course/presences/list` |
 | `edunex.presence` | 30 min ± 3 min | `/course/presences` per course, paged |
@@ -100,10 +100,18 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 | `edunex.taskThreads` | 15 min ± 2 min, and after each `edunex.tasks` run; not on a manual refresh | `/course/comments` per answer, only where it's due: at once once the answer changed (handed in, handed back, reviewed), hourly while its Task takes answers or something happened to it in the last 3 weeks, otherwise never; and one answer's thread when its Task page opens or the window comes back to it (at most every 30 s), as the website reads it on each visit |
 
 Source: `feeds.ts`, `notifications.ts`, `tasks.ts`, `task-threads.ts`, `course-page.ts`; scheduling in
-`src/engine/sync/scheduler.ts`. Feeds start 0.5 s apart; sign-in and the manual refresh run
-them at once (a feed already running is not started twice). Within a feed, calls go one after
-another, except a course's `/course/contents/` calls, which go four at a time, as the Edunex
-website does. "Per course" always means the class's own Edunex course and its parent course.
+`src/engine/sync/scheduler.ts`. A start, a sign-in and the manual refresh run each source's feeds
+in turns (`FeedSpec.priority`): first what Beranda shows for today and what's due
+(`edunex.account`, `edunex.courses`, `edunex.tasks`, `edunex.presence`), then the rest, then
+`edunex.materials` and `edunex.taskThreads` (a feed already running is not started twice). The
+Tasks are stored as soon as their lists are read; the module names come after, from the
+outlines. On the phone, a pull to refresh leaves `edunex.materials` alone when it was read in the last 30
+minutes (a new material is read at once on its notification); the desktop's refresh reads it. Every call to Edunex's API, a feed's or
+the Student's, waits in one line that lets **at most 2 through at once** (`src/engine/http/pace.ts`,
+`SITE_LIMITS`); what the Student just did (a hand-in, a comment) goes ahead of the feeds' calls.
+Within a feed, calls go one after another, except a course's `/course/contents/` calls, which are
+asked four at a time, as the Edunex website does, and still go two at a time through the line.
+"Per course" always means the class's own Edunex course and its parent course.
 
 ## Endpoints
 
@@ -343,7 +351,8 @@ Every Edunex reply maps to one error kind (`client.ts` for reads, `write` in `ha
 
 A source's status is the worst of its feeds' latest outcomes. Back-off is per feed
 (`scheduler.ts`): 30 s after the first failure, doubling to 15 min at most, plus a little jitter;
-one success resets it. Edunex has no shared pace line (SIX and ITB's catalog do; see SIX.md).
+one success resets it. Edunex's line lets 2 calls through at once, with no gap (SIX's lets one, 2 s
+apart; see SIX.md).
 
 ## Unconfirmed / not yet recorded
 

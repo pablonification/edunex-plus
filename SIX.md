@@ -156,6 +156,12 @@ SIX**. That opens `src/desktop/six-window.ts`:
   both use the `six.itb.ac.id` line, so they never overlap and never shorten each other's gaps.
 - **Gaps.** Signed-in pages: at least 2 s since the last request to SIX started. Catalog pages:
   at least 3.5 s, counted from the end of the previous request, so a slow answer never shortens it.
+- **What goes first.** A start or a refresh reads SIX in turns: the status page and the timetable
+  (today's counts and classes), then the records (transcript, curriculum, KRS, bills). This month's
+  timetable is stored as soon as its page is read, with what was known of next month until that
+  page comes. Opened again with a saved session, the app knows the Student's NIM and starts with
+  the status page, not the home page. On the phone, a pull to refresh reads a record again only when its
+  last read is an hour old; the desktop's refresh reads them all.
 - **429 on a signed-in page.** SIX is left alone for 15 minutes, or longer if `Retry-After`
   (seconds) asks, capped at 6 hours. Until then every SIX request (catalog included) fails at
   once without touching the network, and SIX shows as offline.
