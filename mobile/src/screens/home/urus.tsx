@@ -16,7 +16,6 @@ import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
 import { rupiah } from "../../../../src/core/academic";
-import { absenceBudget } from "../../../../src/core/attendance";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { taskPutAway } from "../../../../src/core/done";
 import { heldBack } from "../../../../src/core/held-back";
@@ -26,6 +25,7 @@ import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
 import { meterModel } from "../../parts/attendance-meter";
 import { useFirstReadRunning } from "../../shell/source-status";
+import { absenceName } from "../../ui/absence";
 import { IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
@@ -158,7 +158,11 @@ export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due
     });
     return [
       ...problems.absences.map((item) => ({ kind: "absence" as const, key: `absence:${item.code}`, item })),
-      ...problems.clashes.map((item) => ({ kind: "clash" as const, key: `clash:${item.key}:${item.from}`, item })),
+      // A clash later today is on its "Nanti hari ini" row, as the clash's icon (one fact, one place: round 3's fourth
+      // review saw the same course three times on Beranda); only one of the pair can be on the now card, so one row has it.
+      ...problems.clashes
+        .filter((item) => !(wibDay(item.from) === wibDay(now) && item.a.start > now && item.b.start > now))
+        .map((item) => ({ kind: "clash" as const, key: `clash:${item.key}:${item.from}`, item })),
       ...todos,
     ];
   }, [problems, needs, due, entries, handled, now, t, f, courses]);
@@ -272,7 +276,7 @@ function AbsenceRow({ item, first, courses }: { item: AbsenceProblem; first: boo
   const { go } = useNav();
   const name = nameOf(courses, item.code);
   const over = item.health.state === "out";
-  const words = over ? t("mobile.home.absence.over", { count: absenceBudget(item.health)?.over ?? 0 }) : t("mobile.home.absence.none");
+  const words = absenceName(t, item.health) ?? "";
   const spoken = useMemo(() => meterModel(t, item)?.label, [t, item]);
   return (
     <GroupRow

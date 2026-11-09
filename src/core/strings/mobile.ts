@@ -68,23 +68,19 @@ export const mobileStrings = {
   "mobile.home.kind.meeting": { id: "Pertemuan", en: "Meeting" },
   // Perlu kamu urus: a card whose action counts for attendance shows Edunex's hand, and TalkBack says it.
   "mobile.home.countsPresence": { id: "Dihitung untuk Presensi", en: "Counts for Presence" },
-  // A course's absences, one name for each state on every chip and pill (Beranda, Perlu kamu urus, Kuliah, an exam): none
-  // left, or over the limit by how many (the desktop's Presensi bar: "habis", "lewat batas 1×"). Over the limit is the
+  // A course's absences, one name for each state wherever the phone says it (Beranda, Perlu kamu urus, Kuliah, an exam),
+  // in absence words so "lewat" can't read as a Task past its deadline (round 3's fourth review: Beranda and Kuliah had
+  // two phrasings): none left, or over the limit by how many. Over the limit is the
   // desktop's "Tak bisa lagi capai 80%": Kuliah's big number and the course's sheet say that, with the target, and it's
   // what TalkBack hears. Never "Di bawah target": a course with none left can be under its target today too.
-  "mobile.absence.none": { id: "Jatah habis", en: "No absences left" },
-  "mobile.absence.over": { id: "Lewat batas {count}×", en: "{count} over the limit" },
-  // Perlu kamu urus's row for a course's absences, beside a Task's: said in absence words, so "lewat batas" can't read as
-  // a Task past its deadline (round 3's third review). The calendar-check tile says it's about classes, and the limit is
-  // the course page's.
-  "mobile.home.absence.over": { id: "Absen lewat {count}×", en: { one: "{count} absence too many", other: "{count} absences too many" } },
-  "mobile.home.absence.none": { id: "Jatah absen habis", en: "No absences left" },
+  "mobile.absence.none": { id: "Jatah absen habis", en: "No absences left" },
+  "mobile.absence.over": { id: "Absen lewat {count}×", en: { one: "{count} absence too many", other: "{count} absences too many" } },
   // The now card's day for a class two days ahead, before its weekday ("Lusa, Kam 08:00").
   "mobile.home.dayAfter": { id: "Lusa", en: "In 2 days" },
   // A class row's one chip.
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough
-  // for one line beside its "Lewat batas" chip (the target itself is on the course's page).
+  // for one line beside its "Absen lewat" words (the target itself is on the course's page).
   "mobile.needs.best": { id: "Maks {best}%", en: "At most {best}%" },
   // Yang berubah and Notifikasi: a moved class's or an Edunex-only meeting's one meta line, the day and its time or room,
   // short enough for one line beside the row's time (the title says what changed). The desktop's whole line, with the

@@ -178,7 +178,17 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
             </Held>
           </View>
         )}
-        {left && !hold.line && (
+        {/* With a Presence open, its deadline below is the clock that leads: the class's own minutes left step back
+            (the wave still shows the class gone by, and says its end in its spoken name). */}
+        {left && !hold.line && card.presence && progress && (
+          <WavyProgress
+            progress={(now - progress.from) / Math.max(1, progress.to - progress.from)}
+            ink={ink}
+            track={`${ink}4d`}
+            label={t("presence.row.now", { time: f.time(progress.to) })}
+          />
+        )}
+        {left && !hold.line && !card.presence && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
             {progress ? (
               <WavyProgress

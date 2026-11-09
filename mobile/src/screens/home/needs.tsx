@@ -391,7 +391,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const vars = { attended: health.attended ?? 0, held: health.held ?? 0, target: health.target, best: percent(health.best ?? 0) };
         const out = health.state === "out";
         // The course's name (few Students know their KU and PL codes by heart), the count, and the state as its status
-        // by the name it has on every tab ("Jatah habis", "Lewat batas 1×": src/ui/absence.ts). Out of reach, the meta is
+        // by the name it has on every tab ("Jatah absen habis", "Absen lewat 1×": src/ui/absence.ts). Out of reach, the meta is
         // the best it can still reach ("Maks 73%", as Beranda's card), short enough for one line beside the chip; the
         // target is in what TalkBack reads (and on the course's page).
         const title = need.course ? nameOf(courses, need.course) : "";

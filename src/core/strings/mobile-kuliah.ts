@@ -16,8 +16,10 @@ export const mobileKuliahStrings = {
   "mobile.absence.final": { id: "Selesai {percent}%", en: "Ended at {percent}%" },
   // The sheet in ⋮: the day's answer, the target, and how it's counted.
   "mobile.kuliah.facts": { id: "Kehadiranmu", en: "Your attendance" },
-  // Two of today's classes at once: a row, its pick as the chip; the reason is in its sheet.
+  // Two of today's classes at once: a row, the two courses by short name, and "Pilih kelas" opening the sheet that says
+  // which to go to and why. With a pick but no why, the pick as a chip by the course's short name.
   "mobile.kuliah.clash.title": { id: "Bentrok {time}", en: "Clash {time}" },
+  "mobile.kuliah.clash.choose": { id: "Pilih kelas", en: "Which class?" },
   "mobile.kuliah.clash.pick": { id: "Pilih {code}", en: "Go to {code}" },
 } as const satisfies Record<string, Entry>;
 
