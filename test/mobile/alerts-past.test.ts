@@ -3,8 +3,11 @@
 // lists in the class's own slot in both weeks of ITB's exam period is one row with both days
 // (mobile/src/screens/alerts/past.ts).
 import { describe, expect, it } from "vitest";
-import { examSittings, pastAlert } from "../../mobile/src/screens/alerts/past";
+import { pastAlert } from "../../mobile/src/screens/alerts/past";
+import { examSittings, sittingsLine } from "../../src/core/exam-sittings";
+import { makeFormat } from "../../src/core/format";
 import type { Alert, ClassSession, PresenceSession } from "../../src/core/models";
+import { aTask } from "../kit/tasks";
 
 const wib = (iso: string) => Date.parse(`${iso}+07:00`);
 
@@ -62,6 +65,38 @@ describe("pastAlert", () => {
     expect(pastAlert(opened, { schedule: null, presence: { DK4073: [present] } }, wib("2026-11-10T09:00:00"))?.outcome).toBe("present");
   });
 
+  it("says whether the Task was handed in once its deadline has passed, every reminder of it one row", () => {
+    const due = wib("2026-11-05T23:59:00");
+    const oneHour = alert(`task.due1:117003:${due}`, due - 3_600_000, {
+      kind: "deadline",
+      source: "edunex",
+      title: { key: "alert.due1", vars: { course: "II4091" } },
+      body: { key: "alert.due.body", vars: { title: "Tugas 02 Bab II" } },
+      target: { screen: "task", taskId: 117003 },
+    });
+    const task = aTask({ id: 117003, courseCode: "II4091", courseId: 95326, title: "Tugas 02 Bab II", status: "not_started", dueAt: due });
+    const world = { schedule: null, presence: {}, tasks: [task] };
+    expect(pastAlert(oneHour, world, due - 60_000)).toBeNull();
+    expect(pastAlert(oneHour, world, wib("2026-11-10T09:00:00"))).toEqual({
+      kind: "deadline",
+      code: "II4091",
+      key: "task:117003",
+      outcome: "notHandedIn",
+      task: "Tugas 02 Bab II",
+    });
+    const sent = {
+      ...task,
+      answer: { id: 1, text: "", files: [], createdAt: due - 7_200_000, updatedAt: due - 7_200_000, sent: true, sentAt: due - 7_200_000, reviewedAt: null },
+    };
+    expect(pastAlert(oneHour, { ...world, tasks: [sent] }, wib("2026-11-10T09:00:00"))?.outcome).toBe("handedIn");
+    // The 24-hour reminder of the same deadline is the same row.
+    expect(pastAlert({ ...oneHour, id: `task.due24:117003:${due}` }, world, wib("2026-11-10T09:00:00"))?.key).toBe("task:117003");
+    // Edunex moved the deadline later: still ahead, the alert stays as it came.
+    expect(pastAlert(oneHour, { ...world, tasks: [{ ...task, dueAt: wib("2026-11-12T23:59:00") }] }, wib("2026-11-10T09:00:00"))).toBeNull();
+    // Gone from the data: over, with its name from the alert and nothing claimed.
+    expect(pastAlert(oneHour, { ...world, tasks: [] }, wib("2026-11-10T09:00:00"))).toMatchObject({ outcome: null, task: "Tugas 02 Bab II" });
+  });
+
   it("leaves every other alert as it is", () => {
     expect(pastAlert(alert("task.new:1", wib("2026-11-05T08:00:00"), { kind: "newTask" }), undefined, wib("2026-11-10T09:00:00"))).toBeNull();
   });
@@ -89,5 +124,25 @@ describe("examSittings", () => {
     const { sittings, folded } = examSittings([scheduled(first, wib("2026-11-10T08:00:00"))], [first]);
     expect(sittings.size).toBe(0);
     expect(folded.size).toBe(0);
+  });
+});
+
+describe("sittingsLine", () => {
+  const f = makeFormat("id", wib("2026-11-10T09:00:00"));
+  const en = makeFormat("en", wib("2026-11-10T09:00:00"));
+  const first = session("3001", "2026-12-10T11:00:00", "2026-12-10T12:50:00", "UAS");
+  const second = session("3002", "2026-12-17T11:00:00", "2026-12-17T12:50:00", "UAS");
+
+  it("says the weekday, the time and the room once", () => {
+    expect(sittingsLine(f, [first, second])).toBe("Kam, 10 Des dan 17 Des, 11:00 · 9009");
+    expect(sittingsLine(en, [first, second])).toBe("Thu, 10 Dec and 17 Dec, 11:00 · 9009");
+    expect(sittingsLine(f, [first, second], { time: false, room: false })).toBe("Kam, 10 Des dan 17 Des");
+  });
+
+  it("says each day's time when they differ, and a day once", () => {
+    const later = { ...second, start: wib("2026-12-17T13:00:00") };
+    expect(sittingsLine(f, [first, later], { room: false })).toBe("Kam, 10 Des, 11:00 dan Kam, 17 Des, 13:00");
+    const sameDay = { ...first, id: "3003", start: wib("2026-12-10T14:00:00") };
+    expect(sittingsLine(f, [first, sameDay], { room: false })).toBe("Kam, 10 Des, 11:00 dan 14:00");
   });
 });

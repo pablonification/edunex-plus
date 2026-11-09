@@ -217,6 +217,27 @@ describe("when an exam is over", () => {
     ]);
   });
 
+  it("a UAS SIX lists in both weeks of the exam period is one row and one count, at its first sitting, carrying both", () => {
+    const exams = mergeExams({
+      schedule: [sixSession("2190011", "DK4073", "2026-12-17T11:00:00", "UAS"), sixSession("2190010", "DK4073", "2026-12-10T11:00:00", "UAS")],
+      calendar,
+      term: "2026-1",
+      now: wib("2026-12-01T08:00:00"),
+    });
+    const at = (now: string) => todoList({ tasks: [], exams, now: wib(now) });
+    const before = at("2026-12-01T08:00:00");
+    expect(titles(before)).toEqual(["DK4073-UAS sitting"]);
+    expect(todoCount(before)).toBe(1);
+    const [row] = before;
+    expect(row).toMatchObject({ at: wib("2026-12-10T11:00:00"), part: { id: "six:2190010" } });
+    expect(row?.kind === "exam" && row.sittings?.map((s) => s.id)).toEqual(["2190010", "2190011"]);
+    // The first sat: the second alone, a plain row.
+    const after = at("2026-12-11T08:00:00");
+    expect(after).toHaveLength(1);
+    expect(after[0]).toMatchObject({ part: { id: "six:2190011" } });
+    expect(after[0]?.kind === "exam" && after[0].sittings).toBeUndefined();
+  });
+
   it("an Edunex exam with only its close is due then, and over after it", () => {
     const closeOnly = quiz({ start: null, end: wib("2026-10-28T23:59:00") });
     const before = term(wib("2026-10-22T09:00:00"), { tasks: [], edunex: [closeOnly] });

@@ -104,6 +104,10 @@ export const mobileStrings = {
   "mobile.alert.presenceOver": { id: "Presensi ditutup · {course}", en: "Presence closed · {course}" },
   "mobile.alert.present": { id: "Hadir", en: "Present" },
   "mobile.alert.notRecorded": { id: "Tidak tercatat", en: "Not recorded" },
+  // Notifikasi, once a Task's deadline has passed: its "Tenggat 1 jam lagi" (and the earlier reminders) say what happened,
+  // "Terkumpul" (taskStatus.submitted) or this, never the countdown any more.
+  "mobile.alert.deadlineOver": { id: "Tenggat lewat · {task}", en: "Deadline passed · {task}" },
+  "mobile.alert.notHandedIn": { id: "Belum dikumpulkan", en: "Not submitted" },
   // Notifikasi's meta line for Tandai Hadir: the action and how long the class runs, never how to press it.
   "mobile.change.classStarted": { id: "Tandai Hadir · sampai {time}", en: "Tandai Hadir · until {time}" },
   "mobile.change.checkIn": { id: "Kuliah sampai {time}", en: "Class until {time}" },
