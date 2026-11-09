@@ -22,6 +22,29 @@ interface Booted {
 }
 
 let booted: Promise<Booted> | null = null;
+/** The load, once it's done: a Boot that first draws after that draws the app at once. */
+let done: Booted | null = null;
+
+/** The host of this run, for the few screens that hand it a page (sign-in, SIX's timetable). */
+export let currentHost: Host | null = null;
+
+/**
+ * Starts loading the saved data, once: from ../../index.ts the moment Android opens the app's window, before Expo
+ * Router has drawn anything (the disk's reads then overlap its start, instead of waiting for Boot's first frame), or
+ * when Boot first draws.
+ */
+export function startBoot(): Promise<Booted> {
+  if (!booted) {
+    booted = boot().then((ready) => {
+      currentHost = ready.host;
+      done = ready;
+      return ready;
+    });
+    // Boot hears of a failure when it draws; until then it isn't an unhandled one.
+    booted.catch(() => undefined);
+  }
+  return booted;
+}
 
 async function boot(): Promise<Booted> {
   const current = await host();
@@ -36,26 +59,17 @@ async function boot(): Promise<Booted> {
   return { host: current, store, bridge, clock: current.clockOffset() ? demoClock(current.clockOffset) : undefined };
 }
 
-/** The host of this run, for the few screens that hand it a page (sign-in, SIX's timetable). */
-export let currentHost: Host | null = null;
-
 export function Boot({ children }: { children: ReactNode }) {
-  const [app, setApp] = useState<Booted | null>(null);
+  const [app, setApp] = useState<Booted | null>(done);
   const [failed, setFailed] = useState<unknown>(null);
   useEffect(() => {
-    booted ??= boot();
-    booted.then(
-      (ready) => {
-        currentHost = ready.host;
-        setApp(ready);
-      },
-      (error: unknown) => {
-        console.error("[boot] the engine didn't start:", error);
-        setFailed(error);
-        void SplashScreen.hideAsync();
-      },
-    );
-  }, []);
+    if (app) return;
+    startBoot().then(setApp, (error: unknown) => {
+      console.error("[boot] the engine didn't start:", error);
+      setFailed(error);
+      void SplashScreen.hideAsync();
+    });
+  }, [app]);
   if (failed) throw failed;
   if (!app) return null;
   return (
