@@ -6,7 +6,7 @@
 // color: it says so, once, in neutral words.
 // Opened from the course page's "⋯" (its own sheet) and from anywhere else through
 // openCourseColorPicker(code), drawn by <CourseColorPickerHost /> mounted once in the app's frame.
-import { useLayoutEffect, useState, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
 import { endPreview, previewCourseColor, useCommittedCourseColors, useCourseColorPicks, withLegacy } from "../../../src/app/course-colors";
 import { useTermCourses } from "../../../src/app/courses";
@@ -48,7 +48,16 @@ function Choices({ code }: { code: string }) {
   });
   const [base] = useState(() => withLegacy(codes, committed));
   const [choice, setChoice] = useState<PaletteId | null>(() => pickedColor(code, base) ?? null);
-  useLayoutEffect(() => previewCourseColor({ code, codes, base, choice }), [code, codes, base, choice]);
+  const [first] = useState(choice);
+  // Until a color is tried, the screens already show what the sheet would preview. Previewing it anyway, as the sheet
+  // opened, redrew every course's color on every screen at once (each color reader takes the new value), and the sheet
+  // only rose after it: a third of a second on a mid-range phone with the row giving no sign of the tap.
+  const tried = useRef(false);
+  useLayoutEffect(() => {
+    if (!tried.current && choice === first) return;
+    tried.current = true;
+    previewCourseColor({ code, codes, base, choice });
+  }, [code, codes, base, choice, first]);
   useLayoutEffect(() => () => endPreview(code), [code]);
 
   const name = courses?.find((course) => course.code === code)?.name;
