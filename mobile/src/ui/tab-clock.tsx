@@ -13,14 +13,15 @@
 // a cold start with saved data); as a transition React draws it a part at a time and lets a tap, a frame or the engine
 // in between. The store and the clock the tab reads hand their changes over as transitions too (../../app/_layout.tsx,
 // src/app/external.ts), and a hidden tab hears of what it missed the same way once it's shown: the switch itself is
-// never held up by a redraw.
+// never held up by a redraw. A tab's screen given as a function is only made on that turn, so its code (loaded at
+// first use, metro.config.js) isn't loaded with Beranda's first frame either.
 import { useIsFocused } from "expo-router";
 import { type ReactNode, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { ClockProvider, type UiClock, useClock } from "../../../src/app/i18n";
 import { type AppStore, StoreProvider, useBridge, useStore } from "../../../src/app/store";
 import { perfDoing } from "../perf";
 
-export function TabClock({ children }: { children: ReactNode }) {
+export function TabClock({ children }: { children: ReactNode | (() => ReactNode) }) {
   const parent = useClock();
   const store = useStore();
   const bridge = useBridge();
@@ -43,10 +44,12 @@ export function TabClock({ children }: { children: ReactNode }) {
     data.catchUp();
     clock.catchUp();
   }, [focused, clock, data]);
+  // The same content while the route's screen hasn't drawn again: the tab's focus changing draws nothing under it.
+  const content = useMemo(() => (drawn ? (typeof children === "function" ? children() : children) : null), [drawn, children]);
   if (!drawn) return null;
   return (
     <StoreProvider store={data} bridge={bridge}>
-      <ClockProvider clock={clock}>{children}</ClockProvider>
+      <ClockProvider clock={clock}>{content}</ClockProvider>
     </StoreProvider>
   );
 }

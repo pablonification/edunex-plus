@@ -10,9 +10,11 @@ export default function Screen() {
   return (
     <TabClock>
       {/* The list redraws on a minute's tick only when it can look different (task-clock.tsx). */}
-      <TaskClock>
-        <TasksScreen show={show} />
-      </TaskClock>
+      {() => (
+        <TaskClock>
+          <TasksScreen show={show} />
+        </TaskClock>
+      )}
     </TabClock>
   );
 }
