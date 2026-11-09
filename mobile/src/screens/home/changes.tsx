@@ -15,6 +15,7 @@ import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Text } from "../../ui/text";
 import { useTheme } from "../../ui/theme";
+import { useShortCourseName } from "./parts";
 
 /** "Yang berubah" shows this many; the bell has the rest. */
 const CHANGES_SHOWN = 5;
@@ -78,7 +79,7 @@ export function Changes({ context }: { context: HomeContext }) {
   );
 }
 
-/** A change as v4's row: its kind's tile (amber when it asks something of the Student), what changed, one meta line, when. */
+/** A change as v4's row: its kind's tile (amber when it asks something of the Student), what changed, one meta line, the day. */
 function ChangeRow({ item, first, onOpen }: { item: Alert; first: boolean; onOpen: () => void }) {
   const t = useT();
   const f = useFormat();
@@ -87,8 +88,11 @@ function ChangeRow({ item, first, onOpen }: { item: Alert; first: boolean; onOpe
   const glyph = (color: string) => <Icon size={22} color={color} />;
   const important = IMPORTANT.has(item.title.key) || (item.body !== null && item.body !== undefined && IMPORTANT_BODY.has(item.body.key));
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
-  const { title, meta, spoken } = changeLines(t, item);
-  const when = f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at);
+  const name = useShortCourseName();
+  const { title, meta, spoken } = changeLines(t, item, name);
+  // The day it was seen ("Hari ini", "Kemarin"), never the clock time of the read that saw it (a sync at 00:45 isn't
+  // when anything happened): the event's own time is in the meta line.
+  const when = f.relativeDay(item.at);
   return (
     <GroupRow
       first={first}
