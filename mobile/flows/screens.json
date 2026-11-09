@@ -2155,7 +2155,7 @@
             "extendedWaitUntil": {
               "visible": {
                 "id": "label.place",
-                "text": ".*12.18 Okt.*"
+                "text": "Minggu ke-8"
               },
               "timeout": 5000
             }
@@ -2180,6 +2180,17 @@
           {
             "assertVisible": {
               "id": "screen.schedule"
+            }
+          },
+          {
+            "$comment": "Away from today, Hari ini takes the place of Jadwal's ⋮ in the bar: back to today first.",
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "action.today"
+                }
+              },
+              "commands": [{ "tapOn": { "id": "action.today" } }]
             }
           },
           {
@@ -2865,7 +2876,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -2881,7 +2892,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -2932,7 +2943,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -2948,7 +2959,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -2999,7 +3010,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3015,7 +3026,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3066,7 +3077,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3082,7 +3093,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3167,7 +3178,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3183,7 +3194,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3213,7 +3224,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3229,7 +3240,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3259,7 +3270,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3275,7 +3286,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }

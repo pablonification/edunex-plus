@@ -170,6 +170,8 @@ export const mobileStrings = {
   // Jadwal without SIX, one row above the day beside Masuk ke SIX.
   "mobile.schedule.needsSix": { id: "Kuliah & ruang ada di SIX", en: "Classes and rooms are in SIX" },
   "mobile.schedule.todayLabel": { id: "Kembali ke hari ini", en: "Back to today" },
+  // Under the month in Jadwal's bar: the term's week alone (the week strip under the bar shows its days).
+  "mobile.schedule.week": { id: "Minggu ke-{n}", en: "Week {n}" },
   // Jadwal's day (v4): a day with no class, a hand-in's time ("II4091 · sebelum 23:59"), and where a class the app
   // couldn't read is.
   "mobile.schedule.noClasses": { id: "Tidak ada kuliah", en: "No classes" },
@@ -178,7 +180,7 @@ export const mobileStrings = {
   // A day with no class: the next class, a button that goes to its day ("Berikutnya Kam 08:00"), and its whole name.
   "mobile.schedule.next": { id: "Berikutnya {when}", en: "Next {when}" },
   "mobile.schedule.nextLabel": { id: "Ke kuliah berikutnya, {when}", en: "Go to the next class, {when}" },
-  // A day on the week strip with two classes at once, as TalkBack says it after the date (on screen: an amber mark).
+  // A day on the week strip with two classes at once, as TalkBack says it after the date (on screen: the clash icon).
   "mobile.schedule.clashDay": { id: "ada kuliah bentrok", en: "classes clash" },
   // Jadwal's ⋮, named for what it holds.
   "mobile.schedule.menu": { id: "Opsi jadwal", en: "Schedule options" },

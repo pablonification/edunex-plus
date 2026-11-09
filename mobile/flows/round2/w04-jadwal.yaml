@@ -37,7 +37,7 @@ name: "w04 Jadwal day hierarchy"
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-8 . 12.18 Okt"
+      text: "Minggu ke-8"
     timeout: 5000
 - assertVisible: "Masa UTS . 12.16 Okt"
 - takeScreenshot: w04-1-next-week

@@ -150,13 +150,15 @@ appId: io.github.pablonification.edunexplus.demo
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-8 .*"
+      text: "Minggu ke-8"
     timeout: 5000
     optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-09-jadwal-masa-uts
 - tapOn:
     id: action.today
+- tapOn:
+    id: action.scheduleMenu
 - tapOn:
     id: action.month
 - extendedWaitUntil:

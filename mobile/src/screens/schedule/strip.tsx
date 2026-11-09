@@ -1,13 +1,15 @@
 // The week strip over Jadwal's day (v4): the week's seven days, a dot under each in the ink of every course that meets
-// that day, today in the brand's blue (its one meaning on the screen, with the now-line), the day picked, when it isn't today, in the
-// brand's tint, and an amber mark on a day with two classes at once. A tap picks a day; a swipe across the strip moves a
-// week.
+// that day. One shape for a day that stands out, the circle: the day picked filled (in the brand's blue when it's today,
+// else its tint), today a ring of that blue while another day is picked (blue is today's one meaning on the screen, with
+// the now-line). A day with two classes at once carries the clash's own icon (as its blocks do), named for TalkBack. A
+// tap picks a day; a swipe across the strip moves a week.
 import { memo } from "react";
 import { View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { useCourseColor } from "../../../../src/app/courses";
 import { useT } from "../../../../src/app/i18n";
 import { dayNoon, type ScheduleDay, shiftDay } from "../../../../src/core/schedule";
+import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -70,7 +72,7 @@ export const WeekStrip = memo(function WeekStrip({
           const isToday = day === today;
           const on = day === picked;
           const codes = codesOf(plan.get(day)).slice(0, 4);
-          // Two classes at once that day: an amber mark on its date, as the blocks and the gutter show it on the day.
+          // Two classes at once that day: the clash's icon on its date, as on the day's blocks.
           const clash = plan.get(day)?.classes.some((c) => c.overlaps.length > 0) ?? false;
           const circle = isToday && on ? nowColour(theme.scheme) : on ? v.brandTint : "transparent";
           const number = isToday && on ? onNowColour(theme.scheme) : isToday ? nowColour(theme.scheme) : on ? v.brandInk : v.fg;
@@ -87,7 +89,17 @@ export const WeekStrip = memo(function WeekStrip({
               <Text size="labelMedium" weight={isToday ? "bold" : "regular"} style={{ color: isToday ? nowColour(theme.scheme) : v.muted, fontSize: 12 }}>
                 {f.weekdayShort(noon)}
               </Text>
-              <View style={{ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: circle }}>
+              <View
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  backgroundColor: circle,
+                  ...(isToday && !on ? { borderWidth: 1.5, borderColor: nowColour(theme.scheme) } : {}),
+                }}
+              >
                 <Text size="titleMedium" face="display" weight="semibold" tabular style={{ color: number, fontSize: 15 }}>
                   {String(Number(day.slice(8)))}
                 </Text>
@@ -96,16 +108,20 @@ export const WeekStrip = memo(function WeekStrip({
                     testID={`mark.clashDay.${day}`}
                     style={{
                       position: "absolute",
-                      top: 0,
-                      right: 0,
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: v.ambFg,
-                      borderWidth: 2,
+                      top: -4,
+                      right: -6,
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: v.ambBg,
+                      borderWidth: 1.5,
                       borderColor: v.page,
                     }}
-                  />
+                  >
+                    <Icons.Overlap size={11} weight="bold" color={v.ambFg} />
+                  </View>
                 )}
               </View>
               <View style={{ flexDirection: "row", gap: 3, height: 5 }}>
