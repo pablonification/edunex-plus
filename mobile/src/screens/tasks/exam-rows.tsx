@@ -21,6 +21,7 @@ import { factsLabel } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { useTheme } from "../../ui/theme";
+import { shortName } from "../home/parts";
 import { countdown, IconTile, inWorld, type Quick, reportRowProblem, rowWhen, StatusPill, TaskLine, useRowWorld } from "./row-parts";
 
 /** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
@@ -59,6 +60,8 @@ function examCourse(courses: readonly TermCourse[] | undefined, exam: Exam): str
 
 /** "Kuis Komunikasi Pemasaran": the exam's name for a control's label. */
 const examName = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
+/** "UTS Ekonomi Infrastruktur": an exam's row title, its course's name short (the whole name is in the row's spoken name). */
+const examTitle = (t: Translate, exam: Exam, name: string) => examName(t, exam, shortName(name));
 
 /** Moves an open Edunex window to Done, with Undo; a failure goes to the list's banner. */
 function useMarkDone() {
@@ -179,7 +182,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
       code={code || null}
       course={name}
       // What it is, every row the same: a take-home's own name, else the exam's ("UAS Komunikasi Pemasaran").
-      title={part?.kind === "takehome" ? part.task.title : title}
+      title={part?.kind === "takehome" ? part.task.title : examTitle(t, exam, name)}
       meta={shown.filter(Boolean).join(" · ")}
       status={status}
     />
@@ -271,8 +274,9 @@ function PeriodExam({ exam }: { exam: Exam }) {
       onPress={() => go({ screen: "exam", examId: exam.id })}
       code={exam.courseCode}
       course={name}
-      title={examName(t, exam, name)}
-      meta={factsLabel(exam.courseCode, t("exam.noDate"))}
+      title={examTitle(t, exam, name)}
+      // Under its period's row, which says it has no day yet.
+      meta={exam.courseCode}
     />
   );
 }
@@ -337,7 +341,7 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
       quick={mark ? [{ label: t("exam.unmarkFor", { title }), onPress: () => void unmark() }] : undefined}
       code={code || null}
       course={name}
-      title={title}
+      title={examTitle(t, exam, name)}
       meta={[code, at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")].filter(Boolean).join(" · ")}
       status={
         mark ? (

@@ -452,7 +452,8 @@ export function HeroCard({
       onPress={onPress}
       onLongPress={onLongPress}
       {...quickActions(quick)}
-      style={{ backgroundColor: tint, borderRadius: 28, padding: space[5] }}
+      // The screen's focal point: room for the number at its top, what it is at its foot.
+      style={{ backgroundColor: tint, borderRadius: 28, padding: space[5], minHeight: 200, justifyContent: "space-between" }}
     >
       <View style={{ flexDirection: "row", alignItems: "baseline" }}>
         {away.late && (
@@ -469,12 +470,14 @@ export function HeroCard({
           {away.unit}
         </Text>
       </View>
-      <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, marginTop: space[2] }}>
-        {title}
-      </Text>
-      <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, marginTop: 2 }}>
-        {meta}
-      </Text>
+      <View style={{ marginTop: space[2] }}>
+        <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg }}>
+          {title}
+        </Text>
+        <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, marginTop: 2 }}>
+          {meta}
+        </Text>
+      </View>
     </PressScale>
   );
 }
