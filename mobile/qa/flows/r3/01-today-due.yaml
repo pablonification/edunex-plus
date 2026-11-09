@@ -1,0 +1,44 @@
+# Round 3, job 1: what's on today and what's due, from opening the app.
+#
+# READ-ONLY: this flow taps nothing at all. It runs on a real Student's account (a QA build,
+# EXPO_PUBLIC_R3_GUARD=1), so it only opens the app and looks.
+# Tap budget: 0. Taps here: 0.
+#
+# Today's area is the now card (card.now: the class on, the next one, or "no class"), there whenever
+# SIX gave a timetable. What's due is "Perlu kamu urus": its cards, or the one "nothing to handle"
+# line; both carry action.needs.all, so it holds for any account.
+appId: io.github.pablonification.edunexplus
+name: "r3 1 today and due"
+---
+- stopApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: screen.home
+    timeout: 60000
+# Saved data first, then the start-up read: wait for the shapes that stand in while it reads.
+- extendedWaitUntil:
+    notVisible:
+      id: home.loading
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible:
+      id: card.now.reading
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible:
+      id: section.needs.reading
+    timeout: 60000
+- assertVisible:
+    id: card.now
+    label: "today: the now card"
+# A swipe at most (not a tap) if a big font pushes it under the fold.
+- scrollUntilVisible:
+    element:
+      id: action.needs.all
+    direction: DOWN
+    timeout: 10000
+    label: "due: Perlu kamu urus"
+- assertVisible:
+    id: screen.home

@@ -1,0 +1,87 @@
+# Round 3, job 4: a course's material.
+#
+# READ-ONLY: it taps the Kuliah tab, a course and one of its modules. Never a file's Share, "Simpan
+# untuk offline", the course's ⋮ menu, a Task's Kumpulkan, or anything in Edunex.
+#
+# Tap budget: 3 (Kuliah, the course, a module). Taps here: 3, or 4 when the first module is still
+# locked by the lecturer (then it opens the next one). A course with no modules at all ends with an
+# "R3-NOTE".
+appId: io.github.pablonification.edunexplus
+name: "r3 4 course material"
+---
+- stopApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: screen.home
+    timeout: 60000
+- tapOn:
+    id: tab.courses
+    label: "tap: Kuliah tab"
+- extendedWaitUntil:
+    visible:
+      id: screen.courses
+    timeout: 20000
+- extendedWaitUntil:
+    notVisible:
+      id: courses.loading
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: 'row\.course\..*'
+    direction: DOWN
+    timeout: 10000
+- tapOn:
+    id: 'row\.course\..*'
+    index: 0
+    label: "tap: the first course"
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+# The course opens on its modules (Materi); Edunex's page may still be reading.
+- scrollUntilVisible:
+    element:
+      id: 'row\.module\..*'
+    direction: DOWN
+    timeout: 30000
+    optional: true
+
+- runFlow:
+    when:
+      notVisible:
+        id: 'row\.module\..*'
+    commands:
+      - assertVisible:
+          id: screen.course
+          label: "R3-NOTE: this course has no modules on Edunex, nothing to open"
+
+- runFlow:
+    when:
+      visible:
+        id: 'row\.module\..*'
+    commands:
+      - tapOn:
+          id: 'row\.module\..*'
+          index: 0
+          label: "tap: the first module"
+      - extendedWaitUntil:
+          visible:
+            id: screen.module
+          timeout: 5000
+          optional: true
+      # A module the lecturer hasn't opened yet doesn't open: the next one.
+      - runFlow:
+          when:
+            notVisible:
+              id: screen.module
+          commands:
+            - tapOn:
+                id: 'row\.module\..*'
+                index: 1
+                label: "tap: the next module (the first is locked)"
+      - extendedWaitUntil:
+          visible:
+            id: screen.module
+          timeout: 20000

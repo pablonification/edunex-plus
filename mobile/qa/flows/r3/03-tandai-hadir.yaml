@@ -1,0 +1,78 @@
+# Round 3, job 3: get to Tandai Hadir when SIX opens it, already signed in.
+#
+# READ-ONLY, and it STOPS BEFORE SIX. The app's "Buka SIX untuk Tandai Hadir" (action.checkIn) opens
+# SIX's own page, which has SIX's Tandai Hadir button, so this flow never taps action.checkIn: it
+# checks that the button is there, on Beranda's now card or on Kuliah's card, and stops. It never
+# opens SIX's page, never presses Tandai Hadir, and taps nothing in SIX.
+#
+# Tap budget: 2 (to the point where SIX opens). Taps here: 0 when Beranda's now card has it,
+# 1 (the Kuliah tab) when only Kuliah has it. From that point the Student's own job is +1 (opens
+# SIX's page) and +1 (SIX's Tandai Hadir), neither run here.
+# Only when SIX shows Tandai Hadir now (a class on, its attendance open): outside that, the run
+# ends with an "R3-NOTE" and there's nothing to measure.
+appId: io.github.pablonification.edunexplus
+name: "r3 3 to Tandai Hadir"
+---
+- stopApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: screen.home
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible:
+      id: home.loading
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible:
+      id: card.now.reading
+    timeout: 60000
+
+# Not on Beranda's card: Kuliah, whose top card says when SIX shows Tandai Hadir now.
+- runFlow:
+    when:
+      notVisible:
+        id: action.checkIn
+    commands:
+      - tapOn:
+          id: tab.courses
+          label: "tap: Kuliah tab"
+      - extendedWaitUntil:
+          visible:
+            id: screen.courses
+          timeout: 20000
+      - extendedWaitUntil:
+          notVisible:
+            id: courses.loading
+          timeout: 60000
+      - scrollUntilVisible:
+          element:
+            id: action.checkIn
+          direction: DOWN
+          timeout: 5000
+          optional: true
+
+- runFlow:
+    when:
+      notVisible:
+        id: action.checkIn
+    commands:
+      - assertVisible:
+          id: screen.courses
+          label: "R3-NOTE: SIX shows no Tandai Hadir right now, nothing to measure"
+
+- runFlow:
+    when:
+      visible:
+        id: action.checkIn
+    commands:
+      # Already signed in: no "Masuk ke SIX" card on the way.
+      - assertNotVisible:
+          id: card.signInSix
+      - assertVisible:
+          id: action.checkIn
+          label: "the way to SIX's Tandai Hadir is here (not tapped)"
+
+- assertVisible:
+    id: 'screen\.(home|courses)'

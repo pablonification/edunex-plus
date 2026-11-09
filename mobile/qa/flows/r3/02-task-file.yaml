@@ -1,0 +1,103 @@
+# Round 3, job 2: open a Task and its file.
+#
+# READ-ONLY: it opens a Task and taps the lecturer's file only (row.file.0). Never Kumpulkan, a
+# comment, the answer box, "Tandai sudah dikumpulkan", or the file's Share button (row.file.0.share).
+# Opening a file downloads it from Edunex into the app's own files (a read) and hands it to the
+# phone's own app ("Open with"): the app has no viewer of its own, so the flow stops there.
+#
+# Tap budget: 2 (the Task, then its file).
+# Taps here: 2 when Beranda's "Perlu kamu urus" has a Task with a file. Otherwise it looks in Tugas:
+# +1 for the tab, and +1 for each Task it opens that has no file (at most 3 Tasks). Back presses
+# are not taps. A run that found no file anywhere ends with an "R3-NOTE".
+appId: io.github.pablonification.edunexplus
+name: "r3 2 task and its file"
+---
+- stopApp
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible:
+      id: screen.home
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible:
+      id: home.loading
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible:
+      id: section.needs.reading
+    timeout: 60000
+
+# The Student's way: a Task among Beranda's cards.
+- runFlow:
+    when:
+      visible:
+        id: 'card\.need\.task:.*'
+    commands:
+      - tapOn:
+          id: 'card\.need\.task:.*'
+          index: 0
+          label: "tap: Beranda's Task card"
+      - extendedWaitUntil:
+          visible:
+            id: 'screen\.(task|exam)'
+          timeout: 20000
+      - scrollUntilVisible:
+          element:
+            id: 'row\.file\.0'
+          direction: DOWN
+          timeout: 8000
+          optional: true
+
+# No file there: the first Tasks in Tugas, one after another.
+- runFlow:
+    when:
+      notVisible:
+        id: 'row\.file\.0'
+    file: _next-task.yaml
+    env:
+      ROW: "0"
+- runFlow:
+    when:
+      notVisible:
+        id: 'row\.file\.0'
+    file: _next-task.yaml
+    env:
+      ROW: "1"
+- runFlow:
+    when:
+      notVisible:
+        id: 'row\.file\.0'
+    file: _next-task.yaml
+    env:
+      ROW: "2"
+
+# Nothing to open (checked before the tap: after it, the row is gone behind the phone's app).
+- runFlow:
+    when:
+      notVisible:
+        id: 'row\.file\.0'
+    commands:
+      - assertVisible:
+          id: 'screen\..*'
+          label: "R3-NOTE: none of the first Tasks has a lecturer's file, nothing opened"
+
+- runFlow:
+    when:
+      visible:
+        id: 'row\.file\.0'
+    commands:
+      - tapOn:
+          id: 'row\.file\.0'
+          label: "tap: the Task's file"
+      # The phone's own app (or Android's "Open with") comes in front. If Android's chooser is
+      # drawn over the Task, the Task may still count as on screen: then only the next check holds.
+      - extendedWaitUntil:
+          notVisible:
+            id: 'screen\.(task|exam)'
+          timeout: 45000
+          optional: true
+          label: "the phone's app shows the file"
+      - assertNotVisible:
+          id: 'row\.file\.0\.problem'
+          label: "no 'couldn't open' note under the file"

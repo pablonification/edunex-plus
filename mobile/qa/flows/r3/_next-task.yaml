@@ -1,0 +1,45 @@
+# Part of 02-task-file.yaml (not a job of its own): opens Tugas's Task number ${ROW} (from 0) and
+# looks for its lecturer's file. READ-ONLY: taps the Tugas tab and a Task row only.
+# Taps: 1 (the row), +1 for the tab when Tugas isn't already in front.
+appId: io.github.pablonification.edunexplus
+---
+# Back from the Task that had no file (a press of Back, not a tap).
+- runFlow:
+    when:
+      visible:
+        id: 'screen\.(task|exam)'
+    commands:
+      - back
+      - waitForAnimationToEnd
+- runFlow:
+    when:
+      notVisible:
+        id: screen.tasks
+    commands:
+      - tapOn:
+          id: tab.tasks
+          label: "tap: Tugas tab"
+- extendedWaitUntil:
+    visible:
+      id: screen.tasks
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: 'row\.task\..*'
+        index: ${ROW}
+    commands:
+      - tapOn:
+          id: 'row\.task\..*'
+          index: ${ROW}
+          label: "tap: Task row ${ROW}"
+      - extendedWaitUntil:
+          visible:
+            id: 'screen\.(task|exam)'
+          timeout: 20000
+      - scrollUntilVisible:
+          element:
+            id: 'row\.file\.0'
+          direction: DOWN
+          timeout: 8000
+          optional: true
