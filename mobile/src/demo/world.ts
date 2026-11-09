@@ -51,6 +51,18 @@ export async function createDemoWorld() {
       content: BARE_PDF_URL,
     });
   }
+  // The engine the demo prepared, for the links below that make it read again at once.
+  let engine: Parameters<typeof run.prepare>[0] | null = null;
+  // While the demo runs, its link with ?end=six (or ?end=edunex) ends that system's pretend session, as SIX's
+  // 30-day cookie does, and the app reads it at once: it signs back in by itself (../host/resignin.ts), with no
+  // banner, unless EDUNEX_DEMO_SIGN_IN=asks has Microsoft ask for the Student.
+  Linking.addEventListener("url", ({ url }) => {
+    if (!url.startsWith("edunexplusdemo://demo")) return;
+    const end = new URL(url).searchParams.get("end");
+    if (end !== "six" && end !== "edunex") return;
+    run.world[end].expireSession();
+    void engine?.refresh(end).catch(() => undefined);
+  });
   // While the demo runs, its link with ?post=kuis puts a new Task on the pretend Edunex, as the desktop demo's pictures
   // do before the bell's (scripts/demo/capture.mjs): the next read finds it and the bell gets an unread alert.
   Linking.addEventListener("url", ({ url }) => {
@@ -92,21 +104,22 @@ export async function createDemoWorld() {
     clock: run.world.clock,
     world: run.world,
     clockOffset: () => run.world.clock.now() - Date.now(),
-    prepare: async (engine: Parameters<typeof run.prepare>[0]) => {
+    prepare: async (prepared: Parameters<typeof run.prepare>[0]) => {
+      engine = prepared;
       // Each step of the demo's start timed for the lab ("[startup] demo …"): where a fresh install's seconds go.
-      const signIn = engine.signIn.bind(engine);
+      const signIn = prepared.signIn.bind(prepared);
       let at = Date.now();
       const began = at;
-      engine.signIn = async (...args: Parameters<typeof signIn>) => {
+      prepared.signIn = async (...args: Parameters<typeof signIn>) => {
         const result = await signIn(...args);
         console.info(`[startup] demo sign-in ${args[0]} ${Date.now() - at}`);
         at = Date.now();
         return result;
       };
-      await run.prepare(engine);
-      engine.signIn = signIn;
+      await run.prepare(prepared);
+      prepared.signIn = signIn;
       console.info(`[startup] demo rest ${Date.now() - at} total ${Date.now() - began}`);
-      if (theme || lang) await engine.updateSettings({ ...(theme ? { theme } : {}), ...(lang ? { lang } : {}) });
+      if (theme || lang) await prepared.updateSettings({ ...(theme ? { theme } : {}), ...(lang ? { lang } : {}) });
     },
   };
 }
