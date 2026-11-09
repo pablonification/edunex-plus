@@ -165,11 +165,9 @@ export const mobileStrings = {
   },
   // At the top of Notifikasi while Android's permission is off; the button asks for it, or opens the app's notification settings.
   "mobile.settings.notificationsOffTitle": { id: "Notifikasi mati", en: "Notifications are off" },
-  "mobile.settings.notificationsOffBody": {
-    id: "Pengingat tenggat, kuliah dan Presensi tidak akan muncul di HP ini.",
-    en: "Reminders for deadlines, classes and Presence won't show on this phone.",
-  },
   "mobile.settings.notificationsTurnOn": { id: "Nyalakan notifikasi", en: "Turn on notifications" },
+  // Settings › Akun: the line under "Ringkasan awal", saying what it is.
+  "mobile.settings.firstScanMeta": { id: "Yang ditemukan saat pertama terhubung", en: "What turned up when you first connected" },
   // course
   // "Simpan untuk offline" on the phone: the course's files go into the app, a few at a time. It keeps going off the page.
   "mobile.offline.saving": {

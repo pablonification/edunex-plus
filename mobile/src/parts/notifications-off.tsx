@@ -23,8 +23,10 @@ async function openNotificationSettings(): Promise<void> {
   }
 }
 
-export function NotificationsOff() {
-  const t = useT();
+export type NotificationPermission = ReturnType<typeof useNotificationPermission>;
+
+/** Android's permission for notifications (null until read), checked again on return to the app. */
+export function useNotificationPermission() {
   const [permission, setPermission] = useState<Notifications.NotificationPermissionsStatus | null>(null);
   const check = useCallback(async () => setPermission(await Notifications.getPermissionsAsync()), []);
   useEffect(() => {
@@ -34,6 +36,13 @@ export function NotificationsOff() {
     });
     return () => change.remove();
   }, [check]);
+  return { permission, setPermission, check, off: permission !== null && !permission.granted };
+}
+
+/** The notice: the fact ("Notifikasi mati") and its one button; what that means is on the switches, greyed under it. */
+export function NotificationsOff({ state }: { state: NotificationPermission }) {
+  const t = useT();
+  const { permission, setPermission, check } = state;
   if (!permission || permission.granted) return null;
   const turnOn = async () => {
     if (permission.canAskAgain) setPermission(await Notifications.requestPermissionsAsync());
@@ -51,9 +60,7 @@ export function NotificationsOff() {
           </Button>
         }
         testID="note.notificationsOff"
-      >
-        {t("mobile.settings.notificationsOffBody")}
-      </Notice>
+      />
     </View>
   );
 }

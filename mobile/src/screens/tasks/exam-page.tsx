@@ -132,8 +132,9 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
       external(exam.tasks.length > 1 ? factsLabel(t("examPage.seeTask"), task.title) : t("examPage.seeTask"), edunexTaskUrl(task.id), `task.${task.id}`),
     );
   if (!exam.tasks.length && course?.edunex) menu.push(external(t("examPage.seeCourse"), edunexCourseUrl(course.edunex.courseId), "course"));
-  // The date card says the day; the line under the name only when there's no card to say it.
-  const card = exam.six.length > 0 || exam.edunex.length > 0;
+  // The date card says the day; the line under the name only when there's no card to say it (an exam week's card too).
+  const weekCard = !dated && exam.week !== null && exam.week !== undefined && (exam.kind === "UTS" || exam.kind === "UAS");
+  const card = exam.six.length > 0 || exam.edunex.length > 0 || weekCard;
 
   return (
     // One title: the exam's own, on the page; the bar carries Back and ⋮.
@@ -150,11 +151,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
       </Text>
       {!card && (
         <Text size="bodyMedium" style={{ marginTop: space[1], color: v.muted }}>
-          {exam.at !== null
-            ? factsLabel(f.dateLong(exam.at), f.fromNow(exam.at))
-            : exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
-              ? t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")
-              : t("exam.noDate")}
+          {exam.at !== null ? factsLabel(f.dateLong(exam.at), f.fromNow(exam.at)) : t("exam.noDate")}
         </Text>
       )}
 
@@ -206,25 +203,16 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
           {exam.edunex.map((e, i) => (
             <EdunexCard key={e.id} exam={exam} edunex={e} lead={exam.six.length === 0 && i === 0} />
           ))}
-          {/* The header already says the day isn't known: here only what is, the exam week and where the exam is listed. */}
-          {!dated && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
-            <View style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]}>
+          {/* The one place the page says when: the exam week, and that its day isn't out yet (or never was). */}
+          {weekCard && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") && (
+            <View style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]} testID="card.examWeek">
               <Text size="titleLarge" face="display" weight="bold" style={{ color: v.fg }}>
                 {examWeekLabel(t, f, exam.kind, exam.week)}
               </Text>
-              {exam.inOutline && (
-                <Text size="bodyMedium" style={{ marginTop: space[1], color: v.fg2 }}>
-                  {t("exam.outlineOnly")}
-                </Text>
-              )}
-            </View>
-          ) : (
-            !dated &&
-            exam.inOutline && (
-              <Text size="bodyMedium" style={{ color: v.muted }}>
-                {t("exam.outlineOnly")}
+              <Text size="bodyMedium" style={{ marginTop: space[1], color: v.fg2 }}>
+                {t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")}
               </Text>
-            )
+            </View>
           )}
           <ExamRows exam={exam} ahead={ahead} />
         </View>
@@ -546,6 +534,7 @@ function Study({ exam }: { exam: Exam }) {
   const before = (examAt >= 0 ? modules.slice(0, examAt) : exam.kind === "UTS" || exam.kind === "UAS" ? modules : []).filter((m) => examKind(m.title) === null);
   if (!files.length && !before.length) return null;
   const count = (id: number) => materials.filter((m) => m.moduleId === id).length;
+  const empty = before.filter((m) => count(m.id) === 0).length;
   const modulesTitle = t("examPage.modulesBefore", { kind: t(`exam.kind.${exam.kind}`) });
   return (
     <View>
@@ -583,25 +572,43 @@ function Study({ exam }: { exam: Exam }) {
             </Pressable>
           </View>
           <CardList inset={56}>
-            {before.map((module, i) => (
-              <Row
-                key={module.id}
-                onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules", module: module.id })}
-                leading={
-                  <View style={[styles.number, { backgroundColor: theme.v4.chip }]}>
-                    <Text size="caption" weight="semibold" tone="muted" tabular>
-                      {String(i + 1)}
+            {/* A module with something in it: its number, its title on up to two lines, how many items under it. */}
+            {before.map((module, i) =>
+              count(module.id) ? (
+                <Row
+                  key={module.id}
+                  onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules", module: module.id })}
+                  leading={
+                    <View style={[styles.number, { backgroundColor: theme.v4.chip }]}>
+                      <Text size="caption" weight="semibold" tone="muted" tabular>
+                        {String(i + 1)}
+                      </Text>
+                    </View>
+                  }
+                  title={
+                    <Text size="bodyLarge" numberOfLines={2}>
+                      {module.title}
                     </Text>
-                  </View>
-                }
-                title={module.title}
-                trailing={
-                  <Text size="small" tone="faint">
-                    {count(module.id) ? t("examPage.items", { count: count(module.id) }) : t("examPage.noItems")}
+                  }
+                  label={factsLabel(module.title, t("examPage.items", { count: count(module.id) }))}
+                  meta={t("examPage.items", { count: count(module.id) })}
+                />
+              ) : null,
+            )}
+            {/* The empty ones folded into one row ("3 modul belum ada materi"), opening the course's modules. */}
+            {empty > 0 && (
+              <Row
+                key="empty"
+                testID="row.emptyModules"
+                onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
+                leading={<Icons.FolderDown size={20} color={theme.v4.muted} />}
+                title={
+                  <Text size="bodyLarge" tone="muted">
+                    {t("examPage.emptyModules", { count: empty })}
                   </Text>
                 }
               />
-            ))}
+            )}
           </CardList>
         </>
       )}
