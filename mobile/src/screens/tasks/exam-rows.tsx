@@ -1,6 +1,7 @@
 // Exam rows on the phone: src/app/screens/exam.tsx's ExamPartRow, PeriodRow and PastExamRow with the same facts, in
 // v4's row (round 2): the course's tile, its name, one meta line (the kind, then when and where) and one status (the
-// countdown within a day; "Sekarang" while it's on; a changed time over both). "Tandai selesai" (an Edunex window open
+// countdown within a day; "Sekarang" while it's on; a changed time over both). An exam SIX lists in both weeks of the
+// exam period is one row with both days (src/core/exam-sittings.ts). "Tandai selesai" (an Edunex window open
 // now) and its way back from Done are a swipe, the row's long press and TalkBack's actions, each answered with a
 // snackbar and Undo; a failure is said in the list's banner (row-parts.tsx), never in a snackbar.
 import { type ReactNode, useState } from "react";
@@ -10,6 +11,7 @@ import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useExamMarks } from "../../../../src/app/exam-marks";
 import { type Format, type Translate, useT } from "../../../../src/app/i18n";
 import { wibDay } from "../../../../src/core/course-meetings";
+import { sittingsLine } from "../../../../src/core/exam-sittings";
 import { dueOn, type Exam, examMarkKey, isExamWindow, takeHomeOf } from "../../../../src/core/exams";
 import type { CalendarEvent, Task } from "../../../../src/core/models";
 import type { PastExam, TodoItem } from "../../../../src/core/todo";
@@ -134,6 +136,13 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     when = f.dueLabel(part.at);
     shown = [rowWhen(f, part.at, !moved && timeShown(now, part.at))];
     moment = part.at;
+  } else if (part?.kind === "sitting" && item.sittings) {
+    // SIX lists it in both weeks of the exam period: one row, both days ("Kam, 10 Des dan 17 Des, 11:00").
+    facts = [code, t("exam.inClass"), part.room ?? ""];
+    when = sittingsLine(f, item.sittings, { room: false });
+    shown = [sittingsLine(f, item.sittings, { room: false, time: !disagree && timeShown(now, part.at) })];
+    if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
+    else moment = part.at;
   } else if (part?.kind === "sitting") {
     const place = part.source === "six" ? (part.room ?? "") : (part.title ?? "");
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), place];

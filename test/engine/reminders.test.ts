@@ -144,6 +144,24 @@ describe("exam reminders", () => {
     ]);
   });
 
+  it("a UAS SIX lists in both weeks of the exam period: the first sitting's reminders, the next's only once it's over", () => {
+    const first = session({
+      id: "2190010",
+      courseCode: "DK4073",
+      start: wib("2026-12-10T11:00:00"),
+      end: wib("2026-12-10T13:00:00"),
+      activity: "UAS",
+      room: "9009",
+    });
+    const second = { ...first, id: "2190011", start: wib("2026-12-17T11:00:00"), end: wib("2026-12-17T13:00:00") };
+    const at = (now: string) =>
+      examAlerts.plan!({ ...context({ "six.schedule": [second, first] }), now: wib(now) }).map((r) => r.id.split(":").slice(0, 3).join(":"));
+    expect(at("2026-12-01T00:00:00")).toEqual(["exam.week:six:2190010", "exam.tomorrow:six:2190010", "exam.today:six:2190010"]);
+    // Over: the next sitting's, with no "seminggu lagi" from the day just sat.
+    expect(at("2026-12-10T14:00:00")).toEqual(["exam.tomorrow:six:2190011", "exam.today:six:2190011"]);
+    expect(at("2026-12-17T14:00:00")).toEqual([]);
+  });
+
   it("an early exam's morning reminder comes an hour before it", () => {
     const today = plan([uts("2026-10-15T06:30:00", "2026-10-15T08:30:00")]).find((r) => r.id.startsWith("exam.today:"));
     expect(today).toMatchObject({

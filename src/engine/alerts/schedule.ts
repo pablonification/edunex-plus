@@ -10,7 +10,9 @@
 //   was read, on a day SIX doesn't list it.
 // - An exam scheduled (a SIX exam session or a dated Edunex exam appears), a
 //   week before it, the evening before and that morning. Take-home exams are
-//   Tasks: the Task alerts cover them.
+//   Tasks: the Task alerts cover them. SIX lists a UTS or UAS in the class's
+//   own slot in both weeks of ITB's exam period: the reminders are for its
+//   first sitting, and for the next only once that one is over.
 // - A class in 15 minutes, with its room, once the Student turns it on: from
 //   SIX's timetable as it is now (a moved class at its new time and room), and
 //   meetings announced only in Edunex. A class on SIX's timetable the app
@@ -178,6 +180,8 @@ interface DatedExam {
   code: string;
   kind: ExamKind;
   start: number;
+  /** When it's over: SIX's end, or an Edunex exam's start when it gives no end. */
+  end: number;
   room: string | null;
   /** The exam (and its page) it belongs to. */
   examId: string;
@@ -189,8 +193,9 @@ function datedExams(get: Get): DatedExam[] {
   const out: DatedExam[] = [];
   for (const exam of mergeExams({ schedule: get("six.schedule"), edunexExams: get("edunex.exams"), now: 0 })) {
     const base = { code: exam.courseCode, kind: exam.kind, examId: exam.id };
-    for (const s of exam.six) out.push({ ...base, key: `six:${s.id}`, start: s.start, room: s.room, source: "six" });
-    for (const e of exam.edunex) if (e.start !== null) out.push({ ...base, key: `edunex:${e.id}`, start: e.start, room: null, source: "edunex" });
+    for (const s of exam.six) out.push({ ...base, key: `six:${s.id}`, start: s.start, end: s.end, room: s.room, source: "six" });
+    for (const e of exam.edunex)
+      if (e.start !== null) out.push({ ...base, key: `edunex:${e.id}`, start: e.start, end: e.end ?? e.start, room: null, source: "edunex" });
   }
   return out;
 }
@@ -219,8 +224,8 @@ export const examAlerts: Detector = {
         target: { screen: "exam", examId: exam.examId },
       }));
   },
-  plan({ get }) {
-    return datedExams(get).flatMap((exam) => {
+  plan({ get, now }) {
+    return remindedSittings(datedExams(get), now).flatMap(({ exam, after }) => {
       const day = dayStart(wibDay(exam.start));
       const common = { kind: "exam", source: exam.source, body: examBody(exam), target: { screen: "exam", examId: exam.examId } } as const;
       const title = (key: StringKey) => ({ key, vars: { ...kindVars(exam.kind), course: exam.code } });
@@ -246,10 +251,35 @@ export const examAlerts: Detector = {
           until: exam.start,
           title: title("alert.examToday"),
         });
-      return reminders;
+      // The next sitting's, once the first is over: none from before it ended ("seminggu lagi" right after the exam).
+      return reminders.filter((reminder) => reminder.at >= after);
     });
   },
 };
+
+/**
+ * The sittings worth reminding of. An exam's SIX sittings (a UTS or UAS SIX lists in both weeks of the exam period) are
+ * one exam: only the first not over yet, with when the one before it ended (`after`). Edunex's each stand alone.
+ */
+function remindedSittings(exams: readonly DatedExam[], now: number): { exam: DatedExam; after: number }[] {
+  const out: { exam: DatedExam; after: number }[] = [];
+  const bySix = new Map<string, DatedExam[]>();
+  for (const exam of exams) {
+    if (exam.source !== "six") {
+      out.push({ exam, after: Number.NEGATIVE_INFINITY });
+      continue;
+    }
+    const list = bySix.get(exam.examId);
+    if (list) list.push(exam);
+    else bySix.set(exam.examId, [exam]);
+  }
+  for (const list of bySix.values()) {
+    list.sort((a, b) => a.start - b.start);
+    const next = list.findIndex((exam) => exam.end > now);
+    if (next >= 0) out.push({ exam: list[next]!, after: next > 0 ? list[next - 1]!.end : Number.NEGATIVE_INFINITY });
+  }
+  return out;
+}
 
 /** "10:00–11:30": the start and end of what starts soon. */
 const span = (start: number, end: number) => `${clockTime(start)}–${clockTime(end)}`;

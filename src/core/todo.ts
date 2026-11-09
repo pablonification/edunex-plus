@@ -1,13 +1,14 @@
 // Tugas & Ujian as one list, in order: everything still ahead of the Student
 // (Tasks, take-home exams, exam sittings, Edunex exam windows) at the moment
-// each runs out, grouped by WIB week, and one quiet line for each exam period
+// each runs out (an exam SIX lists in both weeks of the exam period is one row,
+// at its first sitting), grouped by WIB week, and one quiet line for each exam period
 // whose exams have no day yet. An exam leaves the list once every part of it is
 // behind the Student, and waits in Done under "Past exams". Pure: the screen,
 // a course's tab and the sidebar's count all read it, so they count the same.
 import { wibDay } from "./course-meetings";
 import { notHandingIn, taskPutAway } from "./done";
 import { type Exam, type ExamPart, examAhead, examDated, examMarkOn, examParts, PERIOD_NEAR } from "./exams";
-import type { CalendarEvent, DoneEntry, ExamMark, SnoozeEntry, Task, TaskStatus } from "./models";
+import type { CalendarEvent, ClassSession, DoneEntry, ExamMark, SnoozeEntry, Task, TaskStatus } from "./models";
 import { taskNeed } from "./needs";
 import { dayStart, weekStart } from "./schedule";
 import { activeSnooze, type Snoozable, snoozable } from "./snooze";
@@ -21,8 +22,12 @@ export type PeriodState = "far" | "near" | "during";
 export type TodoItem =
   /** `putAway`: the Student said it's handed in another way or by the group (core/done.ts): listed, not counted. */
   | { kind: "task"; key: string; at: number | null; course: string; task: Task; status: TaskStatus; late: boolean; putAway: boolean }
-  /** `part` is null for an exam no system dates and with no exam week: it waits under "No date yet". */
-  | { kind: "exam"; key: string; at: number | null; course: string; exam: Exam; part: ExamPart | null; late: boolean }
+  /**
+   * `part` is null for an exam no system dates and with no exam week: it waits under "No date yet". `sittings`: SIX lists
+   * it more than once (a UTS or UAS in the class's slot in both weeks of the exam period): one row, `part` the first of
+   * them, these every SIX sitting still ahead, soonest first.
+   */
+  | { kind: "exam"; key: string; at: number | null; course: string; exam: Exam; part: ExamPart | null; late: boolean; sittings?: ClassSession[] }
   | { kind: "period"; key: string; at: number; course: null; examKind: "UTS" | "UAS"; week: CalendarEvent; exams: Exam[]; state: PeriodState };
 
 export type TodoGroup = "overdue" | "thisWeek" | "nextWeek" | "later" | "undated";
@@ -64,7 +69,12 @@ export function todoList({ tasks, exams, marks = [], handled = [], now }: TodoIn
       } else items.push({ kind: "exam", key: `exam:${exam.id}`, at: null, course: exam.courseCode, exam, part: null, late: false });
       continue;
     }
-    for (const part of examParts(exam, now, marks))
+    // SIX's sittings of one exam are one row, at the first: SIX hasn't said which week it sits.
+    const parts = examParts(exam, now, marks);
+    const six = parts.filter((part) => part.kind === "sitting" && part.source === "six");
+    const sittings = six.length > 1 ? exam.six.filter((session) => six.some((part) => part.id === `six:${session.id}`)) : undefined;
+    for (const part of parts) {
+      if (sittings && six.indexOf(part) > 0) continue;
       items.push({
         kind: "exam",
         key: `exam:${exam.id}:${part.id}`,
@@ -73,7 +83,9 @@ export function todoList({ tasks, exams, marks = [], handled = [], now }: TodoIn
         exam,
         part,
         late: part.kind === "takehome" && part.status === "overdue",
+        ...(sittings && part === six[0] ? { sittings } : {}),
       });
+    }
   }
   for (const { week, examKind, exams: undated } of periods.values()) {
     const state: PeriodState = week.start <= now ? "during" : week.start - now <= PERIOD_NEAR ? "near" : "far";
