@@ -38,27 +38,56 @@ type CourseColumns = Columns<keyof typeof COURSE_COLUMNS>;
 export type CurriculumStructure = Pick<Curriculum, "name" | "required" | "specializations" | "minors" | "catalog">;
 
 export function readCurriculumStructure(html: string | CheerioAPI, skipped?: Skipped): CurriculumStructure {
+  const read = structureParts(html, skipped);
+  return { name: read.name(), required: read.required(), specializations: read.specializations(), minors: read.minors(), catalog: read.catalog() };
+}
+
+/**
+ * The same, with the screens given a turn (`breathe`) between its four tabs: on the phone the 300 KB page, read at
+ * once, held the JS thread about 160 ms after it was parsed.
+ */
+export async function readCurriculumStructureInTurns(
+  html: string | CheerioAPI,
+  skipped: Skipped | undefined,
+  breathe: () => Promise<void>,
+): Promise<CurriculumStructure> {
+  const read = structureParts(html, skipped);
+  const name = read.name();
+  const required = read.required();
+  await breathe();
+  const specializations = read.specializations();
+  await breathe();
+  const minors = read.minors();
+  await breathe();
+  return { name, required, specializations, minors, catalog: read.catalog() };
+}
+
+/** Each part of the page, read when asked, in the page's order. */
+function structureParts(html: string | CheerioAPI, skipped?: Skipped) {
   const page = openPage(html, "curriculum structure", skipped);
   const pane = (id: string) => {
     const node = page.$(`.tab-pane#${id}`);
     if (node.length !== 1) changed(page, `the ${id} tab is missing`);
     return node;
   };
-  const name = textOf(page.$(".page-header h1").first());
-  if (!name) changed(page, "it has no title");
   return {
-    name,
-    required: readRequired(page, pane("wajib")),
-    specializations: page.skipped.each(
-      pane("spesialisasi")
-        .find(".panel")
-        .toArray()
-        .map((panel) => page.$(panel)),
-      panelTitle,
-      (panel) => readPackage(page, panel),
-    ),
-    minors: readMinors(page, pane("minor")),
-    catalog: readCatalog(page, pane("katalog")),
+    name: () => {
+      const name = textOf(page.$(".page-header h1").first());
+      if (!name) changed(page, "it has no title");
+      return name;
+    },
+    required: () => readRequired(page, pane("wajib")),
+    specializations: () =>
+      page.skipped.each(
+        pane("spesialisasi")
+          .find(".panel")
+          .toArray()
+          .map((panel) => page.$(panel)),
+        panelTitle,
+        (panel) => readPackage(page, panel),
+      ),
+    minors: () => readMinors(page, pane("minor")),
+    catalog: () => readCatalog(page, pane("katalog")),
   };
 }
 
