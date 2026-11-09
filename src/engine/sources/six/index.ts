@@ -22,7 +22,15 @@ export const six: Source<SixSession> = {
     // not SIX's home page to find it (a page, 2 s at SIX's pace). After a sign-in it may be another Student's.
     const saved = resumed ? context.get("six.student") : undefined;
     const known = { identity: saved ? { nim: saved.nim, studentId: saved.studentId, term: saved.term } : null, reading: null };
-    const client = new SixClient(context.transport, context.clock, session.cookie, context.userAgent, context.pace(new URL(SIX_ORIGIN).host), known, context.breathe);
+    const client = new SixClient(
+      context.transport,
+      context.clock,
+      session.cookie,
+      context.userAgent,
+      context.pace(new URL(SIX_ORIGIN).host),
+      known,
+      context.breathe,
+    );
     // One client, so every SIX page (status, timetable, records) waits in the same line.
     registerSixFeeds(context, client);
     registerSixRecordFeeds(context, client);
