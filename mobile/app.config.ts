@@ -38,7 +38,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     blockedPermissions: ["android.permission.RECORD_AUDIO", "android.permission.SYSTEM_ALERT_WINDOW"],
   },
-  ios: { supportsTablet: false, bundleIdentifier: "io.github.pablonification.edunexplus" },
+  // iOS (IOS.md): not shipped, built from a Mac to try on a phone. The demo is its own app there too.
+  ios: {
+    supportsTablet: false,
+    bundleIdentifier: demo ? "io.github.pablonification.edunexplus.demo" : "io.github.pablonification.edunexplus",
+    buildNumber: "1",
+    infoPlist: { ITSAppUsesNonExemptEncryption: false },
+  },
   // shapes: the datasets' schemas this build saves under (scripts/shapes-stamp.js); src/host/version.ts.
   extra: { version, demo, shapes: shapesStamp() },
   plugins: [
