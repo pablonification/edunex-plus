@@ -1,9 +1,10 @@
-// The web views' cookie store (android/…/WebCookiesModule.kt). Missing on a build without the
-// native module (a JS-only test run): reads give nothing and clears do nothing.
+// The web views' cookie store (android/…/WebCookiesModule.kt, ios/WebCookiesModule.swift). Missing on
+// a build without the native module (a JS-only test run): reads give nothing and clears do nothing.
 import { requireOptionalNativeModule } from "expo";
 
 interface WebCookiesModule {
-  get(url: string): string;
+  /** Android answers at once, iOS later (WebKit's store answers on its own time). */
+  get(url: string): string | Promise<string>;
   set(url: string, cookie: string): Promise<boolean>;
   clear(): Promise<boolean>;
   clearOrigin(origin: string): void;
@@ -12,8 +13,8 @@ interface WebCookiesModule {
 const native = requireOptionalNativeModule<WebCookiesModule>("WebCookies");
 
 /** The cookies a web view holds for `url`, by name. */
-export function cookiesFor(url: string): { name: string; value: string }[] {
-  const header = native?.get(url) ?? "";
+export async function cookiesFor(url: string): Promise<{ name: string; value: string }[]> {
+  const header = (await native?.get(url)) ?? "";
   return header
     .split(";")
     .map((part) => part.trim())

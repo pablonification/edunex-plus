@@ -329,7 +329,7 @@ async function makeHost(): Promise<Host> {
           clearOrigin(EDUNEX_WEB);
         } else {
           // SIX's session, as Tandai Hadir's page holds it: each of SIX's cookies, expired.
-          for (const cookie of cookiesFor(`${SIX_WEB}/`)) await setCookie(`${SIX_WEB}/`, `${cookie.name}=; Max-Age=0; Path=/; Secure`);
+          for (const cookie of await cookiesFor(`${SIX_WEB}/`)) await setCookie(`${SIX_WEB}/`, `${cookie.name}=; Max-Age=0; Path=/; Secure`);
         }
       },
       notificationsAllowed: async () => (await Notifications.getPermissionsAsync()).granted,
