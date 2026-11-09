@@ -13,6 +13,12 @@ import { type Host, host } from "./host";
 
 /** Events come in bursts during a sync: one drawing after they settle. */
 const SETTLE = 1_500;
+/**
+ * The app's first drawing of the widget waits for the start to settle: the widget already shows what the app knew when
+ * it was last left, and working out what it says (Beranda's reasoning, again) in the first second held the JS thread
+ * while Beranda and the tabs were drawing.
+ */
+const AFTER_START = 8_000;
 /** setTimeout's longest wait; a class further off is drawn by the next sync or Android's own update. */
 const LONGEST = 2 ** 31 - 1;
 
@@ -64,7 +70,7 @@ export function useWidgetUpdates(): void {
         clearTimeout(settle);
         settle = setTimeout(draw, SETTLE);
       });
-      draw();
+      settle = setTimeout(draw, AFTER_START);
     });
     // Leaving the app: the widget shows exactly what the app last knew.
     const leaving = AppState.addEventListener("change", (state) => {
