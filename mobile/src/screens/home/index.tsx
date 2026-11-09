@@ -7,7 +7,9 @@
 // courses are Kuliah's (round 3 took their list off Beranda), the now card's class is never a row under it. Everything
 // else (the whole list, the date and term, what changed) is one tap deeper, on "Perlu kamu urus"'s screen
 // (./needs-screen.tsx). The data and the reasoning are the desktop's (src/core/needs). While the first
-// read runs, each part stands in its own shape and fills in. Cards rise in a stagger the first time only.
+// read runs, each part stands in its own shape and fills in. Cards rise in a stagger the first time only. At a cold start
+// the first frame holds what's in view (the now card, Perlu kamu urus); what's under it comes right after (../../ui/parts.tsx),
+// so the splash doesn't wait for it.
 import { useLayoutEffect, useMemo } from "react";
 import { View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
@@ -18,6 +20,7 @@ import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { perfFirstData, usePerfDrawn } from "../../perf";
 import { ProblemBanner } from "../../shell/source-status";
 import { Rise } from "../../ui/expressive";
+import { Part } from "../../ui/parts";
 import { space } from "../../ui/theme";
 import { FirstScanCard, NotifyCard } from "./first-run";
 import { HomeBand, OVERLAP } from "./header";
@@ -50,10 +53,12 @@ export function Home() {
       <HomeBand />
       <View style={{ marginTop: -OVERLAP, paddingHorizontal: space[4], paddingBottom: space[4] }}>
         {context ? <Answers context={context} courses={courses} /> : <Loading />}
-        <View style={{ marginTop: space[4], gap: space[3] }}>
-          <ProblemBanner />
-          {timetableChanged && <SixPageNote datasets={["six.schedule"]} />}
-        </View>
+        <Part at={2}>
+          <View style={{ marginTop: space[4], gap: space[3] }}>
+            <ProblemBanner />
+            {timetableChanged && <SixPageNote datasets={["six.schedule"]} />}
+          </View>
+        </Part>
       </View>
     </>
   );
@@ -92,11 +97,15 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
         <FirstScanCard />
       </Rise>
       <Urus problems={found} needs={needs} due={due} courses={courses} />
-      <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
+      <Part at={1}>
+        <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
+      </Part>
       {/* The one ask, after what the Student came for: the now card and Perlu kamu urus stay the first things seen. */}
-      <Rise screen="home" index={9}>
-        <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
-      </Rise>
+      <Part at={2}>
+        <Rise screen="home" index={9}>
+          <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
+        </Rise>
+      </Part>
     </>
   );
 }

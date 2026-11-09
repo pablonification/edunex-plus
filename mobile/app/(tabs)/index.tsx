@@ -20,7 +20,7 @@ export default function Screen() {
   const nobody = useNobodyIn();
   usePerfFocused("home");
   return (
-    <TabClock>
+    <TabClock name="home">
       {focused && !nobody && <StatusBar style="light" />}
       <Page testID="screen.home" header={<HomeBar />} background={v.page} contentStyle={{ paddingHorizontal: 0, paddingTop: 0 }} {...pull}>
         <Home />

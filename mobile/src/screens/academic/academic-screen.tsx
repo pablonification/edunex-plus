@@ -29,6 +29,7 @@ import { Rise } from "../../ui/expressive";
 import { Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { Part } from "../../ui/parts";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, TOUCH, useTheme } from "../../ui/theme";
@@ -83,16 +84,19 @@ export function AcademicContent() {
           <Todos parts={todos} />
         </Rise>
       )}
-      <Rise screen="academic" index={2} style={{ marginTop: space[2] }}>
-        <Group testID="section.academic.screens">
-          <GradesRow record={record} />
-          <PlannerRow record={record} />
-          <CurriculumRow record={record} />
-          <KrsRow />
-          <BillsRow />
-          <DeadlinesRow />
-        </Group>
-      </Rise>
+      {/* Akademik's screens under the IPK: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
+      <Part at={1}>
+        <Rise screen="academic" index={2} style={{ marginTop: space[2] }}>
+          <Group testID="section.academic.screens">
+            <GradesRow record={record} />
+            <PlannerRow record={record} />
+            <CurriculumRow record={record} />
+            <KrsRow />
+            <BillsRow />
+            <DeadlinesRow />
+          </Group>
+        </Rise>
+      </Part>
     </View>
   );
 }

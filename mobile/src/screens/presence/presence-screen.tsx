@@ -21,6 +21,7 @@ import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
+import { Part } from "../../ui/parts";
 import { space, useTheme } from "../../ui/theme";
 import { CardGroup, SectionTitle } from "../../ui/v4-list";
 import { CourseRow } from "./course-row";
@@ -141,26 +142,29 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
                 />
               )
             : bands.map((band, i) => (
-                <Rise key={band[0]!.group} screen="courses" index={2 + i}>
-                  {/* The courses at risk under their name, said once for all of them; the rest need none. */}
-                  {i === 0 && bands.length > 1 && AT_RISK.includes(band[0]!.group) && <SectionTitle first>{t("mobile.kuliah.attention")}</SectionTitle>}
-                  <CardGroup>
-                    {band.map(({ group, items }, g) => (
-                      <View key={group} testID={`group.presence.${group}`}>
-                        {items.map((item, r) => (
-                          <CourseRow
-                            key={item.course.code}
-                            item={item}
-                            group={group}
-                            context={rows.context}
-                            first={g === 0 && r === 0}
-                            counted={counted(item.course.code)}
-                          />
-                        ))}
-                      </View>
-                    ))}
-                  </CardGroup>
-                </Rise>
+                // The courses past the first card: a part of their own on a first draw ahead (../../ui/parts.tsx).
+                <Part key={band[0]!.group} at={i === 0 ? 0 : 1}>
+                  <Rise screen="courses" index={2 + i}>
+                    {/* The courses at risk under their name, said once for all of them; the rest need none. */}
+                    {i === 0 && bands.length > 1 && AT_RISK.includes(band[0]!.group) && <SectionTitle first>{t("mobile.kuliah.attention")}</SectionTitle>}
+                    <CardGroup>
+                      {band.map(({ group, items }, g) => (
+                        <View key={group} testID={`group.presence.${group}`}>
+                          {items.map((item, r) => (
+                            <CourseRow
+                              key={item.course.code}
+                              item={item}
+                              group={group}
+                              context={rows.context}
+                              first={g === 0 && r === 0}
+                              counted={counted(item.course.code)}
+                            />
+                          ))}
+                        </View>
+                      ))}
+                    </CardGroup>
+                  </Rise>
+                </Part>
               ))}
         </View>
       )}

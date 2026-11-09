@@ -79,7 +79,8 @@ export function useCalendarSync() {
 }
 
 /** The events the calendar holds: from a week ago (a class moved last week is right there too) to the term's end. */
-function useCalendarItems() {
+/** What the events are made from, and a way to make them: worked out only by what needs them (a write, a share). */
+function useCalendarSources() {
   const lang = useLang();
   const today = useToday();
   const sources = {
@@ -95,17 +96,28 @@ function useCalendarItems() {
     "edunex.announcements": useDataset("edunex.announcements"),
     "itb.calendar": useDataset("itb.calendar"),
   };
+  const plan = () => calendarPlan((name) => sources[name as keyof typeof sources] as never, lang, today);
+  return { plan, inputs: [lang, today, ...Object.values(sources)] };
+}
+
+function useCalendarItems() {
+  const { plan, inputs } = useCalendarSources();
   // Worked out again only when one of the datasets the events come from changes (or the day, or the language).
-  const values = Object.values(sources);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: `sources` is new each render; its values are what count
-  return useMemo(() => calendarPlan((name) => sources[name as keyof typeof sources] as never, lang, today), [lang, today, ...values]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `plan` is new each render; `inputs` are what it reads
+  return useMemo(plan, inputs);
 }
 
 /**
  * Keeps the phone's calendar written while the setting is on: mounted with Jadwal's tab, which the app keeps mounted
- * all the time it runs. A write waits a moment after a change (a sync changes several datasets at once), and runs again on the next.
+ * all the time it runs. A write waits a moment after a change (a sync changes several datasets at once), and runs again
+ * on the next. Off, nothing is worked out: the term's events were made on Jadwal's first draw for nobody.
  */
 export function PhoneCalendarSync() {
+  const on = useSyncExternalStore(subscribe, current).on;
+  return on ? <Writer /> : null;
+}
+
+function Writer() {
   const sync = useSyncExternalStore(subscribe, current);
   const { items, key, span } = useCalendarItems();
   useEffect(() => {
@@ -132,8 +144,8 @@ export function PhoneCalendarSync() {
   return null;
 }
 
-/** "Bagikan .ics": the same events as a file, through Android's share sheet. */
+/** "Bagikan .ics": the same events as a file, through Android's share sheet, made when it's pressed. */
 export function useShareIcs() {
-  const { items } = useCalendarItems();
-  return () => shareIcs(items, Date.now());
+  const { plan } = useCalendarSources();
+  return () => shareIcs(plan().items, Date.now());
 }

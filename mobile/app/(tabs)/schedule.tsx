@@ -6,5 +6,5 @@ import { TabClock } from "../../src/ui/tab-clock";
 export default function Screen() {
   const pull = usePullToRefresh();
   usePerfFocused("schedule");
-  return <TabClock>{() => <ScheduleScreen {...pull} />}</TabClock>;
+  return <TabClock name="schedule">{() => <ScheduleScreen {...pull} />}</TabClock>;
 }
