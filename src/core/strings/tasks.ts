@@ -365,6 +365,10 @@ export const tasksStrings = {
   "examPage.openModules": { id: "Buka modul", en: "Open modules" },
   "examPage.items": { id: "{count} materi", en: { one: "{count} item", other: "{count} items" } },
   "examPage.noItems": { id: "Belum ada materi", en: "No materials yet" },
+  "examPage.emptyModules": {
+    id: "{count} modul belum ada materi",
+    en: { one: "{count} module with no materials yet", other: "{count} modules with no materials yet" },
+  },
   "examPage.official": { id: "Halaman resmi", en: "Official pages" },
   "examPage.seeSix": { id: "Jadwal di SIX", en: "Timetable in SIX" },
   "examPage.seeTask": { id: "Tugas di Edunex", en: "Task in Edunex" },
