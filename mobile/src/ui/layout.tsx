@@ -182,7 +182,10 @@ export function Page({
         keyboardShouldPersistTaps="handled"
         {...rest}
       >
-        {header ? <BarTitle.Provider value={titleOf(header)}>{children}</BarTitle.Provider> : children}
+        {/* The page's own parts follow the offset too: a big title fading out as the bar's fades in (a course's name). */}
+        <ScrollEdge.Provider value={offset}>
+          {header ? <BarTitle.Provider value={titleOf(header)}>{children}</BarTitle.Provider> : children}
+        </ScrollEdge.Provider>
       </Animated.ScrollView>
     </View>
   );
