@@ -3,7 +3,8 @@
 // own number; the joint class's after the class's own, under its own title) as white cards of rows on the page's grey.
 // A row: the module's number on a tile in the course's colour (neutral when it's empty, greyed with a lock when the
 // lecturer hasn't opened it), its title, what's in it ("1 tugas · 1 PDF") and at most one chip (open Tasks, else
-// "Baru" for this week's). Tapping one opens it as a screen of its own (ModulePage, ./module-screen.tsx,
+// "Minggu ini" on the module new material came to this week, or "Terbaru" on the newest when none did: round 3's
+// blind pair couldn't tell which module was this week's, and Edunex gives modules no dates). Tapping one opens it as a screen of its own (ModulePage, ./module-screen.tsx,
 // /course/<code>/module/<id>): its Tasks and materials, drawn the way Edunex draws them (notes and pictures in full, a
 // link by its own words, every other kind as a row doing the one thing that fits it), each with when it was posted,
 // and who posted them once under the list. Files download once and open in the phone's own apps (../../parts/files.tsx,
@@ -27,7 +28,7 @@ import { NoteIcon } from "phosphor-react-native/src/icons/Note";
 import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
 import { StackIcon } from "phosphor-react-native/src/icons/Stack";
 import { VideoCameraIcon } from "phosphor-react-native/src/icons/VideoCamera";
-import type { ComponentType, ReactNode } from "react";
+import { type ComponentType, type ReactNode, useMemo } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -50,7 +51,7 @@ import { space, useTheme } from "../../ui/theme";
 import { CourseTile, useCourseTile } from "../../ui/tile";
 import { CardGroup, ROW_INSET, SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
 import { TaskRow } from "../tasks/rows";
-import { contentsOf, countFacts, dayAndTime, type Entry, entrySlug, latest, WEEK } from "./contents";
+import { contentsOf, countFacts, currentEntry, dayAndTime, type Entry, entrySlug } from "./contents";
 
 /** The table of contents; picking a module opens its own screen (`onPick`). */
 export function ModulesTab({ page, onPick }: { page: CoursePage; onPick: (module: number) => void }) {
@@ -73,6 +74,8 @@ export function moduleEntry(entries: readonly Entry[], module: number): Entry | 
 
 function Contents({ entries, code, name, onPick }: { entries: Entry[]; code: string; name: string; onPick: (module: number) => void }) {
   const t = useT();
+  const now = useNow();
+  const current = useMemo(() => currentEntry(entries, now), [entries, now]);
   // The class's own, then the joint class's under its own title (both can have a Modul 1).
   const firstParent = entries.findIndex((e) => e.parent);
   const groups = (firstParent === -1 ? [entries] : [entries.slice(0, firstParent), entries.slice(firstParent)]).filter((group) => group.length > 0);
@@ -85,7 +88,15 @@ function Contents({ entries, code, name, onPick }: { entries: Entry[]; code: str
             {joint && <SectionTitle first={g === 0}>{t("course.jointClass")}</SectionTitle>}
             <CardGroup>
               {group.map((entry, i) => (
-                <ModuleRow key={entry.id} entry={entry} first={i === 0} code={code} name={name} onPick={onPick} />
+                <ModuleRow
+                  key={entry.id}
+                  entry={entry}
+                  first={i === 0}
+                  code={code}
+                  name={name}
+                  onPick={onPick}
+                  now={current?.entry === entry ? (current.thisWeek ? "week" : "latest") : null}
+                />
               ))}
             </CardGroup>
           </View>
@@ -106,7 +117,22 @@ function NumberTile({ no, ink, tint }: { no: string; ink: string; tint: string }
   );
 }
 
-function ModuleRow({ entry, first, code, name, onPick }: { entry: Entry; first: boolean; code: string; name: string; onPick: (module: number) => void }) {
+function ModuleRow({
+  entry,
+  first,
+  code,
+  name,
+  onPick,
+  now: mark,
+}: {
+  entry: Entry;
+  first: boolean;
+  code: string;
+  name: string;
+  onPick: (module: number) => void;
+  /** The module the course is on: new material this week, else the newest. */
+  now: "week" | "latest" | null;
+}) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -135,15 +161,16 @@ function ModuleRow({ entry, first, code, name, onPick }: { entry: Entry; first: 
   }
   const open = entry.tasks.filter((task) => isOpenTask(task, now)).length;
   const empty = entry.tasks.length + entry.materials.length === 0;
-  const fresh = !empty && (latest(entry) ?? 0) > now - WEEK;
-  const facts = empty ? [] : countFacts(t, entry);
+  const markText = mark === "week" ? t("course.thisWeek") : mark === "latest" ? t("course.latest") : null;
+  // With open Tasks the chip is theirs: the mark leads the meta line instead, so which module is now still shows.
+  const facts = [open > 0 ? markText : null, ...(empty ? [] : countFacts(t, entry))].filter((x): x is string => !!x);
   const tile = empty ? { ink: v.muted, tint: neutral.tint } : course;
-  // One chip: open Tasks first (something to do), else new this week.
+  // One chip: open Tasks first (something to do), else the module the course is on.
   const status =
     open > 0 ? (
       <StatusChip tone="amber">{t("course.openTasks", { count: open })}</StatusChip>
-    ) : fresh ? (
-      <StatusChip tone="brand">{t("course.new")}</StatusChip>
+    ) : markText ? (
+      <StatusChip tone="brand">{markText}</StatusChip>
     ) : undefined;
   return (
     <TileRow
@@ -154,7 +181,7 @@ function ModuleRow({ entry, first, code, name, onPick }: { entry: Entry; first: 
       meta={facts.join(" · ") || undefined}
       status={status}
       onPress={() => onPick(Number(entry.id))}
-      label={factsLabel(label, ...facts, entry.title, whose, open > 0 ? t("course.openTasks", { count: open }) : null, fresh ? t("course.new") : null)}
+      label={factsLabel(label, ...facts, entry.title, whose, open > 0 ? t("course.openTasks", { count: open }) : null, open > 0 ? null : markText)}
     />
   );
 }
