@@ -48,11 +48,8 @@ import { MeetingsTab } from "./meetings";
 import { ModulesTab } from "./modules";
 import { MeetingNow, useRecordInEdunexUrl } from "./now";
 import { SaveOfflineProgress, useSaveOfflineChoice } from "./save-offline";
+import { TABS, type Tab, useVisitTabs } from "./tab-order";
 
-const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
-type Tab = (typeof TABS)[number];
-/** A course at risk leads with its meetings (Pertemuan: which were missed, which are left), then the rest in order. */
-const AT_RISK_TABS: readonly Tab[] = ["meetings", "modules", "tasks", "grades", "announcements"];
 /** The tabs' names: the desktop's, but "Tugas" alone, so five fit a phone's width better. */
 const TAB_LABEL: Record<Tab, StringKey> = {
   modules: "course.tab.modules",
@@ -81,10 +78,10 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const [tabsAt, setTabsAt] = useState(0);
   const offset = useRef(0);
-  // The course's attendance, once SIX has a count: it decides the tabs' order (Pertemuan first for a course at risk).
+  // The course's attendance, once SIX has a count: it decides the tabs' order (Pertemuan first for a course at risk),
+  // once per visit (./tab-order.ts), so a count read later never moves the page to another tab.
   const item = page && rows?.attendance.sixConnected ? rows.attendance.courses.find((c) => c.course.code === page.course.code) : undefined;
-  const state = item?.health.state;
-  const order = state === "out" || state === "none" || state === "risk" || state === "missed" ? AT_RISK_TABS : TABS;
+  const order = useVisitTabs(code, item?.health.state, Boolean(page) && rows !== undefined);
   const current: Tab = (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : order[0]!;
   usePerfDrawn(page !== undefined);
   // A tab tapped: its tab bar comes to the top, so what the tab holds is in view and not below the course's header.
