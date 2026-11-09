@@ -16,7 +16,7 @@ import { type SignInWindows, signInToBoth } from "../../../src/desktop/signin-bo
 import type { PlannedAlert } from "../../../src/engine/alerts/detector";
 import { AppLog } from "../../../src/engine/app-log";
 import { type Clock, systemClock } from "../../../src/engine/clock";
-import { createEngine, type Engine } from "../../../src/engine/engine";
+import { createEngine, type Engine, type StartLater } from "../../../src/engine/engine";
 import type { Transport } from "../../../src/engine/http/transport";
 import type { Storage, Vault } from "../../../src/engine/store/storage";
 import { clearOrigin, clearWebData, cookiesFor, setCookie } from "../../modules/web-cookies";
@@ -49,8 +49,11 @@ export interface Host {
   reminders: PhoneReminders;
   /** Whether the engine's feeds are running (the screens started it, or a background sync). */
   running(): boolean;
-  /** Starts the feeds once; later calls do nothing. */
-  start(): void;
+  /**
+   * Starts the feeds once; later calls do nothing. `inFront`: the screens just drew (app.ready), so what the start can
+   * leave for later waits a few seconds and goes a slice at a time (START_LATER); a background sync's start does it all.
+   */
+  start(inFront?: boolean): void;
   stop(): void;
 }
 
@@ -183,8 +186,9 @@ async function makeHost(): Promise<Host> {
     },
   });
   const engine = createEngine({
-    // The demo says on Android's log what its sync reads (../perf.ts perfSync, W2's numbers); the real app doesn't.
-    transport: DEMO ? traced(world.transport) : world.transport,
+    // The demo says on Android's log what its sync reads (../perf.ts perfSync, W2's numbers); the real app doesn't. Both
+    // name the site that just answered, for a stall right after (its page being read).
+    transport: answered(DEMO ? traced(world.transport) : world.transport),
     clock: world.clock,
     storage: timedStorage,
     vault: timedVault,
@@ -273,10 +277,10 @@ async function makeHost(): Promise<Host> {
   });
 
   let started = false;
-  const start = () => {
+  const start = (inFront = false) => {
     if (started) return;
     started = true;
-    engine.start();
+    engine.start(inFront ? startLater : undefined);
   };
   const stop = () => {
     if (!started) return;
@@ -309,7 +313,7 @@ async function makeHost(): Promise<Host> {
       ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId), openPage: (url) => ui.openPage(url) },
       log,
       demo: DEMO,
-      ready: () => start(),
+      ready: () => start(true),
       forgetEverything: async () => {
         if (world.storage instanceof PhoneStorage) world.storage.clear();
         // Edunex's files the app downloaded, and everything ITB's and SIX's pages kept.
@@ -369,6 +373,54 @@ async function makeHost(): Promise<Host> {
     clockOffset: world.clockOffset(),
   };
   return { engine, api, ui, reminders, clockOffset: world.clockOffset, running: () => started, start, stop };
+}
+
+/**
+ * How long after app.ready each part of the engine's start that can wait does (ms): the feeds go at once (the network is
+ * the long wait), the rest once the screens' first seconds are over, each in a moment the JS thread is idle. Run with
+ * the screens drawing, the alerts' plan, its booking with Android and the restamp held a mid-range phone's thread
+ * 164-170 ms right after the start ("[perf] js-block … app.ready").
+ */
+const START_LATER: Record<Parameters<StartLater>[0], number> = { alerts: 8_000, restamp: 20_000, updates: 30_000 };
+
+/** The engine's start's later slices, each named for a stall right after ("engine: alerts"). */
+const startLater: StartLater = (what, run) => {
+  setTimeout(
+    () =>
+      whenIdle(() => {
+        perfDoing(`engine: ${what}`);
+        run();
+      }),
+    START_LATER[what],
+  );
+};
+
+/** `run` once the JS thread is idle (at most 2 s away), or at once where there's no idle callback. */
+function whenIdle(run: () => void): void {
+  const g = globalThis as { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number };
+  if (g.requestIdleCallback) g.requestIdleCallback(run, { timeout: 2_000 });
+  else run();
+}
+
+/** The sites by name, never by address: Android's log has no addresses of the real app's. */
+function siteOf(url: string): string {
+  const host = url.replace(/^https?:\/\//, "").replace(/[/:?].*$/, "");
+  if (host.includes("six.")) return "six";
+  if (host.includes("edunex")) return "edunex";
+  if (host.endsWith("itb.ac.id")) return "itb";
+  if (host.endsWith("github.com")) return "github";
+  return "a site";
+}
+
+/** Each answer names its site as what the JS thread does next (../perf.ts): reading its page is the stall after it. */
+function answered(transport: Transport): Transport {
+  return {
+    async request(request) {
+      const response = await transport.request(request);
+      perfDoing(`${siteOf(request.url)}'s answer`);
+      return response;
+    },
+  };
 }
 
 /** `promise`, with `done` called as it settles. */

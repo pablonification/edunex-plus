@@ -101,11 +101,18 @@ export interface EngineDeps {
   yieldToScreens?(): Promise<void>;
 }
 
+/**
+ * What a start can leave for later, each a slice of its own: working the timed alerts out (and booking them ahead), the
+ * daily update check, and saving the datasets again under this build's stamp. `run` when it suits the screens; never
+ * after a stop. The phone, where the engine shares the screens' thread: its start's first seconds are the screens'.
+ */
+export type StartLater = (what: "alerts" | "updates" | "restamp", run: () => void) => void;
+
 export interface Engine {
   /** Loads saved data and sessions from disk. No network. */
   load(): Promise<void>;
-  /** Starts the feeds. */
-  start(): void;
+  /** Starts the feeds at once; the rest of the start now too, or through `later` (StartLater). */
+  start(later?: StartLater): void;
   stop(): void;
   snapshot(): Snapshot;
   /** Starts a session from what the source's sign-in captured (Edunex: { token }, SIX: { cookie }). */
@@ -363,6 +370,19 @@ export function createEngine(deps: EngineDeps): Engine {
     : null;
   const sourceOf = (feed: string) => feed.split(".")[0] as SourceId;
   const generation = (source: SourceId) => generations.get(source) ?? 0;
+
+  /** Each start's number: a slice it left for later (StartLater) runs only within it. */
+  let starts = 0;
+  /** What the current start left for later and hasn't run yet. */
+  const waiting = new Map<Parameters<StartLater>[0], () => void>();
+  /** Runs now what the start left for later as `what`, if it's still waiting (alerts asked for before their turn). */
+  function startNow(what: Parameters<StartLater>[0]): boolean {
+    const work = waiting.get(what);
+    if (!work) return false;
+    waiting.delete(what);
+    work();
+    return true;
+  }
 
   async function saveState(): Promise<void> {
     await storage.write(
@@ -696,16 +716,29 @@ export function createEngine(deps: EngineDeps): Engine {
       }
     },
 
-    start() {
+    start(later) {
+      const run = ++starts;
       scheduler.start(deps.startDueOnly ? (spec) => freshFor(spec.name) : undefined);
-      alerts.start();
-      updates?.start();
-      // After an update: what loaded from the old build's files, checked, is saved with this build's stamp. A write
-      // that fails costs nothing but the same check at the next start.
-      void store.restamp().catch(() => undefined);
+      const slice = (what: Parameters<StartLater>[0], work: () => void) => {
+        if (!later) return work();
+        waiting.set(what, work);
+        later(what, () => {
+          if (run !== starts || waiting.get(what) !== work) return;
+          waiting.delete(what);
+          work();
+        });
+      };
+      slice("alerts", () => alerts.start());
+      slice("updates", () => updates?.start());
+      // After an update: what loaded from the old build's files, checked, is saved with this build's stamp, a file at
+      // a time with the screens' turn between (SIX's catalog alone is 300 KB of JSON). A write that fails costs nothing
+      // but the same check at the next start.
+      slice("restamp", () => void store.restamp(deps.yieldToScreens).catch(() => undefined));
     },
 
     stop() {
+      starts++;
+      waiting.clear();
       scheduler.stop();
       alerts.stop();
       updates?.stop();
@@ -805,10 +838,12 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     async refreshDue() {
+      startNow("alerts");
       await scheduler.runNow((name) => freshFor(name) === 0);
     },
 
     flushAlerts() {
+      startNow("alerts");
       alerts.flushNow();
     },
 
@@ -838,7 +873,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     planAlerts() {
-      alerts.planNow();
+      if (!startNow("alerts")) alerts.planNow();
     },
 
     async checkForUpdates() {
