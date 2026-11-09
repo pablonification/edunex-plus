@@ -35,7 +35,7 @@ import { PhoneStorage } from "./storage";
 import { phoneTaskHandlers } from "./tasks";
 import { phoneTransport } from "./transport";
 import { PhoneVault } from "./vault";
-import { APP_VERSION, DEMO, R3_GUARD } from "./version";
+import { APP_VERSION, DEMO, R3_GUARD, SHAPES } from "./version";
 
 export interface Host {
   engine: Engine;
@@ -227,11 +227,14 @@ async function makeHost(): Promise<Host> {
     os: () => `Android ${Platform.Version}`,
     // Opened many times a day: each start shows what's saved and reads only what's due (W2 in PROGRESS.md).
     startDueOnly: true,
+    // What this build saved loads without its schemas checked again: checking them all was most of the start's wait.
+    shapes: SHAPES,
   });
-  // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).
-  const firstRun = (await world.storage.read("state.json")) === null;
   const loading = Date.now();
-  await engine.load();
+  // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).
+  // Asked beside the engine's own reads, not before them: one trip less to the disk ahead of the first frame.
+  const [saved] = await Promise.all([world.storage.read("state.json"), engine.load()]);
+  const firstRun = saved === null;
   const loadEnded = Date.now();
   sessions?.begin(engine.snapshot().statuses);
   if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
