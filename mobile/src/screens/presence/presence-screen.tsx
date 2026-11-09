@@ -20,6 +20,7 @@ import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
+import { Part } from "../../ui/parts";
 import { space, useTheme } from "../../ui/theme";
 import { CardGroup, SectionTitle } from "../../ui/v4-list";
 import { CourseRow } from "./course-row";
@@ -139,25 +140,28 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
                 />
               )
             : bands.map((band, i) => (
-                <Rise key={band[0]!.group} screen="courses" index={2 + i}>
-                  {/* With both bands, each under its name (said once for all its courses): never the rest under "Perlu perhatian". */}
-                  {bands.length > 1 && (
-                    <View style={i > 0 ? { marginTop: space[2] } : undefined}>
-                      <SectionTitle first>
-                        {t(i === 0 ? "mobile.kuliah.attention" : band.every((g) => CALM.includes(g.group)) ? "mobile.kuliah.calm" : "mobile.kuliah.rest")}
-                      </SectionTitle>
-                    </View>
-                  )}
-                  <CardGroup>
-                    {band.map(({ group, items }, g) => (
-                      <View key={group} testID={`group.presence.${group}`}>
-                        {items.map((item, r) => (
-                          <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={g === 0 && r === 0} />
-                        ))}
+                // The courses past the first card: a part of their own on a first draw ahead (../../ui/parts.tsx).
+                <Part key={band[0]!.group} at={i === 0 ? 0 : 1}>
+                  <Rise screen="courses" index={2 + i}>
+                    {/* With both bands, each under its name (said once for all its courses): never the rest under "Perlu perhatian". */}
+                    {bands.length > 1 && (
+                      <View style={i > 0 ? { marginTop: space[2] } : undefined}>
+                        <SectionTitle first>
+                          {t(i === 0 ? "mobile.kuliah.attention" : band.every((g) => CALM.includes(g.group)) ? "mobile.kuliah.calm" : "mobile.kuliah.rest")}
+                        </SectionTitle>
                       </View>
-                    ))}
-                  </CardGroup>
-                </Rise>
+                    )}
+                    <CardGroup>
+                      {band.map(({ group, items }, g) => (
+                        <View key={group} testID={`group.presence.${group}`}>
+                          {items.map((item, r) => (
+                            <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={g === 0 && r === 0} />
+                          ))}
+                        </View>
+                      ))}
+                    </CardGroup>
+                  </Rise>
+                </Part>
               ))}
         </View>
       )}

@@ -31,6 +31,7 @@ import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { useReduceMotion } from "../../ui/motion";
+import { Part } from "../../ui/parts";
 import { Text } from "../../ui/text";
 import { space, TOUCH, useTheme } from "../../ui/theme";
 import { PhoneCalendarSync, useCalendarSync, useShareIcs } from "./calendar-sync";
@@ -146,24 +147,27 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
             />
           </Rise>
           <Notes six={input.six} />
-          <DayScroll
-            day={day}
-            today={today}
-            direction={direction}
-            onSwipe={(by) => pick(shiftDay(picked, by), by)}
-            onRefresh={onRefresh}
-            refreshing={refreshing}
-          >
-            <DayView
+          {/* The day's hours under the strip: a part of its own on a first draw ahead (../../ui/parts.tsx). */}
+          <Part at={1} fallback={<View style={{ flex: 1 }} />}>
+            <DayScroll
               day={day}
-              courses={courses}
-              six={input.six}
-              free={free}
-              onPick={open}
-              next={nextStart}
-              onNext={nextStart === null ? undefined : () => pick(wibDay(nextStart), 1)}
-            />
-          </DayScroll>
+              today={today}
+              direction={direction}
+              onSwipe={(by) => pick(shiftDay(picked, by), by)}
+              onRefresh={onRefresh}
+              refreshing={refreshing}
+            >
+              <DayView
+                day={day}
+                courses={courses}
+                six={input.six}
+                free={free}
+                onPick={open}
+                next={nextStart}
+                onNext={nextStart === null ? undefined : () => pick(wibDay(nextStart), 1)}
+              />
+            </DayScroll>
+          </Part>
         </>
       )}
       {sheets}

@@ -11,9 +11,11 @@ import { AppStore, StoreProvider, useSettings } from "../../../src/app/store";
 import type { Event } from "../../../src/core/contract";
 import { scheduleBackgroundSync } from "../host/background";
 import { type Host, host } from "../host/host";
+import { perfDoing } from "../perf";
 import { JS_START } from "../start";
 import { ThemeContext, themeFor } from "../ui/theme";
 import { demoClock } from "./demo-clock";
+import { markFirstFrameShown } from "./first-frame";
 
 interface Booted {
   host: Host;
@@ -108,6 +110,10 @@ function Ready({ bridge }: { bridge: Bridge }) {
       // Where the start's time went, from the JS start: the load asked for, the engine loaded, the store made, drawn.
       console.info(`[startup] steps load asked +${steps.asked}, host +${steps.host}, store +${steps.store}, shown +${since()}`);
       void SplashScreen.hideAsync();
+      // What waited for the first frame (the tabs' badges, Beranda's lower parts) draws from the next task on.
+      markFirstFrameShown();
+      // The engine's start: a stall right after is its first steps (the feeds, the reminders), not a screen's.
+      perfDoing("app.ready");
       void bridge.invoke("app.ready", {}).catch(() => undefined);
       void scheduleBackgroundSync().catch(() => undefined);
     });

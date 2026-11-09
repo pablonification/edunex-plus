@@ -8,5 +8,5 @@ import { TabClock } from "../../src/ui/tab-clock";
 export default function Screen() {
   const pull = usePullToRefresh();
   usePerfFocused("courses");
-  return <TabClock>{() => <CoursesScreen {...pull} />}</TabClock>;
+  return <TabClock name="courses">{() => <CoursesScreen {...pull} />}</TabClock>;
 }

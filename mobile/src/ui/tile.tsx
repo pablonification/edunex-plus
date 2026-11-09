@@ -33,35 +33,38 @@ import { useTheme } from "./theme";
 
 type Glyph = ComponentType<{ size?: number; color?: string; weight?: "duotone" | "fill" | "regular"; duotoneOpacity?: number }>;
 
-/** What a course is about, by words in its name (Indonesian and English), first match wins. */
-const BY_NAME: readonly [RegExp, Glyph][] = [
-  [/tugas akhir|skripsi|proposal|thesis|capstone/i, GraduationCapIcon],
-  [/transport|infrastruktur|infrastructure|jalan|rel\b/i, TrainIcon],
-  [/komunikasi|pemasaran|marketing|communication|media/i, MegaphoneIcon],
-  [/ekonomi|economic|keuangan|finance|bisnis|business/i, ChartLineUpIcon],
-  [/akuntansi|accounting|bank/i, BankIcon],
-  [/perencanaan|planning|kota|urban|wilayah|regional/i, MapTrifoldIcon],
-  [/arsitektur|architecture|bangunan|building/i, BuildingsIcon],
-  [/jembatan|struktur|structur|sipil|civil/i, BridgeIcon],
-  [/program|software|perangkat lunak|informatika|informatics|data/i, CodeIcon],
-  [/elektro|electric|listrik|daya|power/i, LightningIcon],
-  [/komputer|computer|sistem digital|embedded|mikro/i, CpuIcon],
-  [/kimia|chemi|biologi|biolog|lab/i, FlaskIcon],
-  [/fisika|physic|kuantum|quantum/i, AtomIcon],
-  [/matematika|math|kalkulus|calculus|statistik|statistic/i, CalculatorIcon],
-  [/lingkungan|environment|hutan|forest|tanaman|plant/i, LeafIcon],
-  [/kesehatan|health|medis|medic|farmasi|pharma/i, HeartbeatIcon],
-  [/hukum|law|etika|ethic/i, ScalesIcon],
-  [/desain|design|seni|art|rupa/i, PaintBrushIcon],
-  [/gambar|drawing|teknik|engineering|metode|method/i, PencilRulerIcon],
-  [/manajemen|management|kewirausahaan|entrepreneur/i, BriefcaseIcon],
-  [/sosial|social|masyarakat|society|psikolog|psycholog/i, UsersIcon],
-  [/bahasa|language|inggris|english|indonesia|global/i, GlobeIcon],
+/**
+ * What a course is about, by words in its name (Indonesian and English), first match wins. Each glyph behind a function,
+ * so only the term's few load, when a tile first draws (../ui/icons.tsx says why).
+ */
+const BY_NAME: readonly [RegExp, () => Glyph][] = [
+  [/tugas akhir|skripsi|proposal|thesis|capstone/i, () => GraduationCapIcon],
+  [/transport|infrastruktur|infrastructure|jalan|rel\b/i, () => TrainIcon],
+  [/komunikasi|pemasaran|marketing|communication|media/i, () => MegaphoneIcon],
+  [/ekonomi|economic|keuangan|finance|bisnis|business/i, () => ChartLineUpIcon],
+  [/akuntansi|accounting|bank/i, () => BankIcon],
+  [/perencanaan|planning|kota|urban|wilayah|regional/i, () => MapTrifoldIcon],
+  [/arsitektur|architecture|bangunan|building/i, () => BuildingsIcon],
+  [/jembatan|struktur|structur|sipil|civil/i, () => BridgeIcon],
+  [/program|software|perangkat lunak|informatika|informatics|data/i, () => CodeIcon],
+  [/elektro|electric|listrik|daya|power/i, () => LightningIcon],
+  [/komputer|computer|sistem digital|embedded|mikro/i, () => CpuIcon],
+  [/kimia|chemi|biologi|biolog|lab/i, () => FlaskIcon],
+  [/fisika|physic|kuantum|quantum/i, () => AtomIcon],
+  [/matematika|math|kalkulus|calculus|statistik|statistic/i, () => CalculatorIcon],
+  [/lingkungan|environment|hutan|forest|tanaman|plant/i, () => LeafIcon],
+  [/kesehatan|health|medis|medic|farmasi|pharma/i, () => HeartbeatIcon],
+  [/hukum|law|etika|ethic/i, () => ScalesIcon],
+  [/desain|design|seni|art|rupa/i, () => PaintBrushIcon],
+  [/gambar|drawing|teknik|engineering|metode|method/i, () => PencilRulerIcon],
+  [/manajemen|management|kewirausahaan|entrepreneur/i, () => BriefcaseIcon],
+  [/sosial|social|masyarakat|society|psikolog|psycholog/i, () => UsersIcon],
+  [/bahasa|language|inggris|english|indonesia|global/i, () => GlobeIcon],
 ];
 
 /** The tile's glyph for a course: by its name, else the open book. */
 export function courseGlyph(name: string | undefined): Glyph {
-  return (name && BY_NAME.find(([words]) => words.test(name))?.[1]) || BookOpenIcon;
+  return (name && BY_NAME.find(([words]) => words.test(name))?.[1]()) || BookOpenIcon;
 }
 
 /** The course's ink and tint, from its colour (the same the picker set). */

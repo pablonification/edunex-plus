@@ -208,13 +208,32 @@ function useShownAtMount(): boolean {
   return shown;
 }
 
-/** Screens whose cards have risen once in this run: on a later showing (a tab switch) they're just there. */
-const risen = new Set<string>();
+/**
+ * When each screen's cards first rose in this run (never, drawn out of sight: -Infinity): on a later showing (a tab
+ * switch) they're just there.
+ */
+const risen = new Map<string, number>();
+/** A part drawn this long after its screen's first is just there: it's a later showing, not the first one. */
+const RISE_WINDOW = 1_500;
+
+/** How long ago `screen`'s first part rose, for a part now mounting that rises with it; null when it's just there. */
+function risingSince(screen: string, shown: boolean): number | null {
+  const now = Date.now();
+  const first = risen.get(screen);
+  if (first === undefined) {
+    risen.set(screen, shown ? now : Number.NEGATIVE_INFINITY);
+    return shown ? 0 : null;
+  }
+  const since = now - first;
+  return since < RISE_WINDOW ? since : null;
+}
 
 /**
  * A screen's part rising into place on its first showing, `index` steps after the first (55 ms apart, on M3
  * Expressive's spring); just there with Remove animations, and the next time `screen` is drawn in this run. (A fade in
- * its place was now and then left at nothing on the emulator with animations off: Kuliah drawn blank.)
+ * its place was now and then left at nothing on the emulator with animations off: Kuliah drawn blank.) A part drawn a
+ * moment after the rest (./parts.tsx: Beranda's lower parts come after its first frame) still rises in the same
+ * stagger, its delay counted from the screen's first part.
  */
 export function Rise({ screen, index, style, children }: { screen: string; index: number; style?: StyleProp<ViewStyle>; children: ReactNode }) {
   const still = useReduceMotion();
@@ -223,14 +242,11 @@ export function Rise({ screen, index, style, children }: { screen: string; index
   // invisible (Akademik's rows, Jadwal's days, on CI's emulator and with "Remove animations"). A hidden tab's parts
   // are simply there when it's first shown.
   const shown = useShownAtMount();
-  const [first] = useState(() => shown && !risen.has(screen));
-  useEffect(() => {
-    risen.add(screen);
-  }, [screen]);
+  const [since] = useState(() => risingSince(screen, shown));
   const entering =
-    !first || still
+    since === null || still
       ? undefined
-      : FadeInDown.delay(80 + index * 55)
+      : FadeInDown.delay(Math.max(0, 80 + index * 55 - since))
           .springify()
           .damping(16)
           .stiffness(170);
