@@ -8,12 +8,13 @@ import "./src/host/polyfills";
 import "./src/host/background";
 import "expo-router/entry";
 import type { ReactNode } from "react";
-import { AppRegistry } from "react-native";
+import { AppRegistry, Platform } from "react-native";
 import { registerWidgetTaskHandler } from "react-native-android-widget";
 import { startBoot } from "./src/shell/boot";
 import { widgetTask } from "./src/widget/draw";
 
-registerWidgetTaskHandler(widgetTask);
+// Android only: an iPhone has no home-screen widget of this app (a WidgetKit one would be its own Swift code).
+if (Platform.OS === "android") registerWidgetTaskHandler(widgetTask);
 
 // Android opens the app's window (React Native's runApplication; never a background sync's or a widget's start, which
 // have none): Beranda's saved data starts loading now, its disk reads overlapping Expo Router's own start, rather than

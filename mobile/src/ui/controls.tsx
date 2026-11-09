@@ -4,7 +4,7 @@
 // (Android's ripple, then the work's spinner).
 import { requireNativeView, requireOptionalNativeModule } from "expo";
 import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { Animated, Platform, Pressable, ScrollView, StyleSheet, Switch as SystemSwitch, View, type ViewStyle } from "react-native";
 import { Spinner } from "./display";
 import { Icons } from "./icons";
 import { BUSY_OPACITY } from "./palette";
@@ -165,7 +165,35 @@ const NativeSwitch: ComponentType<NativeSwitchProps> | null = requireOptionalNat
  * moves it at once and asks `onChange`; a value the screen didn't take (an error) puts it back.
  */
 export function Switch(props: { value: boolean; onChange: (value: boolean) => void; label: string; testID?: string; disabled?: boolean }) {
+  if (Platform.OS === "ios") return <IosSwitch {...props} />;
   return NativeSwitch ? <MaterialSwitch {...props} Native={NativeSwitch} /> : <DrawnSwitch {...props} />;
+}
+
+/** iOS's own switch (UISwitch, React Native's Switch): MaterialSwitch is Android's only. */
+function IosSwitch({
+  value,
+  onChange,
+  label,
+  testID,
+  disabled,
+}: {
+  value: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+  testID?: string;
+  disabled?: boolean;
+}) {
+  const c = useTheme().color;
+  return (
+    <SystemSwitch
+      testID={testID}
+      value={value}
+      onValueChange={onChange}
+      disabled={disabled}
+      accessibilityLabel={label}
+      trackColor={{ true: c.primary, false: c.surfaceContainerHighest }}
+    />
+  );
 }
 
 function MaterialSwitch({
