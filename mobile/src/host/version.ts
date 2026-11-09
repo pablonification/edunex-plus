@@ -6,3 +6,8 @@ const extra = (Constants.expoConfig?.extra ?? {}) as { version?: string };
 export const APP_VERSION: string = extra.version ?? "0.0.0";
 /** A demo build: the pretend Edunex and SIX with a made-up student (app.config.ts). */
 export const DEMO = process.env.EXPO_PUBLIC_DEMO === "1";
+/**
+ * A QA build for a real Student's account (EXPO_PUBLIC_R3_GUARD=1 when bundling): reads only, never a write to Edunex,
+ * SIX or Microsoft (./guard.ts), and the "[session]" lines on Android's log. Unset in the release Students get.
+ */
+export const R3_GUARD = process.env.EXPO_PUBLIC_R3_GUARD === "1";
