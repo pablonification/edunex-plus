@@ -23,11 +23,13 @@ import { useNav } from "../../nav";
 import { TabHeader, usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
 import { CardSlice, SectionTitle } from "../../ui/card-list";
 import { Button, Chip, ChipRow, Segmented } from "../../ui/controls";
-import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
+import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { GroupTile } from "../../ui/layout";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
+import { CourseTile } from "../../ui/tile";
+import { shortName } from "../home/parts";
 import { PastExamRow } from "./exam-rows";
 import { inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
 import { PutOff, TaskRow, TodoRow } from "./rows";
@@ -155,8 +157,11 @@ function tasksView(
           title: t(group.title),
           first: lines.length === 0,
         });
-        if (hero && group === heroGroup) lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, { type: "gap", key: "gap-hero", size: 6 });
-        lines.push(...todoCard(group.items.filter((item) => item !== hero)));
+        const others = group.items.filter((item) => item !== hero);
+        // The gap under the big card only when its group goes on: the next group's title brings its own (one even gap).
+        if (hero && group === heroGroup)
+          lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, ...(others.length ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []));
+        lines.push(...todoCard(others));
         if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
       }
     if (examsNoSix) lines.push({ type: "examsNoSix", key: "examsNoSix" });
@@ -274,11 +279,12 @@ const Header = memo(function Header({
             <Chip testID="chip.course.all" selected={course === null} onPress={() => onCourse(null)}>
               {t("tasks.filter.all")}
             </Chip>
+            {/* The course as its rows show it (its tile), by a name a student says, short ("Ekonomi dan Inovasi"). */}
             {courses.map((c) => (
               <Chip key={c.code} testID={`chip.course.${c.code}`} label={`${c.code} ${c.name}`} selected={course === c.code} onPress={() => onCourse(c.code)}>
-                <CourseDot color={c.color} size={8} />
+                <CourseTile code={c.code} name={c.name} size={20} />
                 <Text size="labelLarge" tone={course === c.code ? "onSecondaryContainer" : "muted"}>
-                  {c.code}
+                  {shortName(c.name)}
                 </Text>
               </Chip>
             ))}

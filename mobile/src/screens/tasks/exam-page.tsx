@@ -21,7 +21,6 @@ import type { TaskStatus } from "../../../../src/core/models";
 import { phoneItems } from "../../../../src/core/phone-calendar";
 import { edunexTaskUrl, taskStatus } from "../../../../src/core/tasks";
 import { useNav } from "../../nav";
-import { dayAt } from "../../parts/day-word";
 import { LecturerFile } from "../../parts/files";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
@@ -489,7 +488,7 @@ function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
             onPress={() => go({ screen: "task", taskId: task.id })}
             leading={<IconTile icon={(color) => <Icons.FileText size={22} color={color} />} />}
             title={task.title}
-            meta={factsLabel(t("exam.takeHome"), task.dueAt !== null ? dayAt(dayLabel(f, task.dueAt), f.time(task.dueAt)) : t("exam.noDate"))}
+            meta={factsLabel(t("exam.takeHome"), task.dueAt !== null ? f.dueLabel(task.dueAt) : t("exam.noDate"))}
             trailing={pill ? <Pill tone={pill}>{t(`taskStatus.${status}`)}</Pill> : undefined}
           />
         );

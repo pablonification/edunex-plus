@@ -21,6 +21,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import type { Report, Update } from "./save";
 
+// Presensi and Kehadiran read as one thing to a student: on the phone each is named by what it warns about (phoneWording).
 const ALERT_ROWS: { group: AlertGroup; label: StringKey; hint: StringKey; six?: true }[] = [
   { group: "presence", label: "settings.alerts.presence", hint: "settings.alerts.presenceHint" },
   { group: "attendanceRisk", label: "settings.alerts.attendanceRisk", hint: "settings.alerts.attendanceRiskHint", six: true },

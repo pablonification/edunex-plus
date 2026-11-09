@@ -2,7 +2,7 @@
   {
     "key": "alert.newTask.body",
     "desktop": "{title}",
-    "phone": "{title} · tenggat {dateId} {time}"
+    "phone": "{title} · tenggat {dateId}, {time}"
   },
   {
     "key": "alert.test.body",
@@ -68,11 +68,6 @@
     "key": "done.toast.paid",
     "desktop": "Ditandai sudah dibayar. Muncul lagi jika tagihannya berubah atau lewat batas bayar.",
     "phone": "Sudah dibayar. Kembali jika tagihan berubah atau lewat batas."
-  },
-  {
-    "key": "grades.bestHint",
-    "desktop": "Jika semua A di {sks} SKS tersisa",
-    "phone": "Jika semua A di {sks} SKS terencana"
   },
   {
     "key": "handIn.check.attendanceIn",
@@ -160,6 +155,16 @@
     "phone": "Hadir tercatat hanya jika dikumpulkan dalam waktu ini."
   },
   {
+    "key": "settings.alerts.attendanceRisk",
+    "desktop": "Kehadiran",
+    "phone": "Masalah kehadiran"
+  },
+  {
+    "key": "settings.alerts.presence",
+    "desktop": "Presensi",
+    "phone": "Waktunya presensi"
+  },
+  {
     "key": "settings.alerts.presenceHint",
     "desktop": "Saat Tandai Hadir muncul di SIX atau Presensi Edunex dibuka, dan 15 menit sebelum tutup jika belum tercatat",
     "phone": "Saat kuliah yang dihitung di SIX mulai, saat Presensi Edunex dibuka, dan 15 menit sebelum tutup jika belum tercatat. Tandai Hadir di SIX hanya dicek selama aplikasi terbuka."
@@ -168,6 +173,11 @@
     "key": "settings.alerts.testSent",
     "desktop": "Terkirim. Tidak muncul? Izinkan notifikasi Edunex Plus di pengaturan sistem.",
     "phone": "Terkirim. Tidak muncul? Izinkan notifikasi Edunex Plus di pengaturan HP."
+  },
+  {
+    "key": "settings.firstScan",
+    "desktop": "Ringkasan saat pertama terhubung",
+    "phone": "Temuan saat pertama masuk"
   },
   {
     "key": "settings.needsAhead",

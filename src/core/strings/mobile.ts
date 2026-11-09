@@ -82,9 +82,9 @@ export const mobileStrings = {
   // Yang berubah and Notifikasi: a moved class's or an Edunex-only meeting's one meta line, the day and its time or room,
   // short enough for one line beside the row's time (the title says what changed). The desktop's whole line, with the
   // usual time or room and "tidak ada di jadwal SIX", is what TalkBack reads; Jadwal and the class sheet show them too.
-  "mobile.change.moved.time": { id: "{dateId} {time}", en: "{dateEn} {time}" },
+  "mobile.change.moved.time": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
   "mobile.change.moved.room": { id: "{dateId} di {room}", en: "{dateEn} in {room}" },
-  "mobile.change.meeting.body": { id: "{dateId} {time}", en: "{dateEn} {time}" },
+  "mobile.change.meeting.body": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
   // Notifikasi's meta line for a class SIX moved: the new day, time and room only (the title says it moved; the old one
   // is in what TalkBack reads).
   "mobile.change.moved.new": { id: "{newId}", en: "{newEn}" },
@@ -300,6 +300,14 @@ export const mobileStrings = {
 // "HP ini" for "komputer ini", a page for a window, a tap for a click. translate() takes them on the
 // phone only (./wording.native.ts), so the desktop's words stay as they are.
 export const phoneWording: Partial<Record<StringKey, Entry>> = {
+  // Settings › Notifikasi: the two attendance alerts, each named by what it warns about (Presensi and Kehadiran read as
+  // one thing to a student): the moment to check in (a class SIX counts starts, an Edunex Presence opens or is about to
+  // close), and a problem with SIX's count (a class it didn't record, no absences left).
+  "settings.alerts.presence": { id: "Waktunya presensi", en: "Time to check in" },
+  "settings.alerts.attendanceRisk": { id: "Masalah kehadiran", en: "Attendance problems" },
+  // Settings › Akun: the row that opens what the app found when Edunex and SIX were first read ("Ringkasan saat pertama
+  // terhubung" didn't say what's in it).
+  "settings.firstScan": { id: "Temuan saat pertama masuk", en: "Found when you first signed in" },
   // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
   "handIn.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
   // The snackbar after "Sudah beres": what happened and when it's back, short enough for two lines beside Urungkan
@@ -341,7 +349,7 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     en: "When a class SIX counts starts, when an Edunex Presence opens, and 15 minutes before it closes if you're not recorded. Tandai Hadir in SIX is checked only while the app is open.",
   },
   // A new Task's notification: the title, then its deadline, the first thing a Student wants to know.
-  "alert.newTask.body": { id: "{title} · tenggat {dateId} {time}", en: "{title} · due {dateEn} {time}" },
+  "alert.newTask.body": { id: "{title} · tenggat {dateId}, {time}", en: "{title} · due {dateEn}, {time}" },
   // Why Tandai Hadir hasn't shown: the phone checks SIX only while the app is open.
   "presence.row.watchingWhy": {
     id: "Selama aplikasi terbuka, SIX dicek tiap 2 menit.",
@@ -454,9 +462,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Masih boleh absen {count} kali",
     en: { one: "{count} absence left", other: "{count} absences left" },
   },
-  // grades: Nilai's best IPK. The SKS still to grade are this term's and the plan's, not what's left to graduate: the
-  // planned ones, in a meta that fits one line beside the figure (the judge's round 2, pass 6).
-  "grades.bestHint": { id: "Jika semua A di {sks} SKS terencana", en: "With straight A's in {sks} planned SKS" },
   // grades-plan: Kalender akademik, the last day of classes. "Hari ini" read as today.
   "deadline.lectureEnd": { id: "Jatah absenmu dihitung sampai hari itu.", en: "Your absences left count up to that day." },
   // grades-plan: UKT, when SIX and the ITB calendar give two deadlines for one bill.

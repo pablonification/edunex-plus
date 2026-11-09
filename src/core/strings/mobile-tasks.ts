@@ -15,6 +15,10 @@ export const mobileTasksStrings = {
   // with Urungkan, on the line that says when it was marked.
   "mobile.tasks.edunexSays": { id: "Di Edunex: {status}", en: "On Edunex: {status}" },
   "mobile.tasks.markedAt": { id: "Kamu tandai {when}", en: "Marked {when}" },
+  // The attach button says what the lecturer asks for, so no line about it is needed: the kind of file the
+  // instructions name, and "wajib" while a required file isn't attached yet ("Lampirkan PDF · wajib").
+  "mobile.handIn.attachType": { id: "Lampirkan {type}", en: "Attach {type}" },
+  "mobile.handIn.required": { id: "wajib", en: "required" },
   "mobile.tasks.answerRequired": { id: "Wajib diisi, meski kamu melampirkan berkas", en: "Required, even when you attach a file" },
   // The snackbar after Simpan draf: saved, and what a draft is (the desktop's handIn.explainer, which sat under the answer
   // on every open Task, said when it matters). Starts with "Tersimpan", as the card's own line does.
@@ -22,10 +26,8 @@ export const mobileTasksStrings = {
     id: "Tersimpan {when}. Dosen bisa melihatnya, tapi hanya Kumpulkan yang menyerahkannya.",
     en: "Saved {when}. Your lecturer can see it, but only Submit hands it in.",
   },
-  // Tugas's big card: what its wave says to a screen reader, how much of a Task's time (from when it opened) has gone.
-  "mobile.tasks.timeGone": { id: "Sudah lewat {percent}% dari waktunya", en: "{percent}% of its time has gone" },
   // A Task that is also attendance: one line under the deadline on its due card, with a hand icon (no chip: the card's
-  // one status is Edunex's), saying when to hand it in to count as present ("Jum 15:00–23:59"). The desktop's
+  // one status is Edunex's), saying when to hand it in to count as present ("Jum, 13 Nov, 15:00–23:59"). The desktop's
   // task.note.attendance, in the phone's few words.
   "mobile.tasks.presenceLine": { id: "Kumpulkan {when} agar hadir", en: "Hand in {when} to count as present" },
   // The Kumpulkan sheet's warnings, one short line each (round 2's judge: two paragraphs were too much). The desktop's

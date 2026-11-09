@@ -182,10 +182,10 @@ export const homeStrings = {
   "home.changes.shown": { id: "Perubahan minggu ini sudah tampil di atas.", en: "This week's changes are shown above." },
   "home.changes.all": { id: "Lihat semua", en: "See all" },
   "home.change.moved": { id: "Jadwal {course} berubah", en: "{course} schedule changed" },
-  "home.change.moved.time": { id: "{dateId} {time} · biasanya {usualId}", en: "{dateEn} {time} · usually {usualEn}" },
+  "home.change.moved.time": { id: "{dateId}, {time} · biasanya {usualId}", en: "{dateEn}, {time} · usually {usualEn}" },
   "home.change.moved.room": { id: "{dateId} di {room} · biasanya {usualId}", en: "{dateEn} in {room} · usually {usualEn}" },
   "home.change.meeting": { id: "Pertemuan {number} {course} diumumkan di Edunex", en: "{course} meeting {number} announced in Edunex" },
-  "home.change.meeting.body": { id: "{dateId} {time} · tidak ada di jadwal SIX", en: "{dateEn} {time} · not on SIX's timetable" },
+  "home.change.meeting.body": { id: "{dateId}, {time} · tidak ada di jadwal SIX", en: "{dateEn}, {time} · not on SIX's timetable" },
 
   // Alerts: changes Edunex never announces
   "alert.taskEdited": { id: "Tugas diubah · {course}", en: "Task edited · {course}" },

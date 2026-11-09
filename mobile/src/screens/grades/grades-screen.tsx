@@ -1,6 +1,7 @@
 // Nilai on the phone (round 2, v4: mobile/qa/v4-rollout.md): src/app/screens/grades.tsx in one column on v4's grey
 // page, the same figures from the same hooks. The key number first: one card led by the IPK, big and counting up once,
-// the SKS passed beside it, last semester's IP a quiet line and the IPK at graduation with its predicate a pill. Then a
+// the SKS passed beside it, last semester's IP a quiet line and the predicate it heads for a pill (the IPK at
+// graduation is the chart's, said once). Then a
 // row each on the way to graduating (when, the honors still open, the highest IPK possible; the first opens the
 // planner), IP and IPK per semester on a white card, this term's grades as a clearly marked what-if with the one shared
 // target, and the transcript, a term at a time (./transcript.tsx). Without SIX: this term's courses from Edunex, each
@@ -103,7 +104,7 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
         <Graduation record={record} state={state} />
       </Rise>
       <Later frame={1}>
-        <Chart record={record} state={state} />
+        <Chart state={state} />
       </Later>
       <Later frame={2}>
         <ThisTerm record={record} state={state} />
@@ -128,14 +129,11 @@ const Standing = memo(function Standing({ record, state }: { record: StudentReco
   const ipk = shownIndex(transcript.ipk);
   const sks = passedSks(record);
   const need = sksModel(record, state.plan).need;
-  const { finalIpk, path, variableSks, honor } = state.projection;
+  const { finalIpk, path, honor } = state.projection;
   const word = predicate(predicateFor(finalIpk, path));
   const graded = transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null);
   const last = graded.at(-1);
-  const before = graded.at(-2);
   const lastIp = last ? shownIndex(last.ip) : null;
-  const delta = lastIp !== null && before ? lastIp - shownIndex(before.ip)! : null;
-  const signed = (value: number) => `${value > 0.004 ? "+" : value < -0.004 ? "−" : "±"}${f.number(Math.abs(value), 2)}`;
   return (
     <Panel testID="card.standing" style={{ padding: space[5], gap: space[3] }}>
       {/* Side by side while they fit; at a big font size the SKS goes under the IPK. */}
@@ -149,17 +147,13 @@ const Standing = memo(function Standing({ record, state }: { record: StudentReco
       </FigureRow>
       {lastIp !== null && (
         <Text size="bodyMedium" tabular style={{ color: v.muted }}>
-          {delta === null
-            ? t("mobile.grades.lastIp", { ip: f.number(lastIp, 2) })
-            : t("mobile.grades.lastIpDelta", { ip: f.number(lastIp, 2), delta: signed(delta) })}
+          {t("mobile.grades.lastIp", { ip: f.number(lastIp, 2) })}
         </Text>
       )}
-      {/* With grades still to come, the IPK it heads for at graduation; with every grade in, the predicate alone. */}
+      {/* The predicate it heads for at graduation: the IPK then is the chart's end, said there once. */}
       {word ? (
         <View style={{ flexDirection: "row" }}>
-          <Pill tone={honor ? "ok" : "plain"}>
-            {variableSks > 0 && finalIpk !== null ? t("mobile.grades.final", { final: f.number(finalIpk, 2), predicate: word }) : word}
-          </Pill>
+          <Pill tone={honor ? "ok" : "plain"}>{word}</Pill>
         </View>
       ) : null}
     </Panel>
@@ -262,7 +256,8 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
         key="next"
         leading={<IconTile tone="plain" icon={(color) => <Icons.Star size={22} color={color} />} />}
         title={t(`honors.${next.level}`)}
-        meta={t("mobile.grades.honorsNeeds", { avg: f.number(next.average, 2), sks: projection.variableSks })}
+        // The SKS it's averaged over are the best IPK's row's, said there once.
+        meta={t("mobile.grades.honorsAverage", { avg: f.number(next.average, 2) })}
         trailing={<Pill tone={effortTone(next.average)}>{capital(t(effortKey(next.average)))}</Pill>}
       />,
     );
@@ -271,7 +266,7 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
       key="best"
       leading={<IconTile tone="plain" icon={(color) => <Icons.Target size={22} color={color} />} />}
       title={t("grades.best")}
-      meta={projection.variableSks ? t("grades.bestHint", { sks: projection.variableSks }) : t("grades.bestNone")}
+      meta={projection.variableSks ? t("mobile.grades.bestHint", { sks: projection.variableSks }) : t("grades.bestNone")}
       trailing={
         <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
           {best === null ? "-" : f.number(best, 2)}
@@ -295,13 +290,14 @@ function effortTone(average: number): PillTone {
 
 // ------------------------------------------------------------ the chart
 
-function Chart({ record, state }: { record: StudentRecord; state: PlanState }) {
+/** IP and IPK per semester, the IPK at graduation at its end. The target is set and said in Semester ini, under it. */
+function Chart({ state }: { state: PlanState }) {
   const t = useT();
   return (
     <>
       <Heading>{t("grades.chart")}</Heading>
       <Panel style={{ paddingHorizontal: space[4], paddingTop: space[4], paddingBottom: space[3] }} testID="card.chart">
-        <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />
+        <IpkChart steps={state.projection.steps} target={null} />
       </Panel>
     </>
   );

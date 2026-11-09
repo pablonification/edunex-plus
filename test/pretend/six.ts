@@ -86,6 +86,12 @@ export class PretendSix {
     this.addedMeetings.push(meeting);
   }
 
+  /** Changes a meeting `addMeeting` put on the timetable (its time, its room). */
+  changeAddedMeeting(meetingId: string, change: Partial<Pick<AddedMeeting, "start" | "end" | "room">>): void {
+    const at = this.addedMeetings.findIndex((m) => m.id === meetingId);
+    if (at >= 0) this.addedMeetings[at] = { ...this.addedMeetings[at], ...change };
+  }
+
   /** Puts another meeting on the recorded month's timetable, on the day of SIX meeting `beside`, just before it (a lab on a lecture's day). */
   addMeetingBeside(beside: string, meeting: Omit<AddedMeeting, "day">): void {
     this.editPage(/\/kelas\/jadwal\/mahasiswa\/\d+$/, (html) =>

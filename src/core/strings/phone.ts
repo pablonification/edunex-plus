@@ -73,7 +73,7 @@ export const phoneStrings = {
   "phone.footnote.presence": { id: "Abaikan kalau sudah tercatat hadir.", en: "Ignore this if you're already marked present." },
   "phone.watchdog": { id: "Edunex belum dicek", en: "Edunex hasn't been checked" },
   "phone.watchdogBody": {
-    id: "Edunex Plus belum mengecek Edunex sejak {dateId} {time}. Buka laptop sebentar supaya tugas baru tidak terlewat.",
-    en: "Edunex Plus hasn't checked Edunex since {dateEn} {time}. Open your laptop for a moment so no new Task slips by.",
+    id: "Edunex Plus belum mengecek Edunex sejak {dateId}, {time}. Buka laptop sebentar supaya tugas baru tidak terlewat.",
+    en: "Edunex Plus hasn't checked Edunex since {dateEn}, {time}. Open your laptop for a moment so no new Task slips by.",
   },
 } as const satisfies Record<string, Entry>;

@@ -132,15 +132,15 @@ describe("exam reminders", () => {
         id: `exam.week:six:2190001:${start}`,
         at: wib("2026-10-08T07:00:00"),
         until: wib("2026-10-09T00:00:00"),
-        text: "UTS seminggu lagi · DK4073 — Kam, 15 Okt 11:00 · TVST C",
+        text: "UTS seminggu lagi · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
       },
       {
         id: `exam.tomorrow:six:2190001:${start}`,
         at: wib("2026-10-14T18:00:00"),
         until: wib("2026-10-15T00:00:00"),
-        text: "UTS besok · DK4073 — Kam, 15 Okt 11:00 · TVST C",
+        text: "UTS besok · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
       },
-      { id: `exam.today:six:2190001:${start}`, at: wib("2026-10-15T07:00:00"), until: start, text: "UTS hari ini · DK4073 — Kam, 15 Okt 11:00 · TVST C" },
+      { id: `exam.today:six:2190001:${start}`, at: wib("2026-10-15T07:00:00"), until: start, text: "UTS hari ini · DK4073 — Kam, 15 Okt, 11:00 · TVST C" },
     ]);
   });
 
@@ -149,7 +149,7 @@ describe("exam reminders", () => {
     expect(today).toMatchObject({
       at: wib("2026-10-15T05:30:00"),
       until: wib("2026-10-15T06:30:00"),
-      text: "UTS hari ini · DK4073 — Kam, 15 Okt 06:30 · TVST C",
+      text: "UTS hari ini · DK4073 — Kam, 15 Okt, 06:30 · TVST C",
     });
   });
 });

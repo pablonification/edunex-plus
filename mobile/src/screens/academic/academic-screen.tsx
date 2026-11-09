@@ -4,7 +4,8 @@
 // 2. To-do chips, only while something's due (send the KRS, pay UKT, fill in the questionnaire SIX hides grades
 //    behind), each opening its screen. Nothing due: nothing shown.
 // 3. Nilai and Rencana studi's parts (Rencana, Kurikulum, KRS, UKT, Kalender akademik) as rows in one card, each with
-//    the one line that answers it and at most one status pill. The screens' content lives in their own files.
+//    the one line that answers it (none when the card above already says it) and at most one status pill, a chevron at
+//    the end of each: each opens its screen. The screens' content lives in their own files.
 // Before SIX's first read, the card and the rows' lines stand in their own shape; never a spinner.
 import { memo, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
@@ -251,6 +252,7 @@ function ScreenRow({
   testID: string;
 }) {
   const nav = useNav();
+  const v = useTheme().v4;
   return (
     <GroupRow
       first={first}
@@ -258,7 +260,12 @@ function ScreenRow({
       title={title}
       meta={meta === "pending" ? <Skeleton width={128} height={12} style={{ marginTop: space[1] }} /> : meta}
       metaTone={tone}
-      trailing={pill ? <Pill tone={pill.tone}>{pill.text}</Pill> : undefined}
+      trailing={
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+          {pill ? <Pill tone={pill.tone}>{pill.text}</Pill> : null}
+          <Icons.ChevronRight size={18} color={v.muted} />
+        </View>
+      }
       onPress={() => nav.go(route === "grades" ? { screen: "grades" } : { screen: "plan", tab: route })}
       testID={testID}
     />
@@ -282,7 +289,8 @@ function GradesRow({ record }: { record: StudentRecord | undefined }) {
     if (!record?.transcript) return null;
     const last = record.transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null).at(-1);
     const ip = last ? shownIndex(last.ip) : null;
-    return ip === null ? null : t("mobile.academic.meta.grades", { ip: f.number(ip, 2) });
+    // Named as Nilai names it.
+    return ip === null ? null : t("mobile.grades.lastIp", { ip: f.number(ip, 2) });
   }, [record, t, f]);
   return (
     <ScreenRow icon={Icons.ClipboardCheck} title={t("nav.grades")} meta={record?.transcript ? text : missing} route="grades" first testID="row.nav.grades" />
@@ -340,16 +348,8 @@ function PartRow({
 function CurriculumRow({ record }: { record: StudentRecord | undefined }) {
   const t = useT();
   const missing = useMissingMeta();
-  // The card over it says the SKS passed of those needed: the row says what's left of them.
-  const passed = record ? passedSks(record) : null;
-  const meta = !record
-    ? missing
-    : passed === null
-      ? null
-      : passed >= record.graduationSks
-        ? t("mobile.academic.meta.curriculumDone")
-        : t("mobile.academic.meta.curriculum", { left: record.graduationSks - passed });
-  return <PartRow part="curriculum" title={t("plan.tab.curriculum")} meta={meta} />;
+  // The card over it says the SKS passed of those needed ("125 dari 144"): the row adds nothing to it.
+  return <PartRow part="curriculum" title={t("plan.tab.curriculum")} meta={record ? null : missing} />;
 }
 
 function KrsRow() {
