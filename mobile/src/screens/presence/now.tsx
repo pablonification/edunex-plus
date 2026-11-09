@@ -9,6 +9,7 @@ import type { Attendance, OpenWindow } from "../../../../src/app/attendance";
 import { useActionLabel } from "../../../../src/app/attendance-labels";
 import { useOpenCheckIn, useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useCourseNames } from "../../../../src/app/schedule-data";
 import { useDataset } from "../../../../src/app/store";
 import { type AttendanceHealth, clashPick } from "../../../../src/core/attendance";
 import { sixTimetableUrl } from "../../../../src/core/links";
@@ -25,6 +26,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CardGroup, StatusChip, TileRow } from "../../ui/v4-list";
 import { useCardStyle } from "../home/now";
+import { shortName } from "../home/parts";
 import { clashAnswer, dayLabel, type Zone } from "./logic";
 
 /** Whether the zone has anything to show above the courses. */
@@ -111,6 +113,7 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   const open = useOpenExternal();
   const { go } = useNav();
   const actionLabel = useActionLabel();
+  const names = useCourseNames();
   const { session, code, health, action } = window;
   const task = action.activity === "assignment" ? action.task : null;
   const noSix = health?.countedIn === "noSix";
@@ -121,15 +124,16 @@ function OpenPresence({ window }: { window: OpenWindow }) {
     <View style={[surface, { padding: space[4], gap: space[3] }]} testID={`card.presenceOpen.${code}`}>
       <LiveHead
         title={action.activity === "course" ? t("presence.open.fill") : actionLabel(window)}
-        meta={factsLabel(code, t("presence.open.closes", { time }), (noSix || notKnown) && t("presence.open.maybe"))}
+        meta={factsLabel(shortName(names(code, window.course?.name)), (noSix || notKnown) && t("presence.open.maybe"))}
       />
-      {/* "tutup 09:30" above says when: the bar shows how much is left, its minutes in its spoken name only. */}
+      {/* The bar says how much is left, "tutup 09:30" beside it says when (round 3's fourth review: a bar with no words
+          read as decoration); its spoken name has both. */}
       <CountdownBar
         opensAt={session.opensAt}
         closesAt={session.closesAt}
         now={now}
-        showLabel={false}
-        label={t("presence.open.left", { time: f.countdown(session.closesAt) })}
+        text={t("presence.open.closes", { time })}
+        label={factsLabel(t("presence.open.closes", { time }), t("presence.open.left", { time: f.countdown(session.closesAt) }))}
       />
       {(noSix || notKnown) && (
         <Text size="bodyMedium" style={{ color: v.muted }}>
@@ -201,18 +205,21 @@ function SixResult({ result, health }: { result: Zone["results"][number]; health
 }
 
 /**
- * Two classes today at the same time: "Bentrok 16:00–16:30", the two courses, and which to go to as a tonal button
- * ("Pilih PL3032"). The why ("Kalau hanya bisa hadir di salah satunya, …") is in its sheet.
+ * Two classes today at the same time: "Bentrok 16:00–16:30", the two courses by their short names (a code meant
+ * nothing at a glance, round 3's fourth review), and "Pilih kelas" as a tonal button: its sheet says which to go to and
+ * why ("Kalau hanya bisa hadir di salah satunya, pilih Ekonomi Infrastruktur …").
  */
 function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boolean }) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
   const [open, setOpen] = useState(false);
+  const names = useCourseNames();
   const { a, b } = clash;
+  const short = (code: string) => shortName(names(code, code === a.course.code ? a.course.name : b.course.name));
   const time = f.timeRange(clash.from, clash.to);
-  const whole = t("presence.clash.today", { a: a.course.code, b: b.course.code, time });
-  const body = clashAnswer(t, a.health, b.health);
+  const whole = t("presence.clash.today", { a: short(a.course.code), b: short(b.course.code), time });
+  const body = clashAnswer(t, a.health, b.health, short);
   const pick = clashPick(a.health, b.health).pick;
   return (
     <>
@@ -225,15 +232,15 @@ function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boo
           </View>
         }
         title={t("mobile.kuliah.clash.title", { time })}
-        meta={`${a.course.code} · ${b.course.code}`}
+        meta={`${short(a.course.code)} · ${short(b.course.code)}`}
         // Which to go to is the row's action, so it looks like one: a tonal button opening the why, as the row does.
         status={
           pick && body ? (
             <Button variant="tonal" size="sm" onPress={() => setOpen(true)} testID="action.clashPick">
-              {t("mobile.kuliah.clash.pick", { code: pick })}
+              {t("mobile.kuliah.clash.choose")}
             </Button>
           ) : pick ? (
-            <StatusChip tone="brand">{t("mobile.kuliah.clash.pick", { code: pick })}</StatusChip>
+            <StatusChip tone="brand">{t("mobile.kuliah.clash.pick", { code: short(pick) })}</StatusChip>
           ) : undefined
         }
         onPress={body ? () => setOpen(true) : undefined}
