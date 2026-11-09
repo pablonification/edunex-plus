@@ -70,23 +70,24 @@ export const mobileStrings = {
   "mobile.home.countsPresence": { id: "Dihitung untuk Presensi", en: "Counts for Presence" },
   // A course's absences, one name for each state wherever the phone says it (Beranda, Perlu kamu urus, Kuliah, an exam),
   // in absence words so "lewat" can't read as a Task past its deadline (round 3's fourth review: Beranda and Kuliah had
-  // two phrasings): none left, or over the limit by how many. Over the limit is the
+  // two phrasings): none left, or over the limit by how many. Both name the Glossary's "Jatah absen", never a bare
+  // "Absen" (the final review: it read as "you were absent"). Over the limit is the
   // desktop's "Tak bisa lagi capai 80%": Kuliah's big number and the course's sheet say that, with the target, and it's
   // what TalkBack hears. Never "Di bawah target": a course with none left can be under its target today too.
   "mobile.absence.none": { id: "Jatah absen habis", en: "No absences left" },
-  "mobile.absence.over": { id: "Absen lewat {count}×", en: { one: "{count} absence too many", other: "{count} absences too many" } },
-  // Beranda's one row for two or more such courses (round 3's fifth review: a row each pushed the Tasks down): how many,
-  // then each state's count in its own words, the worst first ("Absen di 3 mata kuliah", "1 lewat batas · 2 jatah
-  // habis"). It opens Kuliah, where each course's count is; TalkBack hears each course's name and state.
-  "mobile.absence.courses": { id: "Absen di {count} mata kuliah", en: { one: "Absences in {count} course", other: "Absences in {count} courses" } },
-  "mobile.absence.overCount": { id: "{count} lewat batas", en: "{count} over the limit" },
-  "mobile.absence.noneCount": { id: "{count} jatah habis", en: "{count} with none left" },
-  // The now card's day for a class two days ahead, before its weekday ("Lusa, Kam 08:00").
+  "mobile.absence.over": { id: "Lewat jatah absen {count}×", en: { one: "{count} absence too many", other: "{count} absences too many" } },
+  // "Perlu kamu urus"'s chevron when Beranda holds back rows: how many more the whole list has ("+2 lagi").
+  "mobile.home.moreRows": { id: "+{count} lagi", en: "+{count} more" },
+  // Beranda's clash row: when, as the title, so neither course's name is cut ("Kelas bentrok · Kam 16:00"); the two
+  // short names on the line under it ("Pemrograman dan Teknik").
+  "mobile.home.clash": { id: "Kelas bentrok · {when}", en: "Classes clash · {when}" },
+  "mobile.home.clashPair": { id: "{a} dan {b}", en: "{a} and {b}" },
+  // The now card's day for a class two days ahead, said once ("Lusa 08:00").
   "mobile.home.dayAfter": { id: "Lusa", en: "In 2 days" },
   // A class row's one chip.
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough
-  // for one line beside its "Absen lewat" words (the target itself is on the course's page).
+  // for one line beside its "Lewat jatah absen" words (the target itself is on the course's page).
   "mobile.needs.best": { id: "Maks {best}%", en: "At most {best}%" },
   // Yang berubah and Notifikasi: a moved class's or an Edunex-only meeting's one meta line, the day and its time or room,
   // short enough for one line beside the row's time (the title says what changed). The desktop's whole line, with the

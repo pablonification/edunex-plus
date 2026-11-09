@@ -1,7 +1,7 @@
 // Settings' top: who's signed in (a white card: the initials, the name in Plus Jakarta Sans a step under the page's
 // title, the NIM and the program as one quiet line), then Akun: each system's row (a line icon in a tile, as every
-// row's) with its state as the one line under it: the live dot and "Terhubung" (round 3's third review chose that over
-// the word alone); when it was last checked only once that's stale. Signed out (or the session ended), the row signs
+// row's) with its state as the one line under it: "Terhubung" in green, no dot (round 3's final review: the dot and the
+// word said it twice); when it was last checked only once that's stale. Signed out (or the session ended), the row signs
 // in; signed in, it opens a sheet whose one choice signs out of just that system. What the first read found is the
 // group's last row, "Ringkasan awal".
 import { router } from "expo-router";
@@ -12,7 +12,6 @@ import { displayName, initials } from "../../../../src/app/names";
 import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import type { SourceId } from "../../../../src/core/models";
 import { useSignInNote } from "../../shell/source-status";
-import { LiveDot } from "../../ui/display";
 import { IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
@@ -84,7 +83,6 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   const note = useSignInNote(source);
   const [busy, setBusy] = useState(false);
   const [menu, setMenu] = useState(false);
-  const v = useTheme().v4;
   const name = t(`source.${source}`);
   const run = async (what: "auth.signIn" | "auth.signOut") => {
     setBusy(true);
@@ -119,18 +117,8 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
           <IconTile icon={(color) => (source === "six" ? <Icons.GraduationCap size={22} color={color} /> : <Icons.BookOpen size={22} color={color} />)} />
         }
         title={name}
-        meta={
-          status.state === "live" ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <LiveDot />
-              <Text size="bodyMedium" numberOfLines={1} style={{ color: v.okFg, flexShrink: 1 }}>
-                {state.text}
-              </Text>
-            </View>
-          ) : (
-            state.text
-          )
-        }
+        // Connected: the word alone in green; a dot beside it said the same thing twice (round 3's final review).
+        meta={state.text}
         metaTone={state.tone}
         busy={busy}
         disabled={status.state === "connecting"}

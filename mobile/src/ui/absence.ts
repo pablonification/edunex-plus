@@ -1,6 +1,6 @@
 // One colour scale for a course's absences, on every tab (round 2, v4): red once the target can't be reached (or the
 // course finished below it), amber with the absences used up but none over, green with absences left or the target
-// met. "Jatah absen habis" and "Absen lewat 1×" (absenceName: one name each, on every tab, in the
+// met. "Jatah absen habis" and "Lewat jatah absen 1×" (absenceName: one name each, on every tab, in the
 // tone's ink, no chip), Kuliah's "Sisa 2×", a course's page and the class sheet's pips all take their colour from here. Never the course's colour.
 import type { Translate } from "../../../src/app/i18n";
 import { type AttendanceHealth, type AttendanceState, absenceBudget } from "../../../src/core/attendance";
@@ -36,8 +36,8 @@ export function absenceInk(v: TonePairs, tone: AbsenceTone): { bg: string; fg: s
 }
 
 /**
- * The one name a course's absences go by, wherever the phone shows one: "Jatah absen habis" with none left, "Absen
- * lewat 1×" past the limit (the target out of reach); null for any other state (its screen says it).
+ * The one name a course's absences go by, wherever the phone shows one: "Jatah absen habis" with none left, "Lewat jatah
+ * absen 1×" past the limit (the target out of reach); null for any other state (its screen says it).
  */
 export function absenceName(t: Translate, health: AttendanceHealth): string | null {
   if (health.state === "none") return t("mobile.absence.none");

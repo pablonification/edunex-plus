@@ -1,5 +1,5 @@
 // The app's one absence scale (mobile/src/ui/absence.ts): every tab colours a course's absences the same way and calls
-// them by the same name, so "Jatah absen habis" is amber on Beranda, Perlu kamu urus, Kuliah and an exam, and "Absen lewat 1×"
+// them by the same name, so "Jatah absen habis" is amber on Beranda, Perlu kamu urus, Kuliah and an exam, and "Lewat jatah absen 1×"
 // red on each of them.
 import { describe, expect, it } from "vitest";
 import { absenceInk, absenceName, absenceTone } from "../../mobile/src/ui/absence";
@@ -49,7 +49,7 @@ describe("absenceName", () => {
   });
 
   it("names the target out of reach by how far over the limit it is (KU5014: 2 of 6, 9 to go at 80%)", () => {
-    expect(absenceName(t, health("out", 2, 6, -1, 9))).toBe("Absen lewat 1×");
+    expect(absenceName(t, health("out", 2, 6, -1, 9))).toBe("Lewat jatah absen 1×");
     expect(absenceName(en, health("out", 2, 6, -1, 9))).toBe("1 absence too many");
   });
 

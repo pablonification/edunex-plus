@@ -54,6 +54,16 @@ export function useShortCourseName(): (code: string) => string {
   );
 }
 
+/**
+ * A day and a time the way a person says it, the day once: "08:00" today, "Besok 08:00", "Lusa 08:00", "Kam 08:00"
+ * within the week, then "Kam, 19 Nov 08:00". The weekday never sits beside "Lusa" (round 3's final review: twice).
+ */
+export function dayAndTime(t: Translate, f: Format, at: number): string {
+  const offset = f.dayOffset(at);
+  const day = offset === 2 ? t("mobile.home.dayAfter") : offset > 2 && offset < 7 ? f.weekdayShort(at) : f.relativeDay(at);
+  return `${day} ${f.time(at)}`;
+}
+
 /** A class's day and time, as the course page names the class a window is for: "Kam, 8 Okt, 08:00–10:00". From src/app/screens/home.tsx. */
 export const classDayTime = (f: Format, start: number, end: number) => `${f.relativeDay(start)}, ${f.timeRange(start, end)}`;
 

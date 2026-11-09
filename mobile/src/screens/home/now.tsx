@@ -6,7 +6,7 @@
 // tap of the phone: their step ("Sudah ke SIX · 09:07"), not a claim they're counted. An Edunex Presence open for the
 // class is its own row over the button, as the desktop's card says it: "Isi Presensi", "tutup 09:30". No class on: the
 // next one with a countdown; none today: the next day's first, calmly, its day said as a person would ("Besok 08:00",
-// "Lusa, Kam 08:00"). A tap on the card opens its class's sheet (./class-sheet.tsx): the chevron by the name says so.
+// "Lusa 08:00", "Kam 08:00"). A tap on the card opens its class's sheet (./class-sheet.tsx): the chevron by the name says so.
 // While the first read runs, the card shows what won't change and holds the rest in its place (./now-hold.ts).
 import * as Haptics from "expo-haptics";
 import { type ReactNode, useEffect, useState } from "react";
@@ -32,7 +32,7 @@ import { useReadStatuses } from "../first-scan/scan";
 import { useWentToCheckIn } from "./checked-in";
 import { ClassSheet, cardAction, cardSubject, MainAction, PresenceStep, useCheckInOpen } from "./class-sheet";
 import { type NowHold, nowHold } from "./now-hold";
-import { MINUTE, nameOf } from "./parts";
+import { dayAndTime, MINUTE, nameOf } from "./parts";
 
 /** The card's surface: white on the page's grey, a soft shadow in light (none in dark, where tone does it). */
 export function useCardStyle() {
@@ -117,8 +117,6 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
   const place = session?.room ?? (meeting?.online ? t("mobile.home.online") : null);
   const live = card.state === "live" && slot !== null;
   const window = !session && !meeting && card.presence ? card.presence.session : null;
-  // Two days ahead is "Lusa", before its weekday; further, the date (a countdown in days would say less).
-  const dayWord = (at: number) => (f.dayOffset(at) === 2 ? `${t("mobile.home.dayAfter")}, ${f.weekdayShort(at)}` : f.relativeDay(at));
   // What the card leads with, the way the class stands, and where: on ("Sekarang · 9009", with the breathing dot), next
   // ("Berikutnya · 9009", a countdown), another day ("Besok 08:00 · 9009"), a window open (its time, minutes to close).
   const kicker = live
@@ -126,7 +124,7 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
     : card.state === "next" && slot
       ? [t("mobile.home.next"), place]
       : card.state === "later" && slot
-        ? [`${dayWord(slot.start)} ${f.time(slot.start)}`, place]
+        ? [dayAndTime(t, f, slot.start), place]
         : [t("home.now.presenceOnly"), windowFor ? f.timeRange(windowFor.start, windowFor.end) : null];
   const progress = live && slot ? { from: slot.start, to: slot.end } : window ? { from: window.opensAt, to: window.closesAt } : null;
   const until = progress ? progress.to : card.state === "next" && slot ? slot.start : null;

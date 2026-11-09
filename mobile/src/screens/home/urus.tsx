@@ -2,17 +2,17 @@
 // full-width rows in a white card. First the courses at or past their absence limit: Kuliah's calendar-check in the
 // absence tone, the course's name and the state in absence words ("Absen lewat 2×", "Jatah absen habis"), so
 // beside a Task it can't read as an assignment past its deadline, and no pips (they had no key, and the words said
-// them again; Kuliah and the course page draw them); opens the course. On Beranda, two or more are one row ("Absen di 3
-// mata kuliah", "1 lewat batas · 2 jatah habis") that opens Kuliah: a row each pushed the Tasks under the fold (round 3's
-// fifth review). Then classes that clash ("Kelas bentrok · A dan
-// B", their day and time under it; opens Jadwal on that day), then what to hand in or do, the soonest first (the Task's own name, its
-// deadline under it the one way the app writes a date; "Presensi" at the end when handing it in counts for
-// attendance; red with a warning sign once late). At most four rows; the chevron opens the whole list, with what's put
-// off and away (./needs-screen.tsx). Hidden behind one quiet line when there's nothing. While the first read runs, the
+// them again; Kuliah and the course page draw them); opens the course. One row per course, as the Student acts on a
+// course, not on a count (round 3's final review: one grouped row hid which courses, and "Absen di 3 mata kuliah" read
+// as "you were absent"); on Beranda at most three, so the Tasks stay in view. Then classes that clash ("Kelas bentrok ·
+// Kam 16:00", the two short names under it, so neither is cut; opens Jadwal on that day), then what to hand in or do,
+// the soonest first (the Task's own name, its deadline under it the one way the app writes a date; "Presensi" at the
+// end when handing it in counts for attendance; red with a warning sign once late). At most five rows; the chevron opens
+// the whole list, with what's put off and away (./needs-screen.tsx), and says "+2 lagi" when Beranda holds rows back. Hidden behind one quiet line when there's nothing. While the first read runs, the
 // rows stand in their shape: picked from half the data, they swapped under the Student's eyes.
 import { router } from "expo-router";
 import { useMemo } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -28,7 +28,6 @@ import { useNav } from "../../nav";
 import { meterModel } from "../../parts/attendance-meter";
 import { useFirstReadRunning } from "../../shell/source-status";
 import { absenceName } from "../../ui/absence";
-import { IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Group, GroupRow, IconTile } from "../../ui/group";
@@ -39,11 +38,13 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { showOnSchedule } from "../schedule/schedule-screen";
-import { nameOf, shortName } from "./parts";
+import { dayAndTime, nameOf, shortName } from "./parts";
 import { type AbsenceProblem, type ClashProblem, firstRows, type Problems } from "./problems";
 
 /** Rows Beranda shows; the rest are on the whole list. */
-export const URUS_ROWS = 4;
+export const URUS_ROWS = 5;
+/** Courses short on absences Beranda shows, before the first thing to do. */
+export const URUS_ABSENCES = 3;
 
 interface TodoRow {
   need: NeedDraft;
@@ -160,21 +161,11 @@ function dueBy(need: NeedDraft): number {
 
 export type UrusRow =
   | { kind: "absence"; key: string; item: AbsenceProblem }
-  | { kind: "absences"; key: string; items: readonly AbsenceProblem[] }
   | { kind: "clash"; key: string; item: ClashProblem }
   | { kind: "todo"; key: string; item: TodoRow };
 
-/**
- * Every row the list has, most serious first: absences, clashes, then what to do, the soonest first. `grouped`
- * (Beranda): two or more absences as one row.
- */
-export function useUrusRows(
-  problems: Problems,
-  needs: readonly NeedDraft[],
-  due: readonly NeedDraft[],
-  courses: readonly TermCourse[],
-  grouped = false,
-): UrusRow[] {
+/** Every row the list has, most serious first: absences (a row per course), clashes, then what to do, the soonest first. */
+export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due: readonly NeedDraft[], courses: readonly TermCourse[]): UrusRow[] {
   const t = useT();
   const f = useFormat();
   const now = useNow();
@@ -192,10 +183,7 @@ export function useUrusRows(
         return row ? [{ kind: "todo" as const, key: need.id, item: row }] : [];
       })
       .sort((x, y) => x.item.at - y.item.at);
-    const absences: UrusRow[] =
-      grouped && problems.absences.length > 1
-        ? [{ kind: "absences", key: "absences", items: problems.absences }]
-        : problems.absences.map((item) => ({ kind: "absence" as const, key: `absence:${item.code}`, item }));
+    const absences = problems.absences.map((item) => ({ kind: "absence" as const, key: `absence:${item.code}`, item }));
     return [
       ...absences,
       // A clash later today is on its "Nanti hari ini" row, as the clash's icon (one fact, one place: round 3's fourth
@@ -205,7 +193,7 @@ export function useUrusRows(
         .map((item) => ({ kind: "clash" as const, key: `clash:${item.key}:${item.from}`, item })),
       ...todos,
     ];
-  }, [problems, needs, due, entries, handled, now, t, f, courses, grouped]);
+  }, [problems, needs, due, entries, handled, now, t, f, courses]);
 }
 
 export function Urus({
@@ -221,8 +209,16 @@ export function Urus({
 }) {
   const t = useT();
   const v = useTheme().v4;
-  const all = useUrusRows(problems, needs, due, courses, true);
-  const rows = useMemo(() => firstRows(all, URUS_ROWS), [all]);
+  const all = useUrusRows(problems, needs, due, courses);
+  const rows = useMemo(() => {
+    let absences = 0;
+    return firstRows(
+      all.filter((row) => row.kind !== "absence" || ++absences <= URUS_ABSENCES),
+      URUS_ROWS,
+    );
+  }, [all]);
+  // What the whole list has that Beranda holds back, said by the chevron that opens it.
+  const more = all.length - rows.length;
   // The demo's first sync, or the Student's first read after a sign-in (the top bar's "Membaca …").
   const settling = useSettling();
   const firstReading = useFirstReadRunning();
@@ -260,9 +256,21 @@ export function Urus({
           <Text size="titleMedium" face="display" weight="bold" accessibilityRole="header" style={{ flex: 1, fontSize: 17, letterSpacing: -0.2 }}>
             {t("mobile.home.toHandle")}
           </Text>
-          <IconButton label={t("home.changes.all")} onPress={() => router.push("/needs")} testID="action.needs.all">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={more > 0 ? factsLabel(t("home.changes.all"), t("mobile.home.moreRows", { count: more })) : t("home.changes.all")}
+            onPress={() => router.push("/needs")}
+            testID="action.needs.all"
+            android_ripple={{ color: v.muted, borderless: true, radius: 28 }}
+            style={{ minWidth: 48, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2, paddingLeft: space[2] }}
+          >
+            {more > 0 && (
+              <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted }}>
+                {t("mobile.home.moreRows", { count: more })}
+              </Text>
+            )}
             <Icons.ChevronRight size={20} color={v.muted} />
-          </IconButton>
+          </Pressable>
         </View>
       </Rise>
       <Rise screen="home" index={3}>
@@ -279,8 +287,6 @@ export function UrusList({ rows, courses }: { rows: readonly UrusRow[]; courses:
       {rows.map((row, i) =>
         row.kind === "absence" ? (
           <AbsenceRow key={row.key} item={row.item} first={i === 0} courses={courses} />
-        ) : row.kind === "absences" ? (
-          <AbsencesRow key={row.key} items={row.items} first={i === 0} courses={courses} />
         ) : row.kind === "clash" ? (
           <ClashRow key={row.key} item={row.item} first={i === 0} courses={courses} />
         ) : (
@@ -334,54 +340,25 @@ function AbsenceRow({ item, first, courses }: { item: AbsenceProblem; first: boo
   );
 }
 
-/**
- * Two or more courses at or past their absence limit, as one row: how many, then each state's count ("1 lewat batas · 2
- * jatah habis") in the worst one's tone. Opens Kuliah, where each course's count is; TalkBack hears each by name.
- */
-function AbsencesRow({ items, first, courses }: { items: readonly AbsenceProblem[]; first: boolean; courses: readonly TermCourse[] }) {
-  const t = useT();
-  const { go } = useNav();
-  const out = items.filter((item) => item.health.state === "out").length;
-  const tone = out > 0 ? "red" : "amber";
-  const title = t("mobile.absence.courses", { count: items.length });
-  const words = factsLabel(
-    out > 0 && t("mobile.absence.overCount", { count: out }),
-    items.length > out && t("mobile.absence.noneCount", { count: items.length - out }),
-  );
-  const spoken = items.map((item) => `${nameOf(courses, item.code)}, ${absenceName(t, item.health) ?? ""}`).join(". ");
-  return (
-    <GroupRow
-      first={first}
-      testID="row.need.absences"
-      accessibilityRole="button"
-      accessibilityLabel={`${title}. ${spoken}`}
-      leading={<IconTile tone={tone} icon={(color) => <Icons.CalendarCheck size={22} color={color} />} />}
-      title={<RowTitle text={title} />}
-      meta={<Meta tone={tone} text={words} />}
-      onPress={() => go({ screen: "presence" })}
-    />
-  );
-}
-
-/** Two classes at once: "Kelas bentrok · A dan B" by short names, and when. Opens Jadwal on that day. */
+/** Two classes at once: "Kelas bentrok · Kam 16:00", the two short names under it. Opens Jadwal on that day. */
 function ClashRow({ item, first, courses }: { item: ClashProblem; first: boolean; courses: readonly TermCourse[] }) {
   const t = useT();
   const f = useFormat();
   const { go } = useNav();
   const a = shortName(nameOf(courses, item.a.courseCode, item.a.courseName));
   const b = shortName(nameOf(courses, item.b.courseCode, item.b.courseName));
-  const when = f.dayTimeRange(item.from, item.to);
-  const title = t("alert.overlap", { a, b });
+  const title = t("mobile.home.clash", { when: dayAndTime(t, f, item.from) });
+  const pair = t("mobile.home.clashPair", { a, b });
   return (
     <GroupRow
       first={first}
       testID={`row.need.clash.${item.key}`}
       accessibilityRole="button"
-      accessibilityLabel={factsLabel(title, when)}
-      // The warning tone with the clash's own icon; its day and time in the quiet ink (amber words are for absences).
+      accessibilityLabel={factsLabel(t("alert.overlap", { a, b }), f.dayTimeRange(item.from, item.to))}
+      // The warning tone with the clash's own icon; the pair in the quiet ink (amber words are for absences).
       leading={<IconTile tone="amber" icon={(color) => <Icons.Overlap size={22} weight="bold" color={color} />} />}
       title={<RowTitle text={title} />}
-      meta={<Meta text={when} />}
+      meta={<Meta text={pair} />}
       onPress={() => {
         showOnSchedule(wibDay(item.from));
         go({ screen: "schedule" });
