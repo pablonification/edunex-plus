@@ -16,13 +16,13 @@ import { moduleName } from "../../../../src/core/tasks";
 import { toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
 import { CourseDot, Tag } from "../../ui/display";
-import { CountUp, WavyProgress } from "../../ui/expressive";
+import { CountUp } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice, TrailingInline } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CourseGlyph, CourseTile, useCourseTile } from "../../ui/tile";
+import { CourseTile, useCourseTile } from "../../ui/tile";
 
 const DAY = 86_400_000;
 
@@ -308,13 +308,11 @@ export function countdown(t: Translate, now: number, at: number): { value: numbe
 }
 
 /**
- * When, as a row's meta line says it: "Kam 15 Okt, 11:00", "Hari ini, 23:59"; "Kam 15 Okt" alone (`time` false) beside
- * a wide status ("lewat 12 hari", "Waktu berubah"). Short enough that the kind or code and this fit one line on a
- * 412 dp phone; the row's spoken name and its page keep the desktop's full date and range.
+ * When, as a row's meta line says it, the way the whole app writes a date and time: "Kam, 15 Okt, 11:00", "Hari ini,
+ * 23:59"; the day alone (`time` false) beside a wide status ("lewat 12 hari", "Waktu berubah").
  */
 export function rowWhen(f: Format, at: number, time = true): string {
-  const day = Math.abs(f.dayOffset(at)) <= 1 ? f.relativeDay(at) : `${f.weekdayShort(at)} ${f.dayMonth(at)}`;
-  return time ? `${day}, ${f.time(at)}` : day;
+  return time ? f.dueLabel(at) : f.relativeDay(at);
 }
 
 /** A row's one status: a pill in its tone, with a sign when it's red (never the colour alone). */
@@ -413,11 +411,10 @@ export function IconTile({ children }: { children: ReactNode }) {
 }
 
 /**
- * The nearest deadline as Tugas's one big card (v4, Beranda's "Perlu kamu urus"): the course's tint, its glyph and a
- * pill (the course's code, or an exam's kind), the countdown big ("8 hari"; red and "lewat" once past), how much of its
- * time has gone as M3's wave (from when it opened), then what it is and when. The screen's focal point, so it's
- * tall: the rows under it start lower, and Tugas's first screen holds fewer words. The same item, target and spoken
- * name as its row would have: it isn't listed again under it.
+ * The nearest deadline as Tugas's one big card (v4, Beranda's "Perlu kamu urus"): in the course's tint, the countdown
+ * big ("8 hari"; red and "lewat" once past), then what it is, and the course's code and when in one line, as a row says
+ * them. The screen's focal point. The same item, target and spoken name as its row would have: it isn't listed again
+ * under it.
  */
 export function HeroCard({
   testID,
@@ -426,9 +423,6 @@ export function HeroCard({
   onLongPress,
   quick,
   code,
-  course,
-  kind,
-  from,
   at,
   title,
   meta,
@@ -438,14 +432,11 @@ export function HeroCard({
   onPress: () => void;
   onLongPress?: () => void;
   quick?: Quick;
+  /** The course: the card's tint. */
   code: string;
-  course?: string;
-  /** The pill: the course's code for a Task, the exam's kind for a take-home. */
-  kind: string;
-  /** When it opened (Edunex's "Mulai bisa dijawab"), for the wave; none, no wave. */
-  from: number | null;
   at: number;
   title: string;
+  /** "II4091 · Jum, 13 Nov, 23:59": the row's meta line. */
   meta: string;
 }) {
   const t = useT();
@@ -454,7 +445,6 @@ export function HeroCard({
   const { ink, tint } = useCourseTile()(code);
   const away = countdown(t, now, at);
   const color = away.late ? v.redFg : ink;
-  const gone = from !== null && from < now && from < at && !away.late ? (now - from) / (at - from) : null;
   return (
     <PressScale
       testID={testID}
@@ -462,17 +452,9 @@ export function HeroCard({
       onPress={onPress}
       onLongPress={onLongPress}
       {...quickActions(quick)}
-      style={{ backgroundColor: tint, borderRadius: 28, padding: space[5], minHeight: 240 }}
+      style={{ backgroundColor: tint, borderRadius: 28, padding: space[5] }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        <CourseGlyph code={code} name={course} />
-        <View style={{ backgroundColor: v.card, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 }}>
-          <Text size="labelMedium" weight="semibold" style={{ color: ink }}>
-            {kind}
-          </Text>
-        </View>
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: space[3] }}>
+      <View style={{ flexDirection: "row", alignItems: "baseline" }}>
         {away.late && (
           <Text size="bodyLarge" face="display" weight="semibold" style={{ color, fontSize: 18, marginRight: 6 }}>
             {t("mobile.home.late")}
@@ -487,12 +469,7 @@ export function HeroCard({
           {away.unit}
         </Text>
       </View>
-      {gone !== null && (
-        <View style={{ flexDirection: "row", marginTop: space[2], marginBottom: space[1] }}>
-          <WavyProgress progress={gone} ink={ink} track={`${ink}4d`} label={t("mobile.tasks.timeGone", { percent: Math.round(gone * 100) })} />
-        </View>
-      )}
-      <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, marginTop: space[3] }}>
+      <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, marginTop: space[2] }}>
         {title}
       </Text>
       <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, marginTop: 2 }}>

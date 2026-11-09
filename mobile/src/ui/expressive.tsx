@@ -188,6 +188,9 @@ export function CountUp({
   });
   return (
     <AnimatedInput
+      // A read-only field keeps the text it started with: a new format (the language arriving after a tab was drawn
+      // ahead, "3.47" → "3,47") draws it again.
+      key={`${decimals}:${comma}`}
       editable={false}
       underlineColorAndroid="transparent"
       accessibilityLabel={written(value)}

@@ -330,7 +330,7 @@ const GLYPH_TONE: Record<TaskStatus, keyof Palette> = {
 };
 
 /** The submission card: status, the Student's answer, its files, attaching from the phone, and what's marked about it. */
-export function HandInCard({ h }: { h: HandInState }) {
+export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus?: () => void }) {
   const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();
@@ -399,6 +399,7 @@ export function HandInCard({ h }: { h: HandInState }) {
                 unsaved={h.textChanged}
                 onDiscard={h.answer.discard}
                 hint={h.hasText ? null : t("mobile.tasks.answerRequired")}
+                onFocus={onAnswerFocus}
               />
             ) : (
               !task.group &&
@@ -457,8 +458,9 @@ export function HandInCard({ h }: { h: HandInState }) {
               </View>
             )}
             {h.editable && (
-              // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos.
-              <View style={{ gap: space[2], alignItems: "flex-start" }}>
+              // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos. What the
+              // lecturer asks for is the button itself ("Lampirkan PDF · wajib"), not a line about it.
+              <View style={{ alignItems: "flex-start" }}>
                 <Button
                   variant="tonal"
                   testID="action.attach"
@@ -470,14 +472,11 @@ export function HandInCard({ h }: { h: HandInState }) {
                   icon={<Icons.Upload size={18} color={c.onSecondaryContainer} />}
                   onPress={() => void h.pick()}
                 >
-                  {t("handIn.attach")}
+                  {factsLabel(
+                    h.type ? t("mobile.handIn.attachType", { type: h.type.toUpperCase() }) : t("handIn.attach"),
+                    task.fileRequired && h.files.length === 0 ? t("mobile.handIn.required") : null,
+                  )}
                 </Button>
-                {(task.fileRequired || h.type) && (
-                  <Meta size="caption">
-                    {task.fileRequired ? t("handIn.fileRequired") : ""}
-                    {h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : ""}
-                  </Meta>
-                )}
               </View>
             )}
             {task.group && !h.sent && status !== "closed" && (
@@ -575,6 +574,7 @@ function AnswerField({
   unsaved,
   onDiscard,
   hint,
+  onFocus,
 }: {
   value: string;
   onChange: (text: string) => void;
@@ -585,6 +585,7 @@ function AnswerField({
   onDiscard: () => void;
   /** What TalkBack adds while the box is empty (it's required): the placeholder says it on screen. */
   hint: string | null;
+  onFocus?: () => void;
 }) {
   const t = useT();
   const theme = useTheme();
@@ -601,7 +602,10 @@ function AnswerField({
         multiline
         value={value}
         onChangeText={onChange}
-        onFocus={() => setFocused(true)}
+        onFocus={() => {
+          setFocused(true);
+          onFocus?.();
+        }}
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         placeholderTextColor={c.onSurfaceVariant}
@@ -695,9 +699,11 @@ export function HandInBar({ h }: { h: HandInState }) {
   const t = useT();
   const theme = useTheme();
   const why = useWhy(h);
-  // Signing in again is the notice's own button (above): no second line for it.
+  // Signing in again is the notice's own button (above): no second line for it. What's still missing (the answer, a
+  // file, an upload on its way) is said by the controls in the card and to TalkBack on Kumpulkan, not in a line here:
+  // the line is for what blocks or costs something, with its fix.
   const blocked = why !== null && h.guard.blocked;
-  const line = why !== null && !(blocked && h.notice?.action === "signIn");
+  const line = why !== null && why.tone !== "neutral" && !(blocked && h.notice?.action === "signIn");
   // Edge to edge: the bar's tone runs under the phone's navigation bar, its buttons stay clear of it.
   const bottom = useBottomInset();
   // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
@@ -740,25 +746,27 @@ export function HandInBar({ h }: { h: HandInState }) {
         </View>
       )}
       <View style={{ flexDirection: "row", gap: space[2] }}>
-        <BigButton
-          testID="action.saveDraft"
-          hint={t("handIn.explainer")}
-          variant={h.wait && h.canSave ? "filled" : "outline"}
-          disabled={!h.canSave}
-          busy={h.busy === "draft"}
-          onPress={() => void h.run("draft")}
-        >
-          {t("handIn.saveDraft")}
-        </BigButton>
+        {/* Only while there's something to save: an outline button with nothing to do read as one to press. */}
+        {(h.canSave || h.busy === "draft") && (
+          <BigButton
+            testID="action.saveDraft"
+            hint={t("handIn.explainer")}
+            variant={h.wait ? "filled" : "outline"}
+            busy={h.busy === "draft"}
+            onPress={() => void h.run("draft")}
+          >
+            {t("handIn.saveDraft")}
+          </BigButton>
+        )}
         <BigButton
           testID="action.submit"
-          variant={h.wait ? "outline" : "filled"}
+          variant={h.wait && h.canSave ? "outline" : "filled"}
           disabled={!h.canSubmit}
           hint={!h.canSubmit && why ? why.text : undefined}
           busy={h.busy === "submit"}
           onPress={() => h.setConfirming(true)}
           flex={1}
-          icon={h.wait ? undefined : <Icons.Upload size={20} weight="bold" color={h.canSubmit ? theme.v4.onBrand : theme.v4.muted} />}
+          icon={h.wait && h.canSave ? undefined : <Icons.Upload size={20} weight="bold" color={h.canSubmit ? theme.v4.onBrand : theme.v4.muted} />}
         >
           {submitLabel}
         </BigButton>

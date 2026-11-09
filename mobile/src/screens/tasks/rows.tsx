@@ -80,7 +80,7 @@ function signalOf(t: Translate, world: RowWorldValue, task: Task, status: TaskSt
       icon: "hand",
       facts: [
         t("task.attendanceLine", {
-          when: `${f.relativeDay(window.opensAt)} ${f.timeRange(window.opensAt, window.closesAt)}`,
+          when: f.dayTimeRange(window.opensAt, window.closesAt),
         }),
       ],
       tone: "muted",
@@ -132,7 +132,7 @@ export const TaskRow = inWorld(function TaskRow({
       : meta === "module" && module
         ? [module]
         : [];
-  const title = exam ? `${t(`exam.kind.${exam.kind}`)} ${course?.name ?? exam.courseCode}` : task.title;
+  const title = task.title;
   const label = factsLabel(
     title,
     ...facts,
@@ -157,8 +157,9 @@ export const TaskRow = inWorld(function TaskRow({
         ? t("task.noDeadline")
         : // The time only beside the countdown: a late or closed one's status is too wide for both.
           rowWhen(world.f, task.dueAt, away !== null && !away.late);
-  const lead = kind ?? (meta === "module" && task.module ? t("task.module", { n: task.module.index }) : code);
-  const line = [lead, when].filter(Boolean).join(" · ");
+  // The course's code (or on its own page the module), the exam's kind for a take-home, then when: every row the same.
+  const lead = meta === "module" && task.module ? t("task.module", { n: task.module.index }) : code;
+  const line = [lead, kind, when].filter(Boolean).join(" · ");
   const statusPill =
     sentAt !== null ? (
       task.score !== null ? (
@@ -169,7 +170,8 @@ export const TaskRow = inWorld(function TaskRow({
     ) : away && away.tone !== "neutral" ? (
       <StatusPill tone={away.tone} text={away.text} />
     ) : null;
-  const name = exam ? (course?.name ?? exam.courseCode) : task.title;
+  // The row's title is the Task's own name, a take-home's too: a row never switches to its course's name.
+  const name = task.title;
   const open = () => go({ screen: "task", taskId: task.id });
   if (hero && task.dueAt !== null)
     return (
@@ -180,12 +182,9 @@ export const TaskRow = inWorld(function TaskRow({
         onLongPress={onLongPress}
         quick={quick}
         code={task.courseCode}
-        course={course?.name}
-        kind={kind ?? task.courseCode}
-        from={task.opensAt}
         at={task.dueAt}
         title={name}
-        meta={when}
+        meta={[task.courseCode, kind, when].filter(Boolean).join(" · ")}
       />
     );
   return (

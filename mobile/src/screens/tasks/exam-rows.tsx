@@ -106,7 +106,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const days = sourceDays(f, exam);
   const code = inCourse ? "" : exam.courseCode;
   const kind = t(`exam.kind.${exam.kind}`);
-  const dayTime = (at: number) => `${f.relativeDay(at)}, ${f.time(at)}`;
+  const dayTime = (at: number) => f.dueLabel(at);
   const moved = part?.kind === "window" && part.moved;
   const disagree = part?.kind === "sitting" && exam.disagree;
 
@@ -120,27 +120,26 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   if (part?.kind === "takehome") {
     facts = [code, t("exam.takeHome"), part.task.title, part.status === "draft" ? t("taskStatus.draft") : ""];
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
-    // "UTS Take-home" is long: its day goes without the weekday and the time (its page and spoken name keep them).
-    const day = part.at === null ? t("task.noDeadline") : Math.abs(f.dayOffset(part.at)) <= 1 ? f.relativeDay(part.at) : f.dayMonth(part.at);
-    shown = [`${kind} ${t("exam.takeHome")}`, day];
+    // The day alone beside the kind (its page and spoken name keep the time).
+    shown = [code, kind, part.at === null ? t("task.noDeadline") : rowWhen(f, part.at, false)];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
     const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dayTimeWord(part.opensAt) });
     facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     when = f.dueLabel(part.at);
-    shown = [kind, rowWhen(f, part.at, !moved)];
+    shown = [code, rowWhen(f, part.at, !moved)];
     moment = part.at;
   } else if (part?.kind === "sitting") {
     const place = part.source === "six" ? (part.room ?? "") : (part.title ?? "");
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), place];
-    when = part.end !== null ? `${f.relativeDay(part.at)}, ${f.timeRange(part.at, part.end)}` : dayTime(part.at);
-    shown = [kind, rowWhen(f, part.at, !disagree)];
+    when = part.end !== null ? f.dayTimeRange(part.at, part.end) : dayTime(part.at);
+    shown = [code, rowWhen(f, part.at, !disagree)];
     if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
     else moment = part.at;
   } else {
     facts = [code, exam.inOutline ? t("exam.outlineOnly") : t("exam.noDate")];
-    shown = [kind, t("exam.noDate")];
+    shown = [code, t("exam.noDate")];
   }
   const away = moment !== null ? countdown(t, now, moment) : null;
   // The countdown only once it's within a day: a calm one's day says when on its own.
@@ -179,7 +178,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
       quick={window ? [{ label: t("exam.markDoneFor", { title }), onPress: () => void markDone(window) }] : quick}
       code={code || null}
       course={name}
-      title={name}
+      // What it is, every row the same: a take-home's own name, else the exam's ("UAS Komunikasi Pemasaran").
+      title={part?.kind === "takehome" ? part.task.title : title}
       meta={shown.filter(Boolean).join(" · ")}
       status={status}
     />
@@ -271,9 +271,8 @@ function PeriodExam({ exam }: { exam: Exam }) {
       onPress={() => go({ screen: "exam", examId: exam.id })}
       code={exam.courseCode}
       course={name}
-      title={name}
-      // Under its period's row, which names the kind.
-      meta={t("exam.noDate")}
+      title={examName(t, exam, name)}
+      meta={factsLabel(exam.courseCode, t("exam.noDate"))}
     />
   );
 }
@@ -338,8 +337,8 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
       quick={mark ? [{ label: t("exam.unmarkFor", { title }), onPress: () => void unmark() }] : undefined}
       code={code || null}
       course={name}
-      title={name}
-      meta={[t(`exam.kind.${exam.kind}`), at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")].join(" · ")}
+      title={title}
+      meta={[code, at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")].filter(Boolean).join(" · ")}
       status={
         mark ? (
           <StatusPill tone="ok" icon={<Icons.Check size={13} weight="bold" color={theme.v4.okFg} />} text={t("exam.markedOn", { date: f.dayMonth(mark.at) })} />

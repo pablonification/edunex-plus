@@ -27,8 +27,10 @@ export interface Format {
   dateLong(when: When): string;
   /** "Hari ini" / "Besok" / "Kemarin", else "Kam, 8 Okt" */
   relativeDay(when: When): string;
-  /** "Besok, 23:59" */
+  /** A date and time, the one way the app writes it: "Besok, 23:59", "Jum, 13 Nov, 23:59". */
   dueLabel(when: When): string;
+  /** A date and a span of time, the one way the app writes it: "Hari ini, 15:00–23:59", "Kam, 12 Nov, 16:00–17:50". */
+  dayTimeRange(start: When, end: When): string;
   /** Mid-sentence, with its day only when it isn't today: "23:00", "besok, 23:00", "Sen, 12 Okt, 23:00". */
   dayTime(when: When): string;
   /** Mid-sentence, always with its day: "hari ini, 20:16", "kemarin, 20:16", "Sen, 12 Okt, 20:16". */
@@ -95,6 +97,7 @@ export function makeFormat(lang: Lang, now: number): Format {
     dateLong: (when) => dateLongFmt.format(ms(when)),
     relativeDay,
     dueLabel: (when) => `${relativeDay(when)}, ${time(when)}`,
+    dayTimeRange: (start, end) => `${relativeDay(start)}, ${time(start)}–${time(end)}`,
     dayTime: (when) => {
       const offset = dayOffset(when);
       if (offset === 0) return time(when);
