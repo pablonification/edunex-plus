@@ -42,7 +42,7 @@ import { momentsOf, useClockMoments } from "./task-clock";
  * Lines on a first draw ahead (../../ui/parts.tsx): about a screenful (the chips, the big card, four rows), then the
  * whole list in the next part. Each part is one commit of its own instead of one block.
  */
-export const FIRST_LINES = 6;
+const FIRST_LINES = 6;
 
 const GROUPS: { group: TodoGroup; title: StringKey }[] = [
   { group: "overdue", title: "tasks.group.overdue" },
