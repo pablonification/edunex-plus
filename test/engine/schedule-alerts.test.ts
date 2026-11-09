@@ -4,7 +4,7 @@
 // UTS in class on 15 October, and II4091's meeting 3 announced only in Edunex.
 import { describe, expect, it } from "vitest";
 import { mergeExams } from "../../src/core/exams";
-import type { AlertHistory } from "../../src/core/models";
+import type { AlertHistory, PresenceSession } from "../../src/core/models";
 import { translate } from "../../src/core/strings";
 import { GROUP_WINDOW } from "../../src/engine/alerts/center";
 import { createEngine, type Engine } from "../../src/engine/engine";
@@ -118,6 +118,29 @@ describe("schedule alerts", () => {
     expect(told).toContain("Pertemuan tambahan · PL3002 — Jum, 13 Nov 10:00–11:30 · 9009");
     // The week's usual Thursday meeting, and the Friday one standing in for it.
     expect(told).toContain("Jadwal berubah · PL3002 — Kam, 19 Nov 08:00–09:30 · R.SG PWK LT.6 → Jum, 20 Nov 08:00–09:30 · R.SG PWK LT.6");
+  });
+
+  it("SIX's meeting that stands for a Task's hand-in window moving isn't told as a class moved: the window is Edunex's, and the Task page follows Edunex's", async () => {
+    const app = await start("2026-11-10T09:00:00+07:00");
+    // II4091's Friday 13 November: Edunex counts presence by handing in Tugas 117023, 15:00–23:59 (the recording); SIX lists a roomless meeting then.
+    const ii = { id: "2299013", code: "II4091", name: "Proposal Tugas Akhir", day: "2026-11-13", room: null };
+    app.world.six.addMeeting({ ...ii, start: "15:00", end: "23:59" });
+    await app.refresh("six");
+    const moved = () => app.history("scheduleChanged").filter((text) => text.startsWith("Jadwal berubah · II4091"));
+    const before = moved().length;
+    // SIX shortens it; Edunex's window, the one handing in counts toward, stays as it was.
+    app.world.six.changeAddedMeeting(ii.id, { end: "17:00" });
+    await app.refresh("six");
+    expect(moved()).toHaveLength(before);
+    // The Task page reads Edunex's window as it is now: the lecturer changing it shows at the next read.
+    const window = () => {
+      const presence = app.engine.snapshot().datasets.find((d) => d.name === "edunex.presence")?.value as Record<string, PresenceSession[]>;
+      return presence.II4091.find((p) => p.id === 2243746);
+    };
+    expect(window()?.closesAt).toBe(wib("2026-11-13T23:59:00"));
+    app.world.edunex.keepPresenceOpen(2243746, "2026-11-13T20:00:00+07:00");
+    await app.refresh("edunex");
+    expect(window()?.closesAt).toBe(wib("2026-11-13T20:00:00"));
   });
 
   it("overlapping classes: on Monday morning of a week where they clash, once that week", async () => {

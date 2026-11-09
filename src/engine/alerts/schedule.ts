@@ -1,6 +1,6 @@
 // Schedule and exam alerts (#77), from SIX's timetable and Edunex:
 // - A class moved: a SIX meeting's time or room changed between two reads
-//   (naming old → new), or a meeting SIX newly lists that stands in for the
+//   (naming old → new; not SIX's roomless copy of an Edunex Task window), or a meeting SIX newly lists that stands in for the
 //   week's usual meeting (naming that one → this one). Raised when it's seen.
 // - An extra meeting: one SIX newly lists on top of the week's usual
 //   meeting(s), told as an extra meeting, never as the class having moved.
@@ -53,9 +53,14 @@ const whenOf = (s: Pick<ClassSession, "start" | "end" | "room">, sameDayAs?: num
 export const scheduleMoves: Detector = {
   name: "schedule.moved",
   watches: ["six.schedule"],
-  changed(change, { now }) {
+  changed(change, { now, get }) {
     if (change.name !== "six.schedule" || !change.previous) return [];
     const drafts: AlertDraft[] = [];
+    // A roomless SIX meeting standing for an Edunex Task window is a time to hand in, not a class: the window that
+    // counts is Edunex's (the Task page and Jadwal show it), so SIX's copy of it moving isn't told as a class moved.
+    const handIn = new Set(
+      taskWindows(get("edunex.presence"), change.previous, get("edunex.tasks") ?? []).flatMap((w) => (w.six && !w.six.room ? [w.six.id] : [])),
+    );
     /** `old` → this session, the day said once when both are on it. */
     const draft = (session: ClassSession, old: Words, oldStart: number): AlertDraft => {
       const next = whenOf(session, oldStart);
@@ -69,6 +74,7 @@ export const scheduleMoves: Detector = {
       };
     };
     for (const { before, after } of sessionChanges(change.previous, change.next)) {
+      if (handIn.has(before.id) && !after.room) continue;
       if (after.end > now) drafts.push(draft(after, whenOf(before), before.start));
     }
     // A meeting SIX lists for the first time, off the course's usual slot: one standing in for
