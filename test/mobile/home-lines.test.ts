@@ -48,19 +48,39 @@ describe("shortWhen", () => {
 describe("changeLines", () => {
   const name = (code: string) => (code === "PL4099" ? "Proposal Tugas Akhir" : code);
 
-  it("leads a moved class with its new time, and names the course", () => {
-    const lines = changeLines(
-      t,
-      {
-        title: { key: "alert.moved", vars: { course: "PL4099" } },
-        body: { key: "alert.moved.body", vars: { oldId: "Jum, 9 Okt 15:00–23:59", oldEn: "", newId: "Jum, 9 Okt 15:00–16:40 · 9009", newEn: "" } },
+  it("says a moved class as old → new, only what changed, and names the course", () => {
+    const moved = (oldId: string, newId: string) =>
+      changeLines(
+        t,
+        { title: { key: "alert.moved", vars: { course: "PL4099" } }, body: { key: "alert.moved.body", vars: { oldId, oldEn: oldId, newId, newEn: newId } } },
+        name,
+      );
+    const time = moved("Jum, 9 Okt, 15:00–23:59 · 9009", "15:00–16:40 · 9009");
+    expect(time.title).toBe("Jadwal berubah · Proposal Tugas Akhir");
+    expect(time.meta).toBe("15:00–23:59 → 15:00–16:40");
+    // The whole of both stays in what TalkBack reads.
+    expect(time.spoken[1]).toBe("Jum, 9 Okt, 15:00–23:59 · 9009 → 15:00–16:40 · 9009");
+    expect(moved("Kam, 19 Nov, 08:00–09:30 · R.7602", "Jum, 20 Nov, 08:00–09:30 · R.7602").meta).toBe("Kam, 19 Nov → Jum, 20 Nov");
+    expect(moved("Kam, 19 Nov, 08:00–09:30 · R.7602", "08:00–09:30 · R.9009").meta).toBe("R.7602 → R.9009");
+    expect(moved("Kam, 19 Nov, 08:00–09:30", "Jum, 20 Nov, 10:00–11:30").meta).toBe("Kam, 19 Nov, 08:00–09:30 → Jum, 20 Nov, 10:00–11:30");
+  });
+
+  it("says a class off its usual slot as usual → this week's", () => {
+    const lines = changeLines(t, {
+      title: { key: "home.change.moved", vars: { course: "PL3002" } },
+      body: {
+        key: "home.change.moved.time",
+        vars: { dateId: "Kam, 8 Okt", dateEn: "Thu, 8 Oct", time: "08:00–10:00", usualId: "08:00–09:30", usualEn: "08:00–09:30", room: "" },
       },
-      name,
-    );
-    expect(lines.title).toBe("Jadwal berubah · Proposal Tugas Akhir");
-    expect(lines.meta).toBe("Jum, 9 Okt 15:00–16:40 · 9009");
-    // The old time stays in what TalkBack reads.
-    expect(lines.spoken[1]).toContain("15:00–23:59 →");
+    });
+    expect(lines.meta).toBe("08:00–09:30 → 08:00–10:00");
+  });
+
+  it("names both courses of a clash apart, never as one name", () => {
+    const short = (code: string) => (code === "PL3032" ? "Teknik Penyelesaian" : code === "KU5014" ? "Ekonomi Infrastruktur" : code);
+    const lines = changeLines(t, { title: { key: "alert.overlap", vars: { a: "PL3032", b: "KU5014" } }, body: null }, short);
+    expect(lines.title).toBe("Bentrok · Teknik Penyelesaian × Ekonomi Infrastruktur");
+    expect(lines.spoken[0]).toBe("Kelas bentrok · Teknik Penyelesaian dan Ekonomi Infrastruktur");
   });
 
   it("says Tandai Hadir's action and how long the class runs, never how to press it", () => {

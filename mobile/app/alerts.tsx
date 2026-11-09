@@ -2,13 +2,15 @@
 // alert the engine raised joined with the changes it can see in the data itself (src/core/needs.ts alertFeed), so
 // Beranda's "Yang berubah" is a preview of this list. On v4's grey page, by day (Hari ini, Kemarin, then the date), each
 // day a white card of rows: the kind's icon on its course's colour (amber for what presses), the title with the course's
-// name, one meta line (the new value, or the action and its deadline). Opening it clears the bell's dot; a small dot
-// stays on each unread row until "Tandai semua dibaca", the bar's one action while something is unread. Nothing is
-// ever marked in Edunex.
+// name, one meta line (what changed, old → new, or the action and its deadline), and at the row's end the time the
+// thing itself happened (a Task posted, a Presence opening), never when the app read it: nothing when that isn't known
+// (SIX never dates a moved class). A small calm dot on each unread row, and the bell's dot on every tab, until "Tandai
+// semua dibaca", the bar's one action while something is unread: both say the same thing. Nothing is ever marked in
+// Edunex.
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { ChecksIcon } from "phosphor-react-native/src/icons/Checks";
-import { type ComponentType, useEffect, useMemo, useState } from "react";
+import { type ComponentType, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useHomeWorld } from "../../src/app/home-world";
 import { useOpenCheckIn } from "../../src/app/hooks";
@@ -17,7 +19,7 @@ import { useBridge, useDataset, useStatus } from "../../src/app/store";
 import type { Alert, AlertKind } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
-import { changeLines } from "../src/parts/change-meta";
+import { changeLines, eventTime } from "../src/parts/change-meta";
 import { usePerfDrawn } from "../src/perf";
 import { useShortCourseName } from "../src/screens/home/parts";
 import { IconButton } from "../src/ui/controls";
@@ -54,19 +56,26 @@ const PRESSING = new Set<AlertKind>(["deadline", "presenceOpen", "presenceClosin
 /** Days after the first rise together: the rest is below the fold anyway. */
 const RISE_STEPS = 4;
 
-/** A day's items, newest day first: 0 is today (a raised alert a minute ahead of the screen's clock too), -1 yesterday. */
-interface Day {
-  offset: number;
-  /** When its newest item came (the day's date). */
+/** A row: the alert, when it happened (null: not known), and the moment that places it. */
+interface Row {
+  item: Alert;
+  happened: number | null;
   at: number;
-  items: Alert[];
 }
 
-/** The day's heading: Hari ini, Kemarin, then the day as the desktop's rows date it ("Sen 5 Okt"). */
+/** A day's rows, newest day first: 0 is today (a raised alert a minute ahead of the screen's clock too), -1 yesterday. */
+interface Day {
+  offset: number;
+  /** When its newest row came (the day's date). */
+  at: number;
+  rows: Row[];
+}
+
+/** The day's heading: Hari ini, Kemarin, then the day the one way the app writes it ("Sen, 5 Okt"). */
 function dayTitle(day: Day, t: Translate, f: Format): string {
   if (day.offset === 0) return t("alerts.period.today");
   if (day.offset === -1) return t("alerts.period.yesterday");
-  return `${f.weekdayShort(day.at)} ${f.dayMonth(day.at)}`;
+  return f.relativeDay(day.at);
 }
 
 export default function Alerts() {
@@ -82,28 +91,38 @@ export default function Alerts() {
   const sixOut = useStatus("six").state === "signed-out";
   const world = useHomeWorld();
   const name = useShortCourseName();
-  // What counted as read when the Student opened it: the dots stay on what came since, until they say so.
-  const [readAt, setReadAt] = useState(() => history?.readAt ?? 0);
-  useEffect(() => {
-    void bridge.invoke("alerts.markRead", {}).catch(() => undefined);
-  }, [bridge]);
+  // Read up to: what the engine keeps (the bell's dot reads the same), or the moment the Student said so here.
+  const [markedAt, setMarkedAt] = useState(0);
+  const readAt = Math.max(history?.readAt ?? 0, markedAt);
   const items = useMemo(() => (world ? alertFeed(world, history?.items ?? []) : (history?.items ?? [])), [world, history]);
   const raised = useMemo(() => new Set((history?.items ?? []).map((item) => item.id)), [history]);
+  // Each row's moment: when the thing happened, or, unknown, when the app saw it (only to place it under a day).
+  const rows = useMemo(
+    () =>
+      items
+        .map((item): Row => {
+          const happened = eventTime(item, raised.has(item.id), world);
+          return { item, happened, at: happened ?? item.at };
+        })
+        .sort((a, b) => b.at - a.at),
+    [items, raised, world],
+  );
   const isUnread = (item: Alert) => raised.has(item.id) && item.at > readAt;
   const anyUnread = items.some(isUnread);
   const days = useMemo(() => {
-    const byOffset = new Map<number, Alert[]>();
-    for (const item of items) {
-      const offset = Math.min(0, f.dayOffset(item.at));
+    const byOffset = new Map<number, Row[]>();
+    for (const row of rows) {
+      const offset = Math.min(0, f.dayOffset(row.at));
       const day = byOffset.get(offset);
-      if (day) day.push(item);
-      else byOffset.set(offset, [item]);
+      if (day) day.push(row);
+      else byOffset.set(offset, [row]);
     }
-    return [...byOffset].map(([offset, dayItems]): Day => ({ offset, at: dayItems[0]?.at ?? now, items: dayItems })).sort((a, b) => b.offset - a.offset);
-  }, [items, f, now]);
+    return [...byOffset].map(([offset, dayRows]): Day => ({ offset, at: dayRows[0]?.at ?? now, rows: dayRows })).sort((a, b) => b.offset - a.offset);
+  }, [rows, f, now]);
 
   const markAllRead = () => {
-    setReadAt(now);
+    setMarkedAt(now);
+    void bridge.invoke("alerts.markRead", {}).catch(() => undefined);
     void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
   };
 
@@ -137,25 +156,25 @@ export default function Alerts() {
         <Rise key={day.offset} screen="alerts" index={Math.min(index, RISE_STEPS)}>
           <Heading first={index === 0}>{dayTitle(day, t, f)}</Heading>
           <Group>
-            {day.items.map((item, i) => {
+            {day.rows.map(({ item, happened }, i) => {
               const unread = isUnread(item);
               const { title, meta, spoken } = changeLines(t, item, name);
+              const time = happened !== null ? f.time(happened) : null;
               return (
                 <GroupRow
                   key={item.id}
                   testID={`row.alert.${item.id}`}
                   first={i === 0}
                   // Unread first in what's read out, as the dot says it to the eye.
-                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken)}
+                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken, time)}
                   leading={<KindTile item={item} />}
                   title={
                     <Text size="bodyLarge" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
                       {title}
                     </Text>
                   }
-                  // One meta line: the new value, or the action and its deadline (short where the desktop's runs long or
-                  // says how, ../src/parts/change-meta.ts). No clock time at the end: the day's heading says when it
-                  // came, and the time a read saw it (a sync at 00:45) isn't when anything happened.
+                  // One meta line: what changed, old → new, or the action and its deadline (short where the desktop's runs
+                  // long or says how, ../src/parts/change-meta.ts).
                   meta={
                     meta ? (
                       <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
@@ -163,10 +182,17 @@ export default function Alerts() {
                       </Text>
                     ) : undefined
                   }
-                  // Unread: a small dot, calm, its shape saying it (never the colour alone).
+                  // The time it happened, and under it a small calm dot while unread (its shape says it, never the colour alone).
                   trailing={
-                    unread ? (
-                      <View testID={`row.alert.${item.id}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brand }} />
+                    time || unread ? (
+                      <View style={{ alignItems: "flex-end", gap: space[1] }}>
+                        {time && (
+                          <Text size="labelMedium" tabular style={{ color: v.muted }}>
+                            {time}
+                          </Text>
+                        )}
+                        {unread && <View testID={`row.alert.${item.id}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brand }} />}
+                      </View>
                     ) : undefined
                   }
                   onPress={() => (item.checkIn ? openCheckIn(item.checkIn.meetingId, item.checkIn.url) : nav.go(item.target))}
