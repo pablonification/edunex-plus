@@ -2,13 +2,14 @@
 // alert the engine raised joined with the changes it can see in the data itself (src/core/needs.ts alertFeed), so
 // Beranda's "Yang berubah" is a preview of this list. On v4's grey page, by day (Hari ini, Kemarin, then the date), each
 // day a white card of rows: the kind's icon on its course's colour (amber for what presses), the title with the course's
-// name, one meta line (what changed, old → new, or the action and its deadline), and at the row's end the time the
-// thing itself happened (a Task posted, a Presence opening), else when the app noticed it (SIX never dates a moved
-// class). A small calm dot on each unread row, and the bell's dot on every tab, until "Tandai
+// name, one meta line (what changed, old → new, or the action and its deadline; a room on its own line, never cut), and
+// at the row's end the time the thing itself happened (a Task posted, a Presence opening); none when only the time the
+// app noticed it is known (SIX never dates a moved class: "00:45" read as the class's time). A small calm dot on each unread row, and the bell's dot on every tab, until "Tandai
 // semua dibaca", the bar's one action while something is unread: both say the same thing. Nothing is ever marked in
 // Edunex. A class's or a Presence's alert whose window is over says what happened, with no action left in it, and opens
-// the course; a deadline's, once it has passed, says whether the Task was handed in, and opens the Task; an exam SIX lists in two weeks is one row with both days (../src/screens/alerts/past.ts,
-// ../../src/core/exam-sittings.ts); a meeting and its Teams link or material posted close by are one row
+// the course; a deadline's, once it has passed, says whether the Task was handed in, and opens the Task; an exam SIX lists in two weeks is a row per sitting, each
+// with its full date, time and room (../src/screens/alerts/past.ts, ../../src/core/exam-sittings.ts: two dates in one
+// row were hard to read); a meeting and its Teams link or material posted close by are one row
 // (../src/screens/alerts/same-meeting.ts).
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
@@ -64,13 +65,15 @@ const RISE_STEPS = 4;
 
 /** A row: the alert, when it happened (null: not known), and the moment that places it. */
 interface Row {
+  /** The alert's id, or with its sitting's for an exam SIX lists more than once. */
+  key: string;
   item: Alert;
   happened: number | null;
   at: number;
   /** Its class or Presence window is over: what happened. */
   past: PastAlert | null;
-  /** An exam SIX lists more than once: every sitting. */
-  sittings: readonly ClassSession[] | null;
+  /** An exam SIX lists more than once: this row's sitting. */
+  sitting: ClassSession | null;
   /** A meeting's row: its Teams link or material, posted close by, folded into it. */
   joined: { material: Alert; extra: MeetingExtra } | null;
 }
@@ -117,10 +120,13 @@ export default function Alerts() {
     const over = new Set<string>();
     return items
       .filter((item) => !folded.has(item.id) && !meetings.folded.has(item.id))
-      .map((item): Row => {
+      .flatMap((item): Row[] => {
         const happened = eventTime(item, raised.has(item.id), world);
         const joined = meetings.joined.get(item.id) ?? null;
-        return { item, happened, at: happened ?? item.at, past: pastAlert(item, world, now), sittings: sittings.get(item.id) ?? null, joined };
+        const row = { key: item.id, item, happened, at: happened ?? item.at, past: pastAlert(item, world, now), sitting: null, joined };
+        const each = sittings.get(item.id);
+        // A row per sitting, each with its own date, time and room.
+        return each?.length ? each.map((sitting) => ({ ...row, key: `${item.id}:${sitting.id}`, sitting })) : [row];
       })
       .sort((a, b) => b.at - a.at)
       .filter((row) => {
@@ -179,7 +185,7 @@ export default function Alerts() {
         <Rise key={day.offset} screen="alerts" index={Math.min(index, RISE_STEPS)}>
           <Heading first={index === 0}>{dayTitle(day, t, f)}</Heading>
           <Group>
-            {day.rows.map(({ item, happened, past, sittings, joined }, i) => {
+            {day.rows.map(({ key, item, happened, past, sitting, joined }, i) => {
               const unread = isUnread(item) || (joined !== null && isUnread(joined.material));
               const lines = changeLines(t, item, name);
               const outcome = past ? outcomeOf(t, past.outcome) : null;
@@ -194,18 +200,21 @@ export default function Alerts() {
                   : null;
               const meta = past
                 ? (outcome?.text ?? null)
-                : sittings
-                  ? sittingsLine(f, sittings)
+                : sitting
+                  ? sittingsLine(f, [sitting], { room: false })
                   : joined
                     ? t(joined.extra === "link" ? "mobile.change.meeting.withLink" : "mobile.change.meeting.withMaterial", { when: said(lines.meta) ?? "" })
                     : said(lines.meta);
-              const spoken = past ? [title, outcome?.text ?? null] : sittings || joined ? [lines.title, meta] : lines.spoken;
-              // Every row has a time: when the thing happened, else when the app noticed it.
-              const time = f.time(happened ?? item.at);
+              // A sitting's room on its own line, so it's never cut.
+              const room = sitting?.room ?? null;
+              const spoken = past ? [title, outcome?.text ?? null] : sitting || joined ? [lines.title, meta, room] : lines.spoken;
+              // When the thing happened; none when only the time the app noticed it is known, or the words already say it.
+              const at = happened !== null ? f.time(happened) : null;
+              const time = at && !`${title} ${meta ?? ""}`.includes(at) ? at : null;
               return (
                 <GroupRow
-                  key={item.id}
-                  testID={`row.alert.${item.id}`}
+                  key={key}
+                  testID={`row.alert.${key}`}
                   first={i === 0}
                   // Unread first in what's read out, as the dot says it to the eye.
                   accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken, time)}
@@ -226,19 +235,28 @@ export default function Alerts() {
                         </Text>
                       </View>
                     ) : meta ? (
-                      // One short line: the whole of it is in the row's spoken name and on what the row opens.
-                      <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
-                        {meta}
-                      </Text>
+                      // Two lines at most, so a room is never cut: the whole of it is in the row's spoken name too.
+                      <View>
+                        <Text size="bodyMedium" tabular numberOfLines={room ? 1 : 2} style={{ color: v.muted }}>
+                          {meta}
+                        </Text>
+                        {room && (
+                          <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
+                            {room}
+                          </Text>
+                        )}
+                      </View>
                     ) : undefined
                   }
                   // The time it happened, and under it a small calm dot while unread (its shape says it, never the colour alone).
                   trailing={
                     <View style={{ alignItems: "flex-end", gap: space[1] }}>
-                      <Text size="labelMedium" tabular style={{ color: v.muted }}>
-                        {time}
-                      </Text>
-                      {unread && <View testID={`row.alert.${item.id}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brand }} />}
+                      {time && (
+                        <Text size="labelMedium" tabular style={{ color: v.muted }}>
+                          {time}
+                        </Text>
+                      )}
+                      {unread && <View testID={`row.alert.${key}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brand }} />}
                     </View>
                   }
                   onPress={() =>
