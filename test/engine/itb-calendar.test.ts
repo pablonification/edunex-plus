@@ -78,6 +78,9 @@ describe("ITB academic calendar", () => {
     expect(calendarRequests(h)).toBe(2);
     expect(published()).toBe(before);
     expect(h.dataset("itb.calendar")).toBe(stored);
+    // It still counts as read now (the report's and the alerts' "last read").
+    const readAt = h.engine.snapshot().datasets.find((d) => d.name === "itb.calendar")!.fetchedAt;
+    expect(h.world.clock.now() - readAt).toBeLessThan(2 * HOUR);
     // Read once a day, not on every run once the stored copy is a day old.
     await h.wait(12 * HOUR);
     expect(calendarRequests(h)).toBe(2);

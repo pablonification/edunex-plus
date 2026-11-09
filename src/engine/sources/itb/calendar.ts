@@ -117,9 +117,10 @@ export function registerCalendarFeed(context: SourceContext): void {
       const read = context.breathe ? await readCalendarInSlices(text, context.clock.now(), context.breathe) : readCalendar(text, context.clock.now());
       if (!current()) return;
       checkedAt = read.checkedAt;
-      // The same events as stored: nothing to redraw, unless the date it says it was checked is getting old.
-      if (cached && read.checkedAt - cached.checkedAt < RECHECKED && hashOf(read.events) === hashOf(cached.events)) return;
-      await context.set("itb.calendar", read);
+      // The same events as stored: the stored copy again, so it counts as read but nothing is redrawn, unless the date it
+      // says it was checked is getting old.
+      const same = cached && read.checkedAt - cached.checkedAt < RECHECKED && hashOf(read.events) === hashOf(cached.events);
+      await context.set("itb.calendar", same ? cached : read);
     },
   });
 }
