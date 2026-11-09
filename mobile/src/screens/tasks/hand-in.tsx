@@ -341,20 +341,24 @@ export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus
   const { task, status, marked } = h;
   const sentAt = submittedAt(task);
   const draftAt = task.answer?.updatedAt ?? task.answer?.createdAt ?? null;
+  // A draft says when it was saved beside "Draf", on one line: its half-circle already says it isn't handed in
+  // (round 3's final pair: three lines for one fact). The day alone; TalkBack hears the whole of it.
+  const draftDay = draftAt !== null ? (Math.abs(f.dayOffset(draftAt)) <= 1 ? f.relativeDay(draftAt).toLocaleLowerCase() : f.relativeDay(draftAt)) : null;
+  const draftLine = status === "draft" && !marked && draftDay !== null ? t("mobile.tasks.draftSavedShort", { when: draftDay }) : null;
+  const draftSpoken =
+    status === "draft" && draftAt !== null
+      ? factsLabel(t("taskStatus.draft"), t("handIn.draftSaved", { when: f.dayTimeWord(draftAt) }), t("handIn.draftStatus").toLowerCase())
+      : undefined;
   const subtitle =
-    status === "not_started"
+    status === "not_started" || status === "draft"
       ? ""
-      : status === "draft"
-        ? draftAt !== null
-          ? factsLabel(t("handIn.draftSaved", { when: f.dayTimeWord(draftAt) }), t("handIn.draftStatus").toLowerCase())
-          : t("handIn.draftStatus")
-        : status === "overdue"
-          ? t("handIn.lateStill")
-          : status === "closed"
-            ? t("handIn.closedStatus")
-            : sentAt !== null
-              ? t("handIn.recorded", { when: f.dayTimeWord(sentAt) })
-              : "";
+      : status === "overdue"
+        ? t("handIn.lateStill")
+        : status === "closed"
+          ? t("handIn.closedStatus")
+          : sentAt !== null
+            ? t("handIn.recorded", { when: f.dayTimeWord(sentAt) })
+            : "";
   const inFlight = h.attached.filter((item) => item.state !== "failed");
   const done = inFlight.filter((item) => item.state === "uploaded").length;
   const glyph = c[GLYPH_TONE[status]];
@@ -365,8 +369,20 @@ export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
           {marked ? <Icons.CheckCircle size={24} weight="fill" color={c.successFg} /> : <StatusGlyph status={status} size={24} color={glyph} />}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="titleMedium" face="display" weight="bold" style={{ color: theme.v4.fg }}>
+            <Text
+              size="titleMedium"
+              face="display"
+              weight="bold"
+              numberOfLines={draftLine ? 1 : undefined}
+              accessibilityLabel={marked ? undefined : draftSpoken}
+              style={{ color: theme.v4.fg }}
+            >
               {marked ? t(`task.marked.${marked.how as MarkedHow}`) : t(`taskStatus.${status}`)}
+              {draftLine && (
+                <Text size="bodyMedium" weight="regular" style={{ color: theme.v4.muted }}>
+                  {` · ${draftLine}`}
+                </Text>
+              )}
             </Text>
             {marked ? (
               <Meta>{t("mobile.tasks.edunexSays", { status: t(`taskStatus.${status}`).toLocaleLowerCase() })}</Meta>

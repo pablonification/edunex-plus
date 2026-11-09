@@ -30,6 +30,8 @@ export const mobileTasksStrings = {
     id: "Tersimpan {when}. Dosen bisa melihatnya, tapi hanya Kumpulkan yang menyerahkannya.",
     en: "Saved {when}. Your lecturer can see it, but only Submit hands it in.",
   },
+  // The answer card's one line beside "Draf" (its half-circle says not handed in, TalkBack hears handIn.draftStatus).
+  "mobile.tasks.draftSavedShort": { id: "disimpan {when}", en: "saved {when}" },
   // A Task that is also Presensi: its line on the due card is task.attendanceLine ("Presensi 15:00–23:59"); a tap opens
   // a small sheet with why (the desktop's task.note.attendance, and what happens outside that time), under this title.
   "mobile.tasks.presenceWhy": { id: "Tugas ini juga Presensi", en: "This Task is also attendance" },
