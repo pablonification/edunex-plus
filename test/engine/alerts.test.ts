@@ -256,4 +256,10 @@ describe("time-based alerts", () => {
     await app.wait(10 * MINUTE);
     expect(app.shown).toEqual([]);
   });
+
+  it("stays silent when the first sync finished before the timed alerts started", async () => {
+    const app = await startAlerts({ detectors: [...DETECTORS, presence("2026-10-08T08:00:00+07:00", "2026-10-08T09:00:00+07:00")], alertsAfter: 5 * MINUTE });
+    await app.wait(10 * MINUTE);
+    expect(app.shown).toEqual([]);
+  });
 });

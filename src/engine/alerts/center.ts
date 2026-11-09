@@ -85,6 +85,8 @@ export class AlertCenter {
   private flushTimer: TimerHandle | null = null;
   private planTimers: TimerHandle[] = [];
   private running = false;
+  /** Detectors whose datasets had their first read while stopped: the first replan keeps their due alerts silent. */
+  private readonly baselineWhileStopped = new Set<Detector>();
   private writes: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly deps: AlertCenterDeps) {
@@ -104,7 +106,9 @@ export class AlertCenter {
 
   start(): void {
     this.running = true;
-    this.replan();
+    const silent = new Set(this.baselineWhileStopped);
+    this.baselineWhileStopped.clear();
+    this.replan(silent);
   }
 
   stop(): void {
@@ -152,6 +156,7 @@ export class AlertCenter {
     const change = { name, previous, next } as DatasetChange;
     const watching = this.deps.detectors.filter((detector) => detector.watches.includes(name));
     for (const detector of watching) this.accept(detector.changed?.(change, context) ?? [], baseline);
+    if (baseline && !this.running) for (const detector of watching) this.baselineWhileStopped.add(detector);
     this.replan(baseline ? new Set(watching) : undefined);
   }
 
@@ -167,6 +172,7 @@ export class AlertCenter {
   /** Signing out of everything, or another Student: forget every alert and what was seen. */
   async reset(): Promise<void> {
     this.pending = [];
+    this.baselineWhileStopped.clear();
     this.plans.clear();
     this.lastNim = null;
     this.writes = this.writes.then(async () => {
