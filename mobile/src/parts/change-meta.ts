@@ -4,10 +4,11 @@
 // its deadline only. The whole of the desktop's is in what TalkBack reads. A new material's body is its name ("Link
 // Teams Pertemuan 03: Jumat, 9 Oktober 2026"), the part worth reading and too long for a meta line: it leads, on the
 // title's two lines, and "Materi baru · Proposal TA" is the meta. A course is named as the rest of the app names it
-// (`name`: its short name), never by its code. A moved class says what moved, old → new, and only that: the day, the
-// time or the room ("08:00–09:30 → 08:00–10:00", "R.7602 → R.9009"). Two classes that clash name both courses apart
-// ("Bentrok · TPMT × Ekon. Infrastruktur"), never "A dan B", which read as one course. A row's time is when the thing
-// itself happened (`eventTime`), never when the app read it.
+// (`name`: its short name), never by its code. A moved class says what moved, old → new: the day, the time or the room,
+// after the day it's on when the day itself didn't move ("Kam, 19 Nov · 08:00–09:30 → 08:00–10:00"): without it the
+// row didn't say which week. Two classes that clash are the desktop's "Kelas bentrok · TPMT dan Ekon. Infrastruktur"
+// with short names (round 3's third review read it at once, where "Bentrok · A × B" meant nothing). A row's time is
+// when the thing itself happened (`eventTime`), never when the app read it.
 import type { Translate } from "../../../src/app/i18n";
 import type { Alert, AlertText } from "../../../src/core/models/alerts";
 import type { HomeWorld } from "../../../src/core/needs";
@@ -20,11 +21,6 @@ const SHORT: Partial<Record<StringKey, StringKey>> = {
   "home.change.meeting.body": "mobile.change.meeting.body",
   "alert.checkIn.body": "mobile.change.checkIn",
   "mobile.alert.classStarted.body": "mobile.change.classStarted",
-};
-
-/** Titles the phone says its own way: a clash names its two courses apart. */
-const TITLE: Partial<Record<StringKey, StringKey>> = {
-  "alert.overlap": "mobile.change.overlap",
 };
 
 /** Titles whose body is the item's own name, which then leads the row. */
@@ -56,16 +52,15 @@ function named(text: AlertText, name: ((code: string) => string) | undefined): A
 /** What a change's row shows, and what it says in full. `name`: a course code to the name the row shows. */
 export function changeLines(t: Translate, item: { title: AlertText; body?: AlertText | null }, name?: (code: string) => string): ChangeLines {
   const asked = named(item.title, name);
-  const titleText = TITLE[asked.key] ? { ...asked, key: TITLE[asked.key]! } : asked;
   const bodyText = item.body ? named(item.body, name) : null;
-  const title = t(titleText.key, titleText.vars);
+  const title = t(asked.key, asked.vars);
   const body = bodyText ? t(bodyText.key, bodyText.vars) : null;
   // What TalkBack reads: the desktop's whole title and body ("Kelas bentrok · A dan B" is clear when heard).
   const spoken = [t(asked.key, asked.vars), body] as const;
   if (!bodyText || body === null) return { title, meta: null, spoken };
   if (NAMED.has(item.title.key) && bodyText.key === "alert.plain") return { title: body, meta: title, spoken };
   const moved = movedVars(bodyText);
-  if (moved) return { title, meta: t("mobile.change.moved.diff", moved), spoken };
+  if (moved) return { title, meta: t(moved.dayId ? "mobile.change.moved.onDay" : "mobile.change.moved.diff", moved), spoken };
   const short = SHORT[bodyText.key];
   return { title, meta: short ? t(short, bodyText.vars) : body, spoken };
 }
@@ -91,8 +86,11 @@ function slotOf(text: string): Slot | null {
   return { day, time, room };
 }
 
-/** Each side with only what changed: the day, the time, the room. Null when nothing can be told apart. */
-function diff(oldText: string, newText: string): [string, string] | null {
+/**
+ * Each side with only what changed (the day, the time, the room), and the day it's on when the day didn't change ("" when
+ * neither side names one). Null when nothing can be told apart.
+ */
+function diff(oldText: string, newText: string): [string, string, string] | null {
   const before = slotOf(oldText);
   const after = slotOf(newText);
   if (!before || !after) return null;
@@ -102,15 +100,18 @@ function diff(oldText: string, newText: string): [string, string] | null {
   const room = after.room !== "" && after.room !== before.room;
   if (!day && !time && !room) return null;
   const side = (slot: Slot) => [[day && slot.day, time && slot.time].filter(Boolean).join(", "), room && slot.room].filter(Boolean).join(" · ") || "-";
-  return [side(before), side(after)];
+  return [side(before), side(after), day ? "" : after.day || before.day];
 }
 
-/** The vars of "{oldId} → {newId}" for a moved class's body, old and new trimmed to what changed; null for any other body. */
+/**
+ * The vars of "{oldId} → {newId}" for a moved class's body, old and new trimmed to what changed, and `day` when the day
+ * didn't (in the language shown: each side's own text names it the same way); null for any other body.
+ */
 function movedVars(body: AlertText): Record<string, string> | null {
   const vars = body.vars ?? {};
   const pair = (oldText: unknown, newText: unknown) => (typeof oldText === "string" && typeof newText === "string" ? diff(oldText, newText) : null);
-  let id: [string, string] | null = null;
-  let en: [string, string] | null = null;
+  let id: [string, string, string] | null = null;
+  let en: [string, string, string] | null = null;
   if (body.key === "alert.moved.body") {
     id = pair(vars.oldId, vars.newId);
     en = pair(vars.oldEn, vars.newEn);
@@ -122,7 +123,10 @@ function movedVars(body: AlertText): Record<string, string> | null {
     en = pair(vars.usualEn, `${vars.room}`);
   } else return null;
   if (!id || !en) return null;
-  return { oldId: id[0], newId: id[1], oldEn: en[0], newEn: en[1] };
+  // A class off its usual slot this week: the week's date is its own var.
+  const dayId = id[2] || (typeof vars.dateId === "string" ? vars.dateId : "");
+  const dayEn = en[2] || (typeof vars.dateEn === "string" ? vars.dateEn : "");
+  return { oldId: id[0], newId: id[1], oldEn: en[0], newEn: en[1], dayId, dayEn };
 }
 
 // ---------------------------------------------------------------- when it happened

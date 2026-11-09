@@ -88,8 +88,15 @@ export const mobileStrings = {
   // Notifikasi's and Yang berubah's meta line for a moved class: what moved, old → new, only the day, time or room that
   // changed ("08:00–09:30 → 08:00–10:00"). The whole of both is in what TalkBack reads.
   "mobile.change.moved.diff": { id: "{oldId} → {newId}", en: "{oldEn} → {newEn}" },
-  // Notifikasi's title for two classes at once: both courses by name, kept apart ("A dan B" read as one course).
-  "mobile.change.overlap": { id: "Bentrok · {a} × {b}", en: "Clash · {a} × {b}" },
+  // Notifikasi and Yang berubah: a moved class's day, before what moved when the day itself didn't ("Kam, 19 Nov · 08:00–09:30
+  // → 08:00–10:00").
+  "mobile.change.moved.onDay": { id: "{dayId} · {oldId} → {newId}", en: "{dayEn} · {oldEn} → {newEn}" },
+  // Notifikasi, once a class or a Presence window is over: what happened, never the action any more ("Tandai Hadir · sampai
+  // 17:50" five days later read as still to do). The outcome is SIX's count after the class, or what Edunex recorded.
+  "mobile.alert.classOver": { id: "Kuliah selesai · {course}", en: "Class over · {course}" },
+  "mobile.alert.presenceOver": { id: "Presensi ditutup · {course}", en: "Presence closed · {course}" },
+  "mobile.alert.present": { id: "Hadir", en: "Present" },
+  "mobile.alert.notRecorded": { id: "Tidak tercatat", en: "Not recorded" },
   // Notifikasi's meta line for Tandai Hadir: the action and how long the class runs, never how to press it.
   "mobile.change.classStarted": { id: "Tandai Hadir · sampai {time}", en: "Tandai Hadir · until {time}" },
   "mobile.change.checkIn": { id: "Kuliah sampai {time}", en: "Class until {time}" },
