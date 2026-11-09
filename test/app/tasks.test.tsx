@@ -237,7 +237,7 @@ describe("Tugas & Ujian", () => {
     const s = screen;
     await s.click(/^Tugas & Ujian\d*(, Perlu perhatianmu)?$/);
     expect(document.querySelector("#tasks-exams")).toBeNull();
-    expect(sections()).toEqual(["Minggu depan 2", "Nanti 4"]);
+    expect(sections()).toEqual(["Minggu depan 3", "Nanti 4"]);
     const order = rows().map((b) => b.textContent ?? "");
     // The UTS week is a quiet line where it falls (Monday 12 Oct), open within two weeks; then the sitting, Tugas 02, the take-home.
     expect(order[0]).toBe("Masa UTSHari ujian PL3032 belum diumumkan12–16 Oktdalam 4 hari");
@@ -250,9 +250,10 @@ describe("Tugas & Ujian", () => {
     // The UAS is far off: its line is closed, at its place at the end.
     expect(order.at(-1)).toBe("Masa UASHari ujian PL3032 belum diumumkan7–22 Desdalam 60 hari");
     expect(rows().at(-1)!.getAttribute("aria-expanded")).toBe("false");
-    // One count everywhere: the segment and the sidebar count Tasks, take-homes and exams with a day, never a period.
-    expect(s.button(/^Belum selesai/).textContent).toBe("Belum selesai 6");
-    expect(s.button(/^Tugas & Ujian\d+/).textContent).toBe("Tugas & Ujian6");
+    // One count everywhere, the rows the list shows: Tasks, take-homes, exams with a day, and the exam under the open UTS
+    // line; the closed UAS line counts nothing.
+    expect(s.button(/^Belum selesai/).textContent).toBe("Belum selesai 7");
+    expect(s.button(/^Tugas & Ujian\d+/).textContent).toBe("Tugas & Ujian7");
   });
 
   it("the course chip filters the list and its counts; a course with nothing to do says so, with Show all", async () => {
@@ -263,14 +264,12 @@ describe("Tugas & Ujian", () => {
     expect(s.button(/^Belum selesai/).textContent).toBe("Belum selesai 2");
     expect(sections()).toEqual(["Minggu depan 1", "Nanti 1"]);
     // The sidebar keeps counting everything.
-    expect(s.button(/^Tugas & Ujian\d+/).textContent).toBe("Tugas & Ujian6");
+    expect(s.button(/^Tugas & Ujian\d+/).textContent).toBe("Tugas & Ujian7");
     await s.click("PL3032");
-    expect(s.button(/^Belum selesai/).textContent).toBe("Belum selesai 0");
-    expect(s.text()).toContain("Tidak ada yang perlu dikerjakan di PL3032");
-    // What's still to know comes under it: PL3032's exam periods.
+    // Its UTS shows under the open UTS line: one to sit, so the list, not "nothing to do".
+    expect(s.button(/^Belum selesai/).textContent).toBe("Belum selesai 1");
+    expect(s.text()).not.toContain("Tidak ada yang perlu dikerjakan di PL3032");
     expect(rows().map((b) => b.textContent?.slice(0, 8))).toEqual(["Masa UTS", "UTSEkono", "Masa UAS"]);
-    await s.click("Tampilkan semua");
-    expect(s.button(/^Belum selesai/).textContent).toBe("Belum selesai 6");
   });
 
   it("the date column: amber within a day, red only once late, and no second line that only repeats the day", async () => {

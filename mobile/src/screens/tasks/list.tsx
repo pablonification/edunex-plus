@@ -18,7 +18,7 @@ import type { Exam } from "../../../../src/core/exams";
 import type { Task } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
 import { taskStatus } from "../../../../src/core/tasks";
-import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../../../src/core/todo";
+import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoForCourse, todoGroup } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { TabHeader, usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
 import { CardSlice, SectionTitle } from "../../ui/card-list";
@@ -129,7 +129,7 @@ function tasksView(
   const groups = GROUPS.map(({ group, title }) => ({ group, title, items: rest.filter((item) => todoGroup(item, now) === group) })).filter(
     (group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0),
   );
-  const nothingToDo = !rest.some(todoCounted) && putOff.length === 0;
+  const nothingToDo = todoCount(items) === 0 && putOff.length === 0;
   const examsNoSix = sixOut && show === "open" && course === null;
   const codes = new Set([
     ...(todo?.items ?? []).map((item) => item.course),
