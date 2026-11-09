@@ -371,6 +371,9 @@ export function isHandInMove(alert: { id: string; title: { vars?: Record<string,
   return room === "" && Number.isFinite(start) && days.has(`${alert.title.vars?.course ?? ""}|${wibDay(start)}`);
 }
 
+/** SIX's roomless meetings that stand for a Task window (taskWindows): a time to hand in, not a class, so never a clash. */
+export const handInCopies = (windows: readonly TaskWindow[]): Set<string> => new Set(windows.flatMap((w) => (w.six && !w.six.room ? [w.six.id] : [])));
+
 const overlapOf = (a: { start: number; end: number }, b: { start: number; end: number }) => Math.min(a.end, b.end) - Math.max(a.start, b.start);
 
 /** Each course's Task windows, with SIX's meeting of that day (the most overlapping) and the Task when known. */
@@ -491,11 +494,11 @@ export interface ScheduleInput {
 /** What each day holds. `tasks` are the ones to show (the caller picks open ones). */
 export function scheduleDays(days: readonly string[], input: ScheduleInput): ScheduleDay[] {
   const { moved, extra } = slotMarks(input.schedule);
-  const clashes = overlaps(input.schedule);
   const events = input.events.filter((e) => SCHEDULE_EVENT_KINDS.has(e.kind));
   const windows = input.windows ?? [];
-  // A roomless SIX meeting that is a Task window is a time to hand in, not a place to be.
-  const handIn = new Set(windows.flatMap((w) => (w.six && !w.six.room ? [w.six.id] : [])));
+  // A roomless SIX meeting that is a Task window is a time to hand in, not a place to be: not shown, and no clash.
+  const handIn = handInCopies(windows);
+  const clashes = overlaps(input.schedule.filter((s) => !handIn.has(s.id)));
   return days.map((day) => {
     const covering = events.filter((e) => e.firstDay <= day && day <= e.lastDay);
     const noLectures = covering.find((e) => NO_LECTURES.has(e.kind)) ?? null;

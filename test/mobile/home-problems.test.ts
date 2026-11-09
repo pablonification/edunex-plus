@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { eventTime } from "../../mobile/src/parts/change-meta";
 import { firstRows, problems } from "../../mobile/src/screens/home/problems";
-import type { Alert } from "../../src/core/models";
+import type { Alert, ClassSession } from "../../src/core/models";
 import { alertFeed, homeContext, recentChanges } from "../../src/core/needs";
 import { startHome } from "../engine/needs-harness";
 
@@ -18,6 +18,23 @@ describe("Perlu kamu urus", () => {
     const found = problems(homeContext(home()));
     expect(found.absences.map((a) => `${a.code} ${a.health.state}`)).toEqual(["KU5014 out", "DK4073 none", "PL3032 none"]);
     expect(found.clashes.map((c) => c.key)).toEqual(["KU5014+PL3032"]);
+  });
+
+  it("doesn't call SIX's roomless copy of a Task's hand-in window a clash: Jadwal doesn't show it as a class", async () => {
+    const { home } = await startHome({ now: "2026-11-10T09:00:00+07:00" });
+    const world = home();
+    const at = (code: string, room: string | null): ClassSession => ({
+      id: `${code}-13nov`,
+      courseCode: code,
+      courseName: code,
+      start: wib("2026-11-13T15:00:00"),
+      end: wib("2026-11-13T17:00:00"),
+      activity: "Kuliah",
+      room,
+    });
+    // SIX's roomless copy of II4091's Friday hand-in window, and a real class of another course then, in a room.
+    const found = problems(homeContext({ ...world, schedule: [at("II4091", null), at("PL3002", "Lab GKU")] }));
+    expect(found.clashes.map((c) => c.key)).not.toContain("II4091+PL3002");
   });
 
   it("keeps room for the first thing to do, however many problems there are", () => {

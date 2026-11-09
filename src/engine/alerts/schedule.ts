@@ -26,7 +26,18 @@ import { wibDay } from "../../core/course-meetings";
 import { dateVars, sameLocalDay } from "../../core/dates";
 import { type ExamKind, mergeExams } from "../../core/exams";
 import type { AlertText, ClassSession } from "../../core/models";
-import { dayStart, meetingsOutsideSix, overlaps, pairKey, REMINDER_ALERTS, sessionChanges, slotMarks, taskWindows, weekStart } from "../../core/schedule";
+import {
+  dayStart,
+  handInCopies,
+  meetingsOutsideSix,
+  overlaps,
+  pairKey,
+  REMINDER_ALERTS,
+  sessionChanges,
+  slotMarks,
+  taskWindows,
+  weekStart,
+} from "../../core/schedule";
 import { type StringKey, translate } from "../../core/strings";
 import { type AlertDraft, clockTime, type Detector, type PlannedAlert } from "./detector";
 
@@ -109,10 +120,13 @@ export const scheduleMoves: Detector = {
 
 export const scheduleOverlaps: Detector = {
   name: "schedule.overlaps",
-  watches: ["six.schedule"],
+  watches: ["six.schedule", "edunex.presence", "edunex.tasks"],
   plan({ get, now }) {
     const byWeek = new Map<string, { pair: string; codes: string[]; first: { from: number; to: number }; until: number }>();
-    for (const overlap of overlaps(get("six.schedule") ?? [])) {
+    // As Jadwal: SIX's roomless copy of a Task's hand-in window isn't a class, so it clashes with nothing.
+    const schedule = get("six.schedule") ?? [];
+    const handIn = handInCopies(taskWindows(get("edunex.presence"), schedule, get("edunex.tasks") ?? []));
+    for (const overlap of overlaps(schedule.filter((s) => !handIn.has(s.id)))) {
       const to = Math.min(overlap.a.end, overlap.b.end);
       if (to <= now) continue;
       const pair = pairKey(overlap);

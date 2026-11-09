@@ -6,7 +6,7 @@
 import { type AttendanceHealth, absenceBudget } from "../../../../src/core/attendance";
 import type { ClassSession } from "../../../../src/core/models";
 import { type HomeContext, needsRange } from "../../../../src/core/needs";
-import { overlaps, pairKey } from "../../../../src/core/schedule";
+import { handInCopies, overlaps, pairKey, taskWindows } from "../../../../src/core/schedule";
 
 export interface AbsenceProblem {
   code: string;
@@ -41,7 +41,10 @@ export function problems(context: HomeContext): Problems {
   const { until } = needsRange(context);
   const clashes: ClashProblem[] = [];
   const seen = new Set<string>();
-  for (const overlap of overlaps(context.schedule ?? [])) {
+  // As Jadwal: SIX's roomless copy of a Task's hand-in window isn't a class, so it clashes with nothing.
+  const schedule = context.schedule ?? [];
+  const handIn = handInCopies(taskWindows(context.presence, schedule, context.tasks));
+  for (const overlap of overlaps(schedule.filter((s) => !handIn.has(s.id)))) {
     if (overlap.to <= context.now || overlap.from >= until) continue;
     const key = pairKey(overlap);
     if (seen.has(key)) continue;
