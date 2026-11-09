@@ -27,14 +27,22 @@ import { EmptyState, Skeleton } from "../../ui/display";
 import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Icons } from "../../ui/icons";
 import { GroupTile } from "../../ui/layout";
+import { usePart } from "../../ui/parts";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { shortName } from "../home/parts";
 import { PastExamRow } from "./exam-rows";
+import { lineType } from "./line-type";
 import { inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
 import { PutOff, TaskRow, TodoRow } from "./rows";
 import { momentsOf, useClockMoments } from "./task-clock";
+
+/**
+ * Lines on a first draw ahead (../../ui/parts.tsx): about a screenful (the chips, the big card, four rows), then the
+ * whole list in the next part. Each part is one commit of its own instead of one block.
+ */
+export const FIRST_LINES = 6;
 
 const GROUPS: { group: TodoGroup; title: StringKey }[] = [
   { group: "overdue", title: "tasks.group.overdue" },
@@ -202,6 +210,9 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const [putOffOpen, setPutOffOpen] = useState(false);
   const view = useMemo(() => tasksView(t, todo, courses, course, show, sixOut), [t, todo, courses, course, show, sixOut]);
   if (putOffOpen && !view.hasPutOff) setPutOffOpen(false);
+  const listed = usePart(1);
+  const whole = usePart(2);
+  const lines = useMemo(() => (whole ? view.lines : view.lines.slice(0, FIRST_LINES)), [whole, view.lines]);
 
   const header = (
     <Header show={show} onShow={setShow} openCount={view.openCount} doneCount={view.doneCount} courses={view.withItems} course={course} onCourse={setCourse} />
@@ -209,7 +220,8 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const togglePutOff = useCallback(() => setPutOffOpen((open) => !open), []);
   const showAll = useCallback(() => setCourse(null), [setCourse]);
   const renderItem = useCallback(
-    ({ item: line }: { item: Line }) => <LineView line={line} putOffOpen={putOffOpen} onPutOff={togglePutOff} onShowAll={showAll} />,
+    // Only the "ditunda" line hears of it opening: every other row stays as drawn.
+    ({ item: line }: { item: Line }) => <LineView line={line} putOffOpen={line.type === "putOff" && putOffOpen} onPutOff={togglePutOff} onShowAll={showAll} />,
     [putOffOpen, togglePutOff, showAll],
   );
 
@@ -217,26 +229,28 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
     <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.v4.page }}>
       <TabHeader v4 title={t("nav.tasks")} />
       <TaskRowWorld>
-        <FlashList
-          ref={list}
-          data={view.lines}
-          keyExtractor={(line) => line.key}
-          getItemType={(line) => line.type}
-          extraData={putOffOpen}
-          renderItem={renderItem}
-          ListHeaderComponent={header}
-          contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
-          // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
-          refreshControl={
-            <RefreshControl
-              refreshing={pull.refreshing}
-              onRefresh={pull.onRefresh}
-              colors={[theme.color.primary]}
-              progressBackgroundColor={theme.color.surfaceContainerHigh}
-            />
-          }
-          keyboardShouldPersistTaps="handled"
-        />
+        {listed && (
+          <FlashList
+            ref={list}
+            data={lines}
+            keyExtractor={(line) => line.key}
+            getItemType={lineType}
+            extraData={putOffOpen}
+            renderItem={renderItem}
+            ListHeaderComponent={header}
+            contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
+            // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
+            refreshControl={
+              <RefreshControl
+                refreshing={pull.refreshing}
+                onRefresh={pull.onRefresh}
+                colors={[theme.color.primary]}
+                progressBackgroundColor={theme.color.surfaceContainerHigh}
+              />
+            }
+            keyboardShouldPersistTaps="handled"
+          />
+        )}
       </TaskRowWorld>
     </View>
   );
@@ -343,7 +357,11 @@ function Slice({ first, last, inCourse, children }: Place & { inCourse: boolean;
   );
 }
 
-export function LineView({
+/**
+ * A line, drawn again only when it or what it's given changes: FlashList draws a cell again each time its place moves
+ * (a row over it measured taller than guessed as it scrolls into view), and a row is a dozen parts.
+ */
+export const LineView = memo(function LineView({
   line,
   putOffOpen = false,
   onPutOff,
@@ -404,7 +422,7 @@ export function LineView({
     case "examsNoSix":
       return <ExamsNoSix />;
   }
-}
+});
 
 /** A group's title and how many in it. */
 function Heading({ title, count, first }: { title: string; count?: number; first: boolean }) {
