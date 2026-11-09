@@ -82,7 +82,7 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   }, []);
   const timetableChanged = useChangedPage(["six.schedule"]);
   const waiting = !input || (!input.six && (six.state === "connecting" || six.state === "live") && !timetableChanged);
-  usePerfDrawn(!waiting, "tab");
+  usePerfDrawn(!waiting);
 
   const monday = weekStart(picked);
   const week = useMemo(() => Array.from({ length: 7 }, (_, i) => shiftDay(monday, i)), [monday]);

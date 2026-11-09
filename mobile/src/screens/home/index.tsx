@@ -36,7 +36,7 @@ export function Home() {
   const context = useMemo(() => (world ? homeContext(world) : undefined), [world]);
   // The timetable's page changed: said here. A class on it the app couldn't read is said on the card, quietly.
   const timetableChanged = useChangedPage(["six.schedule"]);
-  usePerfDrawn(context !== undefined, "tab");
+  usePerfDrawn(context !== undefined);
   if (context !== undefined && name) perfFirstData();
   // A redraw's cost on the phone: what the minute's tick or new data does to Beranda (the lab reads it from logcat).
   useLayoutEffect(() => {

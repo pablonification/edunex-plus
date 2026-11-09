@@ -1,7 +1,7 @@
 // The window's memory: the snapshot it started with, kept current by engine
 // events. Screens read it through hooks that subscribe to one dataset or one
 // source each, so an update redraws only what uses it.
-import { createContext, type ReactNode, useCallback, useContext, useEffect } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo } from "react";
 import type { AppSnapshot, DatasetPayload, Event, SignInStep } from "../core/contract";
 import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus, UpdateInstall } from "../core/models";
 import type { Route } from "../core/route";
@@ -139,8 +139,13 @@ interface AppContext {
 
 const Context = createContext<AppContext | null>(null);
 
+/**
+ * The same value while the store and bridge stay the same: a provider drawn again for another reason (the phone's tab
+ * gaining or losing focus) doesn't draw everything under it again.
+ */
 export function StoreProvider({ store, bridge, children }: AppContext & { children: ReactNode }) {
-  return <Context.Provider value={{ store, bridge }}>{children}</Context.Provider>;
+  const value = useMemo(() => ({ store, bridge }), [store, bridge]);
+  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
 function useApp(): AppContext {

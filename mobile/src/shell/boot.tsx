@@ -1,7 +1,7 @@
 // Start-up, as the desktop's renderer does it (src/app/main.tsx): the engine's saved data first,
 // one snapshot into the desktop's own store (src/app/store.tsx), the first screen drawn from it,
 // and only then "app.ready", which starts syncing. Nothing waits on the network. The splash
-// screen stays until the first frame is there.
+// screen (held from the JS start, ../start.ts) stays until the first frame is there.
 import * as SplashScreen from "expo-splash-screen";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { useColorScheme } from "react-native";
@@ -13,8 +13,6 @@ import { scheduleBackgroundSync } from "../host/background";
 import { type Host, host } from "../host/host";
 import { ThemeContext, themeFor } from "../ui/theme";
 import { demoClock } from "./demo-clock";
-
-void SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 interface Booted {
   host: Host;
