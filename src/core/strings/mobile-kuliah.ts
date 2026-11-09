@@ -76,6 +76,8 @@ export const mobileCourseStrings = {
   "mobile.meeting.totalOnly": { id: "SIX hanya mencatat jumlahnya", en: "SIX keeps only the total" },
   // The course's sheet: its target, changed in place.
   "mobile.course.target": { id: "Target kehadiran", en: "Attendance target" },
+  // The course's sheet: the next class clashes with another course's, named short ("Bentrok dengan Proposal TA 16:00–16:30").
+  "mobile.course.clash": { id: "Bentrok dengan {course} {time}", en: "Clashes with {course} {time}" },
   // The grade calculator. Example weights in one line (the banner opens the course contract when there is one).
   "mobile.grade.example": { id: "Contoh bobot, bukan bobot {code}", en: "Example weights, not {code}'s" },
   // The answer as a number: "74" big, then "untuk A", then where that average is needed.
