@@ -19,3 +19,4 @@ How each number is taken (the lead's scripts, from `adb`):
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: | --- | --- | --- |
 | before | round-1 release (30 Oct) | 1.61 | ? | ? | ≤416 (settle) | ? | 4.51% | | ? | no (banner) | | | | the build Arqila found slow |
 | 0 | `main` 14f69f8 | 1.40 | ~19 | ~26 | 142 (Courses, Academic unlogged; their JS block 171–175) | ? | 0.95% | 1.29% | 417 (sync), 378 (hidden tabs' first draw) | ? | | | | start of round 3 |
+| 1 | QA release 317e2ec3 (read-only guard, quiet re-sign-in, Kuliah/course/Jadwal rework, JS blocks cut) | 1.46 | ? | ~19 | p50 117 (Courses, Academic unlogged) | ? | 0.94% | 0.93% | 191 (start: hidden tab), 263 (refresh) | built, not yet seen | | prosecutor r0: 9 of 10 screens fail | today 0 taps ✓, material 3 ✓, grades 2 ✓, file and Tandai Hadir: nothing to measure at 02:17 | |
