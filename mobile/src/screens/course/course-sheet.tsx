@@ -1,5 +1,5 @@
-// The course's sheet (round 2, v4), opened from its name at the top of the page and from its attendance card: what the
-// page leaves out to keep to one number and one row. The course's tile, code and class over its name; its lecturer and
+// The course's sheet (round 2, v4; round 3), opened from the header at the top of the page (its ⓘ): what the page
+// leaves out to keep to one meter and one row, the advice too ("Cek ke dosen"). The course's tile, code and class over its name; its lecturer and
 // SKS; then its attendance in full: the share and the count, what's used and left of the absences (a pip each), how it's
 // counted and where; its target, changed in place; for a course in trouble what that means now (round 1's banner over the page);
 // and the one exception's whole sentence with its way back. Built as Beranda's class sheet (../home/class-sheet.tsx).
@@ -15,7 +15,7 @@ import { type AttendanceHealth, percent } from "../../../../src/core/attendance"
 import { clashes } from "../../../../src/core/course-meetings";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import { TargetStepper, useTargets } from "../../parts/attendance";
-import { absenceInk, absenceTone } from "../../ui/absence";
+import { AttendanceMeter, meterModel, meterTone } from "../../parts/attendance-meter";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
@@ -118,25 +118,6 @@ export function Fact({
   );
 }
 
-/** The absences: one pip each, used in the absence scale's colour (src/ui/absence.ts), still allowed in the line's grey (v4's pip meter, as the class sheet's). */
-function Pips({ health }: { health: AttendanceHealth }) {
-  const v = useTheme().v4;
-  const tone = absenceTone(health.state);
-  const ink = tone ? absenceInk(v, tone).fg : v.muted;
-  const used = health.held !== null && health.attended !== null ? Math.max(0, health.held - health.attended) : 0;
-  const left = Math.max(0, health.absencesLeft ?? 0);
-  const total = Math.min(8, used + left);
-  if (total === 0) return null;
-  return (
-    <View style={{ flexDirection: "row", gap: 4 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {Array.from({ length: total }, (_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: pips are positions, none has an identity of its own
-        <View key={i} style={{ width: 14, height: 8, borderRadius: 4, backgroundColor: i < used ? ink : v.line, opacity: i < used ? 0.8 : 1 }} />
-      ))}
-    </View>
-  );
-}
-
 /** "Hadiri 7 pertemuan tersisa, sampai 4 Des". From src/app/screens/course.tsx (the target is on the sheet's stepper). */
 function noneLeft(t: Translate, f: Format, health: AttendanceHealth, lastDay: string | null): string {
   const { count, estimated } = health.left;
@@ -164,13 +145,14 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
   const share = held > 0 ? percent(health.attended ?? 0, held) : null;
   const over = health.state === "met" || health.state === "missed";
   const words = budgetWords(t, health, context.soFar);
+  const meter = meterModel(t, item, context.soFar);
   const wordsLine = words ? [words.lead, words.bold].filter(Boolean).join(" · ") : "";
   // Under its label, as the desktop's row: "Jatah absen: terpakai 2× · habis".
   const budgetLine = wordsLine ? t("mobile.course.budget", { words: wordsLine.charAt(0).toLocaleLowerCase() + wordsLine.slice(1) }) : "";
-  // The absence scale, as the chip on the page (src/ui/absence.ts): red out of reach, amber with none left; the budget's
-  // words stay quiet with some to spare.
-  const tone = absenceTone(health.state);
-  const ink = tone === "red" || tone === "amber" ? absenceInk(v, tone).fg : v.muted;
+  // The meter's tone, as on the page (parts/attendance-meter.tsx): red with none left or over, amber with one left; the
+  // budget's words stay quiet with some to spare.
+  const tone = meterTone(health);
+  const ink = tone === "red" ? v.redFg : tone === "amber" ? v.ambFg : v.muted;
   // Where it counts, as the desktop's class sheet says it ("Kehadiran dihitung di SIX"), then how it's counted (round 1's
   // line over the Pertemuan tab).
   const countedIn = health.countedIn === "six" || health.countedIn === "both" ? t(`schedule.countedIn.${health.countedIn}`) : null;
@@ -209,7 +191,8 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
   ) : null;
   return (
     <>
-      <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />}>
+      {/* Attendance's own icon (not Tandai Hadir's hand), and the page's meter without its word: the lines say it. */}
+      <Fact icon={(c) => <Icons.CalendarCheck size={22} color={c} />} end={meter ? <AttendanceMeter model={{ ...meter, word: null }} hideLabel /> : undefined}>
         <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg }}>
           {share === null
             ? noCountLine(t, health, context.signedOut)
