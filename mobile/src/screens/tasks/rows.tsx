@@ -25,7 +25,6 @@ import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { shortName } from "../home/parts";
 import { ExamPartRow, PeriodRow } from "./exam-rows";
 import {
   countdown,
@@ -183,10 +182,11 @@ export const TaskRow = inWorld(function TaskRow({
         onLongPress={onLongPress}
         quick={quick}
         code={task.courseCode}
+        course={course?.name}
         at={task.dueAt}
         title={name}
-        // The course by a name a student says, short ("Proposal Tugas Akhir"): the big card has no tile to name it.
-        meta={[course ? shortName(course.name) : task.courseCode, kind, when].filter(Boolean).join(" · ")}
+        // The course is the card's tint and glyph (its name spoken): the line says the exam's kind for a take-home, and when.
+        meta={[kind, when].filter(Boolean).join(" · ")}
       />
     );
   return (
