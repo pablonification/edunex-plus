@@ -2,6 +2,8 @@
 
 Expo SDK 58, React Native 0.88 (New Architecture, Hermes), Expo Router, a dev build (not Expo Go).
 Read the repository's `CLAUDE.md` first, then `mobile/PROGRESS.md` (scope, decisions, who's on what).
+It also builds for iOS, untested on a device yet: `mobile/IOS.md` (what's Android-only and how each is kept off
+an iPhone).
 
 Expo changes every SDK: before writing code that touches an Expo or React Native API, read the
 versioned docs, `https://docs.expo.dev/versions/v58.0.0/`, or the package's own types in

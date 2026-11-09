@@ -3,7 +3,7 @@
 // theme), when the class on it starts or ends, and as the app goes to the background. The
 // background sync (./background.ts) draws it after each round, so it keeps up with the app closed.
 import { useEffect } from "react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 import { getWidgetInfo, requestWidgetUpdate } from "react-native-android-widget";
 import type { Event } from "../../../src/core/contract";
 import { currentModel, drawingOf, type LiveSource, setLiveSource } from "../widget/draw";
@@ -32,6 +32,8 @@ const liveOf = (current: Pick<Host, "engine" | "clockOffset">): LiveSource => ({
  * Returns when what it says next changes by itself (a class starts or ends), or null.
  */
 export async function updateWidgets(current?: Pick<Host, "engine" | "clockOffset">): Promise<number | null> {
+  // The widget is Android's only (react-native-android-widget); an iPhone has none to draw.
+  if (Platform.OS !== "android") return null;
   const placed = await Promise.all(WIDGET_NAMES.map(async (name) => ((await getWidgetInfo(name)).length ? name : null)));
   const names = placed.filter((name) => name !== null);
   if (!names.length) return null;

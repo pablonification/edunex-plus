@@ -243,7 +243,7 @@ function SignInPage({ run }: { run: Run }) {
   }, [quiet, giveUp]);
 
   const onMessage = useCallback(
-    (event: WebViewMessageEvent) => {
+    async (event: WebViewMessageEvent) => {
       if (R3_GUARD) guardMessage(event.nativeEvent.data);
       if (state.current.done) return;
       let data: { auth?: unknown; signedIn?: unknown; asks?: unknown; host?: unknown };
@@ -266,7 +266,9 @@ function SignInPage({ run }: { run: Run }) {
           return;
         }
         if (run.source === "six" && data.signedIn === true && isSixAfterSignIn(state.current.url)) {
-          const found = readSixSession(cookiesFor("https://six.itb.ac.id/"));
+          // Android's cookie store answers at once, iOS's later: another page message may have finished it meanwhile.
+          const found = readSixSession(await cookiesFor("https://six.itb.ac.id/"));
+          if (state.current.done) return;
           if (found) return finish(found);
           state.current.signedInAt ||= Date.now();
           if (Date.now() - state.current.signedInAt > COOKIE_GRACE_MS)

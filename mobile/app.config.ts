@@ -38,7 +38,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     blockedPermissions: ["android.permission.RECORD_AUDIO", "android.permission.SYSTEM_ALERT_WINDOW"],
   },
-  ios: { supportsTablet: false, bundleIdentifier: "io.github.pablonification.edunexplus" },
+  // iOS (IOS.md): not shipped, built from a Mac to try on a phone. The demo is its own app there too.
+  ios: {
+    supportsTablet: false,
+    bundleIdentifier: demo ? "io.github.pablonification.edunexplus.demo" : "io.github.pablonification.edunexplus",
+    buildNumber: "1",
+    infoPlist: { ITSAppUsesNonExemptEncryption: false },
+  },
   // shapes: the datasets' schemas this build saves under (scripts/shapes-stamp.js); src/host/version.ts.
   extra: { version, demo, shapes: shapesStamp() },
   plugins: [
@@ -61,7 +67,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-web-browser",
     "expo-localization",
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 120, backgroundColor: "#FFFFFF", dark: { backgroundColor: "#161618" } }],
-    ["expo-notifications", { color: "#2563EB", icon: "./assets/notification-icon.png" }],
+    // enableRemoteNotifications (iOS only): the app's notifications are all its own, never pushed, so no push
+    // entitlement, which a free Apple ID can't sign (IOS.md).
+    ["expo-notifications", { color: "#2563EB", icon: "./assets/notification-icon.png", enableRemoteNotifications: false }],
     // No scrim of Android's own under three-button navigation (a light one showed under the dark welcome): the app
     // sets the buttons' colour itself, from its theme (app/_layout.tsx).
     ["expo-navigation-bar", { enforceContrast: false }],

@@ -5,14 +5,15 @@ import Constants from "expo-constants";
 import * as IntentLauncher from "expo-intent-launcher";
 import * as Notifications from "expo-notifications";
 import { useCallback, useEffect, useState } from "react";
-import { AppState, Linking, View } from "react-native";
+import { AppState, Linking, Platform, View } from "react-native";
 import { useT } from "../../../src/app/i18n";
 import { Button } from "../ui/controls";
 import { Notice } from "../ui/layout";
 import { space } from "../ui/theme";
 
-/** Android's page of this app's notifications; the app's own settings page where that one won't open. */
+/** Android's page of this app's notifications; the app's own settings page where that one won't open (and on iOS). */
 async function openNotificationSettings(): Promise<void> {
+  if (Platform.OS !== "android") return Linking.openSettings();
   try {
     await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.APP_NOTIFICATION_SETTINGS, {
       extra: { "android.provider.extra.APP_PACKAGE": Constants.expoConfig?.android?.package },
