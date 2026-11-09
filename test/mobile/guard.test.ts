@@ -17,7 +17,7 @@ const CASES: [string, string, boolean][] = [
   ["PATCH", api("/course/task/answers/77"), true],
   ["PUT", api("/course/task/answers/77"), true],
   ["POST", api("/blob-storage/sas"), true],
-  ["PUT", "https://edunexstorage.blob.core.windows.net/files/course/77/answer.pdf?sv=2024&sig=secret", true],
+  ["PUT", "https://edunexstorage.blob.core.windows.net/edunex/upload/answer.pdf?sv=2024&sig=pretend", true],
   ["POST", api("/course/comments"), true],
   ["DELETE", api("/blob-storage//task/77/export"), true],
   // SIX's Tandai Hadir pressed, its KRS changed, the questionnaire, paying.
@@ -37,7 +37,7 @@ const CASES: [string, string, boolean][] = [
   // Reads: Edunex's liveness and lists, SIX's pages (the class popup the engine reads for Tandai Hadir too).
   ["GET", api("/login/me"), false],
   ["GET", api("/course/task/answers?taskId=77"), false],
-  ["GET", "https://edunexstorage.blob.core.windows.net/files/course/77/answer.pdf?sig=x", false],
+  ["GET", "https://edunexstorage.blob.core.windows.net/edunex/upload/answer.pdf?sig=pretend", false],
   ["GET", `${SIX_APP.replace("+2026-1", "")}/statusmhs`, false],
   ["GET", `${SIX_APP}/kelas/jadwal/mahasiswa/2021000001?bulan=202610`, false],
   ["GET", `${MEETING}?returnTo=/app`, false],
@@ -65,8 +65,8 @@ describe("the read-only guard", () => {
   });
 
   it("says the method, host and path only: no query", () => {
-    expect(blockedLine("put", "https://edunexstorage.blob.core.windows.net/files/a.pdf?sig=secret")).toBe(
-      "PUT edunexstorage.blob.core.windows.net/files/a.pdf",
+    expect(blockedLine("put", "https://edunexstorage.blob.core.windows.net/edunex/upload/a.pdf?sig=pretend")).toBe(
+      "PUT edunexstorage.blob.core.windows.net/edunex/upload/a.pdf",
     );
   });
 
