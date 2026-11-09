@@ -116,15 +116,14 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
   const place = session?.room ?? (meeting?.online ? t("mobile.home.online") : null);
   const live = card.state === "live" && slot !== null;
   const window = !session && !meeting && card.presence ? card.presence.session : null;
-  // What the card leads with, the way the class stands: on (time gone, minutes left), next (a countdown), a window open
-  // (its time gone, minutes to close), another day (just when).
-  // On now, the breathing dot and the minutes left say "Sekarang": the room alone (the word only when there's no room).
+  // What the card leads with, the way the class stands, and where: on ("Sekarang · 9009", with the breathing dot), next
+  // ("Berikutnya · 9009", a countdown), another day ("Besok 08:00 · 9009"), a window open (its time, minutes to close).
   const kicker = live
-    ? [place ?? t("home.today.now")]
+    ? [t("home.today.now"), place]
     : card.state === "next" && slot
       ? [t("mobile.home.next"), place]
       : card.state === "later" && slot
-        ? [f.relativeDay(slot.start), f.time(slot.start)]
+        ? [`${f.relativeDay(slot.start)} ${f.time(slot.start)}`, place]
         : [t("home.now.presenceOnly"), windowFor ? f.timeRange(windowFor.start, windowFor.end) : null];
   const progress = live && slot ? { from: slot.start, to: slot.end } : window ? { from: window.opensAt, to: window.closesAt } : null;
   const until = progress ? progress.to : card.state === "next" && slot ? slot.start : null;
