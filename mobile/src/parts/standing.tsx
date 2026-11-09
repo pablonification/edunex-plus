@@ -1,7 +1,7 @@
 // Akademik's and Nilai's leading card, inside its Panel: one focal point, the IPK, big and counting up once; then the
 // SKS passed as a smaller figure over a thin bar of the SKS needed to graduate ("125 dari 144", the bar 125/144). Two
 // figures the same size read as two answers of the same weight (round 3's judge); the bar shows how far along, so no
-// line says it again. `aside` sits on the IPK's baseline (Nilai's predicate, as plain words), `children` under the IPK
+// line says it again. Its empty part is v4's `track`, seen on the card in dark too (3:1). `aside` sits on the IPK's baseline (Nilai's predicate, as plain words), `children` under the IPK
 // (Nilai's last semester's IP).
 import type { ReactNode } from "react";
 import { View } from "react-native";
@@ -59,7 +59,7 @@ export function StandingFigures({
             </Text>
           </View>
         </View>
-        {sks !== null && need > 0 && <Meter value={sks / need} label={`${t("grades.sksPassed")} ${sks} ${of}`} />}
+        {sks !== null && need > 0 && <Meter value={sks / need} track={v.track} label={`${t("grades.sksPassed")} ${sks} ${of}`} />}
       </View>
     </View>
   );

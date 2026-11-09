@@ -397,7 +397,8 @@ export function HonorsList({ projection }: { projection: Projection }) {
 
 /**
  * IP per semester (dots) and the IPK after each (a line), estimates dashed and hollow, under a legend that names the
- * three marks (read before the chart, not after it); the target as a labelled dashed line, and the IPK at graduation at
+ * three marks (read before the chart, not after it); the target as a dashed line labelled as its control names it
+ * ("Target IPK 3,50"), and the IPK at graduation at
  * the line's end only when it isn't today's (the same figure twice reads as a change that isn't one).
  */
 export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; target: number | null; height?: number }): ReactNode {
@@ -431,7 +432,8 @@ export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; ta
         min={min}
         max={4}
         gridlines={gridlines}
-        reference={target === null ? undefined : { value: target, label: t("grades.chart.target", { value: f.number(target, 2) }) }}
+        // Named as the control that sets it ("Target IPK", Nilai's Semester ini and the planner), so it's never a bare "Target".
+        reference={target === null ? undefined : { value: target, label: t("grades.targetOf", { value: f.number(target, 2) }) }}
         endLabel={last.ipk === null || same ? undefined : t(last.projected ? "grades.chart.end" : "grades.chart.endNow", { value: f.number(last.ipk, 2) })}
         estimateWord={t("grades.estimate")}
         format={(v) => f.number(v, 2)}

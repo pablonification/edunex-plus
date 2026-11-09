@@ -1,8 +1,9 @@
-// The Task page on the phone (S3): src/app/screens/tasks.tsx's TaskPage in one column, in v4 (round 2). The title (the
-// screen's one: it folds into the bar as it scrolls under it) with the course's short name and module as its one quiet
+// The Task page on the phone (S3): src/app/screens/tasks.tsx's TaskPage in one column, in v4 (round 2). The title is
+// the bar's (./task-bar.tsx, round 3: no big title on the page) with the course's short name and module as its one small
 // line, the way up; then the deadline as the page's one big card (the course's tint, the countdown large, the day and
 // time, and the Presensi window as one line whose why is a sheet away), the exam it's part of, what Edunex doesn't say
-// (attendance, a short window, a lecturer's edit), then white cards: the instructions, the lecturer's files, the answer,
+// (attendance, a short window, a lecturer's edit), then white cards: the instructions (a long one folded to its first
+// lines, so the answer box shows on the first screen: ./folded.tsx), the lecturer's files, the answer,
 // its comments (./thread.tsx), History. Kumpulkan stays at the bottom of the screen, the screen's one filled button,
 // with Simpan draf beside it while there's something to save.
 import { type ComponentRef, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
@@ -48,14 +49,16 @@ import { Sheet } from "../../ui/sheet";
 import { LINK_SLOP, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { shape, space, useTheme } from "../../ui/theme";
-import { CourseGlyph, useCourseTile } from "../../ui/tile";
+import { useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { shortName } from "../home/parts";
 import { takeHomeWhy } from "./exam-rows";
+import { Folded } from "./folded";
 import { HandInBar, HandInCard, useHandIn } from "./hand-in";
 import { NoTasksYet } from "./list";
 import { countdown, IconTile } from "./row-parts";
 import { moduleLabel } from "./rows";
+import { TaskBar } from "./task-bar";
 import { Thread } from "./thread";
 
 const MINUTE = 60_000;
@@ -106,11 +109,6 @@ function TaskPage({ task }: { task: Task }) {
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const historyAt = useRef(0);
   const answerAt = useRef(0);
-  // Where the title itself ends (not its quiet line under it): as it goes under the bar, the bar shows it, so the bar is
-  // never empty over a sliced title (one title on screen at a time, as a course's page does).
-  const [titleAt, setTitleAt] = useState<number>(space[4]);
-  const [titleBottom, setTitleBottom] = useState(80);
-  const titleEnd = titleAt + titleBottom;
   // Typing the answer: the box comes up into view, clear of the bar and the keyboard over it.
   const showAnswer = useCallback(() => {
     const to = () => scroll.current?.scrollTo({ y: Math.max(0, answerAt.current - space[2]), animated: true });
@@ -129,44 +127,29 @@ function TaskPage({ task }: { task: Task }) {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: v.page }}>
-      {/* One title: the Task's own, on the page; the bar shows it only once it has scrolled away. */}
-      <Page testID="screen.task" header={<TopBar v4 title={task.title} titleFrom={titleEnd} />} scrollRef={scroll} background={v.page} {...pull}>
-        <View onLayout={(event) => setTitleAt(Math.round(event.nativeEvent.layout.y))}>
-          <Text
-            size="headlineSmall"
-            face="display"
-            weight="bold"
-            accessibilityRole="header"
-            onLayout={(event) => setTitleBottom(Math.round(event.nativeEvent.layout.y + event.nativeEvent.layout.height))}
-            style={{ color: v.fg, letterSpacing: -0.3 }}
-          >
-            {task.title}
-          </Text>
-          {/* The way up, as the title's one quiet line: the course by a name a student says, short, and its module's number
-              (its name and the course's code are spoken), opening the module (or the course). */}
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={factsLabel(task.courseCode, course?.name, where)}
-            onPress={() =>
+      {/* One title, the Task's own, in the bar from the start: nothing big on the page under it. */}
+      <Page
+        testID="screen.task"
+        header={
+          <TaskBar
+            title={task.title}
+            crumb={factsLabel(course ? shortName(course.name) : task.courseCode, task.module ? t("task.module", { n: task.module.index }) : null)}
+            crumbLabel={factsLabel(task.courseCode, course?.name, where)}
+            onCrumb={() =>
               go(
                 where
                   ? { screen: "course", code: task.courseCode, tab: "modules", module: task.moduleId ?? introModule(task.courseId) }
                   : { screen: "course", code: task.courseCode },
               )
             }
-            hitSlop={slopY(24)}
-            style={styles.crumb}
-            testID="action.course"
-          >
-            <Text size="bodyMedium" numberOfLines={1} tabular style={{ flexShrink: 1, color: v.fg2 }}>
-              {factsLabel(course ? shortName(course.name) : task.courseCode, task.module ? t("task.module", { n: task.module.index }) : null)}
-            </Text>
-            <Icons.ChevronRight size={16} color={v.muted} />
-          </Pressable>
-        </View>
-
+          />
+        }
+        scrollRef={scroll}
+        background={v.page}
+        {...pull}
+      >
         {/* By when, and where the Student stands: the first thing to read after the name, the page's one big card. */}
-        <DueCard task={task} status={status} late={late} soon={soon} course={course?.name} presence={presence.due} />
+        <DueCard task={task} status={status} late={late} soon={soon} presence={presence.due} />
 
         {exam && (
           // The exam it's part of, and how the app knows: Edunex files it there, or its name says so.
@@ -199,7 +182,9 @@ function TaskPage({ task }: { task: Task }) {
           <SectionTitle title={t("task.instructions")} />
           <Panel>
             {plainText(task.instructions) ? (
-              <LecturerHtml html={task.instructions} size="bodyLarge" />
+              <Folded>
+                <LecturerHtml html={task.instructions} size="bodyLarge" />
+              </Folded>
             ) : (
               <Text size="bodyLarge" style={{ color: v.muted }}>
                 {t("task.noInstructions")}
@@ -257,14 +242,12 @@ function DueCard({
   status,
   late,
   soon,
-  course,
   presence,
 }: {
   task: Task;
   status: TaskStatus;
   late: boolean;
   soon: boolean;
-  course?: string;
   /** While handing it in can still count as present: its window, and the day and time a sentence says it with. */
   presence: Presence["due"];
 }) {
@@ -281,11 +264,8 @@ function DueCard({
   const lateRule = task.dueAt !== null && isOpenStatus(status) ? (task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")) : null;
   const whyText = presence ? t("mobile.tasks.presenceWhyBody", { date: presence.date, time: presence.time }) : "";
   return (
-    <View testID="card.due" style={{ marginTop: space[4], backgroundColor: bg, borderRadius: 24, padding: space[4], gap: space[1] }}>
-      {/* No status here: Jawabanmu says it, once. */}
-      <View style={{ marginBottom: space[2] }}>
-        {late ? <Icons.AlertTriangle size={22} weight="bold" color={fg} /> : <CourseGlyph code={task.courseCode} name={course} />}
-      </View>
+    <View testID="card.due" style={{ backgroundColor: bg, borderRadius: 24, paddingHorizontal: space[4], paddingVertical: space[3], gap: space[1] }}>
+      {/* No status here: Jawabanmu says it, once. The course is the bar's line and the card's tint: no tile for it. */}
       {task.dueAt === null ? (
         <Text size="titleLarge" face="display" weight="bold" style={{ color: v.fg }}>
           {t("task.noDeadline")}
@@ -296,6 +276,11 @@ function DueCard({
             // "8 hari", "lewat 2 jam": read as the whole sentence.
             <View accessible accessibilityLabel={`${f.fromNow(task.dueAt)}`} style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" }}>
               {away.late && (
+                <View style={{ marginRight: 6 }}>
+                  <Icons.AlertTriangle size={20} weight="bold" color={fg} />
+                </View>
+              )}
+              {away.late && (
                 <Text size="bodyLarge" face="display" weight="semibold" style={{ color: fg, fontSize: 16, marginRight: 6 }}>
                   {t("mobile.home.late")}
                 </Text>
@@ -303,7 +288,7 @@ function DueCard({
               <CountUp
                 id={`task:${task.id}`}
                 value={away.value}
-                style={{ color: fg, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 44, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
+                style={{ color: fg, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, lineHeight: 48, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
               />
               <Text size="bodyLarge" face="display" weight="semibold" style={{ color: fg, fontSize: 17, marginLeft: 6 }}>
                 {away.unit}
@@ -790,7 +775,6 @@ const styles = StyleSheet.create({
     paddingVertical: space[3],
   },
   dot: { position: "absolute", left: -space[4] - 5, top: 4, width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
-  crumb: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", maxWidth: "100%", gap: 2, marginTop: space[1] },
   examLink: {
     marginTop: space[3],
     flexDirection: "row",

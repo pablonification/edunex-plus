@@ -10,6 +10,10 @@ export const mobileTasksStrings = {
   // In the empty answer box, as its placeholder (gone once there's text, as the line under it was): Edunex takes no
   // hand-in without text (the desktop's handIn.why.noText, said where it's typed). The full sentence for TalkBack.
   "mobile.tasks.answerPlaceholder": { id: "Tulis jawabanmu. Wajib, meski ada berkas.", en: "Write your answer. Required, even with a file." },
+  // Long instructions folded to their first lines, so the answer box shows on a Task's first screen: the way to the rest,
+  // and back.
+  "mobile.tasks.more": { id: "Selengkapnya", en: "Show more" },
+  "mobile.tasks.less": { id: "Lebih sedikit", en: "Show less" },
   // A Task the Student marked as handed in another way (or not at all): their word leads its card, and what Edunex still
   // says stays under it, as on the desktop (the app never claims Edunex has it). The answer box and Kumpulkan come back
   // with Urungkan, on the line that says when it was marked.

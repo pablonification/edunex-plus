@@ -2,14 +2,14 @@
 // same groups in the same order and the same words, read the phone's way. Everything still ahead in
 // one list, grouped by when it runs out (Terlambat, Minggu ini, Minggu depan, Nanti); an exam period
 // going on sits on top; Selesai holds what's handed in, the exams behind the Student and what closed.
-// Belum selesai / Selesai at the top, the course chips under it, then the groups as tonal lists
+// Belum selesai / Selesai at the top with the course filter beside it (its courses in a sheet), then the groups as tonal lists
 // (Android's grouped tiles), the whole list one FlashList drawn row by row. The rows read what they
 // share once for the list (row-parts.tsx), and the lines are worked out only when the data, the
 // filter or the minute changes.
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useScrollToTop } from "expo-router";
 import { memo, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { Pressable, RefreshControl, View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { type Translate, useT } from "../../../../src/app/i18n";
 import { type Todo, useTodo } from "../../../../src/app/schedule-data";
@@ -22,12 +22,13 @@ import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoCounted, t
 import { useNav } from "../../nav";
 import { TabHeader, usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
 import { CardSlice, SectionTitle } from "../../ui/card-list";
-import { Button, Chip, Segmented } from "../../ui/controls";
+import { Button, Segmented } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
-import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Icons } from "../../ui/icons";
-import { GroupTile } from "../../ui/layout";
+import { factsLabel, GroupTile } from "../../ui/layout";
 import { usePart } from "../../ui/parts";
+import { ChoiceSheet } from "../../ui/settings-list";
+import { SEGMENT_HEIGHT, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -39,7 +40,7 @@ import { PutOff, TaskRow, TodoRow } from "./rows";
 import { momentsOf, useClockMoments } from "./task-clock";
 
 /**
- * Lines on a first draw ahead (../../ui/parts.tsx): about a screenful (the chips, the big card, four rows), then the
+ * Lines on a first draw ahead (../../ui/parts.tsx): about a screenful (the controls, the big card, four rows), then the
  * whole list in the next part. Each part is one commit of its own instead of one block.
  */
 const FIRST_LINES = 6;
@@ -257,9 +258,9 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
 }
 
 /**
- * Belum selesai / Selesai with their counts, the course chips under it, and a row's problem when there is one. The
- * picked segment and chip say it by their fill alone (a tick too said it twice). The chips scroll sideways, fading at an
- * edge with more beyond it, each keeping its whole name: never a chip cut to a letter.
+ * Belum selesai / Selesai with their counts and, beside them in the same row and the same pill shape, the course filter:
+ * a funnel at rest, the picked course's tile on a tonal fill once one is picked; a tap opens the courses in a sheet
+ * (round 3: two rows of controls in two shapes came before any Task). A row's problem goes over them when there is one.
  */
 const Header = memo(function Header({
   show,
@@ -279,61 +280,89 @@ const Header = memo(function Header({
   onCourse: (code: string | null) => void;
 }) {
   const t = useT();
-  const v = useTheme().v4;
-  const fades = useEdges();
   return (
     <View style={{ paddingTop: space[2], paddingBottom: space[6] }}>
       <RowProblemBanner />
-      <Segmented
-        testID="segment.show"
-        label={t("tasks.show")}
-        value={show}
-        onChange={onShow}
-        check={false}
-        options={[
-          { value: "open", label: t("tasks.filter.open"), count: openCount },
-          { value: "done", label: t("tasks.filter.done"), count: doneCount },
-        ]}
-      />
-      {courses.length > 1 && (
-        <View style={{ marginTop: space[3], marginHorizontal: -space.page }} accessibilityRole="radiogroup" accessibilityLabel={t("tasks.filter.course")}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            onLayout={fades.onLayout}
-            onContentSizeChange={fades.onContentSizeChange}
-            onScroll={fades.onScroll}
-            scrollEventThrottle={32}
-            contentContainerStyle={{ gap: space[2], paddingHorizontal: space.page, paddingVertical: space[2] }}
-            style={{ marginVertical: -space[2] }}
-          >
-            <Chip testID="chip.course.all" selected={course === null} onPress={() => onCourse(null)} check={false}>
-              {t("tasks.filter.all")}
-            </Chip>
-            {/* The course as its rows show it (its tile), by a name a student says, short ("Ekonomi dan Inovasi"). */}
-            {courses.map((c) => (
-              <Chip
-                key={c.code}
-                testID={`chip.course.${c.code}`}
-                label={`${c.code} ${c.name}`}
-                selected={course === c.code}
-                onPress={() => onCourse(c.code)}
-                check={false}
-              >
-                <CourseTile code={c.code} name={c.name} size={20} />
-                <Text size="labelLarge" tone={course === c.code ? "onSecondaryContainer" : "muted"} style={{ flexShrink: 0 }}>
-                  {shortName(c.name)}
-                </Text>
-              </Chip>
-            ))}
-          </ScrollView>
-          {fades.edges.left && <EdgeFade side="left" color={v.page} />}
-          {fades.edges.right && <EdgeFade side="right" color={v.page} />}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Segmented
+            testID="segment.show"
+            label={t("tasks.show")}
+            value={show}
+            onChange={onShow}
+            check={false}
+            options={[
+              { value: "open", label: t("tasks.filter.open"), count: openCount },
+              { value: "done", label: t("tasks.filter.done"), count: doneCount },
+            ]}
+          />
         </View>
-      )}
+        {courses.length > 1 && <CourseFilter courses={courses} course={course} onCourse={onCourse} />}
+      </View>
     </View>
   );
 });
+
+const ALL = "__all";
+
+/** The course filter: one pill beside Belum selesai / Selesai, the courses in a sheet. */
+function CourseFilter({ courses, course, onCourse }: { courses: readonly TermCourse[]; course: string | null; onCourse: (code: string | null) => void }) {
+  const t = useT();
+  const theme = useTheme();
+  const c = theme.color;
+  const [open, setOpen] = useState(false);
+  const picked = course === null ? undefined : courses.find((item) => item.code === course);
+  const choices = useMemo(
+    () => [
+      { value: ALL, label: t("tasks.filter.all") },
+      // The course by a name a student says, short ("Ekonomi dan Inovasi"), its code as its second line.
+      ...courses.map((item) => ({ value: item.code, label: shortName(item.name), hint: item.code })),
+    ],
+    [courses, t],
+  );
+  return (
+    <>
+      <Pressable
+        testID="action.courseFilter"
+        accessibilityRole="button"
+        accessibilityLabel={factsLabel(t("tasks.filter.course"), picked ? `${picked.code} ${picked.name}` : t("tasks.filter.all"))}
+        accessibilityState={{ selected: picked !== undefined }}
+        onPress={() => setOpen(true)}
+        hitSlop={slopY(SEGMENT_HEIGHT)}
+        android_ripple={{ color: c.selected, borderless: false }}
+        style={{
+          height: SEGMENT_HEIGHT,
+          minWidth: 56,
+          paddingHorizontal: space[4],
+          borderRadius: SEGMENT_HEIGHT / 2,
+          borderWidth: 1,
+          borderColor: picked ? c.secondaryContainer : c.outline,
+          backgroundColor: picked ? c.secondaryContainer : undefined,
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: space[2],
+          overflow: "hidden",
+        }}
+      >
+        <Icons.Filter size={18} weight={picked ? "fill" : "regular"} color={picked ? c.onSecondaryContainer : c.onSurfaceVariant} />
+        {picked && <CourseTile code={picked.code} name={picked.name} size={20} />}
+      </Pressable>
+      <ChoiceSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t("tasks.filter.course")}
+        value={course ?? ALL}
+        choices={choices}
+        onChange={(value) => {
+          onCourse(value === ALL ? null : value);
+          setOpen(false);
+        }}
+        testID="courseFilter"
+      />
+    </>
+  );
+}
 
 /** A row in its group's tonal tile (Android's grouped list, drawn row by row). Kept by this name for a course's page. */
 export function CardRow({ first, last, children }: Place & { children: ReactNode }) {
@@ -474,7 +503,7 @@ export function NoTasksYet() {
         <View style={{ paddingHorizontal: space[1], marginBottom: space[3] }}>
           <Skeleton width={120} height={20} />
         </View>
-        <View style={{ height: 156, borderRadius: 24, backgroundColor: theme.v4.card, marginBottom: space[3] }} />
+        <View style={{ height: 104, borderRadius: 20, backgroundColor: theme.v4.card, marginBottom: space[3] }} />
         {[0, 1, 2].map((i) => (
           <CardSlice key={i} first={i === 0} last={i === 2}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>

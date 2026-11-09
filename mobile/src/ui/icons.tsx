@@ -39,6 +39,7 @@ import { EyeSlashIcon } from "phosphor-react-native/src/icons/EyeSlash";
 import { FileTextIcon } from "phosphor-react-native/src/icons/FileText";
 import { FlagIcon } from "phosphor-react-native/src/icons/Flag";
 import { FolderOpenIcon } from "phosphor-react-native/src/icons/FolderOpen";
+import { FunnelSimpleIcon } from "phosphor-react-native/src/icons/FunnelSimple";
 import { GearSixIcon } from "phosphor-react-native/src/icons/GearSix";
 import { GithubLogoIcon } from "phosphor-react-native/src/icons/GithubLogo";
 import { GlobeIcon } from "phosphor-react-native/src/icons/Globe";
@@ -168,6 +169,8 @@ export const Icons = {
   LogOut: icon(() => SignOutIcon),
   Loader: icon(() => CircleNotchIcon),
   Info: icon(() => InfoIcon),
+  /** A list's filter (Tugas's course filter). */
+  Filter: icon(() => FunnelSimpleIcon),
   Palette: icon(() => PaletteIcon),
   ArrowRight: icon(() => ArrowRightIcon),
   Undo: icon(() => ArrowCounterClockwiseIcon),

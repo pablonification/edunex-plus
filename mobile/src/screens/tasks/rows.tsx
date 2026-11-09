@@ -25,7 +25,6 @@ import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { shortName } from "../home/parts";
 import { ExamPartRow, PeriodRow } from "./exam-rows";
 import {
   countdown,
@@ -42,6 +41,7 @@ import {
   type SignalIcon,
   StatusPill,
   TaskLine,
+  timeShown,
   useRowWorld,
 } from "./row-parts";
 
@@ -155,8 +155,8 @@ export const TaskRow = inWorld(function TaskRow({
       ? t("task.submittedOnDate", { date: world.f.dayMonth(sentAt) })
       : task.dueAt === null
         ? t("task.noDeadline")
-        : // The time only beside the countdown: a late or closed one's status is too wide for both.
-          rowWhen(world.f, task.dueAt, away !== null && !away.late);
+        : // The time only beside the countdown (a late or closed one's status is too wide for both), within a week.
+          rowWhen(world.f, task.dueAt, away !== null && !away.late && timeShown(world.now, task.dueAt));
   // On a course's page the module, the exam's kind for a take-home, then when: every row the same. Not the course's code
   // on Tugas: the row's tile is the course, named by the course chips over the list (the code is spoken).
   const lead = meta === "module" && task.module ? t("task.module", { n: task.module.index }) : null;
@@ -183,10 +183,11 @@ export const TaskRow = inWorld(function TaskRow({
         onLongPress={onLongPress}
         quick={quick}
         code={task.courseCode}
+        course={course?.name}
         at={task.dueAt}
         title={name}
-        // The course by a name a student says, short ("Proposal Tugas Akhir"): the big card has no tile to name it.
-        meta={[course ? shortName(course.name) : task.courseCode, kind, when].filter(Boolean).join(" · ")}
+        // The course is the card's tint and glyph (its name spoken): the line says the exam's kind for a take-home, and when.
+        meta={[kind, when].filter(Boolean).join(" · ")}
       />
     );
   return (

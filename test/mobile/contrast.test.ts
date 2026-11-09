@@ -161,6 +161,7 @@ const PAIRS: Pair[] = [
   ["v4.brand on v4.page (meter track)", (t) => t.v.brand, page, MARK, "ui/meter.tsx"],
   ["v4.okFg on v4.page (meter track)", (t) => t.v.okFg, page, MARK, "ui/meter.tsx"],
   ["v4.redFg on v4.page (meter track)", (t) => t.v.redFg, page, MARK, "ui/meter.tsx"],
+  ["v4.track on v4.card (SKS bar's empty part)", (t) => t.v.track, card, MARK, "parts/standing.tsx"],
 
   // v4's tinted states.
   ["v4.onBrand on v4.brand", (t) => t.v.onBrand, (t) => t.v.brand, TEXT, "BigButton filled"],

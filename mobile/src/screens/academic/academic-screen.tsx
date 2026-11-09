@@ -411,7 +411,9 @@ function DeadlinesRow() {
   const next = upcoming[0];
   const title = t("plan.tab.deadlines");
   if (!next) return <PartRow part="deadlines" title={title} meta={!calendar && reading ? "pending" : null} />;
-  const what = t(`deadline.kind.${next.event.kind}` as Parameters<typeof t>[0]);
+  // A name that ran to two lines at font 1.1 ("Kuesioner evaluasi perkuliahan · 30 Nov") goes by its short one.
+  const what =
+    next.event.kind === "questionnaire" ? t("mobile.academic.deadline.questionnaire") : t(`deadline.kind.${next.event.kind}` as Parameters<typeof t>[0]);
   return (
     <PartRow
       part="deadlines"

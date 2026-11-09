@@ -22,7 +22,7 @@ import { factsLabel, Notice, TrailingInline } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CourseTile, useCourseTile } from "../../ui/tile";
+import { CourseGlyph, CourseTile, useCourseTile } from "../../ui/tile";
 
 const DAY = 86_400_000;
 
@@ -311,6 +311,12 @@ export function countdown(t: Translate, now: number, at: number): { value: numbe
  * When, as a row's meta line says it, the way the whole app writes a date and time: "Kam, 15 Okt, 11:00", "Hari ini,
  * 23:59"; the day alone (`time` false) beside a wide status ("lewat 12 hari", "Waktu berubah").
  */
+/**
+ * Whether a row's day takes its time too: only within a week (round 3, fewer words on Tugas's first screen). What's
+ * further off says its day alone ("Kam, 26 Nov"), its time on its page and in its spoken name.
+ */
+export const timeShown = (now: number, at: number): boolean => at - now < 7 * 24 * 60 * 60_000;
+
 export function rowWhen(f: Format, at: number, time = true): string {
   return time ? f.dueLabel(at) : f.relativeDay(at);
 }
@@ -412,9 +418,9 @@ export function IconTile({ children }: { children: ReactNode }) {
 
 /**
  * The nearest deadline as Tugas's one big card (v4, Beranda's "Perlu kamu urus"): in the course's tint, the countdown
- * big ("8 hari"; red and "lewat" once past), then what it is, and the course's code and when in one line, as a row says
- * them. The screen's focal point. The same item, target and spoken name as its row would have: it isn't listed again
- * under it.
+ * big at its start ("8 hari"; red and "lewat" once past), what it is beside it, and under that the course's glyph and
+ * when, as a row says them. The screen's focal point at about half its old height (round 3: it took ~40% of the first
+ * screen for one Task). The same item, target and spoken name as its row would have: it isn't listed again under it.
  */
 export function HeroCard({
   testID,
@@ -423,6 +429,7 @@ export function HeroCard({
   onLongPress,
   quick,
   code,
+  course,
   at,
   title,
   meta,
@@ -432,11 +439,12 @@ export function HeroCard({
   onPress: () => void;
   onLongPress?: () => void;
   quick?: Quick;
-  /** The course: the card's tint. */
+  /** The course: the card's tint and its glyph. */
   code: string;
+  course?: string;
   at: number;
   title: string;
-  /** "Proposal Tugas Akhir · Jum, 13 Nov, 23:59": the course, short, and when. */
+  /** "Jum, 13 Nov, 23:59": when (the course is its glyph beside it, and the tint). */
   meta: string;
 }) {
   const t = useT();
@@ -452,31 +460,45 @@ export function HeroCard({
       onPress={onPress}
       onLongPress={onLongPress}
       {...quickActions(quick)}
-      // The screen's focal point: room for the number at its top, what it is at its foot.
-      style={{ backgroundColor: tint, borderRadius: 28, padding: space[5], minHeight: 200, justifyContent: "space-between" }}
+      style={{
+        backgroundColor: tint,
+        borderRadius: 20,
+        paddingHorizontal: space[4],
+        paddingVertical: space[3],
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space[4],
+      }}
     >
-      <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+      {/* The number, its unit under it ("lewat" over it once past): one column, as wide as it needs. */}
+      <View style={{ alignItems: "center", minWidth: 48 }}>
         {away.late && (
-          <Text size="bodyLarge" face="display" weight="semibold" style={{ color, fontSize: 18, marginRight: 6 }}>
-            {t("mobile.home.late")}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+            <Icons.AlertTriangle size={12} weight="bold" color={color} />
+            <Text size="labelMedium" face="display" weight="semibold" style={{ color }}>
+              {t("mobile.home.late")}
+            </Text>
+          </View>
         )}
         <CountUp
           id={`tasks:${testID}`}
           value={away.value}
-          style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 56, lineHeight: 64, letterSpacing: -1.5, fontVariant: ["tabular-nums"] }}
+          style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, lineHeight: 46, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
         />
-        <Text size="bodyLarge" face="display" weight="semibold" style={{ color, fontSize: 18, marginLeft: 6 }}>
+        <Text size="labelLarge" face="display" weight="semibold" style={{ color, marginTop: -4 }}>
           {away.unit}
         </Text>
       </View>
-      <View style={{ marginTop: space[2] }}>
-        <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg }}>
           {title}
         </Text>
-        <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, marginTop: 2 }}>
-          {meta}
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginTop: space[1] }}>
+          <CourseGlyph code={code} name={course} size={18} />
+          <Text size="bodyMedium" tabular numberOfLines={1} style={{ flexShrink: 1, color: v.fg2 }}>
+            {meta}
+          </Text>
+        </View>
       </View>
     </PressScale>
   );

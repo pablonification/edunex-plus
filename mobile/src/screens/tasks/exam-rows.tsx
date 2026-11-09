@@ -22,7 +22,7 @@ import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
-import { countdown, IconTile, inWorld, type Quick, reportRowProblem, rowWhen, StatusPill, TaskLine, useRowWorld } from "./row-parts";
+import { countdown, IconTile, inWorld, type Quick, reportRowProblem, rowWhen, StatusPill, TaskLine, timeShown, useRowWorld } from "./row-parts";
 
 /** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
 export function takeHomeWhy(t: Translate, task: Pick<Task, "kind" | "title">): string | null {
@@ -132,13 +132,13 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dayTimeWord(part.opensAt) });
     facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     when = f.dueLabel(part.at);
-    shown = [rowWhen(f, part.at, !moved)];
+    shown = [rowWhen(f, part.at, !moved && timeShown(now, part.at))];
     moment = part.at;
   } else if (part?.kind === "sitting") {
     const place = part.source === "six" ? (part.room ?? "") : (part.title ?? "");
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), place];
     when = part.end !== null ? f.dayTimeRange(part.at, part.end) : dayTime(part.at);
-    shown = [rowWhen(f, part.at, !disagree)];
+    shown = [rowWhen(f, part.at, !disagree && timeShown(now, part.at))];
     if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
     else moment = part.at;
   } else {
