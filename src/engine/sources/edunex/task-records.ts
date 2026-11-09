@@ -5,6 +5,7 @@ import type { Task, TaskAnswer, TaskEdit, TaskFile, TaskModule } from "../../../
 import { nextEdits } from "../../../core/task-edits";
 import { byDeadline, taskStatus } from "../../../core/tasks";
 import { EngineError } from "../../errors";
+import type { Place } from "../../http/pace";
 import type { Transport } from "../../http/transport";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
@@ -62,6 +63,8 @@ const EdunexTask = z.object({
   attributes: z.object({
     taskable_type: z.string().nullable(),
     taskable_id: z.number().nullable(),
+    /** The Edunex course the Task is in: where a Task read for several courses at once belongs. */
+    course_id: Id.optional(),
     /** The course's own name, which the website puts in an upload's storage path. */
     course_name: z.string().nullable().optional(),
     /** "PERSONAL" on every recorded Task; the website hands in `tasks_type: "GROUP"` through its group pages. */
@@ -86,13 +89,31 @@ export type EdunexTask = z.infer<typeof EdunexTask>;
 
 export const CourseTasks = z.object({ meta: z.object({ total: z.number() }), data: z.array(EdunexTask) });
 
-/** Every Task of one Edunex course, the Student's answers included. */
-export async function fetchCourseTasks(client: EdunexClient, courseId: number): Promise<EdunexTask[]> {
-  const list = await client.get("/course/tasks", { "filter[course_id][is]": courseId, "page[limit]": 0 }, CourseTasks);
+/** Every Task of one Edunex course, the Student's answers included. `place`: where it waits in Edunex's line. */
+export async function fetchCourseTasks(client: EdunexClient, courseId: number, place?: Place): Promise<EdunexTask[]> {
+  const list = await client.get("/course/tasks", { "filter[course_id][is]": courseId, "page[limit]": 0 }, CourseTasks, place);
   // "page[limit]=0" means everything; fewer than Edunex counts would silently hide Tasks.
   if (list.data.length < list.meta.total)
     throw new EngineError("VendorChanged", `/course/tasks: ${list.data.length} of ${list.meta.total} Tasks for course ${courseId}`);
   return list.data;
+}
+
+/**
+ * In one call, the Tasks of several Edunex courses still open or coming: those due at or after `since`, a day
+ * before now, as Edunex's own clock reads it (API.md). Edunex's time grows with the Tasks it returns, so these
+ * few come back far sooner than every course's whole list. A Task with no deadline, or due before `since`,
+ * isn't in it.
+ */
+export async function fetchOpenTasks(client: EdunexClient, courseIds: readonly number[], since: number): Promise<EdunexTask[]> {
+  const query = { "filter[course_id][in]": courseIds.join(","), "filter[end_at][gte]": wibTime(since), "page[limit]": 0 };
+  const list = await client.get("/course/tasks", query, CourseTasks);
+  if (list.data.length < list.meta.total) throw new EngineError("VendorChanged", `/course/tasks: ${list.data.length} of ${list.meta.total} open Tasks`);
+  return list.data;
+}
+
+/** A moment as Edunex's filters take it: its own zone's wall clock, WIB (UTC+7), "2026-11-09 08:12:00". */
+export function wibTime(ms: number): string {
+  return new Date(ms + 7 * HOUR).toISOString().slice(0, 19).replace("T", " ");
 }
 
 /** A Task read back with Edunex's own records of it and of the Student's answer, which handing in sends parts of back. */

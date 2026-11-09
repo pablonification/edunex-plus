@@ -3,7 +3,7 @@
 // something", never an empty screen.
 import type { z } from "zod";
 import { AnswerError, EngineError, isEngineError } from "../../errors";
-import type { Pace } from "../../http/pace";
+import type { Pace, Place } from "../../http/pace";
 import { type Answer, type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import { type FeedRead, noting } from "../../report/kept-pages";
 import type { SourceContext } from "../source";
@@ -30,7 +30,8 @@ export class EdunexClient {
     return new EdunexClient(noting(this.transport, read), this.token, this.userAgent, this.pace, this.first);
   }
 
-  async get<S extends z.ZodType>(path: string, query: Record<string, string | number>, schema: S): Promise<z.infer<S>> {
+  /** `place`: where a feed's request waits in Edunex's line (Pace.turn); the Student's go first whatever it says. */
+  async get<S extends z.ZodType>(path: string, query: Record<string, string | number>, schema: S, place: Place = "normal"): Promise<z.infer<S>> {
     const url = new URL(path, EDUNEX_API);
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
     const check = (answer: Answer) => read(answer, schema);
@@ -44,7 +45,7 @@ export class EdunexClient {
         check,
       });
     try {
-      response = await (this.pace ? this.pace.turn(ask, this.first ? "first" : "normal") : ask());
+      response = await (this.pace ? this.pace.turn(ask, this.first ? "first" : place) : ask());
     } catch (error) {
       if (error instanceof NetworkError) {
         const offline = new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
