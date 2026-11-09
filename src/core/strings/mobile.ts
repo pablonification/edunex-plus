@@ -74,6 +74,13 @@ export const mobileStrings = {
   // what TalkBack hears. Never "Di bawah target": a course with none left can be under its target today too.
   "mobile.absence.none": { id: "Jatah habis", en: "No absences left" },
   "mobile.absence.over": { id: "Lewat batas {count}×", en: "{count} over the limit" },
+  // Perlu kamu urus's row for a course's absences, beside a Task's: said in absence words, so "lewat batas" can't read as
+  // a Task past its deadline (round 3's third review). The calendar-check tile says it's about classes, and the limit is
+  // the course page's.
+  "mobile.home.absence.over": { id: "Absen lewat {count}×", en: { one: "{count} absence too many", other: "{count} absences too many" } },
+  "mobile.home.absence.none": { id: "Jatah absen habis", en: "No absences left" },
+  // The now card's day for a class two days ahead, before its weekday ("Lusa, Kam 08:00").
+  "mobile.home.dayAfter": { id: "Lusa", en: "In 2 days" },
   // A class row's one chip.
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough

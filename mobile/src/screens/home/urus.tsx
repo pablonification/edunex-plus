@@ -1,11 +1,13 @@
 // "Perlu kamu urus" (round 3, the real phone): what needs the Student, most serious first, as one calm list of
-// full-width rows in a white card. First the courses at or past their absence limit (the course's tile, its name, the
-// absence meter Kuliah draws with its one word: "+2", "habis"; opens the course), then classes that clash (both courses'
-// names apart, "Bentrok · Kam, 12 Nov, 16:00–16:30"; opens Jadwal on that day), then what to hand in or do (the Task's
-// own name, its deadline under it the one way the app writes a date; Edunex's hand at the end when doing it counts
-// for attendance; red with a warning sign once late). At most five rows; the chevron opens the whole list, with what's
-// put off and away (./needs-screen.tsx). Hidden behind one quiet line when there's nothing. While the first read runs,
-// the rows stand in their shape: picked from half the data, they swapped under the Student's eyes.
+// full-width rows in a white card. First the courses at or past their absence limit: Kuliah's calendar-check in the
+// absence tone, the course's name and the state in absence words ("Absen lewat 2×", "Jatah absen habis"), so
+// beside a Task it can't read as an assignment past its deadline, and no pips (they had no key, and the words said
+// them again; Kuliah and the course page draw them); opens the course. Then classes that clash ("Kelas bentrok · A dan
+// B", their day and time under it; opens Jadwal on that day), then what to hand in or do (the Task's own name, its
+// deadline under it the one way the app writes a date; "Presensi" at the end when handing it in counts for
+// attendance; red with a warning sign once late). At most five rows; the chevron opens the whole list, with what's put
+// off and away (./needs-screen.tsx). Hidden behind one quiet line when there's nothing. While the first read runs, the
+// rows stand in their shape: picked from half the data, they swapped under the Student's eyes.
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { View } from "react-native";
@@ -14,6 +16,7 @@ import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
 import { rupiah } from "../../../../src/core/academic";
+import { absenceBudget } from "../../../../src/core/attendance";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { taskPutAway } from "../../../../src/core/done";
 import { heldBack } from "../../../../src/core/held-back";
@@ -21,9 +24,8 @@ import type { NeedDraft } from "../../../../src/core/needs";
 import { activeSnooze, snoozeKey } from "../../../../src/core/snooze";
 import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
-import { AttendanceMeter, meterModel } from "../../parts/attendance-meter";
+import { meterModel } from "../../parts/attendance-meter";
 import { useFirstReadRunning } from "../../shell/source-status";
-import { absenceName } from "../../ui/absence";
 import { IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
@@ -50,8 +52,10 @@ interface TodoRow {
   when: string;
   /** Past its deadline: the line in red, with a warning sign. */
   late: boolean;
-  /** Doing it counts for attendance (an Edunex Presence): Edunex's hand at the row's end. */
-  presence: boolean;
+  /** Doing it counts for attendance (an Edunex Presence): its window, said by TalkBack ("Jum, 13 Nov, 15:00–23:59"). */
+  presence: string | null;
+  /** A Task whose handing in counts for attendance: "Presensi" at the row's end (the title doesn't say it). */
+  presenceTag: boolean;
   /** The course's whole name, for what TalkBack reads (the row shows its tile). */
   course: string;
 }
@@ -59,7 +63,7 @@ interface TodoRow {
 /** A need as a row: its name and its deadline. Attendance is a problem row above; today's classes are the now card's and Nanti hari ini's. */
 function todoOf(t: Translate, f: Format, now: number, need: NeedDraft, courses: readonly TermCourse[]): TodoRow | null {
   const course = need.course ? nameOf(courses, need.course) : "";
-  const base = { need, code: need.course ?? null, course, late: false, presence: false };
+  const base = { need, code: need.course ?? null, course, late: false, presence: null, presenceTag: false };
   switch (need.kind) {
     case "task": {
       const { task } = need;
@@ -80,16 +84,27 @@ function todoOf(t: Translate, f: Format, now: number, need: NeedDraft, courses: 
       };
     }
     case "presence": {
-      const { session } = need;
-      // The Task's own name when handing it in is what counts (the hand says the rest), else Edunex's Presence.
-      const title = need.task ? need.task.title : t("home.need.presence", { course: shortName(course) });
-      // Open: when it closes. Ahead: its window, the day said once when it opens and closes on the same day.
-      const when = need.open
-        ? t("home.need.exam.closes", { when: f.dueLabel(session.closesAt) })
-        : f.dayOffset(session.opensAt) === f.dayOffset(session.closesAt)
+      const { session, task } = need;
+      // Its window, the day said once when it opens and closes on the same day.
+      const window =
+        f.dayOffset(session.opensAt) === f.dayOffset(session.closesAt)
           ? f.dayTimeRange(session.opensAt, session.closesAt)
           : `${f.dueLabel(session.opensAt)}–${f.dueLabel(session.closesAt)}`;
-      return { ...base, title, when, presence: true, late: need.open && session.closesAt < now };
+      // A Task whose handing in counts: the Task's own name and its deadline, as every Task row says it ("Presensi" at
+      // the end says the rest). A window's opening under a Task's name read as when the Task opens.
+      if (task?.dueAt != null)
+        return {
+          ...base,
+          title: task.title,
+          when: t("home.need.task.due", { when: f.dueLabel(task.dueAt) }),
+          presence: window,
+          presenceTag: true,
+          late: task.dueAt < now,
+        };
+      const title = task ? task.title : t("home.need.presence", { course: shortName(course) });
+      // Open: when it closes. Ahead: its window.
+      const when = need.open ? t("home.need.exam.closes", { when: f.dueLabel(session.closesAt) }) : window;
+      return { ...base, title, when, presence: window, presenceTag: task !== null && task !== undefined, late: need.open && session.closesAt < now };
     }
     case "meeting":
       return {
@@ -248,27 +263,32 @@ export function UrusLoading() {
   );
 }
 
-/** A course at or past its absence limit: its name, the meter and its one word. Opens the course (Pertemuan first). */
+/**
+ * A course at or past its absence limit: Kuliah's calendar-check in the absence tone, the course's name, the state in
+ * absence words. Opens the course (Pertemuan first).
+ */
 function AbsenceRow({ item, first, courses }: { item: AbsenceProblem; first: boolean; courses: readonly TermCourse[] }) {
   const t = useT();
   const { go } = useNav();
   const name = nameOf(courses, item.code);
-  const model = useMemo(() => meterModel(t, item), [t, item]);
+  const over = item.health.state === "out";
+  const words = over ? t("mobile.home.absence.over", { count: absenceBudget(item.health)?.over ?? 0 }) : t("mobile.home.absence.none");
+  const spoken = useMemo(() => meterModel(t, item)?.label, [t, item]);
   return (
     <GroupRow
       first={first}
       testID={`row.need.absence.${item.code}`}
       accessibilityRole="button"
-      accessibilityLabel={factsLabel(name, absenceName(t, item.health), model?.label)}
-      leading={<CourseTile code={item.code} name={name} />}
+      accessibilityLabel={factsLabel(name, words, spoken)}
+      leading={<IconTile tone={over ? "red" : "amber"} icon={(color) => <Icons.CalendarCheck size={22} color={color} />} />}
       title={<RowTitle text={shortName(name)} />}
-      meta={model ? <AttendanceMeter model={model} hideLabel /> : undefined}
+      meta={<Meta tone={over ? "red" : "amber"} text={words} />}
       onPress={() => go({ screen: "course", code: item.code })}
     />
   );
 }
 
-/** Two classes at once: both courses by name, kept apart, and when. Opens Jadwal on that day. */
+/** Two classes at once: "Kelas bentrok · A dan B" by short names, and when. Opens Jadwal on that day. */
 function ClashRow({ item, first, courses }: { item: ClashProblem; first: boolean; courses: readonly TermCourse[] }) {
   const t = useT();
   const f = useFormat();
@@ -276,15 +296,17 @@ function ClashRow({ item, first, courses }: { item: ClashProblem; first: boolean
   const a = shortName(nameOf(courses, item.a.courseCode, item.a.courseName));
   const b = shortName(nameOf(courses, item.b.courseCode, item.b.courseName));
   const when = f.dayTimeRange(item.from, item.to);
+  const title = t("alert.overlap", { a, b });
   return (
     <GroupRow
       first={first}
       testID={`row.need.clash.${item.key}`}
       accessibilityRole="button"
-      accessibilityLabel={factsLabel(t("alert.overlap", { a, b }), when)}
+      accessibilityLabel={factsLabel(title, when)}
+      // The warning tone with the clash's own icon; its day and time in the quiet ink (amber words are for absences).
       leading={<IconTile tone="amber" icon={(color) => <Icons.Overlap size={22} weight="bold" color={color} />} />}
-      title={<RowTitle text={`${a} × ${b}`} />}
-      meta={<Meta tone="amber" text={`${t("mobile.home.chip.clash")} · ${when}`} />}
+      title={<RowTitle text={title} />}
+      meta={<Meta text={when} />}
       onPress={() => {
         showOnSchedule(wibDay(item.from));
         go({ screen: "schedule" });
@@ -293,7 +315,7 @@ function ClashRow({ item, first, courses }: { item: ClashProblem; first: boolean
   );
 }
 
-/** Something to hand in or do: its own name, its deadline; Edunex's hand when it counts for attendance. */
+/** Something to hand in or do: its own name, its deadline; "Presensi" at the end when handing in a Task counts for attendance. */
 function TodoRowView({ row, first }: { row: TodoRow; first: boolean }) {
   const t = useT();
   const v = useTheme().v4;
@@ -306,7 +328,12 @@ function TodoRowView({ row, first }: { row: TodoRow; first: boolean }) {
       first={first}
       testID={`row.need.${need.id}`}
       accessibilityRole="button"
-      accessibilityLabel={factsLabel(row.title, need.kind === "task" || need.kind === "presence" ? row.course : null, row.when, row.presence && counts)}
+      accessibilityLabel={factsLabel(
+        row.title,
+        need.kind === "task" || need.kind === "presence" ? row.course : null,
+        row.when,
+        row.presence && `${counts}: ${row.presence}`,
+      )}
       leading={
         row.code ? <CourseTile code={row.code} name={row.course} /> : <IconTile tone="brand" icon={(color) => <Icons.ListChecks size={22} color={color} />} />
       }
@@ -318,9 +345,17 @@ function TodoRowView({ row, first }: { row: TodoRow; first: boolean }) {
         </View>
       }
       trailing={
-        row.presence ? (
-          <View testID={`row.need.${need.id}.presence`} accessible accessibilityRole="image" accessibilityLabel={counts}>
-            <Icons.Hand size={20} color={v.muted} />
+        row.presenceTag ? (
+          <View
+            testID={`row.need.${need.id}.presence`}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+            style={{ flexDirection: "row", alignItems: "center", gap: 3 }}
+          >
+            <Icons.Hand size={14} color={v.muted} />
+            <Text size="labelMedium" weight="medium" style={{ color: v.muted }}>
+              {t("mobile.home.kind.presence")}
+            </Text>
           </View>
         ) : undefined
       }
