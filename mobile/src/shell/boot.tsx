@@ -11,6 +11,7 @@ import { AppStore, StoreProvider, useSettings } from "../../../src/app/store";
 import type { Event } from "../../../src/core/contract";
 import { scheduleBackgroundSync } from "../host/background";
 import { type Host, host } from "../host/host";
+import { JS_START } from "../start";
 import { ThemeContext, themeFor } from "../ui/theme";
 import { demoClock } from "./demo-clock";
 
@@ -22,6 +23,9 @@ interface Booted {
 }
 
 let booted: Promise<Booted> | null = null;
+/** When each step of the start was reached, from the JS start, for the "[startup] steps" line. */
+const steps = { asked: 0, host: 0, store: 0 };
+const since = () => Date.now() - JS_START;
 /** The load, once it's done: a Boot that first draws after that draws the app at once. */
 let done: Booted | null = null;
 
@@ -35,6 +39,7 @@ export let currentHost: Host | null = null;
  */
 export function startBoot(): Promise<Booted> {
   if (!booted) {
+    steps.asked = since();
     booted = boot().then((ready) => {
       currentHost = ready.host;
       done = ready;
@@ -48,6 +53,7 @@ export function startBoot(): Promise<Booted> {
 
 async function boot(): Promise<Booted> {
   const current = await host();
+  steps.host = since();
   const bridge = createBridge(current.api);
   let store: AppStore | null = null;
   const early: Event[] = [];
@@ -55,6 +61,7 @@ async function boot(): Promise<Booted> {
   const snapshot = await bridge.invoke("app.snapshot", {});
   store = new AppStore(snapshot);
   for (const event of early) store.apply(event);
+  steps.store = since();
   // A build with the demo's world runs on its clock; a real one on the phone's (no offset, the app's own clock).
   return { host: current, store, bridge, clock: current.clockOffset() ? demoClock(current.clockOffset) : undefined };
 }
@@ -98,6 +105,8 @@ function Ready({ bridge }: { bridge: Bridge }) {
     const frame = requestAnimationFrame(() => {
       // The moment the Student sees the app (the splash goes): what a cold start is timed to, from the system log.
       console.info("[startup] shown");
+      // Where the start's time went, from the JS start: the load asked for, the engine loaded, the store made, drawn.
+      console.info(`[startup] steps load asked +${steps.asked}, host +${steps.host}, store +${steps.store}, shown +${since()}`);
       void SplashScreen.hideAsync();
       void bridge.invoke("app.ready", {}).catch(() => undefined);
       void scheduleBackgroundSync().catch(() => undefined);

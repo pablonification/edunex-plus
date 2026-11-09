@@ -4,6 +4,8 @@
 //   [perf] screen <route> <ms>      from the navigation to the screen drawn with its data
 //   [perf] tab <name> <ms>          the same for a tab
 //   [perf] first-data <ms>          from the JS start to Beranda drawn with the Student's data
+//   [startup] steps …               the start's steps from the JS start (shell/boot.tsx): the load asked for, the
+//                                   engine loaded, the store made, the first frame shown
 // Cheap enough to stay on in every build: one timer every 50 ms, and a line only when something's slow
 // or a screen opens.
 import { useFocusEffect, useNavigation } from "expo-router";
