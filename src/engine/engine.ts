@@ -151,6 +151,12 @@ export interface Engine {
 }
 
 const sessionKey = (source: SourceId) => `${source}.session`;
+
+/** `promise` asked for ahead: its failure goes to whoever awaits it, never reported as unhandled meanwhile. */
+function handled<T>(promise: Promise<T>): Promise<T> {
+  promise.catch(() => undefined);
+  return promise;
+}
 const STATE_FORMAT = 1;
 
 /**
@@ -603,9 +609,13 @@ export function createEngine(deps: EngineDeps): Engine {
 
   return {
     async load() {
-      await store.load();
+      // The saved sessions and state are asked for at once, beside the datasets: on the phone each is a trip to the
+      // native side (the keystore's take tens of ms), and the first frame waits for them all.
+      const savedSessions = new Map<SourceId, Promise<string | null>>();
+      for (const source of sources.values()) if (source.session) savedSessions.set(source.id, handled(vault.get(sessionKey(source.id))));
+      const savedState = handled(storage.read("state.json"));
+      await Promise.all([store.load(), phone.load()]);
       await alerts.load();
-      await phone.load();
       await outbox.load();
       for (const [source, name] of [
         ["edunex", "edunex.account"],
@@ -618,7 +628,7 @@ export function createEngine(deps: EngineDeps): Engine {
       const notice = store.get("app.update");
       if (notice && !isNewerRelease(notice.version, deps.version)) await store.remove("app.update");
       try {
-        const saved = JSON.parse((await storage.read("state.json")) ?? "null");
+        const saved = JSON.parse((await savedState) ?? "null");
         if (saved?.format === STATE_FORMAT) {
           settings = loadSettings(saved.settings);
           for (const status of saved.statuses ?? []) {
@@ -641,7 +651,7 @@ export function createEngine(deps: EngineDeps): Engine {
           statuses.set(source.id, { ...status, state: status.state === "signed-out" ? "connecting" : status.state });
           continue;
         }
-        const session = readSession(source, await vault.get(sessionKey(source.id)));
+        const session = readSession(source, await savedSessions.get(source.id)!);
         if (session) {
           startSource(source, session);
           // A saved session counts as signed in at once; the feeds check it in the background.

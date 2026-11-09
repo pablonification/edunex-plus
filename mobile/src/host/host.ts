@@ -114,6 +114,20 @@ export function host(): Promise<Host> {
 async function makeHost(): Promise<Host> {
   const began = Date.now();
   const world = DEMO ? await demoWorld() : await realWorld();
+  const made = Date.now();
+  // Where the start's time goes, for the "[startup] host load" line: the disk's and the keystore's last answer.
+  const waits = { disk: 0, diskDoneAt: 0, keystore: 0, keystoreDoneAt: 0 };
+  const timedStorage: Storage = {
+    read: (key) => timed(world.storage.read(key), () => (waits.disk++, (waits.diskDoneAt = Date.now()))),
+    write: (key, text) => world.storage.write(key, text),
+    remove: (key) => world.storage.remove(key),
+    list: (prefix) => world.storage.list(prefix),
+  };
+  const timedVault: Vault = {
+    get: (name) => timed(world.vault.get(name), () => (waits.keystore++, (waits.keystoreDoneAt = Date.now()))),
+    set: (name, value) => world.vault.set(name, value),
+    delete: (name) => world.vault.delete(name),
+  };
   const toAndroid = !DEMO || world.notify === true;
   const log = new AppLog(() => world.clock.now());
   // Each step of the engine names what the JS thread was doing, should it stall ("[perf] js-block", ../perf.ts).
@@ -142,8 +156,8 @@ async function makeHost(): Promise<Host> {
     // The demo says on Android's log what its sync reads (../perf.ts perfSync, W2's numbers); the real app doesn't.
     transport: DEMO ? traced(world.transport) : world.transport,
     clock: world.clock,
-    storage: world.storage,
-    vault: world.vault,
+    storage: timedStorage,
+    vault: timedVault,
     version: APP_VERSION,
     // A frame's turn for the screens in the middle of long work (SIX's 300 KB catalog pages): they share this thread.
     yieldToScreens: () => new Promise((resolve) => setTimeout(resolve, 0)),
@@ -180,14 +194,19 @@ async function makeHost(): Promise<Host> {
   });
   // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).
   const firstRun = (await world.storage.read("state.json")) === null;
+  const loading = Date.now();
   await engine.load();
+  const loadEnded = Date.now();
   if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
   lang = engine.snapshot().settings.lang;
   void prepareChannels(lang);
   const loaded = Date.now();
   // The demo's sign-in and first sync run after the first frame, as the real app reads after a sign-in: Beranda draws
   // at once and fills in (./settling.ts). The lab reads where the time goes from these lines.
-  console.info(`[startup] host load ${loaded - began}`);
+  const after = (at: number) => (at ? `+${at - loading}` : "none");
+  console.info(
+    `[startup] host load ${loaded - began} (world ${made - began}, engine.load ${loadEnded - loading}: ${waits.disk} files, last ${after(waits.diskDoneAt)}; ${waits.keystore} keystore, last ${after(waits.keystoreDoneAt)})`,
+  );
   if (world.prepare) {
     setSettling(true);
     void world.prepare(engine).then(
@@ -295,6 +314,11 @@ async function makeHost(): Promise<Host> {
     clockOffset: world.clockOffset(),
   };
   return { engine, api, ui, reminders, clockOffset: world.clockOffset, running: () => started, start, stop };
+}
+
+/** `promise`, with `done` called as it settles. */
+function timed<T>(promise: Promise<T>, done: () => void): Promise<T> {
+  return promise.finally(done);
 }
 
 /** Every request through `transport`, timed, as "[sync]" lines (demo builds). */
