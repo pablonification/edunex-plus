@@ -2,14 +2,15 @@
 // page, the same figures from the same hooks. The key number first: one card led by the IPK, big and counting up once,
 // the predicate it heads for as plain words beside it, last semester's IP a quiet line, the SKS passed a smaller figure
 // over a thin bar of those needed (parts/standing.tsx). Then a row each on the way to graduating (when; the next honor
-// as "3,66 di 26 SKS", or "Tak terkejar"; the highest IPK possible; the first opens the planner), IP and IPK per
+// as "Butuh rata-rata 3,66", over which SKS a sheet away, or "Tak terkejar"; the highest IPK possible "jika semua A";
+// the first opens the planner), IP and IPK per
 // semester with its legend and the target's line (the IPK at graduation at its end, when it differs from today's),
 // this term's grades as a clearly marked what-if with the one shared target, and the transcript, a term at a time
 // (./transcript.tsx). Without SIX: this term's courses from Edunex, each opening its calculator. Before SIX's first
 // read, the card stands in its shape.
 // Nothing here names a minute (HourClock), and what's below the first screenful mounts a part a frame (Later).
 import * as Haptics from "expo-haptics";
-import { memo, type ReactNode, useMemo } from "react";
+import { memo, type ReactNode, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -30,6 +31,7 @@ import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
+import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -219,10 +221,10 @@ function Disagreement({ record }: { record: StudentRecord }) {
 // ------------------------------------------------------------ on the way to graduating
 
 /**
- * When the Student graduates (one press: the planner), the honor reached, the next one with the average it needs over
- * the SKS still to be graded ("3,66 di 26 SKS"), or "Tak terkejar" when even straight A's fall short, and the highest
- * IPK still possible. The average and the IPK are different scales: the honor's row says the SKS it's over, so the two
- * numbers never read as one fighting the other.
+ * When the Student graduates (one press: the planner), the honor reached, the next one with the average it needs
+ * ("Butuh rata-rata 3,66"), or "Tak terkejar" when even straight A's fall short, and the highest IPK still possible
+ * ("Jika semua A"). Over which SKS that average is (this term's and the plan's, which can be more than the card's SKS
+ * left) is the honor row's sheet, never a count on screen beside "125 dari 144".
  */
 const Graduation = memo(function Graduation({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
@@ -239,6 +241,21 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
   const lastTerm = [...plan.terms].reverse().find((term) => term.courses.length)?.term ?? record.term;
   const blocked = finish?.level === "error";
   const best = projection.bestIpk;
+  const [why, setWhy] = useState(false);
+  // The SKS the honor's average is over: this term's without a grade, and the plan's (projection.variableSks).
+  const whyText = useMemo(() => {
+    const termSks = record.thisTerm.filter((c) => c.grade === null).reduce((sum, c) => sum + c.sks, 0);
+    const planSks = Math.max(0, projection.variableSks - termSks);
+    const left = Math.max(0, sksModel(record, plan).need - record.passedSks);
+    return [
+      planSks
+        ? t("mobile.grades.honorsWhy", { sks: projection.variableSks, term: termSks, plan: planSks })
+        : t("mobile.grades.honorsWhyTerm", { sks: projection.variableSks }),
+      projection.variableSks > left ? t("mobile.grades.honorsWhyMore", { left }) : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }, [record, plan, projection, t]);
   const rows: ReactNode[] = [
     <GroupRow
       key="finish"
@@ -264,12 +281,24 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
     );
   if (next?.kind === "needs")
     rows.push(
+      // The row opens why: over which SKS that average is (the card's SKS are another count).
       <GroupRow
         key="next"
         leading={<IconTile tone="plain" icon={(color) => <Icons.Star size={22} color={color} />} />}
         title={t(`honors.${next.level}`)}
-        meta={t("mobile.grades.honorsAverage", { avg: f.number(next.average, 2), sks: projection.variableSks })}
+        meta={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+            <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.muted }}>
+              {t("mobile.grades.honorsAverage", { avg: f.number(next.average, 2) })}
+            </Text>
+            <Icons.Info size={16} color={v.muted} />
+          </View>
+        }
         trailing={<Pill tone={effortTone(next.average)}>{capital(t(effortKey(next.average)))}</Pill>}
+        onPress={() => setWhy(true)}
+        accessibilityRole="button"
+        accessibilityHint={whyText}
+        testID="action.honorsWhy"
       />,
     );
   else if (next?.kind === "out")
@@ -291,7 +320,7 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
       key="best"
       leading={<IconTile tone="plain" icon={(color) => <Icons.Target size={22} color={color} />} />}
       title={t("grades.best")}
-      // Which SKS: this term's and the plan's, by name (the honor's row has their count), never "left to graduate".
+      // Which SKS: the honor's sheet says it, once.
       meta={projection.variableSks ? t("mobile.grades.bestHint") : t("grades.bestNone")}
       trailing={
         <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
@@ -304,6 +333,13 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
     <>
       <Heading>{t("mobile.grades.toGraduation")}</Heading>
       <Group testID="card.graduation">{rows}</Group>
+      {next?.kind === "needs" && (
+        <Sheet open={why} onClose={() => setWhy(false)} title={t(`honors.${next.level}`)} background={v.card} testID="sheet.honorsWhy">
+          <Text size="bodyLarge" style={{ color: v.fg, paddingBottom: space[4] }}>
+            {whyText}
+          </Text>
+        </Sheet>
+      )}
     </>
   );
 });

@@ -8,14 +8,26 @@ export const mobileAcademicStrings = {
   "mobile.grades.fromSix": { id: "Dari KRS-mu di SIX", en: "From your KRS on SIX" },
   // Beside the IPK, as plain words: the predicate it heads for, named as the one at graduation when today's differs.
   "mobile.grades.predicateAtEnd": { id: "{predicate} saat lulus", en: "{predicate} at graduation" },
-  // An honor still open: the average it needs over the SKS still to be graded. Said with its SKS so it never reads as
-  // an IPK beside the highest one possible ("3,66 di 26 SKS" next to "3,56").
-  "mobile.grades.honorsAverage": { id: "Rata-rata {avg} di {sks} SKS", en: "A {avg} average over {sks} SKS" },
+  // An honor still open: the average it needs, as the blind pair preferred it (round 3). Over which SKS is its ⓘ sheet,
+  // so "26 SKS" never sits beside the card's "125 dari 144" (which leaves 19).
+  "mobile.grades.honorsAverage": { id: "Butuh rata-rata {avg}", en: "Needs a {avg} average" },
+  // The sheet: the SKS that average is over, where they are, and, when it's more, why it isn't the SKS left to graduate.
+  "mobile.grades.honorsWhy": {
+    id: "Rata-rata nilai di {sks} SKS yang belum bernilai: {term} SKS semester ini dan {plan} SKS di rencanamu.",
+    en: "Your average over the {sks} SKS not graded yet: {term} SKS this semester and {plan} SKS in your plan.",
+  },
+  "mobile.grades.honorsWhyTerm": {
+    id: "Rata-rata nilai di {sks} SKS semester ini yang belum bernilai.",
+    en: "Your average over this semester's {sks} SKS not graded yet.",
+  },
+  "mobile.grades.honorsWhyMore": {
+    id: "Ini bukan SKS yang tersisa untuk lulus ({left} SKS), karena semua mata kuliah di rencanamu ikut dihitung.",
+    en: "That isn't the SKS left to graduate ({left} SKS), since every course in your plan counts.",
+  },
   // An honor even straight A's can't reach: one word in place of a second number.
   "mobile.grades.honorsOut": { id: "Tak terkejar", en: "Out of reach" },
-  // The best IPK still possible: straight A's in what has no grade yet, named by where those SKS are (this term and the
-  // plan, which can hold more than the SKS left to graduate), never as the SKS left.
-  "mobile.grades.bestHint": { id: "Jika semua A semester ini dan di rencanamu", en: "With straight A's this semester and in your plan" },
+  // The best IPK still possible: straight A's in what has no grade yet (which SKS: the honor's ⓘ sheet), in a short meta.
+  "mobile.grades.bestHint": { id: "Jika semua A", en: "With straight A's" },
   "mobile.grades.questionnaire": { id: "Isi kuesioner agar nilai terlihat", en: "Fill in the questionnaire to see grades" },
   "mobile.grades.questionnaireUntil": { id: "Sampai {date}", en: "Until {date}" },
   "mobile.grades.gradeDeadline": { id: "Batas dosen memasukkan nilai", en: "Lecturers' deadline for grades" },
@@ -46,6 +58,8 @@ export const mobileAcademicStrings = {
     en: { one: "{count} clash", other: "{count} clashes" },
   },
   "mobile.academic.pill.billsDue": { id: "Bayar s.d. {date}", en: "Pay by {date}" },
+  // Kalender akademik's line, where a date's full name ran to two lines: what to do, short ("Isi kuesioner · 30 Nov").
+  "mobile.academic.deadline.questionnaire": { id: "Isi kuesioner", en: "Questionnaire" },
   "mobile.academic.meta.deadlineNow": { id: "{what} · sekarang", en: "{what} · now" },
   "mobile.academic.meta.deadlineNext": { id: "{what} · {date}", en: "{what} · {date}" },
   // Kurikulum: the leading figure's unit ("112 dari 144 SKS").
