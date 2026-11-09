@@ -8,7 +8,7 @@
 // (`TabBadges`): working them out (every Task and exam, every course's absences, the KRS and the bills) held the splash
 // up for numbers on tabs the Student hasn't looked at yet.
 import { NativeTabs } from "expo-router/native-tabs";
-import { startTransition, useEffect, useState } from "react";
+import { type Dispatch, type SetStateAction, startTransition, useEffect, useState } from "react";
 import { useRememberCourseColors } from "../../../src/app/course-colors";
 import { useTermCourses } from "../../../src/app/courses";
 import { useT } from "../../../src/app/i18n";
@@ -40,7 +40,6 @@ export default function TabsLayout() {
   // Each course's automatic color, remembered the first time it shows, so it never moves by itself (the desktop's sidebar does this).
   useRememberCourseColors(courses?.map((course) => course.code));
   const [{ tasks, presence, plan }, setBadges] = useState<Badges>(NO_BADGES);
-  const counting = useFirstFrameShown();
   const tabs = [
     { name: "index", title: t("nav.home"), id: "home", icon: "home", badge: null },
     { name: "schedule", title: t("nav.schedule"), id: "schedule", icon: "schedule", badge: null },
@@ -77,7 +76,7 @@ export default function TabsLayout() {
           </NativeTabs.Trigger>
         ))}
       </NativeTabs>
-      {counting && <TabBadges onChange={setBadges} />}
+      <TabBadgesLater onChange={setBadges} />
     </InTabs.Provider>
   );
 }
@@ -90,8 +89,16 @@ interface Badges {
 
 const NO_BADGES: Badges = { tasks: null, presence: null, plan: null };
 
-/** The tabs' badges, worked out from the first frame on; the tabs hear of them only when one changes. */
-function TabBadges({ onChange }: { onChange(badges: Badges): void }) {
+/**
+ * The badges from the first frame on, apart from the tabs: the moment it's up draws this alone, not the tab bar and
+ * every tab's screen under it again.
+ */
+function TabBadgesLater({ onChange }: { onChange: Dispatch<SetStateAction<Badges>> }) {
+  return useFirstFrameShown() ? <TabBadges onChange={onChange} /> : null;
+}
+
+/** The tabs' badges; the tabs hear of them only when one changes (none, at the start: they aren't drawn again). */
+function TabBadges({ onChange }: { onChange: Dispatch<SetStateAction<Badges>> }) {
   // A stall as they're first worked out is theirs (later ones are the data's, named by the dataset).
   useState(() => perfDoing("the tabs' badges"));
   const tasks = useTasksBadge();
@@ -101,6 +108,10 @@ function TabBadges({ onChange }: { onChange(badges: Badges): void }) {
   const plan = planCount?.tone === "warning" ? planCount : null;
   const key = JSON.stringify([tasks, presence, plan]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the three badges, said the same way when they are
-  useEffect(() => startTransition(() => onChange({ tasks, presence, plan })), [key, onChange]);
+  useEffect(
+    () =>
+      startTransition(() => onChange((before) => (JSON.stringify([before.tasks, before.presence, before.plan]) === key ? before : { tasks, presence, plan }))),
+    [key, onChange],
+  );
   return null;
 }
