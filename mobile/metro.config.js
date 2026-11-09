@@ -11,6 +11,33 @@ const root = path.resolve(__dirname, "..");
 const config = getDefaultConfig(__dirname);
 
 config.watchFolders = [path.join(root, "src"), path.join(root, "test")];
+
+// Each module runs when it's first used, not all at once as the bundle starts (Metro's inline requires, which Expo's
+// defaults leave off): what Beranda's first frame doesn't touch (the HTML parsers behind every reader, the pages and
+// sheets not open yet, the reports, the demo) no longer runs between Android's START and the first frame. A module
+// whose import is only there for what it does when it loads has to be imported bare (`import "./x"`), which is never
+// deferred: ../index.ts does that for the start (src/start.ts), the crypto and the background sync. The UI libraries
+// below load with the first frame anyway, and some set themselves up as they load: they stay where they're imported.
+config.transformer.getTransformOptions = async () => ({
+  transform: {
+    experimentalImportSupport: true,
+    inlineRequires: true,
+    nonInlinedRequires: [
+      "React",
+      "react",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+      "react-compiler-runtime",
+      "react-native",
+      "react-native-gesture-handler",
+      "react-native-reanimated",
+      "react-native-worklets",
+      "react-native-screens",
+      "react-native-safe-area-context",
+      "expo-router",
+    ],
+  },
+});
 const mobileFolder = __dirname + path.sep;
 const fromMobile = path.join(__dirname, "package.json");
 const isPackage = (name) => !name.startsWith(".") && !path.isAbsolute(name);
