@@ -301,29 +301,30 @@ function DueCard({
               {f.dueLabel(task.dueAt)}
             </Text>
           </View>
-          {presence && (
-            <>
-              <Pressable
-                testID="line.presence"
-                accessibilityRole="button"
-                accessibilityLabel={whyText}
-                onPress={() => setWhy(true)}
-                hitSlop={slopY(24)}
-                style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: space[1], marginTop: space[1] }}
-              >
-                <Icons.Hand size={16} color={v.fg2} />
-                <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.fg2 }}>
-                  {t("task.attendanceLine", { when: presence.line })}
-                </Text>
-                <Icons.Info size={16} color={v.muted} />
-              </Pressable>
-              <Sheet open={why} onClose={() => setWhy(false)} title={t("mobile.tasks.presenceWhy")} background={v.card} testID="sheet.presence">
-                <Text size="bodyLarge" style={{ color: v.fg, paddingBottom: space[4] }}>
-                  {whyText}
-                </Text>
-              </Sheet>
-            </>
-          )}
+        </>
+      )}
+      {/* A Task that is also Presensi says so, with or without a deadline. */}
+      {presence && (
+        <>
+          <Pressable
+            testID="line.presence"
+            accessibilityRole="button"
+            accessibilityLabel={whyText}
+            onPress={() => setWhy(true)}
+            hitSlop={slopY(24)}
+            style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: space[1], marginTop: space[1] }}
+          >
+            <Icons.Hand size={16} color={v.fg2} />
+            <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.fg2 }}>
+              {t("task.attendanceLine", { when: presence.line })}
+            </Text>
+            <Icons.Info size={16} color={v.muted} />
+          </Pressable>
+          <Sheet open={why} onClose={() => setWhy(false)} title={t("mobile.tasks.presenceWhy")} background={v.card} testID="sheet.presence">
+            <Text size="bodyLarge" style={{ color: v.fg, paddingBottom: space[4] }}>
+              {whyText}
+            </Text>
+          </Sheet>
         </>
       )}
       {opens && (
