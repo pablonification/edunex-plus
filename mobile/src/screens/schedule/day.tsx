@@ -1,12 +1,13 @@
 // One day of Jadwal as v4 draws it (mobile/design/r2-directions/v4, "v4-jadwal"): the hours down the left, each class a
 // block in its course's tint at its time and length (its glyph, its name on as many lines as the block holds, up to two,
-// with an ellipsis past them: never a name silently cut short; the room), two that overlap side by side, each with the
-// clash's icon,
-// the part of a class already gone a shade deeper, and today's now-line in the brand's blue. Above the hours, only when there's
-// something: ITB's period ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's hand-ins
-// and deadlines, a line each. A block shows at most one status, as an icon (a clash, a new time, not in SIX); the
-// absences, the words, the code, the times and the rest are on its sheet (Beranda's class sheet). The minute's tick
-// moves only the now-line and the block on now (./clock.ts).
+// with an ellipsis past them: never a name silently cut short; the room), the part of a class already gone a shade
+// deeper, and today's now-line in the brand's blue. Classes that overlap stack full width in one block over their
+// shared hours (round 3's third review: side by side, the clash was the least readable thing on the day), each with
+// its whole name, its own time and the clash's icon. Above the hours, only when there's something: ITB's period
+// ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's hand-ins and deadlines, a line
+// each. A block shows at most one status, as an icon (a clash, a new time, not in SIX); the absences, the words, the
+// code and the rest are on its sheet (Beranda's class sheet). The minute's tick moves only the now-line and the block
+// on now (./clock.ts).
 import { memo, type ReactNode } from "react";
 import { useWindowDimensions, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
@@ -22,7 +23,6 @@ import {
   type TaskWindow,
 } from "../../../../src/core/schedule";
 import { taskStatus } from "../../../../src/core/tasks";
-import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { NOW } from "../../ui/palette";
@@ -54,30 +54,19 @@ type Item =
   | { kind: "class"; key: string; start: number; end: number; code: string; item: ScheduledClass }
   | { kind: "meeting"; key: string; start: number; end: number; code: string; meeting: OutsideMeeting | EdunexMeeting; notInSix: boolean };
 
-/** Each item's column and how many share its stretch of time (two classes that overlap sit side by side). */
-function columns(items: readonly Item[]): Map<string, { column: number; of: number }> {
-  const placed = new Map<string, { column: number; of: number }>();
+/** The day's items in runs that share time: one alone, or two or more that overlap (a clash), in time order. */
+function clustersOf(items: readonly Item[]): Item[][] {
   const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
-  let cluster: { item: Item; column: number }[] = [];
-  let clusterEnd = -Infinity;
-  const close = () => {
-    const of = Math.max(1, ...cluster.map((c) => c.column + 1));
-    for (const c of cluster) placed.set(c.item.key, { column: c.column, of });
-    cluster = [];
-  };
+  const out: Item[][] = [];
+  let end = -Infinity;
   for (const item of sorted) {
-    if (item.start >= clusterEnd) {
-      close();
-      clusterEnd = -Infinity;
-    }
-    const taken = new Set(cluster.filter((c) => c.item.end > item.start).map((c) => c.column));
-    let column = 0;
-    while (taken.has(column)) column++;
-    cluster.push({ item, column });
-    clusterEnd = Math.max(clusterEnd, item.end);
+    if (item.start >= end) {
+      out.push([]);
+      end = item.end;
+    } else end = Math.max(end, item.end);
+    out[out.length - 1]!.push(item);
   }
-  close();
-  return placed;
+  return out;
 }
 
 /** The hours the day shows: 08:00–17:00 at least, widened to whole hours around anything earlier or later. */
@@ -109,8 +98,8 @@ export const DayView = memo(function DayView({
   /** SIX's timetable for the day was read and it holds nothing. */
   free: boolean;
   onPick: (picked: Picked) => void;
-  /** The first class after this day (its start), for an empty day's way on; null when none is known. */
-  next: number | null;
+  /** The first class after this day, for an empty day's way on; null when none is known. */
+  next: NextClass | null;
   onNext?: () => void;
 }) {
   const v = useTheme().v4;
@@ -139,7 +128,7 @@ export const DayView = memo(function DayView({
       }),
     ),
   ];
-  const placed = columns(items);
+  const clusters = clustersOf(items);
   const nameOf = (code: string, fallback?: string) => courses.find((c) => c.code === code)?.name ?? fallback ?? code;
   const hours = Array.from({ length: to - from + 1 }, (_, i) => from + i);
   const empty = items.length === 0;
@@ -147,35 +136,53 @@ export const DayView = memo(function DayView({
     return (
       <View testID={`agenda.${day.day}`} style={{ backgroundColor: v.page, flexGrow: 1 }}>
         <Lane day={day} onPick={onPick} />
-        <EmptyDay free={free} next={next} onNext={onNext} />
+        <EmptyDay free={free} next={next} name={next ? nameOf(next.code, next.name ?? undefined) : ""} onNext={onNext} />
       </View>
     );
   return (
     <View testID={`agenda.${day.day}`} style={{ backgroundColor: v.page, flexGrow: 1 }}>
       <Lane day={day} onPick={onPick} />
-      <View style={{ height: TOP + (to - from) * HOUR + space[6] }}>
+      {/* Room under the last hour, as every page leaves above the tabs: the last block is never at the bar's edge. */}
+      <View style={{ height: TOP + (to - from) * HOUR + space[10] }}>
         {hours.map((hour) => (
           <HourLine key={hour} hour={hour} from={from} hideLabel={day.day === today} />
         ))}
         {/* Under the blocks, so it never runs through a class's name: it shows beside them, and on the class on now the
             block's deeper shade ends where it would be (the judge's round 2, pass 5: the name read as struck through). */}
         {day.day === today && <NowLine from={from} to={to} />}
-        {/* The blocks' frame, beside the hours: a block's column is a share of its width. */}
+        {/* The blocks' frame, beside the hours. */}
         <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: BLOCK_LEFT, right: BLOCK_RIGHT }}>
-          {items.map((entry) => {
-            const at = placed.get(entry.key) ?? { column: 0, of: 1 };
+          {clusters.map((run) => {
+            const props = (entry: Item) => ({
+              entry,
+              name: entry.kind === "class" ? nameOf(entry.code, entry.item.session.courseName) : nameOf(entry.code),
+              // The class it shares time with by its short name, for TalkBack (on screen: the clash's icon).
+              clashWith: entry.kind === "class" ? entry.item.overlaps.map((o) => shortName(nameOf(o.code))).join(", ") : "",
+              onPick,
+            });
+            if (run.length === 1) return <Block key={run[0]!.key} {...props(run[0]!)} from={from} />;
+            const start = run[0]!.start;
+            const end = Math.max(...run.map((entry) => entry.end));
             return (
-              <Block
-                key={entry.key}
-                entry={entry}
-                name={entry.kind === "class" ? nameOf(entry.code, entry.item.session.courseName) : nameOf(entry.code)}
-                // The class it shares time with by its short name, for TalkBack (on screen: the clash's icon).
-                clashWith={entry.kind === "class" ? entry.item.overlaps.map((o) => shortName(nameOf(o.code))).join(", ") : ""}
-                from={from}
-                column={at.column}
-                of={at.of}
-                onPick={onPick}
-              />
+              <View
+                key={run[0]!.key}
+                pointerEvents="box-none"
+                testID="block.clash"
+                style={{
+                  position: "absolute",
+                  top: yOf(minuteOfDay(start), from) + 2,
+                  left: 0,
+                  right: 0,
+                  minHeight: Math.max(TOUCH, ((end - start) / 3_600_000) * HOUR - 4),
+                  gap: 4,
+                }}
+              >
+                {run.map((entry) => (
+                  <View key={entry.key} style={{ flexGrow: 1 }}>
+                    <BlockBody {...props(entry)} lines={3} stacked />
+                  </View>
+                ))}
+              </View>
             );
           })}
         </View>
@@ -184,34 +191,65 @@ export const DayView = memo(function DayView({
   );
 });
 
+/** The first class after a day with none: its time, its course and its room (SIX's; null for a meeting Edunex announced). */
+export interface NextClass {
+  start: number;
+  end: number;
+  code: string;
+  name: string | null;
+  room: string | null;
+}
+
 /**
- * A day with no class (round 3): no empty hours, a calm sun and the one word, then the way on: the next class's day and
- * time as a button that goes to that day ("Berikutnya Kam 08:00").
+ * A day with no class (round 3): no empty hours, a calm sun and the one word, then the way on: the next class under
+ * "Berikutnya", as its block in its course's tint (its name, day and time, room); a tap goes to that day.
  */
-function EmptyDay({ free, next, onNext }: { free: boolean; next: number | null; onNext?: () => void }) {
+function EmptyDay({ free, next, name, onNext }: { free: boolean; next: NextClass | null; name: string; onNext?: () => void }) {
   const t = useT();
   const f = useDayFormat();
   const today = useToday();
   const v = useTheme().v4;
+  const tile = useCourseTile()(next?.code ?? "");
   // Within the week ahead the weekday is enough; further, its date too.
-  const when =
+  const day =
     next === null
       ? null
-      : next - Date.parse(`${today}T00:00:00+07:00`) < 7 * 86_400_000
-        ? `${f.weekdayShort(next)} ${f.time(next)}`
-        : `${f.weekdayShort(next)} ${f.dayMonth(next)}, ${f.time(next)}`;
+      : next.start - Date.parse(`${today}T00:00:00+07:00`) < 7 * 86_400_000
+        ? f.weekdayShort(next.start)
+        : `${f.weekdayShort(next.start)} ${f.dayMonth(next.start)}`;
+  const when = next ? `${day}, ${timeRange(f, next.start, next.end)}` : "";
   return (
-    <View testID="schedule.emptyDay" style={{ alignItems: "center", paddingTop: space[12], paddingHorizontal: space[6], gap: space[3] }}>
+    <View testID="schedule.emptyDay" style={{ alignItems: "center", paddingTop: space[10], paddingHorizontal: space[4], gap: space[3] }}>
       <View style={{ width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", backgroundColor: v.card }}>
         <Icons.Sun size={30} color={v.muted} />
       </View>
       <Text size="titleMedium" face="display" weight="bold" style={{ color: v.fg }}>
         {free ? t("schedule.free") : t("mobile.schedule.noClasses")}
       </Text>
-      {when && onNext && (
-        <Button variant="tonal" onPress={onNext} label={t("mobile.schedule.nextLabel", { when })} testID="action.nextClass">
-          {t("mobile.schedule.next", { when })}
-        </Button>
+      {next && onNext && (
+        <View style={{ alignSelf: "stretch", marginTop: space[6], gap: space[2] }}>
+          <Text size="bodyMedium" weight="medium" style={{ color: v.muted, marginLeft: space[1] }}>
+            {t("course.next")}
+          </Text>
+          <PressScale
+            onPress={onNext}
+            accessibilityLabel={factsLabel(t("mobile.schedule.nextLabel", { when }), name, next.room)}
+            testID="action.nextClass"
+            style={{ flexDirection: "row", gap: 10, borderRadius: 14, backgroundColor: tile.tint, paddingHorizontal: 12, paddingVertical: PAD.tall }}
+          >
+            <View style={{ paddingTop: 1 }}>
+              <CourseGlyph code={next.code} name={name} size={22} />
+            </View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text size="bodyLarge" weight="semibold" style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
+                {name}
+              </Text>
+              <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, fontSize: 13, lineHeight: ROOM_LINE, marginTop: 3 }}>
+                {[when, next.room].filter(Boolean).join(" · ")}
+              </Text>
+            </View>
+          </PressScale>
+        </View>
       )}
     </View>
   );
@@ -311,22 +349,56 @@ const PAD = { short: 6, tall: 10 };
 const NAME_LINE = 19;
 const ROOM_LINE = 17;
 
+/** A class alone at its time: its block, as tall as the class is long. */
 const Block = memo(function Block({
   entry,
   name,
   clashWith,
   from,
-  column,
-  of,
   onPick,
 }: {
   entry: Item;
   name: string;
   clashWith: string;
   from: number;
-  column: number;
-  of: number;
   onPick: (picked: Picked) => void;
+}) {
+  const top = yOf(minuteOfDay(entry.start), from) + 2;
+  const height = Math.max(TOUCH, ((entry.end - entry.start) / 3_600_000) * HOUR - 4);
+  // As many lines of the name as the block holds beside its room, up to two; past them an ellipsis. The lines grow with
+  // the phone's font size, so they're counted at it.
+  const { fontScale } = useWindowDimensions();
+  const pad = height < 56 ? PAD.short : PAD.tall;
+  const roomShown = height >= 56;
+  const fits = Math.floor((height - pad * 2 - (roomShown ? ROOM_LINE * fontScale + 3 : 0)) / (NAME_LINE * fontScale));
+  return (
+    <View pointerEvents="box-none" style={{ position: "absolute", top, height, left: 0, right: 0 }}>
+      <BlockBody entry={entry} name={name} clashWith={clashWith} onPick={onPick} lines={Math.max(1, Math.min(2, fits))} short={height < 56} />
+    </View>
+  );
+});
+
+/**
+ * A block's card in its course's tint: the glyph, the name on up to `lines` lines, the room, its one status as an
+ * icon. `stacked`: one of the classes that overlap, stacked full width: its own time leads its second line (the block
+ * no longer sits at its time alone).
+ */
+function BlockBody({
+  entry,
+  name,
+  clashWith,
+  onPick,
+  lines,
+  short = false,
+  stacked = false,
+}: {
+  entry: Item;
+  name: string;
+  clashWith: string;
+  onPick: (picked: Picked) => void;
+  lines: number;
+  short?: boolean;
+  stacked?: boolean;
 }) {
   const t = useT();
   const f = useDayFormat();
@@ -339,23 +411,17 @@ const Block = memo(function Block({
     now <= entry.start ? 0 : now >= entry.end ? 1 : Math.round(((now - entry.start) / (entry.end - entry.start)) * 100) / 100,
   );
   const status = statusOf(t, entry);
-  const top = yOf(minuteOfDay(entry.start), from) + 2;
-  const height = Math.max(TOUCH, ((entry.end - entry.start) / 3_600_000) * HOUR - 4);
   const session = entry.kind === "class" ? entry.item.session : null;
   const room = session ? session.room : entry.kind === "meeting" && entry.meeting.online ? t("schedule.online") : null;
   const exam = entry.kind === "class" && entry.item.exam ? entry.item.session.activity : null;
   const title = exam ? `${exam} ${name}` : name;
-  // As many lines of the name as the block holds beside its room, up to two (three side by side, where it's narrow);
-  // past them an ellipsis. The lines grow with the phone's font size, so they're counted at it.
-  const { fontScale } = useWindowDimensions();
-  const pad = height < 56 ? PAD.short : PAD.tall;
-  const roomShown = Boolean(room) && height >= 56;
-  const fits = Math.floor((height - pad * 2 - (roomShown ? ROOM_LINE * fontScale + 3 : 0)) / (NAME_LINE * fontScale));
-  const lines = Math.max(1, Math.min(of > 1 ? 3 : 2, fits));
+  const time = timeRange(f, entry.start, entry.end);
+  const second = stacked ? [time, room].filter(Boolean).join(" · ") : !short ? (room ?? "") : "";
+  const pad = short ? PAD.short : PAD.tall;
   const label = factsLabel(
     exam ? `${exam} ${entry.code}` : entry.code,
     name,
-    timeRange(f, entry.start, entry.end),
+    time,
     room,
     phase === "live" ? t("schedule.live") : null,
     clashWith && status?.icon === Icons.Overlap ? t("mobile.course.ex.clash", { course: clashWith }) : status?.words,
@@ -368,17 +434,9 @@ const Block = memo(function Block({
       onPress={() =>
         onPick(entry.kind === "class" ? { kind: "class", item: entry.item } : { kind: "meeting", meeting: entry.meeting, notInSix: entry.notInSix })
       }
-      style={{
-        position: "absolute",
-        top,
-        height,
-        // Side by side with what overlaps it, 4 dp apart.
-        left: `${(column / of) * 100}%`,
-        width: `${100 / of}%`,
-        paddingRight: column < of - 1 ? 4 : 0,
-      }}
+      style={{ flexGrow: 1 }}
     >
-      <View style={{ flex: 1, borderRadius: 14, overflow: "hidden", backgroundColor: tile.tint }}>
+      <View style={{ flexGrow: 1, borderRadius: 14, overflow: "hidden", backgroundColor: tile.tint }}>
         {gone > 0 && (
           <View
             pointerEvents="none"
@@ -402,20 +460,17 @@ const Block = memo(function Block({
             }}
           />
         )}
-        <View style={{ flexDirection: "row", gap: of > 1 ? 6 : 10, paddingHorizontal: of > 1 ? 10 : 12, paddingVertical: pad }}>
-          {/* Sharing its hours with another class, the block gives its glyph's room to the name. */}
-          {of === 1 && (
-            <View style={{ paddingTop: 1 }}>
-              <CourseGlyph code={entry.code} name={name} size={22} />
-            </View>
-          )}
+        <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 12, paddingVertical: pad }}>
+          <View style={{ paddingTop: 1 }}>
+            <CourseGlyph code={entry.code} name={name} size={22} />
+          </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="bodyLarge" weight="semibold" numberOfLines={lines} ellipsizeMode="tail" style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
               {title}
             </Text>
-            {roomShown && (
-              <Text size="bodyMedium" numberOfLines={1} style={{ color: v.fg2, fontSize: 13, lineHeight: ROOM_LINE, marginTop: 3 }}>
-                {room}
+            {second !== "" && (
+              <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, fontSize: 13, lineHeight: ROOM_LINE, marginTop: 3 }}>
+                {second}
               </Text>
             )}
           </View>
@@ -428,7 +483,7 @@ const Block = memo(function Block({
       </View>
     </PressScale>
   );
-});
+}
 
 /** What sits above the hours, only when there's something: the period, a class the app couldn't read, hand-ins, deadlines. */
 function Lane({ day, onPick }: { day: ScheduleDay; onPick: (picked: Picked) => void }) {
