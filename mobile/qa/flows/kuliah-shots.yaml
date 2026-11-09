@@ -19,13 +19,15 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - extendedWaitUntil:
     visible:
-      id: card.kuliahNumber
+      id: row.course.KU5014
     timeout: 10000
 - waitForAnimationToEnd
 - takeScreenshot: 01-kuliah
-# The big number's sheet: the day's answer, the target, how it's counted.
+# ⋮'s "Cara menghitungnya": the day's answer, the target, how it's counted.
 - tapOn:
-    id: card.kuliahNumber
+    id: action.coursesMenu
+- tapOn:
+    id: action.howCounted
 - extendedWaitUntil:
     visible:
       id: sheet.kuliahFacts

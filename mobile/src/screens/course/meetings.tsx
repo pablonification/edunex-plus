@@ -143,7 +143,8 @@ function PeriodLine({ period, first }: { period: CalendarEvent; first: boolean }
         ...(first ? {} : { borderTopWidth: 1, borderTopColor: v.line }),
       }}
     >
-      <Icons.GraduationCap size={16} color={v.ambFg} />
+      {/* An exam period, as Jadwal marks one (the flag); the cap is the Akademik tab's alone. */}
+      <Icons.Flag size={16} color={v.ambFg} />
       <Text size="labelLarge" weight="semibold" tabular style={{ color: v.ambFg }}>
         {t("meeting.examPeriod", {
           period: t(period.kind === "uts" ? "calendar.kind.uts" : "calendar.kind.uas"),

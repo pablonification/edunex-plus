@@ -20,6 +20,7 @@ import {
   type TaskWindow,
 } from "../../../../src/core/schedule";
 import { taskStatus } from "../../../../src/core/tasks";
+import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { NOW } from "../../ui/palette";
@@ -97,6 +98,8 @@ export const DayView = memo(function DayView({
   six,
   free,
   onPick,
+  next,
+  onNext,
 }: {
   day: ScheduleDay;
   courses: readonly TermCourse[];
@@ -104,8 +107,10 @@ export const DayView = memo(function DayView({
   /** SIX's timetable for the day was read and it holds nothing. */
   free: boolean;
   onPick: (picked: Picked) => void;
+  /** The first class after this day (its start), for an empty day's way on; null when none is known. */
+  next: number | null;
+  onNext?: () => void;
 }) {
-  const t = useT();
   const v = useTheme().v4;
   const today = useToday();
   const { from, to } = hoursOf(day);
@@ -136,8 +141,17 @@ export const DayView = memo(function DayView({
   const nameOf = (code: string, fallback?: string) => courses.find((c) => c.code === code)?.name ?? fallback ?? code;
   const hours = Array.from({ length: to - from + 1 }, (_, i) => from + i);
   const empty = items.length === 0;
+  // Where two classes share time: an amber stretch in the hours' gutter, beside the blocks that carry the clash's icon.
+  const clashSpans = [...new Map(day.classes.flatMap((c) => c.overlaps.map((o) => [`${o.from}-${o.to}`, o] as const))).values()];
+  if (empty)
+    return (
+      <View testID={`agenda.${day.day}`} style={{ backgroundColor: v.page, flexGrow: 1 }}>
+        <Lane day={day} onPick={onPick} />
+        <EmptyDay free={free} next={next} onNext={onNext} />
+      </View>
+    );
   return (
-    <View testID={`agenda.${day.day}`} style={{ backgroundColor: v.card, flexGrow: 1 }}>
+    <View testID={`agenda.${day.day}`} style={{ backgroundColor: v.page, flexGrow: 1 }}>
       <Lane day={day} onPick={onPick} />
       <View style={{ height: TOP + (to - from) * HOUR + space[6] }}>
         {hours.map((hour) => (
@@ -146,6 +160,22 @@ export const DayView = memo(function DayView({
         {/* Under the blocks, so it never runs through a class's name: it shows beside them, and on the class on now the
             block's deeper shade ends where it would be (the judge's round 2, pass 5: the name read as struck through). */}
         {day.day === today && <NowLine from={from} to={to} />}
+        {clashSpans.map((span) => (
+          <View
+            key={`${span.from}-${span.to}`}
+            testID="mark.clash"
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: LINES_LEFT + 1,
+              width: 4,
+              top: yOf(minuteOfDay(span.from), from) + 2,
+              height: Math.max(8, ((span.to - span.from) / 3_600_000) * HOUR - 4),
+              borderRadius: 2,
+              backgroundColor: v.ambFg,
+            }}
+          />
+        ))}
         {/* The blocks' frame, beside the hours: a block's column is a share of its width. */}
         <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: BLOCK_LEFT, right: BLOCK_RIGHT }}>
           {items.map((entry) => {
@@ -163,18 +193,43 @@ export const DayView = memo(function DayView({
             );
           })}
         </View>
-        {empty && !day.holiday && (
-          <View pointerEvents="none" style={{ position: "absolute", top: TOP + HOUR, left: BLOCK_LEFT, right: BLOCK_RIGHT, alignItems: "center" }}>
-            <Icons.Sun size={32} color={v.muted} />
-            <Text size="bodyLarge" style={{ color: v.muted, marginTop: space[2] }}>
-              {free ? t("schedule.free") : t("mobile.schedule.noClasses")}
-            </Text>
-          </View>
-        )}
       </View>
     </View>
   );
 });
+
+/**
+ * A day with no class (round 3): no empty hours, a calm sun and the one word, then the way on: the next class's day and
+ * time as a button that goes to that day ("Berikutnya Kam 08:00").
+ */
+function EmptyDay({ free, next, onNext }: { free: boolean; next: number | null; onNext?: () => void }) {
+  const t = useT();
+  const f = useDayFormat();
+  const today = useToday();
+  const v = useTheme().v4;
+  // Within the week ahead the weekday is enough; further, its date too.
+  const when =
+    next === null
+      ? null
+      : next - Date.parse(`${today}T00:00:00+07:00`) < 7 * 86_400_000
+        ? `${f.weekdayShort(next)} ${f.time(next)}`
+        : `${f.weekdayShort(next)} ${f.dayMonth(next)}, ${f.time(next)}`;
+  return (
+    <View testID="schedule.emptyDay" style={{ alignItems: "center", paddingTop: space[12], paddingHorizontal: space[6], gap: space[3] }}>
+      <View style={{ width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", backgroundColor: v.card }}>
+        <Icons.Sun size={30} color={v.muted} />
+      </View>
+      <Text size="titleMedium" face="display" weight="bold" style={{ color: v.fg }}>
+        {free ? t("schedule.free") : t("mobile.schedule.noClasses")}
+      </Text>
+      {when && onNext && (
+        <Button variant="tonal" onPress={onNext} label={t("mobile.schedule.nextLabel", { when })} testID="action.nextClass">
+          {t("mobile.schedule.next", { when })}
+        </Button>
+      )}
+    </View>
+  );
+}
 
 /** An hour's line and its label; on today the label near the now-line's own time gives way to it. */
 function HourLine({ hour, from, hideLabel }: { hour: number; from: number; hideLabel: boolean }) {
@@ -227,7 +282,7 @@ function NowLine({ from, to }: { from: number; to: number }) {
           left: 6,
           paddingHorizontal: 2,
           color: now,
-          backgroundColor: t.v4.card,
+          backgroundColor: t.v4.page,
           fontSize: 11,
           lineHeight: 16,
         }}
@@ -445,7 +500,7 @@ function LaneRow({
         alignItems: "center",
         gap: space[3],
         borderRadius: 14,
-        backgroundColor: v.page,
+        backgroundColor: v.card,
         paddingHorizontal: space[3],
         minHeight: 52,
       }}

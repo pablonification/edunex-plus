@@ -48,6 +48,7 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
   const v = useTheme().v4;
   const open = useOpenExternal();
   const attendance = useAttendance();
+  const mine = attendance?.courses.find((x) => x.course.code === page.course.code);
   const schedule = useDataset("six.schedule");
   const unread = useDataset("six.scheduleUnread");
   const modules = pageModules(page);
@@ -90,13 +91,17 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
     const link = linkOf(next);
     const today = link !== null && f.dayOffset(next.start) === 0;
     const what = meetingModuleTitle(t, modules, next) ?? next.presence?.topic ?? next.six?.activity ?? null;
-    const facts = [
-      `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`,
-      next.six?.room ?? "",
+    const room = next.six?.room ?? "";
+    const when = `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`;
+    const rest = [
       next.announced?.online ? t("course.online") : "",
       // "Kuliah" is every class: only a topic says something.
       what && !/^kuliah$/i.test(what) ? what : "",
     ].filter(Boolean);
+    const facts = [when, room ? t("mobile.course.room", { room }) : "", ...rest].filter(Boolean);
+    // This class shares time with another course's (Jadwal marks it too): said on its row, in the clash's amber.
+    const clash = mine?.clash && mine.clash.session.start === next.start ? mine.clash : null;
+    const clashWords = clash ? t("mobile.course.ex.clash", { code: clash.other }) : "";
     rows.push((first) => (
       <TileRow
         key="next"
@@ -107,11 +112,49 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
           </IconTile>
         }
         title={t("course.next")}
-        meta={facts.join(" · ")}
+        // The room reads as one with a pin before it ("9134" alone read as a number); the clash, when there is one, under.
+        meta={
+          <View style={{ gap: 2 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: space[2] }}>
+              <Text size="bodyMedium" tabular style={{ color: v.muted }}>
+                {when}
+              </Text>
+              {room !== "" && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                  <Icons.MapPin size={14} color={v.muted} />
+                  <Text size="bodyMedium" tabular style={{ color: v.muted }}>
+                    {room}
+                  </Text>
+                </View>
+              )}
+              {rest.length > 0 && (
+                <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted, flexShrink: 1 }}>
+                  {rest.join(" · ")}
+                </Text>
+              )}
+            </View>
+            {clash && (
+              <View testID="mark.courseNextClash" style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+                <Icons.Overlap size={14} weight="bold" color={v.ambFg} />
+                <Text size="bodyMedium" weight="medium" tabular style={{ color: v.ambFg }}>
+                  {`${clashWords} · ${f.timeRange(clash.from, clash.to)}`}
+                </Text>
+              </View>
+            )}
+          </View>
+        }
         status={next.notInSix ? <StatusChip tone="amber">{t("meeting.notInSix")}</StatusChip> : undefined}
         // An online class today: the row joins it.
         onPress={today && link ? () => open(link) : undefined}
-        label={[t("course.next"), ...facts, next.notInSix ? t("meeting.notInSix") : "", today ? t("course.join") : ""].filter(Boolean).join(", ")}
+        label={[
+          t("course.next"),
+          ...facts,
+          clash ? `${clashWords} ${f.timeRange(clash.from, clash.to)}` : "",
+          next.notInSix ? t("meeting.notInSix") : "",
+          today ? t("course.join") : "",
+        ]
+          .filter(Boolean)
+          .join(", ")}
         testID="row.courseNext"
       />
     ));
@@ -133,7 +176,7 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
       />
     ));
   const quiet = rows.length ? <CardGroup style={{ marginTop: space[3] }}>{rows.map((row, i) => row(i === 0))}</CardGroup> : null;
-  const countedIn = attendance?.courses.find((x) => x.course.code === page.course.code)?.health.countedIn;
+  const countedIn = mine?.health.countedIn;
   if (!current && !presence)
     return quiet ? (
       <Rise screen={rise} index={2}>

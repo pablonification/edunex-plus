@@ -91,7 +91,14 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   const day = byDay.get(picked);
   const covered = new Set(input?.months ?? []);
   const free = Boolean(input?.six && day && isEmptyDay(day) && !day.holiday && covered.has(picked.slice(0, 7)) && weekday(picked) < 5);
-
+  // The first class after the day picked, for an empty day's way on ("Berikutnya Kam 08:00").
+  const nextStart = useMemo(() => {
+    if (!input) return null;
+    let first: number | null = null;
+    for (const s of [...input.schedule, ...input.outside, ...(input.edunex ?? [])])
+      if (wibDay(s.start) > picked && (first === null || s.start < first)) first = s.start;
+    return first;
+  }, [input, picked]);
   // A class tapped: Beranda's sheet; anything else, Jadwal's own (./sheets.tsx).
   const { open, sheets } = useScheduleSheets();
 
@@ -122,7 +129,8 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   }, [pick]);
 
   return (
-    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: v.card }}>
+    // On the grey page every tab has (round 3: Jadwal alone was white), the day's blocks in their tints on it.
+    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: v.page }}>
       <ScheduleHeader monday={monday} picked={picked} onToday={() => pick(today, today > picked ? 1 : -1)} />
       {waiting || !input || !day ? (
         <Loading />
@@ -146,7 +154,15 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
             onRefresh={onRefresh}
             refreshing={refreshing}
           >
-            <DayView day={day} courses={courses} six={input.six} free={free} onPick={open} />
+            <DayView
+              day={day}
+              courses={courses}
+              six={input.six}
+              free={free}
+              onPick={open}
+              next={nextStart}
+              onNext={nextStart === null ? undefined : () => pick(wibDay(nextStart), 1)}
+            />
           </DayScroll>
         </>
       )}
@@ -216,7 +232,7 @@ function DayScroll({
       <ScrollView
         ref={scroll}
         collapsable={false}
-        style={{ flex: 1, borderTopWidth: 1, borderTopColor: theme.v4.line }}
+        style={{ flex: 1 }}
         contentOffset={{ x: 0, y }}
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
@@ -279,7 +295,7 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const range = f.dayRange(monday, shiftDay(monday, 6));
   const place = n ? t("schedule.weekOf", { n, range }) : range;
   return (
-    <View style={{ backgroundColor: v.card, paddingTop: insets.top }}>
+    <View style={{ backgroundColor: v.page, paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
         <Pressable
           onPress={() => setPanel(true)}
@@ -375,6 +391,7 @@ function ScheduleActions() {
       </IconButton>
       <OverflowMenu
         testID="action.scheduleMenu"
+        label={t("mobile.schedule.menu")}
         choices={[
           {
             label: t("mobile.schedule.remind"),

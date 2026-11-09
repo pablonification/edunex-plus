@@ -1,10 +1,12 @@
 // The week strip over Jadwal's day (v4): the week's seven days, a dot under each in the ink of every course that meets
 // that day, today in the brand's blue (its one meaning on the screen, with the now-line), the day picked, when it isn't today, in the
-// brand's tint. A tap picks a day; a swipe across the strip moves a week.
+// brand's tint, and an amber mark on a day with two classes at once. A tap picks a day; a swipe across the strip moves a
+// week.
 import { memo } from "react";
 import { View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { useCourseColor } from "../../../../src/app/courses";
+import { useT } from "../../../../src/app/i18n";
 import { dayNoon, type ScheduleDay, shiftDay } from "../../../../src/core/schedule";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
@@ -38,6 +40,7 @@ export const WeekStrip = memo(function WeekStrip({
   /** A week on (1) or back (-1). */
   onWeek: (by: number) => void;
 }) {
+  const t = useT();
   const f = useDayFormat();
   const theme = useTheme();
   const v = theme.v4;
@@ -67,6 +70,8 @@ export const WeekStrip = memo(function WeekStrip({
           const isToday = day === today;
           const on = day === picked;
           const codes = codesOf(plan.get(day)).slice(0, 4);
+          // Two classes at once that day: an amber mark on its date, as the blocks and the gutter show it on the day.
+          const clash = plan.get(day)?.classes.some((c) => c.overlaps.length > 0) ?? false;
           const circle = isToday && on ? nowColour(theme.scheme) : on ? v.brandTint : "transparent";
           const number = isToday && on ? onNowColour(theme.scheme) : isToday ? nowColour(theme.scheme) : on ? v.brandInk : v.fg;
           return (
@@ -75,7 +80,7 @@ export const WeekStrip = memo(function WeekStrip({
               testID={`day.${day}`}
               accessibilityRole="tab"
               accessibilityState={{ selected: on }}
-              accessibilityLabel={f.dateLong(noon)}
+              accessibilityLabel={clash ? `${f.dateLong(noon)}, ${t("mobile.schedule.clashDay")}` : f.dateLong(noon)}
               onPress={() => onPick(day)}
               style={{ width: 48, alignItems: "center", gap: 6, paddingVertical: 2 }}
             >
@@ -86,6 +91,22 @@ export const WeekStrip = memo(function WeekStrip({
                 <Text size="titleMedium" face="display" weight="semibold" tabular style={{ color: number, fontSize: 15 }}>
                   {String(Number(day.slice(8)))}
                 </Text>
+                {clash && (
+                  <View
+                    testID={`mark.clashDay.${day}`}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      right: 0,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: v.ambFg,
+                      borderWidth: 2,
+                      borderColor: v.page,
+                    }}
+                  />
+                )}
               </View>
               <View style={{ flexDirection: "row", gap: 3, height: 5 }}>
                 {codes.map((code) => (

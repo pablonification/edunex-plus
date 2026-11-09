@@ -1,11 +1,12 @@
 // The course page on the phone (S17, src/app/screens/course.tsx; round 2's v4): one course, its parent and child
 // Edunex classes merged, on v4's grey page. Its one title is its name, big at the top beside its tile (the course's ink
-// and tint) with its code under it, collapsing into the top bar on scroll, then its attendance in one line ("85% hadir ·
-// Sisa 1×") and the one exception in a few words; then, while a class is on, its card with the one thing to do (the one
-// card, judge round 3), else the next class as a quiet row. A tap on the header opens the course's sheet
-// (./course-sheet.tsx: lecturer, SKS, the attendance in full, the target, what a course in trouble means now). Then its
-// tabs as pills, staying under the bar while the page scrolls: Modul (a list; a module opens as its own screen,
-// ./module-screen.tsx), Pertemuan, Tugas, Nilai and Pengumuman. The rare actions sit behind ⋮ in the top bar: saving
+// and tint) with its code under it, the bar's title taking over as the name goes under the bar; then its absences as a
+// meter with one word (parts/attendance-meter.tsx, as on Kuliah) and an ⓘ, and the one exception when it's a fact; then,
+// while a class is on, its card with the one thing to do, else the next class as a quiet row (its room with a pin, a
+// clash under it). A tap on the header opens the course's sheet (./course-sheet.tsx: lecturer, SKS, the attendance in
+// full, the target, the advice, what a course in trouble means now). Then its tabs as pills, scrolling sideways and
+// staying under the bar while the page scrolls: Modul (a list; a module opens as its own screen, ./module-screen.tsx),
+// Pertemuan, Tugas, Nilai and Pengumuman; a course at risk leads with Pertemuan. The rare actions sit behind ⋮ in the top bar: saving
 // its files for offline, its colour, its pages on Edunex and SIX. Pull to refresh.
 
 import { router } from "expo-router";
@@ -49,6 +50,8 @@ import { SaveOfflineProgress, useSaveOfflineChoice } from "./save-offline";
 
 const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
 type Tab = (typeof TABS)[number];
+/** A course at risk leads with its meetings (Pertemuan: which were missed, which are left), then the rest in order. */
+const AT_RISK_TABS: readonly Tab[] = ["meetings", "modules", "tasks", "grades", "announcements"];
 /** The tabs' names: the desktop's, but "Tugas" alone, so five fit a phone's width better. */
 const TAB_LABEL: Record<Tab, StringKey> = {
   modules: "course.tab.modules",
@@ -79,7 +82,11 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   // Where the page's own title ends (dp from the page's top): the top bar's title shows from there.
   const [titleBottom, setTitleBottom] = useState(120);
   const offset = useRef(0);
-  const current: Tab = (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : "modules";
+  // The course's attendance, once SIX has a count: it decides the tabs' order (Pertemuan first for a course at risk).
+  const item = page && rows?.attendance.sixConnected ? rows.attendance.courses.find((c) => c.course.code === page.course.code) : undefined;
+  const state = item?.health.state;
+  const order = state === "out" || state === "none" || state === "risk" || state === "missed" ? AT_RISK_TABS : TABS;
+  const current: Tab = (TABS as readonly string[]).includes(tab ?? "") ? (tab as Tab) : order[0]!;
   usePerfDrawn(page !== undefined);
   // A tab tapped: its tab bar comes to the top, so what the tab holds is in view and not below the course's header.
   const pickTab = (next: Tab) => {
@@ -109,7 +116,6 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const loaded = page.materials !== undefined;
   // The course's "Belum selesai" on its tab: its Tasks and exams with a day still ahead, a take-home once.
   const open = todo ? todoCount(todoForCourse(todo.items, code)) : 0;
-  const item = rows?.attendance.sixConnected ? rows.attendance.courses.find((c) => c.course.code === page.course.code) : undefined;
   const rise = `course:${page.course.code}`;
 
   let panel: ReactNode;
@@ -136,13 +142,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
     >
       <View>
         <Rise screen={rise} index={0}>
-          <Header
-            page={page}
-            item={item}
-            context={rows?.context}
-            onOpen={() => setSheet(true)}
-            onTitleEnd={(bottom) => setTitleBottom(space[4] + bottom + space[2])}
-          />
+          <Header page={page} item={item} context={rows?.context} onOpen={() => setSheet(true)} onTitleEnd={(bottom) => setTitleBottom(space[4] + bottom)} />
         </Rise>
         <MeetingNow page={page} rise={rise} />
         <SaveOfflineProgress code={page.course.code} />
@@ -153,7 +153,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
           value={current}
           onChange={pickTab}
           label={page.course.code}
-          tabs={TABS.map((key) => ({ value: key, label: t(TAB_LABEL[key]), count: key === "tasks" && open > 0 ? open : undefined }))}
+          tabs={order.map((key) => ({ value: key, label: t(TAB_LABEL[key]), count: key === "tasks" && open > 0 ? open : undefined }))}
         />
       </View>
       <View style={{ paddingTop: space[3], minHeight: 480 }} testID={`panel.course.${current}`}>
@@ -170,9 +170,10 @@ function CourseMissing() {
 }
 
 /**
- * The page's one title: the course's tile and name in the display face, its code under it, then its attendance in one
- * line (from `item` and `context`). A tap opens the course's sheet (lecturer, SKS, attendance in full). `onTitleEnd`: where the
- * title ends, for the bar's title to take over from there.
+ * The page's one title: the course's tile and name in the display face, its code under it, then its attendance as a
+ * meter (from `item` and `context`). A tap opens the course's sheet (lecturer, SKS, attendance in full, the advice).
+ * `onTitleEnd`: where the name itself ends, so the bar's title fades in as the name goes under the bar, never with the
+ * bar empty over a sliced name.
  */
 function Header({
   page,
@@ -202,15 +203,18 @@ function Header({
       testID="action.courseAbout"
       style={{ flexDirection: "row", alignItems: "flex-start", gap: space[4] }}
     >
-      <View
-        onLayout={(event: LayoutChangeEvent) => onTitleEnd(event.nativeEvent.layout.y + event.nativeEvent.layout.height)}
-        style={{ flexDirection: "row", gap: space[4], flex: 1 }}
-      >
+      <View style={{ flexDirection: "row", gap: space[4], flex: 1 }}>
         <View style={{ paddingTop: 2 }}>
           <CourseTile code={course.code} name={course.name} size={48} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text size="headlineSmall" face="display" weight="bold" style={{ color: v.fg, fontSize: 24, lineHeight: 30, letterSpacing: -0.4 }}>
+          <Text
+            size="headlineSmall"
+            face="display"
+            weight="bold"
+            onLayout={(event: LayoutChangeEvent) => onTitleEnd(event.nativeEvent.layout.y + event.nativeEvent.layout.height)}
+            style={{ color: v.fg, fontSize: 24, lineHeight: 30, letterSpacing: -0.4 }}
+          >
             {course.name}
           </Text>
           <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted, marginTop: space[1] }}>
@@ -333,6 +337,7 @@ function TabBar<T extends string>({
                 onLayout={(event) => places.current.set(tab.value, { x: event.nativeEvent.layout.x, width: event.nativeEvent.layout.width })}
                 style={{
                   minHeight: 36,
+                  flexShrink: 0,
                   borderRadius: 18,
                   paddingHorizontal: space[4],
                   flexDirection: "row",
@@ -341,7 +346,8 @@ function TabBar<T extends string>({
                   backgroundColor: on ? v.brandTint : v.card,
                 }}
               >
-                <Text size="labelLarge" weight="semibold" numberOfLines={1} style={{ color: on ? v.brandInk : v.fg2 }}>
+                {/* Never cut short: the row scrolls, so a pill keeps its whole name ("Pe…" read as a word cut, round 3). */}
+                <Text size="labelLarge" weight="semibold" style={{ color: on ? v.brandInk : v.fg2, flexShrink: 0 }}>
                   {tab.label}
                 </Text>
                 {tab.count !== undefined && (
