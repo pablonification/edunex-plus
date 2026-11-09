@@ -132,6 +132,7 @@ export async function readThreadNow(context: SourceContext, client: EdunexClient
 export function registerThreadFeed(context: SourceContext, client: EdunexClient): void {
   context.feed({
     name: "edunex.taskThreads",
+    priority: "later",
     every: 15 * MINUTE,
     jitter: 2 * MINUTE,
     // Also started by the Tasks feed each time it has read the answers (./tasks.ts), so never on a refresh's own.

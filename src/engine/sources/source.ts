@@ -8,6 +8,7 @@ import type { Clock } from "../clock";
 import type { Pace } from "../http/pace";
 import type { Transport } from "../http/transport";
 import type { FeedRead } from "../report/kept-pages";
+import type { Priority } from "../sync/scheduler";
 
 export interface FeedSpec {
   /** "<source>.<what>", e.g. "edunex.tasks". */
@@ -16,6 +17,18 @@ export interface FeedSpec {
   every: number;
   /** Up to this much is added or removed at random each time (ms). */
   jitter: number;
+  /**
+   * Its turn when a start or a refresh runs many feeds of its source at once (../sync/scheduler.ts): "now" for
+   * what Beranda shows for today and what's due, "later" for records that change by the day, "soon" by default.
+   */
+  priority?: Priority;
+  /**
+   * On the phone (EngineDeps.quickRefresh), a manual refresh reads it again only when its last good read is older
+   * than this (ms): pages that cost many requests and change by the day (SIX's records), or that have their own
+   * signal for what's new (Edunex's materials, read at once on a new-material notification). Its own cadence still
+   * reads it; without this, or on the desktop, every refresh does.
+   */
+  refreshAfter?: number;
   /**
    * Runs only on its own schedule, never on "Perbarui sekarang": public
    * reference data that changes a few times a year and takes minutes to read
@@ -82,7 +95,10 @@ export interface Source<S = unknown> {
   session: z.ZodType<S> | null;
   /** The feed whose refusal (Unauthorized) means the session has ended. */
   liveness: string | null;
-  /** Registers the source's feeds for this session. */
-  start(context: SourceContext, session: S): void;
+  /**
+   * Registers the source's feeds for this session. `resumed`: the session was saved with the data the store
+   * holds (the app opened again), not just handed over by a sign-in, which may be another Student's.
+   */
+  start(context: SourceContext, session: S, resumed: boolean): void;
   actions?: Record<string, SourceAction<S>>;
 }

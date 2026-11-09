@@ -23,14 +23,20 @@ import { readSyllabus } from "./readers/syllabus";
 import { readTranscript } from "./readers/transcript";
 
 const HOUR = 3_600_000;
-const DAILY = { every: 24 * HOUR, jitter: HOUR };
+/**
+ * Read once a day, after SIX's pages for today (a start reads 7 pages of them, 14 s at SIX's pace), and on a
+ * refresh only when the last read is an hour old: they change by the term, at most by the day.
+ */
+const DAILY = { every: 24 * HOUR, jitter: HOUR, priority: "later", refreshAfter: HOUR } as const;
 
 /** Where each record is, for the signed-in Student. */
 export const recordPaths = sixRecordPaths;
 
 export function registerSixRecordFeeds(context: SourceContext, pages: SixPages): void {
   // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
-  const noted = (read: FeedRead) => ({ context: context.for(read), pages: pagesFor(pages, read) });
+  // Behind today's pages in SIX's line, alongside the public catalog's pages that name the Student's courses.
+  const behind = pages.later?.() ?? pages;
+  const noted = (read: FeedRead) => ({ context: context.for(read), pages: pagesFor(behind, read) });
   context.feed({
     name: "six.transcript",
     ...DAILY,

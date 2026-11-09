@@ -8,17 +8,26 @@ import { CoursePairs, LoginMe } from "./schemas";
 
 const MINUTE = 60_000;
 
-export function registerCoreFeeds(context: SourceContext, client: EdunexClient): void {
+/** The signed-in user's Edunex id, from the account feed's /login/me: the notification feed's address. One per session. */
+export interface EdunexUser {
+  id: number | null;
+}
+
+export function registerCoreFeeds(context: SourceContext, client: EdunexClient, user: EdunexUser = { id: null }): void {
   // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
   const noted = (read: FeedRead) => ({ context: context.for(read), client: client.for(read) });
   context.feed({
     name: "edunex.account",
+    // Whose session this is, and whether it still holds: before anything else is read.
+    priority: "now",
     every: 10 * MINUTE,
     jitter: MINUTE,
     async run(current, read) {
       const { context, client } = noted(read);
-      const account = await fetchAccount(client);
+      const me = await client.get("/login/me", {}, LoginMe);
+      const account: Account = { name: me.name.trim(), nim: me.code };
       if (!current()) return;
+      user.id = me.id;
       const previous = context.get("edunex.account");
       // A different Student signed in on this computer: nothing of the last one may show.
       if (previous && previous.nim !== account.nim) await context.remove("edunex.");
@@ -37,6 +46,8 @@ export function registerCoreFeeds(context: SourceContext, client: EdunexClient):
   });
   context.feed({
     name: "edunex.courses",
+    // What the Tasks and Presence are read for (one call).
+    priority: "now",
     every: 30 * MINUTE,
     jitter: 3 * MINUTE,
     async run(_current, read) {
@@ -44,11 +55,6 @@ export function registerCoreFeeds(context: SourceContext, client: EdunexClient):
       await context.set("edunex.courses", await fetchCourses(client));
     },
   });
-}
-
-export async function fetchAccount(client: EdunexClient): Promise<Account> {
-  const me = await client.get("/login/me", {}, LoginMe);
-  return { name: me.name.trim(), nim: me.code };
 }
 
 const PARENT = /\s*\[Parent Class\]\s*$/i;

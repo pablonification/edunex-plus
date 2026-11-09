@@ -26,7 +26,7 @@ import { type Ntfy, PhoneChannel } from "./alerts/phone";
 import { AppLog, errorLine } from "./app-log";
 import type { Clock } from "./clock";
 import { ActionNeeded, EngineError, isEngineError, PartChanged } from "./errors";
-import { Pace } from "./http/pace";
+import { Pace, SITE_GAPS, SITE_LIMITS } from "./http/pace";
 import type { Transport } from "./http/transport";
 import { type FeedHistory, type FeedRead, KeptPages, UNNOTED } from "./report/kept-pages";
 import { type Noted, Outbox, type Sent } from "./report/outbox";
@@ -82,6 +82,12 @@ export interface EngineDeps {
    * state). Off, a start reads everything again (the desktop, which starts once and runs all day).
    */
   startDueOnly?: boolean;
+  /**
+   * A manual refresh leaves a feed with a FeedSpec.refreshAfter alone when it read well within that (SIX's records,
+   * Edunex's materials): the phone, whose pull to refresh is done within seconds instead of waiting on 7 of SIX's
+   * pages 2 s apart and 60 calls to Edunex. Off, a refresh reads every feed but the background ones (the desktop).
+   */
+  quickRefresh?: boolean;
   /**
    * Hands the JS thread to the screens for a moment, in the middle of long work: the phone, where the engine and the
    * screens share one thread. Unset on the desktop, whose engine has a process of its own.
@@ -253,6 +259,15 @@ export function createEngine(deps: EngineDeps): Engine {
   const answered = new Map<SourceId, number>();
   /** Feeds a manual refresh leaves to their own schedule (FeedSpec.background). */
   const background = new Set<string>();
+  /** Feeds a manual refresh reads only once their last good read is this old (FeedSpec.refreshAfter, quickRefresh). */
+  const refreshAfter = new Map<string, number>();
+  /** Whether a manual refresh reads this feed: not a background one, nor one read well within its refreshAfter. */
+  const refreshes = (name: string) => {
+    if (background.has(name)) return false;
+    const after = deps.quickRefresh ? refreshAfter.get(name) : undefined;
+    const at = lastReads.get(name);
+    return after === undefined || at === undefined || clock.now() - at >= after;
+  };
   /** When each source's attendance was last read again for the Student coming back (recheckAttendance). */
   const rechecked = new Map<SourceId, number>();
   /** Feeds whose page changing is said on their screens, not as the whole source's (FeedSpec.shows): what each fills. */
@@ -276,7 +291,12 @@ export function createEngine(deps: EngineDeps): Engine {
   /** The session each source runs with now (for actions). */
   const sessions = new Map<SourceId, unknown>();
   // Feeds report their own outcome (see addFeed); the scheduler only uses failures to back off.
-  const scheduler = new Scheduler(clock, () => undefined, deps.random);
+  const scheduler = new Scheduler(
+    clock,
+    () => undefined,
+    deps.random,
+    (error) => isEngineError(error, "Offline") && error.unreachable,
+  );
   const userAgent = `EdunexPlus/${deps.version} (+https://github.com/pablonification/edunex-plus)`;
   /** The report about what `about` names, from what's kept (`chosen`: only those). */
   const reportOf = (about: ReportAbout, chosen = kept.list()) =>
@@ -468,8 +488,11 @@ export function createEngine(deps: EngineDeps): Engine {
     if (spec.part) parts.set(spec.name, spec.part);
     else parts.delete(spec.name);
     cadences.set(spec.name, spec.every);
+    if (spec.refreshAfter !== undefined) refreshAfter.set(spec.name, spec.refreshAfter);
+    else refreshAfter.delete(spec.name);
     scheduler.add({
       name: spec.name,
+      priority: spec.priority,
       every: spec.every,
       jitter: spec.jitter,
       run: async () => {
@@ -502,7 +525,7 @@ export function createEngine(deps: EngineDeps): Engine {
   const paces = new Map<string, Pace>();
   const pace = (site: string) => {
     let line = paces.get(site);
-    if (!line) paces.set(site, (line = new Pace(clock)));
+    if (!line) paces.set(site, (line = new Pace(clock, SITE_LIMITS[site] ?? 1, SITE_GAPS[site] ?? 0)));
     return line;
   };
 
@@ -586,9 +609,9 @@ export function createEngine(deps: EngineDeps): Engine {
     return settings;
   }
 
-  function startSource(source: AnySource, session: unknown): void {
+  function startSource(source: AnySource, session: unknown, resumed: boolean): void {
     sessions.set(source.id, session);
-    source.start(contextFor(source.id), session);
+    source.start(contextFor(source.id), session, resumed);
   }
 
   function readSession(source: AnySource, saved: string | null): unknown {
@@ -637,13 +660,13 @@ export function createEngine(deps: EngineDeps): Engine {
       for (const source of sources.values()) {
         const status = statuses.get(source.id)!;
         if (!source.session) {
-          startSource(source, null);
+          startSource(source, null, true);
           statuses.set(source.id, { ...status, state: status.state === "signed-out" ? "connecting" : status.state });
           continue;
         }
         const session = readSession(source, await vault.get(sessionKey(source.id)));
         if (session) {
-          startSource(source, session);
+          startSource(source, session, true);
           // A saved session counts as signed in at once; the feeds check it in the background.
           statuses.set(source.id, { ...status, state: "connecting", detail: null });
         } else if (status.state !== "expired") {
@@ -682,7 +705,7 @@ export function createEngine(deps: EngineDeps): Engine {
       endSession(id);
       await vault.set(sessionKey(id), JSON.stringify({ ...parsed.data, savedAt: clock.now() }));
       setStatus(id, { state: "connecting", detail: null, changedPages: undefined });
-      startSource(source, parsed.data);
+      startSource(source, parsed.data, false);
       // Whose session this is comes first: a different Student's data must be gone before anything new lands.
       await checkLiveness(id);
       await scheduler.runNow((name) => sourceOf(name) === id && name !== source.liveness);
@@ -746,7 +769,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     async refresh(source) {
-      await scheduler.runNow((name) => (!source || sourceOf(name) === source) && !background.has(name));
+      await scheduler.runNow((name) => (!source || sourceOf(name) === source) && refreshes(name));
     },
 
     async recheckAttendance(source) {
