@@ -3,6 +3,7 @@
 // timestamp). `now` is passed in so screens and tests agree on the moment.
 // The window's screens (src/app/i18n) and the tray menu (src/desktop/tray-menu.ts) both use it.
 import { listOf, relativeTime } from "./intl";
+import { dateTimeFormat, numberFormat } from "./intl-formats";
 import { type Lang, translate } from "./strings";
 
 export type When = number | string | Date;
@@ -52,7 +53,7 @@ export interface Format {
 
 export function makeFormat(lang: Lang, now: number): Format {
   const locale = lang === "id" ? "id-ID" : "en-GB";
-  const dtf = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale, options);
+  const dtf = (options: Intl.DateTimeFormatOptions) => dateTimeFormat(locale, options);
   const timeFmt = dtf({ hour: "2-digit", minute: "2-digit", hour12: false });
   const weekdayFmt = dtf({ weekday: "long" });
   const weekdayShortFmt = dtf({ weekday: "short" });
@@ -145,9 +146,9 @@ export function makeFormat(lang: Lang, now: number): Format {
     fileSize: (bytes) => {
       if (bytes < 1024) return `${bytes} B`;
       if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-      return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`;
+      return `${numberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`;
     },
-    number: (value, digits = 2) => new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value),
+    number: (value, digits = 2) => numberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value),
     list: listFmt,
   };
 }
