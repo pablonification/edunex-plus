@@ -21,6 +21,16 @@ const TOP_GAP = 72;
  */
 const GRABBER = 48;
 
+/**
+ * How wide a sheet is: the window's, up to Material's cap for a bottom sheet (material_bottom_sheet_max_width). The
+ * content is laid out at this width from its first render. The native sheet tells React Native its width only once it
+ * is on screen, and until then laid the content out in no width at all: too tall (every line broken), so the sheet rose
+ * empty to near the top of the screen and snapped down to its real height a round trip later. With the width known up
+ * front, the content's height is right before the sheet appears, and the native sheet takes it before it slides
+ * (patches/react-native-screens…): it rises once, straight to its height, with its content in it.
+ */
+const MAX_WIDTH = 640;
+
 export function Sheet({
   open,
   onClose,
@@ -43,7 +53,7 @@ export function Sheet({
   const theme = useTheme();
   const c = theme.color;
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   // The native sheet lives while it's open and while it slides away; then it's gone, and with it its content.
   const [shown, setShown] = useState(open);
   const [appeared, setAppeared] = useState(false);
@@ -70,7 +80,12 @@ export function Sheet({
         // native sheet already keeps the content clear of the navigation bar (it runs under it, plugins/sheet-theme.js),
         // but cuts the content's end by the grabber's height (GRABBER). That cut once matched the bar's height on mid
         // (three-button navigation, 48 dp), so padding by the bar hid it there and not with gesture navigation (24 dp).
-        style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + GRABBER, backgroundColor: background ?? c.surfaceContainerLow }}
+        style={{
+          width: Math.min(width, MAX_WIDTH),
+          maxHeight: height - insets.top - TOP_GAP,
+          paddingBottom: space[4] + GRABBER,
+          backgroundColor: background ?? c.surfaceContainerLow,
+        }}
       >
         {/* The sheet is its own window, which takes the app's status bar style as it opens (patches/react-native-screens…).
             Once it's up, a StatusBar entry with no style of its own sends the app's current one again, to the screen and
