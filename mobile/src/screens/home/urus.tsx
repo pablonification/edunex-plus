@@ -158,7 +158,11 @@ export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due
     });
     return [
       ...problems.absences.map((item) => ({ kind: "absence" as const, key: `absence:${item.code}`, item })),
-      ...problems.clashes.map((item) => ({ kind: "clash" as const, key: `clash:${item.key}:${item.from}`, item })),
+      // A clash later today is on its "Nanti hari ini" row, as the clash's icon (one fact, one place: round 3's fourth
+      // review saw the same course three times on Beranda); only one of the pair can be on the now card, so one row has it.
+      ...problems.clashes
+        .filter((item) => !(wibDay(item.from) === wibDay(now) && item.a.start > now && item.b.start > now))
+        .map((item) => ({ kind: "clash" as const, key: `clash:${item.key}:${item.from}`, item })),
       ...todos,
     ];
   }, [problems, needs, due, entries, handled, now, t, f, courses]);

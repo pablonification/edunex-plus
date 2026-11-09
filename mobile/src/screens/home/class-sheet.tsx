@@ -20,7 +20,6 @@ import { type Route, useNav } from "../../nav";
 import { useCourseHealth } from "../../parts/course-health";
 import { absenceInk, absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
-import { SourceLogo } from "../../ui/brand";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
@@ -429,31 +428,54 @@ function PresenceButton({ card, onLeave }: { card: NowCard; onLeave?(): void }) 
       label={way.viaTask ? t("home.now.openTask") : t("home.now.recordLabel", { course: presence.code })}
       testID="action.presence"
     >
-      {way.viaTask ? t("home.now.openTask") : t("presence.open.record")}
+      {/* The action's one name, "Isi Presensi" (the row above holds its deadline); its spoken name says it's Edunex's. */}
+      {way.viaTask ? t("home.now.openTask") : t("home.now.edunexStep")}
     </BigButton>
   );
 }
 
 /**
- * Edunex's Presence for the card's class, as the desktop's now card says its step: "Isi Presensi" and when it closes
- * ("tutup 09:30"). Where the Presence is the filled button, this row says what it's for and by when; with another one
- * filled (Tandai Hadir), the row itself opens the Presence, as the desktop's step has its own button.
+ * Edunex's Presence for the card's class, as the desktop's now card says its step. Where the Presence is the filled
+ * button ("Isi Presensi"), this row is its deadline only, leading: "tutup 09:30" and its own countdown ("12 mnt lagi",
+ * amber in its last quarter hour), so the urgent clock is the clear one (round 3's fourth review: the class's minutes
+ * left read as the Presence's). With another button filled (Tandai Hadir), the row itself opens the Presence: "Isi
+ * Presensi", "tutup 09:30". A line icon, as every other row's (the mascot read as a picture, not an icon).
  */
 export function PresenceStep({ card, action, onLeave }: { card: NowCard; action: CardAction; onLeave?(): void }) {
   const t = useT();
   const f = useFormat();
-  const v = useTheme().v4;
+  const now = useNow();
+  const theme = useTheme();
+  const v = theme.v4;
   const way = useOpenPresence(card, onLeave);
   const presence = card.presence;
   if (!presence || !way) return null;
-  const closes = t("home.need.presence.closes", { time: f.dayTime(presence.session.closesAt) });
+  const closesAt = presence.session.closesAt;
+  const closes = t("home.need.presence.closes", { time: f.dayTime(closesAt) });
   const own = action !== "presence";
+  if (!own) {
+    const left = t("presence.open.left", { time: f.countdown(closesAt) });
+    const soon = closesAt - now < 15 * 60_000;
+    return (
+      <View testID="card.presenceStep">
+        <Fact
+          icon={(color) => <Icons.Clock size={22} color={soon ? theme.color.warningFg : color} />}
+          label={`${t("home.now.edunexStep")}, ${closes}, ${left}`}
+          end={
+            <Text size="bodyLarge" weight="semibold" tabular style={{ color: soon ? theme.color.warningFg : v.fg }}>
+              {left}
+            </Text>
+          }
+        >
+          <Text size="bodyLarge" weight="semibold" tabular style={{ color: v.fg }}>
+            {closes}
+          </Text>
+        </Fact>
+      </View>
+    );
+  }
   const step = (
-    <Fact
-      icon={() => <SourceLogo source="edunex" size={22} />}
-      end={own ? <Icons.ArrowUpRight size={20} color={v.muted} /> : undefined}
-      label={own ? undefined : `${t("home.now.edunexStep")}, ${closes}`}
-    >
+    <Fact icon={(color) => <Icons.ClipboardCheck size={22} color={color} />} end={<Icons.ArrowUpRight size={20} color={v.muted} />}>
       <Text size="bodyLarge" weight="medium" style={{ color: v.fg2 }}>
         {t("home.now.edunexStep")}
       </Text>
@@ -462,7 +484,6 @@ export function PresenceStep({ card, action, onLeave }: { card: NowCard; action:
       </Text>
     </Fact>
   );
-  if (!own) return <View testID="card.presenceStep">{step}</View>;
   return (
     <PressScale
       onPress={way.open}
