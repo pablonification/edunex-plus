@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
-// The course page's first tab (mobile/src/screens/course/tab-order.ts): a course at risk leads with Pertemuan, but the
-// order is picked once a visit. Attendance read late, or a count changing while the Student reads Modul, never moves
-// the page to Pertemuan under them.
+// The course page's first tab (mobile/src/screens/course/tab-order.ts): Modul for every course, at risk or not (the
+// header's meter carries attendance), and the order is picked once a visit, so a count arriving late never moves it.
 import { createRequire } from "node:module";
 import path from "node:path";
 import { expect, it } from "vitest";
@@ -24,11 +23,11 @@ async function visit() {
   return { show, first: () => firsts.at(-1), done: () => act(async () => root.unmount()) };
 }
 
-it("leads with Pertemuan for a course at risk once its attendance is read", async () => {
+it("leads with Modul even for a course at risk, so its material is three taps away", async () => {
   const page = await visit();
   await page.show("KU5014", undefined, false);
   await page.show("KU5014", "out", true);
-  expect(page.first()).toBe("meetings");
+  expect(page.first()).toBe("modules");
   await page.done();
 });
 
@@ -38,8 +37,8 @@ it("keeps Modul for the visit when the count turns the course at risk after the 
   expect(page.first()).toBe("modules");
   await page.show("DK4073", "risk", true);
   expect(page.first()).toBe("modules");
-  // Another course is another visit.
+  // Another course is another visit, and leads with Modul too.
   await page.show("KU5014", "out", true);
-  expect(page.first()).toBe("meetings");
+  expect(page.first()).toBe("modules");
   await page.done();
 });

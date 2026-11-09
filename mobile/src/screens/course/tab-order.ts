@@ -1,16 +1,13 @@
-// The course page's tabs, in the order this visit shows them (./course-screen.tsx). A course at risk leads with
-// Pertemuan; the order is picked once, when the page is first drawn with its attendance, and kept for the visit: a
-// count arriving or changing later never moves the page from the tab the Student is reading.
+// The course page's tabs, in the order this visit shows them (./course-screen.tsx). Every course leads with Modul, the
+// material a Student opens a course for (round 3: a student couldn't find this week's material when a course at risk
+// led with Pertemuan; its attendance is in the header's meter anyway). The order is picked once per visit and kept.
 import { useRef } from "react";
 import type { AttendanceState } from "../../../../src/core/attendance";
 
 export const TABS = ["modules", "meetings", "tasks", "grades", "announcements"] as const;
 export type Tab = (typeof TABS)[number];
-/** A course at risk leads with its meetings (Pertemuan: which were missed, which are left), then the rest in order. */
-const AT_RISK_TABS: readonly Tab[] = ["meetings", "modules", "tasks", "grades", "announcements"];
-
-export const tabsFor = (state: AttendanceState | undefined): readonly Tab[] =>
-  state === "out" || state === "none" || state === "risk" || state === "missed" ? AT_RISK_TABS : TABS;
+/** Modul first for every course, whatever its attendance (the header's meter says that). */
+export const tabsFor = (_state: AttendanceState | undefined): readonly Tab[] => TABS;
 
 /** `ready`: the page is drawn and its attendance read (or known to be missing); from then on this course's order stays. */
 export function useVisitTabs(code: string, state: AttendanceState | undefined, ready: boolean): readonly Tab[] {
