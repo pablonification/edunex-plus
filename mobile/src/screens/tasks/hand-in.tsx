@@ -650,9 +650,14 @@ function Quiet({ children }: { children: ReactNode }) {
   );
 }
 
-/** Why Kumpulkan can't be pressed, or what pressing it now would cost; with the fix next to it (the desktop's `why`). */
-function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text: string; fix?: ReactNode } | null {
+/**
+ * Why Kumpulkan can't be pressed, or what pressing it now would cost; with the fix next to it (the desktop's `why`).
+ * `text` is the whole sentence (spoken on the button); `short`, when there is one, the few words the bar shows right
+ * over it ("Lampirkan PDF dulu", "Presensi dibuka besok, 15:00").
+ */
+function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text: string; short?: string; fix?: ReactNode } | null {
   const t = useT();
+  const f = useFormat();
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
   if (!h.editable) return null;
@@ -682,28 +687,36 @@ function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text:
       : { tone: "neutral", text: t("handIn.why.refused") };
   if (h.uploading) return { tone: "neutral", text: t("handIn.why.uploading") };
   if (!h.hasText) return { tone: "neutral", text: t("handIn.why.noText") };
-  if (!h.hasAnswer) return { tone: "neutral", text: t("handIn.why.noFile") };
+  if (!h.hasAnswer)
+    return {
+      tone: "neutral",
+      text: t("handIn.why.noFile"),
+      short: h.type ? t("mobile.handIn.why.noFileType", { type: h.type.toUpperCase() }) : t("mobile.handIn.why.noFile"),
+    };
   if (h.early)
-    return { tone: "warning", text: t(h.changed || h.status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: h.whenWindow }) };
+    return {
+      tone: "warning",
+      text: t(h.changed || h.status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: h.whenWindow }),
+      short: t("mobile.handIn.why.opens", { when: f.dayTime(h.early.opensAt) }),
+    };
   return null;
 }
 
 const WHY_TONE: Record<"warning" | "neutral" | "danger", TextTone> = { warning: "warning", neutral: "muted", danger: "danger" };
 
 /**
- * Simpan draf and Kumpulkan at the bottom of the screen, with why Kumpulkan can't be pressed yet (or what pressing it
- * now would cost) in a line over the buttons, as the desktop says it, and its fix when there is one. Said to TalkBack
- * on the button too.
+ * Simpan draf and Kumpulkan at the bottom of the screen. Kumpulkan in the brand's colour whenever it can be pressed;
+ * when it can't, what's missing or when Presensi opens in a few words right over it ("Lampirkan PDF dulu"), so a grey
+ * button is never left without a reason. What blocks or costs something keeps its fix beside it. The whole sentence is
+ * spoken on the button. The bar is raised over the page (its edge and a shadow), so what scrolls passes under it.
  */
 export function HandInBar({ h }: { h: HandInState }) {
   const t = useT();
   const theme = useTheme();
   const why = useWhy(h);
-  // Signing in again is the notice's own button (above): no second line for it. What's still missing (the answer, a
-  // file, an upload on its way) is said by the controls in the card and to TalkBack on Kumpulkan, not in a line here:
-  // the line is for what blocks or costs something, with its fix.
+  // Signing in again is the notice's own button (above): no second line for it.
   const blocked = why !== null && h.guard.blocked;
-  const line = why !== null && why.tone !== "neutral" && !(blocked && h.notice?.action === "signIn");
+  const line = why !== null && !(blocked && h.notice?.action === "signIn");
   // Edge to edge: the bar's tone runs under the phone's navigation bar, its buttons stay clear of it.
   const bottom = useBottomInset();
   // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
@@ -716,6 +729,7 @@ export function HandInBar({ h }: { h: HandInState }) {
   }, [shown]);
   if (!shown) return null;
   const submitLabel = h.status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
+  const ink = why === null ? "onSurfaceVariant" : why.tone === "danger" ? "error" : why.tone === "warning" ? "warningFg" : "onSurfaceVariant";
   return (
     <View
       ref={bar}
@@ -723,8 +737,11 @@ export function HandInBar({ h }: { h: HandInState }) {
       testID="bar.handIn"
       style={{
         backgroundColor: theme.v4.card,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: theme.v4.line,
+        borderTopWidth: 1,
+        borderTopColor: theme.color.outlineVariant,
+        // Raised over the page it sits on: Android's shadow on its top edge (the hairline alone vanished in dark).
+        elevation: 8,
+        shadowColor: "#000",
         paddingHorizontal: space.page,
         paddingTop: space[3],
         paddingBottom: space[3] + bottom,
@@ -736,10 +753,10 @@ export function HandInBar({ h }: { h: HandInState }) {
           {/* The icon on the first line (19 high) when the hint wraps; the hint as a whole level with its fix. */}
           <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
             <View style={{ paddingTop: 3 }}>
-              <Icons.Info size={14} color={theme.color[why.tone === "danger" ? "error" : why.tone === "warning" ? "warningFg" : "onSurfaceVariant"]} />
+              {why.tone === "warning" && h.early ? <Icons.Clock size={14} color={theme.color[ink]} /> : <Icons.Info size={14} color={theme.color[ink]} />}
             </View>
-            <Text size="bodyMedium" tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
-              {why.text}
+            <Text size="bodyMedium" weight={why.tone === "neutral" ? "medium" : "regular"} tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
+              {why.short ?? why.text}
             </Text>
           </View>
           {why.fix}
@@ -762,7 +779,7 @@ export function HandInBar({ h }: { h: HandInState }) {
           testID="action.submit"
           variant={h.wait && h.canSave ? "outline" : "filled"}
           disabled={!h.canSubmit}
-          hint={!h.canSubmit && why ? why.text : undefined}
+          hint={why ? why.text : undefined}
           busy={h.busy === "submit"}
           onPress={() => h.setConfirming(true)}
           flex={1}
