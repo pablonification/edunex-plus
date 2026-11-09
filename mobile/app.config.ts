@@ -67,7 +67,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "expo-web-browser",
     "expo-localization",
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 120, backgroundColor: "#FFFFFF", dark: { backgroundColor: "#161618" } }],
-    ["expo-notifications", { color: "#2563EB", icon: "./assets/notification-icon.png" }],
+    // enableRemoteNotifications (iOS only): the app's notifications are all its own, never pushed, so no push
+    // entitlement, which a free Apple ID can't sign (IOS.md).
+    ["expo-notifications", { color: "#2563EB", icon: "./assets/notification-icon.png", enableRemoteNotifications: false }],
     // No scrim of Android's own under three-button navigation (a light one showed under the dark welcome): the app
     // sets the buttons' colour itself, from its theme (app/_layout.tsx).
     ["expo-navigation-bar", { enforceContrast: false }],
