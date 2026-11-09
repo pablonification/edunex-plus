@@ -40,6 +40,9 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
       // The course table alone changed: the last courses stay, and the screens listing them say so. Last term's aren't this term's.
       if (!courses && previous && previous.term !== student.term) await context.remove("six.courses");
       await context.set("six.student", student);
+      // A new term (or the saved one was stale when the app opened): the timetable's address names the term, so the one
+      // read before this page is last term's. It's read again now rather than at its next run, up to 12 hours away.
+      if (previous && (previous.term !== student.term || previous.nim !== student.nim)) void context.runNow((feed) => feed === "six.schedule");
       if (!courses) throw new PartChanged(tableChanged.message);
       await saveCourses(context, courses, skipped);
     },

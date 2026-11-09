@@ -196,6 +196,16 @@ describe("human pace", () => {
     expect(paths.filter((p) => p.endsWith("/statusmhs")).length).toBeLessThanOrEqual(26);
     expect(paths.filter((p) => p.includes("/kelas/jadwal/")).length).toBe(4);
   });
+
+  it("a new term on the status page reads the new term's timetable at once, not twelve hours later", async () => {
+    const h = await signedIn();
+    h.world.six.editPage(/\/statusmhs$/, (html) => html.replace("Daftar Kuliah Semester 1-2026/2027", "Daftar Kuliah Semester 2-2026/2027"));
+    const since = h.world.clock.now() + 1;
+    await h.wait(70 * 60_000);
+    expect(h.dataset("six.student")?.term).toBe("2026-2");
+    const timetables = sixRequests(h, since).filter((r) => new URL(r.url).pathname.includes("/kelas/jadwal/"));
+    expect(timetables.some((r) => r.url.includes("+2026-2/"))).toBe(true);
+  });
 });
 
 describe("sessions", () => {
