@@ -350,6 +350,27 @@ export interface TaskWindow {
 /** A Presence window Edunex counts by a handed-in Task (one of the things the lecturer chose). */
 export const isTaskWindow = (presence: PresenceSession) => presence.countsBy.some((link) => link.kind === "assignment");
 
+/** The days a course's Task window falls on, as `${code}|${wibDay}`: SIX lists a roomless meeting then, the hand-in time. */
+export function handInDays(presence: Readonly<Record<string, readonly PresenceSession[]>> | undefined): Set<string> {
+  const days = new Set<string>();
+  for (const [code, sessions] of Object.entries(presence ?? {})) for (const p of sessions) if (isTaskWindow(p)) days.add(`${code}|${wibDay(p.opensAt)}`);
+  return days;
+}
+
+/**
+ * A "class moved" about SIX's roomless meeting on a day the course has a Task window: SIX's copy of the hand-in time,
+ * not a class. The window that counts is Edunex's (the Task page and Jadwal show it), so the move is never told, nor
+ * one saved before the engine stopped raising it (src/engine/alerts/schedule.ts). Its id is
+ * `schedule.moved:<session>:<start>:<end>:<room>`.
+ */
+export function isHandInMove(alert: { id: string; title: { vars?: Record<string, string | number> } }, days: ReadonlySet<string>): boolean {
+  if (!days.size || !alert.id.startsWith("schedule.moved:")) return false;
+  const parts = alert.id.split(":");
+  const start = Number(parts[2]);
+  const room = parts.slice(4).join(":");
+  return room === "" && Number.isFinite(start) && days.has(`${alert.title.vars?.course ?? ""}|${wibDay(start)}`);
+}
+
 const overlapOf = (a: { start: number; end: number }, b: { start: number; end: number }) => Math.min(a.end, b.end) - Math.max(a.start, b.start);
 
 /** Each course's Task windows, with SIX's meeting of that day (the most overlapping) and the Task when known. */

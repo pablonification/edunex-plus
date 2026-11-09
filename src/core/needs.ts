@@ -46,7 +46,7 @@ import {
   type UnreadSession,
 } from "./models";
 import type { Route } from "./route";
-import { dayStart, isScheduleReminder, slotMarks, weekStart } from "./schedule";
+import { dayStart, handInDays, isHandInMove, isScheduleReminder, slotMarks, weekStart } from "./schedule";
 import { dateMove, speakingEdit } from "./task-edits";
 import { editedAfterSubmit, isOpenStatus, notOpenYet, shortWindow, takesAnswers, taskStatus } from "./tasks";
 
@@ -974,9 +974,10 @@ export function recentChanges(world: HomeWorld | HomeContext, history: readonly 
   const sameness = (a: Alert) => `${a.kind}|${a.title.vars?.course ?? ""}|${a.body?.vars?.title ?? a.id}`;
   const seenIds = new Set<string>();
   const seenAs = new Set<string>();
+  const handIn = handInDays(context.presence);
   const out: Alert[] = [];
   for (const item of [...history.filter((a) => CHANGE_KINDS.has(a.kind) && !isScheduleReminder(a.id)), ...derived]) {
-    if (item.at > now || now - item.at > RECENT || seenIds.has(item.id) || seenAs.has(sameness(item))) continue;
+    if (item.at > now || now - item.at > RECENT || seenIds.has(item.id) || seenAs.has(sameness(item)) || isHandInMove(item, handIn)) continue;
     seenIds.add(item.id);
     seenAs.add(sameness(item));
     out.push(item);
@@ -1169,7 +1170,9 @@ export function alertFeed(world: HomeWorld | HomeContext, history: readonly Aler
   const out: Alert[] = [];
   // A raised alert has happened, even when the screen's clock (it moves once a minute) hasn't caught up with it:
   // a new Task's bell badge must never open onto a panel without it. Only changes read off the data wait for now.
-  const raised = history.map((item) => ({ item, due: true }));
+  // SIX's copy of a Task's hand-in window "moving" is never told: the Task page keeps Edunex's window (src/core/schedule.ts).
+  const handIn = handInDays(world.presence);
+  const raised = history.filter((item) => !isHandInMove(item, handIn)).map((item) => ({ item, due: true }));
   const derived = recentChanges(world, history).map((item) => ({ item, due: item.at <= world.now }));
   for (const { item, due } of [...raised, ...derived]) {
     if (seen.has(item.id) || !due) continue;

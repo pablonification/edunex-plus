@@ -2,7 +2,7 @@
 // copied as they are (that file draws DOM too), its status line and panel as the tab header's quiet
 // line and a sheet, its banner as a card under the header. Pull to refresh is "Perbarui sekarang".
 import { router } from "expo-router";
-import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
@@ -13,6 +13,7 @@ import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "..
 import type { SignInStep } from "../../../src/core/contract";
 import { firstRead } from "../../../src/core/first-scan";
 import type { DatasetName, SourceId, SourceState } from "../../../src/core/models";
+import { handInDays, isHandInMove } from "../../../src/core/schedule";
 import { useSettling } from "../host/settling";
 import { ReportButton } from "../parts/report";
 import { useReadStatuses } from "../screens/first-scan/scan";
@@ -334,10 +335,20 @@ function FirstReadLine({ children, always = false, color }: { children: ReactNod
   );
 }
 
-/** How many alerts came since the bell was last opened. */
+/**
+ * How many alerts came since the Student last marked them read ("Tandai semua dibaca"): the rows Notifikasi dots, so
+ * the bell and the list say the same. One the list never shows (SIX's copy of a Task's hand-in window "moving") isn't
+ * counted either.
+ */
 export function useUnreadAlerts(): number {
   const history = useDataset("app.alerts");
-  return (history?.items ?? []).filter((item) => item.at > (history?.readAt ?? 0)).length;
+  const presence = useDataset("edunex.presence");
+  return useMemo(() => {
+    const unread = (history?.items ?? []).filter((item) => item.at > (history?.readAt ?? 0));
+    if (!unread.some((item) => item.kind === "scheduleChanged")) return unread.length;
+    const handIn = handInDays(presence);
+    return unread.filter((item) => !isHandInMove(item, handIn)).length;
+  }, [history, presence]);
 }
 
 /** The bell, with a small calm dot while something new is unread (how many is said to TalkBack and on the list). */
