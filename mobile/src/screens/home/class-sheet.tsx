@@ -29,7 +29,7 @@ import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { useCheckIn } from "./checked-in";
 import { type MovedLine, movedLine } from "./moved-line";
-import { MINUTE, nameOf, STATE_TEXT } from "./parts";
+import { MINUTE, nameOf, STATE_TEXT, shortName } from "./parts";
 
 /** What the sheet is about: the now card's, or a Hari ini row's class (a card of its own, with nothing beside it). */
 export function ClassSheet({ card, courses, open, onClose }: { card: NowCard | null; courses: readonly TermCourse[]; open: boolean; onClose(): void }) {
@@ -103,7 +103,7 @@ function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly 
   // The time's one quiet line, never a warning sentence: what it clashes with, else when it usually is (saying it moved
   // when SIX's verdict took the chip, ./moved-line.ts), else how far off.
   const timeMeta = overlap
-    ? t("mobile.home.clashWith", { course: overlap.code, time: f.timeRange(overlap.from, overlap.to) })
+    ? t("mobile.home.clashWith", { course: shortName(nameOf(courses, overlap.code)), time: f.timeRange(overlap.from, overlap.to) })
     : usual
       ? line(t, movedLine("time", usual, timeChip?.key === "mobile.home.chip.moved"))
       : !live && !past && slot
