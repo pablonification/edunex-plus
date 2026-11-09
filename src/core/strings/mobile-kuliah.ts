@@ -3,33 +3,19 @@
 import type { Entry } from "./entry";
 
 export const mobileKuliahStrings = {
-  // Kuliah (the tab). The big number's words, beside the count of courses it names.
-  "mobile.kuliah.lead.out": {
-    id: "mata kuliah tak bisa lagi capai {target}%",
-    en: { one: "course can't reach {target}% anymore", other: "courses can't reach {target}% anymore" },
-  },
-  "mobile.kuliah.lead.outMixed": {
-    id: "mata kuliah tak bisa lagi capai targetnya",
-    en: { one: "course can't reach its target anymore", other: "courses can't reach their target anymore" },
-  },
-  "mobile.kuliah.lead.none": {
-    id: "mata kuliah jatah absennya habis",
-    en: { one: "course with no absences left", other: "courses with no absences left" },
-  },
-  "mobile.kuliah.lead.spare": {
-    id: "mata kuliah masih ada jatah absen",
-    en: { one: "course with an absence to spare", other: "courses with absences to spare" },
-  },
-  "mobile.kuliah.lead.missed": {
-    id: "mata kuliah selesai di bawah target",
-    en: { one: "course finished below its target", other: "courses finished below their target" },
-  },
-  "mobile.kuliah.lead.met": {
-    id: "mata kuliah mencapai target",
-    en: { one: "course reached its target", other: "courses reached their target" },
-  },
-  "mobile.kuliah.lead.courses": { id: "mata kuliah semester ini", en: { one: "course this term", other: "courses this term" } },
-  // The sheet the big number opens: the day's answer, the target, and how it's counted.
+  // Kuliah (the tab).
+  // The heading over the courses out of reach, with no absences left or finished below the target (round 3: the big
+  // number became this heading, the meters on the rows say the rest).
+  "mobile.kuliah.attention": { id: "Perlu perhatian", en: "Needs attention" },
+  // A course's absences beside its meter (parts/attendance-meter.tsx): over the limit by how many, the red segments past
+  // the line saying the rest. The whole sentence is the meter's accessible name.
+  "mobile.absence.overShort": { id: "+{count}", en: "+{count}" },
+  // A course Edunex alone records: present in how many of its closed Presence windows.
+  "mobile.absence.edunex": { id: "Edunex {recorded}/{closed}", en: "Edunex {recorded}/{closed}" },
+  // The quiet tick on a course SIX counted today, as TalkBack says it (the footer that listed the codes is gone).
+  "mobile.kuliah.counted": { id: "Sudah dihitung di SIX hari ini", en: "Counted in SIX today" },
+  "mobile.kuliah.countedLate": { id: "Akhirnya dihitung di SIX hari ini", en: "Counted in SIX today, after all" },
+  // The sheet in ⋮: the day's answer, the target, and how it's counted.
   "mobile.kuliah.facts": { id: "Kehadiranmu", en: "Your attendance" },
   // Two of today's classes at once: a row, its pick as the chip; the reason is in its sheet.
   "mobile.kuliah.clash.title": { id: "Bentrok {time}", en: "Clash {time}" },
@@ -44,6 +30,8 @@ export const mobileCourseStrings = {
   // The course's sheet: what's used and left of the absences under the desktop's label ("Jatah absen: terpakai 2× · habis").
   "mobile.course.budget": { id: "Jatah absen: {words}", en: "Absences: {words}" },
   "mobile.course.aboutHint": { id: "Buka rincian mata kuliah", en: "Opens the course's details" },
+  // The next class's room, as TalkBack says it (on screen: a pin and the room).
+  "mobile.course.room": { id: "Ruang {room}", en: "Room {room}" },
   // The one exception, in a few words on the card; the whole of it is in the sheet. Out of reach, it's the desktop's
   // own words (presence.row.askLecturer).
   "mobile.course.ex.needed": { id: "Bergantung kuliah {date}", en: "Hangs on the class on {date}" },

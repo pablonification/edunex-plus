@@ -1,9 +1,9 @@
 // What needs the Student now, on Kuliah (round 2, v4; src/app/screens/presence.tsx's NowZone), each said once and
 // only while there's something to do: Tandai Hadir open, an Edunex window open that may count, SIX's count that didn't
 // go up after a class, and a clash today with which class to go to. Each a card or a row with its one action; the
-// reasons are one tap deeper (the clash's sheet). Signing in to SIX is Kuliah's lead card instead (./lead.tsx). The
-// quiet facts (SIX counted today's classes; classes in an exam week that may not run) go under the courses (NowNotes).
-import { type ReactNode, useState } from "react";
+// reasons are one tap deeper (the clash's sheet). Signing in to SIX is Kuliah's card instead (./lead.tsx). What SIX
+// counted today is a tick on its course's row; a class that may not run is said on its course's page.
+import { useState } from "react";
 import { View } from "react-native";
 import type { Attendance, OpenWindow } from "../../../../src/app/attendance";
 import { useActionLabel } from "../../../../src/app/attendance-labels";
@@ -12,7 +12,7 @@ import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import { type AttendanceHealth, clashPick } from "../../../../src/core/attendance";
 import { sixTimetableUrl } from "../../../../src/core/links";
-import type { CalendarEvent, ClassSession } from "../../../../src/core/models";
+import type { ClassSession } from "../../../../src/core/models";
 import { useNav } from "../../nav";
 import { CountdownBar } from "../../parts/meter";
 import { BigButton } from "../../ui/big-button";
@@ -50,40 +50,6 @@ export function NowZone({ zone, attendance }: { zone: Zone; attendance: Attendan
           ))}
         </CardGroup>
       )}
-    </View>
-  );
-}
-
-/** The quiet facts, said once under the courses: what SIX counted today, and an exam week's classes that may not run. */
-export function NowNotes({ zone }: { zone: Zone }) {
-  const t = useT();
-  const f = useFormat();
-  const v = useTheme().v4;
-  const lines = [
-    ...(zone.counted.length ? [t("presence.six.counted", { codes: f.list(zone.counted) })] : []),
-    ...zone.countedLate.map((code) => t("presence.six.countedLate", { code })),
-  ];
-  if (!lines.length && !zone.week) return null;
-  return (
-    <View style={{ gap: space[2], paddingHorizontal: space[1] }}>
-      {lines.map((line) => (
-        <Quiet key={line} icon={<Icons.CheckCircle size={16} weight="fill" color={v.okFg} />}>
-          {line}
-        </Quiet>
-      ))}
-      {zone.week && <WeekNote event={zone.week.event} />}
-    </View>
-  );
-}
-
-function Quiet({ icon, children }: { icon: ReactNode; children: string }) {
-  const v = useTheme().v4;
-  return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-      <View style={{ paddingTop: 2 }}>{icon}</View>
-      <Text size="bodyMedium" style={{ color: v.muted, flex: 1 }}>
-        {children}
-      </Text>
     </View>
   );
 }
@@ -157,7 +123,14 @@ function OpenPresence({ window }: { window: OpenWindow }) {
         title={action.activity === "course" ? t("presence.open.fill") : actionLabel(window)}
         meta={factsLabel(code, t("presence.open.closes", { time }), (noSix || notKnown) && t("presence.open.maybe"))}
       />
-      <CountdownBar opensAt={session.opensAt} closesAt={session.closesAt} now={now} label={t("presence.open.left", { time: f.countdown(session.closesAt) })} />
+      {/* "tutup 09:30" above says when: the bar shows how much is left, its minutes in its spoken name only. */}
+      <CountdownBar
+        opensAt={session.opensAt}
+        closesAt={session.closesAt}
+        now={now}
+        showLabel={false}
+        label={t("presence.open.left", { time: f.countdown(session.closesAt) })}
+      />
       {(noSix || notKnown) && (
         <Text size="bodyMedium" style={{ color: v.muted }}>
           {t(noSix ? "presence.open.noSixWhy" : "presence.open.notKnownWhy")}
@@ -284,18 +257,5 @@ function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boo
         </Sheet>
       )}
     </>
-  );
-}
-
-/** Classes in an exam week (or on a holiday) that SIX still lists: said once for every course. */
-function WeekNote({ event }: { event: CalendarEvent }) {
-  const t = useT();
-  const f = useFormat();
-  const v = useTheme().v4;
-  const period = t(event.kind === "uts" ? "presence.period.uts" : event.kind === "uas" ? "presence.period.uas" : "presence.period.off");
-  return (
-    <Quiet icon={<Icons.GraduationCap size={16} weight="bold" color={v.muted} />}>
-      {`${t("presence.weekNote", { period, range: f.dayRange(event.firstDay, event.lastDay) })}. ${t("presence.weekNoteWhy")}`}
-    </Quiet>
   );
 }
