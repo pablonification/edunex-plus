@@ -1,12 +1,16 @@
 // @vitest-environment jsdom
 // What waits for Beranda's first frame (mobile/src/shell/first-frame.ts): nothing of it is drawn or worked out in the
-// render the splash waits for, all of it comes in the renders after, as a transition. (The phone's own React, so the
-// module under test and the renderer share one.)
+// render the splash waits for, all of it comes in the renders after, as a transition.
 
+import { createRequire } from "node:module";
+import path from "node:path";
 import { afterEach, expect, it } from "vitest";
-import { act, createElement } from "../../mobile/node_modules/react";
-import { createRoot } from "../../mobile/node_modules/react-dom/client";
 import { afterFirstFrame, firstFrameShown, markFirstFrameShown, resetFirstFrame, useFirstFrameShown } from "../../mobile/src/shell/first-frame";
+
+// The phone's own React (mobile/node_modules), the one the module under test draws with: the root's is another copy.
+const phone = createRequire(path.resolve(import.meta.dirname, "../../mobile/package.json"));
+const { act, createElement } = phone("react") as typeof import("react");
+const { createRoot } = phone("react-dom/client") as typeof import("react-dom/client");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 

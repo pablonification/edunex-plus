@@ -2,13 +2,18 @@
 // A screen's first draw in parts (mobile/src/ui/parts.tsx): a tab drawn ahead out of sight commits its top, then what's
 // under it, then the rest, each in a render of its own when the JS thread is idle, so no one commit holds the thread for
 // the whole tab (106–162 ms each on a mid-range phone). Beranda's first frame holds only its top; the rest comes once the
-// frame is up. A tab opened while its parts are still coming draws the rest at once. (The phone's own React, so the
-// module under test and the renderer share one.)
+// frame is up. A tab opened while its parts are still coming draws the rest at once.
+import { createRequire } from "node:module";
+import path from "node:path";
 import { afterEach, expect, it } from "vitest";
-import { act, createElement, type ReactNode } from "../../mobile/node_modules/react";
-import { createRoot } from "../../mobile/node_modules/react-dom/client";
 import { markFirstFrameShown, resetFirstFrame } from "../../mobile/src/shell/first-frame";
 import { Part, PartsProvider, useParts } from "../../mobile/src/ui/parts";
+
+// The phone's own React (mobile/node_modules), the one the module under test draws with: the root's is another copy.
+const phone = createRequire(path.resolve(import.meta.dirname, "../../mobile/package.json"));
+const { act, createElement } = phone("react") as typeof import("react");
+// The elements themselves are plain objects any copy draws (JSX here is the root's).
+const { createRoot } = phone("react-dom/client") as typeof import("react-dom/client");
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -27,28 +32,32 @@ function idleQueue() {
   return { idle, pending: () => due.length, runNext: () => due.shift()?.() };
 }
 
-function setup(focused: boolean) {
+function setup() {
   const { idle, pending, runNext } = idleQueue();
   const commits: string[][] = [];
   const said: number[] = [];
   const say = (part: number) => said.push(part);
+  /** What the last render drew, by name. */
+  let seen: string[] = [];
+  const Mark = ({ name }: { name: string }) => {
+    seen.push(name);
+    return null;
+  };
   function Screen({ focused }: { focused: boolean }) {
     const part = useParts({ drawn: true, focused, say, idle });
-    const seen: string[] = [];
-    const mark = (name: string): ReactNode => {
-      seen.push(name);
-      return null;
-    };
-    const Mark = ({ name }: { name: string }) => mark(name);
-    const tree = createElement(
-      PartsProvider,
-      { part },
-      createElement(Mark, { name: "header" }),
-      createElement(Part, { at: 1 }, createElement(Mark, { name: "list" })),
-      createElement(Part, { at: 2 }, createElement(Mark, { name: "rest" })),
-    );
+    seen = [];
     queueMicrotask(() => commits.push(seen));
-    return tree;
+    return (
+      <PartsProvider part={part}>
+        <Mark name="header" />
+        <Part at={1}>
+          <Mark name="list" />
+        </Part>
+        <Part at={2}>
+          <Mark name="rest" />
+        </Part>
+      </PartsProvider>
+    );
   }
   const root = createRoot(document.createElement("div"));
   const render = (focused: boolean) => act(async () => root.render(createElement(Screen, { focused })));
@@ -57,7 +66,7 @@ function setup(focused: boolean) {
 
 it("draws a tab ahead out of sight a part at a time, each when idle", async () => {
   markFirstFrameShown();
-  const s = setup(false);
+  const s = setup();
   await s.render(false);
   expect(s.drawn()).toEqual(["header"]);
   expect(s.pending()).toBe(1);
@@ -72,7 +81,7 @@ it("draws a tab ahead out of sight a part at a time, each when idle", async () =
 
 it("draws the rest at once when the tab is opened while its parts are coming", async () => {
   markFirstFrameShown();
-  const s = setup(false);
+  const s = setup();
   await s.render(false);
   expect(s.drawn()).toEqual(["header"]);
   await s.render(true);
@@ -82,7 +91,7 @@ it("draws the rest at once when the tab is opened while its parts are coming", a
 
 it("draws a tab opened in front whole", async () => {
   markFirstFrameShown();
-  const s = setup(true);
+  const s = setup();
   await s.render(true);
   expect(s.commits[0]).toEqual(["header", "list", "rest"]);
   expect(s.pending()).toBe(0);
@@ -90,7 +99,7 @@ it("draws a tab opened in front whole", async () => {
 });
 
 it("holds only Beranda's top in the first frame, the next part once it's up, the last when idle", async () => {
-  const s = setup(true);
+  const s = setup();
   await s.render(true);
   expect(s.drawn()).toEqual(["header"]);
   // Nothing more until the frame is up, however idle the thread.
