@@ -653,9 +653,9 @@ function Quiet({ children }: { children: ReactNode }) {
 /**
  * Why Kumpulkan can't be pressed, or what pressing it now would cost; with the fix next to it (the desktop's `why`).
  * `text` is the whole sentence (spoken on the button); `short`, when there is one, the few words the bar shows right
- * over it ("Lampirkan PDF dulu", "Presensi dibuka besok, 15:00").
+ * over it ("Lampirkan PDF dulu", "Presensi dibuka besok, 15:00"); `quiet`, nothing over it (the reason is in sight).
  */
-function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text: string; short?: string; fix?: ReactNode } | null {
+function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text: string; short?: string; fix?: ReactNode; quiet?: boolean } | null {
   const t = useT();
   const f = useFormat();
   const { signIn, busy: signingIn } = useSignIn();
@@ -686,7 +686,8 @@ function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text:
       ? { tone: "danger", text: t("handIn.why.failed") }
       : { tone: "neutral", text: t("handIn.why.refused") };
   if (h.uploading) return { tone: "neutral", text: t("handIn.why.uploading") };
-  if (!h.hasText) return { tone: "neutral", text: t("handIn.why.noText") };
+  // An empty answer: the grey button and the empty box right above it say it (round 3), the sentence is spoken only.
+  if (!h.hasText) return { tone: "neutral", text: t("handIn.why.noText"), quiet: true };
   if (!h.hasAnswer)
     return {
       tone: "neutral",
@@ -707,7 +708,7 @@ const WHY_TONE: Record<"warning" | "neutral" | "danger", TextTone> = { warning: 
 /**
  * Simpan draf and Kumpulkan at the bottom of the screen. Kumpulkan in the brand's colour whenever it can be pressed;
  * when it can't, what's missing or when Presensi opens in a few words right over it ("Lampirkan PDF dulu"), so a grey
- * button is never left without a reason. What blocks or costs something keeps its fix beside it. The whole sentence is
+ * button is never left without a reason; an empty answer alone needs none, its empty box shows above the bar. What blocks or costs something keeps its fix beside it. The whole sentence is
  * spoken on the button. The bar is raised over the page (its edge and a shadow), so what scrolls passes under it.
  */
 export function HandInBar({ h }: { h: HandInState }) {
@@ -716,7 +717,7 @@ export function HandInBar({ h }: { h: HandInState }) {
   const why = useWhy(h);
   // Signing in again is the notice's own button (above): no second line for it.
   const blocked = why !== null && h.guard.blocked;
-  const line = why !== null && !(blocked && h.notice?.action === "signIn");
+  const line = why !== null && !why.quiet && !(blocked && h.notice?.action === "signIn");
   // Edge to edge: the bar's tone runs under the phone's navigation bar, its buttons stay clear of it.
   const bottom = useBottomInset();
   // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
