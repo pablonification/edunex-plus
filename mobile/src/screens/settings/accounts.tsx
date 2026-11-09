@@ -1,7 +1,8 @@
 // Settings' top: who's signed in (a white card: the initials, the name in Plus Jakarta Sans, the NIM and the program
-// as one quiet line), then Akun: each system's row with its state as the one line under it. Signed out (or the
-// session ended), the row signs in; signed in, it opens a sheet whose one choice signs out of just that system. The
-// first-connection summary is the group's last row.
+// as one quiet line), then Akun: each system's row (a line icon in a tile, as every row's) with its state as the one
+// line under it ("Terhubung"; when it was last checked only once that's stale). Signed out (or the session ended), the
+// row signs in; signed in, it opens a sheet whose one choice signs out of just that system. What the first read found
+// is the group's last row.
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -10,7 +11,6 @@ import { displayName, initials } from "../../../../src/app/names";
 import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import type { SourceId } from "../../../../src/core/models";
 import { useSignInNote } from "../../shell/source-status";
-import { SourceLogo } from "../../ui/brand";
 import { LiveDot } from "../../ui/display";
 import { IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -96,6 +96,7 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   };
   const needsSignIn = status.state === "signed-out" || status.state === "expired";
   const checked = status.updatedAt !== null ? f.fromNow(status.updatedAt) : null;
+  // Fresh: just "Terhubung". When it was last checked is said only once it's stale (the state after "live").
   const state: { text: string; tone: MetaTone } =
     needsSignIn && note
       ? { text: note.text, tone: note.slow ? "amber" : "muted" }
@@ -106,13 +107,15 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
           : status.state === "connecting"
             ? { text: t("status.connecting"), tone: "muted" }
             : status.state === "live"
-              ? { text: checked ? t("settings.account.live", { when: checked }) : t("status.live"), tone: "ok" }
+              ? { text: t("status.live"), tone: "ok" }
               : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "amber" };
   const signInLabel = t(status.state === "expired" ? "settings.signInAgainTo" : "settings.signInTo", { source: name });
   return (
     <View testID={`row.account.${source}`}>
       <SettingRow
-        leading={<SourceLogo source={source} size={44} />}
+        leading={
+          <IconTile icon={(color) => (source === "six" ? <Icons.GraduationCap size={22} color={color} /> : <Icons.BookOpen size={22} color={color} />)} />
+        }
         title={name}
         meta={
           status.state === "live" ? (

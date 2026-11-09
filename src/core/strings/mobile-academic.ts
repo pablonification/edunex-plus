@@ -4,11 +4,13 @@ import type { Entry } from "./entry";
 export const mobileAcademicStrings = {
   // Nilai (v4): the IPK card's quiet line and pill, the rows on the way to graduating, this term's two dates.
   "mobile.grades.lastIp": { id: "IP semester lalu {ip}", en: "Last semester's IP {ip}" },
-  "mobile.grades.lastIpDelta": { id: "IP semester lalu {ip} ({delta})", en: "Last semester's IP {ip} ({delta})" },
-  "mobile.grades.final": { id: "Saat lulus sekitar {final} · {predicate}", en: "About {final} at graduation · {predicate}" },
   "mobile.grades.toGraduation": { id: "Menuju lulus", en: "On the way to graduating" },
   "mobile.grades.fromSix": { id: "Dari KRS-mu di SIX", en: "From your KRS on SIX" },
-  "mobile.grades.honorsNeeds": { id: "Butuh rata-rata {avg} di {sks} SKS", en: "Needs a {avg} average over {sks} SKS" },
+  // An honor still open: the average it needs. Over which SKS is the best IPK's row's line, said there once.
+  "mobile.grades.honorsAverage": { id: "Butuh rata-rata {avg}", en: "Needs a {avg} average" },
+  // The best IPK still possible: over the SKS with no grade yet (this term's and the plan's), named as what they are so
+  // they aren't read as the SKS left to graduate.
+  "mobile.grades.bestHint": { id: "Jika semua A di {sks} SKS yang belum bernilai", en: "With straight A's in the {sks} SKS not graded yet" },
   "mobile.grades.questionnaire": { id: "Isi kuesioner agar nilai terlihat", en: "Fill in the questionnaire to see grades" },
   "mobile.grades.questionnaireUntil": { id: "Sampai {date}", en: "Until {date}" },
   "mobile.grades.gradeDeadline": { id: "Batas dosen memasukkan nilai", en: "Lecturers' deadline for grades" },
@@ -31,11 +33,8 @@ export const mobileAcademicStrings = {
   "mobile.academic.todo.bills": { id: "Bayar UKT", en: "Pay UKT" },
   "mobile.academic.todo.deadlines": { id: "Isi kuesioner", en: "Fill in the questionnaire" },
   // Each screen's row: one line that answers its question, never the card's IPK or SKS again.
-  "mobile.academic.meta.grades": { id: "IP terakhir {ip}", en: "Last IP {ip}" },
   "mobile.academic.meta.plannerSemester": { id: "Lulus di semester {n}", en: "Graduating in semester {n}" },
   "mobile.academic.meta.plannerShort": { id: "Rencanamu belum cukup untuk lulus", en: "Your plan isn't enough to graduate yet" },
-  "mobile.academic.meta.curriculum": { id: "{left} SKS lagi untuk lulus", en: "{left} SKS left to graduate" },
-  "mobile.academic.meta.curriculumDone": { id: "SKS untuk lulus terpenuhi", en: "Enough SKS to graduate" },
   // A row's one status, as a pill: KRS's clashes still to come, the date this term's UKT is due by.
   "mobile.academic.pill.clash": {
     id: "{count} bentrok",
