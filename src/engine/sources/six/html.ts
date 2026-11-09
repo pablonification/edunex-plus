@@ -2,16 +2,20 @@
 // structure (links, number patterns, table shapes), not by its wording, so
 // SIX's English pages read the same as its Indonesian ones. Anything a reader
 // can't place for certain is "SIX changed something", never a guess.
-import { type Cheerio, type CheerioAPI, load } from "cheerio/slim";
+import type { Cheerio, CheerioAPI } from "cheerio/slim";
 import type { Element } from "domhandler";
 import { EngineError } from "../../errors";
+import { openParsed } from "../../html-slices";
 
 export type Page = CheerioAPI;
 export type Nodes = Cheerio<Element>;
 export type { Element };
 
-/** htmlparser2 (cheerio/slim): it reads SIX's loose markup fine and keeps parse5 and undici out of the app. */
-export const parse = (html: string): Page => load(html);
+/**
+ * htmlparser2 (cheerio/slim): it reads SIX's loose markup fine and keeps parse5 and undici out of the app. On the phone
+ * the page was parsed in slices as it came in (SixClient, ../../html-slices.ts).
+ */
+export const parse = (html: string): Page => openParsed(html);
 
 /** SIX's templates indent heavily; text is compared with whitespace collapsed. */
 export const clean = (text: string): string => text.replace(/\s+/g, " ").trim();

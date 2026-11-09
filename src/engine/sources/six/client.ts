@@ -5,6 +5,7 @@
 // rate-limit answer (429) leaves SIX alone for at least 15 minutes.
 import type { Clock } from "../../clock";
 import { ActionNeeded, EngineError } from "../../errors";
+import { parseAhead } from "../../html-slices";
 import { Pace } from "../../http/pace";
 import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import { type FeedRead, noting } from "../../report/kept-pages";
@@ -47,15 +48,22 @@ export class SixClient implements SixPages {
     /** SIX's line, shared with the public catalog on the same site. */
     private readonly pace: Pace = new Pace(clock),
     private readonly known: Known = { identity: null, reading: null },
+    /**
+     * The phone's turn for the screens (SourceContext.breathe): each page is then parsed as it comes, a slice at a time
+     * with the screens drawing between, for its reader (../../html-slices.ts parseAhead). None elsewhere.
+     */
+    private readonly breathe?: () => Promise<void>,
   ) {}
 
   /** This client for one feed run: the same line and session, its pages noted for that run's report (FeedSpec.run). */
   for(read: FeedRead): SixClient {
-    return new SixClient(noting(this.transport, read), this.clock, this.cookie, this.userAgent, this.pace, this.known);
+    return new SixClient(noting(this.transport, read), this.clock, this.cookie, this.userAgent, this.pace, this.known, this.breathe);
   }
 
-  page(path: string, options: { popup?: boolean } = {}): Promise<string> {
-    return this.pace.turn(() => this.fetch(path, 0, options.popup ?? false));
+  async page(path: string, options: { popup?: boolean } = {}): Promise<string> {
+    const html = await this.pace.turn(() => this.fetch(path, 0, options.popup ?? false));
+    if (this.breathe) await parseAhead(html, this.breathe);
+    return html;
   }
 
   async who(): Promise<SixIdentity> {

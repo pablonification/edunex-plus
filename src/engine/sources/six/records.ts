@@ -7,7 +7,7 @@
 import { sixRecordPaths } from "../../../core/links";
 import type { Curriculum, Syllabus } from "../../../core/models";
 import { EngineError } from "../../errors";
-import { breaks, parseInSlices } from "../../html-slices";
+import { breaks, parseInSlices, parsedAhead } from "../../html-slices";
 import type { FeedRead } from "../../report/kept-pages";
 import { Skipped } from "../skipped";
 import type { SourceContext } from "../source";
@@ -91,7 +91,9 @@ export async function fetchCurriculum(pages: SixPages, skipped?: Skipped, pause?
   if (!current && list.length > 0 && list.every((entry) => entry.active === false)) return null;
   // A mark the app couldn't read might be the ✓.
   if (!current) changed("curriculum list", "no curriculum is in force");
-  const structure = readCurriculumStructure(await parseInSlices(await pages.page(current.structurePath), breaks(pause)), skipped);
+  const page = await pages.page(current.structurePath);
+  // On the phone the client parsed it in slices as it came (./client.ts).
+  const structure = readCurriculumStructure(parsedAhead(page) ?? (await parseInSlices(page, breaks(pause))), skipped);
   const registrations = readSchemes(await pages.page(recordPaths.schemes(who)), skipped);
   return {
     name: structure.name,
