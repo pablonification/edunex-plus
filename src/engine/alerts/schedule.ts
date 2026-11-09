@@ -18,7 +18,7 @@
 //   day has a class whose time and room are on SIX (ADR 0013).
 // Every one is silent on the first sync (the center does that) and only
 // about what is still to come. Days read as the app writes them ("Kam, 15
-// Okt", "Thu, 15 Oct"): the text carries both languages' (src/core/dates.ts).
+// Okt, 10:00", "Thu, 15 Oct, 10:00"): the text carries both languages' (src/core/dates.ts).
 import { isExamActivity } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
 import { dateVars, sameLocalDay } from "../../core/dates";
@@ -41,12 +41,12 @@ interface Words {
   en: string;
 }
 
-/** "Kam, 15 Okt 10:00–11:30 · 9009" in each language; just the time and room when it's on `sameDayAs`'s day. */
+/** "Kam, 15 Okt, 10:00–11:30 · 9009" in each language; just the time and room when it's on `sameDayAs`'s day. */
 function when(start: number, end: number, room: string | null, sameDayAs?: number): Words {
   const time = `${clockTime(start)}–${clockTime(end)}${room ? ` · ${room}` : ""}`;
   if (sameDayAs !== undefined && sameLocalDay(start, sameDayAs)) return { id: time, en: time };
   const { dateId, dateEn } = dateVars(start);
-  return { id: `${dateId} ${time}`, en: `${dateEn} ${time}` };
+  return { id: `${dateId}, ${time}`, en: `${dateEn}, ${time}` };
 }
 const whenOf = (s: Pick<ClassSession, "start" | "end" | "room">, sameDayAs?: number) => when(s.start, s.end, s.room, sameDayAs);
 

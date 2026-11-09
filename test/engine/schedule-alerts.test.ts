@@ -86,7 +86,7 @@ describe("schedule alerts", () => {
     const at = app.world.clock.now();
     app.engine.flushAlerts();
     const moved = app.shown.filter((n) => n.kind === "scheduleChanged");
-    expect(moved.map((n) => [n.text, n.shownAt])).toEqual([["Jadwal berubah · PL3002 — Kam, 15 Okt 08:00–09:30 · R.SG PWK LT.6 → 10:00–11:30 · 9009", at]]);
+    expect(moved.map((n) => [n.text, n.shownAt])).toEqual([["Jadwal berubah · PL3002 — Kam, 15 Okt, 08:00–09:30 · R.SG PWK LT.6 → 10:00–11:30 · 9009", at]]);
     // And not again when the window would have ended.
     await app.world.clock.advance(25_000);
     expect(app.shown.filter((n) => n.kind === "scheduleChanged")).toHaveLength(1);
@@ -97,8 +97,8 @@ describe("schedule alerts", () => {
     app.world.six.moveMeeting("2194343", "10:00", "11:30", "9009");
     await app.refresh("six");
     const moved = app.shown.filter((n) => n.kind === "scheduleChanged");
-    expect(moved.map((n) => n.text)).toEqual(["Jadwal berubah · PL3002 — Kam, 15 Okt 08:00–09:30 · R.SG PWK LT.6 → 10:00–11:30 · 9009"]);
-    expect(translate("en", moved[0].body!.key, moved[0].body!.vars)).toBe("Thu, 15 Oct 08:00–09:30 · R.SG PWK LT.6 → 10:00–11:30 · 9009");
+    expect(moved.map((n) => n.text)).toEqual(["Jadwal berubah · PL3002 — Kam, 15 Okt, 08:00–09:30 · R.SG PWK LT.6 → 10:00–11:30 · 9009"]);
+    expect(translate("en", moved[0].body!.key, moved[0].body!.vars)).toBe("Thu, 15 Oct, 08:00–09:30 · R.SG PWK LT.6 → 10:00–11:30 · 9009");
     expect(moved[0]).toMatchObject({ source: "six", target: { screen: "schedule" } });
     await app.refresh("six");
     expect(app.shown.filter((n) => n.kind === "scheduleChanged")).toHaveLength(1);
@@ -115,9 +115,9 @@ describe("schedule alerts", () => {
     await app.refresh("six");
     const told = app.history("scheduleChanged");
     expect(told.map((text) => text.split(" — ")[0]).sort()).toEqual(["Jadwal berubah · PL3002", "Pertemuan tambahan · PL3002"]);
-    expect(told).toContain("Pertemuan tambahan · PL3002 — Jum, 13 Nov 10:00–11:30 · 9009");
+    expect(told).toContain("Pertemuan tambahan · PL3002 — Jum, 13 Nov, 10:00–11:30 · 9009");
     // The week's usual Thursday meeting, and the Friday one standing in for it.
-    expect(told).toContain("Jadwal berubah · PL3002 — Kam, 19 Nov 08:00–09:30 · R.SG PWK LT.6 → Jum, 20 Nov 08:00–09:30 · R.SG PWK LT.6");
+    expect(told).toContain("Jadwal berubah · PL3002 — Kam, 19 Nov, 08:00–09:30 · R.SG PWK LT.6 → Jum, 20 Nov, 08:00–09:30 · R.SG PWK LT.6");
   });
 
   it("SIX's meeting that stands for a Task's hand-in window moving isn't told as a class moved: the window is Edunex's, and the Task page follows Edunex's", async () => {
@@ -149,7 +149,7 @@ describe("schedule alerts", () => {
     await app.until("2026-10-12T05:59:00+07:00");
     expect(app.texts()).toEqual([]);
     await app.until("2026-10-12T06:01:00+07:00");
-    expect(app.texts()).toEqual(["Kelas bentrok · KU5014 dan PL3032 — Kam, 15 Okt 16:00–16:30"]);
+    expect(app.texts()).toEqual(["Kelas bentrok · KU5014 dan PL3032 — Kam, 15 Okt, 16:00–16:30"]);
     await app.until("2026-10-15T17:00:00+07:00");
     expect(app.texts().filter((text) => text.startsWith("Kelas bentrok"))).toHaveLength(1);
   });
@@ -157,7 +157,7 @@ describe("schedule alerts", () => {
   it("overlapping classes: a new week, a new alert", async () => {
     const app = await start("2026-10-18T20:00:00+07:00");
     await app.until("2026-10-19T06:01:00+07:00");
-    expect(app.texts()).toEqual(["Kelas bentrok · KU5014 dan PL3032 — Kam, 22 Okt 16:00–16:30"]);
+    expect(app.texts()).toEqual(["Kelas bentrok · KU5014 dan PL3032 — Kam, 22 Okt, 16:00–16:30"]);
   });
 
   it("a meeting announced only in Edunex text", async () => {
@@ -165,8 +165,8 @@ describe("schedule alerts", () => {
     app.world.edunex.postAnnouncement(95326, { announcement: "Pertemuan 05: Jumat, 23 Oktober 2026 Pkl. 13:00 - 15:00 WIB (Online)" });
     await app.refresh("edunex");
     const meeting = app.shown.filter((n) => n.kind === "meeting");
-    expect(meeting.map((n) => n.text)).toEqual(["Pertemuan di luar jadwal SIX · II4091 — Pertemuan 5 · Jum, 23 Okt 13:00–15:00"]);
-    expect(translate("en", meeting[0].body!.key, meeting[0].body!.vars)).toBe("Meeting 5 · Fri, 23 Oct 13:00–15:00");
+    expect(meeting.map((n) => n.text)).toEqual(["Pertemuan di luar jadwal SIX · II4091 — Pertemuan 5 · Jum, 23 Okt, 13:00–15:00"]);
+    expect(translate("en", meeting[0].body!.key, meeting[0].body!.vars)).toBe("Meeting 5 · Fri, 23 Oct, 13:00–15:00");
     expect(meeting[0].source).toBe("edunex");
   });
 
@@ -210,14 +210,14 @@ describe("schedule alerts", () => {
     );
     await app.refresh("six");
     const scheduled = app.shown.filter((n) => n.kind === "exam");
-    expect(scheduled.map((n) => n.text)).toEqual(["UTS dijadwalkan · KU5014 — Kam, 22 Okt 16:00 · 9134"]);
+    expect(scheduled.map((n) => n.text)).toEqual(["UTS dijadwalkan · KU5014 — Kam, 22 Okt, 16:00 · 9134"]);
     expect(scheduled[0].target).toEqual({ screen: "exam", examId: "KU5014-UTS" });
 
     await app.until("2026-10-14T17:59:00+07:00");
     expect(app.shown.filter((n) => n.kind === "exam")).toHaveLength(1);
     await app.until("2026-10-14T18:01:00+07:00");
     const tomorrow = app.shown.filter((n) => n.kind === "exam").slice(1);
-    expect(tomorrow.map((n) => [n.text, n.shownAt])).toEqual([["UTS besok · DK4073 — Kam, 15 Okt 11:00 · TVST C", wib("2026-10-14T18:00:00") + GROUP_WINDOW]]);
+    expect(tomorrow.map((n) => [n.text, n.shownAt])).toEqual([["UTS besok · DK4073 — Kam, 15 Okt, 11:00 · TVST C", wib("2026-10-14T18:00:00") + GROUP_WINDOW]]);
     expect(tomorrow[0].target).toEqual({ screen: "exam", examId: "DK4073-UTS" });
   });
 
@@ -227,13 +227,13 @@ describe("schedule alerts", () => {
     await app.until("2026-10-08T06:59:00+07:00");
     expect(dk()).toEqual([]);
     await app.until("2026-10-08T07:01:00+07:00");
-    expect(dk()).toEqual(["UTS seminggu lagi · DK4073 — Kam, 15 Okt 11:00 · TVST C"]);
+    expect(dk()).toEqual(["UTS seminggu lagi · DK4073 — Kam, 15 Okt, 11:00 · TVST C"]);
     await app.until("2026-10-15T07:01:00+07:00");
     // Newest first.
     expect(dk()).toEqual([
-      "UTS hari ini · DK4073 — Kam, 15 Okt 11:00 · TVST C",
-      "UTS besok · DK4073 — Kam, 15 Okt 11:00 · TVST C",
-      "UTS seminggu lagi · DK4073 — Kam, 15 Okt 11:00 · TVST C",
+      "UTS hari ini · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
+      "UTS besok · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
+      "UTS seminggu lagi · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
     ]);
   });
 

@@ -2,7 +2,7 @@
   {
     "key": "alert.newTask.body",
     "desktop": "{title}",
-    "phone": "{title} · tenggat {dateId} {time}"
+    "phone": "{title} · tenggat {dateId}, {time}"
   },
   {
     "key": "alert.test.body",

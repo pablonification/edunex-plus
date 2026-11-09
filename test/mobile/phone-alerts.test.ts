@@ -45,12 +45,12 @@ describe("on the phone", () => {
     const alert = newTaskAlert(task, wib("2026-10-08T08:00:00"));
     expect(noticeContent(alert, "id")).toMatchObject({
       title: "Tugas baru · PL3002",
-      body: "Kuis Kilat Bab 5 · tenggat Jum, 16 Okt 23:59",
+      body: "Kuis Kilat Bab 5 · tenggat Jum, 16 Okt, 23:59",
       channelId: CHANNELS.normal,
     });
     expect(noticeContent(alert, "en")).toMatchObject({
       title: "New Task · PL3002",
-      body: "Kuis Kilat Bab 5 · due Fri, 16 Oct 23:59",
+      body: "Kuis Kilat Bab 5 · due Fri, 16 Oct, 23:59",
     });
     // Without a deadline: the title alone.
     expect(noticeContent(newTaskAlert({ ...task, dueAt: null }, wib("2026-10-08T08:00:00")), "id").body).toBe("Kuis Kilat Bab 5");

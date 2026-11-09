@@ -87,9 +87,9 @@ export const mobileStrings = {
   // Yang berubah and Notifikasi: a moved class's or an Edunex-only meeting's one meta line, the day and its time or room,
   // short enough for one line beside the row's time (the title says what changed). The desktop's whole line, with the
   // usual time or room and "tidak ada di jadwal SIX", is what TalkBack reads; Jadwal and the class sheet show them too.
-  "mobile.change.moved.time": { id: "{dateId} {time}", en: "{dateEn} {time}" },
+  "mobile.change.moved.time": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
   "mobile.change.moved.room": { id: "{dateId} di {room}", en: "{dateEn} in {room}" },
-  "mobile.change.meeting.body": { id: "{dateId} {time}", en: "{dateEn} {time}" },
+  "mobile.change.meeting.body": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
   // The class sheet's one status (a chip), and its one quiet line: what it clashes with, or where it usually is.
   "mobile.home.chip.now": { id: "Sekarang", en: "Now" },
   "mobile.home.chip.moved": { id: "Berubah", en: "Changed" },
@@ -341,7 +341,7 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     en: "When a class SIX counts starts, when an Edunex Presence opens, and 15 minutes before it closes if you're not recorded. Tandai Hadir in SIX is checked only while the app is open.",
   },
   // A new Task's notification: the title, then its deadline, the first thing a Student wants to know.
-  "alert.newTask.body": { id: "{title} · tenggat {dateId} {time}", en: "{title} · due {dateEn} {time}" },
+  "alert.newTask.body": { id: "{title} · tenggat {dateId}, {time}", en: "{title} · due {dateEn}, {time}" },
   // Why Tandai Hadir hasn't shown: the phone checks SIX only while the app is open.
   "presence.row.watchingWhy": {
     id: "Selama aplikasi terbuka, SIX dicek tiap 2 menit.",
