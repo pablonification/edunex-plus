@@ -4,17 +4,16 @@ import type { Entry } from "./entry";
 
 export const mobileKuliahStrings = {
   // Kuliah (the tab).
-  // The heading over the courses out of reach, with no absences left or finished below the target (round 3: the big
-  // number became this heading, the meters on the rows say the rest).
+  // The headings over Kuliah's two cards (round 3, the blind review: one heading read as if it held all five): the
+  // courses out of reach, with no absences left or finished below the target; then the rest, "Aman" when every one of
+  // them has absences to spare or met its target, else (some with no count yet) "Lainnya".
   "mobile.kuliah.attention": { id: "Perlu perhatian", en: "Needs attention" },
-  // A course's absences beside its meter (parts/attendance-meter.tsx): over the limit by how many, the red segments past
-  // the line saying the rest. The whole sentence is the meter's accessible name.
-  "mobile.absence.overShort": { id: "+{count}", en: "+{count}" },
+  "mobile.kuliah.calm": { id: "Aman", en: "On track" },
+  "mobile.kuliah.rest": { id: "Lainnya", en: "Others" },
   // A course Edunex alone records: present in how many of its closed Presence windows.
   "mobile.absence.edunex": { id: "Edunex {recorded}/{closed}", en: "Edunex {recorded}/{closed}" },
-  // The quiet tick on a course SIX counted today, as TalkBack says it (the footer that listed the codes is gone).
-  "mobile.kuliah.counted": { id: "Sudah dihitung di SIX hari ini", en: "Counted in SIX today" },
-  "mobile.kuliah.countedLate": { id: "Akhirnya dihitung di SIX hari ini", en: "Counted in SIX today, after all" },
+  // A finished course's share, where its absences used to be ("Selesai 85%"); the whole sentence is its spoken name.
+  "mobile.absence.final": { id: "Selesai {percent}%", en: "Ended at {percent}%" },
   // The sheet in ⋮: the day's answer, the target, and how it's counted.
   "mobile.kuliah.facts": { id: "Kehadiranmu", en: "Your attendance" },
   // Two of today's classes at once: a row, its pick as the chip; the reason is in its sheet.

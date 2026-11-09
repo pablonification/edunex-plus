@@ -1,36 +1,30 @@
 // A course's absences as a picture (round 3): one segment per absence its target allows, the used ones filled, the
-// rest a ring; past the limit a short line, then a red segment per absence over it. Its tone is the risk: green with
-// absences to spare, amber with one left (or below the target today), red with none left or over. Beside it at most
-// one short word or number ("sisa 1×", "habis", "+2"); the whole sentence is its accessible name. Kuliah's rows and a
-// course's page draw the same part, so the same course looks the same on both.
+// rest a ring; past the limit a short line, then a red segment per absence over it. Its tone is the app's one absence
+// scale (ui/absence.ts, as Beranda's chips): red once the target is out of reach (or the course finished below it),
+// amber with none left, green with some to spare. Beside it the state in plain words, the same words on every tab
+// ("Lewat batas 2×", "Jatah habis", "Sisa 1×"): Kuliah's rows show only those words (round 3's blind review read
+// them at once, the pips needed a key), a course's page draws the picture with them. The whole sentence is its
+// accessible name.
 import { memo } from "react";
 import { View } from "react-native";
 import type { CourseAttendance } from "../../../src/app/attendance";
 import { budgetLabel } from "../../../src/app/attendance-labels";
 import { type Translate, useT } from "../../../src/app/i18n";
 import { type AttendanceHealth, absenceBudget, estimatedBudget, percent, presenceGroup } from "../../../src/core/attendance";
+import { absenceName, absenceTone } from "../ui/absence";
 import { Icons } from "../ui/icons";
 import { Text } from "../ui/text";
 import { useTheme } from "../ui/theme";
 
 export type MeterTone = "ok" | "amber" | "red" | "neutral";
 
-/** The risk as a tone: red with none left or over (or finished below), amber with one left or below today, else green. */
+/** The risk as a tone, the app's one absence scale (ui/absence.ts): grey before SIX has a count. */
 export function meterTone(health: AttendanceHealth): MeterTone {
-  switch (health.state) {
-    case "out":
-    case "none":
-    case "missed":
-      return "red";
-    case "risk":
-      return "amber";
-    case "safe":
-    case "met":
-      return "ok";
-    default:
-      return "neutral";
-  }
+  return absenceTone(health.state) ?? "neutral";
 }
+
+/** "sisa 1×" → "Sisa 1×": the words stand alone at a row's end. */
+const lead = (words: string) => words.charAt(0).toLocaleUpperCase() + words.slice(1);
 
 /** From this many allowed the segments join into one bar, split where the used part ends. */
 const JOINED = 8;
@@ -39,7 +33,7 @@ export interface MeterModel {
   tone: MeterTone;
   /** The segments: allowed, used of them, over the limit; `estimate` before SIX counts (dashed rings, nothing used). */
   bar: { allowed: number; used: number; over: number; estimate: boolean } | null;
-  /** The one word or number beside it (null: the picture alone). */
+  /** The state in a few plain words ("Lewat batas 2×", "Jatah habis", "Sisa 1×"; null: the picture alone). */
   word: string | null;
   /** A finished course: its share, with a mark instead of segments. */
   final: { share: number; met: boolean } | null;
@@ -66,7 +60,13 @@ export function meterModel(t: Translate, item: Pick<CourseAttendance, "health">,
   if (health.state === "met" || health.state === "missed") {
     if (!health.held) return null;
     const share = percent(health.attended ?? 0, health.held);
-    return { tone, bar: null, word: `${share}%`, final: { share, met: health.state === "met" }, label: t("presence.row.final", { percent: share }) };
+    return {
+      tone,
+      bar: null,
+      word: t("mobile.absence.final", { percent: share }),
+      final: { share, met: health.state === "met" },
+      label: t("presence.row.final", { percent: share }),
+    };
   }
   const budget = absenceBudget(health);
   if (!budget) {
@@ -88,7 +88,7 @@ export function meterModel(t: Translate, item: Pick<CourseAttendance, "health">,
     return {
       tone,
       bar,
-      word: t("mobile.absence.overShort", { count: over }),
+      word: absenceName(t, health) ?? lead(t("presence.bar.over", { count: over })),
       final: null,
       label: `${budgetLabel(t, health)}. ${t("presence.bar.a11yOver", { allowed, used: missed, over })}`,
     };
@@ -96,14 +96,14 @@ export function meterModel(t: Translate, item: Pick<CourseAttendance, "health">,
     return {
       tone,
       bar: allowed > 0 ? bar : null,
-      word: t("presence.bar.noneLeft"),
+      word: absenceName(t, health) ?? lead(t("presence.bar.noneLeft")),
       final: null,
       label: allowed > 0 ? t("presence.bar.a11yFull", { allowed }) : t("presence.bar.zero"),
     };
   return {
     tone,
     bar,
-    word: t("presence.bar.left", { count: left }),
+    word: lead(t("presence.bar.left", { count: left })),
     final: null,
     label: t(soFar ? "presence.bar.a11ySoFar" : "presence.bar.a11y", { allowed, used: missed, left }),
   };
