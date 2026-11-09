@@ -1,6 +1,7 @@
 // Akademik (round 2, v4; the tab that replaced Lainnya): in three seconds, the IPK and what to do this term.
-// 1. One leading card: the IPK and SKS passed as big numbers that count up once, the name and NIM a quiet line over
-//    them. The whole card is one target that opens Nilai (the avatar in the bar is the way to the account and Settings).
+// 1. One leading card: the IPK as its one big number, the SKS passed a smaller one over a thin bar of those needed
+//    (parts/standing.tsx), the name and NIM a quiet line over them. The whole card is one target that opens Nilai (the
+//    avatar in the bar is the way to the account and Settings).
 // 2. To-do chips, only while something's due (send the KRS, pay UKT, fill in the questionnaire SIX hides grades
 //    behind), each opening its screen. Nothing due: nothing shown.
 // 3. Nilai and Rencana studi's parts (Rencana, Kurikulum, KRS, UKT, Kalender akademik) as rows in one card, each with
@@ -10,7 +11,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
-import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
+import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { displayName } from "../../../../src/app/names";
 import { usePlanTabBadges } from "../../../../src/app/shell/badges";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
@@ -19,11 +20,13 @@ import { usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import { billUrgency, type KrsStage, krsOverlaps, krsStage } from "../../../../src/core/academic";
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
+import { together } from "../../parts/day-word";
+import { StandingFigures } from "../../parts/standing";
 import { useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { Figure, FigureCell, FigureDash, FigureRow, Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
+import { Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
@@ -96,11 +99,10 @@ export function AcademicContent() {
 
 // ------------------------------------------------------------ the leading card
 
-/** The IPK and SKS passed, big: the answer the Student opens Akademik for. One target: Nilai. */
+/** The IPK, big, and the SKS passed over a thin bar: the answer the Student opens Akademik for. One target: Nilai. */
 const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
   const t = useT();
   const f = useFormat();
-  const lang = useLang();
   const nav = useNav();
   const v = useTheme().v4;
   const account = useDataset("edunex.account");
@@ -127,32 +129,27 @@ const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
             {who}
           </Text>
         ) : null}
-        {/* Side by side while they fit; at a big font size the SKS goes under the IPK. */}
-        <FigureRow>
-          <FigureCell label={t("grades.chart.ipk")}>
-            {ipk === null ? <FigureDash /> : <Figure id="academic.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
-          </FigureCell>
-          <FigureCell label={t("grades.sksPassed")}>{sks === null ? <FigureDash /> : <Figure id="academic.sks" value={sks} unit={of} />}</FigureCell>
-        </FigureRow>
+        <StandingFigures id="academic" ipk={ipk} sks={sks} need={record.graduationSks} />
       </Panel>
     </View>
   );
 });
 
-/** The card's shape while SIX's record is on its way. */
+/** The card's shape while SIX's record is on its way: the name's line, the IPK, the SKS and its bar. */
 function StandingSkeleton() {
   return (
     <Panel accessibilityState={{ busy: true }} testID="academic.loading" style={{ padding: space[5], gap: space[3] }}>
       <Skeleton width="55%" height={14} />
-      <View style={{ flexDirection: "row", gap: space[8] }}>
-        <View style={{ gap: space[2] }}>
-          <Skeleton width={32} height={14} />
-          <Skeleton width={104} height={44} />
-        </View>
-        <View style={{ gap: space[2] }}>
+      <View style={{ gap: space[2] }}>
+        <Skeleton width={32} height={14} />
+        <Skeleton width={104} height={44} />
+      </View>
+      <View style={{ gap: space[2], marginTop: space[2] }}>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Skeleton width={64} height={14} />
-          <Skeleton width={112} height={44} />
+          <Skeleton width={88} height={18} />
         </View>
+        <Skeleton width="100%" height={6} />
       </View>
     </Panel>
   );
@@ -418,7 +415,8 @@ function DeadlinesRow() {
       meta={
         next.when === "now"
           ? t("mobile.academic.meta.deadlineNow", { what })
-          : t("mobile.academic.meta.deadlineNext", { what, date: f.dayMonth(next.event.start) })
+          : // The date held together ("30 Nov"), never broken across two lines.
+            t("mobile.academic.meta.deadlineNext", { what, date: together(f.dayMonth(next.event.start)) })
       }
     />
   );

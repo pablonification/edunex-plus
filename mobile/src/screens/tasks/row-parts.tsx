@@ -436,7 +436,7 @@ export function HeroCard({
   code: string;
   at: number;
   title: string;
-  /** "II4091 · Jum, 13 Nov, 23:59": the row's meta line. */
+  /** "Proposal Tugas Akhir · Jum, 13 Nov, 23:59": the course, short, and when. */
   meta: string;
 }) {
   const t = useT();

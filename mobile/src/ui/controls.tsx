@@ -325,12 +325,15 @@ export function Segmented<T extends string>({
   onChange,
   label,
   testID,
+  check = true,
 }: {
   options: readonly { value: T; label: string; count?: number }[];
   value: T;
   onChange: (value: T) => void;
   label: string;
   testID?: string;
+  /** The check beside the picked one; false where its fill says it alone (Tugas: the fill and a tick said it twice). */
+  check?: boolean;
 }) {
   const theme = useTheme();
   const c = theme.color;
@@ -350,7 +353,7 @@ export function Segmented<T extends string>({
             android_ripple={{ color: c.selected }}
             style={[styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }]}
           >
-            {on && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
+            {on && check && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
             <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "fg"} numberOfLines={2} style={{ flexShrink: 1, textAlign: "center" }}>
               {option.label}
               {option.count !== undefined && (
@@ -387,12 +390,15 @@ export function Chip({
   children,
   testID,
   label,
+  check = true,
 }: {
   selected: boolean;
   onPress: () => void;
   children: ReactNode;
   testID?: string;
   label?: string;
+  /** The check on the picked chip; false where its fill says it alone. */
+  check?: boolean;
 }) {
   const theme = useTheme();
   const c = theme.color;
@@ -407,12 +413,15 @@ export function Chip({
       android_ripple={{ color: c.selected }}
       style={[
         styles.chip,
-        selected ? { backgroundColor: c.secondaryContainer, borderColor: c.secondaryContainer, paddingLeft: space[2] } : { borderColor: c.outline },
+        selected
+          ? { backgroundColor: c.secondaryContainer, borderColor: c.secondaryContainer, paddingLeft: check ? space[2] : space[4] }
+          : { borderColor: c.outline },
       ]}
     >
-      {selected && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
+      {selected && check && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
       {typeof children === "string" ? (
-        <Text size="labelLarge" tone={selected ? "onSecondaryContainer" : "muted"}>
+        // Never cut short: a chip row scrolls, so a chip keeps its whole name.
+        <Text size="labelLarge" tone={selected ? "onSecondaryContainer" : "muted"} style={{ flexShrink: 0 }}>
           {children}
         </Text>
       ) : (

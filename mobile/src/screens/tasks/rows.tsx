@@ -25,6 +25,7 @@ import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
+import { shortName } from "../home/parts";
 import { ExamPartRow, PeriodRow } from "./exam-rows";
 import {
   countdown,
@@ -143,10 +144,9 @@ export const TaskRow = inWorld(function TaskRow({
     date.sub,
     date.rel,
   );
-  const code = meta === "course" ? task.courseCode : null;
-  // v4: one meta line that fits in full (the code, or the kind of a take-home, and when), one status (the countdown
-  // once it's within a day or late, the score, or "not handed in"); a calm one's day and time say when on their own.
-  // Everything else is in the row's spoken name and on the Task's page.
+  // v4: one meta line that fits in full (the module on a course's page, the kind of a take-home, and when), one status
+  // (the countdown once it's within a day or late, the score, or "not handed in"); a calm one's day and time say when on
+  // their own. Everything else is in the row's spoken name and on the Task's page.
   const sentAt = submittedAt(task);
   const kind = exam ? t(`exam.kind.${exam.kind}`) : null;
   const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
@@ -157,8 +157,9 @@ export const TaskRow = inWorld(function TaskRow({
         ? t("task.noDeadline")
         : // The time only beside the countdown: a late or closed one's status is too wide for both.
           rowWhen(world.f, task.dueAt, away !== null && !away.late);
-  // The course's code (or on its own page the module), the exam's kind for a take-home, then when: every row the same.
-  const lead = meta === "module" && task.module ? t("task.module", { n: task.module.index }) : code;
+  // On a course's page the module, the exam's kind for a take-home, then when: every row the same. Not the course's code
+  // on Tugas: the row's tile is the course, named by the course chips over the list (the code is spoken).
+  const lead = meta === "module" && task.module ? t("task.module", { n: task.module.index }) : null;
   const line = [lead, kind, when].filter(Boolean).join(" · ");
   const statusPill =
     sentAt !== null ? (
@@ -184,7 +185,8 @@ export const TaskRow = inWorld(function TaskRow({
         code={task.courseCode}
         at={task.dueAt}
         title={name}
-        meta={[task.courseCode, kind, when].filter(Boolean).join(" · ")}
+        // The course by a name a student says, short ("Proposal Tugas Akhir"): the big card has no tile to name it.
+        meta={[course ? shortName(course.name) : task.courseCode, kind, when].filter(Boolean).join(" · ")}
       />
     );
   return (

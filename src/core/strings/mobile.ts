@@ -305,9 +305,10 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   // close), and a problem with SIX's count (a class it didn't record, no absences left).
   "settings.alerts.presence": { id: "Waktunya presensi", en: "Time to check in" },
   "settings.alerts.attendanceRisk": { id: "Masalah kehadiran", en: "Attendance problems" },
-  // Settings › Akun: the row that opens what the app found when Edunex and SIX were first read ("Ringkasan saat pertama
-  // terhubung" didn't say what's in it).
-  "settings.firstScan": { id: "Temuan saat pertama masuk", en: "Found when you first signed in" },
+  // Settings › Akun: the row that opens what the app found when Edunex and SIX were first read, named by what's in it
+  // (the screen's own title: "{count} hal yang tidak disampaikan kedua sistem"). "Temuan saat pertama masuk" said
+  // nothing to a student (round 3's judge); when it was found is the row's spoken hint.
+  "settings.firstScan": { id: "Yang tak disampaikan Edunex dan SIX", en: "What Edunex and SIX don't tell you" },
   // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
   "handIn.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
   // The snackbar after "Sudah beres": what happened and when it's back, short enough for two lines beside Urungkan

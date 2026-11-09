@@ -1,8 +1,9 @@
 // Settings' top: who's signed in (a white card: the initials, the name in Plus Jakarta Sans, the NIM and the program
 // as one quiet line), then Akun: each system's row (a line icon in a tile, as every row's) with its state as the one
 // line under it ("Terhubung"; when it was last checked only once that's stale). Signed out (or the session ended), the
-// row signs in; signed in, it opens a sheet whose one choice signs out of just that system. What the first read found
-// is the group's last row.
+// row signs in; signed in, it opens a sheet whose one choice signs out of just that system. "Terhubung" in green says
+// it's connected, with no dot beside it saying it again. What the first read found is the group's last row, named by
+// what's in it.
 import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
@@ -11,7 +12,6 @@ import { displayName, initials } from "../../../../src/app/names";
 import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
 import type { SourceId } from "../../../../src/core/models";
 import { useSignInNote } from "../../shell/source-status";
-import { LiveDot } from "../../ui/display";
 import { IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
@@ -117,16 +117,7 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
           <IconTile icon={(color) => (source === "six" ? <Icons.GraduationCap size={22} color={color} /> : <Icons.BookOpen size={22} color={color} />)} />
         }
         title={name}
-        meta={
-          status.state === "live" ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <LiveDot />
-              <MetaText tone="ok">{state.text}</MetaText>
-            </View>
-          ) : (
-            state.text
-          )
-        }
+        meta={state.text}
         metaTone={state.tone}
         busy={busy}
         disabled={status.state === "connecting"}
@@ -162,15 +153,4 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
 function SignOutIcon() {
   const v = useTheme().v4;
   return <Icons.LogOut size={22} color={v.redFg} />;
-}
-
-/** A meta line's words in a state's ink, beside a dot. */
-function MetaText({ tone, children }: { tone: MetaTone; children: string }) {
-  const v = useTheme().v4;
-  const color = tone === "ok" ? v.okFg : tone === "amber" ? v.ambFg : tone === "red" ? v.redFg : v.muted;
-  return (
-    <Text size="bodyMedium" style={{ color, flexShrink: 1 }}>
-      {children}
-    </Text>
-  );
 }

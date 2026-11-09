@@ -26,10 +26,19 @@ export const mobileTasksStrings = {
     id: "Tersimpan {when}. Dosen bisa melihatnya, tapi hanya Kumpulkan yang menyerahkannya.",
     en: "Saved {when}. Your lecturer can see it, but only Submit hands it in.",
   },
-  // A Task that is also attendance: one line under the deadline on its due card, with a hand icon (no chip: the card's
-  // one status is Edunex's), saying when to hand it in to count as present ("Jum, 13 Nov, 15:00–23:59"). The desktop's
-  // task.note.attendance, in the phone's few words.
-  "mobile.tasks.presenceLine": { id: "Kumpulkan {when} agar hadir", en: "Hand in {when} to count as present" },
+  // A Task that is also Presensi: its line on the due card is task.attendanceLine ("Presensi 15:00–23:59"); a tap opens
+  // a small sheet with why (the desktop's task.note.attendance, and what happens outside that time), under this title.
+  "mobile.tasks.presenceWhy": { id: "Tugas ini juga Presensi", en: "This Task is also attendance" },
+  "mobile.tasks.presenceWhyBody": {
+    id: "Kamu terhitung hadir hanya jika mengumpulkannya {date}, {time}. Di luar waktu itu, tugasmu tetap terkumpul, tapi tidak dihitung hadir.",
+    en: "You count as present only if you hand it in {date}, {time}. Outside that time it's still handed in, but not counted present.",
+  },
+  // Right over a Kumpulkan that can't be pressed yet, what's missing in a few words (the full sentence is spoken on the
+  // button): the kind of file the instructions name, when they name one.
+  "mobile.handIn.why.noFile": { id: "Lampirkan berkas dulu", en: "Attach a file first" },
+  "mobile.handIn.why.noFileType": { id: "Lampirkan {type} dulu", en: "Attach a {type} first" },
+  // Right over Kumpulkan while handing in now wouldn't count as present yet: when Presensi opens ("besok, 15:00").
+  "mobile.handIn.why.opens": { id: "Presensi dibuka {when}", en: "Presence opens {when}" },
   // The Kumpulkan sheet's warnings, one short line each (round 2's judge: two paragraphs were too much). The desktop's
   // handIn.check.* with the same facts: when Presensi opens or closed, the deadline that passed.
   "mobile.tasks.check.attendanceEarly": { id: "Tak dihitung hadir sebelum Presensi dibuka {when}", en: "Not counted present before Presence opens {when}" },
