@@ -1,18 +1,18 @@
 // The course page on the phone (S17, src/app/screens/course.tsx; round 2's v4): one course, its parent and child
-// Edunex classes merged, on v4's grey page. Its one title is its name, big at the top beside its tile (the course's ink
-// and tint) with its code under it; as the page scrolls the name and tile fade out before they reach the bar, and only
-// then does the bar's title fade in (never the name twice, never sliced under the bar); then its absences as a
-// meter with one word (parts/attendance-meter.tsx, as on Kuliah) and an ⓘ, and the one exception when it's a fact; then,
-// while a class is on, its card with the one thing to do, else the next class as a quiet row (its room with a pin, a
-// clash under it). A tap on the header opens the course's sheet (./course-sheet.tsx: lecturer, SKS, the attendance in
-// full, the target, the advice, what a course in trouble means now). Then its tabs as pills, scrolling sideways and
-// staying under the bar while the page scrolls: Modul (a list; a module opens as its own screen, ./module-screen.tsx),
-// Pertemuan, Tugas, Nilai and Pengumuman; a course at risk leads with Pertemuan. The rare actions sit behind ⋮ in the top bar: saving
-// its files for offline, its colour, its pages on Edunex and SIX. Pull to refresh.
+// Edunex classes merged, on v4's grey page. Its one title is its name, in the top bar (two lines when it needs them):
+// no big name in the page under an empty bar (round 3's third blind review). Under the bar a compact header: the
+// course's tile, its code and SKS, then its absences as one meter with one word (parts/attendance-meter.tsx, as on
+// Kuliah) and one ⓘ, and the one exception when it's a fact; then, while a class is on, its card with the one thing to
+// do, else the next class as a quiet row (its room with a pin, a clash under it). A tap on the header opens the
+// course's sheet (./course-sheet.tsx: lecturer, SKS, the attendance in full, the target, the advice, what a course in
+// trouble means now). Then its tabs as pills, scrolling sideways and staying under the bar while the page scrolls:
+// Modul (a list; a module opens as its own screen, ./module-screen.tsx), Pertemuan, Tugas, Nilai and Pengumuman; a
+// course at risk leads with Pertemuan. The rare actions sit behind ⋮ in the top bar: saving its files for offline, its
+// colour, its pages on Edunex and SIX. Pull to refresh.
 
 import { router } from "expo-router";
-import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, type LayoutChangeEvent, ScrollView, View } from "react-native";
+import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
+import { type LayoutChangeEvent, ScrollView, View } from "react-native";
 import type { CourseAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type StringKey, useT } from "../../../../src/app/i18n";
@@ -30,7 +30,7 @@ import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
 import { EdgeFade, useEdges } from "../../ui/edge-fade";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
-import { factsLabel, Page, useScrolledPast } from "../../ui/layout";
+import { factsLabel, Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { PressScale } from "../../ui/press";
 import type { SheetChoice } from "../../ui/sheet";
@@ -80,9 +80,6 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const rows = useRowContext(() => setSheet(true));
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const [tabsAt, setTabsAt] = useState(0);
-  // Where the page's own title starts (dp from the page's top): it fades out from a little before it reaches the bar,
-  // and the bar's title fades in only once it's gone (TopBar's fade takes the 24 dp before `titleFrom`).
-  const [titleTop, setTitleTop] = useState<number>(space[4]);
   const offset = useRef(0);
   // The course's attendance, once SIX has a count: it decides the tabs' order (Pertemuan first for a course at risk).
   const item = page && rows?.attendance.sixConnected ? rows.attendance.courses.find((c) => c.course.code === page.course.code) : undefined;
@@ -132,7 +129,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
     <Page
       testID="screen.course"
       background={theme.v4.page}
-      header={<TopBar v4 title={page.course.name} titleFrom={titleTop + GONE_AT + 24} actions={<MoreMenu page={page} />} />}
+      header={<TopBar v4 title={page.course.name} lines={2} actions={<MoreMenu page={page} />} />}
       scrollRef={scroll}
       // The tabs stay under the bar while a long tab scrolls.
       stickyHeaderIndices={[1]}
@@ -144,14 +141,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
     >
       <View>
         <Rise screen={rise} index={0}>
-          <Header
-            page={page}
-            item={item}
-            context={rows?.context}
-            onOpen={() => setSheet(true)}
-            titleTop={titleTop}
-            onTitleTop={(top) => setTitleTop(space[4] + top)}
-          />
+          <Header page={page} item={item} context={rows?.context} onOpen={() => setSheet(true)} />
         </Rise>
         <MeetingNow page={page} rise={rise} />
         <SaveOfflineProgress code={page.course.code} />
@@ -178,62 +168,42 @@ function CourseMissing() {
   return <EmptyState icon={<Icons.BookOpen size={20} color={theme.color.muted} />} title={t("course.notFound")} />;
 }
 
-/** How far past its top the course's name has gone under the bar when it has faded out whole (dp). */
-const GONE_AT = 8;
-
 /**
- * The page's one title: the course's tile and name in the display face, its code under it, then its attendance as a
- * meter (from `item` and `context`). A tap opens the course's sheet (lecturer, SKS, attendance in full, the advice).
- * The tile and the name fade out as they near the bar (from 16 dp before the name's top reaches it until it's 8 dp
- * under), on the UI thread; the bar's title fades in after (`onTitleTop` says where the name starts).
+ * Under the bar (the course's name is the bar's title): the course's tile, its code and SKS, then its absences as one
+ * meter with its one word and one ⓘ (from `item` and `context`). A tap opens the course's sheet (lecturer, SKS,
+ * attendance in full, the advice).
  */
 function Header({
   page,
   item,
   context,
   onOpen,
-  titleTop,
-  onTitleTop,
 }: {
   page: CoursePage;
   item: CourseAttendance | undefined;
   context: RowContext | undefined;
   onOpen: () => void;
-  titleTop: number;
-  onTitleTop: (top: number) => void;
 }) {
   const t = useT();
   const v = useTheme().v4;
   const attendance = useAttendanceLine(item, context);
-  const gone = useScrolledPast(titleTop + GONE_AT);
-  const shown = useMemo(() => (gone ? Animated.subtract(1, gone) : 1), [gone]);
   const { course, outline } = page;
   const sks = course.sks ?? outline?.credits ?? null;
   const line = [course.code, sks !== null ? t("course.sks", { count: sks }) : null].filter(Boolean).join(" · ");
   return (
     <PressScale
       onPress={onOpen}
-      accessibilityRole="header"
       accessibilityLabel={[`${course.name}, ${line}`, attendance?.label].filter(Boolean).join(". ")}
       accessibilityHint={t("mobile.course.aboutHint")}
       testID="action.courseAbout"
-      style={{ flexDirection: "row", alignItems: "flex-start", gap: space[4] }}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}
     >
-      <View style={{ flexDirection: "row", gap: space[4], flex: 1 }}>
-        <Animated.View style={{ paddingTop: 2, opacity: shown }}>
-          <CourseTile code={course.code} name={course.name} size={48} />
-        </Animated.View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Animated.View style={{ opacity: shown }} onLayout={(event: LayoutChangeEvent) => onTitleTop(event.nativeEvent.layout.y)}>
-            <Text size="headlineSmall" face="display" weight="bold" style={{ color: v.fg, fontSize: 24, lineHeight: 30, letterSpacing: -0.4 }}>
-              {course.name}
-            </Text>
-          </Animated.View>
-          <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted, marginTop: space[1] }}>
-            {line}
-          </Text>
-          {attendance?.node}
-        </View>
+      <CourseTile code={course.code} name={course.name} size={44} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: v.muted }}>
+          {line}
+        </Text>
+        {attendance?.node}
       </View>
     </PressScale>
   );
@@ -410,11 +380,11 @@ function Loading() {
   return (
     <Page testID="screen.course" background={theme.v4.page} header={<TopBar v4 title={t("nav.courses")} />}>
       <View accessibilityState={{ busy: true }}>
-        <View style={{ flexDirection: "row", gap: space[4] }}>
-          <Skeleton height={48} width={48} style={{ borderRadius: 15 }} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+          <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
           <View style={{ flex: 1, gap: space[2] }}>
-            <Skeleton height={26} width="80%" />
             <Skeleton height={14} width="40%" />
+            <Skeleton height={14} width="60%" />
           </View>
         </View>
         <Skeleton height={120} style={{ marginTop: space[5], borderRadius: 24 }} />

@@ -33,10 +33,10 @@ import { OverflowMenu } from "../../ui/menu";
 import { useReduceMotion } from "../../ui/motion";
 import { Part } from "../../ui/parts";
 import { Text } from "../../ui/text";
-import { space, TOUCH, useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 import { PhoneCalendarSync, useCalendarSync, useShareIcs } from "./calendar-sync";
 import { useDayFormat, useToday } from "./clock";
-import { DayView, HOUR, hoursOf } from "./day";
+import { DayView, HOUR, hoursOf, type NextClass } from "./day";
 import { useAgendaInput } from "./input";
 import { useScheduleSheets } from "./sheets";
 import { WeekStrip } from "./strip";
@@ -92,12 +92,15 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   const day = byDay.get(picked);
   const covered = new Set(input?.months ?? []);
   const free = Boolean(input?.six && day && isEmptyDay(day) && !day.holiday && covered.has(picked.slice(0, 7)) && weekday(picked) < 5);
-  // The first class after the day picked, for an empty day's way on ("Berikutnya Kam 08:00").
-  const nextStart = useMemo(() => {
+  // The first class after the day picked, for an empty day's way on: its card under "Berikutnya".
+  const next = useMemo((): NextClass | null => {
     if (!input) return null;
-    let first: number | null = null;
-    for (const s of [...input.schedule, ...input.outside, ...(input.edunex ?? [])])
-      if (wibDay(s.start) > picked && (first === null || s.start < first)) first = s.start;
+    let first: NextClass | null = null;
+    for (const s of input.schedule)
+      if (wibDay(s.start) > picked && (first === null || s.start < first.start))
+        first = { start: s.start, end: s.end, code: s.courseCode, name: s.courseName, room: s.room };
+    for (const m of [...input.outside, ...(input.edunex ?? [])])
+      if (wibDay(m.start) > picked && (first === null || m.start < first.start)) first = { start: m.start, end: m.end, code: m.code, name: null, room: null };
     return first;
   }, [input, picked]);
   // A class tapped: Beranda's sheet; anything else, Jadwal's own (./sheets.tsx).
@@ -163,8 +166,8 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
                 six={input.six}
                 free={free}
                 onPick={open}
-                next={nextStart}
-                onNext={nextStart === null ? undefined : () => pick(wibDay(nextStart), 1)}
+                next={next}
+                onNext={next === null ? undefined : () => pick(wibDay(next.start), 1)}
               />
             </DayScroll>
           </Part>
@@ -277,10 +280,10 @@ function openAt(day: ScheduleDay, today: string, now: number): number {
 /**
  * Jadwal's top bar: the month of the week on screen as its one title (Plus Jakarta Sans; another year's as "Jan 2027"),
  * the term's week quietly under it ("Minggu ke-7"; the week strip under the bar shows its days, so their range is said
- * only when the week has no number), with the data's status only when it says something. Then, away from today,
- * "Hari ini" in ⋮'s place (⋮ comes back with today): the bar never holds more than the title, one action of its own and
- * every tab's three, so the month and its week line stay whole at a large font. A tap on the title opens the sources'
- * sheet, as on every tab.
+ * only when the week has no number), with the data's status only when it says something. Away from today, "Hari ini"
+ * as a small text button on the week's line (round 3's third review: it used to take ⋮'s place, and ⋮ went missing):
+ * the bar keeps the title, ⋮ and every tab's three, so the month stays whole at a large font. A tap on the month or the
+ * status opens the sources' sheet, as on every tab.
  */
 function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: string; onToday: () => void }) {
   const t = useT();
@@ -306,28 +309,42 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   return (
     <View style={{ backgroundColor: v.page, paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
-        <Pressable
-          onPress={() => setPanel(true)}
-          accessibilityRole="button"
-          accessibilityLabel={`${month}, ${place}. ${t("sync.title")}: ${sync}`}
-          testID="action.syncStatus"
-          style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center" }}
-        >
-          <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
-            {month}
-          </Text>
-          <Text size="bodyMedium" tabular numberOfLines={1} testID="label.place" style={{ color: v.muted, marginTop: -2 }}>
-            {n ? t("mobile.schedule.week", { n }) : range}
-          </Text>
-          <StatusLine />
-        </Pressable>
-        {away ? (
-          <Button size="sm" variant="tonal" onPress={onToday} label={t("mobile.schedule.todayLabel")} testID="action.today">
-            {t("mobile.schedule.today")}
-          </Button>
-        ) : (
-          <ScheduleMenu />
-        )}
+        <View style={{ flex: 1, minWidth: 0, justifyContent: "center" }}>
+          <Pressable
+            onPress={() => setPanel(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`${month}, ${place}. ${t("sync.title")}: ${sync}`}
+            testID="action.syncStatus"
+            hitSlop={{ top: 10, bottom: 8, right: 12 }}
+            style={{ alignSelf: "flex-start", maxWidth: "100%" }}
+          >
+            <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
+              {month}
+            </Text>
+          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], marginTop: -2 }}>
+            <Text size="bodyMedium" tabular numberOfLines={1} importantForAccessibility="no" testID="label.place" style={{ color: v.muted, flexShrink: 1 }}>
+              {n ? t("mobile.schedule.week", { n }) : range}
+            </Text>
+            {away && (
+              <Pressable
+                onPress={onToday}
+                accessibilityRole="button"
+                accessibilityLabel={t("mobile.schedule.todayLabel")}
+                testID="action.today"
+                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+              >
+                <Text size="labelLarge" weight="semibold" style={{ color: v.brandInk }}>
+                  {t("mobile.schedule.today")}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+          <Pressable onPress={() => setPanel(true)} style={{ alignSelf: "flex-start" }} importantForAccessibility="no-hide-descendants">
+            <StatusLine />
+          </Pressable>
+        </View>
+        <ScheduleMenu />
         <TabActions />
       </View>
       <SyncPanel open={panel} onClose={() => setPanel(false)} />

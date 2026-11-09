@@ -179,8 +179,7 @@ export const mobileStrings = {
   "mobile.schedule.noClasses": { id: "Tidak ada kuliah", en: "No classes" },
   "mobile.schedule.before": { id: "sebelum {time}", en: "by {time}" },
   "mobile.schedule.unreadMeta": { id: "Jam dan ruangnya ada di SIX", en: "Its time and room are on SIX" },
-  // A day with no class: the next class, a button that goes to its day ("Berikutnya Kam 08:00"), and its whole name.
-  "mobile.schedule.next": { id: "Berikutnya {when}", en: "Next {when}" },
+  // A day with no class: the next class's card under "Berikutnya", as TalkBack names it (a tap goes to its day).
   "mobile.schedule.nextLabel": { id: "Ke kuliah berikutnya, {when}", en: "Go to the next class, {when}" },
   // A day on the week strip with two classes at once, as TalkBack says it after the date (on screen: the clash icon).
   "mobile.schedule.clashDay": { id: "ada kuliah bentrok", en: "classes clash" },

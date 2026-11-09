@@ -154,8 +154,9 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
             {clash && (
               <View testID="mark.courseNextClash" style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
                 <Icons.Overlap size={14} weight="bold" color={v.ambFg} />
-                <Text size="bodyMedium" weight="medium" tabular style={{ color: v.ambFg }}>
-                  {`${clashWords} · ${f.timeRange(clash.from, clash.to)}`}
+                {/* One line (round 3's third review: it wrapped): the clash's time first, then the other course, cut last. */}
+                <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: v.ambFg, flexShrink: 1 }}>
+                  {`${t("mobile.kuliah.clash.title", { time: f.timeRange(clash.from, clash.to) })} · ${shortName(name(clash.other))}`}
                 </Text>
               </View>
             )}

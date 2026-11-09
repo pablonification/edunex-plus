@@ -22,6 +22,7 @@ export const BAR_HEIGHT = 64;
  * page has scrolled that far (dp), then fades in: M3's collapsing top app bar, without moving any layout.
  * `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, its title on one line. The title is in Plus
  * Jakarta Sans on every page.
+ * `lines`: how many lines the title may take (a course's long name, whole on two: the bar grows to hold it).
  */
 export function TopBar({
   title,
@@ -29,12 +30,14 @@ export function TopBar({
   onBack,
   titleFrom,
   v4 = false,
+  lines,
 }: {
   title?: string;
   actions?: ReactNode;
   onBack?: () => void;
   titleFrom?: number;
   v4?: boolean;
+  lines?: number;
 }) {
   const t = useT();
   const nav = useNav();
@@ -52,7 +55,7 @@ export function TopBar({
           {/* Every screen's title in the one face for headings (v4: Plus Jakarta Sans), whatever page it's on. */}
           <Text
             size="titleLarge"
-            numberOfLines={v4 ? 1 : undefined}
+            numberOfLines={lines ?? (v4 ? 1 : undefined)}
             face="display"
             weight="bold"
             accessibilityRole="header"
