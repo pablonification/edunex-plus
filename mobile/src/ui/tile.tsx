@@ -15,7 +15,7 @@ import { CodeIcon } from "phosphor-react-native/src/icons/Code";
 import { CpuIcon } from "phosphor-react-native/src/icons/Cpu";
 import { FlaskIcon } from "phosphor-react-native/src/icons/Flask";
 import { GlobeIcon } from "phosphor-react-native/src/icons/Globe";
-import { GraduationCapIcon } from "phosphor-react-native/src/icons/GraduationCap";
+import { ScrollIcon } from "phosphor-react-native/src/icons/Scroll";
 import { HeartbeatIcon } from "phosphor-react-native/src/icons/Heartbeat";
 import { LeafIcon } from "phosphor-react-native/src/icons/Leaf";
 import { LightningIcon } from "phosphor-react-native/src/icons/Lightning";
@@ -38,7 +38,7 @@ type Glyph = ComponentType<{ size?: number; color?: string; weight?: "duotone" |
  * so only the term's few load, when a tile first draws (../ui/icons.tsx says why).
  */
 const BY_NAME: readonly [RegExp, () => Glyph][] = [
-  [/tugas akhir|skripsi|proposal|thesis|capstone/i, () => GraduationCapIcon],
+  [/tugas akhir|skripsi|proposal|thesis|capstone/i, () => ScrollIcon],
   [/transport|infrastruktur|infrastructure|jalan|rel\b/i, () => TrainIcon],
   [/komunikasi|pemasaran|marketing|communication|media/i, () => MegaphoneIcon],
   [/ekonomi|economic|keuangan|finance|bisnis|business/i, () => ChartLineUpIcon],
