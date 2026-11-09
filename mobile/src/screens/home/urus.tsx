@@ -419,21 +419,6 @@ function TodoRowView({ row, first }: { row: TodoRow; first: boolean }) {
           <Meta tone={row.late ? "red" : undefined} text={row.when} />
         </View>
       }
-      trailing={
-        row.presenceTag ? (
-          <View
-            testID={`row.need.${need.id}.presence`}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
-            style={{ flexDirection: "row", alignItems: "center", gap: 3 }}
-          >
-            <Icons.Hand size={14} color={v.muted} />
-            <Text size="labelMedium" weight="medium" style={{ color: v.muted }}>
-              {t("mobile.home.kind.presence")}
-            </Text>
-          </View>
-        ) : undefined
-      }
       onPress={() => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url))}
     />
   );

@@ -65,7 +65,6 @@ export function Accounts({ report }: { report: Report }) {
       <SettingRow
         leading={<IconTile icon={(color) => <Icons.Zap size={22} color={color} />} />}
         title={t("settings.firstScan")}
-        meta={t("mobile.settings.firstScanMeta")}
         onPress={() => router.push("/first-scan")}
         label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`}
         hint={t("settings.firstScan.hint")}
