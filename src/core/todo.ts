@@ -125,8 +125,13 @@ export function todoGroup(item: TodoItem, now: number): TodoGroup {
  */
 export const todoCounted = (item: TodoItem): boolean => (item.kind === "task" && !item.putAway) || (item.kind === "exam" && item.part !== null);
 
-/** "Belum selesai N", the sidebar's count and a course's tab: the same rows. */
-export const todoCount = (items: readonly TodoItem[]): number => items.filter(todoCounted).length;
+/**
+ * "Belum selesai N", the sidebar's count and a course's tab: the same rows the list shows. A period line within two weeks
+ * or going on opens on its exams with no day yet, each one a row the Student still sits: each counts, as a dated exam
+ * does (a UTS week's third midterm showed under it, and "Belum selesai 6" sat over 7 rows).
+ */
+export const todoCount = (items: readonly TodoItem[]): number =>
+  items.reduce((count, item) => count + (item.kind === "period" ? (item.state === "far" ? 0 : item.exams.length) : Number(todoCounted(item))), 0);
 
 /** Something late, or running out (or starting) within a day. */
 export const todoUrgent = (items: readonly TodoItem[], now: number): boolean =>

@@ -34,7 +34,7 @@ import {
   taskHistory,
   taskStatus,
 } from "../../core/tasks";
-import { lateSnoozable, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../core/todo";
+import { lateSnoozable, type TodoGroup, type TodoItem, todoCount, todoForCourse, todoGroup } from "../../core/todo";
 import { answerShape, editableInApp } from "../answer-html";
 import { ActionError, errorKey } from "../bridge";
 import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
@@ -136,7 +136,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
     (group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0),
   );
   // Never "nothing to do" while something is only put off.
-  const nothingToDo = !rest.some(todoCounted) && putOff.length === 0;
+  const nothingToDo = todoCount(items) === 0 && putOff.length === 0;
   // Signed out of SIX, only Edunex's exams are known: said once, at the end of the list, with the way to SIX's timetable.
   const examsNoSix = useStatus("six").state === "signed-out" && show === "open" && course === null;
   // Courses with something in either segment, for the filter.

@@ -88,6 +88,10 @@ export const mobileStrings = {
   "mobile.change.moved.time": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
   "mobile.change.moved.room": { id: "{dateId} di {room}", en: "{dateEn} in {room}" },
   "mobile.change.meeting.body": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
+  // Notifikasi: a meeting's row when its Teams link or its material came with it (mobile/src/screens/alerts/same-meeting.ts),
+  // what came first, then the meeting's day and time.
+  "mobile.change.meeting.withLink": { id: "Link baru · {when}", en: "New link · {when}" },
+  "mobile.change.meeting.withMaterial": { id: "Materi baru · {when}", en: "New material · {when}" },
   // Notifikasi's and Yang berubah's meta line for a moved class: what moved, old → new, only the day, time or room that
   // changed ("08:00–09:30 → 08:00–10:00"). The whole of both is in what TalkBack reads.
   "mobile.change.moved.diff": { id: "{oldId} → {newId}", en: "{oldEn} → {newEn}" },
