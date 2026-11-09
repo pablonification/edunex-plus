@@ -1,0 +1,211 @@
+{
+  "format": 1,
+  "kind": "estimate",
+  "note": "Made-up stand-ins until a recording on the real services lands (test/fixtures/real-timings.json): Edunex 350–900 ms a call, SIX 600–1500 ms a page, from a mid-range Android phone on Wi-Fi taking about 25 s for a full sync. One request of each kind; only ms counts.",
+  "requests": [
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/login/me",
+      "status": 200,
+      "ms": 350,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/notifications/:id",
+      "status": 200,
+      "ms": 500,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences/list",
+      "status": 200,
+      "ms": 600,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/tasks",
+      "status": 200,
+      "ms": 500,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/presences",
+      "status": 200,
+      "ms": 450,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/courses/:id",
+      "status": 200,
+      "ms": 900,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/announcements/course/:id",
+      "status": 200,
+      "ms": 400,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/exam/exams",
+      "status": 200,
+      "ms": 400,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/contents/",
+      "status": 200,
+      "ms": 450,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/course/comments",
+      "status": 200,
+      "ms": 400,
+      "startedAtMs": 0
+    },
+    {
+      "host": "api-edunex.cognisia.id",
+      "method": "GET",
+      "pathPattern": "/gradebook",
+      "status": 200,
+      "ms": 500,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/home",
+      "status": 200,
+      "ms": 800,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/statusmhs",
+      "status": 200,
+      "ms": 1200,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/kelas/jadwal/mahasiswa/:id",
+      "status": 200,
+      "ms": 1300,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/kelas/pertemuan/:id/mhs/:id",
+      "status": 200,
+      "ms": 600,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/statusmhs/transkrip/historis/:id",
+      "status": 200,
+      "ms": 1100,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/statusmhs/transkrip/kurikulum/:id",
+      "status": 200,
+      "ms": 1000,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/kurikulum/kurikulum/list",
+      "status": 200,
+      "ms": 800,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/kurikulum/kurikulum/:id/struktur",
+      "status": 200,
+      "ms": 1500,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/statusmhs/program-integrasi/riwayat/:id",
+      "status": 200,
+      "ms": 700,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/registrasi/rencanastudi/:id",
+      "status": 200,
+      "ms": 900,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/app/:id/keuangan",
+      "status": 200,
+      "ms": 800,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/pub/:id",
+      "status": 200,
+      "ms": 1200,
+      "startedAtMs": 0
+    },
+    {
+      "host": "six.itb.ac.id",
+      "method": "GET",
+      "pathPattern": "/pub/:id/:id",
+      "status": 200,
+      "ms": 1000,
+      "startedAtMs": 0
+    },
+    {
+      "host": "goitb.id",
+      "method": "GET",
+      "pathPattern": "/KalenderPendidikan-ics",
+      "status": 200,
+      "ms": 900,
+      "startedAtMs": 0
+    }
+  ],
+  "datasets": [],
+  "feeds": [],
+  "refused": [],
+  "totalMs": 0
+}
