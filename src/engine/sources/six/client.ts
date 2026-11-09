@@ -5,7 +5,7 @@
 // rate-limit answer (429) leaves SIX alone for at least 15 minutes.
 import type { Clock } from "../../clock";
 import { ActionNeeded, EngineError } from "../../errors";
-import { Pace } from "../../http/pace";
+import { Pace, type Place } from "../../http/pace";
 import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import { type FeedRead, noting } from "../../report/kept-pages";
 import type { SixIdentity, SixPages } from "./pages";
@@ -47,18 +47,27 @@ export class SixClient implements SixPages {
     /** SIX's line, shared with the public catalog on the same site. */
     private readonly pace: Pace = new Pace(clock),
     private readonly known: Known = { identity: null, reading: null },
+    /** Where its pages wait in SIX's line (Pace.turn). */
+    private readonly place: Place = "normal",
   ) {}
 
   /** This client for one feed run: the same line and session, its pages noted for that run's report (FeedSpec.run). */
   for(read: FeedRead): SixClient {
-    return new SixClient(noting(this.transport, read), this.clock, this.cookie, this.userAgent, this.pace, this.known);
+    return new SixClient(noting(this.transport, read), this.clock, this.cookie, this.userAgent, this.pace, this.known, this.place);
+  }
+
+  /** This client with its pages behind the others in SIX's line: the records, read by the day, after today's pages. */
+  later(): SixClient {
+    return new SixClient(this.transport, this.clock, this.cookie, this.userAgent, this.pace, this.known, "behind");
   }
 
   page(path: string, options: { popup?: boolean } = {}): Promise<string> {
-    return this.pace.turn(() => this.fetch(path, 0, options.popup ?? false));
+    return this.pace.turn(() => this.fetch(path, 0, options.popup ?? false), this.place);
   }
 
+  /** Who is signed in. While the status page is being read, what it says (a new term) rather than what was known. */
   async who(): Promise<SixIdentity> {
+    if (this.known.reading) await this.known.reading;
     if (this.known.identity) return this.known.identity;
     await this.status();
     return this.known.identity!;

@@ -23,6 +23,8 @@ export function registerTaskFeeds(context: SourceContext, client: EdunexClient):
   const outlines = new Map<number, Outline>();
   context.feed({
     name: "edunex.tasks",
+    // What's due, on Beranda.
+    priority: "now",
     every: 15 * MINUTE,
     jitter: 2 * MINUTE,
     async run(current, read) {
@@ -52,12 +54,18 @@ export function registerTaskFeeds(context: SourceContext, client: EdunexClient):
           if (!current()) return;
         }
       }
-      const named = await nameModules(client, fetched, outlines, previous, context.clock.now(), current);
-      if (!current()) return;
       // A Task the Student changed while this ran is already stored as Edunex read it back afterwards.
-      const latest = context.get("edunex.tasks") ?? [];
-      const tasks = named.flatMap((task) => ((log.tasks.get(task.id) ?? 0) > begun ? latest.filter((kept) => kept.id === task.id) : [task]));
-      await storeTasks(context, tasks);
+      const fresh = (tasks: Task[]) => {
+        const latest = context.get("edunex.tasks") ?? [];
+        return tasks.flatMap((task) => ((log.tasks.get(task.id) ?? 0) > begun ? latest.filter((kept) => kept.id === task.id) : [task]));
+      };
+      // What's due goes to Beranda now, its modules named as last known; the outlines that name them come after.
+      const known = withModules(fetched, outlines, previous);
+      await storeTasks(context, fresh(known));
+      const named = await nameModules(client, known, outlines, previous, context.clock.now(), current);
+      if (!current()) return;
+      if (named.some((task, at) => task.module?.name !== known[at]!.module?.name || task.module?.index !== known[at]!.module?.index))
+        await storeTasks(context, fresh(named));
       // The threads under the answers just read: one handed in, handed back or reviewed is read at once (./task-threads.ts).
       void context.runNow((feed) => feed === "edunex.taskThreads");
       if (failure) throw failure;
@@ -114,6 +122,11 @@ async function nameModules(
     }
     if (!current()) return tasks;
   }
+  return withModules(tasks, outlines, previous);
+}
+
+/** Each Task's module, from the outlines read, else as it was named before. */
+function withModules(tasks: Task[], outlines: Map<number, Outline>, previous: Task[]): Task[] {
   return tasks.map((task) => ({
     ...task,
     module: (task.moduleId !== null && outlines.get(task.courseId)?.modules.get(task.moduleId)) || previous.find((p) => p.id === task.id)?.module || null,
