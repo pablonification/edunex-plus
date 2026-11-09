@@ -11,7 +11,7 @@ import { useDone, useHeldBack, useSnoozes } from "../../../../src/app/snoozes";
 import { useBridge, useStatus } from "../../../../src/app/store";
 import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
-import { NotificationsOff } from "../../parts/notifications-off";
+import { NotificationsOff, useNotificationPermission } from "../../parts/notifications-off";
 import { toast } from "../../swaps/overlays";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
@@ -49,8 +49,12 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
   const needsSix = sixOut ? t("mobile.settings.needsSix") : undefined;
   const setOn = (group: AlertGroup, on: boolean) =>
     update({ mutedAlerts: on ? settings.mutedAlerts.filter((g) => g !== group) : [...settings.mutedAlerts.filter((g) => g !== group), group] });
+  // While Android has notifications off, no switch here can make one show: they're greyed, their state kept, until the
+  // notice's button turns notifications on.
+  const permission = useNotificationPermission();
+  const off = permission.off;
   return (
-    <SettingsGroup title={t("settings.alerts")} lead={<NotificationsOff />} testID="section.settings.alerts">
+    <SettingsGroup title={t("settings.alerts")} lead={<NotificationsOff state={permission} />} testID="section.settings.alerts">
       {ALERT_ROWS.flatMap(({ group, label, hint, six }) => {
         const on = !settings.mutedAlerts.includes(group);
         const row = (
@@ -61,12 +65,13 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
             meta={six ? needsSix : undefined}
             metaTone="amber"
             value={on}
+            disabled={off}
             onChange={(next) => setOn(group, next)}
             testID={`switch.alert.${group}`}
           />
         );
         // Tenggat's reminder times, while it's on.
-        return group === "deadline" && on ? [row, <DueTimes key="dueTimes" settings={settings} update={update} />] : [row];
+        return group === "deadline" && on && !off ? [row, <DueTimes key="dueTimes" settings={settings} update={update} />] : [row];
       })}
       <SwitchRow
         title={t("settings.alerts.classSoon")}
@@ -74,6 +79,7 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
         meta={needsSix}
         metaTone="amber"
         value={settings.classSoonAlerts}
+        disabled={off}
         onChange={(classSoonAlerts) => update({ classSoonAlerts })}
         testID="switch.classSoon"
       />
