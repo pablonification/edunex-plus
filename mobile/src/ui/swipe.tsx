@@ -4,12 +4,14 @@
 // Urungkan; one that opens a choice (Ingatkan nanti) springs back and opens it. One direction per action: a "done"
 // (success) swipes toward the end, anything else toward the start, the same on every screen. Swiping is a shortcut,
 // never the only way: every action is also in the row's long-press menu (sheet.tsx) and its TalkBack actions. All of
-// it runs on the UI thread; JS hears only of the tick and the commit.
+// it runs on the UI thread; JS hears only of the tick and the commit. The actions' colour, icon and word under the row
+// are drawn the first time a finger touches it, not with the row: a row with two of them was twice the views of one
+// without, on every screen's first frame (Beranda's cold start, Tugas's first draw) for what's seen only in a swipe.
 import * as Haptics from "expo-haptics";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import { type ReactNode, startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { I18nManager, type LayoutChangeEvent, StyleSheet, View } from "react-native";
 import { GestureDetector, type PanGestureConfig, usePanGesture } from "react-native-gesture-handler";
-import Animated, { interpolate, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, { interpolate, type SharedValue, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
 import { useReduceMotion } from "./motion";
 import { Text } from "./text";
@@ -82,6 +84,10 @@ function Swiper({ actions, children, testID, surface }: { actions: readonly Swip
   const fold = useSharedValue(0);
   const fade = useSharedValue(1);
   const armed = useSharedValue(0);
+  // Whether the actions under the row are drawn: from the first touch on (asked once, from the UI thread).
+  const [under, setUnder] = useState(false);
+  const asked = useSharedValue(0);
+  const drawUnder = useCallback(() => startTransition(() => setUnder(true)), []);
   const back = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => void (back.current && clearTimeout(back.current)), []);
 
@@ -111,6 +117,13 @@ function Swiper({ actions, children, testID, surface }: { actions: readonly Swip
     (): PanGestureConfig => ({
       activeOffsetX: [-12, 12],
       failOffsetY: [-10, 10],
+      // A finger down: the actions under the row are drawn while it moves the 12 dp a swipe starts at.
+      onBegin: () => {
+        "worklet";
+        if (asked.value) return;
+        asked.value = 1;
+        scheduleOnRN(drawUnder);
+      },
       onUpdate: (event) => {
         "worklet";
         const dx = event.translationX;
@@ -153,55 +166,62 @@ function Swiper({ actions, children, testID, surface }: { actions: readonly Swip
         else x.value = withSpring(which * width.value, { ...motion.spatialFast, overshootClamping: true }, gone);
       },
     }),
-    [hasPlus, hasMinus, plusLeaves, minusLeaves, still, run, x, width, armed, fold, fade],
+    [hasPlus, hasMinus, plusLeaves, minusLeaves, still, run, x, width, armed, fold, fade, asked, drawUnder],
   );
   const pan = usePanGesture(config);
 
   const row = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }], opacity: fade.value }));
   const box = useAnimatedStyle(() => (fold.value > 0 ? { height: interpolate(fold.value, [0, 1], [height.value, 0]), overflow: "hidden" } : {}));
-  const plusLayer = useAnimatedStyle(() => ({ opacity: x.value > 0 ? fade.value : 0 }));
-  const minusLayer = useAnimatedStyle(() => ({ opacity: x.value < 0 ? fade.value : 0 }));
-  // The icon grows once letting go would do it: the visible half of the tick.
-  const plusMark = useAnimatedStyle(() => ({ transform: [{ scale: withSpring(armed.value && x.value > 0 ? 1.15 : 0.9, motion.expressive) }] }));
-  const minusMark = useAnimatedStyle(() => ({ transform: [{ scale: withSpring(armed.value && x.value < 0 ? 1.15 : 0.9, motion.expressive) }] }));
 
   const measure = (event: LayoutChangeEvent) => {
     width.value = event.nativeEvent.layout.width;
     if (fold.value === 0) height.value = event.nativeEvent.layout.height;
   };
 
-  const layer = (action: SwipeAction, from: "left" | "right", style: object, mark: object) => {
-    const [bg, fg] = TONE[action.tone];
-    return (
-      <Animated.View
-        pointerEvents="none"
-        importantForAccessibility="no-hide-descendants"
-        style={[
-          StyleSheet.absoluteFill,
-          styles.under,
-          { backgroundColor: theme.color[bg], justifyContent: from === "left" ? "flex-start" : "flex-end" },
-          style,
-        ]}
-      >
-        <Animated.View style={[styles.mark, mark]}>
-          {action.icon}
-          <Text size="labelLarge" style={{ color: theme.color[fg] }} numberOfLines={1}>
-            {action.label}
-          </Text>
-        </Animated.View>
-      </Animated.View>
-    );
-  };
-
   return (
     <Animated.View style={box} testID={testID}>
       <View onLayout={measure}>
-        {plus && layer(plus, "left", plusLayer, plusMark)}
-        {minus && layer(minus, "right", minusLayer, minusMark)}
+        {under && plus && <Under action={plus} sign={1} x={x} fade={fade} armed={armed} />}
+        {under && minus && <Under action={minus} sign={-1} x={x} fade={fade} armed={armed} />}
         <GestureDetector gesture={pan}>
           <Animated.View style={[{ backgroundColor: surface ?? theme.color.surfaceContainerLow }, row]}>{children}</Animated.View>
         </GestureDetector>
       </View>
+    </Animated.View>
+  );
+}
+
+/** An action under the row, on the side the row moves away from (`sign`: +1 when it moves toward +x). */
+function Under({
+  action,
+  sign,
+  x,
+  fade,
+  armed,
+}: {
+  action: SwipeAction;
+  sign: 1 | -1;
+  x: SharedValue<number>;
+  fade: SharedValue<number>;
+  armed: SharedValue<number>;
+}) {
+  const theme = useTheme();
+  const [bg, fg] = TONE[action.tone];
+  const layer = useAnimatedStyle(() => ({ opacity: x.value * sign > 0 ? fade.value : 0 }));
+  // The icon grows once letting go would do it: the visible half of the tick.
+  const mark = useAnimatedStyle(() => ({ transform: [{ scale: withSpring(armed.value && x.value * sign > 0 ? 1.15 : 0.9, motion.expressive) }] }));
+  return (
+    <Animated.View
+      pointerEvents="none"
+      importantForAccessibility="no-hide-descendants"
+      style={[StyleSheet.absoluteFill, styles.under, { backgroundColor: theme.color[bg], justifyContent: sign > 0 ? "flex-start" : "flex-end" }, layer]}
+    >
+      <Animated.View style={[styles.mark, mark]}>
+        {action.icon}
+        <Text size="labelLarge" style={{ color: theme.color[fg] }} numberOfLines={1}>
+          {action.label}
+        </Text>
+      </Animated.View>
     </Animated.View>
   );
 }
