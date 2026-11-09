@@ -328,7 +328,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
                 tone: "warning",
               };
         return {
-          title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
+          // The Task by its own name, as Tugas and the Task page name it (the hand tile says it counts for attendance).
+          title: need.task ? need.task.title : t("home.need.presenceAhead", { course: need.course ?? "" }),
           titleLacksCourse: need.task !== null,
           meta: [course],
           when: soon(need.session.opensAt),

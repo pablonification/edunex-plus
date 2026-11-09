@@ -1,7 +1,7 @@
 // "Nanti hari ini" (round 2, v4): the classes and meetings still to come today, past the one on the now card. A row
-// each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what matters today, the first of
-// the desktop's Hari ini statuses in its words (Tak bisa capai 80%, Bentrok, a new time or room, Wajib hadir; Hanya di
-// Edunex for a meeting). A row opens the class's sheet. A class on SIX's timetable today that the app couldn't read
+// each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what's new about today's class
+// (a new time or room; Hanya di Edunex for a meeting). A course's absences and a clash are Perlu kamu urus's, said
+// once there (./urus.tsx). A row opens the class's sheet. A class on SIX's timetable today that the app couldn't read
 // comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX writes it; it opens Jadwal's
 // sheet for it, with SIX's timetable. Hidden when nothing's left.
 import { useState } from "react";
@@ -172,17 +172,12 @@ function UnreadRow({ one, first, onOpen }: { one: UnreadSession; first: boolean;
 }
 
 /**
- * The row's one chip: the desktop's first status for the class (src/app/screens/home.tsx classStatuses), in its words
- * and order: the target out of reach (red), a clash, a new time or room, no absences left ("Wajib hadir", amber, as on
- * the class's sheet). A meeting only Edunex announced says so.
+ * The row's one chip: a new time or room, in the desktop's words (src/app/screens/home.tsx classStatuses). A meeting only
+ * Edunex announced says so. A course's absences and a clash are Perlu kamu urus's rows (one fact, one place).
  */
 function chipOf(t: Translate, item: Item): { text: string; tone: AbsenceTone } | null {
   if (item.kind === "meeting") return item.meeting.maybeInSix ? null : { text: t("home.today.notInSix"), tone: "amber" };
   const { facts } = item;
-  const { health } = facts;
-  if (health && facts.state === "out") return { text: t("home.today.out", { target: health.target }), tone: "red" };
-  if (facts.overlap) return { text: t("home.today.overlap"), tone: "amber" };
   if (facts.moved) return { text: t(facts.moved.usualStart !== null ? "home.today.changed" : "home.today.roomChanged"), tone: "amber" };
-  if (health && facts.state === "none") return { text: t("home.today.mustAttend"), tone: "amber" };
   return null;
 }
