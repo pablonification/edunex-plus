@@ -22,9 +22,9 @@ import { isEmptyDay, minuteOfDay, type ScheduleDay, scheduleDays, shiftDay, term
 import { useParam } from "../../nav";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
-import { StatusLine, SyncPanel, useSignIn, useSyncText } from "../../shell/source-status";
+import { StatusLine, SyncPanel, TabActions, useSignIn, useSyncText } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
-import { Button, IconButton } from "../../ui/controls";
+import { Button } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
@@ -367,7 +367,7 @@ function CalendarProblem({ problem, onRetry }: { problem: "denied" | "failed"; o
   );
 }
 
-/** The top bar's own: the month, and ⋮ with the reminder before class, the phone's calendar and the .ics. */
+/** The top bar's own: ⋮ with the month, the reminder before class, the phone's calendar and the .ics; then every tab's three. */
 function ScheduleActions() {
   const t = useT();
   const v = useTheme().v4;
@@ -386,13 +386,16 @@ function ScheduleActions() {
   }, [sync.on, sync.written, sync.events, t]);
   return (
     <>
-      <IconButton label={t("mobile.schedule.month")} onPress={() => router.push("/schedule-month")} testID="action.month">
-        <Icons.Calendar size={24} color={v.fg} />
-      </IconButton>
       <OverflowMenu
         testID="action.scheduleMenu"
         label={t("mobile.schedule.menu")}
         choices={[
+          {
+            label: t("mobile.schedule.month"),
+            icon: <Icons.Calendar size={20} color={v.muted} />,
+            onPress: () => router.push("/schedule-month"),
+            testID: "action.month",
+          },
           {
             label: t("mobile.schedule.remind"),
             hint: t("mobile.schedule.remind.hint"),
@@ -431,6 +434,7 @@ function ScheduleActions() {
           },
         ]}
       />
+      <TabActions />
     </>
   );
 }

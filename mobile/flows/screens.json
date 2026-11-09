@@ -2184,6 +2184,11 @@
           },
           {
             "tapOn": {
+              "id": "action.scheduleMenu"
+            }
+          },
+          {
+            "tapOn": {
               "id": "action.month"
             }
           },
