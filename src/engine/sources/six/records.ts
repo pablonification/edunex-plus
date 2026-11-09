@@ -7,14 +7,14 @@
 import { sixRecordPaths } from "../../../core/links";
 import type { Curriculum, Syllabus } from "../../../core/models";
 import { EngineError } from "../../errors";
-import { breaks, parseInSlices } from "../../html-slices";
+import { breaks, parsedAhead, parseInSlices } from "../../html-slices";
 import type { FeedRead } from "../../report/kept-pages";
 import { Skipped } from "../skipped";
 import type { SourceContext } from "../source";
 import { pagesFor, type SixPages } from "./pages";
 import { readBills } from "./readers/bills";
 import { readCurriculumList } from "./readers/curriculum-list";
-import { readCurriculumStructure } from "./readers/curriculum-structure";
+import { readCurriculumStructureInTurns } from "./readers/curriculum-structure";
 import { readKrs } from "./readers/krs";
 import { readProgress } from "./readers/progress";
 import { changed } from "./readers/records-common";
@@ -91,7 +91,10 @@ export async function fetchCurriculum(pages: SixPages, skipped?: Skipped, pause?
   if (!current && list.length > 0 && list.every((entry) => entry.active === false)) return null;
   // A mark the app couldn't read might be the ✓.
   if (!current) changed("curriculum list", "no curriculum is in force");
-  const structure = readCurriculumStructure(await parseInSlices(await pages.page(current.structurePath), breaks(pause)), skipped);
+  const page = await pages.page(current.structurePath);
+  // On the phone the client parsed it in slices as it came (./client.ts), and the screens get a turn between its tabs.
+  const breathe = breaks(pause);
+  const structure = await readCurriculumStructureInTurns(parsedAhead(page) ?? (await parseInSlices(page, breathe)), skipped, breathe);
   const registrations = readSchemes(await pages.page(recordPaths.schemes(who)), skipped);
   return {
     name: structure.name,

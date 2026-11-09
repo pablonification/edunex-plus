@@ -18,7 +18,8 @@ export const six: Source<SixSession> = {
   session: SixSession,
   liveness: "six.status",
   start(context, session) {
-    const client = new SixClient(context.transport, context.clock, session.cookie, context.userAgent, context.pace(new URL(SIX_ORIGIN).host));
+    const pace = context.pace(new URL(SIX_ORIGIN).host);
+    const client = new SixClient(context.transport, context.clock, session.cookie, context.userAgent, pace, undefined, context.breathe);
     // One client, so every SIX page (status, timetable, records) waits in the same line.
     registerSixFeeds(context, client);
     registerSixRecordFeeds(context, client);

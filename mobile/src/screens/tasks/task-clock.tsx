@@ -66,6 +66,7 @@ export function byMoments(parent: UiClock, moments: () => readonly number[]): Ui
   let shown = parent.now();
   let stop: (() => void) | null = null;
   return {
+    deferred: parent.deferred,
     now: () => shown,
     subscribe(listener) {
       listeners.add(listener);

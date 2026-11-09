@@ -2,6 +2,8 @@
 // Student. Pure: the KRS and UKT tabs, the Kalender akademik tab and the
 // alerts all reason with these, so they always agree. View only: nothing here
 // changes a KRS or pays a bill.
+
+import { numberFormat } from "./intl-formats";
 import {
   type AcademicCalendar,
   type Bill,
@@ -25,7 +27,7 @@ export const wibMorning = (day: string, offset = 0) => wibDayStart(day) + offset
 
 /** Rupiah as Indonesians write it in both languages: "Rp5.400.000". */
 export function rupiah(amount: number): string {
-  return `Rp${new Intl.NumberFormat("id-ID", { maximumFractionDigits: 0 }).format(amount)}`;
+  return `Rp${numberFormat("id-ID", { maximumFractionDigits: 0 }).format(amount)}`;
 }
 
 // ------------------------------------------------------------ terms

@@ -50,11 +50,16 @@ export class DatasetStore {
     private readonly emit: (event: Event) => void,
   ) {}
 
-  /** Loads what was saved; anything unreadable or from an older format is skipped, not trusted. */
+  /**
+   * Loads what was saved; anything unreadable or from an older format is skipped, not trusted. The files are read all
+   * at once: on the phone each read is a trip to the native side, and the first frame waits for the last one.
+   */
   async load(): Promise<void> {
-    for (const key of await this.storage.list("datasets/")) {
+    const keys = await this.storage.list("datasets/");
+    const texts = await Promise.all(keys.map((key) => this.storage.read(key).catch(() => null)));
+    for (const text of texts) {
       try {
-        const saved = JSON.parse((await this.storage.read(key)) ?? "null");
+        const saved = JSON.parse(text ?? "null");
         if (saved?.format !== FORMAT || !(saved.name in Datasets)) continue;
         const schema = Datasets[saved.name as DatasetName];
         if (!schema.safeParse(saved.value).success) continue;

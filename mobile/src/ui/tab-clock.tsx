@@ -8,9 +8,14 @@
 // it, 200–560 ms on a small phone while the Student looked at one; a hidden tab now hears of it when it's shown.
 // A hidden tab also draws for the first time on its own turn: the four drawn at once with Beranda held Beranda's data
 // back about 400 ms on a start with saved data (Redroid, compared on one machine). Each now waits for the start to
-// settle, then one tab every 300 ms once the JS thread is idle; opened before its turn, it draws at once.
+// settle, then one tab every 300 ms once the JS thread is idle; opened before its turn, it draws at once. That turn is a
+// transition: drawn in one piece, each of the four held the JS thread 220–380 ms on a mid-range phone (Snapdragon 720G,
+// a cold start with saved data); as a transition React draws it a part at a time and lets a tap, a frame or the engine
+// in between. The store and the clock the tab reads hand their changes over as transitions too (../../app/_layout.tsx,
+// src/app/external.ts), and a hidden tab hears of what it missed the same way once it's shown: the switch itself is
+// never held up by a redraw.
 import { useIsFocused } from "expo-router";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { ClockProvider, type UiClock, useClock } from "../../../src/app/i18n";
 import { type AppStore, StoreProvider, useBridge, useStore } from "../../../src/app/store";
 import { perfDoing } from "../perf";
@@ -31,7 +36,7 @@ export function TabClock({ children }: { children: ReactNode }) {
       setDrawn(true);
       return;
     }
-    return queueFirstDraw(() => setDrawn(true));
+    return queueFirstDraw(() => startTransition(() => setDrawn(true)));
   }, [focused, drawn]);
   useEffect(() => {
     if (!focused) return;
@@ -80,6 +85,7 @@ function gated(parent: UiClock, open: () => boolean): UiClock & { catchUp(): voi
     for (const listener of listeners) listener();
   };
   return {
+    deferred: parent.deferred,
     now: parent.now,
     subscribe(listener) {
       listeners.add(listener);
