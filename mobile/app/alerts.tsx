@@ -3,8 +3,8 @@
 // Beranda's "Yang berubah" is a preview of this list. On v4's grey page, by day (Hari ini, Kemarin, then the date), each
 // day a white card of rows: the kind's icon on its course's colour (amber for what presses), the title with the course's
 // name, one meta line (what changed, old → new, or the action and its deadline), and at the row's end the time the
-// thing itself happened (a Task posted, a Presence opening), never when the app read it: nothing when that isn't known
-// (SIX never dates a moved class). A small calm dot on each unread row, and the bell's dot on every tab, until "Tandai
+// thing itself happened (a Task posted, a Presence opening), else when the app noticed it (SIX never dates a moved
+// class). A small calm dot on each unread row, and the bell's dot on every tab, until "Tandai
 // semua dibaca", the bar's one action while something is unread: both say the same thing. Nothing is ever marked in
 // Edunex. A class's or a Presence's alert whose window is over says what happened, with no action left in it, and opens
 // the course; a deadline's, once it has passed, says whether the Task was handed in, and opens the Task; an exam SIX lists in two weeks is one row with both days (../src/screens/alerts/past.ts,
@@ -177,9 +177,18 @@ export default function Alerts() {
               const lines = changeLines(t, item, name);
               const outcome = past ? outcomeOf(t, past.outcome) : null;
               const title = past ? pastTitle(t, past, name(past.code)) : lines.title;
-              const meta = past ? (outcome?.text ?? null) : sittings ? sittingsLine(f, sittings) : lines.meta;
+              // One fact once: a part of the meta line the title already says (a date in a material's name) is left out.
+              const said = (text: string | null) =>
+                text
+                  ? text
+                      .split(" · ")
+                      .filter((part) => !title.includes(part))
+                      .join(" · ") || null
+                  : null;
+              const meta = past ? (outcome?.text ?? null) : sittings ? sittingsLine(f, sittings) : said(lines.meta);
               const spoken = past ? [title, outcome?.text ?? null] : sittings ? [lines.title, meta] : lines.spoken;
-              const time = happened !== null ? f.time(happened) : null;
+              // Every row has a time: when the thing happened, else when the app noticed it.
+              const time = f.time(happened ?? item.at);
               return (
                 <GroupRow
                   key={item.id}
@@ -204,24 +213,20 @@ export default function Alerts() {
                         </Text>
                       </View>
                     ) : meta ? (
-                      // Two lines at most: a moved class's day and old → new, an exam's two days, are one fact each.
-                      <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
+                      // One short line: the whole of it is in the row's spoken name and on what the row opens.
+                      <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
                         {meta}
                       </Text>
                     ) : undefined
                   }
                   // The time it happened, and under it a small calm dot while unread (its shape says it, never the colour alone).
                   trailing={
-                    time || unread ? (
-                      <View style={{ alignItems: "flex-end", gap: space[1] }}>
-                        {time && (
-                          <Text size="labelMedium" tabular style={{ color: v.muted }}>
-                            {time}
-                          </Text>
-                        )}
-                        {unread && <View testID={`row.alert.${item.id}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brand }} />}
-                      </View>
-                    ) : undefined
+                    <View style={{ alignItems: "flex-end", gap: space[1] }}>
+                      <Text size="labelMedium" tabular style={{ color: v.muted }}>
+                        {time}
+                      </Text>
+                      {unread && <View testID={`row.alert.${item.id}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brand }} />}
+                    </View>
                   }
                   onPress={() =>
                     past
