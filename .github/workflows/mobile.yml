@@ -120,7 +120,8 @@ jobs:
             # QA builds for a real account on a phone: reads only (EXPO_PUBLIC_R3_GUARD), arm64 only.
             qa) apks='[{"name": "edunex-plus-qa-release", "demo": "", "guard": "1", "task": "assembleRelease", "out": "release/app-release.apk", "abis": "arm64-v8a"},
               {"name": "edunex-plus-qa-dev-client", "demo": "", "guard": "1", "task": "assembleDebug", "out": "debug/app-debug.apk", "abis": "arm64-v8a"},
-              {"name": "edunex-plus-demo-release", "demo": "1", "task": "assembleRelease", "out": "release/app-release.apk", "abis": "x86_64,arm64-v8a"}]' ;;
+              {"name": "edunex-plus-demo-release", "demo": "1", "task": "assembleRelease", "out": "release/app-release.apk", "abis": "x86_64,arm64-v8a"}]'
+              apks=$(jq -c . <<< "$apks") ;;
             *) apks=$(jq -c 'map(select(.name == "edunex-plus-demo-release"))' <<< "$all") ;;
           esac
           if [ "$APKS" = none ] && [ "$E2E" != true ]; then apks='[]'; fi
