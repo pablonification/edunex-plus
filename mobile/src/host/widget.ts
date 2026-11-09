@@ -6,6 +6,7 @@ import { useEffect } from "react";
 import { AppState, Platform } from "react-native";
 import { getWidgetInfo, requestWidgetUpdate } from "react-native-android-widget";
 import type { Event } from "../../../src/core/contract";
+import { perfDoing } from "../perf";
 import { currentModel, drawingOf, type LiveSource, setLiveSource } from "../widget/draw";
 import { saveDemoOffset } from "../widget/saved";
 import { WIDGET_NAMES } from "../widget/view";
@@ -37,6 +38,8 @@ export async function updateWidgets(current?: Pick<Host, "engine" | "clockOffset
   const placed = await Promise.all(WIDGET_NAMES.map(async (name) => ((await getWidgetInfo(name)).length ? name : null)));
   const names = placed.filter((name) => name !== null);
   if (!names.length) return null;
+  // A stall right after is the widget's: Beranda's reasoning again, and the drawing handed to Android (../perf.ts).
+  perfDoing("the widget's drawing");
   const model = currentModel(current ? liveOf(current) : undefined);
   for (const name of names) await requestWidgetUpdate({ widgetName: name, renderWidget: (info) => drawingOf(model, info) });
   return model?.changesAt ?? null;
