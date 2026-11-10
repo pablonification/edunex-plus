@@ -1,8 +1,9 @@
 // Settings' top, Akun (who's signed in is Profil's card, the screen this one is opened from): each system's row, its
 // name and its state as the one line under it: "Terhubung" in green, no dot (round 3's final review: the dot and the
 // word said it twice); when it was last checked only once that's stale. Signed out (or the session ended), the row signs
-// in; signed in, it opens a sheet whose one choice signs out of just that system. No mark at a row's start: every row
-// of Settings starts its words at the same edge (round 1's council), and SIX is no longer the Kuliah tab's cap.
+// in; signed in, it opens a sheet whose one choice signs out of just that system. Each row starts with its system's own
+// mark (Icons.Edunex, Icons.Six: the same two as on Profil), quiet, with no tile behind it: the only rows of Settings
+// that name a system, so the only ones with a mark (round 2's council: "rows have no icons").
 import { useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
@@ -67,6 +68,7 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   return (
     <View testID={`row.account.${source}`}>
       <SettingRow
+        leading={<SourceMark source={source} />}
         title={name}
         // Connected: the word alone in green; a dot beside it said the same thing twice (round 3's final review).
         meta={state.text}
@@ -98,6 +100,17 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
           },
         ]}
       />
+    </View>
+  );
+}
+
+/** The system's mark at its row's start: the glyph alone in the page's quiet ink, in a 44 dp slot. */
+function SourceMark({ source }: { source: SourceId }) {
+  const v = useTheme().v4;
+  const Glyph = source === "six" ? Icons.Six : Icons.Edunex;
+  return (
+    <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+      <Glyph size={24} color={v.fg2} />
     </View>
   );
 }
