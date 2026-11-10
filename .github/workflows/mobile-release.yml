@@ -111,7 +111,7 @@ jobs:
         env:
           ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
         run: |
-          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
           ours=$(keytool -list -keystore "$ANDROID_SIGNING_KEYSTORE_FILE" -storepass "$ANDROID_SIGNING_PASSWORD" -alias edunex-plus | sed -n 's/.*SHA-256): //p' | tr -d ':' | tr 'A-F' 'a-f')
           signed=$("$apksigner" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
           [ -n "$ours" ] && [ "$ours" = "$signed" ] || { echo "::error::The APK isn't signed with Edunex Plus's key."; exit 1; }
