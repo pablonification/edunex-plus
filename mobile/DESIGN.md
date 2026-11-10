@@ -210,7 +210,7 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Materi | `ServiceIcons.Materials` | `book` | 24, 28, 32 |
 | KRS | `ServiceIcons.Krs` | `task-list-square-ltr` (the registration form: a list with its ticks; coins read as "top up"; never a clipboard: the Tugas tab's and a Task's) | 24 (28, 32: the 24) |
 | UKT | `ServiceIcons.Bills` | `wallet` | 24, 28, 32 |
-| Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-agenda` (a calendar page of dated lines: the term's dates as a list) | 24, 28 (32: the 28) |
+| Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-star` (a calendar with a star: the term's marked dates; `calendar-agenda`'s dated lines read like a note) | 24 (28, 32: the 24) |
 | Rencana studi | `ServiceIcons.StudyPlan` | `steps` (the plan to graduation: steps going up; a road sign read as map directions) | 24 (28, 32: the 24) |
 | Transkrip | `ServiceIcons.Transcript` | `document-ribbon` | 24, 28, 32 |
 | Notifikasi | `ServiceIcons.Notifications` | `alert` | 24, 28, 32 |
@@ -222,7 +222,7 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Profil | `ServiceIcons.Profile` | `person` | 24, 28, 32 |
 | Perlu kamu urus | `ServiceIcons.Needs` | `checkbox-person` (a box to tick that is yours; the warning triangle is a warning only) | 24 (28, 32: the 24) |
 | Ringkasan awal | `ServiceIcons.FirstSummary`, `Icons.FirstSummary` | `scan-text` (a page being read: its one glyph everywhere; the history clock is "Jam berubah" only) | 24, 28, 32 |
-| Jadwal bulanan | `ServiceIcons.Month`, `Icons.Month` | `calendar-month` (a month's grid of days; Kalender akademik is dated lines, the Jadwal tab a single page) | 24, 28, 32 |
+| Jadwal bulanan | `ServiceIcons.Month`, `Icons.Month` | `calendar-month` (a month's grid of days; Kalender akademik is a calendar with a star, the Jadwal tab a single page) | 24, 28, 32 |
 | Laporkan masalah | `ServiceIcons.Report` | `chat-warning` (a message with an exclamation mark) | 24 (28, 32: the 24) |
 
 **Service colours, one rule.** A solid colour is one of Beranda's seven; every other service is the app's own pale

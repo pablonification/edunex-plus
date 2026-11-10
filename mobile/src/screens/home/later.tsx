@@ -20,7 +20,7 @@
 //
 // Round 4: the day that follows today's is the next day with anything on it, a class or a meeting only Edunex
 // announced (Friday's meeting was skipped for next week's classes). An exam's row says so: "UTS" before the course's
-// name and the exam glyph on the line, as Tugas and Jadwal draw it. A clash is marked on both rows, each with the
+// name and the exam glyph on the line, as Tugas and Jadwal draw it. A clash is marked on both rows, the first with the
 // time the two share. And today's rows are one height (the first row's, which reaches the fold), so the line down
 // the day has even steps instead of one long one.
 import { type ComponentRef, useEffect, useMemo, useRef, useState } from "react";
@@ -182,6 +182,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
                     first={false}
                     last={i === items.length - 1}
                     clash
+                    clashTime={!saidAbove(items, i)}
                     courses={courses}
                     minHeight={step ? Math.min(step, EVEN) : undefined}
                     onOpen={() => open(item)}
@@ -252,6 +253,17 @@ export function LaterShape() {
   );
 }
 
+/** A row above this one is the other class of its clash, so the time they share is already written there. */
+function saidAbove(items: readonly Item[], index: number): boolean {
+  const item = items[index];
+  const overlap = item?.kind === "class" ? item.facts.overlap : null;
+  if (!item || !overlap) return false;
+  return items.slice(0, index).some((above) => {
+    const theirs = above.kind === "class" ? above.facts.overlap : null;
+    return theirs !== null && theirs.code === item.code && theirs.from === overlap.from && theirs.to === overlap.to;
+  });
+}
+
 /**
  * One class on the day's timeline: its time in a column, the course's glyph in its colour on the line down the day,
  * the name on the row's full width (two lines at most), and under it the room with the clash mark or what changed.
@@ -261,6 +273,7 @@ function Row({
   first,
   last,
   clash: saysClash,
+  clashTime = true,
   courses,
   minHeight = ROW,
   onOpen,
@@ -268,8 +281,10 @@ function Row({
   item: Item;
   first: boolean;
   last: boolean;
-  /** This row says its clash: today's rows do, both of a pair, each with the time they share. */
+  /** This row says its clash: today's rows do, both of a pair. */
   clash: boolean;
+  /** The mark carries the time the pair shares: on the first of the two rows only, so it's written once. */
+  clashTime?: boolean;
   courses: readonly TermCourse[];
   /** The first row's height when it runs down to the fold. */
   minHeight?: number;
@@ -327,9 +342,9 @@ function Row({
               </Text>
             ) : null}
             {marked && (
-              // A clash, on both rows of the pair with the time they share: the sheet this row opens says which to go to.
+              // A clash, on both rows of the pair, the time they share on the first: the sheet this row opens says which to go to.
               <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={`clash.today.${item.key}`}>
-                <ClashMark detail={overlap ? f.timeRange(overlap.from, overlap.to) : undefined} />
+                <ClashMark detail={overlap && clashTime ? f.timeRange(overlap.from, overlap.to) : undefined} />
               </View>
             )}
             {/* Neutral words: amber is for the Student's standing and the clash, and a new room isn't either. */}

@@ -130,7 +130,7 @@ These replace the "Service colours" row above where they differ.
   Gold is a tile's solid fill with a white glyph; the state amber is a word or a pale fill, never a solid tile.
 - **Glyphs that say their service** (Fluent, filled on tiles): KRS `TaskListSquareLtr` (was `StackAdd`), Rencana
   `Steps` (was `Directions`), Ujian `DocumentBulletListClock` (was `DocumentEdit`), Kalender akademik
-  `CalendarAgenda` (was `CalendarStar`), Jadwal bulanan and Jadwal's month button `CalendarMonth` (was
+  `CalendarStar` again (`CalendarAgenda` read like a note to the judges), Jadwal bulanan and Jadwal's month button `CalendarMonth` (was
   `CalendarMultiple`), Kurikulum `Organization` (was `Library`), Lapor `ChatWarning` (was `PersonFeedback`).
   The rest stay as learned. The Jadwal tab's own glyph is a native drawable and stays.
 - **Dark's states:** over the limit is red (`#ff6259`, `#ff6b61`), used up is amber (`#ffb224`), the amber fill is

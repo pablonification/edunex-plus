@@ -7,10 +7,8 @@
 //   while any is past its limit, else amber, else a check. It opens Kuliah, which leads with the same courses.
 // Round 3: the three are one family, a figure over two words with the noun ("16 Okt / tugas terdekat", "3 / absen
 // habis", "7 hari / ke UTS").
-// Round 4: each tile is read once. The date carries its Task and hour under it ("16 Okt / Tugas 02, 23:59"), and the
-// absences lead with the worst: the courses past their limit, in red, over "lewat batas" (Kuliah's own word for them);
-// only when none is past it, the ones with none left, in amber, over "absen habis". Never the two added into one
-// figure no row on Kuliah shows.
+// Round 4: the date carries its Task and hour under it ("16 Okt / Tugas 02, 23:59"). The absences stay round 3's one
+// figure: "1 / lewat batas" read like an overdue task and hid the courses with no absence left.
 // - The next exam: counted to the exam's own day with the function Tugas and Ujian use (`countdown`), so the three
 //   can't disagree. It opens Ujian.
 // While the first read runs (or the demo's first sync) no tile answers: each stands as a neutral shape of its final
@@ -174,28 +172,18 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
   ) : (
     <StatTile key="tasks" mark value="" label={t("mobile.strip.tasksNone")} onPress={openTasks} testID="action.strip.tasks" />
   );
-  // The worst first, and never two states in one figure: the courses past their limit in red; only when there is
-  // none, the courses with no absence left in amber. Each figure is a count Kuliah shows under the same word.
+  // One figure, as round 3 had it: every course with no absence left, at its limit or past it, over "absen habis"
+  // (true of each), red while any is past its limit and amber otherwise. TalkBack hears the two counts apart.
   const absences =
-    over > 0 ? (
+    over + none > 0 ? (
       <StatTile
         key="absences"
-        value={String(over)}
-        tone="danger"
-        label={t("mobile.strip.over")}
-        accessibilityLabel={[t("mobile.strip.overSpoken", { count: over }), none > 0 ? t("mobile.strip.outSpoken", { count: none }) : null]
+        value={String(over + none)}
+        tone={over > 0 ? "danger" : "warn"}
+        label={t("mobile.strip.out")}
+        accessibilityLabel={[over > 0 ? t("mobile.strip.overSpoken", { count: over }) : null, none > 0 ? t("mobile.strip.outSpoken", { count: none }) : null]
           .filter(Boolean)
           .join(", ")}
-        onPress={openCourses}
-        testID="action.strip.absences"
-      />
-    ) : none > 0 ? (
-      <StatTile
-        key="absences"
-        value={String(none)}
-        tone="warn"
-        label={t("mobile.strip.out")}
-        accessibilityLabel={t("mobile.strip.outSpoken", { count: none })}
         onPress={openCourses}
         testID="action.strip.absences"
       />

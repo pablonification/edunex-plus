@@ -40,12 +40,23 @@ import { TaskRow } from "../tasks/rows";
 import { contentsOf, countFacts, currentEntry, dayAndTime, type Entry, entrySlug } from "./contents";
 
 /** The table of contents; picking a module opens its own screen (`onPick`). */
-export function ModulesTab({ page, onPick, classModule = null }: { page: CoursePage; onPick: (module: number) => void; classModule?: number | null }) {
+export function ModulesTab({
+  page,
+  onPick,
+  classModule = null,
+  saidAbove = null,
+}: {
+  page: CoursePage;
+  onPick: (module: number) => void;
+  classModule?: number | null;
+  /** The module the block above the tabs already names (./now.tsx's `moduleSaidAbove`). */
+  saidAbove?: number | null;
+}) {
   const t = useT();
   const theme = useTheme();
   const entries = contentsOf(page, t);
   if (!entries.length) return <EmptyState icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />} title={t("course.noMaterials")} />;
-  return <Contents entries={entries} code={page.course.code} name={page.course.name} onPick={onPick} classModule={classModule} />;
+  return <Contents entries={entries} code={page.course.code} name={page.course.name} onPick={onPick} classModule={classModule} saidAbove={saidAbove} />;
 }
 
 /**
@@ -64,6 +75,7 @@ function Contents({
   name,
   onPick,
   classModule,
+  saidAbove,
 }: {
   entries: Entry[];
   code: string;
@@ -71,6 +83,8 @@ function Contents({
   onPick: (module: number) => void;
   /** The module the course's latest class was on (the course's page works it out from its meetings), when it's known. */
   classModule: number | null;
+  /** The module the block above the tabs names: it isn't said again as the tab's lead row. */
+  saidAbove: number | null;
 }) {
   const t = useT();
   const now = useNow();
@@ -87,7 +101,10 @@ function Contents({
   // With no files to unfold, the module itself leads the tab under "Minggu ini" (round 4: "the list starts at 1 while
   // the card says Modul 7"; round 2 had this week on top): on screen with no scrolling, and out of the list under it
   // ("Modul lain"), so it's said once. Not when it's the list's first row anyway.
-  const lead = current && !unfolded && entries[0] !== current.entry ? current : undefined;
+  // Not when the block above the tabs names that module already (its title, said twice on one screen): then it stays in
+  // the list at its own number, marked, and the list needs no "Modul lain" over it.
+  const above = current !== undefined && saidAbove !== null && current.entry.id === String(saidAbove);
+  const lead = current && !unfolded && !above && entries[0] !== current.entry ? current : undefined;
   const listed = lead ? entries.filter((entry) => entry !== lead.entry) : entries;
   // The class's own, then the joint class's under its own title (both can have a Modul 1).
   const firstParent = listed.findIndex((e) => e.parent);

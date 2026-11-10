@@ -53,10 +53,7 @@ export const mobileStrings = {
   "mobile.strip.wait.exam": { id: "Ujian", en: "Exams" },
   // superapp: Beranda, round 3. The strip's three as one family: a figure over two words with the noun. The absence
   // tile counts every course with no absence left (at the limit or past it). The search bar's hint, kept short.
-  // Round 4: the date's tile carries the Task's own name and hour, and the absences lead with the worst, in Kuliah's word.
-  "mobile.strip.over": { id: "lewat batas", en: "over limit" },
-  // The block's bar says whose time it ends on: the Presence's, not the class's ("selesai 10:00" is the class).
-  "mobile.home.presenceCloses": { id: "Presensi tutup {time}", en: "Presence closes {time}" },
+  // Round 4: the date's tile carries the Task's own name and hour.
   "mobile.strip.lateTasks": { id: "tugas terlambat", en: { one: "late Task", other: "late Tasks" } },
   "mobile.strip.out": { id: "absen habis", en: "absences out" },
   "mobile.strip.outSpoken": {
