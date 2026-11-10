@@ -62,6 +62,25 @@ No "Cari" tile under the search field, no tile with its group's name, the last r
 | Kuliah | While a Presence is open: one line at the top, the same "Isi Presensi" part as Beranda. Then the courses in their colours: **the name whole (two lines), the absence status whole under it, never cut**, at font 1.1 and 1.3. The code is secondary |
 | Profil | One card: initials, name, NIM and programme, the IPK big, SKS as a bar (opens Nilai). Then "Akademik": Nilai, Rencana, Kurikulum, KRS, UKT, Kalender as rows that show their state (an IP, "14 SKS", "Lunas"), each with its service's glyph and colour. Then "Akun": Notifikasi, Pengaturan, Laporkan masalah. No big avatar |
 
+## Round 1: decided after the first full council (01:45)
+
+These add to, and where they differ replace, what's above.
+
+| What | Decision |
+| --- | --- |
+| One number, one source | A figure shown on two screens comes from one function, so it can't disagree: the days to the next exam are counted to **the next exam's own day** with the same function Tugas and Ujian use (not to the start of "Masa UTS"); a count of Tasks says exactly what it counts and matches the list it opens; the strip's absence figure is the number of courses that carry the status its label names on Kuliah |
+| The strip's three | **Tasks:** the soonest thing due, as a date or "hari ini" with its count ("2 hari ini", else "16 Okt" and the Task's short name), never "Tak ada tenggat" unless there is truly nothing open. **Absences:** a count and a one-line label that is true of every course counted. **Exam:** "7 hari ke UTS", the same 7 as Tugas. One line of label each, the three figures on one baseline |
+| Tiles that answer | Where a service has one fact a student wants before opening it, the tile carries it as a small tag (Gojek's "≈5RB"): Nilai its IPK, UKT "Lunas" or the due date, KRS its SKS. Only where it's true and short; Beranda stays at 50 words or fewer; no tag repeats the strip |
+| Service colours | Colour belongs to **Beranda's seven** (each its own, none red or amber: those are for states). Every other service on Semua layanan is a **neutral tile** with its own glyph, so no colour is ever used for two services |
+| Presence | Two real actions, never shown as two stacked buttons: **"Isi Presensi"** (Edunex) and **"Tandai Hadir"** (SIX, its own word), each with the **raised-hand glyph**, never an arrow. A screen shows one main button: the one that's open (the one closing first when both are), and when it's done the block moves on to the other. Same part, same look on Beranda, Kuliah and a course's page |
+| The class on now | One part in the course's colour, in two sizes: the block (Beranda, the top of a course's page) and the line (Kuliah). No white shadowed card for it anywhere. Its bar is the presence window when one is open, else the class's time, and the time at its end says which ("tutup 09:30", "selesai 10:00"); never a second countdown beside it |
+| A clash | `ClashMark` (the overlap glyph and "Bentrok") everywhere, Jadwal too. Once per clash on a screen, on the pair, with the way to choose a class one tap away |
+| One glyph, one meaning | The history clock is "Jam berubah" only; the warning triangle is a warning only; "Ringkasan awal" has one glyph; a course is its own glyph in its colour wherever it appears (search, Nilai, Kuliah), never a cap for all |
+| Rows you can tap | Every row that opens something ends in the same quiet chevron, or sits in a block that presses; a row that does nothing has neither |
+| Targets | 48 dp for everything tappable, by `hitSlop` where the drawing is smaller: check each control you draw |
+| Placeholders | A loading shape is shown only where nothing has loaded yet, and is gone the moment its content is in. Never beside real content |
+| Names | "Sebulan" → the month view is **"Jadwal bulanan"**; the Kuliah tab's badge follows Foundations' rule (a count the page leads with, or none) |
+
 ## Names
 
 One thing, one name, on every screen it passes (`superapp-journeys.md` lists 13 pairs that differ today). The presence
