@@ -465,7 +465,10 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
             }}
             style={{ flex: 1, minHeight: 140 }}
           />
-          <Animated.View entering={enter(2)} style={{ paddingHorizontal: SIDE, paddingTop: space[4] }}>
+          {/* The headline, the button and the mark are simply there from the first frame, with no entrance of their own: an
+              entrance still waiting its turn is dropped when the whole tree draws again (a theme set a moment after the
+              start did that on CI's emulator), and the stage was left with its doors and nothing to sign in with. */}
+          <Animated.View style={{ paddingHorizontal: SIDE, paddingTop: space[4] }}>
             {/* The desktop's headline, broken where it breathes: each half keeps to its one line at any font size. Once
                 a door lights with the name it becomes the greeting, in the same spot and size, and leaves with the stage. */}
             <View
@@ -486,7 +489,7 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
               </Animated.View>
             </View>
           </Animated.View>
-          <Animated.View entering={enter(3)} style={{ paddingHorizontal: SIDE, paddingTop: space[5], paddingBottom: space[5], gap: space[3] }}>
+          <Animated.View style={{ paddingHorizontal: SIDE, paddingTop: space[5], paddingBottom: space[5], gap: space[3] }}>
             {asked ? (
               // The button's place, now the status: words only, one line, swapped at once and at full strength. Its
               // height is fixed, so a new line of words moves nothing around it.
@@ -575,7 +578,6 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
                 it, and it leaves with the stage. */}
             {nameEnd !== null && (
               <Animated.View
-                entering={enter(1)}
                 style={{ position: "absolute", left: rowWidth / 2 - glow / 2, top: markY - glow / 2, width: glow, height: glow }}
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
