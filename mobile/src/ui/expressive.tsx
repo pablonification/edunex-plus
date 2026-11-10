@@ -1,10 +1,10 @@
 // Round 2's few living parts (v4, DESIGN.md "Motion"), all moving on the UI thread (Reanimated; react-native-svg draws):
-// Material 3 Expressive's wavy progress, its cookie shape holding a check that draws itself, a pulsing "now" dot, a
+// a class's progress bar (plain: the wave is gone), M3's cookie shape holding a check that draws itself, a pulsing "now" dot, a
 // number that counts up once, and the stagger a screen's cards rise in on its first showing. With Remove animations
 // they keep still or fade.
 import { NavigationContext } from "expo-router/react-navigation";
 import { type ReactNode, useContext, useEffect, useState } from "react";
-import { type LayoutChangeEvent, type StyleProp, StyleSheet, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
+import { type StyleProp, StyleSheet, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -17,66 +17,32 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { firstFrameShown } from "../shell/first-frame";
 import { useLoopWhileShown, useReduceMotion } from "./motion";
 import { motion } from "./theme";
 
-/** One wavelength of the wave (dp), its rise (about 4 dp either way, M3's), and the height it's drawn in. */
-const WAVE = 32;
-const RISE = 8;
+/** The height the progress bar's row takes (the wave's old height, so the callers' rows keep theirs). */
 const WAVE_HEIGHT = 14;
-/** A wave long enough for any phone's card, drawn once: q (rise) t (fall) per wavelength. */
-const WAVE_PATH = (() => {
-  let d = `M0 ${WAVE_HEIGHT / 2}`;
-  for (let i = 0; i < 40; i++) d += ` q${WAVE / 4} -${RISE} ${WAVE / 2} 0 t${WAVE / 2} 0`;
-  return d;
-})();
 
 /**
- * M3 Expressive's wavy progress: the wave up to how far along (`progress`, 0–1), moving along itself; after it, the
- * flat track to the stop dot, drawn in full from the start. `ink` draws the wave and the dot, `track` the rest (give it
- * enough contrast to read as a track on its card).
+ * A class's progress as a plain bar: `track` filled with `ink` to how far along (`progress`, 0–1). It was a moving
+ * wave; the wave is gone ("reads as ornament": no wave anywhere), and the name stays until its callers move to
+ * kit.tsx's `PlainBar`, which is this bar with an end label. Nothing here moves or measures.
  */
 export function WavyProgress({ progress, ink, track, label }: { progress: number; ink: string; track: string; label: string }) {
-  const run = useLoopWhileShown();
-  const [width, setWidth] = useState(0);
-  const shift = useSharedValue(0);
-  useEffect(() => {
-    if (!run) return;
-    shift.value = 0;
-    shift.value = withRepeat(withTiming(-WAVE, { duration: 1100, easing: Easing.linear }), -1, false);
-    return () => cancelAnimation(shift);
-  }, [run, shift]);
-  const moving = useAnimatedStyle(() => ({ transform: [{ translateX: shift.value }] }));
-  const p = Math.max(0, Math.min(1, progress));
-  // At least a wavelength and a half drawn (48 dp), so a class just started reads as a wave starting, not a squiggle.
-  const done = Math.min(width - 12, Math.max(WAVE * 1.5, width * p - 2));
+  const p = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
   return (
     <View
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={label}
       accessibilityValue={{ min: 0, max: 100, now: Math.round(p * 100) }}
-      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
       style={{ flex: 1, height: WAVE_HEIGHT, justifyContent: "center" }}
     >
-      {width > 0 && (
-        <>
-          <View style={{ position: "absolute", left: 0, top: 0, width: done, height: WAVE_HEIGHT, overflow: "hidden" }}>
-            {/* Drawn once into a texture that only slides: the path isn't drawn again every frame (Tugas scrolled 20% janky on `weak`). */}
-            <Animated.View renderToHardwareTextureAndroid style={[{ width: done + WAVE * 2, height: WAVE_HEIGHT }, moving]}>
-              <Svg width={done + WAVE * 2} height={WAVE_HEIGHT}>
-                <Path d={WAVE_PATH} stroke={ink} strokeWidth={4} strokeLinecap="round" fill="none" />
-              </Svg>
-            </Animated.View>
-          </View>
-          {done + 8 < width - 6 && <View style={{ position: "absolute", left: done + 8, right: 6, height: 4, borderRadius: 2, backgroundColor: track }} />}
-          <Svg style={{ position: "absolute", right: 0 }} width={4} height={4}>
-            <Circle cx={2} cy={2} r={2} fill={ink} />
-          </Svg>
-        </>
-      )}
+      <View style={{ height: 4, borderRadius: 2, backgroundColor: track, overflow: "hidden" }}>
+        <View style={{ width: `${p * 100}%`, height: 4, borderRadius: 2, backgroundColor: ink }} />
+      </View>
     </View>
   );
 }
