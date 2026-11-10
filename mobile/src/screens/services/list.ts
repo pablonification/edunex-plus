@@ -20,7 +20,7 @@ export interface Service {
 const material: Service = { id: "material", label: "mobile.service.material", icon: "Materials", tone: "blue", open: { screen: "material" } };
 const exams: Service = { id: "exams", label: "mobile.service.exams", icon: "Exams", tone: "red", open: { screen: "exams" } };
 const presence: Service = { id: "presence", label: "nav.presence", icon: "Attendance", tone: "green", open: { screen: "presence" } };
-const month: Service = { id: "month", label: "mobile.service.month", icon: "CalendarMonth28Filled", tone: "indigo", open: "/schedule-month" };
+const month: Service = { id: "month", label: "mobile.service.month", icon: "Month", tone: "indigo", open: "/schedule-month" };
 const needs: Service = { id: "needs", label: "mobile.service.needs", icon: "Needs", tone: "amber", open: "/needs" };
 
 // Akademik: the office.
@@ -35,7 +35,7 @@ const calendar: Service = {
   open: { screen: "plan", tab: "deadlines" },
 };
 const planner: Service = { id: "planner", label: "plan.tab.planner", icon: "StudyPlan", tone: "magenta", open: { screen: "plan", tab: "planner" } };
-const curriculum: Service = { id: "curriculum", label: "plan.tab.curriculum", icon: "Curriculum", tone: "lime", open: { screen: "plan", tab: "curriculum" } };
+const curriculum: Service = { id: "curriculum", label: "plan.tab.curriculum", icon: "Curriculum", tone: "blue", open: { screen: "plan", tab: "curriculum" } };
 
 /**
  * Beranda's grid, in order: Materi, Ujian, Nilai, Kalender on the top row (a normal week), KRS, UKT, Rencana on the

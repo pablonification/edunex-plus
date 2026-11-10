@@ -27,6 +27,7 @@ import bookOpen from "./fluent/book-open";
 import buildingBank from "./fluent/building-bank";
 import calendarCheckmark from "./fluent/calendar-checkmark";
 import calendarClock from "./fluent/calendar-clock";
+import calendarDate from "./fluent/calendar-date";
 import calendarLtr from "./fluent/calendar-ltr";
 import calendarStar from "./fluent/calendar-star";
 import chat from "./fluent/chat";
@@ -56,6 +57,7 @@ import flag from "./fluent/flag";
 import flash from "./fluent/flash";
 import folder from "./fluent/folder";
 import folderOpen from "./fluent/folder-open";
+import form from "./fluent/form";
 import globe from "./fluent/globe";
 import grid from "./fluent/grid";
 import handRight from "./fluent/hand-right";
@@ -259,7 +261,7 @@ export const ServiceIcons = {
   /** Materi */
   Materials: icon(() => book, { filled: true }),
   /** KRS */
-  Krs: icon(() => clipboardCheckmark, { filled: true }),
+  Krs: icon(() => form, { filled: true }),
   /** UKT */
   Bills: icon(() => wallet, { filled: true }),
   /** Kalender akademik */
@@ -286,6 +288,8 @@ export const ServiceIcons = {
   Needs: icon(() => warning, { filled: true }),
   /** Ringkasan awal (what the first read found) */
   FirstSummary: icon(() => history, { filled: true }),
+  /** Sebulan (the month view): a calendar page with its date, not the Jadwal tab's grid of days. */
+  Month: icon(() => calendarDate, { filled: true }),
   /** Laporkan masalah: a person speaking up. */
   Report: icon(() => personFeedback, { filled: true }),
 };

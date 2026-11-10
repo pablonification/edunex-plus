@@ -142,15 +142,15 @@ heading → headlineSmall, figure/display → headlineMedium.
 | `Chip` / `ChipRow` | Filter chip | 32 high, outlined; picked: secondaryContainer and a check |
 | `Segmented` | Segmented buttons | 40 high, outlined, picked with a check |
 | `Switch` | M3 switch | Android's own `MaterialSwitch` (`modules/material-switch`, W9): Material's track, thumb, check, ripple and TalkBack "switch, on"; colours from the roles; 52×48 to touch; the testID sits on the switch itself. A tap the screen doesn't keep goes back after 1.5 s. Without the native module (tests) the JS-drawn one stands in |
-| `List` + `Row` | List items in a group | tonal tiles 2 dp apart, round group ends; 56 dp min; no chevrons; one row, one target, one outcome; `quick` names a row's swipe actions for TalkBack |
-| `GroupTile` | One tile of a grouped list | the same tile as `List`'s, drawn row by row (`first`/`last` round the group's ends) for a FlashList (Tugas) |
-| `SettingsGroup`, `SettingRow`, `SwitchRow`, `ChoiceRow` + `ChoiceSheet` (`ui/settings-list.tsx`) | Settings lists | v4: a `Heading` over one white `Group`, each row a `GroupRow` (title, the value or state as its one meta line); a switch row toggles from anywhere on it with a haptic (Android's MaterialSwitch at its end, the row carrying role switch and the testID); a choice row shows its value and opens a native sheet of radio options (each option `<rowTestID>.<value>`) |
+| `List` + `Row` | List items in a group | flat on the page, an inset hairline between rows, no tile and no box (light and dark alike); 56 dp min; no chevrons; one row, one target, one outcome; `quick` names a row's swipe actions for TalkBack |
+| `GroupTile` | One row of a flat list | `List`'s row drawn one by one for a FlashList (Tugas): a hairline over every row but the `first`; `last` is kept for callers and rounds nothing |
+| `SettingsGroup`, `SettingRow`, `SwitchRow`, `ChoiceRow` + `ChoiceSheet` (`ui/settings-list.tsx`) | Settings lists | a `Heading` over a flat `Group`, each row a `GroupRow` (title, the value or state as its one meta line); a switch row toggles from anywhere on it with a haptic (Android's MaterialSwitch at its end, the row carrying role switch and the testID); a choice row shows its value and opens a native sheet of radio options (each option `<rowTestID>.<value>`) |
 | `ErrorBanner` (`ui/settings-list.tsx`) | Banner | a page's error under its top bar with a close button, until the next try works (never a snackbar) |
 | `DrawnCheck`, `Celebration` (`ui/celebrate.tsx`) | — | the earned moment: a success circle springs in and its check draws itself (Reanimated, UI thread) with the success haptic; Remove animations: a fade. `Celebration` shows it over the page without blocking taps, read by TalkBack, gone after ~1.7 s (the hand-in) |
 | `SwipeRow` | Swipe to act (Gmail) | see Patterns; on the UI thread (gesture handler 3 + Reanimated) |
 | `Card` | Filled card | plain (Low), raised (Container, the one card that leads), sunken (High) |
 | `Section`, `PageHeader`, `Notice`, `StatRow`, `Meta` | | as before, on the scale |
-| `EmptyState` | | icon in a secondaryContainer circle, Title M, a line why, the next step as a button |
+| `EmptyState` | | the icon bare on the page (no circle, no tile), Title M, a line why, the next step as a button |
 | `Skeleton` | | the shape of what's coming, breathing slowly (still with Remove animations) |
 | `Sheet`, `ActionSheet` | Modal bottom sheet | native; `footer` for the sheet's main action |
 | `OverflowMenu`, `Menu` | Menu | anchored, 48 dp items |
@@ -172,7 +172,11 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 - **Plain path data, loaded when drawn.** `scripts/make-ui-icons.mjs` copies each icon `icons.tsx` imports
   (`./fluent/<name>`) from `@fluentui/react-icons` into `src/ui/fluent/<name>.ts`: its paths as strings, drawn with
   `react-native-svg`. Never `@fluentui/react-icons`' components (they're DOM). Each icon's file loads when it's first
-  drawn (Metro's inline requires), so Beranda's first frame loads only the icons on it, not all 86 (about 300 KB in all).
+  drawn (Metro's inline requires), so Beranda's first frame loads only the icons on it, not all 95 (about 340 KB in all).
+- **By Fluent's own name** (`<Fluent name="Search20Regular">`, `ui/fluent.tsx`): a thin wrapper for the service tiles
+  and b.tsx's marks, loading the same way: each glyph is its own file (`src/ui/fluent-named/<name>.ts`) behind a
+  function in `ui/fluent-paths.ts`. It used to be one table of all 44 paths, loaded whole by the first glyph drawn
+  (Beranda's search icon). New icons go in `icons.tsx`, not here.
 - **A new icon:** find its name in `node_modules/@fluentui/react-icons/lib/atoms/headless-svg/` (the repository
   root's), import `./fluent/<name>` in `icons.tsx`, add it to `Icons`, run `node mobile/scripts/make-ui-icons.mjs`.
 - **The tabs** are the same family as Android drawables (24 px, regular and `_filled`): `scripts/make-tab-icons.mjs`
@@ -189,7 +193,7 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Nilai | `ServiceIcons.Grades` | `ribbon` | 24, 28, 32 |
 | Ujian | `ServiceIcons.Exams` | `document-edit` | 24 (28, 32: the 24) |
 | Materi | `ServiceIcons.Materials` | `book` | 24, 28, 32 |
-| KRS | `ServiceIcons.Krs` | `clipboard-checkmark` | 24 (28, 32: the 24) |
+| KRS | `ServiceIcons.Krs` | `form` (a form to send; not the Tugas tab's clipboard) | 24, 28, 32 |
 | UKT | `ServiceIcons.Bills` | `wallet` | 24, 28, 32 |
 | Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-star` | 24 (28, 32: the 24) |
 | Rencana studi | `ServiceIcons.StudyPlan` | `directions` | 24, 28, 32 |
@@ -201,6 +205,28 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Kurikulum | `ServiceIcons.Curriculum` | `library` | 24, 28, 32 |
 | Berkas | `ServiceIcons.Files` | `folder` | 24, 28, 32 |
 | Profil | `ServiceIcons.Profile` | `person` | 24, 28, 32 |
+| Perlu kamu urus | `ServiceIcons.Needs` | `warning` | 24, 28, 32 |
+| Ringkasan awal | `ServiceIcons.FirstSummary` | `history` | 24, 28, 32 |
+| Sebulan | `ServiceIcons.Month` | `calendar-date` (a page with its date; not the Jadwal tab's grid of days) | 24, 28 (32: the 28) |
+| Laporkan masalah | `ServiceIcons.Report` | `person-feedback` | 24, 28, 32 |
+
+Colours within a group never repeat and never sit two look-alikes for a colour-blind eye side by side: Kurikulum is
+blue (it was lime beside Nilai's amber). A service's glyph and colour live in `src/screens/services/list.ts` only.
+
+Glyphs the screens asked for, in `Icons` (regular; `weight="fill"` for the filled form):
+
+| For | Export | Fluent icon | Sizes Fluent drew |
+| --- | --- | --- | --- |
+| Share a file or link | `Icons.Share` | `share-android` | 16, 20, 24, 32 |
+| A PDF | `Icons.FilePdf` | `document-pdf` | 16, 20, 24, 28, 32 |
+| Slides | `Icons.FileSlides` | `slide-text` | 16, 20, 24, 28, 32, 48 |
+| Sound | `Icons.FileAudio` | `music-note-2` | 16, 20, 24 |
+| SIX (the account, a source) | `Icons.Six` | `building-bank` | 16, 20, 24, 28, 48 |
+| Edunex (the account, a source) | `Icons.Edunex` | `learning-app` | 16, 20, 24 |
+
+Neither SIX nor Edunex takes the graduation cap (the Kuliah tab's) or the book (Materi's).
+
+Still Phosphor, to replace: the course glyphs in `src/ui/tile.tsx` and the file kinds in `src/parts/files.tsx`.
 
 ## Motion
 
