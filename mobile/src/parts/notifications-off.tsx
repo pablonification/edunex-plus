@@ -41,7 +41,7 @@ export function useNotificationPermission() {
 }
 
 /**
- * The notice, one line: what's wrong ("Notifikasi mati") and its one button, 48 dp tall, one word ("Nyalakan": the
+ * The notice, one line: what's wrong ("Mati di HP ini": the bell and the page's title say what) and its one button, 48 dp tall, one word ("Nyalakan": the
  * line beside it says what; a screen reader hears "Nyalakan notifikasi"). The same part, the same look, on Notifikasi
  * and in Settings; what being off means is on the switches, greyed under it.
  */

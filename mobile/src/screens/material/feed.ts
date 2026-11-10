@@ -103,25 +103,27 @@ export function materialFeed(sources: readonly CourseSource[], t: Translate, now
     .filter((section) => section.count > 0);
 }
 
-/** A heading of the list: a week, or "Terbaru" (the newest few, when this week and last week have nothing). */
-export type FeedHeading = FeedWeek | "latest";
+/** A heading of the list: a week. */
+export type FeedHeading = FeedWeek;
 
-/** A line of the list, for FlashList: a heading, a course's quiet name over its items, or an item. */
+/** A line of the list, for FlashList: a heading, a course's quiet name over its items, an item, or the way to the rest. */
 export type FeedLine =
   | { type: "week"; key: string; week: FeedHeading; count: number; first: boolean; fold: "open" | "closed" | null }
   | { type: "course"; key: string; code: string; name: string }
-  | { type: "item"; key: string; item: FeedItem; last: boolean };
+  | { type: "item"; key: string; item: FeedItem; last: boolean }
+  | { type: "more"; key: string; count: number };
 
-/** How many of the newest items stand in for "Minggu ini" when the last two weeks brought nothing. */
+/** A first screen's worth: with fewer new items than this, the newest earlier ones follow, this many at most. */
 export const LATEST = 5;
 
 const only = (courses: readonly FeedCourse[], keep: (item: FeedItem) => boolean): FeedCourse[] =>
   courses.map((course) => ({ ...course, items: course.items.filter(keep) })).filter((course) => course.items.length > 0);
 
 /**
- * The feed as lines: "Minggu ini" and "Minggu lalu" open, each by course (the course's name, then its items), and
- * "Sebelumnya" folded under its count, so the first screen is what's new. `toggled` opens it. When the last two weeks
- * brought nothing, the newest `LATEST` items lead instead under "Terbaru", and the rest folds under "Sebelumnya".
+ * The feed as lines, and every heading true: "Minggu ini" and "Minggu lalu" open, each by course (the course's name,
+ * then its items). When they fill a first screen (`LATEST` items or more), "Sebelumnya" is folded under its count.
+ * When they don't, the page isn't left blank: the newest `LATEST` earlier items follow under "Sebelumnya", open, and
+ * one line at the end opens the rest, with how many there are. `toggled` opens the rest either way.
  */
 export function feedLines(sections: readonly FeedSection[], toggled: boolean): FeedLine[] {
   const lines: FeedLine[] = [];
@@ -139,22 +141,30 @@ export function feedLines(sections: readonly FeedSection[], toggled: boolean): F
   };
   const newer = sections.filter((section) => section.week !== "earlier");
   for (const section of newer) group(section.week, section.courses, null);
-  let rest = sections.find((section) => section.week === "earlier")?.courses ?? [];
-  if (!newer.length) {
-    const top = new Set(
-      rest
-        .flatMap((course) => course.items)
-        .sort(newest)
-        .slice(0, LATEST),
-    );
-    group(
-      "latest",
-      only(rest, (item) => top.has(item)),
-      null,
-    );
-    rest = only(rest, (item) => !top.has(item));
+  const earlier = sections.find((section) => section.week === "earlier");
+  if (!earlier) return lines;
+  const fresh = newer.reduce((sum, section) => sum + section.count, 0);
+  if (fresh >= LATEST) {
+    group("earlier", earlier.courses, toggled ? "open" : "closed");
+    return lines;
   }
-  group("earlier", rest, toggled ? "open" : "closed");
+  // One or two left over aren't worth a line of their own: they show.
+  if (toggled || earlier.count <= LATEST + 2) {
+    group("earlier", earlier.courses, null);
+    return lines;
+  }
+  const top = new Set(
+    earlier.courses
+      .flatMap((course) => course.items)
+      .sort(newest)
+      .slice(0, LATEST),
+  );
+  group(
+    "earlier",
+    only(earlier.courses, (item) => top.has(item)),
+    null,
+  );
+  lines.push({ type: "more", key: "more:earlier", count: earlier.count - LATEST });
   return lines;
 }
 

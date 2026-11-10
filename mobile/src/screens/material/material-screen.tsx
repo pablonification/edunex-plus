@@ -1,11 +1,10 @@
 // Materi (/material), behind Beranda's "Materi" tile: what the lecturers posted across this term's courses, newest
-// first. The first screen is what's new: "Minggu ini" and "Minggu lalu" open, "Sebelumnya" folded under its count (one
-// tap opens it); when the last two weeks brought nothing, the newest few lead under "Terbaru" (./feed.ts). Within a
+// first. The first screen is what's new and never near-blank: "Minggu ini" and "Minggu lalu" open; when they hold
+// fewer than five, the newest five of "Sebelumnya" follow, open, and one row opens the rest (./feed.ts). Within a
 // week the items sit under their course: a quiet line with the course's own glyph in its colour and its name (a
 // heading, not a row), then each item on one row: its kind's glyph (a PDF, slides, a class link, a note), its name as
-// the lecturer wrote it, the day, and one mark at the end: the shared chevron when it opens here (a file in the
-// phone's own viewer, a note or a picture on its module's screen), an arrow when it leaves the app (a link, a video
-// meeting, Edunex). One tap opens it. Only material is here: a module that just holds a Task is on Tugas.
+// the lecturer wrote it, the day it was posted (left out when the name carries a date), and the rows' chevron.
+// One tap opens it. Only material is here: a module that just holds a Task is on Tugas.
 // The same data and rules as a course's Modul tab (./feed.ts). No new request: it reads what the app already holds.
 import { FlashList } from "@shopify/flash-list";
 import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
@@ -62,7 +61,6 @@ const WEEK_TITLE = {
   thisWeek: "course.thisWeek",
   lastWeek: "mobile.material.lastWeek",
   earlier: "mobile.material.earlier",
-  latest: "mobile.material.latest",
 } as const;
 
 export function MaterialScreen() {
@@ -147,6 +145,19 @@ const Line = memo(function Line({ line, onFold }: { line: FeedLine; onFold: () =
       />
     );
   if (line.type === "course") return <CourseLine code={line.code} name={line.name} />;
+  // The rest of "Sebelumnya", one tap away: a row as the items are, its words where theirs start.
+  if (line.type === "more")
+    return (
+      <BRow
+        testID="action.material.earlier"
+        last
+        leading={<View style={{ width: 28 }} />}
+        title={t("mobile.material.more", { count: line.count })}
+        trailing={<MoreMark />}
+        onPress={onFold}
+        accessibilityState={{ expanded: false }}
+      />
+    );
   return <Item item={line.item} last={line.last} />;
 });
 
@@ -169,6 +180,15 @@ function CourseLine({ code, name }: { code: string; name: string }) {
   );
 }
 
+/** Down, not across: the rest opens here, under the row. */
+function MoreMark() {
+  const b = useB();
+  return <Icons.ChevronDown size={20} color={b.muted} />;
+}
+
+/** The lecturer's own title already says a day ("Jumat, 9 Oktober 2026", "11/9"): ours beside it would be a second, unlabelled date. */
+const HAS_DATE = /\b\d{1,2}\s+(jan|feb|mar|apr|mei|may|jun|jul|agu|aug|sep|okt|oct|nov|des|dec)|\b\d{1,2}[/-]\d{1,2}\b/i;
+
 /** An item's kind, in the page's quiet ink: the colour is its course's, on the line over it. */
 function Glyph({ name }: { name: IconName }) {
   const theme = useTheme();
@@ -184,12 +204,12 @@ function Glyph({ name }: { name: IconName }) {
 function Item({ item, last }: { item: FeedItem; last: boolean }) {
   const t = useT();
   const f = useFormat();
-  const b = useB();
   const { go } = useNav();
   const openExternal = useOpenExternal();
   const openLink = useOpenLink();
   // The quiet line is the day it was posted alone (its course is the line over the group): short, so it never wraps.
-  const when = item.at !== null ? f.dayMonth(item.at) : undefined;
+  // A title that carries a date of its own keeps the row to that one.
+  const when = item.at !== null && !HAS_DATE.test(item.material.title) ? f.dayMonth(item.at) : undefined;
   const testID = `row.material.${item.material.id}`;
   const { material } = item;
   const kind = materialKind(material.type);
@@ -198,26 +218,14 @@ function Item({ item, last }: { item: FeedItem; last: boolean }) {
   const label = factsLabel(material.title, t(`material.${kind}`), item.course, when);
   if (action.kind === "download")
     return <FileItem material={material} file={{ url: action.url, name: action.name }} last={last} glyph={glyph} when={when} label={label} testID={testID} />;
-  // A note or a picture is read in full on its module's screen (the rows' chevron); a link opens as a lecturer's link
-  // does, a class is joined, anything else opens on Edunex: the arrow says the row leaves the app.
-  const leaves = action.kind !== "note" && action.kind !== "image";
+  // A note or a picture is read in full on its module's screen; a link opens as a lecturer's link does, a class is
+  // joined, anything else opens on Edunex. One mark ends every row, the rows' chevron: the glyph in front says the kind.
   const open = () => {
     if (action.kind === "note" || action.kind === "image") go({ screen: "course", code: item.code, module: item.module });
     else if (action.kind === "open") openLink(action.url);
     else openExternal(action.url || edunexMaterialUrl(material));
   };
-  return (
-    <BRow
-      testID={testID}
-      last={last}
-      leading={glyph}
-      title={material.title}
-      meta={when}
-      trailing={leaves ? <Icons.ArrowUpRight size={20} color={b.muted} /> : undefined}
-      onPress={open}
-      accessibilityLabel={label}
-    />
-  );
+  return <BRow testID={testID} last={last} leading={glyph} title={material.title} meta={when} onPress={open} accessibilityLabel={label} />;
 }
 
 function FileItem({

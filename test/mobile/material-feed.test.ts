@@ -115,33 +115,55 @@ describe("the feed", () => {
   });
 
   const shown = (lines: ReturnType<typeof feedLines>) =>
-    lines.map((line) => (line.type === "item" ? line.item.title : line.type === "course" ? `# ${line.name}` : line.week));
+    lines.map((line) =>
+      line.type === "item" ? line.item.title : line.type === "course" ? `# ${line.name}` : line.type === "more" ? `+${line.count}` : line.week,
+    );
 
-  it("opens this week and last week by course, and folds what's earlier under its count until asked", () => {
+  it("opens this week and last week by course, and what's earlier after them when they don't fill a screen", () => {
     const feed = materialFeed(sources, t, NOW);
-    const folded = feedLines(feed, false);
-    expect(shown(folded)).toEqual(["thisWeek", "# Tipografi", "Tadi", "# Perencanaan Kota", "Kemarin", "lastWeek", "# Tipografi", "Minggu lalu", "earlier"]);
-    expect(folded.at(-1)).toMatchObject({ type: "week", week: "earlier", fold: "closed", count: 1 });
-    expect(folded[0]).toMatchObject({ first: true, fold: null });
-    const open = feedLines(feed, true);
-    expect(shown(open).slice(-3)).toEqual(["earlier", "# Perencanaan Kota", "Lama"]);
-    expect(open.find((line) => line.type === "week" && line.week === "earlier")).toMatchObject({ fold: "open" });
-    expect(new Set(open.map((line) => line.key)).size).toBe(open.length);
-  });
-
-  it("leads with the newest few when the last two weeks brought nothing, and folds the rest", () => {
-    const old = Array.from({ length: LATEST + 2 }, (_, i) => material(10 + i, `Lama ${i}`, NOW - (20 + i) * DAY));
-    const feed = materialFeed([source("PL3002", "Perencanaan Kota", old)], t, NOW);
     const lines = feedLines(feed, false);
-    expect(shown(lines)).toEqual(["latest", "# Perencanaan Kota", "Lama 0", "Lama 1", "Lama 2", "Lama 3", "Lama 4", "earlier"]);
-    expect(lines.at(-1)).toMatchObject({ fold: "closed", count: 2 });
-    expect(shown(feedLines(feed, true)).slice(-3)).toEqual(["# Perencanaan Kota", "Lama 5", "Lama 6"]);
+    expect(shown(lines)).toEqual([
+      "thisWeek",
+      "# Tipografi",
+      "Tadi",
+      "# Perencanaan Kota",
+      "Kemarin",
+      "lastWeek",
+      "# Tipografi",
+      "Minggu lalu",
+      "earlier",
+      "# Perencanaan Kota",
+      "Lama",
+    ]);
+    expect(lines[0]).toMatchObject({ first: true, fold: null });
+    expect(lines.find((line) => line.type === "week" && line.week === "earlier")).toMatchObject({ fold: null, count: 1 });
+    expect(new Set(lines.map((line) => line.key)).size).toBe(lines.length);
   });
 
-  it("shows a few old items as the newest, with nothing folded under them", () => {
-    const feed = materialFeed([source("PL3002", "Perencanaan Kota", [material(1, "Lama", NOW - 40 * DAY)])], t, NOW);
-    expect(shown(feedLines(feed, false))).toEqual(["latest", "# Perencanaan Kota", "Lama"]);
-    expect(feedLines(feed, false)[0]).toMatchObject({ fold: null, first: true });
+  it("follows a thin week with the newest five earlier ones under their own heading, then one line for the rest", () => {
+    const old = Array.from({ length: LATEST + 7 }, (_, i) => material(10 + i, `Lama ${i}`, NOW - (20 + i) * DAY));
+    const feed = materialFeed([source("DK2101", "Tipografi", [material(1, "Tadi", NOW - 3_600_000)]), source("PL3002", "Perencanaan Kota", old)], t, NOW);
+    const lines = feedLines(feed, false);
+    expect(shown(lines)).toEqual(["thisWeek", "# Tipografi", "Tadi", "earlier", "# Perencanaan Kota", "Lama 0", "Lama 1", "Lama 2", "Lama 3", "Lama 4", "+7"]);
+    expect(lines.find((line) => line.type === "week" && line.week === "earlier")).toMatchObject({ fold: null });
+    const open = feedLines(feed, true);
+    expect(shown(open).slice(-3)).toEqual(["Lama 9", "Lama 10", "Lama 11"]);
+    expect(open.some((line) => line.type === "more")).toBe(false);
+  });
+
+  it("shows one or two left over instead of a line that opens them", () => {
+    const old = Array.from({ length: LATEST + 2 }, (_, i) => material(10 + i, `Lama ${i}`, NOW - (20 + i) * DAY));
+    const lines = feedLines(materialFeed([source("PL3002", "Perencanaan Kota", old)], t, NOW), false);
+    expect(shown(lines)).toEqual(["earlier", "# Perencanaan Kota", "Lama 0", "Lama 1", "Lama 2", "Lama 3", "Lama 4", "Lama 5", "Lama 6"]);
+    expect(lines[0]).toMatchObject({ fold: null, first: true });
+  });
+
+  it("folds what's earlier under its count when the new weeks fill a screen", () => {
+    const fresh = Array.from({ length: LATEST }, (_, i) => material(50 + i, `Baru ${i}`, NOW - (i + 1) * 3_600_000));
+    const feed = materialFeed([source("DK2101", "Tipografi", [...fresh, material(1, "Lama", NOW - 40 * DAY)])], t, NOW);
+    expect(feedLines(feed, false).at(-1)).toMatchObject({ type: "week", week: "earlier", fold: "closed", count: 1 });
+    expect(shown(feedLines(feed, true)).slice(-3)).toEqual(["earlier", "# Tipografi", "Lama"]);
+    expect(feedLines(feed, true).find((line) => line.type === "week" && line.week === "earlier")).toMatchObject({ fold: "open" });
   });
 
   it("is empty when no course has anything", () => {
