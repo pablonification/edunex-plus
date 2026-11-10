@@ -269,7 +269,7 @@ function StatusLine({ task, status, late, soon, presence }: { task: Task; status
     lateRule,
   );
   const all = useMarks(task, presence);
-  // Handed in: how it counted for Presensi is a word on the status line itself ("Terkumpul 18 Sep · Hadir"), never a
+  // Handed in: how it counted for Presensi is a word on the status line itself ("Terkumpul 18 Sep · dihitung hadir": why attendance is on a Task, in the words), never a
   // mark floating under it; its explanation, and that only the lecturer can hand it back, are behind the line's one info
   // button (48 dp). The deadline is still said, once, quietly under the line.
   const counted = sentAt !== null ? all.find((mark) => mark.key === "present" || mark.key === "absent" || mark.key === "missed") : undefined;
@@ -347,7 +347,7 @@ function StatusLine({ task, status, late, soon, presence }: { task: Task; status
                 style={[styles.mark, styles.markButton]}
               >
                 {body}
-                <Icons.Info size={20} color={v.fg2} />
+                <Icons.Info size={24} color={v.fg2} />
               </Tap>
             ) : (
               <View key={mark.key} style={styles.mark}>
@@ -393,7 +393,7 @@ function usePresence(task: Task) {
 
 /**
  * What Edunex doesn't say on its Task page, as marks under the status line (never a sentence on the page): Presensi
- * still ahead ("Presensi 15:00–23:59"), whether a hand-in counted ("Hadir", "Tidak hadir"), one missed, a short
+ * still ahead ("Presensi 15:00–23:59"), whether a hand-in counted ("dihitung hadir", "tidak dihitung hadir"), one missed, a short
  * window, when it opens. No system says whether the lecturer uses Edunex's Presence where SIX counts too, so it's
  * never called optional.
  */
@@ -542,10 +542,10 @@ function EditRow({ task, onSee }: { task: Task; onSee: (at: number) => void }) {
         accessibilityRole="button"
         accessibilityLabel={factsLabel(t("mobile.tasks.editedWhy"), sentence)}
         onPress={() => setWhy(true)}
-        hitSlop={4}
-        style={{ width: 40, height: 48, alignItems: "center", justifyContent: "center" }}
+        style={styles.info}
       >
-        <Icons.Info size={20} color={fg} />
+        {/* The page's one kind of info mark: the status line's size and target (48 dp), in the bar's ink. */}
+        <Icons.Info size={24} color={fg} />
       </Tap>
       <PressScale
         testID="action.done"
@@ -556,7 +556,7 @@ function EditRow({ task, onSee }: { task: Task; onSee: (at: number) => void }) {
       >
         <Icons.Check size={16} weight="bold" color={fg} />
         <Text size="bodyMedium" weight="semibold" style={{ color: fg }}>
-          {t("done.checked")}
+          {t("mobile.tasks.markChecked")}
         </Text>
       </PressScale>
       <Sheet

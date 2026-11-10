@@ -27,7 +27,7 @@ import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
-import { examTitle } from "./exam-name";
+import { examName } from "./exam-name";
 import { ExamPartRow, PeriodRow } from "./exam-rows";
 import {
   countdown,
@@ -154,8 +154,8 @@ export const TaskRow = inWorld(function TaskRow({
   const sentAt = submittedAt(task);
   // A take-home's kind, unless its name says it already ("UTS Markom · Kam, 22 Okt", not "· UTS ·").
   // A take-home goes by its exam's one name (./exam-rows.tsx examName); "Take-home" is the quiet word beside it.
-  // It's in the title line ("UTS Komunikasi Pemasaran · Take-home"), once: never again in the line under it.
-  const kind = null;
+  // It leads the line under the name ("Take-home · 23:50"), once, the same on Tugas and Ujian: no title ends on a "·".
+  const kind = exam ? t("exam.takeHome") : null;
   const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
   const when =
     sentAt !== null
@@ -173,7 +173,7 @@ export const TaskRow = inWorld(function TaskRow({
   const courseName = course ? shortName(course.name) : task.courseCode;
   const day = sentAt !== null || task.dueAt === null || status === "closed" ? null : timeShown(world.now, task.dueAt) ? world.f.time(task.dueAt) : null;
   // With no deadline the group's title says so ("Belum ada tanggal"): the row doesn't say it again.
-  const tugasLine = [exam ? null : courseName, day].filter(Boolean).join(" · ");
+  const tugasLine = [exam ? kind : courseName, day].filter(Boolean).join(" · ");
   const leafAt = sentAt ?? task.dueAt;
   const statusPill =
     sentAt !== null ? (
@@ -186,7 +186,7 @@ export const TaskRow = inWorld(function TaskRow({
       <StatusPill tone={away.tone} text={away.text} />
     ) : null;
   // The row's title is the Task's own name, a take-home's too: a row never switches to its course's name.
-  const name = exam ? examTitle(t, exam, { kind: "takehome" }, course?.name) : task.title;
+  const name = exam ? examName(t, exam, course?.name) : task.title;
   const open = () => go({ screen: "task", taskId: task.id });
   if (hero && task.dueAt !== null)
     return (
@@ -204,7 +204,7 @@ export const TaskRow = inWorld(function TaskRow({
         // What it is, in a word with its glyph; the time by its day; then the course (an exam's name says it already).
         kindLabel={t(exam ? "mobile.tasks.kindExam" : "mobile.tasks.kindTask")}
         time={world.f.time(task.dueAt)}
-        meta={exam ? null : courseName}
+        meta={exam ? kind : courseName}
         kind={exam ? "exam" : "task"}
       />
     );

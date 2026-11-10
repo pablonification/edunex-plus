@@ -28,7 +28,7 @@ import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { examName, examTitle } from "./exam-name";
+import { examName, examNote } from "./exam-name";
 import {
   countdown,
   FlatSlice,
@@ -239,7 +239,9 @@ export const ExamPartRow = inWorld(function ExamPartRow({
         weekday={f.weekdayShort(part.at)}
         // What it is, in a word ("Ujian", with its glyph); its name with what tells it apart; its time by its day.
         kindLabel={t("mobile.tasks.kindExam")}
-        title={examTitle(t, exam, part, name)}
+        title={examName(t, exam, name)}
+        // Where it's sat, where SIX gives a room; else what tells it from its course's other exam ("Take-home").
+        meta={(part.kind === "sitting" && part.room) || examNote(t, part)}
         time={part.kind === "sitting" && part.end !== null ? f.timeRange(part.at, part.end) : f.time(part.at)}
         kind="exam"
       />
@@ -254,9 +256,9 @@ export const ExamPartRow = inWorld(function ExamPartRow({
       quick={window ? [{ label: t("exam.markDoneFor", { title }), onPress: () => doneFromMenu(window) }] : quick}
       code={code || null}
       course={name}
-      // The exam's one name and, in the same line, what tells a course's two apart ("UTS Komunikasi Pemasaran · Take-home").
-      title={examTitle(t, exam, part, name)}
-      meta={shown.filter(Boolean).join(" · ") || t("mobile.tasks.kindExam")}
+      // The exam's one name; what tells a course's two apart leads the line under it ("Take-home · 23:50").
+      title={examName(t, exam, name)}
+      meta={[examNote(t, part), ...shown].filter(Boolean).join(" · ") || t("mobile.tasks.kindExam")}
       status={status}
       date={inCourse ? undefined : part && part.at !== null ? f.dayMonth(part.at) : null}
       weekday={!inCourse && part && part.at !== null && !item.sittings ? f.weekdayShort(part.at) : null}

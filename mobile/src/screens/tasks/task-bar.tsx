@@ -43,7 +43,8 @@ export function TaskBar({
           <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
         </IconButton>
         <View style={{ flex: 1, minWidth: 0, marginLeft: space[1], paddingRight: space[3], paddingVertical: space[2] }}>
-          <Tap feel="row" onPress={() => setWhole((was) => !was)} accessible={false}>
+          {/* 48 dp to tap with its slop (the course's link under it keeps its own). */}
+          <Tap feel="row" onPress={() => setWhole((was) => !was)} accessible={false} hitSlop={slopY(12)}>
             <Text
               face="display"
               weight="bold"
