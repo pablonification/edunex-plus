@@ -46,6 +46,7 @@ round's picture of a tab against this round's, sides shuffled (round 1's "last r
 | 1 | 7c640072 | prosecutor | 1st | 2nd (Duolingo 1st) | yes (LMS 5th) | 5 of 5 (Kuliah and Beranda most alike) | 3–8; none | 12 of 17 (facts repeated across screens) | Jadwal, Tugas, Kuliah; prefers `main`'s Beranda and Akademik over Profil | |
 | 2 | 0956276c | designer | 1st | 2nd (Duolingo 1st) | yes (LMS 4th and 5th) | 5 of 5 (Beranda and Kuliah most alike) | 5–8; none | 4 of 17 (Beranda ×2, Kuliah ×2) | 8 of 10 that changed; prefers round 1's Tugas (no empty "Hari ini") and Kuliah (the list) | |
 | 2 | 0956276c | student | 1st | 1st | yes (LMS 5th) | 5 of 5 (Beranda and Kuliah most alike) | 4–9; Jadwal, Profil, Cari | 2 of 17 (Kuliah ×2) | 7 of 10 that changed; prefers round 1's Kuliah (the list), Beranda's lower half and Ujian's smaller hero | 8 · 8 · 7 (LMS: 3 · 3 · 3) |
+| 2 | 0956276c | prosecutor | 1st | 2nd (Duolingo 1st) | yes (LMS 5th) | 5 of 5 (Beranda and Kuliah most alike) | 3–8; none | 7 of 17 (Beranda ×3, Kuliah ×2, Nilai, the notification ask read as a promo) | 4 of 10 that changed (Profil ×2, Semua layanan, Materi); prefers round 1's Beranda (no "0" tile), Tugas, Kuliah, Beranda's lower half and Ujian | |
 
 What two or more judges raised in round 1, and what was done:
 
@@ -63,3 +64,18 @@ What two or more judges raised in round 1, and what was done:
   asked to keep them), Profil holding Nilai, KRS and UKT (the blueprint; Nilai, KRS and UKT are on Beranda's grid too).
 - The grey box behind the greeting in dark was the emulator's keyboard-focus mark, not the app: the picture flow now
   touches the screen first.
+
+What two or more judges raised in round 2, and what was done:
+
+- Kuliah's grid of pastel cards: all three preferred round 1's list, and failed the grid for saying an absence three
+  ways (dots, "4/3", a sentence) → one list again, sorted by risk, the course's tile, its name, and the dots as the
+  only meter.
+- Tugas' empty "Hari ini" block (designer, prosecutor; the student liked being told) → one quiet line, no heading.
+- Ujian's tall hero (student, prosecutor) → one compact card: the days left, then the name, day and room.
+- Beranda's lower half now leads with the notification ask, which reads as a promo (student, prosecutor) → not
+  changed this round: it's the app's one ask and goes once answered. Still open.
+- The now card says when the window closes three ways (bar, "tutup 09:30", "1 jam 19 mnt lagi"), the wave and the
+  header's dots are decoration (designer, prosecutor) → not changed: the developer asked to keep the now card as it is.
+- Beranda and Kuliah both open with the presence card (all three, as the two most alike) → not changed this round.
+- One exam, two names ("UTS Markom" on Tugas, "UTS Komunikasi Pemasaran" on Ujian) → Ujian uses the course's name;
+  Tugas still shows the lecturer's title. Still open.
