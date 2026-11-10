@@ -9,12 +9,13 @@ import { Icons } from "./icons";
 import { useTheme } from "./theme";
 
 /**
- * A flat row's side padding, and a heading's left margin: 4 dp (theme's `space[1]`). Rows sit on the page itself (no
- * card), so a row's first thing (its tile or its title) starts on the edge of the heading over it, 20 dp from the
- * screen's side, where the screens' own lines under a heading already sit. (It was 14: a card's inner padding, kept
- * after the cards went, which set every row about 10 dp right of its heading.)
+ * A flat row's side padding, and a heading's left margin: none. Rows sit on the page itself (no card), so a row's first
+ * thing (its tile or its title) starts on the page's own edge, 16 dp from the screen's side (`space.page`), the same
+ * edge as Beranda's parts (`BRow`, `BHeading`, the service grid). One edge for every screen. (It was 4, and 14 before
+ * that: a card's inner padding kept after the cards went. A screen line that adds `space[1]` to sit under a heading
+ * should drop it.)
  */
-export const ROW_SIDE = 4;
+export const ROW_SIDE = 0;
 
 /** The one chevron at a row's end: 20 dp, the muted ink, not read aloud (the row's role says it opens). */
 export function RowChevron() {

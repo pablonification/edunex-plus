@@ -12,7 +12,7 @@ import { Group, GroupRow, Heading } from "./group";
 import { haptic } from "./haptics";
 import { Icons } from "./icons";
 import { iosPressed, PressScale } from "./press";
-import { RowChevron } from "./row-end";
+import { ROW_SIDE, RowChevron } from "./row-end";
 import { Sheet, SheetTitle } from "./sheet";
 import { Text } from "./text";
 import { space, TOUCH, useTheme } from "./theme";
@@ -57,7 +57,7 @@ export function SettingsGroup({
         ))}
       </Group>
       {note ? (
-        <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
+        <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: ROW_SIDE }}>
           {note}
         </Text>
       ) : null}
