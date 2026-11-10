@@ -2,12 +2,12 @@
 tab | Tugas | tab\.tasks
 tab | Jadwal | tab\.schedule
 tab | Kuliah | tab\.courses
-tab | Akademik | tab\.academic
+tab | Profil | tab\.profile
 tab | Beranda | tab\.home
 tab-again | Tugas | tab\.tasks
 tab-again | Jadwal | tab\.schedule
 tab-again | Kuliah | tab\.courses
-tab-again | Akademik | tab\.academic
+tab-again | Profil | tab\.profile
 tab-again | Beranda | tab\.home
 screen | class sheet | card\.now|row\.class\..*
 back | from the class sheet | BACK
@@ -20,7 +20,7 @@ screen | a Task | row\.task\..*
 back | from the Task | BACK
 screen | an exam | row\.exam\..*
 back | from the exam | BACK
-tab-again | Akademik | tab\.academic
+tab-again | Profil | tab\.profile
 screen | Nilai | row\.nav\.grades
 back | from Nilai | BACK
 screen | Rencana | row\.nav\.plan\.planner

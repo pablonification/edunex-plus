@@ -10,7 +10,7 @@ appId: io.github.pablonification.edunexplus.demo
       id: tab.home
     timeout: 180000
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - tapOn:
     id: card.profile
 - extendedWaitUntil:

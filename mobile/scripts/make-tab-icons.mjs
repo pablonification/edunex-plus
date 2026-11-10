@@ -18,7 +18,7 @@ export const TAB_ICONS = {
   schedule: "CalendarDots",
   tasks: "ListChecks",
   courses: "BookOpen",
-  academic: "GraduationCap",
+  profile: "User",
 };
 
 /** The `d` of each <Path> of one weight in a Phosphor definition file. */

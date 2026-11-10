@@ -16,7 +16,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -31,7 +31,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -46,7 +46,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -61,7 +61,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -76,7 +76,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -98,14 +98,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.grades
+      id: row.profile.grades
     direction: DOWN
 - tapOn:
-    id: row.nav.grades
+    id: row.profile.grades
 - extendedWaitUntil:
     visible:
       id: screen.grades
@@ -114,14 +114,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.krs
+      id: row.profile.krs
     direction: DOWN
 - tapOn:
-    id: row.nav.plan.krs
+    id: row.profile.krs
 - extendedWaitUntil:
     visible:
       id: panel.plan.krs
@@ -130,14 +130,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.curriculum
+      id: row.profile.curriculum
     direction: DOWN
 - tapOn:
-    id: row.nav.plan.curriculum
+    id: row.profile.curriculum
 - extendedWaitUntil:
     visible:
       id: panel.plan.curriculum
@@ -162,14 +162,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.grades
+      id: row.profile.grades
     direction: DOWN
 - tapOn:
-    id: row.nav.grades
+    id: row.profile.grades
 - extendedWaitUntil:
     visible:
       id: screen.grades
@@ -178,14 +178,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.krs
+      id: row.profile.krs
     direction: DOWN
 - tapOn:
-    id: row.nav.plan.krs
+    id: row.profile.krs
 - extendedWaitUntil:
     visible:
       id: panel.plan.krs
@@ -194,14 +194,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.curriculum
+      id: row.profile.curriculum
     direction: DOWN
 - tapOn:
-    id: row.nav.plan.curriculum
+    id: row.profile.curriculum
 - extendedWaitUntil:
     visible:
       id: panel.plan.curriculum
@@ -226,14 +226,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.grades
+      id: row.profile.grades
     direction: DOWN
 - tapOn:
-    id: row.nav.grades
+    id: row.profile.grades
 - extendedWaitUntil:
     visible:
       id: screen.grades
@@ -242,14 +242,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.krs
+      id: row.profile.krs
     direction: DOWN
 - tapOn:
-    id: row.nav.plan.krs
+    id: row.profile.krs
 - extendedWaitUntil:
     visible:
       id: panel.plan.krs
@@ -258,14 +258,14 @@ appId: io.github.pablonification.edunexplus.demo
 - pressKey: back
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.curriculum
+      id: row.profile.curriculum
     direction: DOWN
 - tapOn:
-    id: row.nav.plan.curriculum
+    id: row.profile.curriculum
 - extendedWaitUntil:
     visible:
       id: panel.plan.curriculum

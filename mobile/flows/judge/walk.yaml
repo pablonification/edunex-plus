@@ -195,15 +195,15 @@ appId: io.github.pablonification.edunexplus.demo
 - runFlow:
     file: tab.yaml
     env:
-      TAB: academic
-# Akademik's rows draw once its data is in: wait for the first, so the picture and the tap both find it.
+      TAB: profile
+# Profil's rows draw once its data is in: wait for the first, so the picture and the tap both find it.
 - extendedWaitUntil:
     visible:
-      id: row.nav.grades
+      id: row.profile.grades
     timeout: 15000
 - takeScreenshot: ${THEME}-13b-akademik
 - tapOn:
-    id: row.nav.grades
+    id: row.profile.grades
 - extendedWaitUntil:
     visible:
       id: screen.grades
@@ -213,7 +213,7 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 - tapOn:
-    id: row.nav.plan.planner
+    id: row.profile.planner
 - extendedWaitUntil:
     visible:
       id: panel.plan.planner
@@ -223,7 +223,7 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 - tapOn:
-    id: row.nav.plan.curriculum
+    id: row.profile.curriculum
 - extendedWaitUntil:
     visible:
       id: panel.plan.curriculum
@@ -233,7 +233,7 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 - tapOn:
-    id: row.nav.plan.krs
+    id: row.profile.krs
 - extendedWaitUntil:
     visible:
       id: panel.plan.krs
@@ -243,7 +243,7 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 - tapOn:
-    id: row.nav.plan.bills
+    id: row.profile.bills
 - extendedWaitUntil:
     visible:
       id: panel.plan.bills
@@ -253,7 +253,7 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 - tapOn:
-    id: row.nav.plan.deadlines
+    id: row.profile.deadlines
 - extendedWaitUntil:
     visible:
       id: panel.plan.deadlines
@@ -355,9 +355,15 @@ appId: io.github.pablonification.edunexplus.demo
 - runFlow:
     file: tab.yaml
     env:
-      TAB: academic
+      TAB: profile
 - tapOn:
-    id: action.account
+    id: tab.profile
+- scrollUntilVisible:
+    element:
+      id: row.profile.settings
+    direction: DOWN
+- tapOn:
+    id: row.profile.settings
 - extendedWaitUntil:
     visible:
       id: screen.settings
