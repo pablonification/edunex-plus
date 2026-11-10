@@ -10,6 +10,7 @@ export const mobileSettingsStrings = {
   "mobile.settings.dueNone": { id: "Belum ada yang dipilih", en: "None picked" },
   // Search: the × in the field empties it.
   "mobile.search.clear": { id: "Hapus pencarian", en: "Clear search" },
-  // Notifikasi: the row at the end, to the notification settings.
+  // Notifikasi's last row, to Settings › Notifikasi. The page's title already says "Notifikasi".
+  "mobile.alerts.choose": { id: "Atur yang dikirim", en: "Choose what's sent" },
   "mobile.alerts.settingsHint": { id: "Pilih yang dikirim ke HP-mu", en: "Choose what reaches your phone" },
 } as const satisfies Record<string, Entry>;

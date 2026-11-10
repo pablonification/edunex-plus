@@ -235,6 +235,8 @@ export default function Alerts() {
                 // Every row its time, in one place and one form (the day is the heading's): when the thing happened, else
                 // when the app saw it.
                 const time = f.time(happened ?? item.at);
+                // With a course, its glyph leads alone and the kind sits small before the second line (as Tugas's rows).
+                const Kind = typeof item.title.vars?.course === "string" ? KIND_ICON[item.kind] : null;
                 return (
                   <BRow
                     key={key}
@@ -256,9 +258,16 @@ export default function Alerts() {
                         </View>
                       ) : meta ? (
                         // One line, what changed (old → new) and a sitting's room after it; it wraps only when it must, never cut.
-                        <Text size="bodyMedium" tabular style={{ color: b.muted }}>
-                          {factsLabel(meta, room)}
-                        </Text>
+                        <View style={{ flexDirection: "row", gap: space[1] }}>
+                          {Kind && (
+                            <View style={{ height: 20, justifyContent: "center" }}>
+                              <Kind size={16} color={b.muted} />
+                            </View>
+                          )}
+                          <Text size="bodyMedium" tabular style={{ color: b.muted, flex: 1 }}>
+                            {factsLabel(meta, room)}
+                          </Text>
+                        </View>
                       ) : undefined
                     }
                     // The time, under it a small calm dot while unread (its shape says it, never the colour alone), then the
@@ -292,7 +301,8 @@ export default function Alerts() {
           testID="action.alertSettings"
           accessibilityLabel={t("alerts.settings")}
           leading={<KindMark icon={Icons.Settings} code={null} />}
-          title={t("alerts.settings")}
+          // The page is "Notifikasi": the row says what's set, not the page's name again (TalkBack hears it whole).
+          title={t("mobile.alerts.choose")}
           onPress={() => router.push({ pathname: "/settings", params: { at: "alerts" } })}
         />
         {/* Without SIX the bell hears only Edunex: said once, quietly, where the bell's settings are. */}
@@ -307,8 +317,9 @@ export default function Alerts() {
 }
 
 /**
- * A notification's mark: its course's own glyph in the course's colour, what kind of change it is a small mark on its
- * corner (Search's CourseMark), so every row starts the same way; the kind's glyph alone, neutral, when it has no course.
+ * A notification's mark: its course's own glyph in the course's colour, alone (Search's CourseMark), so every row
+ * starts the same way; what kind of change it is sits small before the row's second line. The kind's glyph alone,
+ * neutral, when it has no course.
  * One that presses (a deadline, presence, attendance at risk; `past`: no longer) carries a small amber dot on its corner,
  * the same shape, so the course is still the one you know.
  */
@@ -320,7 +331,7 @@ function KindTile({ item, past }: { item: Alert; past: boolean }) {
   if (!code) return <KindMark icon={KIND_ICON[item.kind]} code={null} color={pressing ? b.amber : undefined} />;
   return (
     <View>
-      <CourseMark code={code} name={courses?.find((one) => one.code === code)?.name} kind={KIND_ICON[item.kind]} />
+      <CourseMark code={code} name={courses?.find((one) => one.code === code)?.name} />
       {pressing && (
         <View
           style={{
