@@ -11,6 +11,7 @@ import { useDataset, useStatus } from "../../../../src/app/store";
 import { useNav } from "../../nav";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
+import { useB } from "../../ui/b";
 import { Button } from "../../ui/controls";
 import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
@@ -48,7 +49,7 @@ export function PlanScreen({ part }: { part?: string }) {
   // Back from another screen that changed the saved plan: the part starts again from what's saved.
   const fresh = useFreshPlan();
   const current = partOf(part);
-  const v = useTheme().v4;
+  const b = useB();
   usePerfDrawn(useDataReady(current));
   if (!builtPlanTabs.length) return null;
   const Part = TAB[current];
@@ -56,7 +57,7 @@ export function PlanScreen({ part }: { part?: string }) {
     <Page
       testID={`screen.plan.${current}`}
       scrollRef={scroll}
-      background={v.page}
+      background={b.page}
       header={
         <>
           <TopBar title={t(`plan.tab.${current}` as StringKey)} />

@@ -23,6 +23,7 @@ import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
 import { StandingFigures } from "../../parts/standing";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
+import { useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Figure, FigureDash, FigureLabel, Group, GroupRow, Heading, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
@@ -52,14 +53,14 @@ const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function GradesScreen() {
   const t = useT();
-  const v = useTheme().v4;
+  const b = useB();
   const pull = usePullToRefresh();
   // Back from the planner with a plan it changed: start again from what's saved.
   const fresh = useFreshPlan();
   return (
     <Page
       testID="screen.grades"
-      background={v.page}
+      background={b.page}
       header={
         <>
           {/* The screen's one title, in its bar (no second "Nilai" on the page). */}
@@ -92,8 +93,8 @@ function GradesOrWithoutSix() {
 }
 
 function Grades({ record, state }: { record: StudentRecord; state: PlanState }) {
-  // The key card and the way to graduating fill the first screenful; the chart, this term and the transcript come
-  // after, a frame each, each drawing only itself when it comes.
+  // The key card is the first frame; this term, the way to graduating with the chart, and the transcript come after,
+  // a frame each, each drawing only itself when it comes.
   return (
     <>
       <Rise screen="grades" index={0}>
@@ -104,14 +105,14 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
         <UnreadNote record={record} />
         <Disagreement record={record} />
       </View>
-      <Rise screen="grades" index={1}>
-        <Graduation record={record} state={state} />
-      </Rise>
+      {/* The newest grades next, with what they do to the IPK ("IPK setelah semester ini"): after an exam that's what
+          the Student came for, so it's the first thing under the big number, not a screen or two down. */}
       <Later frame={1}>
-        <Chart record={record} state={state} />
+        <ThisTerm record={record} state={state} />
       </Later>
       <Later frame={2}>
-        <ThisTerm record={record} state={state} />
+        <Graduation record={record} state={state} />
+        <Chart record={record} state={state} />
       </Later>
       <Later frame={3}>
         <Transcript record={record} />
