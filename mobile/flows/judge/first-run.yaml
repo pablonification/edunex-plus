@@ -12,13 +12,13 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-32-pertama-selamat-datang
 - tapOn:
     id: action.signIn
-# The button is the status now, in its place; a door breathes while its system signs in.
+# The button is the status now, in its place; the ring at a door's foot turns while its system signs in.
 - extendedWaitUntil:
     visible:
       id: status.signIn
     timeout: 30000
 - takeScreenshot: ${THEME}-32b-pertama-masuk
-# Beranda comes about a second after the systems are in: its own shape while the semester is read, the first read's
+# Beranda comes 0.4 s after the second system is in (the headline turns into the greeting, then the stage lifts): its own shape while the semester is read, the first read's
 # line under the greeting. (Beranda sits under the stage from the moment Edunex is in, so its ids alone caught the
 # stage still up: the scene has to be gone first.)
 - extendedWaitUntil:

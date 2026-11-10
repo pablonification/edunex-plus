@@ -19,9 +19,10 @@ import {
   DOOR_LIGHT,
   DOOR_LIT,
   DOOR_REST,
-  FAILED,
+  DOOR_TICK,
   HEM,
   MARK_COLOR,
+  MARK_EDGE,
   MARK_INK,
   STAGE,
   STAGE_INK,
@@ -272,9 +273,11 @@ const PAIRS: Pair[] = [
   // its doors, its button, the mark and the lower edge it lifts by.
   ["the stage's headline, status and note", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
   ["a resting door's name", () => STAGE_INK, (t) => DOOR_REST[scheme(t)], LARGE, FIRST_MINUTE],
-  ["the line of light on a connecting door", () => DOOR_LIGHT, (t) => DOOR_REST[scheme(t)], MARK, FIRST_MINUTE],
-  ["Edunex's name and tick on its lit door", (t) => DOOR_INK[scheme(t)].edunex, (t) => DOOR_LIT[scheme(t)], LARGE, FIRST_MINUTE],
-  ["SIX's name and tick on its lit door", (t) => DOOR_INK[scheme(t)].six, (t) => DOOR_LIT[scheme(t)], LARGE, FIRST_MINUTE],
+  ["the ring at a door's foot (at rest, and its bright quarter turning)", () => DOOR_LIGHT, (t) => DOOR_REST[scheme(t)], MARK, FIRST_MINUTE],
+  ["Edunex's name on its lit door", (t) => DOOR_INK[scheme(t)].edunex, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["SIX's name on its lit door", (t) => DOOR_INK[scheme(t)].six, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["the tick on a lit door", () => DOOR_TICK, (t) => DOOR_LIT[scheme(t)], MARK, FIRST_MINUTE],
+  ["the edge around the mark's ring, on a lit door", (t) => MARK_EDGE[scheme(t)], (t) => DOOR_LIT[scheme(t)], MARK, FIRST_MINUTE],
   ["what a system learned, on its lit door", () => DOOR_FACT, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
   ["a lit door on the stage", (t) => DOOR_LIT[scheme(t)], (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
   ["the sign-in button's words", () => BUTTON.ink, (t) => BUTTON.bg[scheme(t)], TEXT, FIRST_MINUTE],
@@ -284,7 +287,7 @@ const PAIRS: Pair[] = [
   ["the mark's ring on the stage", () => MARK_INK, (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
   ["the stage's lower edge over Beranda's page, lifting", (t) => HEM[scheme(t)], page, MARK, FIRST_MINUTE],
   ["the language chip's edge on the stage", (t) => over("#ffffff", STAGE[scheme(t)], CHIP_EDGE_ALPHA), (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
-  ["a sign-in that failed, said over the button", () => FAILED.ink, () => FAILED.bg, TEXT, FIRST_MINUTE],
+  ["a sign-in that stopped, said under the button (words and mark)", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
 ];
 
 // A neutral pill, a neutral icon tile and a disabled button on a card (or the Task's bottom bar, the card's colour) are a

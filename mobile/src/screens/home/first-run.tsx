@@ -1,12 +1,16 @@
-// What the first run leaves on Beranda: the one ask for notifications, the first time there's a class, saying what
-// they're for, with Nyalakan and Nanti, before Android's own prompt. It goes for good once answered. The first read
-// leaves nothing here: when it's in, the app's snackbar says "Semua siap" once, with Lihat ringkasan
-// (../first-scan/said.tsx), and the first minute (../../shell/first-minute) hands over to Beranda as it is.
+// What the first run leaves on Beranda: the one ask for notifications ("Ingatkan sebelum kuliah?"), saying what
+// they're for, with Nyalakan and a close (Nanti), before Android's own prompt. It's a prompt, not information, so it
+// comes late and once: never in the first minute or during the first read, and not in the visit that read finished
+// in. It shows from the next time the app is opened with the first read behind it, on a day with a class, until it's
+// answered either way; then it's gone for good. The first read leaves nothing here: when it's in, the app's snackbar
+// says "Semua siap." once (../first-scan/said.tsx), and the first minute (../../shell/first-minute) hands over to
+// Beranda as it is.
 import { File, Paths } from "expo-file-system";
 import * as Notifications from "expo-notifications";
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
+import { useSettings } from "../../../../src/app/store";
 import { IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
@@ -18,23 +22,32 @@ export function FirstScanCard() {
   return null;
 }
 
-// The ask's answer, kept on this phone: once said (either way), the card doesn't come back.
+// Kept on this phone: the ask's answer (once said, either way, the card doesn't come back), and that the first read
+// was in when the app was last open (the ask waits for the visit after that one).
 const asked = new File(Paths.document, "home-asked.json");
-let askedNotify = (() => {
+const kept: { notify?: boolean; ready?: boolean } = (() => {
   try {
-    return asked.exists && JSON.parse(asked.textSync()).notify === true;
+    return asked.exists ? JSON.parse(asked.textSync()) : {};
   } catch {
-    return false;
+    return {};
   }
 })();
+let askedNotify = kept.notify === true;
+/** The first read was already behind the Student when the app opened this time. */
+const readyBefore = kept.ready === true;
+
+function remember(what: { notify?: true; ready?: true }): void {
+  Object.assign(kept, what);
+  try {
+    asked.writeSync(JSON.stringify(kept));
+  } catch {
+    // Not kept: the card comes a visit later, or back next start; nothing worse.
+  }
+}
 
 function rememberAsked(): void {
   askedNotify = true;
-  try {
-    asked.writeSync(JSON.stringify({ notify: true }));
-  } catch {
-    // Not kept: the card comes back next start, nothing worse.
-  }
+  remember({ notify: true });
 }
 
 /**
@@ -44,7 +57,12 @@ function rememberAsked(): void {
 export function NotifyCard({ hasClass }: { hasClass: boolean }) {
   const t = useT();
   const v = useTheme().v4;
-  const [state, setState] = useState<"unknown" | "ask" | "done">(askedNotify ? "done" : "unknown");
+  const { firstScanDone } = useSettings();
+  // Late: only in a visit that began with the first read behind it (see the top of this file).
+  const [state, setState] = useState<"unknown" | "ask" | "done">(askedNotify || !readyBefore ? "done" : "unknown");
+  useEffect(() => {
+    if (firstScanDone && !kept.ready) remember({ ready: true });
+  }, [firstScanDone]);
   useEffect(() => {
     if (state !== "unknown") return;
     Notifications.getPermissionsAsync().then(
@@ -58,14 +76,15 @@ export function NotifyCard({ hasClass }: { hasClass: boolean }) {
     setState("done");
     if (allow) await Notifications.requestPermissionsAsync().catch(() => undefined);
   };
-  // v4: a card like Nanti hari ini's rows, one question, a close (Nanti), and the filled Nyalakan under the question, so
-  // the question keeps the card's width (round 3's fourth review: beside the button it broke over three lines).
+  // One question with its bell (no tile behind it: it's a mark, not a service), a close (Nanti, 48 dp), and Nyalakan
+  // as a quiet text button under the question: nothing here is filled, so it never outranks the classes above it.
   return (
-    <View testID="card.notify" style={{ marginTop: space[4], borderRadius: 20, backgroundColor: v.card, padding: space[3], paddingLeft: 14, gap: space[2] }}>
+    <View
+      testID="card.notify"
+      style={{ marginTop: space[4], borderRadius: 20, backgroundColor: v.card, paddingLeft: space[4], paddingRight: space[1], paddingTop: space[1] }}
+    >
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
-        <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}>
-          <Icons.Bell size={22} weight="fill" color={v.brandInk} />
-        </View>
+        <Icons.Bell size={24} color={v.fg2} />
         <Text size="bodyLarge" weight="medium" style={{ color: v.fg, flex: 1 }}>
           {t("mobile.home.notifyTitle")}
         </Text>
@@ -76,17 +95,10 @@ export function NotifyCard({ hasClass }: { hasClass: boolean }) {
       <PressScale
         onPress={() => void answer(true)}
         testID="action.notify.on"
-        style={{
-          alignSelf: "flex-start",
-          marginLeft: 44 + space[3],
-          minHeight: 48,
-          borderRadius: 24,
-          paddingHorizontal: space[5],
-          justifyContent: "center",
-          backgroundColor: v.brand,
-        }}
+        accessibilityRole="button"
+        style={{ alignSelf: "flex-start", marginLeft: 24 + space[3], minHeight: 48, minWidth: 48, paddingRight: space[4], justifyContent: "center" }}
       >
-        <Text size="labelLarge" style={{ color: v.onBrand }}>
+        <Text size="labelLarge" weight="semibold" style={{ color: v.brandInk }}>
           {t("mobile.home.notifyOn")}
         </Text>
       </PressScale>

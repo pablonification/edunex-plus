@@ -324,39 +324,53 @@ a wait: one tap, nothing to swipe, nothing to skip, and it ends about a second a
 | First frame | The stage: Edunex Plus's blue over the whole screen (the same blue gone deep in dark), the phone's bars' icons white (`shell/welcome.tsx`). |
 | A moment later | Two doors rise in the upper half, the same on both, each with its system's logo and name. Between them the app's mark with a still glow behind it: the stage's one light, there from the start. Bottom-left the headline, "Edunex dan SIX, / akhirnya di satu tempat."; under the thumb the one button, "Masuk dengan akun ITB", with the note about signing in; the language chip top-right. Then nothing moves: the stage at rest draws no frame. |
 | The tap | The button becomes the status in words, in its place ("Menunggu Microsoft…", "Menyelesaikan masuk ke Edunex…", "Menghubungkan SIX juga…"), each swapped at once at full strength; the language chip and the note go with the button. Microsoft's page covers the stage while the Student types; once it hands back the stage shows again, not a spinner. |
-| A system connecting | A short line of light breathes at its door's foot, SIX's the same as Edunex's. It's the scene's one endless move (an opacity on one small view) and runs only while a system connects and the stage is in view. |
-| Each system in | Its door lights (white in light; a dimmer blue in dark, so two lit doors don't glare) and shows what the system just said: the name and NIM under Edunex, the programme under SIX, a filled tick at its foot. The lit face fades in whole over the resting one, so no frame has white words on a half-lit door. One haptic each. The headline stays. A door has three states (nothing, working, in) and never a fill level: nothing there is measured. |
-| Both in (or 2 s after the first) | The doors close onto the mark, which answers with one beat. A tick haptic. Nothing is written about it: the lit doors and the ticks say "connected" once. |
-| Half a second on | The hand-over. The words fade; then the whole stage (doors, mark) lifts away like a curtain, its lower edge rounded (a clear line along it in dark). A strip of the stage's blue holds the status bar until the curtain's edge reaches it, so nothing slides across the clock. Under it the real Beranda was there all along. The three buttons' icons turn as the lift starts, the status bar's as the curtain clears it. One haptic. |
-| 0.6 s later | The scene is gone. Nothing of it is left on Beranda. |
-| The first read in | The app's snackbar, once: "Semua siap.", with "Lihat ringkasan" (`screens/first-scan/said.tsx`). It pushes nothing; afterwards the summary is in Semua layanan. |
+| A system connecting | At each door's foot is an empty ring, the size of the tick it becomes. While its system connects the ring turns (a bright quarter on a dim track), SIX's the same as Edunex's. It's the scene's one endless move (a rotation of one small view) and runs only while a system connects and the stage is in view. |
+| Each system in | Its door lights (white in light; a dimmer blue in dark, so two lit doors don't glare) in three steps that never overlap, 0.4 s in all: its white name and ring go, the door lights, and only on the lit door do its navy name, what the system said and the tick come. So no frame has white words on a pale door. What it said has two lines' room on both doors: the name and NIM under Edunex; the programme under SIX ("Terhubung" until SIX's first page is read). Both ticks are one size and one colour. One haptic each. A door has three states (nothing, working, in) and never a fill level: nothing there is measured. |
+| The second system in | As its door lights, the headline becomes the greeting in the same spot and size: "Pagi, Dimas." (the part of the day, the first name). Beranda has no greeting, so it's said once, here. |
+| The instant its tick lands (0.4 s after it's in) | The hand-over, with no hold: the whole stage (doors, mark, greeting) lifts away like a curtain, starting gently so the greeting is read as it rises, its lower edge rounded (a clear line along it in dark); the doors close onto the mark while it rises, and the mark answers with one beat. The lower half is never empty: the greeting is there until Beranda is. A strip of the stage's blue holds the status bar; once the curtain's edge is under it the strip fades where it is, so no edge, line or door crosses the clock. The three buttons' icons turn as the lift starts, the status bar's as the strip fades. Two haptics (the lift, the mark). |
+| 0.7 s later | The scene is gone. Nothing of it is left on Beranda. |
+| The first read in | The app's snackbar, once per install (the setting `firstScanDone`): "Semua siap.", with "Lihat ringkasan" (`screens/first-scan/said.tsx`), for 6 s. It waits for every system that's signed in to have read its parts (`SCAN_PARTS`) and for ITB's calendar, and never shows under the stage. It pushes nothing; afterwards the summary is in Semua layanan. |
+| A later visit | "Ingatkan sebelum kuliah?" (`screens/home/first-run.tsx`), once: never in the first minute, during the first read or in the visit that read finished in; from the next open on, on a day with a class, until answered. A bell, the question, a close, and "Nyalakan" as a text button: nothing filled. |
 
 Rules it keeps:
 
 - **Nothing stands in for Beranda, and nothing of the first run sits on it.** The read's progress is Beranda's own
   blocks filling in place, never a list or a card drawn for the wait.
-- **Nothing on a door is a control**, and both doors look the same until a system moves: no ring, no fill level, no
-  list of features.
+- **Nothing on a door is a control**, and both doors look the same until a system moves: the ring at the foot is
+  empty, working or a tick, never a fill level, and there's no list of features.
 - **The scene knows nothing of Beranda's layout.** Its colours are its own (`first-minute/colors.ts`), it leaves
   upward as one sheet, and all it takes from Beranda is in `first-minute/seam.ts` (the status bar's icons over
   Beranda's page, the curtain's corner). A new Beranda re-points that file, if anything.
 - **Cheap to draw, still at rest.** Every colour on the stage is opaque (a resting door is the stage a step lighter,
   mixed ahead, not white laid over it), no shape is clipped, and every move is a timing that ends, on the UI thread,
-  on a transform or an opacity. The hand-over is one transform on one view, kept as one picture only while it
-  lifts, set going whole at the start so the first read's JavaScript can't hold a step of it up. While the stage
+  on a transform or an opacity. The hand-over is one transform on one view, set going whole the moment the second
+  system is in (the greeting, then the lift and the doors, by delays on the UI thread), so the first read's
+  JavaScript can't hold a step of it up. A door's whole change comes from one value; its logo is drawn once. While the stage
   covers the screen it says so (`first-minute/covering.ts`): what's under it rests and stays out of TalkBack's reach.
 - **Loaded only when nobody is signed in** (`first-minute/gate.tsx`): a start with someone signed in pays nothing.
-- **Remove animations**: the same steps as fades (the door's lit face, the words), then a cross-fade straight to
-  Beranda, never a cut; nothing moves or breathes (the line of light is still). **TalkBack**: the headline, each
-  door's state ("Edunex: Belum terhubung", then "Edunex terhubung" with what it learned, also announced as it
+- **Remove animations**: the same beats as fades (the door's three steps, the headline into the greeting), the
+  greeting held half a second, then the stage cross-fades to Beranda, never a cut; nothing moves or turns (a
+  connecting door's ring is still, its bright quarter on its track). **TalkBack**: the headline (then the greeting),
+  each door's state ("Edunex: Belum terhubung", then "Edunex terhubung" with what it learned, also announced as it
   happens), the button, and the status line as it changes; once the curtain lifts, only Beranda speaks.
-  **Font size 1.3 and a small phone**: the headline's two halves share one size at which each keeps to its one line
-  (at 1.3 on a 411 dp screen two lines of 35 dp; on 360 dp two of 30 dp; never a third), the doors shorten, the mark
-  shrinks to its room, and the note under the button gives way first.
-- **Every other way in keeps the stage**: a sign-in that fails, is closed or has no network brings the button back
-  with the reason over it; with SIX down or slow the hand-over goes with Edunex's door alone, 2 s after it's in,
-  the status saying "SIX bisa dihubungkan nanti dari Pengaturan." once SIX has tried and stopped; signed out later,
-  the stage is the first frame again.
+- **Font size 1.3 and a small phone**: the headline's two halves share one size at which each keeps to its one line
+  (at 1.3 on a 411 dp screen 22.4 sp: 29 dp letters on two 35 dp lines; on 360 dp 19.2 sp: 25 dp letters on two
+  30 dp lines; never a third), and the greeting takes that size on the lower line. A door's line is 155 dp wide on
+  411 dp and 130 dp on 360 dp: its two lines of facts are 26 dp each at 1.3 (52 dp, kept from the start), the doors
+  shorten, the mark shrinks to its room (never under 48 dp) and stands clear under those two lines, and the note
+  under the button gives way first.
+- **A long name**: on its door the name keeps to one line: whole words that fit at no less than 0.8 of 14 sp, then
+  fewer words, never a cut letter ("Muhammad Rizky Ramadhan Pratama" reads "Muhammad Rizky" at 1.3 on both widths,
+  "Muhammad Rizky Ramadhan" at 1.0 on 411 dp). The greeting uses the first name alone, shrinking to 0.7 at most.
+- **Every other way in keeps the stage, and keeps calm**: nothing red, no box. A sign-in that fails or is closed
+  brings the button back where it was, and the note under it becomes the reason, white, with a mark ("Halaman masuk
+  tidak bisa dibuka. Coba lagi."). No network is its own: the same place says "Tidak bisa terhubung. Cek
+  internetmu, lalu coba lagi." with the no-Wi-Fi mark, also when a session was saved but nothing could be read (its
+  door stays shut; the app reads by itself once the network is back, and the scene goes on from there). With SIX
+  asking for the Student or failing, Edunex's door lights alone, the status says "SIX bisa dihubungkan nanti dari
+  Pengaturan.", SIX's ring stays empty, and the hand-over goes 1.2 s later (time to read the line, which leaves
+  with the stage); with SIX only slow, 2 s after Edunex is in, and SIX joins on Beranda. Signed out later, the
+  stage is the first frame again.
 
 ## Patterns
 
