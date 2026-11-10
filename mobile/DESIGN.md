@@ -193,7 +193,7 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Nilai | `ServiceIcons.Grades` | `ribbon` | 24, 28, 32 |
 | Ujian | `ServiceIcons.Exams` | `document-edit` | 24 (28, 32: the 24) |
 | Materi | `ServiceIcons.Materials` | `book` | 24, 28, 32 |
-| KRS | `ServiceIcons.Krs` | `form` (a form to send; not the Tugas tab's clipboard) | 24, 28, 32 |
+| KRS | `ServiceIcons.Krs` | `stack-add` (courses stacked up, one more to add; never a clipboard or a form: those are the Tugas tab's and a Task's) | 24 (28, 32: the 24) |
 | UKT | `ServiceIcons.Bills` | `wallet` | 24, 28, 32 |
 | Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-star` | 24 (28, 32: the 24) |
 | Rencana studi | `ServiceIcons.StudyPlan` | `directions` | 24, 28, 32 |
@@ -205,9 +205,9 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Kurikulum | `ServiceIcons.Curriculum` | `library` | 24, 28, 32 |
 | Berkas | `ServiceIcons.Files` | `folder` | 24, 28, 32 |
 | Profil | `ServiceIcons.Profile` | `person` | 24, 28, 32 |
-| Perlu kamu urus | `ServiceIcons.Needs` | `warning` | 24, 28, 32 |
-| Ringkasan awal | `ServiceIcons.FirstSummary` | `history` | 24, 28, 32 |
-| Sebulan | `ServiceIcons.Month` | `calendar-date` (a page with its date; not the Jadwal tab's grid of days) | 24, 28 (32: the 28) |
+| Perlu kamu urus | `ServiceIcons.Needs` | `checkbox-person` (a box to tick that is yours; the warning triangle is a warning only) | 24 (28, 32: the 24) |
+| Ringkasan awal | `ServiceIcons.FirstSummary`, `Icons.FirstSummary` | `scan-text` (a page being read: its one glyph everywhere; the history clock is "Jam berubah" only) | 24, 28, 32 |
+| Jadwal bulanan | `ServiceIcons.Month`, `Icons.Month` | `calendar-multiple` (pages one behind another; not the Jadwal tab's single page, nor Lainnya's dots) | 24, 28, 32 |
 | Laporkan masalah | `ServiceIcons.Report` | `person-feedback` | 24, 28, 32 |
 
 **Service colours, one rule.** Colour belongs to Beranda's seven, one each: Materi blue, Ujian violet, Nilai lime,
@@ -247,6 +247,11 @@ in search. So no colour ever stands for two services. A service's glyph and colo
 | Sosial, masyarakat, psikologi | `CourseIcons.Society` | `people-community` |
 | Bahasa, global | `CourseIcons.Language` | `earth` |
 | Any other course | `CourseIcons.Course` | `book-open` |
+
+**One glyph, one meaning.** The warning triangle (`Icons.AlertTriangle`) is a warning only; the history clock
+(`Icons.History`) is "Jam berubah" only; the overlap (`Icons.Overlap`, in `ClashMark`) is a clash only; the raised
+hand is marking attendance only; the cap is the Kuliah tab only (a course is its own `CourseIcons` glyph, SIX is the
+building, Edunex the learning window); the clipboard list is the Tugas tab only.
 
 Glyphs the screens asked for, in `Icons` (regular; `weight="fill"` for the filled form):
 
