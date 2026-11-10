@@ -46,6 +46,10 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Background sync | iOS decides when, and much less often than Android. |
 | Phone calendar | Made inside the account your default calendar uses (often iCloud). |
 | Switches | iOS's own switch instead of Android's Material one. |
+| Bottom tabs | iOS's own tab bar with Apple's symbols; Liquid Glass on iOS 26, which iOS draws itself. |
+| Liquid Glass | On iOS 26: a top bar's back button and actions, and the snackbar (`src/ui/glass.tsx`). Older iPhones and Android keep the Material look. |
+| App icon | Its own, edge to edge and opaque (`assets/ios-icon.png`, `scripts/make-icons.mjs`): iOS rounds it and fills see-through parts with white. |
+| Edunex's pages | Get a stand-in service worker (`src/host/page-fixes.ts`): an app's web view has none, and Edunex's site stopped on its spinner without one. |
 | "Turn on notifications" button | Opens the app's page in iOS Settings. |
 | Typeface | Plus Jakarta Sans is in the iOS bundle too. |
 | **Home-screen widget** | **Not there.** It's Android's (`react-native-android-widget`); an iPhone widget needs its own Swift (WidgetKit) code. |

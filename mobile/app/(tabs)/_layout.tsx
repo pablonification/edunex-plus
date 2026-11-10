@@ -4,11 +4,14 @@
 // once Presensi) and Akademik (IPK, Nilai, the study plan, KRS, UKT). Every tab is mounted ahead, so a
 // switch is instant and each keeps its scroll; a second tap on the open tab scrolls it to the top.
 // Labels always show. The icons are the app's own Phosphor glyphs as Android drawables
-// (plugins/tab-icons.js), outlined at rest and filled when picked. The badges come a moment after Beranda's first frame
+// (plugins/tab-icons.js), outlined at rest and filled when picked. On an iPhone it's iOS's own tab bar: Apple's
+// symbols (the same things, outlined and filled), iOS's colours over its own bar (Liquid Glass from iOS 26), the
+// app's accent on the picked tab. The badges come a moment after Beranda's first frame
 // (`TabBadges`): working them out (every Task and exam, every course's absences, the KRS and the bills) held the splash
 // up for numbers on tabs the Student hasn't looked at yet.
-import { NativeTabs } from "expo-router/native-tabs";
+import { NativeTabs, type SFSymbolIcon } from "expo-router/native-tabs";
 import { type Dispatch, type SetStateAction, startTransition, useEffect, useState } from "react";
+import { Platform } from "react-native";
 import { useRememberCourseColors } from "../../../src/app/course-colors";
 import { useTermCourses } from "../../../src/app/courses";
 import { useT } from "../../../src/app/i18n";
@@ -50,14 +53,19 @@ export default function TabsLayout() {
   return (
     <InTabs.Provider value>
       <NativeTabs
-        backgroundColor={c.surfaceContainer}
-        indicatorColor={c.secondaryContainer}
-        rippleColor={c.selected}
-        iconColor={{ default: c.onSurfaceVariant, selected: c.onSecondaryContainer }}
-        labelStyle={{
-          default: { color: c.onSurfaceVariant, fontSize: 12, fontWeight: "500" },
-          selected: { color: c.onSurface, fontSize: 12, fontWeight: "600" },
-        }}
+        {...(Platform.OS === "ios"
+          ? // iOS's own bar and colours (on iOS 26 it draws its glass itself); the picked tab in the app's accent.
+            { tintColor: c.accent }
+          : {
+              backgroundColor: c.surfaceContainer,
+              indicatorColor: c.secondaryContainer,
+              rippleColor: c.selected,
+              iconColor: { default: c.onSurfaceVariant, selected: c.onSecondaryContainer },
+              labelStyle: {
+                default: { color: c.onSurfaceVariant, fontSize: 12, fontWeight: "500" },
+                selected: { color: c.onSurface, fontSize: 12, fontWeight: "600" },
+              },
+            })}
         badgeBackgroundColor={c.error}
         badgeTextColor={c.onError}
         labelVisibilityMode="labeled"
@@ -70,7 +78,7 @@ export default function TabsLayout() {
             accessibilityLabel={tabLabel(t, tab.title, tab.badge)}
             contentStyle={{ backgroundColor: c.surface }}
           >
-            <NativeTabs.Trigger.Icon drawable={{ default: `tab_${tab.icon}`, selected: `tab_${tab.icon}_filled` }} />
+            <NativeTabs.Trigger.Icon sf={SF[tab.icon]} drawable={{ default: `tab_${tab.icon}`, selected: `tab_${tab.icon}_filled` }} />
             <NativeTabs.Trigger.Label>{tab.title}</NativeTabs.Trigger.Label>
             <NativeTabs.Trigger.Badge hidden={!badgeOf(tab.badge)}>{badgeOf(tab.badge)}</NativeTabs.Trigger.Badge>
           </NativeTabs.Trigger>
@@ -86,6 +94,15 @@ interface Badges {
   presence: Badge;
   plan: Badge;
 }
+
+/** Each tab's icon on an iPhone: Apple's symbol, outlined at rest and filled when picked, as Android's drawables are. */
+const SF: Record<"home" | "schedule" | "tasks" | "courses" | "academic", SFSymbolIcon["sf"]> = {
+  home: { default: "house", selected: "house.fill" },
+  schedule: { default: "calendar", selected: "calendar" },
+  tasks: { default: "checkmark.circle", selected: "checkmark.circle.fill" },
+  courses: { default: "book", selected: "book.fill" },
+  academic: { default: "graduationcap", selected: "graduationcap.fill" },
+};
 
 const NO_BADGES: Badges = { tasks: null, presence: null, plan: null };
 

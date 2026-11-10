@@ -40,6 +40,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   // iOS (IOS.md): not shipped, built from a Mac to try on a phone. The demo is its own app there too.
   ios: {
+    // Edge to edge and opaque (scripts/make-icons.mjs): the tile with its margin came out framed in white.
+    icon: "./assets/ios-icon.png",
     supportsTablet: false,
     bundleIdentifier: demo ? "io.github.pablonification.edunexplus.demo" : "io.github.pablonification.edunexplus",
     buildNumber: "1",

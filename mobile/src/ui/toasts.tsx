@@ -5,10 +5,11 @@
 // less motion asked for). Errors that need reading belong in a banner on the page, not here
 // (DESIGN.md, "Patterns").
 import { useSegments } from "expo-router";
-import { type ComponentRef, useEffect, useRef, useState } from "react";
+import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import { Animated, Easing, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dismissToast, useToasts } from "../swaps/overlays";
+import { GLASS, GlassSurface } from "./glass";
 import { useBarTop, useTabsBottom } from "./insets";
 import { reduceMotion } from "./motion";
 import { Text } from "./text";
@@ -56,42 +57,52 @@ export function Toasts() {
             key={item.id}
             accessibilityLiveRegion="polite"
             style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: space[2],
-              minHeight: TOUCH,
-              borderRadius: shape.xs,
-              paddingLeft: space[4],
-              paddingRight: item.action ? space[2] : space[4],
-              paddingVertical: space[1.5],
-              backgroundColor: c.inverseSurface,
-              elevation: 3,
-              shadowColor: "#000",
               opacity: rise,
               transform: reduceMotion() ? [] : [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
             }}
           >
-            <Text size="bodyMedium" tone="inverse" style={{ flex: 1, paddingVertical: space[1] }}>
-              {item.text}
-            </Text>
-            {item.action && (
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => {
-                  item.action?.onClick();
-                  dismissToast(item.id);
-                }}
-                android_ripple={{ color: "rgba(255,255,255,0.12)" }}
-                style={{ minHeight: TOUCH, justifyContent: "center", paddingHorizontal: space[3], borderRadius: shape.full }}
-              >
-                <Text size="labelLarge" style={{ color: c.inversePrimary }}>
-                  {item.action.label}
-                </Text>
-              </Pressable>
-            )}
+            <Snackbar action={!!item.action}>
+              <Text size="bodyMedium" tone={GLASS ? undefined : "inverse"} style={{ flex: 1, paddingVertical: space[1] }}>
+                {item.text}
+              </Text>
+              {item.action && (
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => {
+                    item.action?.onClick();
+                    dismissToast(item.id);
+                  }}
+                  android_ripple={{ color: "rgba(255,255,255,0.12)" }}
+                  style={{ minHeight: TOUCH, justifyContent: "center", paddingHorizontal: space[3], borderRadius: shape.full }}
+                >
+                  <Text size="labelLarge" style={{ color: GLASS ? c.accent : c.inversePrimary }}>
+                    {item.action.label}
+                  </Text>
+                </Pressable>
+              )}
+            </Snackbar>
           </Animated.View>
         </View>
       )}
     </View>
   );
+}
+
+/**
+ * The snackbar's surface: Material's inverse surface, or on iOS 26 Liquid Glass with the page's own text colour on it
+ * (./glass.tsx), as iOS's own floating panels are.
+ */
+function Snackbar({ action, children }: { action: boolean; children: ReactNode }) {
+  const c = useTheme().color;
+  const shape0 = {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: space[2],
+    minHeight: TOUCH,
+    paddingLeft: space[4],
+    paddingRight: action ? space[2] : space[4],
+    paddingVertical: space[1.5],
+  };
+  if (GLASS) return <GlassSurface style={{ ...shape0, borderRadius: shape.lg }}>{children}</GlassSurface>;
+  return <View style={{ ...shape0, borderRadius: shape.xs, backgroundColor: c.inverseSurface, elevation: 3, shadowColor: "#000" }}>{children}</View>;
 }

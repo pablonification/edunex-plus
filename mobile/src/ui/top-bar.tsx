@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../src/app/i18n";
 import { useNav } from "../nav";
 import { IconButton } from "./controls";
+import { GlassButtons } from "./glass";
 import { Icons } from "./icons";
 import { usePageColor, useScrolledPast, useScrolledUnder } from "./layout";
 import { Text } from "./text";
@@ -51,9 +52,12 @@ export function TopBar({
   return (
     <BarSurface v4={v4}>
       <View style={[styles.bar, { marginTop: insets.top }]}>
-        <IconButton label={t("action.back")} onPress={onBack ?? nav.back} testID="action.back">
-          <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
-        </IconButton>
+        {/* On iOS 26 the back button and the actions sit on Liquid Glass, as the iPhone's own bars have them (./glass.tsx). */}
+        <GlassButtons>
+          <IconButton label={t("action.back")} onPress={onBack ?? nav.back} testID="action.back">
+            <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
+          </IconButton>
+        </GlassButtons>
         <Animated.View style={{ flex: 1, minWidth: 0, marginLeft: space[1], opacity: shown ?? 1, paddingRight: wraps ? space[2] : 0 }}>
           {/* Every screen's title in the one face for headings (v4: Plus Jakarta Sans), whatever page it's on. */}
           <Text
@@ -68,7 +72,11 @@ export function TopBar({
             {title ?? ""}
           </Text>
         </Animated.View>
-        {actions && <View style={{ flexDirection: "row", alignItems: "center" }}>{actions}</View>}
+        {actions && (
+          <GlassButtons>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>{actions}</View>
+          </GlassButtons>
+        )}
       </View>
     </BarSurface>
   );
