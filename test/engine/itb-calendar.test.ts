@@ -2,7 +2,7 @@
 // events the rest of the app reasons with, refreshed daily, kept when offline.
 import { describe, expect, it } from "vitest";
 import type { CalendarEvent } from "../../src/core/models";
-import { kindOf } from "../../src/engine/sources/itb/calendar";
+import { kindOf, readCalendar, readCalendarInSlices } from "../../src/engine/sources/itb/calendar";
 import { startEngine } from "./harness";
 
 const HOUR = 3_600_000;
@@ -66,6 +66,39 @@ describe("ITB academic calendar", () => {
     expect(calendarRequests(h)).toBe(1);
     await h.wait(13 * HOUR);
     expect(calendarRequests(h)).toBe(2);
+  });
+
+  it("read again unchanged: nothing new is stored, so no screen or plan works it out again", async () => {
+    const h = await startEngine();
+    await h.wait();
+    const published = () => h.events.filter((e) => e.type === "dataset" && e.dataset.name === "itb.calendar").length;
+    const before = published();
+    const stored = h.dataset("itb.calendar");
+    await h.wait(25 * HOUR);
+    expect(calendarRequests(h)).toBe(2);
+    expect(published()).toBe(before);
+    expect(h.dataset("itb.calendar")).toBe(stored);
+    // It still counts as read now (the report's and the alerts' "last read").
+    const readAt = h.engine.snapshot().datasets.find((d) => d.name === "itb.calendar")!.fetchedAt;
+    expect(h.world.clock.now() - readAt).toBeLessThan(2 * HOUR);
+    // Read once a day, not on every run once the stored copy is a day old.
+    await h.wait(12 * HOUR);
+    expect(calendarRequests(h)).toBe(2);
+    // Its "checked" date is moved on once it's a few days old.
+    await h.wait(3 * 24 * HOUR);
+    expect(published()).toBe(before + 1);
+    expect(h.dataset("itb.calendar")!.events).toEqual(stored!.events);
+  });
+
+  it("read a slice at a time (the phone), it comes out the same, with the screens given turns", async () => {
+    const h = await startEngine();
+    await h.wait();
+    const text = h.world.itb.calendar;
+    let turns = 0;
+    const sliced = await readCalendarInSlices(text, 1, async () => void turns++);
+    expect(sliced).toEqual(readCalendar(text, 1));
+    expect(turns).toBeGreaterThan(3);
+    await expect(readCalendarInSlices("<html></html>", 1, async () => undefined)).rejects.toMatchObject({ kind: "VendorChanged" });
   });
 
   it("calendar changed: a moved exam week shows on the next daily read", async () => {

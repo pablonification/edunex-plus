@@ -1,11 +1,12 @@
 // The window's memory: the snapshot it started with, kept current by engine
 // events. Screens read it through hooks that subscribe to one dataset or one
 // source each, so an update redraws only what uses it.
-import { createContext, type ReactNode, useContext, useEffect, useSyncExternalStore } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import type { AppSnapshot, DatasetPayload, Event, SignInStep } from "../core/contract";
 import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus, UpdateInstall } from "../core/models";
 import type { Route } from "../core/route";
 import type { Bridge } from "./bridge";
+import { useExternal } from "./external";
 
 type Command = Extract<Event, { type: "command" }>["command"];
 type SignInSource = Extract<Event, { type: "signIn" }>["source"];
@@ -25,6 +26,8 @@ export class AppStore {
   readonly vault: AppSnapshot["vault"];
   /** Problem reports can go to the maintainer's relay with one click: this copy has its address. */
   readonly relay: boolean;
+  /** Its changes reach the screens as transitions (./external.ts): the phone's screens read it through `deferredStore`. */
+  deferred = false;
 
   constructor(snapshot: AppSnapshot) {
     for (const dataset of snapshot.datasets) this.datasets.set(dataset.name, dataset);
@@ -136,8 +139,13 @@ interface AppContext {
 
 const Context = createContext<AppContext | null>(null);
 
+/**
+ * The same value while the store and bridge stay the same: a provider drawn again for another reason (the phone's tab
+ * gaining or losing focus) doesn't draw everything under it again.
+ */
 export function StoreProvider({ store, bridge, children }: AppContext & { children: ReactNode }) {
-  return <Context.Provider value={{ store, bridge }}>{children}</Context.Provider>;
+  const value = useMemo(() => ({ store, bridge }), [store, bridge]);
+  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 
 function useApp(): AppContext {
@@ -160,44 +168,67 @@ export function useDataset<N extends DatasetName>(name: N): DatasetValue<N> | un
 
 export function useDatasetPayload(name: DatasetName): DatasetPayload | undefined {
   const store = useStore();
-  return useSyncExternalStore(
-    (listener) => store.subscribe(`dataset:${name}`, listener),
-    () => store.dataset(name),
-  );
+  return useTopic(store, `dataset:${name}`, () => store.dataset(name));
 }
 
 export function useStatus(source: SourceId): SourceStatus {
   const store = useStore();
-  return useSyncExternalStore(
-    (listener) => store.subscribe(`status:${source}`, listener),
-    () => store.status(source),
-  );
+  return useTopic(store, `status:${source}`, () => store.status(source));
+}
+
+/**
+ * One part of a source's status (its state, the pages that changed), drawn again only when that part changes. Every
+ * read that goes well gives the status a new time: a screen that reads the whole status for its state was drawn again
+ * after each one (Beranda after SIX's every read of a pull to refresh, 125+ ms on a mid-range phone).
+ */
+export function useStatusPart<T>(source: SourceId, pick: (status: SourceStatus) => T): T {
+  const store = useStore();
+  const last = useRef<{ text: string; value: T } | null>(null);
+  return useTopic(store, `status:${source}`, () => {
+    const value = pick(store.status(source));
+    const text = JSON.stringify(value) ?? "";
+    if (last.current?.text === text) return last.current.value;
+    last.current = { text, value };
+    return value;
+  });
+}
+
+/** A source's state ("live", "signed-out"…), drawn again only when it changes (useStatusPart). */
+export function useSourceState(source: SourceId): SourceStatus["state"] {
+  return useStatusPart(source, (status) => status.state);
 }
 
 export function useSettings(): Settings {
   const store = useStore();
-  return useSyncExternalStore(
-    (listener) => store.subscribe("settings", listener),
-    () => store.currentSettings(),
-  );
+  return useTopic(store, "settings", () => store.currentSettings());
 }
 
 /** Whether this copy can update itself, and how far an update got. */
 export function useUpdateInstall(): UpdateInstall {
   const store = useStore();
-  return useSyncExternalStore(
-    (listener) => store.subscribe("update", listener),
-    () => store.updateInstall(),
-  );
+  return useTopic(store, "update", () => store.updateInstall());
 }
 
 /** Where a sign-in stands once the Student's part is over: finishing out of sight, slow; null otherwise. */
 export function useSignInStep(source: SignInSource): SignInStep | null {
   const store = useStore();
-  return useSyncExternalStore(
-    (listener) => store.subscribe(`signIn:${source}`, listener),
-    () => store.signInStep(source),
-  );
+  return useTopic(store, `signIn:${source}`, () => store.signInStep(source));
+}
+
+/** One topic of `store`, again whenever it changes: at once, or as a transition for a deferred store. */
+function useTopic<T>(store: AppStore, topic: string, read: () => T): T {
+  const subscribe = useCallback((listener: () => void) => store.subscribe(topic, listener), [store, topic]);
+  return useExternal(store.deferred, topic, subscribe, read);
+}
+
+/**
+ * `store` as a screen reads it when what it draws can wait a moment for new data: the same data and the same commands,
+ * each change handed over as a transition (./external.ts). The phone's screens read the store this way.
+ */
+export function deferredStore(store: AppStore): AppStore {
+  const view = Object.create(store) as AppStore;
+  view.deferred = true;
+  return view;
 }
 
 /** Runs `handler` when a system connected by itself on the Student's sign-in to the other. */

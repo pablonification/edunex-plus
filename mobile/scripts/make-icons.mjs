@@ -5,6 +5,8 @@
 //   assets/android-icon-background.png  the app's blue, top to bottom, as the tile has it
 //   assets/android-icon-monochrome.png  the mark alone, for Android's themed icons
 //   assets/notification-icon.png        the mark alone, white and nearly edge to edge, 96 px: the status bar's icon
+//   assets/ios-icon.png                 the iPhone's: the tile edge to edge and opaque (iOS rounds the corners itself and
+//                                       fills anything see-through with white), the mark where the tile has it
 // Drawn by Playwright's Chromium (from the repository's node_modules), so no other tool is needed:
 //   node mobile/scripts/make-icons.mjs
 import fs from "node:fs";
@@ -22,6 +24,14 @@ const markOnly = (colour, scale) =>
   `<g transform="translate(512 512) scale(${scale}) translate(-525 -511)">${mark.replaceAll("#ffffff", colour)}</g></svg>`;
 const background = `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024"><defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f8cff"/><stop offset="0.55" stop-color="#2f6feb"/><stop offset="1" stop-color="#1f55d0"/></linearGradient></defs><rect width="1024" height="1024" fill="url(#b)"/></svg>`;
 
+// The tile (824 of 1024 px) grown to the whole square, its sheen with it.
+const sheen = svg.match(/<radialGradient id="sheen"[\s\S]*?<\/radialGradient>/)[0];
+const ios =
+  `<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><defs>${clip}${sheen}` +
+  `<linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f8cff"/><stop offset="0.55" stop-color="#2f6feb"/><stop offset="1" stop-color="#1f55d0"/></linearGradient></defs>` +
+  `<rect width="1024" height="1024" fill="url(#b)"/><rect width="1024" height="1024" fill="url(#sheen)"/>` +
+  `<g transform="translate(512 512) scale(${1024 / 824}) translate(-512 -512)">${mark}</g></svg>`;
+
 // Any Chromium Playwright already downloaded will do (CHROMIUM=<path> to pick one).
 const cache = path.join(process.env.HOME ?? "", ".cache/ms-playwright");
 const found = fs.existsSync(cache)
@@ -34,12 +44,12 @@ const found = fs.existsSync(cache)
   : undefined;
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM ?? found });
 const page = await browser.newPage({ viewport: { width: 1024, height: 1024 } });
-async function draw(source, file, size = 1024) {
+async function draw(source, file, size = 1024, opaque = false) {
   await page.setViewportSize({ width: size, height: size });
   await page.setContent(
     `<html><body style="margin:0;background:transparent"><img src="data:image/svg+xml;base64,${Buffer.from(source).toString("base64")}" width="${size}" height="${size}" style="display:block"></body></html>`,
   );
-  await page.screenshot({ path: path.join(root, "mobile/assets", file), omitBackground: true });
+  await page.screenshot({ path: path.join(root, "mobile/assets", file), omitBackground: !opaque });
   console.log(`mobile/assets/${file}`);
 }
 await draw(svg, "icon.png");
@@ -49,4 +59,5 @@ await draw(background, "android-icon-background.png");
 await draw(markOnly("#ffffff", 0.78), "android-icon-monochrome.png");
 // Android draws a notification's small icon from its alpha alone: a full tile would be a plain square.
 await draw(markOnly("#ffffff", 1.6), "notification-icon.png", 96);
+await draw(ios, "ios-icon.png", 1024, true);
 await browser.close();

@@ -14,9 +14,10 @@
 // doesn't know is passed over and SIX's order doesn't matter. On SIX's English
 // variant, whose labels were never recorded, a label the app doesn't know is
 // taken from where the recorded page has it.
-import { type Cheerio, type CheerioAPI, load } from "cheerio/slim";
+import type { Cheerio, CheerioAPI } from "cheerio/slim";
 import type { Element } from "domhandler";
 import { EngineError, isEngineError } from "../../../errors";
+import { openParsed } from "../../../html-slices";
 import { Skipped } from "../../skipped";
 
 export type Elem = Cheerio<Element>;
@@ -32,8 +33,8 @@ export interface Page {
 }
 
 export function openPage(html: string | CheerioAPI, name: string, skipped = new Skipped()): Page {
-  // A big page comes already parsed, in slices (../../../html-slices.ts).
-  const $ = typeof html === "string" ? load(html) : html;
+  // A big page comes already parsed, in slices (../../../html-slices.ts); on the phone every page was (SixClient).
+  const $ = typeof html === "string" ? openParsed(html) : html;
   const active = $('li.active > a[href^="/pub/locale/"]').attr("href") ?? "";
   return { $, lang: /^\/pub\/locale\/en\b/.test(active) ? "en" : "id", name, skipped };
 }

@@ -101,6 +101,26 @@ describe("pretend Edunex", () => {
     expect((await edunexGet(world, "/login/me")).status).toBe(401);
   });
 
+  it("lists several courses' Tasks in one call, and only those due at or after a time on Edunex's clock (WIB)", async () => {
+    const world = new PretendWorld();
+    const all = await edunexGet(world, "/course/tasks?filter[course_id][in]=95326,95001&page[limit]=0");
+    expect(all.body.meta.total).toBe(7);
+    // 20:00 WIB keeps the Task due at 23:59 WIB that day; read as UTC (03:00 WIB the next day) it wouldn't.
+    const since = encodeURIComponent("2026-10-16 20:00:00");
+    const open = await edunexGet(world, `/course/tasks?filter[course_id][in]=95326,95001&filter[end_at][gte]=${since}&page[limit]=0`);
+    expect(open.body.data.map((t: any) => t.attributes.end_at).sort()).toEqual([
+      "2026-10-16T23:59:00+07:00",
+      "2026-10-30T23:59:00+07:00",
+      "2026-11-13T23:59:00+07:00",
+      "2026-11-26T23:59:00+07:00",
+    ]);
+    expect(open.body.meta.total).toBe(4);
+    // A Task with no deadline never passes the filter.
+    const id = world.edunex.postTask(95001, { end_at: null });
+    const again = await edunexGet(world, `/course/tasks?filter[course_id][in]=95001&filter[end_at][gte]=${since}&page[limit]=0`);
+    expect(again.body.data.some((t: any) => t.id === id)).toBe(false);
+  });
+
   it("lets a test act as the lecturer", async () => {
     const world = new PretendWorld();
     const id = world.edunex.postTask(95001, { name: "Tugas Baru" });

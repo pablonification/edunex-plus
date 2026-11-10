@@ -1,87 +1,57 @@
-// A course's attendance on its page (round 2, v4; judge round 3): one line under the course's title, the share
-// attended and what's left of the absences ("85% hadir · Sisa 1×"), and the one exception in a few words. The header
-// is one target: the course's sheet (./course-sheet.tsx) says it all, the count, the target, the exception's whole
-// sentence and its way back too. Kuliah's row (src/screens/presence/course-row.tsx) uses budgetChip.
-// Words and figures are the desktop's (src/app/screens/presence.tsx's CourseRow and Exception).
+// A course's attendance on its page (round 3): in the header under the bar (beside the course's tile, under its code), the meter of its absences with one word
+// (parts/attendance-meter.tsx, as Kuliah's row draws it) and the one exception when it's a fact. The header is one
+// target: the course's sheet (./course-sheet.tsx) says it all, the count, the target, the exception's whole sentence,
+// the advice and its way back too. Words and figures are the desktop's (src/app/screens/presence.tsx).
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import type { CourseAttendance } from "../../../../src/app/attendance";
-import { budgetLabel, budgetWords, useActionLabel } from "../../../../src/app/attendance-labels";
+import { useActionLabel } from "../../../../src/app/attendance-labels";
 import { useFormat, useT } from "../../../../src/app/i18n";
-import { isExamActivity, onUsualSlot, type PresenceGroup, percent, presenceGroup } from "../../../../src/core/attendance";
+import { useCourseNames } from "../../../../src/app/schedule-data";
+import { isExamActivity, onUsualSlot, percent } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
-import { type AbsenceTone, absenceInk, absenceName, absenceTone } from "../../ui/absence";
+import { AttendanceMeter, meterModel } from "../../parts/attendance-meter";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { classOf, dayLabel, GONE_FOR, type RowContext, sideText, uncertainText, windowWhen } from "../presence/logic";
-
-/** The chip's tone: the app's absence scale (src/ui/absence.ts), grey before SIX has a count. */
-export type BudgetTone = AbsenceTone | "neutral";
+import { shortName } from "../home/parts";
+import { classOf, dayLabel, GONE_FOR, type RowContext, uncertainText, windowWhen } from "../presence/logic";
 
 /**
- * The chip's few words ("Sisa 1×", "Jatah habis", "Lewat batas 1×"), its tone, and the whole sentence for a screen reader.
- * None left and over the limit go by their one name on every tab (absenceName); the rest by the desktop's bar.
- */
-export function budgetChip(t: ReturnType<typeof useT>, group: PresenceGroup, health: CourseAttendance["health"], context: RowContext) {
-  if (context.signedOut) return null;
-  const tone: BudgetTone = absenceTone(health.state) ?? "neutral";
-  if (group === "out" || group === "none" || group === "spare" || group === "unknown") {
-    const words = budgetWords(t, health, context.soFar);
-    if (!words) return null;
-    const text = absenceName(t, health) ?? words.bold.charAt(0).toLocaleUpperCase() + words.bold.slice(1);
-    return { text, tone, label: budgetLabel(t, health) };
-  }
-  const text = sideText(t, group, health);
-  if (!text) return null;
-  return { text, tone: group === "missed" || group === "met" ? tone : "neutral", label: text };
-}
-
-/**
- * The course's attendance as one line under its title, "85% hadir · Sisa 1×" (judge round 3: no card of its own): the
- * share so far (red once the target is out of reach, amber with no absences left), then the chip's few words in their
- * tone; the one exception in a few words under it, if any. The next class is the row under the header (./now.tsx).
- * `label`: the whole of it for a screen reader, the count and the target too (the course's sheet shows them).
+ * The course's attendance under its name (round 3): the meter (parts/attendance-meter.tsx) with its one word, and an ⓘ
+ * saying the header opens the course's sheet, where the share, the count, the target and any advice ("Cek ke dosen")
+ * are. Under it, the one exception only when it's a fact with a date or a deadline ("Kuliah Kam 15 Okt mungkin tak
+ * ada", "Presensi Edunex …"); a clash is on the next class's row, advice is in the sheet.
+ * `label`: the whole of it for a screen reader, the share and the target too.
  */
 export function useAttendanceLine(item: CourseAttendance | undefined, context: RowContext | undefined): { node: ReactNode; label: string } | null {
   const t = useT();
   const v = useTheme().v4;
   const found = useCourseException(item, context);
-  if (!item || !context) return null;
+  if (!item || !context || context.signedOut) return null;
   const { health } = item;
-  const chip = budgetChip(t, presenceGroup(health, context.signedOut), health, context);
+  const meter = meterModel(t, item, context.soFar);
   // Tandai Hadir not out yet isn't said here: the now card under the header is that class, with its button.
-  const exception = found?.kind === "watching" ? null : found;
+  const exception = found && SHOWN.has(found.kind) && !(found.kind === "clash" && (item.clash?.session.start ?? 0) > context.now) ? found : null;
+  const advice = found && !exception && found.kind !== "watching" ? found : null;
+  if (!meter && !exception && !advice) return null;
   const held = health.held ?? 0;
   const share = held > 0 ? percent(health.attended ?? 0, held) : null;
-  if (share === null && !chip && !exception) return null;
   const over = health.state === "met" || health.state === "missed";
-  const count =
-    share === null
-      ? null
-      : over
-        ? t("presence.row.final", { percent: share })
-        : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share });
-  const tone = absenceTone(health.state);
-  const shareColor = tone === "red" || tone === "amber" ? absenceInk(v, tone).fg : v.fg2;
-  const chipColor = !chip || chip.tone === "neutral" ? v.muted : absenceInk(v, chip.tone).fg;
-  const label = [count, share !== null ? t("presence.row.ownTarget", { value: health.target }) : null, chip?.label, exception?.short]
+  const count = share === null || over ? null : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share });
+  const label = [meter?.label, count, share !== null && !over ? t("presence.row.ownTarget", { value: health.target }) : null, exception?.short ?? advice?.short]
     .filter(Boolean)
     .join(". ");
   const node = (
-    <View style={{ marginTop: space[2], gap: space[1] }}>
-      {(share !== null || chip) && (
-        <Text testID="meter.courseAttendance" size="bodyMedium" weight="semibold" tabular numberOfLines={1}>
-          {share !== null ? <Text style={{ color: shareColor }}>{t("mobile.course.attended", { percent: share })}</Text> : null}
-          {share !== null && chip ? <Text style={{ color: v.muted }}>{" · "}</Text> : null}
-          {chip ? (
-            <Text testID="line.courseBudget" style={{ color: chipColor }}>
-              {chip.text}
-            </Text>
-          ) : null}
-        </Text>
-      )}
+    <View style={{ marginTop: space[1], gap: space[1] }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+        {meter && <AttendanceMeter model={meter} size="header" hideLabel testID="meter.courseAttendance" />}
+        {/* The why is one step away: the header opens the sheet that says it. */}
+        <View testID={advice ? "mark.courseAdvice" : undefined}>
+          <Icons.Info size={18} weight={advice ? "fill" : "regular"} color={v.muted} />
+        </View>
+      </View>
       {exception && (
         <View testID="note.courseException" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
           <ExceptionIcon exception={exception} size={14} />
@@ -94,6 +64,9 @@ export function useAttendanceLine(item: CourseAttendance | undefined, context: R
   );
   return { node, label };
 }
+
+/** The exceptions said under the meter: facts with a date or a deadline. Advice ("Cek ke dosen", a lab's rules) is in the sheet. */
+const SHOWN: ReadonlySet<CourseExceptionNote["kind"]> = new Set(["gone", "needed", "clash", "window", "uncertain"]);
 
 export interface CourseExceptionNote {
   kind: "watching" | "gone" | "uncounted" | "needed" | "clash" | "window" | "uncertain" | "lab";
@@ -108,6 +81,8 @@ export function ExceptionIcon({ exception, size }: { exception: CourseExceptionN
   const theme = useTheme();
   const color = exception.tone === "warning" ? theme.v4.ambFg : theme.v4.muted;
   if (exception.kind === "watching" || exception.kind === "gone") return <Icons.Hand size={size} color={color} />;
+  // A clash has its own icon everywhere (Jadwal's blocks and strip, the next class's row).
+  if (exception.kind === "clash") return <Icons.Overlap size={size} weight="bold" color={color} />;
   if (exception.tone === "warning") return <Icons.AlertTriangle size={size} weight="bold" color={color} />;
   return <Icons.Info size={size} color={color} />;
 }
@@ -121,6 +96,7 @@ export function useCourseException(item: CourseAttendance | undefined, context: 
   const t = useT();
   const f = useFormat();
   const actionLabel = useActionLabel();
+  const name = useCourseNames();
   if (!item || !context) return null;
   const { course, health, nextWindow } = item;
   const { now, student, checkIns, zone } = context;
@@ -148,10 +124,9 @@ export function useCourseException(item: CourseAttendance | undefined, context: 
       text: uncertainText(t, f, needed.start, context.events, health.target),
       tone: "warning",
     };
-  // 5. The next class clashes with another course's (unless today's clash card says it).
+  // 5. The next class clashes with another course's (on the page, its next class's row says it; the sheet says it whole).
   const clash = item.clash;
-  const onCard = zone.clashes.some((c) => c.a.course.code === course.code || c.b.course.code === course.code);
-  if (clash && !onCard) {
+  if (clash) {
     const mine = context.schedule.filter((s) => s.courseCode === course.code);
     const theirs = context.schedule.filter((s) => s.courseCode === clash.other);
     const time = f.timeRange(clash.from, clash.to);
@@ -165,7 +140,7 @@ export function useCourseException(item: CourseAttendance | undefined, context: 
         : clash.pick.pick === clash.other
           ? t("presence.row.clashOther", { code: clash.other })
           : t("presence.row.clashAsk");
-    return { kind: "clash", short: t("mobile.course.ex.clash", { code: clash.other }), text: `${head} ${tail}`, tone: "warning" };
+    return { kind: "clash", short: t("mobile.course.ex.clash", { course: shortName(name(clash.other)) }), text: `${head} ${tail}`, tone: "warning" };
   }
   // 6–7. What the next class's Edunex window asks, where Edunex keeps the count too.
   const next = health.left.next;
@@ -188,9 +163,9 @@ export function useCourseException(item: CourseAttendance | undefined, context: 
       };
     }
   }
-  // 8. The next class may not run (exam week, holiday), unless the note on top says it for every course.
+  // 8. The next class may not run (exam week, holiday).
   const first = health.left.upcoming[0];
-  if (first?.uncertain && !(zone.week?.codes.includes(course.code) ?? false))
+  if (first?.uncertain)
     return {
       kind: "uncertain",
       short: t("mobile.course.ex.uncertain", { date: dayLabel(f, first.start) }),

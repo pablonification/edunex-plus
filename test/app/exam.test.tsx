@@ -119,6 +119,8 @@ describe("the exam page", () => {
     // Real material: the lecturer's file to read in the app, and the modules before the exam.
     expect(s.text()).toContain("Bahan belajar");
     await s.click("Lihat UTS MARKOM SEM 1 2026 2027.pdf");
+    // The window may remember the courses' colors on the same tick (local.set): the file opens right after.
+    for (let tick = 0; tick < 20 && s.calls.at(-1)?.name !== "files.read"; tick++) await new Promise((resolve) => setTimeout(resolve, 0));
     expect(s.calls.at(-1)).toMatchObject({ name: "files.read", input: { as: "pdf" } });
     await s.key("Escape");
     expect(s.text()).toContain("Kehadiran 4/6 · Jatah absen habis");

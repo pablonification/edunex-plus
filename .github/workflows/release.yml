@@ -1,4 +1,4 @@
-# The installable app for macOS, Windows and Linux.
+# The installable app for macOS, Windows and Linux, and on a version tag the phone app too (mobile-release.yml).
 #
 # - On a version tag (v1.2.3): checks that the tag matches package.json's
 #   version, builds all three, and puts them in a DRAFT release with notes
@@ -508,9 +508,18 @@ jobs:
 
           "### Windows installer`n`nReplaced the first alpha in its folder, kept the Student's data when uninstalled, and stopped over a copy installed for everyone." | Add-Content $env:GITHUB_STEP_SUMMARY
 
+  # The Android APK and the iPhone .ipa, for the same draft release (artifacts app-android and app-iphone).
+  phone:
+    name: phone
+    needs: verify
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+    uses: ./.github/workflows/mobile-release.yml
+
   publish:
     name: publish
-    needs: package
+    needs: [package, phone]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -529,7 +538,7 @@ jobs:
         working-directory: installers
         run: |
           shopt -s nullglob
-          files=(*.dmg *.zip *.tar.xz *.exe *.deb *.AppImage)
+          files=(*.dmg *.zip *.tar.xz *.exe *.deb *.AppImage *.apk *.ipa)
           if (( ${#files[@]} == 0 )); then echo "No installers to sum" >&2; exit 1; fi
           sha256sum -- "${files[@]}" > SHA256SUMS.txt
           cat SHA256SUMS.txt
@@ -554,5 +563,5 @@ jobs:
           {
             echo "### Draft release ready"
             echo
-            echo "**$TAG** is a draft with the installers for macOS, Windows and Linux. Try it on real accounts, then publish it from the Releases page; installed apps see it only once it's published."
+            echo "**$TAG** is a draft with the installers for macOS, Windows and Linux, the Android APK and the iPhone .ipa. Try it on real accounts, then publish it from the Releases page; installed apps see it only once it's published."
           } >> "$GITHUB_STEP_SUMMARY"

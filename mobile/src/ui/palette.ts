@@ -189,6 +189,8 @@ export const V4 = {
     // A neutral pill's fill on a card ("7 hari", "Belum ditagih", "Tidak wajib"): a step off the card in both themes.
     chip: "#f1f3f7",
     line: "#e6e9ef",
+    // A bar's empty part where it must read on its own (Akademik's and Nilai's SKS bar): 3:1 on the card (round 3).
+    track: "#8a909c",
     fg: "#14171c",
     fg2: "#3f4652",
     muted: "#5f6673",
@@ -196,6 +198,9 @@ export const V4 = {
     onBrand: "#ffffff",
     head: "#1f63e0",
     onHead: "#ffffff",
+    // Beranda's header texture (screens/home/header.tsx): one alpha for every dot, low enough that the white greeting
+    // and icons over a dot keep 4.5:1 (contrast test); the dots' size, not their alpha, carries the fade.
+    headDots: "rgba(255,255,255,0.18)",
     brandTint: "#dbe6ff",
     brandInk: "#1450c4",
     okBg: "#e3f4e8",
@@ -214,6 +219,7 @@ export const V4 = {
     // Lighter than the card, not the page's black: on the page's colour a pill read as a hole in the card (judge round 5).
     chip: "#2a2f39",
     line: "#262a33",
+    track: "#646b78",
     fg: "#eef0f4",
     fg2: "#c8cdd6",
     muted: "#9aa1ae",
@@ -222,6 +228,7 @@ export const V4 = {
     // Dark: a deep, desaturated blue rather than Edunex's bright one (Arqila's review); the status bar's strip takes it too.
     head: "#1a3158",
     onHead: "#ffffff",
+    headDots: "rgba(255,255,255,0.14)",
     brandTint: "#22355f",
     brandInk: "#b9ceff",
     okBg: "#14301f",

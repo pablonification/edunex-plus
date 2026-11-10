@@ -33,7 +33,7 @@ export function Outlook({ record, state }: { record: StudentRecord; state: PlanS
         </Panel>
         {charted && (
           <Panel style={{ paddingHorizontal: space[3], paddingTop: space[4], paddingBottom: space[3] }}>
-            <IpkChart steps={projection.steps} target={target} height={156} />
+            <IpkChart steps={projection.steps} target={target} best={projection.bestIpk} height={156} />
           </Panel>
         )}
         <Honors projection={projection} />

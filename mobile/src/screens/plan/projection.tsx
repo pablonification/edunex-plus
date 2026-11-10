@@ -23,6 +23,7 @@ import {
 } from "../../../../src/core/planner";
 import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
+import { iosPressed } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
 import { Text, type TextTone, useFieldColors, useTextWidth } from "../../ui/text";
 import { radius, space, TOUCH, type, useTheme } from "../../ui/theme";
@@ -110,21 +111,24 @@ export function GradeSelect({
         hitSlop={4}
         onPress={() => setOpen(true)}
         android_ripple={{ color: c.selected, borderless: false }}
-        style={{
-          minWidth: 60,
-          height: 40,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 4,
-          paddingHorizontal: space[2],
-          borderRadius: 12,
-          borderWidth: guess ? 1 : 0,
-          borderStyle: "dashed",
-          borderColor: c.fieldEdge,
-          backgroundColor: guess ? "transparent" : v.brandTint,
-          overflow: "hidden",
-        }}
+        style={({ pressed }) => [
+          {
+            minWidth: 60,
+            height: 40,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            paddingHorizontal: space[2],
+            borderRadius: 12,
+            borderWidth: guess ? 1 : 0,
+            borderStyle: "dashed",
+            borderColor: c.fieldEdge,
+            backgroundColor: guess ? "transparent" : v.brandTint,
+            overflow: "hidden",
+          },
+          iosPressed(pressed),
+        ]}
       >
         <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: ink }}>
           {value}
@@ -146,16 +150,19 @@ export function GradeSelect({
                   onChange(grade);
                 }}
                 android_ripple={{ color: c.selected }}
-                style={{
-                  width: 64,
-                  height: 52,
-                  borderRadius: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: on ? 2 : 0,
-                  borderColor: v.brandInk,
-                  backgroundColor: on ? v.brandTint : v.page,
-                }}
+                style={({ pressed }) => [
+                  {
+                    width: 64,
+                    height: 52,
+                    borderRadius: 14,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: on ? 2 : 0,
+                    borderColor: v.brandInk,
+                    backgroundColor: on ? v.brandTint : v.page,
+                  },
+                  iosPressed(pressed),
+                ]}
               >
                 <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: on ? v.brandInk : v.fg }}>
                   {grade}
@@ -396,10 +403,23 @@ export function HonorsList({ projection }: { projection: Projection }) {
 }
 
 /**
- * IP per semester (dots) and the IPK after each (a line), estimates dashed, the target as a
- * labelled dashed line, and the IPK at graduation at the end.
+ * IP per semester (dots) and the IPK after each (a line), estimates dashed and hollow, under a legend that names the
+ * three marks (read before the chart, not after it); the target as a dashed line labelled as its control names it
+ * ("Target IPK 3,50"), and the IPK at graduation at
+ * the line's end only when it isn't today's (the same figure twice reads as a change that isn't one).
  */
-export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; target: number | null; height?: number }): ReactNode {
+export function IpkChart({
+  steps,
+  target,
+  best = null,
+  height,
+}: {
+  steps: ProjectedStep[];
+  target: number | null;
+  /** The highest IPK still possible: a target over it is out of reach, and the line shows this instead. */
+  best?: number | null;
+  height?: number;
+}): ReactNode {
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -408,16 +428,28 @@ export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; ta
   if (shown.length < 2) return null;
   const firstEstimate = shown.findIndex((s) => s.projected);
   const values = shown.flatMap((s) => [s.ip, s.ipk]).filter((v): v is number => v !== null);
-  const low = Math.min(...values, target ?? 4);
+  // A target out of reach isn't drawn as if it were one: the line marks the highest IPK still possible, named so.
+  const out = target !== null && best !== null && target > best + 1e-9;
+  const reference =
+    target === null
+      ? undefined
+      : out && best !== null
+        ? { value: best, label: t("grades.chart.best", { value: f.number(best, 2) }) }
+        : // Named as the control that sets it ("Target IPK", Nilai's Semester ini and the planner), so it's never a bare "Target".
+          { value: target, label: t("grades.targetOf", { value: f.number(target, 2) }) };
+  const low = Math.min(...values, reference?.value ?? 4);
   const min = low < 2 ? Math.max(0, Math.floor(low)) : 2;
   const gridlines = min < 2 ? [min, 2, 3, 4] : [2, 2.5, 3, 3.5, 4];
   const last = shown[shown.length - 1]!;
+  const today = [...shown].reverse().find((s) => !s.projected && s.ipk !== null)?.ipk ?? null;
+  const same = last.projected && last.ipk !== null && today !== null && f.number(last.ipk, 2) === f.number(today, 2);
   const series = [
     { name: t("grades.chart.ipk"), kind: "line" as const, values: shown.map((s) => s.ipk), color: theme.color.accent },
     { name: t("grades.chart.ip"), kind: "dots" as const, values: shown.map((s) => s.ip), color: theme.color.faint },
   ];
   return (
-    <View>
+    <View style={{ gap: space[3] }}>
+      <ChartLegend series={series} estimate={firstEstimate >= 0 ? t("grades.estimate") : undefined} />
       <LineChart
         label={t("grades.chartLabel")}
         columns={shown.map(label)}
@@ -427,13 +459,12 @@ export function IpkChart({ steps, target, height }: { steps: ProjectedStep[]; ta
         min={min}
         max={4}
         gridlines={gridlines}
-        reference={target === null ? undefined : { value: target, label: t("grades.chart.target", { value: f.number(target, 2) }) }}
-        endLabel={last.ipk === null ? undefined : t(last.projected ? "grades.chart.end" : "grades.chart.endNow", { value: f.number(last.ipk, 2) })}
+        reference={reference}
+        endLabel={last.ipk === null || same ? undefined : t(last.projected ? "grades.chart.end" : "grades.chart.endNow", { value: f.number(last.ipk, 2) })}
         estimateWord={t("grades.estimate")}
         format={(v) => f.number(v, 2)}
         height={height}
       />
-      <ChartLegend series={series} estimate={firstEstimate >= 0 ? t("grades.estimate") : undefined} />
     </View>
   );
 }

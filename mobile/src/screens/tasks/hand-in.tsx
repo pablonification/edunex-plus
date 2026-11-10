@@ -330,7 +330,7 @@ const GLYPH_TONE: Record<TaskStatus, keyof Palette> = {
 };
 
 /** The submission card: status, the Student's answer, its files, attaching from the phone, and what's marked about it. */
-export function HandInCard({ h }: { h: HandInState }) {
+export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus?: () => void }) {
   const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();
@@ -341,20 +341,24 @@ export function HandInCard({ h }: { h: HandInState }) {
   const { task, status, marked } = h;
   const sentAt = submittedAt(task);
   const draftAt = task.answer?.updatedAt ?? task.answer?.createdAt ?? null;
+  // A draft says when it was saved beside "Draf", on one line: its half-circle already says it isn't handed in
+  // (round 3's final pair: three lines for one fact). The day alone; TalkBack hears the whole of it.
+  const draftDay = draftAt !== null ? (Math.abs(f.dayOffset(draftAt)) <= 1 ? f.relativeDay(draftAt).toLocaleLowerCase() : f.relativeDay(draftAt)) : null;
+  const draftLine = status === "draft" && !marked && draftDay !== null ? t("mobile.tasks.draftSavedShort", { when: draftDay }) : null;
+  const draftSpoken =
+    status === "draft" && draftAt !== null
+      ? factsLabel(t("taskStatus.draft"), t("handIn.draftSaved", { when: f.dayTimeWord(draftAt) }), t("handIn.draftStatus").toLowerCase())
+      : undefined;
   const subtitle =
-    status === "not_started"
+    status === "not_started" || status === "draft"
       ? ""
-      : status === "draft"
-        ? draftAt !== null
-          ? factsLabel(t("handIn.draftSaved", { when: f.dayTimeWord(draftAt) }), t("handIn.draftStatus").toLowerCase())
-          : t("handIn.draftStatus")
-        : status === "overdue"
-          ? t("handIn.lateStill")
-          : status === "closed"
-            ? t("handIn.closedStatus")
-            : sentAt !== null
-              ? t("handIn.recorded", { when: f.dayTimeWord(sentAt) })
-              : "";
+      : status === "overdue"
+        ? t("handIn.lateStill")
+        : status === "closed"
+          ? t("handIn.closedStatus")
+          : sentAt !== null
+            ? t("handIn.recorded", { when: f.dayTimeWord(sentAt) })
+            : "";
   const inFlight = h.attached.filter((item) => item.state !== "failed");
   const done = inFlight.filter((item) => item.state === "uploaded").length;
   const glyph = c[GLYPH_TONE[status]];
@@ -365,8 +369,20 @@ export function HandInCard({ h }: { h: HandInState }) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
           {marked ? <Icons.CheckCircle size={24} weight="fill" color={c.successFg} /> : <StatusGlyph status={status} size={24} color={glyph} />}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="titleMedium" face="display" weight="bold" style={{ color: theme.v4.fg }}>
+            <Text
+              size="titleMedium"
+              face="display"
+              weight="bold"
+              numberOfLines={draftLine ? 1 : undefined}
+              accessibilityLabel={marked ? undefined : draftSpoken}
+              style={{ color: theme.v4.fg }}
+            >
               {marked ? t(`task.marked.${marked.how as MarkedHow}`) : t(`taskStatus.${status}`)}
+              {draftLine && (
+                <Text size="bodyMedium" weight="regular" style={{ color: theme.v4.muted }}>
+                  {` · ${draftLine}`}
+                </Text>
+              )}
             </Text>
             {marked ? (
               <Meta>{t("mobile.tasks.edunexSays", { status: t(`taskStatus.${status}`).toLocaleLowerCase() })}</Meta>
@@ -399,6 +415,7 @@ export function HandInCard({ h }: { h: HandInState }) {
                 unsaved={h.textChanged}
                 onDiscard={h.answer.discard}
                 hint={h.hasText ? null : t("mobile.tasks.answerRequired")}
+                onFocus={onAnswerFocus}
               />
             ) : (
               !task.group &&
@@ -457,8 +474,9 @@ export function HandInCard({ h }: { h: HandInState }) {
               </View>
             )}
             {h.editable && (
-              // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos.
-              <View style={{ gap: space[2], alignItems: "flex-start" }}>
+              // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos. What the
+              // lecturer asks for is the button itself ("Lampirkan PDF · wajib"), not a line about it.
+              <View style={{ alignItems: "flex-start" }}>
                 <Button
                   variant="tonal"
                   testID="action.attach"
@@ -470,14 +488,11 @@ export function HandInCard({ h }: { h: HandInState }) {
                   icon={<Icons.Upload size={18} color={c.onSecondaryContainer} />}
                   onPress={() => void h.pick()}
                 >
-                  {t("handIn.attach")}
+                  {factsLabel(
+                    h.type ? t("mobile.handIn.attachType", { type: h.type.toUpperCase() }) : t("handIn.attach"),
+                    task.fileRequired && h.files.length === 0 ? t("mobile.handIn.required") : null,
+                  )}
                 </Button>
-                {(task.fileRequired || h.type) && (
-                  <Meta size="caption">
-                    {task.fileRequired ? t("handIn.fileRequired") : ""}
-                    {h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : ""}
-                  </Meta>
-                )}
               </View>
             )}
             {task.group && !h.sent && status !== "closed" && (
@@ -575,6 +590,7 @@ function AnswerField({
   unsaved,
   onDiscard,
   hint,
+  onFocus,
 }: {
   value: string;
   onChange: (text: string) => void;
@@ -585,6 +601,7 @@ function AnswerField({
   onDiscard: () => void;
   /** What TalkBack adds while the box is empty (it's required): the placeholder says it on screen. */
   hint: string | null;
+  onFocus?: () => void;
 }) {
   const t = useT();
   const theme = useTheme();
@@ -601,7 +618,10 @@ function AnswerField({
         multiline
         value={value}
         onChangeText={onChange}
-        onFocus={() => setFocused(true)}
+        onFocus={() => {
+          setFocused(true);
+          onFocus?.();
+        }}
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         placeholderTextColor={c.onSurfaceVariant}
@@ -646,9 +666,14 @@ function Quiet({ children }: { children: ReactNode }) {
   );
 }
 
-/** Why Kumpulkan can't be pressed, or what pressing it now would cost; with the fix next to it (the desktop's `why`). */
-function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text: string; fix?: ReactNode } | null {
+/**
+ * Why Kumpulkan can't be pressed, or what pressing it now would cost; with the fix next to it (the desktop's `why`).
+ * `text` is the whole sentence (spoken on the button); `short`, when there is one, the few words the bar shows right
+ * over it ("Lampirkan PDF dulu", "Presensi dibuka besok, 15:00"); `quiet`, nothing over it (the reason is in sight).
+ */
+function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text: string; short?: string; fix?: ReactNode; quiet?: boolean } | null {
   const t = useT();
+  const f = useFormat();
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
   if (!h.editable) return null;
@@ -677,19 +702,30 @@ function useWhy(h: HandInState): { tone: "warning" | "neutral" | "danger"; text:
       ? { tone: "danger", text: t("handIn.why.failed") }
       : { tone: "neutral", text: t("handIn.why.refused") };
   if (h.uploading) return { tone: "neutral", text: t("handIn.why.uploading") };
-  if (!h.hasText) return { tone: "neutral", text: t("handIn.why.noText") };
-  if (!h.hasAnswer) return { tone: "neutral", text: t("handIn.why.noFile") };
+  // An empty answer: the grey button and the empty box right above it say it (round 3), the sentence is spoken only.
+  if (!h.hasText) return { tone: "neutral", text: t("handIn.why.noText"), quiet: true };
+  if (!h.hasAnswer)
+    return {
+      tone: "neutral",
+      text: t("handIn.why.noFile"),
+      short: h.type ? t("mobile.handIn.why.noFileType", { type: h.type.toUpperCase() }) : t("mobile.handIn.why.noFile"),
+    };
   if (h.early)
-    return { tone: "warning", text: t(h.changed || h.status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: h.whenWindow }) };
+    return {
+      tone: "warning",
+      text: t(h.changed || h.status === "not_started" ? "handIn.why.early" : "handIn.why.earlySaved", { when: h.whenWindow }),
+      short: t("mobile.handIn.why.opens", { when: f.dayTime(h.early.opensAt) }),
+    };
   return null;
 }
 
 const WHY_TONE: Record<"warning" | "neutral" | "danger", TextTone> = { warning: "warning", neutral: "muted", danger: "danger" };
 
 /**
- * Simpan draf and Kumpulkan at the bottom of the screen, with why Kumpulkan can't be pressed yet (or what pressing it
- * now would cost) in a line over the buttons, as the desktop says it, and its fix when there is one. Said to TalkBack
- * on the button too.
+ * Simpan draf and Kumpulkan at the bottom of the screen. Kumpulkan in the brand's colour whenever it can be pressed;
+ * when it can't, what's missing or when Presensi opens in a few words right over it ("Lampirkan PDF dulu"), so a grey
+ * button is never left without a reason; an empty answer alone needs none, its empty box shows above the bar. What blocks or costs something keeps its fix beside it. The whole sentence is
+ * spoken on the button. The bar is raised over the page (its edge and a shadow), so what scrolls passes under it.
  */
 export function HandInBar({ h }: { h: HandInState }) {
   const t = useT();
@@ -697,7 +733,7 @@ export function HandInBar({ h }: { h: HandInState }) {
   const why = useWhy(h);
   // Signing in again is the notice's own button (above): no second line for it.
   const blocked = why !== null && h.guard.blocked;
-  const line = why !== null && !(blocked && h.notice?.action === "signIn");
+  const line = why !== null && !why.quiet && !(blocked && h.notice?.action === "signIn");
   // Edge to edge: the bar's tone runs under the phone's navigation bar, its buttons stay clear of it.
   const bottom = useBottomInset();
   // The snackbar ("Tersimpan …") rises above the bar, not over Kumpulkan.
@@ -710,6 +746,7 @@ export function HandInBar({ h }: { h: HandInState }) {
   }, [shown]);
   if (!shown) return null;
   const submitLabel = h.status === "overdue" ? t("handIn.submitLate") : t("handIn.submit");
+  const ink = why === null ? "onSurfaceVariant" : why.tone === "danger" ? "error" : why.tone === "warning" ? "warningFg" : "onSurfaceVariant";
   return (
     <View
       ref={bar}
@@ -717,8 +754,11 @@ export function HandInBar({ h }: { h: HandInState }) {
       testID="bar.handIn"
       style={{
         backgroundColor: theme.v4.card,
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderTopColor: theme.v4.line,
+        borderTopWidth: 1,
+        borderTopColor: theme.color.outlineVariant,
+        // Raised over the page it sits on: Android's shadow on its top edge (the hairline alone vanished in dark).
+        elevation: 8,
+        shadowColor: "#000",
         paddingHorizontal: space.page,
         paddingTop: space[3],
         paddingBottom: space[3] + bottom,
@@ -730,35 +770,37 @@ export function HandInBar({ h }: { h: HandInState }) {
           {/* The icon on the first line (19 high) when the hint wraps; the hint as a whole level with its fix. */}
           <View style={{ flex: 1, flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
             <View style={{ paddingTop: 3 }}>
-              <Icons.Info size={14} color={theme.color[why.tone === "danger" ? "error" : why.tone === "warning" ? "warningFg" : "onSurfaceVariant"]} />
+              {why.tone === "warning" && h.early ? <Icons.Clock size={14} color={theme.color[ink]} /> : <Icons.Info size={14} color={theme.color[ink]} />}
             </View>
-            <Text size="bodyMedium" tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
-              {why.text}
+            <Text size="bodyMedium" weight={why.tone === "neutral" ? "medium" : "regular"} tone={WHY_TONE[why.tone]} style={{ flex: 1 }}>
+              {why.short ?? why.text}
             </Text>
           </View>
           {why.fix}
         </View>
       )}
       <View style={{ flexDirection: "row", gap: space[2] }}>
-        <BigButton
-          testID="action.saveDraft"
-          hint={t("handIn.explainer")}
-          variant={h.wait && h.canSave ? "filled" : "outline"}
-          disabled={!h.canSave}
-          busy={h.busy === "draft"}
-          onPress={() => void h.run("draft")}
-        >
-          {t("handIn.saveDraft")}
-        </BigButton>
+        {/* Only while there's something to save: an outline button with nothing to do read as one to press. */}
+        {(h.canSave || h.busy === "draft") && (
+          <BigButton
+            testID="action.saveDraft"
+            hint={t("handIn.explainer")}
+            variant={h.wait ? "filled" : "outline"}
+            busy={h.busy === "draft"}
+            onPress={() => void h.run("draft")}
+          >
+            {t("handIn.saveDraft")}
+          </BigButton>
+        )}
         <BigButton
           testID="action.submit"
-          variant={h.wait ? "outline" : "filled"}
+          variant={h.wait && h.canSave ? "outline" : "filled"}
           disabled={!h.canSubmit}
-          hint={!h.canSubmit && why ? why.text : undefined}
+          hint={why ? why.text : undefined}
           busy={h.busy === "submit"}
           onPress={() => h.setConfirming(true)}
           flex={1}
-          icon={h.wait ? undefined : <Icons.Upload size={20} weight="bold" color={h.canSubmit ? theme.v4.onBrand : theme.v4.muted} />}
+          icon={h.wait && h.canSave ? undefined : <Icons.Upload size={20} weight="bold" color={h.canSubmit ? theme.v4.onBrand : theme.v4.muted} />}
         >
           {submitLabel}
         </BigButton>

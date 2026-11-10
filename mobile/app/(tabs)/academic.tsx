@@ -14,10 +14,12 @@ export default function Screen() {
   const v = useTheme().v4;
   usePerfFocused("academic");
   return (
-    <TabClock>
-      <Page testID="screen.academic" header={<TabHeader v4 title={t("mobile.tab.academic")} />} background={v.page} {...pull}>
-        <AcademicContent />
-      </Page>
+    <TabClock name="academic">
+      {() => (
+        <Page testID="screen.academic" header={<TabHeader v4 title={t("mobile.tab.academic")} />} background={v.page} {...pull}>
+          <AcademicContent />
+        </Page>
+      )}
     </TabClock>
   );
 }

@@ -1,6 +1,6 @@
 # Installing Edunex Plus
 
-How to install, update and remove the app on each system. Back to the [README](../README.md).
+How to install, update and remove the app on each system, phones included. Back to the [README](../README.md).
 
 > **Alpha.** Edunex Plus is in early testing: expect rough edges, and check anything important
 > (a hand-in, an attendance count) on Edunex or SIX itself. Tell us what breaks in
@@ -20,6 +20,8 @@ marked "Pre-release"), and under **Assets** download the one file for your compu
 | Ubuntu, Debian, Linux Mint (most PCs) | `edunex-plus_<version>_amd64.deb` |
 | Ubuntu, Debian on ARM | `edunex-plus_<version>_arm64.deb` |
 | Any other Linux | `Edunex-Plus-<version>-x86_64.AppImage` (ARM: `…-arm64.AppImage`) |
+| Android phone (Android 8 or newer) | `Edunex-Plus-<version>-android.apk` |
+| iPhone (iOS 16.4 or newer) | `Edunex-Plus-<version>-iphone.ipa` |
 
 Not sure which Mac you have? Apple menu → **About This Mac**: "Chip Apple M…" means Apple
 silicon, "Processor … Intel" means an Intel Mac. The app needs macOS 12 Monterey or newer.
@@ -115,6 +117,51 @@ opens the app without it. The `.deb` sets the sandbox up: use it there if you ca
 Saving your sign-in between launches needs a keyring (GNOME Keyring or KWallet). Without one,
 the app still works but asks you to sign in again after each restart, and Settings says so.
 
+## Android
+
+1. On your phone, open the newest [release](https://github.com/pablonification/edunex-plus/releases)
+   and download `Edunex-Plus-<version>-android.apk`.
+2. Open the downloaded file (from the notification, or **Files → Downloads**).
+3. Android asks whether your browser may install apps: tap **Settings**, turn on **Allow from this
+   source**, then go back and tap **Install**.
+4. If Play Protect warns that it doesn't know the app, tap **More details → Install anyway**. It
+   warns because the app isn't from the Play Store, not because it found something.
+5. Open **Edunex Plus** and sign in.
+
+## iPhone
+
+Apple only lets an iPhone install apps from the App Store, unless the app is signed with your own
+Apple ID. Edunex Plus isn't on the App Store, so you sign it yourself with a free tool,
+**Sideloadly**, on a computer. It takes about 10 minutes the first time.
+
+You need a Mac or Windows PC, your iPhone's cable, and an Apple ID (a spare one works too: it only
+signs the app).
+
+1. On the computer, download `Edunex-Plus-<version>-iphone.ipa` from the newest
+   [release](https://github.com/pablonification/edunex-plus/releases), and install
+   [Sideloadly](https://sideloadly.io). On Windows, also install iTunes and iCloud from Apple's
+   website (not the Microsoft Store versions), so Sideloadly can see your iPhone.
+2. Plug in the iPhone and unlock it. If it asks **Trust This Computer?**, tap **Trust**.
+3. Open Sideloadly. Pick your iPhone, type your Apple ID, drag the `.ipa` onto the window and click
+   **Start**. Type your Apple ID password when it asks, and the code Apple sends if two-factor is on.
+   Your password goes only to Apple.
+4. On the iPhone, turn on **Settings → Privacy & Security → Developer Mode**. It restarts, then asks
+   you to confirm with **Turn On**.
+5. Open **Settings → General → VPN & Device Management**, tap your Apple ID, then **Trust**.
+6. Open **Edunex Plus** and sign in.
+
+**Every 7 days:** an app signed with a free Apple ID stops opening after a week. Before then, plug
+the iPhone in and click **Start** in Sideloadly again with the same `.ipa` (or a newer one). Your
+sign-in and saved data stay.
+
+<details>
+<summary>What's different on iPhone?</summary>
+
+No home-screen widget yet, and iOS decides when the app may update in the background, much less
+often than Android does (opening the app always updates it). Everything else is the same app.
+
+</details>
+
 ## Check a download (optional)
 
 Every release also lists `SHA256SUMS.txt`: one fingerprint per file, written by the same GitHub
@@ -125,6 +172,8 @@ fingerprint and find the same line in `SHA256SUMS.txt`:
   Windows prints it in capitals. It's the same fingerprint.
 - **macOS** (Terminal): `shasum -a 256 ~/Downloads/Edunex-Plus-<version>-arm64.dmg`
 - **Linux**: `sha256sum ~/Downloads/edunex-plus_<version>_amd64.deb`
+- **Android or iPhone**: check the `.apk` or `.ipa` on a computer, with the line above for that
+  computer.
 
 If they don't match, don't open the file. Download it again from the release page.
 
@@ -156,6 +205,10 @@ in your browser.
 - **Linux AppImage:** the new AppImage replaces the one you started.
 - **Linux `.deb`:** the release page opens; install the new `.deb` with apt as below.
 
+- **Android and iPhone:** the phone app doesn't install updates itself. Settings → **About** (Tentang)
+  checks for a newer version and opens its release page: install the new file the same way as the first
+  time, over the old one. Your sign-in and saved data stay.
+
 An alpha tells you about the newest release, whether that is the next alpha or the full release.
 A full release only ever offers full releases.
 
@@ -172,6 +225,8 @@ replace that copy without an administrator, so it asks you to uninstall it first
 - **macOS:** drag Edunex Plus from Applications to the Trash.
 - **Windows:** Settings → Apps → Installed apps → Edunex Plus → **Uninstall**.
 - **Linux:** `sudo apt remove edunex-plus`, or delete the AppImage.
+- **Android:** hold Edunex Plus on the home screen → **App info** → **Uninstall**.
+- **iPhone:** hold Edunex Plus on the home screen → **Remove App** → **Delete App**.
 
 Removing the app keeps its saved data. To remove your data too, first choose **Settings → Sign
 out & remove data** (Keluar & hapus data): it signs you out and deletes your courses, grades,

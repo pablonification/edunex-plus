@@ -45,6 +45,7 @@
     "fixtures:scrub": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/scrub-recording.mjs",
     "fixtures:from-report": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/report-to-fixtures.mjs",
     "report:replay": "node scripts/report-replay.mjs",
+    "timings:record": "node scripts/record-sync-timings.mjs",
     "package:mac": "npm run build && electron-builder --config electron-builder.config.mjs --mac",
     "package:win": "npm run build && node scripts/package-win.mjs",
     "package:linux": "npm run build && electron-builder --config electron-builder.config.mjs --linux",

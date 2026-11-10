@@ -31,6 +31,8 @@ export async function startAlerts(
     checkInReminders?: boolean;
     /** Defaults to Edunex alone. */
     sources?: Parameters<typeof createEngine>[0]["sources"];
+    /** The timed alerts start this long after the feeds, as the apps start them once the window is drawn. */
+    alertsAfter?: number;
   } = {},
 ) {
   const world = options.world ?? new PretendWorld();
@@ -65,7 +67,8 @@ export async function startAlerts(
   const firstStart = (await storage.read("state.json")) === null;
   await engine.load();
   if (firstStart) await engine.updateSettings({ lang: "id" });
-  engine.start();
+  const alertsAfter = options.alertsAfter;
+  engine.start(alertsAfter === undefined ? undefined : (what, run) => (what === "alerts" ? void world.clock.setTimeout(run, alertsAfter) : run()));
   if (options.signIn !== false) await engine.signIn("edunex", { token: PRETEND_TOKEN });
   return {
     world,

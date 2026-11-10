@@ -15,6 +15,8 @@ export const mobileStrings = {
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
+  // search: the field's hint, short enough for a phone's field (the desktop's names modules too and ran past its end).
+  "mobile.search.placeholder": { id: "Cari mata kuliah, tugas, materi", en: "Search courses, Tasks, materials" },
   // Akademik: the screens behind it, as a list.
   "mobile.academic.screens": { id: "Studimu", en: "Your studies" },
   // Android's notification channels, as Settings › Notifications lists them.
@@ -63,33 +65,61 @@ export const mobileStrings = {
   "mobile.home.laterToday": { id: "Nanti hari ini", en: "Later today" },
   // Nothing in "Perlu kamu urus": one line, still the way to its screen.
   "mobile.home.toHandleNone": { id: "Tak ada yang perlu diurus", en: "Nothing to handle" },
-  // A card's kind, in a pill.
-  "mobile.home.kind.task": { id: "Tugas", en: "Task" },
+  // A card's kind where a word says it: "Pertemuan · Jum 13:00" on Perlu kamu urus, a Presence's pill on Jadwal's month.
   "mobile.home.kind.presence": { id: "Presensi", en: "Presence" },
-  "mobile.home.kind.attendance": { id: "Kehadiran", en: "Attendance" },
   "mobile.home.kind.meeting": { id: "Pertemuan", en: "Meeting" },
-  "mobile.home.kind.bill": { id: "UKT", en: "UKT" },
-  "mobile.home.kind.krs": { id: "KRS", en: "KRS" },
-  // A course's absences, one name for each state on every chip and pill (Beranda, Perlu kamu urus, Kuliah, an exam): none
-  // left, or over the limit by how many (the desktop's Presensi bar: "habis", "lewat batas 1×"). Over the limit is the
+  // Perlu kamu urus: a card whose action counts for attendance shows Edunex's hand, and TalkBack says it.
+  "mobile.home.countsPresence": { id: "Dihitung untuk Presensi", en: "Counts for Presence" },
+  // A course's absences, one name for each state wherever the phone says it (Beranda, Perlu kamu urus, Kuliah, an exam),
+  // in absence words so "lewat" can't read as a Task past its deadline (round 3's fourth review: Beranda and Kuliah had
+  // two phrasings): none left, or over the limit by how many. Both name the Glossary's "Jatah absen", never a bare
+  // "Absen" (the final review: it read as "you were absent"). Over the limit is the
   // desktop's "Tak bisa lagi capai 80%": Kuliah's big number and the course's sheet say that, with the target, and it's
   // what TalkBack hears. Never "Di bawah target": a course with none left can be under its target today too.
-  "mobile.absence.none": { id: "Jatah habis", en: "No absences left" },
-  "mobile.absence.over": { id: "Lewat batas {count}×", en: "{count} over the limit" },
+  "mobile.absence.none": { id: "Jatah absen habis", en: "No absences left" },
+  "mobile.absence.over": { id: "Lewat jatah absen {count}×", en: { one: "{count} absence too many", other: "{count} absences too many" } },
+  // "Perlu kamu urus"'s chevron when Beranda holds back rows: how many more the whole list has ("+2 lagi").
+  "mobile.home.moreRows": { id: "+{count} lagi", en: "+{count} more" },
+  // Beranda's clash row: when, as the title, so neither course's name is cut ("Kelas bentrok · Kam 16:00"); the two
+  // short names on the line under it ("Pemrograman dan Teknik").
+  "mobile.home.clash": { id: "Kelas bentrok · {when}", en: "Classes clash · {when}" },
+  "mobile.home.clashPair": { id: "{a} dan {b}", en: "{a} and {b}" },
+  // The now card's day for a class two days ahead, said once ("Lusa 08:00").
+  "mobile.home.dayAfter": { id: "Lusa", en: "{weekday}" },
   // A class row's one chip.
   "mobile.home.chip.clash": { id: "Bentrok", en: "Clash" },
   // "Perlu kamu urus"'s row for a course that can't reach its target any more: the best it can still reach, short enough
-  // for one line beside its "Lewat batas" chip (the target itself is on the course's page).
+  // for one line beside its "Lewat jatah absen" words (the target itself is on the course's page).
   "mobile.needs.best": { id: "Maks {best}%", en: "At most {best}%" },
-  // Beranda's attendance card: after its big figure, which is that best case ("73% maks"), never the share so far (the
-  // class sheet's "Kehadiran 33%"). The same fact as "Maks 73%" in Perlu kamu urus.
-  "mobile.home.atMost": { id: "maks", en: "at most" },
   // Yang berubah and Notifikasi: a moved class's or an Edunex-only meeting's one meta line, the day and its time or room,
   // short enough for one line beside the row's time (the title says what changed). The desktop's whole line, with the
   // usual time or room and "tidak ada di jadwal SIX", is what TalkBack reads; Jadwal and the class sheet show them too.
-  "mobile.change.moved.time": { id: "{dateId} {time}", en: "{dateEn} {time}" },
+  "mobile.change.moved.time": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
   "mobile.change.moved.room": { id: "{dateId} di {room}", en: "{dateEn} in {room}" },
-  "mobile.change.meeting.body": { id: "{dateId} {time}", en: "{dateEn} {time}" },
+  "mobile.change.meeting.body": { id: "{dateId}, {time}", en: "{dateEn}, {time}" },
+  // Notifikasi: a meeting's row when its Teams link or its material came with it (mobile/src/screens/alerts/same-meeting.ts),
+  // what came first, then the meeting's day and time.
+  "mobile.change.meeting.withLink": { id: "Link baru · {when}", en: "New link · {when}" },
+  "mobile.change.meeting.withMaterial": { id: "Materi baru · {when}", en: "New material · {when}" },
+  // Notifikasi's and Yang berubah's meta line for a moved class: what moved, old → new, only the day, time or room that
+  // changed ("08:00–09:30 → 08:00–10:00"). The whole of both is in what TalkBack reads.
+  "mobile.change.moved.diff": { id: "{oldId} → {newId}", en: "{oldEn} → {newEn}" },
+  // Notifikasi and Yang berubah: a moved class's day, before what moved when the day itself didn't ("Kam, 19 Nov · 08:00–09:30
+  // → 08:00–10:00").
+  "mobile.change.moved.onDay": { id: "{dayId} · {oldId} → {newId}", en: "{dayEn} · {oldEn} → {newEn}" },
+  // Notifikasi, once a class or a Presence window is over: what happened, never the action any more ("Tandai Hadir · sampai
+  // 17:50" five days later read as still to do). The outcome is SIX's count after the class, or what Edunex recorded.
+  "mobile.alert.classOver": { id: "Kuliah selesai · {course}", en: "Class over · {course}" },
+  "mobile.alert.presenceOver": { id: "Presensi ditutup · {course}", en: "Presence closed · {course}" },
+  "mobile.alert.present": { id: "Hadir", en: "Present" },
+  "mobile.alert.notRecorded": { id: "Tidak tercatat", en: "Not recorded" },
+  // Notifikasi, once a Task's deadline has passed: its "Tenggat 1 jam lagi" (and the earlier reminders) say what happened,
+  // "Terkumpul" (taskStatus.submitted) or this, never the countdown any more.
+  "mobile.alert.deadlineOver": { id: "Tenggat lewat · {task}", en: "Deadline passed · {task}" },
+  "mobile.alert.notHandedIn": { id: "Belum dikumpulkan", en: "Not submitted" },
+  // Notifikasi's meta line for Tandai Hadir: the action and how long the class runs, never how to press it.
+  "mobile.change.classStarted": { id: "Tandai Hadir · sampai {time}", en: "Tandai Hadir · until {time}" },
+  "mobile.change.checkIn": { id: "Kuliah sampai {time}", en: "Class until {time}" },
   // The class sheet's one status (a chip), and its one quiet line: what it clashes with, or where it usually is.
   "mobile.home.chip.now": { id: "Sekarang", en: "Now" },
   "mobile.home.chip.moved": { id: "Berubah", en: "Changed" },
@@ -144,11 +174,9 @@ export const mobileStrings = {
   },
   // At the top of Notifikasi while Android's permission is off; the button asks for it, or opens the app's notification settings.
   "mobile.settings.notificationsOffTitle": { id: "Notifikasi mati", en: "Notifications are off" },
-  "mobile.settings.notificationsOffBody": {
-    id: "Pengingat tenggat, kuliah dan Presensi tidak akan muncul di HP ini.",
-    en: "Reminders for deadlines, classes and Presence won't show on this phone.",
-  },
   "mobile.settings.notificationsTurnOn": { id: "Nyalakan notifikasi", en: "Turn on notifications" },
+  // Settings › Akun: the line under "Ringkasan awal", saying what it is.
+  "mobile.settings.firstScanMeta": { id: "Yang ditemukan saat pertama terhubung", en: "What turned up when you first connected" },
   // course
   // "Simpan untuk offline" on the phone: the course's files go into the app, a few at a time. It keeps going off the page.
   "mobile.offline.saving": {
@@ -169,11 +197,19 @@ export const mobileStrings = {
   // Jadwal without SIX, one row above the day beside Masuk ke SIX.
   "mobile.schedule.needsSix": { id: "Kuliah & ruang ada di SIX", en: "Classes and rooms are in SIX" },
   "mobile.schedule.todayLabel": { id: "Kembali ke hari ini", en: "Back to today" },
+  // Under the month in Jadwal's bar: the term's week alone (the week strip under the bar shows its days).
+  "mobile.schedule.week": { id: "Minggu ke-{n}", en: "Week {n}" },
   // Jadwal's day (v4): a day with no class, a hand-in's time ("II4091 · sebelum 23:59"), and where a class the app
   // couldn't read is.
   "mobile.schedule.noClasses": { id: "Tidak ada kuliah", en: "No classes" },
   "mobile.schedule.before": { id: "sebelum {time}", en: "by {time}" },
   "mobile.schedule.unreadMeta": { id: "Jam dan ruangnya ada di SIX", en: "Its time and room are on SIX" },
+  // A day with no class: the next class's card under "Berikutnya", as TalkBack names it (a tap goes to its day).
+  "mobile.schedule.nextLabel": { id: "Ke kuliah berikutnya, {when}", en: "Go to the next class, {when}" },
+  // A day on the week strip with two classes at once, as TalkBack says it after the date (on screen: the clash icon).
+  "mobile.schedule.clashDay": { id: "ada kuliah bentrok", en: "classes clash" },
+  // Jadwal's ⋮, named for what it holds.
+  "mobile.schedule.menu": { id: "Opsi jadwal", en: "Schedule options" },
   // Jadwal's top bar: the month, a screen away.
   "mobile.schedule.month": { id: "Lihat sebulan", en: "Month view" },
   // Jadwal's ⋮: the reminder before each class (the engine's "Kuliah sebentar lagi"), with how long before. The label fits
@@ -292,6 +328,18 @@ export const mobileStrings = {
 // "HP ini" for "komputer ini", a page for a window, a tap for a click. translate() takes them on the
 // phone only (./wording.native.ts), so the desktop's words stay as they are.
 export const phoneWording: Partial<Record<StringKey, Entry>> = {
+  // Settings › Notifikasi: the two attendance alerts, each named by what it warns about (Presensi and Kehadiran read as
+  // one thing to a student): the moment to check in (a class SIX counts starts, an Edunex Presence opens or is about to
+  // close), and a problem with SIX's count (a class it didn't record, no absences left).
+  "settings.alerts.presence": { id: "Waktunya presensi", en: "Time to check in" },
+  "settings.alerts.attendanceRisk": { id: "Masalah kehadiran", en: "Attendance problems" },
+  // Settings › Akun: the row that opens what the app found when Edunex and SIX were first read, on one line (round 3's
+  // third review preferred a short name to "Yang tak disampaikan Edunex dan SIX" on two); when it was found is the row's
+  // spoken hint.
+  "settings.firstScan": { id: "Ringkasan awal", en: "First summary" },
+  // Settings › Notifikasi: the switch for a class moved, a Task edited or a meeting added, named by what changes ("Ada
+  // perubahan" didn't say what).
+  "settings.alerts.changes": { id: "Jadwal atau Tugas berubah", en: "Class or Task changes" },
   // Over a Kumpulkan that can't be pressed yet, in one line: the box above says why.
   "handIn.why.noText": { id: "Tulis jawabanmu dulu", en: "Write your answer first" },
   // The snackbar after "Sudah beres": what happened and when it's back, short enough for two lines beside Urungkan
@@ -333,7 +381,7 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     en: "When a class SIX counts starts, when an Edunex Presence opens, and 15 minutes before it closes if you're not recorded. Tandai Hadir in SIX is checked only while the app is open.",
   },
   // A new Task's notification: the title, then its deadline, the first thing a Student wants to know.
-  "alert.newTask.body": { id: "{title} · tenggat {dateId} {time}", en: "{title} · due {dateEn} {time}" },
+  "alert.newTask.body": { id: "{title} · tenggat {dateId}, {time}", en: "{title} · due {dateEn}, {time}" },
   // Why Tandai Hadir hasn't shown: the phone checks SIX only while the app is open.
   "presence.row.watchingWhy": {
     id: "Selama aplikasi terbuka, SIX dicek tiap 2 menit.",
@@ -446,9 +494,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
     id: "Masih boleh absen {count} kali",
     en: { one: "{count} absence left", other: "{count} absences left" },
   },
-  // grades: Nilai's best IPK. The SKS still to grade are this term's and the plan's, not what's left to graduate: the
-  // planned ones, in a meta that fits one line beside the figure (the judge's round 2, pass 6).
-  "grades.bestHint": { id: "Jika semua A di {sks} SKS terencana", en: "With straight A's in {sks} planned SKS" },
   // grades-plan: Kalender akademik, the last day of classes. "Hari ini" read as today.
   "deadline.lectureEnd": { id: "Jatah absenmu dihitung sampai hari itu.", en: "Your absences left count up to that day." },
   // grades-plan: UKT, when SIX and the ITB calendar give two deadlines for one bill.

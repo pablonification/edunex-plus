@@ -26,7 +26,7 @@ import { type Ntfy, PhoneChannel } from "./alerts/phone";
 import { AppLog, errorLine } from "./app-log";
 import type { Clock } from "./clock";
 import { ActionNeeded, EngineError, isEngineError, PartChanged } from "./errors";
-import { Pace } from "./http/pace";
+import { Pace, SITE_GAPS, SITE_LIMITS } from "./http/pace";
 import type { Transport } from "./http/transport";
 import { type FeedHistory, type FeedRead, KeptPages, UNNOTED } from "./report/kept-pages";
 import { type Noted, Outbox, type Sent } from "./report/outbox";
@@ -83,17 +83,36 @@ export interface EngineDeps {
    */
   startDueOnly?: boolean;
   /**
+   * A manual refresh leaves a feed with a FeedSpec.refreshAfter alone when it read well within that (SIX's records,
+   * Edunex's materials): the phone, whose pull to refresh is done within seconds instead of waiting on 7 of SIX's
+   * pages 2 s apart and 60 calls to Edunex. Off, a refresh reads every feed but the background ones (the desktop).
+   */
+  quickRefresh?: boolean;
+  /**
+   * This build's stamp of the datasets' schemas (the phone's release builds: a hash of src/core, mobile/app.config.ts).
+   * Datasets are saved with it, and one saved with the same stamp loads without its schema being checked again, which
+   * was most of a phone's wait for the first frame. Unset (the desktop, a dev build), every saved dataset is checked.
+   */
+  shapes?: string;
+  /**
    * Hands the JS thread to the screens for a moment, in the middle of long work: the phone, where the engine and the
    * screens share one thread. Unset on the desktop, whose engine has a process of its own.
    */
   yieldToScreens?(): Promise<void>;
 }
 
+/**
+ * What a start can leave for later, each a slice of its own: working the timed alerts out (and booking them ahead), the
+ * daily update check, and saving the datasets again under this build's stamp. `run` when it suits the screens; never
+ * after a stop. The phone, where the engine shares the screens' thread: its start's first seconds are the screens'.
+ */
+export type StartLater = (what: "alerts" | "updates" | "restamp", run: () => void) => void;
+
 export interface Engine {
   /** Loads saved data and sessions from disk. No network. */
   load(): Promise<void>;
-  /** Starts the feeds. */
-  start(): void;
+  /** Starts the feeds at once; the rest of the start now too, or through `later` (StartLater). */
+  start(later?: StartLater): void;
   stop(): void;
   snapshot(): Snapshot;
   /** Starts a session from what the source's sign-in captured (Edunex: { token }, SIX: { cookie }). */
@@ -151,6 +170,12 @@ export interface Engine {
 }
 
 const sessionKey = (source: SourceId) => `${source}.session`;
+
+/** `promise` asked for ahead: its failure goes to whoever awaits it, never reported as unhandled meanwhile. */
+function handled<T>(promise: Promise<T>): Promise<T> {
+  promise.catch(() => undefined);
+  return promise;
+}
 const STATE_FORMAT = 1;
 
 /**
@@ -202,11 +227,15 @@ export function createEngine(deps: EngineDeps): Engine {
   const { clock, storage, vault } = deps;
   const log = deps.log ?? new AppLog(() => clock.now());
   const sources = new Map((deps.sources ?? SOURCES).map((source) => [source.id, source]));
-  const store = new DatasetStore(storage, (event) => {
-    deps.emit(event);
-    alerts.observe(event);
-    followStudent(event);
-  });
+  const store = new DatasetStore(
+    storage,
+    (event) => {
+      deps.emit(event);
+      alerts.observe(event);
+      followStudent(event);
+    },
+    deps.shapes,
+  );
   const statuses = new Map<SourceId, SourceStatus>(SourceId.options.map((source) => [source, { source, state: "signed-out", updatedAt: null, detail: null }]));
   let settings: Settings = DEFAULT_SETTINGS;
   const phone = new PhoneChannel({
@@ -253,6 +282,15 @@ export function createEngine(deps: EngineDeps): Engine {
   const answered = new Map<SourceId, number>();
   /** Feeds a manual refresh leaves to their own schedule (FeedSpec.background). */
   const background = new Set<string>();
+  /** Feeds a manual refresh reads only once their last good read is this old (FeedSpec.refreshAfter, quickRefresh). */
+  const refreshAfter = new Map<string, number>();
+  /** Whether a manual refresh reads this feed: not a background one, nor one read well within its refreshAfter. */
+  const refreshes = (name: string) => {
+    if (background.has(name)) return false;
+    const after = deps.quickRefresh ? refreshAfter.get(name) : undefined;
+    const at = lastReads.get(name);
+    return after === undefined || at === undefined || clock.now() - at >= after;
+  };
   /** When each source's attendance was last read again for the Student coming back (recheckAttendance). */
   const rechecked = new Map<SourceId, number>();
   /** Feeds whose page changing is said on their screens, not as the whole source's (FeedSpec.shows): what each fills. */
@@ -276,7 +314,12 @@ export function createEngine(deps: EngineDeps): Engine {
   /** The session each source runs with now (for actions). */
   const sessions = new Map<SourceId, unknown>();
   // Feeds report their own outcome (see addFeed); the scheduler only uses failures to back off.
-  const scheduler = new Scheduler(clock, () => undefined, deps.random);
+  const scheduler = new Scheduler(
+    clock,
+    () => undefined,
+    deps.random,
+    (error) => isEngineError(error, "Offline") && error.unreachable,
+  );
   const userAgent = `EdunexPlus/${deps.version} (+https://github.com/pablonification/edunex-plus)`;
   /** The report about what `about` names, from what's kept (`chosen`: only those). */
   const reportOf = (about: ReportAbout, chosen = kept.list()) =>
@@ -327,6 +370,19 @@ export function createEngine(deps: EngineDeps): Engine {
     : null;
   const sourceOf = (feed: string) => feed.split(".")[0] as SourceId;
   const generation = (source: SourceId) => generations.get(source) ?? 0;
+
+  /** Each start's number: a slice it left for later (StartLater) runs only within it. */
+  let starts = 0;
+  /** What the current start left for later and hasn't run yet. */
+  const waiting = new Map<Parameters<StartLater>[0], () => void>();
+  /** Runs now what the start left for later as `what`, if it's still waiting (alerts asked for before their turn). */
+  function startNow(what: Parameters<StartLater>[0]): boolean {
+    const work = waiting.get(what);
+    if (!work) return false;
+    waiting.delete(what);
+    work();
+    return true;
+  }
 
   async function saveState(): Promise<void> {
     await storage.write(
@@ -468,8 +524,11 @@ export function createEngine(deps: EngineDeps): Engine {
     if (spec.part) parts.set(spec.name, spec.part);
     else parts.delete(spec.name);
     cadences.set(spec.name, spec.every);
+    if (spec.refreshAfter !== undefined) refreshAfter.set(spec.name, spec.refreshAfter);
+    else refreshAfter.delete(spec.name);
     scheduler.add({
       name: spec.name,
+      priority: spec.priority,
       every: spec.every,
       jitter: spec.jitter,
       run: async () => {
@@ -502,7 +561,7 @@ export function createEngine(deps: EngineDeps): Engine {
   const paces = new Map<string, Pace>();
   const pace = (site: string) => {
     let line = paces.get(site);
-    if (!line) paces.set(site, (line = new Pace(clock)));
+    if (!line) paces.set(site, (line = new Pace(clock, SITE_LIMITS[site] ?? 1, SITE_GAPS[site] ?? 0)));
     return line;
   };
 
@@ -586,9 +645,9 @@ export function createEngine(deps: EngineDeps): Engine {
     return settings;
   }
 
-  function startSource(source: AnySource, session: unknown): void {
+  function startSource(source: AnySource, session: unknown, resumed: boolean): void {
     sessions.set(source.id, session);
-    source.start(contextFor(source.id), session);
+    source.start(contextFor(source.id), session, resumed);
   }
 
   function readSession(source: AnySource, saved: string | null): unknown {
@@ -603,10 +662,15 @@ export function createEngine(deps: EngineDeps): Engine {
 
   return {
     async load() {
-      await store.load();
-      await alerts.load();
-      await phone.load();
-      await outbox.load();
+      // The saved sessions and state are asked for at once, beside the datasets: on the phone each is a trip to the
+      // native side (the keystore's take tens of ms), and the first frame waits for them all.
+      const savedSessions = new Map<SourceId, Promise<string | null>>();
+      for (const source of sources.values()) if (source.session) savedSessions.set(source.id, handled(vault.get(sessionKey(source.id))));
+      const savedState = handled(storage.read("state.json"));
+      // The alerts' and the reports' own files too, in the same order as ever once read: datasets, alerts, reports.
+      const datasets = Promise.all([store.load(), phone.load()]);
+      const alerted = alerts.load(datasets);
+      await Promise.all([datasets, alerted, outbox.load(alerted)]);
       for (const [source, name] of [
         ["edunex", "edunex.account"],
         ["six", "six.student"],
@@ -618,7 +682,7 @@ export function createEngine(deps: EngineDeps): Engine {
       const notice = store.get("app.update");
       if (notice && !isNewerRelease(notice.version, deps.version)) await store.remove("app.update");
       try {
-        const saved = JSON.parse((await storage.read("state.json")) ?? "null");
+        const saved = JSON.parse((await savedState) ?? "null");
         if (saved?.format === STATE_FORMAT) {
           settings = loadSettings(saved.settings);
           for (const status of saved.statuses ?? []) {
@@ -637,13 +701,13 @@ export function createEngine(deps: EngineDeps): Engine {
       for (const source of sources.values()) {
         const status = statuses.get(source.id)!;
         if (!source.session) {
-          startSource(source, null);
+          startSource(source, null, true);
           statuses.set(source.id, { ...status, state: status.state === "signed-out" ? "connecting" : status.state });
           continue;
         }
-        const session = readSession(source, await vault.get(sessionKey(source.id)));
+        const session = readSession(source, await savedSessions.get(source.id)!);
         if (session) {
-          startSource(source, session);
+          startSource(source, session, true);
           // A saved session counts as signed in at once; the feeds check it in the background.
           statuses.set(source.id, { ...status, state: "connecting", detail: null });
         } else if (status.state !== "expired") {
@@ -652,13 +716,29 @@ export function createEngine(deps: EngineDeps): Engine {
       }
     },
 
-    start() {
+    start(later) {
+      const run = ++starts;
       scheduler.start(deps.startDueOnly ? (spec) => freshFor(spec.name) : undefined);
-      alerts.start();
-      updates?.start();
+      const slice = (what: Parameters<StartLater>[0], work: () => void) => {
+        if (!later) return work();
+        waiting.set(what, work);
+        later(what, () => {
+          if (run !== starts || waiting.get(what) !== work) return;
+          waiting.delete(what);
+          work();
+        });
+      };
+      slice("alerts", () => alerts.start());
+      slice("updates", () => updates?.start());
+      // After an update: what loaded from the old build's files, checked, is saved with this build's stamp, a file at
+      // a time with the screens' turn between (SIX's catalog alone is 300 KB of JSON). A write that fails costs nothing
+      // but the same check at the next start.
+      slice("restamp", () => void store.restamp(deps.yieldToScreens).catch(() => undefined));
     },
 
     stop() {
+      starts++;
+      waiting.clear();
       scheduler.stop();
       alerts.stop();
       updates?.stop();
@@ -682,7 +762,7 @@ export function createEngine(deps: EngineDeps): Engine {
       endSession(id);
       await vault.set(sessionKey(id), JSON.stringify({ ...parsed.data, savedAt: clock.now() }));
       setStatus(id, { state: "connecting", detail: null, changedPages: undefined });
-      startSource(source, parsed.data);
+      startSource(source, parsed.data, false);
       // Whose session this is comes first: a different Student's data must be gone before anything new lands.
       await checkLiveness(id);
       await scheduler.runNow((name) => sourceOf(name) === id && name !== source.liveness);
@@ -746,7 +826,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     async refresh(source) {
-      await scheduler.runNow((name) => (!source || sourceOf(name) === source) && !background.has(name));
+      await scheduler.runNow((name) => (!source || sourceOf(name) === source) && refreshes(name));
     },
 
     async recheckAttendance(source) {
@@ -758,10 +838,12 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     async refreshDue() {
+      startNow("alerts");
       await scheduler.runNow((name) => freshFor(name) === 0);
     },
 
     flushAlerts() {
+      startNow("alerts");
       alerts.flushNow();
     },
 
@@ -791,7 +873,7 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     planAlerts() {
-      alerts.planNow();
+      if (!startNow("alerts")) alerts.planNow();
     },
 
     async checkForUpdates() {

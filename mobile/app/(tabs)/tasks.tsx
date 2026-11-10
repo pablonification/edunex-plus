@@ -8,11 +8,13 @@ export default function Screen() {
   usePerfFocused("tasks");
   const show = useParam("show") === "done" ? "done" : undefined;
   return (
-    <TabClock>
+    <TabClock name="tasks">
       {/* The list redraws on a minute's tick only when it can look different (task-clock.tsx). */}
-      <TaskClock>
-        <TasksScreen show={show} />
-      </TaskClock>
+      {() => (
+        <TaskClock>
+          <TasksScreen show={show} />
+        </TaskClock>
+      )}
     </TabClock>
   );
 }

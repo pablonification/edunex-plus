@@ -1,5 +1,6 @@
 // Nilai's transcript on the phone (round 2, v4; src/app/screens/grades.tsx's Transcript and TermRow): every term,
-// newest first, as rows in one white card under its heading, one open at a time (the last graded one to start with).
+// oldest first (Sem 1 at the top, as a transcript reads), as rows in one white card under its heading, one open at a
+// time (the last graded one to start with).
 // An open term's courses follow its row, each with its course tile, its code and SKS on one line and its grade, a
 // bold letter, at the end; a retake and a grade that doesn't count said on that line. The IPK without TPB sits quiet
 // by the heading.
@@ -59,7 +60,7 @@ export function Transcript({ record }: { record: StudentRecord }) {
     <View testID="section.transcript">
       <Heading>{t("grades.transcript")}</Heading>
       <Group>
-        {[...terms].reverse().map((term, i) => (
+        {terms.map((term, i) => (
           <TermRows key={term.term} record={record} term={term} first={i === 0} open={open === term.term} onToggle={toggle} />
         ))}
       </Group>

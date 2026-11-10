@@ -17,6 +17,7 @@ import type {
 } from "../../../core/models";
 import { EngineError } from "../../errors";
 import type { FeedRead } from "../../report/kept-pages";
+import type { Priority } from "../../sync/scheduler";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
 import { fetchCourses } from "./feeds";
@@ -138,15 +139,21 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
   // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
   const noted = (read: FeedRead) => ({ context: context.for(read), client: client.for(read) });
   type Run = ReturnType<typeof noted>;
-  const courses = async ({ context, client }: Run) => context.get("edunex.courses") ?? (await fetchCourses(client));
+  // On the first sync after a sign-in they're still on their way: the courses feed's read, not one more of the same list.
+  const courses = async ({ context, client }: Run) => {
+    if (!context.get("edunex.courses")) await context.runNow((feed) => feed === "edunex.courses");
+    return context.get("edunex.courses") ?? (await fetchCourses(client));
+  };
   const perCourse = <T>(
     name: string,
+    priority: Priority,
     every: number,
     read: (client: EdunexClient, course: Course) => Promise<T>,
     store: (context: SourceContext, value: Record<string, T>) => Promise<unknown>,
   ) =>
     context.feed({
       name,
+      priority,
       every,
       jitter: every / 10,
       async run(current, notes) {
@@ -163,6 +170,10 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
   // The outline and the materials together: a module's materials are read by its id.
   context.feed({
     name: "edunex.materials",
+    // A call per module of every course (60 or so): after everything else. A new material is read at once
+    // anyway, on its notification (./notifications.ts), so a refresh soon after a read leaves it be.
+    priority: "later",
+    refreshAfter: 30 * MINUTE,
     every: HOUR,
     jitter: 6 * MINUTE,
     async run(current, read) {
@@ -181,9 +192,10 @@ export function registerCoursePageFeeds(context: SourceContext, client: EdunexCl
       await context.set("edunex.materials", materials);
     },
   });
-  perCourse("edunex.presence", 30 * MINUTE, fetchPresence, (context, value) => context.set("edunex.presence", value));
-  perCourse("edunex.announcements", HOUR, fetchAnnouncements, (context, value) => context.set("edunex.announcements", value));
-  perCourse("edunex.exams", 3 * HOUR, fetchExams, (context, value) => context.set("edunex.exams", value));
+  // Today's Presence windows, on Beranda.
+  perCourse("edunex.presence", "now", 30 * MINUTE, fetchPresence, (context, value) => context.set("edunex.presence", value));
+  perCourse("edunex.announcements", "soon", HOUR, fetchAnnouncements, (context, value) => context.set("edunex.announcements", value));
+  perCourse("edunex.exams", "soon", 3 * HOUR, fetchExams, (context, value) => context.set("edunex.exams", value));
 }
 
 /** The class's own Edunex course first, then its parent's. */

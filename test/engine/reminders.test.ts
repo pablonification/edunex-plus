@@ -132,16 +132,34 @@ describe("exam reminders", () => {
         id: `exam.week:six:2190001:${start}`,
         at: wib("2026-10-08T07:00:00"),
         until: wib("2026-10-09T00:00:00"),
-        text: "UTS seminggu lagi · DK4073 — Kam, 15 Okt 11:00 · TVST C",
+        text: "UTS seminggu lagi · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
       },
       {
         id: `exam.tomorrow:six:2190001:${start}`,
         at: wib("2026-10-14T18:00:00"),
         until: wib("2026-10-15T00:00:00"),
-        text: "UTS besok · DK4073 — Kam, 15 Okt 11:00 · TVST C",
+        text: "UTS besok · DK4073 — Kam, 15 Okt, 11:00 · TVST C",
       },
-      { id: `exam.today:six:2190001:${start}`, at: wib("2026-10-15T07:00:00"), until: start, text: "UTS hari ini · DK4073 — Kam, 15 Okt 11:00 · TVST C" },
+      { id: `exam.today:six:2190001:${start}`, at: wib("2026-10-15T07:00:00"), until: start, text: "UTS hari ini · DK4073 — Kam, 15 Okt, 11:00 · TVST C" },
     ]);
+  });
+
+  it("a UAS SIX lists in both weeks of the exam period: the first sitting's reminders, the next's only once it's over", () => {
+    const first = session({
+      id: "2190010",
+      courseCode: "DK4073",
+      start: wib("2026-12-10T11:00:00"),
+      end: wib("2026-12-10T13:00:00"),
+      activity: "UAS",
+      room: "9009",
+    });
+    const second = { ...first, id: "2190011", start: wib("2026-12-17T11:00:00"), end: wib("2026-12-17T13:00:00") };
+    const at = (now: string) =>
+      examAlerts.plan!({ ...context({ "six.schedule": [second, first] }), now: wib(now) }).map((r) => r.id.split(":").slice(0, 3).join(":"));
+    expect(at("2026-12-01T00:00:00")).toEqual(["exam.week:six:2190010", "exam.tomorrow:six:2190010", "exam.today:six:2190010"]);
+    // Over: the next sitting's, with no "seminggu lagi" from the day just sat.
+    expect(at("2026-12-10T14:00:00")).toEqual(["exam.tomorrow:six:2190011", "exam.today:six:2190011"]);
+    expect(at("2026-12-17T14:00:00")).toEqual([]);
   });
 
   it("an early exam's morning reminder comes an hour before it", () => {
@@ -149,7 +167,7 @@ describe("exam reminders", () => {
     expect(today).toMatchObject({
       at: wib("2026-10-15T05:30:00"),
       until: wib("2026-10-15T06:30:00"),
-      text: "UTS hari ini · DK4073 — Kam, 15 Okt 06:30 · TVST C",
+      text: "UTS hari ini · DK4073 — Kam, 15 Okt, 06:30 · TVST C",
     });
   });
 });

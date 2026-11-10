@@ -5,10 +5,12 @@
 // ended session shows), a time limit on every request, and errors as NetworkError.
 import { fetch } from "expo/fetch";
 import { type HttpRequest, type HttpResponse, NetworkError, type Transport } from "../../../src/engine/http/transport";
+import { guardedTransport } from "./guard";
+import { R3_GUARD } from "./version";
 
 const DEFAULT_TIMEOUT = 15_000;
 
-export const phoneTransport: Transport = {
+const androidTransport: Transport = {
   async request(request: HttpRequest): Promise<HttpResponse> {
     const limit = request.timeoutMs ?? DEFAULT_TIMEOUT;
     const controller = new AbortController();
@@ -47,6 +49,9 @@ export const phoneTransport: Transport = {
     }
   },
 };
+
+/** The engine's network; a QA build's reads only (./guard.ts). */
+export const phoneTransport: Transport = R3_GUARD ? guardedTransport(androidTransport) : androidTransport;
 
 const hostOf = (url: string) => {
   try {

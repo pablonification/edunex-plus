@@ -1,9 +1,9 @@
-# W4/W11 on Kuliah (round 2, v4): in three seconds, which course is at risk and the way in. One big number leads ("1"
-# beside "mata kuliah tak bisa lagi capai 80%"); the courses at risk come first, each one row with one target (its
-# tile, name, code and one chip; no links of its own: round 1's Presensi card carried "Buka jadwal di SIX" and "Ubah
-# target" beside its bar and paragraphs); the row opens the course, where the bar, the count, the target and the one
-# exception are. No explanatory sentence on the first screen: the day's answer and how it's counted are in the big
-# number's sheet; the targets are in the top bar's ⋮.
+# W4/W11 on Kuliah (round 3, after the blind review): in three seconds, which course is at risk and the way in. The
+# courses at risk come first under "Perlu perhatian", the rest under "Aman"; each one row with one target (its tile, its
+# name, its code, and at its end its absences in plain words: "Lewat batas 1×" and "Jatah habis" as pills, "Sisa 1×"
+# quiet; no meter, no tick, no links of its own); the row opens the course, where the meter, the count, the target and
+# the one exception are. No explanatory sentence and no big number on the first screen: the day's answer and how it's
+# counted are in ⋮, beside the targets.
 # Round 1 (9395cea): no Kuliah tab, Presensi's long cards.
 appId: io.github.pablonification.edunexplus.demo
 name: "w11 Kuliah one row one target"
@@ -20,20 +20,27 @@ name: "w11 Kuliah one row one target"
     visible:
       id: screen.courses
     timeout: 10000
-# The big number answers first: how many courses can't reach the target anymore.
-- assertVisible:
-    id: card.kuliahNumber
-- assertVisible: ".*tak bisa lagi capai 80%.*"
-# At risk first: the course out of reach heads the list, its chip says how far; then no absences left; then the rest.
+# At risk first, under its heading: the course out of reach heads the list, its words say how far; then no absences
+# left; then the rest, under a heading of its own.
+- assertVisible: "Perlu perhatian"
 - assertVisible:
     id: group.presence.out
 - assertVisible:
     id: row.course.KU5014
-- assertVisible: "Lewat batas 1.*"
+- assertVisible:
+    id: status.course.KU5014
+- assertVisible: "Lewat batas 1×"
+- assertVisible: "Jatah habis"
+- assertNotVisible:
+    id: "meter.course.*"
+- assertNotVisible:
+    id: "mark.counted.*"
+- assertNotVisible: ".*tak bisa lagi capai 80%.*"
 - assertVisible:
     id: row.course.DK4073
     below:
       id: row.course.KU5014
+- assertVisible: "Aman"
 - assertVisible:
     id: row.course.PL3002
     below:
@@ -49,9 +56,11 @@ name: "w11 Kuliah one row one target"
 - assertNotVisible: "Hari ini ada 4 kuliah.*"
 - assertNotVisible: "Kehadiran dihitung di SIX.*"
 - takeScreenshot: w11-1-kuliah
-# The big number's sheet: the day's answer, the target, how it's counted.
+# ⋮'s "Cara menghitungnya": the day's answer, the target, how it's counted.
 - tapOn:
-    id: card.kuliahNumber
+    id: action.coursesMenu
+- tapOn:
+    id: action.howCounted
 - extendedWaitUntil:
     visible:
       id: sheet.kuliahFacts
@@ -60,7 +69,7 @@ name: "w11 Kuliah one row one target"
 - assertVisible: "Target 80%"
 - takeScreenshot: w11-2-facts
 - back
-# The row opens its course: its attendance in one line under the title, with the one thing to do about it.
+# The row opens its course: its meter under the name; "Cek ke dosen" is advice, so it's in the sheet behind the header.
 - tapOn:
     id: row.course.KU5014
 - extendedWaitUntil:
@@ -70,8 +79,11 @@ name: "w11 Kuliah one row one target"
 - assertVisible:
     id: meter.courseAttendance
 - assertVisible:
-    id: note.courseException
-- assertVisible: ".*33% hadir.*"
+    id: mark.courseAdvice
+- assertNotVisible: "Cek ke dosen"
+# Pertemuan leads the tabs of a course at risk, every tab whole.
+- assertVisible:
+    id: tab.course.meetings
 - takeScreenshot: w11-3-course
 - back
 # The targets, in ⋮.

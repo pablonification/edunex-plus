@@ -74,8 +74,20 @@ function wib(year: number, month: number, day: number, hour: number, minute: num
   return new Date(ms + 7 * HOUR).getUTCDate() === day ? ms : null;
 }
 
+/** Each WIB day's text by its number since 1970: Beranda's reasoning asks for thousands in one pass. */
+const wibDays = new Map<number, string>();
+
 /** "2026-10-09": the day in WIB, so meetings line up the same on any computer. */
-export const wibDay = (ms: number) => new Date(ms + 7 * HOUR).toISOString().slice(0, 10);
+export function wibDay(ms: number): string {
+  const index = Math.floor((ms + 7 * HOUR) / (24 * HOUR));
+  let day = wibDays.get(index);
+  if (day === undefined) {
+    day = new Date(ms + 7 * HOUR).toISOString().slice(0, 10);
+    if (wibDays.size >= 4_096) wibDays.clear();
+    wibDays.set(index, day);
+  }
+  return day;
+}
 const wibMonth = (ms: number) => wibDay(ms).slice(0, 7);
 
 /**

@@ -25,6 +25,8 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
   const noted = (read: FeedRead) => ({ context: context.for(read), client: client.for(read) });
   context.feed({
     name: "six.status",
+    // Whose session this is, and today's attendance counts.
+    priority: "now",
     every: HOUR,
     jitter: 5 * MINUTE,
     part: ["six.courses"],
@@ -38,24 +40,34 @@ export function registerSixFeeds(context: SourceContext, client: SixClient): voi
       // The course table alone changed: the last courses stay, and the screens listing them say so. Last term's aren't this term's.
       if (!courses && previous && previous.term !== student.term) await context.remove("six.courses");
       await context.set("six.student", student);
+      // A new term (or the saved one was stale when the app opened): the timetable's address names the term, so the one
+      // read before this page is last term's. It's read again now rather than at its next run, up to 12 hours away.
+      if (previous && (previous.term !== student.term || previous.nim !== student.nim)) void context.runNow((feed) => feed === "six.schedule");
       if (!courses) throw new PartChanged(tableChanged.message);
       await saveCourses(context, courses, skipped);
     },
   });
   context.feed({
     name: "six.schedule",
+    // Today's classes.
+    priority: "now",
     every: 12 * HOUR,
     jitter: 30 * MINUTE,
     shows: ["six.schedule", "six.scheduleMonths", "six.scheduleUnread"],
     async run(_current, read) {
       const { context, client } = noted(read);
-      const { sessions, months, unread, skipped } = await readSchedule(client, context.clock.now());
       // The days with a meeting it couldn't read, then the meetings, then the months: for a moment a
       // day may look busier than it is, never free, and the months may lag behind the meetings, never
       // run ahead (a month counted as read before its meetings arrive would call them all missing from SIX).
-      await context.set("six.scheduleUnread", unread);
-      await context.set("six.schedule", sessions, skipped);
-      await context.set("six.scheduleMonths", months);
+      const store = async ({ sessions, months, unread, skipped }: Schedule) => {
+        await context.set("six.scheduleUnread", unread);
+        await context.set("six.schedule", sessions, skipped);
+        await context.set("six.scheduleMonths", months);
+      };
+      // This month's page holds today: stored before next month's page is asked for (SIX's 2 s gap and its answer),
+      // with what was known of next month until then.
+      const early = (first: Schedule, following: string) => store(withKnownMonth(first, following, context));
+      await store(await readSchedule(client, context.clock.now(), early));
       // A class on now gets its first look for "Tandai Hadir" at once (after a sign-in, the timetable comes after that feed's first run).
       void context.runNow((feed) => feed === "six.checkIn");
     },
@@ -85,10 +97,31 @@ export async function saveCourses(
  * for this term), the months whose own page was read ("2026-10"), and the
  * meetings it couldn't read, by day, with their rows as noted (`skipped`).
  */
-export async function readSchedule(
-  pages: SixPages,
-  now: number,
-): Promise<{ sessions: ClassSession[]; months: string[]; unread: UnreadSession[]; skipped: SkippedRow[] }> {
+export interface Schedule {
+  sessions: ClassSession[];
+  /** "2026-10". */
+  months: string[];
+  unread: UnreadSession[];
+  skipped: SkippedRow[];
+}
+
+/** `first` (this month's page alone), with what `context` knew of the month after it ("202611"): its meetings, its days, whether it was read. */
+function withKnownMonth(first: Schedule, following: string, context: Pick<SourceContext, "get">): Schedule {
+  const month = `${following.slice(0, 4)}-${following.slice(4)}`;
+  if (!(context.get("six.scheduleMonths") ?? []).includes(month)) return first;
+  const sessions = (context.get("six.schedule") ?? []).filter((one) => wibMonth(one.start) === following && !first.sessions.some((s) => s.id === one.id));
+  const unread = (context.get("six.scheduleUnread") ?? []).filter(
+    (one) => one.day.startsWith(month) && !first.unread.some((u) => u.day === one.day && u.row === one.row),
+  );
+  return {
+    sessions: [...first.sessions, ...sessions].sort((a, b) => a.start - b.start || a.courseCode.localeCompare(b.courseCode)),
+    months: [...first.months, month],
+    unread: [...first.unread, ...unread].sort((a, b) => a.day.localeCompare(b.day)),
+    skipped: first.skipped,
+  };
+}
+
+export async function readSchedule(pages: SixPages, now: number, early?: (first: Schedule, following: string) => Promise<void>): Promise<Schedule> {
   const skipped = new Skipped();
   const { nim, studentId, term } = await pages.who();
   const base = `/app/mahasiswa:${nim}+${term}/kelas/jadwal/mahasiswa/${studentId}`;
@@ -101,19 +134,25 @@ export async function readSchedule(
   const months = [first.month];
   const following = nextMonth(first.month);
   if (first.months.includes(following)) {
+    // Only a page read whole: one with a meeting it couldn't read is judged with next month's (list.done()).
+    if (early && !unread.length && !skipped.rows.length) await early(tidy(sessions, months, unread, skipped.rows), following);
     const second = readMonth(await pages.page(`${base}?bulan=${following}`), following, list);
     sessions.push(...second.sessions);
     unread.push(...second.unread);
     months.push(second.month);
   }
   list.done();
-  // The grid shows the edges of the months around it, so a meeting can appear on both pages, read or not.
+  return tidy(sessions, months, unread, skipped.rows);
+}
+
+/** The grid shows the edges of the months around it, so a meeting can appear on both pages, read or not. */
+function tidy(sessions: ClassSession[], months: string[], unread: UnreadSession[], skipped: readonly SkippedRow[]): Schedule {
   const byId = new Map(sessions.map((session) => [session.id, session]));
-  const once = <T>(items: T[], key: (item: T) => string) => [...new Map(items.map((item) => [key(item), item])).values()];
+  const once = <T>(items: readonly T[], key: (item: T) => string) => [...new Map(items.map((item) => [key(item), item])).values()];
   return {
     sessions: [...byId.values()].sort((a, b) => a.start - b.start || a.courseCode.localeCompare(b.courseCode)),
     months: months.map((month) => `${month.slice(0, 4)}-${month.slice(4)}`),
     unread: once(unread, (one) => `${one.day}|${one.row}`).sort((a, b) => a.day.localeCompare(b.day)),
-    skipped: once(skipped.rows, (row) => `${row.row}|${row.why}`),
+    skipped: once(skipped, (row) => `${row.row}|${row.why}`),
   };
 }

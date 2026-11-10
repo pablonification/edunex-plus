@@ -7,7 +7,7 @@ import { homeWorld } from "../core/home-world";
 import type { HomeWorld } from "../core/needs";
 import { useTerm, useTermCourses } from "./courses";
 import { useNow } from "./i18n";
-import { useDataset, useDatasetPayload, useSettings, useStatus } from "./store";
+import { useDataset, useDatasetPayload, useSettings, useSourceState } from "./store";
 
 /**
  * Once the term's courses are known. The exact moment, not rounded down: a
@@ -33,7 +33,7 @@ export function useHomeWorld(): HomeWorld | undefined {
   const countLog = useDataset("six.countLog");
   const savedResults = useDataset("six.classResults");
   const readAt = useDatasetPayload("six.courses")?.fetchedAt ?? 0;
-  const sixConnected = useStatus("six").state !== "signed-out" || sixCourses !== undefined;
+  const sixConnected = useSourceState("six") !== "signed-out" || sixCourses !== undefined;
   const term = useTerm();
   const { attendanceTarget, attendanceTargets, needsAhead } = useSettings();
   const now = useNow();

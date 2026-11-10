@@ -80,6 +80,7 @@ export function CountdownBar({
   now,
   label,
   showLabel = true,
+  text,
   style,
 }: {
   opensAt: number;
@@ -87,6 +88,8 @@ export function CountdownBar({
   now: number;
   label: string;
   showLabel?: boolean;
+  /** The words beside the bar when they differ from its spoken name ("tutup 09:30" beside it, "12 mnt lagi" spoken). */
+  text?: string;
   style?: ViewStyle;
 }) {
   const theme = useTheme();
@@ -103,8 +106,8 @@ export function CountdownBar({
         <View style={{ width: `${left * 100}%`, height: "100%", borderRadius: 3, backgroundColor: soon ? theme.color.meterWarning : theme.color.primary }} />
       </View>
       {showLabel && (
-        <Text size="small" weight="semibold" tabular tone={soon ? "warning" : "muted"}>
-          {label}
+        <Text size="small" weight="semibold" tabular tone={soon ? "warning" : "muted"} importantForAccessibility={text ? "no" : undefined}>
+          {text ?? label}
         </Text>
       )}
     </View>

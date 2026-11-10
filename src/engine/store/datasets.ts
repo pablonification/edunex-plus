@@ -44,24 +44,58 @@ function cyrb53(text: string): string {
 
 export class DatasetStore {
   private readonly sets = new Map<string, DatasetPayload>();
+  /** Datasets loaded from a file saved under other shapes (or none) and checked against this build's: stamped later. */
+  private readonly unstamped = new Set<string>();
 
+  /**
+   * `shapes`: this build's stamp of the datasets' schemas (EngineDeps.shapes). Every file is saved with it, and a file
+   * saved with the same stamp loads without its schema being checked again: it was written by this very build.
+   */
   constructor(
     private readonly storage: Storage,
     private readonly emit: (event: Event) => void,
+    private readonly shapes?: string,
   ) {}
 
-  /** Loads what was saved; anything unreadable or from an older format is skipped, not trusted. */
+  /**
+   * Loads what was saved; anything unreadable or from an older format is skipped, not trusted. The files are read all
+   * at once: on the phone each read is a trip to the native side, and the first frame waits for the last one. A file
+   * this build saved isn't checked against its schema again (on the phone, checking them all was most of the start's
+   * wait); any other is, as before.
+   */
   async load(): Promise<void> {
-    for (const key of await this.storage.list("datasets/")) {
+    const keys = await this.storage.list("datasets/");
+    const texts = await Promise.all(keys.map((key) => this.storage.read(key).catch(() => null)));
+    for (const text of texts) {
       try {
-        const saved = JSON.parse((await this.storage.read(key)) ?? "null");
+        const saved = JSON.parse(text ?? "null");
         if (saved?.format !== FORMAT || !(saved.name in Datasets)) continue;
-        const schema = Datasets[saved.name as DatasetName];
-        if (!schema.safeParse(saved.value).success) continue;
+        const ours = this.shapes !== undefined && saved.shapes === this.shapes;
+        if (!ours) {
+          const schema = Datasets[saved.name as DatasetName];
+          if (!schema.safeParse(saved.value).success) continue;
+          if (this.shapes !== undefined) this.unstamped.add(saved.name);
+        }
         this.sets.set(saved.name, { name: saved.name, value: saved.value, fetchedAt: saved.fetchedAt, hash: saved.hash });
       } catch {
         // A damaged file is ignored; the next sync rewrites it.
       }
+    }
+  }
+
+  /**
+   * Saves again, with this build's stamp, each dataset that loaded from a file saved under other shapes and passed
+   * this build's check (the first start after an update): the next start takes it as is. Unchanged datasets are never
+   * written otherwise. Called once the screens are up, not before the first frame.
+   */
+  async restamp(breathe?: () => Promise<void>): Promise<void> {
+    const names = [...this.unstamped];
+    this.unstamped.clear();
+    for (const name of names) {
+      const payload = this.sets.get(name);
+      if (payload) await this.save(payload);
+      // The screens' turn between two files (the phone, where they share this thread).
+      await breathe?.();
     }
   }
 
@@ -84,7 +118,8 @@ export class DatasetStore {
     }
     const payload: DatasetPayload = { name, value, fetchedAt, hash };
     this.sets.set(name, payload);
-    await this.storage.write(keyOf(name), JSON.stringify({ format: FORMAT, ...payload }));
+    this.unstamped.delete(name);
+    await this.save(payload);
     this.emit({ type: "dataset", dataset: payload });
     return true;
   }
@@ -93,6 +128,7 @@ export class DatasetStore {
   async remove(prefix: string): Promise<void> {
     for (const name of [...this.sets.keys()].filter((n) => n.startsWith(prefix))) {
       this.sets.delete(name);
+      this.unstamped.delete(name);
       await this.storage.remove(keyOf(name));
       this.emit({ type: "dataset.removed", name });
     }
@@ -100,5 +136,10 @@ export class DatasetStore {
 
   snapshot(): DatasetPayload[] {
     return [...this.sets.values()];
+  }
+
+  private save(payload: DatasetPayload): Promise<void> {
+    const stamp = this.shapes === undefined ? {} : { shapes: this.shapes };
+    return this.storage.write(keyOf(payload.name), JSON.stringify({ format: FORMAT, ...stamp, ...payload }));
   }
 }

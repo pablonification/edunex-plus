@@ -17,6 +17,7 @@ import {
   useContext,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import {
   Animated,
@@ -29,8 +30,10 @@ import {
   View,
   type ViewStyle,
 } from "react-native";
+import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Icons } from "./icons";
 import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
+import { iosPressed } from "./press";
 import { Text } from "./text";
 import { radius, shape, space, useTheme } from "./theme";
 
@@ -86,8 +89,12 @@ export function usePageColor(): string | null {
 
 /**
  * A screen: scrolls, with the page's sides, and pulls to refresh when `onRefresh` is given ("Perbarui
- * sekarang"). Its `header` (a top bar) stays on top and takes a tone when the page scrolls under it; the end
- * keeps clear of the tabs or the phone's own navigation bar.
+ * sekarang"). Its `header` (a top bar) stays on top and takes a tone when the page scrolls under it. Its end keeps
+ * clear of the tabs, or of the phone's own navigation bar: over the tabs, where the page runs to the screen's foot
+ * (edge to edge), the scrolling stops at the top of the phone's bar and a strip of the page's colour lies under the
+ * bar, so nothing ever sits under three-button navigation's Back, Home and Recents, scrolled or not (round 3, the
+ * real phone: a toggle under Back, a chart's legend and the last row hidden). A page with a bar of its own under it
+ * (Kumpulkan's, ../parts/bottom-bar.tsx) ends above that bar, and the bar keeps clear of the phone's.
  */
 export function Page({
   children,
@@ -116,6 +123,11 @@ export function Page({
   const bottom = useBottomInset();
   const inTabs = useInTabs();
   const frame = useRef<ComponentRef<typeof View>>(null);
+  // Whether the page reaches the screen's foot, under the phone's bar (as it does unless a bar of the screen's own
+  // follows it, or the keyboard is up): measured, so it holds whatever sits under the page.
+  const screen = useSafeAreaFrame();
+  const [toFoot, setToFoot] = useState(true);
+  const strip = !inTabs && toFoot ? bottom : 0;
   const offset = useRef(new Animated.Value(0)).current;
   // The offset goes to the UI thread; a screen's own onScroll (if it has one) still hears each event.
   const scrolled = useMemo(
@@ -138,8 +150,14 @@ export function Page({
       ref={frame}
       style={{ flex: 1, backgroundColor: background ?? theme.color.surface }}
       testID={testID}
-      // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx).
-      onLayout={inTabs ? () => frame.current?.measureInWindow((_x, y, _width, height) => reportTabsBottom(y + height)) : undefined}
+      // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx). Over the tabs: does
+      // the page run under the phone's bar.
+      onLayout={() =>
+        frame.current?.measureInWindow((_x, y, _width, height) => {
+          if (inTabs) reportTabsBottom(y + height);
+          else setToFoot(y + height >= screen.height - 1);
+        })
+      }
     >
       <PageColor.Provider value={background ?? null}>
         <ScrollEdge.Provider value={offset}>{header}</ScrollEdge.Provider>
@@ -148,7 +166,10 @@ export function Page({
         ref={ref as never}
         onScroll={scrolled}
         scrollEventThrottle={16}
-        contentContainerStyle={[styles.page, { paddingBottom: space[10] + bottom }, contentStyle]}
+        style={strip ? { marginBottom: strip } : undefined}
+        // Without the strip (a bar under the page, the keyboard up), the end still leaves the phone's bar's room, as
+        // before: a few dp to spare beside a bar of the screen's own, never a last row under the phone's buttons.
+        contentContainerStyle={[styles.page, strip ? null : { paddingBottom: space[10] + bottom }, contentStyle]}
         refreshControl={
           onRefresh ? (
             <RefreshControl
@@ -162,7 +183,10 @@ export function Page({
         keyboardShouldPersistTaps="handled"
         {...rest}
       >
-        {header ? <BarTitle.Provider value={titleOf(header)}>{children}</BarTitle.Provider> : children}
+        {/* The page's own parts follow the offset too: a big title fading out as the bar's fades in (a course's name). */}
+        <ScrollEdge.Provider value={offset}>
+          {header ? <BarTitle.Provider value={titleOf(header)}>{children}</BarTitle.Provider> : children}
+        </ScrollEdge.Provider>
       </Animated.ScrollView>
     </View>
   );
@@ -397,7 +421,7 @@ export function Row({
           accessibilityActions={quick?.map((action, i) => ({ name: `quick${i}`, label: action.label }))}
           onAccessibilityAction={quick ? (event) => quick[Number(event.nativeEvent.actionName.slice(5))]?.onPress() : undefined}
           android_ripple={{ color: theme.color.selected }}
-          style={[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[4] }]}
+          style={({ pressed }) => [[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[4] }], iosPressed(pressed)]}
         >
           {body}
         </Pressable>

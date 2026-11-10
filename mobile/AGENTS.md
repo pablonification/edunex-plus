@@ -2,6 +2,8 @@
 
 Expo SDK 58, React Native 0.88 (New Architecture, Hermes), Expo Router, a dev build (not Expo Go).
 Read the repository's `CLAUDE.md` first, then `mobile/PROGRESS.md` (scope, decisions, who's on what).
+It also builds for iOS, untested on a device yet: `mobile/IOS.md` (what's Android-only and how each is kept off
+an iPhone).
 
 Expo changes every SDK: before writing code that touches an Expo or React Native API, read the
 versioned docs, `https://docs.expo.dev/versions/v58.0.0/`, or the package's own types in
@@ -63,3 +65,12 @@ versioned docs, `https://docs.expo.dev/versions/v58.0.0/`, or the package's own 
 `. ~/tools/env.sh`, then Redroid (`adb connect localhost:5555`), the dev client APK from the
 GitHub Actions run, and `npm run start` (or `npm run start:demo`) in `mobile/`. Switching
 between demo and real needs `--clear`.
+
+QA on a real Student's account: `EXPO_PUBLIC_R3_GUARD=1 npm run start -- --clear`. Then only reads and
+sign-in reach Edunex, SIX and Microsoft (`src/host/guard.ts`, `[guard] blocked …` on the log), the log
+says `[session] edunex=… six=…`, and a debug build takes
+`edunexplus://qa/restore?port=<n>&key=<hex>` (`src/qa/restore.ts`). Unset, none of it is there.
+
+A session that ends while Microsoft's is still alive signs back in out of sight (`src/host/resignin.ts`), the
+screens seeing "connecting", never "ended": `[resignin] six trying`, then `… ok in <ms>` or `… needs the Student in
+<ms>` (the banner then shows, as before). In the demo, `edunexplusdemo://demo?end=six` ends SIX's pretend session.

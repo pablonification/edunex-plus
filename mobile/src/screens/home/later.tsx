@@ -1,7 +1,8 @@
 // "Nanti hari ini" (round 2, v4): the classes and meetings still to come today, past the one on the now card. A row
-// each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what matters today, the first of
-// the desktop's Hari ini statuses in its words (Tak bisa capai 80%, Bentrok, a new time or room, Wajib hadir; Hanya di
-// Edunex for a meeting). A row opens the class's sheet. A class on SIX's timetable today that the app couldn't read
+// each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what's new about today's class
+// (a new time or room; Hanya di Edunex for a meeting), in the neutral tone, and the clash's icon when it shares its time
+// with another class (Perlu kamu urus leaves a clash later today to this row). A course's absences are Perlu kamu
+// urus's, said once there (./urus.tsx). A row opens the class's sheet. A class on SIX's timetable today that the app couldn't read
 // comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX writes it; it opens Jadwal's
 // sheet for it, with SIX's timetable. Hidden when nothing's left.
 import { useState } from "react";
@@ -11,7 +12,6 @@ import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { UnreadSession } from "../../../../src/core/models";
 import type { ClassFacts, HomeContext, NowCard, TodayPlan } from "../../../../src/core/needs";
-import { type AbsenceTone, absenceInk } from "../../ui/absence";
 import { Rise } from "../../ui/expressive";
 import { IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -115,12 +115,13 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
   const name = item.kind === "class" ? nameOf(courses, item.code, item.facts.session.courseName) : nameOf(courses, item.code);
   const place = item.kind === "class" ? item.facts.session.room : item.meeting.meeting.online ? t("mobile.home.online") : null;
   const chip = chipOf(t, item);
-  const ink = chip && absenceInk(v, chip.tone);
   const meta = [f.time(item.start), place].filter(Boolean).join(" · ");
+  const overlap = item.kind === "class" ? item.facts.overlap : null;
+  const clash = overlap ? t("mobile.course.ex.clash", { course: shortName(nameOf(courses, overlap.code)) }) : null;
   return (
     <PressScale
       onPress={onOpen}
-      accessibilityLabel={[name, meta, chip?.text].filter(Boolean).join(", ")}
+      accessibilityLabel={[name, meta, clash, chip].filter(Boolean).join(", ")}
       testID={`row.today.${item.key}`}
       style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}
     >
@@ -134,10 +135,16 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
           {meta}
         </Text>
       </View>
-      {chip && ink && (
-        <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: ink.bg }}>
-          <Text size="labelMedium" weight="semibold" style={{ color: ink.fg }}>
-            {chip.text}
+      {overlap && (
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={`clash.today.${item.key}`}>
+          <Icons.Overlap size={20} weight="bold" color={v.ambFg} />
+        </View>
+      )}
+      {/* Neutral: amber is for the Student's standing (absences), and a new room isn't. */}
+      {chip && (
+        <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: v.chip }}>
+          <Text size="labelMedium" weight="semibold" style={{ color: v.fg2 }}>
+            {chip}
           </Text>
         </View>
       )}
@@ -158,7 +165,7 @@ function UnreadRow({ one, first, onOpen }: { one: UnreadSession; first: boolean;
       style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}
     >
       {!first && <View style={{ position: "absolute", top: 0, left: 70, right: 0, height: 1, backgroundColor: v.line }} />}
-      <IconTile tone="amber" icon={(c) => <Icons.Info size={22} color={c} weight="bold" />} />
+      <IconTile tone="plain" icon={(c) => <Icons.Info size={22} color={c} weight="bold" />} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="bodyLarge" weight="medium" numberOfLines={1} style={{ color: v.fg, lineHeight: 21 }}>
           {title}
@@ -172,17 +179,12 @@ function UnreadRow({ one, first, onOpen }: { one: UnreadSession; first: boolean;
 }
 
 /**
- * The row's one chip: the desktop's first status for the class (src/app/screens/home.tsx classStatuses), in its words
- * and order: the target out of reach (red), a clash, a new time or room, no absences left ("Wajib hadir", amber, as on
- * the class's sheet). A meeting only Edunex announced says so.
+ * The row's one chip: a new time or room, in the desktop's words (src/app/screens/home.tsx classStatuses). A meeting only
+ * Edunex announced says so. A course's absences are Perlu kamu urus's rows (one fact, one place); a clash is the row's icon.
  */
-function chipOf(t: Translate, item: Item): { text: string; tone: AbsenceTone } | null {
-  if (item.kind === "meeting") return item.meeting.maybeInSix ? null : { text: t("home.today.notInSix"), tone: "amber" };
+function chipOf(t: Translate, item: Item): string | null {
+  if (item.kind === "meeting") return item.meeting.maybeInSix ? null : t("home.today.notInSix");
   const { facts } = item;
-  const { health } = facts;
-  if (health && facts.state === "out") return { text: t("home.today.out", { target: health.target }), tone: "red" };
-  if (facts.overlap) return { text: t("home.today.overlap"), tone: "amber" };
-  if (facts.moved) return { text: t(facts.moved.usualStart !== null ? "home.today.changed" : "home.today.roomChanged"), tone: "amber" };
-  if (health && facts.state === "none") return { text: t("home.today.mustAttend"), tone: "amber" };
+  if (facts.moved) return t(facts.moved.usualStart !== null ? "home.today.changed" : "home.today.roomChanged");
   return null;
 }

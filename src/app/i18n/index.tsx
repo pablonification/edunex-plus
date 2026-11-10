@@ -1,9 +1,10 @@
 // Language and time for the screens. The language comes from settings; the
 // clock ticks once a minute so "in 6 hours" stays true without re-rendering
 // every second. Tests pass their own clock.
-import { createContext, type ReactNode, useCallback, useContext, useMemo, useSyncExternalStore } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useMemo } from "react";
 import { type Format, makeFormat } from "../../core/format";
 import { type Lang, type StringKey, translate, type Vars } from "../../core/strings";
+import { useExternal } from "../external";
 
 export type { Format } from "../../core/format";
 export type { Lang, StringKey } from "../../core/strings";
@@ -11,6 +12,8 @@ export type { Lang, StringKey } from "../../core/strings";
 export interface UiClock {
   now(): number;
   subscribe(listener: () => void): () => void;
+  /** Its ticks reach the screens as transitions (../external.ts), as the phone's screens take them. */
+  readonly deferred?: boolean;
 }
 
 /** Real time (moved by `offsetMs`, for the development demo), published on each minute boundary. */
@@ -75,7 +78,7 @@ export function ClockProvider({ clock, children }: { clock: UiClock; children: R
 
 export function useNow(): number {
   const clock = useContext(ClockContext) ?? defaultClock;
-  return useSyncExternalStore(clock.subscribe, clock.now);
+  return useExternal(clock.deferred === true, "now", clock.subscribe, clock.now);
 }
 
 export function useFormat(): Format {

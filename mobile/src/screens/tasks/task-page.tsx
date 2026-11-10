@@ -1,11 +1,13 @@
-// The Task page on the phone (S3): src/app/screens/tasks.tsx's TaskPage in one column, in v4 (round 2). The way up
-// (course, module), the title, then the deadline as the page's one big card (the course's tint, the countdown large,
-// the day and time, and where the Student stands), the exam it's part of, what Edunex doesn't say (attendance, a short
-// window, a lecturer's edit), then white cards: the instructions, the lecturer's files, the answer, its comments
-// (./thread.tsx), History. Simpan draf and Kumpulkan stay at the bottom of the screen; Kumpulkan is the screen's one
-// filled button.
-import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, Pressable, type ScrollView, StyleSheet, View } from "react-native";
+// The Task page on the phone (S3): src/app/screens/tasks.tsx's TaskPage in one column, in v4 (round 2). The title is
+// the bar's (./task-bar.tsx, round 3: no big title on the page) with the course's short name and module as its one small
+// line, the way up; then the deadline as the page's one big card (the course's tint, the countdown large, the day and
+// time, and the Presensi window as one line whose why is a sheet away), the exam it's part of, what Edunex doesn't say
+// (attendance, a short window, a lecturer's edit), then white cards: the instructions (a long one folded to its first
+// lines, so the answer box shows on the first screen: ./folded.tsx), the lecturer's files, the answer,
+// its comments (./thread.tsx), History. Kumpulkan stays at the bottom of the screen, the screen's one filled button,
+// with Simpan draf beside it while there's something to save.
+import { type ComponentRef, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Keyboard, KeyboardAvoidingView, Pressable, type ScrollView, StyleSheet, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -28,7 +30,7 @@ import {
   taskStatus,
 } from "../../../../src/core/tasks";
 import { useNav } from "../../nav";
-import { dayWord } from "../../parts/day-word";
+import { dayAt, dayWord } from "../../parts/day-word";
 import { LecturerFile } from "../../parts/files";
 import { plainText } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
@@ -47,13 +49,17 @@ import { Sheet } from "../../ui/sheet";
 import { LINK_SLOP, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { shape, space, useTheme } from "../../ui/theme";
-import { CourseGlyph, CourseTile, useCourseTile } from "../../ui/tile";
+import { useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
+import { shortName } from "../home/parts";
 import { takeHomeWhy } from "./exam-rows";
+import { Folded } from "./folded";
 import { HandInBar, HandInCard, useHandIn } from "./hand-in";
+import { withoutTitleLine } from "./instructions";
 import { NoTasksYet } from "./list";
 import { countdown, IconTile } from "./row-parts";
 import { moduleLabel } from "./rows";
+import { TaskBar } from "./task-bar";
 import { Thread } from "./thread";
 
 const MINUTE = 60_000;
@@ -86,10 +92,11 @@ export function TaskScreen({ taskId }: { taskId: number }) {
 
 function TaskPage({ task }: { task: Task }) {
   const t = useT();
+  // The bar already names the Task: the instructions' first line goes when it's that name again.
+  const instructions = useMemo(() => withoutTitleLine(task.instructions, task.title), [task.instructions, task.title]);
   const f = useFormat();
   const now = useNow();
   const theme = useTheme();
-  const c = theme.color;
   const { go } = useNav();
   const pull = usePullToRefresh();
   const v = theme.v4;
@@ -104,6 +111,17 @@ function TaskPage({ task }: { task: Task }) {
   const presence = usePresence(task);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const historyAt = useRef(0);
+  const answerAt = useRef(0);
+  // Typing the answer: the box comes up into view, clear of the bar and the keyboard over it.
+  const showAnswer = useCallback(() => {
+    const to = () => scroll.current?.scrollTo({ y: Math.max(0, answerAt.current - space[2]), animated: true });
+    to();
+    const shown = Keyboard.addListener("keyboardDidShow", () => {
+      shown.remove();
+      to();
+    });
+    setTimeout(() => shown.remove(), 1000);
+  }, []);
   /** "Lihat perubahannya" asks History to open its newest edit: which, and how many times asked. */
   const [reveal, setReveal] = useState<{ at: number; asked: number } | null>(null);
   useEffect(() => {
@@ -112,46 +130,29 @@ function TaskPage({ task }: { task: Task }) {
 
   return (
     <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: v.page }}>
-      {/* One title: the Task's own, on the page; the bar carries only Back. */}
-      <Page testID="screen.task" header={<TopBar />} scrollRef={scroll} background={v.page} {...pull}>
-        {/* The way up, part by part: the course (its tile), and its module. */}
-        <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", marginLeft: -space[2] }}>
-          <Pressable
-            accessibilityRole="link"
-            accessibilityLabel={factsLabel(task.courseCode, course?.name)}
-            onPress={() => go({ screen: "course", code: task.courseCode })}
-            android_ripple={{ color: c.selected, borderless: false }}
-            style={styles.crumb}
-            testID="action.course"
-          >
-            <CourseTile code={task.courseCode} name={course?.name} size={24} />
-            <Text size="labelLarge" tabular style={{ color: v.fg2 }}>
-              {task.courseCode}
-            </Text>
-          </Pressable>
-          {where && (
-            <>
-              <Icons.ChevronRight size={14} color={v.muted} />
-              <Pressable
-                accessibilityRole="link"
-                onPress={() => go({ screen: "course", code: task.courseCode, tab: "modules", module: task.moduleId ?? introModule(task.courseId) })}
-                android_ripple={{ color: c.selected, borderless: false }}
-                style={[styles.crumb, { flexShrink: 1 }]}
-                testID="action.module"
-              >
-                <Text size="labelLarge" numberOfLines={1} style={{ flexShrink: 1, color: v.fg2 }}>
-                  {where}
-                </Text>
-              </Pressable>
-            </>
-          )}
-        </View>
-        <Text size="headlineSmall" face="display" weight="bold" accessibilityRole="header" style={{ marginTop: space[1], color: v.fg, letterSpacing: -0.3 }}>
-          {task.title}
-        </Text>
-
+      {/* One title, the Task's own, in the bar from the start: nothing big on the page under it. */}
+      <Page
+        testID="screen.task"
+        header={
+          <TaskBar
+            title={task.title}
+            crumb={factsLabel(course ? shortName(course.name) : task.courseCode, task.module ? t("task.module", { n: task.module.index }) : null)}
+            crumbLabel={factsLabel(task.courseCode, course?.name, where)}
+            onCrumb={() =>
+              go(
+                where
+                  ? { screen: "course", code: task.courseCode, tab: "modules", module: task.moduleId ?? introModule(task.courseId) }
+                  : { screen: "course", code: task.courseCode },
+              )
+            }
+          />
+        }
+        scrollRef={scroll}
+        background={v.page}
+        {...pull}
+      >
         {/* By when, and where the Student stands: the first thing to read after the name, the page's one big card. */}
-        <DueCard task={task} status={status} late={late} soon={soon} course={course?.name} presence={presence.due} />
+        <DueCard task={task} status={status} late={late} soon={soon} presence={presence.due} />
 
         {exam && (
           // The exam it's part of, and how the app knows: Edunex files it there, or its name says so.
@@ -184,7 +185,9 @@ function TaskPage({ task }: { task: Task }) {
           <SectionTitle title={t("task.instructions")} />
           <Panel>
             {plainText(task.instructions) ? (
-              <LecturerHtml html={task.instructions} size="bodyLarge" />
+              <Folded>
+                <LecturerHtml html={instructions} size="bodyLarge" />
+              </Folded>
             ) : (
               <Text size="bodyLarge" style={{ color: v.muted }}>
                 {t("task.noInstructions")}
@@ -197,16 +200,21 @@ function TaskPage({ task }: { task: Task }) {
           <View testID="section.files">
             <SectionTitle title={t("task.lecturerFiles")} count={task.files.length} />
             <Panel style={{ gap: space[2] }}>
-              {task.files.map((file) => (
-                <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(task.id)} />
+              {task.files.map((file, i) => (
+                <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(task.id)} testID={`row.file.${i}`} />
               ))}
             </Panel>
           </View>
         )}
 
-        <View testID="section.answer">
+        <View
+          testID="section.answer"
+          onLayout={(event) => {
+            answerAt.current = event.nativeEvent.layout.y;
+          }}
+        >
           <SectionTitle title={t("handIn.yourAnswer")} />
-          <HandInCard h={handIn} />
+          <HandInCard h={handIn} onAnswerFocus={showAnswer} />
         </View>
         <Thread key={`thread:${task.id}`} task={task} />
         <View
@@ -228,40 +236,39 @@ function TaskPage({ task }: { task: Task }) {
 /**
  * The deadline as the page's one big card (v4, Tugas's big card): the course's tint, amber within a day, red with a
  * warning sign and "lewat" once late (never the colour alone). While it can still be handed in, how long is left leads,
- * large; under it the day and time with whether late is still taken, then when handing in counts as present. Edunex's
- * status is Jawabanmu's, said once there.
+ * large; under it the day and time, the one place the day is written; then, for a Task that is also Presensi, its window
+ * as one line with the hand ("Presensi 15:00–23:59", its day only when it isn't the deadline's), the whole line opening a
+ * small sheet with why. Whether late is still taken is spoken. Edunex's status is Jawabanmu's, said once there.
  */
 function DueCard({
   task,
   status,
   late,
   soon,
-  course,
   presence,
 }: {
   task: Task;
   status: TaskStatus;
   late: boolean;
   soon: boolean;
-  course?: string;
-  /** When handing it in also counts as present ("Jum 15:00–23:59"), while that's still ahead. */
-  presence: string | null;
+  /** While handing it in can still count as present: its window, and the day and time a sentence says it with. */
+  presence: Presence["due"];
 }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
   const v = useTheme().v4;
+  const [why, setWhy] = useState(false);
   const { ink, tint } = useCourseTile()(task.courseCode);
   const [bg, fg] = late ? [v.redBg, v.redFg] : soon ? [v.ambBg, v.ambFg] : [tint, ink];
   const away = task.dueAt !== null && isOpenStatus(status) ? countdown(t, now, task.dueAt) : null;
   const opens = task.opensAt !== null && notOpenYet(task, now) ? t("task.opens", { when: f.dayTimeWord(task.opensAt) }) : null;
+  // Whether late is still taken: said to TalkBack only. On screen the card keeps one status, the countdown.
   const lateRule = task.dueAt !== null && isOpenStatus(status) ? (task.lateAllowed ? t("handIn.lateAllowed") : t("handIn.lateNotAllowed")) : null;
+  const whyText = presence ? t("mobile.tasks.presenceWhyBody", { date: presence.date, time: presence.time }) : "";
   return (
-    <View testID="card.due" style={{ marginTop: space[4], backgroundColor: bg, borderRadius: 24, padding: space[4], gap: space[1] }}>
-      {/* No status here: Jawabanmu says it, once. */}
-      <View style={{ marginBottom: space[2] }}>
-        {late ? <Icons.AlertTriangle size={22} weight="bold" color={fg} /> : <CourseGlyph code={task.courseCode} name={course} />}
-      </View>
+    <View testID="card.due" style={{ backgroundColor: bg, borderRadius: 24, paddingHorizontal: space[4], paddingVertical: space[3], gap: space[1] }}>
+      {/* No status here: Jawabanmu says it, once. The course is the bar's line and the card's tint: no tile for it. */}
       {task.dueAt === null ? (
         <Text size="titleLarge" face="display" weight="bold" style={{ color: v.fg }}>
           {t("task.noDeadline")}
@@ -272,6 +279,11 @@ function DueCard({
             // "8 hari", "lewat 2 jam": read as the whole sentence.
             <View accessible accessibilityLabel={`${f.fromNow(task.dueAt)}`} style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap" }}>
               {away.late && (
+                <View style={{ marginRight: 6 }}>
+                  <Icons.AlertTriangle size={20} weight="bold" color={fg} />
+                </View>
+              )}
+              {away.late && (
                 <Text size="bodyLarge" face="display" weight="semibold" style={{ color: fg, fontSize: 16, marginRight: 6 }}>
                   {t("mobile.home.late")}
                 </Text>
@@ -279,36 +291,43 @@ function DueCard({
               <CountUp
                 id={`task:${task.id}`}
                 value={away.value}
-                style={{ color: fg, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 44, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
+                style={{ color: fg, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, lineHeight: 48, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
               />
               <Text size="bodyLarge" face="display" weight="semibold" style={{ color: fg, fontSize: 17, marginLeft: 6 }}>
                 {away.unit}
               </Text>
             </View>
           )}
-          {/* The day and time, and on the same line whether late is still taken. */}
-          <View
-            accessible
-            accessibilityLabel={factsLabel(t("task.due", { when: f.dayTimeWord(task.dueAt) }), lateRule)}
-            style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: space[2] }}
-          >
+          {/* The day and time. */}
+          <View accessible accessibilityLabel={factsLabel(t("task.due", { when: f.dayTimeWord(task.dueAt) }), lateRule)}>
             <Text size={away ? "titleMedium" : "titleLarge"} face="display" weight="bold" tabular style={{ color: v.fg }}>
               {f.dueLabel(task.dueAt)}
             </Text>
-            {lateRule && (
-              <Text size="bodyMedium" style={{ color: v.fg2 }}>
-                {`·  ${lateRule}`}
-              </Text>
-            )}
           </View>
-          {presence && (
-            <View testID="line.presence" style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
-              <Icons.Hand size={16} color={v.fg2} />
-              <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.fg2 }}>
-                {t("mobile.tasks.presenceLine", { when: presence })}
-              </Text>
-            </View>
-          )}
+        </>
+      )}
+      {/* A Task that is also Presensi says so, with or without a deadline. */}
+      {presence && (
+        <>
+          <Pressable
+            testID="line.presence"
+            accessibilityRole="button"
+            accessibilityLabel={whyText}
+            onPress={() => setWhy(true)}
+            hitSlop={slopY(24)}
+            style={{ flexDirection: "row", alignItems: "center", alignSelf: "flex-start", gap: space[1], marginTop: space[1] }}
+          >
+            <Icons.Hand size={16} color={v.fg2} />
+            <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.fg2 }}>
+              {t("task.attendanceLine", { when: presence.line })}
+            </Text>
+            <Icons.Info size={16} color={v.muted} />
+          </Pressable>
+          <Sheet open={why} onClose={() => setWhy(false)} title={t("mobile.tasks.presenceWhy")} background={v.card} testID="sheet.presence">
+            <Text size="bodyLarge" style={{ color: v.fg, paddingBottom: space[4] }}>
+              {whyText}
+            </Text>
+          </Sheet>
         </>
       )}
       {opens && (
@@ -326,8 +345,10 @@ function DueCard({
 type Presence = ReturnType<typeof usePresence>;
 
 /**
- * The Task's Presensi, read once for the due card and Notes: how a hand-in counted, the session still to come. `due`: while handing it in can still count as present, when, as the due
- * card's line says it: "Jum 15:00–23:59" (the day of its deadline goes without its date), "hari ini 15:00–23:59".
+ * The Task's Presensi, read once for the due card and Notes: how a hand-in counted, the session still to come. `due`:
+ * while handing it in can still count as present, its window as the due card's line says it (the time alone on the
+ * deadline's own day, "15:00–23:59", else with its day, "Kam, 12 Nov, 15:00–23:59"), and the day and time a sentence
+ * says it with. Edunex's window as last read: a change there shows here.
  */
 function usePresence(task: Task) {
   const t = useT();
@@ -337,18 +358,11 @@ function usePresence(task: Task) {
   const sessions = presence?.[task.courseCode] ?? [];
   const result = attendanceResult(task, sessions, now);
   const session = isOpenStatus(taskStatus(task, now)) ? attendanceSession(task, sessions, now) : null;
-  let due: string | null = null;
+  let due: { line: string; date: string; time: string } | null = null;
   if (!result && session && session.closesAt > now) {
-    const offset = f.dayOffset(session.opensAt);
-    const day =
-      offset === 0
-        ? t("time.todayWord")
-        : offset === 1
-          ? t("time.tomorrowWord")
-          : task.dueAt !== null && f.dayOffset(task.dueAt) === offset
-            ? f.weekdayShort(session.opensAt)
-            : `${f.weekdayShort(session.opensAt)} ${f.dayMonth(session.opensAt)}`;
-    due = `${day} ${f.timeRange(session.opensAt, session.closesAt)}`;
+    const time = f.timeRange(session.opensAt, session.closesAt);
+    const sameDay = task.dueAt !== null && f.dayOffset(session.opensAt) === f.dayOffset(task.dueAt);
+    due = { line: sameDay ? time : f.dayTimeRange(session.opensAt, session.closesAt), date: dayWord(f, t, session.opensAt), time };
   }
   return { now, result, session, due };
 }
@@ -365,7 +379,7 @@ function Notes({ task, presence }: { task: Task; presence: Presence }) {
   const v = theme.v4;
   const { now, result, session } = presence;
   const notes: { tone: "warning" | "neutral" | "success" | "danger"; icon: "hand" | "check" | "zap"; text: string }[] = [];
-  const range = (opensAt: number, closesAt: number) => `${dayWord(f, t, opensAt)}, ${f.timeRange(opensAt, closesAt)}`;
+  const range = (opensAt: number, closesAt: number) => dayAt(dayWord(f, t, opensAt), f.timeRange(opensAt, closesAt));
   if (result)
     notes.push(
       result.outcome === "counted"
@@ -517,8 +531,8 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
   );
 }
 
-/** A date the way History says it: "Jum, 9 Okt, 23:59". */
-const stamp = (f: Format, at: number) => `${f.weekdayShort(at)}, ${f.dayMonth(at)}, ${f.time(at)}`;
+/** A date the way the whole app says it: "Jum, 9 Okt, 23:59". */
+const stamp = (f: Format, at: number) => f.dueLabel(at);
 
 function History({ task, reveal }: { task: Task; reveal: { at: number; asked: number } | null }) {
   const t = useT();
@@ -765,7 +779,6 @@ const styles = StyleSheet.create({
     paddingVertical: space[3],
   },
   dot: { position: "absolute", left: -space[4] - 5, top: 4, width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
-  crumb: { flexDirection: "row", alignItems: "center", gap: 6, minHeight: 48, paddingHorizontal: space[2], borderRadius: shape.sm, overflow: "hidden" },
   examLink: {
     marginTop: space[3],
     flexDirection: "row",

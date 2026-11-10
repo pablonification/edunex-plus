@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../src/app/i18n";
 import { useNav } from "../nav";
 import { IconButton } from "./controls";
+import { GlassButtons } from "./glass";
 import { Icons } from "./icons";
 import { usePageColor, useScrolledPast, useScrolledUnder } from "./layout";
 import { Text } from "./text";
@@ -22,6 +23,9 @@ export const BAR_HEIGHT = 64;
  * page has scrolled that far (dp), then fades in: M3's collapsing top app bar, without moving any layout.
  * `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, its title on one line. The title is in Plus
  * Jakarta Sans on every page.
+ * `lines`: how many lines the title may take (a course's long name on two). Past one line the title steps down to the
+ * Task bar's size (18 on 24, task-bar.tsx), since Plus Jakarta Sans at Title Large (22 on 28) draws taller than its line
+ * and Android cut the last line at font size 1.1; the bar grows to hold both, and a longer name ends in "…".
  */
 export function TopBar({
   title,
@@ -29,12 +33,14 @@ export function TopBar({
   onBack,
   titleFrom,
   v4 = false,
+  lines,
 }: {
   title?: string;
   actions?: ReactNode;
   onBack?: () => void;
   titleFrom?: number;
   v4?: boolean;
+  lines?: number;
 }) {
   const t = useT();
   const nav = useNav();
@@ -42,26 +48,35 @@ export function TopBar({
   const insets = useSafeAreaInsets();
   const past = useScrolledPast(titleFrom ?? 0);
   const shown = titleFrom === undefined ? null : past;
+  const wraps = (lines ?? 1) > 1;
   return (
     <BarSurface v4={v4}>
       <View style={[styles.bar, { marginTop: insets.top }]}>
-        <IconButton label={t("action.back")} onPress={onBack ?? nav.back} testID="action.back">
-          <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
-        </IconButton>
-        <Animated.View style={{ flex: 1, marginLeft: space[1], opacity: shown ?? 1 }}>
+        {/* On iOS 26 the back button and the actions sit on Liquid Glass, as the iPhone's own bars have them (./glass.tsx). */}
+        <GlassButtons>
+          <IconButton label={t("action.back")} onPress={onBack ?? nav.back} testID="action.back">
+            <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
+          </IconButton>
+        </GlassButtons>
+        <Animated.View style={{ flex: 1, minWidth: 0, marginLeft: space[1], opacity: shown ?? 1, paddingRight: wraps ? space[2] : 0 }}>
           {/* Every screen's title in the one face for headings (v4: Plus Jakarta Sans), whatever page it's on. */}
           <Text
             size="titleLarge"
-            numberOfLines={v4 ? 1 : undefined}
+            numberOfLines={lines ?? (v4 ? 1 : undefined)}
+            ellipsizeMode="tail"
             face="display"
             weight="bold"
             accessibilityRole="header"
-            style={{ paddingVertical: space[1], letterSpacing: -0.2 }}
+            style={wraps ? styles.wrapped : styles.title}
           >
             {title ?? ""}
           </Text>
         </Animated.View>
-        {actions && <View style={{ flexDirection: "row", alignItems: "center" }}>{actions}</View>}
+        {actions && (
+          <GlassButtons>
+            <View style={{ flexDirection: "row", alignItems: "center" }}>{actions}</View>
+          </GlassButtons>
+        )}
       </View>
     </BarSurface>
   );
@@ -91,4 +106,6 @@ export function BarSurface({ children, v4 = false }: { children: ReactNode; v4?:
 
 const styles = StyleSheet.create({
   bar: { flexDirection: "row", alignItems: "center", paddingHorizontal: space[1], minHeight: BAR_HEIGHT },
+  title: { paddingVertical: space[1], letterSpacing: -0.2 },
+  wrapped: { fontSize: 18, lineHeight: 24, paddingVertical: space[2], letterSpacing: -0.2 },
 });

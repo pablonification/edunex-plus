@@ -31,6 +31,8 @@ export const gradesStrings = {
   "grades.chart.target": { id: "Target {value}", en: "Target {value}" },
   "grades.chart.end": { id: "{value} saat lulus", en: "{value} at graduation" },
   "grades.chart.endNow": { id: "{value}", en: "{value}" },
+  // The chart's line when the IPK target is out of reach: the highest IPK still possible, not the target.
+  "grades.chart.best": { id: "Tertinggi {value}", en: "Highest {value}" },
   "grades.estimate": { id: "Perkiraan", en: "Estimate" },
   "grades.semShort": { id: "Smt {n}", en: "Sem {n}" },
   "grades.shortTerm": { id: "Pendek", en: "Short" },

@@ -101,7 +101,7 @@ describe("a Presence window opening midday", () => {
   it("one that counts only by handing in a Task is announced ahead, in place of the Task's own deadline item", async () => {
     const h = await startHome({ now: "2026-10-15T20:00:00+07:00" });
     const needs = needsYou(h.home());
-    // II4091's window Fri 16 Oct 15:00–23:59 counts only if Tugas 02 Bab II is handed in inside it.
+    // II4091's window Fri 16 Oct, 15:00–23:59 counts only if Tugas 02 Bab II is handed in inside it.
     expect(find(needs, "presence:2243740")).toMatchObject({
       band: "soon",
       activity: "assignment",
@@ -333,8 +333,8 @@ describe("an extra meeting", () => {
     expect(slotChange(friday, standIn)).toEqual({ usualStart: at("2026-10-15T08:00:00"), usualEnd: at("2026-10-15T09:30:00"), usualRoom: "R.SG PWK LT.6" });
     // "What changed" names the usual day, in each language.
     const [moved] = recentChanges({ ...h.home(), now: at("2026-10-12T08:00:00"), schedule: standIn }, []).filter((a) => a.id.startsWith("schedule.moved:x1:"));
-    expect(translate("id", moved.body!.key, moved.body!.vars)).toBe("Jum, 16 Okt 13:00–14:30 · biasanya Kamis 08:00–09:30");
-    expect(translate("en", moved.body!.key, moved.body!.vars)).toBe("Fri, 16 Oct 13:00–14:30 · usually Thursday 08:00–09:30");
+    expect(translate("id", moved.body!.key, moved.body!.vars)).toBe("Jum, 16 Okt, 13:00–14:30 · biasanya Kamis 08:00–09:30");
+    expect(translate("en", moved.body!.key, moved.body!.vars)).toBe("Fri, 16 Oct, 13:00–14:30 · usually Thursday 08:00–09:30");
   });
 });
 

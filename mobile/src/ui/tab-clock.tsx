@@ -8,14 +8,24 @@
 // it, 200–560 ms on a small phone while the Student looked at one; a hidden tab now hears of it when it's shown.
 // A hidden tab also draws for the first time on its own turn: the four drawn at once with Beranda held Beranda's data
 // back about 400 ms on a start with saved data (Redroid, compared on one machine). Each now waits for the start to
-// settle, then one tab every 300 ms once the JS thread is idle; opened before its turn, it draws at once.
+// settle, then one tab every 300 ms once the JS thread is idle; opened before its turn, it draws at once. That turn is a
+// transition: drawn in one piece, each of the four held the JS thread 220–380 ms on a mid-range phone (Snapdragon 720G,
+// a cold start with saved data); as a transition React draws it a part at a time and lets a tap, a frame or the engine
+// in between. The store and the clock the tab reads hand their changes over as transitions too (../../app/_layout.tsx,
+// src/app/external.ts), and a hidden tab hears of what it missed the same way once it's shown: the switch itself is
+// never held up by a redraw. A tab's screen given as a function is only made on that turn, so its code (loaded at
+// first use, metro.config.js) isn't loaded with Beranda's first frame either. Its first draw then comes in parts
+// (./parts.tsx): a transition still commits in one block, 106–162 ms a tab on that phone; its top first, the rest under it
+// when the JS thread is idle. Beranda's first frame the same: its lower parts once the frame is up.
 import { useIsFocused } from "expo-router";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ClockProvider, type UiClock, useClock } from "../../../src/app/i18n";
 import { type AppStore, StoreProvider, useBridge, useStore } from "../../../src/app/store";
 import { perfDoing } from "../perf";
+import { PartsProvider, useParts, whenIdle } from "./parts";
 
-export function TabClock({ children }: { children: ReactNode }) {
+/** `name`: the tab's, for a stall's label ("tasks's first draw", "tasks, part 1"). */
+export function TabClock({ name, children }: { name: string; children: ReactNode | (() => ReactNode) }) {
   const parent = useClock();
   const store = useStore();
   const bridge = useBridge();
@@ -31,17 +41,27 @@ export function TabClock({ children }: { children: ReactNode }) {
       setDrawn(true);
       return;
     }
-    return queueFirstDraw(() => setDrawn(true));
-  }, [focused, drawn]);
+    return queueFirstDraw(() => {
+      // A stall right after names it (../perf.ts).
+      perfDoing(`${name}'s first draw`);
+      startTransition(() => setDrawn(true));
+    });
+  }, [focused, drawn, name]);
+  const say = useCallback((part: number) => perfDoing(`${name}, part ${part}`), [name]);
+  const part = useParts({ drawn, focused, say });
   useEffect(() => {
     if (!focused) return;
     data.catchUp();
     clock.catchUp();
   }, [focused, clock, data]);
+  // The same content while the route's screen hasn't drawn again: the tab's focus changing draws nothing under it.
+  const content = useMemo(() => (drawn ? (typeof children === "function" ? children() : children) : null), [drawn, children]);
   if (!drawn) return null;
   return (
     <StoreProvider store={data} bridge={bridge}>
-      <ClockProvider clock={clock}>{children}</ClockProvider>
+      <ClockProvider clock={clock}>
+        <PartsProvider part={part}>{content}</PartsProvider>
+      </ClockProvider>
     </StoreProvider>
   );
 }
@@ -80,6 +100,7 @@ function gated(parent: UiClock, open: () => boolean): UiClock & { catchUp(): voi
     for (const listener of listeners) listener();
   };
   return {
+    deferred: parent.deferred,
     now: parent.now,
     subscribe(listener) {
       listeners.add(listener);
@@ -112,20 +133,11 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 function pump(delay: number): void {
   timer = setTimeout(() => {
     whenIdle(() => {
-      // A stall right after names it (../perf.ts).
-      perfDoing("a hidden tab's first draw");
       waiting.shift()?.();
       if (waiting.length) pump(NEXT_MS);
       else timer = null;
-    });
+    }, 1000);
   }, delay);
-}
-
-/** `run` once the JS thread is idle (React Native's requestIdleCallback), or on the next frame without it. */
-function whenIdle(run: () => void): void {
-  const idle = (globalThis as { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number }).requestIdleCallback;
-  if (idle) idle(run, { timeout: 1000 });
-  else requestAnimationFrame(run);
 }
 
 /** Calls `draw` on its turn; the returned function takes it out of the line (the tab was shown first, or went). */

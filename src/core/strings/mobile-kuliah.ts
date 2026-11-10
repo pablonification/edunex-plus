@@ -3,36 +3,23 @@
 import type { Entry } from "./entry";
 
 export const mobileKuliahStrings = {
-  // Kuliah (the tab). The big number's words, beside the count of courses it names.
-  "mobile.kuliah.lead.out": {
-    id: "mata kuliah tak bisa lagi capai {target}%",
-    en: { one: "course can't reach {target}% anymore", other: "courses can't reach {target}% anymore" },
-  },
-  "mobile.kuliah.lead.outMixed": {
-    id: "mata kuliah tak bisa lagi capai targetnya",
-    en: { one: "course can't reach its target anymore", other: "courses can't reach their target anymore" },
-  },
-  "mobile.kuliah.lead.none": {
-    id: "mata kuliah jatah absennya habis",
-    en: { one: "course with no absences left", other: "courses with no absences left" },
-  },
-  "mobile.kuliah.lead.spare": {
-    id: "mata kuliah masih ada jatah absen",
-    en: { one: "course with an absence to spare", other: "courses with absences to spare" },
-  },
-  "mobile.kuliah.lead.missed": {
-    id: "mata kuliah selesai di bawah target",
-    en: { one: "course finished below its target", other: "courses finished below their target" },
-  },
-  "mobile.kuliah.lead.met": {
-    id: "mata kuliah mencapai target",
-    en: { one: "course reached its target", other: "courses reached their target" },
-  },
-  "mobile.kuliah.lead.courses": { id: "mata kuliah semester ini", en: { one: "course this term", other: "courses this term" } },
-  // The sheet the big number opens: the day's answer, the target, and how it's counted.
+  // Kuliah (the tab).
+  // The headings over Kuliah's two cards (round 3, the blind review: one heading read as if it held all five): the
+  // courses out of reach, with no absences left or finished below the target; then the rest, "Aman" when every one of
+  // them has absences to spare or met its target, else (some with no count yet) "Lainnya".
+  "mobile.kuliah.attention": { id: "Perlu perhatian", en: "Needs attention" },
+  "mobile.kuliah.calm": { id: "Aman", en: "On track" },
+  "mobile.kuliah.rest": { id: "Lainnya", en: "Others" },
+  // A course Edunex alone records: present in how many of its closed Presence windows.
+  "mobile.absence.edunex": { id: "Edunex {recorded}/{closed}", en: "Edunex {recorded}/{closed}" },
+  // A finished course's share, where its absences used to be ("Selesai 85%"); the whole sentence is its spoken name.
+  "mobile.absence.final": { id: "Selesai {percent}%", en: "Ended at {percent}%" },
+  // The sheet in ⋮: the day's answer, the target, and how it's counted.
   "mobile.kuliah.facts": { id: "Kehadiranmu", en: "Your attendance" },
-  // Two of today's classes at once: a row, its pick as the chip; the reason is in its sheet.
+  // Two of today's classes at once: a row, the two courses by short name, and "Pilih kelas" opening the sheet that says
+  // which to go to and why. With a pick but no why, the pick as a chip by the course's short name.
   "mobile.kuliah.clash.title": { id: "Bentrok {time}", en: "Clash {time}" },
+  "mobile.kuliah.clash.choose": { id: "Pilih kelas", en: "Which class?" },
   "mobile.kuliah.clash.pick": { id: "Pilih {code}", en: "Go to {code}" },
 } as const satisfies Record<string, Entry>;
 
@@ -44,10 +31,16 @@ export const mobileCourseStrings = {
   // The course's sheet: what's used and left of the absences under the desktop's label ("Jatah absen: terpakai 2× · habis").
   "mobile.course.budget": { id: "Jatah absen: {words}", en: "Absences: {words}" },
   "mobile.course.aboutHint": { id: "Buka rincian mata kuliah", en: "Opens the course's details" },
+  // Under the course's header when something new came to a module in the last 7 days: the way to this week's material
+  // (Kuliah read as attendance only, and a Student couldn't find the materials). A tap opens that module.
+  "mobile.course.newestModule": { id: "Modul terbaru: {title}", en: "Newest module: {title}" },
+  // The next class's room, as TalkBack says it (on screen: a pin and the room).
+  "mobile.course.room": { id: "Ruang {room}", en: "Room {room}" },
   // The one exception, in a few words on the card; the whole of it is in the sheet. Out of reach, it's the desktop's
   // own words (presence.row.askLecturer).
   "mobile.course.ex.needed": { id: "Bergantung kuliah {date}", en: "Hangs on the class on {date}" },
-  "mobile.course.ex.clash": { id: "Bentrok dengan {code}", en: "Clashes with {code}" },
+  // The other course by its short name ("Ekonomi Infrastruktur"), not its code (round 3, the blind review).
+  "mobile.course.ex.clash": { id: "Bentrok dengan {course}", en: "Clashes with {course}" },
   "mobile.course.ex.uncertain": { id: "Kuliah {date} mungkin tak ada", en: "The class on {date} may not run" },
   "mobile.course.ex.lab": { id: "Cek aturan praktikum", en: "Check the lab's rules" },
   // Tandai Hadir not on SIX yet, or gone again, in a few words (Beranda's words before its sheet dropped them).
@@ -56,8 +49,35 @@ export const mobileCourseStrings = {
   // The class on now: when the Edunex Presence closes, and whether it counts.
   "mobile.course.presenceCloses": { id: "Presensi tutup {time}", en: "Presence closes {time}" },
   "mobile.course.mayNotCount": { id: "Belum pasti dihitung", en: "May not count" },
+  // Pertemuan (round 3, after the blind reviews): the past meetings under their heading, newest first, each one's mark at
+  // its row's end. SIX gives totals only: a mark comes from what SIX's count did after a class the app watched, or from
+  // Edunex, else a quiet "Tak tercatat", its spoken name saying why. Where Edunex alone keeps the count, a meeting it
+  // didn't record counts as absent ("Tidak hadir").
+  "mobile.meeting.past": { id: "Sudah lewat", en: "Past" },
+  "mobile.meeting.absent": { id: "Tidak hadir", en: "Absent" },
+  "mobile.meeting.missing": { id: "Belum dihitung", en: "Not counted yet" },
+  "mobile.meeting.untracked": { id: "Tak tercatat", en: "No record" },
+  "mobile.meeting.countedSix": { id: "Dihitung hadir di SIX", en: "Counted present in SIX" },
+  "mobile.meeting.absentSix": { id: "SIX mencatatmu tidak hadir", en: "SIX marked you absent" },
+  "mobile.meeting.missingSix": { id: "SIX belum menghitung kuliah ini", en: "SIX hasn't counted this class yet" },
+  "mobile.meeting.unknown": {
+    id: "SIX hanya memberi jumlahnya, jadi tak bisa dipastikan",
+    en: "SIX gives only the total, so this one can't be told",
+  },
+  // Under the listed meetings, the ones SIX counted before the months the app read, so the list adds up to the count
+  // ("8 pertemuan sebelum 5 Nov"); its meta line how many of them were attended, when SIX's count tells it, else why
+  // they aren't listed one by one.
+  "mobile.meeting.earlier": {
+    id: "{count} pertemuan sebelum {date}",
+    en: { one: "{count} meeting before {date}", other: "{count} meetings before {date}" },
+  },
+  "mobile.meeting.earlierAll": { id: "{count} pertemuan", en: { one: "{count} meeting", other: "{count} meetings" } },
+  "mobile.meeting.earlierSplit": { id: "Hadir {attended} · tidak hadir {absent}", en: "{attended} attended · {absent} absent" },
+  "mobile.meeting.totalOnly": { id: "SIX hanya mencatat jumlahnya", en: "SIX keeps only the total" },
   // The course's sheet: its target, changed in place.
   "mobile.course.target": { id: "Target kehadiran", en: "Attendance target" },
+  // The course's sheet: the next class clashes with another course's, named short ("Bentrok dengan Proposal TA 16:00–16:30").
+  "mobile.course.clash": { id: "Bentrok dengan {course} {time}", en: "Clashes with {course} {time}" },
   // The grade calculator. Example weights in one line (the banner opens the course contract when there is one).
   "mobile.grade.example": { id: "Contoh bobot, bukan bobot {code}", en: "Example weights, not {code}'s" },
   // The answer as a number: "74" big, then "untuk A", then where that average is needed.

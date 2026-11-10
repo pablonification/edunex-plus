@@ -300,8 +300,8 @@ describe("Tasks with their true status", () => {
 
   it("one course's list failing keeps its last Tasks, and the others' new Tasks still show", async () => {
     const h = await signedIn();
-    // DK4073 is read first.
-    h.world.edunex.fail(/^\/course\/tasks$/, 404, 1);
+    // The quick call for every course's open Tasks first (its failure only skips it), then DK4073's list, read first.
+    h.world.edunex.fail(/^\/course\/tasks$/, 404, 2);
     const id = h.world.edunex.postTask(95001, { name: "Tugas Baru PL3002" });
     await h.engine.refresh("edunex");
     expect(h.status("edunex").state).toBe("changed");
@@ -323,6 +323,74 @@ describe("Tasks with their true status", () => {
     first.world.setOffline(true);
     const again = await startEngine({ world: first.world, storage: first.storage, vault: first.vault, start: false });
     expect(again.dataset("edunex.tasks")).toHaveLength(10);
+  });
+});
+
+describe("the open Tasks first, in one call for every course", () => {
+  const taskCalls = (h: Harness, from: number) =>
+    h.world.log.slice(from).flatMap((r) => {
+      const url = new URL(r.url);
+      return url.pathname === "/course/tasks" ? [url.searchParams] : [];
+    });
+  /** The Tasks as stored when the first course's whole list is asked for: what the quick call left. */
+  const beforeWholeLists = (h: Harness) => {
+    const seen: { tasks?: Task[] } = {};
+    const request = h.world.request.bind(h.world);
+    h.world.request = (r) => {
+      const url = new URL(r.url);
+      if (!seen.tasks && url.pathname === "/course/tasks" && url.searchParams.has("filter[course_id][is]")) seen.tasks = tasks(h);
+      return request(r);
+    };
+    return seen;
+  };
+
+  it("asks once for every course's Tasks due from a day back on Edunex's clock, and shows them before the whole lists", async () => {
+    const h = await signedIn();
+    const from = h.world.log.length;
+    const id = h.world.edunex.postTask(95001, { name: "Tugas Baru PL3002" }, { announce: false });
+    const seen = beforeWholeLists(h);
+    await h.engine.refresh("edunex");
+    const calls = taskCalls(h, from);
+    expect(calls[0]!.get("filter[course_id][in]")!.split(",").map(Number).sort()).toEqual([92948, 93409, 95001, 95059, 95326, 97602]);
+    expect(calls[0]!.get("filter[end_at][gte]")).toBe(
+      wib(h.world.clock.now() - 24 * 60 * MINUTE)
+        .replace("T", " ")
+        .slice(0, 19),
+    );
+    expect(calls[0]!.get("page[limit]")).toBe("0");
+    // Exactly one call more than the whole lists, one per course.
+    expect(calls.slice(1).every((q) => q.has("filter[course_id][is]") && !q.has("filter[end_at][gte]"))).toBe(true);
+    expect(calls).toHaveLength(7);
+    expect(seen.tasks?.find((t) => t.id === id)).toMatchObject({ title: "Tugas Baru PL3002", courseCode: "PL3002", courseId: 95001 });
+    // The rest as saved, every one still there.
+    expect(seen.tasks).toHaveLength(11);
+    expect(task(h, id).title).toBe("Tugas Baru PL3002");
+  });
+
+  it("keeps a saved Task it doesn't bring back as saved, until the whole lists say what became of it", async () => {
+    const h = await signedIn();
+    const was = task(h, 117764).dueAt;
+    h.world.edunex.moveDeadline(117764, "2026-10-01T23:59:00+07:00");
+    const seen = beforeWholeLists(h);
+    await h.engine.refresh("edunex");
+    expect(seen.tasks?.find((t) => t.id === 117764)?.dueAt).toBe(was);
+    expect(task(h, 117764).dueAt).toBe(at("2026-10-01T23:59:00+07:00"));
+  });
+
+  it("isn't asked on the first read after sign-in: a part of the list would read as all of it", async () => {
+    const h = await signedIn();
+    expect(taskCalls(h, 0).some((q) => q.has("filter[course_id][in]"))).toBe(false);
+    expect(tasks(h)).toHaveLength(10);
+  });
+
+  it("failing, leaves the Tasks to the whole lists, and Edunex isn't reported changed", async () => {
+    const h = await signedIn();
+    h.world.edunex.fail(/^\/course\/tasks$/, 422, 1);
+    const id = h.world.edunex.postTask(95001, {}, { announce: false });
+    await h.engine.refresh("edunex");
+    expect(h.status("edunex").state).toBe("live");
+    expect(task(h, id).courseId).toBe(95001);
+    expect(tasks(h)).toHaveLength(11);
   });
 });
 

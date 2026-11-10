@@ -4,8 +4,8 @@
 // other exams. The phone's calendar, the lecturer's announcements and the official pages are under ⋮.
 // An Edunex window open now can be marked done here too, with Undo (Tandai selesai).
 import * as Clipboard from "expo-clipboard";
-import { type ReactNode, useMemo, useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Fragment, type ReactNode, useMemo, useState } from "react";
+import { Linking, Text as NativeText, Pressable, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { budgetLabel } from "../../../../src/app/attendance-labels";
 import { errorKey } from "../../../../src/app/bridge";
@@ -15,13 +15,13 @@ import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
 import { useExams } from "../../../../src/app/schedule-data";
 import { useDataset, useStore } from "../../../../src/app/store";
+import { sittingsLine } from "../../../../src/core/exam-sittings";
 import { type Exam, examAhead, examKind, examMarkOn, examParts } from "../../../../src/core/exams";
 import { edunexCourseUrl, sixTimetableUrl } from "../../../../src/core/links";
-import type { TaskStatus } from "../../../../src/core/models";
+import type { ClassSession, TaskStatus } from "../../../../src/core/models";
 import { phoneItems } from "../../../../src/core/phone-calendar";
 import { edunexTaskUrl, taskStatus } from "../../../../src/core/tasks";
 import { useNav } from "../../nav";
-import { dayAt } from "../../parts/day-word";
 import { LecturerFile } from "../../parts/files";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
@@ -92,6 +92,12 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
   const name = course?.name ?? exam.six[0]?.courseName ?? exam.courseCode;
   const dated = exam.six.length > 0 || exam.tasks.some((task) => task.dueAt !== null) || exam.edunex.some((e) => e.start !== null);
   const days = sourceDays(f, exam);
+  // SIX's sittings as cards: one for all of them when they share the time and the room (both weeks of the exam period).
+  const sixCards = useMemo(() => {
+    const [first] = exam.six;
+    const same = first && exam.six.every((s) => f.timeRange(s.start, s.end) === f.timeRange(first.start, first.end) && s.room === first.room);
+    return same && exam.six.length > 1 ? [exam.six] : exam.six.map((s) => [s]);
+  }, [exam, f]);
 
   const copyQuestion = async () => {
     // Greeted for the time it's copied ("Selamat pagi" at 8): it's usually pasted right away.
@@ -126,8 +132,9 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
       external(exam.tasks.length > 1 ? factsLabel(t("examPage.seeTask"), task.title) : t("examPage.seeTask"), edunexTaskUrl(task.id), `task.${task.id}`),
     );
   if (!exam.tasks.length && course?.edunex) menu.push(external(t("examPage.seeCourse"), edunexCourseUrl(course.edunex.courseId), "course"));
-  // The date card says the day; the line under the name only when there's no card to say it.
-  const card = exam.six.length > 0 || exam.edunex.length > 0;
+  // The date card says the day; the line under the name only when there's no card to say it (an exam week's card too).
+  const weekCard = !dated && exam.week !== null && exam.week !== undefined && (exam.kind === "UTS" || exam.kind === "UAS");
+  const card = exam.six.length > 0 || exam.edunex.length > 0 || weekCard;
 
   return (
     // One title: the exam's own, on the page; the bar carries Back and ⋮.
@@ -144,71 +151,68 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
       </Text>
       {!card && (
         <Text size="bodyMedium" style={{ marginTop: space[1], color: v.muted }}>
-          {exam.at !== null
-            ? factsLabel(f.dateLong(exam.at), f.fromNow(exam.at))
-            : exam.week && (exam.kind === "UTS" || exam.kind === "UAS")
-              ? t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")
-              : t("exam.noDate")}
+          {exam.at !== null ? factsLabel(f.dateLong(exam.at), f.fromNow(exam.at)) : t("exam.noDate")}
         </Text>
       )}
 
       <View testID="section.when">
         <SectionTitle title={t("exam.when")} />
         <View style={{ gap: space[3] }}>
-          {exam.six.map((session) => (
-            // SIX's sitting: the day, the time and the room, big, on the course's tint (the page's one big card).
-            <View key={session.id} style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]} testID={`card.sitting.${session.id}`}>
-              <Text size="labelLarge" weight="semibold" style={{ color: ink }}>
-                {factsLabel(t("exam.inClass"), session.start > now && f.fromNow(session.start))}
-              </Text>
-              <Text face="display" weight="extrabold" tabular style={{ marginTop: space[1], color: v.fg, fontSize: 28, lineHeight: 36, letterSpacing: -0.5 }}>
-                {dayLabel(f, session.start)}
-              </Text>
-              <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: space[2] }}>
-                <Text size="titleLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
-                  {f.timeRange(session.start, session.end)}
+          {sixCards.map((group) => {
+            // SIX's sitting: the day, the time and the room, big, on the course's tint (the page's one big card). Listed in
+            // both weeks of the exam period at the same time and room: one card with both days, a day behind the Student muted.
+            const session = group.find((one) => one.end > now) ?? group[0]!;
+            return (
+              <View key={session.id} style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]} testID={`card.sitting.${session.id}`}>
+                <Text size="labelLarge" weight="semibold" style={{ color: ink }}>
+                  {factsLabel(t("exam.inClass"), session.start > now && f.fromNow(session.start))}
                 </Text>
-                <Text size="bodyMedium" style={{ color: v.fg2 }}>
-                  {t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}
+                <Text
+                  face="display"
+                  weight="extrabold"
+                  tabular
+                  accessibilityLabel={group.length > 1 ? sittingsLine(f, group, { time: false, room: false }) : undefined}
+                  style={{ marginTop: space[1], color: v.fg, fontSize: 28, lineHeight: 36, letterSpacing: -0.5 }}
+                >
+                  {group.length > 1 ? <SittingDays sittings={group} now={now} muted={v.muted} /> : dayLabel(f, session.start)}
                 </Text>
-              </View>
-              {/* The room on the same tint: no box inside the card. */}
-              <View style={styles.room}>
-                <Icons.MapPin size={20} weight="fill" color={session.room ? ink : v.muted} />
-                {session.room ? (
-                  <Text size="titleMedium" face="display" weight="bold" style={{ flexShrink: 1, color: v.fg }}>
-                    {session.room}
+                <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", columnGap: space[2] }}>
+                  <Text size="titleLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
+                    {f.timeRange(session.start, session.end)}
                   </Text>
-                ) : (
-                  <Text size="bodyLarge" style={{ color: v.fg2 }}>
-                    {t("exam.noRoom")}
+                  <Text size="bodyMedium" style={{ color: v.fg2 }}>
+                    {t("exam.length", { minutes: Math.round((session.end - session.start) / 60_000) })}
                   </Text>
-                )}
+                </View>
+                {/* The room on the same tint: no box inside the card. */}
+                <View style={styles.room}>
+                  <Icons.MapPin size={20} weight="fill" color={session.room ? ink : v.muted} />
+                  {session.room ? (
+                    <Text size="titleMedium" face="display" weight="bold" style={{ flexShrink: 1, color: v.fg }}>
+                      {session.room}
+                    </Text>
+                  ) : (
+                    <Text size="bodyLarge" style={{ color: v.fg2 }}>
+                      {t("exam.noRoom")}
+                    </Text>
+                  )}
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
           {exam.edunex.map((e, i) => (
             <EdunexCard key={e.id} exam={exam} edunex={e} lead={exam.six.length === 0 && i === 0} />
           ))}
-          {/* The header already says the day isn't known: here only what is, the exam week and where the exam is listed. */}
-          {!dated && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? (
-            <View style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]}>
+          {/* The one place the page says when: the exam week, and that its day isn't out yet (or never was). */}
+          {weekCard && exam.week && (exam.kind === "UTS" || exam.kind === "UAS") && (
+            <View style={[styles.card, { backgroundColor: tint, borderRadius: 24 }]} testID="card.examWeek">
               <Text size="titleLarge" face="display" weight="bold" style={{ color: v.fg }}>
                 {examWeekLabel(t, f, exam.kind, exam.week)}
               </Text>
-              {exam.inOutline && (
-                <Text size="bodyMedium" style={{ marginTop: space[1], color: v.fg2 }}>
-                  {t("exam.outlineOnly")}
-                </Text>
-              )}
-            </View>
-          ) : (
-            !dated &&
-            exam.inOutline && (
-              <Text size="bodyMedium" style={{ color: v.muted }}>
-                {t("exam.outlineOnly")}
+              <Text size="bodyMedium" style={{ marginTop: space[1], color: v.fg2 }}>
+                {t(ahead ? "exam.dayUnknown" : "exam.neverAnnounced")}
               </Text>
-            )
+            </View>
           )}
           <ExamRows exam={exam} ahead={ahead} />
         </View>
@@ -489,7 +493,7 @@ function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
             onPress={() => go({ screen: "task", taskId: task.id })}
             leading={<IconTile icon={(color) => <Icons.FileText size={22} color={color} />} />}
             title={task.title}
-            meta={factsLabel(t("exam.takeHome"), task.dueAt !== null ? dayAt(dayLabel(f, task.dueAt), f.time(task.dueAt)) : t("exam.noDate"))}
+            meta={factsLabel(t("exam.takeHome"), task.dueAt !== null ? f.dueLabel(task.dueAt) : t("exam.noDate"))}
             trailing={pill ? <Pill tone={pill}>{t(`taskStatus.${status}`)}</Pill> : undefined}
           />
         );
@@ -502,7 +506,7 @@ function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
           onPress={() => go({ screen: "presence" })}
           leading={<IconTile tone={tone ?? "plain"} icon={(color) => <Icons.Hand size={22} color={color} />} />}
           title={t("examPage.attendance", { attended: health.attended ?? 0, held: health.held ?? 0 })}
-          // None left or over the limit by the name it has on every tab ("Jatah habis"); the rest in the desktop's words.
+          // None left or over the limit by the name it has on every tab ("Jatah absen habis"); the rest in the desktop's words.
           trailing={tone ? <Pill tone={tone}>{absenceName(t, health) ?? budgetLabel(t, health)}</Pill> : undefined}
         >
           {/* Past the limit the pill names it; the desktop's words say what that costs ("Tak bisa lagi capai 80%"), in red. */}
@@ -530,6 +534,7 @@ function Study({ exam }: { exam: Exam }) {
   const before = (examAt >= 0 ? modules.slice(0, examAt) : exam.kind === "UTS" || exam.kind === "UAS" ? modules : []).filter((m) => examKind(m.title) === null);
   if (!files.length && !before.length) return null;
   const count = (id: number) => materials.filter((m) => m.moduleId === id).length;
+  const empty = before.filter((m) => count(m.id) === 0).length;
   const modulesTitle = t("examPage.modulesBefore", { kind: t(`exam.kind.${exam.kind}`) });
   return (
     <View>
@@ -540,8 +545,8 @@ function Study({ exam }: { exam: Exam }) {
             {t("examPage.lecturerFiles")}
           </Text>
           <Panel style={{ gap: space[2] }}>
-            {files.map(({ file, taskId }) => (
-              <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(taskId)} />
+            {files.map(({ file, taskId }, i) => (
+              <LecturerFile key={file.url} file={file} edunexUrl={edunexTaskUrl(taskId)} testID={`row.file.${i}`} />
             ))}
           </Panel>
         </View>
@@ -567,25 +572,43 @@ function Study({ exam }: { exam: Exam }) {
             </Pressable>
           </View>
           <CardList inset={56}>
-            {before.map((module, i) => (
-              <Row
-                key={module.id}
-                onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules", module: module.id })}
-                leading={
-                  <View style={[styles.number, { backgroundColor: theme.v4.chip }]}>
-                    <Text size="caption" weight="semibold" tone="muted" tabular>
-                      {String(i + 1)}
+            {/* A module with something in it: its number, its title on up to two lines, how many items under it. */}
+            {before.map((module, i) =>
+              count(module.id) ? (
+                <Row
+                  key={module.id}
+                  onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules", module: module.id })}
+                  leading={
+                    <View style={[styles.number, { backgroundColor: theme.v4.chip }]}>
+                      <Text size="caption" weight="semibold" tone="muted" tabular>
+                        {String(i + 1)}
+                      </Text>
+                    </View>
+                  }
+                  title={
+                    <Text size="bodyLarge" numberOfLines={2}>
+                      {module.title}
                     </Text>
-                  </View>
-                }
-                title={module.title}
-                trailing={
-                  <Text size="small" tone="faint">
-                    {count(module.id) ? t("examPage.items", { count: count(module.id) }) : t("examPage.noItems")}
+                  }
+                  label={factsLabel(module.title, t("examPage.items", { count: count(module.id) }))}
+                  meta={t("examPage.items", { count: count(module.id) })}
+                />
+              ) : null,
+            )}
+            {/* The empty ones folded into one row ("3 modul belum ada materi"), opening the course's modules. */}
+            {empty > 0 && (
+              <Row
+                key="empty"
+                testID="row.emptyModules"
+                onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
+                leading={<Icons.FolderDown size={20} color={theme.v4.muted} />}
+                title={
+                  <Text size="bodyLarge" tone="muted">
+                    {t("examPage.emptyModules", { count: empty })}
                   </Text>
                 }
               />
-            ))}
+            )}
           </CardList>
         </>
       )}
@@ -607,3 +630,28 @@ const styles = StyleSheet.create({
   },
   number: { width: 24, height: 24, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
 });
+
+/** "Kam 10 Des dan 17 Des": the weekday once, each day, a day already over muted. */
+function SittingDays({ sittings, now, muted }: { sittings: readonly ClassSession[]; now: number; muted: string }) {
+  const f = useFormat();
+  const [first] = sittings;
+  if (!first) return null;
+  const sameWeekday = sittings.every((s) => f.weekdayShort(s.start) === f.weekdayShort(first.start));
+  const word = (s: ClassSession) => (sameWeekday ? f.dayMonth(s.start) : dayLabel(f, s.start));
+  // The words between the days as the app lists them ("10 Des dan 17 Des", "a, b dan c").
+  const marker = "\u0000";
+  const joins = f.list(sittings.map(() => marker)).split(marker);
+  return (
+    <>
+      {sameWeekday ? `${f.weekdayShort(first.start)} ` : ""}
+      {sittings.map((s, i) => (
+        // Spans of the card's big line: they keep its size and face.
+        <Fragment key={s.id}>
+          {joins[i]}
+          <NativeText style={s.end <= now ? { color: muted } : undefined}>{word(s)}</NativeText>
+        </Fragment>
+      ))}
+      {joins[sittings.length]}
+    </>
+  );
+}

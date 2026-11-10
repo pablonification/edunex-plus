@@ -1,27 +1,31 @@
-// The course's sheet (round 2, v4), opened from its name at the top of the page and from its attendance card: what the
-// page leaves out to keep to one number and one row. The course's tile, code and class over its name; its lecturer and
-// SKS; then its attendance in full: the share and the count, what's used and left of the absences (a pip each), how it's
-// counted and where; its target, changed in place; for a course in trouble what that means now (round 1's banner over the page);
-// and the one exception's whole sentence with its way back. Built as Beranda's class sheet (../home/class-sheet.tsx).
-import type { ReactNode } from "react";
+// The course's sheet (round 2, v4; round 3), opened from the header at the top of the page (its ⓘ): what the page
+// leaves out to keep to one meter and one row. Small at its top, the course's code and class over its name (the bar
+// behind already says the name big); its lecturer and SKS; its next class, with a clash named by the other course's
+// short name; its attendance said once, the meter as the picture and one line ("Hadir 5 dari 9 · lewat batas 2× ·
+// paling tinggi 69%"); its target, changed in place; SIX's timetable when the count may be wrong. How it's counted and
+// the advice ("Cek ke dosen") are one step away, behind the attendance's ⓘ. Built as Beranda's class sheet
+// (../home/class-sheet.tsx).
+import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import type { Attendance, CourseAttendance } from "../../../../src/app/attendance";
 import { budgetWords, verdictLabel } from "../../../../src/app/attendance-labels";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { type Format, type Translate, useFormat, useT } from "../../../../src/app/i18n";
+import { useCourseNames } from "../../../../src/app/schedule-data";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
 import { useDataset } from "../../../../src/app/store";
 import { type AttendanceHealth, percent } from "../../../../src/core/attendance";
-import { clashes } from "../../../../src/core/course-meetings";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import { TargetStepper, useTargets } from "../../parts/attendance";
-import { absenceInk, absenceTone } from "../../ui/absence";
+import { AttendanceMeter, meterModel, meterTone } from "../../parts/attendance-meter";
+import { IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
+import { shortName } from "../home/parts";
 import { metaParts, noCountLine, type RowContext } from "../presence/logic";
 import { type CourseExceptionNote, ExceptionIcon, useCourseException } from "./attendance-line";
 
@@ -42,13 +46,14 @@ export function CourseSheet({ page, rows, open, onClose }: { page: CoursePage; r
   return (
     <Sheet open={open} onClose={onClose} background={v.card} testID="sheet.course">
       <View style={{ gap: space[4], paddingBottom: space[2] }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[4] }}>
-          <CourseTile code={course.code} name={course.name} size={52} />
+        {/* The bar behind already says the name big: here it's small, under the code and class. */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+          <CourseTile code={course.code} name={course.name} size={40} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted }}>
               {crumb}
             </Text>
-            <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={{ color: v.fg, fontSize: 20, lineHeight: 26, marginTop: 2 }}>
+            <Text size="bodyLarge" weight="medium" numberOfLines={2} accessibilityRole="header" style={{ color: v.fg }}>
               {course.name}
             </Text>
           </View>
@@ -71,14 +76,34 @@ export function CourseSheet({ page, rows, open, onClose }: { page: CoursePage; r
 /**
  * The course's next class, as round 1's Kuliah row said it under the course (the desktop's Presensi row, metaParts): on
  * now until when, today's or another day's time, and its room; signed out of SIX, the next Edunex window ("Presensi Edunex
- * Jum 16 Okt, kumpulkan sebelum 23:59"). Kuliah's rows went slim in round 2, so it's said here.
+ * Jum 16 Okt, kumpulkan sebelum 23:59"). Under it a clash with another course's class, by that course's short name.
  */
 function NextClassFact({ item, context }: { item: CourseAttendance; context: RowContext }) {
   const t = useT();
   const f = useFormat();
+  const v = useTheme().v4;
+  const name = useCourseNames();
   const parts = metaParts(t, f, item, context);
   if (!parts.length) return null;
-  return <Fact icon={(c) => <Icons.CalendarClock size={22} color={c} />}>{parts.join(" · ")}</Fact>;
+  const clash =
+    item.clash && !context.signedOut
+      ? t("mobile.course.clash", { course: shortName(name(item.clash.other)), time: f.timeRange(item.clash.from, item.clash.to) })
+      : null;
+  return (
+    <Fact icon={(c) => <Icons.CalendarClock size={22} color={c} />}>
+      <Text size="bodyLarge" style={{ color: v.fg2 }}>
+        {parts.join(" · ")}
+      </Text>
+      {clash && (
+        <View testID="note.courseClash" style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+          <Icons.Overlap size={14} weight="bold" color={v.ambFg} />
+          <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.ambFg }}>
+            {clash}
+          </Text>
+        </View>
+      )}
+    </Fact>
+  );
 }
 
 /** One fact with its icon, as the class sheet draws them: a 48 dp row, the icon in the quiet grey. */
@@ -118,25 +143,6 @@ export function Fact({
   );
 }
 
-/** The absences: one pip each, used in the absence scale's colour (src/ui/absence.ts), still allowed in the line's grey (v4's pip meter, as the class sheet's). */
-function Pips({ health }: { health: AttendanceHealth }) {
-  const v = useTheme().v4;
-  const tone = absenceTone(health.state);
-  const ink = tone ? absenceInk(v, tone).fg : v.muted;
-  const used = health.held !== null && health.attended !== null ? Math.max(0, health.held - health.attended) : 0;
-  const left = Math.max(0, health.absencesLeft ?? 0);
-  const total = Math.min(8, used + left);
-  if (total === 0) return null;
-  return (
-    <View style={{ flexDirection: "row", gap: 4 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {Array.from({ length: total }, (_, i) => (
-        // biome-ignore lint/suspicious/noArrayIndexKey: pips are positions, none has an identity of its own
-        <View key={i} style={{ width: 14, height: 8, borderRadius: 4, backgroundColor: i < used ? ink : v.line, opacity: i < used ? 0.8 : 1 }} />
-      ))}
-    </View>
-  );
-}
-
 /** "Hadiri 7 pertemuan tersisa, sampai 4 Des". From src/app/screens/course.tsx (the target is on the sheet's stepper). */
 function noneLeft(t: Translate, f: Format, health: AttendanceHealth, lastDay: string | null): string {
   const { count, estimated } = health.left;
@@ -148,91 +154,107 @@ function noneLeft(t: Translate, f: Format, health: AttendanceHealth, lastDay: st
   return t(estimated ? "course.risk.noneAbout" : "course.risk.none", { count, date });
 }
 
+/** The exceptions said as a line on the sheet: facts with a date or a deadline. The rest is advice, behind the ⓘ. */
+const SAID: ReadonlySet<CourseExceptionNote["kind"]> = new Set(["watching", "gone", "needed", "window", "uncertain"]);
+
+/** "sisa 1×" after "Hadir 5 dari 9 · ": the parts after the first start small. */
+const small = (part: string, i: number) => (i === 0 ? part : part.charAt(0).toLocaleLowerCase() + part.slice(1));
+
 function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage; item: CourseAttendance; attendance: Attendance; context: RowContext }) {
   const t = useT();
   const f = useFormat();
-  const now = useNow();
   const v = useTheme().v4;
   const open = useOpenExternal();
-  const schedule = useDataset("six.schedule");
   const student = useDataset("six.student");
   const { target: fallback, own, setOwn } = useTargets();
   const exception = useCourseException(item, context);
+  const [why, setWhy] = useState(false);
   const { health, course } = item;
   const code = course.code;
   const held = health.held ?? 0;
-  const share = held > 0 ? percent(health.attended ?? 0, held) : null;
+  const attended = health.attended ?? 0;
+  const share = held > 0 ? percent(attended, held) : null;
   const over = health.state === "met" || health.state === "missed";
+  const out = health.state === "out";
   const words = budgetWords(t, health, context.soFar);
-  const wordsLine = words ? [words.lead, words.bold].filter(Boolean).join(" · ") : "";
-  // Under its label, as the desktop's row: "Jatah absen: terpakai 2× · habis".
-  const budgetLine = wordsLine ? t("mobile.course.budget", { words: wordsLine.charAt(0).toLocaleLowerCase() + wordsLine.slice(1) }) : "";
-  // The absence scale, as the chip on the page (src/ui/absence.ts): red out of reach, amber with none left; the budget's
-  // words stay quiet with some to spare.
-  const tone = absenceTone(health.state);
-  const ink = tone === "red" || tone === "amber" ? absenceInk(v, tone).fg : v.muted;
-  // Where it counts, as the desktop's class sheet says it ("Kehadiran dihitung di SIX"), then how it's counted (round 1's
-  // line over the Pertemuan tab).
+  const meter = meterModel(t, item, context.soFar);
+  // The line takes the meter's tone (parts/attendance-meter.tsx): red with none left or over, amber with one left.
+  const tone = meterTone(health);
+  const ink = tone === "red" ? v.redFg : tone === "amber" ? v.ambFg : v.fg;
+  const best = out ? t("course.risk.bestShort", { best: percent(health.best ?? 0) }) : null;
+  // Attendance said once: the count, what's left of the absences, and out of reach the best it can end at.
+  const counted = share !== null && !over;
+  const line =
+    share === null
+      ? noCountLine(t, health, context.signedOut)
+      : over
+        ? t("presence.row.final", { percent: share })
+        : [t("course.attended", { attended, held }), words?.bold, best]
+            .filter((part): part is string => Boolean(part))
+            .map(small)
+            .join(" · ");
+  // The whole of it for TalkBack: the share too, and the verdict the line folds into one number.
+  const lineLabel = counted
+    ? [t("presence.row.count", { attended, held, percent: share }), words?.label, out ? verdictLabel(t, health) : null, best].filter(Boolean).join(". ")
+    : undefined;
+  // No absences left: what to do and by when (an action and its deadline stay on the sheet).
+  const todo = health.state === "none" ? noneLeft(t, f, health, attendance.lastDay) : "";
+  // One step away: where it counts, how, and the advice ("Cek ke dosen", why).
   const countedIn = health.countedIn === "six" || health.countedIn === "both" ? t(`schedule.countedIn.${health.countedIn}`) : null;
-  const noEdunexPresence = page.presence !== undefined && page.presence.length === 0;
-  const how = noEdunexPresence
-    ? t("meeting.noEdunexPresence")
-    : health.countedIn === "edunex"
-      ? t("meeting.edunexCounts")
-      : course.attendance && page.presence?.length
-        ? t("meeting.sixTotalsOnly")
-        : null;
+  const how =
+    page.presence !== undefined && page.presence.length === 0
+      ? t("meeting.noEdunexPresence")
+      : health.countedIn === "edunex"
+        ? t("meeting.edunexCounts")
+        : course.attendance && page.presence?.length
+          ? t("meeting.sixTotalsOnly")
+          : null;
+  const explained = [countedIn, how, exception?.text].filter((part): part is string => Boolean(part));
+  const said = exception && SAID.has(exception.kind) ? exception : null;
+  // Out of reach (or a count SIX may have wrong), SIX's timetable is the way back.
+  const checkSix = student && (out || exception?.kind === "uncounted") ? student : null;
   const mine = Object.hasOwn(own, code) ? own[code]! : null;
   const value = mine ?? fallback;
-  // A course in trouble: what that means now, as round 1's banner over the page said it (with a clash on the next one).
-  const risk = health.state === "out" || health.state === "none";
-  const next = page.meetings.find((m) => m.end > now && !m.notInSix);
-  const clash = next ? clashes(next, code, schedule ?? [])[0] : undefined;
-  const riskText = risk
-    ? [
-        // Out of reach: the best it can end at, as the desktop's course page says it; the fix is the exception's below.
-        health.state === "out" ? t("course.risk.bestShort", { best: percent(health.best ?? 0) }) : noneLeft(t, f, health, attendance.lastDay),
-        next && clash
-          ? t("course.risk.clash", { code: clash.courseCode, time: f.timeRange(Math.max(next.start, clash.start), Math.min(next.end, clash.end)) })
-          : "",
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
-  // Out of reach, the exception is the way back, as the desktop's Presensi row says it ("Cek ke dosen", why, Buka jadwal
-  // di SIX); a clash the risk's words already say their own way.
-  const shownException: CourseExceptionNote | null = exception && !(risk && exception.kind === "clash" && clash) ? exception : null;
-  const checkSix = student ? (
-    <Link external onPress={() => open(sixTimetableUrl(student))} testID="action.checkSix">
-      {t("presence.checkSix")}
-    </Link>
-  ) : null;
   return (
     <>
-      <Fact icon={(c) => <Icons.Hand size={22} color={c} />} end={<Pips health={health} />}>
-        <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg }}>
-          {share === null
-            ? noCountLine(t, health, context.signedOut)
-            : over
-              ? t("presence.row.final", { percent: share })
-              : t("presence.row.count", { attended: health.attended ?? 0, held, percent: share })}
-        </Text>
-        {budgetLine !== "" && (
-          <Text size="bodyMedium" weight="medium" tabular style={{ color: ink }} accessibilityLabel={words?.label}>
-            {budgetLine}
+      <Fact
+        icon={(c) => <Icons.CalendarCheck size={22} color={c} />}
+        end={
+          explained.length > 0 ? (
+            <IconButton label={t("presence.how")} selected={why} onPress={() => setWhy((was) => !was)} testID="action.courseWhy">
+              <Icons.Info size={22} weight={why ? "fill" : "regular"} color={v.muted} />
+            </IconButton>
+          ) : undefined
+        }
+      >
+        <View testID={out ? "notice.courseRisk" : undefined} style={{ gap: space[2] }}>
+          {meter?.bar && <AttendanceMeter model={{ ...meter, word: null }} size="header" hideLabel />}
+          <Text size="bodyLarge" weight="medium" tabular accessibilityLabel={lineLabel} style={{ color: counted ? ink : v.fg2 }}>
+            {line}
+          </Text>
+        </View>
+        {todo !== "" && (
+          <Text size="bodyMedium" style={{ color: v.fg2 }}>
+            {todo}
           </Text>
         )}
-        {countedIn && (
-          <Text size="bodyMedium" style={{ color: v.muted }}>
-            {countedIn}
-          </Text>
-        )}
-        {how && (
-          <Text size="bodyMedium" style={{ color: v.muted }}>
-            {how}
-          </Text>
+        {why &&
+          explained.map((text) => (
+            <Text key={text} size="bodyMedium" style={{ color: v.muted }}>
+              {text}
+            </Text>
+          ))}
+        {checkSix && (
+          <Link external onPress={() => open(sixTimetableUrl(checkSix))} testID="action.checkSix">
+            {t("presence.checkSix")}
+          </Link>
         )}
       </Fact>
+      {said && (
+        <Fact tone={said.tone === "warning" ? "warning" : "fg"} icon={() => <ExceptionIcon exception={said} size={22} />}>
+          {said.short}
+        </Fact>
+      )}
       {!over && (
         <Fact icon={(c) => <Icons.Target size={22} color={c} />} end={<TargetStepper value={value} onChange={(next) => setOwn(code, next)} code={code} />}>
           <Text size="bodyLarge" style={{ color: v.fg2 }}>
@@ -243,34 +265,6 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
               {t("presence.target.useDefault", { value: fallback })}
             </Link>
           )}
-        </Fact>
-      )}
-      {risk && (
-        <Fact tone={tone === "red" ? "danger" : "warning"} icon={(c) => <Icons.AlertTriangle size={22} weight="bold" color={c} />}>
-          <View testID="notice.courseRisk" style={{ gap: 2 }}>
-            <Text size="bodyLarge" weight="semibold" style={{ color: ink }}>
-              {verdictLabel(t, health)}
-            </Text>
-            {riskText !== "" && (
-              <Text size="bodyMedium" style={{ color: v.fg2 }}>
-                {riskText}
-              </Text>
-            )}
-            {health.state === "out" && shownException?.kind !== "uncounted" && checkSix}
-          </View>
-        </Fact>
-      )}
-      {shownException && (
-        <Fact tone={shownException.tone === "warning" ? "warning" : "fg"} icon={() => <ExceptionIcon exception={shownException} size={22} />}>
-          {shownException.kind === "uncounted" && (
-            <Text size="bodyLarge" weight="semibold" style={{ color: v.fg }}>
-              {shownException.short}
-            </Text>
-          )}
-          <Text size="bodyMedium" style={{ color: v.fg2 }}>
-            {shownException.text}
-          </Text>
-          {shownException.kind === "uncounted" && checkSix}
         </Fact>
       )}
     </>

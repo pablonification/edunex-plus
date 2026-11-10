@@ -5,9 +5,10 @@
 // `ActionSheet` is a menu of choices. A sheet's main action goes in `footer`: it stays in view under
 // the content however long that runs, as a dialog's buttons do on the desktop.
 import { type ReactNode, useState } from "react";
-import { Pressable, ScrollView, StatusBar, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
+import { Platform, Pressable, ScrollView, StatusBar, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormSheet } from "react-native-screens/experimental";
+import { iosPressed } from "./press";
 import { Text } from "./text";
 import { shape, space, useTheme } from "./theme";
 
@@ -20,6 +21,24 @@ const TOP_GAP = 72;
  * content's last 48 dp fall outside the sheet: the content ends with that much room to spare.
  */
 const GRABBER = 48;
+
+/**
+ * On an iPhone the sheet is UIKit's (UISheetPresentationController): its grabber floats over the content's top rather
+ * than above it, and the sheet runs to the screen's bottom edge, under the home indicator. The content starts below the
+ * grabber and ends above the indicator; Android's GRABBER cut doesn't happen there.
+ */
+const IOS = Platform.OS === "ios";
+const IOS_GRABBER = 28;
+
+/**
+ * How wide a sheet is: the window's, up to Material's cap for a bottom sheet (material_bottom_sheet_max_width). The
+ * content is laid out at this width from its first render. The native sheet tells React Native its width only once it
+ * is on screen, and until then laid the content out in no width at all: too tall (every line broken), so the sheet rose
+ * empty to near the top of the screen and snapped down to its real height a round trip later. With the width known up
+ * front, the content's height is right before the sheet appears, and the native sheet takes it before it slides
+ * (patches/react-native-screens…): it rises once, straight to its height, with its content in it.
+ */
+const MAX_WIDTH = 640;
 
 export function Sheet({
   open,
@@ -43,7 +62,7 @@ export function Sheet({
   const theme = useTheme();
   const c = theme.color;
   const insets = useSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   // The native sheet lives while it's open and while it slides away; then it's gone, and with it its content.
   const [shown, setShown] = useState(open);
   const [appeared, setAppeared] = useState(false);
@@ -54,7 +73,8 @@ export function Sheet({
       isOpen={open}
       detents="fitToContents"
       prefersGrabberVisible
-      preferredCornerRadius={shape.xl}
+      // iOS rounds a sheet to match the phone's own corners (Liquid Glass's concentric shapes on iOS 26).
+      preferredCornerRadius={IOS ? "systemDefault" : shape.xl}
       nativeContainerStyle={{ backgroundColor: background ?? c.surfaceContainerLow }}
       onNativeDismiss={onClose}
       onDidAppear={() => setAppeared(true)}
@@ -70,7 +90,13 @@ export function Sheet({
         // native sheet already keeps the content clear of the navigation bar (it runs under it, plugins/sheet-theme.js),
         // but cuts the content's end by the grabber's height (GRABBER). That cut once matched the bar's height on mid
         // (three-button navigation, 48 dp), so padding by the bar hid it there and not with gesture navigation (24 dp).
-        style={{ maxHeight: height - insets.top - TOP_GAP, paddingBottom: space[4] + GRABBER, backgroundColor: background ?? c.surfaceContainerLow }}
+        style={{
+          width: Math.min(width, MAX_WIDTH),
+          maxHeight: height - insets.top - TOP_GAP,
+          paddingTop: IOS ? IOS_GRABBER : 0,
+          paddingBottom: IOS ? Math.max(insets.bottom, space[4]) + space[2] : space[4] + GRABBER,
+          backgroundColor: background ?? c.surfaceContainerLow,
+        }}
       >
         {/* The sheet is its own window, which takes the app's status bar style as it opens (patches/react-native-screens…).
             Once it's up, a StatusBar entry with no style of its own sends the app's current one again, to the screen and
@@ -169,7 +195,7 @@ export function ActionSheet({
               choice.onPress();
             }}
             android_ripple={{ color: theme.color.selected }}
-            style={[styles.choice, choice.disabled && { opacity: 0.38 }]}
+            style={({ pressed }) => [[styles.choice, choice.disabled && { opacity: 0.38 }], iosPressed(pressed)]}
           >
             {choice.icon && <View style={{ width: 24, alignItems: "center" }}>{choice.icon}</View>}
             <View style={{ flex: 1 }}>

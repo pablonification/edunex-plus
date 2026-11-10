@@ -18,6 +18,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
+import { firstFrameShown } from "../shell/first-frame";
 import { useLoopWhileShown, useReduceMotion } from "./motion";
 import { motion } from "./theme";
 
@@ -188,6 +189,9 @@ export function CountUp({
   });
   return (
     <AnimatedInput
+      // A read-only field keeps the text it started with: a new format (the language arriving after a tab was drawn
+      // ahead, "3.47" → "3,47") draws it again.
+      key={`${decimals}:${comma}`}
       editable={false}
       underlineColorAndroid="transparent"
       accessibilityLabel={written(value)}
@@ -205,13 +209,32 @@ function useShownAtMount(): boolean {
   return shown;
 }
 
-/** Screens whose cards have risen once in this run: on a later showing (a tab switch) they're just there. */
-const risen = new Set<string>();
+/**
+ * When each screen's cards first rose in this run (never, drawn out of sight: -Infinity): on a later showing (a tab
+ * switch) they're just there.
+ */
+const risen = new Map<string, number>();
+/** A part drawn this long after its screen's first is just there: it's a later showing, not the first one. */
+const RISE_WINDOW = 1_500;
+
+/** How long ago `screen`'s first part rose, for a part now mounting that rises with it; null when it's just there. */
+function risingSince(screen: string, shown: boolean): number | null {
+  const now = Date.now();
+  const first = risen.get(screen);
+  if (first === undefined) {
+    risen.set(screen, shown ? now : Number.NEGATIVE_INFINITY);
+    return shown ? 0 : null;
+  }
+  const since = now - first;
+  return since < RISE_WINDOW ? since : null;
+}
 
 /**
  * A screen's part rising into place on its first showing, `index` steps after the first (55 ms apart, on M3
  * Expressive's spring); just there with Remove animations, and the next time `screen` is drawn in this run. (A fade in
- * its place was now and then left at nothing on the emulator with animations off: Kuliah drawn blank.)
+ * its place was now and then left at nothing on the emulator with animations off: Kuliah drawn blank.) A part drawn a
+ * moment after the rest (./parts.tsx: a tab's lower parts) still rises in the same stagger, its delay counted from the
+ * screen's first part. A cold start's Beranda is just there as the splash goes, with nothing rising.
  */
 export function Rise({ screen, index, style, children }: { screen: string; index: number; style?: StyleProp<ViewStyle>; children: ReactNode }) {
   const still = useReduceMotion();
@@ -220,20 +243,26 @@ export function Rise({ screen, index, style, children }: { screen: string; index
   // invisible (Akademik's rows, Jadwal's days, on CI's emulator and with "Remove animations"). A hidden tab's parts
   // are simply there when it's first shown.
   const shown = useShownAtMount();
-  const [first] = useState(() => shown && !risen.has(screen));
-  useEffect(() => {
-    risen.add(screen);
-  }, [screen]);
-  const entering =
-    !first || still
-      ? undefined
-      : FadeInDown.delay(80 + index * 55)
-          .springify()
-          .damping(16)
-          .stiffness(170);
+  const [since] = useState(() => (firstFrameShown() ? risingSince(screen, shown) : coldStart(screen)));
+  // A cold start's first frame (Beranda under the splash): its cards are just there, in plain views. An entrance's
+  // Animated.View and its layout animation, one per card, were work the splash waited for, for a rise mostly behind it.
+  // Chosen once, at mount: a part that turned into another kind of view would be drawn again whole.
+  if (since === null) return <View style={style}>{children}</View>;
+  const entering = still
+    ? undefined
+    : FadeInDown.delay(Math.max(0, 80 + index * 55 - since))
+        .springify()
+        .damping(16)
+        .stiffness(170);
   return (
     <Animated.View entering={entering} style={style}>
       {children}
     </Animated.View>
   );
+}
+
+/** `screen` drawn in a cold start's first frame: its parts, now and after it, are just there, as on a later showing. */
+function coldStart(screen: string): null {
+  risen.set(screen, Number.NEGATIVE_INFINITY);
+  return null;
 }

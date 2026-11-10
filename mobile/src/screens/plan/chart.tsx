@@ -84,7 +84,9 @@ export function LineChart({
   /** About how wide a label is at `size` (the end label is 12, the rest 11). */
   const textWidth = (text: string, size = FONT) => text.length * size * 0.58 + 10;
   // The labels at the end take what they need, up to 140 (the desktop's) and 40% of a narrow phone's chart.
-  const endRoom = Math.min(140, width * 0.4, Math.max(endLabel ? textWidth(endLabel, 12) : 0, reference ? textWidth(reference.label) : 0));
+  // Only the end figure takes room past the plot (the reference's label sits on its line inside it): the plot keeps the
+  // card's width. A long end label gives way to its figure ("3,30"), its words in the tap card and the spoken table.
+  const endRoom = endLabel ? Math.min(width * 0.22, textWidth(endLabel, 12)) : 0;
   const plotW = Math.max(0, width - PAD.left - PAD.right - endRoom);
   const plotH = height - PAD.top - PAD.bottom;
   const step = n > 1 ? plotW / (n - 1) : 0;
@@ -95,13 +97,13 @@ export function LineChart({
   const lastIndex = line ? lastValue(line.values) : -1;
   // Where a label doesn't fit, its figure alone ("3,30") says it.
   const endText = endLabel && line && lastIndex >= 0 ? (textWidth(endLabel, 12) <= endRoom + 0.5 ? endLabel : format(line.values[lastIndex]!)) : undefined;
-  const refText = reference ? (textWidth(reference.label) <= endRoom + 0.5 ? reference.label : format(reference.value)) : undefined;
+  const refText = reference ? (textWidth(reference.label) <= plotW * 0.6 ? reference.label : format(reference.value)) : undefined;
+  // The semester's number under each column ("1" … "8"): the axis reads at a glance, the full name is in the tap card.
   const widest = Math.max(...columns.map((col) => col.length)) * CHAR + 6;
-  const ticks = shortColumns && n > 1 && step < widest ? shortColumns : columns;
-  // The reference's label sits past the plot's end, moved clear of the end label when they'd touch.
-  const endY = line && lastIndex >= 0 ? y(line.values[lastIndex]!) : null;
+  const ticks = shortColumns ?? (n > 1 && step < widest ? columns.map(() => "") : columns);
   const refY = reference ? y(reference.value) : 0;
-  const refLabelY = endText && endY !== null && Math.abs(endY - refY) < 15 ? (refY <= endY ? endY - 15 : endY + 15) : refY;
+  // The reference's label on its line's left end, just over it (below it when the line is at the top).
+  const refLabelY = refY - PAD.top < 12 ? refY + 13 : refY - 5;
 
   const path = (values: (number | null)[], from: number, to: number) => {
     let d = "";
@@ -155,7 +157,7 @@ export function LineChart({
             {reference && (
               <G>
                 <Line x1={PAD.left} x2={PAD.left + plotW} y1={refY} y2={refY} stroke={c.muted} strokeWidth={1.25} strokeDasharray="5 4" />
-                <SvgText x={PAD.left + plotW + 8} y={refLabelY + 3.5} fontSize={FONT} fontWeight="600" fill={c.muted}>
+                <SvgText x={PAD.left + 4} y={refLabelY} fontSize={FONT} fontWeight="600" fill={c.muted}>
                   {refText}
                 </SvgText>
               </G>
@@ -267,7 +269,7 @@ export function Key({ series, dashed }: { series: Pick<ChartSeries, "kind" | "co
 export function ChartLegend({ series, estimate }: { series: Pick<ChartSeries, "kind" | "color" | "name">[]; estimate?: string }) {
   const theme = useTheme();
   return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[4], rowGap: space[1], marginTop: space[1] }}>
+    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[4], rowGap: space[1] }}>
       {series.map((s) => (
         <View key={s.name} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Key series={s} />

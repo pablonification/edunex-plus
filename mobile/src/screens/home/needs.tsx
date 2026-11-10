@@ -328,7 +328,8 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
                 tone: "warning",
               };
         return {
-          title: need.task ? t("home.need.presenceAhead.assignment", { task: need.task.title }) : t("home.need.presenceAhead", { course: need.course ?? "" }),
+          // The Task by its own name, as Tugas and the Task page name it (the hand tile says it counts for attendance).
+          title: need.task ? need.task.title : t("home.need.presenceAhead", { course: need.course ?? "" }),
           titleLacksCourse: need.task !== null,
           meta: [course],
           when: soon(need.session.opensAt),
@@ -390,7 +391,7 @@ function useNeedView(courses: readonly TermCourse[]): (need: NeedDraft) => NeedV
         const vars = { attended: health.attended ?? 0, held: health.held ?? 0, target: health.target, best: percent(health.best ?? 0) };
         const out = health.state === "out";
         // The course's name (few Students know their KU and PL codes by heart), the count, and the state as its status
-        // by the name it has on every tab ("Jatah habis", "Lewat batas 1×": src/ui/absence.ts). Out of reach, the meta is
+        // by the name it has on every tab ("Jatah absen habis", "Lewat jatah absen 1×": src/ui/absence.ts). Out of reach, the meta is
         // the best it can still reach ("Maks 73%", as Beranda's card), short enough for one line beside the chip; the
         // target is in what TalkBack reads (and on the course's page).
         const title = need.course ? nameOf(courses, need.course) : "";

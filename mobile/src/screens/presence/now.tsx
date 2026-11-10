@@ -1,18 +1,19 @@
 // What needs the Student now, on Kuliah (round 2, v4; src/app/screens/presence.tsx's NowZone), each said once and
 // only while there's something to do: Tandai Hadir open, an Edunex window open that may count, SIX's count that didn't
 // go up after a class, and a clash today with which class to go to. Each a card or a row with its one action; the
-// reasons are one tap deeper (the clash's sheet). Signing in to SIX is Kuliah's lead card instead (./lead.tsx). The
-// quiet facts (SIX counted today's classes; classes in an exam week that may not run) go under the courses (NowNotes).
-import { type ReactNode, useState } from "react";
+// reasons are one tap deeper (the clash's sheet). Signing in to SIX is Kuliah's card instead (./lead.tsx). What SIX
+// counted today is a tick on its course's row; a class that may not run is said on its course's page.
+import { useState } from "react";
 import { View } from "react-native";
 import type { Attendance, OpenWindow } from "../../../../src/app/attendance";
 import { useActionLabel } from "../../../../src/app/attendance-labels";
 import { useOpenCheckIn, useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useCourseNames } from "../../../../src/app/schedule-data";
 import { useDataset } from "../../../../src/app/store";
 import { type AttendanceHealth, clashPick } from "../../../../src/core/attendance";
 import { sixTimetableUrl } from "../../../../src/core/links";
-import type { CalendarEvent, ClassSession } from "../../../../src/core/models";
+import type { ClassSession } from "../../../../src/core/models";
 import { useNav } from "../../nav";
 import { CountdownBar } from "../../parts/meter";
 import { BigButton } from "../../ui/big-button";
@@ -25,6 +26,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CardGroup, StatusChip, TileRow } from "../../ui/v4-list";
 import { useCardStyle } from "../home/now";
+import { shortName } from "../home/parts";
 import { clashAnswer, dayLabel, type Zone } from "./logic";
 
 /** Whether the zone has anything to show above the courses. */
@@ -50,40 +52,6 @@ export function NowZone({ zone, attendance }: { zone: Zone; attendance: Attendan
           ))}
         </CardGroup>
       )}
-    </View>
-  );
-}
-
-/** The quiet facts, said once under the courses: what SIX counted today, and an exam week's classes that may not run. */
-export function NowNotes({ zone }: { zone: Zone }) {
-  const t = useT();
-  const f = useFormat();
-  const v = useTheme().v4;
-  const lines = [
-    ...(zone.counted.length ? [t("presence.six.counted", { codes: f.list(zone.counted) })] : []),
-    ...zone.countedLate.map((code) => t("presence.six.countedLate", { code })),
-  ];
-  if (!lines.length && !zone.week) return null;
-  return (
-    <View style={{ gap: space[2], paddingHorizontal: space[1] }}>
-      {lines.map((line) => (
-        <Quiet key={line} icon={<Icons.CheckCircle size={16} weight="fill" color={v.okFg} />}>
-          {line}
-        </Quiet>
-      ))}
-      {zone.week && <WeekNote event={zone.week.event} />}
-    </View>
-  );
-}
-
-function Quiet({ icon, children }: { icon: ReactNode; children: string }) {
-  const v = useTheme().v4;
-  return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-      <View style={{ paddingTop: 2 }}>{icon}</View>
-      <Text size="bodyMedium" style={{ color: v.muted, flex: 1 }}>
-        {children}
-      </Text>
     </View>
   );
 }
@@ -145,6 +113,7 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   const open = useOpenExternal();
   const { go } = useNav();
   const actionLabel = useActionLabel();
+  const names = useCourseNames();
   const { session, code, health, action } = window;
   const task = action.activity === "assignment" ? action.task : null;
   const noSix = health?.countedIn === "noSix";
@@ -155,9 +124,17 @@ function OpenPresence({ window }: { window: OpenWindow }) {
     <View style={[surface, { padding: space[4], gap: space[3] }]} testID={`card.presenceOpen.${code}`}>
       <LiveHead
         title={action.activity === "course" ? t("presence.open.fill") : actionLabel(window)}
-        meta={factsLabel(code, t("presence.open.closes", { time }), (noSix || notKnown) && t("presence.open.maybe"))}
+        meta={factsLabel(shortName(names(code, window.course?.name)), (noSix || notKnown) && t("presence.open.maybe"))}
       />
-      <CountdownBar opensAt={session.opensAt} closesAt={session.closesAt} now={now} label={t("presence.open.left", { time: f.countdown(session.closesAt) })} />
+      {/* The bar says how much is left, "tutup 09:30" beside it says when (round 3's fourth review: a bar with no words
+          read as decoration); its spoken name has both. */}
+      <CountdownBar
+        opensAt={session.opensAt}
+        closesAt={session.closesAt}
+        now={now}
+        text={t("presence.open.closes", { time })}
+        label={factsLabel(t("presence.open.closes", { time }), t("presence.open.left", { time: f.countdown(session.closesAt) }))}
+      />
       {(noSix || notKnown) && (
         <Text size="bodyMedium" style={{ color: v.muted }}>
           {t(noSix ? "presence.open.noSixWhy" : "presence.open.notKnownWhy")}
@@ -228,18 +205,21 @@ function SixResult({ result, health }: { result: Zone["results"][number]; health
 }
 
 /**
- * Two classes today at the same time: "Bentrok 16:00–16:30", the two courses, and which to go to as a tonal button
- * ("Pilih PL3032"). The why ("Kalau hanya bisa hadir di salah satunya, …") is in its sheet.
+ * Two classes today at the same time: "Bentrok 16:00–16:30", the two courses by their short names (a code meant
+ * nothing at a glance, round 3's fourth review), and "Pilih kelas" as a tonal button: its sheet says which to go to and
+ * why ("Kalau hanya bisa hadir di salah satunya, pilih Ekonomi Infrastruktur …").
  */
 function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boolean }) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
   const [open, setOpen] = useState(false);
+  const names = useCourseNames();
   const { a, b } = clash;
+  const short = (code: string) => shortName(names(code, code === a.course.code ? a.course.name : b.course.name));
   const time = f.timeRange(clash.from, clash.to);
-  const whole = t("presence.clash.today", { a: a.course.code, b: b.course.code, time });
-  const body = clashAnswer(t, a.health, b.health);
+  const whole = t("presence.clash.today", { a: short(a.course.code), b: short(b.course.code), time });
+  const body = clashAnswer(t, a.health, b.health, short);
   const pick = clashPick(a.health, b.health).pick;
   return (
     <>
@@ -252,15 +232,15 @@ function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boo
           </View>
         }
         title={t("mobile.kuliah.clash.title", { time })}
-        meta={`${a.course.code} · ${b.course.code}`}
+        meta={`${short(a.course.code)} · ${short(b.course.code)}`}
         // Which to go to is the row's action, so it looks like one: a tonal button opening the why, as the row does.
         status={
           pick && body ? (
             <Button variant="tonal" size="sm" onPress={() => setOpen(true)} testID="action.clashPick">
-              {t("mobile.kuliah.clash.pick", { code: pick })}
+              {t("mobile.kuliah.clash.choose")}
             </Button>
           ) : pick ? (
-            <StatusChip tone="brand">{t("mobile.kuliah.clash.pick", { code: pick })}</StatusChip>
+            <StatusChip tone="brand">{t("mobile.kuliah.clash.pick", { code: short(pick) })}</StatusChip>
           ) : undefined
         }
         onPress={body ? () => setOpen(true) : undefined}
@@ -284,18 +264,5 @@ function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boo
         </Sheet>
       )}
     </>
-  );
-}
-
-/** Classes in an exam week (or on a holiday) that SIX still lists: said once for every course. */
-function WeekNote({ event }: { event: CalendarEvent }) {
-  const t = useT();
-  const f = useFormat();
-  const v = useTheme().v4;
-  const period = t(event.kind === "uts" ? "presence.period.uts" : event.kind === "uas" ? "presence.period.uas" : "presence.period.off");
-  return (
-    <Quiet icon={<Icons.GraduationCap size={16} weight="bold" color={v.muted} />}>
-      {`${t("presence.weekNote", { period, range: f.dayRange(event.firstDay, event.lastDay) })}. ${t("presence.weekNoteWhy")}`}
-    </Quiet>
   );
 }

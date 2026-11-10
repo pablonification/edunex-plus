@@ -1,6 +1,7 @@
 // Exam rows on the phone: src/app/screens/exam.tsx's ExamPartRow, PeriodRow and PastExamRow with the same facts, in
 // v4's row (round 2): the course's tile, its name, one meta line (the kind, then when and where) and one status (the
-// countdown within a day; "Sekarang" while it's on; a changed time over both). "Tandai selesai" (an Edunex window open
+// countdown within a day; "Sekarang" while it's on; a changed time over both). An exam SIX lists in both weeks of the
+// exam period is one row with both days (src/core/exam-sittings.ts). "Tandai selesai" (an Edunex window open
 // now) and its way back from Done are a swipe, the row's long press and TalkBack's actions, each answered with a
 // snackbar and Undo; a failure is said in the list's banner (row-parts.tsx), never in a snackbar.
 import { type ReactNode, useState } from "react";
@@ -10,6 +11,7 @@ import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useExamMarks } from "../../../../src/app/exam-marks";
 import { type Format, type Translate, useT } from "../../../../src/app/i18n";
 import { wibDay } from "../../../../src/core/course-meetings";
+import { sittingsLine } from "../../../../src/core/exam-sittings";
 import { dueOn, type Exam, examMarkKey, isExamWindow, takeHomeOf } from "../../../../src/core/exams";
 import type { CalendarEvent, Task } from "../../../../src/core/models";
 import type { PastExam, TodoItem } from "../../../../src/core/todo";
@@ -21,6 +23,7 @@ import { factsLabel } from "../../ui/layout";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { useTheme } from "../../ui/theme";
+import { shortName } from "../home/parts";
 import { countdown, IconTile, inWorld, type Quick, reportRowProblem, rowWhen, StatusPill, TaskLine, useRowWorld } from "./row-parts";
 
 /** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
@@ -57,8 +60,17 @@ function examCourse(courses: readonly TermCourse[] | undefined, exam: Exam): str
   return courses?.find((c) => c.code === exam.courseCode)?.name ?? exam.six[0]?.courseName ?? exam.courseCode;
 }
 
+/** Whether a name already says its exam's kind ("UTS Markom" says UTS): the kind isn't said twice. */
+export const namesKind = (title: string, kind: string) =>
+  title
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .includes(kind.toLowerCase());
+
 /** "Kuis Komunikasi Pemasaran": the exam's name for a control's label. */
 const examName = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
+/** "UTS Ekonomi Infrastruktur": an exam's row title, its course's name short (the whole name is in the row's spoken name). */
+const examTitle = (t: Translate, exam: Exam, name: string) => examName(t, exam, shortName(name));
 
 /** Moves an open Edunex window to Done, with Undo; a failure goes to the list's banner. */
 function useMarkDone() {
@@ -106,41 +118,48 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const days = sourceDays(f, exam);
   const code = inCourse ? "" : exam.courseCode;
   const kind = t(`exam.kind.${exam.kind}`);
-  const dayTime = (at: number) => `${f.relativeDay(at)}, ${f.time(at)}`;
+  const dayTime = (at: number) => f.dueLabel(at);
   const moved = part?.kind === "window" && part.moved;
   const disagree = part?.kind === "sitting" && exam.disagree;
 
   // Every fact goes in the spoken name; the row shows the kind and when, in one line that fits in full (where it is,
-  // the range and the rest are on the Exam's page), and one status.
+  // the range and the rest are on the Exam's page), and one status. Not the course's code: the title names the course
+  // (a take-home's, its tile, which the course chips over the list name), and the code is spoken.
   let facts: string[];
-  let shown: string[];
+  let shown: (string | null)[];
   let when: string | null = null;
   let moment: number | null = null;
   let status: ReactNode = null;
   if (part?.kind === "takehome") {
     facts = [code, t("exam.takeHome"), part.task.title, part.status === "draft" ? t("taskStatus.draft") : ""];
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
-    // "UTS Take-home" is long: its day goes without the weekday and the time (its page and spoken name keep them).
-    const day = part.at === null ? t("task.noDeadline") : Math.abs(f.dayOffset(part.at)) <= 1 ? f.relativeDay(part.at) : f.dayMonth(part.at);
-    shown = [`${kind} ${t("exam.takeHome")}`, day];
+    // The day alone beside the kind (its page and spoken name keep the time); not the kind when the name says it ("UTS Markom").
+    shown = [namesKind(part.task.title, kind) ? null : kind, part.at === null ? t("task.noDeadline") : rowWhen(f, part.at, false)];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
     const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dayTimeWord(part.opensAt) });
     facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     when = f.dueLabel(part.at);
-    shown = [kind, rowWhen(f, part.at, !moved)];
+    shown = [rowWhen(f, part.at, !moved)];
     moment = part.at;
+  } else if (part?.kind === "sitting" && item.sittings) {
+    // SIX lists it in both weeks of the exam period: one row, both days ("Kam, 10 Des dan 17 Des, 11:00").
+    facts = [code, t("exam.inClass"), part.room ?? ""];
+    when = sittingsLine(f, item.sittings, { room: false });
+    shown = [sittingsLine(f, item.sittings, { room: false, time: !disagree })];
+    if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
+    else moment = part.at;
   } else if (part?.kind === "sitting") {
     const place = part.source === "six" ? (part.room ?? "") : (part.title ?? "");
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), place];
-    when = part.end !== null ? `${f.relativeDay(part.at)}, ${f.timeRange(part.at, part.end)}` : dayTime(part.at);
-    shown = [kind, rowWhen(f, part.at, !disagree)];
+    when = part.end !== null ? f.dayTimeRange(part.at, part.end) : dayTime(part.at);
+    shown = [rowWhen(f, part.at, !disagree)];
     if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
     else moment = part.at;
   } else {
-    facts = [code, exam.inOutline ? t("exam.outlineOnly") : t("exam.noDate")];
-    shown = [kind, t("exam.noDate")];
+    facts = [code, t("exam.noDate")];
+    shown = [t("exam.noDate")];
   }
   const away = moment !== null ? countdown(t, now, moment) : null;
   // The countdown only once it's within a day: a calm one's day says when on its own.
@@ -179,7 +198,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
       quick={window ? [{ label: t("exam.markDoneFor", { title }), onPress: () => void markDone(window) }] : quick}
       code={code || null}
       course={name}
-      title={name}
+      // What it is, every row the same: a take-home's own name, else the exam's ("UAS Komunikasi Pemasaran").
+      title={part?.kind === "takehome" ? part.task.title : examTitle(t, exam, name)}
       meta={shown.filter(Boolean).join(" · ")}
       status={status}
     />
@@ -271,8 +291,8 @@ function PeriodExam({ exam }: { exam: Exam }) {
       onPress={() => go({ screen: "exam", examId: exam.id })}
       code={exam.courseCode}
       course={name}
-      title={name}
-      // Under its period's row, which names the kind.
+      title={examTitle(t, exam, name)}
+      // Every exam row says when, this one too: no day yet.
       meta={t("exam.noDate")}
     />
   );
@@ -338,8 +358,9 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
       quick={mark ? [{ label: t("exam.unmarkFor", { title }), onPress: () => void unmark() }] : undefined}
       code={code || null}
       course={name}
-      title={name}
-      meta={[t(`exam.kind.${exam.kind}`), at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")].join(" · ")}
+      title={examTitle(t, exam, name)}
+      // The title names the course: the line is when.
+      meta={at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")}
       status={
         mark ? (
           <StatusPill tone="ok" icon={<Icons.Check size={13} weight="bold" color={theme.v4.okFg} />} text={t("exam.markedOn", { date: f.dayMonth(mark.at) })} />

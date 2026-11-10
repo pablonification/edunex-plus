@@ -148,21 +148,28 @@ export const periodOf = (events: readonly CalendarEvent[], at: number) => {
 };
 
 /** The clash answer in words, from `clashPick`; null when the app can't say (the title stands alone). */
-export function clashAnswer(t: Translate, a: AttendanceHealth, b: AttendanceHealth): string | null {
+export function clashAnswer(
+  t: Translate,
+  a: AttendanceHealth,
+  b: AttendanceHealth,
+  /** A course by the name the Student knows it by (its code by default). */
+  name: (code: string) => string = (code) => code,
+): string | null {
   const pick = clashPick(a, b);
   if (!pick.why) return null;
   const picked = pick.pick === a.code ? a : b;
   const other = picked === a ? b : a;
   const left = (h: AttendanceHealth) => h.absencesLeft ?? 0;
+  const code = name(picked.code);
   switch (pick.why) {
     case "none":
-      return t("presence.clash.none", { code: picked.code });
+      return t("presence.clash.none", { code });
     case "fewer":
-      return t("presence.clash.fewer", { code: picked.code, count: left(picked), other: other.code, otherCount: left(other) });
+      return t("presence.clash.fewer", { code, count: left(picked), other: name(other.code), otherCount: left(other) });
     case "noneOut":
-      return t("presence.clash.noneOut", { code: picked.code, other: other.code, target: other.target });
+      return t("presence.clash.noneOut", { code, other: name(other.code), target: other.target });
     case "spareOut":
-      return t("presence.clash.spareOut", { code: picked.code, count: left(picked), other: other.code, target: other.target });
+      return t("presence.clash.spareOut", { code, count: left(picked), other: name(other.code), target: other.target });
     case "bothNone":
       return t("presence.clash.bothNone");
     case "even":

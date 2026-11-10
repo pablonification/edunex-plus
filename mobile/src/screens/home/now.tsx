@@ -5,9 +5,9 @@
 // SIX no longer shows it, the button turns tonal green, a cookie badge turns in and its check draws itself, with a
 // tap of the phone: their step ("Sudah ke SIX · 09:07"), not a claim they're counted. An Edunex Presence open for the
 // class is its own row over the button, as the desktop's card says it: "Isi Presensi", "tutup 09:30". No class on: the
-// next one with a countdown; none today: tomorrow's first, calmly. A tap on the card opens its class's sheet (./class-sheet.tsx).
+// next one with a countdown; none today: the next day's first, calmly, its day said as a person would ("Besok 08:00",
+// "Lusa 08:00", "Kam 08:00"). A tap on the card opens its class's sheet (./class-sheet.tsx): the chevron by the name says so.
 // While the first read runs, the card shows what won't change and holds the rest in its place (./now-hold.ts).
-import * as Haptics from "expo-haptics";
 import { type ReactNode, useEffect, useState } from "react";
 import { StyleSheet, type TextStyle, View, type ViewStyle } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
@@ -22,6 +22,7 @@ import { useFirstReadRunning } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { Skeleton } from "../../ui/display";
 import { CookieCheck, CountUp, PulseDot, WavyProgress } from "../../ui/expressive";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
@@ -31,7 +32,7 @@ import { useReadStatuses } from "../first-scan/scan";
 import { useWentToCheckIn } from "./checked-in";
 import { ClassSheet, cardAction, cardSubject, MainAction, PresenceStep, useCheckInOpen } from "./class-sheet";
 import { type NowHold, nowHold } from "./now-hold";
-import { MINUTE, nameOf } from "./parts";
+import { dayAndTime, MINUTE, nameOf } from "./parts";
 
 /** The card's surface: white on the page's grey, a soft shadow in light (none in dark, where tone does it). */
 export function useCardStyle() {
@@ -116,15 +117,14 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
   const place = session?.room ?? (meeting?.online ? t("mobile.home.online") : null);
   const live = card.state === "live" && slot !== null;
   const window = !session && !meeting && card.presence ? card.presence.session : null;
-  // What the card leads with, the way the class stands: on (time gone, minutes left), next (a countdown), a window open
-  // (its time gone, minutes to close), another day (just when).
-  // On now, the breathing dot and the minutes left say "Sekarang": the room alone (the word only when there's no room).
+  // What the card leads with, the way the class stands, and where: on ("Sekarang · 9009", with the breathing dot), next
+  // ("Berikutnya · 9009", a countdown), another day ("Besok 08:00 · 9009"), a window open (its time, minutes to close).
   const kicker = live
-    ? [place ?? t("home.today.now")]
+    ? [t("home.today.now"), place]
     : card.state === "next" && slot
       ? [t("mobile.home.next"), place]
       : card.state === "later" && slot
-        ? [f.relativeDay(slot.start), f.time(slot.start)]
+        ? [dayAndTime(t, f, slot.start), place]
         : [t("home.now.presenceOnly"), windowFor ? f.timeRange(windowFor.start, windowFor.end) : null];
   const progress = live && slot ? { from: slot.start, to: slot.end } : window ? { from: window.opensAt, to: window.closesAt } : null;
   const until = progress ? progress.to : card.state === "next" && slot ? slot.start : null;
@@ -159,6 +159,9 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
               )}
             </View>
           </View>
+          <View style={{ alignSelf: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+            <Icons.ChevronRight size={20} color={v.muted} />
+          </View>
         </View>
         {left && hold.line && (
           // The wave's track, still, in the course's colour; the minutes in their place.
@@ -173,7 +176,17 @@ function Card({ card, courses, hold }: { card: NowCard; courses: readonly TermCo
             </Held>
           </View>
         )}
-        {left && !hold.line && (
+        {/* With a Presence open, its deadline below is the clock that leads: the class's own minutes left step back
+            (the wave still shows the class gone by, and says its end in its spoken name). */}
+        {left && !hold.line && card.presence && progress && (
+          <WavyProgress
+            progress={(now - progress.from) / Math.max(1, progress.to - progress.from)}
+            ink={ink}
+            track={`${ink}4d`}
+            label={t("presence.row.now", { time: f.time(progress.to) })}
+          />
+        )}
+        {left && !hold.line && !card.presence && (
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
             {progress ? (
               <WavyProgress
@@ -311,7 +324,7 @@ function useDone(card: NowCard): number | null {
   const gone = Boolean(watching && session && checkIns?.[session.id]?.state === "gone");
   const done = gone && went !== null ? went : null;
   useEffect(() => {
-    if (done !== null) void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+    if (done !== null) haptic.confirm();
   }, [done]);
   return done;
 }

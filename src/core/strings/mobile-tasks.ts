@@ -10,11 +10,19 @@ export const mobileTasksStrings = {
   // In the empty answer box, as its placeholder (gone once there's text, as the line under it was): Edunex takes no
   // hand-in without text (the desktop's handIn.why.noText, said where it's typed). The full sentence for TalkBack.
   "mobile.tasks.answerPlaceholder": { id: "Tulis jawabanmu. Wajib, meski ada berkas.", en: "Write your answer. Required, even with a file." },
+  // Long instructions folded to their first lines, so the answer box shows on a Task's first screen: the way to the rest,
+  // and back.
+  "mobile.tasks.more": { id: "Selengkapnya", en: "Show more" },
+  "mobile.tasks.less": { id: "Lebih sedikit", en: "Show less" },
   // A Task the Student marked as handed in another way (or not at all): their word leads its card, and what Edunex still
   // says stays under it, as on the desktop (the app never claims Edunex has it). The answer box and Kumpulkan come back
   // with Urungkan, on the line that says when it was marked.
   "mobile.tasks.edunexSays": { id: "Di Edunex: {status}", en: "On Edunex: {status}" },
   "mobile.tasks.markedAt": { id: "Kamu tandai {when}", en: "Marked {when}" },
+  // The attach button says what the lecturer asks for, so no line about it is needed: the kind of file the
+  // instructions name, and "wajib" while a required file isn't attached yet ("Lampirkan PDF · wajib").
+  "mobile.handIn.attachType": { id: "Lampirkan {type}", en: "Attach {type}" },
+  "mobile.handIn.required": { id: "wajib", en: "required" },
   "mobile.tasks.answerRequired": { id: "Wajib diisi, meski kamu melampirkan berkas", en: "Required, even when you attach a file" },
   // The snackbar after Simpan draf: saved, and what a draft is (the desktop's handIn.explainer, which sat under the answer
   // on every open Task, said when it matters). Starts with "Tersimpan", as the card's own line does.
@@ -22,12 +30,21 @@ export const mobileTasksStrings = {
     id: "Tersimpan {when}. Dosen bisa melihatnya, tapi hanya Kumpulkan yang menyerahkannya.",
     en: "Saved {when}. Your lecturer can see it, but only Submit hands it in.",
   },
-  // Tugas's big card: what its wave says to a screen reader, how much of a Task's time (from when it opened) has gone.
-  "mobile.tasks.timeGone": { id: "Sudah lewat {percent}% dari waktunya", en: "{percent}% of its time has gone" },
-  // A Task that is also attendance: one line under the deadline on its due card, with a hand icon (no chip: the card's
-  // one status is Edunex's), saying when to hand it in to count as present ("Jum 15:00–23:59"). The desktop's
-  // task.note.attendance, in the phone's few words.
-  "mobile.tasks.presenceLine": { id: "Kumpulkan {when} agar hadir", en: "Hand in {when} to count as present" },
+  // The answer card's one line beside "Draf" (its half-circle says not handed in, TalkBack hears handIn.draftStatus).
+  "mobile.tasks.draftSavedShort": { id: "disimpan {when}", en: "saved {when}" },
+  // A Task that is also Presensi: its line on the due card is task.attendanceLine ("Presensi 15:00–23:59"); a tap opens
+  // a small sheet with why (the desktop's task.note.attendance, and what happens outside that time), under this title.
+  "mobile.tasks.presenceWhy": { id: "Tugas ini juga Presensi", en: "This Task is also attendance" },
+  "mobile.tasks.presenceWhyBody": {
+    id: "Kamu terhitung hadir hanya jika mengumpulkannya {date}, {time}. Di luar waktu itu, tugasmu tetap terkumpul, tapi tidak dihitung hadir.",
+    en: "You count as present only if you hand it in {date}, {time}. Outside that time it's still handed in, but not counted present.",
+  },
+  // Right over a Kumpulkan that can't be pressed yet, what's missing in a few words (the full sentence is spoken on the
+  // button): the kind of file the instructions name, when they name one.
+  "mobile.handIn.why.noFile": { id: "Lampirkan berkas dulu", en: "Attach a file first" },
+  "mobile.handIn.why.noFileType": { id: "Lampirkan {type} dulu", en: "Attach a {type} first" },
+  // Right over Kumpulkan while handing in now wouldn't count as present yet: when Presensi opens ("besok, 15:00").
+  "mobile.handIn.why.opens": { id: "Presensi dibuka {when}", en: "Presence opens {when}" },
   // The Kumpulkan sheet's warnings, one short line each (round 2's judge: two paragraphs were too much). The desktop's
   // handIn.check.* with the same facts: when Presensi opens or closed, the deadline that passed.
   "mobile.tasks.check.attendanceEarly": { id: "Tak dihitung hadir sebelum Presensi dibuka {when}", en: "Not counted present before Presence opens {when}" },

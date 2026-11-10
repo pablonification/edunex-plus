@@ -3,6 +3,7 @@
 // timestamp). `now` is passed in so screens and tests agree on the moment.
 // The window's screens (src/app/i18n) and the tray menu (src/desktop/tray-menu.ts) both use it.
 import { listOf, relativeTime } from "./intl";
+import { dateTimeFormat, numberFormat } from "./intl-formats";
 import { type Lang, translate } from "./strings";
 
 export type When = number | string | Date;
@@ -27,8 +28,10 @@ export interface Format {
   dateLong(when: When): string;
   /** "Hari ini" / "Besok" / "Kemarin", else "Kam, 8 Okt" */
   relativeDay(when: When): string;
-  /** "Besok, 23:59" */
+  /** A date and time, the one way the app writes it: "Besok, 23:59", "Jum, 13 Nov, 23:59". */
   dueLabel(when: When): string;
+  /** A date and a span of time, the one way the app writes it: "Hari ini, 15:00–23:59", "Kam, 12 Nov, 16:00–17:50". */
+  dayTimeRange(start: When, end: When): string;
   /** Mid-sentence, with its day only when it isn't today: "23:00", "besok, 23:00", "Sen, 12 Okt, 23:00". */
   dayTime(when: When): string;
   /** Mid-sentence, always with its day: "hari ini, 20:16", "kemarin, 20:16", "Sen, 12 Okt, 20:16". */
@@ -52,7 +55,7 @@ export interface Format {
 
 export function makeFormat(lang: Lang, now: number): Format {
   const locale = lang === "id" ? "id-ID" : "en-GB";
-  const dtf = (options: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat(locale, options);
+  const dtf = (options: Intl.DateTimeFormatOptions) => dateTimeFormat(locale, options);
   const timeFmt = dtf({ hour: "2-digit", minute: "2-digit", hour12: false });
   const weekdayFmt = dtf({ weekday: "long" });
   const weekdayShortFmt = dtf({ weekday: "short" });
@@ -95,6 +98,7 @@ export function makeFormat(lang: Lang, now: number): Format {
     dateLong: (when) => dateLongFmt.format(ms(when)),
     relativeDay,
     dueLabel: (when) => `${relativeDay(when)}, ${time(when)}`,
+    dayTimeRange: (start, end) => `${relativeDay(start)}, ${time(start)}–${time(end)}`,
     dayTime: (when) => {
       const offset = dayOffset(when);
       if (offset === 0) return time(when);
@@ -145,9 +149,9 @@ export function makeFormat(lang: Lang, now: number): Format {
     fileSize: (bytes) => {
       if (bytes < 1024) return `${bytes} B`;
       if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
-      return `${new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`;
+      return `${numberFormat(locale, { maximumFractionDigits: 1 }).format(bytes / 1024 / 1024)} MB`;
     },
-    number: (value, digits = 2) => new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value),
+    number: (value, digits = 2) => numberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value),
     list: listFmt,
   };
 }

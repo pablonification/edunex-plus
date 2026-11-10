@@ -27,7 +27,8 @@
     "home (after class): the day goes on to 16:05 (test/pretend/demo.ts), so PL3002 and DK4073 are over and the now card is PL3032 with KU5014 beside it. Hari ini's classes and the now card's two classes open their sheet from Jadwal's day (row.class.<code>-<hh-mm>), the same sheet Beranda opens, at any hour of the demo: it says Sekarang for a class on now and, for one that's over, SIX's verdict as its chip (Dihitung di SIX, Tercatat tidak hadir, Belum dihitung SIX).",
     "schedule (moved class): PL3002 on Kamis, 8 Oktober runs 08:00–10:00 instead of its usual 08:00–09:30, and the desktop's block is read as '10:00' (schedule.week.class-session.10-00). Jadwal's block says only 'Jam berubah', so that entry opens the class's sheet, where 'Biasanya 08:00–09:30' is.",
     "presence: Kuliah's day answer ('Hari ini, PL3002 masih ada jatah absen.'), its target and the key to the absences ('Cara baca jatah absen') are in the big number's sheet (sheet.kuliahFacts), so those entries (presence.attendance.pl3002…, presence.note.80…) open it.",
-    "settings: Warna mata kuliah's rows hold every course code (the desktop's light and dark preview bands, settings.setting.dk4073 and -2); a check run 41783358929 counted PL3032 on screen while it was still below the fold, so those entries first bring the last row into view."
+    "settings: Warna mata kuliah's rows hold every course code (the desktop's light and dark preview bands, settings.setting.dk4073 and -2); a check run 41783358929 counted PL3032 on screen while it was still below the fold, so those entries first bring the last row into view.",
+    "home (round 3): Beranda has no course list (one fact, one place: Kuliah lists the term's courses with their absences left), so the desktop Beranda's course rows (home.absence-budget.*) are checked on Kuliah."
   ],
   "appId": "io.github.pablonification.edunexplus.demo",
   "launch": [
@@ -1746,34 +1747,24 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen.home"
+                  "id": "screen.courses"
                 }
               },
               "commands": [
                 {
                   "tapOn": {
-                    "id": "tab.home"
+                    "id": "tab.courses"
                   }
                 },
                 {
                   "extendedWaitUntil": {
                     "visible": {
-                      "id": "screen.home"
+                      "id": "screen.courses"
                     },
                     "timeout": 10000
                   }
                 }
               ]
-            }
-          },
-          {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "section.courses"
-              },
-              "direction": "DOWN",
-              "timeout": 10000,
-              "optional": true
             }
           }
         ],
@@ -2164,7 +2155,7 @@
             "extendedWaitUntil": {
               "visible": {
                 "id": "label.place",
-                "text": ".*12.18 Okt.*"
+                "text": "Minggu ke-8"
               },
               "timeout": 5000
             }
@@ -2189,6 +2180,22 @@
           {
             "assertVisible": {
               "id": "screen.schedule"
+            }
+          },
+          {
+            "$comment": "Away from today, Hari ini takes the place of Jadwal's ⋮ in the bar: back to today first.",
+            "runFlow": {
+              "when": {
+                "visible": {
+                  "id": "action.today"
+                }
+              },
+              "commands": [{ "tapOn": { "id": "action.today" } }]
+            }
+          },
+          {
+            "tapOn": {
+              "id": "action.scheduleMenu"
             }
           },
           {
@@ -2869,7 +2876,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -2885,7 +2892,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -2936,7 +2943,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -2952,7 +2959,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3003,7 +3010,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3019,7 +3026,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3070,7 +3077,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3086,7 +3093,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3171,7 +3178,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3187,7 +3194,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3217,7 +3224,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3233,7 +3240,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }
@@ -3263,7 +3270,7 @@
               "when": {
                 "notVisible": {
                   "id": "label.place",
-                  "text": ".*12.18 Okt.*"
+                  "text": "Minggu ke-8"
                 }
               },
               "commands": [
@@ -3279,7 +3286,7 @@
                   "extendedWaitUntil": {
                     "visible": {
                       "id": "label.place",
-                      "text": ".*12.18 Okt.*"
+                      "text": "Minggu ke-8"
                     },
                     "timeout": 5000
                   }

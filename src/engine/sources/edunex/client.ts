@@ -3,40 +3,55 @@
 // something", never an empty screen.
 import type { z } from "zod";
 import { AnswerError, EngineError, isEngineError } from "../../errors";
+import type { Pace, Place } from "../../http/pace";
 import { type Answer, type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import { type FeedRead, noting } from "../../report/kept-pages";
+import type { SourceContext } from "../source";
 
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const TIMEOUT_MS = 15_000;
+
+/** Edunex's line: every request to its API, the feeds' and the Student's, two at a time (../../http/pace.ts). */
+export const edunexLine = (context: Pick<SourceContext, "pace">) => context.pace(new URL(EDUNEX_API).host);
 
 export class EdunexClient {
   constructor(
     private readonly transport: Transport,
     private readonly token: string,
     private readonly userAgent: string,
+    /** Edunex's line (2 at once), shared by every feed and action; none in a test that reads one answer. */
+    private readonly pace?: Pace,
+    /** Its requests go before the feeds' waiting ones: the Student is waiting on them (Pace.turn). */
+    private readonly first = false,
   ) {}
 
   /** This client for one feed run: its answers are noted for that run's report (FeedSpec.run). */
   for(read: FeedRead): EdunexClient {
-    return new EdunexClient(noting(this.transport, read), this.token, this.userAgent);
+    return new EdunexClient(noting(this.transport, read), this.token, this.userAgent, this.pace, this.first);
   }
 
-  async get<S extends z.ZodType>(path: string, query: Record<string, string | number>, schema: S): Promise<z.infer<S>> {
+  /** `place`: where a feed's request waits in Edunex's line (Pace.turn); the Student's go first whatever it says. */
+  async get<S extends z.ZodType>(path: string, query: Record<string, string | number>, schema: S, place: Place = "normal"): Promise<z.infer<S>> {
     const url = new URL(path, EDUNEX_API);
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
     const check = (answer: Answer) => read(answer, schema);
     let response: HttpResponse;
-    try {
-      response = await this.transport.request({
+    const ask = () =>
+      this.transport.request({
         method: "GET",
         url: url.toString(),
         headers: { authorization: `Bearer ${this.token}`, accept: "application/json", "user-agent": this.userAgent },
         timeoutMs: TIMEOUT_MS,
         check,
       });
+    try {
+      response = await (this.pace ? this.pace.turn(ask, this.first ? "first" : place) : ask());
     } catch (error) {
-      if (error instanceof NetworkError)
-        throw new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
+      if (error instanceof NetworkError) {
+        const offline = new EngineError("Offline", error.reason === "timeout" ? "Edunex didn't answer in time" : "Edunex is unreachable", true);
+        this.pace?.giveUp(offline);
+        throw offline;
+      }
       throw error;
     }
     try {

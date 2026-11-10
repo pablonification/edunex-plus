@@ -1,114 +1,230 @@
-// "Perlu kamu urus" (round 2, v4): the two most pressing things, side by side, each a card in its course's tint led by
-// a big countdown ("7 hari"; hours under a day, minutes under an hour; red and "lewat" once past), with the course's
-// glyph, its kind in a pill and its title. One card, one target: the item itself. The chevron opens the whole list,
-// with what's put off and away, and everything Beranda leaves out (./needs-screen.tsx). Hidden when there's nothing.
-// While the first read runs, the two cards stand in their shape and show once it's in: picked from half the data,
-// they swapped under the Student's eyes (66% and 100% became 73% and 7 hari on the demo's first start).
+// "Perlu kamu urus" (round 3, the real phone): what needs the Student, most serious first, as one calm list of
+// full-width rows in a white card. First the courses at or past their absence limit: Kuliah's calendar-check in the
+// absence tone, the course's name and the state in absence words ("Absen lewat 2×", "Jatah absen habis"), so
+// beside a Task it can't read as an assignment past its deadline, and no pips (they had no key, and the words said
+// them again; Kuliah and the course page draw them); opens the course. One row per course, as the Student acts on a
+// course, not on a count (round 3's final review: one grouped row hid which courses, and "Absen di 3 mata kuliah" read
+// as "you were absent"); on Beranda at most three, so the Tasks stay in view. Then classes that clash ("Kelas bentrok ·
+// Kam 16:00", the two short names under it, so neither is cut; opens Jadwal on that day), then what to hand in or do,
+// the soonest first (the Task's own name, its deadline under it the one way the app writes a date; "Presensi" at the
+// end when handing it in counts for attendance; red with a warning sign once late). At most five rows; the chevron opens
+// the whole list, with what's put off and away (./needs-screen.tsx), and says "+2 lagi" when Beranda holds rows back. Hidden behind one quiet line when there's nothing. While the first read runs, the
+// rows stand in their shape: picked from half the data, they swapped under the Student's eyes.
 import { router } from "expo-router";
 import { useMemo } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { type Translate, useNow, useT } from "../../../../src/app/i18n";
+import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDone, useSnoozes } from "../../../../src/app/snoozes";
 import { rupiah } from "../../../../src/core/academic";
-import { percent } from "../../../../src/core/attendance";
+import { wibDay } from "../../../../src/core/course-meetings";
 import { taskPutAway } from "../../../../src/core/done";
 import { heldBack } from "../../../../src/core/held-back";
 import type { NeedDraft } from "../../../../src/core/needs";
 import { activeSnooze, snoozeKey } from "../../../../src/core/snooze";
 import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
+import { meterModel } from "../../parts/attendance-meter";
 import { useFirstReadRunning } from "../../shell/source-status";
-import { IconButton } from "../../ui/controls";
+import { absenceName } from "../../ui/absence";
 import { Skeleton } from "../../ui/display";
-import { CountUp, Rise } from "../../ui/expressive";
+import { Rise } from "../../ui/expressive";
+import { Group, GroupRow, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
-import { PressScale } from "../../ui/press";
+import { factsLabel } from "../../ui/layout";
+import { iosPressed, PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CourseGlyph, useCourseTile } from "../../ui/tile";
-import { DAY, MINUTE, nameOf, shortName } from "./parts";
+import { CourseTile } from "../../ui/tile";
+import { showOnSchedule } from "../schedule/schedule-screen";
+import { dayAndTime, nameOf, shortName } from "./parts";
+import { type AbsenceProblem, type ClashProblem, firstRows, type Problems } from "./problems";
 
-const HOUR = 60 * MINUTE;
+/** Rows Beranda shows; the rest are on the whole list. */
+export const URUS_ROWS = 5;
+/** Courses short on absences Beranda shows, before the first thing to do. */
+export const URUS_ABSENCES = 3;
 
-interface UrusCard {
+interface TodoRow {
   need: NeedDraft;
   code: string | null;
-  kind: string;
+  /** The thing's own name: the Task's title, "Isi Presensi …", "UTS …", "Kirim KRS". */
   title: string;
-  /** The big figure: a countdown to `at` (or since, when past), or the best attendance a course can still reach. */
-  figure: { at: number } | { percent: number };
+  /** Its deadline or window in one line, dates written as the app writes them ("Tenggat Jum, 13 Nov, 23:59"). */
+  when: string;
+  /** Past its deadline: the line in red, with a warning sign. */
+  late: boolean;
+  /** Doing it counts for attendance (an Edunex Presence): its window, said by TalkBack ("Jum, 13 Nov, 15:00–23:59"). */
+  presence: string | null;
+  /** A Task whose handing in counts for attendance: "Presensi" at the row's end (the title doesn't say it). */
+  presenceTag: boolean;
+  /** The course's whole name, for what TalkBack reads (the row shows its tile). */
+  course: string;
+  /** When it's due by (or starts), for the soonest first. */
+  at: number;
 }
 
-/** A need as a card: its kind, title, and the moment it counts down to (or its percent). Today's classes aren't. */
-function cardOf(t: Translate, need: NeedDraft, courses: readonly TermCourse[]): UrusCard | null {
+/** A need as a row: its name and its deadline. Attendance is a problem row above; today's classes are the now card's and Nanti hari ini's. */
+function todoOf(t: Translate, f: Format, now: number, need: NeedDraft, courses: readonly TermCourse[]): TodoRow | null {
   const course = need.course ? nameOf(courses, need.course) : "";
-  const base = { need, code: need.course ?? null };
+  const base = { need, code: need.course ?? null, course, late: false, presence: null, presenceTag: false, at: dueBy(need) };
   switch (need.kind) {
-    case "task":
-      return need.task.dueAt === null ? null : { ...base, kind: t("mobile.home.kind.task"), title: need.task.title, figure: { at: need.task.dueAt } };
+    case "task": {
+      const { task } = need;
+      if (task.dueAt === null) return null;
+      return { ...base, title: task.title, when: t("home.need.task.due", { when: f.dueLabel(task.dueAt) }), late: task.dueAt < now };
+    }
     case "exam": {
       const closes = need.window && need.sitting.end !== null ? need.sitting.end : null;
-      return { ...base, kind: t(`exam.kind.${need.exam.kind}`), title: course, figure: { at: closes ?? need.sitting.start } };
+      return {
+        ...base,
+        title: t("home.need.exam", { kind: t(`exam.kind.${need.exam.kind}`), course: shortName(course) }),
+        when:
+          closes !== null
+            ? t("home.need.exam.closes", { when: f.dueLabel(closes) })
+            : need.sitting.end !== null
+              ? f.dayTimeRange(need.sitting.start, need.sitting.end)
+              : f.dueLabel(need.sitting.start),
+      };
     }
-    case "presence":
-      return { ...base, kind: t("mobile.home.kind.presence"), title: course, figure: { at: need.open ? need.session.closesAt : need.session.opensAt } };
-    case "attendance":
-      // The most it can still reach, never the share so far (the class sheet's "Kehadiran 33%"): "73% maks" (Card).
-      return { ...base, kind: t("mobile.home.kind.attendance"), title: course, figure: { percent: percent(need.health.best ?? 0) } };
+    case "presence": {
+      const { session, task } = need;
+      // Its window, the day said once when it opens and closes on the same day.
+      const window =
+        f.dayOffset(session.opensAt) === f.dayOffset(session.closesAt)
+          ? f.dayTimeRange(session.opensAt, session.closesAt)
+          : `${f.dueLabel(session.opensAt)}–${f.dueLabel(session.closesAt)}`;
+      // A Task whose handing in counts: the Task's own name and its deadline, as every Task row says it ("Presensi" at
+      // the end says the rest). A window's opening under a Task's name read as when the Task opens.
+      if (task?.dueAt != null)
+        return {
+          ...base,
+          title: task.title,
+          when: t("home.need.task.due", { when: f.dueLabel(task.dueAt) }),
+          presence: window,
+          presenceTag: true,
+          late: task.dueAt < now,
+        };
+      const title = task ? task.title : t("home.need.presence", { course: shortName(course) });
+      // Open: when it closes. Ahead: its window.
+      const when = need.open ? t("home.need.exam.closes", { when: f.dueLabel(session.closesAt) }) : window;
+      return { ...base, title, when, presence: window, presenceTag: task !== null && task !== undefined, late: need.open && session.closesAt < now };
+    }
     case "meeting":
-      return { ...base, kind: t("mobile.home.kind.meeting"), title: course, figure: { at: need.meeting.start } };
+      return {
+        ...base,
+        title: shortName(course),
+        when: `${t("mobile.home.kind.meeting")} · ${f.dayTimeRange(need.meeting.start, need.meeting.end)}`,
+      };
     case "krs":
-      return { ...base, kind: t("mobile.home.kind.krs"), title: t("home.need.krs"), figure: { at: need.open ? need.closesAt : need.at! } };
-    case "bill":
-      return need.bill.nextDueAt === null
-        ? null
-        : {
-            ...base,
-            kind: t("mobile.home.kind.bill"),
-            title: t("home.need.bill", { amount: rupiah(Math.max(0, (need.bill.amount ?? 0) - (need.bill.paid ?? 0))) }),
-            figure: { at: need.bill.nextDueAt },
-          };
+      return {
+        ...base,
+        title: t("home.need.krs"),
+        when: need.open ? t("home.need.exam.closes", { when: f.dueLabel(need.closesAt) }) : t("home.need.krs.opens", { date: f.dueLabel(need.at!) }),
+      };
+    case "bill": {
+      const due = need.bill.nextDueAt;
+      if (due === null) return null;
+      return {
+        ...base,
+        title: t("home.need.bill", { amount: rupiah(Math.max(0, (need.bill.amount ?? 0) - (need.bill.paid ?? 0))) }),
+        when: t(need.overdue ? "home.need.bill.overdue" : "home.need.bill.due", { date: f.relativeDay(due) }),
+        late: need.overdue,
+      };
+    }
+    case "attendance":
     case "class":
       return null;
   }
 }
 
-/** How far off `at` is, in its biggest whole unit, and whether it's past. */
-function distance(now: number, at: number): { value: number; unit: "minute" | "hour" | "day"; late: boolean } {
-  const gap = Math.abs(at - now);
-  const late = at < now;
-  if (gap < HOUR) return { value: Math.max(1, Math.floor(gap / MINUTE)), unit: "minute", late };
-  if (gap < DAY) return { value: Math.floor(gap / HOUR), unit: "hour", late };
-  return { value: Math.floor(gap / DAY), unit: "day", late };
+/** When a need is due by (or starts): a Task's deadline, an open window's close, otherwise its start. */
+function dueBy(need: NeedDraft): number {
+  switch (need.kind) {
+    case "task":
+      return need.task.dueAt ?? Number.POSITIVE_INFINITY;
+    case "exam":
+      return need.window && need.sitting.end !== null ? need.sitting.end : need.sitting.start;
+    case "presence":
+      return need.task?.dueAt ?? need.session.closesAt;
+    case "meeting":
+      return need.meeting.start;
+    case "krs":
+      return need.open ? need.closesAt : (need.at ?? Number.POSITIVE_INFINITY);
+    case "bill":
+      return need.bill.nextDueAt ?? Number.POSITIVE_INFINITY;
+    default:
+      return Number.POSITIVE_INFINITY;
+  }
 }
 
-export function Urus({ needs, due, courses }: { needs: readonly NeedDraft[]; due: readonly NeedDraft[]; courses: readonly TermCourse[] }) {
+export type UrusRow =
+  | { kind: "absence"; key: string; item: AbsenceProblem }
+  | { kind: "clash"; key: string; item: ClashProblem }
+  | { kind: "todo"; key: string; item: TodoRow };
+
+/** Every row the list has, most serious first: absences (a row per course), clashes, then what to do, the soonest first. */
+export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due: readonly NeedDraft[], courses: readonly TermCourse[]): UrusRow[] {
   const t = useT();
+  const f = useFormat();
   const now = useNow();
-  const v = useTheme().v4;
   const { entries } = useSnoozes();
   const { entries: handled } = useDone();
-  const cards = useMemo(() => {
+  return useMemo(() => {
     const { shown } = heldBack(needs, due, entries, handled, now);
-    // Today's deadlines first (Hari ini's on the desktop), unless put off or put away; then the week's, as ranked.
     const today = due.filter(
       (need) =>
         need.kind === "task" && !activeSnooze(snoozeKey(need), entries, now) && !taskPutAway(need.task, handled) && !shown.some((s) => s.id === need.id),
     );
-    return [...today, ...shown]
-      .map((need) => cardOf(t, need, courses))
-      .filter((card): card is UrusCard => card !== null)
-      .slice(0, 2);
-  }, [needs, due, entries, handled, now, t, courses]);
+    const todos = [...today, ...shown]
+      .flatMap((need) => {
+        const row = todoOf(t, f, now, need, courses);
+        return row ? [{ kind: "todo" as const, key: need.id, item: row }] : [];
+      })
+      .sort((x, y) => x.item.at - y.item.at);
+    const absences = problems.absences.map((item) => ({ kind: "absence" as const, key: `absence:${item.code}`, item }));
+    return [
+      ...absences,
+      // A clash later today is on its "Nanti hari ini" row, as the clash's icon (one fact, one place: round 3's fourth
+      // review saw the same course three times on Beranda); only one of the pair can be on the now card, so one row has it.
+      ...problems.clashes
+        .filter((item) => !(wibDay(item.from) === wibDay(now) && item.a.start > now && item.b.start > now))
+        .map((item) => ({ kind: "clash" as const, key: `clash:${item.key}:${item.from}`, item })),
+      ...todos,
+    ];
+  }, [problems, needs, due, entries, handled, now, t, f, courses]);
+}
+
+export function Urus({
+  problems,
+  needs,
+  due,
+  courses,
+}: {
+  problems: Problems;
+  needs: readonly NeedDraft[];
+  due: readonly NeedDraft[];
+  courses: readonly TermCourse[];
+}) {
+  const t = useT();
+  const v = useTheme().v4;
+  const all = useUrusRows(problems, needs, due, courses);
+  const rows = useMemo(() => {
+    let absences = 0;
+    return firstRows(
+      all.filter((row) => row.kind !== "absence" || ++absences <= URUS_ABSENCES),
+      URUS_ROWS,
+    );
+  }, [all]);
+  // What the whole list has that Beranda holds back, said by the chevron that opens it.
+  const more = all.length - rows.length;
   // The demo's first sync, or the Student's first read after a sign-in (the top bar's "Membaca …").
   const settling = useSettling();
   const firstReading = useFirstReadRunning();
   const reading = settling || firstReading;
-  // Nothing to handle: the section's cards go, a single quiet line stays as the way to the whole list (what's put off,
-  // the date and term, what changed).
-  if (!cards.length && !reading)
+  // Nothing to handle: a single quiet line stays as the way to the whole list (what's put off, what changed).
+  if (!rows.length && !reading)
     return (
       <Rise screen="home" index={2}>
         <PressScale
@@ -140,89 +256,168 @@ export function Urus({ needs, due, courses }: { needs: readonly NeedDraft[]; due
           <Text size="titleMedium" face="display" weight="bold" accessibilityRole="header" style={{ flex: 1, fontSize: 17, letterSpacing: -0.2 }}>
             {t("mobile.home.toHandle")}
           </Text>
-          <IconButton label={t("home.changes.all")} onPress={() => router.push("/needs")} testID="action.needs.all">
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={more > 0 ? factsLabel(t("home.changes.all"), t("mobile.home.moreRows", { count: more })) : t("home.changes.all")}
+            onPress={() => router.push("/needs")}
+            testID="action.needs.all"
+            android_ripple={{ color: v.muted, borderless: true, radius: 28 }}
+            style={({ pressed }) => [
+              { minWidth: 48, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2, paddingLeft: space[2] },
+              iosPressed(pressed),
+            ]}
+          >
+            {more > 0 && (
+              <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted }}>
+                {t("mobile.home.moreRows", { count: more })}
+              </Text>
+            )}
             <Icons.ChevronRight size={20} color={v.muted} />
-          </IconButton>
+          </Pressable>
         </View>
       </Rise>
-      {reading ? (
-        <View testID="section.needs.reading" accessibilityState={{ busy: true }} style={{ flexDirection: "row", gap: 10 }}>
-          {[0, 1].map((i) => (
-            <View key={i} style={{ flex: 1, height: 148, borderRadius: 20, backgroundColor: v.card, padding: space[4], gap: space[3] }}>
-              <Skeleton height={22} width={22} style={{ borderRadius: 7 }} />
-              <Skeleton height={36} width="45%" />
-              <Skeleton height={14} width="80%" />
-            </View>
-          ))}
-        </View>
-      ) : (
-        <View style={{ flexDirection: "row", alignItems: "stretch", gap: 10 }}>
-          {cards.map((card, i) => (
-            <Rise key={card.need.id} screen="home" index={3 + i} style={{ flex: 1 }}>
-              <Card card={card} />
-            </Rise>
-          ))}
-          {cards.length === 1 && <View style={{ flex: 1 }} />}
-        </View>
-      )}
+      <Rise screen="home" index={3}>
+        {reading ? <UrusLoading /> : <UrusList rows={rows} courses={courses} />}
+      </Rise>
     </View>
   );
 }
 
-function Card({ card }: { card: UrusCard }) {
-  const t = useT();
-  const now = useNow();
+/** The rows in one white card. */
+export function UrusList({ rows, courses }: { rows: readonly UrusRow[]; courses: readonly TermCourse[] }) {
+  return (
+    <Group testID="list.needs">
+      {rows.map((row, i) =>
+        row.kind === "absence" ? (
+          <AbsenceRow key={row.key} item={row.item} first={i === 0} courses={courses} />
+        ) : row.kind === "clash" ? (
+          <ClashRow key={row.key} item={row.item} first={i === 0} courses={courses} />
+        ) : (
+          <TodoRowView key={row.key} row={row.item} first={i === 0} />
+        ),
+      )}
+    </Group>
+  );
+}
+
+/** Two rows' shape, while the first read runs. */
+export function UrusLoading() {
   const v = useTheme().v4;
-  const { ink, tint } = useCourseTile()(card.code);
+  return (
+    <View testID="section.needs.reading" accessibilityState={{ busy: true }} style={{ backgroundColor: v.card, borderRadius: 20 }}>
+      {[0, 1].map((i) => (
+        <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
+          <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
+          <View style={{ flex: 1, gap: space[2] }}>
+            <Skeleton height={16} width="70%" />
+            <Skeleton height={12} width="45%" />
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/**
+ * A course at or past its absence limit: Kuliah's calendar-check in the absence tone, the course's name, the state in
+ * absence words. Opens the course (Pertemuan first).
+ */
+function AbsenceRow({ item, first, courses }: { item: AbsenceProblem; first: boolean; courses: readonly TermCourse[] }) {
+  const t = useT();
+  const { go } = useNav();
+  const name = nameOf(courses, item.code);
+  const over = item.health.state === "out";
+  const words = absenceName(t, item.health) ?? "";
+  const spoken = useMemo(() => meterModel(t, item)?.label, [t, item]);
+  return (
+    <GroupRow
+      first={first}
+      testID={`row.need.absence.${item.code}`}
+      accessibilityRole="button"
+      accessibilityLabel={factsLabel(name, words, spoken)}
+      leading={<IconTile tone={over ? "red" : "amber"} icon={(color) => <Icons.CalendarCheck size={22} color={color} />} />}
+      title={<RowTitle text={shortName(name)} />}
+      meta={<Meta tone={over ? "red" : "amber"} text={words} />}
+      onPress={() => go({ screen: "course", code: item.code })}
+    />
+  );
+}
+
+/** Two classes at once: "Kelas bentrok · Kam 16:00", the two short names under it. Opens Jadwal on that day. */
+function ClashRow({ item, first, courses }: { item: ClashProblem; first: boolean; courses: readonly TermCourse[] }) {
+  const t = useT();
+  const f = useFormat();
+  const { go } = useNav();
+  const a = shortName(nameOf(courses, item.a.courseCode, item.a.courseName));
+  const b = shortName(nameOf(courses, item.b.courseCode, item.b.courseName));
+  const title = t("mobile.home.clash", { when: dayAndTime(t, f, item.from) });
+  const pair = t("mobile.home.clashPair", { a, b });
+  return (
+    <GroupRow
+      first={first}
+      testID={`row.need.clash.${item.key}`}
+      accessibilityRole="button"
+      accessibilityLabel={factsLabel(t("alert.overlap", { a, b }), f.dayTimeRange(item.from, item.to))}
+      // The warning tone with the clash's own icon; the pair in the quiet ink (amber words are for absences).
+      leading={<IconTile tone="amber" icon={(color) => <Icons.Overlap size={22} weight="bold" color={color} />} />}
+      title={<RowTitle text={title} />}
+      meta={<Meta text={pair} />}
+      onPress={() => {
+        showOnSchedule(wibDay(item.from));
+        go({ screen: "schedule" });
+      }}
+    />
+  );
+}
+
+/** Something to hand in or do: its own name, its deadline; "Presensi" at the end when handing in a Task counts for attendance. */
+function TodoRowView({ row, first }: { row: TodoRow; first: boolean }) {
+  const t = useT();
+  const v = useTheme().v4;
   const { go } = useNav();
   const open = useOpenExternal();
-  const { need } = card;
-  const away = "at" in card.figure ? distance(now, card.figure.at) : null;
-  const red = (away?.late ?? false) || need.kind === "attendance";
-  const color = red ? v.redFg : ink;
-  const value = "percent" in card.figure ? card.figure.percent : (away?.value ?? 0);
-  const unit = "percent" in card.figure ? "%" : t(`mobile.home.unit.${away!.unit}`, { count: away!.value });
-  // What the figure is when it isn't plain: past ("lewat"), or a percent that's the best case ("maks", as "Maks 73%" in
-  // Perlu kamu urus), so it never reads as the attendance so far.
-  const tail = away?.late ? t("mobile.home.late") : "percent" in card.figure ? t("mobile.home.atMost") : null;
-  const spoken = "percent" in card.figure ? t("mobile.needs.best", { best: value }) : `${value} ${unit}${tail ? ` ${tail}` : ""}`;
-  const said = card.title.toLocaleLowerCase().includes(card.kind.toLocaleLowerCase());
+  const { need } = row;
+  const counts = t("mobile.home.countsPresence");
   return (
-    <PressScale
+    <GroupRow
+      first={first}
+      testID={`row.need.${need.id}`}
+      accessibilityRole="button"
+      accessibilityLabel={factsLabel(
+        row.title,
+        need.kind === "task" || need.kind === "presence" ? row.course : null,
+        row.when,
+        row.presence && `${counts}: ${row.presence}`,
+      )}
+      leading={
+        row.code ? <CourseTile code={row.code} name={row.course} /> : <IconTile tone="brand" icon={(color) => <Icons.ListChecks size={22} color={color} />} />
+      }
+      title={<RowTitle text={row.title} />}
+      meta={
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+          {row.late && <Icons.AlertTriangle size={14} weight="bold" color={v.redFg} />}
+          <Meta tone={row.late ? "red" : undefined} text={row.when} />
+        </View>
+      }
       onPress={() => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url))}
-      accessibilityLabel={[card.kind, card.title, spoken].join(", ")}
-      testID={`card.need.${need.id}`}
-      style={{ flex: 1, backgroundColor: tint, borderRadius: 20, padding: 14, minHeight: 148 }}
-    >
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-        {card.code ? <CourseGlyph code={card.code} name={card.title} /> : <Icons.ListChecks size={22} color={ink} />}
-        {/* The kind once: a Task named "Tugas 02" needs no "Tugas" pill over it. */}
-        {!said && (
-          <View style={{ backgroundColor: v.card, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 }}>
-            <Text size="labelMedium" weight="semibold" style={{ color: ink }}>
-              {card.kind}
-            </Text>
-          </View>
-        )}
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "baseline", marginTop: 14 }}>
-        <CountUp
-          id={`need:${need.id}`}
-          value={value}
-          style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 36, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
-        />
-        <Text size="bodyLarge" face="display" weight="semibold" style={{ color, fontSize: 15, marginLeft: unit === "%" ? 0 : 4 }}>
-          {unit}
-        </Text>
-        {tail && (
-          <Text size="bodyMedium" face="display" weight="semibold" style={{ color, marginLeft: 4 }}>
-            {tail}
-          </Text>
-        )}
-      </View>
-      <Text size="bodyMedium" weight="medium" style={{ color: v.fg, marginTop: "auto", paddingTop: 10 }}>
-        {shortName(card.title)}
-      </Text>
-    </PressScale>
+    />
+  );
+}
+
+function RowTitle({ text }: { text: string }) {
+  const v = useTheme().v4;
+  return (
+    <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+      {text}
+    </Text>
+  );
+}
+
+function Meta({ text, tone }: { text: string; tone?: "red" | "amber" }) {
+  const v = useTheme().v4;
+  return (
+    <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: tone === "red" ? v.redFg : tone === "amber" ? v.ambFg : v.muted, flexShrink: 1 }}>
+      {text}
+    </Text>
   );
 }

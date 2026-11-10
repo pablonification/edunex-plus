@@ -5,7 +5,7 @@
 import { NavigationBar } from "expo-navigation-bar";
 import { Stack, useNavigationContainerRef } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { useEffect } from "react";
+import { type ReactNode, useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useWidgetUpdates } from "../src/host/widget";
@@ -13,10 +13,12 @@ import { CourseColorPickerHost } from "../src/parts/course-color-picker";
 import { perfNavigating, perfShown, watchJsThread } from "../src/perf";
 import { ReportAskCard } from "../src/screens/report/ask";
 import { Boot } from "../src/shell/boot";
+import { useFirstFrameShown } from "../src/shell/first-frame";
 import { useNobodyIn } from "../src/shell/nobody";
 import { NotificationTaps } from "../src/shell/notification-taps";
 import { SignInHost } from "../src/shell/sign-in";
 import { Welcome } from "../src/shell/welcome";
+import { DeferredScreens } from "../src/ui/deferred";
 import { useTheme } from "../src/ui/theme";
 import { Toasts } from "../src/ui/toasts";
 
@@ -51,7 +53,6 @@ function usePerfWatch(): void {
 
 function Frame() {
   const theme = useTheme();
-  const nobody = useNobodyIn();
   useWidgetUpdates();
   usePerfWatch();
   return (
@@ -61,23 +62,41 @@ function Frame() {
       <NavigationBar style={theme.scheme === "dark" ? "dark" : "light"} />
       {/* Edge to edge: a screen over the tabs runs under the phone's navigation bar, and its page keeps its last row
           clear of it (ui/insets.ts). "default" is Android's own open and close (the system's slide and fade), drawn
-          natively. */}
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.color.surface },
-          animation: "default",
-        }}
-      >
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+          natively. The screens take new data and the minute's tick as transitions (src/ui/deferred.tsx). */}
+      <DeferredScreens>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.color.surface },
+            animation: "default",
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+        </Stack>
+      </DeferredScreens>
       {/* Until a system is in: then it fades, and Beranda fills in under it (the first read's summary is a card there). */}
-      {nobody && <Welcome />}
-      <ReportAskCard />
-      <Toasts />
-      <CourseColorPickerHost />
-      <SignInHost />
+      <WelcomeWhileNobody />
+      <AfterFirstFrame>
+        <ReportAskCard />
+        <Toasts />
+        <CourseColorPickerHost />
+        <SignInHost />
+      </AfterFirstFrame>
       <NotificationTaps />
     </>
   );
+}
+
+/**
+ * What's over the screens only now and then (a report's question, a snackbar, a sheet, a sign-in's page), from a moment
+ * after the first frame: nothing of it is there to see at a cold start, and the snackbar's frame measured itself and
+ * drew again before the splash could go. What one of them was asked to show meanwhile shows then.
+ */
+function AfterFirstFrame({ children }: { children: ReactNode }) {
+  return useFirstFrameShown() ? children : null;
+}
+
+/** The welcome while nobody is signed in: apart, so a source's state changing doesn't draw the whole frame again. */
+function WelcomeWhileNobody() {
+  return useNobodyIn() ? <Welcome /> : null;
 }

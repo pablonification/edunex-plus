@@ -6,13 +6,14 @@
 // color: it says so, once, in neutral words.
 // Opened from the course page's "⋯" (its own sheet) and from anywhere else through
 // openCourseColorPicker(code), drawn by <CourseColorPickerHost /> mounted once in the app's frame.
-import { useLayoutEffect, useState, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
 import { endPreview, previewCourseColor, useCommittedCourseColors, useCourseColorPicks, withLegacy } from "../../../src/app/course-colors";
 import { useTermCourses } from "../../../src/app/courses";
 import { type Translate, useFormat, useT } from "../../../src/app/i18n";
 import { applyChoice, courseTone, type PaletteId, PICKER_ORDER, pickedColor, resolveCourseColors } from "../../../src/core/course-colors";
 import { Icons } from "../ui/icons";
+import { iosPressed } from "../ui/press";
 import { Sheet, SheetTitle } from "../ui/sheet";
 import { Text } from "../ui/text";
 import { radius, space, useTheme } from "../ui/theme";
@@ -48,7 +49,16 @@ function Choices({ code }: { code: string }) {
   });
   const [base] = useState(() => withLegacy(codes, committed));
   const [choice, setChoice] = useState<PaletteId | null>(() => pickedColor(code, base) ?? null);
-  useLayoutEffect(() => previewCourseColor({ code, codes, base, choice }), [code, codes, base, choice]);
+  const [first] = useState(choice);
+  // Until a color is tried, the screens already show what the sheet would preview. Previewing it anyway, as the sheet
+  // opened, redrew every course's color on every screen at once (each color reader takes the new value), and the sheet
+  // only rose after it: a third of a second on a mid-range phone with the row giving no sign of the tap.
+  const tried = useRef(false);
+  useLayoutEffect(() => {
+    if (!tried.current && choice === first) return;
+    tried.current = true;
+    previewCourseColor({ code, codes, base, choice });
+  }, [code, codes, base, choice, first]);
   useLayoutEffect(() => () => endPreview(code), [code]);
 
   const name = courses?.find((course) => course.code === code)?.name;
@@ -106,15 +116,18 @@ function Choices({ code }: { code: string }) {
           accessibilityState={{ checked: choice === null }}
           onPress={() => setChoice(null)}
           android_ripple={{ color: theme.color.selected }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[3],
-            minHeight: 48,
-            paddingHorizontal: space[3],
-            borderRadius: radius.lg,
-            backgroundColor: choice === null ? theme.color.selected : "transparent",
-          }}
+          style={({ pressed }) => [
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space[3],
+              minHeight: 48,
+              paddingHorizontal: space[3],
+              borderRadius: radius.lg,
+              backgroundColor: choice === null ? theme.color.selected : "transparent",
+            },
+            iosPressed(pressed),
+          ]}
         >
           <View style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: tone(automatic) }} />
           <Text size="body" weight={choice === null ? "semibold" : "medium"} style={{ flex: 1 }} numberOfLines={1}>

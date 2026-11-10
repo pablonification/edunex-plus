@@ -1,6 +1,6 @@
 // Schedule and exam alerts (#77), from SIX's timetable and Edunex:
 // - A class moved: a SIX meeting's time or room changed between two reads
-//   (naming old → new), or a meeting SIX newly lists that stands in for the
+//   (naming old → new; not SIX's roomless copy of an Edunex Task window), or a meeting SIX newly lists that stands in for the
 //   week's usual meeting (naming that one → this one). Raised when it's seen.
 // - An extra meeting: one SIX newly lists on top of the week's usual
 //   meeting(s), told as an extra meeting, never as the class having moved.
@@ -10,7 +10,9 @@
 //   was read, on a day SIX doesn't list it.
 // - An exam scheduled (a SIX exam session or a dated Edunex exam appears), a
 //   week before it, the evening before and that morning. Take-home exams are
-//   Tasks: the Task alerts cover them.
+//   Tasks: the Task alerts cover them. SIX lists a UTS or UAS in the class's
+//   own slot in both weeks of ITB's exam period: the reminders are for its
+//   first sitting, and for the next only once that one is over.
 // - A class in 15 minutes, with its room, once the Student turns it on: from
 //   SIX's timetable as it is now (a moved class at its new time and room), and
 //   meetings announced only in Edunex. A class on SIX's timetable the app
@@ -18,13 +20,24 @@
 //   day has a class whose time and room are on SIX (ADR 0013).
 // Every one is silent on the first sync (the center does that) and only
 // about what is still to come. Days read as the app writes them ("Kam, 15
-// Okt", "Thu, 15 Oct"): the text carries both languages' (src/core/dates.ts).
+// Okt, 10:00", "Thu, 15 Oct, 10:00"): the text carries both languages' (src/core/dates.ts).
 import { isExamActivity } from "../../core/attendance";
 import { wibDay } from "../../core/course-meetings";
 import { dateVars, sameLocalDay } from "../../core/dates";
 import { type ExamKind, mergeExams } from "../../core/exams";
 import type { AlertText, ClassSession } from "../../core/models";
-import { dayStart, meetingsOutsideSix, overlaps, pairKey, REMINDER_ALERTS, sessionChanges, slotMarks, taskWindows, weekStart } from "../../core/schedule";
+import {
+  dayStart,
+  handInCopies,
+  meetingsOutsideSix,
+  overlaps,
+  pairKey,
+  REMINDER_ALERTS,
+  sessionChanges,
+  slotMarks,
+  taskWindows,
+  weekStart,
+} from "../../core/schedule";
 import { type StringKey, translate } from "../../core/strings";
 import { type AlertDraft, clockTime, type Detector, type PlannedAlert } from "./detector";
 
@@ -41,21 +54,26 @@ interface Words {
   en: string;
 }
 
-/** "Kam, 15 Okt 10:00–11:30 · 9009" in each language; just the time and room when it's on `sameDayAs`'s day. */
+/** "Kam, 15 Okt, 10:00–11:30 · 9009" in each language; just the time and room when it's on `sameDayAs`'s day. */
 function when(start: number, end: number, room: string | null, sameDayAs?: number): Words {
   const time = `${clockTime(start)}–${clockTime(end)}${room ? ` · ${room}` : ""}`;
   if (sameDayAs !== undefined && sameLocalDay(start, sameDayAs)) return { id: time, en: time };
   const { dateId, dateEn } = dateVars(start);
-  return { id: `${dateId} ${time}`, en: `${dateEn} ${time}` };
+  return { id: `${dateId}, ${time}`, en: `${dateEn}, ${time}` };
 }
 const whenOf = (s: Pick<ClassSession, "start" | "end" | "room">, sameDayAs?: number) => when(s.start, s.end, s.room, sameDayAs);
 
 export const scheduleMoves: Detector = {
   name: "schedule.moved",
   watches: ["six.schedule"],
-  changed(change, { now }) {
+  changed(change, { now, get }) {
     if (change.name !== "six.schedule" || !change.previous) return [];
     const drafts: AlertDraft[] = [];
+    // A roomless SIX meeting standing for an Edunex Task window is a time to hand in, not a class: the window that
+    // counts is Edunex's (the Task page and Jadwal show it), so SIX's copy of it moving isn't told as a class moved.
+    const handIn = new Set(
+      taskWindows(get("edunex.presence"), change.previous, get("edunex.tasks") ?? []).flatMap((w) => (w.six && !w.six.room ? [w.six.id] : [])),
+    );
     /** `old` → this session, the day said once when both are on it. */
     const draft = (session: ClassSession, old: Words, oldStart: number): AlertDraft => {
       const next = whenOf(session, oldStart);
@@ -69,6 +87,7 @@ export const scheduleMoves: Detector = {
       };
     };
     for (const { before, after } of sessionChanges(change.previous, change.next)) {
+      if (handIn.has(before.id) && !after.room) continue;
       if (after.end > now) drafts.push(draft(after, whenOf(before), before.start));
     }
     // A meeting SIX lists for the first time, off the course's usual slot: one standing in for
@@ -101,10 +120,13 @@ export const scheduleMoves: Detector = {
 
 export const scheduleOverlaps: Detector = {
   name: "schedule.overlaps",
-  watches: ["six.schedule"],
+  watches: ["six.schedule", "edunex.presence", "edunex.tasks"],
   plan({ get, now }) {
     const byWeek = new Map<string, { pair: string; codes: string[]; first: { from: number; to: number }; until: number }>();
-    for (const overlap of overlaps(get("six.schedule") ?? [])) {
+    // As Jadwal: SIX's roomless copy of a Task's hand-in window isn't a class, so it clashes with nothing.
+    const schedule = get("six.schedule") ?? [];
+    const handIn = handInCopies(taskWindows(get("edunex.presence"), schedule, get("edunex.tasks") ?? []));
+    for (const overlap of overlaps(schedule.filter((s) => !handIn.has(s.id)))) {
       const to = Math.min(overlap.a.end, overlap.b.end);
       if (to <= now) continue;
       const pair = pairKey(overlap);
@@ -172,6 +194,8 @@ interface DatedExam {
   code: string;
   kind: ExamKind;
   start: number;
+  /** When it's over: SIX's end, or an Edunex exam's start when it gives no end. */
+  end: number;
   room: string | null;
   /** The exam (and its page) it belongs to. */
   examId: string;
@@ -183,8 +207,9 @@ function datedExams(get: Get): DatedExam[] {
   const out: DatedExam[] = [];
   for (const exam of mergeExams({ schedule: get("six.schedule"), edunexExams: get("edunex.exams"), now: 0 })) {
     const base = { code: exam.courseCode, kind: exam.kind, examId: exam.id };
-    for (const s of exam.six) out.push({ ...base, key: `six:${s.id}`, start: s.start, room: s.room, source: "six" });
-    for (const e of exam.edunex) if (e.start !== null) out.push({ ...base, key: `edunex:${e.id}`, start: e.start, room: null, source: "edunex" });
+    for (const s of exam.six) out.push({ ...base, key: `six:${s.id}`, start: s.start, end: s.end, room: s.room, source: "six" });
+    for (const e of exam.edunex)
+      if (e.start !== null) out.push({ ...base, key: `edunex:${e.id}`, start: e.start, end: e.end ?? e.start, room: null, source: "edunex" });
   }
   return out;
 }
@@ -213,8 +238,8 @@ export const examAlerts: Detector = {
         target: { screen: "exam", examId: exam.examId },
       }));
   },
-  plan({ get }) {
-    return datedExams(get).flatMap((exam) => {
+  plan({ get, now }) {
+    return remindedSittings(datedExams(get), now).flatMap(({ exam, after }) => {
       const day = dayStart(wibDay(exam.start));
       const common = { kind: "exam", source: exam.source, body: examBody(exam), target: { screen: "exam", examId: exam.examId } } as const;
       const title = (key: StringKey) => ({ key, vars: { ...kindVars(exam.kind), course: exam.code } });
@@ -240,10 +265,35 @@ export const examAlerts: Detector = {
           until: exam.start,
           title: title("alert.examToday"),
         });
-      return reminders;
+      // The next sitting's, once the first is over: none from before it ended ("seminggu lagi" right after the exam).
+      return reminders.filter((reminder) => reminder.at >= after);
     });
   },
 };
+
+/**
+ * The sittings worth reminding of. An exam's SIX sittings (a UTS or UAS SIX lists in both weeks of the exam period) are
+ * one exam: only the first not over yet, with when the one before it ended (`after`). Edunex's each stand alone.
+ */
+function remindedSittings(exams: readonly DatedExam[], now: number): { exam: DatedExam; after: number }[] {
+  const out: { exam: DatedExam; after: number }[] = [];
+  const bySix = new Map<string, DatedExam[]>();
+  for (const exam of exams) {
+    if (exam.source !== "six") {
+      out.push({ exam, after: Number.NEGATIVE_INFINITY });
+      continue;
+    }
+    const list = bySix.get(exam.examId);
+    if (list) list.push(exam);
+    else bySix.set(exam.examId, [exam]);
+  }
+  for (const list of bySix.values()) {
+    list.sort((a, b) => a.start - b.start);
+    const next = list.findIndex((exam) => exam.end > now);
+    if (next >= 0) out.push({ exam: list[next]!, after: next > 0 ? list[next - 1]!.end : Number.NEGATIVE_INFINITY });
+  }
+  return out;
+}
 
 /** "10:00–11:30": the start and end of what starts soon. */
 const span = (start: number, end: number) => `${clockTime(start)}–${clockTime(end)}`;

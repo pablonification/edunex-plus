@@ -22,20 +22,21 @@ import { isEmptyDay, minuteOfDay, type ScheduleDay, scheduleDays, shiftDay, term
 import { useParam } from "../../nav";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
-import { StatusLine, SyncPanel, useSignIn, useSyncText } from "../../shell/source-status";
+import { StatusLine, SyncPanel, TabActions, useSignIn, useSyncText } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
-import { Button, IconButton } from "../../ui/controls";
+import { Button } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { useReduceMotion } from "../../ui/motion";
+import { Part } from "../../ui/parts";
 import { Text } from "../../ui/text";
-import { space, TOUCH, useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 import { PhoneCalendarSync, useCalendarSync, useShareIcs } from "./calendar-sync";
 import { useDayFormat, useToday } from "./clock";
-import { DayView, HOUR, hoursOf } from "./day";
+import { DayView, HOUR, hoursOf, type NextClass } from "./day";
 import { useAgendaInput } from "./input";
 import { useScheduleSheets } from "./sheets";
 import { WeekStrip } from "./strip";
@@ -82,7 +83,7 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   }, []);
   const timetableChanged = useChangedPage(["six.schedule"]);
   const waiting = !input || (!input.six && (six.state === "connecting" || six.state === "live") && !timetableChanged);
-  usePerfDrawn(!waiting, "tab");
+  usePerfDrawn(!waiting);
 
   const monday = weekStart(picked);
   const week = useMemo(() => Array.from({ length: 7 }, (_, i) => shiftDay(monday, i)), [monday]);
@@ -91,7 +92,17 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   const day = byDay.get(picked);
   const covered = new Set(input?.months ?? []);
   const free = Boolean(input?.six && day && isEmptyDay(day) && !day.holiday && covered.has(picked.slice(0, 7)) && weekday(picked) < 5);
-
+  // The first class after the day picked, for an empty day's way on: its card under "Berikutnya".
+  const next = useMemo((): NextClass | null => {
+    if (!input) return null;
+    let first: NextClass | null = null;
+    for (const s of input.schedule)
+      if (wibDay(s.start) > picked && (first === null || s.start < first.start))
+        first = { start: s.start, end: s.end, code: s.courseCode, name: s.courseName, room: s.room };
+    for (const m of [...input.outside, ...(input.edunex ?? [])])
+      if (wibDay(m.start) > picked && (first === null || m.start < first.start)) first = { start: m.start, end: m.end, code: m.code, name: null, room: null };
+    return first;
+  }, [input, picked]);
   // A class tapped: Beranda's sheet; anything else, Jadwal's own (./sheets.tsx).
   const { open, sheets } = useScheduleSheets();
 
@@ -122,7 +133,8 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   }, [pick]);
 
   return (
-    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: v.card }}>
+    // On the grey page every tab has (round 3: Jadwal alone was white), the day's blocks in their tints on it.
+    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: v.page }}>
       <ScheduleHeader monday={monday} picked={picked} onToday={() => pick(today, today > picked ? 1 : -1)} />
       {waiting || !input || !day ? (
         <Loading />
@@ -138,16 +150,27 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
             />
           </Rise>
           <Notes six={input.six} />
-          <DayScroll
-            day={day}
-            today={today}
-            direction={direction}
-            onSwipe={(by) => pick(shiftDay(picked, by), by)}
-            onRefresh={onRefresh}
-            refreshing={refreshing}
-          >
-            <DayView day={day} courses={courses} six={input.six} free={free} onPick={open} />
-          </DayScroll>
+          {/* The day's hours under the strip: a part of its own on a first draw ahead (../../ui/parts.tsx). */}
+          <Part at={1} fallback={<View style={{ flex: 1 }} />}>
+            <DayScroll
+              day={day}
+              today={today}
+              direction={direction}
+              onSwipe={(by) => pick(shiftDay(picked, by), by)}
+              onRefresh={onRefresh}
+              refreshing={refreshing}
+            >
+              <DayView
+                day={day}
+                courses={courses}
+                six={input.six}
+                free={free}
+                onPick={open}
+                next={next}
+                onNext={next === null ? undefined : () => pick(wibDay(next.start), 1)}
+              />
+            </DayScroll>
+          </Part>
         </>
       )}
       {sheets}
@@ -216,7 +239,7 @@ function DayScroll({
       <ScrollView
         ref={scroll}
         collapsable={false}
-        style={{ flex: 1, borderTopWidth: 1, borderTopColor: theme.v4.line }}
+        style={{ flex: 1 }}
         contentOffset={{ x: 0, y }}
         contentContainerStyle={{ flexGrow: 1 }}
         refreshControl={
@@ -255,9 +278,12 @@ function openAt(day: ScheduleDay, today: string, now: number): number {
 }
 
 /**
- * Jadwal's top bar: the month of the week on screen as its one title (Plus Jakarta Sans), the term's week quietly
- * under it ("Minggu ke-7 · 5–11 Okt") with the data's status only when it says something; then "Hari ini" when away
- * from today, the month and ⋮. A tap on the title opens the sources' sheet, as on every tab.
+ * Jadwal's top bar: the month of the week on screen as its one title (Plus Jakarta Sans; another year's as "Jan 2027"),
+ * the term's week quietly under it ("Minggu ke-7"; the week strip under the bar shows its days, so their range is said
+ * only when the week has no number), with the data's status only when it says something. Away from today, "Hari ini"
+ * as a small text button on the week's line (round 3's third review: it used to take ⋮'s place, and ⋮ went missing):
+ * the bar keeps the title, ⋮ and every tab's three, so the month stays whole at a large font. A tap on the month or the
+ * status opens the sources' sheet, as on every tab.
  */
 function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: string; onToday: () => void }) {
   const t = useT();
@@ -270,38 +296,56 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const sync = useSyncText();
   const [panel, setPanel] = useState(false);
   const noon = Date.parse(`${picked}T12:00:00+07:00`);
+  const otherYear = picked.slice(0, 4) !== today.slice(0, 4);
   const month = new Intl.DateTimeFormat(lang === "id" ? "id-ID" : "en-GB", {
-    month: "long",
-    ...(picked.slice(0, 4) !== today.slice(0, 4) ? { year: "numeric" } : {}),
+    month: otherYear ? "short" : "long",
+    ...(otherYear ? { year: "numeric" } : {}),
     timeZone: "Asia/Jakarta",
   }).format(noon);
   const n = input ? termWeek(input.events, monday) : null;
   const range = f.dayRange(monday, shiftDay(monday, 6));
   const place = n ? t("schedule.weekOf", { n, range }) : range;
+  const away = picked !== today;
   return (
-    <View style={{ backgroundColor: v.card, paddingTop: insets.top }}>
+    <View style={{ backgroundColor: v.page, paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
-        <Pressable
-          onPress={() => setPanel(true)}
-          accessibilityRole="button"
-          accessibilityLabel={`${month}, ${place}. ${t("sync.title")}: ${sync}`}
-          testID="action.syncStatus"
-          style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center" }}
-        >
-          <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
-            {month}
-          </Text>
-          <Text size="bodyMedium" tabular numberOfLines={1} testID="label.place" style={{ color: v.muted, marginTop: -2 }}>
-            {place}
-          </Text>
-          <StatusLine />
-        </Pressable>
-        {picked !== today && (
-          <Button size="sm" variant="tonal" onPress={onToday} label={t("mobile.schedule.todayLabel")} testID="action.today">
-            {t("mobile.schedule.today")}
-          </Button>
-        )}
-        <ScheduleActions />
+        <View style={{ flex: 1, minWidth: 0, justifyContent: "center" }}>
+          <Pressable
+            onPress={() => setPanel(true)}
+            accessibilityRole="button"
+            accessibilityLabel={`${month}, ${place}. ${t("sync.title")}: ${sync}`}
+            testID="action.syncStatus"
+            hitSlop={{ top: 10, bottom: 8, right: 12 }}
+            style={{ alignSelf: "flex-start", maxWidth: "100%" }}
+          >
+            <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
+              {month}
+            </Text>
+          </Pressable>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], marginTop: -2 }}>
+            <Text size="bodyMedium" tabular numberOfLines={1} importantForAccessibility="no" testID="label.place" style={{ color: v.muted, flexShrink: 1 }}>
+              {n ? t("mobile.schedule.week", { n }) : range}
+            </Text>
+            {away && (
+              <Pressable
+                onPress={onToday}
+                accessibilityRole="button"
+                accessibilityLabel={t("mobile.schedule.todayLabel")}
+                testID="action.today"
+                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
+              >
+                <Text size="labelLarge" weight="semibold" style={{ color: v.brandInk }}>
+                  {t("mobile.schedule.today")}
+                </Text>
+              </Pressable>
+            )}
+          </View>
+          <Pressable onPress={() => setPanel(true)} style={{ alignSelf: "flex-start" }} importantForAccessibility="no-hide-descendants">
+            <StatusLine />
+          </Pressable>
+        </View>
+        <ScheduleMenu />
+        <TabActions />
       </View>
       <SyncPanel open={panel} onClose={() => setPanel(false)} />
     </View>
@@ -351,8 +395,8 @@ function CalendarProblem({ problem, onRetry }: { problem: "denied" | "failed"; o
   );
 }
 
-/** The top bar's own: the month, and ⋮ with the reminder before class, the phone's calendar and the .ics. */
-function ScheduleActions() {
+/** The top bar's own ⋮ (while today is on screen): the month, the reminder before class, the phone's calendar, the .ics. */
+function ScheduleMenu() {
   const t = useT();
   const v = useTheme().v4;
   const bridge = useBridge();
@@ -369,52 +413,54 @@ function ScheduleActions() {
     if (!sync.on) wasOn.current = false;
   }, [sync.on, sync.written, sync.events, t]);
   return (
-    <>
-      <IconButton label={t("mobile.schedule.month")} onPress={() => router.push("/schedule-month")} testID="action.month">
-        <Icons.Calendar size={24} color={v.fg} />
-      </IconButton>
-      <OverflowMenu
-        testID="action.scheduleMenu"
-        choices={[
-          {
-            label: t("mobile.schedule.remind"),
-            hint: t("mobile.schedule.remind.hint"),
-            icon: <Icons.Bell size={20} color={v.muted} />,
-            checked: classSoonAlerts,
-            onPress: () => {
-              const next = !classSoonAlerts;
-              void bridge.invoke("settings.update", { classSoonAlerts: next }).then(
-                () => toast(t(next ? "mobile.schedule.remind.on" : "mobile.schedule.remind.off")),
-                () => undefined,
-              );
-              // A reminder needs Android's permission for notifications: asked for here, where it's wanted.
-              if (next)
-                void Notifications.getPermissionsAsync()
-                  .then((now) => (!now.granted && now.canAskAgain ? Notifications.requestPermissionsAsync() : now))
-                  .catch(() => undefined);
-            },
-            testID: "action.remindBeforeClass",
+    <OverflowMenu
+      testID="action.scheduleMenu"
+      label={t("mobile.schedule.menu")}
+      choices={[
+        {
+          label: t("mobile.schedule.month"),
+          icon: <Icons.Calendar size={20} color={v.muted} />,
+          onPress: () => router.push("/schedule-month"),
+          testID: "action.month",
+        },
+        {
+          label: t("mobile.schedule.remind"),
+          hint: t("mobile.schedule.remind.hint"),
+          icon: <Icons.Bell size={20} color={v.muted} />,
+          checked: classSoonAlerts,
+          onPress: () => {
+            const next = !classSoonAlerts;
+            void bridge.invoke("settings.update", { classSoonAlerts: next }).then(
+              () => toast(t(next ? "mobile.schedule.remind.on" : "mobile.schedule.remind.off")),
+              () => undefined,
+            );
+            // A reminder needs Android's permission for notifications: asked for here, where it's wanted.
+            if (next)
+              void Notifications.getPermissionsAsync()
+                .then((now) => (!now.granted && now.canAskAgain ? Notifications.requestPermissionsAsync() : now))
+                .catch(() => undefined);
           },
-          {
-            label: t("mobile.calendar.sync"),
-            hint: t("mobile.calendar.sync.hint"),
-            icon: <Icons.Smartphone size={20} color={v.muted} />,
-            checked: sync.on,
-            onPress: () => {
-              if (sync.on) void sync.turnOff().then(() => toast(t("mobile.calendar.sync.off")));
-              else sync.turnOn();
-            },
-            testID: "action.calendarSync",
+          testID: "action.remindBeforeClass",
+        },
+        {
+          label: t("mobile.calendar.sync"),
+          hint: t("mobile.calendar.sync.hint"),
+          icon: <Icons.Smartphone size={20} color={v.muted} />,
+          checked: sync.on,
+          onPress: () => {
+            if (sync.on) void sync.turnOff().then(() => toast(t("mobile.calendar.sync.off")));
+            else sync.turnOn();
           },
-          {
-            label: t("mobile.calendar.share"),
-            icon: <Icons.ArrowUpRight size={20} color={v.muted} />,
-            onPress: () => void share().catch(() => toast(t("mobile.calendar.shareFailed"), "danger")),
-            testID: "action.shareIcs",
-          },
-        ]}
-      />
-    </>
+          testID: "action.calendarSync",
+        },
+        {
+          label: t("mobile.calendar.share"),
+          icon: <Icons.ArrowUpRight size={20} color={v.muted} />,
+          onPress: () => void share().catch(() => toast(t("mobile.calendar.shareFailed"), "danger")),
+          testID: "action.shareIcs",
+        },
+      ]}
+    />
   );
 }
 

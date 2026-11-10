@@ -4,10 +4,11 @@
 // (Android's ripple, then the work's spinner).
 import { requireNativeView, requireOptionalNativeModule } from "expo";
 import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, View, type ViewStyle } from "react-native";
+import { Animated, Platform, Pressable, ScrollView, StyleSheet, Switch as SystemSwitch, View, type ViewStyle } from "react-native";
 import { Spinner } from "./display";
 import { Icons } from "./icons";
 import { BUSY_OPACITY } from "./palette";
+import { iosPressed } from "./press";
 import { BUTTON_HEIGHT, CHIP_HEIGHT, SEGMENT_HEIGHT, SWITCH, SWITCH_SLOP, slopY } from "./sizes";
 import { Text } from "./text";
 import { shape, space, TOUCH, useTheme } from "./theme";
@@ -73,19 +74,22 @@ export function Button({
       // 48 to touch however small it looks.
       hitSlop={slopY(height)}
       android_ripple={{ color: ripple, foreground: true }}
-      style={[
-        styles.button,
-        {
-          height,
-          paddingHorizontal: size === "sm" ? space[3] : size === "lg" ? space[6] : space[4],
-          paddingLeft: icon || busy ? (size === "sm" ? space[2] + 2 : space[4]) : undefined,
-          backgroundColor: bg,
-          borderColor: border ?? "transparent",
-          borderWidth: border ? 1 : 0,
-          // Busy keeps its colours beside its turning spinner: at work, not off (BUSY_OPACITY, checked for contrast).
-          opacity: busy ? BUSY_OPACITY : 1,
-        },
-        style,
+      style={({ pressed }) => [
+        [
+          styles.button,
+          {
+            height,
+            paddingHorizontal: size === "sm" ? space[3] : size === "lg" ? space[6] : space[4],
+            paddingLeft: icon || busy ? (size === "sm" ? space[2] + 2 : space[4]) : undefined,
+            backgroundColor: bg,
+            borderColor: border ?? "transparent",
+            borderWidth: border ? 1 : 0,
+            // Busy keeps its colours beside its turning spinner: at work, not off (BUSY_OPACITY, checked for contrast).
+            opacity: busy ? BUSY_OPACITY : 1,
+          },
+          style,
+        ],
+        iosPressed(pressed),
       ]}
     >
       {busy ? <Spinner size={size === "lg" ? 20 : 16} color={fg} /> : icon}
@@ -133,7 +137,10 @@ export function IconButton({
       accessibilityLabel={label}
       accessibilityState={{ disabled, ...(selected ? { selected } : {}) }}
       android_ripple={{ color: theme.color.selected, borderless: true, radius: 20 }}
-      style={[styles.icon, selected && { backgroundColor: theme.color.secondaryContainer }, disabled && { opacity: 0.38 }]}
+      style={({ pressed }) => [
+        [styles.icon, selected && { backgroundColor: theme.color.secondaryContainer }, disabled && { opacity: 0.38 }],
+        iosPressed(pressed),
+      ]}
     >
       {children}
     </Pressable>
@@ -165,7 +172,35 @@ const NativeSwitch: ComponentType<NativeSwitchProps> | null = requireOptionalNat
  * moves it at once and asks `onChange`; a value the screen didn't take (an error) puts it back.
  */
 export function Switch(props: { value: boolean; onChange: (value: boolean) => void; label: string; testID?: string; disabled?: boolean }) {
+  if (Platform.OS === "ios") return <IosSwitch {...props} />;
   return NativeSwitch ? <MaterialSwitch {...props} Native={NativeSwitch} /> : <DrawnSwitch {...props} />;
+}
+
+/** iOS's own switch (UISwitch, React Native's Switch): MaterialSwitch is Android's only. */
+function IosSwitch({
+  value,
+  onChange,
+  label,
+  testID,
+  disabled,
+}: {
+  value: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+  testID?: string;
+  disabled?: boolean;
+}) {
+  const c = useTheme().color;
+  return (
+    <SystemSwitch
+      testID={testID}
+      value={value}
+      onValueChange={onChange}
+      disabled={disabled}
+      accessibilityLabel={label}
+      trackColor={{ true: c.primary, false: c.surfaceContainerHighest }}
+    />
+  );
 }
 
 function MaterialSwitch({
@@ -297,12 +332,15 @@ export function Segmented<T extends string>({
   onChange,
   label,
   testID,
+  check = true,
 }: {
   options: readonly { value: T; label: string; count?: number }[];
   value: T;
   onChange: (value: T) => void;
   label: string;
   testID?: string;
+  /** The check beside the picked one; false where its fill says it alone (Tugas: the fill and a tick said it twice). */
+  check?: boolean;
 }) {
   const theme = useTheme();
   const c = theme.color;
@@ -320,9 +358,12 @@ export function Segmented<T extends string>({
             // 40 to see, 48 to touch.
             hitSlop={slopY(SEGMENT_HEIGHT)}
             android_ripple={{ color: c.selected }}
-            style={[styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }]}
+            style={({ pressed }) => [
+              [styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }],
+              iosPressed(pressed),
+            ]}
           >
-            {on && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
+            {on && check && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
             <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "fg"} numberOfLines={2} style={{ flexShrink: 1, textAlign: "center" }}>
               {option.label}
               {option.count !== undefined && (
@@ -359,12 +400,15 @@ export function Chip({
   children,
   testID,
   label,
+  check = true,
 }: {
   selected: boolean;
   onPress: () => void;
   children: ReactNode;
   testID?: string;
   label?: string;
+  /** The check on the picked chip; false where its fill says it alone. */
+  check?: boolean;
 }) {
   const theme = useTheme();
   const c = theme.color;
@@ -377,14 +421,20 @@ export function Chip({
       accessibilityState={{ selected }}
       hitSlop={slopY(CHIP_HEIGHT)}
       android_ripple={{ color: c.selected }}
-      style={[
-        styles.chip,
-        selected ? { backgroundColor: c.secondaryContainer, borderColor: c.secondaryContainer, paddingLeft: space[2] } : { borderColor: c.outline },
+      style={({ pressed }) => [
+        [
+          styles.chip,
+          selected
+            ? { backgroundColor: c.secondaryContainer, borderColor: c.secondaryContainer, paddingLeft: check ? space[2] : space[4] }
+            : { borderColor: c.outline },
+        ],
+        iosPressed(pressed),
       ]}
     >
-      {selected && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
+      {selected && check && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
       {typeof children === "string" ? (
-        <Text size="labelLarge" tone={selected ? "onSecondaryContainer" : "muted"}>
+        // Never cut short: a chip row scrolls, so a chip keeps its whole name.
+        <Text size="labelLarge" tone={selected ? "onSecondaryContainer" : "muted"} style={{ flexShrink: 0 }}>
           {children}
         </Text>
       ) : (

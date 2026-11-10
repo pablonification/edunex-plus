@@ -3,9 +3,10 @@
 // rules and timings. The Student types their password and 2FA code only on Microsoft's page. Once
 // Microsoft hands back, the page is covered while the app reads the session (Edunex's token from
 // its website's storage, SIX's cookie from the web views' cookie store), then it closes. A quiet
-// try (the other system, right after the Student signed in to one, on the same Microsoft session)
-// runs out of sight and gives up on any page that waits for the Student. The desktop's
-// signInToBoth (src/desktop/signin-both.ts) drives both, unchanged.
+// try (the other system, right after the Student signed in to one, on the same Microsoft session; or
+// a system whose session ended, brought back by ../host/resignin.ts) runs out of sight and gives up
+// on any page that waits for the Student, never typing or tapping anything. The desktop's
+// signInToBoth (src/desktop/signin-both.ts) drives both.
 
 import { StatusBar } from "expo-status-bar";
 import { type ComponentType, type Ref, useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
@@ -21,6 +22,9 @@ import { EngineError, isEngineError } from "../../../src/engine/errors";
 import { EDUNEX_SIGN_IN_URL, EDUNEX_SITE_HOST, readSignInToken } from "../../../src/engine/sources/edunex/signin";
 import { isSixAfterSignIn, readSixSession, SIX_LOGIN_PAGE, SIX_SIGN_IN_URL, SIX_SITE_HOST } from "../../../src/engine/sources/six/signin";
 import { cookiesFor } from "../../modules/web-cookies";
+import { guardMessage, guardScript, navigationAllowed } from "../host/guard";
+import { noServiceWorkerScript } from "../host/page-fixes";
+import { R3_GUARD } from "../host/version";
 import { IconButton } from "../ui/controls";
 import { Icons } from "../ui/icons";
 import { reduceMotion } from "../ui/motion";
@@ -50,6 +54,15 @@ const READ_SCRIPT: Record<Source, string> = {
   edunex: `(function(){try{if(location.host===${JSON.stringify(EDUNEX_SITE_HOST)})window.ReactNativeWebView.postMessage(JSON.stringify({auth:window.localStorage.getItem('auth')}));}catch(e){}})();true;`,
   six: `(function(){try{window.ReactNativeWebView.postMessage(JSON.stringify({signedIn:Boolean(document.querySelector('a[href^="/logout"]'))}));}catch(e){}})();true;`,
 };
+
+/**
+ * A quiet try's look at the page: whether it shows something to fill in or pick (Microsoft's account or password
+ * field, its account list, a 2FA code, "Stay signed in?"), which only the Student may answer. Read twice in a row
+ * (a page that's about to move on may draw its form for a moment) and off the system's own pages, it gives up at once.
+ */
+const ASKS_SCRIPT = `(function(){try{var asks=false,found=document.querySelectorAll('input,select,textarea,[role="listbox"],#tilesHolder');for(var i=0;i<found.length&&!asks;i++){var el=found[i],type=(el.getAttribute('type')||'').toLowerCase();if(type==='hidden'||type==='submit'||type==='button'||type==='image'||type==='reset')continue;var box=el.getBoundingClientRect(),look=window.getComputedStyle(el);if(box.width>0&&box.height>0&&look.visibility!=='hidden'&&look.display!=='none')asks=true;}window.ReactNativeWebView.postMessage(JSON.stringify({asks:asks,host:location.host}));}catch(e){}})();true;`;
+/** Reads in a row a quiet try sees a page asking the Student for something before it gives up. */
+const ASKS_READS = 2;
 
 interface Run {
   id: number;
@@ -140,7 +153,14 @@ function SignInPage({ run }: { run: Run }) {
   const [phase, setPhase] = useState<"student" | "finishing" | "slow">("student");
   // The page actually open, beside the lock: where the Student is typing (Microsoft's, ITB's, SIX's).
   const [host, setHost] = useState(() => new URL(system.start).host);
-  const state = useRef({ done: false, leftSystem: false, phase: "student" as "student" | "finishing" | "slow", url: system.start, signedInAt: 0 });
+  const state = useRef({
+    done: false,
+    leftSystem: false,
+    phase: "student" as "student" | "finishing" | "slow",
+    url: system.start,
+    signedInAt: 0,
+    asks: 0,
+  });
   const timers = useRef<{ slow?: ReturnType<typeof setTimeout>; still?: ReturnType<typeof setTimeout>; limit?: ReturnType<typeof setTimeout> }>({});
   const quiet = run.quiet;
 
@@ -200,7 +220,7 @@ function SignInPage({ run }: { run: Run }) {
 
   // Reads the session every 400 ms, as the desktop does.
   useEffect(() => {
-    const poller = setInterval(() => view.current?.injectJavaScript(READ_SCRIPT[run.source]), READ_EVERY_MS);
+    const poller = setInterval(() => view.current?.injectJavaScript(READ_SCRIPT[run.source] + (run.quiet ? ASKS_SCRIPT : "")), READ_EVERY_MS);
     if (run.quiet) timers.current.limit = setTimeout(giveUp, QUIET_LIMIT_MS);
     return () => clearInterval(poller);
   }, [run, giveUp]);
@@ -224,12 +244,20 @@ function SignInPage({ run }: { run: Run }) {
   }, [quiet, giveUp]);
 
   const onMessage = useCallback(
-    (event: WebViewMessageEvent) => {
+    async (event: WebViewMessageEvent) => {
+      if (R3_GUARD) guardMessage(event.nativeEvent.data);
       if (state.current.done) return;
-      let data: { auth?: unknown; signedIn?: unknown };
+      let data: { auth?: unknown; signedIn?: unknown; asks?: unknown; host?: unknown };
       try {
         data = JSON.parse(event.nativeEvent.data);
       } catch {
+        return;
+      }
+      // A quiet try never types or taps anything: a page asking the Student for something ends it at once.
+      if ("asks" in data) {
+        const offSystem = typeof data.host === "string" && !system.hosts.includes(data.host);
+        state.current.asks = run.quiet && data.asks === true && offSystem ? state.current.asks + 1 : 0;
+        if (state.current.asks >= ASKS_READS) giveUp();
         return;
       }
       try {
@@ -239,7 +267,9 @@ function SignInPage({ run }: { run: Run }) {
           return;
         }
         if (run.source === "six" && data.signedIn === true && isSixAfterSignIn(state.current.url)) {
-          const found = readSixSession(cookiesFor("https://six.itb.ac.id/"));
+          // Android's cookie store answers at once, iOS's later: another page message may have finished it meanwhile.
+          const found = readSixSession(await cookiesFor("https://six.itb.ac.id/"));
+          if (state.current.done) return;
           if (found) return finish(found);
           state.current.signedInAt ||= Date.now();
           if (Date.now() - state.current.signedInAt > COOKIE_GRACE_MS)
@@ -249,7 +279,7 @@ function SignInPage({ run }: { run: Run }) {
         if (isEngineError(error)) finish(null, run.quiet ? undefined : error);
       }
     },
-    [run, finish],
+    [run, system, finish, giveUp],
   );
 
   const hidden = quiet || phase === "finishing";
@@ -291,7 +321,11 @@ function SignInPage({ run }: { run: Run }) {
           ref={view}
           testID={`signin.${run.source}`}
           source={{ uri: system.start }}
+          // Edunex's page needs a service worker to start (../host/page-fixes.ts). A QA build's sign-in signs in and
+          // nothing else (../host/guard.ts): no other write, no signing out.
+          injectedJavaScriptBeforeContentLoaded={R3_GUARD ? `${guardScript}\n${noServiceWorkerScript}` : noServiceWorkerScript}
           onShouldStartLoadWithRequest={(request) => {
+            if (R3_GUARD && !navigationAllowed(request.url)) return false;
             if (request.isTopFrame !== false) going(request.url);
             return true;
           }}

@@ -7,6 +7,7 @@ import { useBridge } from "../../../src/app/store";
 import { Route } from "../../../src/core/route";
 import type { NoticeData } from "../host/notifier";
 import { useNav } from "../nav";
+import { afterFirstFrame } from "./first-frame";
 
 // Shown while the app is open too, as the desktop shows them over its window.
 Notifications.setNotificationHandler({
@@ -29,9 +30,13 @@ export function NotificationTaps() {
       }
       if (route.success) nav.go(route.data);
     };
-    open(Notifications.getLastNotificationResponse());
+    // The tap that opened the app, once Beranda's first frame is up: the splash doesn't wait on asking Android for it.
+    const asked = afterFirstFrame(() => open(Notifications.getLastNotificationResponse()));
     const subscription = Notifications.addNotificationResponseReceivedListener(open);
-    return () => subscription.remove();
+    return () => {
+      asked();
+      subscription.remove();
+    };
   }, [nav, bridge]);
   return null;
 }

@@ -16,7 +16,7 @@ import { type SignInWindows, signInToBoth } from "../../../src/desktop/signin-bo
 import type { PlannedAlert } from "../../../src/engine/alerts/detector";
 import { AppLog } from "../../../src/engine/app-log";
 import { type Clock, systemClock } from "../../../src/engine/clock";
-import { createEngine, type Engine } from "../../../src/engine/engine";
+import { createEngine, type Engine, type StartLater } from "../../../src/engine/engine";
 import type { Transport } from "../../../src/engine/http/transport";
 import type { Storage, Vault } from "../../../src/engine/store/storage";
 import { clearOrigin, clearWebData, cookiesFor, setCookie } from "../../modules/web-cookies";
@@ -28,12 +28,14 @@ import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
 import { type PhoneReminders, phoneReminders } from "./reminders";
 import { phoneReportHandlers } from "./report";
+import { quietResignIn } from "./resignin";
+import { sessionLog } from "./session-log";
 import { setSettling } from "./settling";
 import { PhoneStorage } from "./storage";
 import { phoneTaskHandlers } from "./tasks";
 import { phoneTransport } from "./transport";
 import { PhoneVault } from "./vault";
-import { APP_VERSION, DEMO } from "./version";
+import { APP_VERSION, DEMO, R3_GUARD, SHAPES } from "./version";
 
 export interface Host {
   engine: Engine;
@@ -47,8 +49,11 @@ export interface Host {
   reminders: PhoneReminders;
   /** Whether the engine's feeds are running (the screens started it, or a background sync). */
   running(): boolean;
-  /** Starts the feeds once; later calls do nothing. */
-  start(): void;
+  /**
+   * Starts the feeds once; later calls do nothing. `inFront`: the screens just drew (app.ready), so what the start can
+   * leave for later waits a few seconds and goes a slice at a time (START_LATER); a background sync's start does it all.
+   */
+  start(inFront?: boolean): void;
   stop(): void;
 }
 
@@ -114,6 +119,28 @@ export function host(): Promise<Host> {
 async function makeHost(): Promise<Host> {
   const began = Date.now();
   const world = DEMO ? await demoWorld() : await realWorld();
+  const made = Date.now();
+  // Where the start's time goes, for the "[startup] host load" line: the disk's and the keystore's last answer.
+  const waits = { disk: 0, diskDoneAt: 0, keystore: 0, keystoreDoneAt: 0 };
+  const timedStorage: Storage = {
+    read: (key) =>
+      timed(world.storage.read(key), () => {
+        waits.disk++;
+        waits.diskDoneAt = Date.now();
+      }),
+    write: (key, text) => world.storage.write(key, text),
+    remove: (key) => world.storage.remove(key),
+    list: (prefix) => world.storage.list(prefix),
+  };
+  const timedVault: Vault = {
+    get: (name) =>
+      timed(world.vault.get(name), () => {
+        waits.keystore++;
+        waits.keystoreDoneAt = Date.now();
+      }),
+    set: (name, value) => world.vault.set(name, value),
+    delete: (name) => world.vault.delete(name),
+  };
   const toAndroid = !DEMO || world.notify === true;
   const log = new AppLog(() => world.clock.now());
   // Each step of the engine names what the JS thread was doing, should it stall ("[perf] js-block", ../perf.ts).
@@ -138,12 +165,33 @@ async function makeHost(): Promise<Host> {
   const send = (event: Event) => {
     for (const listener of listeners) listener(event);
   };
+  // A QA build says on Android's log whether each session is live, ended or none (./session-log.ts).
+  const sessions = R3_GUARD ? sessionLog() : null;
+  // A session that ended while Microsoft's is still alive: signed in again out of sight, the screens never told
+  // (./resignin.ts). Nothing is tried until the sign-ins below are ready.
+  let both: ReturnType<typeof signInToBoth> | null = null;
+  const resign = quietResignIn({
+    now: () => Date.now(),
+    inFront: () => both !== null && AppState.currentState === "active",
+    status: (source) => (both ? engine.snapshot().statuses.find((status) => status.source === source) : undefined),
+    retry: (source) => both?.retry(source) ?? Promise.resolve(false),
+    show: (status) => send({ type: "status", status }),
+    later: (ms, fn) => {
+      const timer = setTimeout(fn, ms);
+      return () => clearTimeout(timer);
+    },
+    log: (line) => {
+      console.info(line);
+      log.add("info", "resignin", line.replace(/^\[resignin\] /, ""));
+    },
+  });
   const engine = createEngine({
-    // The demo says on Android's log what its sync reads (../perf.ts perfSync, W2's numbers); the real app doesn't.
-    transport: DEMO ? traced(world.transport) : world.transport,
+    // The demo says on Android's log what its sync reads (../perf.ts perfSync, W2's numbers); the real app doesn't. Both
+    // name the site that just answered, for a stall right after (its page being read).
+    transport: answered(DEMO ? traced(world.transport) : world.transport),
     clock: world.clock,
-    storage: world.storage,
-    vault: world.vault,
+    storage: timedStorage,
+    vault: timedVault,
     version: APP_VERSION,
     // A frame's turn for the screens in the middle of long work (SIX's 300 KB catalog pages): they share this thread.
     yieldToScreens: () => new Promise((resolve) => setTimeout(resolve, 0)),
@@ -151,6 +199,12 @@ async function makeHost(): Promise<Host> {
       if (DEMO) traceEvent(event);
       // A stall right after the screens hear of a dataset is likely their redraw for it: its name labels the stall.
       if (event.type === "dataset") perfDoing(`→ ${event.dataset.name}`);
+      if (event.type === "status") {
+        sessions?.saw(event.status);
+        // The screens hear of it from ./resignin.ts: held back while a quiet try may bring the session back.
+        resign.saw(event.status);
+        return;
+      }
       if (event.type === "settings" && event.settings.lang !== lang) {
         lang = event.settings.lang;
         void prepareChannels(lang);
@@ -177,17 +231,28 @@ async function makeHost(): Promise<Host> {
     os: () => `Android ${Platform.Version}`,
     // Opened many times a day: each start shows what's saved and reads only what's due (W2 in PROGRESS.md).
     startDueOnly: true,
+    // A pull to refresh reads what's on Beranda, not SIX's records and Edunex's materials again within the hour.
+    quickRefresh: true,
+    // What this build saved loads without its schemas checked again: checking them all was most of the start's wait.
+    shapes: SHAPES,
   });
+  const loading = Date.now();
   // Nothing saved yet: the app's first run on this phone, in the phone's own language (the desktop starts in English).
-  const firstRun = (await world.storage.read("state.json")) === null;
-  await engine.load();
+  // Asked beside the engine's own reads, not before them: one trip less to the disk ahead of the first frame.
+  const [saved] = await Promise.all([world.storage.read("state.json"), engine.load()]);
+  const firstRun = saved === null;
+  const loadEnded = Date.now();
+  sessions?.begin(engine.snapshot().statuses);
   if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
   lang = engine.snapshot().settings.lang;
   void prepareChannels(lang);
   const loaded = Date.now();
   // The demo's sign-in and first sync run after the first frame, as the real app reads after a sign-in: Beranda draws
   // at once and fills in (./settling.ts). The lab reads where the time goes from these lines.
-  console.info(`[startup] host load ${loaded - began}`);
+  const after = (at: number) => (at ? `+${at - loading}` : "none");
+  console.info(
+    `[startup] host load ${loaded - began} (world ${made - began}, engine.load ${loadEnded - loading}: ${waits.disk} files, last ${after(waits.diskDoneAt)}; ${waits.keystore} keystore, last ${after(waits.keystoreDoneAt)})`,
+  );
   if (world.prepare) {
     setSettling(true);
     void world.prepare(engine).then(
@@ -203,13 +268,19 @@ async function makeHost(): Promise<Host> {
   }
 
   // One Microsoft sign-in covers both systems, exactly as on the desktop.
-  const both = signInToBoth({ engine, send, windows: world.signInWindows, log });
+  both = signInToBoth({ engine, send, windows: world.signInWindows, log });
+  const signIns = both;
+  // A session that ended while the app was closed: tried now, and whenever the app comes back to the front.
+  resign.wake();
+  AppState.addEventListener("change", (state) => {
+    if (state === "active") resign.wake();
+  });
 
   let started = false;
-  const start = () => {
+  const start = (inFront = false) => {
     if (started) return;
     started = true;
-    engine.start();
+    engine.start(inFront ? startLater : undefined);
   };
   const stop = () => {
     if (!started) return;
@@ -237,12 +308,12 @@ async function makeHost(): Promise<Host> {
   const handlers = {
     ...phoneHandlers({
       engine,
-      signIn: (source) => both.signIn(source),
-      stopQuietSignIn: () => both.stopQuiet(),
+      signIn: (source) => signIns.signIn(source),
+      stopQuietSignIn: () => signIns.stopQuiet(),
       ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId), openPage: (url) => ui.openPage(url) },
       log,
       demo: DEMO,
-      ready: () => start(),
+      ready: () => start(true),
       forgetEverything: async () => {
         if (world.storage instanceof PhoneStorage) world.storage.clear();
         // Edunex's files the app downloaded, and everything ITB's and SIX's pages kept.
@@ -262,7 +333,7 @@ async function makeHost(): Promise<Host> {
           clearOrigin(EDUNEX_WEB);
         } else {
           // SIX's session, as Tandai Hadir's page holds it: each of SIX's cookies, expired.
-          for (const cookie of cookiesFor(`${SIX_WEB}/`)) await setCookie(`${SIX_WEB}/`, `${cookie.name}=; Max-Age=0; Path=/; Secure`);
+          for (const cookie of await cookiesFor(`${SIX_WEB}/`)) await setCookie(`${SIX_WEB}/`, `${cookie.name}=; Max-Age=0; Path=/; Secure`);
         }
       },
       notificationsAllowed: async () => (await Notifications.getPermissionsAsync()).granted,
@@ -286,6 +357,13 @@ async function makeHost(): Promise<Host> {
     // "Laporkan masalah" (./report.ts): the engine builds and scrubs it; nothing leaves until the Student says.
     ...phoneReportHandlers({ engine, log, demo: DEMO }),
   };
+  // The screens start from the engine's snapshot, with a session being brought back as they'd see it.
+  const snapshot = handlers["app.snapshot"];
+  if (snapshot)
+    handlers["app.snapshot"] = async (input) => {
+      const now = await snapshot(input);
+      return { ...now, statuses: resign.shown(now.statuses) };
+    };
   const api: BridgeApi = {
     invoke: (name, input) => answer(handlers, log, name, input),
     onEvent(listener) {
@@ -295,6 +373,60 @@ async function makeHost(): Promise<Host> {
     clockOffset: world.clockOffset(),
   };
   return { engine, api, ui, reminders, clockOffset: world.clockOffset, running: () => started, start, stop };
+}
+
+/**
+ * How long after app.ready each part of the engine's start that can wait does (ms): the feeds go at once (the network is
+ * the long wait), the rest once the screens' first seconds are over (the hidden tabs' first draws), each in a moment the
+ * JS thread is idle and apart from the widget's first drawing (./widget.ts, 8 s). Run with the screens drawing, the
+ * alerts' plan, its booking with Android and the restamp were part of a mid-range phone's 164–170 ms stall right after
+ * the start ("[perf] js-block … app.ready").
+ */
+const START_LATER: Record<Parameters<StartLater>[0], number> = { alerts: 4_000, restamp: 15_000, updates: 30_000 };
+
+/** The engine's start's later slices, each named for a stall right after ("engine: alerts"). */
+const startLater: StartLater = (what, run) => {
+  setTimeout(
+    () =>
+      whenIdle(() => {
+        perfDoing(`engine: ${what}`);
+        run();
+      }),
+    START_LATER[what],
+  );
+};
+
+/** `run` once the JS thread is idle (at most 2 s away), or at once where there's no idle callback. */
+function whenIdle(run: () => void): void {
+  const g = globalThis as { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number };
+  if (g.requestIdleCallback) g.requestIdleCallback(run, { timeout: 2_000 });
+  else run();
+}
+
+/** The sites by name, never by address: Android's log has no addresses of the real app's. */
+function siteOf(url: string): string {
+  const host = url.replace(/^https?:\/\//, "").replace(/[/:?].*$/, "");
+  if (host.includes("six.")) return "six";
+  if (host.includes("edunex")) return "edunex";
+  if (host.endsWith("itb.ac.id")) return "itb";
+  if (host.endsWith("github.com")) return "github";
+  return "a site";
+}
+
+/** Each answer names its site as what the JS thread does next (../perf.ts): reading its page is the stall after it. */
+function answered(transport: Transport): Transport {
+  return {
+    async request(request) {
+      const response = await transport.request(request);
+      perfDoing(`${siteOf(request.url)}'s answer`);
+      return response;
+    },
+  };
+}
+
+/** `promise`, with `done` called as it settles. */
+function timed<T>(promise: Promise<T>, done: () => void): Promise<T> {
+  return promise.finally(done);
 }
 
 /** Every request through `transport`, timed, as "[sync]" lines (demo builds). */

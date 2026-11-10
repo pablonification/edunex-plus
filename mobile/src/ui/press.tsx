@@ -2,7 +2,7 @@
 // Expressive's spring, on the UI thread; Android's ripple is left to plain rows and buttons. With Remove animations it
 // doesn't move. One target, one outcome: wrap the whole card or row.
 import type { ReactNode } from "react";
-import { type AccessibilityProps, type Insets, Pressable, type StyleProp, type ViewStyle } from "react-native";
+import { type AccessibilityProps, type Insets, Platform, Pressable, type StyleProp, type ViewStyle } from "react-native";
 import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { useReduceMotion } from "./motion";
 import { motion } from "./theme";
@@ -52,3 +52,14 @@ export function PressScale({
     </AnimatedPressable>
   );
 }
+
+/**
+ * What a plain row or button shows while pressed on an iPhone, which has no ripple: it dims, as UIKit's buttons and
+ * cells do. Android keeps its ripple (null there). `Pressable`'s style as a function: `style={({ pressed }) => [base,
+ * iosPressed(pressed)]}`.
+ */
+export function iosPressed(pressed: boolean): ViewStyle | null {
+  return pressed && Platform.OS === "ios" ? IOS_PRESSED : null;
+}
+
+const IOS_PRESSED: ViewStyle = { opacity: 0.55 };

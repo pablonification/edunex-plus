@@ -9,6 +9,7 @@ import { useT } from "../../../src/app/i18n";
 import { IconButton, Switch } from "./controls";
 import { Icons } from "./icons";
 import { reduceMotion } from "./motion";
+import { iosPressed } from "./press";
 import type { SheetChoice } from "./sheet";
 import { Text } from "./text";
 import { motion, shape, space, TOUCH, useTheme } from "./theme";
@@ -65,8 +66,11 @@ export function Menu({
     Animated.timing(grow, { toValue: 1, duration: motion.duration.short, easing: Easing.bezier(0.2, 0, 0, 1), useNativeDriver: true }).start();
   }, [grow, visible]);
   if (!anchor) return null;
-  // Its end on the button's end, under the button; above it when there's no room below.
+  // Its end on the button's end, under the button; above it when there's no room below. Never past the screen's start:
+  // a ⋮ left of the screen's end (Jadwal's, beside search and the bell) has less than the menu's widest to its left,
+  // and the menu ran off the screen; it gets only what fits, and its words wrap.
   const right = Math.max(MARGIN, window.width - (anchor.x + anchor.width));
+  const widest = Math.max(WIDTH.min, Math.min(WIDTH.max, window.width - right - MARGIN));
   const below = anchor.y + anchor.height;
   const up = height > 0 && below + height > window.height - insets.bottom - MARGIN;
   const top = up ? Math.max(insets.top + MARGIN, anchor.y - height) : below;
@@ -87,6 +91,7 @@ export function Menu({
           {
             top,
             right,
+            maxWidth: widest,
             backgroundColor: c.surfaceContainer,
             opacity: grow,
             transform: still
@@ -110,7 +115,7 @@ export function Menu({
               choice.onPress();
             }}
             android_ripple={{ color: c.selected }}
-            style={[styles.item, choice.disabled && { opacity: 0.38 }]}
+            style={({ pressed }) => [[styles.item, choice.disabled && { opacity: 0.38 }], iosPressed(pressed)]}
           >
             {choice.icon && <View style={{ width: 24, alignItems: "center" }}>{choice.icon}</View>}
             <View style={{ flexShrink: 1, flexGrow: 1 }}>

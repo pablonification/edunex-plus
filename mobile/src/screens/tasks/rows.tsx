@@ -25,7 +25,7 @@ import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { ExamPartRow, PeriodRow } from "./exam-rows";
+import { ExamPartRow, namesKind, PeriodRow } from "./exam-rows";
 import {
   countdown,
   type DueWhen,
@@ -41,6 +41,7 @@ import {
   type SignalIcon,
   StatusPill,
   TaskLine,
+  timeShown,
   useRowWorld,
 } from "./row-parts";
 
@@ -80,7 +81,7 @@ function signalOf(t: Translate, world: RowWorldValue, task: Task, status: TaskSt
       icon: "hand",
       facts: [
         t("task.attendanceLine", {
-          when: `${f.relativeDay(window.opensAt)} ${f.timeRange(window.opensAt, window.closesAt)}`,
+          when: f.dayTimeRange(window.opensAt, window.closesAt),
         }),
       ],
       tone: "muted",
@@ -132,7 +133,7 @@ export const TaskRow = inWorld(function TaskRow({
       : meta === "module" && module
         ? [module]
         : [];
-  const title = exam ? `${t(`exam.kind.${exam.kind}`)} ${course?.name ?? exam.courseCode}` : task.title;
+  const title = task.title;
   const label = factsLabel(
     title,
     ...facts,
@@ -143,22 +144,25 @@ export const TaskRow = inWorld(function TaskRow({
     date.sub,
     date.rel,
   );
-  const code = meta === "course" ? task.courseCode : null;
-  // v4: one meta line that fits in full (the code, or the kind of a take-home, and when), one status (the countdown
-  // once it's within a day or late, the score, or "not handed in"); a calm one's day and time say when on their own.
-  // Everything else is in the row's spoken name and on the Task's page.
+  // v4: one meta line that fits in full (the module on a course's page, the kind of a take-home, and when), one status
+  // (the countdown once it's within a day or late, the score, or "not handed in"); a calm one's day and time say when on
+  // their own. Everything else is in the row's spoken name and on the Task's page.
   const sentAt = submittedAt(task);
-  const kind = exam ? t(`exam.kind.${exam.kind}`) : null;
+  // A take-home's kind, unless its name says it already ("UTS Markom · Kam, 22 Okt", not "· UTS ·").
+  const examKind = exam ? t(`exam.kind.${exam.kind}`) : null;
+  const kind = examKind && !namesKind(task.title, examKind) ? examKind : null;
   const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
   const when =
     sentAt !== null
       ? t("task.submittedOnDate", { date: world.f.dayMonth(sentAt) })
       : task.dueAt === null
         ? t("task.noDeadline")
-        : // The time only beside the countdown: a late or closed one's status is too wide for both.
-          rowWhen(world.f, task.dueAt, away !== null && !away.late);
-  const lead = kind ?? (meta === "module" && task.module ? t("task.module", { n: task.module.index }) : code);
-  const line = [lead, when].filter(Boolean).join(" · ");
+        : // The time only beside the countdown (a late or closed one's status is too wide for both), within a week.
+          rowWhen(world.f, task.dueAt, away !== null && !away.late && timeShown(world.now, task.dueAt));
+  // On a course's page the module, the exam's kind for a take-home, then when: every row the same. Not the course's code
+  // on Tugas: the row's tile is the course, named by the course chips over the list (the code is spoken).
+  const lead = meta === "module" && task.module ? t("task.module", { n: task.module.index }) : null;
+  const line = [lead, kind, when].filter(Boolean).join(" · ");
   const statusPill =
     sentAt !== null ? (
       task.score !== null ? (
@@ -169,7 +173,8 @@ export const TaskRow = inWorld(function TaskRow({
     ) : away && away.tone !== "neutral" ? (
       <StatusPill tone={away.tone} text={away.text} />
     ) : null;
-  const name = exam ? (course?.name ?? exam.courseCode) : task.title;
+  // The row's title is the Task's own name, a take-home's too: a row never switches to its course's name.
+  const name = task.title;
   const open = () => go({ screen: "task", taskId: task.id });
   if (hero && task.dueAt !== null)
     return (
@@ -181,11 +186,10 @@ export const TaskRow = inWorld(function TaskRow({
         quick={quick}
         code={task.courseCode}
         course={course?.name}
-        kind={kind ?? task.courseCode}
-        from={task.opensAt}
         at={task.dueAt}
         title={name}
-        meta={when}
+        // The course is the card's tint and glyph (its name spoken): the line says the exam's kind for a take-home, and when.
+        meta={[kind, when].filter(Boolean).join(" · ")}
       />
     );
   return (

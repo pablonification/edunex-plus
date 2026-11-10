@@ -7,14 +7,14 @@
 import { sixRecordPaths } from "../../../core/links";
 import type { Curriculum, Syllabus } from "../../../core/models";
 import { EngineError } from "../../errors";
-import { breaks, parseInSlices } from "../../html-slices";
+import { breaks, parsedAhead, parseInSlices } from "../../html-slices";
 import type { FeedRead } from "../../report/kept-pages";
 import { Skipped } from "../skipped";
 import type { SourceContext } from "../source";
 import { pagesFor, type SixPages } from "./pages";
 import { readBills } from "./readers/bills";
 import { readCurriculumList } from "./readers/curriculum-list";
-import { readCurriculumStructure } from "./readers/curriculum-structure";
+import { readCurriculumStructureInTurns } from "./readers/curriculum-structure";
 import { readKrs } from "./readers/krs";
 import { readProgress } from "./readers/progress";
 import { changed } from "./readers/records-common";
@@ -23,14 +23,20 @@ import { readSyllabus } from "./readers/syllabus";
 import { readTranscript } from "./readers/transcript";
 
 const HOUR = 3_600_000;
-const DAILY = { every: 24 * HOUR, jitter: HOUR };
+/**
+ * Read once a day, after SIX's pages for today (a start reads 7 pages of them, 14 s at SIX's pace), and on a
+ * refresh only when the last read is an hour old: they change by the term, at most by the day.
+ */
+const DAILY = { every: 24 * HOUR, jitter: HOUR, priority: "later", refreshAfter: HOUR } as const;
 
 /** Where each record is, for the signed-in Student. */
 export const recordPaths = sixRecordPaths;
 
 export function registerSixRecordFeeds(context: SourceContext, pages: SixPages): void {
   // Each run reads and stores through its own view of the two, so the report knows which run got what (FeedSpec.run).
-  const noted = (read: FeedRead) => ({ context: context.for(read), pages: pagesFor(pages, read) });
+  // Behind today's pages in SIX's line, alongside the public catalog's pages that name the Student's courses.
+  const behind = pages.later?.() ?? pages;
+  const noted = (read: FeedRead) => ({ context: context.for(read), pages: pagesFor(behind, read) });
   context.feed({
     name: "six.transcript",
     ...DAILY,
@@ -91,7 +97,10 @@ export async function fetchCurriculum(pages: SixPages, skipped?: Skipped, pause?
   if (!current && list.length > 0 && list.every((entry) => entry.active === false)) return null;
   // A mark the app couldn't read might be the ✓.
   if (!current) changed("curriculum list", "no curriculum is in force");
-  const structure = readCurriculumStructure(await parseInSlices(await pages.page(current.structurePath), breaks(pause)), skipped);
+  const page = await pages.page(current.structurePath);
+  // On the phone the client parsed it in slices as it came (./client.ts), and the screens get a turn between its tabs.
+  const breathe = breaks(pause);
+  const structure = await readCurriculumStructureInTurns(parsedAhead(page) ?? (await parseInSlices(page, breathe)), skipped, breathe);
   const registrations = readSchemes(await pages.page(recordPaths.schemes(who)), skipped);
   return {
     name: structure.name,

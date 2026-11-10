@@ -2,7 +2,7 @@
 // copied as they are (that file draws DOM too), its status line and panel as the tab header's quiet
 // line and a sheet, its banner as a card under the header. Pull to refresh is "Perbarui sekarang".
 import { router } from "expo-router";
-import { type ReactNode, useCallback, useState, useSyncExternalStore } from "react";
+import { type ReactNode, useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
@@ -13,6 +13,7 @@ import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "..
 import type { SignInStep } from "../../../src/core/contract";
 import { firstRead } from "../../../src/core/first-scan";
 import type { DatasetName, SourceId, SourceState } from "../../../src/core/models";
+import { handInDays, isHandInMove } from "../../../src/core/schedule";
 import { useSettling } from "../host/settling";
 import { ReportButton } from "../parts/report";
 import { useReadStatuses } from "../screens/first-scan/scan";
@@ -22,6 +23,7 @@ import { Button, IconButton } from "../ui/controls";
 import { EmptyState, LiveDot, Spinner } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta } from "../ui/layout";
+import { iosPressed } from "../ui/press";
 import { Sheet } from "../ui/sheet";
 import { slop } from "../ui/sizes";
 import { Text } from "../ui/text";
@@ -176,18 +178,15 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
 }
 
 /**
- * The top of every tab (Material 3's top app bar): the tab's name with the data's status as one quiet line under it
- * (tap: each source and "Perbarui sekarang"), then search, the bell with its unread count (`bell`: Beranda), and the
- * Student's avatar, the way to the account and Settings. A banner follows when something needs the Student.
+ * A tab's top bar (Material 3's small top app bar), the same on all five tabs (round 3): the tab's name with the data's
+ * status as one quiet line under it (tap: each source and "Perbarui sekarang"), then the tab's own one or two actions
+ * (`actions`: an icon button, ⋮), then the three every tab ends with, in the same places (`TabActions`): Search, the
+ * bell, the avatar (account and Settings). Just the bar: no big title under it to collapse. A banner follows when
+ * something needs the Student. `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, the tab's name
+ * in Plus Jakarta Sans.
  */
-/**
- * A tab's top bar. `actions`: the tab's own one or two (an icon button, ⋮), between its title and Search; M3 allows
- * two in the bar, the rest in ⋮.
- */
-/** `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, the tab's name in Plus Jakarta Sans. */
-export function TabHeader({ title, bell = false, actions, v4 = false }: { title: string; bell?: boolean; actions?: ReactNode; v4?: boolean }) {
+export function TabHeader({ title, actions, v4 = false }: { title: string; actions?: ReactNode; v4?: boolean }) {
   const t = useT();
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const line = useSyncLine();
   const [panel, setPanel] = useState(false);
@@ -203,26 +202,42 @@ export function TabHeader({ title, bell = false, actions, v4 = false }: { title:
           onPress={() => setPanel(true)}
           style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center" }}
         >
+          {/* Every tab's name in the one size and face, as Beranda's greeting and every screen's bar title. */}
           <Text
             size="titleLarge"
             numberOfLines={1}
             accessibilityRole="header"
-            {...(v4 ? ({ face: "display", weight: "bold", style: { fontSize: 24, letterSpacing: -0.3 } } as const) : {})}
+            {...(v4 ? ({ face: "display", weight: "bold", style: { letterSpacing: -0.3 } } as const) : {})}
           >
             {title}
           </Text>
           <StatusLine />
         </Pressable>
         {actions}
-        <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
-          <Icons.Search size={24} color={theme.color.onSurfaceVariant} />
-        </IconButton>
-        {bell && <Bell />}
-        <Avatar />
+        <TabActions />
       </View>
       <ProblemBanner />
       <SyncPanel open={panel} onClose={() => setPanel(false)} />
     </BarSurface>
+  );
+}
+
+/**
+ * What every tab's bar ends with, in this order: Search, the bell (a dot while something new is unread), the avatar
+ * (account and Settings). `color`: on a coloured bar (Beranda's blue), the icons' colour and the dot's (`dot`).
+ */
+export function TabActions({ color, dot }: { color?: string; dot?: string }) {
+  const t = useT();
+  const theme = useTheme();
+  const ink = color ?? theme.color.onSurfaceVariant;
+  return (
+    <>
+      <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">
+        <Icons.Search size={24} color={ink} />
+      </IconButton>
+      <Bell color={ink} dot={dot ?? theme.color.error} />
+      <Avatar />
+    </>
   );
 }
 
@@ -244,14 +259,9 @@ export function StatusLine({ color }: { color?: string }) {
   const now = useNow();
   const stale = line.updatedAt !== null && now - line.updatedAt > STALE;
   const settling = useSettling();
-  const show =
-    settling ||
-    firstReading ||
-    line.state === "changed" ||
-    line.state === "expired" ||
-    line.state === "offline" ||
-    (line.signedIn && (line.updatedAt === null || stale));
-  if (!show) return null;
+  // Something to act on: a problem, offline, never read, or older than an hour. Never "Diperbarui baru saja".
+  const worth = line.state === "changed" || line.state === "expired" || line.state === "offline" || (line.signedIn && (line.updatedAt === null || stale));
+  if (!settling && !firstReading && !worth) return null;
   const tone = line.state === "changed" ? "danger" : line.state === "expired" ? "warning" : "muted";
   const status = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] + 2 }}>
@@ -275,7 +285,9 @@ export function StatusLine({ color }: { color?: string }) {
         </FirstReadLine>
       </View>
     );
-  return firstReading ? <FirstReadLine color={color}>{status}</FirstReadLine> : status;
+  // The first read with no part left to name (one that can't be read, a source not signed in): the status only when
+  // it's worth saying, never a fresh "Diperbarui baru saja" (the real phone showed it under Beranda's greeting).
+  return firstReading ? <FirstReadLine color={color}>{worth ? status : null}</FirstReadLine> : status;
 }
 
 const FIRST_READ: readonly DatasetName[] = [
@@ -324,42 +336,37 @@ function FirstReadLine({ children, always = false, color }: { children: ReactNod
   );
 }
 
-/** How many alerts came since the bell was last opened. */
+/**
+ * How many alerts came since the Student last marked them read ("Tandai semua dibaca"): the rows Notifikasi dots, so
+ * the bell and the list say the same. One the list never shows (SIX's copy of a Task's hand-in window "moving") isn't
+ * counted either.
+ */
 export function useUnreadAlerts(): number {
   const history = useDataset("app.alerts");
-  return (history?.items ?? []).filter((item) => item.at > (history?.readAt ?? 0)).length;
+  const presence = useDataset("edunex.presence");
+  return useMemo(() => {
+    const unread = (history?.items ?? []).filter((item) => item.at > (history?.readAt ?? 0));
+    if (!unread.some((item) => item.kind === "scheduleChanged")) return unread.length;
+    const handIn = handInDays(presence);
+    return unread.filter((item) => !isHandInMove(item, handIn)).length;
+  }, [history, presence]);
 }
 
-/** The bell, with Material's badge (the error colour) while something new is unread. */
-function Bell() {
+/** The bell, with a small calm dot while something new is unread (how many is said to TalkBack and on the list). */
+function Bell({ color, dot }: { color: string; dot: string }) {
   const t = useT();
-  const theme = useTheme();
   const unread = useUnreadAlerts();
   return (
     <View>
       <IconButton label={unread > 0 ? t("alerts.open", { count: unread }) : t("alerts.title")} onPress={() => router.push("/alerts")} testID="action.alerts">
-        <Icons.Bell size={24} color={theme.color.onSurfaceVariant} />
+        <Icons.Bell size={24} color={color} />
       </IconButton>
       {unread > 0 && (
         <View
           pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: 8,
-            left: 26,
-            minWidth: 16,
-            height: 16,
-            borderRadius: 8,
-            paddingHorizontal: 4,
-            backgroundColor: theme.color.error,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Text size="labelSmall" style={{ color: theme.color.onError, lineHeight: 16 }}>
-            {unread > 99 ? "99+" : String(unread)}
-          </Text>
-        </View>
+          testID="badge.alerts"
+          style={{ position: "absolute", top: 12, right: 13, width: 8, height: 8, borderRadius: 4, backgroundColor: dot }}
+        />
       )}
     </View>
   );
@@ -379,7 +386,7 @@ function Avatar() {
       accessibilityLabel={t("mobile.account.open")}
       onPress={() => router.push("/settings")}
       android_ripple={{ color: theme.color.selected, borderless: true, radius: 20 }}
-      style={{ width: TOUCH, height: TOUCH, alignItems: "center", justifyContent: "center" }}
+      style={({ pressed }) => [{ width: TOUCH, height: TOUCH, alignItems: "center", justifyContent: "center" }, iosPressed(pressed)]}
     >
       <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.color.primaryContainer, alignItems: "center", justifyContent: "center" }}>
         {name ? (

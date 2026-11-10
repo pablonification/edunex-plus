@@ -2,36 +2,51 @@
 // same groups in the same order and the same words, read the phone's way. Everything still ahead in
 // one list, grouped by when it runs out (Terlambat, Minggu ini, Minggu depan, Nanti); an exam period
 // going on sits on top; Selesai holds what's handed in, the exams behind the Student and what closed.
-// Belum selesai / Selesai at the top, the course chips under it, then the groups as tonal lists
+// Belum selesai / Selesai at the top with the course filter beside it (its courses in a sheet), then the groups as tonal lists
 // (Android's grouped tiles), the whole list one FlashList drawn row by row. The rows read what they
 // share once for the list (row-parts.tsx), and the lines are worked out only when the data, the
 // filter or the minute changes.
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useScrollToTop } from "expo-router";
 import { memo, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
-import { RefreshControl, View } from "react-native";
+import { Pressable, RefreshControl, View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { type Translate, useT } from "../../../../src/app/i18n";
 import { type Todo, useTodo } from "../../../../src/app/schedule-data";
-import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
+import { useBridge, useDataset, useSourceState, useStatus } from "../../../../src/app/store";
 import type { Exam } from "../../../../src/core/exams";
 import type { Task } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
 import { taskStatus } from "../../../../src/core/tasks";
-import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../../../src/core/todo";
+import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoForCourse, todoGroup } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { TabHeader, usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
 import { CardSlice, SectionTitle } from "../../ui/card-list";
-import { Button, Chip, ChipRow, Segmented } from "../../ui/controls";
-import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
+import { Button, Segmented } from "../../ui/controls";
+import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { GroupTile } from "../../ui/layout";
+import { factsLabel, GroupTile } from "../../ui/layout";
+import { useDrawAhead, useLinesShown, usePart } from "../../ui/parts";
+import { iosPressed } from "../../ui/press";
+import { ChoiceSheet } from "../../ui/settings-list";
+import { SEGMENT_HEIGHT, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
+import { CourseTile } from "../../ui/tile";
+import { shortName } from "../home/parts";
 import { PastExamRow } from "./exam-rows";
+import { lineType } from "./line-type";
 import { inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
 import { PutOff, TaskRow, TodoRow } from "./rows";
 import { momentsOf, useClockMoments } from "./task-clock";
+
+/**
+ * Lines on a first draw ahead (../../ui/parts.tsx): Belum selesai / Selesai and the first three lines, then a screenful
+ * (the big card, four rows), then the rest a few lines at a time (useLinesShown), and then it draws further ahead while
+ * idle (useDrawAhead). Each part is one small commit of its own instead of one block (part 1 with all of a screenful
+ * held a mid-range phone's JS thread 100–130 ms).
+ */
+const FIRST_LINES = [0, 3, 6] as const;
 
 const GROUPS: { group: TodoGroup; title: StringKey }[] = [
   { group: "overdue", title: "tasks.group.overdue" },
@@ -115,7 +130,7 @@ function tasksView(
   const groups = GROUPS.map(({ group, title }) => ({ group, title, items: rest.filter((item) => todoGroup(item, now) === group) })).filter(
     (group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0),
   );
-  const nothingToDo = !rest.some(todoCounted) && putOff.length === 0;
+  const nothingToDo = todoCount(items) === 0 && putOff.length === 0;
   const examsNoSix = sixOut && show === "open" && course === null;
   const codes = new Set([
     ...(todo?.items ?? []).map((item) => item.course),
@@ -126,9 +141,11 @@ function tasksView(
 
   const lines: Line[] = [];
   const todoCard = (list: readonly TodoItem[]) => card(list, (item, place): Line => ({ type: "todo", key: item.key, item, ...place }));
-  // The one big card (v4): the nearest Task with a deadline, at the top of its group, out of the group's card.
+  // The one big card (v4): the soonest thing, when it's a Task with a deadline, at the top of its group, out of the
+  // group's card. Never a Task over an exam that comes sooner: then no big card, and the group reads in date order.
   const heroGroup = show === "open" && !nothingToDo && groups[0] && groups[0].group !== "later" && groups[0].group !== "undated" ? groups[0] : undefined;
-  const hero = heroGroup?.items.find((item) => item.kind === "task" && item.task.dueAt !== null);
+  const soonest = heroGroup?.items[0];
+  const hero = soonest?.kind === "task" && soonest.task.dueAt !== null ? soonest : undefined;
   if (!todo) lines.push({ type: "loading", key: "loading" });
   else if (show === "done") {
     if (doneCount === 0) lines.push({ type: "empty", key: "empty", title: t("tasks.noneDone"), showAll: false, done: true });
@@ -155,8 +172,11 @@ function tasksView(
           title: t(group.title),
           first: lines.length === 0,
         });
-        if (hero && group === heroGroup) lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, { type: "gap", key: "gap-hero", size: 6 });
-        lines.push(...todoCard(group.items.filter((item) => item !== hero)));
+        const others = group.items.filter((item) => item !== hero);
+        // The gap under the big card only when its group goes on: the next group's title brings its own (one even gap).
+        if (hero && group === heroGroup)
+          lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, ...(others.length ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []));
+        lines.push(...todoCard(others));
         if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
       }
     if (examsNoSix) lines.push({ type: "examsNoSix", key: "examsNoSix" });
@@ -182,7 +202,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const list = useRef<FlashListRef<Line>>(null);
   useScrollToTop(list);
   const { replace } = useNav();
-  const sixOut = useStatus("six").state === "signed-out";
+  const sixOut = useSourceState("six") === "signed-out";
   const show = shown ?? "open";
   const setShow = useCallback((next: "open" | "done") => replace(next === "done" ? { screen: "tasks", show: "done" } : { screen: "tasks" }), [replace]);
   const [course, setCourseState] = useState<string | null>(lastCourse.get(bridge) ?? null);
@@ -196,14 +216,29 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const [putOffOpen, setPutOffOpen] = useState(false);
   const view = useMemo(() => tasksView(t, todo, courses, course, show, sixOut), [t, todo, courses, course, show, sixOut]);
   if (putOffOpen && !view.hasPutOff) setPutOffOpen(false);
+  const listed = usePart(1);
+  const chips = usePart(2);
+  const ahead = useDrawAhead();
+  const first = FIRST_LINES[chips ? 2 : 1];
+  const count = useLinesShown(view.lines.length, first);
+  const lines = useMemo(() => (count >= view.lines.length ? view.lines : view.lines.slice(0, count)), [count, view.lines]);
 
   const header = (
-    <Header show={show} onShow={setShow} openCount={view.openCount} doneCount={view.doneCount} courses={view.withItems} course={course} onCourse={setCourse} />
+    <Header
+      show={show}
+      onShow={setShow}
+      openCount={view.openCount}
+      doneCount={view.doneCount}
+      courses={chips ? view.withItems : NO_COURSES}
+      course={course}
+      onCourse={setCourse}
+    />
   );
   const togglePutOff = useCallback(() => setPutOffOpen((open) => !open), []);
   const showAll = useCallback(() => setCourse(null), [setCourse]);
   const renderItem = useCallback(
-    ({ item: line }: { item: Line }) => <LineView line={line} putOffOpen={putOffOpen} onPutOff={togglePutOff} onShowAll={showAll} />,
+    // Only the "ditunda" line hears of it opening: every other row stays as drawn.
+    ({ item: line }: { item: Line }) => <LineView line={line} putOffOpen={line.type === "putOff" && putOffOpen} onPutOff={togglePutOff} onShowAll={showAll} />,
     [putOffOpen, togglePutOff, showAll],
   );
 
@@ -211,32 +246,42 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
     <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.v4.page }}>
       <TabHeader v4 title={t("nav.tasks")} />
       <TaskRowWorld>
-        <FlashList
-          ref={list}
-          data={view.lines}
-          keyExtractor={(line) => line.key}
-          getItemType={(line) => line.type}
-          extraData={putOffOpen}
-          renderItem={renderItem}
-          ListHeaderComponent={header}
-          contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
-          // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
-          refreshControl={
-            <RefreshControl
-              refreshing={pull.refreshing}
-              onRefresh={pull.onRefresh}
-              colors={[theme.color.primary]}
-              progressBackgroundColor={theme.color.surfaceContainerHigh}
-            />
-          }
-          keyboardShouldPersistTaps="handled"
-        />
+        {listed && (
+          <FlashList
+            ref={list}
+            data={lines}
+            keyExtractor={(line) => line.key}
+            getItemType={lineType}
+            extraData={putOffOpen}
+            renderItem={renderItem}
+            {...ahead}
+            ListHeaderComponent={header}
+            contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
+            // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
+            refreshControl={
+              <RefreshControl
+                refreshing={pull.refreshing}
+                onRefresh={pull.onRefresh}
+                colors={[theme.color.primary]}
+                progressBackgroundColor={theme.color.surfaceContainerHigh}
+              />
+            }
+            keyboardShouldPersistTaps="handled"
+          />
+        )}
       </TaskRowWorld>
     </View>
   );
 }
 
-/** Belum selesai / Selesai with their counts, the course chips under it, and a row's problem when there is one. */
+/** No chips yet (Tugas's first part). */
+const NO_COURSES: readonly TermCourse[] = [];
+
+/**
+ * Belum selesai / Selesai with their counts and, beside them in the same row and the same pill shape, the course filter:
+ * a funnel at rest, the picked course's tile on a tonal fill once one is picked; a tap opens the courses in a sheet
+ * (round 3: two rows of controls in two shapes came before any Task). A row's problem goes over them when there is one.
+ */
 const Header = memo(function Header({
   show,
   onShow,
@@ -258,36 +303,89 @@ const Header = memo(function Header({
   return (
     <View style={{ paddingTop: space[2], paddingBottom: space[6] }}>
       <RowProblemBanner />
-      <Segmented
-        testID="segment.show"
-        label={t("tasks.show")}
-        value={show}
-        onChange={onShow}
-        options={[
-          { value: "open", label: t("tasks.filter.open"), count: openCount },
-          { value: "done", label: t("tasks.filter.done"), count: doneCount },
-        ]}
-      />
-      {courses.length > 1 && (
-        <View style={{ marginTop: space[3] }} accessibilityRole="radiogroup" accessibilityLabel={t("tasks.filter.course")}>
-          <ChipRow>
-            <Chip testID="chip.course.all" selected={course === null} onPress={() => onCourse(null)}>
-              {t("tasks.filter.all")}
-            </Chip>
-            {courses.map((c) => (
-              <Chip key={c.code} testID={`chip.course.${c.code}`} label={`${c.code} ${c.name}`} selected={course === c.code} onPress={() => onCourse(c.code)}>
-                <CourseDot color={c.color} size={8} />
-                <Text size="labelLarge" tone={course === c.code ? "onSecondaryContainer" : "muted"}>
-                  {c.code}
-                </Text>
-              </Chip>
-            ))}
-          </ChipRow>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Segmented
+            testID="segment.show"
+            label={t("tasks.show")}
+            value={show}
+            onChange={onShow}
+            check={false}
+            options={[
+              { value: "open", label: t("tasks.filter.open"), count: openCount },
+              { value: "done", label: t("tasks.filter.done"), count: doneCount },
+            ]}
+          />
         </View>
-      )}
+        {courses.length > 1 && <CourseFilter courses={courses} course={course} onCourse={onCourse} />}
+      </View>
     </View>
   );
 });
+
+const ALL = "__all";
+
+/** The course filter: one pill beside Belum selesai / Selesai, the courses in a sheet. */
+function CourseFilter({ courses, course, onCourse }: { courses: readonly TermCourse[]; course: string | null; onCourse: (code: string | null) => void }) {
+  const t = useT();
+  const theme = useTheme();
+  const c = theme.color;
+  const [open, setOpen] = useState(false);
+  const picked = course === null ? undefined : courses.find((item) => item.code === course);
+  const choices = useMemo(
+    () => [
+      { value: ALL, label: t("tasks.filter.all") },
+      // The course by a name a student says, short ("Ekonomi dan Inovasi"), its code as its second line.
+      ...courses.map((item) => ({ value: item.code, label: shortName(item.name), hint: item.code })),
+    ],
+    [courses, t],
+  );
+  return (
+    <>
+      <Pressable
+        testID="action.courseFilter"
+        accessibilityRole="button"
+        accessibilityLabel={factsLabel(t("tasks.filter.course"), picked ? `${picked.code} ${picked.name}` : t("tasks.filter.all"))}
+        accessibilityState={{ selected: picked !== undefined }}
+        onPress={() => setOpen(true)}
+        hitSlop={slopY(SEGMENT_HEIGHT)}
+        android_ripple={{ color: c.selected, borderless: false }}
+        style={({ pressed }) => [
+          {
+            height: SEGMENT_HEIGHT,
+            minWidth: 56,
+            paddingHorizontal: space[4],
+            borderRadius: SEGMENT_HEIGHT / 2,
+            borderWidth: 1,
+            borderColor: picked ? c.secondaryContainer : c.outline,
+            backgroundColor: picked ? c.secondaryContainer : undefined,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: space[2],
+            overflow: "hidden",
+          },
+          iosPressed(pressed),
+        ]}
+      >
+        <Icons.Filter size={18} weight={picked ? "fill" : "regular"} color={picked ? c.onSecondaryContainer : c.onSurfaceVariant} />
+        {picked && <CourseTile code={picked.code} name={picked.name} size={20} />}
+      </Pressable>
+      <ChoiceSheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title={t("tasks.filter.course")}
+        value={course ?? ALL}
+        choices={choices}
+        onChange={(value) => {
+          onCourse(value === ALL ? null : value);
+          setOpen(false);
+        }}
+        testID="courseFilter"
+      />
+    </>
+  );
+}
 
 /** A row in its group's tonal tile (Android's grouped list, drawn row by row). Kept by this name for a course's page. */
 export function CardRow({ first, last, children }: Place & { children: ReactNode }) {
@@ -311,7 +409,11 @@ function Slice({ first, last, inCourse, children }: Place & { inCourse: boolean;
   );
 }
 
-export function LineView({
+/**
+ * A line, drawn again only when it or what it's given changes: FlashList draws a cell again each time its place moves
+ * (a row over it measured taller than guessed as it scrolls into view), and a row is a dozen parts.
+ */
+export const LineView = memo(function LineView({
   line,
   putOffOpen = false,
   onPutOff,
@@ -372,7 +474,7 @@ export function LineView({
     case "examsNoSix":
       return <ExamsNoSix />;
   }
-}
+});
 
 /** A group's title and how many in it. */
 function Heading({ title, count, first }: { title: string; count?: number; first: boolean }) {
@@ -424,7 +526,7 @@ export function NoTasksYet() {
         <View style={{ paddingHorizontal: space[1], marginBottom: space[3] }}>
           <Skeleton width={120} height={20} />
         </View>
-        <View style={{ height: 156, borderRadius: 24, backgroundColor: theme.v4.card, marginBottom: space[3] }} />
+        <View style={{ height: 104, borderRadius: 20, backgroundColor: theme.v4.card, marginBottom: space[3] }} />
         {[0, 1, 2].map((i) => (
           <CardSlice key={i} first={i === 0} last={i === 2}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>

@@ -85,6 +85,8 @@ export class AlertCenter {
   private flushTimer: TimerHandle | null = null;
   private planTimers: TimerHandle[] = [];
   private running = false;
+  /** Detectors whose datasets had their first read while stopped: the first replan keeps their due alerts silent. */
+  private readonly baselineWhileStopped = new Set<Detector>();
   private writes: Promise<unknown> = Promise.resolve();
 
   constructor(private readonly deps: AlertCenterDeps) {
@@ -92,8 +94,9 @@ export class AlertCenter {
     this.watched = new Set(deps.detectors.flatMap((detector) => detector.watches));
   }
 
-  async load(): Promise<void> {
-    await this.ledger.load();
+  /** `before`: what has to be in the store first (the datasets loading); the ledger's own file is read meanwhile. */
+  async load(before: Promise<unknown> = Promise.resolve()): Promise<void> {
+    await Promise.all([this.ledger.load(), before]);
     for (const name of this.watched) {
       const value = this.deps.get(name);
       if (value !== undefined) this.last.set(name, value);
@@ -103,7 +106,9 @@ export class AlertCenter {
 
   start(): void {
     this.running = true;
-    this.replan();
+    const silent = new Set(this.baselineWhileStopped);
+    this.baselineWhileStopped.clear();
+    this.replan(silent);
   }
 
   stop(): void {
@@ -151,6 +156,7 @@ export class AlertCenter {
     const change = { name, previous, next } as DatasetChange;
     const watching = this.deps.detectors.filter((detector) => detector.watches.includes(name));
     for (const detector of watching) this.accept(detector.changed?.(change, context) ?? [], baseline);
+    if (baseline && !this.running) for (const detector of watching) this.baselineWhileStopped.add(detector);
     this.replan(baseline ? new Set(watching) : undefined);
   }
 
@@ -166,6 +172,7 @@ export class AlertCenter {
   /** Signing out of everything, or another Student: forget every alert and what was seen. */
   async reset(): Promise<void> {
     this.pending = [];
+    this.baselineWhileStopped.clear();
     this.plans.clear();
     this.lastNim = null;
     this.writes = this.writes.then(async () => {

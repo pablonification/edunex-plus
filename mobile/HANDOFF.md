@@ -8,6 +8,39 @@ Student's own apps, the share sheet and a home-screen widget.
 The build's own memory, with every decision and its proof, is `mobile/PROGRESS.md`. This page is the
 short version.
 
+## Round 3 (night of 2026-11-10): on a real phone with a real account
+
+A Galaxy A52 (Snapdragon 720G, 90 Hz, font size 1.1, 3-button navigation), Arqila's real ITB account, release
+builds with the read-only guard. Every number and judge round is on `mobile/qa/r3-board.md`.
+
+**What's fast now** (round-1 build → `main` → now): cold start with saved data 1.61 → 1.40 → **0.94 s**; tab switch
+p90 ≤ 416 → 142 → **97 ms**; opening a row ~200 ms; pull to refresh ~19 → **14.6 s**; on the recorded real network
+(`test/fixtures/real-timings.json`, `npm run timings:record`) today's classes are fresh in 2.3 s and due Tasks in 1.2 s
+(were 6.1 s), and tests fail if a start waits on the network or misses that budget. How: today's data first, Edunex at
+most 2 at once, SIX's records after today's pages; one request for every course's open Tasks; saved data this build
+wrote isn't checked again at start; inline requires; the first frame draws less; hidden tabs, Tugas and the engine's
+start work in small parts.
+
+**What was removed, and why** (each from a blind reviewer's finding): Beranda's course list (it repeated Kuliah);
+Beranda's per-course absence rows (folded into one row that opens Kuliah) and its clash row (now an icon on the
+class); the explaining sentences ("Tekan Tandai Hadir…", "Kumpulkan … agar hadir", "Ada di daftar isi Edunex",
+the notifications-off sentence, Nilai's "Jika semua A semester ini dan di rencanamu"); the green tick on every
+Kuliah row; course codes on Kuliah; the wavy line and code chip on Tugas' card; the second row of course chips on
+Tugas; the big in-page title on the Task and course pages; "19 SKS lagi" (it repeated 125 of 144); the "-" mark on
+meetings; the repeated "Belum ada materi" on every module; the same exam listed twice (now one row with both days).
+
+**Still below the top**: no screen holds 9 in every category for all three judges; Beranda, the Task page and
+Settings still fail a hard rule for at least one judge; Todoist and T3 Code score above us, Gojek, Grab, GoPay and
+myBCA at or below. Speed: one 114 ms block drawing Tugas, two 125–144 ms blocks during a refresh, first Tugas scroll
+after a start ~1.1% janky. The quiet SIX re-sign-in is built and tested in the pretend world but wasn't seen on the
+phone (SIX's session didn't end tonight). iOS: guarded and prebuilt only, never built in Xcode (`mobile/IOS.md`).
+
+**Try these first**
+1. Open the app after a few hours away: Beranda should be there at once, and today's classes and due Tasks fresh
+   within a few seconds.
+2. Go through Beranda → Kuliah → a course → Modul, and Tugas → a Task: does every screen say each thing once?
+3. Open the audit page (linked in PR #325), tick OK or write a note per screen, and paste the notes back.
+
 ## Try it
 
 Both APKs come from the latest run of the [Mobile workflow](https://github.com/pablonification/edunex-plus/actions/workflows/mobile.yml) on `mobile`

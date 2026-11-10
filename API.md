@@ -90,8 +90,8 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 | Feed | Every (± jitter) | Calls |
 | --- | --- | --- |
 | `edunex.account` (liveness) | 10 min ± 1 min | `/login/me` |
-| `edunex.notifications` | 2.5 min ± 30 s | `/login/me` once per session (for the user id), then `/notifications/{userId}` |
-| `edunex.tasks` | 15 min ± 2 min, and at once on a new `ASSIGNMENT` notification | `/course/tasks` per Edunex course; `/course/courses/{id}` for module names (once per session, again at most hourly) |
+| `edunex.notifications` | 2.5 min ± 30 s | `/notifications/{userId}`, the user id from `edunex.account`'s `/login/me` |
+| `edunex.tasks` | 15 min ± 2 min, and at once on a new `ASSIGNMENT` notification | `/course/tasks` once for every course's open Tasks (not on the first read after sign-in), then per Edunex course; `/course/courses/{id}` for module names (once per session, again at most hourly) |
 | `edunex.courses` | 30 min ± 3 min | `/course/presences/list` |
 | `edunex.presence` | 30 min ± 3 min | `/course/presences` per course, paged |
 | `edunex.materials` (also the course outline) | 1 h ± 6 min | `/course/courses/{id}`, `/gradebook` (only once published), `/course/contents/` per course and per module |
@@ -100,10 +100,25 @@ responses in `test/fixtures/edunex/` (file names mirror the request path and que
 | `edunex.taskThreads` | 15 min ± 2 min, and after each `edunex.tasks` run; not on a manual refresh | `/course/comments` per answer, only where it's due: at once once the answer changed (handed in, handed back, reviewed), hourly while its Task takes answers or something happened to it in the last 3 weeks, otherwise never; and one answer's thread when its Task page opens or the window comes back to it (at most every 30 s), as the website reads it on each visit |
 
 Source: `feeds.ts`, `notifications.ts`, `tasks.ts`, `task-threads.ts`, `course-page.ts`; scheduling in
-`src/engine/sync/scheduler.ts`. Feeds start 0.5 s apart; sign-in and the manual refresh run
-them at once (a feed already running is not started twice). Within a feed, calls go one after
-another, except a course's `/course/contents/` calls, which go four at a time, as the Edunex
-website does. "Per course" always means the class's own Edunex course and its parent course.
+`src/engine/sync/scheduler.ts`. A start, a sign-in and the manual refresh run each source's feeds
+in turns (`FeedSpec.priority`): first what Beranda shows for today and what's due
+(`edunex.account`, `edunex.courses`, `edunex.tasks`, `edunex.presence`), then the rest, then
+`edunex.materials` and `edunex.taskThreads` (a feed already running is not started twice). The
+Tasks come in two steps: first one call for the open ones of every course (see the `/course/tasks`
+note), laid over the saved list and stored at once; then each course's whole list, which waits
+behind the other feeds' calls in Edunex's line and is stored as the full set. The module names
+come after, from the outlines. On the phone, a pull to refresh leaves `edunex.materials` alone when it was read in the last 30
+minutes (a new material is read at once on its notification); the desktop's refresh reads it. Every call to Edunex's API, a feed's or
+the Student's, waits in one line that lets **at most 2 through at once** (`src/engine/http/pace.ts`,
+`SITE_LIMITS`); what the Student just did (a hand-in, a comment) goes ahead of the feeds' calls.
+Within a feed, calls go one after another, except a course's `/course/contents/` calls, which are
+asked four at a time, as the Edunex website does, and still go two at a time through the line.
+"Per course" always means the class's own Edunex course and its parent course.
+
+**Request budget for the Tasks.** Each `edunex.tasks` run asks `/course/tasks` once per Edunex
+course (6 calls for the recorded term), plus exactly 1 for the open Tasks of all of them: 1 call
+more per run (every 15 minutes, on a new-Task notification, a start or a refresh), and none on the
+first read after sign-in. Module names add `/course/courses/{id}` per course at most hourly, as before.
 
 ## Endpoints
 
@@ -115,7 +130,7 @@ or mistyped field the app relies on is a vendor change (see [Errors](#errors)).
 | `/login/me` | none | `id` (user id), `name`, `code` (the NIM) |
 | `/notifications/{userId}` | none | `data.notifications[]`: `type`, `title`, `objectId`, `date`, `message` |
 | `/course/presences/list` | none | `course_id`, `course_code`, `courses_name`, `class_id`, `class_name`, `semester`, `year` |
-| `/course/tasks` | `filter[course_id][is]={courseId}`, `page[limit]=0` | `meta.total`; per Task `id`, `taskable_type`, `taskable_id`, `course_name`, `type`, `tasks_type`, `name`, `description`, `files[{name,file}]`, `start_at`, `end_at`, `created_at`, `updated_at`, `open_status`, `file_required`, `is_lateable`, `domain`, `show_score`, `answers[]`: `id`, `answer`, `files`, `score`, `is_sent`, `sent_at`, `created_at`, `updated_at`, `verified_at`, `comment` |
+| `/course/tasks` | `filter[course_id][is]={courseId}`, `page[limit]=0`; or, for the open Tasks, `filter[course_id][in]={id},{id},…`, `filter[end_at][gte]={WIB time}`, `page[limit]=0` | `meta.total`; per Task `id`, `taskable_type`, `taskable_id`, `course_id` (the open Tasks' call only), `course_name`, `type`, `tasks_type`, `name`, `description`, `files[{name,file}]`, `start_at`, `end_at`, `created_at`, `updated_at`, `open_status`, `file_required`, `is_lateable`, `domain`, `show_score`, `answers[]`: `id`, `answer`, `files`, `score`, `is_sent`, `sent_at`, `created_at`, `updated_at`, `verified_at`, `comment` |
 | `/course/courses/{courseId}` | `include=modules,modules.activities,lecturer,lecturer.user,assistant,class` | `lecturer`, `credit`, `gradebook_publish`; `included[]` of type `modules`: `id`, `course_id`, `index`, `name`, `is_active`, `created_at` |
 | `/gradebook` | `course_id={courseId}`, `class_id={classId}` | `students[]`: `code`, `total`, `index` |
 | `/course/contents/` | `filter[contentable_id][is]={id}`, `filter[contentable_type][is]=App\Models\Courses` or `App\Models\Modules`, `sort=index`, `page[limit]=0` | `id`, `contentable_type`, `contentable_id`, `name`, `type`, `content`, `size`, `created_at`, `updated_at` |
@@ -138,6 +153,22 @@ Notes:
   course's last known Tasks and reports the error; going offline or a `401` stops the whole run.
   The error names the path only, not the course, so the answer that failed travels with it
   (`AnswerError`): a problem report keeps that course's list, not the last one read.
+- **The open Tasks, in one call.** Edunex's time on `/course/tasks` grows with the Tasks it returns
+  (about 0.9 s per Task; an empty list takes about 60 ms), so on the recorded timings the six whole
+  lists kept the Tasks due waiting about 6 s after a phone's start (`test/engine/sync-speed.test.ts`). Probed on the real API (GETs only, 2026-11-10): `filter[course_id][in]` takes the ids
+  joined by commas and returns the same Tasks and `meta.total` as one call per course, but no
+  faster (3 courses: 4.5 s, against 1.9 + 1.0 + 1.9 s). With `filter[end_at][gte]` as well, all 6
+  courses answered 2 of the 10 Tasks in 1.07 s. The time is sent as Edunex's own clock reads it,
+  WIB with no zone (`2026-11-09 08:12:00`, `wibTime` in `task-records.ts`), a day before now: sent
+  in UTC, the answer held Tasks due before it, which is what reading it as WIB gives, and a day
+  more covers any other reading. A Task with no deadline isn't in it. So each run first asks this
+  once for every course (child and parent), lays what comes over the saved list (each returned Task
+  replaced, the rest kept as saved: one closed, moved or removed since stays as it was until the
+  whole lists, the truth, come next) and stores it. A Task is placed in its course as the saved list
+  has it, else by its `course_id`. On the first read after sign-in there's no saved list, so it
+  isn't asked: a part of the list would read as all of it (and its new-Task alerts). Its failing,
+  but for no network or an ended session, only skips it, unreported: the whole lists follow. Handing
+  in still reads its Task back through its own course's list.
 - **An answer handed back.** The lecturer's "Revision Request" (`setAnswerChangeRequest` in the
   website's `js/app.79bf84f4.js`, the button in `js/assignment/detail-lecturer.c85d7075.js`) sends
   `PATCH /course/task/answers/{id}` with `{ is_sent: 0, comment }`. Recorded on a real one
@@ -343,7 +374,8 @@ Every Edunex reply maps to one error kind (`client.ts` for reads, `write` in `ha
 
 A source's status is the worst of its feeds' latest outcomes. Back-off is per feed
 (`scheduler.ts`): 30 s after the first failure, doubling to 15 min at most, plus a little jitter;
-one success resets it. Edunex has no shared pace line (SIX and ITB's catalog do; see SIX.md).
+one success resets it. Edunex's line lets 2 calls through at once, with no gap (SIX's lets one, 2 s
+apart; see SIX.md).
 
 ## Unconfirmed / not yet recorded
 
@@ -358,6 +390,8 @@ one success resets it. Edunex has no shared pace line (SIX and ITB's catalog do;
   (a month-old token was still valid).
 - Announcement times: only one was recorded (naive WIB); the reader accepts an offset too.
 - Edunex's rate limits: no `429` has been seen.
+- How Edunex compares `filter[end_at][gte]`: in WIB, as its answers suggest (see the
+  `/course/tasks` notes). The app sends the time a day early, so either way no open Task is missed.
 - Files on a message in an answer's thread (`/course/comments`): every recorded message had none.
 - Whether a lecturer's message or hand-back sends the Student a notification of its own: none was
   seen, so the app reads the thread itself.

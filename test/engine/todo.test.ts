@@ -145,6 +145,17 @@ describe("one list, in order", () => {
   });
 });
 
+describe("Belum selesai's count", () => {
+  it("counts every row the list shows: an open exam period's exams with no day too, a far one's not", () => {
+    // Tuesday of UTS week: the period line is open on PL3032's UTS (no day yet), beside DK4073's sitting, its take-home and Bab II.
+    const during = todoList(term(wib("2026-10-13T08:00:00")));
+    expect(titles(during)).toEqual(["UTS period (PL3032)", "DK4073-UTS sitting", "Tugas 02 Bab II", "DK4073-UTS takehome", "UAS period (PL3032)"]);
+    expect(todoCount(during)).toBe(4);
+    // Far off (September): the lines are closed, a heads-up, and count nothing.
+    expect(todoCount(todoList(term(wib("2026-09-20T09:00:00"))))).toBe(3);
+  });
+});
+
 describe("when an exam is over", () => {
   it("sat in class and its take-home handed in before the deadline: out of To do, into Past exams", () => {
     const input = term(wib("2026-10-16T09:00:00"), { tasks: [sent(takeHome, "2026-10-16T08:00:00"), bab2] });
@@ -215,6 +226,27 @@ describe("when an exam is over", () => {
       "DK4073-UTS sitting",
       "DK4073-UTS sitting",
     ]);
+  });
+
+  it("a UAS SIX lists in both weeks of the exam period is one row and one count, at its first sitting, carrying both", () => {
+    const exams = mergeExams({
+      schedule: [sixSession("2190011", "DK4073", "2026-12-17T11:00:00", "UAS"), sixSession("2190010", "DK4073", "2026-12-10T11:00:00", "UAS")],
+      calendar,
+      term: "2026-1",
+      now: wib("2026-12-01T08:00:00"),
+    });
+    const at = (now: string) => todoList({ tasks: [], exams, now: wib(now) });
+    const before = at("2026-12-01T08:00:00");
+    expect(titles(before)).toEqual(["DK4073-UAS sitting"]);
+    expect(todoCount(before)).toBe(1);
+    const [row] = before;
+    expect(row).toMatchObject({ at: wib("2026-12-10T11:00:00"), part: { id: "six:2190010" } });
+    expect(row?.kind === "exam" && row.sittings?.map((s) => s.id)).toEqual(["2190010", "2190011"]);
+    // The first sat: the second alone, a plain row.
+    const after = at("2026-12-11T08:00:00");
+    expect(after).toHaveLength(1);
+    expect(after[0]).toMatchObject({ part: { id: "six:2190011" } });
+    expect(after[0]?.kind === "exam" && after[0].sittings).toBeUndefined();
   });
 
   it("an Edunex exam with only its close is due then, and over after it", () => {
@@ -288,10 +320,11 @@ describe("putting off a late Task", () => {
 });
 
 describe("one count everywhere", () => {
-  it("counts Tasks, take-homes and exams with a day; never a period line", () => {
+  it("counts Tasks, take-homes, exams with a day, and the exams an open period line shows", () => {
     const input = term(wib("2026-10-08T08:12:00"));
     const items = todoList(input);
-    expect(todoCount(items)).toBe(3);
+    // DK4073's sitting and take-home, Bab II, and PL3032's UTS under its period line (near: open).
+    expect(todoCount(items)).toBe(4);
     expect(todoUrgent(items, input.now)).toBe(false);
     // Within a day of the sitting it's urgent.
     expect(todoUrgent(todoList(term(wib("2026-10-14T12:00:00"))), wib("2026-10-14T12:00:00"))).toBe(true);
@@ -301,7 +334,8 @@ describe("one count everywhere", () => {
     const items = todoList(term(wib("2026-10-08T08:12:00")));
     expect(titles(todoForCourse(items, "DK4073"))).toEqual(["DK4073-UTS sitting", "DK4073-UTS takehome"]);
     expect(titles(todoForCourse(items, "PL3032"))).toEqual(["UTS period (PL3032)", "UAS period (PL3032)"]);
-    expect(todoCount(todoForCourse(items, "PL3032"))).toBe(0);
+    // Its UTS shows under the near period line, so it counts; the far UAS line doesn't.
+    expect(todoCount(todoForCourse(items, "PL3032"))).toBe(1);
   });
 });
 

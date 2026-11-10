@@ -8,7 +8,7 @@
 import * as Calendar from "expo-calendar";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
-import { Linking } from "react-native";
+import { Linking, Platform } from "react-native";
 import { wibDay } from "../../../../src/core/course-meetings";
 import { ICS_ZONE, writeIcs } from "../../../../src/core/ics";
 import type { PhoneItem } from "../../../../src/core/phone-calendar";
@@ -60,11 +60,22 @@ async function allowed(ask = true): Promise<boolean> {
   return (await Calendar.requestCalendarPermissions()).granted;
 }
 
+/** The phone's calendars. iOS asks for its events' ones only: all of them would need Reminders' permission too. */
+const eventCalendars = () => (Platform.OS === "ios" ? Calendar.getCalendars(Calendar.EntityTypes.EVENT) : Calendar.getCalendars());
+
 /** The app's own calendar on the phone, made the first time (a local one: nothing syncs it to an account). */
 async function ownCalendar(): Promise<Calendar.ExpoCalendar> {
-  const calendars = await Calendar.getCalendars();
+  const calendars = await eventCalendars();
   const found = calendars.find((c) => c.title === CALENDAR_NAME && c.allowsModifications && c.source?.isLocalAccount !== false);
   if (found) return found;
+  // iOS makes a calendar inside an account it already has (the default calendar's: iCloud, or the phone's own).
+  if (Platform.OS === "ios")
+    return Calendar.createCalendar({
+      title: CALENDAR_NAME,
+      color: COLOR,
+      entityType: Calendar.EntityTypes.EVENT,
+      sourceId: Calendar.getDefaultCalendarSync().source.id,
+    });
   return Calendar.createCalendar({
     title: CALENDAR_NAME,
     name: CALENDAR_NAME,
@@ -174,7 +185,7 @@ export async function addToPhoneCalendar(
 /** Takes the app's own calendar off the phone, with every event in it (the Student turned Jadwal's ⋮ "Kalender HP" off). */
 export async function removePhoneCalendar(): Promise<void> {
   if (!(await Calendar.getCalendarPermissions()).granted) return;
-  const calendars = await Calendar.getCalendars();
+  const calendars = await eventCalendars();
   for (const calendar of calendars.filter((c) => c.title === CALENDAR_NAME && c.allowsModifications && c.source?.isLocalAccount !== false))
     await calendar.delete();
   const record = new File(Paths.document, RECORD);

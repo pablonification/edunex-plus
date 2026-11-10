@@ -295,7 +295,7 @@ describe("the 'laptop hasn't checked' warning", () => {
     const warnings = () => app.ntfy.posts().filter((message) => message.sequence_id === "ep-watchdog");
     expect(warnings()).toHaveLength(1);
     expect(warnings()[0].message).toMatch(
-      /^Edunex Plus belum mengecek Edunex sejak Kam, 8 Okt \d\d:\d\d\. Buka laptop sebentar supaya tugas baru tidak terlewat\.$/,
+      /^Edunex Plus belum mengecek Edunex sejak Kam, 8 Okt, \d\d:\d\d\. Buka laptop sebentar supaya tugas baru tidak terlewat\.$/,
     );
     expect(Number(warnings()[0].delay) * 1000).toBeGreaterThan(app.world.clock.now() + 23 * HOUR);
 

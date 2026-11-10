@@ -8,7 +8,7 @@ import { courseTone, type PaletteId, pickedColor, resolveCourseColors } from "..
 import type { DatasetValue } from "../core/models";
 import { type SixList, sixList, type TermCourseBase, termCourses, termOf } from "../core/term-courses";
 import { useCourseColorsValue, withLegacy } from "./course-colors";
-import { useDataset, useStatus } from "./store";
+import { useDataset, useStatusPart } from "./store";
 
 export interface TermCourse extends TermCourseBase {
   /** Its color's tone in the theme on screen (a CSS color): its dot and stripe. */
@@ -86,6 +86,6 @@ function useSixList(): SixList | undefined {
   const student = useDataset("six.student");
   const courses = useDataset("six.courses");
   const skipped = useDataset("six.skipped");
-  const { changedPages } = useStatus("six");
+  const changedPages = useStatusPart("six", (status) => status.changedPages);
   return useMemo(() => sixList({ student, courses, skipped, status: { changedPages } }), [student, courses, skipped, changedPages]);
 }

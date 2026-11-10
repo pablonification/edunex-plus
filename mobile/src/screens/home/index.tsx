@@ -1,10 +1,15 @@
 // Beranda (round 2, v4, chosen by Arqila: mobile/design/r2-directions/v4): in three seconds, whether a class is on and
-// what to press, and what to handle next. The blue header with the greeting (the screen's one title), search and the
-// bell (./header.tsx); the now card over its edge (./now.tsx: the wave, the minutes left, Tandai Hadir); "Perlu kamu
-// urus", the two most pressing things as tinted cards (./urus.tsx); "Nanti hari ini", the classes still to come
-// (./later.tsx). Everything else (the whole list, the date and term, what changed) is one tap deeper, on "Perlu kamu
-// urus"'s screen (./needs-screen.tsx). The data and the reasoning are the desktop's (src/core/needs). While the first
-// read runs, each part stands in its own shape and fills in. Cards rise in a stagger the first time only.
+// what to press, and what to handle next. The blue bar with the greeting (the screen's one title) and every tab's
+// actions (./header.tsx, the route's fixed header); the now card over the blue band's edge (./now.tsx: the wave, the
+// minutes left, Tandai Hadir); "Perlu kamu urus", what needs the Student most serious first as one list: courses at or
+// past their absence limit, classes that clash, then what to hand in and by when (./urus.tsx); "Nanti hari ini", the
+// classes still to come (./later.tsx). One fact, one place: the term's
+// courses are Kuliah's (round 3 took their list off Beranda), the now card's class is never a row under it. Everything
+// else (the whole list, the date and term, what changed) is one tap deeper, on "Perlu kamu urus"'s screen
+// (./needs-screen.tsx). The data and the reasoning are the desktop's (src/core/needs). While the first
+// read runs, each part stands in its own shape and fills in. Cards rise in a stagger the first time only. At a cold start
+// the first frame holds what's in view (the now card, Perlu kamu urus); what's under it comes right after (../../ui/parts.tsx),
+// so the splash doesn't wait for it.
 import { useLayoutEffect, useMemo } from "react";
 import { View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
@@ -15,14 +20,15 @@ import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { perfFirstData, usePerfDrawn } from "../../perf";
 import { ProblemBanner } from "../../shell/source-status";
 import { Rise } from "../../ui/expressive";
-import { space, useTheme } from "../../ui/theme";
-import { TermCourses } from "./courses";
+import { Part } from "../../ui/parts";
+import { space } from "../../ui/theme";
 import { FirstScanCard, NotifyCard } from "./first-run";
-import { HomeHeader, OVERLAP } from "./header";
+import { HomeBand, OVERLAP } from "./header";
 import { Later } from "./later";
 import { HeldShape, NowSection } from "./now";
 import { cardKey } from "./parts";
-import { Urus } from "./urus";
+import { problems } from "./problems";
+import { Urus, UrusLoading } from "./urus";
 
 /** Everything on Beranda's page: the page itself is the route's (app/(tabs)/index.tsx). */
 export function Home() {
@@ -35,7 +41,7 @@ export function Home() {
   const context = useMemo(() => (world ? homeContext(world) : undefined), [world]);
   // The timetable's page changed: said here. A class on it the app couldn't read is said on the card, quietly.
   const timetableChanged = useChangedPage(["six.schedule"]);
-  usePerfDrawn(context !== undefined, "tab");
+  usePerfDrawn(context !== undefined);
   if (context !== undefined && name) perfFirstData();
   // A redraw's cost on the phone: what the minute's tick or new data does to Beranda (the lab reads it from logcat).
   useLayoutEffect(() => {
@@ -44,32 +50,31 @@ export function Home() {
   });
   return (
     <>
-      <HomeHeader />
+      <HomeBand />
       <View style={{ marginTop: -OVERLAP, paddingHorizontal: space[4], paddingBottom: space[4] }}>
         {context ? <Answers context={context} courses={courses} /> : <Loading />}
-        <View style={{ marginTop: space[4], gap: space[3] }}>
-          <ProblemBanner />
-          {timetableChanged && <SixPageNote datasets={["six.schedule"]} />}
-        </View>
+        <Part at={2}>
+          <View style={{ marginTop: space[4], gap: space[3] }}>
+            <ProblemBanner />
+            {timetableChanged && <SixPageNote datasets={["six.schedule"]} />}
+          </View>
+        </Part>
       </View>
     </>
   );
 }
 
 /**
- * Beranda's shape before its data: the now card as it waits during the first read, then Perlu kamu urus's two cards
- * where they'll be (under its title's row), so nothing moves when the data comes. Never a spinner on a blank page.
+ * Beranda's shape before its data: the now card as it waits during the first read, then Perlu kamu urus's rows where
+ * they'll be (under its title's row), so nothing moves when the data comes. Never a spinner on a blank page.
  */
 function Loading() {
-  const v = useTheme().v4;
   return (
     <View accessibilityState={{ busy: true }} testID="home.loading">
       <HeldShape testID="home.loading.now" />
       {/* Perlu kamu urus's title row: its margin, the 48 dp chevron, the gap under it. */}
-      <View style={{ flexDirection: "row", gap: 10, marginTop: space[6] + 48 + space[2] }}>
-        {[0, 1].map((i) => (
-          <View key={i} style={{ flex: 1, height: 148, borderRadius: 20, backgroundColor: v.card }} />
-        ))}
+      <View style={{ marginTop: space[6] + 48 + space[2] }}>
+        <UrusLoading />
       </View>
     </View>
   );
@@ -82,6 +87,7 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
   const plan = useMemo(() => todayPlan(context), [context]);
   const needs = useMemo(() => attention(context, card, plan), [context, card, plan]);
   const due = useMemo(() => dueItems(context, plan), [context, plan]);
+  const found = useMemo(() => problems(context), [context]);
   return (
     <>
       <Rise screen="home" index={0}>
@@ -90,13 +96,16 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
       <Rise screen="home" index={1}>
         <FirstScanCard />
       </Rise>
-      <Urus needs={needs} due={due} courses={courses} />
-      <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
-      <TermCourses courses={list} context={context} />
+      <Urus problems={found} needs={needs} due={due} courses={courses} />
+      <Part at={1}>
+        <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
+      </Part>
       {/* The one ask, after what the Student came for: the now card and Perlu kamu urus stay the first things seen. */}
-      <Rise screen="home" index={9}>
-        <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
-      </Rise>
+      <Part at={2}>
+        <Rise screen="home" index={9}>
+          <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
+        </Rise>
+      </Part>
     </>
   );
 }

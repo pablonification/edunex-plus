@@ -1,11 +1,11 @@
 // What the planner's parts share (round 2, v4): a change to the plan that can be taken back, the haptic a change
 // commits with, the words for what stands between the plan and graduating, and a section's heading with its one line.
-import * as Haptics from "expo-haptics";
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { StudyPlan } from "../../../../src/core/models";
 import type { Shortfall } from "../../../../src/core/planner";
+import { haptic } from "../../ui/haptics";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 
@@ -14,7 +14,7 @@ export type Undoable = ((edit: (plan: StudyPlan) => StudyPlan, message: string) 
 
 /** The tick a change to the plan commits with (a grade picked, a course added, moved or removed, a semester added). */
 export function commitHaptic(): void {
-  void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+  haptic.confirm();
 }
 
 /** "kurang 5 SKS dan 2 mata kuliah wajib": what stands between the plan and graduating. */

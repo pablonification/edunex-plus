@@ -15,7 +15,7 @@ import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseCo
 import { dismissToast, toast } from "../../swaps/overlays";
 import { Button, Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
-import { PressScale } from "../../ui/press";
+import { iosPressed, PressScale } from "../../ui/press";
 import { ActionSheet } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, TOUCH, useTheme } from "../../ui/theme";
@@ -194,7 +194,7 @@ function PartName({
         { name: "remove", label: t("grade.remove", { part: name }) },
       ]}
       onAccessibilityAction={(event) => (event.nativeEvent.actionName === "remove" ? onRemove() : onEdit())}
-      style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center", borderRadius: radius.md }}
+      style={({ pressed }) => [{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center", borderRadius: radius.md }, iosPressed(pressed)]}
     >
       <Text size="body" weight="medium" numberOfLines={2}>
         {name}

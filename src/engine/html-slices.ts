@@ -34,3 +34,35 @@ export async function parseInSlices(html: string, breathe: () => Promise<void>):
   parser.end();
   return load(handler.root);
 }
+
+/** Pages parsed ahead (`parseAhead`), by their text, each waiting for the reader that opens it (`openParsed`). */
+const ahead = new Map<string, CheerioAPI>();
+/** A feed reads at most a few pages before it reads them (the transcript and the progress page). */
+const AHEAD = 4;
+
+/**
+ * Parses `html` now, a slice at a time with the screens drawing between (`pause`), for the reader that opens it next:
+ * on the phone a SIX page (18–36 KB) parsed at once held the JS thread 50–150 ms. Its reader, a plain function of the
+ * page's text, then finds it parsed (`openParsed`).
+ */
+export async function parseAhead(html: string, pause: () => Promise<void>): Promise<void> {
+  const $ = await parseInSlices(html, breaks(pause));
+  ahead.delete(html);
+  ahead.set(html, $);
+  for (const oldest of ahead.keys()) {
+    if (ahead.size <= AHEAD) break;
+    ahead.delete(oldest);
+  }
+}
+
+/** The document `parseAhead` made of `html`, handed out once (a reader may change it); undefined when there's none. */
+export function parsedAhead(html: string): CheerioAPI | undefined {
+  const $ = ahead.get(html);
+  if ($) ahead.delete(html);
+  return $;
+}
+
+/** The page's document: the one parsed ahead in slices when there is one, else parsed now. */
+export function openParsed(html: string): CheerioAPI {
+  return parsedAhead(html) ?? load(html);
+}

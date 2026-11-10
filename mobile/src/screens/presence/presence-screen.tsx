@@ -1,11 +1,10 @@
-// Kuliah on the phone (round 2, v4; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds, which
-// course is at risk, and the way into each. On v4's grey page under the bar's "Kuliah": one white card led by a big
-// number (how many courses can't reach the target anymore, else have no absences left, …: ./lead.tsx), what needs the
-// Student now (./now.tsx), then every course as a row in a white card: its tile, name and code, what's left of its
-// absences on a chip. The courses at risk (out of reach, none left, finished below) come first in a card of their own,
-// the rest in another, in the desktop's order. The row opens the course. The day's answer ("Hari ini ada 4 kuliah.
-// Hanya PL3002 yang masih ada jatah absen."), the target and how it's counted are one tap deeper, in the big number's
-// sheet (./footer.tsx), also in ⋮ beside the targets. Same data and words as the desktop.
+// Kuliah on the phone (round 3; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds, which course
+// is at risk, and the way into each. On v4's grey page under the bar's "Kuliah": what needs the Student now
+// (./now.tsx), then every course as a row in a white card: its tile, its whole name, and under it the state of its
+// absences in plain words ("Absen lewat 1×", "Jatah absen habis" in the risk's ink, "Sisa 2×" quiet). The
+// courses at risk (out of reach, none left, finished below) come first under "Perlu perhatian", the rest under "Aman"
+// (or "Lainnya" while some have no count yet), in the desktop's order. The row opens the course. The day's answer, the
+// target and how it's counted are in ⋮ (./footer.tsx's sheet), beside the targets. Same data and words as the desktop.
 import { useState } from "react";
 import { View } from "react-native";
 import { type Attendance, useAttendance } from "../../../../src/app/attendance";
@@ -21,14 +20,14 @@ import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
+import { Part } from "../../ui/parts";
 import { space, useTheme } from "../../ui/theme";
-import { CardGroup } from "../../ui/v4-list";
-import { useCardStyle } from "../home/now";
+import { CardGroup, SectionTitle } from "../../ui/v4-list";
 import { CourseRow } from "./course-row";
 import { FactsSheet } from "./footer";
-import { LeadCard, leadOf, SignInCard } from "./lead";
+import { SignInCard } from "./lead";
 import { groupsOf, nowZone, type RowContext, type Still, targetRange, type Zone } from "./logic";
-import { NowNotes, NowZone, nowShown } from "./now";
+import { NowZone, nowShown } from "./now";
 import { TargetsSheet } from "./targets-sheet";
 
 /**
@@ -63,10 +62,12 @@ export function useRowContext(onChangeTarget: (code: string) => void): { attenda
 
 /** The groups that ask the most of the Student: their courses share the first card. */
 const AT_RISK: readonly PresenceGroup[] = ["out", "none", "missed"];
+/** The groups with absences to spare or the target met: their card is "Aman"; with any course still uncounted, "Lainnya". */
+const CALM: readonly PresenceGroup[] = ["spare", "met"];
 
 /**
- * Kuliah (round 2, v4): the big number, what needs the Student now, then the courses, at risk first, each a row that
- * opens its page. The targets and how it's counted are in ⋮; the day's answer is in the big number's sheet.
+ * Kuliah (round 3): what needs the Student now, then the courses, at risk first under their heading, each a row that
+ * opens its page. The targets, the day's answer and how it's counted are in ⋮.
  */
 export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
   const t = useT();
@@ -87,7 +88,6 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   };
   const connected = Boolean(rows?.attendance.sixConnected);
   const showTargets = connected && courses.length > 0;
-  const lead = rows && connected ? leadOf(t, courses) : null;
   usePerfDrawn(rows !== undefined);
   const muted = theme.color.onSurfaceVariant;
   const choices = [
@@ -121,16 +121,10 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
       ) : (
         <View style={{ gap: space[4] }}>
           <SixPageNote datasets={["six.courses", "six.schedule"]} />
-          {!connected && courses.length > 0 ? (
+          {!connected && courses.length > 0 && (
             <Rise screen="courses" index={0}>
               <SignInCard quiet={rows.zone.windows.length > 0} />
             </Rise>
-          ) : (
-            lead && (
-              <Rise screen="courses" index={0}>
-                <LeadCard lead={lead} onPress={() => setFacts(true)} />
-              </Rise>
-            )
           )}
           {nowShown(rows.zone) && (
             <Rise screen="courses" index={1}>
@@ -146,19 +140,29 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
                 />
               )
             : bands.map((band, i) => (
-                <Rise key={band[0]!.group} screen="courses" index={2 + i} style={i > 0 ? { marginTop: -space[1] } : undefined}>
-                  <CardGroup>
-                    {band.map(({ group, items }, g) => (
-                      <View key={group} testID={`group.presence.${group}`}>
-                        {items.map((item, r) => (
-                          <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={g === 0 && r === 0} />
-                        ))}
+                // The courses past the first card: a part of their own on a first draw ahead (../../ui/parts.tsx).
+                <Part key={band[0]!.group} at={i === 0 ? 0 : 1}>
+                  <Rise screen="courses" index={2 + i}>
+                    {/* With both bands, each under its name (said once for all its courses): never the rest under "Perlu perhatian". */}
+                    {bands.length > 1 && (
+                      <View style={i > 0 ? { marginTop: space[2] } : undefined}>
+                        <SectionTitle first>
+                          {t(i === 0 ? "mobile.kuliah.attention" : band.every((g) => CALM.includes(g.group)) ? "mobile.kuliah.calm" : "mobile.kuliah.rest")}
+                        </SectionTitle>
                       </View>
-                    ))}
-                  </CardGroup>
-                </Rise>
+                    )}
+                    <CardGroup>
+                      {band.map(({ group, items }, g) => (
+                        <View key={group} testID={`group.presence.${group}`}>
+                          {items.map((item, r) => (
+                            <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={g === 0 && r === 0} />
+                          ))}
+                        </View>
+                      ))}
+                    </CardGroup>
+                  </Rise>
+                </Part>
               ))}
-          <NowNotes zone={rows.zone} />
         </View>
       )}
       {rows && courses.length > 0 && <FactsSheet attendance={rows.attendance} open={facts} onClose={() => setFacts(false)} />}
@@ -174,28 +178,19 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   );
 }
 
-/** Kuliah's shape before its data: the big number's card, then a card of rows. Never a spinner on a blank page. */
+/** Kuliah's shape before its data: a card of rows, each a name over its meter. Never a spinner on a blank page. */
 function Loading() {
-  const surface = useCardStyle();
   const v = useTheme().v4;
   return (
     <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[4] }}>
-      <View style={[surface, { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: space[4], paddingHorizontal: space[5] }]}>
-        <Skeleton height={52} width={40} style={{ borderRadius: 12 }} />
-        <View style={{ flex: 1, gap: space[2] }}>
-          <Skeleton height={16} width="80%" />
-          <Skeleton height={16} width="55%" />
-        </View>
-      </View>
       <View style={{ backgroundColor: v.card, borderRadius: 20, overflow: "hidden" }}>
         {[0, 1, 2, 3, 4].map((i) => (
           <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
             <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
             <View style={{ flex: 1, gap: space[2] }}>
               <Skeleton height={16} width={i % 2 ? "60%" : "80%"} />
-              <Skeleton height={12} width={64} />
+              <Skeleton height={12} width={112} />
             </View>
-            <Skeleton height={26} width={64} style={{ borderRadius: 999 }} />
           </View>
         ))}
       </View>

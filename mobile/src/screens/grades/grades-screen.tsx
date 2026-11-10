@@ -1,13 +1,15 @@
 // Nilai on the phone (round 2, v4: mobile/qa/v4-rollout.md): src/app/screens/grades.tsx in one column on v4's grey
 // page, the same figures from the same hooks. The key number first: one card led by the IPK, big and counting up once,
-// the SKS passed beside it, last semester's IP a quiet line and the IPK at graduation with its predicate a pill. Then a
-// row each on the way to graduating (when, the honors still open, the highest IPK possible; the first opens the
-// planner), IP and IPK per semester on a white card, this term's grades as a clearly marked what-if with the one shared
-// target, and the transcript, a term at a time (./transcript.tsx). Without SIX: this term's courses from Edunex, each
-// opening its calculator. Before SIX's first read, the card stands in its shape.
+// the predicate it heads for as plain words beside it, last semester's IP a quiet line, the SKS passed a smaller figure
+// over a thin bar of those needed (parts/standing.tsx). Then a row each on the way to graduating (when; the next honor
+// as "Butuh rata-rata 3,66", over which SKS a sheet away, or "Tak terkejar"; the highest IPK possible "jika semua A";
+// the first opens the planner), IP and IPK per
+// semester with its legend and the target's line (the IPK at graduation at its end, when it differs from today's),
+// this term's grades as a clearly marked what-if with the one shared target, and the transcript, a term at a time
+// (./transcript.tsx). Without SIX: this term's courses from Edunex, each opening its calculator. Before SIX's first
+// read, the card stands in its shape.
 // Nothing here names a minute (HourClock), and what's below the first screenful mounts a part a frame (Later).
-import * as Haptics from "expo-haptics";
-import { memo, type ReactNode, useMemo } from "react";
+import { memo, type ReactNode, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -18,15 +20,18 @@ import type { CalendarEvent } from "../../../../src/core/models";
 import { checkPlan, expectedGrade, hasWhatIfs, honorsOutlook, passedSks, project, type StudentRecord, sksModel, targetOf } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
+import { StandingFigures } from "../../parts/standing";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { Figure, FigureCell, FigureDash, FigureLabel, FigureRow, Group, GroupRow, Heading, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
+import { Figure, FigureDash, FigureLabel, Group, GroupRow, Heading, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
+import { haptic } from "../../ui/haptics";
 import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
+import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -40,7 +45,7 @@ import { GradeLetter, shownIndex, Transcript } from "./transcript";
 const SIX_WEB = "https://six.itb.ac.id";
 
 /** Android's confirm tick, for a grade picked. */
-const confirm = () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+const confirm = () => haptic.confirm();
 
 /** "Sangat berat" from "sangat berat": a pill's words start with a capital. */
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
@@ -117,71 +122,69 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
 
 // ------------------------------------------------------------ the key card
 
-/** The IPK, big, and the SKS passed beside it; last semester's IP a quiet line; the IPK at graduation a pill. */
+/**
+ * The IPK, big, with the predicate it heads for as plain words beside it ("Sangat memuaskan"; "… saat lulus" when that
+ * isn't today's), last semester's IP a quiet line, and the SKS passed over a thin bar of those needed.
+ */
 const Standing = memo(function Standing({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
   const f = useFormat();
-  const lang = useLang();
   const v = useTheme().v4;
   const predicate = usePredicate();
   const transcript = record.transcript!;
   const ipk = shownIndex(transcript.ipk);
   const sks = passedSks(record);
   const need = sksModel(record, state.plan).need;
-  const { finalIpk, path, variableSks, honor } = state.projection;
+  const { finalIpk, path, honor } = state.projection;
   const word = predicate(predicateFor(finalIpk, path));
+  // Today's IPK heads for another predicate (grades still to come): the words say it's the one at graduation.
+  const later = word !== null && word !== predicate(predicateFor(ipk, path));
   const graded = transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null);
   const last = graded.at(-1);
-  const before = graded.at(-2);
   const lastIp = last ? shownIndex(last.ip) : null;
-  const delta = lastIp !== null && before ? lastIp - shownIndex(before.ip)! : null;
-  const signed = (value: number) => `${value > 0.004 ? "+" : value < -0.004 ? "−" : "±"}${f.number(Math.abs(value), 2)}`;
   return (
-    <Panel testID="card.standing" style={{ padding: space[5], gap: space[3] }}>
-      {/* Side by side while they fit; at a big font size the SKS goes under the IPK. */}
-      <FigureRow>
-        <FigureCell label={t("grades.chart.ipk")}>
-          {ipk === null ? <FigureDash /> : <Figure id="grades.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
-        </FigureCell>
-        <FigureCell label={t("grades.sksPassed")}>
-          {sks === null ? <FigureDash /> : <Figure id="grades.sks" value={sks} unit={t("mobile.academic.sksOf", { need })} />}
-        </FigureCell>
-      </FigureRow>
-      {lastIp !== null && (
-        <Text size="bodyMedium" tabular style={{ color: v.muted }}>
-          {delta === null
-            ? t("mobile.grades.lastIp", { ip: f.number(lastIp, 2) })
-            : t("mobile.grades.lastIpDelta", { ip: f.number(lastIp, 2), delta: signed(delta) })}
-        </Text>
-      )}
-      {/* With grades still to come, the IPK it heads for at graduation; with every grade in, the predicate alone. */}
-      {word ? (
-        <View style={{ flexDirection: "row" }}>
-          <Pill tone={honor ? "ok" : "plain"}>
-            {variableSks > 0 && finalIpk !== null ? t("mobile.grades.final", { final: f.number(finalIpk, 2), predicate: word }) : word}
-          </Pill>
-        </View>
-      ) : null}
+    <Panel testID="card.standing" style={{ padding: space[5] }}>
+      <StandingFigures
+        id="grades"
+        ipk={ipk}
+        sks={sks}
+        need={need}
+        // Plain words, not a chip: nothing here to press.
+        aside={
+          word ? (
+            <Text size="bodyLarge" weight="medium" style={{ color: honor ? v.okFg : v.fg2 }}>
+              {later ? t("mobile.grades.predicateAtEnd", { predicate: word }) : word}
+            </Text>
+          ) : null
+        }
+      >
+        {lastIp !== null && (
+          <Text size="bodyMedium" tabular style={{ color: v.muted }}>
+            {t("mobile.grades.lastIp", { ip: f.number(lastIp, 2) })}
+          </Text>
+        )}
+      </StandingFigures>
     </Panel>
   );
 });
 
-/** The page's shape while SIX's record is on its way: the key card, then a card of rows. */
+/** The page's shape while SIX's record is on its way: the key card (the IPK, the SKS and its bar), then a card of rows. */
 function GradesSkeleton() {
   return (
     <View accessibilityState={{ busy: true }} testID="grades.loading" style={{ gap: space[6] }}>
       <Panel style={{ padding: space[5], gap: space[3] }}>
-        <View style={{ flexDirection: "row", gap: space[8] }}>
-          <View style={{ gap: space[2] }}>
-            <Skeleton width={32} height={14} />
-            <Skeleton width={104} height={44} />
-          </View>
-          <View style={{ gap: space[2] }}>
-            <Skeleton width={64} height={14} />
-            <Skeleton width={112} height={44} />
-          </View>
+        <View style={{ gap: space[2] }}>
+          <Skeleton width={32} height={14} />
+          <Skeleton width={104} height={44} />
+          <Skeleton width="45%" height={14} />
         </View>
-        <Skeleton width="55%" height={14} />
+        <View style={{ gap: space[2], marginTop: space[2] }}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+            <Skeleton width={64} height={14} />
+            <Skeleton width={88} height={18} />
+          </View>
+          <Skeleton width="100%" height={6} />
+        </View>
       </Panel>
       <Panel style={{ padding: space[4], gap: space[5] }}>
         {[0, 1, 2].map((i) => (
@@ -217,7 +220,12 @@ function Disagreement({ record }: { record: StudentRecord }) {
 
 // ------------------------------------------------------------ on the way to graduating
 
-/** When the Student graduates (one press: the planner), the honors still open, and the highest IPK still possible. */
+/**
+ * When the Student graduates (one press: the planner), the honor reached, the next one with the average it needs
+ * ("Butuh rata-rata 3,66"), or "Tak terkejar" when even straight A's fall short, and the highest IPK still possible
+ * ("Jika semua A"). Over which SKS that average is (this term's and the plan's, which can be more than the card's SKS
+ * left) is the honor row's sheet, never a count on screen beside "125 dari 144".
+ */
 const Graduation = memo(function Graduation({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
   const f = useFormat();
@@ -226,13 +234,28 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
   const termName = useTermName(record);
   const { projection, plan } = state;
   const finish = useMemo(() => checkPlan(record, plan, projection).find((r) => r.id === "finish"), [record, plan, projection]);
-  // Cum, magna, summa: the highest level already reached, and the first one still open with what it needs.
+  // Cum, magna, summa: the highest level already reached, and the first one not reached that isn't ruled out.
   const honors = useMemo(() => honorsOutlook(projection).reverse(), [projection]);
   const secured = [...honors].reverse().find((h) => h.kind === "secured");
-  const next = honors.find((h) => h.kind === "needs");
+  const next = honors.find((h) => h.kind === "needs" || h.kind === "out");
   const lastTerm = [...plan.terms].reverse().find((term) => term.courses.length)?.term ?? record.term;
   const blocked = finish?.level === "error";
   const best = projection.bestIpk;
+  const [why, setWhy] = useState(false);
+  // The SKS the honor's average is over: this term's without a grade, and the plan's (projection.variableSks).
+  const whyText = useMemo(() => {
+    const termSks = record.thisTerm.filter((c) => c.grade === null).reduce((sum, c) => sum + c.sks, 0);
+    const planSks = Math.max(0, projection.variableSks - termSks);
+    const left = Math.max(0, sksModel(record, plan).need - record.passedSks);
+    return [
+      planSks
+        ? t("mobile.grades.honorsWhy", { sks: projection.variableSks, term: termSks, plan: planSks })
+        : t("mobile.grades.honorsWhyTerm", { sks: projection.variableSks }),
+      projection.variableSks > left ? t("mobile.grades.honorsWhyMore", { left }) : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+  }, [record, plan, projection, t]);
   const rows: ReactNode[] = [
     <GroupRow
       key="finish"
@@ -256,14 +279,40 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
         trailing={<Pill tone="ok">{capital(t("honors.secured"))}</Pill>}
       />,
     );
-  if (next && next.kind === "needs")
+  if (next?.kind === "needs")
+    rows.push(
+      // The row opens why: over which SKS that average is (the card's SKS are another count).
+      <GroupRow
+        key="next"
+        leading={<IconTile tone="plain" icon={(color) => <Icons.Star size={22} color={color} />} />}
+        title={t(`honors.${next.level}`)}
+        meta={
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+            <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.muted }}>
+              {t("mobile.grades.honorsAverage", { avg: f.number(next.average, 2), sks: projection.variableSks })}
+            </Text>
+            <Icons.Info size={16} color={v.muted} />
+          </View>
+        }
+        trailing={<Pill tone={effortTone(next.average)}>{capital(t(effortKey(next.average)))}</Pill>}
+        onPress={() => setWhy(true)}
+        accessibilityRole="button"
+        accessibilityHint={whyText}
+        testID="action.honorsWhy"
+      />,
+    );
+  else if (next?.kind === "out")
     rows.push(
       <GroupRow
         key="next"
         leading={<IconTile tone="plain" icon={(color) => <Icons.Star size={22} color={color} />} />}
         title={t(`honors.${next.level}`)}
-        meta={t("mobile.grades.honorsNeeds", { avg: f.number(next.average, 2), sks: projection.variableSks })}
-        trailing={<Pill tone={effortTone(next.average)}>{capital(t(effortKey(next.average)))}</Pill>}
+        // One word, as plain text: nothing to press, and no second number beside the best IPK's.
+        trailing={
+          <Text size="bodyMedium" weight="medium" style={{ color: v.muted }}>
+            {t("mobile.grades.honorsOut")}
+          </Text>
+        }
       />,
     );
   rows.push(
@@ -271,7 +320,8 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
       key="best"
       leading={<IconTile tone="plain" icon={(color) => <Icons.Target size={22} color={color} />} />}
       title={t("grades.best")}
-      meta={projection.variableSks ? t("grades.bestHint", { sks: projection.variableSks }) : t("grades.bestNone")}
+      // Which SKS: the honor's sheet says it, once.
+      meta={projection.variableSks ? t("mobile.grades.bestHint") : t("grades.bestNone")}
       trailing={
         <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
           {best === null ? "-" : f.number(best, 2)}
@@ -283,6 +333,13 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
     <>
       <Heading>{t("mobile.grades.toGraduation")}</Heading>
       <Group testID="card.graduation">{rows}</Group>
+      {next?.kind === "needs" && (
+        <Sheet open={why} onClose={() => setWhy(false)} title={t(`honors.${next.level}`)} background={v.card} testID="sheet.honorsWhy">
+          <Text size="bodyLarge" style={{ color: v.fg, paddingBottom: space[4] }}>
+            {whyText}
+          </Text>
+        </Sheet>
+      )}
     </>
   );
 });
@@ -295,13 +352,17 @@ function effortTone(average: number): PillTone {
 
 // ------------------------------------------------------------ the chart
 
+/**
+ * IP and IPK per semester under their legend, the target as its labelled dashed line (set in Semester ini, under it),
+ * and the IPK at graduation at the line's end when it isn't today's.
+ */
 function Chart({ record, state }: { record: StudentRecord; state: PlanState }) {
   const t = useT();
   return (
     <>
       <Heading>{t("grades.chart")}</Heading>
-      <Panel style={{ paddingHorizontal: space[4], paddingTop: space[4], paddingBottom: space[3] }} testID="card.chart">
-        <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} />
+      <Panel style={{ paddingHorizontal: space[2], paddingTop: space[4], paddingBottom: space[3] }} testID="card.chart">
+        <IpkChart steps={state.projection.steps} target={targetOf(record, state.plan)} best={state.projection.bestIpk} />
       </Panel>
     </>
   );

@@ -87,3 +87,101 @@ index 05bc51d..18d7059 100644
      }
  
      /**
+diff --git a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDimensionsCoordinator.kt b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDimensionsCoordinator.kt
+index 70eb400..dc5e0fe 100644
+--- a/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDimensionsCoordinator.kt
++++ b/node_modules/react-native-screens/android/src/main/java/com/swmansion/rnscreens/gamma/modals/formsheet/FormSheetDimensionsCoordinator.kt
+@@ -1,10 +1,14 @@
+ package com.swmansion.rnscreens.gamma.modals.formsheet
+ 
++import android.content.Context
++import android.content.ContextWrapper
++import android.view.View
+ import android.view.ViewGroup
+ import android.widget.FrameLayout
+ import androidx.core.view.ViewCompat
+ import androidx.core.view.WindowInsetsCompat
+ import androidx.core.view.doOnLayout
++import com.facebook.react.bridge.ReactContext
+ import com.google.android.material.bottomsheet.BottomSheetDialog
+ 
+ internal class FormSheetDimensionsCoordinator(
+@@ -21,8 +25,16 @@ internal class FormSheetDimensionsCoordinator(
+ 
+     private var currentContentHeight: Int = 0
+ 
++    // Edunex Plus: the window height the sheet was last sized against, and a check once the sheet's window has its own.
++    private var lastAvailableSpace: Int = 0
++    private val windowLayoutListener =
++        View.OnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
++            if (view.height > 0 && view.height != lastAvailableSpace) view.post { updateNativeContainerHeight() }
++        }
++
+     internal fun setup() {
+         setupWindowInsetsListener()
++        dialog.window?.decorView?.addOnLayoutChangeListener(windowLayoutListener)
+ 
+         bottomSheetView?.let { view ->
+             disableMaterialInsetsAnimationCallback(view)
+@@ -80,11 +92,12 @@ internal class FormSheetDimensionsCoordinator(
+      * the system insets, we completely bypass these redundant layout passes.
+      */
+     private fun updateNativeContainerHeight() {
+-        val dialogDecorHeight = dialog.window?.decorView?.height ?: 0
++        val dialogDecorHeight = sheetAvailableSpace()
+ 
+         if (dialogDecorHeight <= 0) {
+             return
+         }
++        lastAvailableSpace = dialogDecorHeight
+ 
+         currentDetents?.let { detents ->
+             behaviorController?.updateSheetBehavior(
+@@ -113,6 +126,24 @@ internal class FormSheetDimensionsCoordinator(
+         }
+     }
+ 
++    /**
++     * Edunex Plus: the height of the sheet's window, or, before it is first laid out, of the app's. Upstream sized nothing
++     * until the sheet's window had a height, so Material first laid the sheet out as tall as the screen and slid it up
++     * empty, to snap down to the content's height only after React Native measured it again (a round trip through the JS
++     * thread). The sheet's window covers the app's edge to edge, so the app's height stands in for it until then: the
++     * sheet is sized to its content before its first layout and rises once, straight to that height.
++     */
++    private fun sheetAvailableSpace(): Int {
++        val own = dialog.window?.decorView?.height ?: 0
++        if (own > 0) return own
++        var current: Context? = dialog.context
++        while (current is ContextWrapper) {
++            if (current is ReactContext) return current.currentActivity?.window?.decorView?.height ?: 0
++            current = current.baseContext
++        }
++        return 0
++    }
++
+     private fun getTopInset(insetsCompat: WindowInsetsCompat): Int =
+         insetsCompat
+             .getInsets(
+@@ -127,5 +158,6 @@ internal class FormSheetDimensionsCoordinator(
+ 
+     internal fun destroy() {
+         ViewCompat.setOnApplyWindowInsetsListener(container, null)
++        dialog.window?.decorView?.removeOnLayoutChangeListener(windowLayoutListener)
+     }
+ }
+diff --git a/node_modules/react-native-screens/ios/gamma/modals/form-sheet/RNSFormSheetConfigurationApplicator.mm b/node_modules/react-native-screens/ios/gamma/modals/form-sheet/RNSFormSheetConfigurationApplicator.mm
+index 0000000..0000000 100644
+--- a/node_modules/react-native-screens/ios/gamma/modals/form-sheet/RNSFormSheetConfigurationApplicator.mm
++++ b/node_modules/react-native-screens/ios/gamma/modals/form-sheet/RNSFormSheetConfigurationApplicator.mm
+@@ -79,6 +79,11 @@
+   [sheet animateChanges:^{
+     // Behavior updates
+     sheet.detents = nativeDetents;
++    // A custom detent's height is worked out once and kept: a fitToContents sheet sized before its content was measured
++    // stayed at the screen's full height. Apple: "call invalidateDetents() when a custom detent's height changes".
++    if (@available(iOS 16.0, *)) {
++      [sheet invalidateDetents];
++    }
+     sheet.prefersScrollingExpandsWhenScrolledToEdge = prefersScrollingExpands;
+     if (initialDetentIdentifier != nil) {
+       sheet.selectedDetentIdentifier = initialDetentIdentifier;

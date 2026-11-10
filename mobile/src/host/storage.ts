@@ -1,12 +1,15 @@
 // The engine's disk on the phone: one file per key under the app's own documents folder (no
 // other app can read it). Every write goes to a temporary file first and is then moved over
 // the old one, so a crash mid-write leaves the old value; stray temporary files are skipped
-// and swept on the next start. The desktop's twin is src/desktop/storage.ts.
+// and swept a little after the next start (not before its first frame). The desktop's twin is
+// src/desktop/storage.ts.
 import { Directory, File, Paths } from "expo-file-system";
 import type { Storage } from "../../../src/engine/store/storage";
 
 const KEY = /^[a-z0-9][a-z0-9._-]*(\/[a-z0-9][a-z0-9._-]*)*$/i;
 const TEMP = ".tmp";
+/** How long after the start stray temporary files are swept: well after the first frame. */
+const SWEEP_AFTER_MS = 10_000;
 
 export class PhoneStorage implements Storage {
   private readonly queues = new Map<string, Promise<void>>();
@@ -15,7 +18,11 @@ export class PhoneStorage implements Storage {
   constructor(folder = "engine") {
     this.root = new Directory(Paths.document, folder);
     if (!this.root.exists) this.root.create({ intermediates: true });
-    sweep(this.root);
+    const root = this.root;
+    // A write makes its temporary file and moves it in one go on this thread, so a sweep never meets one mid-write.
+    setTimeout(() => {
+      if (root.exists) sweep(root);
+    }, SWEEP_AFTER_MS);
   }
 
   async read(key: string): Promise<string | null> {
@@ -47,8 +54,10 @@ export class PhoneStorage implements Storage {
     });
   }
 
+  /** Only the folder `prefix` names is walked ("datasets/": that folder, not every file the engine keeps). */
   async list(prefix: string): Promise<string[]> {
     const keys: string[] = [];
+    const folder = prefix.slice(0, prefix.lastIndexOf("/") + 1).replace(/\/$/, "");
     const walk = (dir: Directory, relative: string) => {
       for (const entry of dir.list()) {
         if (entry.name.endsWith(TEMP)) continue;
@@ -57,7 +66,8 @@ export class PhoneStorage implements Storage {
         else if (key.startsWith(prefix)) keys.push(key);
       }
     };
-    walk(this.root, "");
+    const start = folder ? new Directory(this.root, ...folder.split("/")) : this.root;
+    if (start.exists) walk(start, folder);
     return keys.sort();
   }
 

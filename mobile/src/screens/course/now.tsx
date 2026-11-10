@@ -5,12 +5,12 @@
 // Edunex's Presence where it counts; joining an online class). Whether the Presence counts is a chip, not a sentence.
 // Its kicker and its facts each one line (judge round 3). Otherwise, quiet rows in one white card: windows still open
 // from earlier classes, the next meeting, a class SIX shows that the app couldn't read.
-import * as Haptics from "expo-haptics";
 import { type ReactNode, useEffect } from "react";
 import { View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useCourseNames } from "../../../../src/app/schedule-data";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { firstUnreadDay } from "../../../../src/core/attendance";
@@ -21,6 +21,7 @@ import { dayNoon } from "../../../../src/core/schedule";
 import { OpenSixTimetable } from "../../parts/six-page-note";
 import { BigButton } from "../../ui/big-button";
 import { CookieCheck, CountUp, PulseDot, Rise, WavyProgress } from "../../ui/expressive";
+import { haptic } from "../../ui/haptics";
 import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
@@ -29,6 +30,7 @@ import { useCourseTile } from "../../ui/tile";
 import { CardGroup, StatusChip, TileRow } from "../../ui/v4-list";
 import { useCheckIn, useWentToCheckIn } from "../home/checked-in";
 import { useCardStyle } from "../home/now";
+import { shortName } from "../home/parts";
 import { meetingModuleTitle, meetingTitle, pageModules } from "./meetings";
 
 const MINUTE = 60_000;
@@ -41,16 +43,11 @@ function countdown(from: number, at: number): { value: number; unit: "minute" | 
   return { value: Math.floor(minutes / (24 * 60)), unit: "day" };
 }
 
-export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
-  const t = useT();
-  const f = useFormat();
-  const now = useNow();
-  const v = useTheme().v4;
-  const open = useOpenExternal();
-  const attendance = useAttendance();
-  const schedule = useDataset("six.schedule");
-  const unread = useDataset("six.scheduleUnread");
-  const modules = pageModules(page);
+/**
+ * What the part above the tabs shows: the class on now (or the window open, with its class), the next meeting, and the
+ * other open windows. Pertemuan leaves those meetings out of its list (`shownAbove`): one fact, one place.
+ */
+function nowAndNext(page: CoursePage, now: number) {
   const pinned = pinnedMeeting(page.meetings, now);
   const windows = openPresences(page.presence ?? [], now);
   const current = pinned?.current ? pinned.meeting : null;
@@ -59,6 +56,28 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
   const meetingOf = (p: PresenceSession) => page.meetings.find((m) => m.presence?.id === p.id) ?? null;
   const meeting = current ?? (presence ? meetingOf(presence) : null);
   const next = pinned && !pinned.current && pinned.meeting !== meeting ? pinned.meeting : null;
+  return { windows, current, presence, meeting, next, meetingOf };
+}
+
+/** The keys of the meetings the part above the tabs shows (the class on now, the next one, a window still open). */
+export function shownAbove(page: CoursePage, now: number): ReadonlySet<string> {
+  const { windows, meeting, next, meetingOf } = nowAndNext(page, now);
+  return new Set([meeting, next, ...windows.map(meetingOf)].filter((m): m is Meeting => m !== null).map((m) => m.key));
+}
+
+export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
+  const t = useT();
+  const f = useFormat();
+  const now = useNow();
+  const v = useTheme().v4;
+  const open = useOpenExternal();
+  const attendance = useAttendance();
+  const mine = attendance?.courses.find((x) => x.course.code === page.course.code);
+  const schedule = useDataset("six.schedule");
+  const unread = useDataset("six.scheduleUnread");
+  const modules = pageModules(page);
+  const name = useCourseNames();
+  const { windows, current, presence, meeting, next, meetingOf } = nowAndNext(page, now);
   const courseUrl = page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null;
   const linkOf = (m: Meeting) => (m.end > now ? (m.announced?.link ?? null) : null);
 
@@ -90,13 +109,17 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
     const link = linkOf(next);
     const today = link !== null && f.dayOffset(next.start) === 0;
     const what = meetingModuleTitle(t, modules, next) ?? next.presence?.topic ?? next.six?.activity ?? null;
-    const facts = [
-      `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`,
-      next.six?.room ?? "",
+    const room = next.six?.room ?? "";
+    const when = `${f.relativeDay(next.start)}, ${f.timeRange(next.start, next.end)}`;
+    const rest = [
       next.announced?.online ? t("course.online") : "",
       // "Kuliah" is every class: only a topic says something.
       what && !/^kuliah$/i.test(what) ? what : "",
     ].filter(Boolean);
+    const facts = [when, room ? t("mobile.course.room", { room }) : "", ...rest].filter(Boolean);
+    // This class shares time with another course's (Jadwal marks it too): said on its row, in the clash's amber.
+    const clash = mine?.clash && mine.clash.session.start === next.start ? mine.clash : null;
+    const clashWords = clash ? t("mobile.course.ex.clash", { course: shortName(name(clash.other)) }) : "";
     rows.push((first) => (
       <TileRow
         key="next"
@@ -107,11 +130,50 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
           </IconTile>
         }
         title={t("course.next")}
-        meta={facts.join(" · ")}
+        // The room reads as one with a pin before it ("9134" alone read as a number); the clash, when there is one, under.
+        meta={
+          <View style={{ gap: 2 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: space[2] }}>
+              <Text size="bodyMedium" tabular style={{ color: v.muted }}>
+                {when}
+              </Text>
+              {room !== "" && (
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
+                  <Icons.MapPin size={14} color={v.muted} />
+                  <Text size="bodyMedium" tabular style={{ color: v.muted }}>
+                    {room}
+                  </Text>
+                </View>
+              )}
+              {rest.length > 0 && (
+                <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted, flexShrink: 1 }}>
+                  {rest.join(" · ")}
+                </Text>
+              )}
+            </View>
+            {clash && (
+              <View testID="mark.courseNextClash" style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+                <Icons.Overlap size={14} weight="bold" color={v.ambFg} />
+                {/* One line (round 3's third review: it wrapped): the clash's time first, then the other course, cut last. */}
+                <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: v.ambFg, flexShrink: 1 }}>
+                  {`${t("mobile.kuliah.clash.title", { time: f.timeRange(clash.from, clash.to) })} · ${shortName(name(clash.other))}`}
+                </Text>
+              </View>
+            )}
+          </View>
+        }
         status={next.notInSix ? <StatusChip tone="amber">{t("meeting.notInSix")}</StatusChip> : undefined}
         // An online class today: the row joins it.
         onPress={today && link ? () => open(link) : undefined}
-        label={[t("course.next"), ...facts, next.notInSix ? t("meeting.notInSix") : "", today ? t("course.join") : ""].filter(Boolean).join(", ")}
+        label={[
+          t("course.next"),
+          ...facts,
+          clash ? `${clashWords} ${f.timeRange(clash.from, clash.to)}` : "",
+          next.notInSix ? t("meeting.notInSix") : "",
+          today ? t("course.join") : "",
+        ]
+          .filter(Boolean)
+          .join(", ")}
         testID="row.courseNext"
       />
     ));
@@ -133,7 +195,7 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
       />
     ));
   const quiet = rows.length ? <CardGroup style={{ marginTop: space[3] }}>{rows.map((row, i) => row(i === 0))}</CardGroup> : null;
-  const countedIn = attendance?.courses.find((x) => x.course.code === page.course.code)?.health.countedIn;
+  const countedIn = mine?.health.countedIn;
   if (!current && !presence)
     return quiet ? (
       <Rise screen={rise} index={2}>
@@ -200,7 +262,7 @@ function NowCard({
   const went = useWentToCheckIn(sixSession?.id ?? null);
   const done = sixState === "gone" && went !== null ? went : null;
   useEffect(() => {
-    if (done !== null) void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+    if (done !== null) haptic.confirm();
   }, [done]);
 
   // What the card leads with: on now (and where), next (when), or a window alone (the class it's for).
@@ -241,7 +303,7 @@ function NowCard({
           variant={variant}
           icon={<Icons.Hand size={20} weight="fill" color={variant === "filled" ? v.onBrand : v.fg} />}
           onPress={() => {
-            void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+            haptic.confirm();
             checkIn(sixSession.id, sixTimetableUrl(student, sixSession.start), now);
           }}
           label={t("home.now.openSixLabel", { course: code })}
