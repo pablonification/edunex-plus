@@ -200,6 +200,10 @@ export const V4 = {
     onBrand: "#ffffff",
     head: "#1f63e0",
     onHead: "#ffffff",
+    // The strong block (Profil's card, any one block of full colour): the same saturated blue in both themes, white on
+    // it at 5.4:1. Never `brand` for a block: dark's `brand` is the pale blue made for a button on the dark page.
+    strong: "#1f63e0",
+    onStrong: "#ffffff",
     // Beranda's header texture (screens/home/header.tsx): one alpha for every dot, low enough that the white greeting
     // and icons over a dot keep 4.5:1 (contrast test); the dots' size, not their alpha, carries the fade.
     headDots: "rgba(255,255,255,0.18)",
@@ -232,6 +236,9 @@ export const V4 = {
     // Dark: a deep, desaturated blue rather than Edunex's bright one (Arqila's review); the status bar's strip takes it too.
     head: "#1a3158",
     onHead: "#ffffff",
+    // The strong block: light's blue, unchanged, so it stays as vivid as the course and exam blocks (round 2's charge).
+    strong: "#1f63e0",
+    onStrong: "#ffffff",
     headDots: "rgba(255,255,255,0.14)",
     brandTint: "#22355f",
     brandInk: "#b9ceff",
@@ -264,18 +271,19 @@ export const NOW = {
  *
  * The rule (mobile/qa/superapp-decisions.md, "Service colours"): colour belongs to Beranda's seven, one each. None is
  * red or amber: those say a state (late, at risk), never a place. Each sits on its own step of lightness as well as
- * its own hue (light: 32, 37, 44, 49, 53, 56, 60; dark: 44, 48, 50, 52, 56, 59, 61), so they tell apart without
- * hue too. Every other service takes `grey`, the neutral tile: a soft grey square with its glyph in grey ink, the
+ * its own hue (light: 32, 37, 44, 49, 53, 56, 60; dark: 43, 46, 49, 52, 55, 58.5, 61), so they tell apart without
+ * hue too. Dark can't spread wider: a tile must stand 3:1 off the dark page (lightness 42 or more) and keep its white
+ * glyph at 3:1 (61.8 or less), so its seven share that band in even steps of about three. Every other service takes `grey`, the neutral tile: a soft grey square with its glyph in grey ink, the
  * same family in both themes, so no colour is ever used for two services. Checked in test/mobile/contrast.test.ts.
  */
 export const SERVICE_TONES = {
-  indigo: { solid: ["#3d32bd", "#5b50e6"], edge: ["#2d2496", "#463cc2"], ink: ["#3d32bd", "#c0b8ff"], tint: ["#e6e3ff", "#2a2752"] },
-  green: { solid: ["#0d652f", "#168240"], edge: ["#094d23", "#0f642f"], ink: ["#0d652f", "#8fe0a8"], tint: ["#dcf3e3", "#14301f"] },
-  violet: { solid: ["#8a3fd6", "#9a52e6"], edge: ["#6f2fb3", "#7c3fc0"], ink: ["#7a2fc4", "#d9b8ff"], tint: ["#f0e4ff", "#33204d"] },
+  indigo: { solid: ["#3d32bd", "#584ee4"], edge: ["#2d2496", "#433ac0"], ink: ["#3d32bd", "#c0b8ff"], tint: ["#e6e3ff", "#2a2752"] },
+  green: { solid: ["#0d652f", "#0e7e3c"], edge: ["#094d23", "#07602c"], ink: ["#0d652f", "#8fe0a8"], tint: ["#dcf3e3", "#14301f"] },
+  violet: { solid: ["#8a3fd6", "#974fe3"], edge: ["#6f2fb3", "#793cbd"], ink: ["#7a2fc4", "#d9b8ff"], tint: ["#f0e4ff", "#33204d"] },
   blue: { solid: ["#1f6fe5", "#2c79ee"], edge: ["#1757b8", "#1f60c4"], ink: ["#1450c4", "#b9ceff"], tint: ["#dbe6ff", "#22355f"] },
-  magenta: { solid: ["#d63ca2", "#de4eae"], edge: ["#ad2a80", "#b3348a"], ink: ["#a3157f", "#ffaede"], tint: ["#fbdcf0", "#43203a"] },
-  lime: { solid: ["#6f9300", "#759a00"], edge: ["#577300", "#5a7700"], ink: ["#4a6200", "#c5e384"], tint: ["#e6f2c4", "#2a3312"] },
-  teal: { solid: ["#0a9eb8", "#0aa2bc"], edge: ["#087c91", "#087f95"], ink: ["#00697a", "#7fdbe8"], tint: ["#d3f0f4", "#10353b"] },
+  magenta: { solid: ["#d63ca2", "#dc4cac"], edge: ["#ad2a80", "#b13288"], ink: ["#a3157f", "#ffaede"], tint: ["#fbdcf0", "#43203a"] },
+  lime: { solid: ["#6f9300", "#749900"], edge: ["#577300", "#597600"], ink: ["#4a6200", "#c5e384"], tint: ["#e6f2c4", "#2a3312"] },
+  teal: { solid: ["#0a9eb8", "#0ca2bc"], edge: ["#087c91", "#097f95"], ink: ["#00697a", "#7fdbe8"], tint: ["#d3f0f4", "#10353b"] },
   // The neutral tile: `tint` is the square, `edge` its lower edge, `ink` its glyph. `solid` is kept for a word or a dot.
   grey: { solid: ["#5f6673", "#565d6b"], edge: ["#dde0e7", "#20242c"], ink: ["#3f4652", "#c8cdd6"], tint: ["#eceef2", "#2a2f39"] },
 } as const;
