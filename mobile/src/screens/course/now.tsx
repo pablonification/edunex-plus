@@ -27,10 +27,11 @@ import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { useCourseTile } from "../../ui/tile";
-import { CardGroup, StatusChip, TileRow } from "../../ui/v4-list";
+import { StatusChip, TileRow } from "../../ui/v4-list";
 import { useCheckIn, useWentToCheckIn } from "../home/checked-in";
 import { useCardStyle } from "../home/now";
 import { shortName } from "../home/parts";
+import { FlatRows } from "./flat";
 import { meetingModuleTitle, meetingTitle, pageModules } from "./meetings";
 
 const MINUTE = 60_000;
@@ -194,7 +195,7 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
         status={<OpenSixTimetable day={unreadDay} />}
       />
     ));
-  const quiet = rows.length ? <CardGroup style={{ marginTop: space[3] }}>{rows.map((row, i) => row(i === 0))}</CardGroup> : null;
+  const quiet = rows.length ? <FlatRows style={{ marginTop: space[3] }}>{rows.map((row, i) => row(i === 0))}</FlatRows> : null;
   const countedIn = mine?.health.countedIn;
   if (!current && !presence)
     return quiet ? (

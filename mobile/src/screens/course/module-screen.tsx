@@ -9,18 +9,20 @@ import { useCoursePage } from "../../../../src/app/screens/course/data";
 import { useStatus } from "../../../../src/app/store";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
+import { useB } from "../../ui/b";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
-import { CardGroup } from "../../ui/v4-list";
 import { contentsOf } from "./contents";
+import { FlatRows } from "./flat";
 import { ModulePage, moduleEntry } from "./modules";
 
 export function ModuleScreen({ code, module }: { code: string; module: number }) {
   const t = useT();
   const theme = useTheme();
+  const b = useB();
   const page = useCoursePage(code);
   const edunex = useStatus("edunex").state;
   const pull = usePullToRefresh();
@@ -35,7 +37,7 @@ export function ModuleScreen({ code, module }: { code: string; module: number })
   return (
     <Page
       testID="screen.module"
-      background={theme.v4.page}
+      background={b.page}
       // The module's title once the page's has scrolled away; while loading nothing (the skeleton holds its place);
       // without the module, the course it was asked of.
       header={<TopBar v4 title={entry ? entry.title : loading ? "" : course} titleFrom={entry ? titleBottom : undefined} />}
@@ -63,7 +65,7 @@ function ModuleSkeleton() {
     <View testID="skeleton.module">
       <Skeleton height={14} width={140} />
       <Skeleton height={28} width="78%" style={{ marginTop: space[2] }} />
-      <CardGroup style={{ marginTop: space[6] }}>
+      <FlatRows style={{ marginTop: space[6] }}>
         {[0, 1, 2].map((i) => (
           <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
             <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
@@ -73,7 +75,7 @@ function ModuleSkeleton() {
             </View>
           </View>
         ))}
-      </CardGroup>
+      </FlatRows>
     </View>
   );
 }

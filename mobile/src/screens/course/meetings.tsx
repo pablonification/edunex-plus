@@ -30,9 +30,10 @@ import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CardGroup, SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
+import { SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
 import { Fact } from "./course-sheet";
 import { type Earlier, earlierMeetings } from "./earlier";
+import { FlatRows } from "./flat";
 import { shownAbove } from "./now";
 
 type T = ReturnType<typeof useT>;
@@ -84,7 +85,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   const earlier = countedIn === "six" || countedIn === "both" || countedIn === "unknown" ? earlierMeetings(meetings, now, health, results) : null;
   /** One card of rows, with an exam period's line before its first meeting (in the order shown). */
   const card = (list: readonly Meeting[], testID: string, after?: ReactNode) => (
-    <CardGroup testID={testID}>
+    <FlatRows testID={testID}>
       {list.map((meeting, index) => {
         const period = periodOf(meeting);
         const startsPeriod = period !== undefined && (index === 0 || periodOf(list[index - 1]!) !== period);
@@ -103,7 +104,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
         );
       })}
       {after}
-    </CardGroup>
+    </FlatRows>
   );
 
   return (
