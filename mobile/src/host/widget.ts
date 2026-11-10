@@ -11,6 +11,7 @@ import { changesAtOf, currentDrawing, drawingOf, type LiveSource, setLiveSource 
 import { WIDGET_NAMES } from "../widget/names";
 import { saveDemoOffset } from "../widget/saved";
 import { type Host, host } from "./host";
+import { updateIosWidgets } from "./widget-ios";
 
 /** Events come in bursts during a sync: one drawing after they settle. */
 const SETTLE = 1_500;
@@ -43,7 +44,9 @@ const breathe = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
  * shows changed. Returns when what any of them says next changes by itself (a class starts or ends), or null.
  */
 export async function updateWidgets(current?: Pick<Host, "engine" | "clockOffset">): Promise<number | null> {
-  // The widgets are Android's only (react-native-android-widget); an iPhone has none to draw.
+  // An iPhone's widgets are WidgetKit's (./widget-ios.ios.ts): the same model, handed over as one document.
+  if (Platform.OS === "ios") return updateIosWidgets(current ? liveOf(current) : undefined);
+  // The rest is Android's (react-native-android-widget).
   if (Platform.OS !== "android") return null;
   const placed = await Promise.all(WIDGET_NAMES.map(async (name) => ({ name, infos: await getWidgetInfo(name) })));
   const widgets = placed.flatMap(({ name, infos }) => infos.map((info) => ({ name, info })));
