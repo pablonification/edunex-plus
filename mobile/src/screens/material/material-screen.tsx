@@ -24,7 +24,6 @@ import { EmptyState, Skeleton } from "../../ui/display";
 import { type IconName, Icons } from "../../ui/icons";
 import { useBottomInset } from "../../ui/insets";
 import { factsLabel } from "../../ui/layout";
-import { Arrive } from "../../ui/moves";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { type FeedItem, type FeedLine, feedLines, feedLineType, materialFeed } from "./feed";
@@ -81,7 +80,7 @@ export function MaterialScreen() {
   const lines = useMemo(() => (sections ? feedLines(sections, toggled) : []), [sections, toggled]);
   usePerfDrawn(sections !== null);
   const toggle = useCallback(() => setToggled((on) => !on), []);
-  const renderItem = useCallback(({ item: line, index }: { item: FeedLine; index: number }) => <Line line={line} index={index} onFold={toggle} />, [toggle]);
+  const renderItem = useCallback(({ item: line }: { item: FeedLine }) => <Line line={line} onFold={toggle} />, [toggle]);
   const loading = sections === null && (edunex === "connecting" || edunex === "live");
   return (
     // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
@@ -109,8 +108,11 @@ export function MaterialScreen() {
   );
 }
 
-/** One line of the feed; the first few arrive once, the first time Materi shows (and "Sebelumnya"'s, when it opens). */
-const Line = memo(function Line({ line, index, onFold }: { line: FeedLine; index: number; onFold: () => void }) {
+/**
+ * One line of the feed. Plain cells, as Tugas's list has: Ujian's rows arrived in a stagger inside the virtualised list
+ * and one was left a row too low the first time the page showed, so nothing here moves a cell while the list measures it.
+ */
+const Line = memo(function Line({ line, onFold }: { line: FeedLine; onFold: () => void }) {
   const t = useT();
   if (line.type === "week")
     return (
@@ -124,11 +126,7 @@ const Line = memo(function Line({ line, index, onFold }: { line: FeedLine; index
         testID="action.material.earlier"
       />
     );
-  return (
-    <Arrive list={line.key.startsWith("earlier") ? "material.earlier" : "material"} index={index}>
-      <Item key={line.item.key} item={line.item} last={line.last} />
-    </Arrive>
-  );
+  return <Item item={line.item} last={line.last} />;
 });
 
 function Glyph({ name, code }: { name: IconName; code: string }) {
