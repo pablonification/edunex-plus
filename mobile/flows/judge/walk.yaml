@@ -132,8 +132,31 @@ appId: io.github.pablonification.edunexplus.demo
     element:
       id: row.exam.DK4073-UTS
     direction: UP
-- tapOn:
-    id: row.exam.DK4073-UTS
+    timeout: 15000
+    optional: true
+- runFlow:
+    when:
+      visible:
+        id: row.exam.DK4073-UTS
+    commands:
+      - tapOn:
+          id: row.exam.DK4073-UTS
+      - extendedWaitUntil:
+          visible:
+            id: screen.exam
+          timeout: 15000
+          optional: true
+# A take-home's row carries its Task's id instead (exam-rows.tsx): then the exam's own page by its link.
+- runFlow:
+    when:
+      notVisible:
+        id: screen.exam
+    commands:
+      - openLink: "edunexplusdemo://exam/DK4073-UTS"
+- extendedWaitUntil:
+    visible:
+      id: screen.exam
+    timeout: 20000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-06-ujian
 - tapOn:
