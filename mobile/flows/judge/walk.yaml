@@ -76,12 +76,13 @@ appId: io.github.pablonification.edunexplus.demo
 # Handing in outside the Presence's time, as the desktop's 05: an answer and a file (mobile/flows/files/jawaban.pdf, put in Downloads by
 # scripts/ci/mobile-e2e.sh) from Android's picker, then Kumpulkan's question with its warning. Closed with Back, the
 # file taken off again: the walk saves nothing.
+# The answer's box is above the files and Lampirkan (src/screens/tasks/hand-in.tsx): scrolled to the box itself, so the
+# tap finds it whatever the page's height above it.
 - scrollUntilVisible:
     element:
-      id: action.attach
+      id: input.answer
     direction: DOWN
     centerElement: true
-    optional: true
 - tapOn:
     id: input.answer
 - inputText: "Jawaban sementara"
