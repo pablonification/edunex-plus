@@ -58,8 +58,10 @@ function Frame() {
   return (
     <>
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
-      {/* Three-button navigation's buttons: light on the dark theme, else dark. */}
-      <NavigationBar style={theme.scheme === "dark" ? "dark" : "light"} />
+      {/* Three-button navigation's buttons: light on the dark theme, else dark. The style names the buttons, as the
+          status bar's does ("dark": dark buttons for a light bar; expo-navigation-bar's native side and its own "auto"
+          read it so, whatever its type's comment says). */}
+      <NavigationBar style={theme.scheme === "dark" ? "light" : "dark"} />
       {/* Edge to edge: a screen over the tabs runs under the phone's navigation bar, and its page keeps its last row
           clear of it (ui/insets.ts). "default" is Android's own open and close (the system's slide and fade), drawn
           natively. The screens take new data and the minute's tick as transitions (src/ui/deferred.tsx). */}

@@ -42,4 +42,29 @@ describe("touch targets", () => {
     expect(slopY(56)).toBeUndefined();
     expect(slop(16)).toBe(16);
   });
+
+  // The super-app layout's own parts say their height where they're drawn: each is 48 dp or more by itself.
+  const read = (file: string) => readFileSync(new URL(`../../mobile/src/${file}`, import.meta.url), "utf8");
+  /** The least height the part named `part` draws at, read from its source after `from`. */
+  const least = (source: string, from: string) => Number(source.slice(source.indexOf(from)).match(/minHeight: (\d+)/)?.[1]);
+
+  it("makes the presence button, a service's tile, a count and a flat row 48 or more", () => {
+    expect(least(read("ui/kit.tsx"), "export function PresenceButton")).toBeGreaterThanOrEqual(TARGET);
+    const b = read("ui/b.tsx");
+    expect(least(b, "  tile: {")).toBeGreaterThanOrEqual(TARGET);
+    expect(least(b, "  count: {")).toBeGreaterThanOrEqual(TARGET);
+    expect(least(b, "export function BRow")).toBeGreaterThanOrEqual(TARGET);
+    expect(least(read("ui/v4-list.tsx"), "export function TileRow")).toBeGreaterThanOrEqual(TARGET);
+  });
+
+  it("makes an empty state's next step and the notifications notice's button 48", () => {
+    expect(least(read("ui/display.tsx"), "export function EmptyState")).toBeGreaterThanOrEqual(TARGET);
+    expect(least(read("parts/notifications-off.tsx"), "export function NotificationsOff")).toBeGreaterThanOrEqual(TARGET);
+  });
+
+  it("ends every shared row that opens something in the one chevron", () => {
+    for (const file of ["ui/b.tsx", "ui/group.tsx", "ui/v4-list.tsx"])
+      expect(read(file), file).toMatch(/rowEnd\((trailing|status), Boolean\(onPress\), chevron\)/);
+    expect(read("ui/settings-list.tsx")).toMatch(/export const Chevron = RowChevron;/);
+  });
 });

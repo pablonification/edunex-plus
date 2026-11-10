@@ -5,11 +5,12 @@
 import type { ReactNode } from "react";
 import { type StyleProp, View, type ViewStyle } from "react-native";
 import { PressScale } from "./press";
+import { ROW_SIDE, rowEnd } from "./row-end";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
 
 /** Where a row's divider starts: the row's side padding, a 44 dp tile and the gap after it. */
-export const ROW_INSET = 14 + 44 + space[3];
+export const ROW_INSET = ROW_SIDE + 44 + space[3];
 
 /** Rows (or anything) that belong together, flat on the page: no fill, no corner, in light and dark. */
 export function CardGroup({ children, style, testID }: { children: ReactNode; style?: StyleProp<ViewStyle>; testID?: string }) {
@@ -29,6 +30,7 @@ export function TileRow({
   title,
   meta,
   status,
+  chevron,
   first = false,
   inset = ROW_INSET,
   onPress,
@@ -42,6 +44,8 @@ export function TileRow({
   title: ReactNode;
   meta?: ReactNode;
   status?: ReactNode;
+  /** The chevron at the row's end (ui/row-end.tsx): by itself with `onPress` and no `status`; true adds it after a `status`, false leaves it out. */
+  chevron?: boolean;
   first?: boolean;
   /** Where the divider starts (dp from the row's start). */
   inset?: number;
@@ -80,10 +84,10 @@ export function TileRow({
           ))}
         {children}
       </View>
-      {status}
+      {rowEnd(status, Boolean(onPress), chevron)}
     </>
   );
-  const style: ViewStyle = { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 };
+  const style: ViewStyle = { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: ROW_SIDE, paddingVertical: space[3], minHeight: 68 };
   if (!onPress && !onLongPress)
     return (
       <View testID={testID} accessible={label !== undefined} accessibilityLabel={label} style={style}>
@@ -126,7 +130,7 @@ export function StatusChip({ tone, children, testID }: { tone: ChipTone; childre
 export function SectionTitle({ children, end, first = false }: { children: string; end?: ReactNode; first?: boolean }) {
   return (
     <View
-      style={{ flexDirection: "row", alignItems: "center", marginTop: first ? 0 : space[6], marginBottom: end ? space[1] : space[3], marginLeft: space[1] }}
+      style={{ flexDirection: "row", alignItems: "center", marginTop: first ? 0 : space[6], marginBottom: end ? space[1] : space[3], marginLeft: ROW_SIDE }}
     >
       <Text size="titleMedium" face="display" weight="bold" accessibilityRole="header" style={{ flex: 1, fontSize: 17, letterSpacing: -0.2 }}>
         {children}

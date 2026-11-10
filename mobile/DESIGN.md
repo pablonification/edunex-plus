@@ -14,7 +14,7 @@ Sources: Material 3 (incl. Expressive) and Android's quality guidelines, through
 
 | Piece | What | Where |
 | --- | --- | --- |
-| Bottom tabs | Android's own navigation bar (expo-router `NativeTabs`, a Material `BottomNavigationView`): Beranda, Jadwal, Tugas, Kuliah, Profil. Labels always shown; icons are Fluent's 24 px drawings as drawables (`tab_home`, `tab_schedule`, `tab_tasks`, `tab_courses`, `tab_profile`, each with `_filled`: a house, a calendar, a clipboard of ticks, the graduation cap, a person), regular at rest, filled when picked. **The picked tab** is its filled icon and its label (bold) in the brand's blue (`v4.brand`: #1f63e0, dark #a9c4ff), in light and dark; there is no Material pill behind it (the indicator takes the bar's own colour, `surfaceContainer`, so it never draws). At rest: `onSurfaceVariant`. iPhone: Apple's symbols (`house`, `calendar`, `checkmark.circle`, `book`, `person`, each `.fill` when picked where Apple has one), the accent as the tint. **Badges** (the error colour): a badge is a count the tab's page leads with, or it's gone. Tugas: its page's "Belum selesai" count, shown only while one is late or due within a day. Profil: the KRS to send and the bills due, which its rows say. Kuliah: none (presence open now is the page's first line and Beranda's first block, not a number the page leads with). Beranda, Jadwal: none. All tabs mounted ahead: a switch is instant, each keeps its scroll, a second tap scrolls to the top. Each tab's route wraps its page in `TabClock` (a hidden tab ignores the minute's tick until shown) and calls `usePerfFocused(name)`. | `app/(tabs)/_layout.tsx`, `plugins/tab-icons.js`, `scripts/make-tab-icons.mjs` |
+| Bottom tabs | Android's own navigation bar (expo-router `NativeTabs`, a Material `BottomNavigationView`): Beranda, Jadwal, Tugas, Kuliah, Profil. Labels always shown; icons are Fluent's 24 px drawings as drawables (`tab_home`, `tab_schedule`, `tab_tasks`, `tab_courses`, `tab_profile`, each with `_filled`: a house, a calendar, a clipboard of ticks, the graduation cap, a person), regular at rest, filled when picked. **The picked tab** is its filled icon and its label (bold) in the brand's blue (`v4.brand`: #1f63e0, dark #a9c4ff), in light and dark; there is no Material pill behind it (the indicator takes the bar's own colour, so it never draws). **The bar is the page's own colour** (`v4.page`, white; dark #161618) with a hairline (`v4.line`) along its top, drawn where the tabs' pages end (`BarHairline`), not a grey band under a white page; Material's ripple stays. The phone's own three buttons under it follow the theme (dark on light, light on dark: `NavigationBar` in `app/_layout.tsx`). At rest: `onSurfaceVariant`. iPhone: Apple's symbols (`house`, `calendar`, `checkmark.circle`, `book`, `person`, each `.fill` when picked where Apple has one), the accent as the tint. **Badges** (the error colour): a badge is a count the tab's page leads with, or it's gone. Tugas: its page's "Belum selesai" count, shown only while one is late or due within a day. Profil: the KRS to send and the bills due, which its rows say. Kuliah: none (presence open now is the page's first line and Beranda's first block, not a number the page leads with). Beranda, Jadwal: none. All tabs mounted ahead: a switch is instant, each keeps its scroll, a second tap scrolls to the top. Each tab's route wraps its page in `TabClock` (a hidden tab ignores the minute's tick until shown) and calls `usePerfFocused(name)`. | `app/(tabs)/_layout.tsx`, `plugins/tab-icons.js`, `scripts/make-tab-icons.mjs` |
 | Tab top bar | One pattern on all five tabs (round 3): `TabHeader title=… actions=…`: the tab's name (Title L, Plus Jakarta Sans) with the data's status as one quiet line under it only when it says something to act on (never "Diperbarui baru saja"; tap: the sources sheet), then the tab's own one or two actions (`actions`: Jadwal's month and ⋮, Kuliah's ⋮), then `TabActions`, the same three in the same places on every tab: Search, the bell (a small dot while something's unread), the avatar (account and Settings). Just the bar: no big title under it to collapse. Beranda's bar is its own blue (`HomeBar`: the greeting as its title, then `TabActions`), fixed as the page scrolls. A problem banner follows under it. | `src/shell/source-status.tsx`, `src/screens/home/header.tsx` |
 | Stack top bar | `TopBar title=… actions=…`: Android's back arrow, the title at the start (Title L), one or two actions at the end, more in ⋮ (`OverflowMenu`). `lines={2}`: a long subject's name whole on two lines, the bar growing to hold it (a course's page: its name is the bar's title, never a big name in the page under an empty bar). `titleFrom={dp}`: a page that shows its subject big at its top keeps the bar's title hidden until the page has scrolled that far, then fades it in (M3's collapsing top app bar, on the UI thread, no layout moves). | `src/ui/top-bar.tsx`, `src/ui/menu.tsx` |
 | Screens | Every drill-down is its own route on the native stack (`app/_layout.tsx`, `animation: "default"`: Android's own open/close, drawn natively), so Back and the back gesture work everywhere with no code. A course, a module (`/course/<code>/module/<id>`), a Task, an exam, Nilai, each part of Rencana studi (`/plan/<part>`), Settings, Search, Notifikasi, the in-app web page. | `app/` |
@@ -36,7 +36,7 @@ notice. The decisions: `mobile/qa/superapp-decisions.md`.
 | Part | What | Where |
 | --- | --- | --- |
 | Surfaces | `theme.v4`: `page` and `card` are the same colour (#ffffff / #161618): nothing may rely on a card standing off the page by its fill. What must stand off takes `chip` or a tint (a course's, a state's). No shadow anywhere. `chip` (a neutral pill's, a neutral icon tile's and a disabled button's fill on a card: #f1f3f7 / #2a2f39, a step off the card in dark, never the page's black), `line`, `fg` / `fg2` / `muted`, the header's `head` (#1f63e0 / dark #1a3158, a deep desaturated blue; white on it 12.9:1) with `onHead`, the one filled button's `brand` / `onBrand` (#1f63e0 + white; dark #a9c4ff + #0a2a66: white on #4d86ff fails), tonal `okBg/okFg`, `redBg/redFg`, `ambBg/ambFg`, `live` (the now dot) | `src/ui/theme.ts` |
-| Course tiles | `theme.courseTile(tone)` → `{ ink, tint }` for each of the ten course colours (light and dark): ink ≥ 4.6:1 on its tint and on a card. `CourseTile` (44 dp, radius 32%, the course's glyph two-tone in its ink on its tint), `CourseGlyph`; the glyph picked from the course's name (`courseGlyph`) | `src/ui/tile.tsx` |
+| Course tiles | `theme.courseTile(tone)` → `{ ink, tint }` for each of the ten course colours (light and dark): ink ≥ 4.6:1 on its tint and on a card. `CourseTile` (44 dp: the course's glyph, filled and solid in its ink, nothing behind it), `CourseGlyph`; the glyph is Fluent's, one per subject family, picked from the course's name (`courseGlyph`, `CourseIcons`), the same wherever the course appears | `src/ui/tile.tsx` |
 | Type | Headings and numbers in Plus Jakarta Sans (`<Text face="display" weight="bold">`, also `semibold`, `extrabold`), bundled as Android font assets (`plugins/fonts.js`, OFL in the licences); everything else Roboto on the M3 scale | `src/ui/text.tsx`, `assets/fonts` |
 | Press | `PressScale`: gives to 96.5% and springs back (expressive), on the UI thread; one per card or row | `src/ui/press.tsx` |
 | Big button | `BigButton` (52 dp pill). One filled action per screen: `filled` on the page (the brand's blue, white words; dark: pale blue, navy words) or `course` on a block of a course's colour (white, the words in `ink`, the course's colour). `done` (tonal green, after it), `outline` (a second way; `ink` white for a white outline on a course's block) | `src/ui/big-button.tsx` |
@@ -53,14 +53,15 @@ notice. The decisions: `mobile/qa/superapp-decisions.md`.
 
 | For | Use | Never |
 | --- | --- | --- |
-| Marking attendance, anywhere | `PresenceButton` (48 dp pill, the raised hand, testID `action.presence`). `tone="page"` on the page: the brand's blue, white words. `tone="course" ink={courseColour}` on a block of a course's colour: white, the words in the course's colour. Its child is the word when it isn't "Isi Presensi" ("Tandai Hadir" for SIX); `time` puts the one time on the same line; `quiet` outlines it when nobody can say it counts | a local button, a second filled button beside it |
+| Marking attendance, anywhere | `PresenceButton` (48 dp pill, the raised hand, testID `action.presence`). `tone="page"` on the page: the brand's blue, white words. `tone="course" ink={courseColour}` on a block of a course's colour: white, the words in the course's colour. `label` is the word when it isn't "Isi Presensi" ("Tandai Hadir" for SIX, the same hand); `icon` only for the block's other main action (joining an online class); `time` puts the one time on the same line; `quiet` outlines it when nobody can say it counts | a local button, a second filled button beside it |
 | A screen's one main action | `BigButton variant="filled"`, or `variant="course" ink=…` on a course's block; a second way is `outline` | two filled buttons on one screen |
 | How far along (a presence window, a term) | `PlainBar`: a track, a fill, at most one label at its end. On a course's block: `color` white, `track` white at about 30% | a wave, a dot, a second label saying the same time |
 | A clash | `ClashMark` (the overlap icon and "Bentrok" in amber; `detail` for when) | other words or another icon for a clash |
 | The strip's three | `StatTile` inside `CountStrip`: the figure in a fixed 32 dp line, the label always one line (it shrinks to 85%, then is cut: write two words), a small chevron after the label. Three cells share a baseline whatever their labels | a label that wraps; "0" (good news is `mark`) |
-| A service | `ServiceTile` in a `ServiceRow` (four across), glyph and colour from `screens/services/list.ts` | a service's glyph or colour chosen on the screen |
+| A service | `ServiceTile` in a `ServiceRow` (four across), glyph and colour from `screens/services/list.ts`; `tag` for the one fact it answers with (Nilai "3,26", UKT "Lunas", KRS "14 SKS"): a small pill on the page's surface over the tile's top right corner, read with the tile's name | a service's glyph or colour chosen on the screen |
 | A section's name | `SectionHeading` (`BHeading`) | all-caps labels |
-| A row | `FlatRow` (`BRow`), or `TileRow` / `GroupRow` | a card per row |
+| A row | `FlatRow` (`BRow`), or `TileRow` / `GroupRow` / `SettingRow`. A row with `onPress` and a free end closes with the one quiet chevron (`RowChevron`, `ui/row-end.tsx`) by itself; a row without `onPress` has none. Where the end is taken (a pill, a time), pass `chevron` to add it after; `chevron={false}` opts out (a switch's row and a danger never get one). Rows and headings share one edge, 20 dp from the screen's side (`ROW_SIDE` 4, the heading's own margin; a divider starts past the tile, `ROW_INSET` 60) | a card per row; a chevron drawn by the screen; a row padded in from its heading |
+| Notifications off | `NotificationsOff` (`parts/notifications-off.tsx`): one line ("Notifikasi mati") and one 48 dp button in the brand's blue, one word ("Nyalakan"); `openNotificationSettings` from the same file | a second notice, a copy of the settings opener |
 | Nothing to show | `EmptyState`: the icon bare (no circle, no tile), the reason, one next step | a container behind the icon |
 
 
@@ -148,7 +149,7 @@ heading → headlineSmall, figure/display → headlineMedium.
 | `ErrorBanner` (`ui/settings-list.tsx`) | Banner | a page's error under its top bar with a close button, until the next try works (never a snackbar) |
 | `DrawnCheck`, `Celebration` (`ui/celebrate.tsx`) | — | the earned moment: a success circle springs in and its check draws itself (Reanimated, UI thread) with the success haptic; Remove animations: a fade. `Celebration` shows it over the page without blocking taps, read by TalkBack, gone after ~1.7 s (the hand-in) |
 | `SwipeRow` | Swipe to act (Gmail) | see Patterns; on the UI thread (gesture handler 3 + Reanimated) |
-| `Card` | Filled card | plain (Low), raised (Container, the one card that leads), sunken (High) |
+| `Card` | Card | plain is flat (no fill: on the page, like every list), raised (Container) is the deliberate card for the one thing that leads, sunken (High) a quiet well |
 | `Section`, `PageHeader`, `Notice`, `StatRow`, `Meta` | | as before, on the scale |
 | `EmptyState` | | the icon bare on the page (no circle, no tile), Title M, a line why, the next step as a button |
 | `Skeleton` | | the shape of what's coming, breathing slowly (still with Remove animations) |
@@ -193,7 +194,7 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Nilai | `ServiceIcons.Grades` | `ribbon` | 24, 28, 32 |
 | Ujian | `ServiceIcons.Exams` | `document-edit` | 24 (28, 32: the 24) |
 | Materi | `ServiceIcons.Materials` | `book` | 24, 28, 32 |
-| KRS | `ServiceIcons.Krs` | `form` (a form to send; not the Tugas tab's clipboard) | 24, 28, 32 |
+| KRS | `ServiceIcons.Krs` | `stack-add` (courses stacked up, one more to add; never a clipboard or a form: those are the Tugas tab's and a Task's) | 24 (28, 32: the 24) |
 | UKT | `ServiceIcons.Bills` | `wallet` | 24, 28, 32 |
 | Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-star` | 24 (28, 32: the 24) |
 | Rencana studi | `ServiceIcons.StudyPlan` | `directions` | 24, 28, 32 |
@@ -205,13 +206,53 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Kurikulum | `ServiceIcons.Curriculum` | `library` | 24, 28, 32 |
 | Berkas | `ServiceIcons.Files` | `folder` | 24, 28, 32 |
 | Profil | `ServiceIcons.Profile` | `person` | 24, 28, 32 |
-| Perlu kamu urus | `ServiceIcons.Needs` | `warning` | 24, 28, 32 |
-| Ringkasan awal | `ServiceIcons.FirstSummary` | `history` | 24, 28, 32 |
-| Sebulan | `ServiceIcons.Month` | `calendar-date` (a page with its date; not the Jadwal tab's grid of days) | 24, 28 (32: the 28) |
+| Perlu kamu urus | `ServiceIcons.Needs` | `checkbox-person` (a box to tick that is yours; the warning triangle is a warning only) | 24 (28, 32: the 24) |
+| Ringkasan awal | `ServiceIcons.FirstSummary`, `Icons.FirstSummary` | `scan-text` (a page being read: its one glyph everywhere; the history clock is "Jam berubah" only) | 24, 28, 32 |
+| Jadwal bulanan | `ServiceIcons.Month`, `Icons.Month` | `calendar-multiple` (pages one behind another; not the Jadwal tab's single page, nor Lainnya's dots) | 24, 28, 32 |
 | Laporkan masalah | `ServiceIcons.Report` | `person-feedback` | 24, 28, 32 |
 
-Colours within a group never repeat and never sit two look-alikes for a colour-blind eye side by side: Kurikulum is
-blue (it was lime beside Nilai's amber). A service's glyph and colour live in `src/screens/services/list.ts` only.
+**Service colours, one rule.** Colour belongs to Beranda's seven, one each: Materi blue, Ujian violet, Nilai lime,
+Kalender teal, KRS magenta, UKT green, Rencana indigo (`SERVICE_TONES`, `src/ui/palette.ts`). None is red or amber:
+those say a state (late, at risk), never a place to go. Each sits on its own step of lightness as well as its own
+hue, so a colour-blind eye tells them apart too. Every other service, and "Lainnya", is the **neutral tile** (`grey`):
+a soft grey square with its own glyph in grey ink, the same in both themes, on Semua layanan, in Profil's rows and
+in search. So no colour ever stands for two services. A service's glyph and colour live in
+`src/screens/services/list.ts` only; `test/mobile/contrast.test.ts` ("service colours by the rule") holds the rule.
+
+- **Courses** (`CourseIcons`, picked by `courseGlyph` in `ui/tile.tsx` from words in the course's name): always the
+  filled form, solid in the course's colour, no outline pair and no container. One per subject family; none is a
+  tab's or a service's glyph. Nothing in `src/ui` draws another icon family (`test/mobile/icons.test.ts`).
+
+| Subject family | Export | Fluent icon |
+| --- | --- | --- |
+| Tugas akhir, skripsi, proposal | `CourseIcons.Thesis` | `certificate` |
+| Transportasi, infrastruktur | `CourseIcons.Transport` | `vehicle-subway` |
+| Komunikasi, pemasaran, media | `CourseIcons.Communication` | `megaphone-loud` |
+| Ekonomi, keuangan, bisnis | `CourseIcons.Economy` | `data-trending` |
+| Akuntansi, perbankan | `CourseIcons.Accounting` | `savings` |
+| Perencanaan, kota, wilayah | `CourseIcons.Planning` | `map` |
+| Arsitektur, bangunan | `CourseIcons.Architecture` | `building-multiple` |
+| Sipil, struktur, jembatan | `CourseIcons.Civil` | `wrench-screwdriver` |
+| Pemrograman, informatika, data | `CourseIcons.Code` | `braces` |
+| Elektro, listrik, daya | `CourseIcons.Electric` | `plug-connected` |
+| Komputer, sistem digital | `CourseIcons.Computer` | `developer-board` |
+| Kimia, biologi, lab | `CourseIcons.Lab` | `beaker` |
+| Fisika | `CourseIcons.Physics` | `molecule` |
+| Matematika, statistik | `CourseIcons.Math` | `math-formula` |
+| Lingkungan, kehutanan | `CourseIcons.Environment` | `leaf-two` |
+| Kesehatan, farmasi | `CourseIcons.Health` | `heart-pulse` |
+| Hukum, etika | `CourseIcons.Law` | `scales` |
+| Desain, seni rupa | `CourseIcons.Design` | `paint-brush` |
+| Gambar teknik, metode | `CourseIcons.Drawing` | `ruler` |
+| Manajemen, kewirausahaan | `CourseIcons.Management` | `briefcase` |
+| Sosial, masyarakat, psikologi | `CourseIcons.Society` | `people-community` |
+| Bahasa, global | `CourseIcons.Language` | `earth` |
+| Any other course | `CourseIcons.Course` | `book-open` |
+
+**One glyph, one meaning.** The warning triangle (`Icons.AlertTriangle`) is a warning only; the history clock
+(`Icons.History`) is "Jam berubah" only; the overlap (`Icons.Overlap`, in `ClashMark`) is a clash only; the raised
+hand is marking attendance only; the cap is the Kuliah tab only (a course is its own `CourseIcons` glyph, SIX is the
+building, Edunex the learning window); the clipboard list is the Tugas tab only.
 
 Glyphs the screens asked for, in `Icons` (regular; `weight="fill"` for the filled form):
 

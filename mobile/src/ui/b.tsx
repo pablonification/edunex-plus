@@ -9,6 +9,7 @@ import { Fluent, type FluentName } from "./fluent";
 import { Icons, type ServiceIconName, ServiceIcons } from "./icons";
 import { ON_SERVICE, SERVICE_TONES } from "./palette";
 import { PressScale } from "./press";
+import { rowEnd } from "./row-end";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
 
@@ -51,10 +52,14 @@ export function useB() {
 /**
  * A service's mark: a rounded square in the service's own colour, its filled glyph in white. The big one (48 dp and
  * up) stands on a slightly darker lower edge; a row's small one (`size` 28 to 44) is the same colour and glyph, flat.
- * Two views and one Path: no gradient, no shadow.
+ * `grey` is the neutral tile (every service that isn't one of Beranda's seven, and "Lainnya"): a soft grey square, its
+ * glyph in grey ink, so the coloured ones stay the only colour. Two views and one Path: no gradient, no shadow.
  */
 export function ServiceCircle({ icon, tone, size = 56 }: { icon: ServiceGlyph; tone: ServiceTone; size?: number }) {
-  const { solid, edge } = useB().tone(tone);
+  const { solid, edge, tint, ink } = useB().tone(tone);
+  const neutral = tone === "grey";
+  const fill = neutral ? tint : solid;
+  const on = neutral ? ink : ON_SERVICE;
   const big = size >= 48;
   const radius = Math.round(size * 0.3);
   const glyph = big ? Math.round(size / 2) : Math.round(size * 0.58);
@@ -63,10 +68,10 @@ export function ServiceCircle({ icon, tone, size = 56 }: { icon: ServiceGlyph; t
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, borderRadius: radius, backgroundColor: big ? edge : solid, flexShrink: 0 }}
+      style={{ width: size, height: size, borderRadius: radius, backgroundColor: big ? edge : fill, flexShrink: 0 }}
     >
-      <View style={{ height: big ? size - 3 : size, borderRadius: radius, backgroundColor: solid, alignItems: "center", justifyContent: "center" }}>
-        {Named ? <Named size={glyph} color={ON_SERVICE} /> : <Fluent name={icon as FluentName} color={ON_SERVICE} size={glyph} />}
+      <View style={{ height: big ? size - 3 : size, borderRadius: radius, backgroundColor: fill, alignItems: "center", justifyContent: "center" }}>
+        {Named ? <Named size={glyph} color={on} /> : <Fluent name={icon as FluentName} color={on} size={glyph} />}
       </View>
     </View>
   );
@@ -75,11 +80,18 @@ export function ServiceCircle({ icon, tone, size = 56 }: { icon: ServiceGlyph; t
 /**
  * One service on a grid, four across: its solid tile, its name under it (one word on Beranda; `lines` 2 where a name
  * needs two, on Semua layanan). The whole column is the one target and gives on a press.
+ *
+ * `tag`: the one fact a student wants before opening it (Nilai "3,26", UKT "Lunas", KRS "14 SKS"), as a small pill
+ * over the tile's top right corner. It's on the page's own surface with the page's ink and a hairline edge, so it
+ * reads on every tile colour in both themes and is never a state's colour (a fact, not an alarm). It floats over the
+ * tile: it takes no room, moves nothing, takes no touch, and grows leftwards so it stays inside its column. A screen
+ * reader hears it with the name ("Nilai, 3,26"). Pass it only once the fact is in (never a guess, never a placeholder).
  */
 export function ServiceTile({
   icon,
   tone,
   label,
+  tag,
   lines = 1,
   onPress,
   testID,
@@ -87,13 +99,14 @@ export function ServiceTile({
   icon: ServiceGlyph;
   tone: ServiceTone;
   label: string;
+  tag?: string;
   lines?: 1 | 2;
   onPress(): void;
   testID?: string;
 }) {
   const b = useB();
   return (
-    <PressScale onPress={onPress} accessibilityLabel={label} testID={testID} style={styles.tile}>
+    <PressScale onPress={onPress} accessibilityLabel={tag ? `${label}, ${tag}` : label} testID={testID} style={styles.tile}>
       <ServiceCircle icon={icon} tone={tone} />
       <Text
         size="bodyMedium"
@@ -103,6 +116,13 @@ export function ServiceTile({
       >
         {label}
       </Text>
+      {tag ? (
+        <View pointerEvents="none" testID={testID?.replace(/^action\./, "tag.")} style={[styles.tag, { borderColor: b.line, backgroundColor: b.page }]}>
+          <Text size="labelMedium" weight="bold" tabular numberOfLines={1} style={{ color: b.fg, fontSize: 11, lineHeight: 14, letterSpacing: 0 }}>
+            {tag}
+          </Text>
+        </View>
+      ) : null}
     </PressScale>
   );
 }
@@ -212,13 +232,18 @@ export function CountStrip({ children, testID }: { children: ReactNode[]; testID
   );
 }
 
-/** A row on the page itself: a mark, a title with one quiet line, something at its end; a hairline under all but the last. */
+/**
+ * A row on the page itself: a mark, a title with one quiet line, something at its end; a hairline under all but the
+ * last. With `onPress` and nothing at its end it ends in the quiet chevron (ui/row-end.tsx): `chevron` adds it after
+ * a `trailing`, `chevron={false}` leaves it out. A row without `onPress` has none.
+ */
 export function BRow({
   leading,
   title,
   meta,
   metaColor,
   trailing,
+  chevron,
   last = false,
   onPress,
   testID,
@@ -229,6 +254,7 @@ export function BRow({
   meta?: ReactNode;
   metaColor?: string;
   trailing?: ReactNode;
+  chevron?: boolean;
   last?: boolean;
   onPress?(): void;
   testID?: string;
@@ -262,7 +288,7 @@ export function BRow({
             meta
           )}
         </View>
-        {trailing}
+        {rowEnd(trailing, Boolean(onPress), chevron)}
       </View>
     </View>
   );
@@ -275,6 +301,17 @@ export function BRow({
 }
 
 const styles = StyleSheet.create({
+  // Its right edge 10 dp past the 56 dp tile's (half the tile, 28, and 10), its top 2 dp above the tile's top.
+  tag: {
+    position: "absolute",
+    top: 2,
+    right: "50%",
+    transform: [{ translateX: 38 }],
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
   tile: { flex: 1, minHeight: 48, alignItems: "center", gap: space[2], paddingVertical: space[1], paddingHorizontal: 2 },
   count: { flex: 1, minHeight: 56, alignItems: "center", paddingVertical: space[2], paddingHorizontal: space[1], gap: 2 },
 });

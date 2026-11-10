@@ -1,70 +1,55 @@
-// A course's tile (round 2, v4; DESIGN.md "Course tiles"): a rounded square in the course's tint holding a filled
-// two-tone icon in its ink, as Grab's and GoPay's service tiles, so a course is known by colour and shape at a glance.
-// The colour is the course's own (the picker's, or the automatic one), its ink and tint from theme.courseTile; the
-// icon is picked from what the course is about, the same every time.
+// A course's mark (DESIGN.md "Course tiles"): its own glyph, solid in the course's own colour, with nothing behind it,
+// so a course is known by colour and shape at a glance and is the same wherever it appears (Kuliah, Nilai, search,
+// Notifikasi, Jadwal). The colour is the course's own (the picker's, or the automatic one), its ink from
+// theme.courseTile; the glyph is Fluent's, filled, one per subject family, picked from what the course is about, the
+// same every time.
 
-import { AtomIcon } from "phosphor-react-native/src/icons/Atom";
-import { BankIcon } from "phosphor-react-native/src/icons/Bank";
-import { BookOpenIcon } from "phosphor-react-native/src/icons/BookOpen";
-import { BridgeIcon } from "phosphor-react-native/src/icons/Bridge";
-import { BriefcaseIcon } from "phosphor-react-native/src/icons/Briefcase";
-import { BuildingsIcon } from "phosphor-react-native/src/icons/Buildings";
-import { CalculatorIcon } from "phosphor-react-native/src/icons/Calculator";
-import { ChartLineUpIcon } from "phosphor-react-native/src/icons/ChartLineUp";
-import { CodeIcon } from "phosphor-react-native/src/icons/Code";
-import { CpuIcon } from "phosphor-react-native/src/icons/Cpu";
-import { FlaskIcon } from "phosphor-react-native/src/icons/Flask";
-import { GlobeIcon } from "phosphor-react-native/src/icons/Globe";
-import { HeartbeatIcon } from "phosphor-react-native/src/icons/Heartbeat";
-import { LeafIcon } from "phosphor-react-native/src/icons/Leaf";
-import { LightningIcon } from "phosphor-react-native/src/icons/Lightning";
-import { MapTrifoldIcon } from "phosphor-react-native/src/icons/MapTrifold";
-import { MegaphoneIcon } from "phosphor-react-native/src/icons/Megaphone";
-import { PaintBrushIcon } from "phosphor-react-native/src/icons/PaintBrush";
-import { PencilRulerIcon } from "phosphor-react-native/src/icons/PencilRuler";
-import { ScalesIcon } from "phosphor-react-native/src/icons/Scales";
-import { ScrollIcon } from "phosphor-react-native/src/icons/Scroll";
-import { TrainIcon } from "phosphor-react-native/src/icons/Train";
-import { UsersIcon } from "phosphor-react-native/src/icons/Users";
 import type { ComponentType } from "react";
 import { View } from "react-native";
 import { useCourseColor } from "../../../src/app/courses";
+import { type CourseIconName, CourseIcons } from "./icons";
 import { useTheme } from "./theme";
 
+/** A course's glyph: always filled, at `size` in `color`. (`weight` and `duotoneOpacity` are the old family's: ignored.) */
 type Glyph = ComponentType<{ size?: number; color?: string; weight?: "duotone" | "fill" | "regular"; duotoneOpacity?: number }>;
 
 /**
- * What a course is about, by words in its name (Indonesian and English), first match wins. Each glyph behind a function,
- * so only the term's few load, when a tile first draws (../ui/icons.tsx says why).
+ * What a course is about, by words in its name (Indonesian and English), first match wins. Each glyph's drawing loads
+ * when a tile first draws it (../ui/icons.tsx says why), so only the term's few load.
  */
-const BY_NAME: readonly [RegExp, () => Glyph][] = [
-  [/tugas akhir|skripsi|proposal|thesis|capstone/i, () => ScrollIcon],
-  [/transport|infrastruktur|infrastructure|jalan|rel\b/i, () => TrainIcon],
-  [/komunikasi|pemasaran|marketing|communication|media/i, () => MegaphoneIcon],
-  [/ekonomi|economic|keuangan|finance|bisnis|business/i, () => ChartLineUpIcon],
-  [/akuntansi|accounting|bank/i, () => BankIcon],
-  [/perencanaan|planning|kota|urban|wilayah|regional/i, () => MapTrifoldIcon],
-  [/arsitektur|architecture|bangunan|building/i, () => BuildingsIcon],
-  [/jembatan|struktur|structur|sipil|civil/i, () => BridgeIcon],
-  [/program|software|perangkat lunak|informatika|informatics|data/i, () => CodeIcon],
-  [/elektro|electric|listrik|daya|power/i, () => LightningIcon],
-  [/komputer|computer|sistem digital|embedded|mikro/i, () => CpuIcon],
-  [/kimia|chemi|biologi|biolog|lab/i, () => FlaskIcon],
-  [/fisika|physic|kuantum|quantum/i, () => AtomIcon],
-  [/matematika|math|kalkulus|calculus|statistik|statistic/i, () => CalculatorIcon],
-  [/lingkungan|environment|hutan|forest|tanaman|plant/i, () => LeafIcon],
-  [/kesehatan|health|medis|medic|farmasi|pharma/i, () => HeartbeatIcon],
-  [/hukum|law|etika|ethic/i, () => ScalesIcon],
-  [/desain|design|seni|art|rupa/i, () => PaintBrushIcon],
-  [/gambar|drawing|teknik|engineering|metode|method/i, () => PencilRulerIcon],
-  [/manajemen|management|kewirausahaan|entrepreneur/i, () => BriefcaseIcon],
-  [/sosial|social|masyarakat|society|psikolog|psycholog/i, () => UsersIcon],
-  [/bahasa|language|inggris|english|indonesia|global/i, () => GlobeIcon],
+const BY_NAME: readonly [RegExp, CourseIconName][] = [
+  [/tugas akhir|skripsi|proposal|thesis|capstone/i, "Thesis"],
+  [/transport|infrastruktur|infrastructure|jalan|rel\b/i, "Transport"],
+  [/komunikasi|pemasaran|marketing|communication|media/i, "Communication"],
+  [/ekonomi|economic|keuangan|finance|bisnis|business/i, "Economy"],
+  [/akuntansi|accounting|bank/i, "Accounting"],
+  [/perencanaan|planning|kota|urban|wilayah|regional/i, "Planning"],
+  [/arsitektur|architecture|bangunan|building/i, "Architecture"],
+  [/jembatan|struktur|structur|sipil|civil/i, "Civil"],
+  [/program|software|perangkat lunak|informatika|informatics|data/i, "Code"],
+  [/elektro|electric|listrik|daya|power/i, "Electric"],
+  [/komputer|computer|sistem digital|embedded|mikro/i, "Computer"],
+  [/kimia|chemi|biologi|biolog|lab/i, "Lab"],
+  [/fisika|physic|kuantum|quantum/i, "Physics"],
+  [/matematika|math|kalkulus|calculus|statistik|statistic/i, "Math"],
+  [/lingkungan|environment|hutan|forest|tanaman|plant/i, "Environment"],
+  [/kesehatan|health|medis|medic|farmasi|pharma/i, "Health"],
+  [/hukum|law|etika|ethic/i, "Law"],
+  [/desain|design|seni|art|rupa/i, "Design"],
+  [/gambar|drawing|teknik|engineering|metode|method/i, "Drawing"],
+  [/manajemen|management|kewirausahaan|entrepreneur/i, "Management"],
+  [/sosial|social|masyarakat|society|psikolog|psycholog/i, "Society"],
+  [/bahasa|language|inggris|english|indonesia|global/i, "Language"],
 ];
 
-/** The tile's glyph for a course: by its name, else the open book. */
+/** Which glyph a course takes: by its name, else the open book. */
+export function courseGlyphName(name: string | undefined): CourseIconName {
+  return (name && BY_NAME.find(([words]) => words.test(name))?.[1]) || "Course";
+}
+
+/** The glyph for a course: by its name, else the open book. Draw it in the course's ink. */
 export function courseGlyph(name: string | undefined): Glyph {
-  return (name && BY_NAME.find(([words]) => words.test(name))?.[1]()) || BookOpenIcon;
+  return CourseIcons[courseGlyphName(name)] as Glyph;
 }
 
 /** The course's ink and tint, from its colour (the same the picker set). */
@@ -88,11 +73,7 @@ export function CourseTile({ code, name, size = 44, bare = false }: { code: stri
       importantForAccessibility="no-hide-descendants"
       style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}
     >
-      {bare ? (
-        <View style={{ width: dot, height: dot, borderRadius: dot / 2, backgroundColor: ink }} />
-      ) : (
-        <Glyph size={Math.round(size * 0.64)} color={ink} weight="duotone" duotoneOpacity={0.35} />
-      )}
+      {bare ? <View style={{ width: dot, height: dot, borderRadius: dot / 2, backgroundColor: ink }} /> : <Glyph size={Math.round(size * 0.64)} color={ink} />}
     </View>
   );
 }
@@ -101,5 +82,5 @@ export function CourseTile({ code, name, size = 44, bare = false }: { code: stri
 export function CourseGlyph({ code, name, size = 22 }: { code: string; name: string | undefined; size?: number }) {
   const { ink } = useCourseTile()(code);
   const Glyph = courseGlyph(name);
-  return <Glyph size={size} color={ink} weight="duotone" duotoneOpacity={0.35} />;
+  return <Glyph size={size} color={ink} />;
 }

@@ -22,15 +22,21 @@ import arrowSync from "./fluent/arrow-sync";
 import arrowUpRight from "./fluent/arrow-up-right";
 import arrowUpload from "./fluent/arrow-upload";
 import attach from "./fluent/attach";
+import beaker from "./fluent/beaker";
 import book from "./fluent/book";
 import bookOpen from "./fluent/book-open";
+import braces from "./fluent/braces";
+import briefcase from "./fluent/briefcase";
 import buildingBank from "./fluent/building-bank";
+import buildingMultiple from "./fluent/building-multiple";
 import calendarCheckmark from "./fluent/calendar-checkmark";
 import calendarClock from "./fluent/calendar-clock";
-import calendarDate from "./fluent/calendar-date";
 import calendarLtr from "./fluent/calendar-ltr";
+import calendarMultiple from "./fluent/calendar-multiple";
 import calendarStar from "./fluent/calendar-star";
+import certificate from "./fluent/certificate";
 import chat from "./fluent/chat";
+import checkboxPerson from "./fluent/checkbox-person";
 import checkmark from "./fluent/checkmark";
 import checkmarkCircle from "./fluent/checkmark-circle";
 import chevronDown from "./fluent/chevron-down";
@@ -43,12 +49,15 @@ import clock from "./fluent/clock";
 import clockAlarm from "./fluent/clock-alarm";
 import code from "./fluent/code";
 import palette from "./fluent/color";
+import dataTrending from "./fluent/data-trending";
+import developerBoard from "./fluent/developer-board";
 import directions from "./fluent/directions";
 import dismiss from "./fluent/dismiss";
 import documentEdit from "./fluent/document-edit";
 import documentPdf from "./fluent/document-pdf";
 import documentRibbon from "./fluent/document-ribbon";
 import documentText from "./fluent/document-text";
+import earth from "./fluent/earth";
 import edit from "./fluent/edit";
 import eye from "./fluent/eye";
 import eyeOff from "./fluent/eye-off";
@@ -57,34 +66,46 @@ import flag from "./fluent/flag";
 import flash from "./fluent/flash";
 import folder from "./fluent/folder";
 import folderOpen from "./fluent/folder-open";
-import form from "./fluent/form";
 import globe from "./fluent/globe";
 import grid from "./fluent/grid";
 import handRight from "./fluent/hand-right";
 import hatGraduation from "./fluent/hat-graduation";
+import heartPulse from "./fluent/heart-pulse";
 import history from "./fluent/history";
 import home from "./fluent/home";
 import image from "./fluent/image";
 import imageOff from "./fluent/image-off";
 import info from "./fluent/info";
 import layer from "./fluent/layer";
+import leafTwo from "./fluent/leaf-two";
 import learningApp from "./fluent/learning-app";
 import library from "./fluent/library";
 import link from "./fluent/link";
 import location from "./fluent/location";
 import lockClosed from "./fluent/lock-closed";
 import mailInbox from "./fluent/mail-inbox";
+import map from "./fluent/map";
+import mathFormula from "./fluent/math-formula";
 import megaphone from "./fluent/megaphone";
+import megaphoneLoud from "./fluent/megaphone-loud";
+import molecule from "./fluent/molecule";
 import moreHorizontal from "./fluent/more-horizontal";
 import moreVertical from "./fluent/more-vertical";
 import musicNote2 from "./fluent/music-note-2";
 import note from "./fluent/note";
 import pageFit from "./fluent/page-fit";
+import paintBrush from "./fluent/paint-brush";
+import peopleCommunity from "./fluent/people-community";
 import person from "./fluent/person";
 import personFeedback from "./fluent/person-feedback";
 import phone from "./fluent/phone";
+import plugConnected from "./fluent/plug-connected";
 import receipt from "./fluent/receipt";
 import ribbon from "./fluent/ribbon";
+import ruler from "./fluent/ruler";
+import savings from "./fluent/savings";
+import scales from "./fluent/scales";
+import scanText from "./fluent/scan-text";
 import search from "./fluent/search";
 import settings from "./fluent/settings";
 import shapeIntersect from "./fluent/shape-intersect";
@@ -95,9 +116,11 @@ import slideText from "./fluent/slide-text";
 import speaker2 from "./fluent/speaker-2";
 import speakerMute from "./fluent/speaker-mute";
 import spinnerIos from "./fluent/spinner-ios";
+import stackAdd from "./fluent/stack-add";
 import star from "./fluent/star";
 import subtract from "./fluent/subtract";
 import target from "./fluent/target";
+import vehicleSubway from "./fluent/vehicle-subway";
 import video from "./fluent/video";
 import wallet from "./fluent/wallet";
 import warning from "./fluent/warning";
@@ -105,6 +128,7 @@ import weatherMoon from "./fluent/weather-moon";
 import weatherSunny from "./fluent/weather-sunny";
 import wifiOff from "./fluent/wifi-off";
 import windowFrame from "./fluent/window";
+import wrenchScrewdriver from "./fluent/wrench-screwdriver";
 import { type Drawn, nearest } from "./icon-size";
 import { useTheme } from "./theme";
 
@@ -122,13 +146,15 @@ interface Options {
   filled?: boolean;
   /** Always the regular ring, whatever the weight. */
   ring?: boolean;
+  /** Always the filled form, whatever the weight (a course's glyph). */
+  always?: boolean;
 }
 
-function icon(drawn: () => Drawn, { filled = false, ring = false }: Options = {}) {
+function icon(drawn: () => Drawn, { filled = false, ring = false, always = false }: Options = {}) {
   return function Icon({ size = 18, color, weight = filled ? "fill" : "regular" }: IconProps) {
     const theme = useTheme();
     const [at, regular, solid] = nearest(drawn(), size);
-    const d = !ring && (weight === "bold" || weight === "fill") ? solid : regular;
+    const d = always || (!ring && (weight === "bold" || weight === "fill")) ? solid : regular;
     return (
       <Svg width={size} height={size} viewBox={`0 0 ${at} ${at}`}>
         <Path d={d} fill={color ?? theme.color.fg} />
@@ -233,6 +259,10 @@ export const Icons = {
   Hand: icon(() => handRight),
   /** "Ingatkan nanti": an alarm clock, not the bell. */
   Snooze: icon(() => clockAlarm),
+  /** The month view's button on Jadwal: the same pages as the "Jadwal bulanan" tile. */
+  Month: icon(() => calendarMultiple),
+  /** "Ringkasan awal", where it isn't a tile (a row, a heading): the same page being read. */
+  FirstSummary: icon(() => scanText),
   Image: icon(() => image),
   ImageBroken: icon(() => imageOff),
   FitWidth: icon(() => arrowAutofitWidth),
@@ -260,8 +290,8 @@ export const ServiceIcons = {
   Exams: icon(() => documentEdit, { filled: true }),
   /** Materi */
   Materials: icon(() => book, { filled: true }),
-  /** KRS */
-  Krs: icon(() => form, { filled: true }),
+  /** KRS: courses stacked up, and one more to add. Never a clipboard or a form (the Tugas tab's, a Task's). */
+  Krs: icon(() => stackAdd, { filled: true }),
   /** UKT */
   Bills: icon(() => wallet, { filled: true }),
   /** Kalender akademik */
@@ -284,14 +314,70 @@ export const ServiceIcons = {
   Files: icon(() => folder, { filled: true }),
   /** Profil */
   Profile: icon(() => person, { filled: true }),
-  /** Perlu diurus */
-  Needs: icon(() => warning, { filled: true }),
-  /** Ringkasan awal (what the first read found) */
-  FirstSummary: icon(() => history, { filled: true }),
-  /** Sebulan (the month view): a calendar page with its date, not the Jadwal tab's grid of days. */
-  Month: icon(() => calendarDate, { filled: true }),
+  /** Perlu kamu urus: a box to tick that is yours. Never the warning triangle (a warning only). */
+  Needs: icon(() => checkboxPerson, { filled: true }),
+  /** Ringkasan awal (what the first read found): a page being read. The one glyph for it; never the history clock ("Jam berubah" only) or the bolt. */
+  FirstSummary: icon(() => scanText, { filled: true }),
+  /** Jadwal bulanan (the month view): calendar pages one behind another. Not the Jadwal tab's single page, nor Lainnya's dots. */
+  Month: icon(() => calendarMultiple, { filled: true }),
   /** Laporkan masalah: a person speaking up. */
   Report: icon(() => personFeedback, { filled: true }),
 };
 
 export type ServiceIconName = keyof typeof ServiceIcons;
+
+/**
+ * A course's glyph, one per subject family (ui/tile.tsx's `courseGlyph` picks it from the course's name): always the
+ * filled form, solid in the course's own colour with nothing behind it, the same glyph wherever that course appears. Their Fluent
+ * names are in mobile/DESIGN.md ("Icons"). None is a tab's or a service's glyph.
+ */
+export const CourseIcons = {
+  /** Tugas akhir, skripsi, proposal */
+  Thesis: icon(() => certificate, { always: true }),
+  /** Transportasi, infrastruktur */
+  Transport: icon(() => vehicleSubway, { always: true }),
+  /** Komunikasi, pemasaran, media */
+  Communication: icon(() => megaphoneLoud, { always: true }),
+  /** Ekonomi, keuangan, bisnis */
+  Economy: icon(() => dataTrending, { always: true }),
+  /** Akuntansi, perbankan */
+  Accounting: icon(() => savings, { always: true }),
+  /** Perencanaan, kota, wilayah */
+  Planning: icon(() => map, { always: true }),
+  /** Arsitektur, bangunan */
+  Architecture: icon(() => buildingMultiple, { always: true }),
+  /** Sipil, struktur, jembatan */
+  Civil: icon(() => wrenchScrewdriver, { always: true }),
+  /** Pemrograman, informatika, data */
+  Code: icon(() => braces, { always: true }),
+  /** Elektro, listrik, daya */
+  Electric: icon(() => plugConnected, { always: true }),
+  /** Komputer, sistem digital */
+  Computer: icon(() => developerBoard, { always: true }),
+  /** Kimia, biologi, lab */
+  Lab: icon(() => beaker, { always: true }),
+  /** Fisika */
+  Physics: icon(() => molecule, { always: true }),
+  /** Matematika, statistik */
+  Math: icon(() => mathFormula, { always: true }),
+  /** Lingkungan, kehutanan */
+  Environment: icon(() => leafTwo, { always: true }),
+  /** Kesehatan, farmasi */
+  Health: icon(() => heartPulse, { always: true }),
+  /** Hukum, etika */
+  Law: icon(() => scales, { always: true }),
+  /** Desain, seni rupa */
+  Design: icon(() => paintBrush, { always: true }),
+  /** Gambar teknik, metode */
+  Drawing: icon(() => ruler, { always: true }),
+  /** Manajemen, kewirausahaan */
+  Management: icon(() => briefcase, { always: true }),
+  /** Sosial, masyarakat, psikologi */
+  Society: icon(() => peopleCommunity, { always: true }),
+  /** Bahasa, global */
+  Language: icon(() => earth, { always: true }),
+  /** Any other course: the open book. */
+  Course: icon(() => bookOpen, { always: true }),
+};
+
+export type CourseIconName = keyof typeof CourseIcons;

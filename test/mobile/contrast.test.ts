@@ -10,6 +10,7 @@
 // A pair every theme draws is checked in light and dark with no more to write. `node mobile/qa/contrast-read.mjs --top 5`
 // prints every pair here with its ratio, worst first, the new ones too.
 import { describe, expect, it } from "vitest";
+import { HOME_SERVICES, MORE, SERVICE_GROUPS } from "../../mobile/src/screens/services/list";
 import {
   BUTTON,
   CHIP_EDGE_ALPHA,
@@ -314,14 +315,57 @@ describe("service tiles", () => {
     describe(scheme, () => {
       it.each(Object.entries(SERVICE_TONES).map(([name, tone]) => ({ name, tone })))("$name", ({ name, tone }) => {
         const { v } = TONES[scheme];
-        expect(ratio(ON_SERVICE, tone.solid[at])).toBeGreaterThanOrEqual(MARK);
-        // The neutral tile ("Lainnya") is meant to be the quietest; the rest stand 3:1 off the page.
-        expect(ratio(tone.solid[at], v.page)).toBeGreaterThanOrEqual(name === "grey" ? 2.5 : MARK);
+        if (name === "grey") {
+          // The neutral tile: a soft square a step off the page, its glyph in grey ink (checked as ink on tint below).
+          expect(ratio(tone.tint[at], v.page)).toBeGreaterThanOrEqual(1.15);
+          expect(ratio(tone.edge[at], tone.tint[at])).toBeGreaterThanOrEqual(1.1);
+        } else {
+          expect(ratio(ON_SERVICE, tone.solid[at])).toBeGreaterThanOrEqual(MARK);
+          expect(ratio(tone.solid[at], v.page)).toBeGreaterThanOrEqual(MARK);
+        }
         expect(ratio(tone.ink[at], v.page)).toBeGreaterThanOrEqual(TEXT);
         expect(ratio(tone.ink[at], tone.tint[at])).toBeGreaterThanOrEqual(TEXT);
       });
     });
   }
+});
+
+// Colour belongs to Beranda's seven (mobile/qa/superapp-decisions.md, "Service colours"): each its own, none red or
+// amber (states' colours), told apart by lightness as well as hue; every other service is the neutral tile with a
+// glyph no other service has.
+describe("service colours by the rule", () => {
+  /** CIE lightness (L*) of a colour. */
+  const lightness = (hex: string) => {
+    const y = (ratio(hex, "#000000") * 0.05 - 0.05) / 1;
+    return y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y;
+  };
+  const home = HOME_SERVICES.map((service) => service.tone);
+  const all = SERVICE_GROUPS.flatMap((group) => group.services);
+
+  it("gives Beranda's seven a colour each, none red, amber or neutral", () => {
+    expect(home).toHaveLength(7);
+    expect(new Set(home).size).toBe(7);
+    expect(home).not.toContain("grey");
+    expect(Object.keys(SERVICE_TONES)).not.toContain("red");
+    expect(Object.keys(SERVICE_TONES)).not.toContain("amber");
+    expect(MORE.tone).toBe("grey");
+  });
+
+  it.each(["light", "dark"] as const)("sets them on seven steps of lightness (%s)", (scheme) => {
+    const at = scheme === "dark" ? 1 : 0;
+    const steps = home.map((tone) => lightness(SERVICE_TONES[tone].solid[at])).sort((a, b) => a - b);
+    for (let i = 1; i < steps.length; i++) expect(steps[i] - steps[i - 1], `${steps[i - 1]} and ${steps[i]}`).toBeGreaterThanOrEqual(2);
+  });
+
+  it("makes every other service a neutral tile, so no colour stands for two services", () => {
+    const coloured = all.filter((service) => service.tone !== "grey");
+    expect(coloured.map((service) => service.id).sort()).toEqual(HOME_SERVICES.map((service) => service.id).sort());
+  });
+
+  it("gives every service a glyph of its own", () => {
+    const glyphs = [...all, MORE].map((service) => service.icon);
+    expect(new Set(glyphs).size).toBe(glyphs.length);
+  });
 });
 
 describe("every colour pair on the phone's screens", () => {

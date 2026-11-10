@@ -13,7 +13,7 @@ import { Text } from "../ui/text";
 import { space, useTheme } from "../ui/theme";
 
 /** Android's page of this app's notifications; the app's own settings page where that one won't open (and on iOS). */
-async function openNotificationSettings(): Promise<void> {
+export async function openNotificationSettings(): Promise<void> {
   if (Platform.OS !== "android") return Linking.openSettings();
   try {
     await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.APP_NOTIFICATION_SETTINGS, {
@@ -41,8 +41,9 @@ export function useNotificationPermission() {
 }
 
 /**
- * The notice, one line: what's wrong ("Notifikasi mati") and its one button, 48 dp tall. The same part, the same look,
- * on Notifikasi and in Settings; what being off means is on the switches, greyed under it.
+ * The notice, one line: what's wrong ("Notifikasi mati") and its one button, 48 dp tall, one word ("Nyalakan": the
+ * line beside it says what; a screen reader hears "Nyalakan notifikasi"). The same part, the same look, on Notifikasi
+ * and in Settings; what being off means is on the switches, greyed under it.
  */
 export function NotificationsOff({ state }: { state: NotificationPermission }) {
   const t = useT();
@@ -78,10 +79,11 @@ export function NotificationsOff({ state }: { state: NotificationPermission }) {
         accessibilityRole="button"
         accessibilityLabel={t("mobile.settings.notificationsTurnOn")}
         testID="action.notificationsOn"
-        style={{ minHeight: 48, paddingHorizontal: space[4], borderRadius: 24, justifyContent: "center", backgroundColor: v.ambFg }}
+        // The app's one button colour (the brand's blue), as every other main button: amber is the state's, not the action's.
+        style={{ minHeight: 48, paddingHorizontal: space[5], borderRadius: 24, justifyContent: "center", backgroundColor: v.brand }}
       >
-        <Text size="labelLarge" weight="semibold" style={{ color: v.ambBg }}>
-          {t("mobile.settings.notificationsTurnOn")}
+        <Text size="labelLarge" weight="bold" style={{ color: v.onBrand }}>
+          {t("mobile.settings.alertsTurnOn")}
         </Text>
       </Tap>
     </View>
