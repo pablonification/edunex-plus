@@ -3,10 +3,10 @@
 // bar and in that order, how many things there are to tap, how many words, and the grid's tiles and their words.
 // From Maestro's view of the screen (`maestro hierarchy`), which works while Beranda's wave keeps moving.
 //
-//   maestro --device "$ANDROID_SERIAL" hierarchy > h.json && node mobile/qa/r4-hill1.mjs h.json
+//   maestro --device "$ANDROID_SERIAL" hierarchy | node mobile/qa/r4-hill1.mjs
 import fs from "node:fs";
 
-const raw = fs.readFileSync(process.argv[2], "utf8");
+const raw = fs.readFileSync(0, "utf8");
 const root = JSON.parse(raw.slice(raw.indexOf("{")));
 const box = (b) => (b ?? "[0,0][0,0]").match(/-?\d+/g).map(Number);
 const nodes = [];
