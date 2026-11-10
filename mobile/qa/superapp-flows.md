@@ -83,7 +83,7 @@ Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`
 
 ### `mobile/flows/journeys/02-class-starts.yaml`
 
-Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/journeys/02-class-starts.yaml:16: `tab.home`, tab bar
 - mobile/flows/journeys/02-class-starts.yaml:20: `status.settling`, top bar
@@ -110,7 +110,7 @@ Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`
 
 ### `mobile/flows/journeys/04-after-class.yaml`
 
-Run by: `mobile/flows/journeys/README.md`; `mobile/qa/journeys.sh`; `mobile/qa/superapp-flows.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/journeys.sh`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/journeys/04-after-class.yaml:18: `tab.home`, tab bar
 - mobile/flows/journeys/04-after-class.yaml:22: `status.settling`, top bar
@@ -193,9 +193,10 @@ Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/t
 
 Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/walk.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/flows-check.mjs`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-map.md`; `mobile/qa/superapp-states.json`; `mobile/qa/superapp-states.md`
 
-- mobile/flows/judge/first-run.yaml:32: `status.firstRead`, top bar
-- mobile/flows/judge/first-run.yaml:56: `action.service.more`, Beranda (also drawn in screens/services/services-screen.tsx)
-- mobile/flows/judge/first-run.yaml:58: `action.service.scan`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/judge/first-run.yaml:35: `status.firstRead`, top bar
+- mobile/flows/judge/first-run.yaml:44: `status.firstRead`, top bar
+- mobile/flows/judge/first-run.yaml:65: `action.service.more`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/judge/first-run.yaml:67: `action.service.scan`, Beranda (also drawn in screens/services/services-screen.tsx)
 
 ### `mobile/flows/judge/walk.yaml`
 
@@ -913,7 +914,7 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 | `action.checkIn` | Beranda | 4 | 11 |
 | `row.nav.plan.planner` | Profil | 4 | 9 |
 | `home.search` | Beranda | 4 | 8 |
-| `status.firstRead` | top bar | 4 | 6 |
+| `status.firstRead` | top bar | 4 | 7 |
 | `card.profile` | Profil | 4 | 6 |
 | `home.strip` | Beranda | 4 | 5 |
 | `action.search` | top bar | 4 | 4 |
