@@ -13,19 +13,12 @@ import { NOW } from "../ui/palette";
 import { THEMES, type Theme } from "../ui/theme";
 import type { WidgetClass, WidgetLine, WidgetModel, WidgetTarget } from "./model";
 
-/** The widget's name in the app's config (app.config.ts) and to Android. */
-export const WIDGET_NAME = "Now";
-/** "Hari ini": today's classes and the next deadline (W13), the smaller widget. */
-export const TODAY_WIDGET = "Today";
-/** Both, as Android knows them: every one placed is drawn again whenever what it shows changes. */
-export const WIDGET_NAMES = [WIDGET_NAME, TODAY_WIDGET] as const;
-
 /** The app's deep links (app.config.ts's scheme). */
 const SCHEME = DEMO ? "edunexplusdemo" : "edunexplus";
 
 /** Line heights in dp at the phone's normal text size, for working out what fits. */
-const LINE = { micro: 15, small: 18, body: 20 } as const;
-const PAD = 14;
+export const LINE = { micro: 15, small: 18, body: 20 } as const;
+export const PAD = 14;
 const GAP = 8;
 
 export interface WidgetSize {
@@ -142,7 +135,7 @@ function NowWidget({ model, size, theme }: { model: WidgetModel; size: WidgetSiz
 
 /** The widget's card: the app's surface, its corners, a tap anywhere else opens the app. */
 /** `surface`: the widget's own background (the Hari ini widget's v4 card); the app's page colour by default. */
-function Frame({ theme, children, surface }: { theme: Theme; children: React.ReactNode; surface?: string }) {
+export function Frame({ theme, children, surface }: { theme: Theme; children: React.ReactNode; surface?: string }) {
   return (
     <FlexWidget
       clickAction="OPEN_APP"
@@ -215,7 +208,7 @@ function Plain({ line, color }: { line: WidgetLine; color: string }) {
   return <Text text={line.label} size="small" color={color} open={line.open} />;
 }
 
-function Text({
+export function Text({
   text,
   size,
   color,
@@ -286,7 +279,7 @@ function fit(model: WidgetModel, size: WidgetSize): Fitted {
 // ---------------------------------------------------------------- taps
 
 /** A line's tap: its screen in the app (a deep link to ../nav.ts's path), or the page in the browser. */
-function tap(open: WidgetTarget): { clickAction: string; clickActionData?: Record<string, unknown> } {
+export function tap(open: WidgetTarget): { clickAction: string; clickActionData?: Record<string, unknown> } {
   switch (open.kind) {
     case "app":
       return { clickAction: "OPEN_APP" };
@@ -307,4 +300,4 @@ function tap(open: WidgetTarget): { clickAction: string; clickActionData?: Recor
 }
 
 /** The theme's colors are hex: the widget library types them so. */
-const hex = (color: string) => color as HexColor;
+export const hex = (color: string) => color as HexColor;

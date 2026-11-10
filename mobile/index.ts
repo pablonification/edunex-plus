@@ -7,14 +7,21 @@ import "./src/start";
 import "./src/host/polyfills";
 import "./src/host/background";
 import "expo-router/entry";
-import type { ReactNode } from "react";
+import { createElement, type ReactNode } from "react";
 import { AppRegistry, Platform } from "react-native";
-import { registerWidgetTaskHandler } from "react-native-android-widget";
+import { registerWidgetConfigurationScreen, registerWidgetTaskHandler } from "react-native-android-widget";
 import { startBoot } from "./src/shell/boot";
 import { widgetTask } from "./src/widget/draw";
 
-// Android only: an iPhone has no home-screen widget of this app (a WidgetKit one would be its own Swift code).
-if (Platform.OS === "android") registerWidgetTaskHandler(widgetTask);
+// Android only: an iPhone has no home-screen widget of this app (a WidgetKit one would be its own Swift code). The
+// configuration screen is "Satu mata kuliah"'s "which course" (src/widget/configure.tsx), loaded only when Android opens it.
+if (Platform.OS === "android") {
+  registerWidgetTaskHandler(widgetTask);
+  registerWidgetConfigurationScreen((props) => {
+    const { CourseChoice } = require("./src/widget/configure") as typeof import("./src/widget/configure");
+    return createElement(CourseChoice, props);
+  });
+}
 
 // Android opens the app's window (React Native's runApplication; never a background sync's or a widget's start, which
 // have none): Beranda's saved data starts loading now, its disk reads overlapping Expo Router's own start, rather than

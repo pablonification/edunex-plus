@@ -278,6 +278,15 @@ export const mobileStrings = {
   // widget
   // The "Hari ini" home-screen widget on a day without classes; a tap opens Jadwal.
   "mobile.widget.todayNone": { id: "Tidak ada kuliah hari ini.", en: "No classes today." },
+  // The "Kehadiran" widget's rows, under "Jatah absen": each course's absences in a word or two, as narrow as a 3-cell
+  // widget allows (TalkBack hears the full "Sisa jatah absen 2×").
+  "mobile.widget.absencesLeft": { id: "Sisa {count}×", en: "{count} left" },
+  "mobile.widget.absencesNone": { id: "Habis", en: "None left" },
+  "mobile.widget.absencesOver": { id: "Lewat {count}×", en: "{count} over" },
+  // The "Ujian" widget with no exam dated in SIX or Edunex yet; a tap opens Tugas & Ujian.
+  "mobile.widget.examNone": { id: "Belum ada ujian terjadwal", en: "No exams scheduled yet" },
+  // "Satu mata kuliah": the page that asks which course the widget shows, as it's placed or from "Ubah widget".
+  "mobile.widget.pickCourse": { id: "Pilih mata kuliah", en: "Pick a course" },
   // presence
   // Kuliah's ⋮: the attendance targets, with the range in force under it ("80%", "75–80%").
   "mobile.courses.targets": { id: "Target kehadiran", en: "Attendance targets" },
