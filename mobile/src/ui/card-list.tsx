@@ -4,6 +4,7 @@
 // A section's title is Plus Jakarta Sans (`SectionTitle`), with how many in it when that helps.
 import { Children, type ReactNode } from "react";
 import { View, type ViewStyle } from "react-native";
+import { ROW_SIDE } from "./row-end";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
 
@@ -46,7 +47,7 @@ export function SectionTitle({ title, count, first = false }: { title: string; c
       face="display"
       weight="bold"
       accessibilityRole="header"
-      style={{ fontSize: 17, letterSpacing: -0.2, color: v.fg, marginTop: first ? 0 : space[6], marginBottom: space[3], marginLeft: space[1] }}
+      style={{ fontSize: 17, letterSpacing: -0.2, color: v.fg, marginTop: first ? 0 : space[6], marginBottom: space[3], marginLeft: ROW_SIDE }}
     >
       {title}
       {count !== undefined && (

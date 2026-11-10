@@ -7,6 +7,7 @@ import { createContext, type ReactNode, useContext } from "react";
 import { type AccessibilityProps, type StyleProp, View, type ViewStyle } from "react-native";
 import { CountUp } from "./expressive";
 import { PressScale } from "./press";
+import { ROW_SIDE, rowEnd } from "./row-end";
 import { Text } from "./text";
 import { font, space, useTheme, type V4Palette } from "./theme";
 
@@ -24,7 +25,7 @@ export function Heading({ children, first = false, trailing }: { children: strin
         alignItems: "center",
         marginTop: first ? space[2] : space[6],
         marginBottom: space[3],
-        marginLeft: space[1],
+        marginLeft: ROW_SIDE,
         gap: space[2],
       }}
     >
@@ -93,6 +94,7 @@ export function GroupRow({
   meta,
   metaTone = "muted",
   trailing,
+  chevron,
   first = false,
   onPress,
   onLongPress,
@@ -106,6 +108,8 @@ export function GroupRow({
   /** The meta line's colour: muted, or a state's ink. */
   metaTone?: "muted" | "red" | "amber" | "ok";
   trailing?: ReactNode;
+  /** The chevron at the row's end (ui/row-end.tsx): by itself with `onPress` and no `trailing`; true adds it after a `trailing`, false leaves it out. */
+  chevron?: boolean;
   first?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
@@ -116,7 +120,9 @@ export function GroupRow({
   const metaColor = metaTone === "red" ? v.redFg : metaTone === "amber" ? v.ambFg : metaTone === "ok" ? v.okFg : v.muted;
   const body = (
     <>
-      {!first && <View style={{ position: "absolute", top: 0, left: leading ? 70 : space[4], right: 0, height: 1, backgroundColor: v.line }} />}
+      {!first && (
+        <View style={{ position: "absolute", top: 0, left: leading ? ROW_SIDE + 44 + space[3] : ROW_SIDE, right: 0, height: 1, backgroundColor: v.line }} />
+      )}
       {leading}
       <View style={{ flex: 1, minWidth: 0 }}>
         {typeof title === "string" ? (
@@ -139,14 +145,14 @@ export function GroupRow({
         )}
         {children}
       </View>
-      {trailing}
+      {rowEnd(trailing, Boolean(onPress), chevron)}
     </>
   );
   const style: ViewStyle = {
     flexDirection: "row",
     alignItems: "center",
     gap: space[3],
-    paddingHorizontal: 14,
+    paddingHorizontal: ROW_SIDE,
     paddingVertical: space[3],
     minHeight: ROW_MIN,
   };

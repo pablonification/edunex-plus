@@ -9,6 +9,7 @@ import { Fluent, type FluentName } from "./fluent";
 import { Icons, type ServiceIconName, ServiceIcons } from "./icons";
 import { ON_SERVICE, SERVICE_TONES } from "./palette";
 import { PressScale } from "./press";
+import { rowEnd } from "./row-end";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
 
@@ -231,13 +232,18 @@ export function CountStrip({ children, testID }: { children: ReactNode[]; testID
   );
 }
 
-/** A row on the page itself: a mark, a title with one quiet line, something at its end; a hairline under all but the last. */
+/**
+ * A row on the page itself: a mark, a title with one quiet line, something at its end; a hairline under all but the
+ * last. With `onPress` and nothing at its end it ends in the quiet chevron (ui/row-end.tsx): `chevron` adds it after
+ * a `trailing`, `chevron={false}` leaves it out. A row without `onPress` has none.
+ */
 export function BRow({
   leading,
   title,
   meta,
   metaColor,
   trailing,
+  chevron,
   last = false,
   onPress,
   testID,
@@ -248,6 +254,7 @@ export function BRow({
   meta?: ReactNode;
   metaColor?: string;
   trailing?: ReactNode;
+  chevron?: boolean;
   last?: boolean;
   onPress?(): void;
   testID?: string;
@@ -281,7 +288,7 @@ export function BRow({
             meta
           )}
         </View>
-        {trailing}
+        {rowEnd(trailing, Boolean(onPress), chevron)}
       </View>
     </View>
   );
