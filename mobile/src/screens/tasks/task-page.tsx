@@ -266,31 +266,60 @@ function StatusLine({ task, status, late, soon, presence }: { task: Task; status
     sentLate ? t("mobile.tasks.handedInLate") : null,
     lateRule,
   );
-  const marks = useMarks(task, presence);
+  const all = useMarks(task, presence);
+  // Handed in: how it counted for Presensi is a word on the status line itself ("Terkumpul 18 Sep · Hadir"), never a
+  // mark floating under it; its explanation, and that only the lecturer can hand it back, are behind the line's one info
+  // button (48 dp). The deadline is still said, once, quietly under the line.
+  const counted = sentAt !== null ? all.find((mark) => mark.key === "present" || mark.key === "absent" || mark.key === "missed") : undefined;
+  const marks = counted ? all.filter((mark) => mark !== counted) : all;
+  const said = factsLabel(spoken, counted?.word, sentAt !== null && task.dueAt !== null ? t("task.due", { when: f.dayTimeWord(task.dueAt) }) : null);
+  const about =
+    sentAt !== null
+      ? [counted?.why?.body, status !== "in_review" ? t("mobile.tasks.onlyLecturer") : null].filter((line): line is string => !!line).join("\n\n")
+      : "";
   return (
     <View testID="card.due" style={{ gap: space[1], paddingTop: space[1] }}>
-      <View accessible accessibilityLabel={spoken} style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 48 }}>
-        {sentAt !== null ? (
-          <Icons.CheckCircle size={24} weight="fill" color={tone} />
-        ) : late ? (
-          <Icons.AlertTriangle size={24} weight="bold" color={tone} />
-        ) : (
-          <Icons.Clock size={24} color={tone} />
-        )}
-        <Text size="titleMedium" face="display" weight="bold" tabular style={{ flex: 1, color: v.fg }}>
-          {head}
-          {sentLate && (
-            <Text size="bodyMedium" weight="regular" style={{ color: v.ambFg }}>
-              {`  ${t("mobile.tasks.handedInLate")}`}
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <View accessible accessibilityLabel={said} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 48 }}>
+          {sentAt !== null ? (
+            <Icons.CheckCircle size={24} weight="fill" color={tone} />
+          ) : late ? (
+            <Icons.AlertTriangle size={24} weight="bold" color={tone} />
+          ) : (
+            <Icons.Clock size={24} color={tone} />
+          )}
+          <Text size="titleMedium" face="display" weight="bold" tabular style={{ flex: 1, color: v.fg }}>
+            {head}
+            {counted && <Text style={{ color: counted.color }}>{` · ${counted.word}`}</Text>}
+            {sentLate && (
+              <Text size="bodyMedium" weight="regular" style={{ color: v.ambFg }}>
+                {`  ${t("mobile.tasks.handedInLate")}`}
+              </Text>
+            )}
+          </Text>
+          {away && (
+            <Text size="bodyLarge" weight="semibold" tabular style={{ color: away.late ? v.redFg : soon ? v.ambFg : v.fg2 }}>
+              {away.text}
             </Text>
           )}
-        </Text>
-        {away && (
-          <Text size="bodyLarge" weight="semibold" tabular style={{ color: away.late ? v.redFg : soon ? v.ambFg : v.fg2 }}>
-            {away.text}
-          </Text>
+        </View>
+        {about !== "" && (
+          <Pressable
+            testID={counted ? "line.presence" : "action.statusWhy"}
+            accessibilityRole="button"
+            accessibilityLabel={t("mobile.tasks.statusWhy")}
+            onPress={() => setWhy({ title: counted?.why?.title ?? head, body: about })}
+            style={styles.info}
+          >
+            <Icons.Info size={24} color={v.fg2} />
+          </Pressable>
         )}
       </View>
+      {sentAt !== null && task.dueAt !== null && (
+        <Text size="bodyMedium" tabular style={{ color: v.muted, paddingLeft: 24 + space[3] }}>
+          {t("task.due", { when: f.dueLabel(task.dueAt) })}
+        </Text>
+      )}
       {marks.length > 0 && (
         <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: space[5], rowGap: space[2], paddingLeft: 24 + space[3] }}>
           {marks.map((mark) => {
@@ -311,11 +340,10 @@ function StatusLine({ task, status, late, soon, presence }: { task: Task; status
                 accessibilityRole="button"
                 accessibilityLabel={factsLabel(mark.word, why.body)}
                 onPress={() => setWhy(why)}
-                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
-                style={styles.mark}
+                style={[styles.mark, styles.markButton]}
               >
                 {body}
-                <Icons.Info size={16} color={v.muted} />
+                <Icons.Info size={20} color={v.fg2} />
               </Pressable>
             ) : (
               <View key={mark.key} style={styles.mark}>
@@ -799,6 +827,9 @@ function InstructionsCompare({ change, at, onClose }: { change: Extract<TaskChan
 const styles = StyleSheet.create({
   dot: { position: "absolute", left: -space[4] - 5, top: 4, width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
   mark: { flexDirection: "row", alignItems: "center", gap: space[1], minHeight: 24 },
+  // A mark with its sentence behind it: the whole word is the button, 48 dp high.
+  markButton: { minHeight: 48, minWidth: 48, gap: space[2] },
+  info: { width: 48, height: 48, alignItems: "center", justifyContent: "center" },
   edited: {
     marginTop: space[3],
     flexDirection: "row",

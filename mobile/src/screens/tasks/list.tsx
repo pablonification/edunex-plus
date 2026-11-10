@@ -38,7 +38,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { shortName } from "../home/parts";
-import { PastExamRow } from "./exam-rows";
+import { PastExamRow, PeriodExam, PeriodFold, PeriodHead } from "./exam-rows";
 import { lineType } from "./line-type";
 import { FlatSlice, inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
 import { PutOff, TaskRow, TodoRow } from "./rows";
@@ -78,6 +78,8 @@ const undatedLast = (item: TodoItem) => (item.kind !== "period" && (item.at === 
 
 type PeriodItem = Extract<TodoItem, { kind: "period" }>;
 type ExamItem = Extract<TodoItem, { kind: "exam" }>;
+/** A Task or an exam's part with a day: it sits in date order, and can lead the list. */
+const dated = (item: TodoItem): item is Exclude<TodoItem, PeriodItem> & { at: number } => item.kind !== "period" && undatedLast(item) === 0;
 /** Whether an exam with a day sits in an exam period of its kind: it's drawn inside the period's sub-heading. */
 const inPeriod = (item: TodoItem, period: PeriodItem): item is ExamItem =>
   item.kind === "exam" &&
@@ -96,7 +98,10 @@ interface Place {
 /** One line of the list. */
 export type Line =
   | { type: "heading"; key: string; title: string; count?: number; first: boolean }
-  | ({ type: "todo"; key: string; item: TodoItem; inside?: readonly ExamItem[] } & Place)
+  | ({ type: "todo"; key: string; item: TodoItem } & Place)
+  | { type: "periodHead"; key: string; item: PeriodItem }
+  | { type: "periodFold"; key: string; item: PeriodItem }
+  | { type: "periodExam"; key: string; exam: Exam; first: boolean }
   | { type: "hero"; key: string; item: TodoItem }
   | ({ type: "done"; key: string; task: Task; exam?: Exam } & Place)
   | ({ type: "past"; key: string; past: PastExam } & Place)
@@ -109,6 +114,51 @@ export type Line =
 
 function card<T>(items: readonly T[], line: (item: T, place: Place) => Line): Line[] {
   return items.map((item, i) => line(item, { first: i === 0, last: i === items.length - 1 }));
+}
+
+/** A line that's a flat row: the hairline is over every one but the first after something else. */
+const isRow = (line: Line | undefined) => line?.type === "todo" || line?.type === "periodExam";
+
+/**
+ * A group's rows in date order, each a line of its own (FlashList draws and recycles them one by one). An exam period
+ * is a sub-heading where its first exam falls; its exams with no day yet come after its dated ones (behind a fold while
+ * it's far off). A period none of whose exams has a day comes after everything dated, and what has no day at all last:
+ * nothing undated is ever above something dated.
+ */
+export function groupLines(items: readonly TodoItem[], hero?: TodoItem): Line[] {
+  const periods = items.filter((item): item is PeriodItem => item.kind === "period");
+  const rows = items.filter((item) => item.kind !== "period" && item !== hero);
+  const out: Line[] = [];
+  const row = (item: TodoItem) => out.push({ type: "todo", key: item.key, item, first: false, last: false });
+  const head = (period: PeriodItem) => out.push({ type: "periodHead", key: period.key, item: period });
+  const tail = (period: PeriodItem) => {
+    if (!period.exams.length) return;
+    if (period.state === "far") out.push({ type: "periodFold", key: `${period.key}:fold`, item: period });
+    else for (const exam of period.exams) out.push({ type: "periodExam", key: `${period.key}:${exam.id}`, exam, first: false });
+  };
+  let open: PeriodItem | undefined;
+  for (const item of rows.filter(dated)) {
+    if (open && item.at >= open.week.end) {
+      tail(open);
+      open = undefined;
+    }
+    const next = open ? undefined : periods.find((period) => inPeriod(item, period));
+    if (next) {
+      periods.splice(periods.indexOf(next), 1);
+      head(next);
+      open = next;
+    }
+    row(item);
+  }
+  if (open) tail(open);
+  // A period with nothing dated left under it (its one dated exam leads the list, or none has a day yet).
+  for (const period of periods)
+    if (period.exams.length) {
+      head(period);
+      tail(period);
+    }
+  for (const item of rows) if (!dated(item)) row(item);
+  return out.map((line, i) => (isRow(line) ? { ...line, first: !isRow(out[i - 1]) } : line) as Line);
 }
 
 /** Done's groups: handed in, not handing in, past exams, closed; each newest first. A take-home keeps its exam's look. */
@@ -171,14 +221,10 @@ function tasksView(
   const withItems = (courses ?? []).filter((c) => codes.has(c.code));
 
   const lines: Line[] = [];
-  const todoCard = (list: readonly TodoItem[]) => card(list, (item, place): Line => ({ type: "todo", key: item.key, item, ...place }));
-  // The one thing to pick up: the soonest thing ahead, a Task or an exam, in its course's colour at the top of its group,
-  // not listed again under it. The rest reads in date order.
+  // The one thing to pick up: the soonest dated thing ahead of any kind, a Task or an exam (one in its exam period
+  // too), in its course's colour at the top of its group, not listed again under it. The rest reads in date order.
   const heroGroup = show === "open" && !nothingToDo && groups[0] && groups[0].group !== "later" && groups[0].group !== "undated" ? groups[0] : undefined;
-  // An exam in its period stays in its period (the sub-heading holds it): the card leads with the nearest thing outside one.
-  const periodsOf = (list: readonly TodoItem[]) => list.filter((item): item is PeriodItem => item.kind === "period");
-  const heroPeriods = periodsOf(heroGroup?.items ?? []);
-  const soonest = heroGroup?.items.find((item) => item.kind !== "period" && !heroPeriods.some((period) => inPeriod(item, period)));
+  const soonest = heroGroup?.items.find(dated);
   // A Task with a deadline, or an exam's part still ahead (one going on now is its row's "Sekarang", not a countdown).
   const hero =
     soonest?.kind === "task"
@@ -202,7 +248,7 @@ function tasksView(
     // something late, "Terlambat" leads and good news would ring false).
     const dueToday = groups.some((group) => group.group === "today" && group.items.some(todoCounted));
     if (!nothingToDo && !dueToday && groups[0]?.group !== "overdue") lines.push({ type: "today", key: "today", title: t("mobile.tasks.todayNone") });
-    if (during.length) lines.push(...todoCard(during), { type: "gap", key: "gap-during" });
+    if (during.length) lines.push(...groupLines(during), { type: "gap", key: "gap-during" });
     if (nothingToDo) {
       lines.push({
         type: "empty",
@@ -213,7 +259,7 @@ function tasksView(
         done: false,
       });
       // What's still to know though nothing is to do: an exam period ahead, an exam with no date.
-      if (rest.length) lines.push(...todoCard(rest));
+      if (rest.length) lines.push(...groupLines(rest));
     } else
       for (const group of groups) {
         lines.push({
@@ -223,23 +269,11 @@ function tasksView(
           title: t(group.title),
           first: lines.length === 0,
         });
-        const periods = periodsOf(group.items);
-        const held = (item: TodoItem) => periods.some((period) => inPeriod(item, period));
-        const others = group.items.filter((item) => item !== hero && !held(item));
-        // The gap under the big card only when its group goes on: the next group's title brings its own (one even gap).
+        const under = groupLines(group.items, group === heroGroup ? hero : undefined);
+        // The gap under the big card only when its group goes on with a row: a sub-heading or the next group brings its own.
         if (hero && group === heroGroup)
-          lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, ...(others.length ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []));
-        lines.push(
-          ...card(others, (item, place): Line => {
-            if (item.kind !== "period") return { type: "todo", key: item.key, item, ...place };
-            // "Masa UTS 12–16 Okt" as a sub-heading in date order, its exams inside it; the row after it starts afresh.
-            return { type: "todo", key: item.key, item, inside: group.items.filter((each) => inPeriod(each, item)), first: true, last: place.last };
-          }).map((line, i, all) =>
-            i > 0 && all[i - 1]?.type === "todo" && (all[i - 1] as { item: TodoItem }).item.kind === "period" && line.type === "todo"
-              ? { ...line, first: true }
-              : line,
-          ),
-        );
+          lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, ...(isRow(under[0]) ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []));
+        lines.push(...under);
         if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
       }
     if (examsNoSix) lines.push({ type: "examsNoSix", key: "examsNoSix" });
@@ -551,8 +585,18 @@ export const LineView = memo(function LineView({
     case "todo":
       return (
         <Slice first={line.first} last={line.last} inCourse={inCourse}>
-          <TodoRow item={line.item} inCourse={inCourse} inside={line.inside} />
+          <TodoRow item={line.item} inCourse={inCourse} />
         </Slice>
+      );
+    case "periodHead":
+      return <PeriodHead item={line.item} />;
+    case "periodFold":
+      return <PeriodFold item={line.item} />;
+    case "periodExam":
+      return (
+        <FlatSlice first={line.first}>
+          <PeriodExam exam={line.exam} />
+        </FlatSlice>
       );
     case "hero":
       return <TodoRow item={line.item} hero />;

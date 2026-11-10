@@ -3,7 +3,7 @@
 // files, attaching from the phone) and the bar stuck to the bottom (Simpan draf, Kumpulkan, and what
 // blocks every hand-in), within a thumb's reach. The answer box is a plain multi-line text
 // box: an answer Edunex holds with formatting stays as it is, changed on Edunex.
-import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentRef, createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 import { ActionError, errorKey } from "../../../../src/app/bridge";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -330,6 +330,12 @@ const GLYPH_TONE: Record<TaskStatus, keyof Palette> = {
   returned: "statusDraftFg",
 };
 
+/**
+ * Whether the answer lies flat on the page (handed in: nothing left to pick up): its text and its file then start at
+ * the page's edge, one level in, and the file is one soft row to tap. While it can still be changed it's the soft card.
+ */
+const OnPage = createContext(false);
+
 /** The submission card: status, the Student's answer, its files, attaching from the phone, and what's marked about it. */
 export function HandInCard({
   h,
@@ -375,181 +381,192 @@ export function HandInCard({
   const done = inFlight.filter((item) => item.state === "uploaded").length;
   const glyph = c[GLYPH_TONE[status]];
 
+  // Handed in and no longer changed: the answer is read, not picked up. Flat on the page, at its edge (round 3: the
+  // card, the box inside it and the file's box inside that were three indents).
+  const onPage = h.sent && !h.editable;
   return (
-    // The answer is one thing to pick up: a soft card a step off the white page, the same in both themes.
-    <Panel flush testID="card.handIn" style={{ backgroundColor: softOf(theme) }}>
-      <View style={{ padding: space[4], gap: space[4] }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], display: saidAbove ? "none" : "flex" }}>
-          {marked ? <Icons.CheckCircle size={24} weight="fill" color={c.successFg} /> : <StatusGlyph status={status} size={24} color={glyph} />}
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text
-              size="titleMedium"
-              face="display"
-              weight="bold"
-              numberOfLines={draftLine ? 1 : undefined}
-              accessibilityLabel={marked ? undefined : draftSpoken}
-              style={{ color: theme.v4.fg }}
-            >
-              {marked ? t(`task.marked.${marked.how as MarkedHow}`) : t(`taskStatus.${status}`)}
-              {draftLine && (
-                <Text size="bodyMedium" weight="regular" style={{ color: theme.v4.muted }}>
-                  {` · ${draftLine}`}
-                </Text>
-              )}
-            </Text>
-            {marked ? (
-              <Meta>{t("mobile.tasks.edunexSays", { status: t(`taskStatus.${status}`).toLocaleLowerCase() })}</Meta>
-            ) : subtitle ? (
-              <Meta>{subtitle}</Meta>
-            ) : null}
-          </View>
-          {(task.score !== null || status === "in_review") && (
-            <View style={{ alignItems: "flex-end" }}>
-              <Text size="bodySmall" tone="muted">
-                {t("task.score")}
+    // While it can be changed the answer is one thing to pick up: a soft card a step off the white page, in both themes.
+    <Panel flush testID="card.handIn" style={onPage ? { borderRadius: 0 } : { backgroundColor: softOf(theme) }}>
+      <OnPage.Provider value={onPage}>
+        <View style={{ padding: onPage ? 0 : space[4], gap: space[4] }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], display: saidAbove ? "none" : "flex" }}>
+            {marked ? <Icons.CheckCircle size={24} weight="fill" color={c.successFg} /> : <StatusGlyph status={status} size={24} color={glyph} />}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                size="titleMedium"
+                face="display"
+                weight="bold"
+                numberOfLines={draftLine ? 1 : undefined}
+                accessibilityLabel={marked ? undefined : draftSpoken}
+                style={{ color: theme.v4.fg }}
+              >
+                {marked ? t(`task.marked.${marked.how as MarkedHow}`) : t(`taskStatus.${status}`)}
+                {draftLine && (
+                  <Text size="bodyMedium" weight="regular" style={{ color: theme.v4.muted }}>
+                    {` · ${draftLine}`}
+                  </Text>
+                )}
               </Text>
-              <Text size="titleLarge" face="display" weight="extrabold" tabular style={{ color: theme.v4.fg }}>
-                {task.score !== null ? formatScore(task.score, f) : "-"}
+              {marked ? (
+                <Meta>{t("mobile.tasks.edunexSays", { status: t(`taskStatus.${status}`).toLocaleLowerCase() })}</Meta>
+              ) : subtitle ? (
+                <Meta>{subtitle}</Meta>
+              ) : null}
+            </View>
+            {(task.score !== null || status === "in_review") && (
+              <View style={{ alignItems: "flex-end" }}>
+                <Text size="bodySmall" tone="muted">
+                  {t("task.score")}
+                </Text>
+                <Text size="titleLarge" face="display" weight="extrabold" tabular style={{ color: theme.v4.fg }}>
+                  {task.score !== null ? formatScore(task.score, f) : "-"}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Marked as handed in another way: no answer box under it, which would say "not done" again. */}
+          {!(marked && !task.group) && (
+            <View>
+              {h.editable && !h.textLocked ? (
+                <AnswerField
+                  value={h.answer.text}
+                  onChange={h.answer.setText}
+                  label={t("mobile.tasks.answerText")}
+                  placeholder={t("mobile.tasks.answerPlaceholder")}
+                  fieldColors={fieldColors}
+                  unsaved={h.textChanged}
+                  onDiscard={h.answer.discard}
+                  hint={h.hasText ? null : t("mobile.tasks.answerRequired")}
+                  onFocus={onAnswerFocus}
+                />
+              ) : (
+                !task.group &&
+                (h.textLocked || plainText(h.answer.saved)) && (
+                  <View style={{ marginBottom: space[3], gap: space[2] }}>
+                    <Text size="labelLarge" tone="muted">
+                      {t("mobile.tasks.answerText")}
+                    </Text>
+                    <View
+                      style={
+                        onPage ? undefined : { borderRadius: shape.md, backgroundColor: pageOf(theme), paddingHorizontal: space[3], paddingVertical: space[3] }
+                      }
+                    >
+                      <LecturerHtml html={h.answer.saved} pictureAlt={t("image.altYours")} />
+                    </View>
+                    {h.editable && h.textLocked && (
+                      <View style={{ gap: space[2], alignItems: "flex-start" }}>
+                        <Text size="bodySmall" tone="muted">
+                          {h.richLocked ? t("handIn.textRich") : t("mobile.handIn.textPlain")}
+                        </Text>
+                        <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
+                          {t("handIn.editOnEdunex")}
+                        </Button>
+                      </View>
+                    )}
+                  </View>
+                )
+              )}
+              {(h.saved.length > 0 || h.attached.length > 0) && (
+                <View style={{ marginBottom: space[3], gap: 2 }}>
+                  <Text size="labelLarge" tone="muted" style={{ marginBottom: space[2] }}>
+                    {t("mobile.tasks.answerFiles")}
+                  </Text>
+                  {h.saved.map((file) => (
+                    <SavedFileRow
+                      key={file.url}
+                      file={file}
+                      hint={h.editable ? fileHint(t, file.name, h.pattern, h.type) : null}
+                      onRemove={h.editable ? () => h.removeSaved(file.url) : undefined}
+                    />
+                  ))}
+                  {h.attached.map((item) => (
+                    <FileRow
+                      key={item.key}
+                      name={item.name}
+                      state={item.state}
+                      detail={
+                        item.state === "failed"
+                          ? t(item.problem ?? "handIn.uploadFailed")
+                          : item.state === "uploaded" || item.state === "uploading"
+                            ? factsLabel(t(item.state === "uploaded" ? "handIn.notSaved" : "handIn.uploading"), f.fileSize(item.size))
+                            : t("handIn.waiting")
+                      }
+                      hint={item.state === "uploaded" ? fileHint(t, item.name, h.pattern, h.type) : null}
+                      onRetry={item.state === "failed" && !refused(item) ? () => h.retry(item) : undefined}
+                      onRemove={h.editable ? () => h.removeAttached(item.key) : undefined}
+                      file={item.file}
+                    />
+                  ))}
+                </View>
+              )}
+              {h.editable && (
+                // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos. What the
+                // lecturer asks for is the button itself ("Lampirkan PDF · wajib"), not a line about it.
+                <View style={{ alignItems: "flex-start" }}>
+                  <Button
+                    variant="tonal"
+                    testID="action.attach"
+                    label={factsLabel(
+                      t("handIn.attach"),
+                      task.fileRequired ? t("handIn.fileRequired") : null,
+                      h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : null,
+                    )}
+                    icon={<Icons.Upload size={18} color={c.onSecondaryContainer} />}
+                    onPress={() => void h.pick()}
+                  >
+                    {factsLabel(
+                      h.type ? t("mobile.handIn.attachType", { type: h.type.toUpperCase() }) : t("handIn.attach"),
+                      task.fileRequired && h.files.length === 0 ? t("mobile.handIn.required") : null,
+                    )}
+                  </Button>
+                </View>
+              )}
+              {task.group && !h.sent && status !== "closed" && (
+                <View style={{ gap: space[2], alignItems: "flex-start" }}>
+                  <Text size="bodyMedium" tone="muted">
+                    {t("handIn.group")}
+                  </Text>
+                  <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
+                    {t("action.openInEdunex")}
+                  </Button>
+                  {isOpenStatus(status) && <MarkHandedIn task={task} />}
+                </View>
+              )}
+              {!task.group && !h.editable && !h.sent && status !== "closed" && task.opensAt !== null && (
+                <Quiet>{t("handIn.notOpenYet", { when: f.dayTimeWord(task.opensAt) })}</Quiet>
+              )}
+              {status === "closed" && <Quiet>{task.answer ? t("handIn.draftNeverSent") : t("handIn.nothingHandedIn")}</Quiet>}
+            </View>
+          )}
+
+          {h.uploading && inFlight.length > 1 && (
+            <View style={{ gap: space[2] }}>
+              <Text size="bodySmall" tone="muted">
+                {t("handIn.progress", { done, count: inFlight.length })}
+              </Text>
+              <ProgressBar value={done / inFlight.length} label={t("handIn.progress", { done, count: inFlight.length })} />
+            </View>
+          )}
+
+          {h.notice && <HandInNotice notice={h.notice} task={task} signingIn={signingIn} onSignIn={() => void signIn("edunex")} />}
+
+          {/* What a draft is (handIn.explainer) is said when one is saved (its snackbar) and to TalkBack on Simpan draf. */}
+          {(h.editable || (marked && !task.group)) && <MarkHandedIn task={task} />}
+          {/* On the Task's page the status line says it's handed in, and its info button that only the lecturer hands it
+            back: no sentence here. An answer under review still says so. */}
+          {h.sent && (status === "in_review" || !statusAbove) && (
+            <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+              <View style={{ paddingTop: 1 }}>
+                <Icons.ShieldCheck size={14} color={c.successFg} />
+              </View>
+              <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
+                {status === "in_review" ? t("handIn.inReview") : t("handIn.final")}
               </Text>
             </View>
           )}
         </View>
-
-        {/* Marked as handed in another way: no answer box under it, which would say "not done" again. */}
-        {!(marked && !task.group) && (
-          <View>
-            {h.editable && !h.textLocked ? (
-              <AnswerField
-                value={h.answer.text}
-                onChange={h.answer.setText}
-                label={t("mobile.tasks.answerText")}
-                placeholder={t("mobile.tasks.answerPlaceholder")}
-                fieldColors={fieldColors}
-                unsaved={h.textChanged}
-                onDiscard={h.answer.discard}
-                hint={h.hasText ? null : t("mobile.tasks.answerRequired")}
-                onFocus={onAnswerFocus}
-              />
-            ) : (
-              !task.group &&
-              (h.textLocked || plainText(h.answer.saved)) && (
-                <View style={{ marginBottom: space[3], gap: space[2] }}>
-                  <Text size="labelLarge" tone="muted">
-                    {t("mobile.tasks.answerText")}
-                  </Text>
-                  <View style={{ borderRadius: shape.md, backgroundColor: pageOf(theme), paddingHorizontal: space[3], paddingVertical: space[3] }}>
-                    <LecturerHtml html={h.answer.saved} pictureAlt={t("image.altYours")} />
-                  </View>
-                  {h.editable && h.textLocked && (
-                    <View style={{ gap: space[2], alignItems: "flex-start" }}>
-                      <Text size="bodySmall" tone="muted">
-                        {h.richLocked ? t("handIn.textRich") : t("mobile.handIn.textPlain")}
-                      </Text>
-                      <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
-                        {t("handIn.editOnEdunex")}
-                      </Button>
-                    </View>
-                  )}
-                </View>
-              )
-            )}
-            {(h.saved.length > 0 || h.attached.length > 0) && (
-              <View style={{ marginBottom: space[3], gap: 2 }}>
-                <Text size="labelLarge" tone="muted" style={{ marginBottom: space[2] }}>
-                  {t("mobile.tasks.answerFiles")}
-                </Text>
-                {h.saved.map((file) => (
-                  <SavedFileRow
-                    key={file.url}
-                    file={file}
-                    hint={h.editable ? fileHint(t, file.name, h.pattern, h.type) : null}
-                    onRemove={h.editable ? () => h.removeSaved(file.url) : undefined}
-                  />
-                ))}
-                {h.attached.map((item) => (
-                  <FileRow
-                    key={item.key}
-                    name={item.name}
-                    state={item.state}
-                    detail={
-                      item.state === "failed"
-                        ? t(item.problem ?? "handIn.uploadFailed")
-                        : item.state === "uploaded" || item.state === "uploading"
-                          ? factsLabel(t(item.state === "uploaded" ? "handIn.notSaved" : "handIn.uploading"), f.fileSize(item.size))
-                          : t("handIn.waiting")
-                    }
-                    hint={item.state === "uploaded" ? fileHint(t, item.name, h.pattern, h.type) : null}
-                    onRetry={item.state === "failed" && !refused(item) ? () => h.retry(item) : undefined}
-                    onRemove={h.editable ? () => h.removeAttached(item.key) : undefined}
-                    file={item.file}
-                  />
-                ))}
-              </View>
-            )}
-            {h.editable && (
-              // Android's own file picker (expo-document-picker, src/host/tasks.ts): Downloads, Drive, the photos. What the
-              // lecturer asks for is the button itself ("Lampirkan PDF · wajib"), not a line about it.
-              <View style={{ alignItems: "flex-start" }}>
-                <Button
-                  variant="tonal"
-                  testID="action.attach"
-                  label={factsLabel(
-                    t("handIn.attach"),
-                    task.fileRequired ? t("handIn.fileRequired") : null,
-                    h.type ? t("handIn.ruleType", { type: h.type.toUpperCase() }) : null,
-                  )}
-                  icon={<Icons.Upload size={18} color={c.onSecondaryContainer} />}
-                  onPress={() => void h.pick()}
-                >
-                  {factsLabel(
-                    h.type ? t("mobile.handIn.attachType", { type: h.type.toUpperCase() }) : t("handIn.attach"),
-                    task.fileRequired && h.files.length === 0 ? t("mobile.handIn.required") : null,
-                  )}
-                </Button>
-              </View>
-            )}
-            {task.group && !h.sent && status !== "closed" && (
-              <View style={{ gap: space[2], alignItems: "flex-start" }}>
-                <Text size="bodyMedium" tone="muted">
-                  {t("handIn.group")}
-                </Text>
-                <Button size="sm" icon={<Icons.ArrowUpRight size={16} color={c.primary} />} onPress={() => open(edunexTaskUrl(task.id))}>
-                  {t("action.openInEdunex")}
-                </Button>
-                {isOpenStatus(status) && <MarkHandedIn task={task} />}
-              </View>
-            )}
-            {!task.group && !h.editable && !h.sent && status !== "closed" && task.opensAt !== null && (
-              <Quiet>{t("handIn.notOpenYet", { when: f.dayTimeWord(task.opensAt) })}</Quiet>
-            )}
-            {status === "closed" && <Quiet>{task.answer ? t("handIn.draftNeverSent") : t("handIn.nothingHandedIn")}</Quiet>}
-          </View>
-        )}
-
-        {h.uploading && inFlight.length > 1 && (
-          <View style={{ gap: space[2] }}>
-            <Text size="bodySmall" tone="muted">
-              {t("handIn.progress", { done, count: inFlight.length })}
-            </Text>
-            <ProgressBar value={done / inFlight.length} label={t("handIn.progress", { done, count: inFlight.length })} />
-          </View>
-        )}
-
-        {h.notice && <HandInNotice notice={h.notice} task={task} signingIn={signingIn} onSignIn={() => void signIn("edunex")} />}
-
-        {/* What a draft is (handIn.explainer) is said when one is saved (its snackbar) and to TalkBack on Simpan draf. */}
-        {(h.editable || (marked && !task.group)) && <MarkHandedIn task={task} />}
-        {h.sent && (
-          <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
-            <View style={{ paddingTop: 1 }}>
-              <Icons.ShieldCheck size={14} color={c.successFg} />
-            </View>
-            <Text size="bodySmall" tone="muted" style={{ flex: 1 }}>
-              {status === "in_review" ? t("handIn.inReview") : t("handIn.final")}
-            </Text>
-          </View>
-        )}
-      </View>
+      </OnPage.Provider>
     </Panel>
   );
 }
@@ -986,6 +1003,7 @@ function FileRowView({
   const theme = useTheme();
   const c = theme.color;
   const failed = state === "failed";
+  const onPage = useContext(OnPage);
   const body = (
     <>
       <FileBadge name={name} state={state} />
@@ -1002,7 +1020,7 @@ function FileRowView({
     </>
   );
   return (
-    <View style={[styles.file, { backgroundColor: failed ? c.errorContainer : pageOf(theme) }]}>
+    <View style={[styles.file, { backgroundColor: failed ? c.errorContainer : onPage ? softOf(theme) : pageOf(theme) }]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2.5] }}>
         {onOpen && !failed ? (
           <Pressable
