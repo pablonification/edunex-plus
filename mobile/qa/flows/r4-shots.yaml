@@ -52,10 +52,13 @@ appId: io.github.pablonification.edunexplus.demo
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: ${THEME}-07-beranda-bawah
-- scrollUntilVisible:
-    element:
-      id: service.more
-    direction: UP
+# A second tap on the open tab scrolls it back to its top.
+- tapOn:
+    id: tab.home
+- extendedWaitUntil:
+    visible:
+      id: home.strip
+    timeout: 10000
 - tapOn:
     id: service.more
 - extendedWaitUntil:
@@ -67,6 +70,10 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-08-semua-layanan
 - tapOn:
     id: action.back
+- extendedWaitUntil:
+    visible:
+      id: service.materials
+    timeout: 10000
 - tapOn:
     id: service.materials
 - extendedWaitUntil:
