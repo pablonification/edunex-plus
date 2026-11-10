@@ -30,8 +30,15 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
     widgets and the Live Activity are checked by types and tests only. No screen reached 9 in every category for every
     judge (see the board). `phosphor-react-native` is still in `package.json` though no screen draws it. The final numbers
     on the release build are not in yet.
-    - TODO(conductor): cold start (median of 7), tab switch p50/p90/max and scroll janky frames for Tugas, Kuliah and Jadwal on the Galaxy A52, taken on the release build; and the touch-read, layout-read and contrast-read results over every screen's dump.
-    - TODO(conductor): the last council's verdict and scores, and the commit they were taken at.
+    - On the Galaxy A52, the demo's release build beside `main` in the same minutes (06:35, the phone cool): cold start 1107 ms
+      against 1078 ms (median of 7; +2.7%; both read about 990 ms at 04:50, before the phone had worked for hours), tab switch
+      p50 66 / p90 80 / max 85 ms against 62 / 86 / 86, janky frames while scrolling Tugas 0.9%, Kuliah 0.3%, Jadwal 0.2%
+      against 1.2%, 0.1%, 0.5%. `layout-read` over Beranda's dump: every row passes (16 things to tap, 49 words, 8 tiles).
+      `touch-read` over all 15 screens' dumps: nothing unnamed; what it lists as under 48 dp is drawn smaller and carries
+      `hitSlop` to 48 (the reader doesn't see slop) or is cut by the screen's edge. `contrast-read`: 0 pairs under their least.
+    - The last full council (round 4, commit 91a8088b): the student and the prosecutor rank it first, the designer preferred
+      round 3 on the five tabs; scores 5–9 per screen; the six parts two judges preferred from round 3 were put back after it
+      and not judged. Motion on film strips: "unfinished". The first minute: 8–10% janky frames from the tap to the lift.
 
 ## Round 2 (started 2026-10-31)
 
