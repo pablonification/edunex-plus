@@ -57,9 +57,8 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
   const off = permission.off;
   if (off)
     return (
-      // No heading while the notice shows: it names the group itself ("Notifikasi mati"), and the word right over it
-      // said it twice (round 3's council).
-      <SettingsGroup lead={<NotificationsOff state={permission} />} testID="section.settings.alerts">
+      // The heading names the group; the notice under it says only what's wrong ("Mati di HP ini"), so the word is said once.
+      <SettingsGroup title={t("settings.alerts")} lead={<NotificationsOff state={permission} />} testID="section.settings.alerts">
         <SnoozedReminders report={report} />
       </SettingsGroup>
     );
