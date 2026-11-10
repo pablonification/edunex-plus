@@ -21,6 +21,8 @@ export interface DemoStates {
   slowSeconds: number;
   /** EDUNEX_DEMO_EMPTY=tasks,exams,material,alerts,grades: Edunex has none of these kinds. */
   empty: EmptyKind[];
+  /** EDUNEX_DEMO_LONG=1: II4091 and Task 117001 carry the longest names a Student might meet (a big font's worst case). */
+  long: boolean;
 }
 
 /** How long after the first read `offline=later` drops the network (real time). */
@@ -52,6 +54,7 @@ export function demoStates(asked: Record<string, string | undefined>): DemoState
     hold: asked.EDUNEX_DEMO_HOLD === "1",
     slowSeconds: Number.isFinite(slow) && slow > 0 ? slow : 0,
     empty: listOf("EDUNEX_DEMO_EMPTY", asked.EDUNEX_DEMO_EMPTY, EMPTY_KINDS),
+    long: asked.EDUNEX_DEMO_LONG === "1",
   };
 }
 
@@ -82,9 +85,29 @@ export function emptyWorld(world: PretendWorld, kinds: readonly EmptyKind[]): vo
   if (kinds.includes("grades")) edunex.gradebooks.clear();
 }
 
+/** II4091's name on SIX ("Proposal Tugas Akhir") and on Edunex ("Final Project Proposal"), made long. */
+export const LONG_COURSE = "Proposal Tugas Akhir dan Metodologi Penelitian Sistem dan Teknologi Informasi";
+export const LONG_COURSE_EDUNEX = "Final Project Proposal and Research Methodology for Information Systems and Technology";
+/** Task 117001's title, made a sentence long. */
+export const LONG_TASK =
+  "Tugas 01 Bab I: Latar Belakang, Rumusan Masalah, Tujuan, Batasan Masalah, dan Sistematika Penulisan Proposal Tugas Akhir (revisi kedua)";
+const LONG_TASK_ID = 117001;
+
+/** One course and one Task with long names, on SIX's pages and in Edunex's answers, without a new recording. */
+export function longNames(world: PretendWorld): void {
+  world.six.editPage(/./, (html) => html.split("Proposal Tugas Akhir").join(LONG_COURSE));
+  const lengthen = <T>(value: T): T => JSON.parse(JSON.stringify(value).split("Final Project Proposal").join(LONG_COURSE_EDUNEX)) as T;
+  const edunex = world.edunex;
+  edunex.myCourses = lengthen(edunex.myCourses);
+  edunex.agenda = lengthen(edunex.agenda);
+  for (const map of [edunex.courseDetail, edunex.coursePlain]) for (const [id, course] of map) map.set(id, lengthen(course));
+  for (const list of edunex.tasks.values()) for (const task of list) if (Number(task.id) === LONG_TASK_ID) task.attributes.name = LONG_TASK;
+}
+
 /** The states that hold before the first read (the world as the link asks for it). */
 export function applyBeforeFirstRead(world: PretendWorld, states: DemoStates): void {
   emptyWorld(world, states.empty);
+  if (states.long) longNames(world);
   if (states.failAtStart) for (const source of states.fail) failSource(world, source);
 }
 

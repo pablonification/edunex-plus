@@ -27,6 +27,7 @@ Judged from reading the code, not from pictures: a row says what the code draws;
 | offline | `…&EDUNEX_DEMO_OFFLINE=1` | starts from saved data (as `EDUNEX_DEMO_RESUME=1`) with no network: every request fails as on a phone in flight mode. With nothing saved, the first read plays online and the network drops right after. `EDUNEX_DEMO_OFFLINE=later`: it drops 5 seconds after the first read, for the moment it happens |
 | error | `…&EDUNEX_DEMO_FAIL=both` (or `edunex`, `six`) | that system answers a server error (500) on every read once the first read is saved (sign-in still works) |
 | error-first | `…&EDUNEX_DEMO_FAIL=both&EDUNEX_DEMO_FAIL_AT=start` | the same from the very first read: nothing saved ("couldn't load") |
+| long | `…&EDUNEX_DEMO_LONG=1` | one course and one Task with very long names (below) |
 | six-ended | `…&EDUNEX_DEMO_ENDED=six` (or `edunex`) | that session ends right after the first read; Microsoft asks again (`EDUNEX_DEMO_SIGN_IN=asks` unless the link says otherwise), so "Masuk lagi" stays. `edunexplusdemo://demo?end=six` still does it to an open app |
 | no-six | `edunexplusdemo://demo?EDUNEX_DEMO=edunex-only` | Edunex signed in, SIX not (checked: it signs in to Edunex only, `test/pretend/demo.ts` `prepare`) |
 
@@ -36,10 +37,11 @@ demo's storage), and the offline row first runs the normal link once so there is
 
 ## A long name, a big font's worst case
 
-The pretend world has no very long course name or sentence-long Task title, and a new one needs a new fixture (not
-done tonight). Take the font-size pictures on the longest it has: open `edunexplusdemo://course/II4091` and the Task
-`edunexplusdemo://task/117001` at font size 1.3, and the "Kuis Kilat Bab 5" Task that `edunexplusdemo://demo?post=kuis`
-adds. To find the longest names in the recordings: `grep -ho '"name":"[^"]*"' test/fixtures/edunex/*.json | awk '{ print length, $0 }' | sort -rn | head`.
+`…&EDUNEX_DEMO_LONG=1` (the `long` rows below): II4091 is "Proposal Tugas Akhir dan Metodologi Penelitian Sistem dan
+Teknologi Informasi" on SIX (its English name on Edunex likewise), and Task 117001 is "Tugas 01 Bab I: Latar Belakang,
+Rumusan Masalah, Tujuan, Batasan Masalah, dan Sistematika Penulisan Proposal Tugas Akhir (revisi kedua)", with no new
+recording (`mobile/src/demo/states.ts` `longNames`). Take them at font size 1.3 too (the script doesn't change the font
+size: that's a setting it may not touch).
 
 ## Every screen × every state
 
@@ -53,6 +55,7 @@ adds. To find the longest names in the recordings: `grep -ho '"name":"[^"]*"' te
 | Beranda | – (Beranda) | error-first | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both&EDUNEX_DEMO_FAIL_AT=start` | `mobile/src/screens/home/index.tsx`: ProblemBanner over an empty Beranda | shared |
 | Beranda | – (Beranda) | six-ended | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_ENDED=six` | `mobile/src/screens/home/index.tsx`: ProblemBanner: Sesi SIX berakhir + Masuk lagi | shared |
 | Beranda | – (Beranda) | no-six | `edunexplusdemo://demo?EDUNEX_DEMO=edunex-only` | `mobile/src/screens/home/index.tsx`: now.tsx returns null: no now card, nothing says SIX is missing | **weak** |
+| Beranda | – (Beranda) | long | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LONG=1` | `mobile/src/screens/home/index.tsx`: the now card and the strip with II4091's long name: check the wrap at font size 1.3 | designed |
 | Beranda, a day with no class | – (Beranda) | empty | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_NOW=2026-12-20T09:00:00%2B07:00` | `mobile/src/screens/home/now.tsx`: now.tsx: Tak ada kuliah 7 hari ke depan (mobile.home.free) | designed |
 | Jadwal | `edunexplusdemo://schedule` | normal | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in` | `mobile/src/screens/schedule/schedule-screen.tsx` | designed |
 | Jadwal | `edunexplusdemo://schedule` | loading | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_HOLD=1` | `mobile/src/screens/schedule/schedule-screen.tsx`: Loading: a week strip and two blocks | designed |
@@ -62,6 +65,7 @@ adds. To find the longest names in the recordings: `grep -ho '"name":"[^"]*"' te
 | Jadwal | `edunexplusdemo://schedule` | error-first | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both&EDUNEX_DEMO_FAIL_AT=start` | `mobile/src/screens/schedule/schedule-screen.tsx`: ProblemBanner over an empty week | shared |
 | Jadwal | `edunexplusdemo://schedule` | six-ended | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_ENDED=six` | `mobile/src/screens/schedule/schedule-screen.tsx`: ProblemBanner | shared |
 | Jadwal | `edunexplusdemo://schedule` | no-six | `edunexplusdemo://demo?EDUNEX_DEMO=edunex-only` | `mobile/src/screens/schedule/schedule-screen.tsx`: note.needsSix + action.signInSix | designed |
+| Jadwal | `edunexplusdemo://schedule` | long | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LONG=1` | `mobile/src/screens/schedule/schedule-screen.tsx`: II4091's block: check the wrap at font size 1.3 | designed |
 | Tugas | `edunexplusdemo://tasks` | normal | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in` | `mobile/src/screens/tasks/list.tsx` | designed |
 | Tugas | `edunexplusdemo://tasks` | loading | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_HOLD=1` | `mobile/src/screens/tasks/list.tsx`: skeleton rows (mobile.tasks.loading) | designed |
 | Tugas | `edunexplusdemo://tasks` | empty | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_EMPTY=tasks,exams,material,alerts,grades` | `mobile/src/screens/tasks/list.tsx`: Tidak ada yang perlu dikerjakan + hint | designed |
@@ -70,6 +74,7 @@ adds. To find the longest names in the recordings: `grep -ho '"name":"[^"]*"' te
 | Tugas | `edunexplusdemo://tasks` | error-first | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both&EDUNEX_DEMO_FAIL_AT=start` | `mobile/src/screens/tasks/list.tsx`: tasks.unavailable + action.tryAgain | designed |
 | Tugas | `edunexplusdemo://tasks` | six-ended | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_ENDED=six` | `mobile/src/screens/tasks/list.tsx`: ProblemBanner | shared |
 | Tugas | `edunexplusdemo://tasks` | no-six | `edunexplusdemo://demo?EDUNEX_DEMO=edunex-only` | `mobile/src/screens/tasks/list.tsx`: tasks.examsNoSix + action.signInSix | designed |
+| Tugas | `edunexplusdemo://tasks` | long | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LONG=1` | `mobile/src/screens/tasks/list.tsx`: Task 117001's row: check the wrap at font size 1.3 | designed |
 | Kuliah | `edunexplusdemo://courses` | normal | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in` | `mobile/src/screens/presence/presence-screen.tsx` | designed |
 | Kuliah | `edunexplusdemo://courses` | loading | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_HOLD=1` | `mobile/src/screens/presence/presence-screen.tsx`: courses.loading | designed |
 | Kuliah | `edunexplusdemo://courses` | empty | – | `mobile/src/screens/presence/presence-screen.tsx`: Belum ada mata kuliah semester ini: the demo always has courses (a course-less option would empty Edunex's /course/courses and SIX's status page) | no way in the demo |
@@ -78,6 +83,7 @@ adds. To find the longest names in the recordings: `grep -ho '"name":"[^"]*"' te
 | Kuliah | `edunexplusdemo://courses` | error-first | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both&EDUNEX_DEMO_FAIL_AT=start` | `mobile/src/screens/presence/presence-screen.tsx`: the empty line under the banner | designed |
 | Kuliah | `edunexplusdemo://courses` | six-ended | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_ENDED=six` | `mobile/src/screens/presence/presence-screen.tsx`: ProblemBanner | shared |
 | Kuliah | `edunexplusdemo://courses` | no-six | `edunexplusdemo://demo?EDUNEX_DEMO=edunex-only` | `mobile/src/screens/presence/presence-screen.tsx`: no absence counts; card.signInSix | designed |
+| Kuliah | `edunexplusdemo://courses` | long | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LONG=1` | `mobile/src/screens/presence/presence-screen.tsx`: II4091's row: check the wrap at font size 1.3 | designed |
 | Profil | `edunexplusdemo://profile` | normal | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in` | `mobile/src/screens/academic/academic-screen.tsx` | designed |
 | Profil | `edunexplusdemo://profile` | loading | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_HOLD=1` | `mobile/src/screens/academic/academic-screen.tsx`: academic.loading (the IPK's shape), Skeleton metas | designed |
 | Profil | `edunexplusdemo://profile` | empty | – | `mobile/src/screens/academic/academic-screen.tsx`: a first-term Student's IPK comes from SIX's transcript: no option empties it yet | n/a |
@@ -110,6 +116,7 @@ adds. To find the longest names in the recordings: `grep -ho '"name":"[^"]*"' te
 | A course (II4091) | `edunexplusdemo://course/II4091` | error | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both` | `mobile/src/screens/course/course-screen.tsx`: no banner on this page: saved data, the error unsaid | **BLOCKER** |
 | A course (II4091) | `edunexplusdemo://course/II4091` | error-first | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both&EDUNEX_DEMO_FAIL_AT=start` | `mobile/src/screens/course/course-screen.tsx`: NotLoaded: skeleton + course.unavailable + action.courseRetry | designed |
 | A course (II4091) | `edunexplusdemo://course/II4091` | no-six | `edunexplusdemo://demo?EDUNEX_DEMO=edunex-only` | `mobile/src/screens/course/course-screen.tsx`: meetings.tsx: meeting.noSix | designed |
+| A course (II4091) | `edunexplusdemo://course/II4091` | long | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LONG=1` | `mobile/src/screens/course/course-screen.tsx`: the course's title: check the wrap at font size 1.3 | designed |
 | A module | `edunexplusdemo://course/II4091/module/450219` | normal | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in` | `mobile/src/screens/course/module-screen.tsx` | designed |
 | A module | `edunexplusdemo://course/II4091/module/450219` | loading | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_HOLD=1` | `mobile/src/screens/course/module-screen.tsx`: ModuleSkeleton | designed |
 | A module | `edunexplusdemo://course/II4091/module/450219` | empty | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_EMPTY=tasks,exams,material,alerts,grades` | `mobile/src/screens/course/module-screen.tsx`: EmptyState course.unavailable: the same words as an error | **weak** |
@@ -122,6 +129,7 @@ adds. To find the longest names in the recordings: `grep -ho '"name":"[^"]*"' te
 | A Task (117001) | `edunexplusdemo://task/117001` | offline | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_OFFLINE=1` | `mobile/src/screens/tasks/task-page.tsx`: no banner on the page; hand-in says it only when tried (hand-in.tsx HandInNotice) | **BLOCKER** |
 | A Task (117001) | `edunexplusdemo://task/117001` | error | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both` | `mobile/src/screens/tasks/task-page.tsx`: no banner on the page | **BLOCKER** |
 | A Task (117001) | `edunexplusdemo://task/117001` | error-first | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both&EDUNEX_DEMO_FAIL_AT=start` | `mobile/src/screens/tasks/task-page.tsx`: NoTasksYet or task.notFound: says gone when it couldn't read | **weak** |
+| A Task (117001) | `edunexplusdemo://task/117001` | long | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LONG=1` | `mobile/src/screens/tasks/task-page.tsx`: the Task's title: check the wrap at font size 1.3 | designed |
 | An exam (DK4073-UTS) | `edunexplusdemo://exam/DK4073-UTS` | normal | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in` | `mobile/src/screens/tasks/exam-page.tsx` | designed |
 | An exam (DK4073-UTS) | `edunexplusdemo://exam/DK4073-UTS` | loading | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_HOLD=1` | `mobile/src/screens/tasks/exam-page.tsx`: 3 skeletons | designed |
 | An exam (DK4073-UTS) | `edunexplusdemo://exam/DK4073-UTS` | offline | `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_OFFLINE=1` | `mobile/src/screens/tasks/exam-page.tsx`: no banner on the page | **BLOCKER** |

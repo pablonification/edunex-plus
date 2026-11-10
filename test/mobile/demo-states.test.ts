@@ -2,7 +2,7 @@
 // the state its row in mobile/qa/superapp-states.md pictures, and none changes the demo when it's absent.
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { applyAfterFirstRead, applyBeforeFirstRead, demoStates } from "../../mobile/src/demo/states";
+import { applyAfterFirstRead, applyBeforeFirstRead, demoStates, LONG_COURSE, LONG_COURSE_EDUNEX, LONG_TASK } from "../../mobile/src/demo/states";
 import { NetworkError } from "../../src/engine/http/transport";
 import { demoOptions, demoWorld } from "../pretend/demo";
 import { PRETEND_TOKEN } from "../pretend/edunex";
@@ -25,7 +25,7 @@ function world(asked: Record<string, string> = {}) {
 describe("the demo's states", () => {
   it("change nothing when the link names none", async () => {
     const { states, firstRead, refreshed, edunex, six } = world();
-    expect(states).toEqual({ offline: undefined, fail: [], failAtStart: false, ended: undefined, hold: false, slowSeconds: 0, empty: [] });
+    expect(states).toEqual({ offline: undefined, fail: [], failAtStart: false, ended: undefined, hold: false, slowSeconds: 0, empty: [], long: false });
     firstRead();
     expect(refreshed).toEqual([]);
     expect((await edunex("/course/courses")).status).toBe(200);
@@ -86,6 +86,15 @@ describe("the demo's states", () => {
     expect(w.edunex.gradebooks.size).toBe(0);
     const full = world();
     expect([...full.w.edunex.tasks.values()].flat().length).toBeGreaterThan(0);
+  });
+
+  it("a long name: II4091 on SIX's pages and Edunex's courses, and Task 117001's title", async () => {
+    const { w, edunex } = world({ EDUNEX_DEMO_LONG: "1" });
+    const six = [...w.six.pages.values()].join("");
+    expect(six).toContain(LONG_COURSE);
+    expect(six).not.toContain("Proposal Tugas Akhir<");
+    expect(JSON.stringify((await edunex("/course/courses")).body)).toContain(LONG_COURSE_EDUNEX);
+    expect(w.edunex.task(117001).attributes.name).toBe(LONG_TASK);
   });
 
   it("refuses an option it doesn't know, so a typo in a link isn't a quiet normal picture", () => {
