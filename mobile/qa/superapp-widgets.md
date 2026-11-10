@@ -79,9 +79,12 @@ wrong.
 ### 6. Kelas berikutnya (`Next`, new): one cell, "When and where is my next class?"
 
 - Sizes: min 1×1, first 1×1, max 2×2.
-- The next class's start time big, its code in its colour, its day above when it isn't today, its room when tall
-  enough. While SIX shows Tandai Hadir for the class on now, the cell turns green and says "Hadir".
-- Taps: opens that class's sheet on Jadwal. When green, it opens SIX's check-in page.
+- On the course's own tint: the next class's start time big (shrunk to fit the cell), its code in its colour, its day
+  above when it isn't today, its room when tall enough. It picks the next class as "Sekarang" does, so a meeting only
+  Edunex announced counts too. While SIX shows Tandai Hadir for the class on now, the cell turns green and says
+  "Tandai Hadir".
+- Taps: opens that class's sheet on Jadwal (a meeting: its course's Pertemuan). When green, it opens SIX's check-in
+  page.
 - States: normal; check-in (green); holiday (no class this week); signed out of SIX.
 - Model: `nextWidget(facts)`. Changes when that class starts (the next one takes over) or its check-in ends.
 
@@ -188,6 +191,25 @@ What changed (`src/host/widget.ts`, `src/widget/draw.ts`):
 Not changed (the library's, native): the headless start itself, and PNGs at full quality. If the conductor still sees
 the freeze, the next suspects are those two. A trace would show `RNWidget.drawWidget` or `HeadlessJsTaskWorker`
 around the stall.
+
+## How each one is laid out, and how it was checked
+
+Every widget picks what fits its size, most important first, and says the rest with "+N lagi":
+
+- Narrow (2 cells): Sekarang shows the time and code with the room under them. Hari ini shows start times and codes.
+  Kehadiran puts each code over its word. Satu mata kuliah uses the short words ("Sisa 1×", "08:00") and gives the
+  Task two lines.
+- Short (1 row): Sekarang drops the foot and keeps the class, the room, and Tandai Hadir if it fits. Ujian puts the
+  number beside the exam.
+- Wide (5 cells): Kehadiran adds each course's name.
+- A label never pushes its fact out: "Tutup 09:30" and "Sisa 2×" keep their room, and names are cut first.
+- Text size 1.3 is planned for (line heights grow with it, so fewer rows fit).
+
+`test/mobile/widget-drawings.test.tsx` walks the real trees for all eight widgets, at 4–5 sizes each, light and
+dark, at text size 1 and 1.3. It checks every tap (a deep link into the app, or an https page) and the exact target
+of each row. With `WIDGET_GALLERY=<file.html>` it writes the whole set as one page to look at. That page is how the
+layouts above were set. It's an approximation of Android's drawing (CSS flexbox for the library's Yoga), so the
+conductor's look on the phone is still the real check.
 
 ## iPhone
 

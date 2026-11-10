@@ -1,11 +1,11 @@
 "use no memo";
-// The widgets beyond "Now" and "Hari ini" (qa/superapp-widgets.md), as Android draws them: react-native-android-widget
-// turns this tree into a picture, so no state or hooks here. Each takes its model (./model.ts) and the size the Student
-// gave it, and shows what fits, most important first. Every row opens its own place; the card around it opens the app.
-import { FlexWidget, SvgWidget, TextWidget } from "react-native-android-widget";
 import type { AttendanceState } from "../../../src/core/attendance";
 import { absenceInk, absenceTone } from "../ui/absence";
 import type { Theme } from "../ui/theme";
+// The widgets beyond "Now" and "Hari ini" (qa/superapp-widgets.md), as Android draws them: react-native-android-widget
+// turns this tree into a picture, so no state or hooks here. Each takes its model (./model.ts) and the size the Student
+// gave it, and shows what fits, most important first. Every row opens its own place; the card around it opens the app.
+import { FlexWidget, SvgWidget, TextWidget } from "./kit";
 import type { AttendanceWidget, CourseWidget, DueWidget, ExamWidget, NextWidget, ServiceIcon, ServicesWidget, WidgetLine, WidgetStatus } from "./model";
 import { Frame, hex, LINE, PAD, Text, tap, type WidgetSize } from "./view";
 
@@ -25,6 +25,12 @@ function Foot({ status, theme }: { status: WidgetStatus; theme: Theme }) {
   return <Text text={status.text} size="micro" color={status.problem ? theme.v4.ambFg : theme.v4.muted} />;
 }
 
+/** As many rows as fit `room`, leaving `moreHeight` for "+3 lagi" when some are left out. */
+function fitRows<T>(rows: readonly T[], room: number, rowHeight: number, moreHeight: number): T[] {
+  if (rows.length * rowHeight <= room) return [...rows];
+  return rows.slice(0, Math.max(1, Math.floor((room - moreHeight) / rowHeight)));
+}
+
 /** "+3 lagi" when rows are left out: it opens the whole list. */
 function more(count: number, lang: "id" | "en"): string {
   return lang === "id" ? `+${count} lagi` : `+${count} more`;
@@ -36,8 +42,7 @@ export function DueView({ model, size, theme, lang }: { model: DueWidget; size: 
   const v = theme.v4;
   const { room, foot, scale } = rowsRoom(size, model.status);
   const rowHeight = (LINE.small + LINE.micro + 8) * scale;
-  const fits = Math.max(1, Math.floor(room / rowHeight));
-  const rows = model.rows.length > fits ? model.rows.slice(0, Math.max(1, fits - 1)) : model.rows;
+  const rows = fitRows(model.rows, room, rowHeight, (LINE.micro + 8) * scale);
   const left = model.rows.length - rows.length;
   return (
     <Frame theme={theme} surface={v.card}>
@@ -78,10 +83,11 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
   const v = theme.v4;
   const { room, foot, scale } = rowsRoom(size, model.status);
   const rowHeight = (LINE.small + 6) * scale;
-  const fits = Math.max(1, Math.floor(room / rowHeight));
-  const rows = model.rows.length > fits ? model.rows.slice(0, Math.max(1, fits - 1)) : model.rows;
+  // Narrow (2 cells): the code over its absences, as both don't fit one line. Wide (5 cells): the course's name too.
+  const narrow = size.width < 180;
+  const wide = size.width >= 320;
+  const rows = fitRows(model.rows, room, narrow ? (LINE.small + LINE.small + 6) * scale : rowHeight, (LINE.micro + 6) * scale);
   const left = model.rows.length - rows.length;
-  const wide = size.width >= 240;
   return (
     <Frame theme={theme} surface={v.card}>
       <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: 6 }}>
@@ -95,9 +101,17 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
             style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 8 }}
           >
             <FlexWidget style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: hex(theme.courseTile(row.tone).ink) }} />
-            <Text text={wide && row.name ? `${row.code} ${row.name}` : row.code} size="small" color={v.fg} bold />
-            <FlexWidget style={{ flex: 1 }} />
-            <Text text={row.short} size="small" color={absenceColor(theme, row.state)} bold />
+            {narrow ? (
+              <FlexWidget style={{ flex: 1, flexDirection: "column" }}>
+                <Text text={row.code} size="small" color={v.fg} bold />
+                <Text text={row.short} size="small" color={absenceColor(theme, row.state)} bold />
+              </FlexWidget>
+            ) : (
+              <FlexWidget style={{ flex: 1 }}>
+                <Text text={wide && row.name ? `${row.code} ${row.name}` : row.code} size="small" color={v.fg} bold />
+              </FlexWidget>
+            )}
+            {narrow ? null : <Text text={row.short} size="small" color={absenceColor(theme, row.state)} bold />}
           </FlexWidget>
         ))}
         {left > 0 ? <Text text={more(left, lang)} size="micro" color={v.brandInk} bold open={model.all} /> : null}
@@ -120,14 +134,15 @@ export function ExamView({ model, size, theme }: { model: ExamWidget; size: Widg
       </Frame>
     );
   const ink = theme.courseTile(next.tone).ink;
-  const short = size.height < 100;
+  // One row high: the number beside the exam.
+  const short = size.height < 130;
   const big = (
     <FlexWidget style={{ flexDirection: "row", alignItems: "flex-end", flexGap: 4 }}>
       <TextWidget
         text={next.big}
         maxLines={1}
         truncate="END"
-        style={{ fontSize: next.unit ? (short ? 28 : 40) : short ? 20 : 26, color: hex(ink), fontWeight: "700" }}
+        style={{ adjustsFontSizeToFit: true, fontSize: next.unit ? (short ? 28 : 40) : short ? 20 : 26, color: hex(ink), fontWeight: "700" }}
       />
       {next.unit ? <TextWidget text={next.unit} maxLines={1} style={{ fontSize: 12, color: hex(v.muted), fontWeight: "500" }} /> : null}
     </FlexWidget>
@@ -164,7 +179,7 @@ export function ExamView({ model, size, theme }: { model: ExamWidget; size: Widg
 export function NextView({ model, size, theme }: { model: NextWidget; size: WidgetSize; theme: Theme }) {
   const v = theme.v4;
   const next = model.next;
-  const pad = size.width < 80 ? 8 : 12;
+  const pad = size.width < 80 ? 7 : 12;
   if (!next)
     return (
       <FlexWidget
@@ -175,8 +190,12 @@ export function NextView({ model, size, theme }: { model: NextWidget; size: Widg
       </FlexWidget>
     );
   const live = next.checkIn;
-  const ink = live ? v.onBrand : theme.courseTile(next.tone).ink;
-  const fg = live ? v.onBrand : v.fg;
+  // Tandai Hadir open: SIX's green, white on it in light (6.9:1), its pale ink on the dark tint in dark. Else the course's tint.
+  const tile = theme.courseTile(next.tone);
+  const green = theme.scheme === "light" ? { bg: v.okFg, fg: v.onBrand } : { bg: v.okBg, fg: v.okFg };
+  const ink = live ? green.fg : tile.ink;
+  const fg = live ? green.fg : v.fg;
+  const big = Math.min(26, Math.floor((size.width - 2 * pad) / 2.9));
   const action = tap(next.open);
   return (
     <FlexWidget
@@ -188,15 +207,25 @@ export function NextView({ model, size, theme }: { model: NextWidget; size: Widg
         height: "match_parent",
         padding: pad,
         borderRadius: 18,
-        backgroundColor: hex(live ? v.live : v.card),
+        backgroundColor: hex(live ? green.bg : tile.tint),
         flexDirection: "column",
         justifyContent: "center",
         flexGap: 2,
       }}
     >
       {next.day && !live ? <Text text={next.day} size="micro" color={v.muted} /> : null}
-      <TextWidget text={live ? "Hadir" : next.time} maxLines={1} style={{ fontSize: size.width < 80 ? 18 : 22, color: hex(fg), fontWeight: "700" }} />
-      <Text text={next.code} size="micro" color={ink} bold />
+      <TextWidget
+        text={next.big}
+        maxLines={live ? 2 : 1}
+        style={{ adjustsFontSizeToFit: true, fontSize: live ? Math.min(big, 16) : big, color: hex(fg), fontWeight: "700" }}
+      />
+      {live ? null : (
+        <TextWidget
+          text={next.code}
+          maxLines={1}
+          style={{ adjustsFontSizeToFit: true, fontSize: size.width < 80 ? 11 : 12, color: hex(ink), fontWeight: "500" }}
+        />
+      )}
       {next.room && size.height >= 90 && !live ? <Text text={next.room} size="micro" color={v.muted} /> : null}
     </FlexWidget>
   );
@@ -229,7 +258,7 @@ const svgOf = (icon: ServiceIcon, color: string) =>
 
 export function ServicesView({ model, size, theme }: { model: ServicesWidget; size: WidgetSize; theme: Theme }) {
   const v = theme.v4;
-  const each = Math.max(1, Math.min(model.items.length, Math.floor((size.width - 16) / 64)));
+  const each = Math.max(1, Math.min(model.items.length, Math.floor((size.width - 16) / 56)));
   const tile = size.height >= 80 ? 44 : 34;
   const labels = size.height >= 70;
   return (
@@ -285,9 +314,11 @@ export function CourseView({ model, size, theme }: { model: CourseWidget; size: 
     left -= height * scale;
     return true;
   };
+  // Two cells wide: the code alone, the absences and the class in their short words, the Task over two lines.
+  const narrow = size.width < 180;
   const showAbsences = model.absences ? take(LINE.small + 6) : false;
   const showNext = model.next ? take(LINE.small + 6) : false;
-  const showTask = model.task ? take(LINE.small + LINE.micro + 6) : false;
+  const showTask = model.task ? take((narrow ? 2 : 1) * LINE.small + LINE.micro + 6) : false;
   return (
     <Frame theme={theme} surface={v.card}>
       <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: 6 }}>
@@ -297,13 +328,15 @@ export function CourseView({ model, size, theme }: { model: CourseWidget; size: 
           style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 8 }}
         >
           <FlexWidget style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: hex(tile.ink) }} />
-          <Text text={course.name ? `${course.code} ${course.name}` : course.code} size="body" color={v.fg} bold />
+          <Text text={course.name && !narrow ? `${course.code} ${course.name}` : course.code} size="body" color={v.fg} bold />
         </FlexWidget>
-        {showAbsences && model.absences ? <Text text={model.absences.label} size="small" color={absenceColor(theme, model.absences.state)} bold /> : null}
-        {showNext && model.next ? <Text text={model.next.label} size="small" color={v.fg} open={model.next.open} /> : null}
+        {showAbsences && model.absences ? (
+          <Text text={narrow ? model.absences.short : model.absences.label} size="small" color={absenceColor(theme, model.absences.state)} bold />
+        ) : null}
+        {showNext && model.next ? <Text text={narrow ? model.next.short : model.next.label} size="small" color={v.fg} open={model.next.open} /> : null}
         {showTask && model.task ? (
           <FlexWidget {...tap(model.task.open)} style={{ width: "match_parent", flexDirection: "column" }}>
-            <Text text={model.task.label} size="small" color={v.fg} bold />
+            <Text text={model.task.label} size="small" color={v.fg} bold lines={narrow ? 2 : 1} />
             <Text text={model.task.detail ?? ""} size="micro" color={v.muted} />
           </FlexWidget>
         ) : null}

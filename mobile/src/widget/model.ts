@@ -19,7 +19,7 @@ import { examParts, mergeExams } from "../../../src/core/exams";
 import { makeFormat } from "../../../src/core/format";
 import { heldBack } from "../../../src/core/held-back";
 import { snapshotDataset, snapshotHomeWorld, snapshotTermCourses } from "../../../src/core/home-world";
-import type { Lang, Settings } from "../../../src/core/models";
+import type { ClassSession, Lang, Settings } from "../../../src/core/models";
 import { attentionWithToday, DUE_NOW, type HomeContext, homeContext, type NowCard, needsRange, nowCard, todayPlan } from "../../../src/core/needs";
 import type { Route } from "../../../src/core/route";
 import type { Snapshot } from "../../../src/core/snapshot";
@@ -79,6 +79,8 @@ export interface WidgetModel {
 export interface WidgetTodayClass {
   /** "08:00–10:00". */
   time: string;
+  /** "08:00", where the range doesn't fit. */
+  start: string;
   code: string;
   room: string | null;
   /** On now: marked. */
@@ -139,6 +141,7 @@ function todayLines(snapshot: Pick<Snapshot, "datasets" | "statuses">, context: 
   const codes = snapshotTermCourses(snapshot)?.map((c) => c.code) ?? [];
   const classes = plan.classes.map(({ session }) => ({
     time: f.timeRange(session.start, session.end),
+    start: f.time(session.start),
     code: session.courseCode,
     room: session.room ?? null,
     live: session.start <= now && now < session.end,
@@ -579,6 +582,8 @@ export interface NextWidget {
   next: {
     /** "10:00". */
     time: string;
+    /** The big word: the time, or "Tandai Hadir" while it's open. */
+    big: string;
     code: string;
     room: string | null;
     tone: string | undefined;
@@ -596,16 +601,15 @@ export interface NextWidget {
 }
 
 export function nextWidget(facts: WidgetFacts): NextWidget {
-  const { t, f, now, snapshot } = facts;
+  const { t, f, now, snapshot, card } = facts;
   const base = { status: facts.status };
   const schedule = facts.context?.schedule ?? null;
   if (schedule === null)
     return { ...base, state: "signedOut", next: null, empty: { label: t("action.signInTo", { source: t("source.six") }), open: HOME }, changesAt: null };
   const checkIns = snapshotDataset(snapshot, "six.checkIn") ?? {};
   const live = schedule.find((s) => checkIns[s.id]?.state === "open" && checkingIn(s, now));
-  const ahead = schedule.filter((s) => s.start > now && s.start - now <= 7 * DAY_MS).sort((a, b) => a.start - b.start)[0];
-  const session = live ?? ahead;
-  if (!session) {
+  const slot = live ? { kind: "checkIn" as const, session: live } : upcoming(card, schedule, now);
+  if (!slot) {
     return {
       ...base,
       state: "holiday",
@@ -614,28 +618,59 @@ export function nextWidget(facts: WidgetFacts): NextWidget {
       changesAt: nextMidnight(now),
     };
   }
-  const offset = f.dayOffset(session.start);
-  const checkIn = session === live;
-  const open: WidgetTarget = checkIn ? { kind: "checkIn", meetingId: session.id } : { kind: "class", sessionId: session.id };
+  const { start, end, code, room } =
+    slot.kind === "meeting"
+      ? {
+          ...slot.meeting,
+          code: slot.code,
+          room: t(slot.meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: slot.meeting.number }),
+        }
+      : { start: slot.session.start, end: slot.session.end, code: slot.session.courseCode, room: slot.session.room };
+  const offset = f.dayOffset(start);
+  const open: WidgetTarget =
+    slot.kind === "checkIn"
+      ? { kind: "checkIn", meetingId: slot.session.id }
+      : slot.kind === "class"
+        ? { kind: "class", sessionId: slot.session.id }
+        : { kind: "route", route: { screen: "course", code, tab: "meetings" } };
   return {
     ...base,
     state: "ready",
     next: {
-      time: f.time(session.start),
-      code: session.courseCode,
-      room: session.room,
-      tone: toneOf(snapshot, facts.codes, session.courseCode),
-      day: offset === 0 ? null : f.relativeDay(session.start),
-      checkIn,
+      time: f.time(start),
+      big: slot.kind === "checkIn" ? t("mobile.notification.checkIn") : f.time(start),
+      code,
+      room,
+      tone: toneOf(snapshot, facts.codes, code),
+      day: offset === 0 ? null : f.relativeDay(start),
+      checkIn: slot.kind === "checkIn",
       open,
-      a11y: checkIn
-        ? t("home.now.openSixLabel", { course: session.courseCode })
-        : [f.relativeDay(session.start), f.timeRange(session.start, session.end), session.courseCode, session.room].filter(Boolean).join(", "),
+      a11y:
+        slot.kind === "checkIn"
+          ? t("home.now.openSixLabel", { course: code })
+          : [f.relativeDay(start), f.timeRange(start, end), code, room].filter(Boolean).join(", "),
     },
     empty: null,
-    // It starts (the next one takes over once it has), or its check-in closes.
-    changesAt: earliest(checkIn ? session.end : session.start, offset === 0 ? null : nextMidnight(now)),
+    // It starts (the next one takes over once it has), or its check-in closes; a day's word turns over at midnight.
+    changesAt: earliest(slot.kind === "checkIn" ? end : start, offset === 0 ? null : nextMidnight(now)),
   };
+}
+
+type Upcoming =
+  | { kind: "class"; session: ClassSession }
+  | { kind: "meeting"; code: string; meeting: { start: number; end: number; number: number; online: boolean } };
+
+/**
+ * The next class to start, as "Sekarang" picks it (a meeting only Edunex announced counts too): the card's own when it
+ * isn't on yet, else SIX's next after the one on now, within a week.
+ */
+function upcoming(card: NowCard | null, schedule: readonly ClassSession[], now: number): Upcoming | null {
+  if (card && card.state !== "live") {
+    if (card.class && card.class.session.start > now) return { kind: "class", session: card.class.session };
+    if (card.meeting && card.meeting.meeting.start > now) return { kind: "meeting", code: card.meeting.code, meeting: card.meeting.meeting };
+  }
+  const ahead = schedule.filter((s) => s.start > now && s.start - now <= 7 * DAY_MS).sort((a, b) => a.start - b.start)[0];
+  return ahead ? { kind: "class", session: ahead } : null;
 }
 
 // ---------------------------------------------------------------- Pintasan ("Services")
@@ -671,10 +706,10 @@ export interface CourseWidget {
     tone: string | undefined;
     open: WidgetTarget;
   } | null;
-  /** Its next class: "Besok, 08:00–10:00 · R.9009", opening its sheet on Jadwal. */
-  next: WidgetLine | null;
-  /** Its absences ("Sisa jatah absen 2×"), in the state's ink. */
-  absences: { label: string; state: AttendanceState } | null;
+  /** Its next class: "Besok, 08:00–10:00 · R.9009", opening its sheet on Jadwal; `short` "Besok 08:00" for a narrow widget. */
+  next: (WidgetLine & { short: string }) | null;
+  /** Its absences ("Sisa jatah absen 2×", or "Sisa 2×" narrow), in the state's ink. */
+  absences: { label: string; short: string; state: AttendanceState } | null;
   /** Its next open Task: the title, "Tenggat Besok, 23:59". */
   task: WidgetLine | null;
   empty: WidgetLine | null;
@@ -717,7 +752,11 @@ export function courseWidget(facts: WidgetFacts, code: string | null): CourseWid
       open: { kind: "route", route: chosen.edunex ? { screen: "course", code: chosen.code } : { screen: "presence" } },
     },
     next: session
-      ? { label: [f.dayTimeRange(session.start, session.end), session.room].filter(Boolean).join(" · "), open: { kind: "class", sessionId: session.id } }
+      ? {
+          label: [f.dayTimeRange(session.start, session.end), session.room].filter(Boolean).join(" · "),
+          short: f.dayOffset(session.start) === 0 ? f.time(session.start) : `${f.relativeDay(session.start)} ${f.time(session.start)}`,
+          open: { kind: "class", sessionId: session.id },
+        }
       : null,
     absences:
       health && health.state !== "unknown"
@@ -730,6 +769,14 @@ export function courseWidget(facts: WidgetFacts, code: string | null): CourseWid
                   ? t("mobile.absence.over", { count: budget?.over ?? 0 })
                   : budget
                     ? t("presence.budget.safe", { count: budget.left })
+                    : "-",
+            short:
+              health.state === "none"
+                ? t("mobile.widget.absencesNone")
+                : health.state === "out"
+                  ? t("mobile.widget.absencesOver", { count: budget?.over ?? 0 })
+                  : budget
+                    ? t("mobile.widget.absencesLeft", { count: budget.left })
                     : "-",
           }
         : null,

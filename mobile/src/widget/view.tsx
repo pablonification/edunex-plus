@@ -1,4 +1,8 @@
 "use no memo";
+import { DEMO } from "../host/version";
+import { hrefOf } from "../nav";
+import { NOW } from "../ui/palette";
+import { THEMES, type Theme } from "../ui/theme";
 // The home-screen widget as Android draws it (react-native-android-widget turns this tree into
 // the system's own views, so no React state, hooks or app parts here). The app's look: the
 // desktop's colors light and dark (../ui/theme.ts) and its type a step smaller, as a widget sits
@@ -6,11 +10,7 @@
 // Student gave the widget: the class first, then "Tandai Hadir", then the needs that fit.
 // Every line opens its screen in the app (the same paths as ../nav.ts), an official page in the
 // browser, or SIX's check-in page.
-import { FlexWidget, type HexColor, TextWidget } from "react-native-android-widget";
-import { DEMO } from "../host/version";
-import { hrefOf } from "../nav";
-import { NOW } from "../ui/palette";
-import { THEMES, type Theme } from "../ui/theme";
+import { FlexWidget, type HexColor, TextWidget } from "./kit";
 import type { WidgetClass, WidgetLine, WidgetModel, WidgetTarget } from "./model";
 
 /** The app's deep links (app.config.ts's scheme). */
@@ -75,6 +75,9 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
     room -= LINE.small * scale + 4;
   }
   const lines = today.classes.filter((one) => shown.includes(one));
+  // Narrow: the start time alone (the range was cut), and below three cells the code alone.
+  const narrow = size.width < 250;
+  const tiny = size.width < 150;
   return (
     <Frame theme={theme} surface={v.card}>
       <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: 4 }}>
@@ -88,8 +91,10 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
             style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 6 }}
           >
             <FlexWidget style={{ width: 4, height: 16, borderRadius: 2, backgroundColor: hex(theme.courseTile(one.tone).ink) }} />
-            <Text text={one.time} size="small" color={one.live ? v.okFg : one.past ? v.muted : v.fg} bold={one.live} />
-            <Text text={[one.code, one.room].filter(Boolean).join(" · ")} size="small" color={one.past ? v.muted : v.fg} bold={!one.past} />
+            <Text text={narrow ? one.start : one.time} size="small" color={one.live ? v.okFg : one.past ? v.muted : v.fg} bold={one.live} />
+            <FlexWidget style={{ flex: 1 }}>
+              <Text text={tiny ? one.code : [one.code, one.room].filter(Boolean).join(" · ")} size="small" color={one.past ? v.muted : v.fg} bold={!one.past} />
+            </FlexWidget>
           </FlexWidget>
         ))}
       </FlexWidget>
@@ -118,17 +123,24 @@ function NowWidget({ model, size, theme }: { model: WidgetModel; size: WidgetSiz
   const c = theme.color;
   const plan = fit(model, size);
   const nothing = !model.now && !plan.actions.length && !plan.needs;
+  const narrow = size.width < 200;
   return (
     <Frame theme={theme}>
       <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: GAP }}>
         {nothing ? <Text text="Edunex Plus" size="body" color={c.fg} bold /> : null}
-        {model.now ? "code" in model.now ? <ClassBlock line={model.now} theme={theme} /> : <Plain line={model.now} color={c.muted} /> : null}
+        {model.now ? (
+          "code" in model.now ? (
+            <ClassBlock line={model.now} theme={theme} narrow={narrow} where={plan.where} />
+          ) : (
+            <Plain line={model.now} color={c.muted} />
+          )
+        ) : null}
         {plan.actions.map((line, index) => (
           <ActionPill key={`${line.label}${line.detail ?? ""}`} line={line} primary={index === 0 && line.open.kind === "checkIn"} theme={theme} />
         ))}
         {plan.needs ? <NeedsBlock needs={plan.needs} theme={theme} /> : null}
       </FlexWidget>
-      <Text text={model.status.text} size="micro" color={model.status.problem ? c.warningFg : c.faint} />
+      {plan.status ? <Text text={model.status.text} size="micro" color={model.status.problem ? c.warningFg : c.faint} /> : null}
     </Frame>
   );
 }
@@ -154,16 +166,24 @@ export function Frame({ theme, children, surface }: { theme: Theme; children: Re
   );
 }
 
-/** "Sedang berlangsung · 08:00–10:00 · 7602", then the course's dot, code and name. */
-function ClassBlock({ line, theme }: { line: WidgetClass; theme: Theme }) {
+/**
+ * "Sedang berlangsung · 08:00–10:00" (the time alone when narrow), then the course's dot, code and name, then the room
+ * on its own line when there's room for it (it was cut off at the end of the first).
+ */
+function ClassBlock({ line, theme, narrow, where }: { line: WidgetClass; theme: Theme; narrow: boolean; where: boolean }) {
   const c = theme.color;
   return (
-    <FlexWidget style={{ width: "match_parent", flexDirection: "column" }} {...tap(line.open)} accessibilityLabel={line.name ?? line.code}>
-      <Text text={[line.heading, line.time, line.where].filter(Boolean).join(" · ")} size="micro" color={line.live ? c.successFg : c.muted} bold />
+    <FlexWidget
+      style={{ width: "match_parent", flexDirection: "column" }}
+      {...tap(line.open)}
+      accessibilityLabel={[line.heading, line.time, line.name ?? line.code, line.where].filter(Boolean).join(", ")}
+    >
+      <Text text={narrow ? line.time : `${line.heading} · ${line.time}`} size="micro" color={line.live ? c.successFg : c.muted} bold />
       <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 6 }}>
         <FlexWidget style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: hex(theme.course(line.tone)) }} />
-        <Text text={line.name ? `${line.code} ${line.name}` : line.code} size="body" color={c.fg} bold />
+        <Text text={line.name && !narrow ? `${line.code} ${line.name}` : line.code} size="body" color={c.fg} bold />
       </FlexWidget>
+      {where && line.where ? <Text text={line.where} size="micro" color={c.muted} /> : null}
     </FlexWidget>
   );
 }
@@ -183,7 +203,12 @@ function ActionPill({ line, primary, theme }: { line: WidgetLine; primary: boole
         backgroundColor: hex(primary ? c.accent : c.fill),
       }}
     >
-      <Text text={[line.label, line.detail].filter(Boolean).join(" · ")} size="small" color={primary ? c.onAccent : c.fg} bold />
+      <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 8 }}>
+        <FlexWidget style={{ flex: 1 }}>
+          <Text text={line.label} size="small" color={primary ? c.onAccent : c.fg} bold />
+        </FlexWidget>
+        {line.detail ? <Text text={line.detail} size="micro" color={primary ? c.onAccent : c.fg} /> : null}
+      </FlexWidget>
     </FlexWidget>
   );
 }
@@ -239,6 +264,10 @@ export function Text({
 
 interface Fitted {
   actions: WidgetLine[];
+  /** The room on its own line under the class. */
+  where: boolean;
+  /** "Diperbarui pukul …" at the foot. */
+  status: boolean;
   needs: { heading: string; items: WidgetLine[]; more: WidgetLine | null } | null;
 }
 
@@ -249,8 +278,11 @@ interface Fitted {
 function fit(model: WidgetModel, size: WidgetSize): Fitted {
   const scale = Math.max(1, size.fontScale);
   const line = (kind: keyof typeof LINE) => LINE[kind] * scale;
-  let room = size.height - 2 * PAD - line("micro") - GAP;
-  if (model.now) room -= ("code" in model.now ? line("micro") + line("body") : line("small")) + GAP;
+  // What's wrong is always said; "Diperbarui pukul …" only where there's room left for it.
+  const problem = model.status.problem;
+  let room = size.height - 2 * PAD - (problem ? line("micro") + GAP : 0);
+  const cls = model.now && "code" in model.now ? model.now : null;
+  if (model.now) room -= (cls ? line("micro") + line("body") : line("small")) + GAP;
   const actions: WidgetLine[] = [];
   for (const action of model.actions) {
     const height = line("small") + 14 + GAP;
@@ -258,22 +290,31 @@ function fit(model: WidgetModel, size: WidgetSize): Fitted {
     actions.push(action);
     room -= height;
   }
+  const where = Boolean(cls?.where) && room >= line("micro");
+  if (where) room -= line("micro");
+  const done = (needs: Fitted["needs"]): Fitted => ({ actions, needs, where, status: problem || room >= line("micro") + GAP });
   const needs = model.needs;
-  if (!needs) return { actions, needs: null };
+  if (!needs) return done(null);
   const heading = line("micro") + 4;
-  if (needs.empty) return { actions, needs: room >= heading + line("small") ? { heading: needs.heading, items: [needs.empty], more: null } : null };
+  if (needs.empty) {
+    if (room < heading + line("small") + GAP) return done(null);
+    room -= heading + line("small") + GAP;
+    return done({ heading: needs.heading, items: [needs.empty], more: null });
+  }
   const items: WidgetLine[] = [];
-  room -= heading;
+  let left = room - heading - GAP;
   for (const item of needs.items) {
     const height = line("small") + (item.detail ? line("micro") : 0) + 4;
     // Room for this one, and for "Lihat semua" under it when more are left out.
     const after = items.length + 1 < needs.items.length ? line("small") + 4 : 0;
-    if (room < height + after) break;
+    if (left < height + after) break;
     items.push(item);
-    room -= height;
+    left -= height;
   }
-  if (!items.length) return { actions, needs: null };
-  return { actions, needs: { heading: needs.heading, items, more: items.length < needs.items.length ? needs.all : null } };
+  if (!items.length) return done(null);
+  const more = items.length < needs.items.length;
+  room = left - (more ? line("small") + 4 : 0);
+  return done({ heading: needs.heading, items, more: more ? needs.all : null });
 }
 
 // ---------------------------------------------------------------- taps
