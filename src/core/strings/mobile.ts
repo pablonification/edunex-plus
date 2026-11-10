@@ -304,7 +304,7 @@ export const mobileStrings = {
     en: "Notifications for Edunex Plus are off. Turn them on in your phone's settings.",
   },
   // At the top of Notifikasi while Android's permission is off; the button asks for it, or opens the app's notification settings.
-  "mobile.settings.notificationsOffTitle": { id: "Notifikasi mati", en: "Notifications are off" },
+  "mobile.settings.notificationsOffTitle": { id: "Mati di HP ini", en: "Off on this phone" },
   "mobile.settings.notificationsTurnOn": { id: "Nyalakan notifikasi", en: "Turn on notifications" },
   // Settings › Akun: the line under "Ringkasan awal", saying what it is.
   "mobile.settings.firstScanMeta": { id: "Yang ditemukan saat pertama terhubung", en: "What turned up when you first connected" },
@@ -512,8 +512,8 @@ export const mobileStrings = {
   "mobile.material.title": { id: "Materi", en: "Materials" },
   "mobile.material.lastWeek": { id: "Minggu lalu", en: "Last week" },
   "mobile.material.earlier": { id: "Sebelumnya", en: "Earlier" },
-  // The newest few, leading the page when this week and last week brought nothing.
-  "mobile.material.latest": { id: "Terbaru", en: "Latest" },
+  // The row under the newest few of "Sebelumnya": it opens the rest, and says how many.
+  "mobile.material.more": { id: "{count} materi lainnya", en: { one: "{count} more item", other: "{count} more items" } },
   // What TalkBack says after a folded week's name: how many it holds.
   "mobile.material.count": { id: "{count} materi", en: { one: "{count} item", other: "{count} items" } },
   // A course's name over its items is the way to the course.

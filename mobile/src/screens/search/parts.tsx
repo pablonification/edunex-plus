@@ -26,16 +26,10 @@ export function ServiceMark({ service }: { service: Service }) {
  * A course's mark: its own glyph in its colour, as on Kuliah and Nilai; never one cap for every course. On a Task's,
  * an exam's or a material's row, `kind` is what the thing is, small at the glyph's corner on a patch of the page.
  */
-export function CourseMark({ code, name, kind: Kind }: { code: string; name: string | undefined; kind?: ComponentType<IconProps> }) {
-  const b = useB();
+export function CourseMark({ code, name }: { code: string; name: string | undefined }) {
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.mark}>
       <CourseGlyph code={code} name={name} size={24} />
-      {Kind && (
-        <View style={[styles.kind, { backgroundColor: b.page }]}>
-          <Kind size={16} color={b.fg2} />
-        </View>
-      )}
     </View>
   );
 }
@@ -77,6 +71,7 @@ export const ResultRow = memo(function ResultRow({
   leading,
   title,
   course,
+  kind: Kind,
   meta,
   metaWhole = false,
   chevron = false,
@@ -87,8 +82,10 @@ export const ResultRow = memo(function ResultRow({
 }: {
   leading: ReactNode;
   title: ReactNode;
-  /** The course a Task, exam or material belongs to: named, in the course's colour, before the quiet line. */
+  /** The course a Task, exam or material belongs to: named in the page's ink before the quiet line (its colour is its glyph's). */
   course?: { code: string; name: string };
+  /** What the thing is (a Task, an exam, a file), small before the quiet line, as Tugas's rows say it. */
+  kind?: ComponentType<IconProps>;
   meta?: string;
   /** The quiet line is a date: it stays whole and the course's name gives way (cut with "…"), never the other way. */
   metaWhole?: boolean;
@@ -100,7 +97,6 @@ export const ResultRow = memo(function ResultRow({
   label: string;
 }) {
   const b = useB();
-  const tile = useCourseTile();
   return (
     <Tap feel="row" onPress={onPress} testID={testID} accessibilityLabel={label}>
       <View style={styles.row}>
@@ -111,8 +107,13 @@ export const ResultRow = memo(function ResultRow({
             {course || meta ? (
               // One line, whatever the font size: the two parts sit side by side and the longer one is cut, not wrapped.
               <View style={{ flexDirection: "row", alignItems: "center" }}>
+                {Kind && (
+                  <View style={{ marginRight: space[1] }}>
+                    <Kind size={16} color={b.muted} />
+                  </View>
+                )}
                 {course && (
-                  <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ flexShrink: 1, color: tile(course.code).ink }}>
+                  <Text size="bodyMedium" numberOfLines={1} style={{ flexShrink: 1, color: b.fg2 }}>
                     {course.name}
                   </Text>
                 )}
@@ -156,16 +157,15 @@ export function RecentChip({ label, onPress, testID, leading }: { label: string;
 
 const styles = StyleSheet.create({
   mark: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
-  kind: { position: "absolute", right: 0, bottom: 1, width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   row: { flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 64 },
   body: { flex: 1, minWidth: 0, minHeight: 64, flexDirection: "row", alignItems: "center", gap: space[2], paddingVertical: space[3] },
   chip: {
     flexDirection: "row",
     alignItems: "center",
     gap: space[2],
-    minHeight: 40,
-    paddingHorizontal: space[3],
-    borderRadius: 20,
+    minHeight: 48,
+    paddingHorizontal: space[4],
+    borderRadius: 24,
     borderWidth: StyleSheet.hairlineWidth * 2,
   },
 });

@@ -97,7 +97,8 @@ type Line =
   | { kind: "heading"; key: string; title: string; first: boolean }
   | { kind: "recent"; key: string; items: SearchItem[] }
   | { kind: "courses"; key: string; items: SearchItem[]; first: boolean }
-  | { kind: "item"; key: string; item: SearchItem; last: boolean }
+  // `quiet`: its course is a chip on this page (glyph and name), so the row keeps to the glyph: the name once a screen.
+  | { kind: "item"; key: string; item: SearchItem; last: boolean; quiet?: boolean }
   | { kind: "service"; key: string; service: Service; last: boolean }
   | { kind: "none"; key: string; query: string };
 
@@ -226,6 +227,11 @@ export default function Search() {
       }
       if (!placed) addServices(services);
     }
+    const chips = out.find((line) => line.kind === "courses");
+    if (chips?.kind === "courses") {
+      const shown = new Set(chips.items.map((item) => item.code));
+      for (const line of out) if (line.kind === "item" && line.item.code && shown.has(line.item.code)) line.quiet = true;
+    }
     return out;
   }, [typed, groups, services, before, t]);
 
@@ -238,7 +244,13 @@ export default function Search() {
           return (
             <View>
               <SectionHeading first>{t("search.group.recent")}</SectionHeading>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space[2] }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                style={styles.chips}
+                contentContainerStyle={styles.chipsInner}
+              >
                 {line.items.map((item) => (
                   <RecentChip key={item.key} label={item.title} onPress={() => open(item)} testID={`row.recent.${item.key}`} />
                 ))}
@@ -249,7 +261,13 @@ export default function Search() {
           return (
             <View>
               <SectionHeading first={line.first}>{t("search.group.course")}</SectionHeading>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space[2] }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                style={styles.chips}
+                contentContainerStyle={styles.chipsInner}
+              >
                 {line.items.map((item) => (
                   <RecentChip
                     key={item.key}
@@ -298,18 +316,19 @@ export default function Search() {
               testID={`row.search.${item.key}`}
               label={factsLabel(item.title, named, detail)}
               last={line.last}
-              // The course's own glyph leads, what the thing is small on it; with no course, the kind alone.
+              // The course's own glyph leads, alone; what the thing is sits small before the quiet line. With no course, the kind leads.
               leading={
                 item.kind === "course" ? (
                   <CourseMark code={item.code ?? ""} name={item.title} />
                 ) : item.code ? (
-                  <CourseMark code={item.code} name={course?.name} kind={kindIcon(item)} />
+                  <CourseMark code={item.code} name={course?.name} />
                 ) : (
                   <KindMark icon={kindIcon(item)} code={null} />
                 )
               }
               title={<Marked text={item.title} query={typed} />}
-              course={named && item.code ? { code: item.code, name: named } : undefined}
+              course={named && item.code && !line.quiet ? { code: item.code, name: named } : undefined}
+              kind={item.kind !== "course" && item.code ? kindIcon(item) : undefined}
               meta={detail}
               metaWhole={item.kind === "task" || item.kind === "exam" || item.kind === "announcement"}
               chevron
@@ -330,6 +349,14 @@ export default function Search() {
           <IconButton label={t("action.back")} onPress={() => router.back()} testID="action.back">
             <Icons.ArrowLeft size={24} color={b.fg} />
           </IconButton>
+          {/* The hint is ours, a step right of where the caret stands: Android's own sits under the caret's first letter. */}
+          {query === "" && (
+            <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.hint}>
+              <Text size="bodyLarge" numberOfLines={1} style={{ color: b.muted }}>
+                {t("mobile.search.placeholder")}
+              </Text>
+            </View>
+          )}
           <TextInput
             {...fieldColors}
             ref={field}
@@ -337,8 +364,6 @@ export default function Search() {
             value={query}
             onChangeText={setQuery}
             autoFocus
-            placeholder={t("mobile.search.placeholder")}
-            placeholderTextColor={b.muted}
             accessibilityLabel={t("search.open")}
             autoCorrect={false}
             autoCapitalize="none"
@@ -348,7 +373,7 @@ export default function Search() {
               if (first?.kind === "item") open(first.item);
               else if (first?.kind === "service") openTheService(first.service);
             }}
-            style={{ flex: 1, color: b.fg, ...type.bodyLarge, paddingVertical: 0, minHeight: TOUCH }}
+            style={{ flex: 1, color: b.fg, ...type.bodyLarge, paddingVertical: 0, paddingHorizontal: 0, minHeight: TOUCH }}
           />
           {query !== "" && (
             <IconButton
@@ -464,4 +489,9 @@ const styles = StyleSheet.create({
   bar: { paddingHorizontal: space.page, paddingTop: space[2], paddingBottom: space[2] },
   // A full pill, 56 high.
   field: { flexDirection: "row", alignItems: "center", gap: space[1], minHeight: 56, borderRadius: shape.full, paddingHorizontal: space[1] },
+  // Over the field's text box (after Back, 48 wide, and the gap), 6 dp right of the caret; it ends before the pill's curve.
+  hint: { position: "absolute", left: space[1] + TOUCH + space[1] + 6, right: space[5], top: 0, bottom: 0, justifyContent: "center" },
+  // The chips run to the screen's edges, so the one cut at the right is cut by the screen: more that way.
+  chips: { marginHorizontal: -space.page },
+  chipsInner: { gap: space[2], paddingHorizontal: space.page },
 });
