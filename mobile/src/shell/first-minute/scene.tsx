@@ -45,7 +45,7 @@ import { useBridge, useDataset, useSettings, useSignInStep, useSourceState } fro
 import { SourceLogo } from "../../ui/brand";
 import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
-import { useLoopWhileShown, useReduceMotion } from "../../ui/motion";
+import { useReduceMotion } from "../../ui/motion";
 import { Tap } from "../../ui/moves";
 import { iosPressed } from "../../ui/press";
 import { Text } from "../../ui/text";
@@ -542,7 +542,6 @@ function Door({
 }) {
   const t = useT();
   const still = useReduceMotion();
-  const loop = useLoopWhileShown();
   const isIn = state === "in";
   const working = state === "working";
   // The lit face over the resting one, the tick's size, and the line of light at the foot.
@@ -562,10 +561,11 @@ function Door({
       return;
     }
     light.value = 1;
-    if (!breathing || !loop) return;
+    // Not through useLoopWhileShown: that rests whatever the stage covers, and this is on the stage.
+    if (!breathing || still) return;
     light.value = withRepeat(withSequence(withTiming(0.3, { duration: 700 }), withTiming(1, { duration: 700 })), -1);
     return () => cancelAnimation(light);
-  }, [working, breathing, loop, light]);
+  }, [working, breathing, still, light]);
   const litStyle = useAnimatedStyle(() => ({ opacity: lit.value }));
   const lightStyle = useAnimatedStyle(() => ({ opacity: light.value }));
   const tickStyle = useAnimatedStyle(() => ({ transform: [{ scale: tick.value }] }));
