@@ -539,7 +539,9 @@ export function HandInCard({
 
         {/* What a draft is (handIn.explainer) is said when one is saved (its snackbar) and to TalkBack on Simpan draf. */}
         {(h.editable || (marked && !task.group)) && <MarkHandedIn task={task} />}
-        {h.sent && (
+        {/* On the Task's page the status line says it's handed in, and its info button that only the lecturer hands it
+            back: no sentence here. An answer under review still says so. */}
+        {h.sent && (status === "in_review" || !statusAbove) && (
           <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
             <View style={{ paddingTop: 1 }}>
               <Icons.ShieldCheck size={14} color={c.successFg} />
