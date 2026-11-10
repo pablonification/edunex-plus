@@ -2,7 +2,7 @@
 # (${THEME}).
 appId: io.github.pablonification.edunexplus.demo
 ---
-# The first run: the welcome, Beranda filling in, the summary card.
+# The first run: the welcome, Beranda filling in, the snackbar that offers the summary.
 - clearState
 - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=first-run&EDUNEX_DEMO_THEME=${THEME}"
 - extendedWaitUntil:
@@ -23,17 +23,10 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 30000
     optional: true
 - takeScreenshot: 02-beranda-filling
+# The first read is in: the snackbar says so once (it stays about 6 s).
 - extendedWaitUntil:
-    notVisible:
-      id: status.firstRead
+    visible: "Lihat ringkasan"
     timeout: 600000
-- scrollUntilVisible:
-    element:
-      id: card.firstScan
-    direction: DOWN
-    timeout: 60000
-    visibilityPercentage: 80
-- waitForAnimationToEnd
 - takeScreenshot: 03-summary-card
 # Signed in, Thursday 08:07, SIX's Tandai Hadir open in the morning's class.
 - clearState

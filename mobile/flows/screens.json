@@ -233,9 +233,7 @@
           },
           {
             "extendedWaitUntil": {
-              "visible": {
-                "id": "card.firstScan"
-              },
+              "visible": "Lihat ringkasan",
               "timeout": 600000
             }
           }
@@ -309,15 +307,13 @@
               },
               {
                 "extendedWaitUntil": {
-                  "visible": {
-                    "id": "card.firstScan"
-                  },
+                  "visible": "Lihat ringkasan",
                   "timeout": 600000
                 }
               },
               {
                 "tapOn": {
-                  "id": "action.firstScan.open",
+                  "text": "Lihat ringkasan",
                   "optional": true
                 }
               },
