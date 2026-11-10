@@ -8,7 +8,6 @@
 // next one with a countdown; none today: the next day's first, calmly, its day said as a person would ("Besok 08:00",
 // "Lusa 08:00", "Kam 08:00"). A tap on the card opens its class's sheet (./class-sheet.tsx): the chevron by the name says so.
 // While the first read runs, the card shows what won't change and holds the rest in its place (./now-hold.ts).
-import * as Haptics from "expo-haptics";
 import { type ReactNode, useEffect, useState } from "react";
 import { StyleSheet, type TextStyle, View, type ViewStyle } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
@@ -23,6 +22,7 @@ import { useFirstReadRunning } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { Skeleton } from "../../ui/display";
 import { CookieCheck, CountUp, PulseDot, WavyProgress } from "../../ui/expressive";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
@@ -324,7 +324,7 @@ function useDone(card: NowCard): number | null {
   const gone = Boolean(watching && session && checkIns?.[session.id]?.state === "gone");
   const done = gone && went !== null ? went : null;
   useEffect(() => {
-    if (done !== null) void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+    if (done !== null) haptic.confirm();
   }, [done]);
   return done;
 }

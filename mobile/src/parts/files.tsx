@@ -16,6 +16,7 @@ import type { TaskFile } from "../../../src/core/models";
 import { toast } from "../swaps/overlays";
 import { Button, IconButton } from "../ui/controls";
 import { Icons } from "../ui/icons";
+import { iosPressed } from "../ui/press";
 import { Text } from "../ui/text";
 import { radius, shape, space, useTheme } from "../ui/theme";
 
@@ -126,7 +127,7 @@ export function FileRow({
           accessibilityState={{ busy }}
           onPress={() => void open()}
           android_ripple={{ color: theme.color.selected }}
-          style={[styles.row, { paddingRight: here ? space[1] : space[4] }]}
+          style={({ pressed }) => [[styles.row, { paddingRight: here ? space[1] : space[4] }], iosPressed(pressed)]}
         >
           {leading}
           <View style={{ flex: 1, minWidth: 0 }}>{children}</View>

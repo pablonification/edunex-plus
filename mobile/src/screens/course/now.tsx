@@ -5,7 +5,6 @@
 // Edunex's Presence where it counts; joining an online class). Whether the Presence counts is a chip, not a sentence.
 // Its kicker and its facts each one line (judge round 3). Otherwise, quiet rows in one white card: windows still open
 // from earlier classes, the next meeting, a class SIX shows that the app couldn't read.
-import * as Haptics from "expo-haptics";
 import { type ReactNode, useEffect } from "react";
 import { View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
@@ -22,6 +21,7 @@ import { dayNoon } from "../../../../src/core/schedule";
 import { OpenSixTimetable } from "../../parts/six-page-note";
 import { BigButton } from "../../ui/big-button";
 import { CookieCheck, CountUp, PulseDot, Rise, WavyProgress } from "../../ui/expressive";
+import { haptic } from "../../ui/haptics";
 import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
@@ -262,7 +262,7 @@ function NowCard({
   const went = useWentToCheckIn(sixSession?.id ?? null);
   const done = sixState === "gone" && went !== null ? went : null;
   useEffect(() => {
-    if (done !== null) void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+    if (done !== null) haptic.confirm();
   }, [done]);
 
   // What the card leads with: on now (and where), next (when), or a window alone (the class it's for).
@@ -303,7 +303,7 @@ function NowCard({
           variant={variant}
           icon={<Icons.Hand size={20} weight="fill" color={variant === "filled" ? v.onBrand : v.fg} />}
           onPress={() => {
-            void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+            haptic.confirm();
             checkIn(sixSession.id, sixTimetableUrl(student, sixSession.start), now);
           }}
           label={t("home.now.openSixLabel", { course: code })}

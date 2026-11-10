@@ -9,7 +9,6 @@
 // (./transcript.tsx). Without SIX: this term's courses from Edunex, each opening its calculator. Before SIX's first
 // read, the card stands in its shape.
 // Nothing here names a minute (HourClock), and what's below the first screenful mounts a part a frame (Later).
-import * as Haptics from "expo-haptics";
 import { memo, type ReactNode, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
@@ -27,6 +26,7 @@ import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Figure, FigureDash, FigureLabel, Group, GroupRow, Heading, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
+import { haptic } from "../../ui/haptics";
 import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
@@ -45,7 +45,7 @@ import { GradeLetter, shownIndex, Transcript } from "./transcript";
 const SIX_WEB = "https://six.itb.ac.id";
 
 /** Android's confirm tick, for a grade picked. */
-const confirm = () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+const confirm = () => haptic.confirm();
 
 /** "Sangat berat" from "sangat berat": a pill's words start with a capital. */
 const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);

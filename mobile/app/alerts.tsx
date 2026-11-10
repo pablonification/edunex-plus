@@ -11,7 +11,6 @@
 // with its full date, time and room (../src/screens/alerts/past.ts, ../../src/core/exam-sittings.ts: two dates in one
 // row were hard to read); a meeting and its Teams link or material posted close by are one row
 // (../src/screens/alerts/same-meeting.ts).
-import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { ChecksIcon } from "phosphor-react-native/src/icons/Checks";
 import { type ComponentType, useMemo, useState } from "react";
@@ -33,6 +32,7 @@ import { IconButton } from "../src/ui/controls";
 import { CourseIconTile } from "../src/ui/course-icon-tile";
 import { Rise } from "../src/ui/expressive";
 import { Group, GroupRow, Heading, IconTile } from "../src/ui/group";
+import { haptic } from "../src/ui/haptics";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel, Page } from "../src/ui/layout";
 import { Text } from "../src/ui/text";
@@ -152,7 +152,7 @@ export default function Alerts() {
   const markAllRead = () => {
     setMarkedAt(now);
     void bridge.invoke("alerts.markRead", {}).catch(() => undefined);
-    void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+    haptic.confirm();
   };
 
   return (

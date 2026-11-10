@@ -13,6 +13,7 @@ import { useTermCourses } from "../../../src/app/courses";
 import { type Translate, useFormat, useT } from "../../../src/app/i18n";
 import { applyChoice, courseTone, type PaletteId, PICKER_ORDER, pickedColor, resolveCourseColors } from "../../../src/core/course-colors";
 import { Icons } from "../ui/icons";
+import { iosPressed } from "../ui/press";
 import { Sheet, SheetTitle } from "../ui/sheet";
 import { Text } from "../ui/text";
 import { radius, space, useTheme } from "../ui/theme";
@@ -115,15 +116,18 @@ function Choices({ code }: { code: string }) {
           accessibilityState={{ checked: choice === null }}
           onPress={() => setChoice(null)}
           android_ripple={{ color: theme.color.selected }}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[3],
-            minHeight: 48,
-            paddingHorizontal: space[3],
-            borderRadius: radius.lg,
-            backgroundColor: choice === null ? theme.color.selected : "transparent",
-          }}
+          style={({ pressed }) => [
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              gap: space[3],
+              minHeight: 48,
+              paddingHorizontal: space[3],
+              borderRadius: radius.lg,
+              backgroundColor: choice === null ? theme.color.selected : "transparent",
+            },
+            iosPressed(pressed),
+          ]}
         >
           <View style={{ width: 16, height: 16, borderRadius: 3, backgroundColor: tone(automatic) }} />
           <Text size="body" weight={choice === null ? "semibold" : "medium"} style={{ flex: 1 }} numberOfLines={1}>

@@ -12,6 +12,7 @@ import { dismissToast, useToasts } from "../swaps/overlays";
 import { GLASS, GlassSurface } from "./glass";
 import { useBarTop, useTabsBottom } from "./insets";
 import { reduceMotion } from "./motion";
+import { iosPressed } from "./press";
 import { Text } from "./text";
 import { motion, shape, space, TOUCH, useTheme } from "./theme";
 
@@ -73,7 +74,10 @@ export function Toasts() {
                     dismissToast(item.id);
                   }}
                   android_ripple={{ color: "rgba(255,255,255,0.12)" }}
-                  style={{ minHeight: TOUCH, justifyContent: "center", paddingHorizontal: space[3], borderRadius: shape.full }}
+                  style={({ pressed }) => [
+                    { minHeight: TOUCH, justifyContent: "center", paddingHorizontal: space[3], borderRadius: shape.full },
+                    iosPressed(pressed),
+                  ]}
                 >
                   <Text size="labelLarge" style={{ color: GLASS ? c.accent : c.inversePrimary }}>
                     {item.action.label}

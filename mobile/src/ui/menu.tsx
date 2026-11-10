@@ -9,6 +9,7 @@ import { useT } from "../../../src/app/i18n";
 import { IconButton, Switch } from "./controls";
 import { Icons } from "./icons";
 import { reduceMotion } from "./motion";
+import { iosPressed } from "./press";
 import type { SheetChoice } from "./sheet";
 import { Text } from "./text";
 import { motion, shape, space, TOUCH, useTheme } from "./theme";
@@ -110,7 +111,7 @@ export function Menu({
               choice.onPress();
             }}
             android_ripple={{ color: c.selected }}
-            style={[styles.item, choice.disabled && { opacity: 0.38 }]}
+            style={({ pressed }) => [[styles.item, choice.disabled && { opacity: 0.38 }], iosPressed(pressed)]}
           >
             {choice.icon && <View style={{ width: 24, alignItems: "center" }}>{choice.icon}</View>}
             <View style={{ flexShrink: 1, flexGrow: 1 }}>

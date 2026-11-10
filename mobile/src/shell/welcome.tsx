@@ -17,6 +17,7 @@ import { Button } from "../ui/controls";
 import { IconTile, type PillTone } from "../ui/group";
 import { type IconProps, Icons } from "../ui/icons";
 import { useReduceMotion } from "../ui/motion";
+import { iosPressed } from "../ui/press";
 import { Text } from "../ui/text";
 import { motion, shape, space, TOUCH, useTheme } from "../ui/theme";
 
@@ -158,7 +159,7 @@ function LanguageChip() {
       onPress={() => void bridge.invoke("settings.update", { lang: other }).catch(() => undefined)}
       android_ripple={{ color: theme.color.selected }}
       hitSlop={{ top: 8, bottom: 8 }}
-      style={[styles.chip, { borderColor: theme.color.outline }]}
+      style={({ pressed }) => [[styles.chip, { borderColor: theme.color.outline }], iosPressed(pressed)]}
     >
       <Icons.Globe size={18} color={theme.color.onSurfaceVariant} />
       <Text size="labelLarge" tone="muted">

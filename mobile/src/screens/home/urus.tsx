@@ -33,7 +33,7 @@ import { Rise } from "../../ui/expressive";
 import { Group, GroupRow, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { PressScale } from "../../ui/press";
+import { iosPressed, PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -262,7 +262,10 @@ export function Urus({
             onPress={() => router.push("/needs")}
             testID="action.needs.all"
             android_ripple={{ color: v.muted, borderless: true, radius: 28 }}
-            style={{ minWidth: 48, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2, paddingLeft: space[2] }}
+            style={({ pressed }) => [
+              { minWidth: 48, minHeight: 48, flexDirection: "row", alignItems: "center", justifyContent: "flex-end", gap: 2, paddingLeft: space[2] },
+              iosPressed(pressed),
+            ]}
           >
             {more > 0 && (
               <Text size="bodyMedium" weight="medium" tabular style={{ color: v.muted }}>

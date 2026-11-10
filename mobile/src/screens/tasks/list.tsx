@@ -27,6 +27,7 @@ import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, GroupTile } from "../../ui/layout";
 import { useDrawAhead, useLinesShown, usePart } from "../../ui/parts";
+import { iosPressed } from "../../ui/press";
 import { ChoiceSheet } from "../../ui/settings-list";
 import { SEGMENT_HEIGHT, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
@@ -349,20 +350,23 @@ function CourseFilter({ courses, course, onCourse }: { courses: readonly TermCou
         onPress={() => setOpen(true)}
         hitSlop={slopY(SEGMENT_HEIGHT)}
         android_ripple={{ color: c.selected, borderless: false }}
-        style={{
-          height: SEGMENT_HEIGHT,
-          minWidth: 56,
-          paddingHorizontal: space[4],
-          borderRadius: SEGMENT_HEIGHT / 2,
-          borderWidth: 1,
-          borderColor: picked ? c.secondaryContainer : c.outline,
-          backgroundColor: picked ? c.secondaryContainer : undefined,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: space[2],
-          overflow: "hidden",
-        }}
+        style={({ pressed }) => [
+          {
+            height: SEGMENT_HEIGHT,
+            minWidth: 56,
+            paddingHorizontal: space[4],
+            borderRadius: SEGMENT_HEIGHT / 2,
+            borderWidth: 1,
+            borderColor: picked ? c.secondaryContainer : c.outline,
+            backgroundColor: picked ? c.secondaryContainer : undefined,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: space[2],
+            overflow: "hidden",
+          },
+          iosPressed(pressed),
+        ]}
       >
         <Icons.Filter size={18} weight={picked ? "fill" : "regular"} color={picked ? c.onSecondaryContainer : c.onSurfaceVariant} />
         {picked && <CourseTile code={picked.code} name={picked.name} size={20} />}

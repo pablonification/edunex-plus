@@ -8,6 +8,7 @@ import { type ReactNode, useState } from "react";
 import { Pressable, ScrollView, StatusBar, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormSheet } from "react-native-screens/experimental";
+import { iosPressed } from "./press";
 import { Text } from "./text";
 import { shape, space, useTheme } from "./theme";
 
@@ -184,7 +185,7 @@ export function ActionSheet({
               choice.onPress();
             }}
             android_ripple={{ color: theme.color.selected }}
-            style={[styles.choice, choice.disabled && { opacity: 0.38 }]}
+            style={({ pressed }) => [[styles.choice, choice.disabled && { opacity: 0.38 }], iosPressed(pressed)]}
           >
             {choice.icon && <View style={{ width: 24, alignItems: "center" }}>{choice.icon}</View>}
             <View style={{ flex: 1 }}>

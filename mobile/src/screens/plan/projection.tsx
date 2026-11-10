@@ -23,6 +23,7 @@ import {
 } from "../../../../src/core/planner";
 import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
+import { iosPressed } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
 import { Text, type TextTone, useFieldColors, useTextWidth } from "../../ui/text";
 import { radius, space, TOUCH, type, useTheme } from "../../ui/theme";
@@ -110,21 +111,24 @@ export function GradeSelect({
         hitSlop={4}
         onPress={() => setOpen(true)}
         android_ripple={{ color: c.selected, borderless: false }}
-        style={{
-          minWidth: 60,
-          height: 40,
-          flexDirection: "row",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 4,
-          paddingHorizontal: space[2],
-          borderRadius: 12,
-          borderWidth: guess ? 1 : 0,
-          borderStyle: "dashed",
-          borderColor: c.fieldEdge,
-          backgroundColor: guess ? "transparent" : v.brandTint,
-          overflow: "hidden",
-        }}
+        style={({ pressed }) => [
+          {
+            minWidth: 60,
+            height: 40,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 4,
+            paddingHorizontal: space[2],
+            borderRadius: 12,
+            borderWidth: guess ? 1 : 0,
+            borderStyle: "dashed",
+            borderColor: c.fieldEdge,
+            backgroundColor: guess ? "transparent" : v.brandTint,
+            overflow: "hidden",
+          },
+          iosPressed(pressed),
+        ]}
       >
         <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: ink }}>
           {value}
@@ -146,16 +150,19 @@ export function GradeSelect({
                   onChange(grade);
                 }}
                 android_ripple={{ color: c.selected }}
-                style={{
-                  width: 64,
-                  height: 52,
-                  borderRadius: 14,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  borderWidth: on ? 2 : 0,
-                  borderColor: v.brandInk,
-                  backgroundColor: on ? v.brandTint : v.page,
-                }}
+                style={({ pressed }) => [
+                  {
+                    width: 64,
+                    height: 52,
+                    borderRadius: 14,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderWidth: on ? 2 : 0,
+                    borderColor: v.brandInk,
+                    backgroundColor: on ? v.brandTint : v.page,
+                  },
+                  iosPressed(pressed),
+                ]}
               >
                 <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: on ? v.brandInk : v.fg }}>
                   {grade}

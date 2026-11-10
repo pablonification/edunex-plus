@@ -23,6 +23,7 @@ import { Button, IconButton } from "../ui/controls";
 import { EmptyState, LiveDot, Spinner } from "../ui/display";
 import { Icons } from "../ui/icons";
 import { Meta } from "../ui/layout";
+import { iosPressed } from "../ui/press";
 import { Sheet } from "../ui/sheet";
 import { slop } from "../ui/sizes";
 import { Text } from "../ui/text";
@@ -385,7 +386,7 @@ function Avatar() {
       accessibilityLabel={t("mobile.account.open")}
       onPress={() => router.push("/settings")}
       android_ripple={{ color: theme.color.selected, borderless: true, radius: 20 }}
-      style={{ width: TOUCH, height: TOUCH, alignItems: "center", justifyContent: "center" }}
+      style={({ pressed }) => [{ width: TOUCH, height: TOUCH, alignItems: "center", justifyContent: "center" }, iosPressed(pressed)]}
     >
       <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.color.primaryContainer, alignItems: "center", justifyContent: "center" }}>
         {name ? (

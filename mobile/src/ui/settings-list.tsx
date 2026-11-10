@@ -4,25 +4,20 @@
 // spoken label or one tap deeper. Every row is one target with the press spring. A switch row toggles from anywhere on
 // it, with a haptic; a choice row shows its value and opens the choices in a native sheet, one radio each, picking one
 // closes it. Errors stay on the page (ErrorBanner, under the top bar), never in a snackbar.
-import * as Haptics from "expo-haptics";
 import { Children, createContext, isValidElement, type ReactNode, useContext, useRef, useState } from "react";
 import { type AccessibilityProps, ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { useT } from "../../../src/app/i18n";
 import { Switch } from "./controls";
 import { Group, GroupRow, Heading } from "./group";
+import { haptic } from "./haptics";
 import { Icons } from "./icons";
-import { PressScale } from "./press";
+import { iosPressed, PressScale } from "./press";
 import { Sheet, SheetTitle } from "./sheet";
 import { Text } from "./text";
 import { space, TOUCH, useTheme } from "./theme";
 
-/** The haptics of a settings commit: a switch's on and off, a pick in a sheet, a step, a confirmed sign-out. */
-export const haptic = {
-  toggle: (on: boolean) =>
-    void Haptics.performAndroidHapticsAsync(on ? Haptics.AndroidHaptics.Toggle_On : Haptics.AndroidHaptics.Toggle_Off).catch(() => undefined),
-  tick: () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Tick).catch(() => undefined),
-  confirm: () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined),
-};
+/** The haptics of a settings commit: a switch's on and off, a pick in a sheet, a step, a confirmed sign-out (./haptics.ts). */
+export { haptic };
 
 /** Whether a row is its card's first (no hairline above it). */
 const FirstRow = createContext(false);
@@ -355,7 +350,7 @@ export function ErrorBanner({ text, onClose }: { text: string; onClose: () => vo
         accessibilityLabel={t("action.close")}
         onPress={onClose}
         android_ripple={{ color: c.selected, borderless: true, radius: 20 }}
-        style={styles.bannerClose}
+        style={({ pressed }) => [styles.bannerClose, iosPressed(pressed)]}
       >
         <Icons.X size={18} color={c.onErrorContainer} />
       </Pressable>

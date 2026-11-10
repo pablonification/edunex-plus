@@ -17,6 +17,7 @@ import { toast } from "../../swaps/overlays";
 import { Panel, SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
+import { iosPressed } from "../../ui/press";
 import { Text, useFieldColors } from "../../ui/text";
 import { shape, space, useTheme } from "../../ui/theme";
 
@@ -168,17 +169,20 @@ function CommentBox({ taskId }: { taskId: number }) {
         onPress={() => setOpen(true)}
         android_ripple={{ color: c.selected }}
         testID="action.comment"
-        style={{
-          marginTop: space[4],
-          minHeight: 48,
-          flexDirection: "row",
-          alignItems: "center",
-          gap: space[2],
-          paddingHorizontal: space[3],
-          borderRadius: shape.sm,
-          borderWidth: 1,
-          borderColor: c.outline,
-        }}
+        style={({ pressed }) => [
+          {
+            marginTop: space[4],
+            minHeight: 48,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: space[2],
+            paddingHorizontal: space[3],
+            borderRadius: shape.sm,
+            borderWidth: 1,
+            borderColor: c.outline,
+          },
+          iosPressed(pressed),
+        ]}
       >
         <Icons.Chat size={18} color={v.muted} />
         <Text size="bodyMedium" style={{ color: v.muted, flex: 1 }}>

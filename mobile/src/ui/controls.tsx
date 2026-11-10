@@ -8,6 +8,7 @@ import { Animated, Platform, Pressable, ScrollView, StyleSheet, Switch as System
 import { Spinner } from "./display";
 import { Icons } from "./icons";
 import { BUSY_OPACITY } from "./palette";
+import { iosPressed } from "./press";
 import { BUTTON_HEIGHT, CHIP_HEIGHT, SEGMENT_HEIGHT, SWITCH, SWITCH_SLOP, slopY } from "./sizes";
 import { Text } from "./text";
 import { shape, space, TOUCH, useTheme } from "./theme";
@@ -73,19 +74,22 @@ export function Button({
       // 48 to touch however small it looks.
       hitSlop={slopY(height)}
       android_ripple={{ color: ripple, foreground: true }}
-      style={[
-        styles.button,
-        {
-          height,
-          paddingHorizontal: size === "sm" ? space[3] : size === "lg" ? space[6] : space[4],
-          paddingLeft: icon || busy ? (size === "sm" ? space[2] + 2 : space[4]) : undefined,
-          backgroundColor: bg,
-          borderColor: border ?? "transparent",
-          borderWidth: border ? 1 : 0,
-          // Busy keeps its colours beside its turning spinner: at work, not off (BUSY_OPACITY, checked for contrast).
-          opacity: busy ? BUSY_OPACITY : 1,
-        },
-        style,
+      style={({ pressed }) => [
+        [
+          styles.button,
+          {
+            height,
+            paddingHorizontal: size === "sm" ? space[3] : size === "lg" ? space[6] : space[4],
+            paddingLeft: icon || busy ? (size === "sm" ? space[2] + 2 : space[4]) : undefined,
+            backgroundColor: bg,
+            borderColor: border ?? "transparent",
+            borderWidth: border ? 1 : 0,
+            // Busy keeps its colours beside its turning spinner: at work, not off (BUSY_OPACITY, checked for contrast).
+            opacity: busy ? BUSY_OPACITY : 1,
+          },
+          style,
+        ],
+        iosPressed(pressed),
       ]}
     >
       {busy ? <Spinner size={size === "lg" ? 20 : 16} color={fg} /> : icon}
@@ -133,7 +137,10 @@ export function IconButton({
       accessibilityLabel={label}
       accessibilityState={{ disabled, ...(selected ? { selected } : {}) }}
       android_ripple={{ color: theme.color.selected, borderless: true, radius: 20 }}
-      style={[styles.icon, selected && { backgroundColor: theme.color.secondaryContainer }, disabled && { opacity: 0.38 }]}
+      style={({ pressed }) => [
+        [styles.icon, selected && { backgroundColor: theme.color.secondaryContainer }, disabled && { opacity: 0.38 }],
+        iosPressed(pressed),
+      ]}
     >
       {children}
     </Pressable>
@@ -351,7 +358,10 @@ export function Segmented<T extends string>({
             // 40 to see, 48 to touch.
             hitSlop={slopY(SEGMENT_HEIGHT)}
             android_ripple={{ color: c.selected }}
-            style={[styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }]}
+            style={({ pressed }) => [
+              [styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }],
+              iosPressed(pressed),
+            ]}
           >
             {on && check && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
             <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "fg"} numberOfLines={2} style={{ flexShrink: 1, textAlign: "center" }}>
@@ -411,11 +421,14 @@ export function Chip({
       accessibilityState={{ selected }}
       hitSlop={slopY(CHIP_HEIGHT)}
       android_ripple={{ color: c.selected }}
-      style={[
-        styles.chip,
-        selected
-          ? { backgroundColor: c.secondaryContainer, borderColor: c.secondaryContainer, paddingLeft: check ? space[2] : space[4] }
-          : { borderColor: c.outline },
+      style={({ pressed }) => [
+        [
+          styles.chip,
+          selected
+            ? { backgroundColor: c.secondaryContainer, borderColor: c.secondaryContainer, paddingLeft: check ? space[2] : space[4] }
+            : { borderColor: c.outline },
+        ],
+        iosPressed(pressed),
       ]}
     >
       {selected && check && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}

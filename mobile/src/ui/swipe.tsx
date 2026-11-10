@@ -7,12 +7,12 @@
 // it runs on the UI thread; JS hears only of the tick and the commit. The actions' colour, icon and word under the row
 // are drawn the first time a finger touches it, not with the row: a row with two of them was twice the views of one
 // without, on every screen's first frame (Beranda's cold start, Tugas's first draw) for what's seen only in a swipe.
-import * as Haptics from "expo-haptics";
 import { type ReactNode, startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { I18nManager, type LayoutChangeEvent, StyleSheet, View } from "react-native";
 import { GestureDetector, type PanGestureConfig, usePanGesture } from "react-native-gesture-handler";
 import Animated, { interpolate, type SharedValue, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { scheduleOnRN } from "react-native-worklets";
+import { haptic } from "./haptics";
 import { useReduceMotion } from "./motion";
 import { Text } from "./text";
 import { motion, type Palette, space, useTheme } from "./theme";
@@ -50,8 +50,8 @@ const RETURN_AFTER = 1500;
 
 const sideOf = (action: SwipeAction): "start" | "end" => action.side ?? (action.tone === "success" ? "start" : "end");
 
-const tick = () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Segment_Tick).catch(() => undefined);
-const confirm = () => void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+const tick = () => haptic.tick();
+const confirm = () => haptic.confirm();
 
 /** `surface`: the row's own colour over the actions (a v4 card's white); else a list tile's. */
 export function SwipeRow({ actions, children, testID, surface }: { actions: readonly SwipeAction[]; children: ReactNode; testID?: string; surface?: string }) {

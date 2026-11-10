@@ -33,6 +33,7 @@ import {
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Icons } from "./icons";
 import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
+import { iosPressed } from "./press";
 import { Text } from "./text";
 import { radius, shape, space, useTheme } from "./theme";
 
@@ -420,7 +421,7 @@ export function Row({
           accessibilityActions={quick?.map((action, i) => ({ name: `quick${i}`, label: action.label }))}
           onAccessibilityAction={quick ? (event) => quick[Number(event.nativeEvent.actionName.slice(5))]?.onPress() : undefined}
           android_ripple={{ color: theme.color.selected }}
-          style={[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[4] }]}
+          style={({ pressed }) => [[styles.row, { flex: 1, paddingRight: actions ? space[1] : space[4] }], iosPressed(pressed)]}
         >
           {body}
         </Pressable>

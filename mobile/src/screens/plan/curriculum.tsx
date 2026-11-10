@@ -13,7 +13,6 @@
 //    grade once passed, a pill while it needs the Student).
 // 4. Specializations and minors, below the fold.
 // A course's syllabus and corrections are a tap (or a long press) away, in a sheet.
-import * as Haptics from "expo-haptics";
 import { type ReactNode, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -28,9 +27,11 @@ import { toast } from "../../swaps/overlays";
 import { Button, Switch } from "../../ui/controls";
 import { Rise } from "../../ui/expressive";
 import { Figure, FigureLabel, Group, GroupRow, Heading, Panel, Pill } from "../../ui/group";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
 import { Meter } from "../../ui/meter";
+import { iosPressed } from "../../ui/press";
 import { ActionSheet, Sheet, type SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -90,11 +91,11 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
   const unlisted = map.semesters.flatMap((s) => s.required).filter((c) => c.status === "unlisted").length;
   const correct = (course: MapCourse, fix: CurriculumFix | null, message: string) => {
     const before = setFix(course.code, fix);
-    void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Confirm).catch(() => undefined);
+    haptic.confirm();
     toast(message, "neutral", { label: t("planner.undo"), onClick: () => setFix(course.code, before) });
   };
   const toggleLeft = (on: boolean) => {
-    void Haptics.performAndroidHapticsAsync(on ? Haptics.AndroidHaptics.Toggle_On : Haptics.AndroidHaptics.Toggle_Off).catch(() => undefined);
+    haptic.toggle(on);
     setOnlyLeft(on);
   };
   /** A row's sheet: its syllabus on SIX, then (a required course) the corrections. */
@@ -450,7 +451,10 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
             accessibilityRole="button"
             onPress={() => onPick(c.code)}
             android_ripple={{ color: theme.color.selected }}
-            style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3], paddingVertical: space[2.5], minHeight: 48 }}
+            style={({ pressed }) => [
+              { flexDirection: "row", alignItems: "flex-start", gap: space[3], paddingVertical: space[2.5], minHeight: 48 },
+              iosPressed(pressed),
+            ]}
             testID={`action.standIn.${c.code}`}
           >
             <Text size="small" weight="semibold" tabular style={{ width: 64, paddingTop: 1 }}>
