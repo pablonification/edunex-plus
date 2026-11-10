@@ -124,8 +124,8 @@ function Divider() {
 }
 
 /**
- * One tile: its figure (rolling to a new value), or a check when all is well, then what it counts with a chevron, so it
- * reads as a way in. The whole tile is the target.
+ * One tile: its figure (rolling to a new value) or a check when all is well, a chevron beside it so it reads as a way in,
+ * then what it counts. The whole tile is the target.
  */
 function Tile({
   figure,
@@ -150,28 +150,32 @@ function Tile({
   return (
     <PressScale onPress={onPress} testID={testID} accessibilityLabel={spoken ?? (figure !== undefined ? `${figure} ${label}` : label)} style={styles.tile}>
       {/* The figure is a read-only field (RollTo): it never takes the tile's touch. */}
-      <View pointerEvents="none" style={{ height: 32, justifyContent: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View style={styles.top} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={{ width: ARROW }} />
         {pending ? (
           <Skeleton width={28} height={20} />
         ) : figure !== undefined ? (
           <RollTo value={figure} style={[styles.figure, { color: ink ?? b.fg }]} />
         ) : mark === "exam" ? (
-          <Icons.PenLine size={24} weight="fill" color={b.amber} />
+          <Icons.PenLine size={24} weight="fill" color={b.fg} />
         ) : (
           <Icons.CheckCircle size={24} weight="fill" color={b.ok} />
         )}
+        {/* The way in, beside the figure: the label keeps the tile's width. */}
+        <View style={{ width: ARROW, alignItems: "flex-end" }}>{!pending && <Icons.ChevronRight size={12} color={b.muted} />}</View>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
-        <Text size="bodyMedium" numberOfLines={2} style={{ color: b.fg2, fontSize: 13, lineHeight: 17, letterSpacing: 0, textAlign: "center", flexShrink: 1 }}>
-          {label}
-        </Text>
-        <Icons.ChevronRight size={12} color={b.muted} />
-      </View>
+      <Text size="bodyMedium" numberOfLines={2} style={{ color: b.fg2, fontSize: 13, lineHeight: 17, letterSpacing: 0, textAlign: "center" }}>
+        {label}
+      </Text>
     </PressScale>
   );
 }
 
+/** The chevron's column beside the figure, and its twin on the other side so the figure stays centred. */
+const ARROW = 16;
+
 const styles = StyleSheet.create({
+  top: { height: 32, flexDirection: "row", alignItems: "center", justifyContent: "center", pointerEvents: "none" },
   tile: { flex: 1, minHeight: 64, alignItems: "center", justifyContent: "center", paddingVertical: space[2], paddingHorizontal: space[1], gap: 2 },
   figure: { fontFamily: font.display.extrabold, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, textAlign: "center", fontVariant: ["tabular-nums"] },
 });

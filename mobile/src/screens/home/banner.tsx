@@ -150,14 +150,14 @@ function Banner({
   // The sheet is drawn once it's asked for: not on Beranda's first frame.
   const sheet = useRef(false);
   if (open) sheet.current = true;
-  const { session, meeting, slot, code, windowFor } = cardSubject(card);
+  const { session, meeting, slot, code } = cardSubject(card);
   const checkInOpen = useCheckInOpen(card);
   const action = cardAction(card, now, checkInOpen);
   const done = useDone(card);
   // The Presence the block offered is gone (marked or closed): the block moves on to what's next.
   const pressable = action === "checkIn" || action === "presence";
   if (session && pressable && !reading) offered.add(session.id);
-  const settled = session !== null && !reading && action === null && offered.has(session.id);
+  const settled = session !== null && !reading && action === null && (offered.has(session.id) || done !== null);
   const after = settled ? afterOf(card, schedule, now, session?.id ?? null) : null;
   const subject = after ? { code: after.code, name: nameOf(courses, after.code, after.name) } : { code, name: nameOf(courses, code, session?.courseName) };
   // The course's deep colour in both themes, white on it: one block that reads the same by day and by night.
@@ -177,7 +177,8 @@ function Banner({
         ? [t("mobile.home.next"), f.time(slot.start), place]
         : card.state === "later" && slot
           ? [dayAndTime(t, f, slot.start), place]
-          : [t("home.now.presenceOnly"), windowFor ? f.timeRange(windowFor.start, windowFor.end) : null];
+          : // A window alone: the class it's for, when there is one. Its own close is the bar's, said once there.
+            [t("home.now.presenceOnly"), card.presence?.class ? f.timeRange(card.presence.class.start, card.presence.class.end) : null];
   // One bar, one time: the Presence's window while one is open (it's what runs out first), else the class itself.
   const window = !settled && card.presence ? card.presence.session : null;
   const span = window ? { from: window.opensAt, to: window.closesAt } : live && slot ? { from: slot.start, to: slot.end } : null;
