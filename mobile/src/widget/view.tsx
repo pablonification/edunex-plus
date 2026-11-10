@@ -499,7 +499,10 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
   // One size down the list: a step smaller for every row when one name needs it.
   const every = [...today.classes, ...(today.next?.classes ?? [])];
   const smaller = every.some((one) => rowLabel(one.name, one.code, nameWidth, scale).size === "micro");
-  const labelOf = (one: WidgetTodayClass) => rowLabel(one.name, one.code, nameWidth, scale, smaller);
+  // Names down the whole list, or codes down the whole list: never a mix.
+  const codes = every.some((one) => rowLabel(one.name, one.code, nameWidth, scale, smaller).text !== (one.name ?? one.code));
+  const labelOf = (one: WidgetTodayClass) =>
+    codes ? { text: one.code, lines: 1, size: "small" as const } : rowLabel(one.name, one.code, nameWidth, scale, smaller);
   // The row on now says when it ends ("selesai 10:00"): the block alone could be the course's colour.
   const said = model.now && "code" in model.now && model.now.live ? (model.now.ends ?? null) : null;
   const onNow = today.classes.find((one) => one.live);
@@ -514,7 +517,11 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
   const foot = Boolean(model.status.text);
   let room = size.height - 2 * PAD - headHeight - (foot ? (LINE.micro * (model.status.problem && narrow ? 2 : 1) + 6) * scale : 0);
   if (today.none) room -= LINE.body * (narrow ? 2 : 1) * scale + 6;
-  const two = ahead.length > 0 ? total(ahead, true) <= room : Boolean(today.next) && total(today.next!.classes, true) + headHeight <= room;
+  // The rooms under the names only where every row's line fits its width (the row on now carries "selesai 10:00" too).
+  const underFits = (one: WidgetTodayClass): boolean =>
+    [one.live ? ends : null, one.room].filter(Boolean).join(" · ").length * FONT.micro * scale * 0.56 <= nameWidth;
+  const two =
+    every.every(underFits) && (ahead.length > 0 ? total(ahead, true) <= room : Boolean(today.next) && total(today.next!.classes, true) + headHeight <= room);
   const shown: WidgetTodayClass[] = [];
   const fill = (list: WidgetTodayClass[]) => {
     for (const one of list) {
