@@ -65,7 +65,11 @@ export function DueView({ model, size, theme, lang }: { model: DueWidget; size: 
   // The course by its name where the line holds it whole, else its code.
   const courseOf = (row: DueRow) => (row.name && safeWidth(row.name, 12 * scale) <= titleWidth ? row.name : row.code);
   const underOf = (row: DueRow) => `${topOf(row)} · ${bottomOf(row)}`;
-  const linesFor = (row: DueRow, most: number) => Math.min(most, linesOf(row.title, 14 * scale, titleWidth));
+  // A title that's a line and a bit by the (safe) estimate sits on one; a long one keeps two before it's cut.
+  const linesFor = (row: DueRow, most: number) => {
+    const need = linesOf(row.title, 14 * scale, titleWidth);
+    return most === 1 ? (need >= 3 ? 2 : 1) : Math.min(most, need);
+  };
   const heightOf = (row: DueRow, most: number) => (linesFor(row, most) * LINE.small + LINE.micro) * scale + 8;
   const fits = (lines: number) => model.rows.reduce((sum, row) => sum + heightOf(row, lines), 0) <= room;
   const most = fits(3) ? 3 : fits(2) ? 2 : 1;
