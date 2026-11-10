@@ -89,7 +89,11 @@ turns into "3 Absen habis", the class block growing 100 px, two different task c
 | The app's frames while widgets redraw | a freeze reported on slow phones | scrolling Tugas across the three widgets' redraw after a cold start: 0.93% janky frames (0.94% with none redrawing): no freeze seen on this phone |
 | iPhone | none | two widgets (small, medium, large, Lock Screen) and a Live Activity built from the same model; green in CI; **nobody has seen them run** |
 
-Judged: the widget council is reading the renders and the phone's picture.
+**The widget council (02:10):** three judges (Claude Fable 5.2), the renders of all eight and the phone's picture, beside today's two.
+Every judge prefers the new set. "I'd keep this on my home screen" (designer · student · prosecutor): Sekarang 7 · 8 · 5, Hari ini
+8 · 7 · 6, Tenggat 6 · 6 · 5, Kehadiran 5 · 5 · 4, Ujian 6 · 4 · 3, Kelas berikutnya 7 · 6 · 5, Pintasan 3 · 3 · 3, Satu mata
+kuliah 5 · 4 · 4. **Not at the top (9).** Worst: empty and holiday states that show a presence button; the tall sizes half empty;
+a foot that says "Memperbarui…" and stays; Pintasan "carries no information"; a render that differs from the phone on one row.
 
 ## The direction round (00:55)
 
