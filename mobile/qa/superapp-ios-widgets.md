@@ -1,8 +1,8 @@
 # iPhone widgets: what we found, what's in, what's left
 
 Night of 10–11 Nov 2026. **Nobody has seen any of this run.** There's no Xcode on the Mac it was written on, and
-no iPhone. What's below is checked only by the type checker (against the packages' real types too), and, once
-the conductor starts it, by CI's unsigned iPhone build.
+no iPhone. What's below is checked by the type checker (against the packages' real types too), by tests that
+run the widgets' own code on the demo's data, and, once the conductor starts it, by CI's unsigned iPhone build.
 
 ## The supported way: `expo-widgets`
 
@@ -49,7 +49,8 @@ same file at build time so the gallery has something before the app's first run.
 | "Hari ini" widget: small, medium, large; Lock Screen rectangular, inline | `mobile/src/widget-ios/today.tsx` |
 | The app's writer (iOS only, by file name: Metro never takes it on Android) | `mobile/src/host/widget-ios.ios.ts` (and `widget-ios.ts`, the no-op) |
 | Type stand-ins until the packages are installed | `mobile/src/widget-ios/expo-widgets.d.ts` (**delete after `npm ci`**) |
-| CI: the iPhone build checks the target, the App Group and the extension inside the app | `.github/workflows/mobile.yml`, job `ios` |
+| CI: the iPhone build checks the target, the App Group and the extension inside the app, and runs the widgets' code | `.github/workflows/mobile.yml`, job `ios` |
+| A Live Activity for the class on now (Part 2) | `mobile/src/widget-ios/live.tsx`, `live-doc.ts` |
 
 **The one line `mobile/src/host/widget.ts` needs** (another child's file), as the first line of `updateWidgets`:
 
@@ -129,15 +130,57 @@ version draws its setup state.
 Taps are links already (`WidgetTarget` → `edunexplus://…` by `linkOf`), and course colours are the course
 tile's ink for both looks (`../ui/palette.ts`), because the widget can't import anything.
 
-## The plan for Part 2 (by 03:00)
+The Live Activity's props (`LiveDoc`, `mobile/src/widget-ios/live-doc.ts`) come from that document's live class
+and Beranda's card (`src/core/needs.ts`) for the moments iOS counts down to, all on the phone's clock:
 
-1. Light and dark for every family, checked against `DESIGN.md`; a test that builds the document from the pretend
-   Edunex and SIX (`test/mobile/`), so a change to the model that breaks it shows.
-2. A Live Activity for the class on now: its code and room, and its Presence window as iOS's own countdown
-   (`Text` with a timer), started by the app while it's open during the class, ended when the class ends. Possible:
-   the plugin already sets `NSSupportsLiveActivities`, and a local one needs no push.
-3. Pictures: no Xcode here, and a widget can't be put on a simulator's Home Screen from CI; looking for a way.
-4. `mobile/IOS.md`: what to look at on a real iPhone.
+```ts
+{ v: 1, key: "PL3002@<start ms>", code, name, detail: "08:00–10:00 · R.SG PWK LT.6", startsAt, endsAt,
+  presence: { label: "Isi Presensi PL3002", closesAt, url } | null, checkIn: { label, url } | null,
+  color: { light, dark }, colors: { light: Palette, dark: Palette }, url }
+```
+
+## Part 2: what's in
+
+1. **Light and dark, every family**, and a test that builds the document from the pretend Edunex and SIX
+   (`test/mobile/widget-ios-doc.test.ts`), so a change to Android's model that breaks the iPhone's shows.
+2. **The Live Activity** for the class on now (`mobile/src/widget-ios/live.tsx`, its data `live-doc.ts`): see below.
+3. **Pictures, as far as they go without Xcode**: `test/mobile/widget-ios-preview.test.ts` bundles the widgets'
+   own functions the way the extension gets them (no imports at run time; `@expo/ui`'s views as plain nodes) and
+   runs them on eight states of the demo's data, for every family, light and dark, and the Live Activity's
+   places. Each must draw and say something: that catches a widget that would throw on the phone. With
+   `WIDGET_IOS_PREVIEW=<folder>` it writes `ios-widgets.html` (and one page per state): a **sketch**, SwiftUI's
+   stacks drawn as flexbox at a 393-point iPhone's sizes, not iOS's own drawing. CI's iPhone job runs it and
+   uploads `ios-widget-sketches`. Real renders would need the widget extension running in a simulator, and a
+   widget can't be put on a simulator's Home Screen from a script.
+4. **`mobile/IOS.md`**: the list of what to look at on a real iPhone, in order.
+
+What the sketch changed: the day of the next class ("Kuliah berikutnya · Kam, 15 Okt") was cut off on small and
+medium (now two lines); "Tandai Hadir sudah dibuka di SIX" was cut on small and medium (now the label alone, two
+lines, the course name giving way on small); the medium widget now shows the code big with its name under it;
+a widget with nothing to show says what to do at the top instead of leaving a blank card.
+
+### The Live Activity
+
+- **What it shows**: the course's colour, code and name; the time and room with a bar through the class that
+  iOS moves itself (`ProgressView` over the class's start and end); and while its Presence window is open,
+  "Isi Presensi PL3002" with the time left as iOS's own countdown (`Text` with a timer). SIX's "Tandai Hadir",
+  when open, takes that line instead. The window's close is said once: as the countdown.
+- **Dynamic Island**: the code beside the course's colour, and the countdown (to the window's close while it's
+  open, else to the class's end).
+- **When**: started by the app while it's open during a class (iOS lets an app start one only from the
+  foreground, and this app has no push), updated whenever the widgets are, ended once no class is on, the next
+  time the app or the background sync runs. iOS dims it after the class's end (`staleDate`) if nothing ran.
+  One at a time; a new class replaces the last. If Live Activities are off in Settings, nothing happens.
+- **Open question for the developer**: every class, or only when there's something to do (a Presence open)?
+
+## Still open
+
+- Nothing here has run on iOS. The unsigned CI build is the first real check; the phone is the second.
+- `mobile/src/widget-ios/expo-widgets.d.ts` stands in for the packages' types until `npm ci`; delete it then
+  (typed against the real `.d.ts` files of 58.0.27 from a downloaded copy, outside the repo: they agree).
+- `expo-widgets`'s widget runs a JavaScriptCore inside the extension: whether it stays within a widget's memory
+  with our layouts is for the phone to say.
+- The App Group with a free Apple ID (see above).
 
 ## How the conductor starts the iPhone build
 
@@ -145,4 +188,9 @@ tile's ink for both looks (`../ui/palette.ts`), because the widget can't import 
 gh workflow run mobile.yml --ref <branch> -f apks=ios -f e2e=false -f scenarios=false -f desktop-shots=false
 ```
 
-The run's summary gets an "iPhone widgets" section; the `.ipa` is artifact `edunex-plus-qa-ios-ipa`.
+The run's summary gets an "iPhone widgets" section; the `.ipa` is artifact `edunex-plus-qa-ios-ipa`, the sketch
+`ios-widget-sketches`. Locally, the sketch alone (no Xcode needed):
+
+```sh
+WIDGET_IOS_PREVIEW=/tmp/ios-widgets npx vitest run test/mobile/widget-ios-preview.test.ts   # then open ios-widgets.html
+```

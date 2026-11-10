@@ -36,7 +36,7 @@ export function TodayWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
       spacing={0}
       modifiers={[
         ...margins,
-        frame({ maxWidth: 10_000, maxHeight: 10_000, alignment: "topLeading" }),
+        frame({ maxWidth: 10000, maxHeight: 10000, alignment: "topLeading" }),
         containerBackground(lock ? "clear" : (c?.surface ?? (scheme === "dark" ? "#161618" : "#ffffff")), "widget"),
         ...(url ? [widgetURL(url)] : []),
       ]}
@@ -141,7 +141,7 @@ export function TodayWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
   const deadline = today.deadline;
   return root(
     family === "systemSmall" ? (ahead[0]?.url ?? today.none?.url ?? doc.url) : (today.none?.url ?? doc.url),
-    <VStack alignment="leading" spacing={wide ? 6 : 4} modifiers={[frame({ maxWidth: 10_000, maxHeight: 10_000, alignment: "topLeading" })]}>
+    <VStack alignment="leading" spacing={wide ? 6 : 4} modifiers={[frame({ maxWidth: 10000, maxHeight: 10000, alignment: "topLeading" })]}>
       {line(today.heading, "caption", c?.today ?? fg, "semibold")}
       {today.none ? line(today.none.label, "footnote", muted, "regular", 2) : null}
       {shown.map((one) => row(one, wide))}

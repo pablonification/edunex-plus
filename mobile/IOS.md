@@ -52,7 +52,7 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Edunex's pages | Get a stand-in service worker (`src/host/page-fixes.ts`): an app's web view has none, and Edunex's site stopped on its spinner without one. |
 | "Turn on notifications" button | Opens the app's page in iOS Settings. |
 | Typeface | Plus Jakarta Sans is in the iOS bundle too. |
-| Widgets | Their own, through Expo's `expo-widgets` (WidgetKit, SwiftUI): "Edunex Plus" and "Hari ini" on the Home Screen (small, medium, large) and the Lock Screen, fed by the same model as Android's (`qa/superapp-ios-widgets.md`). Never seen running yet. |
+| Widgets | Their own, through Expo's `expo-widgets` (WidgetKit, SwiftUI): "Edunex Plus" and "Hari ini" on the Home Screen (small, medium, large) and the Lock Screen, fed by the same model as Android's (`qa/superapp-ios-widgets.md`). A Live Activity for the class on now. Never seen running yet. |
 | Back gesture, navigation bar colour, 120 Hz plugin | Android-only, skipped on iOS (iOS does these itself). |
 | Exact alarms | Android-only permission; iOS fires a booked notification on time anyway. |
 | Push notifications | Off: the app never uses them, and a free Apple ID can't sign them. |
@@ -61,4 +61,41 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 
 Everything above is untested on iOS: the build itself, the SIX cookie read, whole-day calendar events,
 how the screens look (they're drawn for Android's Material style), the keyboard over the report form,
-and the background sync.
+the background sync, and the widgets (below).
+
+## The widgets and the Live Activity: what to look at on the iPhone
+
+Nobody has seen these run. `qa/superapp-ios-widgets.md` says how they work; CI's iPhone build uploads a sketch of
+each one from the demo's data (artifact `ios-widget-sketches`), to hold the phone against. In order, each
+step only worth doing if the one before it worked:
+
+1. **It installs with the widget inside.** Re-signing the `.ipa` (Sideloadly or AltServer) must keep the widget
+   extension (`ExpoWidgetsTarget`) and give both the app and it the App Group `group.<the app's id>`. If you
+   changed the bundle id to your own, the group changes with it: prebuild again with that id rather than renaming
+   it in Xcode. A free Apple ID may refuse the App Group: say so, it decides what we do next.
+2. **The gallery has them.** Long-press the Home Screen › Edit › Add Widget › "Edunex Plus": two widgets ("Edunex
+   Plus" and "Hari ini"), each in small, medium and large, shown greyed like a widget still loading.
+3. **They fill in.** Open the app (the demo is easiest), sign in or let the demo load, go back to the Home Screen.
+   Within a few seconds of leaving the app, both show the class on now or next and today's classes, the same as
+   Android's widgets and Beranda.
+4. **Each size fits.** Small, medium, large, at the normal text size and at a larger one (Settings › Display ›
+   Text Size): nothing cut that matters (the course code, the time, "Tandai Hadir"); compare with the sketch.
+5. **Light and dark.** Switch the phone's look; then pick light or dark in the app: the widgets follow the app's
+   pick, as on Android.
+6. **Taps.** Small: anywhere opens the class (or SIX's check-in while "Tandai Hadir" is open). Medium and large:
+   the class opens its course, each need its screen, each of today's classes its sheet on Jadwal, the deadline
+   its task.
+7. **It turns over by itself.** With the app closed, watch a class start or end, or wait past midnight: the
+   widget moves on without opening the app.
+8. **Lock Screen.** Customise the Lock Screen › add "Edunex Plus" (rectangular, round, and the line above the
+   clock) and "Hari ini": readable in iOS's tint, and a tap opens the app at the class.
+9. **Signed out.** Sign out of SIX in the app: "Hari ini" says what's wrong in the warning colour; signed out of
+   everything, both say "Hubungkan Edunex atau SIX dulu".
+10. **The Live Activity.** Open the app during a class (the demo's morning has one): a Live Activity appears on
+    the Lock Screen and in the Dynamic Island with the course, a bar through the class, and, while its Presence
+    is open, "Isi Presensi …" with the time left counting down. It goes when the class is over and the app (or
+    the background sync) runs. Check it can be turned off (Settings › Edunex Plus › Live Activities) and that
+    the app is fine without it. Decide whether it should start for every class or only when there's something
+    to do.
+11. **Memory.** A widget gets little memory, and these run a small JavaScript engine: if a widget stays blank
+    or greyed after step 3, that's the first suspect (Console.app on the Mac, the `ExpoWidgetsTarget` process).

@@ -43,7 +43,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
       spacing={0}
       modifiers={[
         ...margins,
-        frame({ maxWidth: 10_000, maxHeight: 10_000, alignment: "topLeading" }),
+        frame({ maxWidth: 10000, maxHeight: 10000, alignment: "topLeading" }),
         containerBackground(lock ? "clear" : (c?.surface ?? (scheme === "dark" ? "#161618" : "#ffffff")), "widget"),
         ...(url ? [widgetURL(url)] : []),
       ]}
@@ -71,7 +71,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
     if (family === "accessoryCircular")
       return root(
         ready ? doc.url : undefined,
-        <ZStack modifiers={[frame({ maxWidth: 10_000, maxHeight: 10_000 })]}>
+        <ZStack modifiers={[frame({ maxWidth: 10000, maxHeight: 10000 })]}>
           <AccessoryWidgetBackground />
           {line("–", "headline", "primary", "bold")}
         </ZStack>,
@@ -127,7 +127,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
   if (family === "accessoryCircular") {
     return root(
       klass?.url ?? doc.url,
-      <ZStack modifiers={[frame({ maxWidth: 10_000, maxHeight: 10_000 })]}>
+      <ZStack modifiers={[frame({ maxWidth: 10000, maxHeight: 10000 })]}>
         <AccessoryWidgetBackground />
         <VStack spacing={0}>
           {line(klass ? klass.start : "–", "headline", "primary", "bold")}
@@ -209,7 +209,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
         spacing={4}
         modifiers={[
           padding({ horizontal: 10, vertical: 6 }),
-          frame({ maxWidth: 10_000, alignment: "leading" }),
+          frame({ maxWidth: 10000, alignment: "leading" }),
           background(one.primary ? (c?.accent ?? "blue") : (c?.chip ?? "gray")),
           clipShape("roundedRectangle", 10),
         ]}
@@ -270,7 +270,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
     // One tap for the whole widget: "Tandai Hadir" when it's open, else the class.
     return root(
       primary?.url ?? (now ? now.url : doc.url),
-      <VStack alignment="leading" spacing={6} modifiers={[frame({ maxWidth: 10_000, maxHeight: 10_000, alignment: "topLeading" })]}>
+      <VStack alignment="leading" spacing={6} modifiers={[frame({ maxWidth: 10000, maxHeight: 10000, alignment: "topLeading" })]}>
         {classBlock()}
         <Spacer minLength={0} />
         {primary ? pill(primary, "primary") : now ? null : status}
@@ -282,13 +282,13 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
     // Medium: the class and its buttons on the left, what needs you on the right.
     return root(
       doc.url,
-      <VStack alignment="leading" spacing={6} modifiers={[frame({ maxWidth: 10_000, maxHeight: 10_000, alignment: "topLeading" })]}>
+      <VStack alignment="leading" spacing={6} modifiers={[frame({ maxWidth: 10000, maxHeight: 10000, alignment: "topLeading" })]}>
         <HStack alignment="top" spacing={12}>
-          <VStack alignment="leading" spacing={8} modifiers={[frame({ maxWidth: 10_000, alignment: "leading" })]}>
+          <VStack alignment="leading" spacing={8} modifiers={[frame({ maxWidth: 10000, alignment: "leading" })]}>
             <Link destination={now ? now.url : doc.url}>{classBlock()}</Link>
             {doc.actions.slice(0, 1).map((one, index) => pill(one, `action-${index}`))}
           </VStack>
-          {doc.needs ? <VStack modifiers={[frame({ maxWidth: 10_000, alignment: "leading" })]}>{needsBlock(3, false)}</VStack> : null}
+          {doc.needs ? <VStack modifiers={[frame({ maxWidth: 10000, alignment: "leading" })]}>{needsBlock(3, false)}</VStack> : null}
         </HStack>
         <Spacer minLength={0} />
         {status}
@@ -299,7 +299,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
   // Large: the class, its buttons, then what needs you with each one's when, and the status at the foot.
   return root(
     doc.url,
-    <VStack alignment="leading" spacing={10} modifiers={[frame({ maxWidth: 10_000, maxHeight: 10_000, alignment: "topLeading" })]}>
+    <VStack alignment="leading" spacing={10} modifiers={[frame({ maxWidth: 10000, maxHeight: 10000, alignment: "topLeading" })]}>
       <Link destination={now ? now.url : doc.url}>{classBlock()}</Link>
       {doc.actions.slice(0, 2).map((one, index) => pill(one, `action-${index}`))}
       {needsBlock(6 - Math.min(2, doc.actions.length), true)}
