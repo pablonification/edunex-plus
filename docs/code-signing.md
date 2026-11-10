@@ -1,6 +1,6 @@
 # Code signing policy
 
-How Edunex Plus's installers are signed, by whom, and how to check one. Back to the
+How Edunex Plus's installers and phone apps are signed, by whom, and how to check one. Back to the
 [README](../README.md); what each system shows while installing is in the [install guide](install.md).
 
 Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by
@@ -41,6 +41,30 @@ later ([why](research/windows-download-warnings.md)).
 - The release workflow's other builds (of `main`, or started by hand) take the same steps with a
   stand-in signature that only that build's machine trusts, all but the trip to SignPath. They're
   for testing and are never published.
+
+## Android and iPhone
+
+- **Android:** every release's APK is signed with Edunex Plus's own key, by the same GitHub Actions
+  build ([mobile-release.yml](../.github/workflows/mobile-release.yml)), which stops rather than sign
+  with anything else and checks the result. The key lives in the repository's secrets
+  (`ANDROID_SIGNING_KEYSTORE`, `ANDROID_SIGNING_PASSWORD`) and, as a backup, with the maintainer
+  only. Android installs a new version over the old one only when both carry this key, so an APK
+  signed by anyone else can't replace the app or read what it saved. Its certificate's SHA-256
+  fingerprint:
+
+  ```text
+  896d9ed2982d532bdb693ec2c72e92af1c22d1ece9247a240df98f855e1b8d9e
+  ```
+
+  Other APKs (the lab's demo builds, the read-only QA builds) use the Android template's public
+  debug key and are never published.
+- **iPhone:** the `.ipa` on a release is unsigned. Each student signs it with their own Apple ID
+  when installing it ([install guide](install.md#iphone)), because a free Apple ID can only sign
+  for its own devices.
+
+To check an APK on a computer with Android's build tools: `apksigner verify --print-certs
+Edunex-Plus-<version>-android.apk`. The `certificate SHA-256 digest` it prints should be the
+fingerprint above.
 
 ## Team roles
 

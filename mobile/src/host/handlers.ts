@@ -11,6 +11,7 @@ import type { AppLog } from "../../../src/engine/app-log";
 import { errorLine } from "../../../src/engine/app-log";
 import type { Engine } from "../../../src/engine/engine";
 import { EngineError, isEngineError } from "../../../src/engine/errors";
+import type { ApkUpdater } from "./apk-update";
 import { whereOpens } from "./signed-pages";
 
 export type Handlers = { [N in ActionName]: (input: z.infer<(typeof Actions)[N]["input"]>) => Promise<ActionOutput<N>> };
@@ -40,6 +41,8 @@ export interface HandlerContext {
   notificationsAllowed(): Promise<boolean>;
   showTestNotification(): Promise<boolean>;
   demo: boolean;
+  /** Android's in-app update (./apk-update.ts); null on an iPhone, the demo and a development build. */
+  updater: ApkUpdater | null;
 }
 
 /**
@@ -60,7 +63,8 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
       // Android is a Linux: the phone draws no desktop chrome from it.
       platform: "linux",
       vault: "encrypted",
-      update: { blocked: "notPackaged", step: "idle", version: null, progress: null, problem: null },
+      // Android's release builds update themselves (./apk-update.ts); elsewhere "Unduh" opens the release page.
+      update: context.updater?.state() ?? { blocked: "notPackaged", step: "idle", version: null, progress: null, problem: null },
     }),
     "app.ready": async () => {
       context.ready();
@@ -112,6 +116,15 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
       const notice = engine.snapshot().datasets.find((dataset) => dataset.name === "app.update");
       if (!notice) throw new EngineError("Rejected", "No newer release");
       await openPage(context, UpdateNotice.parse(notice.value).url);
+      return {};
+    },
+    "app.downloadUpdate": async () => {
+      if (!context.updater) throw new EngineError("Rejected", "This copy can't update itself");
+      return context.updater.download();
+    },
+    "app.installUpdate": async () => {
+      if (!context.updater) throw new EngineError("Rejected", "This copy can't update itself");
+      await context.updater.install();
       return {};
     },
   };

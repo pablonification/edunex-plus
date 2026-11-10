@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { Image, View } from "react-native";
 import { useFormat, useLang, useT } from "../../../../src/app/i18n";
-import { useBridge, useDataset } from "../../../../src/app/store";
+import { useBridge, useDataset, useUpdateInstall } from "../../../../src/app/store";
 import { reportSendingOf, type Settings, type UpdateCheckResult } from "../../../../src/core/models";
 import { pageName } from "../../../../src/core/report";
 import { openReport } from "../../parts/report";
@@ -102,11 +102,16 @@ export function AboutSettings({ version, relay }: { version: string; relay: bool
   );
 }
 
-/** "Versi …": the row asks GitHub now (Periksa pembaruan); a newer version makes it open its release page. */
+/**
+ * "Versi …": the row asks GitHub now (Periksa pembaruan). With a newer version out (found now or by the daily check),
+ * Android downloads it with its progress on the row and opens its installer ("Unduh & pasang", ../../host/apk-update.ts);
+ * an iPhone, which can't install an app itself, opens the release page.
+ */
 function CheckForUpdates({ version }: { version: string }) {
   const t = useT();
   const bridge = useBridge();
   const update = useDataset("app.update");
+  const install = useUpdateInstall();
   const [checking, setChecking] = useState(false);
   const [found, setFound] = useState<UpdateCheckResult | null>(null);
   const check = async () => {
@@ -120,19 +125,58 @@ function CheckForUpdates({ version }: { version: string }) {
       setChecking(false);
     }
   };
-  const newer = found === "newer" && update;
-  const answer = newer ? t("update.checked.newer", { version: update.version }) : found && found !== "newer" ? t(`update.checked.${found}`) : null;
   const title = t("settings.version", { version });
+  if (!update) {
+    const answer = found && found !== "newer" ? t(`update.checked.${found}`) : null;
+    return (
+      <SettingRow
+        leading={<IconTile tone="plain" icon={(color) => <Icons.RefreshCw size={22} color={color} />} />}
+        title={title}
+        meta={<Line>{answer ?? t("update.checkHint")}</Line>}
+        label={factsLabel(title, answer ?? t("update.checkHint"), t("update.check"))}
+        busy={checking}
+        onPress={() => void check()}
+        testID="action.checkUpdate"
+      />
+    );
+  }
+  // A download of an older notice's version doesn't count for this one.
+  const step = !install.blocked && install.version === update.version ? install.step : "idle";
+  const percent = Math.round((install.progress ?? 0) * 100);
+  const meta =
+    step === "downloading"
+      ? install.progress === null
+        ? t("update.downloading", { version: update.version })
+        : t("update.progress", { percent })
+      : step === "ready"
+        ? t("mobile.update.ready", { version: update.version })
+        : step === "failed" && install.problem
+          ? t(`update.problem.${install.problem}`)
+          : t("update.checked.newer", { version: update.version });
+  const action = install.blocked
+    ? t("update.download")
+    : step === "ready"
+      ? t("mobile.update.install")
+      : step === "failed"
+        ? t("update.retry")
+        : step === "downloading"
+          ? null
+          : t("update.install");
+  const press = () => {
+    if (install.blocked) void bridge.invoke("app.openRelease", {}).catch(() => undefined);
+    else if (step === "ready") void bridge.invoke("app.installUpdate", {}).catch(() => undefined);
+    else if (step !== "downloading") void bridge.invoke("app.downloadUpdate", {}).catch(() => undefined);
+  };
   return (
     <SettingRow
       leading={<IconTile tone="plain" icon={(color) => <Icons.RefreshCw size={22} color={color} />} />}
       title={title}
-      meta={<Line>{answer ?? t("update.checkHint")}</Line>}
-      label={factsLabel(title, answer ?? t("update.checkHint"), newer ? t("update.download") : t("update.check"))}
-      busy={checking}
-      onPress={newer ? () => void bridge.invoke("app.openRelease", {}).catch(() => undefined) : () => void check()}
-      trailing={newer ? <Pill tone="brand">{t("update.download")}</Pill> : undefined}
-      testID={newer ? "action.openRelease" : "action.checkUpdate"}
+      meta={<Line>{meta}</Line>}
+      label={factsLabel(title, meta, action ?? "")}
+      busy={step === "downloading"}
+      onPress={press}
+      trailing={action ? <Pill tone="brand">{action}</Pill> : undefined}
+      testID={install.blocked ? "action.openRelease" : step === "ready" ? "action.installUpdate" : "action.downloadUpdate"}
     />
   );
 }

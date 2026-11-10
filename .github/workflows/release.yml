@@ -516,6 +516,9 @@ jobs:
     permissions:
       contents: read
     uses: ./.github/workflows/mobile-release.yml
+    secrets:
+      ANDROID_SIGNING_KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
+      ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
 
   publish:
     name: publish
