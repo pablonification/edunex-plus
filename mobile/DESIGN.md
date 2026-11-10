@@ -53,12 +53,12 @@ notice. The decisions: `mobile/qa/superapp-decisions.md`.
 
 | For | Use | Never |
 | --- | --- | --- |
-| Marking attendance, anywhere | `PresenceButton` (48 dp pill, the raised hand, testID `action.presence`). `tone="page"` on the page: the brand's blue, white words. `tone="course" ink={courseColour}` on a block of a course's colour: white, the words in the course's colour. Its child is the word when it isn't "Isi Presensi" ("Tandai Hadir" for SIX); `time` puts the one time on the same line; `quiet` outlines it when nobody can say it counts | a local button, a second filled button beside it |
+| Marking attendance, anywhere | `PresenceButton` (48 dp pill, the raised hand, testID `action.presence`). `tone="page"` on the page: the brand's blue, white words. `tone="course" ink={courseColour}` on a block of a course's colour: white, the words in the course's colour. `label` is the word when it isn't "Isi Presensi" ("Tandai Hadir" for SIX, the same hand); `icon` only for the block's other main action (joining an online class); `time` puts the one time on the same line; `quiet` outlines it when nobody can say it counts | a local button, a second filled button beside it |
 | A screen's one main action | `BigButton variant="filled"`, or `variant="course" ink=…` on a course's block; a second way is `outline` | two filled buttons on one screen |
 | How far along (a presence window, a term) | `PlainBar`: a track, a fill, at most one label at its end. On a course's block: `color` white, `track` white at about 30% | a wave, a dot, a second label saying the same time |
 | A clash | `ClashMark` (the overlap icon and "Bentrok" in amber; `detail` for when) | other words or another icon for a clash |
 | The strip's three | `StatTile` inside `CountStrip`: the figure in a fixed 32 dp line, the label always one line (it shrinks to 85%, then is cut: write two words), a small chevron after the label. Three cells share a baseline whatever their labels | a label that wraps; "0" (good news is `mark`) |
-| A service | `ServiceTile` in a `ServiceRow` (four across), glyph and colour from `screens/services/list.ts` | a service's glyph or colour chosen on the screen |
+| A service | `ServiceTile` in a `ServiceRow` (four across), glyph and colour from `screens/services/list.ts`; `tag` for the one fact it answers with (Nilai "3,26", UKT "Lunas", KRS "14 SKS"): a small pill on the page's surface over the tile's top right corner, read with the tile's name | a service's glyph or colour chosen on the screen |
 | A section's name | `SectionHeading` (`BHeading`) | all-caps labels |
 | A row | `FlatRow` (`BRow`), or `TileRow` / `GroupRow` | a card per row |
 | Nothing to show | `EmptyState`: the icon bare (no circle, no tile), the reason, one next step | a container behind the icon |

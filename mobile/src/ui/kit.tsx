@@ -6,7 +6,7 @@ import type { AccessibilityProps } from "react-native";
 import { View } from "react-native";
 import { useT } from "../../../src/app/i18n";
 import { BHeading, BRow, CountCell } from "./b";
-import { Icons } from "./icons";
+import { type IconName, Icons } from "./icons";
 import { PressScale } from "./press";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
@@ -14,19 +14,24 @@ import { space, useTheme } from "./theme";
 const clamp = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
 
 /**
- * The one presence button (testID `action.presence`): the raised hand, the word ("Isi Presensi"; pass "Tandai Hadir"
- * as its child for SIX), and when it matters the one time on the same line ("tutup 09:30"). A 48 dp pill, like
- * `BigButton`. Two tones, final:
+ * The one presence button (testID `action.presence`): the raised hand, the word, and when it matters the one time on
+ * the same line ("tutup 09:30"). A 48 dp pill, like `BigButton`. The word is "Isi Presensi" (Edunex) unless `label`
+ * says another: "Tandai Hadir" (SIX's own word), with the same hand. `icon` is for the block's one other main action
+ * that isn't a presence (joining an online class: "Video"); a presence is always the hand, never an arrow.
+ * Two tones, final:
  *  - "page": on the page. The brand's blue, white words (dark: the pale blue, navy words). The look to keep on Kuliah.
  *  - "course": on a block of a course's colour. White, the hand and the words in `ink`, the course's colour.
- * `quiet` is the same part outlined, for when nobody can say it counts (no SIX). `wide` fills its row.
+ * `quiet` is the same part outlined, for when nobody can say it counts (no SIX). `wide` fills its row. What a screen
+ * reader says is `accessibilityLabel` (the course, and where it opens); the word and the time when left out.
  *
  *   <PresenceButton tone="course" ink={courseColor} time={t("…closes", { time })} onPress={fill} />
+ *   <PresenceButton label={t("mobile.notification.checkIn")} testID="action.checkIn" onPress={markInSix} />
  */
 export function PresenceButton({
   onPress,
   children,
   label,
+  icon = "Hand",
   tone = "page",
   ink,
   time,
@@ -34,13 +39,16 @@ export function PresenceButton({
   wide = false,
   disabled = false,
   testID = "action.presence",
+  accessibilityLabel,
   ...a11y
 }: {
   onPress(): void;
   /** The word, when it isn't "Isi Presensi" ("Tandai Hadir" in SIX). */
-  children?: string;
-  /** What a screen reader says (the course, and where it opens); the word and the time when left out. */
   label?: string;
+  /** The word as a child: the same as `label`, kept for the screens that pass it so. */
+  children?: string;
+  /** The glyph before the word: the raised hand for a presence, always. */
+  icon?: IconName;
   tone?: "page" | "course";
   /** On a course's block: the course's colour, for the words and the hand (4.5:1 on white). */
   ink?: string;
@@ -54,7 +62,8 @@ export function PresenceButton({
 } & AccessibilityProps) {
   const t = useT();
   const v = useTheme().v4;
-  const word = children ?? t("presence.open.fill");
+  const Glyph = Icons[icon];
+  const word = label ?? children ?? t("presence.open.fill");
   const onCourse = tone === "course";
   const fill = quiet ? "transparent" : onCourse ? "#ffffff" : v.brand;
   const fg = quiet ? (onCourse ? v.onCourse : v.fg) : onCourse ? (ink ?? "#14171c") : v.onBrand;
@@ -63,7 +72,7 @@ export function PresenceButton({
       onPress={onPress}
       disabled={disabled}
       testID={testID}
-      accessibilityLabel={label ?? (time ? `${word}, ${time}` : word)}
+      accessibilityLabel={accessibilityLabel ?? (time ? `${word}, ${time}` : word)}
       {...a11y}
       style={{
         minHeight: 48,
@@ -82,7 +91,7 @@ export function PresenceButton({
         opacity: disabled ? 0.6 : 1,
       }}
     >
-      <Icons.Hand size={20} color={fg} weight="fill" />
+      <Glyph size={20} color={fg} weight="fill" />
       <Text size="labelLarge" weight="bold" numberOfLines={1} style={{ color: fg, fontSize: 15, lineHeight: 20, letterSpacing: 0, flexShrink: 0 }}>
         {word}
       </Text>
