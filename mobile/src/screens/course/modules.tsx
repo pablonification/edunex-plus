@@ -84,20 +84,35 @@ function Contents({
   // no files yet there is no heading at all (never a sentence saying so). Below, the whole table of contents, the
   // module the class is on marked "sekarang", its number in a filled circle.
   const unfolded = current && current.entry.materials.length > 0 ? current : undefined;
+  // With no files to unfold, the module itself leads the tab under "Minggu ini" (round 4: "the list starts at 1 while
+  // the card says Modul 7"; round 2 had this week on top): on screen with no scrolling, and out of the list under it
+  // ("Modul lain"), so it's said once. Not when it's the list's first row anyway.
+  const lead = current && !unfolded && entries[0] !== current.entry ? current : undefined;
+  const listed = lead ? entries.filter((entry) => entry !== lead.entry) : entries;
   // The class's own, then the joint class's under its own title (both can have a Modul 1).
-  const firstParent = entries.findIndex((e) => e.parent);
-  const groups = (firstParent === -1 ? [entries] : [entries.slice(0, firstParent), entries.slice(firstParent)]).filter((group) => group.length > 0);
+  const firstParent = listed.findIndex((e) => e.parent);
+  const groups = (firstParent === -1 ? [listed] : [listed.slice(0, firstParent), listed.slice(firstParent)]).filter((group) => group.length > 0);
   return (
     <View testID="list.course.contents">
       {unfolded && <CurrentModule entry={unfolded.entry} thisWeek={unfolded.thisWeek} />}
+      {lead && (
+        <View testID="module.current">
+          <BHeading style={{ marginBottom: 0 }}>{t(lead.thisWeek ? "course.thisWeek" : "course.latest")}</BHeading>
+          <View style={{ marginHorizontal: -ROW_SIDE }}>
+            <ModuleRow entry={lead.entry} first code={code} name={name} onPick={onPick} now={null} here />
+          </View>
+        </View>
+      )}
       {groups.map((group, g) => {
         const joint = group[0]?.parent ?? false;
         return (
           <View key={joint ? "joint" : "own"}>
             {joint ? (
-              <SectionTitle first={g === 0 && !unfolded}>{t("course.jointClass")}</SectionTitle>
+              <SectionTitle first={g === 0 && !unfolded && !lead}>{t("course.jointClass")}</SectionTitle>
             ) : (
-              unfolded && <BHeading style={{ marginTop: space[6], marginBottom: 0 }}>{t("mobile.course.material.all")}</BHeading>
+              (unfolded || lead) && (
+                <BHeading style={{ marginTop: space[6], marginBottom: 0 }}>{t(lead ? "mobile.course.material.others" : "mobile.course.material.all")}</BHeading>
+              )
             )}
             {/* Flat on the page, a hairline between rows: the same in light and dark. */}
             <View style={{ marginHorizontal: -ROW_SIDE }}>
@@ -207,36 +222,43 @@ function ModuleRow({
   const open = entry.tasks.filter((task) => isOpenTask(task, now)).length;
   const empty = entry.tasks.length + entry.materials.length === 0;
   const markText = mark === "class" ? t("mobile.course.material.now") : mark === "week" ? t("course.thisWeek") : mark === "latest" ? t("course.latest") : null;
-  // With open Tasks the chip is theirs: the mark leads the meta line instead, so which module is now still shows.
-  const facts = [open > 0 ? markText : null, ...(empty ? [] : countFacts(t, entry))].filter((x): x is string => !!x);
+  // Open Tasks are said in the row's own words on its meta line, in amber ("1 tugas terbuka", "4 tugas, 3 terbuka":
+  // round 3's chip "1 terbuka" didn't say what was open), and the row ends in the chevron every row that opens has.
+  const openFact =
+    open === 0
+      ? null
+      : open === entry.tasks.length
+        ? t("mobile.course.tasksOpen", { count: open })
+        : t("mobile.course.tasksOpenOf", { count: entry.tasks.length, open });
+  const counts = empty ? [] : countFacts(t, entry).slice(openFact ? 1 : 0);
+  const before = open > 0 ? markText : null;
+  const facts = [before, openFact, ...counts].filter((x): x is string => !!x);
   // One colour for every opened module's number (round 1: "purple or grey with no clue why"); a closed one is grey
   // with its lock, the current one sits in a filled circle.
   const tile = course;
-  // One chip: open Tasks first (something to do), else the module the course is on.
-  const status =
-    open > 0 ? (
-      <StatusChip tone="amber">{t("course.openTasks", { count: open })}</StatusChip>
-    ) : markText ? (
-      <StatusChip tone="brand">{markText}</StatusChip>
-    ) : undefined;
+  // One chip at most: the module the course is on, when the row has nothing to do.
+  const status = open === 0 && markText ? <StatusChip tone="brand">{markText}</StatusChip> : undefined;
+  const meta = openFact ? (
+    <Text size="bodyMedium" tabular style={{ color: v.muted, marginTop: 2 }}>
+      {before ? `${before} · ` : ""}
+      <Text size="bodyMedium" weight="semibold" tabular style={{ color: v.ambFg }}>
+        {openFact}
+      </Text>
+      {counts.length > 0 ? ` · ${counts.join(" · ")}` : ""}
+    </Text>
+  ) : (
+    facts.join(" · ") || undefined
+  );
   return (
     <TileRow
       testID={testID}
       first={first}
       leading={entry.intro ? <CourseTile code={code} name={name} /> : <NumberTile no={entry.label ?? ""} ink={tile.ink} tint={tile.tint} here={here} />}
       title={entry.title}
-      meta={facts.join(" · ") || undefined}
+      meta={meta}
       status={status}
       onPress={() => onPick(Number(entry.id))}
-      label={factsLabel(
-        label,
-        ...facts,
-        entry.title,
-        whose,
-        open > 0 ? t("course.openTasks", { count: open }) : null,
-        open > 0 ? null : markText,
-        here && !mark ? t("mobile.course.material.current") : null,
-      )}
+      label={factsLabel(label, ...facts, entry.title, whose, open > 0 ? null : markText, here && !mark ? t("mobile.course.material.current") : null)}
     />
   );
 }

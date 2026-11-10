@@ -1,6 +1,6 @@
 // A course on Kuliah (round 3 of the super-app): a flat row on the page. It leads with the course's own glyph in its
 // colour, then the name whole on up to two lines and, under it, the one thing Kuliah is for, said once: the absences
-// as dots with one short label (./absence-dots.tsx: "sisa 1", "habis", "lewat 1"). The state's colour is on the dots
+// as dots with one short label (./absence-dots.tsx: "sisa 1 absen", "absen habis", "lewat 1 absen"). The state's colour is on the dots
 // and the label only; the row itself is calm. At its end the chevron every row that opens has. The code isn't drawn:
 // a screen reader still hears it, and it sits under the name on the course's page. A tap opens the course; tap and
 // hold, its colour. The data and the words are the desktop's (src/app/screens/presence.tsx).

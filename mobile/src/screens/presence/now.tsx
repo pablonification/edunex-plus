@@ -21,7 +21,6 @@ import { useNav } from "../../nav";
 import { BigButton } from "../../ui/big-button";
 import { Icons } from "../../ui/icons";
 import { ClashMark, PresenceButton } from "../../ui/kit";
-import { factsLabel } from "../../ui/layout";
 import { Appear, Tap } from "../../ui/moves";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
@@ -44,7 +43,12 @@ export function NowZone({ zone, attendance, now }: { zone: Zone; attendance: Att
         <OpenCheckIn key={session.id} session={session} />
       ))}
       {zone.windows.map((window) => (
-        <OpenPresence key={window.session.id} window={window} />
+        <OpenPresence
+          key={window.session.id}
+          window={window}
+          // Where the class is, as Beranda's block says it ("R.SG PWK LT.6"): the class of this course on now.
+          room={attendance.schedule.find((s) => s.courseCode === window.code && s.start <= now && s.end > now)?.room ?? null}
+        />
       ))}
       {zone.results.map((result) => (
         <View key={result.id} style={{ marginVertical: space[2] }}>
@@ -167,7 +171,7 @@ function OpenCheckIn({ session }: { session: ClassSession }) {
  * without SIX, or before either has a count), and "Isi Presensi", which opens it in Edunex. A Presence that is a Task
  * opens that Task instead.
  */
-function OpenPresence({ window }: { window: OpenWindow }) {
+function OpenPresence({ window, room = null }: { window: OpenWindow; room?: string | null }) {
   const t = useT();
   const f = useFormat();
   const open = useOpenExternal();
@@ -183,7 +187,7 @@ function OpenPresence({ window }: { window: OpenWindow }) {
       testID={`card.presenceOpen.${code}`}
       code={code}
       name={name}
-      meta={factsLabel(t("presence.open.closes", { time: f.time(session.closesAt) }), (noSix || notKnown) && t("presence.open.maybe"))}
+      meta={[room, t("presence.open.closes", { time: f.time(session.closesAt) }), (noSix || notKnown) && t("presence.open.maybe")].filter(Boolean).join(" · ")}
       button={(ink) =>
         task ? (
           <PresenceButton
@@ -244,8 +248,8 @@ function SixResult({ result, health }: { result: Zone["results"][number]; health
 }
 
 /**
- * Two classes today at the same time, on one line: the clash sign ("Bentrok", as on Beranda and Jadwal), the time, and
- * the two courses by their short names. A tap opens which to go to and why ("Kalau hanya bisa hadir di salah satunya,
+ * Two classes today at the same time: the clash sign ("Bentrok", as on Beranda and Jadwal) with the time, then the two
+ * courses, each name whole on its own line. A tap opens which to go to and why ("Kalau hanya bisa hadir di salah satunya,
  * pilih Ekonomi Infrastruktur …").
  */
 function ClashRow({ clash }: { clash: Zone["clashes"][number] }) {
@@ -260,8 +264,10 @@ function ClashRow({ clash }: { clash: Zone["clashes"][number] }) {
   const whole = t("presence.clash.today", { a: short(a.course.code), b: short(b.course.code), time });
   const body = clashAnswer(t, a.health, b.health, short);
   const pick = clashPick(a.health, b.health).pick;
-  // With a pick but no why to open, the pick is said on the line itself.
-  const names2 = !body && pick ? t("mobile.kuliah.clash.pick", { code: short(pick) }) : `${short(a.course.code)} · ${short(b.course.code)}`;
+  // With a pick but no why to open, the pick is said on the line itself. Else the two courses, each whole on its own
+  // line (round 3: "the clash row cuts both course names").
+  const lines =
+    !body && pick ? [t("mobile.kuliah.clash.pick", { code: short(pick) })] : [names(a.course.code, a.course.name), names(b.course.code, b.course.name)];
   return (
     <>
       <Tap
@@ -274,9 +280,11 @@ function ClashRow({ clash }: { clash: Zone["clashes"][number] }) {
       >
         <View style={{ flex: 1, minWidth: 0 }}>
           <ClashMark detail={time} />
-          <Text size="bodyMedium" style={{ color: v.fg2, marginTop: 2 }}>
-            {names2}
-          </Text>
+          {lines.map((line) => (
+            <Text key={line} size="bodyMedium" style={{ color: v.fg2, marginTop: 2 }}>
+              {line}
+            </Text>
+          ))}
         </View>
         {body && <Icons.ChevronRight size={18} color={v.muted} />}
       </Tap>

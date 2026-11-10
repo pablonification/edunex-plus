@@ -1,5 +1,5 @@
 // A course's attendance on its page: in the header under the bar (beside the course's glyph), its code and SKS, then
-// its absences as Kuliah's row says them (dots and one short label: "sisa 1", "habis", "lewat 1"; never a count
+// its absences as Kuliah's row says them (dots and one short label: "sisa 1 absen", "absen habis", "lewat 1 absen"; never a count
 // beside them) and the one exception when it's a fact. The header is one
 // target: the course's sheet (./course-sheet.tsx) says it all, the count, the target, the exception's whole sentence,
 // the advice and its way back too. Words and figures are the desktop's (src/app/screens/presence.tsx).

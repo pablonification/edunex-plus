@@ -343,7 +343,16 @@ function TabBar<T extends string>({
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={tab.count !== undefined ? `${tab.label}, ${tab.count}` : tab.label}
                 onPress={() => onChange(tab.value)}
-                style={{ minHeight: 48, paddingHorizontal: space[2], flexDirection: "row", alignItems: "center", gap: 4 }}
+                // 48 dp to touch both ways, the short names too ("Nilai" and "Info" were 45 and 42 wide, round 3's touch read).
+                style={{
+                  minHeight: 48,
+                  minWidth: 48,
+                  paddingHorizontal: space[2],
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 4,
+                }}
               >
                 {/* Never cut short: the row scrolls, so a tab keeps its whole name ("Pe…" read as a word cut, round 3). */}
                 <Text
@@ -355,7 +364,8 @@ function TabBar<T extends string>({
                   {tab.label}
                 </Text>
                 {tab.count !== undefined && (
-                  <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: on ? v.brandInk : v.fg2, fontSize: 13 }}>
+                  // The count in the name's own face and weight ("the '1' in 'Tugas 1' is in another font", round 3).
+                  <Text size="labelLarge" weight="semibold" tabular style={{ color: on ? v.brandInk : v.fg2, fontSize: 13, letterSpacing: 0 }}>
                     {String(tab.count)}
                   </Text>
                 )}

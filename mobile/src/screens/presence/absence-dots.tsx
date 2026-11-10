@@ -1,7 +1,9 @@
-// A course's absences, the one way the phone says them (the decisions' "Absences, everywhere"): a dot per absence the
-// target allows, the used ones filled in the state's colour and the rest outlined, one more red dot for each absence
-// over the limit, then one short label ("sisa 1", "habis", "lewat 1"). Never a count or a sentence beside them: the
-// whole sentence is the row's accessible name. Kuliah's rows and a course's header both draw this.
+// A course's absences, the one way the phone says them (the decisions' "Absences, everywhere"). One rule, read with no
+// key (round 4: "is a filled dot used or left?"): a ring is an absence still left, a filled grey dot is one used, a red
+// dot, set a little apart, is one over the limit. Colour on a dot means over and nothing else: a used absence is never
+// green. Then one short label with the noun, in the state's colour ("sisa 1 absen", "absen habis", "lewat 1 absen":
+// Beranda's strip says "absen habis" in the same words). Never a count or a sentence beside them: the whole sentence
+// is the row's accessible name. Kuliah's rows and a course's header both draw this.
 import { memo } from "react";
 import { View } from "react-native";
 import type { Translate } from "../../../../src/app/i18n";
@@ -46,9 +48,11 @@ export const AbsenceDots = memo(function AbsenceDots({ model, label, testID }: {
                   width: 9,
                   height: 9,
                   borderRadius: 5,
-                  backgroundColor: used ? (past ? v.redFg : ink) : "transparent",
+                  // The first one over stands a dot's gap away from the allowed ones: "these, and one more".
+                  marginLeft: past && i === allowed && allowed > 0 ? 4 : 0,
+                  backgroundColor: used ? (past ? v.redFg : v.fg2) : "transparent",
                   borderWidth: used ? 0 : 1.5,
-                  borderColor: theme.color.pipRing,
+                  borderColor: v.fg2,
                 }}
               />
             );
@@ -56,7 +60,8 @@ export const AbsenceDots = memo(function AbsenceDots({ model, label, testID }: {
         </View>
       )}
       {label ? (
-        <Text size="bodyMedium" weight="semibold" tabular style={{ color: ink }}>
+        // Over the limit is the worst state in both themes: the only label in bold, beside the only coloured dots.
+        <Text size="bodyMedium" weight={over > 0 ? "bold" : "semibold"} tabular style={{ color: ink }}>
           {label}
         </Text>
       ) : null}
