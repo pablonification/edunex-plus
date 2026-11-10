@@ -27,21 +27,18 @@ export function useToneTile(): (tone: TileTone) => { ink: string; tint: string }
   };
 }
 
-/** The tile: `tint` behind what it holds; hidden from a screen reader (the row says what it is). */
-export function IconTile({ tint, size = 44, children }: { tint: string; size?: number; children: ReactNode }) {
+/**
+ * A row's leading mark that isn't a service's or a course's: what it holds, bare, in the ink it was given. No pale box
+ * behind it (the judges' charge: "every icon sits in the same pale circle"); the box keeps its size, so rows line up
+ * as before. `tint` is kept for the callers that pass it and no longer drawn. Hidden from a screen reader (the row
+ * says what it is).
+ */
+export function IconTile({ size = 44, children }: { tint?: string; size?: number; children: ReactNode }) {
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{
-        width: size,
-        height: size,
-        borderRadius: Math.round(size * 0.32),
-        backgroundColor: tint,
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}
+      style={{ width: size, height: size, alignItems: "center", justifyContent: "center", flexShrink: 0 }}
     >
       {children}
     </View>

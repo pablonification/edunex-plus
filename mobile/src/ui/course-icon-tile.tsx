@@ -6,12 +6,13 @@ import { View } from "react-native";
 import { useCourseTile } from "./tile";
 
 export function CourseIconTile({ code, icon, size = 44 }: { code: string; icon: (color: string) => ReactNode; size?: number }) {
-  const { ink, tint } = useCourseTile()(code);
+  // Bare: the kind's icon in the course's ink, no tinted box behind it.
+  const { ink } = useCourseTile()(code);
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), backgroundColor: tint, alignItems: "center", justifyContent: "center" }}
+      style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}
     >
       {icon(ink)}
     </View>

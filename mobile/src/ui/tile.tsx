@@ -74,17 +74,25 @@ export function useCourseTile(): (code: string | null | undefined) => { ink: str
   return (code) => theme.courseTile(tone(code));
 }
 
-/** Round, as every mark in direction B (the services' circles). `bare`: the tint alone, while the course's official name (which picks the glyph) is still coming. */
+/**
+ * A course's mark at a row's start: its glyph in the course's colour, with no box behind it. `bare`: a solid dot in
+ * the course's colour, while the course's official name (which picks the glyph) is still coming.
+ */
 export function CourseTile({ code, name, size = 44, bare = false }: { code: string; name: string | undefined; size?: number; bare?: boolean }) {
-  const { ink, tint } = useCourseTile()(code);
+  const { ink } = useCourseTile()(code);
   const Glyph = courseGlyph(name);
+  const dot = Math.round(size * 0.32);
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}
+      style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}
     >
-      {!bare && <Glyph size={Math.round(size * 0.52)} color={ink} weight="duotone" duotoneOpacity={0.35} />}
+      {bare ? (
+        <View style={{ width: dot, height: dot, borderRadius: dot / 2, backgroundColor: ink }} />
+      ) : (
+        <Glyph size={Math.round(size * 0.64)} color={ink} weight="duotone" duotoneOpacity={0.35} />
+      )}
     </View>
   );
 }
