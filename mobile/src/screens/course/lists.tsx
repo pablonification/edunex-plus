@@ -20,22 +20,23 @@ import { BigButton } from "../../ui/big-button";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CardGroup, SectionTitle } from "../../ui/v4-list";
+import { SectionTitle } from "../../ui/v4-list";
 import { useCardStyle } from "../home/now";
 import { PastExamRow } from "../tasks/exam-rows";
 import { doneLines, type Line } from "../tasks/list";
 import { PutOff, TaskRow, TodoRow } from "../tasks/rows";
+import { FlatRows } from "./flat";
 
-/** Rows in one white card, a line between them. */
+/** Rows flat on the page, a line between them. */
 function Rows({ children, testID }: { children: ReactNode[]; testID?: string }) {
   const v = useTheme().v4;
   return (
-    <CardGroup testID={testID}>
+    <FlatRows testID={testID} inset={space[4]}>
       {/* Children.map keys each wrapper by its row's own key. */}
       {Children.map(children, (child, i) => (
         <View style={i > 0 ? { borderTopWidth: 1, borderTopColor: v.line } : undefined}>{child}</View>
       ))}
-    </CardGroup>
+    </FlatRows>
   );
 }
 

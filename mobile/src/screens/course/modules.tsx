@@ -11,24 +11,7 @@
 // W1); links open as a lecturer's link does (Edunex's and SIX's pages in the app, signed in); highlights and page notes
 // stay on the desktop (A14).
 
-import { FileIcon } from "phosphor-react-native/src/icons/File";
-import { FileAudioIcon } from "phosphor-react-native/src/icons/FileAudio";
-import { FileCsvIcon } from "phosphor-react-native/src/icons/FileCsv";
-import { FileDocIcon } from "phosphor-react-native/src/icons/FileDoc";
-import { FileImageIcon } from "phosphor-react-native/src/icons/FileImage";
-import { FilePdfIcon } from "phosphor-react-native/src/icons/FilePdf";
-import { FilePptIcon } from "phosphor-react-native/src/icons/FilePpt";
-import { FileVideoIcon } from "phosphor-react-native/src/icons/FileVideo";
-import { FileXlsIcon } from "phosphor-react-native/src/icons/FileXls";
-import { FileZipIcon } from "phosphor-react-native/src/icons/FileZip";
-import { GlobeIcon } from "phosphor-react-native/src/icons/Globe";
-import { ImageIcon } from "phosphor-react-native/src/icons/Image";
-import { LinkSimpleIcon } from "phosphor-react-native/src/icons/LinkSimple";
-import { NoteIcon } from "phosphor-react-native/src/icons/Note";
-import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
-import { StackIcon } from "phosphor-react-native/src/icons/Stack";
-import { VideoCameraIcon } from "phosphor-react-native/src/icons/VideoCamera";
-import { type ComponentType, type ReactNode, useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -39,17 +22,19 @@ import type { Material } from "../../../../src/core/models";
 import { taskStatus } from "../../../../src/core/tasks";
 import { FileProblemNote, useEdunexFile } from "../../parts/files";
 import { LecturerHtml } from "../../parts/lecturer-html";
+import { BHeading } from "../../ui/b";
 import { IconButton } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { IconTile, type TileTone, useToneTile } from "../../ui/icon-tile";
-import { Icons } from "../../ui/icons";
+import { type TileTone, useToneTile } from "../../ui/icon-tile";
+import { type IconProps, Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { Appear, Tap } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile, useCourseTile } from "../../ui/tile";
-import { CardGroup, ROW_INSET, SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
+import { ROW_INSET, SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
 import { TaskRow } from "../tasks/rows";
 import { contentsOf, countFacts, currentEntry, dayAndTime, type Entry, entrySlug } from "./contents";
 
@@ -76,17 +61,26 @@ function Contents({ entries, code, name, onPick }: { entries: Entry[]; code: str
   const t = useT();
   const now = useNow();
   const current = useMemo(() => currentEntry(entries, now), [entries, now]);
+  // The module the course is on, unfolded at the top with its files: "this week's material, opened, in two taps"
+  // (Kuliah's course, then the file). Below it, the whole table of contents.
+  const unfolded = current && current.entry.materials.length > 0 ? current : undefined;
   // The class's own, then the joint class's under its own title (both can have a Modul 1).
   const firstParent = entries.findIndex((e) => e.parent);
   const groups = (firstParent === -1 ? [entries] : [entries.slice(0, firstParent), entries.slice(firstParent)]).filter((group) => group.length > 0);
   return (
     <View testID="list.course.contents">
+      {unfolded && <CurrentModule entry={unfolded.entry} thisWeek={unfolded.thisWeek} onPick={onPick} />}
       {groups.map((group, g) => {
         const joint = group[0]?.parent ?? false;
         return (
           <View key={joint ? "joint" : "own"}>
-            {joint && <SectionTitle first={g === 0}>{t("course.jointClass")}</SectionTitle>}
-            <CardGroup>
+            {joint ? (
+              <SectionTitle first={g === 0 && !unfolded}>{t("course.jointClass")}</SectionTitle>
+            ) : (
+              unfolded && <BHeading style={{ marginTop: space[6], marginBottom: 0 }}>{t("mobile.course.material.all")}</BHeading>
+            )}
+            {/* Flat on the page, a hairline between rows: the same in light and dark. */}
+            <View style={{ marginHorizontal: -14 }}>
               {group.map((entry, i) => (
                 <ModuleRow
                   key={entry.id}
@@ -95,10 +89,11 @@ function Contents({ entries, code, name, onPick }: { entries: Entry[]; code: str
                   code={code}
                   name={name}
                   onPick={onPick}
-                  now={current?.entry === entry ? (current.thisWeek ? "week" : "latest") : null}
+                  // The unfolded module is named by its heading above: its row doesn't say "Minggu ini" again.
+                  now={current?.entry === entry && !unfolded ? (current.thisWeek ? "week" : "latest") : null}
                 />
               ))}
-            </CardGroup>
+            </View>
           </View>
         );
       })}
@@ -106,14 +101,46 @@ function Contents({ entries, code, name, onPick }: { entries: Entry[]; code: str
   );
 }
 
-/** A module's number on its tile ("3"), in the course's ink on its tint. */
-function NumberTile({ no, ink, tint }: { no: string; ink: string; tint: string }) {
+/**
+ * The module the course is on, open in place: "Materi minggu ini" (or "Materi terbaru" when nothing came this week),
+ * which module it is (a tap opens its own page, with its Tasks), then its files and links, each one tap from open.
+ */
+function CurrentModule({ entry, thisWeek, onPick }: { entry: Entry; thisWeek: boolean; onPick: (module: number) => void }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const module = entry.intro ? entry.title : `${t("course.module", { no: entry.label ?? "" })} · ${entry.title}`;
   return (
-    <IconTile tint={tint}>
-      <Text face="display" weight="bold" tabular style={{ color: ink, fontSize: no.length > 2 ? 14 : 17, lineHeight: 22 }}>
+    <Appear testID="module.current">
+      <BHeading style={{ marginBottom: 0 }}>{t(thisWeek ? "mobile.course.material.thisWeek" : "mobile.course.material.latest")}</BHeading>
+      <Tap
+        feel="row"
+        onPress={() => onPick(Number(entry.id))}
+        accessibilityLabel={t("mobile.course.material.openModule", { module })}
+        testID="action.currentModule"
+        style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48 }}
+      >
+        <Text size="bodyMedium" style={{ flex: 1, minWidth: 0, color: v.fg2 }}>
+          {module}
+        </Text>
+        <Icons.ChevronRight size={18} color={v.muted} />
+      </Tap>
+      <View style={{ marginHorizontal: -14 }}>
+        {entry.materials.map((material, i) => (
+          <MaterialRow key={material.id} material={material} first={i === 0} />
+        ))}
+      </View>
+    </Appear>
+  );
+}
+
+/** A module's number ("3"), bare in the course's ink (no pale square behind it). `tint` is kept for its callers. */
+function NumberTile({ no, ink }: { no: string; ink: string; tint?: string }) {
+  return (
+    <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+      <Text face="display" weight="extrabold" tabular style={{ color: ink, fontSize: no.length > 2 ? 16 : 22, lineHeight: 28 }}>
         {no}
       </Text>
-    </IconTile>
+    </View>
   );
 }
 
@@ -238,24 +265,24 @@ export function ModulePage({
           {entry.tasks.length > 0 && (
             <Rise screen="module" index={1}>
               {both ? <SectionTitle>{t("course.tasks")}</SectionTitle> : <View style={{ height: space[6] }} />}
-              <CardGroup>
+              <View>
                 {entry.tasks.map((task, i) => (
                   <View key={task.id}>
                     {i > 0 && <View style={{ height: 1, marginLeft: space[4], backgroundColor: v.line }} />}
                     <TaskRow task={task} status={taskStatus(task, now)} meta="none" />
                   </View>
                 ))}
-              </CardGroup>
+              </View>
             </Rise>
           )}
           {entry.materials.length > 0 && (
             <Rise screen="module" index={2}>
               {both ? <SectionTitle>{t("course.materials")}</SectionTitle> : <View style={{ height: space[6] }} />}
-              <CardGroup>
+              <View style={{ marginHorizontal: -14 }}>
                 {entry.materials.map((material, i) => (
                   <MaterialRow key={material.id} material={material} first={i === 0} />
                 ))}
-              </CardGroup>
+              </View>
               {authors.length > 0 && (
                 <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[3], marginHorizontal: space[1] }}>
                   {t("mobile.module.postedBy", { names: authors.join(" · ") })}
@@ -269,34 +296,34 @@ export function ModulePage({
   );
 }
 
-type Glyph = ComponentType<{ size?: number; color?: string; weight?: "duotone" | "fill" | "regular"; duotoneOpacity?: number }>;
+type Glyph = (props: IconProps) => ReactNode;
 
 /** A file's look by its extension, as phones' file apps colour them: PDF red, Word blue, slides amber, sheets green. */
 const BY_EXTENSION: readonly [RegExp, Glyph, TileTone][] = [
-  [/^pdf$/, FilePdfIcon, "red"],
-  [/^(docx?|odt|rtf)$/, FileDocIcon, "brand"],
-  [/^(pptx?|odp|key)$/, FilePptIcon, "amber"],
-  [/^csv$/, FileCsvIcon, "ok"],
-  [/^(xlsx?|ods)$/, FileXlsIcon, "ok"],
-  [/^(zip|rar|7z|tar|gz)$/, FileZipIcon, "neutral"],
-  [/^(png|jpe?g|gif|webp|svg|bmp|heic)$/, FileImageIcon, "neutral"],
-  [/^(mp4|mov|mkv|avi|webm)$/, FileVideoIcon, "neutral"],
-  [/^(mp3|wav|m4a|ogg|aac)$/, FileAudioIcon, "neutral"],
+  [/^pdf$/, Icons.FileText, "red"],
+  [/^(docx?|odt|rtf)$/, Icons.FileText, "brand"],
+  [/^(pptx?|odp|key)$/, Icons.AppWindow, "amber"],
+  [/^csv$/, Icons.LayoutGrid, "ok"],
+  [/^(xlsx?|ods)$/, Icons.LayoutGrid, "ok"],
+  [/^(zip|rar|7z|tar|gz)$/, Icons.FolderDown, "neutral"],
+  [/^(png|jpe?g|gif|webp|svg|bmp|heic)$/, Icons.Image, "neutral"],
+  [/^(mp4|mov|mkv|avi|webm)$/, Icons.Video, "neutral"],
+  [/^(mp3|wav|m4a|ogg|aac)$/, Icons.Speaker, "neutral"],
 ];
 
-/** Edunex's own kinds, each on a neutral tile. */
+/** Edunex's own kinds, each a neutral glyph (the app's one icon family, ui/icons.tsx). */
 const KIND_GLYPH: Record<MaterialKind, Glyph> = {
-  pdf: FilePdfIcon,
-  vicon: VideoCameraIcon,
-  note: NoteIcon,
-  video: FileVideoIcon,
-  audio: FileAudioIcon,
-  link: LinkSimpleIcon,
-  file: FileIcon,
-  image: ImageIcon,
-  page: GlobeIcon,
-  interactive: StackIcon,
-  other: NoteIcon,
+  pdf: Icons.FileText,
+  vicon: Icons.Video,
+  note: Icons.StickyNote,
+  video: Icons.Video,
+  audio: Icons.Speaker,
+  link: Icons.Link,
+  file: Icons.Paperclip,
+  image: Icons.Image,
+  page: Icons.Globe,
+  interactive: Icons.Layers,
+  other: Icons.StickyNote,
 };
 
 /** A file's extension, lower case, from Edunex's type or the file's name; null when neither says. */
@@ -307,15 +334,16 @@ function extensionOf(material: Material, name: string | null): string | null {
   return (name && /\.([a-z0-9]{2,5})$/i.exec(name)?.[1]?.toLowerCase()) || null;
 }
 
+/** A file's kind as a bare glyph in its kind's ink: no pale square behind it. */
 function KindTile({ kind, extension }: { kind: MaterialKind; extension: string | null }) {
   const tone = useToneTile();
   const byExtension = extension ? BY_EXTENSION.find(([pattern]) => pattern.test(extension)) : undefined;
   const Glyph = byExtension?.[1] ?? KIND_GLYPH[kind];
-  const { ink, tint } = tone(byExtension?.[2] ?? (kind === "pdf" ? "red" : "neutral"));
+  const { ink } = tone(byExtension?.[2] ?? (kind === "pdf" ? "red" : "neutral"));
   return (
-    <IconTile tint={tint}>
-      <Glyph size={23} color={ink} weight="duotone" duotoneOpacity={0.35} />
-    </IconTile>
+    <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+      <Glyph size={24} color={ink} />
+    </View>
   );
 }
 
@@ -448,13 +476,20 @@ function FileItem({
               {meta}
             </Text>
           </View>
-          {busy ? <ActivityIndicator size="small" color={v.muted} /> : !here && <Icons.Download size={20} color={v.muted} />}
+          {/* Downloading: a spinner; here: a quiet check ("saved on this phone", beside Share); else the download arrow. */}
+          {busy ? (
+            <ActivityIndicator size="small" color={v.muted} />
+          ) : here ? (
+            <Icons.CheckCircle size={18} weight="fill" color={v.okFg} />
+          ) : (
+            <Icons.Download size={20} color={v.muted} />
+          )}
         </PressScale>
         {here && (
           <View style={{ paddingRight: space[1] }}>
             <IconButton label={t("mobile.file.shareFor", { name: file.name })} onPress={share} testID={`${testID}.share`}>
-              {/* Android's share glyph; src/ui/icons has no "Share" yet. */}
-              <ShareNetworkIcon size={20} color={v.muted} />
+              {/* ui/icons has no "Share" yet (Fluent's ShareAndroid20Regular): the nearest, an arrow out, meanwhile. */}
+              <Icons.Upload size={20} color={v.muted} />
             </IconButton>
           </View>
         )}

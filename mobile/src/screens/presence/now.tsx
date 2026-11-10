@@ -1,32 +1,30 @@
-// What needs the Student now, on Kuliah (round 2, v4; src/app/screens/presence.tsx's NowZone), each said once and
-// only while there's something to do: Tandai Hadir open, an Edunex window open that may count, SIX's count that didn't
-// go up after a class, and a clash today with which class to go to. Each a card or a row with its one action; the
-// reasons are one tap deeper (the clash's sheet). Signing in to SIX is Kuliah's card instead (./lead.tsx). What SIX
-// counted today is a tick on its course's row; a class that may not run is said on its course's page.
-import { useState } from "react";
+// What needs the Student now, on Kuliah (the super-app round; src/app/screens/presence.tsx's NowZone), each said once
+// and only while there's something to do, each **one line** flat on the page: a Presence open in Edunex or Tandai Hadir
+// open in SIX (the course, "tutup 09:30", and the one presence button, the same part as Beranda's: never a card titled
+// "Isi Presensi" with a button named something else), SIX's count that didn't go up after a class, and a clash today
+// (the one clash sign, the time, the two courses; a tap says which class to go to and why). Signing in to SIX is
+// Kuliah's line instead (./lead.tsx). Why a window may not count is in ⋮ ("Cara menghitung"), not under the line.
+import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import type { Attendance, OpenWindow } from "../../../../src/app/attendance";
-import { useActionLabel } from "../../../../src/app/attendance-labels";
 import { useOpenCheckIn, useOpenExternal } from "../../../../src/app/hooks";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useFormat, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
 import { useDataset } from "../../../../src/app/store";
 import { type AttendanceHealth, clashPick } from "../../../../src/core/attendance";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import type { ClassSession } from "../../../../src/core/models";
 import { useNav } from "../../nav";
-import { CountdownBar } from "../../parts/meter";
 import { BigButton } from "../../ui/big-button";
-import { Button } from "../../ui/controls";
-import { PulseDot } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { Appear, Tap } from "../../ui/moves";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CardGroup, StatusChip, TileRow } from "../../ui/v4-list";
-import { useCardStyle } from "../home/now";
+import { useCourseTile } from "../../ui/tile";
 import { shortName } from "../home/parts";
+import { ClashMark, PresenceButton } from "./kit-standin";
 import { clashAnswer, dayLabel, type Zone } from "./logic";
 
 /** Whether the zone has anything to show above the courses. */
@@ -35,7 +33,7 @@ export const nowShown = (zone: Zone) => zone.checkIns.length + zone.windows.leng
 export function NowZone({ zone, attendance }: { zone: Zone; attendance: Attendance }) {
   if (!nowShown(zone)) return null;
   return (
-    <View style={{ gap: space[3] }}>
+    <View>
       {zone.checkIns.map((session) => (
         <OpenCheckIn key={session.id} session={session} />
       ))}
@@ -43,123 +41,101 @@ export function NowZone({ zone, attendance }: { zone: Zone; attendance: Attendan
         <OpenPresence key={window.session.id} window={window} />
       ))}
       {zone.results.map((result) => (
-        <SixResult key={result.id} result={result} health={attendance.courses.find((c) => c.course.code === result.code)?.health} />
+        <View key={result.id} style={{ marginVertical: space[2] }}>
+          <SixResult result={result} health={attendance.courses.find((c) => c.course.code === result.code)?.health} />
+        </View>
       ))}
-      {zone.clashes.length > 0 && (
-        <CardGroup testID="card.clash">
-          {zone.clashes.map((clash, i) => (
-            <ClashRow key={`${clash.a.course.code}-${clash.b.course.code}`} clash={clash} first={i === 0} />
-          ))}
-        </CardGroup>
-      )}
-    </View>
-  );
-}
-
-/** A live card's head: the breathing dot, its title in the display face, and one meta line. */
-function LiveHead({ title, meta }: { title: string; meta: string }) {
-  const v = useTheme().v4;
-  return (
-    <View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <PulseDot color={v.live} />
-        <Text size="titleMedium" face="display" weight="bold" style={{ color: v.fg, flex: 1, fontSize: 18 }}>
-          {title}
-        </Text>
-      </View>
-      <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[1] }}>
-        {meta}
-      </Text>
-    </View>
-  );
-}
-
-/** A class where SIX shows "Tandai Hadir" now (as the app last read its popup), with the way to press it. */
-function OpenCheckIn({ session }: { session: ClassSession }) {
-  const t = useT();
-  const f = useFormat();
-  const v = useTheme().v4;
-  const surface = useCardStyle();
-  const openCheckIn = useOpenCheckIn();
-  const student = useDataset("six.student");
-  if (!student) return null;
-  return (
-    <View style={[surface, { padding: space[4], gap: space[3] }]} testID="card.checkIn">
-      <LiveHead title={t("home.now.checkInOpen")} meta={t("presence.checkIn.class", { code: session.courseCode, time: f.time(session.end) })} />
-      <BigButton
-        icon={<Icons.Hand size={20} weight="fill" color={v.onBrand} />}
-        onPress={() => openCheckIn(session.id, sixTimetableUrl(student, session.start))}
-        label={t("home.now.openSixLabel", { course: session.courseCode })}
-        testID="action.checkIn"
-      >
-        {t("home.now.openSix")}
-      </BigButton>
+      {zone.clashes.map((clash) => (
+        <ClashRow key={`${clash.a.course.code}-${clash.b.course.code}`} clash={clash} />
+      ))}
     </View>
   );
 }
 
 /**
- * An Edunex window open now: what to do ("Isi Presensi", or the action itself) and when it closes, as the desktop's
- * card says it, with the way to do it and the time left. No system says whether the lecturer uses it, so it's never
- * optional. Without SIX (or before either has a count) nobody can say it counts: "belum pasti dihitung", and why under
- * the bar (the desktop's info button); without SIX its button is the quiet one.
+ * One line for a class whose attendance can be marked now: a dot in the course's colour, its name, when the window
+ * closes under it, and the one presence button at its end. It comes and goes with the window (Appear).
+ */
+function PresenceLine({ code, name, meta, button, testID }: { code: string; name: string; meta: string; button: ReactNode; testID: string }) {
+  const v = useTheme().v4;
+  const { ink } = useCourseTile()(code);
+  return (
+    <Appear testID={testID} style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 56, paddingVertical: space[1] }}>
+      <View style={{ width: 4, alignSelf: "stretch", borderRadius: 2, backgroundColor: ink }} />
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="bodyLarge" weight="semibold" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+          {name}
+        </Text>
+        <Text size="bodyMedium" tabular style={{ color: v.fg2, marginTop: 2 }}>
+          {meta}
+        </Text>
+      </View>
+      {button}
+    </Appear>
+  );
+}
+
+/** A class where SIX shows "Tandai Hadir" now (as the app last read its popup): the same line, SIX's own word. */
+function OpenCheckIn({ session }: { session: ClassSession }) {
+  const t = useT();
+  const f = useFormat();
+  const names = useCourseNames();
+  const openCheckIn = useOpenCheckIn();
+  const student = useDataset("six.student");
+  if (!student) return null;
+  return (
+    <PresenceLine
+      testID="card.checkIn"
+      code={session.courseCode}
+      name={shortName(names(session.courseCode, undefined))}
+      meta={t("mobile.kuliah.classUntil", { time: f.time(session.end) })}
+      button={
+        <PresenceButton
+          onPress={() => openCheckIn(session.id, sixTimetableUrl(student, session.start))}
+          label={t("home.now.openSixLabel", { course: session.courseCode })}
+          testID="action.checkIn"
+        >
+          {t("mobile.notification.checkIn")}
+        </PresenceButton>
+      }
+    />
+  );
+}
+
+/**
+ * An Edunex window open now: the course, "tutup 09:30" (and "belum pasti dihitung" while nobody can say it counts:
+ * without SIX, or before either has a count), and "Isi Presensi", which opens it in Edunex. A Presence that is a Task
+ * opens that Task instead. Without SIX the button is the quiet one.
  */
 function OpenPresence({ window }: { window: OpenWindow }) {
   const t = useT();
   const f = useFormat();
-  const now = useNow();
-  const v = useTheme().v4;
-  const surface = useCardStyle();
   const open = useOpenExternal();
   const { go } = useNav();
-  const actionLabel = useActionLabel();
   const names = useCourseNames();
   const { session, code, health, action } = window;
   const task = action.activity === "assignment" ? action.task : null;
   const noSix = health?.countedIn === "noSix";
   const notKnown = !noSix && health?.countedIn === "unknown";
-  const time = f.time(session.closesAt);
-  const iconColor = noSix ? v.fg : v.onBrand;
+  const name = shortName(names(code, window.course?.name));
   return (
-    <View style={[surface, { padding: space[4], gap: space[3] }]} testID={`card.presenceOpen.${code}`}>
-      <LiveHead
-        title={action.activity === "course" ? t("presence.open.fill") : actionLabel(window)}
-        meta={factsLabel(shortName(names(code, window.course?.name)), (noSix || notKnown) && t("presence.open.maybe"))}
-      />
-      {/* The bar says how much is left, "tutup 09:30" beside it says when (round 3's fourth review: a bar with no words
-          read as decoration); its spoken name has both. */}
-      <CountdownBar
-        opensAt={session.opensAt}
-        closesAt={session.closesAt}
-        now={now}
-        text={t("presence.open.closes", { time })}
-        label={factsLabel(t("presence.open.closes", { time }), t("presence.open.left", { time: f.countdown(session.closesAt) }))}
-      />
-      {(noSix || notKnown) && (
-        <Text size="bodyMedium" style={{ color: v.muted }}>
-          {t(noSix ? "presence.open.noSixWhy" : "presence.open.notKnownWhy")}
-        </Text>
-      )}
-      {task ? (
-        <BigButton
-          variant={noSix ? "outline" : "filled"}
-          icon={<Icons.ArrowRight size={18} color={iconColor} />}
-          onPress={() => go({ screen: "task", taskId: task.id })}
-          testID="action.presenceTask"
-        >
-          {t("presence.open.task")}
-        </BigButton>
-      ) : (
-        <BigButton
-          variant={noSix ? "outline" : "filled"}
-          icon={<Icons.ArrowUpRight size={18} color={iconColor} />}
-          onPress={() => open(action.url)}
-          testID="action.presenceRecord"
-        >
-          {t("presence.open.record")}
-        </BigButton>
-      )}
-    </View>
+    <PresenceLine
+      testID={`card.presenceOpen.${code}`}
+      code={code}
+      name={name}
+      meta={factsLabel(t("presence.open.closes", { time: f.time(session.closesAt) }), (noSix || notKnown) && t("presence.open.maybe"))}
+      button={
+        task ? (
+          <PresenceButton quiet={noSix} onPress={() => go({ screen: "task", taskId: task.id })} testID="action.presenceTask">
+            {t("presence.open.task")}
+          </PresenceButton>
+        ) : (
+          <PresenceButton quiet={noSix} onPress={() => open(action.url)} label={t("mobile.kuliah.presenceLabel", { course: name })}>
+            {t("presence.open.fill")}
+          </PresenceButton>
+        )
+      }
+    />
   );
 }
 
@@ -205,11 +181,11 @@ function SixResult({ result, health }: { result: Zone["results"][number]; health
 }
 
 /**
- * Two classes today at the same time: "Bentrok 16:00–16:30", the two courses by their short names (a code meant
- * nothing at a glance, round 3's fourth review), and "Pilih kelas" as a tonal button: its sheet says which to go to and
- * why ("Kalau hanya bisa hadir di salah satunya, pilih Ekonomi Infrastruktur …").
+ * Two classes today at the same time, on one line: the clash sign ("Bentrok", as on Beranda and Jadwal), the time, and
+ * the two courses by their short names. A tap opens which to go to and why ("Kalau hanya bisa hadir di salah satunya,
+ * pilih Ekonomi Infrastruktur …").
  */
-function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boolean }) {
+function ClashRow({ clash }: { clash: Zone["clashes"][number] }) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
@@ -221,31 +197,31 @@ function ClashRow({ clash, first }: { clash: Zone["clashes"][number]; first: boo
   const whole = t("presence.clash.today", { a: short(a.course.code), b: short(b.course.code), time });
   const body = clashAnswer(t, a.health, b.health, short);
   const pick = clashPick(a.health, b.health).pick;
+  // With a pick but no why to open, the pick is said on the line itself.
+  const names2 = !body && pick ? t("mobile.kuliah.clash.pick", { code: short(pick) }) : `${short(a.course.code)} · ${short(b.course.code)}`;
   return (
     <>
-      <TileRow
-        first={first}
+      <Tap
+        feel="row"
         testID={`row.clash.${a.course.code}-${b.course.code}`}
-        leading={
-          <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.ambBg, alignItems: "center", justifyContent: "center" }}>
-            <Icons.Overlap size={22} weight="bold" color={v.ambFg} />
-          </View>
-        }
-        title={t("mobile.kuliah.clash.title", { time })}
-        meta={`${short(a.course.code)} · ${short(b.course.code)}`}
-        // Which to go to is the row's action, so it looks like one: a tonal button opening the why, as the row does.
-        status={
-          pick && body ? (
-            <Button variant="tonal" size="sm" onPress={() => setOpen(true)} testID="action.clashPick">
-              {t("mobile.kuliah.clash.choose")}
-            </Button>
-          ) : pick ? (
-            <StatusChip tone="brand">{t("mobile.kuliah.clash.pick", { code: short(pick) })}</StatusChip>
-          ) : undefined
-        }
         onPress={body ? () => setOpen(true) : undefined}
-        label={body ? `${whole}. ${body}` : whole}
-      />
+        disabled={!body}
+        accessibilityLabel={body ? `${whole}. ${body}` : whole}
+        style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 56, paddingVertical: space[2] }}
+      >
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: space[2] }}>
+            <ClashMark />
+            <Text size="bodyMedium" weight="semibold" tabular style={{ color: v.fg }}>
+              {time}
+            </Text>
+          </View>
+          <Text size="bodyMedium" style={{ color: v.fg2, marginTop: 2 }}>
+            {names2}
+          </Text>
+        </View>
+        {body && <Icons.ChevronRight size={18} color={v.muted} />}
+      </Tap>
       {body && (
         <Sheet
           open={open}

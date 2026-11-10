@@ -21,6 +21,13 @@ export const mobileKuliahStrings = {
   "mobile.kuliah.clash.title": { id: "Bentrok {time}", en: "Clash {time}" },
   "mobile.kuliah.clash.choose": { id: "Pilih kelas", en: "Which class?" },
   "mobile.kuliah.clash.pick": { id: "Pilih {code}", en: "Go to {code}" },
+  // superapp: Kuliah
+  // A clash's one sign on every tab: an icon and this word.
+  "mobile.kuliah.clash.word": { id: "Bentrok", en: "Clash" },
+  // The line at the top while SIX shows Tandai Hadir: until when the class runs, beside the course's name.
+  "mobile.kuliah.classUntil": { id: "kuliah sampai {time}", en: "class until {time}" },
+  // What the "Isi Presensi" button says to a screen reader: it opens Edunex, where the Presence is marked.
+  "mobile.kuliah.presenceLabel": { id: "Isi Presensi {course} di Edunex", en: "Fill in Presence for {course} in Edunex" },
 } as const satisfies Record<string, Entry>;
 
 export const mobileCourseStrings = {
@@ -87,6 +94,16 @@ export const mobileCourseStrings = {
   "mobile.grade.rename": { id: "Ganti nama", en: "Rename" },
   "mobile.grade.remove": { id: "Hapus", en: "Remove" },
   "mobile.grade.removed": { id: "{part} dihapus", en: "{part} removed" },
+  // superapp: Kuliah
+  // A course's first tab: its material (Edunex's modules). The word the Student looks for after class.
+  "mobile.course.tab.material": { id: "Materi", en: "Material" },
+  // Over the module the course is on, unfolded at the top of Materi: new material this week, else the newest.
+  "mobile.course.material.thisWeek": { id: "Materi minggu ini", en: "This week's material" },
+  "mobile.course.material.latest": { id: "Materi terbaru", en: "Latest material" },
+  // Over the whole table of contents under it.
+  "mobile.course.material.all": { id: "Semua modul", en: "All modules" },
+  // The way into the unfolded module's own page (its Tasks, who posted it).
+  "mobile.course.material.openModule": { id: "Buka {module}", en: "Open {module}" },
 } as const satisfies Record<string, Entry>;
 
 export const mobileModuleStrings = {

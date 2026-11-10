@@ -1,21 +1,20 @@
-// Kuliah on the phone (round 3; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds, which course
-// is at risk, and the way into each. On v4's grey page under the bar's "Kuliah": what needs the Student now
-// (./now.tsx), then every course as a row in a white card: its tile, its whole name, and under it the state of its
-// absences in plain words ("Absen lewat 1×", "Jatah absen habis" in the risk's ink, "Sisa 2×" quiet). The
-// courses at risk (out of reach, none left, finished below) come first under "Perlu perhatian", the rest under "Aman"
-// (or "Lainnya" while some have no count yet), in the desktop's order. The row opens the course. The day's answer, the
-// target and how it's counted are in ⋮ (./footer.tsx's sheet), beside the targets. Same data and words as the desktop.
+// Kuliah on the phone (the super-app round; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds,
+// is my attendance safe in every course, and the way into each. On the white page under the bar's "Kuliah": what needs
+// the Student now, each on one line (./now.tsx: "Isi Presensi", a clash), then every course as a block in its own
+// colour (./course-card.tsx): its name whole, its absences as pips with the state in words, its code. The courses at
+// risk come first, the rest after them with no heading between (the pips' colour says which is which; "Aman" as a
+// heading pushed the safe ones off the first screen). Without SIX the count is unknown: said once, on a line at the
+// top, never on each course. The targets and how it's counted are in ⋮ (./footer.tsx's sheet).
 import { useState } from "react";
 import { View } from "react-native";
 import { type Attendance, useAttendance } from "../../../../src/app/attendance";
 import { useNow, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
 import { useDataset, useSettings } from "../../../../src/app/store";
-import type { PresenceGroup } from "../../../../src/core/attendance";
 import { BTabHeader } from "../../parts/b-header";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
-import { BHeading, useB } from "../../ui/b";
+import { useB } from "../../ui/b";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
@@ -60,10 +59,8 @@ export function useRowContext(onChangeTarget: (code: string) => void): { attenda
   return { attendance, context, zone };
 }
 
-/** The groups that ask the most of the Student: their courses share the first card. */
-const AT_RISK: readonly PresenceGroup[] = ["out", "none", "missed"];
-/** The groups with absences to spare or the target met: their card is "Aman"; with any course still uncounted, "Lainnya". */
-const CALM: readonly PresenceGroup[] = ["spare", "met"];
+/** How many courses are drawn with the screen's first frame; the rest come a frame later (../../ui/parts.tsx). */
+const FIRST = 4;
 
 /**
  * Kuliah (round 3): what needs the Student now, then the courses, at risk first under their heading, each a row that
@@ -107,7 +104,8 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
       : []),
   ];
   const menu = choices.length ? <OverflowMenu testID="action.coursesMenu" choices={choices} /> : undefined;
-  const bands = [groups.filter((g) => AT_RISK.includes(g.group)), groups.filter((g) => !AT_RISK.includes(g.group))].filter((band) => band.length > 0);
+  // At risk first (the desktop's order), one list: each course says its own state.
+  const list = groups.flatMap(({ group, items }) => items.map((item) => ({ group, item })));
   return (
     <Page
       testID="screen.courses"
@@ -119,50 +117,34 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
       {!rows ? (
         <Loading />
       ) : (
-        <View style={{ gap: space[4] }}>
+        <View>
           <SixPageNote datasets={["six.courses", "six.schedule"]} />
-          {!connected && courses.length > 0 && (
+          {!connected && courses.length > 0 && <SignInCard quiet={rows.zone.windows.length > 0} />}
+          {/* Each line comes and goes with its window (Appear, in ./now.tsx): no second move around them. */}
+          {nowShown(rows.zone) && <NowZone zone={rows.zone} attendance={rows.attendance} />}
+          {courses.length === 0 ? (
+            !listChanged && (
+              <EmptyState
+                icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />}
+                title={t("presence.empty")}
+                description={t("presence.emptyHint")}
+              />
+            )
+          ) : (
             <Rise screen="courses" index={0}>
-              <SignInCard quiet={rows.zone.windows.length > 0} />
-            </Rise>
-          )}
-          {nowShown(rows.zone) && (
-            <Rise screen="courses" index={1}>
-              <NowZone zone={rows.zone} attendance={rows.attendance} />
-            </Rise>
-          )}
-          {courses.length === 0
-            ? !listChanged && (
-                <EmptyState
-                  icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />}
-                  title={t("presence.empty")}
-                  description={t("presence.emptyHint")}
-                />
-              )
-            : bands.map((band, i) => (
-                // The courses past the first card: a part of their own on a first draw ahead (../../ui/parts.tsx).
-                <Part key={band[0]!.group} at={i === 0 ? 0 : 1}>
-                  <Rise screen="courses" index={2 + i}>
-                    {/* With both bands, each under its name (said once for all its courses): never the rest under "Perlu perhatian". */}
-                    {bands.length > 1 && (
-                      <BHeading style={i > 0 ? { marginTop: space[4] } : undefined}>
-                        {t(i === 0 ? "mobile.kuliah.attention" : band.every((g) => CALM.includes(g.group)) ? "mobile.kuliah.calm" : "mobile.kuliah.rest")}
-                      </BHeading>
-                    )}
-                    {/* Two across, as the official app lists courses: each a card of its own, in its colour. */}
-                    <View style={{ gap: space[5] }}>
-                      {pairs(band.flatMap(({ group, items }) => items.map((item) => ({ group, item })))).map((pair) => (
-                        <View key={pair[0]!.item.course.code} style={{ flexDirection: "row", gap: space[4] }}>
-                          {pair.map(({ group, item }) => (
-                            <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
-                          ))}
-                          {pair.length === 1 && <View style={{ flex: 1 }} />}
-                        </View>
-                      ))}
-                    </View>
-                  </Rise>
+              <View testID="list.courses" style={{ gap: space[1.5], marginTop: nowShown(rows.zone) || !connected ? space[2] : 0 }}>
+                {list.slice(0, FIRST).map(({ group, item }) => (
+                  <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
+                ))}
+                {/* The courses past the first few: on the frame after the first (the tab's first frame stays light). */}
+                <Part at={1}>
+                  {list.slice(FIRST).map(({ group, item }) => (
+                    <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
+                  ))}
                 </Part>
-              ))}
+              </View>
+            </Rise>
+          )}
         </View>
       )}
       {rows && courses.length > 0 && <FactsSheet attendance={rows.attendance} open={facts} onClose={() => setFacts(false)} />}
@@ -178,27 +160,12 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   );
 }
 
-/** A list two by two. */
-function pairs<T>(list: readonly T[]): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < list.length; i += 2) out.push(list.slice(i, i + 2));
-  return out;
-}
-
-/** Kuliah's shape before its data: a card of rows, each a name over its meter. Never a spinner on a blank page. */
+/** Kuliah's shape before its data: the courses' blocks, a name over its status. Never a spinner on a blank page. */
 function Loading() {
   return (
-    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[5] }}>
-      {[0, 1, 2].map((row) => (
-        <View key={row} style={{ flexDirection: "row", gap: space[4] }}>
-          {[0, 1].map((i) => (
-            <View key={i} style={{ flex: 1, gap: space[2] }}>
-              <Skeleton height={88} style={{ borderRadius: 20 }} />
-              <Skeleton height={16} width={i ? "60%" : "80%"} />
-              <Skeleton height={12} width={96} />
-            </View>
-          ))}
-        </View>
+    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[2] }}>
+      {[0, 1, 2, 3, 4, 5].map((row) => (
+        <Skeleton key={row} height={68} style={{ borderRadius: 16 }} />
       ))}
     </View>
   );
