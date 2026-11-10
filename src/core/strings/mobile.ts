@@ -44,7 +44,7 @@ export const mobileStrings = {
   "mobile.service.calendar": { id: "Kalender", en: "Calendar" },
   "mobile.service.material": { id: "Materi", en: "Materials" },
   "mobile.service.exams": { id: "Ujian", en: "Exams" },
-  "mobile.service.month": { id: "Sebulan", en: "Month" },
+  "mobile.service.month": { id: "Jadwal bulanan", en: "Monthly schedule" },
   "mobile.service.needs": { id: "Perlu kamu urus", en: "To handle" },
   "mobile.service.report": { id: "Lapor", en: "Report" },
   "mobile.service.scan": { id: "Ringkasan", en: "Summary" },
@@ -81,6 +81,8 @@ export const mobileStrings = {
   // Search: the services found by name, and what's offered under a search that found nothing.
   "mobile.search.group.services": { id: "Layanan", en: "Services" },
   "mobile.search.close": { id: "Mungkin yang kamu cari ada di sini:", en: "Maybe what you need is here:" },
+  // superapp: search, round 2. Before anything is typed: the next three Tasks due, by that name (the Tugas tab has all).
+  "mobile.search.group.nextDue": { id: "Tenggat terdekat", en: "Due next" },
   // Akademik: the screens behind it, as a list.
   "mobile.academic.screens": { id: "Studimu", en: "Your studies" },
   // Android's notification channels, as Settings › Notifications lists them.
@@ -277,7 +279,7 @@ export const mobileStrings = {
   // Jadwal's ⋮, named for what it holds.
   "mobile.schedule.menu": { id: "Opsi jadwal", en: "Schedule options" },
   // Jadwal's top bar: the month, a screen away.
-  "mobile.schedule.month": { id: "Lihat sebulan", en: "Month view" },
+  "mobile.schedule.month": { id: "Lihat jadwal bulanan", en: "See the monthly schedule" },
   // Jadwal's ⋮: the reminder before each class (the engine's "Kuliah sebentar lagi"), with how long before. The label fits
   // on one line beside its switch in the menu's 280 dp (the judge's round 2, pass 6).
   "mobile.schedule.remind": { id: "Pengingat kuliah", en: "Class reminders" },

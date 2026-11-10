@@ -3,45 +3,29 @@
 // circle, as on Beranda and Semua layanan. The typed part of a name is marked in the brand colour.
 import { type ComponentType, memo, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { BHeading, useB } from "../../ui/b";
-import { type IconProps, Icons, ServiceIcons } from "../../ui/icons";
+import { BHeading, ServiceCircle, useB } from "../../ui/b";
+import { type IconProps, Icons } from "../../ui/icons";
 import { Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { space } from "../../ui/theme";
-import { useCourseTile } from "../../ui/tile";
+import { CourseGlyph, useCourseTile } from "../../ui/tile";
 import type { Service } from "../services/list";
 import { markedSpans } from "./services";
 
-/** Each service's glyph, from the app's one icon family. */
-const SERVICE_ICON: Record<string, ComponentType<IconProps>> = {
-  schedule: ServiceIcons.Schedule,
-  tasks: ServiceIcons.Tasks,
-  courses: ServiceIcons.Courses,
-  presence: ServiceIcons.Attendance,
-  month: ServiceIcons.Schedule,
-  needs: Icons.AlertTriangle,
-  grades: ServiceIcons.Grades,
-  krs: ServiceIcons.Krs,
-  bills: ServiceIcons.Bills,
-  calendar: ServiceIcons.AcademicCalendar,
-  planner: ServiceIcons.StudyPlan,
-  curriculum: ServiceIcons.Curriculum,
-  alerts: ServiceIcons.Notifications,
-  settings: ServiceIcons.Settings,
-  report: Icons.Chat,
-  scan: ServiceIcons.Files,
-  material: ServiceIcons.Materials,
-  exams: ServiceIcons.Exams,
-};
-
-/** A service's mark: its filled glyph on its own colour. */
+/** A service's mark: the list's own small solid tile (its `icon` and `tone`), the same look as Semua layanan's. */
 export function ServiceMark({ service }: { service: Service }) {
-  const b = useB();
-  const { ink, tint } = b.tone(service.tone);
-  const Icon = SERVICE_ICON[service.id] ?? ServiceIcons.More;
   return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.circle, { backgroundColor: tint }]}>
-      <Icon size={24} color={ink} weight="fill" />
+    <View style={styles.mark}>
+      <ServiceCircle icon={service.icon} tone={service.tone} size={36} />
+    </View>
+  );
+}
+
+/** A course's mark: its own glyph in its colour, as on Kuliah and Nilai; never one cap for every course. */
+export function CourseMark({ code, name }: { code: string; name: string }) {
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.mark}>
+      <CourseGlyph code={code} name={name} size={24} />
     </View>
   );
 }
@@ -82,7 +66,9 @@ export function Marked({ text, query }: { text: string; query: string }) {
 export const ResultRow = memo(function ResultRow({
   leading,
   title,
+  course,
   meta,
+  chevron = false,
   last,
   onPress,
   testID,
@@ -90,24 +76,38 @@ export const ResultRow = memo(function ResultRow({
 }: {
   leading: ReactNode;
   title: ReactNode;
+  /** The course a Task, exam or material belongs to: named, in the course's colour, before the quiet line. */
+  course?: { code: string; name: string };
   meta?: string;
+  /** It opens something: the quiet chevron at its end. */
+  chevron?: boolean;
   last: boolean;
   onPress(): void;
   testID: string;
   label: string;
 }) {
   const b = useB();
+  const tile = useCourseTile();
   return (
     <Tap feel="row" onPress={onPress} testID={testID} accessibilityLabel={label}>
       <View style={styles.row}>
         {leading}
         <View style={[styles.body, { borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth * 2, borderBottomColor: b.line }]}>
-          {title}
-          {meta ? (
-            <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: b.muted }}>
-              {meta}
-            </Text>
-          ) : null}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            {title}
+            {course || meta ? (
+              <Text size="bodyMedium" tabular numberOfLines={2} style={{ color: b.muted }}>
+                {course && (
+                  <Text size="bodyMedium" weight="medium" style={{ color: tile(course.code).ink }}>
+                    {course.name}
+                  </Text>
+                )}
+                {course && meta ? " · " : null}
+                {meta}
+              </Text>
+            ) : null}
+          </View>
+          {chevron && <Icons.ChevronRight size={20} color={b.muted} />}
         </View>
       </View>
     </Tap>
@@ -133,10 +133,9 @@ export function RecentChip({ label, onPress, testID }: { label: string; onPress(
 }
 
 const styles = StyleSheet.create({
-  circle: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
   mark: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   row: { flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 64 },
-  body: { flex: 1, minWidth: 0, minHeight: 64, justifyContent: "center", paddingVertical: space[3] },
+  body: { flex: 1, minWidth: 0, minHeight: 64, flexDirection: "row", alignItems: "center", gap: space[2], paddingVertical: space[3] },
   chip: {
     flexDirection: "row",
     alignItems: "center",

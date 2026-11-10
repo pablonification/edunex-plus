@@ -16,6 +16,10 @@ describe("search's services", () => {
     expect(ids("")).toEqual([]);
   });
 
+  it("finds the month view, Jadwal bulanan, by the words Students type for it", () => {
+    for (const query of ["jadwal bulanan", "bulan", "sebulan", "kalender", "month"]) expect(ids(query), query).toContain("month");
+  });
+
   it("lists each service once", () => {
     const all = SEARCH_SERVICES.map((service) => service.id);
     expect(new Set(all).size).toBe(all.length);
