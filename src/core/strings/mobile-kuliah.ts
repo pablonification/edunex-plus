@@ -109,8 +109,8 @@ export const mobileCourseStrings = {
   "mobile.absence.dots.left": { id: "sisa {count}", en: "{count} left" },
   "mobile.absence.dots.none": { id: "habis", en: "none left" },
   "mobile.absence.dots.over": { id: "lewat {count}", en: "{count} over" },
-  // Kuliah's "Hari ini" while nothing is open: the next class today ("13:00 · Komunikasi Pemasaran"), the class on
-  // now with no Presence open, that today's classes are over, or that there are none.
+  // Kuliah's "Hari ini" while nothing is open: the next class today ("Berikutnya 13:00 · Komunikasi Pemasaran"), the
+  // class on now with no Presence open, that today's classes are over, or that there are none.
   "mobile.kuliah.today.next": { id: "Berikutnya {time} · {course}", en: "Next {time} · {course}" },
   "mobile.kuliah.today.live": { id: "{course} · selesai {time}", en: "{course} · ends {time}" },
   "mobile.kuliah.today.over": { id: "Kelas hari ini sudah selesai", en: "Today's classes are over" },

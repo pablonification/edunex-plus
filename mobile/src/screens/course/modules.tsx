@@ -23,7 +23,6 @@ import { taskStatus } from "../../../../src/core/tasks";
 import { FILE_KINDS, FileProblemNote, useEdunexFile } from "../../parts/files";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { BHeading } from "../../ui/b";
-import { IconButton } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { useToneTile } from "../../ui/icon-tile";
@@ -242,20 +241,18 @@ function ModuleRow({
 }
 
 /**
- * One module (or a course's Introduction), on its own screen: where it is ("Modul 3 · Tugas Akhir I"), its title big
- * (collapsing into the bar, `onTitleHeight`), its Tasks, then its materials, and who posted them.
+ * One module (or a course's Introduction), on its own screen, under the bar that holds its title: where it is on one
+ * quiet line ("Modul 3 · Tugas Akhir I"), its Tasks, then its materials, and who posted them.
  */
 export function ModulePage({
   entry,
   anyContent,
   course,
-  onTitleHeight,
 }: {
   entry: Entry;
   anyContent: boolean;
-  /** The course's name, for the line over the title. */
+  /** The course's name, for the line under the bar's title. */
   course: string;
-  onTitleHeight?: (height: number) => void;
 }) {
   const t = useT();
   const now = useNow();
@@ -269,19 +266,9 @@ export function ModulePage({
   return (
     <View testID={`page.module.${entry.id}`}>
       <Rise screen="module" index={0}>
-        <View onLayout={(event) => onTitleHeight?.(event.nativeEvent.layout.height)}>
-          <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
-            {where}
-          </Text>
-          <Text
-            face="display"
-            weight="bold"
-            accessibilityRole="header"
-            style={{ color: v.fg, fontSize: 26, lineHeight: 33, letterSpacing: -0.4, marginTop: space[1] }}
-          >
-            {entry.title}
-          </Text>
-        </View>
+        <Text size="bodyMedium" style={{ color: v.fg2 }}>
+          {where}
+        </Text>
       </Rise>
       {empty ? (
         <EmptyState
@@ -292,7 +279,7 @@ export function ModulePage({
         <>
           {entry.tasks.length > 0 && (
             <Rise screen="module" index={1}>
-              {both ? <SectionTitle>{t("course.tasks")}</SectionTitle> : <View style={{ height: space[6] }} />}
+              {both ? <SectionTitle>{t("course.tasks")}</SectionTitle> : <View style={{ height: space[3] }} />}
               <View>
                 {entry.tasks.map((task, i) => (
                   <View key={task.id}>
@@ -305,7 +292,7 @@ export function ModulePage({
           )}
           {entry.materials.length > 0 && (
             <Rise screen="module" index={2}>
-              {both ? <SectionTitle>{t("course.materials")}</SectionTitle> : <View style={{ height: space[6] }} />}
+              {both ? <SectionTitle>{t("course.materials")}</SectionTitle> : <View style={{ height: space[3] }} />}
               <View style={{ marginHorizontal: -ROW_SIDE }}>
                 {entry.materials.map((material, i) => (
                   <MaterialRow key={material.id} material={material} first={i === 0} />
@@ -448,8 +435,9 @@ function MaterialRow({ material, first }: { material: Material; first: boolean }
 }
 
 /**
- * A lecturer's file (W1): the row opens it in the phone's own app, downloading it once (a spinner meanwhile, the
- * download arrow until it's here); once it's here, Share beside it. What went wrong stays under the row with the way
+ * A lecturer's file (W1): the row opens it in the phone's own app, downloading it once. One mark at its end, the same
+ * as Materi's rows: the chevron (it opens here), a spinner while it downloads. Once it's on the phone, tap and hold
+ * shares it (a screen reader hears that as the row's hint). What went wrong stays under the row with the way
  * forward (FileProblemNote), never a snackbar.
  */
 function FileItem({
@@ -480,7 +468,9 @@ function FileItem({
           accessibilityLabel={factsLabel(t("mobile.file.openFor", { name: material.title }), meta)}
           accessibilityState={{ busy }}
           onPress={() => void open()}
-          style={[rowStyle, { flex: 1, paddingRight: here ? space[1] : ROW_SIDE }]}
+          onLongPress={here ? share : undefined}
+          accessibilityHint={here ? t("mobile.file.shareFor", { name: file.name }) : undefined}
+          style={[rowStyle, { flex: 1 }]}
         >
           {tile}
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -491,22 +481,8 @@ function FileItem({
               {meta}
             </Text>
           </View>
-          {/* Downloading: a spinner; here: a quiet check ("saved on this phone", beside Share); else the download arrow. */}
-          {busy ? (
-            <ActivityIndicator size="small" color={v.muted} />
-          ) : here ? (
-            <Icons.CheckCircle size={18} weight="fill" color={v.okFg} />
-          ) : (
-            <Icons.Download size={20} color={v.muted} />
-          )}
+          {busy ? <ActivityIndicator size="small" color={v.muted} /> : <Icons.ChevronRight size={20} color={v.muted} />}
         </PressScale>
-        {here && (
-          <View style={{ paddingRight: space[1] }}>
-            <IconButton label={t("mobile.file.shareFor", { name: file.name })} onPress={share} testID={`${testID}.share`}>
-              <Icons.Share size={20} color={v.muted} />
-            </IconButton>
-          </View>
-        )}
       </View>
       {problem && (
         <FileProblemNote

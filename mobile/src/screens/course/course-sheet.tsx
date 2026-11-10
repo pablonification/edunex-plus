@@ -17,7 +17,7 @@ import { useDataset } from "../../../../src/app/store";
 import { type AttendanceHealth, percent } from "../../../../src/core/attendance";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import { TargetStepper, useTargets } from "../../parts/attendance";
-import { AttendanceMeter, meterModel, meterTone } from "../../parts/attendance-meter";
+import { meterModel, meterTone } from "../../parts/attendance-meter";
 import { IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
@@ -26,6 +26,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { shortName } from "../home/parts";
+import { AbsenceDots } from "../presence/absence-dots";
 import { metaParts, noCountLine, type RowContext } from "../presence/logic";
 import { type CourseExceptionNote, ExceptionIcon, useCourseException } from "./attendance-line";
 
@@ -228,7 +229,8 @@ function AttendanceFacts({ page, item, attendance, context }: { page: CoursePage
         }
       >
         <View testID={out ? "notice.courseRisk" : undefined} style={{ gap: space[2] }}>
-          {meter?.bar && <AttendanceMeter model={{ ...meter, word: null }} size="header" hideLabel />}
+          {/* The same dots as Kuliah's row and the header; the line under them says the count in full, once. */}
+          {meter?.bar && <AbsenceDots model={meter} label={null} />}
           <Text size="bodyLarge" weight="medium" tabular accessibilityLabel={lineLabel} style={{ color: counted ? ink : v.fg2 }}>
             {line}
           </Text>
