@@ -26,6 +26,7 @@ import { Text, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { useCourseTile } from "../../ui/tile";
 import { DetailSheet } from "../schedule/details";
+import { blockClassKey, useBlockMovedOnTo } from "./banner";
 import { ClassSheet, classCard } from "./class-sheet";
 import { nameOf, shortName } from "./parts";
 
@@ -60,6 +61,8 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  // The class the block has moved on to is the block's: said once, there.
+  const onBlock = useBlockMovedOnTo();
   const [picked, setPicked] = useState<NowCard | null>(null);
   const [unreadOpen, setUnreadOpen] = useState(false);
   // The sheets are drawn once one is asked for: not with the timeline.
@@ -89,7 +92,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
       }),
     ),
   ]
-    .filter((item) => wibDay(item.start) === day && item.end > now && item.key !== onCard)
+    .filter((item) => wibDay(item.start) === day && item.end > now && item.key !== onCard && blockClassKey(item.code, item.start) !== onBlock)
     .sort((a, b) => a.start - b.start);
   // A short day: the next day with a class follows it, so the page never ends in a blank third.
   const ahead = useMemo((): Item[] => {
@@ -97,7 +100,9 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
     const later = (context.schedule ?? []).filter((session) => wibDay(session.start) > day).sort((a, b) => a.start - b.start);
     const nextDay = later[0] ? wibDay(later[0].start) : null;
     return later
-      .filter((session) => wibDay(session.start) === nextDay && `class:${session.id}` !== onCard)
+      .filter(
+        (session) => wibDay(session.start) === nextDay && `class:${session.id}` !== onCard && blockClassKey(session.courseCode, session.start) !== onBlock,
+      )
       .slice(0, ROWS_AHEAD - items.length)
       .map((session) => ({
         kind: "class",
@@ -107,9 +112,9 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
         code: session.courseCode,
         facts: classFacts(context, session),
       }));
-  }, [context, day, items.length, unread.length, onCard]);
+  }, [context, day, items.length, unread.length, onCard, onBlock]);
   if (!items.length && !unread.length && !ahead.length) return null;
-  const clashes = clashRows([...items, ...ahead]);
+  const clashes = clashRows(items);
   const open = (item: Item) =>
     setPicked(
       item.kind === "class"
@@ -162,7 +167,8 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
               item={item}
               first={i === 0}
               last={i === ahead.length - 1}
-              clash={clashes.has(item.key)}
+              // A clash on a day ahead is said once, in Perlu kamu urus.
+              clash={false}
               courses={courses}
               onOpen={() => open(item)}
             />

@@ -16,7 +16,7 @@
 // drawn at its final height from the first paint: the line over the name, the name (until the official one is in),
 // the bar and the button each stand as a quiet shape in their own place, and the room they took is kept for that
 // class afterwards (`kept`), so nothing under the block moves once it's on screen.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { View } from "react-native";
 import { type TermCourse, useCourseColor } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -64,6 +64,19 @@ const kept = new Map<string, { name: boolean; rows: boolean }>();
 
 /** The classes whose Presence (or Tandai Hadir) the block offered in this run: when it's gone, the block moves on. */
 const offered = new Set<string>();
+
+/**
+ * The class the block moved on to (its course and start), so the list under it doesn't say that class again
+ * (./later.tsx). Null while the block shows its own card's class: the list already leaves that one out.
+ */
+let movedOnTo: string | null = null;
+const watching = new Set<() => void>();
+const watch = (watcher: () => void) => {
+  watching.add(watcher);
+  return () => void watching.delete(watcher);
+};
+export const blockClassKey = (code: string, start: number) => `${code}:${start}`;
+export const useBlockMovedOnTo = (): string | null => useSyncExternalStore(watch, () => movedOnTo);
 
 /** What comes after the block's class: today's next (the card's own), else the first class after now on another day. */
 type After = { code: string; name?: string; start: number; room: string | null; today: boolean };
@@ -195,12 +208,19 @@ function Banner({
           : // A window alone: the class it's for, when there is one. Its own close is the bar's, said once there.
             [t("home.now.presenceOnly"), card.presence?.class ? f.timeRange(card.presence.class.start, card.presence.class.end) : null];
   // One bar, one time: the Presence's window while one is open (it's what runs out first), else the class itself.
-  const window = !settled && card.presence ? card.presence.session : null;
+  // With SIX's Tandai Hadir on the button the bar is the class's: the bar and the button never speak of two things.
+  const window = !settled && card.presence && action !== "checkIn" ? card.presence.session : null;
   const span = window ? { from: window.opensAt, to: window.closesAt } : live && slot ? { from: slot.start, to: slot.end } : null;
   const time = window ? t("home.need.presence.closes", { time: f.dayTime(window.closesAt) }) : span ? t("mobile.home.ends", { time: f.time(span.to) }) : null;
   const ink = calm ? b.fg : on;
   const quiet = calm ? b.fg2 : on;
   const went = done !== null ? t("mobile.home.wentToSix", { time: f.time(done) }) : null;
+  const movedTo = after ? blockClassKey(after.code, after.start) : null;
+  useEffect(() => {
+    if (movedOnTo === movedTo) return;
+    movedOnTo = movedTo;
+    for (const watcher of watching) watcher();
+  }, [movedTo]);
   // The room held during the first read, kept for this class: a class on now can get a bar and a button.
   const key = session?.id ?? `${card.state}:${code}`;
   if (reading && !kept.has(key)) kept.set(key, { name: holdName, rows: card.state === "live" || card.presence !== null });
