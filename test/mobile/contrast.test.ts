@@ -120,6 +120,7 @@ const each = (what: string, fg: Pick, on: [string, Pick][], min: number, where: 
 const PAIRS: Pair[] = [
   // The blue header (Beranda).
   ["v4.onHead on v4.head (status line, icons)", (t) => t.v.onHead, (t) => t.v.head, TEXT, "screens/home/header.tsx"],
+  ["v4.onStrong on v4.strong (Profil's card, a strong block)", (t) => t.v.onStrong, (t) => t.v.strong, TEXT, "screens/academic/academic-screen.tsx"],
   ["v4.bellDot on v4.head", (t) => t.v.bellDot, (t) => t.v.head, MARK, "screens/home/header.tsx"],
   // Over the texture sit only the greeting (large, bold) and the bar's icons: 3:1, as for large text and marks.
   ["v4.onHead on a dot of the header's texture", (t) => t.v.onHead, (t) => over(t.v.headDots, t.v.head, 1), LARGE, "screens/home/header.tsx"],
