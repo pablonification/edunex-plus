@@ -29,13 +29,14 @@ import braces from "./fluent/braces";
 import briefcase from "./fluent/briefcase";
 import buildingBank from "./fluent/building-bank";
 import buildingMultiple from "./fluent/building-multiple";
+import calendarAgenda from "./fluent/calendar-agenda";
 import calendarCheckmark from "./fluent/calendar-checkmark";
 import calendarClock from "./fluent/calendar-clock";
 import calendarLtr from "./fluent/calendar-ltr";
-import calendarMultiple from "./fluent/calendar-multiple";
-import calendarStar from "./fluent/calendar-star";
+import calendarMonth from "./fluent/calendar-month";
 import certificate from "./fluent/certificate";
 import chat from "./fluent/chat";
+import chatWarning from "./fluent/chat-warning";
 import checkboxPerson from "./fluent/checkbox-person";
 import checkmark from "./fluent/checkmark";
 import checkmarkCircle from "./fluent/checkmark-circle";
@@ -53,7 +54,7 @@ import dataTrending from "./fluent/data-trending";
 import developerBoard from "./fluent/developer-board";
 import directions from "./fluent/directions";
 import dismiss from "./fluent/dismiss";
-import documentEdit from "./fluent/document-edit";
+import documentBulletListClock from "./fluent/document-bullet-list-clock";
 import documentPdf from "./fluent/document-pdf";
 import documentRibbon from "./fluent/document-ribbon";
 import documentText from "./fluent/document-text";
@@ -79,7 +80,6 @@ import info from "./fluent/info";
 import layer from "./fluent/layer";
 import leafTwo from "./fluent/leaf-two";
 import learningApp from "./fluent/learning-app";
-import library from "./fluent/library";
 import link from "./fluent/link";
 import location from "./fluent/location";
 import lockClosed from "./fluent/lock-closed";
@@ -93,11 +93,11 @@ import moreHorizontal from "./fluent/more-horizontal";
 import moreVertical from "./fluent/more-vertical";
 import musicNote2 from "./fluent/music-note-2";
 import note from "./fluent/note";
+import organization from "./fluent/organization";
 import pageFit from "./fluent/page-fit";
 import paintBrush from "./fluent/paint-brush";
 import peopleCommunity from "./fluent/people-community";
 import person from "./fluent/person";
-import personFeedback from "./fluent/person-feedback";
 import phone from "./fluent/phone";
 import plugConnected from "./fluent/plug-connected";
 import receipt from "./fluent/receipt";
@@ -116,10 +116,11 @@ import slideText from "./fluent/slide-text";
 import speaker2 from "./fluent/speaker-2";
 import speakerMute from "./fluent/speaker-mute";
 import spinnerIos from "./fluent/spinner-ios";
-import stackAdd from "./fluent/stack-add";
 import star from "./fluent/star";
+import steps from "./fluent/steps";
 import subtract from "./fluent/subtract";
 import target from "./fluent/target";
+import taskListSquareLtr from "./fluent/task-list-square-ltr";
 import vehicleSubway from "./fluent/vehicle-subway";
 import video from "./fluent/video";
 import wallet from "./fluent/wallet";
@@ -259,8 +260,8 @@ export const Icons = {
   Hand: icon(() => handRight),
   /** "Ingatkan nanti": an alarm clock, not the bell. */
   Snooze: icon(() => clockAlarm),
-  /** The month view's button on Jadwal: the same pages as the "Jadwal bulanan" tile. */
-  Month: icon(() => calendarMultiple),
+  /** The month view's button on Jadwal: the same month grid as the "Jadwal bulanan" tile. */
+  Month: icon(() => calendarMonth),
   /** "Ringkasan awal", where it isn't a tile (a row, a heading): the same page being read. */
   FirstSummary: icon(() => scanText),
   Image: icon(() => image),
@@ -286,18 +287,18 @@ export const ServiceIcons = {
   Attendance: icon(() => handRight, { filled: true }),
   /** Nilai */
   Grades: icon(() => ribbon, { filled: true }),
-  /** Ujian */
-  Exams: icon(() => documentEdit, { filled: true }),
+  /** Ujian: a sheet with a clock (a paper sat at a set hour). Never a pencil on a note (read as "edit"). */
+  Exams: icon(() => documentBulletListClock, { filled: true }),
   /** Materi */
   Materials: icon(() => book, { filled: true }),
-  /** KRS: courses stacked up, and one more to add. Never a clipboard or a form (the Tugas tab's, a Task's). */
-  Krs: icon(() => stackAdd, { filled: true }),
+  /** KRS, the course registration form: a list with its ticks. Never a clipboard (the Tugas tab's, a Task's), nor coins (read as "top up"). */
+  Krs: icon(() => taskListSquareLtr, { filled: true }),
   /** UKT */
   Bills: icon(() => wallet, { filled: true }),
-  /** Kalender akademik */
-  AcademicCalendar: icon(() => calendarStar, { filled: true }),
-  /** Rencana studi */
-  StudyPlan: icon(() => directions, { filled: true }),
+  /** Kalender akademik: a calendar page of dated lines (the term's dates as a list). */
+  AcademicCalendar: icon(() => calendarAgenda, { filled: true }),
+  /** Rencana studi, the plan to graduation: steps going up. Never a road sign (read as map directions). */
+  StudyPlan: icon(() => steps, { filled: true }),
   /** Transkrip */
   Transcript: icon(() => documentRibbon, { filled: true }),
   /** Notifikasi */
@@ -308,8 +309,8 @@ export const ServiceIcons = {
   Search: icon(() => search, { filled: true }),
   /** Lainnya */
   More: icon(() => grid, { filled: true }),
-  /** Kurikulum */
-  Curriculum: icon(() => library, { filled: true }),
+  /** Kurikulum: the programme's courses as a tree of boxes. Never books (Materi's). */
+  Curriculum: icon(() => organization, { filled: true }),
   /** Berkas */
   Files: icon(() => folder, { filled: true }),
   /** Profil */
@@ -318,10 +319,10 @@ export const ServiceIcons = {
   Needs: icon(() => checkboxPerson, { filled: true }),
   /** Ringkasan awal (what the first read found): a page being read. The one glyph for it; never the history clock ("Jam berubah" only) or the bolt. */
   FirstSummary: icon(() => scanText, { filled: true }),
-  /** Jadwal bulanan (the month view): calendar pages one behind another. Not the Jadwal tab's single page, nor Lainnya's dots. */
-  Month: icon(() => calendarMultiple, { filled: true }),
-  /** Laporkan masalah: a person speaking up. */
-  Report: icon(() => personFeedback, { filled: true }),
+  /** Jadwal bulanan (the month view): a month's grid of days. Kalender akademik is a page of dated lines; the Jadwal tab a single page. */
+  Month: icon(() => calendarMonth, { filled: true }),
+  /** Laporkan masalah: a message with an exclamation mark (something is wrong, said to us). */
+  Report: icon(() => chatWarning, { filled: true }),
 };
 
 export type ServiceIconName = keyof typeof ServiceIcons;

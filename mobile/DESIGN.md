@@ -86,7 +86,7 @@ and a still wave.
 | primaryContainer / onPrimaryContainer | #dbe6fe / #0d3a91 | #1f3f86 / #dbe6ff | a highlighted card, first-run |
 | secondaryContainer / onSecondaryContainer | #dce3f4 / #16264a | #2d3851 / #dce3f7 | the tabs' indicator, picked chips and segments, tonal buttons, the empty state's icon |
 | tertiaryContainer / onTertiaryContainer | #efe6fd / #3a1580 | #3c2768 / #efe6fd | ITB's own (the source's purple) |
-| error / onError, errorContainer / onErrorContainer | #b42318 / #fff, #fde7e4 / #7a1710 | #ff9c8f / #5c0f08, #3a1c19 / #ffdad5 | what went wrong, badges |
+| error / onError, errorContainer / onErrorContainer | #b42318 / #fff, #fde7e4 / #7a1710 | #ff6259 / #5c0f08, #3a1c19 / #ffdad5 | what went wrong, badges |
 | surface | #ffffff | #161618 | the page |
 | surfaceContainerLowest … Highest | #fff, #f6f7fb, #f0f2f7, #eaecf2, #e3e5ec | #111113, #1c1c1f, #212125, #2a2a2f, #35353b | what must stand off the page: a quiet well (Low, High), a sheet's parent (Container), tracks (Highest). The page and a card are `surface`, never a Low |
 | onSurface / onSurfaceVariant | #1d1d1f / #55565e | #ececef / #b4b4bd | text: main / secondary (never lighter than onSurfaceVariant) |
@@ -101,6 +101,12 @@ checked by `test/mobile/contrast.test.ts` against the values in `src/ui/palette.
 light and dark: the service tiles' white glyph on its fill, the strong block, the class on now, the course tiles, the
 tab bar's picked and unpicked ink). `node mobile/qa/contrast-read.mjs` prints each pair with its ratio, worst first. A
 screen that starts drawing a new pair adds it there.
+
+**States in dark (round 3).** Over the limit is clearly red (`error` #ff6259, v4 `redFg` #ff6b61), used up clearly
+amber (`warningFg`, v4 `ambFg` #ffb224): about 35° of hue apart, both 4.5:1 or more on the page. The amber fill
+(`warningBg`, v4 `ambBg` #4a3600) is amber-tinted, not brown. `Segmented`'s picked segment is `picked` (light: the
+secondaryContainer; dark #35508f, a blue that reads as chosen), not the role itself: a chip's course dot keeps 3:1 on
+that. Checked in the contrast test ("dark's states read as what they are").
 
 **One surface, not boxes.** The page and a card are one colour in both themes, so a list lies flat on it with an
 inset hairline between rows and a section is a heading and space. A fill is for one thing you can pick up, or a state
@@ -200,32 +206,35 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Kuliah | `ServiceIcons.Courses` | `hat-graduation` | 24, 28, 32 |
 | Presensi | `ServiceIcons.Attendance` | `hand-right` | 24, 28 (32: the 28) |
 | Nilai | `ServiceIcons.Grades` | `ribbon` | 24, 28, 32 |
-| Ujian | `ServiceIcons.Exams` | `document-edit` | 24 (28, 32: the 24) |
+| Ujian | `ServiceIcons.Exams` | `document-bullet-list-clock` (a sheet with a clock: a paper sat at a set hour; a pencil on a note read as "edit") | 24 (28, 32: the 24) |
 | Materi | `ServiceIcons.Materials` | `book` | 24, 28, 32 |
-| KRS | `ServiceIcons.Krs` | `stack-add` (courses stacked up, one more to add; never a clipboard or a form: those are the Tugas tab's and a Task's) | 24 (28, 32: the 24) |
+| KRS | `ServiceIcons.Krs` | `task-list-square-ltr` (the registration form: a list with its ticks; coins read as "top up"; never a clipboard: the Tugas tab's and a Task's) | 24 (28, 32: the 24) |
 | UKT | `ServiceIcons.Bills` | `wallet` | 24, 28, 32 |
-| Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-star` | 24 (28, 32: the 24) |
-| Rencana studi | `ServiceIcons.StudyPlan` | `directions` | 24, 28, 32 |
+| Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-agenda` (a calendar page of dated lines: the term's dates as a list) | 24, 28 (32: the 28) |
+| Rencana studi | `ServiceIcons.StudyPlan` | `steps` (the plan to graduation: steps going up; a road sign read as map directions) | 24 (28, 32: the 24) |
 | Transkrip | `ServiceIcons.Transcript` | `document-ribbon` | 24, 28, 32 |
 | Notifikasi | `ServiceIcons.Notifications` | `alert` | 24, 28, 32 |
 | Pengaturan | `ServiceIcons.Settings` | `settings` | 24, 28, 32 |
 | Pencarian | `ServiceIcons.Search` | `search` | 24, 28, 32 |
 | Lainnya | `ServiceIcons.More` | `grid` | 24, 28 (32: the 28) |
-| Kurikulum | `ServiceIcons.Curriculum` | `library` | 24, 28, 32 |
+| Kurikulum | `ServiceIcons.Curriculum` | `organization` (the programme's courses as a tree of boxes; books are Materi's) | 24, 28, 32 |
 | Berkas | `ServiceIcons.Files` | `folder` | 24, 28, 32 |
 | Profil | `ServiceIcons.Profile` | `person` | 24, 28, 32 |
 | Perlu kamu urus | `ServiceIcons.Needs` | `checkbox-person` (a box to tick that is yours; the warning triangle is a warning only) | 24 (28, 32: the 24) |
 | Ringkasan awal | `ServiceIcons.FirstSummary`, `Icons.FirstSummary` | `scan-text` (a page being read: its one glyph everywhere; the history clock is "Jam berubah" only) | 24, 28, 32 |
-| Jadwal bulanan | `ServiceIcons.Month`, `Icons.Month` | `calendar-multiple` (pages one behind another; not the Jadwal tab's single page, nor Lainnya's dots) | 24, 28, 32 |
-| Laporkan masalah | `ServiceIcons.Report` | `person-feedback` | 24, 28, 32 |
+| Jadwal bulanan | `ServiceIcons.Month`, `Icons.Month` | `calendar-month` (a month's grid of days; Kalender akademik is dated lines, the Jadwal tab a single page) | 24, 28, 32 |
+| Laporkan masalah | `ServiceIcons.Report` | `chat-warning` (a message with an exclamation mark) | 24 (28, 32: the 24) |
 
-**Service colours, one rule.** Colour belongs to Beranda's seven, one each: Materi blue, Ujian violet, Nilai lime,
-Kalender teal, KRS magenta, UKT green, Rencana indigo (`SERVICE_TONES`, `src/ui/palette.ts`). None is red or amber:
-those say a state (late, at risk), never a place to go. Each sits on its own step of lightness as well as its own
-hue, so a colour-blind eye tells them apart too (light 32 to 60; dark 43 to 61 in even steps of about three: a dark
-tile must stand 3:1 off the dark page and keep its white glyph at 3:1, which leaves only that band). Every other service, and "Lainnya", is the **neutral tile** (`grey`):
-a soft grey square with its own glyph in grey ink, the same in both themes, on Semua layanan, in Profil's rows and
-in search. So no colour ever stands for two services. A service's glyph and colour live in
+**Service colours, one rule.** A solid colour is one of Beranda's seven; every other service is the app's own pale
+blue with a blue glyph. The seven, one each: Materi blue, Ujian rose, Nilai orange, Kalender teal, KRS magenta, UKT
+gold, Rencana green (`SERVICE_TONES`, `src/ui/palette.ts`). None is the states' red or amber (those say late or at
+risk, never a place to go), none is violet (the class on now may be: its colour is the course's), and only one is
+green. Each sits on its own step of lightness as well as its own hue, so a colour-blind eye tells them apart too
+(light 37 to 60; dark 43 to 61 in even steps of about three: a dark tile must stand 3:1 off the dark page and keep
+its white glyph at 3:1, which leaves only that band). Every other service, and "Lainnya", is the **quiet tile** (the
+tone still named `grey`): a pale-blue square with its own glyph in blue, one treatment in both themes, on Semua
+layanan, in Profil's rows and in search. Never grey (grey read as switched off), never a hue of its own (a second
+rainbow). So no colour ever stands for two services. A service's glyph and colour live in
 `src/screens/services/list.ts` only; `test/mobile/contrast.test.ts` ("service colours by the rule") holds the rule.
 
 - **Courses** (`CourseIcons`, picked by `courseGlyph` in `ui/tile.tsx` from words in the course's name): always the

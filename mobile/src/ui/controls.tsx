@@ -392,7 +392,7 @@ export function Segmented<T extends string>({
   const sliding = moved.current;
   return (
     <View testID={testID} accessibilityRole="radiogroup" accessibilityLabel={label} style={[styles.segmented, { borderColor: c.outline }]}>
-      {sliding && <Reanimated.View pointerEvents="none" style={[styles.mark, { backgroundColor: c.secondaryContainer }, mark.style]} />}
+      {sliding && <Reanimated.View pointerEvents="none" style={[styles.mark, { backgroundColor: c.picked }, mark.style]} />}
       {options.map((option, i) => {
         const on = option.value === value;
         return (
@@ -407,7 +407,7 @@ export function Segmented<T extends string>({
             hitSlop={slopY(SEGMENT_HEIGHT)}
             android_ripple={{ color: c.selected }}
             style={({ pressed }) => [
-              [styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && !sliding && { backgroundColor: c.secondaryContainer }],
+              [styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && !sliding && { backgroundColor: c.picked }],
               iosPressed(pressed),
             ]}
           >
