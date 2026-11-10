@@ -464,7 +464,10 @@ export function Chip({
   const press = usePressed();
   // The picked fill fades in and out on the effects spring (never overshooting); at once with Remove animations.
   const picked = useSharedValue(selected ? 1 : 0);
+  const was = useRef(selected);
   useEffect(() => {
+    if (was.current === selected) return;
+    was.current = selected;
     picked.value = still ? (selected ? 1 : 0) : withSpring(selected ? 1 : 0, motion.effectsFast);
   }, [selected, still, picked]);
   const { secondaryContainer, outline } = c;
