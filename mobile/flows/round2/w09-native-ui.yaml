@@ -9,6 +9,18 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: tab.home
     timeout: 180000
+# Settings is behind Profil's "Akun" rows (no avatar in a top bar any more).
+- tapOn:
+    id: tab.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: action.account
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: action.account
 - extendedWaitUntil:

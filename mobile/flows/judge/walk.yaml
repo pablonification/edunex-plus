@@ -191,12 +191,12 @@ appId: io.github.pablonification.edunexplus.demo
       TAB: courses
 - takeScreenshot: ${THEME}-13-kuliah
 
-# Akademik, then Nilai and Rencana studi's parts, each its own screen
+# Profil (the fifth tab; Akademik's pages are its rows), then Nilai and Rencana studi's parts, each its own screen
 - runFlow:
     file: tab.yaml
     env:
-      TAB: academic
-# Akademik's rows draw once its data is in: wait for the first, so the picture and the tap both find it.
+      TAB: profile
+# Profil's rows draw once its data is in: wait for the first, so the picture and the tap both find it.
 - extendedWaitUntil:
     visible:
       id: row.nav.grades
@@ -308,13 +308,14 @@ appId: io.github.pablonification.edunexplus.demo
     file: tab.yaml
     env:
       TAB: home
-# Beranda keeps where it was scrolled (down at 02's 16:00 row): back up to its header.
+# Beranda keeps where it was scrolled (down at 02's 16:00 row): back up to its search bar (Beranda's own, `home.search`;
+# the other tabs keep `action.search` in their bars).
 - scrollUntilVisible:
     element:
-      id: action.search
+      id: home.search
     direction: UP
 - tapOn:
-    id: action.search
+    id: home.search
 # The desktop's own search, for the same results.
 - inputText: "bab 2"
 - hideKeyboard
@@ -351,11 +352,16 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 
-# Settings, behind the avatar (on every tab's bar but Beranda's, round 2's v4): the top, notifications, about, the licences
+# Settings, behind Profil's "Akun" rows (the avatar left every top bar): the top, notifications, about, the licences
 - runFlow:
     file: tab.yaml
     env:
-      TAB: academic
+      TAB: profile
+- scrollUntilVisible:
+    element:
+      id: action.account
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: action.account
 - extendedWaitUntil:

@@ -26,7 +26,7 @@ name: "r3 3 to Tandai Hadir"
     timeout: 60000
 - extendedWaitUntil:
     notVisible:
-      id: card.now.reading
+      id: home.now.reading
     timeout: 60000
 
 # Not on Beranda's card: Kuliah, whose top card says when SIX shows Tandai Hadir now.

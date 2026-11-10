@@ -1,0 +1,43 @@
+# Journey 3, a class starts: presence marked, then back to what's next. Budget: 2 taps (Isi Presensi, Back's landing).
+# The demo opens SIX's Tandai Hadir for the class on now (EDUNEX_DEMO_CHECK_IN=open); its page in the demo is a placeholder.
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 2 a class starts: Isi Presensi, then what's next"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CHECK_IN=open"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: home.now
+    timeout: 30000
+# tap 1 of 2: the block's one white button, "Isi Presensi". The decisions name it action.presence; the base's SIX path still
+# draws action.checkIn, so both are taken until Beranda's block has one id for it (then narrow this to action.presence).
+- tapOn:
+    id: 'action\.(presence|checkIn)'
+# SIX's own page (the demo shows its placeholder): our part of the journey ends here, the Student presses SIX's button.
+- extendedWaitUntil:
+    visible:
+      id: 'screen\.(checkIn|task)'
+    timeout: 20000
+- takeScreenshot: journey-2-six-page
+# Back lands on Beranda.
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.now
+    timeout: 20000
+# tap 2 of 2 (the landing): the block has moved on to what's next, and has no "Isi Presensi" button for a class already
+# marked. In the base it stays on "Sudah ke SIX".
+# pending: Beranda (Foundations): the block moves on to what's next after Isi Presensi
+- assertNotVisible:
+    id: card.now.checkedIn
+- assertNotVisible:
+    id: 'action\.(presence|checkIn)'
+- takeScreenshot: journey-2-whats-next

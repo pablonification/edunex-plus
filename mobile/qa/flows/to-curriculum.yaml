@@ -1,5 +1,6 @@
-# From Beranda to Kurikulum, the longest plain list (jank.sh scrolls it after): Akademik → Kurikulum on round 2's app,
-# Lainnya → Rencana studi → its Kurikulum tab on round 1's, so both builds reach the same list.
+# From Beranda to Kurikulum, the longest plain list (jank.sh scrolls it after): Profil → Kurikulum on the super-app layout's app,
+# Akademik → Kurikulum on round 2's (today's), so both builds reach the same list. Round 1's way (Lainnya → Rencana studi →
+# its Kurikulum tab) is gone: that build isn't compared any more.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - extendedWaitUntil:
@@ -7,29 +8,11 @@ appId: io.github.pablonification.edunexplus.demo
       id: tab.home
     timeout: 60000
 - tapOn:
-    id: 'tab\.(academic|more)'
-- runFlow:
-    when:
-      visible:
-        id: row.nav.plan.curriculum
-    commands:
-      - tapOn:
-          id: row.nav.plan.curriculum
-      - extendedWaitUntil:
-          visible:
-            id: screen.plan.curriculum
-          timeout: 20000
-- runFlow:
-    when:
-      visible:
-        id: row.nav.plan
-    commands:
-      - tapOn:
-          id: row.nav.plan
-      - extendedWaitUntil:
-          visible:
-            id: screen.plan
-          timeout: 20000
-      - tapOn:
-          id: tab.plan.curriculum
+    id: 'tab\.(profile|academic)'
+- tapOn:
+    id: row.nav.plan.curriculum
+- extendedWaitUntil:
+    visible:
+      id: screen.plan.curriculum
+    timeout: 20000
 - waitForAnimationToEnd

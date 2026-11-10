@@ -17,7 +17,7 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - extendedWaitUntil:
     visible:
-      id: card.now
+      id: home.now
     timeout: 30000
 - extendedWaitUntil:
     notVisible:

@@ -57,6 +57,6 @@ appId: io.github.pablonification.edunexplus.demo
     times: 2
     commands:
       - tapOn:
-          id: "card.need.exam:DK4073-UTS"
+          id: "row.need.exam:DK4073-UTS"
       - waitForAnimationToEnd
       - back

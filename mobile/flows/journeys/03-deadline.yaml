@@ -1,0 +1,81 @@
+# Journey 4, a deadline: Beranda to the brief, handed in, the finish. Budget: 3 taps to the brief (the strip, Tugas' row, the
+# Task's own first screen is the brief); the hand-in is 4 taps and an answer; the finish leads on.
+# Needs jawaban.pdf in Android's Downloads (see README.md).
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 3 a deadline: Beranda, Tugas, a Task, handed in"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+# tap 1: the strip's "what's due" opens Tugas.
+# pending: Beranda (Foundations): action.strip.tasks (the base draws home.strip.tasks)
+- tapOn:
+    id: action.strip.tasks
+- extendedWaitUntil:
+    visible:
+      id: screen.tasks
+    timeout: 20000
+# tap 2: a Task.
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+    direction: DOWN
+- tapOn:
+    id: row.task.117003
+# The brief is the first screen (tap 2 is enough to read it).
+- extendedWaitUntil:
+    visible:
+      id: screen.task
+    timeout: 20000
+- assertVisible:
+    id: card.due
+- takeScreenshot: journey-3-brief
+# The answer: typed, and a file from Android's picker (not taps of ours).
+- scrollUntilVisible:
+    element:
+      id: input.answer
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: input.answer
+- inputText: "Jawaban sementara"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: action.attach
+- extendedWaitUntil:
+    visible: "jawaban.pdf"
+    timeout: 20000
+- tapOn: "jawaban.pdf"
+- extendedWaitUntil:
+    visible: "Belum disimpan.*"
+    timeout: 20000
+# tap 3: Kumpulkan.
+- tapOn:
+    id: action.submit
+# tap 4: confirm (the demo's day has no open Presence, so it asks "Tetap kumpulkan" once).
+- extendedWaitUntil:
+    visible:
+      id: action.submitAnyway
+    timeout: 10000
+- tapOn:
+    id: action.submitAnyway
+# The finish: the Task says it's handed in...
+- extendedWaitUntil:
+    visible: "Terkumpul"
+    timeout: 20000
+- takeScreenshot: journey-3-handed-in
+# ...and leads on: the next Task due, or the way back to the strip, so the Student isn't left on a page whose job is done.
+# pending: Tugas: the hand-in's finish says what's next ("Berikutnya: ..."), tap-free
+- assertVisible: "Berikutnya.*"

@@ -1,0 +1,105 @@
+# Journey 5, the office things: KRS, UKT, the academic calendar. Budget: 2 taps each from Profil (the tab, the row);
+# 1 tap each from Beranda's grid (the tiles). Both ways are walked, so the two stay the same screen.
+# Profil's rows keep the ids the base draws (row.nav.plan.<part>): their screen's owner may rename them, then run flows-check.mjs.
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 6 the office things: Profil, and the grid"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+# ---- From Profil: 2 taps each.
+# tap 1: Profil.
+- tapOn:
+    id: tab.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+# KRS. tap 2.
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.krs
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: row.nav.plan.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
+- takeScreenshot: journey-6-krs
+- back
+# UKT. tap 2.
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.bills
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: row.nav.plan.bills
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.bills
+    timeout: 20000
+- takeScreenshot: journey-6-ukt
+- back
+# Kalender. tap 2.
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.deadlines
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: row.nav.plan.deadlines
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.deadlines
+    timeout: 20000
+- takeScreenshot: journey-6-kalender
+- back
+# ---- From Beranda's grid: 1 tap each.
+- tapOn:
+    id: tab.home
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+# KRS. tap 1.
+- tapOn:
+    id: action.service.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
+- back
+# UKT. tap 1.
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+- tapOn:
+    id: action.service.bills
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.bills
+    timeout: 20000
+- back
+# Kalender. tap 1.
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+- tapOn:
+    id: action.service.calendar
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.deadlines
+    timeout: 20000
+- takeScreenshot: journey-6-kalender-tile

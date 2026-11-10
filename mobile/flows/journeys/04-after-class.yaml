@@ -1,0 +1,46 @@
+# Journey 2, after class: this week's material for that course. Budget: 2 taps (the "Materi" tile, an item).
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 4 after class: Beranda, Materi, an item"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+# tap 1: the grid's first tile, this week's material across courses.
+# pending: Materi and Ujian: the tile and its screen (action.service.material, screen.material)
+- tapOn:
+    id: action.service.material
+# pending: Materi and Ujian
+- extendedWaitUntil:
+    visible:
+      id: screen.material
+    timeout: 20000
+- takeScreenshot: journey-4-materi
+# tap 2: an item; it opens the module (the files and notes), not a list again.
+# (row.material.<id> is a module's file row today: the Materi view's own rows may take another id; run flows-check.mjs after it lands)
+- tapOn:
+    id: 'row\.material\..*'
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: screen.module
+    timeout: 20000
+- takeScreenshot: journey-4-module
+# Back goes item -> Materi -> Beranda, one step each.
+- back
+# pending: Materi and Ujian
+- extendedWaitUntil:
+    visible:
+      id: screen.material
+    timeout: 10000
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000

@@ -1,0 +1,48 @@
+# Journey 7, looking for something by name. Budget: 2 taps after typing (the bar, a result).
+# Beranda's own bar is home.search; the other tabs keep action.search (not walked here).
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 7 search: the bar, type, a result"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+# tap 1: the search bar, the first thing on Beranda; Search opens with the keyboard up.
+- tapOn:
+    id: home.search
+- extendedWaitUntil:
+    visible:
+      id: screen.search
+    timeout: 10000
+- inputText: "PL3002"
+- hideKeyboard
+- extendedWaitUntil:
+    visible:
+      id: 'row\.search\..*'
+    timeout: 10000
+- takeScreenshot: journey-7-results
+# tap 2: a result; the search closes and the result opens over Beranda.
+- tapOn:
+    id: 'row\.search\..*'
+    index: 0
+- extendedWaitUntil:
+    notVisible:
+      id: screen.search
+    timeout: 10000
+- extendedWaitUntil:
+    visible:
+      id: 'screen\.(course|task|exam|module|grades|plan.*)'
+    timeout: 10000
+- takeScreenshot: journey-7-opened
+# Back goes to Beranda, not into Search again.
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.search
+    timeout: 10000
