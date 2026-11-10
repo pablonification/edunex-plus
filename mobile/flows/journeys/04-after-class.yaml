@@ -1,8 +1,13 @@
 # Journey 4, after class: this week's material for that course, opened.
-# limit: 2
-# Taps: Beranda's "Materi" tile (this week's material across courses), an item. A note opens its module; a file opens in the
-# phone's own viewer and a link in the browser: the walk takes the first item the demo lists and goes as far as the app's own screen.
-# unverified: which item is first in the demo's Materi, and so whether it opens screen.module (a note) or a viewer (a file).
+# limit: 3
+# Taps: Beranda's "Materi" tile, the folded "Sebelumnya", an item that opens the module it's in. In the demo (8 October)
+# "Minggu ini" holds one item, the Teams link of TA's Pertemuan 03 (row.material.889385, test/fixtures/edunex course
+# contents, created 5 Oct): a meeting link that leaves the app (found on the real phone). Nothing came last week, so
+# the rest is folded under "Sebelumnya" (src/screens/material/feed.ts, feedLines). The walk opens the note "Link
+# Penawaran Topik TA" (row.material.880001, II4091's module 450218, test/pretend/edunex-modules.ts): a note opens its
+# module's screen (src/screens/material/material-screen.tsx, Item), so the journey stays inside the app.
+# gap: the limit was 2 (an item of this week); in the demo's week the one new item is a meeting link, so a module's page
+# is a third tap away.
 appId: io.github.pablonification.edunexplus.demo
 name: "journey 4 after class: Beranda, Materi, an item"
 ---
@@ -31,13 +36,20 @@ name: "journey 4 after class: Beranda, Materi, an item"
 - assertVisible: "Materi"
 - extendedWaitUntil:
     visible:
-      id: 'row\.material\..*'
+      id: row.material.889385
     timeout: 30000
 - takeScreenshot: journey-4-materi
-# tap 2: an item; its module (the files and notes) opens, not a list again.
+# tap 2: "Sebelumnya", the earlier weeks folded under their count.
 - tapOn:
-    id: 'row\.material\..*'
-    index: 0
+    id: action.material.earlier
+- scrollUntilVisible:
+    element:
+      id: row.material.880001
+    direction: DOWN
+    centerElement: true
+# tap 3: the note; its module (the files and notes) opens, not a list again.
+- tapOn:
+    id: row.material.880001
 - extendedWaitUntil:
     visible:
       id: screen.module

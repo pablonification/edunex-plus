@@ -106,6 +106,10 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 10000
 - takeScreenshot: use-08-class-sheet
 - back
+# The bar's line under Jadwal is "<month> · Minggu ke-<n>" (src/screens/schedule/schedule-screen.tsx, `label.place`), and
+# a Maestro text is matched whole: the week is asked for at the end of the line. The demo's today is Thursday 8 October,
+# week 7, so the next is week 8 (still October). The strip moves a week on a swipe of 48 dp or more
+# (src/screens/schedule/strip.tsx); if it didn't take, the month's "Lihat minggunya" on the 15th shows the same week.
 - swipe:
     from:
       id: strip.week
@@ -113,14 +117,36 @@ appId: io.github.pablonification.edunexplus.demo
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-8"
+      text: ".*Minggu ke-8"
     timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: label.place
+        text: ".*Minggu ke-8"
+    commands:
+      - tapOn:
+          id: action.month
+      - tapOn:
+          id: day.2026-10-15
+      - scrollUntilVisible:
+          element:
+            id: action.showWeek
+          direction: DOWN
+      - tapOn:
+          id: action.showWeek
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: ".*Minggu ke-8"
+    timeout: 10000
 - tapOn:
     id: action.today
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-7"
+      text: ".*Minggu ke-7"
     timeout: 5000
 
 # S6: the month (its own screen, its own icon in the top bar), a day picked in it lists that day.

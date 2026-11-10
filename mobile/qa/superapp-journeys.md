@@ -85,6 +85,12 @@ Through search: `action.search` → "PL3002" or the module's title → a `module
 
 ---
 
+**Now (11 Nov, from the code; `mobile/flows/journeys/04-after-class.yaml`):** Beranda's Materi tile `action.service.material`
+opens Materi (`screen.material`), by week. On the demo's 8 October "Minggu ini" holds one item, the Teams link of TA's
+Pertemuan 03 (`row.material.889385`), which leaves the app; nothing came last week, so the rest is folded under
+"Sebelumnya" (`action.material.earlier`). A note there (`row.material.880001`, "Link Penawaran Topik TA") opens its
+module (`screen.module`): 3 taps to a module's page.
+
 ## 3. A class starts: presence marked, then back to "what's next"
 
 Demo: `EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CHECK_IN=open` (SIX's Tandai Hadir is open for the class on now). With Android's shade: `…&EDUNEX_DEMO_NOTIFY=1&EDUNEX_DEMO_NOW=2026-10-08T07:57:00%2B07:00` (proven by `w13-tandai-hadir.yaml`).
@@ -109,6 +115,11 @@ Demo: `EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CHECK_IN=open` (SIX's Tandai Hadir is o
 **After the new layout:** 2 taps or fewer: 1 tap on the strip or card ("Tandai Hadir", opens SIX), Back lands on Beranda with the card's check and the **next class promoted** into the card (an in-between state "Sudah ke SIX" for 1–2 minutes, then "Berikutnya · {time}"). Needs: the now card to move on once SIX counts or the class ends, a way to say "Hadir" once SIX counts it, and one word for the window's end.
 
 ---
+
+**Now (11 Nov, from the code; `mobile/flows/journeys/02-class-starts.yaml`):** with the class's Edunex Presence open
+(`EDUNEX_DEMO_CHECK_IN=open`) the block's one button is "Isi Presensi" (`action.presence`, `home/banner.tsx`), and it
+opens Edunex's presence page in the app (`screen.page.edunex`), not SIX's Tandai Hadir (`screen.checkIn`, only when no
+Edunex Presence is open). Back lands on Beranda (`screen.home`, the block, strip and grid). 1 tap.
 
 ## 4. A deadline: Beranda to the brief, to handed in, to "done"
 

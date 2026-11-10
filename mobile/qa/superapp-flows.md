@@ -63,87 +63,124 @@ Beranda.
 
 ### `mobile/flows/journeys/01-morning.yaml`
 
-Run by: `mobile/flows/journeys/README.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`
 
-- mobile/flows/journeys/01-morning.yaml:10: `tab.home`, tab bar
-- mobile/flows/journeys/01-morning.yaml:14: `status.settling`, top bar
-- mobile/flows/journeys/01-morning.yaml:18: `home.search`, Beranda
-- mobile/flows/journeys/01-morning.yaml:21: `home.now`, Beranda
-- mobile/flows/journeys/01-morning.yaml:22: text ".*Ekonomi dan Inovasi dalam Perencanaan.*", Beranda? (after `tab.home` at line 10, nothing else tapped since)
-- mobile/flows/journeys/01-morning.yaml:25: `home.strip`, Beranda
-- mobile/flows/journeys/01-morning.yaml:28: `home.grid`, Beranda
-- mobile/flows/journeys/01-morning.yaml:31: `tab.home`, tab bar
-- mobile/flows/journeys/01-morning.yaml:33: `tab.profile`, tab bar
-- mobile/flows/journeys/01-morning.yaml:36: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
+- mobile/flows/journeys/01-morning.yaml:11: `tab.home`, tab bar
+- mobile/flows/journeys/01-morning.yaml:15: `status.settling`, top bar
+- mobile/flows/journeys/01-morning.yaml:19: `home.grid`, Beranda
+- mobile/flows/journeys/01-morning.yaml:23: `home.search`, Beranda
+- mobile/flows/journeys/01-morning.yaml:26: `home.now`, Beranda
+- mobile/flows/journeys/01-morning.yaml:27: text ".*Ekonomi dan Inovasi dalam Perencanaan.*", Beranda? (after `tab.home` at line 11, nothing else tapped since)
+- mobile/flows/journeys/01-morning.yaml:31: `home.strip`, Beranda
+- mobile/flows/journeys/01-morning.yaml:33: `action.strip.tasks`, Beranda
+- mobile/flows/journeys/01-morning.yaml:35: `action.strip.exam`, Beranda
+- mobile/flows/journeys/01-morning.yaml:38: `home.grid`, Beranda
+- mobile/flows/journeys/01-morning.yaml:40: `action.service.material`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/01-morning.yaml:42: `action.service.grades`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/01-morning.yaml:45: `tab.home`, tab bar
+- mobile/flows/journeys/01-morning.yaml:47: `tab.profile`, tab bar
+- mobile/flows/journeys/01-morning.yaml:50: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
 
 ### `mobile/flows/journeys/02-class-starts.yaml`
 
-Run by: `mobile/flows/journeys/README.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
-- mobile/flows/journeys/02-class-starts.yaml:10: `tab.home`, tab bar
-- mobile/flows/journeys/02-class-starts.yaml:14: `status.settling`, top bar
-- mobile/flows/journeys/02-class-starts.yaml:18: `home.now`, Beranda
-- mobile/flows/journeys/02-class-starts.yaml:23: `action\.(presence|checkIn)`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
-- mobile/flows/journeys/02-class-starts.yaml:34: `home.now`, Beranda
-- mobile/flows/journeys/02-class-starts.yaml:40: `card.now.checkedIn`, Beranda
-- mobile/flows/journeys/02-class-starts.yaml:42: `action\.(presence|checkIn)`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
+- mobile/flows/journeys/02-class-starts.yaml:16: `tab.home`, tab bar
+- mobile/flows/journeys/02-class-starts.yaml:20: `status.settling`, top bar
+- mobile/flows/journeys/02-class-starts.yaml:24: `home.now`, Beranda
+- mobile/flows/journeys/02-class-starts.yaml:26: text ".*Ekonomi dan Inovasi dalam Perencanaan.*", Beranda? (after `tab.home` at line 16, nothing else tapped since)
+- mobile/flows/journeys/02-class-starts.yaml:30: `action\.(presence|checkIn)`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
+- mobile/flows/journeys/02-class-starts.yaml:41: `screen.home`, Beranda
+- mobile/flows/journeys/02-class-starts.yaml:44: `home.now`, Beranda
+- mobile/flows/journeys/02-class-starts.yaml:46: `home.strip`, Beranda
+- mobile/flows/journeys/02-class-starts.yaml:48: `home.grid`, Beranda
+- mobile/flows/journeys/02-class-starts.yaml:54: `action.strip.tasks`, Beranda
+- mobile/flows/journeys/02-class-starts.yaml:62: `home.now`, Beranda
 
 ### `mobile/flows/journeys/03-deadline.yaml`
 
-Run by: `mobile/flows/journeys/README.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`
 
-- mobile/flows/journeys/03-deadline.yaml:11: `tab.home`, tab bar
-- mobile/flows/journeys/03-deadline.yaml:15: `status.settling`, top bar
-- mobile/flows/journeys/03-deadline.yaml:81: text "Berikutnya.*", Beranda? (string `mobile.home.next`, `done.toast.gotItClass` is used there)
+- mobile/flows/journeys/03-deadline.yaml:13: `tab.home`, tab bar
+- mobile/flows/journeys/03-deadline.yaml:17: `status.settling`, top bar
+- mobile/flows/journeys/03-deadline.yaml:21: `home.strip`, Beranda
+- mobile/flows/journeys/03-deadline.yaml:25: `action.strip.tasks`, Beranda
+- mobile/flows/journeys/03-deadline.yaml:99: text "Berikutnya", Beranda? (string `mobile.home.next` is used there)
+- mobile/flows/journeys/03-deadline.yaml:121: `home.strip`, Beranda
 
 ### `mobile/flows/journeys/04-after-class.yaml`
 
-Run by: `mobile/flows/journeys/README.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/journeys.sh`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
-- mobile/flows/journeys/04-after-class.yaml:9: `tab.home`, tab bar
-- mobile/flows/journeys/04-after-class.yaml:13: `status.settling`, top bar
-- mobile/flows/journeys/04-after-class.yaml:18: `action.service.material`, Beranda (also drawn in screens/services/services-screen.tsx)
-- mobile/flows/journeys/04-after-class.yaml:45: `home.grid`, Beranda
+- mobile/flows/journeys/04-after-class.yaml:18: `tab.home`, tab bar
+- mobile/flows/journeys/04-after-class.yaml:22: `status.settling`, top bar
+- mobile/flows/journeys/04-after-class.yaml:26: `home.grid`, Beranda
+- mobile/flows/journeys/04-after-class.yaml:30: `action.service.material`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/04-after-class.yaml:36: text "Materi", Beranda? (after `tab.home` at line 18, nothing else tapped since)
+- mobile/flows/journeys/04-after-class.yaml:68: `home.grid`, Beranda
 
 ### `mobile/flows/journeys/05-after-exam.yaml`
 
-Run by: `mobile/flows/journeys/README.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`
 
-- mobile/flows/journeys/05-after-exam.yaml:10: `tab.home`, tab bar
-- mobile/flows/journeys/05-after-exam.yaml:14: `status.settling`, top bar
-- mobile/flows/journeys/05-after-exam.yaml:18: `action.service.grades`, Beranda (also drawn in screens/services/services-screen.tsx)
-- mobile/flows/journeys/05-after-exam.yaml:54: `home.grid`, Beranda
+- mobile/flows/journeys/05-after-exam.yaml:12: `tab.home`, tab bar
+- mobile/flows/journeys/05-after-exam.yaml:16: `status.settling`, top bar
+- mobile/flows/journeys/05-after-exam.yaml:20: `home.grid`, Beranda
+- mobile/flows/journeys/05-after-exam.yaml:24: `action.service.grades`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/05-after-exam.yaml:59: `home.grid`, Beranda
+- mobile/flows/journeys/05-after-exam.yaml:63: `action.service.exams`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/05-after-exam.yaml:89: `home.grid`, Beranda
 
 ### `mobile/flows/journeys/06-office.yaml`
 
-Run by: `mobile/flows/journeys/README.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`
 
-- mobile/flows/journeys/06-office.yaml:11: `tab.home`, tab bar
-- mobile/flows/journeys/06-office.yaml:15: `status.settling`, top bar
-- mobile/flows/journeys/06-office.yaml:20: `tab.profile`, tab bar
-- mobile/flows/journeys/06-office.yaml:23: `screen.profile`, Profil
-- mobile/flows/journeys/06-office.yaml:28: `row.nav.plan.krs`, Profil
-- mobile/flows/journeys/06-office.yaml:32: `row.nav.plan.krs`, Profil
-- mobile/flows/journeys/06-office.yaml:42: `row.nav.plan.bills`, Profil
-- mobile/flows/journeys/06-office.yaml:46: `row.nav.plan.bills`, Profil
-- mobile/flows/journeys/06-office.yaml:56: `row.nav.plan.deadlines`, Profil
-- mobile/flows/journeys/06-office.yaml:60: `row.nav.plan.deadlines`, Profil
-- mobile/flows/journeys/06-office.yaml:69: `tab.home`, tab bar
-- mobile/flows/journeys/06-office.yaml:72: `home.grid`, Beranda
-- mobile/flows/journeys/06-office.yaml:76: `action.service.krs`, Beranda (also drawn in screens/services/services-screen.tsx)
-- mobile/flows/journeys/06-office.yaml:85: `home.grid`, Beranda
-- mobile/flows/journeys/06-office.yaml:88: `action.service.bills`, Beranda (also drawn in screens/services/services-screen.tsx)
-- mobile/flows/journeys/06-office.yaml:97: `home.grid`, Beranda
-- mobile/flows/journeys/06-office.yaml:100: `action.service.calendar`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/06-office.yaml:13: `tab.home`, tab bar
+- mobile/flows/journeys/06-office.yaml:17: `status.settling`, top bar
+- mobile/flows/journeys/06-office.yaml:21: `home.grid`, Beranda
+- mobile/flows/journeys/06-office.yaml:26: `tab.profile`, tab bar
+- mobile/flows/journeys/06-office.yaml:29: `screen.profile`, Profil
+- mobile/flows/journeys/06-office.yaml:33: `row.nav.plan.krs`, Profil
+- mobile/flows/journeys/06-office.yaml:38: `row.nav.plan.krs`, Profil
+- mobile/flows/journeys/06-office.yaml:43: text ".*KRS.*", Beranda? and Profil? (string `home.need.krs` is used there; string `mobile.profile.connectSix`, `mobile.profile.sixUnread` is used there)
+- mobile/flows/journeys/06-office.yaml:49: `screen.profile`, Profil
+- mobile/flows/journeys/06-office.yaml:53: `tab.home`, tab bar
+- mobile/flows/journeys/06-office.yaml:56: `home.grid`, Beranda
+- mobile/flows/journeys/06-office.yaml:60: `action.service.krs`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/06-office.yaml:65: text ".*KRS.*", Beranda? and Profil? (string `home.need.krs` is used there; string `mobile.profile.connectSix`, `mobile.profile.sixUnread` is used there)
+- mobile/flows/journeys/06-office.yaml:70: `home.grid`, Beranda
+- mobile/flows/journeys/06-office.yaml:75: `tab.profile`, tab bar
+- mobile/flows/journeys/06-office.yaml:78: `screen.profile`, Profil
+- mobile/flows/journeys/06-office.yaml:82: `row.nav.plan.bills`, Profil
+- mobile/flows/journeys/06-office.yaml:87: `row.nav.plan.bills`, Profil
+- mobile/flows/journeys/06-office.yaml:92: text ".*UKT.*", Profil? (string `mobile.profile.connectSix`, `mobile.profile.sixUnread` is used there)
+- mobile/flows/journeys/06-office.yaml:98: `screen.profile`, Profil
+- mobile/flows/journeys/06-office.yaml:102: `tab.home`, tab bar
+- mobile/flows/journeys/06-office.yaml:105: `home.grid`, Beranda
+- mobile/flows/journeys/06-office.yaml:109: `action.service.bills`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/06-office.yaml:114: text ".*UKT.*", Profil? (string `mobile.profile.connectSix`, `mobile.profile.sixUnread` is used there)
+- mobile/flows/journeys/06-office.yaml:119: `home.grid`, Beranda
+- mobile/flows/journeys/06-office.yaml:124: `tab.profile`, tab bar
+- mobile/flows/journeys/06-office.yaml:127: `screen.profile`, Profil
+- mobile/flows/journeys/06-office.yaml:131: `row.nav.plan.deadlines`, Profil
+- mobile/flows/journeys/06-office.yaml:136: `row.nav.plan.deadlines`, Profil
+- mobile/flows/journeys/06-office.yaml:141: text "Kalender.*", Profil? (string `plan.tab.deadlines` is used there)
+- mobile/flows/journeys/06-office.yaml:147: `screen.profile`, Profil
+- mobile/flows/journeys/06-office.yaml:151: `tab.home`, tab bar
+- mobile/flows/journeys/06-office.yaml:154: `home.grid`, Beranda
+- mobile/flows/journeys/06-office.yaml:158: `action.service.calendar`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/journeys/06-office.yaml:163: text "Kalender.*", Profil? (string `plan.tab.deadlines` is used there)
+- mobile/flows/journeys/06-office.yaml:168: `home.grid`, Beranda
 
 ### `mobile/flows/journeys/07-search.yaml`
 
-Run by: `mobile/flows/journeys/README.md`
+Run by: `mobile/flows/journeys/README.md`; `mobile/qa/superapp-flows.md`
 
-- mobile/flows/journeys/07-search.yaml:10: `tab.home`, tab bar
-- mobile/flows/journeys/07-search.yaml:14: `status.settling`, top bar
-- mobile/flows/journeys/07-search.yaml:18: `home.search`, Beranda
-- mobile/flows/journeys/07-search.yaml:47: `home.search`, Beranda
+- mobile/flows/journeys/07-search.yaml:11: `tab.home`, tab bar
+- mobile/flows/journeys/07-search.yaml:15: `status.settling`, top bar
+- mobile/flows/journeys/07-search.yaml:19: `home.search`, Beranda
+- mobile/flows/journeys/07-search.yaml:23: `home.search`, Beranda
+- mobile/flows/journeys/07-search.yaml:52: `home.search`, Beranda
 
 ### `mobile/flows/judge/edunex-only.yaml`
 
@@ -154,11 +191,12 @@ Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/t
 
 ### `mobile/flows/judge/first-run.yaml`
 
-Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/walk.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/flows-check.mjs`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-map.md`
+Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/walk.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/flows-check.mjs`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-map.md`; `mobile/qa/superapp-states.json`; `mobile/qa/superapp-states.md`
 
-- mobile/flows/judge/first-run.yaml:18: `status.firstRead`, top bar (also drawn in shell/first-minute/scene.tsx)
-- mobile/flows/judge/first-run.yaml:24: `card.firstScan`, Beranda
-- mobile/flows/judge/first-run.yaml:29: `action.firstScan.open`, Beranda
+- mobile/flows/judge/first-run.yaml:35: `status.firstRead`, top bar
+- mobile/flows/judge/first-run.yaml:44: `status.firstRead`, top bar
+- mobile/flows/judge/first-run.yaml:65: `action.service.more`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/judge/first-run.yaml:67: `action.service.scan`, Beranda (also drawn in screens/services/services-screen.tsx)
 
 ### `mobile/flows/judge/walk.yaml`
 
@@ -166,26 +204,31 @@ Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/t
 
 - mobile/flows/judge/walk.yaml:11: `tab.home`, tab bar
 - mobile/flows/judge/walk.yaml:15: `status.settling`, top bar
-- mobile/flows/judge/walk.yaml:21: `action.needs.all`, Beranda
-- mobile/flows/judge/walk.yaml:24: `screen.needs`, Beranda
-- mobile/flows/judge/walk.yaml:135: `sheet.nowClass`, Beranda
-- mobile/flows/judge/walk.yaml:202: `row.nav.grades`, Profil
-- mobile/flows/judge/walk.yaml:206: `row.nav.grades`, Profil
-- mobile/flows/judge/walk.yaml:216: `row.nav.plan.planner`, Profil
-- mobile/flows/judge/walk.yaml:226: `row.nav.plan.curriculum`, Profil
-- mobile/flows/judge/walk.yaml:236: `row.nav.plan.krs`, Profil
-- mobile/flows/judge/walk.yaml:246: `row.nav.plan.bills`, Profil
-- mobile/flows/judge/walk.yaml:256: `row.nav.plan.deadlines`, Profil
-- mobile/flows/judge/walk.yaml:315: `home.search`, Beranda
-- mobile/flows/judge/walk.yaml:318: `home.search`, Beranda
-- mobile/flows/judge/walk.yaml:330: `tab.home`, tab bar
-- mobile/flows/judge/walk.yaml:334: `status.settling`, top bar
-- mobile/flows/judge/walk.yaml:337: `action.syncStatus`, top bar and Beranda (also drawn in parts/b-header.tsx, screens/home/index.tsx, screens/schedule/schedule-screen.tsx; also drawn in parts/b-header.tsx, screens/schedule/schedule-screen.tsx, shell/source-status.tsx)
-- mobile/flows/judge/walk.yaml:339: `action.refreshNow`, top bar
-- mobile/flows/judge/walk.yaml:343: text ".*Memperbarui.*", top bar? (string `sync.checking` is used there)
-- mobile/flows/judge/walk.yaml:349: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
-- mobile/flows/judge/walk.yaml:362: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
-- mobile/flows/judge/walk.yaml:366: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
+- mobile/flows/judge/walk.yaml:23: `action.service.more`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/judge/walk.yaml:29: `action.service.needs`, Beranda (also drawn in screens/services/services-screen.tsx)
+- mobile/flows/judge/walk.yaml:32: `screen.needs`, Beranda
+- mobile/flows/judge/walk.yaml:46: `home.search`, Beranda
+- mobile/flows/judge/walk.yaml:52: text "16:00 · .*", Beranda? (after `home.search` at line 46, nothing else tapped since)
+- mobile/flows/judge/walk.yaml:189: `sheet.nowClass`, Beranda
+- mobile/flows/judge/walk.yaml:198: `sheet.nowClass`, Beranda
+- mobile/flows/judge/walk.yaml:260: `row.nav.grades`, Profil
+- mobile/flows/judge/walk.yaml:264: `row.nav.grades`, Profil
+- mobile/flows/judge/walk.yaml:274: `row.nav.plan.planner`, Profil
+- mobile/flows/judge/walk.yaml:284: `row.nav.plan.curriculum`, Profil
+- mobile/flows/judge/walk.yaml:294: `row.nav.plan.krs`, Profil
+- mobile/flows/judge/walk.yaml:304: `row.nav.plan.bills`, Profil
+- mobile/flows/judge/walk.yaml:314: `row.nav.plan.deadlines`, Profil
+- mobile/flows/judge/walk.yaml:373: `home.search`, Beranda
+- mobile/flows/judge/walk.yaml:376: `home.search`, Beranda
+- mobile/flows/judge/walk.yaml:388: `tab.home`, tab bar
+- mobile/flows/judge/walk.yaml:392: `status.settling`, top bar
+- mobile/flows/judge/walk.yaml:401: `action.syncStatus`, top bar (also drawn in parts/b-header.tsx, screens/schedule/schedule-screen.tsx)
+- mobile/flows/judge/walk.yaml:404: `sheet.sync`, top bar
+- mobile/flows/judge/walk.yaml:407: `action.refreshNow`, top bar
+- mobile/flows/judge/walk.yaml:411: text ".*Memperbarui.*", top bar? (string `sync.checking` is used there)
+- mobile/flows/judge/walk.yaml:422: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
+- mobile/flows/judge/walk.yaml:435: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
+- mobile/flows/judge/walk.yaml:439: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
 
 ### `mobile/flows/round2/w01-files.yaml`
 
@@ -202,7 +245,7 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 - mobile/flows/round2/w04-hierarchy.yaml:10: `tab.home`, tab bar
 - mobile/flows/round2/w04-hierarchy.yaml:13: `tab.tasks`, tab bar
 - mobile/flows/round2/w04-hierarchy.yaml:44: `tab.profile`, tab bar
-- mobile/flows/round2/w04-hierarchy.yaml:46: `action.academic.grades`, Profil
+- mobile/flows/round2/w04-hierarchy.yaml:46: `card.profile`, Profil
 - mobile/flows/round2/w04-hierarchy.yaml:47: text "3,26", Profil? (after `tab.profile` at line 44, nothing else tapped since)
 
 ### `mobile/flows/round2/w04-home-hierarchy.yaml`
@@ -269,8 +312,8 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w10-check-in-done.yaml:11: `tab.home`, tab bar
 - mobile/flows/round2/w10-check-in-done.yaml:15: `status.settling`, top bar
-- mobile/flows/round2/w10-check-in-done.yaml:19: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
-- mobile/flows/round2/w10-check-in-done.yaml:22: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
+- mobile/flows/round2/w10-check-in-done.yaml:19: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
+- mobile/flows/round2/w10-check-in-done.yaml:22: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
 - mobile/flows/round2/w10-check-in-done.yaml:29: `card.now.checkedIn`, Beranda
 
 ### `mobile/flows/round2/w10-hand-in-moment.yaml`
@@ -286,6 +329,10 @@ Run by: `mobile/qa/superapp-flows.md`
 
 - mobile/flows/round2/w11-kuliah.yaml:15: `tab.home`, tab bar
 - mobile/flows/round2/w11-kuliah.yaml:18: `tab.courses`, tab bar
+- mobile/flows/round2/w11-kuliah.yaml:24: text "Hari ini", Beranda? (string `mobile.strip.today` is used there)
+- mobile/flows/round2/w11-kuliah.yaml:28: `action.presence`, Beranda
+- mobile/flows/round2/w11-kuliah.yaml:29: text "Ekonomi dan Inovasi dalam Perencanaan", Beranda? (after `action.presence` at line 28, nothing else tapped since)
+- mobile/flows/round2/w11-kuliah.yaml:31: text "Semester ini", Beranda? (after `action.presence` at line 28, nothing else tapped since)
 
 ### `mobile/flows/round2/w12-one-target-akademik.yaml`
 
@@ -293,7 +340,7 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w12-one-target-akademik.yaml:10: `tab.home`, tab bar
 - mobile/flows/round2/w12-one-target-akademik.yaml:13: `tab.profile`, tab bar
-- mobile/flows/round2/w12-one-target-akademik.yaml:15: `card.profile`, Profil (also drawn in screens/settings/accounts.tsx)
+- mobile/flows/round2/w12-one-target-akademik.yaml:15: `card.profile`, Profil
 - mobile/flows/round2/w12-one-target-akademik.yaml:22: `tab.tasks`, tab bar
 
 ### `mobile/flows/round2/w12-one-target.yaml`
@@ -332,49 +379,48 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 Run by: `mobile/qa/flows-check.mjs`; `mobile/qa/superapp-flows.md`
 
-- mobile/flows/round2/w15-onboarding.yaml:23: `tab.home`, tab bar
-- mobile/flows/round2/w15-onboarding.yaml:27: `status.settling`, top bar
-- mobile/flows/round2/w15-onboarding.yaml:33: `card.firstScan`, Beranda
-- mobile/flows/round2/w15-onboarding.yaml:38: `action.firstScan.open`, Beranda
+- mobile/flows/round2/w15-onboarding.yaml:29: `tab.home`, tab bar
+- mobile/flows/round2/w15-onboarding.yaml:33: `status.settling`, top bar
+- mobile/flows/round2/w15-onboarding.yaml:38: text "Lihat ringkasan", Beranda? (after `tab.home` at line 29, nothing else tapped since)
+- mobile/flows/round2/w15-onboarding.yaml:42: text "Lihat ringkasan", Beranda? (after `tab.home` at line 29, nothing else tapped since)
 
 ### `mobile/flows/screens.json`
 
 Run by: CI `e2e (<scenario>)` (nightly and full runs): mobile/scripts/flows-from-inventory.mjs makes mobile/flows/data/<scenario>/*.yaml from it and mobile/flows/expected/*.json; `mobile/qa/flows-check.mjs`; `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-flows.mjs`; `mobile/qa/superapp-journeys.md`; `mobile/scripts/flows-from-inventory.mjs`; `mobile/scripts/inventory.mjs`
 
-- mobile/flows/screens.json:48, 144, 229, 305, 433, 474, 564, 653, 940, 1540, 1630, 1806, 1839: `tab.home`, tab bar
+- mobile/flows/screens.json:48, 144, 229, 305, 439, 480, 570, 659, 946, 1546, 1636, 1812, 1845: `tab.home`, tab bar
 - mobile/flows/screens.json:56, 271: `status.settling`, top bar
-- mobile/flows/screens.json:151, 173, 346, 368, 1872, 4586, 4623, 4698, 4727, 4781, 4809, 4837, 4865, 5377, 5399: `tab.profile`, tab bar
-- mobile/flows/screens.json:157, 167, 352, 362, 1877, 5383, 5393: `screen.profile`, Profil
-- mobile/flows/screens.json:182, 191, 377, 386, 5408, 5417: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
+- mobile/flows/screens.json:151, 173, 352, 374, 1878, 4592, 4629, 4704, 4733, 4787, 4815, 4843, 4871, 5383, 5405: `tab.profile`, tab bar
+- mobile/flows/screens.json:157, 167, 358, 368, 1883, 5389, 5399: `screen.profile`, Profil
+- mobile/flows/screens.json:182, 191, 383, 392, 5414, 5423: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
 - mobile/flows/screens.json:205: text ".*Sistem dan Teknologi Informasi.*", Profil? (after `tab.profile` at line 173, nothing else tapped since)
-- mobile/flows/screens.json:237, 313: `card.firstScan`, Beranda
+- mobile/flows/screens.json:237, 313: `status.firstRead`, top bar
 - mobile/flows/screens.json:263: `(tab\.home|screen\.welcome)`, tab bar (also drawn in shell/first-minute/scene.tsx)
-- mobile/flows/screens.json:320: `action.firstScan.open`, Beranda
-- mobile/flows/screens.json:438, 480, 570, 659, 946, 1546, 1636, 1812: `screen.home`, Beranda
-- mobile/flows/screens.json:458, 548, 637, 726, 778, 788, 804, 825, 877, 887, 903, 924, 1051, 1103, 1113, 1129, 1150, 1202, 1212, 1228, 1249, 1301, 1311, 1327, 1348, 1400, 1410, 1426, 1503, 1524, 1614, 1724, 1790, 2111, 2134, 2173, 2226, 2282, 2331, 2358, 2385, 2412, 2439, 2466, 2493, 2520, 2547, 2574, 2601, 2628, 2655, 2682, 2709, 2720, 2747, 2758, 2785, 2796, 2823, 2834, 2861, 2872, 2928, 2939, 2995, 3006, 3062, 3073, 3129, 3140, 3157, 3174, 3220, 3266, 3307, 3345, 3393, 3426, 3438, 3545, 3557, 3675: `sheet\.(nowClass|class)`, Beranda (also drawn in screens/schedule/details.tsx)
-- mobile/flows/screens.json:468, 558, 647, 934, 1534, 1624, 1800: `screen\.(home|needs)|sheet\.nowClass`, Beranda
-- mobile/flows/screens.json:492, 592, 616, 681, 705, 968, 1001, 1011, 1027, 1457, 1558, 1648, 1824: `sheet.nowClass`, Beranda
-- mobile/flows/screens.json:502, 524, 582, 671, 958, 1447, 1568, 1590, 1658, 1680, 1714: `screen.needs`, Beranda
-- mobile/flows/screens.json:509, 518, 1575, 1584, 1665, 1674: `action.needs.all`, Beranda
-- mobile/flows/screens.json:601, 610: `row.today.class:2153983`, Beranda
-- mobile/flows/screens.json:690, 699: `row.today.class:2194402`, Beranda
-- mobile/flows/screens.json:736, 835, 1061, 1160, 1259, 1358: `screen\.(course|needs)`, Beranda (also drawn in screens/course/course-screen.tsx)
-- mobile/flows/screens.json:744, 843, 1069, 1168, 1267, 1366, 1465, 2119, 2142, 2181, 3322, 3355: `tab.schedule`, tab bar
-- mobile/flows/screens.json:975, 995, 1018: `action.nowClass`, Beranda
-- mobile/flows/screens.json:985: `action.syncStatus`, top bar and Beranda (also drawn in parts/b-header.tsx, screens/home/index.tsx, screens/schedule/schedule-screen.tsx; also drawn in parts/b-header.tsx, screens/schedule/schedule-screen.tsx, shell/source-status.tsx)
-- mobile/flows/screens.json:1691: `section.changes`, Beranda (also drawn in screens/plan/curriculum.tsx)
-- mobile/flows/screens.json:1760, 1859, 1904, 3691, 3740, 3806, 3872, 4010, 4148, 4286, 4424, 4562, 5115, 5194, 5265: `tab.courses`, tab bar
-- mobile/flows/screens.json:1844, 5348: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
-- mobile/flows/screens.json:1920, 1947, 1978, 2021: `tab.tasks`, tab bar
-- mobile/flows/screens.json:3406, 3525: `sheet\.(nowClass|class|course)|screen\.course`, Beranda (also drawn in screens/course/course-screen.tsx, screens/course/course-sheet.tsx, screens/schedule/details.tsx)
-- mobile/flows/screens.json:3444, 3563: `action.openCourse`, Beranda (also drawn in screens/schedule/details.tsx)
-- mobile/flows/screens.json:4592, 4599, 4629, 4636: `row.nav.grades`, Profil
-- mobile/flows/screens.json:4704, 4711, 4733, 4740: `row.nav.plan.planner`, Profil
-- mobile/flows/screens.json:4787, 4794: `row.nav.plan.curriculum`, Profil
-- mobile/flows/screens.json:4815, 4822: `row.nav.plan.krs`, Profil
-- mobile/flows/screens.json:4843, 4850: `row.nav.plan.bills`, Profil
-- mobile/flows/screens.json:4871, 4878: `row.nav.plan.deadlines`, Profil
-- mobile/flows/screens.json:5329: `action.search`, top bar (also drawn in parts/b-header.tsx)
+- mobile/flows/screens.json:444, 486, 576, 665, 952, 1552, 1642, 1818: `screen.home`, Beranda
+- mobile/flows/screens.json:464, 554, 643, 732, 784, 794, 810, 831, 883, 893, 909, 930, 1057, 1109, 1119, 1135, 1156, 1208, 1218, 1234, 1255, 1307, 1317, 1333, 1354, 1406, 1416, 1432, 1509, 1530, 1620, 1730, 1796, 2117, 2140, 2179, 2232, 2288, 2337, 2364, 2391, 2418, 2445, 2472, 2499, 2526, 2553, 2580, 2607, 2634, 2661, 2688, 2715, 2726, 2753, 2764, 2791, 2802, 2829, 2840, 2867, 2878, 2934, 2945, 3001, 3012, 3068, 3079, 3135, 3146, 3163, 3180, 3226, 3272, 3313, 3351, 3399, 3432, 3444, 3551, 3563, 3681: `sheet\.(nowClass|class)`, Beranda (also drawn in screens/schedule/details.tsx)
+- mobile/flows/screens.json:474, 564, 653, 940, 1540, 1630, 1806: `screen\.(home|needs)|sheet\.nowClass`, Beranda
+- mobile/flows/screens.json:498, 598, 622, 687, 711, 974, 1007, 1017, 1033, 1463, 1564, 1654, 1830: `sheet.nowClass`, Beranda
+- mobile/flows/screens.json:508, 530, 588, 677, 964, 1453, 1574, 1596, 1664, 1686, 1720: `screen.needs`, Beranda
+- mobile/flows/screens.json:515, 524, 1581, 1590, 1671, 1680: `action.needs.all`, Beranda
+- mobile/flows/screens.json:607, 616: `row.today.class:2153983`, Beranda
+- mobile/flows/screens.json:696, 705: `row.today.class:2194402`, Beranda
+- mobile/flows/screens.json:742, 841, 1067, 1166, 1265, 1364: `screen\.(course|needs)`, Beranda (also drawn in screens/course/course-screen.tsx)
+- mobile/flows/screens.json:750, 849, 1075, 1174, 1273, 1372, 1471, 2125, 2148, 2187, 3328, 3361: `tab.schedule`, tab bar
+- mobile/flows/screens.json:981, 1001, 1024: `action.nowClass`, Beranda
+- mobile/flows/screens.json:991: `action.syncStatus`, top bar (also drawn in parts/b-header.tsx, screens/schedule/schedule-screen.tsx)
+- mobile/flows/screens.json:1697: `section.changes`, Beranda (also drawn in screens/plan/curriculum.tsx)
+- mobile/flows/screens.json:1766, 1865, 1910, 3697, 3746, 3812, 3878, 4016, 4154, 4292, 4430, 4568, 5121, 5200, 5271: `tab.courses`, tab bar
+- mobile/flows/screens.json:1850, 5354: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
+- mobile/flows/screens.json:1926, 1953, 1984, 2027: `tab.tasks`, tab bar
+- mobile/flows/screens.json:3412, 3531: `sheet\.(nowClass|class|course)|screen\.course`, Beranda (also drawn in screens/course/course-screen.tsx, screens/course/course-sheet.tsx, screens/schedule/details.tsx)
+- mobile/flows/screens.json:3450, 3569: `action.openCourse`, Beranda (also drawn in screens/schedule/details.tsx)
+- mobile/flows/screens.json:4598, 4605, 4635, 4642: `row.nav.grades`, Profil
+- mobile/flows/screens.json:4710, 4717, 4739, 4746: `row.nav.plan.planner`, Profil
+- mobile/flows/screens.json:4793, 4800: `row.nav.plan.curriculum`, Profil
+- mobile/flows/screens.json:4821, 4828: `row.nav.plan.krs`, Profil
+- mobile/flows/screens.json:4849, 4856: `row.nav.plan.bills`, Profil
+- mobile/flows/screens.json:4877, 4884: `row.nav.plan.deadlines`, Profil
+- mobile/flows/screens.json:5335: `action.search`, top bar (also drawn in parts/b-header.tsx)
 
 ### `mobile/flows/smoke.yaml`
 
@@ -397,11 +443,13 @@ Run by: CI `e2e (app)`: .github/workflows/mobile.yml, through scripts/ci/mobile-
 - mobile/flows/use.yaml:14: `status.settling`, top bar
 - mobile/flows/use.yaml:20: `tab.tasks`, tab bar
 - mobile/flows/use.yaml:97: `tab.schedule`, tab bar
-- mobile/flows/use.yaml:145: `tab.courses`, tab bar
-- mobile/flows/use.yaml:164: `tab.profile`, tab bar
-- mobile/flows/use.yaml:167: `screen.profile`, Profil
-- mobile/flows/use.yaml:171: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
-- mobile/flows/use.yaml:175: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
+- mobile/flows/use.yaml:169: `tab.courses`, tab bar
+- mobile/flows/use.yaml:188: `tab.profile`, tab bar
+- mobile/flows/use.yaml:191: `screen.profile`, Profil
+- mobile/flows/use.yaml:195: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
+- mobile/flows/use.yaml:199: `action.account`, top bar and Profil (also drawn in screens/academic/academic-screen.tsx)
+- mobile/flows/use.yaml:219: text "Settings", Profil? (string `nav.settings` is used there)
+- mobile/flows/use.yaml:248: text "Pengaturan", Profil? (string `nav.settings` is used there)
 
 ### `mobile/qa/flows/before.yaml`
 
@@ -436,25 +484,24 @@ Run by: `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`
 
 Run by: `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`
 
-- mobile/qa/flows/home-shots.yaml:18: `status.firstRead`, top bar (also drawn in shell/first-minute/scene.tsx)
-- mobile/qa/flows/home-shots.yaml:24: `status.firstRead`, top bar (also drawn in shell/first-minute/scene.tsx)
-- mobile/qa/flows/home-shots.yaml:28: `card.firstScan`, Beranda
-- mobile/qa/flows/home-shots.yaml:39: `home.now`, Beranda
-- mobile/qa/flows/home-shots.yaml:43: `status.settling`, top bar
-- mobile/qa/flows/home-shots.yaml:46: `action.notify.later`, Beranda
-- mobile/qa/flows/home-shots.yaml:50: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
-- mobile/qa/flows/home-shots.yaml:56: `action.nowClass`, Beranda
-- mobile/qa/flows/home-shots.yaml:59: `sheet.nowClass`, Beranda
-- mobile/qa/flows/home-shots.yaml:66: `section.today`, Beranda (also drawn in screens/plan/curriculum.tsx)
-- mobile/qa/flows/home-shots.yaml:73: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
-- mobile/qa/flows/home-shots.yaml:78: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
-- mobile/qa/flows/home-shots.yaml:83: `card.now.checkedIn`, Beranda
-- mobile/qa/flows/home-shots.yaml:89: `action.needs.all`, Beranda
-- mobile/qa/flows/home-shots.yaml:92: `screen.needs`, Beranda
-- mobile/qa/flows/home-shots.yaml:98: `row.need.attendance:KU5014:out`, Beranda
-- mobile/qa/flows/home-shots.yaml:102: text "Urungkan", Beranda? (after `card.firstScan` at line 28, nothing else tapped since)
-- mobile/qa/flows/home-shots.yaml:104: text "Urungkan", Beranda? (after `card.firstScan` at line 28, nothing else tapped since)
-- mobile/qa/flows/home-shots.yaml:108: `row.need.exam:DK4073-UTS`, Beranda
+- mobile/qa/flows/home-shots.yaml:22: `status.firstRead`, top bar
+- mobile/qa/flows/home-shots.yaml:28: `status.firstRead`, top bar
+- mobile/qa/flows/home-shots.yaml:43: `home.now`, Beranda
+- mobile/qa/flows/home-shots.yaml:47: `status.settling`, top bar
+- mobile/qa/flows/home-shots.yaml:50: `action.notify.later`, Beranda
+- mobile/qa/flows/home-shots.yaml:54: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
+- mobile/qa/flows/home-shots.yaml:60: `action.nowClass`, Beranda
+- mobile/qa/flows/home-shots.yaml:63: `sheet.nowClass`, Beranda
+- mobile/qa/flows/home-shots.yaml:70: `section.today`, Beranda (also drawn in screens/plan/curriculum.tsx)
+- mobile/qa/flows/home-shots.yaml:77: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
+- mobile/qa/flows/home-shots.yaml:82: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
+- mobile/qa/flows/home-shots.yaml:87: `card.now.checkedIn`, Beranda
+- mobile/qa/flows/home-shots.yaml:93: `action.needs.all`, Beranda
+- mobile/qa/flows/home-shots.yaml:96: `screen.needs`, Beranda
+- mobile/qa/flows/home-shots.yaml:102: `row.need.attendance:KU5014:out`, Beranda
+- mobile/qa/flows/home-shots.yaml:106: text "Urungkan", Beranda? (after `home.now` at line 43, nothing else tapped since)
+- mobile/qa/flows/home-shots.yaml:108: text "Urungkan", Beranda? (after `home.now` at line 43, nothing else tapped since)
+- mobile/qa/flows/home-shots.yaml:112: `row.need.exam:DK4073-UTS`, Beranda
 
 ### `mobile/qa/flows/home-tour.yaml`
 
@@ -489,8 +536,8 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`; `mobile
 
 - mobile/qa/flows/r2-akademik.yaml:9: `tab.home`, tab bar
 - mobile/qa/flows/r2-akademik.yaml:12: `tab.profile`, tab bar
-- mobile/qa/flows/r2-akademik.yaml:15: `card.profile`, Profil (also drawn in screens/settings/accounts.tsx)
-- mobile/qa/flows/r2-akademik.yaml:20: `card.profile`, Profil (also drawn in screens/settings/accounts.tsx)
+- mobile/qa/flows/r2-akademik.yaml:15: `card.profile`, Profil
+- mobile/qa/flows/r2-akademik.yaml:20: `card.profile`, Profil
 - mobile/qa/flows/r2-akademik.yaml:36: `row.nav.plan.planner`, Profil
 - mobile/qa/flows/r2-akademik.yaml:38: `row.nav.plan.planner`, Profil
 - mobile/qa/flows/r2-akademik.yaml:44: `row.nav.plan.curriculum`, Profil
@@ -552,7 +599,7 @@ Run by: `mobile/qa/flows/r3/_next-task.yaml`; `mobile/qa/superapp-flows.md`; `mo
 - mobile/qa/flows/r3/02-task-file.yaml:28: `section.needs.reading`, Beranda (also drawn in screens/plan/curriculum.tsx)
 - mobile/qa/flows/r3/02-task-file.yaml:35: `row\.need\.task:.*`, Beranda
 - mobile/qa/flows/r3/02-task-file.yaml:38: `row\.need\.task:.*`, Beranda
-- mobile/qa/flows/r3/02-task-file.yaml:82: `screen\..*`, Beranda and Profil (also drawn in screens/course/course-screen.tsx, screens/course/module-screen.tsx, screens/first-scan/first-scan-screen.tsx, …)
+- mobile/qa/flows/r3/02-task-file.yaml:82: `screen\..*`, Beranda and Profil (also drawn in screens/course/course-screen.tsx, screens/course/module-screen.tsx, screens/exams/exams-screen.tsx, …)
 
 ### `mobile/qa/flows/r3/03-tandai-hadir.yaml`
 
@@ -560,12 +607,12 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/r3/03-tandai-hadir.yaml:21: `screen.home`, Beranda
 - mobile/qa/flows/r3/03-tandai-hadir.yaml:25: `home.loading`, Beranda
-- mobile/qa/flows/r3/03-tandai-hadir.yaml:36: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
+- mobile/qa/flows/r3/03-tandai-hadir.yaml:36: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
 - mobile/qa/flows/r3/03-tandai-hadir.yaml:39: `tab.courses`, tab bar
-- mobile/qa/flows/r3/03-tandai-hadir.yaml:51: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
-- mobile/qa/flows/r3/03-tandai-hadir.yaml:59: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
-- mobile/qa/flows/r3/03-tandai-hadir.yaml:68: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
-- mobile/qa/flows/r3/03-tandai-hadir.yaml:74: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
+- mobile/qa/flows/r3/03-tandai-hadir.yaml:51: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
+- mobile/qa/flows/r3/03-tandai-hadir.yaml:59: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
+- mobile/qa/flows/r3/03-tandai-hadir.yaml:68: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
+- mobile/qa/flows/r3/03-tandai-hadir.yaml:74: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
 - mobile/qa/flows/r3/03-tandai-hadir.yaml:78: `screen\.(home|courses)`, Beranda (also drawn in screens/presence/presence-screen.tsx)
 
 ### `mobile/qa/flows/r3/04-course-material.yaml`
@@ -583,8 +630,8 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 - mobile/qa/flows/r3/05-grades.yaml:19: `tab.profile`, tab bar
 - mobile/qa/flows/r3/05-grades.yaml:23: `screen.profile`, Profil
 - mobile/qa/flows/r3/05-grades.yaml:27: `academic.loading`, Profil
-- mobile/qa/flows/r3/05-grades.yaml:32: `action.academic.grades`, Profil
-- mobile/qa/flows/r3/05-grades.yaml:35: `action.academic.grades`, Profil
+- mobile/qa/flows/r3/05-grades.yaml:32: `card.profile`, Profil
+- mobile/qa/flows/r3/05-grades.yaml:35: `card.profile`, Profil
 - mobile/qa/flows/r3/05-grades.yaml:49: `row.nav.grades`, Profil
 - mobile/qa/flows/r3/05-grades.yaml:53: `row.nav.grades`, Profil
 
@@ -604,11 +651,14 @@ Run by: `mobile/qa/superapp-flows.md`
 
 Run by: `mobile/qa/superapp-flows.md`
 
-- mobile/qa/flows/rec-home-first-run.yaml:15: `tab.home`, tab bar
-- mobile/qa/flows/rec-home-first-run.yaml:19: `status.settling`, top bar
-- mobile/qa/flows/rec-home-first-run.yaml:23: `status.firstRead`, top bar (also drawn in shell/first-minute/scene.tsx)
-- mobile/qa/flows/rec-home-first-run.yaml:27: `card.firstScan`, Beranda
-- mobile/qa/flows/rec-home-first-run.yaml:33: `action.firstScan.open`, Beranda
+- mobile/qa/flows/rec-home-first-run.yaml:19: `tab.home`, tab bar
+- mobile/qa/flows/rec-home-first-run.yaml:23: `status.settling`, top bar
+- mobile/qa/flows/rec-home-first-run.yaml:27: `status.firstRead`, top bar
+- mobile/qa/flows/rec-home-first-run.yaml:33: text "Lihat ringkasan", Beranda? (after `tab.home` at line 19, nothing else tapped since)
+- mobile/qa/flows/rec-home-first-run.yaml:35: text "Lihat ringkasan", Beranda? (after `tab.home` at line 19, nothing else tapped since)
+- mobile/qa/flows/rec-home-first-run.yaml:42: `tab.profile`, tab bar
+- mobile/qa/flows/rec-home-first-run.yaml:45: `screen.profile`, Profil
+- mobile/qa/flows/rec-home-first-run.yaml:48: `action.settings`, Profil
 
 ### `mobile/qa/flows/rec-home-v4.yaml`
 
@@ -621,7 +671,7 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 - mobile/qa/flows/rec-home-v4.yaml:23: `sheet.nowClass`, Beranda
 - mobile/qa/flows/rec-home-v4.yaml:28: `tab.schedule`, tab bar
 - mobile/qa/flows/rec-home-v4.yaml:31: `tab.home`, tab bar
-- mobile/qa/flows/rec-home-v4.yaml:34: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx)
+- mobile/qa/flows/rec-home-v4.yaml:34: `action.checkIn`, Beranda (also drawn in screens/course/now.tsx, screens/presence/now.tsx, screens/schedule/details.tsx, …)
 - mobile/qa/flows/rec-home-v4.yaml:39: `card.now.checkedIn`, Beranda
 
 ### `mobile/qa/flows/rec-module.yaml`
@@ -840,33 +890,33 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 | id | on | flow files | mentions |
 | --- | --- | ---: | ---: |
-| `tab.home` | tab bar | 49 | 89 |
+| `tab.home` | tab bar | 49 | 91 |
 | `status.settling` | top bar | 22 | 25 |
 | `tab.tasks` | tab bar | 16 | 37 |
 | `tab.schedule` | tab bar | 15 | 42 |
-| `tab.profile` | tab bar | 12 | 43 |
+| `tab.profile` | tab bar | 13 | 46 |
 | `tab.courses` | tab bar | 11 | 37 |
-| `sheet.nowClass` | Beranda | 10 | 24 |
+| `sheet.nowClass` | Beranda | 10 | 25 |
+| `screen.home` | Beranda | 8 | 16 |
 | `action.account` | top bar | 7 | 34 |
 | `row.nav.grades` | Profil | 7 | 23 |
-| `screen.home` | Beranda | 7 | 15 |
-| `home.now` | Beranda | 7 | 8 |
+| `home.now` | Beranda | 7 | 9 |
+| `screen.profile` | Profil | 6 | 17 |
+| `home.grid` | Beranda | 6 | 16 |
 | `row.nav.plan.krs` | Profil | 6 | 15 |
 | `row.nav.plan.curriculum` | Profil | 6 | 14 |
-| `action.needs.all` | Beranda | 6 | 12 |
 | `screen.needs` | Beranda | 5 | 15 |
-| `screen.profile` | Profil | 5 | 11 |
+| `action.needs.all` | Beranda | 5 | 11 |
 | `row.nav.plan.bills` | Profil | 5 | 9 |
 | `row.nav.plan.deadlines` | Profil | 5 | 9 |
-| `home.grid` | Beranda | 5 | 7 |
 | `action.nowClass` | Beranda | 5 | 7 |
-| `card.firstScan` | Beranda | 5 | 6 |
 | `action.alerts` | top bar | 5 | 6 |
 | `action.checkIn` | Beranda | 4 | 11 |
 | `row.nav.plan.planner` | Profil | 4 | 9 |
-| `home.search` | Beranda | 4 | 6 |
-| `card.now.checkedIn` | Beranda | 4 | 4 |
-| `action.firstScan.open` | Beranda | 4 | 4 |
+| `home.search` | Beranda | 4 | 8 |
+| `status.firstRead` | top bar | 4 | 7 |
+| `card.profile` | Profil | 4 | 6 |
+| `home.strip` | Beranda | 4 | 5 |
 | `action.search` | top bar | 4 | 4 |
 | `action.notify.later` | Beranda | 4 | 4 |
 | `row.today.class:2153983` | Beranda | 3 | 5 |
@@ -882,83 +932,78 @@ Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 ### Ids no source file draws today (flows already waiting for something gone)
 
-- mobile/flows/journeys/03-deadline.yaml:20: `action.strip.tasks`
-- mobile/flows/journeys/04-after-class.yaml:22: `screen.material`
-- mobile/flows/journeys/04-after-class.yaml:28: `row\.material\..*`
-- mobile/flows/journeys/04-after-class.yaml:40: `screen.material`
+- mobile/flows/journeys/04-after-class.yaml:39: `row.material.889385`
+- mobile/flows/journeys/04-after-class.yaml:47: `row.material.880001`
+- mobile/flows/journeys/04-after-class.yaml:52: `row.material.880001`
 - mobile/flows/round2/w01-files.yaml:59: `row.module.2-catatan`
 - mobile/flows/round2/w01-files.yaml:61: `row.module.2-catatan`
 - mobile/flows/round2/w04-jadwal.yaml:27: `segment.view.*`
-- mobile/flows/round2/w11-kuliah.yaml:28: `group.presence.out`
-- mobile/flows/round2/w11-kuliah.yaml:38: `mark.counted.*`
-- mobile/flows/round2/w11-kuliah.yaml:56: `action.changeTarget.*`
-- mobile/flows/round2/w11-kuliah.yaml:83: `mark.courseAdvice`
+- mobile/flows/round2/w11-kuliah.yaml:42: `mark.counted.*`
+- mobile/flows/round2/w11-kuliah.yaml:60: `action.changeTarget.*`
 - mobile/flows/round2/w12-one-target.yaml:47: `action.openExternal`
-- mobile/flows/round2/w15-onboarding.yaml:14: `action.start`
-- mobile/flows/screens.json:757: `day.2026-10-08`
-- mobile/flows/screens.json:856: `day.2026-10-08`
-- mobile/flows/screens.json:1082: `day.2026-10-08`
-- mobile/flows/screens.json:1181: `day.2026-10-08`
-- mobile/flows/screens.json:1280: `day.2026-10-08`
-- mobile/flows/screens.json:1379: `day.2026-10-08`
-- mobile/flows/screens.json:1476: `day.2026-10-09`
-- mobile/flows/screens.json:1485: `day.2026-10-09`
-- mobile/flows/screens.json:1734: `sheet.changes`
-- mobile/flows/screens.json:2250: `day.2026-10-08`
-- mobile/flows/screens.json:2291: `day.2026-10-08`
-- mobile/flows/screens.json:2300: `day.2026-10-08`
-- mobile/flows/screens.json:2340: `day.2026-10-01`
-- mobile/flows/screens.json:2349: `day.2026-10-01`
-- mobile/flows/screens.json:2367: `day.2026-10-08`
-- mobile/flows/screens.json:2376: `day.2026-10-08`
-- mobile/flows/screens.json:2394: `day.2026-10-09`
-- mobile/flows/screens.json:2403: `day.2026-10-09`
-- mobile/flows/screens.json:2421: `day.2026-10-15`
-- mobile/flows/screens.json:2430: `day.2026-10-15`
-- mobile/flows/screens.json:2448: `day.2026-10-16`
-- mobile/flows/screens.json:2457: `day.2026-10-16`
-- mobile/flows/screens.json:2475: `day.2026-10-22`
-- mobile/flows/screens.json:2484: `day.2026-10-22`
-- mobile/flows/screens.json:2502: `day.2026-10-29`
-- mobile/flows/screens.json:2511: `day.2026-10-29`
-- mobile/flows/screens.json:2529: `day.2026-10-30`
-- mobile/flows/screens.json:2538: `day.2026-10-30`
-- mobile/flows/screens.json:2556: `day.2026-10-01`
-- mobile/flows/screens.json:2565: `day.2026-10-01`
-- mobile/flows/screens.json:2583: `day.2026-10-08`
-- mobile/flows/screens.json:2592: `day.2026-10-08`
-- mobile/flows/screens.json:2610: `day.2026-10-09`
-- mobile/flows/screens.json:2619: `day.2026-10-09`
-- mobile/flows/screens.json:2637: `day.2026-10-15`
-- mobile/flows/screens.json:2646: `day.2026-10-15`
-- mobile/flows/screens.json:2664: `day.2026-10-29`
-- mobile/flows/screens.json:2673: `day.2026-10-29`
-- mobile/flows/screens.json:2690: `day.2026-10-08`
-- mobile/flows/screens.json:2728: `day.2026-10-08`
-- mobile/flows/screens.json:2766: `day.2026-10-08`
-- mobile/flows/screens.json:2804: `day.2026-10-08`
-- mobile/flows/screens.json:2842: `day.2026-10-09`
-- mobile/flows/screens.json:2909: `day.2026-10-15`
-- mobile/flows/screens.json:2976: `day.2026-10-15`
-- mobile/flows/screens.json:3043: `day.2026-10-15`
-- mobile/flows/screens.json:3110: `day.2026-10-15`
-- mobile/flows/screens.json:3148: `day.2026-10-08`
-- mobile/flows/screens.json:3165: `day.2026-10-09`
-- mobile/flows/screens.json:3211: `day.2026-10-15`
-- mobile/flows/screens.json:3257: `day.2026-10-16`
-- mobile/flows/screens.json:3366: `day.2026-10-09`
-- mobile/flows/screens.json:3375: `day.2026-10-09`
-- mobile/flows/screens.json:4645: `row.term.{{2}}`
-- mobile/flows/screens.json:4656: `row.term.{{2}}`
-- mobile/flows/screens.json:4663: `row.term.{{2}}`
-- mobile/flows/screens.json:4676: `row.term.{{2}}.open`
-- mobile/flows/screens.json:4682: `row.term.{{2}}`
-- mobile/flows/screens.json:5244: `row.module.{{3}}`
+- mobile/flows/round2/w15-onboarding.yaml:15: `action.start`
+- mobile/flows/screens.json:763: `day.2026-10-08`
+- mobile/flows/screens.json:862: `day.2026-10-08`
+- mobile/flows/screens.json:1088: `day.2026-10-08`
+- mobile/flows/screens.json:1187: `day.2026-10-08`
+- mobile/flows/screens.json:1286: `day.2026-10-08`
+- mobile/flows/screens.json:1385: `day.2026-10-08`
+- mobile/flows/screens.json:1482: `day.2026-10-09`
+- mobile/flows/screens.json:1491: `day.2026-10-09`
+- mobile/flows/screens.json:1740: `sheet.changes`
+- mobile/flows/screens.json:2256: `day.2026-10-08`
+- mobile/flows/screens.json:2297: `day.2026-10-08`
+- mobile/flows/screens.json:2306: `day.2026-10-08`
+- mobile/flows/screens.json:2346: `day.2026-10-01`
+- mobile/flows/screens.json:2355: `day.2026-10-01`
+- mobile/flows/screens.json:2373: `day.2026-10-08`
+- mobile/flows/screens.json:2382: `day.2026-10-08`
+- mobile/flows/screens.json:2400: `day.2026-10-09`
+- mobile/flows/screens.json:2409: `day.2026-10-09`
+- mobile/flows/screens.json:2427: `day.2026-10-15`
+- mobile/flows/screens.json:2436: `day.2026-10-15`
+- mobile/flows/screens.json:2454: `day.2026-10-16`
+- mobile/flows/screens.json:2463: `day.2026-10-16`
+- mobile/flows/screens.json:2481: `day.2026-10-22`
+- mobile/flows/screens.json:2490: `day.2026-10-22`
+- mobile/flows/screens.json:2508: `day.2026-10-29`
+- mobile/flows/screens.json:2517: `day.2026-10-29`
+- mobile/flows/screens.json:2535: `day.2026-10-30`
+- mobile/flows/screens.json:2544: `day.2026-10-30`
+- mobile/flows/screens.json:2562: `day.2026-10-01`
+- mobile/flows/screens.json:2571: `day.2026-10-01`
+- mobile/flows/screens.json:2589: `day.2026-10-08`
+- mobile/flows/screens.json:2598: `day.2026-10-08`
+- mobile/flows/screens.json:2616: `day.2026-10-09`
+- mobile/flows/screens.json:2625: `day.2026-10-09`
+- mobile/flows/screens.json:2643: `day.2026-10-15`
+- mobile/flows/screens.json:2652: `day.2026-10-15`
+- mobile/flows/screens.json:2670: `day.2026-10-29`
+- mobile/flows/screens.json:2679: `day.2026-10-29`
+- mobile/flows/screens.json:2696: `day.2026-10-08`
+- mobile/flows/screens.json:2734: `day.2026-10-08`
+- mobile/flows/screens.json:2772: `day.2026-10-08`
+- mobile/flows/screens.json:2810: `day.2026-10-08`
+- mobile/flows/screens.json:2848: `day.2026-10-09`
+- mobile/flows/screens.json:2915: `day.2026-10-15`
+- mobile/flows/screens.json:2982: `day.2026-10-15`
+- mobile/flows/screens.json:3049: `day.2026-10-15`
+- mobile/flows/screens.json:3116: `day.2026-10-15`
+- mobile/flows/screens.json:3154: `day.2026-10-08`
+- mobile/flows/screens.json:3171: `day.2026-10-09`
+- mobile/flows/screens.json:3217: `day.2026-10-15`
+- mobile/flows/screens.json:3263: `day.2026-10-16`
+- mobile/flows/screens.json:3372: `day.2026-10-09`
+- mobile/flows/screens.json:3381: `day.2026-10-09`
+- mobile/flows/screens.json:4651: `row.term.{{2}}`
+- mobile/flows/screens.json:4662: `row.term.{{2}}`
+- mobile/flows/screens.json:4669: `row.term.{{2}}`
+- mobile/flows/screens.json:4682: `row.term.{{2}}.open`
+- mobile/flows/screens.json:4688: `row.term.{{2}}`
 - mobile/flows/screens.json:5250: `row.module.{{3}}`
-- mobile/flows/use.yaml:136: `day.2026-10-15`
-- mobile/qa/flows/before-welcome.yaml:8: `action.start`
-- mobile/qa/flows/before-welcome.yaml:13: `action.start`
-- mobile/qa/flows/before-welcome.yaml:17: `action.connect.edunex`
+- mobile/flows/screens.json:5256: `row.module.{{3}}`
+- mobile/flows/use.yaml:132: `day.2026-10-15`
+- mobile/flows/use.yaml:160: `day.2026-10-15`
 - mobile/qa/flows/before.yaml:58: `tab.presence`
 - mobile/qa/flows/before.yaml:62: `tab.more`
 - mobile/qa/flows/before.yaml:76: `row.nav.plan`

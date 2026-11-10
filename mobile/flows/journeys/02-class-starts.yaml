@@ -1,9 +1,11 @@
 # Journey 2, a class starts: from Beranda to presence marked, then back to "what's next".
 # limit: 2
-# The demo opens SIX's Tandai Hadir for the class on now (EDUNEX_DEMO_CHECK_IN=open). Its page in the demo is a placeholder
-# ("Di aplikasi asli, halaman SIX terbuka di sini"): the Student's press of SIX's own button isn't ours, so the walk goes as far
-# as is real: the button, SIX's page, Back to Beranda.
-# gap: after Back the block still shows "Sudah ke SIX" on the same class; it does not move on to what's next (the hill's landing).
+# The class on now has its Edunex Presence open: the block's button is "Isi Presensi" (action.presence), which opens
+# Edunex's own presence page in the app, signed in (src/screens/home/banner.tsx, `external(presence.url)`; in the app
+# it is src/screens/web/signed-page.tsx, `screen.page.edunex`). The Student's press of Edunex's own button isn't ours, so
+# the walk goes as far as is real: the button, Edunex's page, Back to Beranda.
+# (On the real phone tonight it was Edunex's page, not SIX's Tandai Hadir the flow looked for: SIX's `action.checkIn`
+# is the button only when no Edunex Presence is open.)
 appId: io.github.pablonification.edunexplus.demo
 name: "journey 2 a class starts: Isi Presensi, then what's next"
 ---
@@ -22,26 +24,24 @@ name: "journey 2 a class starts: Isi Presensi, then what's next"
       id: home.now
     timeout: 30000
 - assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
-# tap 1: the block's one white button (SIX's "Tandai Hadir" here: SIX is the one open; Edunex's is "Isi Presensi"). Its id is
-# action.presence for an Edunex Presence and action.checkIn on the SIX path the block still draws, so both are taken.
+# tap 1: the block's one white button. Its id is action.presence for an Edunex Presence and action.checkIn on the SIX
+# path the block still draws, so both are taken.
 - tapOn:
     id: 'action\.(presence|checkIn)'
-# SIX's own page (the demo's placeholder). Our part ends here.
+# Edunex's own presence page (SIX's Tandai Hadir, `screen.checkIn`, if the block had SIX's button). Our part ends here.
 - extendedWaitUntil:
     visible:
-      id: screen.checkIn
+      id: 'screen\.(page\.edunex|checkIn)'
     timeout: 20000
-- takeScreenshot: journey-2-six-page
-# Back lands on Beranda, the card closed, no dead end.
+- takeScreenshot: journey-2-edunex-page
+# Back lands on Beranda, the block still there, no dead end.
 - back
 - extendedWaitUntil:
     visible:
-      id: home.now
+      id: screen.home
     timeout: 20000
-# The block says it was done: a check and "Sudah ke SIX".
 - assertVisible:
-    id: card.now.checkedIn
-- assertVisible: "Sudah ke SIX.*"
+    id: home.now
 - assertVisible:
     id: home.strip
 - assertVisible:

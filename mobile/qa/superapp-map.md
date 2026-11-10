@@ -4,6 +4,8 @@ Read from the code at `34948721` (the branch `mobile-superapp-layout`, before th
 tests, no demo, no phone. Where a demo link is named, it is built from `mobile/src/demo/world.ts` and
 `test/pretend/demo.ts` and marked **proven** only when a flow in `mobile/flows/` or `mobile/qa/flows/` already opens it.
 Today `home.search`, `home.strip`, `home.grid` and `tab.profile` do not exist yet; the fifth tab is still `tab.academic`.
+(Updated 11 Nov from the code: the rows for `/needs`, `/settings`, `/first-scan`, `/licences` and Beranda's first run,
+nothing to handle and check-in say how they are reached now.)
 
 Words: "Beranda" the home tab. "taps" count presses from Beranda's first screen, not scrolling or Back.
 
@@ -32,12 +34,12 @@ Words: "Beranda" the home tab. "taps" count presses from Beranda's first screen,
 
 | Route | File | testID | For | Reached today (testID or label) | Taps |
 | --- | --- | --- | --- | --- | --- |
-| `/needs` | `app/needs.tsx` → `src/screens/home/needs-screen.tsx` | `screen.needs` | Whole "Perlu kamu urus" list, changes | `action.needs.all` (the chevron by the heading, or the "Tak ada yang perlu diurus" line) | 1 |
+| `/needs` | `app/needs.tsx` → `src/screens/home/needs-screen.tsx` | `screen.needs` | Whole "Perlu kamu urus" list, changes | `action.needs.all`, the chevron by Beranda's "Perlu kamu urus" (below the fold, drawn only when a row isn't on the strip already: `urus.tsx`); always: Lainnya `action.service.more` → `action.service.needs` | 1 (scrolled) / 2 |
 | `/alerts` | `app/alerts.tsx` | `screen.alerts` | Everything the app noticed, by day | `action.alerts` (bell); also `action.changes.all` "Lihat semua" on `/needs` | 1 |
 | `/search` | `app/search.tsx` | `screen.search` | Find anything the app has saved | `action.search` | 1 |
-| `/settings` (`?at=alerts\|courseColors`) | `app/settings.tsx` → `src/screens/settings/index.tsx` | `screen.settings` | Change one setting, sign out | `action.account` (avatar) | 1 |
-| `/first-scan` | `app/first-scan.tsx` → `src/screens/first-scan/first-scan-screen.tsx` | `screen.firstScan` | What the first read found | first run only: `card.firstScan` → `action.firstScan.open` (1); later Settings › Akun `action.firstScan` | 1 / 3 |
-| `/licences` | `app/licences.tsx` → `src/screens/licences/licences-screen.tsx` | `screen.licences` | Open-source licences | `action.account` → `action.licences` (Tentang, scroll) | 2 |
+| `/settings` (`?at=alerts\|courseColors`) | `app/settings.tsx` → `src/screens/settings/index.tsx` | `screen.settings` | Change one setting, sign out | Profil `tab.profile` → `action.account` (its "Pengaturan" row; no avatar in a top bar) | 2 |
+| `/first-scan` | `app/first-scan.tsx` → `src/screens/first-scan/first-scan-screen.tsx` | `screen.firstScan` | What the first read found | first run only: the snackbar "Semua siap." (6 s) → "Lihat ringkasan" (1, `first-scan/said.tsx`); any time: Lainnya → `action.service.scan` (2) | 1 / 2 |
+| `/licences` | `app/licences.tsx` → `src/screens/licences/licences-screen.tsx` | `screen.licences` | Open-source licences | `tab.profile` → `action.account` → `action.licences` (Tentang, scroll) | 3 |
 | `/report` | `app/report.tsx` → `src/screens/report/report-screen.tsx` | `screen.report` | Report a problem | `action.account` → `action.report` (scroll); or the report card `card.reportAsk` on its own | 2 |
 | `/task/[taskId]` | `app/task/[taskId].tsx` → `src/screens/tasks/task-page.tsx` | `screen.task` | One Task: brief, hand it in | `row.need.<id>` on Beranda | 1 |
 | `/exam/[examId]` | `app/exam/[examId].tsx` → `src/screens/tasks/exam-page.tsx` | `screen.exam` | When, where, what of an exam | `row.need.<id>` (an exam due), or `tab.tasks` → `row.exam.<id>`, or class sheet `action.openCourse` ("Buka ujian") | 1–3 |
@@ -208,15 +210,15 @@ Not an option, but in the pretend world: `world.setOffline(true)` (`test/pretend
 | State | Drawn today | Where | How to see it |
 | --- | --- | --- | --- |
 | Loading | **✓** skeletons: now card `HeldShape`, rows `UrusLoading` | `src/screens/home/index.tsx` (`Loading`, `testID home.loading`), `now.tsx` (`card.now.reading`), `urus.tsx` (`section.needs.reading`) | **proven**: open any signed-in link and screenshot at once, before `status.settling` goes (every flow waits for it): `edunexplusdemo://demo?EDUNEX_DEMO=signed-in`; the longest hold is `EDUNEX_DEMO=first-run` after sign-in |
-| Empty: nothing to handle | **✓** one line "Tak ada yang perlu diurus" (`mobile.home.toHandleNone`) with `action.needs.all` | `urus.tsx:225` | no link names it. Try (not run) `EDUNEX_DEMO_NOW=2026-12-20T09:00:00%2B07:00`, after every deadline; if the pretend data still has a Task due, it won't show |
+| Empty: nothing to handle | **✓** no section at all (`section.needs` returns nothing when every row is on the strip); the whole list stays in Semua layanan | `urus.tsx` (`if (!rows.length) return null`) | no link names it. Try (not run) `EDUNEX_DEMO_NOW=2026-12-20T09:00:00%2B07:00`, after every deadline; if the pretend data still has a Task due, it won't show |
 | Empty: no class | **✓** "Tak ada kuliah 7 hari ke depan" (`mobile.home.free`) in `card.now`; "Ada kuliah yang belum terbaca · {day}" with `OpenSixTimetable` when a class can't be read | `now.tsx:78–90` | the unread one: **proven** `EDUNEX_DEMO_TIMETABLE=unread`; the free week: try `EDUNEX_DEMO_NOW=2026-12-20T09:00:00%2B07:00` (not run) |
 | Empty: no SIX (no timetable) | **–** no now card, no "Nanti hari ini" (the part returns `null`); only "Perlu kamu urus" shows | `now.tsx:77` ("if (!hasSchedule) return null") | **proven**: `EDUNEX_DEMO=edunex-only` (flows `judge/edunex-only.yaml`). Beranda is thinner but says nothing about SIX; the banner stays absent (`banner.problem` appears only if SIX *had* data) |
 | Offline | **✓** `banner.problem` "Tidak ada koneksi." + hint with the last time; status line under the greeting | `src/shell/source-status.tsx:~505` (`ProblemBanner`), `StatusLine` | **no way in the demo**. One option would add it: `EDUNEX_DEMO_OFFLINE=1` (or a link `?offline=1`, like `end=`) calling `run.world.setOffline(true)` then `engine.refresh()` in `mobile/src/demo/world.ts`. The desktop's picture 27 "needs a phone without a network" (`flows/judge/walk.yaml` header) |
 | Error: SIX session ended | **✓** `banner.problem` "Sesi SIX berakhir." + "Masuk lagi" | same | launch `EDUNEX_DEMO=signed-in&EDUNEX_DEMO_SIGN_IN=asks`, then open `edunexplusdemo://demo?end=six` (not run as a pair; each half is in the code) |
 | Error: page changed | **✓** `banner.problem` "SIX berubah." and `SixPageNote` on the card | `home/index.tsx` (`useChangedPage`) | **proven** `EDUNEX_DEMO_COURSE_TABLE=lost\|blank` (flows `course-table-lost/-blank`), `EDUNEX_DEMO_DATAINDUK=1` |
 | Signed out of SIX only | **✓** (see "no SIX") | | `EDUNEX_DEMO=edunex-only` |
-| First run cards | **✓** `card.firstScan` (summary), `card.notify` (notifications) | `home/first-run.tsx` | `EDUNEX_DEMO=first-run` after sign-in (**proven**, `flows/judge/first-run.yaml`) |
-| Check-in open | **✓** the now card's button "Tandai Hadir" (`action.checkIn`); after it's pressed the card reads "Sudah ke SIX · HH:MM" (`card.now.checkedIn`) | `now.tsx`, `home/checked-in.ts` | **proven** `EDUNEX_DEMO_CHECK_IN=open` |
+| First run | **✓** the snackbar "Semua siap." once, with "Lihat ringkasan" (no `card.firstScan` any more); `card.notify` (notifications) only from the second open | `first-scan/said.tsx`, `home/first-run.tsx` | `EDUNEX_DEMO=first-run` after sign-in (**proven**, `flows/judge/first-run.yaml`) |
+| Check-in open | **✓** the class block's one button: "Isi Presensi" (`action.presence`) when the class's Edunex Presence is open, which opens Edunex's page in the app (`screen.page.edunex`); "Tandai Hadir" (`action.checkIn`, `screen.checkIn`) only on the SIX path; after SIX's, the block reads "Sudah ke SIX · HH:MM" (`card.now.checkedIn`) | `home/banner.tsx` (`BannerAction`), `home/checked-in.ts` | **proven** `EDUNEX_DEMO_CHECK_IN=open` |
 
 ### 3.2 Jadwal
 
