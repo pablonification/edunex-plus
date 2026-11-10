@@ -96,7 +96,7 @@ export const mobileCourseStrings = {
   "mobile.grade.removed": { id: "{part} dihapus", en: "{part} removed" },
   // superapp: Kuliah
   // A course's first tab: its material (Edunex's modules). The word the Student looks for after class.
-  "mobile.course.tab.material": { id: "Materi", en: "Material" },
+  "mobile.course.tab.material": { id: "Materi", en: "Materials" },
   // Over the module the course is on, unfolded at the top of Materi: new material this week, else the newest.
   "mobile.course.material.thisWeek": { id: "Materi minggu ini", en: "This week's material" },
   "mobile.course.material.latest": { id: "Materi terbaru", en: "Latest material" },
