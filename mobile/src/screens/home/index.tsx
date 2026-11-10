@@ -16,17 +16,16 @@ import { attention, dueItems, type HomeContext, homeContext, type NowCard, nowCa
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { perfFirstData, usePerfDrawn } from "../../perf";
 import { ProblemBanner } from "../../shell/source-status";
-import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Part } from "../../ui/parts";
 import { space } from "../../ui/theme";
 import { BannerShape, NowBanner } from "./banner";
-import { FirstScanCard, NotifyCard } from "./first-run";
+import { NotifyCard } from "./first-run";
 import { HomeGrid } from "./grid";
 import { Later } from "./later";
 import { cardKey } from "./parts";
 import { type Problems, problems } from "./problems";
-import { HomeStrip } from "./strip";
+import { HomeStrip, StripShape } from "./strip";
 import { Urus } from "./urus";
 
 /** Everything on Beranda's page: the page itself is the route's (app/(tabs)/index.tsx). */
@@ -48,7 +47,7 @@ export function Home() {
     if (total > 30) console.log(`[perf] home-render ${total}`);
   });
   return (
-    <View style={{ paddingHorizontal: space[4], paddingBottom: space[6], gap: space[2] }}>
+    <View style={{ paddingHorizontal: space[4], paddingBottom: space[6], gap: space[1] }}>
       {/* Offline, a sign-in that ran out, a read that failed: said under the search bar, over the day. */}
       <Part at={1}>
         <View style={{ gap: space[3] }}>
@@ -69,15 +68,10 @@ function Loading() {
   return (
     <View accessibilityState={{ busy: true }} testID="home.loading">
       <BannerShape testID="home.loading.now" />
-      <View style={{ flexDirection: "row", marginTop: space[3], minHeight: 64, alignItems: "center" }}>
-        {[0, 1, 2].map((i) => (
-          <View key={i} style={{ flex: 1, alignItems: "center", gap: space[2] }}>
-            <Skeleton width={28} height={20} />
-            <Skeleton width={64} height={12} />
-          </View>
-        ))}
+      <View style={{ marginTop: space[1] }}>
+        <StripShape />
       </View>
-      <View style={{ marginTop: space[5] }}>
+      <View style={{ marginTop: space[2] }}>
         <HomeGrid />
       </View>
     </View>
@@ -90,19 +84,19 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
   const card = useMemo(() => nowCard(context), [context]);
   const found = useMemo(() => problems(context), [context]);
   const hasClass = card?.class !== null && card?.class !== undefined;
+  // The strip's figure is the courses past their limit, or else those with none left: the status its label names.
+  const over = found.absences.filter((one) => one.health.state === "out").length;
   return (
     <>
       <Rise screen="home" index={0}>
         <NowBanner card={card} courses={courses} schedule={context.schedule} unread={unreadAhead(context, card)} />
       </Rise>
-      <Rise screen="home" index={1} style={{ marginTop: space[3] }}>
-        <HomeStrip limit={found.absences.length} past={found.absences.some((one) => one.health.state === "out")} />
+      {/* Tight on purpose: the tiles bring their own padding, and every dp here is one more of the day above the fold. */}
+      <Rise screen="home" index={1} style={{ marginTop: space[1] }}>
+        <HomeStrip over={over} none={found.absences.length - over} />
       </Rise>
-      <Rise screen="home" index={2} style={{ marginTop: space[5] }}>
+      <Rise screen="home" index={2} style={{ marginTop: space[2] }}>
         <HomeGrid />
-      </Rise>
-      <Rise screen="home" index={3}>
-        <FirstScanCard />
       </Rise>
       {/* Under the fold: drawn once the first frame is up, the timeline first, the rest when the thread is idle. */}
       <Part at={1}>

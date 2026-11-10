@@ -1,181 +1,194 @@
 // Beranda's strip about the Student (`home.strip`): the three things they check every day, each one target that opens
-// the page with its detail. What's due: Tasks with a deadline in the next 7 days, late ones too (what a student has to
-// act on now; every open Task is Tugas's own count). Absences: the courses with no absence left or past the limit, red
-// once one is past it, amber at it. The next exam: the days to it ("7 hari ke UTS"). Good news is a check and a word,
-// never "0"; a tile with nothing to say is gone and the others take the width. What the strip says is said nowhere else
-// on Beranda (./urus.tsx leaves those rows to it).
-import { memo, type ReactNode, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
-import { useT } from "../../../../src/app/i18n";
+// the page with its detail (the kit's StatTile, side by side in b.tsx's CountStrip). One number, one source (the
+// decisions, round 1):
+// - Tasks: the soonest thing due. "2 hari ini"; else how many are late; else the next date over the Task's short name;
+//   a check and "Tugas beres" only when nothing is open. It opens Tugas, whose list holds exactly those.
+// - Absences: the number of courses that carry the status the label names on Kuliah: "Lewat batas" (red) while any
+//   course is past its limit, else "Absen habis" (amber), else a check. Never two statuses under one label.
+// - The next exam: counted to the exam's own day with the function Tugas and Ujian use (`countdown`), so the three
+//   can't disagree. It opens Ujian.
+// While the first read runs (or the demo's first sync) no tile answers: each stands as a neutral shape of its final
+// size under its plain name, so a green tick can't turn into a red 3 under the Student's eyes. What the strip says is
+// said nowhere else on Beranda (./urus.tsx leaves those rows to it).
+import { router } from "expo-router";
+import { memo, useMemo } from "react";
+import { useFormat, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
 import type { ExamKind } from "../../../../src/core/exams";
 import type { TodoItem } from "../../../../src/core/todo";
+import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
 import { useFirstFrameShown } from "../../shell/first-frame";
-import { useB } from "../../ui/b";
-import { Skeleton } from "../../ui/display";
-import { Icons } from "../../ui/icons";
-import { RollTo } from "../../ui/moves";
-import { PressScale } from "../../ui/press";
-import { Text } from "../../ui/text";
-import { font, space } from "../../ui/theme";
+import { useFirstReadRunning } from "../../shell/source-status";
+import { CountStrip } from "../../ui/b";
+import { StatTile } from "../../ui/kit";
+import { countdown } from "../tasks/row-parts";
+import { shortName } from "./parts";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
-/** A day's number in WIB, so "days to" counts midnights, not 24 hours. */
+/** A day's number in WIB, so "today" is the Student's day, not 24 hours. */
 const wibDayNumber = (at: number) => Math.floor((at + 7 * HOUR) / DAY);
 
-/** Tasks to act on now: late, or due within 7 days. Never one the Student put away, never an exam (the third tile's). */
-export function dueSoon(items: readonly TodoItem[], now: number): number {
-  return items.filter((item) => item.kind === "task" && !item.putAway && (item.late || (item.at !== null && item.at - now <= 7 * DAY))).length;
+/** The soonest thing due among the open Tasks (never one the Student put away, never an exam: the third tile's). */
+export type Due =
+  | { kind: "today"; count: number }
+  | { kind: "late"; count: number }
+  | { kind: "next"; at: number; title: string }
+  | { kind: "undated"; count: number }
+  | { kind: "none" };
+
+export function soonestDue(items: readonly TodoItem[], now: number): Due {
+  const open = items.filter((item): item is Extract<TodoItem, { kind: "task" }> => item.kind === "task" && !item.putAway);
+  const today = wibDayNumber(now);
+  const dueToday = open.filter((item) => !item.late && item.at !== null && item.at >= now && wibDayNumber(item.at) === today).length;
+  if (dueToday > 0) return { kind: "today", count: dueToday };
+  const late = open.filter((item) => item.late).length;
+  if (late > 0) return { kind: "late", count: late };
+  let next: Extract<TodoItem, { kind: "task" }> | null = null;
+  for (const item of open) if (item.at !== null && item.at >= now && (next === null || item.at < (next.at ?? 0))) next = item;
+  if (next?.at != null) return { kind: "next", at: next.at, title: next.task.title };
+  return open.length > 0 ? { kind: "undated", count: open.length } : { kind: "none" };
 }
 
-/** The next exam (or exam period) with a day: its kind, the days to it, and the exam's page when it has one. */
-export function nextExam(items: readonly TodoItem[], now: number): { kind: ExamKind; days: number; examId: string | null } | null {
+/** The next exam with a day of its own (never the start of "Masa UTS": Tugas and Ujian count to the exam). */
+export function nextExam(items: readonly TodoItem[], now: number): { kind: ExamKind; at: number } | null {
+  let found: { kind: ExamKind; at: number } | null = null;
   for (const item of items) {
-    if (item.at === null || item.at < now) continue;
-    if (item.kind === "exam" && !item.late) return { kind: item.exam.kind, days: wibDayNumber(item.at) - wibDayNumber(now), examId: item.exam.id };
-    if (item.kind === "period") return { kind: item.examKind, days: Math.max(0, wibDayNumber(item.at) - wibDayNumber(now)), examId: null };
+    if (item.kind !== "exam" || item.late || item.at === null || item.at < now) continue;
+    if (found === null || item.at < found.at) found = { kind: item.exam.kind, at: item.at };
   }
-  return null;
+  return found;
 }
 
-export const HomeStrip = memo(function HomeStrip({ limit, past }: { limit: number; past: boolean }) {
+/** The strip before its answers: three neutral shapes of the tiles' final size under their plain names, each already a way in. */
+export function StripShape() {
   const t = useT();
-  const b = useB();
   const { go } = useNav();
+  return (
+    <CountStrip testID="home.strip">
+      {[
+        <StatTile key="tasks" pending value="" label={t("mobile.strip.wait.tasks")} onPress={() => go({ screen: "tasks" })} testID="action.strip.tasks" />,
+        <StatTile
+          key="absences"
+          pending
+          value=""
+          label={t("mobile.strip.wait.absences")}
+          onPress={() => go({ screen: "presence" })}
+          testID="action.strip.absences"
+        />,
+        <StatTile key="exam" pending value="" label={t("mobile.strip.wait.exam")} onPress={() => router.push("/exams")} testID="action.strip.exam" />,
+      ]}
+    </CountStrip>
+  );
+}
+
+export const HomeStrip = memo(function HomeStrip({ over, none }: { over: number; none: number }) {
+  const { go } = useNav();
+  const settling = useSettling();
+  const firstRead = useFirstReadRunning();
   // Counting every Task and exam is kept off the first frame (as the tabs' badges are): the tile stands in its shape.
   const counted = useFirstFrameShown();
+  const openTasks = () => go({ screen: "tasks" });
+  const openCourses = () => go({ screen: "presence" });
+  const openExams = () => router.push("/exams");
+  if (settling || firstRead || !counted) return <StripShape />;
+  return <Counted over={over} none={none} openTasks={openTasks} openCourses={openCourses} openExams={openExams} />;
+});
+
+/** The tiles once everything is read: what's due, the absences, the next exam when there is one. */
+function Counted({ over, none, openTasks, openCourses, openExams }: { over: number; none: number; openTasks(): void; openCourses(): void; openExams(): void }) {
+  const t = useT();
+  const f = useFormat();
+  const todo = useTodo();
+  const facts = useMemo(() => (todo ? { due: soonestDue(todo.items, todo.now), exam: nextExam(todo.items, todo.now) } : null), [todo]);
+  const due = facts?.due;
+  const exam = facts?.exam ?? null;
+  const away = exam && todo ? countdown(t, todo.now, exam.at) : null;
+  const kind = exam ? t(`exam.kind.${exam.kind}`) : "";
+  const tasks = !due ? (
+    <StatTile key="tasks" pending value="" label={t("mobile.strip.wait.tasks")} onPress={openTasks} testID="action.strip.tasks" />
+  ) : due.kind === "today" ? (
+    <StatTile
+      key="tasks"
+      value={String(due.count)}
+      label={t("mobile.strip.today")}
+      accessibilityLabel={t("mobile.strip.todaySpoken", { count: due.count })}
+      onPress={openTasks}
+      testID="action.strip.tasks"
+    />
+  ) : due.kind === "late" ? (
+    <StatTile
+      key="tasks"
+      value={String(due.count)}
+      tone="danger"
+      label={t("mobile.strip.late")}
+      accessibilityLabel={t("mobile.strip.lateSpoken", { count: due.count })}
+      onPress={openTasks}
+      testID="action.strip.tasks"
+    />
+  ) : due.kind === "next" ? (
+    <StatTile
+      key="tasks"
+      value={f.dayMonth(due.at)}
+      label={shortName(due.title)}
+      accessibilityLabel={t("mobile.strip.nextSpoken", { date: f.dayMonth(due.at), title: due.title })}
+      onPress={openTasks}
+      testID="action.strip.tasks"
+    />
+  ) : due.kind === "undated" ? (
+    <StatTile
+      key="tasks"
+      value={String(due.count)}
+      label={t("mobile.strip.undated")}
+      accessibilityLabel={t("mobile.strip.undatedSpoken", { count: due.count })}
+      onPress={openTasks}
+      testID="action.strip.tasks"
+    />
+  ) : (
+    <StatTile key="tasks" mark value="" label={t("mobile.strip.tasksNone")} onPress={openTasks} testID="action.strip.tasks" />
+  );
+  // The figure is the number of courses with the status the label names, as Kuliah's bars say it for each of them.
   const absences =
-    limit > 0 ? (
-      <Tile
+    over > 0 ? (
+      <StatTile
         key="absences"
-        figure={limit}
-        ink={past ? b.red : b.amber}
-        label={t("mobile.strip.limit")}
-        spoken={t("mobile.strip.limitSpoken", { count: limit })}
-        onPress={() => go({ screen: "presence" })}
+        value={String(over)}
+        tone="danger"
+        label={t("mobile.strip.over")}
+        accessibilityLabel={t("mobile.strip.overSpoken", { count: over })}
+        onPress={openCourses}
+        testID="action.strip.absences"
+      />
+    ) : none > 0 ? (
+      <StatTile
+        key="absences"
+        value={String(none)}
+        tone="warn"
+        label={t("mobile.strip.absences")}
+        accessibilityLabel={t("mobile.strip.limitSpoken", { count: none })}
+        onPress={openCourses}
         testID="action.strip.absences"
       />
     ) : (
-      <Tile key="absences" label={t("mobile.strip.absencesNone")} onPress={() => go({ screen: "presence" })} testID="action.strip.absences" />
+      <StatTile key="absences" mark value="" label={t("mobile.strip.absencesNone")} onPress={openCourses} testID="action.strip.absences" />
     );
   return (
-    <View testID="home.strip" style={{ flexDirection: "row", alignItems: "stretch" }}>
-      {counted ? (
-        <Counted absences={absences} />
-      ) : (
-        [
-          <Tile key="tasks" pending label={t("mobile.strip.due")} onPress={() => go({ screen: "tasks" })} testID="action.strip.tasks" />,
-          <Divider key="d" />,
-          absences,
-        ]
-      )}
-    </View>
-  );
-});
-
-/** The tiles once Tugas's list is counted: what's due, the absences, the next exam when there is one. */
-function Counted({ absences }: { absences: ReactNode }) {
-  const t = useT();
-  const b = useB();
-  const { go } = useNav();
-  const todo = useTodo();
-  const facts = useMemo(
-    () =>
-      todo
-        ? {
-            due: dueSoon(todo.items, todo.now),
-            late: todo.items.some((item) => item.kind === "task" && item.late && !item.putAway),
-            exam: nextExam(todo.items, todo.now),
-          }
-        : null,
-    [todo],
-  );
-  const openTasks = () => go({ screen: "tasks" });
-  const exam = facts?.exam ?? null;
-  const kind = exam ? t(`exam.kind.${exam.kind}`) : "";
-  const openExam = () => (exam?.examId ? go({ screen: "exam", examId: exam.examId }) : openTasks());
-  return (
-    <>
-      {!facts ? (
-        <Tile pending label={t("mobile.strip.due")} onPress={openTasks} testID="action.strip.tasks" />
-      ) : facts.due > 0 ? (
-        <Tile figure={facts.due} ink={facts.late ? b.amber : undefined} label={t("mobile.strip.due")} onPress={openTasks} testID="action.strip.tasks" />
-      ) : (
-        <Tile label={t("mobile.strip.dueNone")} onPress={openTasks} testID="action.strip.tasks" />
-      )}
-      <Divider />
-      {absences}
-      {exam && <Divider />}
-      {exam &&
-        (exam.days > 0 ? (
-          <Tile figure={exam.days} label={t("mobile.strip.examIn", { count: exam.days, kind })} onPress={openExam} testID="action.strip.exam" />
-        ) : (
-          <Tile mark="exam" label={t("mobile.strip.examToday", { kind })} onPress={openExam} testID="action.strip.exam" />
-        ))}
-    </>
+    <CountStrip testID="home.strip">
+      {[
+        tasks,
+        absences,
+        away ? (
+          <StatTile
+            key="exam"
+            value={String(away.value)}
+            label={t("mobile.strip.examAway", { unit: away.unit, kind })}
+            accessibilityLabel={t("mobile.strip.examSpoken", { away: away.text, kind })}
+            onPress={openExams}
+            testID="action.strip.exam"
+          />
+        ) : null,
+      ]}
+    </CountStrip>
   );
 }
-
-function Divider() {
-  const b = useB();
-  return <View style={{ width: StyleSheet.hairlineWidth * 2, marginVertical: space[3], backgroundColor: b.line }} />;
-}
-
-/**
- * One tile: its figure (rolling to a new value) or a check when all is well, a chevron beside it so it reads as a way in,
- * then what it counts. The whole tile is the target.
- */
-function Tile({
-  figure,
-  ink,
-  label,
-  spoken,
-  mark = "check",
-  pending = false,
-  onPress,
-  testID,
-}: {
-  figure?: number;
-  ink?: string;
-  label: string;
-  spoken?: string;
-  mark?: "check" | "exam";
-  pending?: boolean;
-  onPress(): void;
-  testID: string;
-}) {
-  const b = useB();
-  return (
-    <PressScale onPress={onPress} testID={testID} accessibilityLabel={spoken ?? (figure !== undefined ? `${figure} ${label}` : label)} style={styles.tile}>
-      {/* The figure is a read-only field (RollTo): it never takes the tile's touch. */}
-      <View style={styles.top} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={{ width: ARROW }} />
-        {pending ? (
-          <Skeleton width={28} height={20} />
-        ) : figure !== undefined ? (
-          <RollTo value={figure} style={[styles.figure, { color: ink ?? b.fg }]} />
-        ) : mark === "exam" ? (
-          <Icons.PenLine size={24} weight="fill" color={b.fg} />
-        ) : (
-          <Icons.CheckCircle size={24} weight="fill" color={b.ok} />
-        )}
-        {/* The way in, beside the figure: the label keeps the tile's width. */}
-        <View style={{ width: ARROW, alignItems: "flex-end" }}>{!pending && <Icons.ChevronRight size={12} color={b.muted} />}</View>
-      </View>
-      <Text size="bodyMedium" numberOfLines={2} style={{ color: b.fg2, fontSize: 13, lineHeight: 17, letterSpacing: 0, textAlign: "center" }}>
-        {label}
-      </Text>
-    </PressScale>
-  );
-}
-
-/** The chevron's column beside the figure, and its twin on the other side so the figure stays centred. */
-const ARROW = 16;
-
-const styles = StyleSheet.create({
-  top: { height: 32, flexDirection: "row", alignItems: "center", justifyContent: "center", pointerEvents: "none" },
-  tile: { flex: 1, minHeight: 64, alignItems: "center", justifyContent: "center", paddingVertical: space[2], paddingHorizontal: space[1], gap: 2 },
-  figure: { fontFamily: font.display.extrabold, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, textAlign: "center", fontVariant: ["tabular-nums"] },
-});
