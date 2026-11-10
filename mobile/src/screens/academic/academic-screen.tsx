@@ -339,11 +339,6 @@ function ConnectSix({ ink }: { ink: CardInk }) {
 
 // ------------------------------------------------------------ the rows
 
-function Chevron() {
-  const b = useB();
-  return <Icons.ChevronRight size={20} color={b.muted} />;
-}
-
 function useMetaColor(tone: MetaTone | undefined): string | undefined {
   const b = useB();
   return tone === "red" ? b.red : tone === "amber" ? b.amber : tone === "ok" ? b.ok : undefined;
@@ -374,7 +369,6 @@ function ScreenRow({ title, meta, route, last = false, testID }: { title: string
         )
       }
       metaColor={color}
-      trailing={<Chevron />}
       last={last}
       onPress={() => nav.go(route === "grades" ? { screen: "grades" } : { screen: "plan", tab: route })}
       testID={testID}
@@ -546,25 +540,11 @@ function AccountRows() {
         leading={<Mark id="alerts" />}
         title={t("alerts.title")}
         meta={unread > 0 ? t("mobile.profile.unread", { count: unread }) : undefined}
-        trailing={<Chevron />}
         onPress={() => router.push("/alerts")}
         testID="row.nav.alerts"
       />
-      <BRow
-        leading={<Mark id="settings" />}
-        title={t("nav.settings")}
-        trailing={<Chevron />}
-        onPress={() => router.push("/settings")}
-        testID="action.account"
-      />
-      <BRow
-        leading={<Mark id="report" />}
-        title={t("mobile.profile.report")}
-        trailing={<Chevron />}
-        last
-        onPress={() => router.push("/report")}
-        testID="action.report"
-      />
+      <BRow leading={<Mark id="settings" />} title={t("nav.settings")} onPress={() => router.push("/settings")} testID="action.account" />
+      <BRow leading={<Mark id="report" />} title={t("mobile.profile.report")} last onPress={() => router.push("/report")} testID="action.report" />
     </View>
   );
 }
@@ -603,9 +583,7 @@ function SourceRow({ source }: { source: Extract<SourceId, "edunex" | "six"> }) 
           <Text size="labelLarge" weight="semibold" style={{ color: b.brand }}>
             {t(status.state === "expired" ? "action.signInAgain" : "action.signIn")}
           </Text>
-        ) : (
-          <Chevron />
-        )
+        ) : undefined
       }
       onPress={needsSignIn ? (busy ? undefined : () => void signIn(source)) : () => router.push("/settings")}
       accessibilityHint={needsSignIn ? undefined : t("nav.settings")}

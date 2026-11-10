@@ -295,7 +295,6 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
       title={blocked ? t("grades.graduationBlocked") : finish && lastTerm ? t("grades.graduationWhen", { term: termName(lastTerm) }) : t("grades.toPlanner")}
       meta={hasWhatIfs(plan, record) ? t("mobile.grades.fromSix") : undefined}
       metaTone="muted"
-      trailing={<Icons.ChevronRight size={18} color={v.muted} />}
       onPress={() => nav.go({ screen: "plan", tab: "planner" })}
       accessibilityHint={t("grades.toPlanner")}
       testID="action.toPlanner"

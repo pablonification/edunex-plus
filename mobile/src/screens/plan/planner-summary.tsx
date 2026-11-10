@@ -85,7 +85,6 @@ export const PlanHero = memo(function PlanHero({
             first
             leading={<IconTile tone="amber" icon={(color) => <Icons.AlertTriangle size={22} color={color} weight="bold" />} />}
             title={t("planner.toCheck", { count: warnings })}
-            trailing={<Icons.ChevronRight size={20} color={v.muted} />}
             onPress={onCheck}
             accessibilityRole="button"
             accessibilityHint={t("mobile.planner.toCheckHint")}
