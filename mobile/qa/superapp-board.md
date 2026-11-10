@@ -19,7 +19,11 @@ How each number is taken (`adb`, by the lead):
 | Scroll, janky frames | Tugas 0.38%, Kuliah 0.27%, Jadwal 0.29% |
 | Bottom bar | Beranda · Jadwal · Tugas · Kuliah · Akademik (no profile) |
 | The avatar in a top bar | every tab |
-| Beranda's first screen | header, the class card, "Perlu kamu urus", "Nanti hari ini" (cut off by the bar) |
+| Beranda's first screen | header, the class card, "Perlu kamu urus", "Nanti hari ini" (cut off by the bar); no `home.search`, `home.now`, `home.strip`, `home.grid` |
+| Things to tap on it (tab bar not counted) | 11 (`layout-read.mjs`) |
+| Words on it | 56 |
+| First run (demo, data cleared, first-run link): taps to Beranda | 1; Beranda's shapes at about 3 s after the tap, filled at about 6 s, "Semua siap" at about 28 s |
+| First run: janky frames from open to "Semua siap" (40 s) | 33% (1133 of 3398) |
 
 ## The direction round
 
