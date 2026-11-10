@@ -17,3 +17,19 @@ How each number is taken:
 - **Council**: three judges a round (Claude Opus 5.5, high effort), each new, blind and on a different account, with
   the pictures only. Five apps by letter, shuffled each round: ours, Gojek, Grab, Edunex Mobile LMS, Duolingo.
 
+## Hill 1: the layout students know
+
+| What | `main` 74fc4a40 | Round 1 (7c640072) | Top of the hill |
+| --- | --- | --- | --- |
+| Bottom bar | home · schedule · tasks · courses · academic | home · schedule · tasks · courses · **profile** | the last is `tab.profile` |
+| The avatar in a top bar | on every tab | nowhere | nowhere |
+| Beranda's first screen, in order and fully visible | header, now card, a list | `home.search`, `home.now`, `home.strip`, `home.grid` (50 dp to spare above the tab bar) | all four, no scrolling |
+| Things to tap on Beranda's first screen | 11 | 15 | 12 or more |
+| Words on Beranda's first screen | 50 | 44 | 60 or fewer |
+| Service grid | none | 8 tiles, one word each, "Lainnya" last | 8 at most, "Lainnya" last, one word |
+| "What's due today" | 0 taps | 0 taps (the strip's number, when something is due this week) | 0 |
+| "Is my attendance safe" | 0 taps for a class at risk | 0 taps (the strip: a count at risk, or "Aman") | 0 |
+| "Open this week's material" | 3–4 taps | 2 taps (Materi tile, the material's row) | 2 or fewer |
+| Cold start (ms, median of 5) | 586 | 744 | within 10% of `main` |
+| Tab switch p90 (ms) | 43 | 35 | within 10% of `main` |
+

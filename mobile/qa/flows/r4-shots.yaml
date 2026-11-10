@@ -17,6 +17,9 @@ appId: io.github.pablonification.edunexplus.demo
     visible:
       id: home.grid
     timeout: 60000
+# A tap first: with a keyboard attached, Android marks the first thing that can take focus until the screen is touched.
+- tapOn:
+    id: tab.home
 - waitForAnimationToEnd:
     timeout: 3000
 - takeScreenshot: ${THEME}-01-beranda
