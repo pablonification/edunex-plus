@@ -168,7 +168,17 @@ export function readLayout(dump, options = {}) {
         for (let up = node.parent; up; up = up.parent) if (isTile.has(up)) return false;
         return true;
       })
-      .map((node) => ({ node, label: visibleText(node) || labelOf(node), box: within(node).filter((n) => n.text.trim()) }));
+      .map((node) => {
+        // A tile's tag ("3,26" on Nilai, under `tag.service.<id>`) is its answer, not its name: the one word is the label under it.
+        const tagged = new Set(
+          within(node)
+            .filter((n) => /^tag\./.test(n.id))
+            .flatMap((n) => [n, ...within(n)]),
+        );
+        const named = within(node).filter((n) => !tagged.has(n) && n.text.trim());
+        const label = named.map((n) => n.text.replace(/\s+/g, " ").trim()).join(" ") || visibleText(node) || labelOf(node);
+        return { node, label, box: within(node).filter((n) => n.text.trim()) };
+      });
     const reading = [...tiles].sort((a, b) => a.node.y1 - b.node.y1 || a.node.x1 - b.node.x1);
     const rowsOfTiles = [];
     for (const tile of reading) {
