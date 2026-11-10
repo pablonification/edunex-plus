@@ -200,19 +200,22 @@ const phone = (w: number, h: number) => ({ label: `${w}×${h}`, width: Math.roun
 const RENDER: Record<string, { title: string; sizes: ReturnType<typeof phone>[]; first: string }> = {
   Now: { title: "Sekarang", sizes: [phone(2, 1), phone(4, 1), phone(4, 2), phone(4, 3)], first: "4×2" },
   Services: { title: "Pintasan", sizes: [phone(2, 1), phone(4, 1)], first: "4×1" },
-  Exam: { title: "Ujian", sizes: [phone(2, 1), phone(2, 2), phone(4, 1), phone(4, 2)], first: "2×1" },
-  Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
-  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
-  Attendance: { title: "Jatah absen", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
+  Exam: { title: "Ujian", sizes: [phone(2, 1), phone(3, 1), phone(4, 1)], first: "2×1" },
+  Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
+  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
+  Attendance: { title: "Jatah absen", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
   Next: { title: "Kelas berikutnya", sizes: [phone(1, 1), phone(2, 1)], first: "1×1" },
-  Course: { title: "Satu mata kuliah", sizes: [phone(3, 1), phone(3, 2), phone(4, 2)], first: "3×1" },
+  Course: { title: "Satu mata kuliah", sizes: [phone(2, 1), phone(3, 1), phone(3, 2)], first: "3×1" },
 };
 
 const emptied = (names: string[]) => (one: Shot) => ({ ...one, datasets: one.datasets.map((d) => (names.includes(d.name) ? { ...d, value: [] } : d)) }) as Shot;
 /** The states beside the normal one, each made from the same pretend Thursday (as test/mobile/widget-models.test.ts makes them). */
 const STATES: Record<string, { title: string; change: (one: Shot) => Shot }> = {
   // Nothing at all: no Task, no exam, no class, and so no Presence open for one (the first round kept the Presence, and drew its button with no class).
-  empty: { title: "Empty (nothing due, no class, no exam)", change: (one) => noPresence(emptied(["edunex.tasks", "edunex.exams", "six.schedule"])(one)) },
+  empty: {
+    title: "Empty (no course, nothing due, no class, no exam)",
+    change: (one) => noPresence(emptied(["edunex.tasks", "edunex.exams", "six.schedule", "six.courses", "edunex.courses"])(one)),
+  },
   signedOut: {
     title: "Signed out",
     change: (one) =>
@@ -341,7 +344,9 @@ describe("every widget at every size", () => {
   it("Sekarang as first placed: the course's name whole and no code, one button with the one time, each said once", () => {
     const size = phone(4, 2);
     const drawn = draw(DRAW.Now!({ ...size, fontScale: 1 }, "light"), size);
-    expect(drawn.texts).toEqual(expect.arrayContaining(["Ekonomi dan Inovasi dalam Perencanaan", "Isi Presensi", "Tutup 09:30", "Diperbarui pukul 08:12"]));
+    expect(drawn.texts).toEqual(
+      expect.arrayContaining(["Ekonomi dan Inovasi dalam Perencanaan", "Isi Presensi", "Tutup 09:30", "Perlu perhatianmu", "Diperbarui 08:12"]),
+    );
     expect(drawn.texts.some((text) => text.includes("PL3002"))).toBe(false);
     expect(new Set(drawn.texts).size).toBe(drawn.texts.length);
     // The block opens the class, the button the Presence's own page.
@@ -360,11 +365,11 @@ describe("every widget at every size", () => {
   it("Kehadiran: each course's absences as marks, the danger in its word", () => {
     const size = phone(4, 4);
     const drawn = draw(DRAW.Attendance!({ ...size, fontScale: 1 }, "light"), size);
-    expect(drawn.texts).toEqual(expect.arrayContaining(["Lewat 1×", "Habis", "Sisa 2×"]));
-    // A mark is a 9 dp dot: one per absence the term allows, and one for each past it.
+    expect(drawn.texts).toEqual(expect.arrayContaining(["lewat 1", "habis", "sisa 2"]));
+    // A mark is a 10 dp dot: one per absence the term allows, and one for each past it.
     const rows = attendanceWidget(world.facts).rows;
     const marks = rows.reduce((sum, row) => sum + (row.allowed ?? 0) + row.over, 0);
-    expect(drawn.html.split("width:9px;height:9px").length - 1).toBe(marks);
+    expect(drawn.html.split("width:10px;height:10px").length - 1).toBe(marks);
   });
 
   it("Pintasan two rows high: all four as blocks that fill it", () => {

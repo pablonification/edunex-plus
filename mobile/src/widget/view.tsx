@@ -15,8 +15,9 @@ import type { WidgetClass, WidgetLine, WidgetModel, WidgetQuiet, WidgetTarget, W
 const SCHEME = DEMO ? "edunexplusdemo" : "edunexplus";
 
 /** Font sizes in sp, and the line each takes in dp at the phone's normal text size, for working out what fits. */
-const FONT = { micro: 12, small: 14, body: 16, title: 18 } as const;
-export const LINE = { micro: 16, small: 19, body: 21, title: 24 } as const;
+// `foot`: when the data was last read, the quietest line on any widget, never bigger than its least important fact.
+const FONT = { foot: 11, micro: 12, small: 14, body: 16, title: 18 } as const;
+export const LINE = { foot: 15, micro: 16, small: 19, body: 21, title: 24 } as const;
 export const PAD = 14;
 /** The widget's own corners, and a block's inside it. */
 export const RADIUS = 22;
@@ -78,9 +79,10 @@ export function mix(a: string, b: string, amount: number): string {
  * A course's block: its colour, saturated, the same in light and dark (the tile's light ink, which white reads on at
  * 4.5:1 or more), with white on it, a softer white for what's secondary, and a faint one for a mark that's used up.
  */
-export function courseBlock(tone: string | undefined): { bg: string; on: string; soft: string; faint: string } {
+export function courseBlock(tone: string | undefined): { bg: string; on: string; soft: string; faint: string; edge: string } {
   const bg = THEMES.light.courseTile(tone).ink;
-  return { bg, on: "#ffffff", soft: mix(bg, "#ffffff", 0.92), faint: mix(bg, "#ffffff", 0.36) };
+  // `edge`: a hairline a shade lighter, so the block keeps its outline on a wallpaper of its own colour.
+  return { bg, on: "#ffffff", soft: mix(bg, "#ffffff", 0.92), faint: mix(bg, "#ffffff", 0.36), edge: mix(bg, "#ffffff", 0.34) };
 }
 
 /** A course's colour for a bar or a dot on the widget's own surface. */
@@ -117,19 +119,33 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
   if (!cls) {
     // No class to show: a calm line, what's open as buttons, then what needs the Student.
     const quiet = model.now && !("code" in model.now) ? model.now : null;
-    let room = size.height - 2 * PAD - (LINE.micro + 6) * scale - (quiet ? (LINE.body + 6) * scale : 0);
+    let room =
+      size.height -
+      2 * PAD -
+      (LINE.foot + 6) * scale -
+      (quiet ? (LINE.body * linesOf(quiet.label, FONT.body * scale, size.width - 2 * PAD) + 8) * scale : 0) -
+      (model.needs?.items.length ? (LINE.micro + 8) * scale : 0);
     const actions = model.actions.filter(() => {
       const fits = room >= BUTTON * scale + 8;
       if (fits) room -= BUTTON * scale + 8;
       return fits;
     });
-    const needs = fitNeeds(model, room, scale);
+    const needs = fitNeeds(model, room, scale, size.width - 2 * PAD);
     const nothing = !quiet && !actions.length && !needs;
     return (
       <Frame theme={theme}>
         <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: 8 }}>
           {nothing ? <Text text={model.status.text} size="body" color={v.fg} bold lines={3} /> : null}
-          {quiet ? <Text text={quiet.label} size="body" color={v.fg} bold lines={2} open={quiet.open} /> : null}
+          {quiet ? (
+            <Text
+              text={quiet.label}
+              size={size.width < 250 ? "small" : "body"}
+              color={v.fg}
+              bold
+              lines={Math.min(4, linesOf(quiet.label, (size.width < 250 ? FONT.small : FONT.body) * scale, size.width - 2 * PAD))}
+              open={quiet.open}
+            />
+          ) : null}
           {actions.map((line) => (
             <Button
               key={`${line.label}${line.detail ?? ""}`}
@@ -143,9 +159,11 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
               full
             />
           ))}
-          {needs ? <Needs needs={needs} theme={theme} /> : null}
+          {needs ? (
+            <Needs needs={needs} theme={theme} heading={model.needs?.items.length ? model.needs.heading : null} width={size.width - 2 * PAD} scale={scale} />
+          ) : null}
         </FlexWidget>
-        {nothing ? null : <Foot status={model.status} theme={theme} />}
+        {nothing ? null : <Foot status={model.status} theme={theme} width={size.width - 2 * PAD} scale={scale} />}
       </Frame>
     );
   }
@@ -154,6 +172,8 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
   // The classes under the block: names down the whole list, the rooms at the rows' ends only where every name still fits.
   const laterWidth = size.width - 24 - 42 * scale - 20;
   const laterRooms = plan.later.every((one) => laterLabel(one, laterWidth, scale).text === (one.name ?? one.code));
+  // One size down the list: a step smaller for every row when one name needs it.
+  const laterSmall = plan.later.some((one) => laterLabel(one, laterWidth, scale, laterRooms).size === "micro");
   const block = courseBlock(cls.tone);
   const name = plan.name;
   const label = [cls.heading, cls.time, cls.name ?? cls.code, cls.where].filter(Boolean).join(", ");
@@ -183,14 +203,11 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
         />
       );
     const beside = size.width >= 250;
-    // The button is one control: the time it closes is said beside it (under it in a narrow widget), not inside it.
+    // The pill runs the widget's width, under either thumb: the time it closes at its end, or under it in a narrow widget.
     return (
-      <FlexWidget
-        key={`${line.label}${line.detail ?? ""}`}
-        style={{ width: "match_parent", flexDirection: beside ? "row" : "column", alignItems: beside ? "center" : "flex-start", flexGap: beside ? 10 : 4 }}
-      >
-        <Button line={line} bg={block.on} ink={block.bg} detailInk={block.bg} scale={scale} plain hug={beside} />
-        {detail && (beside || plan.detailUnder) ? <Text text={detail} size="micro" color={block.on} bold /> : null}
+      <FlexWidget key={`${line.label}${line.detail ?? ""}`} style={{ width: "match_parent", flexDirection: "column", alignItems: "flex-start", flexGap: 4 }}>
+        <Button line={detail ? line : { ...line, detail: undefined }} bg={block.on} ink={block.bg} detailInk={block.bg} scale={scale} plain={!beside} />
+        {detail && !beside && plan.detailUnder ? <Text text={detail} size="micro" color={block.on} bold /> : null}
       </FlexWidget>
     );
   });
@@ -207,7 +224,9 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
         flexGap: plan.row ? 10 : 8,
         padding: 12,
         // With the list under it, the block is the widget's own top, edge to edge: never a card inside a card.
-        ...(plan.below ? { borderTopLeftRadius: RADIUS, borderTopRightRadius: RADIUS } : { borderRadius: RADIUS }),
+        ...(plan.below
+          ? { borderTopLeftRadius: RADIUS, borderTopRightRadius: RADIUS }
+          : { borderRadius: RADIUS, borderWidth: 1, borderColor: hex(block.edge) }),
         backgroundColor: hex(block.bg),
       }}
     >
@@ -217,9 +236,7 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
       ) : buttons.length || plan.footInside ? (
         <FlexWidget style={{ width: "match_parent", flexDirection: "column", flexGap: 6 }}>
           {buttons}
-          {plan.footInside ? (
-            <Text text={model.status.text} size="micro" color={block.soft} bold={model.status.problem} lines={model.status.problem ? 2 : 1} />
-          ) : null}
+          {plan.footInside ? <Foot status={model.status} theme={theme} width={size.width - 24} scale={scale} on={block.on} /> : null}
         </FlexWidget>
       ) : null}
     </FlexWidget>
@@ -242,7 +259,7 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
         style={{ width: "match_parent", flex: 1, flexDirection: "column", justifyContent: "space-between", paddingHorizontal: 12, paddingBottom: 12 }}
       >
         <FlexWidget style={{ width: "match_parent", flexDirection: "column", flexGap: 10 }}>
-          <Needs needs={plan.below} theme={theme} />
+          {/* The next class right under the one on now, then what needs the Student under its own heading. */}
           {plan.later.length ? (
             <FlexWidget style={{ width: "match_parent", flexDirection: "column", flexGap: 2 }}>
               {plan.later.map((one) => (
@@ -254,24 +271,46 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
                   beside={laterRooms}
                   scale={scale}
                   flush
-                  label={laterLabel(one, laterWidth, scale, laterRooms)}
+                  label={laterLabel(one, laterWidth, scale, laterRooms, laterSmall)}
                 />
               ))}
             </FlexWidget>
           ) : null}
+          <Needs
+            needs={plan.below}
+            theme={theme}
+            heading={model.needs?.items.length ? model.needs.heading : null}
+            width={size.width - 24}
+            scale={scale}
+            link={false}
+          />
         </FlexWidget>
-        <Foot status={model.status} theme={theme} />
+        <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexGap: 8 }}>
+          {plan.below.more ? <Text text={plan.below.more.label} size="small" color={v.brandInk} bold open={plan.below.more.open} /> : null}
+          <Foot
+            status={model.status}
+            theme={theme}
+            width={size.width - 24 - (plan.below.more ? plan.below.more.label.length * FONT.small * scale * 0.62 + 8 : 0)}
+            scale={scale}
+          />
+        </FlexWidget>
       </FlexWidget>
     </FlexWidget>
   );
 }
 
 /** A later class under "Sekarang"'s needs: its name on one line with the room beside it, else whole over two. */
-function laterLabel(one: WidgetTodayClass, width: number, scale: number, rooms = true): { text: string; lines: number; size: "small" | "micro" } {
+function laterLabel(
+  one: WidgetTodayClass,
+  width: number,
+  scale: number,
+  rooms = true,
+  smaller = false,
+): { text: string; lines: number; size: "small" | "micro" } {
   // One line, the room at its end: the name at the row's size, else a step smaller, else its code.
   const left = width - (rooms && one.room ? one.room.length * FONT.micro * scale * 0.56 + 8 : 0);
   const small = courseLabel(one.name, one.code, FONT.small * scale, left, 1);
-  if (!one.name || small.text === one.name) return { ...small, size: "small" };
+  if (!smaller && (!one.name || small.text === one.name)) return { ...small, size: "small" };
   return { ...courseLabel(one.name, one.code, FONT.micro * scale, left, 1), size: "micro" };
 }
 
@@ -328,17 +367,17 @@ function fitNow(model: WidgetModel, cls: WidgetClass, size: WidgetSize): FittedN
   const L = (kind: keyof typeof LINE) => LINE[kind] * scale;
   const wide = size.width >= 250;
   const inner = size.width - 24;
-  const row = size.height < 130 && wide && model.actions.length > 0;
+  // One row high and wide: the button at the right, beside the class (a cell's row is up to about 135 dp).
+  const row = size.height < 150 && wide && model.actions.length > 0;
   // The bigger name only where it stays on one line: a second line of it would take the place of the next class under the block.
   const big = wide && size.height >= 190 && (!cls.name || linesOf(cls.name, FONT.title * scale, inner) === 1);
   // What stays true until the widget is drawn again: "Sedang berlangsung" with when it ends, "Mulai 11:00", "Besok 08:00".
   const lead = cls.lead ?? cls.heading;
-  // A narrow widget with a window to close: "Tutup 09:30" under the button takes the line the end time would.
-  const closes = !wide && Boolean(model.actions[0]?.detail) && model.actions[0]?.detail !== cls.code;
-  const head = !cls.live || !cls.ends ? [lead] : wide ? [`${lead} · ${cls.ends}`] : size.height >= 96 * scale && !closes ? [lead, cls.ends] : [lead];
+  // On now, a narrow widget leads with the class's hours: "Sedang berlangsung" alone is false the minute it ends.
+  const head = !cls.live || !cls.ends ? [lead] : wide ? [`${lead} · ${cls.ends}`] : [cls.time];
   const nameLine = L(big ? "title" : "body");
   let room = size.height - 24 - head.length * L("micro") - nameLine;
-  if (model.status.problem) room -= L("micro") * (wide ? 1 : 2) + 6;
+  if (model.status.problem) room -= L("foot") + 6;
   // Not live: the class's own hours and room under its name come before a second line of the name.
   const first = model.actions[0];
   const detailUnder = !wide && !row && Boolean(first?.detail) && first?.detail !== cls.code && room >= BUTTON * scale + 8 + L("micro") + 4;
@@ -360,12 +399,18 @@ function fitNow(model: WidgetModel, cls: WidgetClass, size: WidgetSize): FittedN
   if (where) room -= L("micro");
   // Under the block: its frame (12) and the gap (10) come out of what's left.
   // (What's wrong already has its line kept above.)
-  const under = room - 22 - (model.status.problem ? 0 : L("micro") + 6);
-  const below = !row && model.needs ? fitNeedsList(model.needs, under, scale) : null;
+  // The last line under the block is one row: the link to the rest at its left, when the data was read at its right.
+  const under = room - 22 - (L("small") + 6) + (model.status.problem ? L("foot") + 6 : 0);
   const rowHeight = (LINE.small + 10) * scale;
   const ahead = (model.today?.classes ?? []).filter((one) => !one.past && !one.live);
+  // The next class right under the block, then what needs the Student under its heading, then the rest of the day.
+  const nextUp = !row && ahead.length && under >= rowHeight + 10 ? 1 : 0;
+  const headHeight = model.needs?.items.length ? (LINE.micro + 8) * scale : 0;
+  // (The last need has no gap under it: 8 back.)
+  const below = !row && model.needs ? fitNeedsList(model.needs, under - nextUp * (rowHeight + 10) - headHeight + 8, scale, inner, true) : null;
+  const used = nextUp * (rowHeight + 10) + (below ? below.height + headHeight : 0);
   // The lines above are counted on the safe side, so a row that's 8 dp short by the count still has its place.
-  const later = below ? ahead.slice(0, Math.max(0, Math.floor((under - below.height + 8) / rowHeight))) : [];
+  const later = below ? ahead.slice(0, nextUp + Math.max(0, Math.floor((under - used + 8) / rowHeight))) : [];
   return {
     later,
     head,
@@ -377,22 +422,37 @@ function fitNow(model: WidgetModel, cls: WidgetClass, size: WidgetSize): FittedN
     row,
     below,
     detailUnder,
-    footInside: !below && Boolean(model.status.text) && (model.status.problem || room >= L("micro") + 6),
+    // On the block, only what's wrong: when all is well the class is the whole widget.
+    footInside: !below && Boolean(model.status.text) && model.status.problem,
   };
 }
 
-function fitNeeds(model: WidgetModel, room: number, scale: number): FittedNeeds | null {
-  return model.needs ? fitNeedsList(model.needs, room, scale) : null;
+function fitNeeds(model: WidgetModel, room: number, scale: number, width: number): FittedNeeds | null {
+  return model.needs ? fitNeedsList(model.needs, room, scale, width) : null;
 }
 
+/** A need's title with its course by name, and the lines it takes (two at most). */
+const needTitle = (line: WidgetLine, width: number, scale: number) => {
+  const named = line.named ?? line.label;
+  const lines = linesOf(named, FONT.small * scale, width);
+  return lines <= 2 ? { text: named, lines } : { text: line.label, lines: 1 };
+};
+
 /** As many needs as fit `room`, with "Lihat semua 3 di Beranda" under them when some don't; null when not even one does. */
-function fitNeedsList(needs: NonNullable<WidgetModel["needs"]>, room: number, scale: number): FittedNeeds | null {
+function fitNeedsList(
+  needs: NonNullable<WidgetModel["needs"]>,
+  room: number,
+  scale: number,
+  width: number,
+  /** The link has its own line kept elsewhere (beside the foot): it takes no room here. */
+  linkKept = false,
+): FittedNeeds | null {
   if (needs.empty) return room >= LINE.small * scale ? { items: [needs.empty], more: null, height: LINE.small * scale } : null;
   const items: WidgetLine[] = [];
   let left = room;
-  const after = LINE.small * scale + 8;
+  const after = linkKept ? 0 : LINE.small * scale + 8;
   for (const item of needs.items) {
-    const height = (LINE.small + (item.detail ? LINE.micro : 0)) * scale + 8;
+    const height = (LINE.small * needTitle(item, width, scale).lines + (item.detail ? LINE.micro : 0)) * scale + 8;
     // Room for this one, and for "Lihat semua" under it when more are left out (the first is shown even without it).
     const last = items.length + 1 === needs.items.length;
     if (left < height + (last || !items.length ? 0 : after)) break;
@@ -405,10 +465,26 @@ function fitNeedsList(needs: NonNullable<WidgetModel["needs"]>, room: number, sc
 }
 
 /** What needs the Student: each its own tap, the title first, its when under it. */
-function Needs({ needs, theme }: { needs: FittedNeeds; theme: Theme }) {
+function Needs({
+  needs,
+  theme,
+  heading,
+  width,
+  scale,
+  link = true,
+}: {
+  needs: FittedNeeds;
+  theme: Theme;
+  heading: string | null;
+  width: number;
+  scale: number;
+  /** False where the link is drawn elsewhere (beside the foot). */
+  link?: boolean;
+}) {
   const v = theme.v4;
   return (
     <FlexWidget style={{ width: "match_parent", flexDirection: "column", flexGap: 8 }}>
+      {heading ? <Text text={heading} size="micro" color={v.muted} bold /> : null}
       {needs.items.map((line) => (
         <FlexWidget
           key={`${line.label}${line.detail ?? ""}`}
@@ -416,11 +492,11 @@ function Needs({ needs, theme }: { needs: FittedNeeds; theme: Theme }) {
           {...tap(line.open)}
           accessibilityLabel={[line.label, line.detail].filter(Boolean).join(", ")}
         >
-          <Text text={line.label} size="small" color={v.fg} bold />
+          <Text text={needTitle(line, width, scale).text} size="small" color={v.fg} bold lines={needTitle(line, width, scale).lines} />
           {line.detail ? <Text text={line.detail} size="micro" color={v.muted} /> : null}
         </FlexWidget>
       ))}
-      {needs.more ? <Text text={needs.more.label} size="small" color={v.brandInk} bold open={needs.more.open} /> : null}
+      {link && needs.more ? <Text text={needs.more.label} size="small" color={v.brandInk} bold open={needs.more.open} /> : null}
     </FlexWidget>
   );
 }
@@ -494,20 +570,23 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
       </Frame>
     );
   const scale = Math.max(1, size.fontScale);
-  const narrow = size.width < 180;
-  const nameWidth = size.width - 2 * PAD - 12 - 42 * scale - 20;
+  // Today only: another day's classes under "Hari ini" would read as today's.
+  const every = today.classes;
+  // A wide widget says each room at its row's end, where the right third would be empty.
+  const roomWidth = Math.max(0, ...every.map((one) => (one.room ? one.room.length * FONT.micro * scale * 0.62 : 0)));
+  const besideRooms = size.width >= 340 && roomWidth > 0;
+  const nameWidth = size.width - 2 * PAD - 12 - 42 * scale - 20 - (besideRooms ? roomWidth + 8 : 0);
   // One size down the list: a step smaller for every row when one name needs it.
-  const every = [...today.classes, ...(today.next?.classes ?? [])];
   const smaller = every.some((one) => rowLabel(one.name, one.code, nameWidth, scale).size === "micro");
   // Names down the whole list, or codes down the whole list: never a mix.
   const codes = every.some((one) => rowLabel(one.name, one.code, nameWidth, scale, smaller).text !== (one.name ?? one.code));
   const labelOf = (one: WidgetTodayClass) =>
     codes ? { text: one.code, lines: 1, size: "small" as const } : rowLabel(one.name, one.code, nameWidth, scale, smaller);
   // The row on now says when it ends ("selesai 10:00"): the block alone could be the course's colour.
-  const said = model.now && "code" in model.now && model.now.live ? (model.now.ends ?? null) : null;
+  const until = model.now && "code" in model.now && model.now.live ? (model.now.ends ?? null) : null;
   const onNow = today.classes.find((one) => one.live);
   // "selesai 10:00", or "–10:00" where the row is too narrow for the word.
-  const ends = said && onNow ? (said.length * FONT.micro * scale * 0.56 <= nameWidth ? said : `–${onNow.end}`) : null;
+  const ends = until && onNow ? (until.length * FONT.micro * scale * 0.56 <= nameWidth ? until : `–${onNow.end}`) : null;
   const heightOf = (one: WidgetTodayClass, under: boolean) =>
     (labelOf(one).lines * LINE[labelOf(one).size] + ((under && one.room) || (one.live && ends) ? LINE.micro : 0)) * scale + 10;
   const total = (list: WidgetTodayClass[], under: boolean) => list.reduce((sum, one) => sum + heightOf(one, under), 0);
@@ -515,35 +594,36 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
   const over = today.classes.filter((one) => one.past).reverse();
   const headHeight = (LINE.micro + 8) * scale;
   const foot = Boolean(model.status.text);
-  let room = size.height - 2 * PAD - headHeight - (foot ? (LINE.micro * (model.status.problem && narrow ? 2 : 1) + 6) * scale : 0);
-  if (today.none) room -= LINE.body * (narrow ? 2 : 1) * scale + 6;
+  let room = size.height - 2 * PAD - headHeight - (foot ? (LINE.foot + 6) * scale : 0);
+  // "Tidak ada kuliah hari ini.", or once the last one is over, "Kelas hari ini sudah selesai".
+  const said = today.none?.label ?? today.done ?? null;
+  const saidLines = said ? linesOf(said, FONT.body * scale, size.width - 2 * PAD - 12) : 0;
+  if (said) room -= LINE.body * saidLines * scale + 6;
   // The rooms under the names only where every row's line fits its width (the row on now carries "selesai 10:00" too).
-  const underFits = (one: WidgetTodayClass): boolean =>
-    [one.live ? ends : null, one.room].filter(Boolean).join(" · ").length * FONT.micro * scale * 0.56 <= nameWidth;
-  const two =
-    every.every(underFits) && (ahead.length > 0 ? total(ahead, true) <= room : Boolean(today.next) && total(today.next!.classes, true) + headHeight <= room);
+  const underFits = (one: WidgetTodayClass): boolean => (one.room ?? "").length * FONT.micro * scale * 0.62 <= nameWidth;
+  // The row on now says when it ends first: its room beside that only where the line holds both.
+  const liveRoom = onNow ? [ends, onNow.room].filter(Boolean).join(" · ").length * FONT.micro * scale * 0.62 <= nameWidth : true;
+  const two = !besideRooms && every.every(underFits) && total(every, true) <= room;
   const shown: WidgetTodayClass[] = [];
+  // A two-cell-wide widget holds four rows at most: more is a wall of text in a small tile.
+  const most = size.width < 250 ? 4 : 99;
   const fill = (list: WidgetTodayClass[]) => {
     for (const one of list) {
-      if (room < heightOf(one, two)) break;
+      if (room < heightOf(one, two) || shown.length >= most) break;
       shown.push(one);
       room -= heightOf(one, two);
     }
   };
   fill(ahead);
-  // Every class still ahead is in: the next day's, under its own heading, then the ones already over.
-  const nextDay = today.next && shown.length === ahead.length && room >= headHeight + heightOf(today.next.classes[0]!, two) ? today.next : null;
-  if (nextDay) {
-    room -= headHeight;
-    fill(nextDay.classes);
-  }
+  // Every class still ahead is in: then the ones already over, quiet.
   fill(over);
   const row = (one: WidgetTodayClass) => (
     <TodayRow
       key={`${one.code}${one.time}${one.open.kind === "class" ? one.open.sessionId : ""}`}
       one={one}
       theme={theme}
-      two={two}
+      two={two && (!one.live || liveRoom)}
+      beside={besideRooms}
       scale={scale}
       label={labelOf(one)}
       ends={ends}
@@ -555,22 +635,16 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
         <FlexWidget style={{ width: "match_parent", paddingHorizontal: 6, paddingBottom: 4 }}>
           <Text text={today.heading} size="micro" color={v.muted} bold />
         </FlexWidget>
-        {today.none ? (
+        {said ? (
           <FlexWidget style={{ width: "match_parent", paddingHorizontal: 6, paddingBottom: 6 }}>
-            <Text text={today.none.label} size="body" color={v.fg} bold lines={2} open={today.none.open} />
+            <Text text={said} size="body" color={v.fg} bold lines={saidLines} open={today.none?.open ?? { kind: "route", route: { screen: "schedule" } }} />
           </FlexWidget>
         ) : null}
         {today.classes.filter((one) => shown.includes(one)).map(row)}
-        {nextDay ? (
-          <FlexWidget style={{ width: "match_parent", paddingHorizontal: 6, paddingTop: 4, paddingBottom: 4 }}>
-            <Text text={nextDay.heading} size="micro" color={v.muted} bold />
-          </FlexWidget>
-        ) : null}
-        {nextDay ? nextDay.classes.filter((one) => shown.includes(one)).map(row) : null}
       </FlexWidget>
       {foot ? (
         <FlexWidget style={{ width: "match_parent", paddingHorizontal: 6 }}>
-          <Foot status={model.status} theme={theme} />
+          <Foot status={model.status} theme={theme} width={size.width - 2 * PAD - 12} scale={scale} />
         </FlexWidget>
       ) : null}
     </Frame>
@@ -664,18 +738,46 @@ export function Frame({ theme, children, surface }: { theme: Theme; children: Re
   );
 }
 
-/** "Diperbarui pukul 08:11", or what's wrong in amber. */
-export function Foot({ status, theme }: { status: { text: string; problem: boolean }; theme: Theme }) {
+/**
+ * The foot, one small line on every widget: "Diperbarui 08:11", quieter than anything above it, or what's wrong in
+ * amber ("Tidak terhubung · data 08:12"; "Data 08:12" where the line doesn't hold that). `on`: the ink on a course's block.
+ */
+export function Foot({
+  status,
+  theme,
+  width,
+  scale = 1,
+  on,
+}: {
+  status: { text: string; problem: boolean; short?: string };
+  theme: Theme;
+  /** The line's width in dp: what's wrong is said in its short form before it's cut. */
+  width?: number;
+  scale?: number;
+  on?: string;
+}) {
   if (!status.text) return null;
-  // What's wrong is said whole: over two lines in a narrow widget.
-  return <Text text={status.text} size="micro" color={status.problem ? theme.v4.ambFg : theme.v4.muted} bold={status.problem} lines={2} />;
+  // A tenth of slack: the phone's font runs wider than the estimate.
+  const fits = width === undefined || status.text.length * FONT.foot * scale * 0.62 <= width;
+  const text = fits || !status.short ? status.text : status.short;
+  return <Text text={text} size="foot" color={on ?? (status.problem ? theme.v4.ambFg : theme.v4.muted)} bold={status.problem} lines={1} />;
 }
 
 /**
  * A widget with nothing of its own to show, the same on all eight: its own name, one sentence that's true, and one
  * thing to tap, in the only blue on it. The whole widget is that tap. One cell: the sentence's two words alone.
  */
-export function StateCard({ quiet, status, size, theme }: { quiet: WidgetQuiet; status: { text: string; problem: boolean }; size: WidgetSize; theme: Theme }) {
+export function StateCard({
+  quiet,
+  status,
+  size,
+  theme,
+}: {
+  quiet: WidgetQuiet;
+  status: { text: string; problem: boolean; short?: string };
+  size: WidgetSize;
+  theme: Theme;
+}) {
   const v = theme.v4;
   const scale = Math.max(1, size.fontScale);
   const tiny = size.width < 120;
@@ -716,7 +818,7 @@ export function StateCard({ quiet, status, size, theme }: { quiet: WidgetQuiet; 
       </FlexWidget>
       <FlexWidget style={{ width: "match_parent", flexDirection: "column", flexGap: 2 }}>
         <Text text={quiet.action} size="small" color={v.brandInk} weight="700" />
-        {foot ? <Foot status={status} theme={theme} /> : null}
+        {foot ? <Foot status={status} theme={theme} width={size.width - 2 * PAD} scale={scale} /> : null}
       </FlexWidget>
     </FlexWidget>
   );

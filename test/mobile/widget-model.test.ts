@@ -35,7 +35,7 @@ describe("the widget", () => {
         open: { kind: "url", url: "https://edunex.itb.ac.id/courses/95001" },
       },
     ]);
-    expect(model.status).toEqual({ text: expect.stringMatching(/^Diperbarui pukul \d\d:\d\d$/), problem: false });
+    expect(model.status).toEqual({ text: expect.stringMatching(/^Diperbarui \d\d:\d\d$/), problem: false });
   });
 
   it("the next class, today or tomorrow", async () => {
@@ -98,7 +98,7 @@ describe("the widget", () => {
       { time: "08:00–10:00", code: "PL3002", room: "R.SG PWK LT.6", live: true, past: false },
       { time: "11:00–12:59", code: "DK4073", room: "TVST C", live: false, past: false },
       { time: "15:00–16:30", code: "PL3032", room: "R.SG PWK LT.6", live: false, past: false },
-      { time: "16:00–17:50", code: "KU5014", room: "9134", live: false, past: false },
+      { time: "16:00–17:50", code: "KU5014", room: "R. 9134", live: false, past: false },
     ]);
     expect(today?.classes[0]?.open).toEqual({ kind: "class", sessionId: expect.any(String) });
     // A row calls its course by name, whole; the code is the short form.
