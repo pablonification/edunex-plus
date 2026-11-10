@@ -24,4 +24,15 @@ function toggle(on: boolean): void {
   else void Haptics.performAndroidHapticsAsync(on ? Haptics.AndroidHaptics.Toggle_On : Haptics.AndroidHaptics.Toggle_Off).catch(quiet);
 }
 
-export const haptic = { tick, confirm, toggle };
+/** A long press that runs (a menu, a pick-up). iOS: a medium tap. */
+function hold(): void {
+  if (ios) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(quiet);
+  else void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Long_Press).catch(quiet);
+}
+
+/** An earned moment: a hand-in, presence marked (ui/celebrate.tsx). The phone's own success pattern on both. */
+function success(): void {
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(quiet);
+}
+
+export const haptic = { tick, confirm, toggle, hold, success };

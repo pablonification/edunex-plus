@@ -29,7 +29,6 @@ const USED_IN: Record<string, [StringKey, StringKey[]]> = {
 /** Different things that must not share a name. */
 const APART: Record<string, StringKey[]> = {
   "Beranda's list and Profil's KRS and UKT": ["mobile.home.toHandle", "mobile.academic.todo"],
-  "Kuliah's courses at risk and the list to handle": ["mobile.kuliah.attention", "mobile.home.toHandle"],
 };
 
 describe("one name per thing on the phone", () => {

@@ -2,16 +2,18 @@
 // time, at the bottom just above the tabs' bar (or the phone's own bar on a screen over the tabs, or that screen's
 // own bar at its foot, as the Task's Simpan draf and Kumpulkan),
 // what happened in one line with Undo where there is one. It rises and fades in (only fades with
-// less motion asked for). Errors that need reading belong in a banner on the page, not here
+// less motion asked for), and fades out as it goes (ui/moves.tsx's `leave`). Errors that need reading belong in a banner on the page, not here
 // (DESIGN.md, "Patterns").
 import { useSegments } from "expo-router";
-import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Pressable, View } from "react-native";
+import { type ComponentRef, type ReactNode, useRef, useState } from "react";
+import { Pressable, View } from "react-native";
+import Animated, { Easing, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dismissToast, useToasts } from "../swaps/overlays";
 import { GLASS, GlassSurface } from "./glass";
 import { useBarTop, useTabsBottom } from "./insets";
-import { reduceMotion } from "./motion";
+import { useReduceMotion } from "./motion";
+import { moves } from "./moves";
 import { iosPressed } from "./press";
 import { Text } from "./text";
 import { motion, shape, space, TOUCH, useTheme } from "./theme";
@@ -34,13 +36,7 @@ export function Toasts() {
   const onTab = useSegments()[0] === "(tabs)";
   // The newest one: Material shows one snackbar at a time.
   const item = toasts.at(-1);
-  const rise = useRef(new Animated.Value(0)).current;
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each new snackbar rises once
-  useEffect(() => {
-    if (!item) return;
-    rise.setValue(0);
-    Animated.timing(rise, { toValue: 1, duration: motion.duration.medium, easing: Easing.bezier(0.05, 0.7, 0.1, 1), useNativeDriver: true }).start();
-  }, [item?.id]);
+  const still = useReduceMotion();
   const above = (edge: number) => (frameBottom > 0 && edge > 0 ? Math.max(insets.bottom, frameBottom - edge) : insets.bottom);
   // On a tab, never lower than the tabs' bar (Material's 80 dp) over the phone's own: a page that didn't report its edge
   // (Jadwal's own layout) left it on the tabs (judge, round 3).
@@ -52,16 +48,10 @@ export function Toasts() {
       onLayout={() => frame.current?.measureInWindow((_x, y, _width, height) => setFrameBottom(y + height))}
       style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
     >
-      {item && (
-        <View pointerEvents="box-none" style={{ position: "absolute", left: space[3], right: space[3], bottom }}>
-          <Animated.View
-            key={item.id}
-            accessibilityLiveRegion="polite"
-            style={{
-              opacity: rise,
-              transform: reduceMotion() ? [] : [{ translateY: rise.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) }],
-            }}
-          >
+      {/* Always there, so the snackbar inside it can play its leaving when it goes. */}
+      <View pointerEvents="box-none" style={{ position: "absolute", left: space[3], right: space[3], bottom }}>
+        {item && (
+          <Animated.View key={item.id} testID={item.testID} accessibilityLiveRegion="polite" entering={still ? fadeIn : riseIn} exiting={moves.leave}>
             <Snackbar action={!!item.action}>
               <Text size="bodyMedium" tone={GLASS ? undefined : "inverse"} style={{ flex: 1, paddingVertical: space[1] }}>
                 {item.text}
@@ -86,10 +76,33 @@ export function Toasts() {
               )}
             </Snackbar>
           </Animated.View>
-        </View>
-      )}
+        )}
+      </View>
     </View>
   );
+}
+
+const DECELERATE = Easing.bezier(...motion.easing.emphasizedDecelerate);
+
+/** A new snackbar: it rises a nudge and fades in (medium, emphasized decelerate). */
+function riseIn() {
+  "worklet";
+  return {
+    initialValues: { opacity: 0, transform: [{ translateY: motion.nudge }] },
+    animations: {
+      opacity: withTiming(1, { duration: motion.duration.medium, easing: DECELERATE }),
+      transform: [{ translateY: withTiming(0, { duration: motion.duration.medium, easing: DECELERATE }) }],
+    },
+  };
+}
+
+/** With Remove animations: it only fades in. */
+function fadeIn() {
+  "worklet";
+  return {
+    initialValues: { opacity: 0 },
+    animations: { opacity: withTiming(1, { duration: motion.duration.medium, easing: DECELERATE }) },
+  };
 }
 
 /**

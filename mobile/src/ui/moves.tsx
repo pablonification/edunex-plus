@@ -36,16 +36,16 @@ import { firstFrameShown } from "../shell/first-frame";
 import { useReduceMotion } from "./motion";
 import { motion, useTheme } from "./theme";
 
-/** Material's standard easing (cubic-bezier 0.2, 0, 0, 1), for the few moves on a duration rather than a spring. */
-const STANDARD = Easing.bezier(0.2, 0, 0, 1);
-/** How far a thing that arrives or leaves travels (dp): enough to say "from below", too little to read as a slide. */
-const NUDGE = 8;
+/** Material's standard easing (./theme's `motion.easing.standard`), for the few moves on a duration rather than a spring. */
+const STANDARD = Easing.bezier(...motion.easing.standard);
+/** How far a thing that arrives or leaves travels (dp; `motion.nudge`). */
+const NUDGE = motion.nudge;
 
 // ─── Tap ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-/** How far each kind gives under the finger. A row is the page's full width: it doesn't shrink, it tints. */
-const GIVE = { card: 0.965, tile: 0.92, row: 1, icon: 0.88 } as const;
+/** How far each kind gives under the finger (`motion.give`). A row is the page's full width: it doesn't shrink, it tints. */
+const GIVE = { card: motion.give.card, tile: motion.give.tile, row: 1, icon: motion.give.icon } as const;
 
 /**
  * Anything the Student can tap that isn't a `Button`, `IconButton`, `Chip` or `PressScale` already: a tile, a link, a
@@ -348,8 +348,8 @@ export function useSlidingMark(picked: string) {
 /** When each list first arrived in this run; a part that mounts this long after its list's first is simply there. */
 const arrived = new Map<string, number>();
 const ARRIVE_WINDOW = 900;
-/** The stagger between items (ms), and how many items take part: the rest are there with the last step. */
-const STEP = 40;
+/** The stagger between items (ms; `motion.stagger`), and how many items take part: the rest are there with the last step. */
+const STEP = motion.stagger;
 const STEPS = 6;
 
 /**

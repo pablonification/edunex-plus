@@ -163,7 +163,7 @@ export function BHeading({ children, trailing, style }: { children: string; trai
 /**
  * A count the Student can tap (the logbook's numbers): the number big, what it counts under it. `mark`: good news is a
  * check, never "0". `ink` colours the number only when it says something is wrong. `pending`: the number is still on
- * its way, its shape stands in.
+ * its way: the number's and the label's shapes stand in (no words), and TalkBack hears the label, busy.
  */
 export function CountCell({
   value,
@@ -176,12 +176,22 @@ export function CountCell({
   ...a11y
 }: { value: string; label: string; ink?: string; mark?: boolean; pending?: boolean; onPress(): void; testID?: string } & AccessibilityProps) {
   const b = useB();
+  if (pending) {
+    return (
+      <PressScale onPress={onPress} testID={testID} accessibilityLabel={label} accessibilityState={{ busy: true }} {...a11y} style={styles.count}>
+        <View style={{ height: 32, justifyContent: "center" }}>
+          <Skeleton width={28} height={20} />
+        </View>
+        <View style={{ height: 18, justifyContent: "center" }}>
+          <Skeleton width={64} height={10} />
+        </View>
+      </PressScale>
+    );
+  }
   return (
     <PressScale onPress={onPress} testID={testID} accessibilityLabel={mark ? label : `${value} ${label}`} {...a11y} style={styles.count}>
       <View style={{ height: 32, justifyContent: "center" }}>
-        {pending ? (
-          <Skeleton width={28} height={20} />
-        ) : mark ? (
+        {mark ? (
           <Fluent name="CheckmarkCircle28Filled" color={b.ok} />
         ) : (
           <Text
@@ -235,7 +245,8 @@ export function CountStrip({ children, testID }: { children: ReactNode[]; testID
 /**
  * A row on the page itself: a mark, a title with one quiet line, something at its end; a hairline under all but the
  * last. With `onPress` and nothing at its end it ends in the quiet chevron (ui/row-end.tsx): `chevron` adds it after
- * a `trailing`, `chevron={false}` leaves it out. A row without `onPress` has none.
+ * a `trailing`, `chevron={false}` leaves it out. A row without `onPress` has none. `titleLines`: how many lines the
+ * title may take before it's cut (2, or 1 where a list reads best one line a row).
  */
 export function BRow({
   leading,
@@ -245,12 +256,14 @@ export function BRow({
   trailing,
   chevron,
   last = false,
+  titleLines = 2,
   onPress,
   testID,
   ...a11y
 }: {
   leading?: ReactNode;
   title: string;
+  titleLines?: 1 | 2;
   meta?: ReactNode;
   metaColor?: string;
   trailing?: ReactNode;
@@ -277,7 +290,7 @@ export function BRow({
         }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: b.fg }}>
+          <Text size="bodyLarge" weight="medium" numberOfLines={titleLines} style={{ color: b.fg }}>
             {title}
           </Text>
           {typeof meta === "string" ? (

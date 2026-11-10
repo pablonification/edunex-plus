@@ -7,7 +7,6 @@ export const mobileKuliahStrings = {
   // The headings over Kuliah's two cards (round 3, the blind review: one heading read as if it held all five): the
   // courses out of reach, with no absences left or finished below the target; then the rest, "Aman" when every one of
   // them has absences to spare or met its target, else (some with no count yet) "Lainnya".
-  "mobile.kuliah.attention": { id: "Perlu perhatian", en: "Needs attention" },
   "mobile.kuliah.calm": { id: "Aman", en: "On track" },
   "mobile.kuliah.rest": { id: "Lainnya", en: "Others" },
   // A course Edunex alone records: present in how many of its closed Presence windows.
