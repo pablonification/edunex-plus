@@ -1,8 +1,9 @@
 // Materi (/material), behind Beranda's "Materi" tile: what the lecturers posted across this term's courses, newest
-// first, in weeks ("Minggu ini", "Minggu lalu", then "Sebelumnya" folded), each week by course. A feed of things to
-// open: an item is its kind as a glyph in its course's colour, its name as the lecturer wrote it, and when it was
-// posted. One tap opens it the way its module's screen does (a file in the phone's own app, a link where a lecturer's
-// link opens, a note or a picture on its module's screen); a course's name over its items is the way to the course.
+// first, in calendar weeks ("Minggu ini", "Minggu lalu", then "Sebelumnya", open while the newer weeks are short). A
+// feed of things to open, and the item is the row: its kind as a glyph in its course's colour (a week's items of one
+// course sit together, so the colour groups them), its name as the lecturer wrote it, then one quiet line: the course
+// and the day. One mark at the end: a chevron when it opens here (a file in the phone's own viewer, a note or a picture
+// on its module's screen), an arrow when it leaves the app (a link, a video meeting, Edunex). One tap opens it.
 // The same data and rules as a course's Modul tab (./feed.ts). No new request: it reads what the app already holds.
 import { FlashList } from "@shopify/flash-list";
 import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
@@ -19,15 +20,13 @@ import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh, useSignIn } from "../../shell/source-status";
 import { BRow, useB } from "../../ui/b";
 import { Button } from "../../ui/controls";
-import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
+import { EmptyState, Skeleton } from "../../ui/display";
 import { type IconName, Icons } from "../../ui/icons";
 import { useBottomInset } from "../../ui/insets";
 import { factsLabel } from "../../ui/layout";
-import { Arrive, Tap } from "../../ui/moves";
-import { Text } from "../../ui/text";
+import { Arrive } from "../../ui/moves";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
-import { dayAndTime } from "../course/contents";
 import { type FeedItem, type FeedLine, feedLines, feedLineType, materialFeed } from "./feed";
 import { FoldHeading } from "./fold";
 
@@ -63,7 +62,8 @@ export function MaterialScreen() {
   const materials = useDataset("edunex.materials");
   const tasks = useDataset("edunex.tasks");
   const edunex = useStatus("edunex").state;
-  const [earlierOpen, setEarlierOpen] = useState(false);
+  // "Sebelumnya" starts open or folded by how much is over it (feedLines); a tap flips it.
+  const [toggled, setToggled] = useState(false);
   const sections = useMemo(() => {
     if (!courses || !materials) return null;
     const all = Array.isArray(tasks) ? tasks : [];
@@ -78,9 +78,9 @@ export function MaterialScreen() {
       now,
     );
   }, [courses, outline, materials, tasks, t, now]);
-  const lines = useMemo(() => (sections ? feedLines(sections, earlierOpen) : []), [sections, earlierOpen]);
+  const lines = useMemo(() => (sections ? feedLines(sections, toggled) : []), [sections, toggled]);
   usePerfDrawn(sections !== null);
-  const toggle = useCallback(() => setEarlierOpen((open) => !open), []);
+  const toggle = useCallback(() => setToggled((on) => !on), []);
   const renderItem = useCallback(({ item: line, index }: { item: FeedLine; index: number }) => <Line line={line} index={index} onFold={toggle} />, [toggle]);
   const loading = sections === null && (edunex === "connecting" || edunex === "live");
   return (
@@ -124,38 +124,12 @@ const Line = memo(function Line({ line, index, onFold }: { line: FeedLine; index
         testID="action.material.earlier"
       />
     );
-  const list = line.key.startsWith("earlier") || line.key.startsWith("course:earlier") ? "material.earlier" : "material";
   return (
-    <Arrive list={list} index={index}>
-      {line.type === "course" ? <CourseName code={line.code} name={line.name} /> : <Item key={line.item.key} item={line.item} last={line.last} />}
+    <Arrive list={line.key.startsWith("earlier") ? "material.earlier" : "material"} index={index}>
+      <Item key={line.item.key} item={line.item} last={line.last} />
     </Arrive>
   );
 });
-
-/** The course a week's items are from, in its colour: one target, to the course's own page (on Modul). */
-function CourseName({ code, name }: { code: string; name: string }) {
-  const t = useT();
-  const b = useB();
-  const { go } = useNav();
-  const color = useCourseColor();
-  return (
-    <Tap
-      feel="row"
-      onPress={() => go({ screen: "course", code, tab: "modules" })}
-      testID={`action.course.${code}`}
-      accessibilityLabel={t("mobile.material.openCourse", { course: name })}
-      style={{ flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 48, marginTop: space[2] }}
-    >
-      <View style={{ width: 28, alignItems: "center" }}>
-        <CourseDot color={color(code)} size={12} />
-      </View>
-      <Text size="bodyMedium" weight="semibold" numberOfLines={2} style={{ flex: 1, color: b.fg2 }}>
-        {name}
-      </Text>
-      <Icons.ChevronRight size={16} color={b.muted} />
-    </Tap>
-  );
-}
 
 function Glyph({ name, code }: { name: IconName; code: string }) {
   const theme = useTheme();
@@ -176,7 +150,9 @@ function Item({ item, last }: { item: FeedItem; last: boolean }) {
   const { go } = useNav();
   const openExternal = useOpenExternal();
   const openLink = useOpenLink();
-  const when = item.at !== null ? dayAndTime(f, item.at) : undefined;
+  // The quiet line: which course, then the day it was posted (its hour isn't something to act on).
+  const when = factsLabel(item.course, item.at !== null ? f.dayMonth(item.at) : null);
+  const here = <Icons.ChevronRight size={20} color={b.muted} />;
   const testID = `row.material.${item.material?.id ?? `module-${item.module}`}`;
   const toModule = () => go({ screen: "course", code: item.code, module: item.module });
   const { material } = item;
@@ -188,6 +164,7 @@ function Item({ item, last }: { item: FeedItem; last: boolean }) {
         leading={<Glyph name="BookOpen" code={item.code} />}
         title={item.title}
         meta={when}
+        trailing={here}
         onPress={toModule}
         accessibilityLabel={factsLabel(item.title, when)}
       />
@@ -198,8 +175,8 @@ function Item({ item, last }: { item: FeedItem; last: boolean }) {
   const label = factsLabel(material.title, t(`material.${kind}`), when);
   if (action.kind === "download")
     return <FileItem material={material} file={{ url: action.url, name: action.name }} last={last} glyph={glyph} when={when} label={label} testID={testID} />;
-  // A note or a picture is read in full on its module's screen; a link opens as a lecturer's link does; a class is
-  // joined; anything else opens on Edunex. The arrow says the row leaves the app.
+  // A note or a picture is read in full on its module's screen (the chevron); a link opens as a lecturer's link does,
+  // a class is joined, anything else opens on Edunex: the arrow says the row leaves the app.
   const leaves = action.kind !== "note" && action.kind !== "image";
   const open = () => {
     if (action.kind === "note" || action.kind === "image") toModule();
@@ -213,7 +190,7 @@ function Item({ item, last }: { item: FeedItem; last: boolean }) {
       leading={glyph}
       title={material.title}
       meta={when}
-      trailing={leaves ? <Icons.ArrowUpRight size={20} color={b.muted} /> : undefined}
+      trailing={leaves ? <Icons.ArrowUpRight size={20} color={b.muted} /> : here}
       onPress={open}
       accessibilityLabel={label}
     />
@@ -233,13 +210,13 @@ function FileItem({
   file: { url: string; name: string };
   last: boolean;
   glyph: ReactNode;
-  when: string | undefined;
+  when: string;
   label: string;
   testID: string;
 }) {
   const b = useB();
   const edunexUrl = edunexMaterialUrl(material);
-  const { here, busy, open, share, problem } = useEdunexFile(file, edunexUrl, { inline: true });
+  const { busy, open, share, problem } = useEdunexFile(file, edunexUrl, { inline: true });
   return (
     <View>
       <BRow
@@ -249,7 +226,8 @@ function FileItem({
         leading={glyph}
         title={material.title}
         meta={when}
-        trailing={busy ? <ActivityIndicator size="small" color={b.muted} /> : here ? undefined : <Icons.Download size={20} color={b.muted} />}
+        // A file opens on this phone, downloaded or not yet: the same chevron, a spinner while it comes.
+        trailing={busy ? <ActivityIndicator size="small" color={b.muted} /> : <Icons.ChevronRight size={20} color={b.muted} />}
         onPress={() => void open()}
         accessibilityLabel={label}
         accessibilityState={{ busy }}
@@ -269,25 +247,20 @@ function FileItem({
   );
 }
 
-/** The feed's shape while Edunex's part is on its way: a week, a course, its items. */
+/** The feed's shape while Edunex's part is on its way: a week's heading, then its items. */
 function Loading() {
   return (
     <View testID="skeleton.material" accessibilityState={{ busy: true }} style={{ paddingTop: space[2] }}>
-      <Skeleton height={22} width={120} />
-      {[0, 1].map((group) => (
-        <View key={group} style={{ marginTop: space[4] }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], height: 48 }}>
-            <View style={{ width: 28, alignItems: "center" }}>
-              <Skeleton height={12} width={12} />
-            </View>
-            <Skeleton height={14} width={group ? "38%" : "52%"} />
-          </View>
-          {[0, 1, 2].slice(group).map((row) => (
+      {[3, 2].map((rows, group) => (
+        <View key={rows} style={{ marginTop: group ? space[6] : 0 }}>
+          <Skeleton height={22} width={group ? 130 : 110} />
+          {Array.from({ length: rows }, (_, row) => (
+            // biome-ignore lint/suspicious/noArrayIndexKey: still placeholders
             <View key={row} style={{ flexDirection: "row", alignItems: "center", gap: space[4], height: 64 }}>
               <Skeleton height={24} width={24} style={{ marginHorizontal: 2 }} />
               <View style={{ flex: 1, gap: space[2] }}>
                 <Skeleton height={16} width={row === 1 ? "58%" : "80%"} />
-                <Skeleton height={12} width={96} />
+                <Skeleton height={12} width={150} />
               </View>
             </View>
           ))}
