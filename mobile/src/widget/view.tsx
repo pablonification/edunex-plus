@@ -609,7 +609,9 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
   const over = today.classes.filter((one) => one.past).reverse();
   const headHeight = (LINE.micro + 8) * scale;
   const foot = Boolean(model.status.text);
-  let room = size.height - 2 * PAD - headHeight - (foot ? (LINE.foot + 6) * scale : 0);
+  // (A row's height counts the 2 dp gap under it, and the last row has none: 2 back. At 260 dp, a Samsung's two rows,
+  // that is the fourth class of the day.)
+  let room = size.height - 2 * PAD - headHeight - (foot ? (LINE.foot + 6) * scale : 0) + 2;
   // "Tidak ada kuliah hari ini.", or once the last one is over, "Kelas hari ini sudah selesai".
   const said = today.none?.label ?? today.done ?? null;
   const saidLines = said ? linesOf(said, FONT.body * scale, size.width - 2 * PAD - 12) : 0;

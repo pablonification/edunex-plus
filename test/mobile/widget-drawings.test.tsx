@@ -406,7 +406,7 @@ describe("every widget at every size", () => {
     };
     for (const [name, cells] of Object.entries(sizes))
       for (const [w, h] of cells) expect(at(name, samsung(w, h)).texts.length, `${name} ${w}×${h}`).toBeGreaterThan(0);
-    expect(at("Today", samsung(3, 2)).texts).toEqual(expect.arrayContaining(["08:00", "11:00", "15:00", "Diperbarui 08:12"]));
+    expect(at("Today", samsung(3, 2)).texts).toEqual(expect.arrayContaining(["08:00", "11:00", "15:00", "16:00", "Diperbarui 08:12"]));
     expect(at("Next", samsung(1, 1)).texts).toEqual(expect.arrayContaining(["11:00", "DK4073"]));
   });
 

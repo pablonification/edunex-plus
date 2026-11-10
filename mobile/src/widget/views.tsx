@@ -229,7 +229,12 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
   const labelOf = (row: AttendanceRow) =>
     codes ? { text: narrow ? row.code : (row.name ?? row.code), lines: 1 } : courseLabel(row.name, row.code, 14 * scale, nameWidth, most);
   const heightOf = (row: AttendanceRow) => labelOf(row).lines * LINE.small * scale + (narrow ? LINE.micro * scale + 3 : 0) + 8;
-  const moreHeight = (LINE.micro + 8) * scale;
+  // "+2 lagi" shares the foot's line where there is one (as "Lihat semua" does on Sekarang): its own line would cost a
+  // course its row at 260 dp, a Samsung's two rows.
+  // (Only where both are whole on that line, at Roboto's 0.54 em a letter: else it keeps its own line.)
+  const moreWidth = more(model.rows.length, lang).length * 12 * scale * 0.54 + 8;
+  const share = foot && !model.status.problem && model.status.text.length * 11 * scale * 0.54 <= size.width - 2 * PAD - moreWidth;
+  const moreHeight = share ? 0 : (LINE.micro + 8) * scale;
   const rows: AttendanceRow[] = [];
   let space = room;
   for (const row of model.rows) {
@@ -276,9 +281,14 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
             </FlexWidget>
           );
         })}
-        {left > 0 ? <Text text={more(left, lang)} size="micro" color={v.brandInk} bold open={model.all} /> : null}
+        {left > 0 && !share ? <Text text={more(left, lang)} size="micro" color={v.brandInk} bold open={model.all} /> : null}
       </FlexWidget>
-      {foot ? <Foot status={model.status} theme={theme} width={size.width - 2 * PAD} scale={scale} /> : null}
+      {foot ? (
+        <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexGap: 8 }}>
+          {left > 0 && share ? <Text text={more(left, lang)} size="micro" color={v.brandInk} bold open={model.all} /> : null}
+          <Foot status={model.status} theme={theme} width={size.width - 2 * PAD - (left > 0 && share ? moreWidth : 0)} scale={scale} />
+        </FlexWidget>
+      ) : null}
     </Frame>
   );
 }
@@ -412,7 +422,8 @@ export function NextView({ model, size, theme }: { model: NextWidget; size: Widg
   const problem = model.status.problem && Boolean(model.status.text) && take(LINE.foot * scale + 3);
   const named = !tiny && !live && take(LINE.small * scale);
   const label = named
-    ? courseLabel(next.name, next.code, 14 * scale, inner, 1 + Math.min(1, Math.floor(room / (LINE.small * scale))))
+    ? // (The name is bold, a tenth wider than the estimate's letters: counted so, it wraps before it's cut.)
+      courseLabel(next.name, next.code, 14 * scale, inner / 1.1, 1 + Math.min(1, Math.floor(room / (LINE.small * scale))))
     : { text: next.code, lines: 1 };
   if (named) room -= (label.lines - 1) * LINE.small * scale;
   const coded = !named && !live && take(LINE.micro * scale);
