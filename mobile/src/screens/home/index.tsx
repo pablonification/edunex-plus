@@ -13,16 +13,17 @@ import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useHomeWorld } from "../../../../src/app/home-world";
 import { useDataset } from "../../../../src/app/store";
 import { attention, dueItems, type HomeContext, homeContext, type NowCard, nowCard, type TodayPlan, todayPlan, unreadAhead } from "../../../../src/core/needs";
+import { useSettling } from "../../host/settling";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { perfFirstData, usePerfDrawn } from "../../perf";
-import { ProblemBanner } from "../../shell/source-status";
+import { ProblemBanner, useFirstReadRunning } from "../../shell/source-status";
 import { Rise } from "../../ui/expressive";
 import { Part } from "../../ui/parts";
 import { space } from "../../ui/theme";
 import { BannerShape, NowBanner } from "./banner";
 import { NotifyCard } from "./first-run";
 import { HomeGrid } from "./grid";
-import { Later } from "./later";
+import { Later, LaterShape } from "./later";
 import { cardKey } from "./parts";
 import { type Problems, problems } from "./problems";
 import { HomeStrip, StripShape } from "./strip";
@@ -68,12 +69,13 @@ function Loading() {
   return (
     <View accessibilityState={{ busy: true }} testID="home.loading">
       <BannerShape testID="home.loading.now" />
-      <View style={{ marginTop: space[1] }}>
+      <View style={{ marginTop: space[2] }}>
         <StripShape />
       </View>
-      <View style={{ marginTop: space[2] }}>
+      <View style={{ marginTop: space[4] }}>
         <HomeGrid />
       </View>
+      <LaterShape />
     </View>
   );
 }
@@ -84,29 +86,37 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
   const card = useMemo(() => nowCard(context), [context]);
   const found = useMemo(() => problems(context), [context]);
   const hasClass = card?.class !== null && card?.class !== undefined;
-  // The strip's figure is the courses past their limit, or else those with none left: the status its label names.
+  // The strip counts every course with no absence left (past the limit, and at it): red when any is past.
   const over = found.absences.filter((one) => one.health.state === "out").length;
+  const settling = useSettling();
+  const firstRead = useFirstReadRunning();
+  const held = settling || firstRead;
   return (
     <>
       <Rise screen="home" index={0}>
         <NowBanner card={card} courses={courses} schedule={context.schedule} unread={unreadAhead(context, card)} />
       </Rise>
-      {/* Tight on purpose: the tiles bring their own padding, and every dp here is one more of the day above the fold. */}
-      <Rise screen="home" index={1} style={{ marginTop: space[1] }}>
+      {/* The tiles bring their own padding: the strip sits close under the block it belongs with, the services apart. */}
+      <Rise screen="home" index={1} style={{ marginTop: space[2] }}>
         <HomeStrip over={over} none={found.absences.length - over} />
       </Rise>
-      <Rise screen="home" index={2} style={{ marginTop: space[2] }}>
+      <Rise screen="home" index={2} style={{ marginTop: space[4] }}>
         <HomeGrid />
       </Rise>
-      {/* Under the fold: drawn once the first frame is up, the timeline first, the rest when the thread is idle. */}
-      <Part at={1}>
-        <Below context={context} card={card} found={found} courses={courses} hasClass={hasClass} />
-      </Part>
+      {/* Under the fold: drawn once the first frame is up, the timeline first, the rest when the thread is idle.
+          While the first read runs the timeline stands in its shape from the first frame: nothing pops into a blank. */}
+      {held ? (
+        <LaterShape />
+      ) : (
+        <Part at={1}>
+          <Below context={context} card={card} found={found} courses={courses} hasClass={hasClass} />
+        </Part>
+      )}
     </>
   );
 }
 
-/** Nanti hari ini with its reminder prompt under it, then Perlu kamu urus: each worked out only once it's drawn. */
+/** Nanti hari ini, then Perlu kamu urus, and the reminder prompt last: each worked out only once it's drawn. */
 function Below({
   context,
   card,
@@ -124,12 +134,12 @@ function Below({
   return (
     <>
       <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
-      {/* The one ask, under the timeline it's about. */}
-      <Part at={2}>
-        <NotifyCard hasClass={hasClass} />
-      </Part>
       <Part at={2}>
         <Handle context={context} card={card} plan={plan} found={found} courses={courses} />
+      </Part>
+      {/* The one ask is a prompt, not information: last on the page, under everything that is. */}
+      <Part at={2}>
+        <NotifyCard hasClass={hasClass} />
       </Part>
     </>
   );

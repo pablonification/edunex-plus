@@ -1,10 +1,12 @@
 // Beranda's strip about the Student (`home.strip`): the three things they check every day, each one target that opens
 // the page with its detail (the kit's StatTile, side by side in b.tsx's CountStrip). One number, one source (the
 // decisions, round 1):
-// - Tasks: the soonest thing due. "2 hari ini"; else how many are late; else the next date over the Task's short name;
+// - Tasks: the soonest thing due. "2 hari ini"; else how many are late; else the next date over "tugas terdekat";
 //   a check and "Tugas beres" only when nothing is open. It opens Tugas, whose list holds exactly those.
-// - Absences: the number of courses that carry the status the label names on Kuliah: "Lewat batas" (red) while any
-//   course is past its limit, else "Absen habis" (amber), else a check. Never two statuses under one label.
+// - Absences: every course with no absence left, at the limit or past it, over "absen habis" (true of each): red
+//   while any is past its limit, else amber, else a check. It opens Kuliah, which leads with the same courses.
+// Round 3: the three are one family, a figure over two words with the noun ("16 Okt / tugas terdekat", "3 / absen
+// habis", "7 hari / ke UTS").
 // - The next exam: counted to the exam's own day with the function Tugas and Ujian use (`countdown`), so the three
 //   can't disagree. It opens Ujian.
 // While the first read runs (or the demo's first sync) no tile answers: each stands as a neutral shape of its final
@@ -12,6 +14,7 @@
 // said nowhere else on Beranda (./urus.tsx leaves those rows to it).
 import { router } from "expo-router";
 import { memo, useMemo } from "react";
+import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
 import type { ExamKind } from "../../../../src/core/exams";
@@ -21,9 +24,11 @@ import { useNav } from "../../nav";
 import { useFirstFrameShown } from "../../shell/first-frame";
 import { useFirstReadRunning } from "../../shell/source-status";
 import { CountStrip } from "../../ui/b";
+import { Skeleton } from "../../ui/display";
 import { StatTile } from "../../ui/kit";
+import { PressScale } from "../../ui/press";
+import { space } from "../../ui/theme";
 import { countdown } from "../tasks/row-parts";
-import { shortName } from "./parts";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -61,25 +66,41 @@ export function nextExam(items: readonly TodoItem[], now: number): { kind: ExamK
   return found;
 }
 
-/** The strip before its answers: three neutral shapes of the tiles' final size under their plain names, each already a way in. */
+/**
+ * The strip before its answers: three shapes of the tiles' final size, each already a way in. No words: a word that
+ * stands here ("Tugas") and then turns into another ("tugas terdekat") reads as the page changing its mind.
+ */
 export function StripShape() {
   const t = useT();
   const { go } = useNav();
   return (
     <CountStrip testID="home.strip">
       {[
-        <StatTile key="tasks" pending value="" label={t("mobile.strip.wait.tasks")} onPress={() => go({ screen: "tasks" })} testID="action.strip.tasks" />,
-        <StatTile
-          key="absences"
-          pending
-          value=""
-          label={t("mobile.strip.wait.absences")}
-          onPress={() => go({ screen: "presence" })}
-          testID="action.strip.absences"
-        />,
-        <StatTile key="exam" pending value="" label={t("mobile.strip.wait.exam")} onPress={() => router.push("/exams")} testID="action.strip.exam" />,
+        <ShapeTile key="tasks" name={t("mobile.strip.wait.tasks")} onPress={() => go({ screen: "tasks" })} testID="action.strip.tasks" />,
+        <ShapeTile key="absences" name={t("mobile.strip.wait.absences")} onPress={() => go({ screen: "presence" })} testID="action.strip.absences" />,
+        <ShapeTile key="exam" name={t("mobile.strip.wait.exam")} onPress={() => router.push("/exams")} testID="action.strip.exam" />,
       ]}
     </CountStrip>
+  );
+}
+
+/** One held tile: the figure's and the label's shapes in a StatTile's box (b.tsx's CountCell), named for TalkBack only. */
+function ShapeTile({ name, onPress, testID }: { name: string; onPress(): void; testID: string }) {
+  return (
+    <PressScale
+      onPress={onPress}
+      accessibilityLabel={name}
+      accessibilityState={{ busy: true }}
+      testID={testID}
+      style={{ flex: 1, minHeight: 56, alignItems: "center", paddingVertical: space[2], paddingHorizontal: space[1], gap: 2 }}
+    >
+      <View style={{ height: 32, justifyContent: "center" }}>
+        <Skeleton width={28} height={20} />
+      </View>
+      <View style={{ height: 18, justifyContent: "center" }}>
+        <Skeleton width={64} height={10} />
+      </View>
+    </PressScale>
   );
 }
 
@@ -107,7 +128,7 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
   const away = exam && todo ? countdown(t, todo.now, exam.at) : null;
   const kind = exam ? t(`exam.kind.${exam.kind}`) : "";
   const tasks = !due ? (
-    <StatTile key="tasks" pending value="" label={t("mobile.strip.wait.tasks")} onPress={openTasks} testID="action.strip.tasks" />
+    <ShapeTile key="tasks" name={t("mobile.strip.wait.tasks")} onPress={openTasks} testID="action.strip.tasks" />
   ) : due.kind === "today" ? (
     <StatTile
       key="tasks"
@@ -122,7 +143,7 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
       key="tasks"
       value={String(due.count)}
       tone="danger"
-      label={t("mobile.strip.late")}
+      label={t("mobile.strip.lateTasks", { count: due.count })}
       accessibilityLabel={t("mobile.strip.lateSpoken", { count: due.count })}
       onPress={openTasks}
       testID="action.strip.tasks"
@@ -131,7 +152,7 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
     <StatTile
       key="tasks"
       value={f.dayMonth(due.at)}
-      label={shortName(due.title)}
+      label={t("mobile.strip.next")}
       accessibilityLabel={t("mobile.strip.nextSpoken", { date: f.dayMonth(due.at), title: due.title })}
       onPress={openTasks}
       testID="action.strip.tasks"
@@ -148,25 +169,17 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
   ) : (
     <StatTile key="tasks" mark value="" label={t("mobile.strip.tasksNone")} onPress={openTasks} testID="action.strip.tasks" />
   );
-  // The figure is the number of courses with the status the label names, as Kuliah's bars say it for each of them.
+  // Every course with no absence left, at the limit or past it (the ones Kuliah leads with): one figure, one label
+  // that is true of each. Red when any is past its limit, amber otherwise.
+  const out = over + none;
   const absences =
-    over > 0 ? (
+    out > 0 ? (
       <StatTile
         key="absences"
-        value={String(over)}
-        tone="danger"
-        label={t("mobile.strip.over")}
-        accessibilityLabel={t("mobile.strip.overSpoken", { count: over })}
-        onPress={openCourses}
-        testID="action.strip.absences"
-      />
-    ) : none > 0 ? (
-      <StatTile
-        key="absences"
-        value={String(none)}
-        tone="warn"
-        label={t("mobile.strip.absences")}
-        accessibilityLabel={t("mobile.strip.limitSpoken", { count: none })}
+        value={String(out)}
+        tone={over > 0 ? "danger" : "warn"}
+        label={t("mobile.strip.out")}
+        accessibilityLabel={t("mobile.strip.outSpoken", { count: out })}
         onPress={openCourses}
         testID="action.strip.absences"
       />
@@ -181,8 +194,8 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
         away ? (
           <StatTile
             key="exam"
-            value={String(away.value)}
-            label={t("mobile.strip.examAway", { unit: away.unit, kind })}
+            value={`${away.value} ${away.unit}`}
+            label={t("mobile.strip.examTo", { kind })}
             accessibilityLabel={t("mobile.strip.examSpoken", { away: away.text, kind })}
             onPress={openExams}
             testID="action.strip.exam"

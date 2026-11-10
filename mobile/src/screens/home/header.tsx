@@ -52,7 +52,7 @@ export const HomeBar = memo(function HomeBar() {
       >
         <Icons.Search size={20} color={b.fg2} />
         <Text size="bodyLarge" numberOfLines={1} style={{ color: b.muted, flex: 1 }}>
-          {t("mobile.search.placeholder")}
+          {t("mobile.home.searchHint")}
         </Text>
       </PressScale>
       <BellButton />

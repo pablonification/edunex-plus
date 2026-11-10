@@ -55,6 +55,17 @@ export const mobileStrings = {
   "mobile.strip.wait.tasks": { id: "Tugas", en: "Tasks" },
   "mobile.strip.wait.absences": { id: "Absen", en: "Absences" },
   "mobile.strip.wait.exam": { id: "Ujian", en: "Exams" },
+  // superapp: Beranda, round 3. The strip's three as one family: a figure over two words with the noun. The absence
+  // tile counts every course with no absence left (at the limit or past it). The search bar's hint, kept short.
+  "mobile.strip.next": { id: "tugas terdekat", en: "next Task" },
+  "mobile.strip.lateTasks": { id: "tugas terlambat", en: { one: "late Task", other: "late Tasks" } },
+  "mobile.strip.out": { id: "absen habis", en: "absences out" },
+  "mobile.strip.outSpoken": {
+    id: "{count} mata kuliah tanpa sisa absen",
+    en: { one: "{count} course with no absences left", other: "{count} courses with no absences left" },
+  },
+  "mobile.strip.examTo": { id: "ke {kind}", en: "to {kind}" },
+  "mobile.home.searchHint": { id: "Cari kuliah, tugas, materi", en: "Search courses, Tasks, materials" },
   // The block's one time while a class is on with no Presence open, and its calm line once nothing is left.
   "mobile.home.ends": { id: "selesai {time}", en: "ends {time}" },
   "mobile.home.noneLeft": { id: "Kuliah hari ini selesai", en: "No more classes today" },

@@ -33,6 +33,7 @@ import { Group, GroupRow, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { iosPressed } from "../../ui/press";
+import { ROW_SIDE } from "../../ui/row-end";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -282,7 +283,10 @@ export function UrusLoading() {
   return (
     <View testID="section.needs.reading" accessibilityState={{ busy: true }} style={{ backgroundColor: v.card, borderRadius: 20 }}>
       {[0, 1].map((i) => (
-        <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
+        <View
+          key={i}
+          style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: ROW_SIDE, paddingVertical: space[3], minHeight: 68 }}
+        >
           <Skeleton height={44} width={44} style={{ borderRadius: 22 }} />
           <View style={{ flex: 1, gap: space[2] }}>
             <Skeleton height={16} width="70%" />
