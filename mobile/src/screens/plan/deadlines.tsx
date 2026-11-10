@@ -306,7 +306,7 @@ function DateTile({ event, when }: { event: CalendarEvent; when: Deadline["when"
   const sameMonth = event.firstDay.slice(0, 7) === event.lastDay.slice(0, 7);
   const days = event.firstDay === event.lastDay || !sameMonth ? day(event.firstDay) : `${day(event.firstDay)}–${day(event.lastDay)}`;
   const month = f.dayMonth(noon(event.firstDay)).split(/\s/).at(-1) ?? "";
-  const { bg, fg } = when === "past" ? { bg: v.page, fg: v.muted } : when === "now" ? { bg: v.okBg, fg: v.okFg } : { bg: v.brandTint, fg: v.brandInk };
+  const { bg, fg } = when === "past" ? { bg: v.chip, fg: v.muted } : when === "now" ? { bg: v.okBg, fg: v.okFg } : { bg: v.brandTint, fg: v.brandInk };
   return (
     <View
       style={{

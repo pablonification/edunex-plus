@@ -142,7 +142,7 @@ export function CourseRow({
         posted ? (
           <View
             accessibilityLabel={`${t("grades.sixGrade")}: ${grade}`}
-            style={{ minWidth: 52, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: v.page }}
+            style={{ minWidth: 52, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: v.chip }}
           >
             <Text size="labelLarge" face="display" weight="bold" style={{ color: v.fg2 }}>
               {grade}
