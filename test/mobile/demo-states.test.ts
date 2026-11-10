@@ -88,13 +88,16 @@ describe("the demo's states", () => {
     expect([...full.w.edunex.tasks.values()].flat().length).toBeGreaterThan(0);
   });
 
-  it("a long name: II4091 on SIX's pages and Edunex's courses, and Task 117001's title", async () => {
+  it("a long name: II4091 on SIX's pages and Edunex's courses, Task 117001's title and the Student's own", async () => {
     const { w, edunex } = world({ EDUNEX_DEMO_LONG: "1" });
     const six = [...w.six.pages.values()].join("");
     expect(six).toContain(LONG_COURSE);
     expect(six).not.toContain("Proposal Tugas Akhir<");
     expect(JSON.stringify((await edunex("/course/courses")).body)).toContain(LONG_COURSE_EDUNEX);
     expect(w.edunex.task(117001).attributes.name).toBe(LONG_TASK);
+    expect(JSON.stringify(w.edunex.me)).toContain("Muhammad Rizky Ramadhan Pratama");
+    expect(six).toContain("Muhammad Rizky Ramadhan Pratama");
+    expect(six).not.toContain("Dimas Pratama");
   });
 
   it("refuses an option it doesn't know, so a typo in a link isn't a quiet normal picture", () => {

@@ -21,7 +21,10 @@ export interface DemoStates {
   slowSeconds: number;
   /** EDUNEX_DEMO_EMPTY=tasks,exams,material,alerts,grades: Edunex has none of these kinds. */
   empty: EmptyKind[];
-  /** EDUNEX_DEMO_LONG=1: II4091 and Task 117001 carry the longest names a Student might meet (a big font's worst case). */
+  /**
+   * EDUNEX_DEMO_LONG=1: II4091, Task 117001 and the Student themself carry the longest names a Student might meet (a
+   * big font's worst case).
+   */
   long: boolean;
 }
 
@@ -92,12 +95,16 @@ export const LONG_COURSE_EDUNEX = "Final Project Proposal and Research Methodolo
 export const LONG_TASK =
   "Tugas 01 Bab I: Latar Belakang, Rumusan Masalah, Tujuan, Batasan Masalah, dan Sistematika Penulisan Proposal Tugas Akhir (revisi kedua)";
 const LONG_TASK_ID = 117001;
+/** The made-up Student's own name ("Dimas Pratama" in the recordings), made long: the first minute's door, Profil's card. */
+const STUDENT = "Dimas Pratama";
+const LONG_STUDENT = "Muhammad Rizky Ramadhan Pratama";
 
-/** One course and one Task with long names, on SIX's pages and in Edunex's answers, without a new recording. */
+/** One course, one Task and the Student with long names, on SIX's pages and in Edunex's answers, without a new recording. */
 export function longNames(world: PretendWorld): void {
-  world.six.editPage(/./, (html) => html.split("Proposal Tugas Akhir").join(LONG_COURSE));
+  world.six.editPage(/./, (html) => html.split("Proposal Tugas Akhir").join(LONG_COURSE).split(STUDENT).join(LONG_STUDENT));
   const lengthen = <T>(value: T): T => JSON.parse(JSON.stringify(value).split("Final Project Proposal").join(LONG_COURSE_EDUNEX)) as T;
   const edunex = world.edunex;
+  edunex.me = JSON.parse(JSON.stringify(edunex.me).split(STUDENT).join(LONG_STUDENT));
   edunex.myCourses = lengthen(edunex.myCourses);
   edunex.agenda = lengthen(edunex.agenda);
   for (const map of [edunex.courseDetail, edunex.coursePlain]) for (const [id, course] of map) map.set(id, lengthen(course));

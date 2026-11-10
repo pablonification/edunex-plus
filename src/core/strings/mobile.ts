@@ -16,7 +16,6 @@ export const mobileStrings = {
   "mobile.tab.profile": { id: "Profil", en: "Profile" },
   // Beranda's strip: counts to tap. A count of none is a check and two words, never "0".
   "mobile.strip.tasksNone": { id: "Tugas beres", en: "Tasks done" },
-  "mobile.strip.absences": { id: "Absen habis", en: "Absences out" },
   "mobile.strip.absencesNone": { id: "Absen aman", en: "Absences fine" },
   "mobile.strip.classes": { id: "Kuliah lagi", en: "Classes left" },
   // superapp: Beranda
@@ -37,7 +36,6 @@ export const mobileStrings = {
     id: "{count} Tugas tenggat hari ini",
     en: { one: "{count} Task due today", other: "{count} Tasks due today" },
   },
-  "mobile.strip.late": { id: "terlambat", en: "late" },
   "mobile.strip.lateSpoken": { id: "{count} Tugas terlambat", en: { one: "{count} late Task", other: "{count} late Tasks" } },
   "mobile.strip.undated": { id: "tanpa tenggat", en: "no due date" },
   "mobile.strip.undatedSpoken": {
@@ -45,12 +43,10 @@ export const mobileStrings = {
     en: { one: "{count} Task with no due date", other: "{count} Tasks with no due date" },
   },
   "mobile.strip.nextSpoken": { id: "Tugas berikutnya, {date}: {title}", en: "Next Task, {date}: {title}" },
-  "mobile.strip.over": { id: "Lewat batas", en: "Over the limit" },
   "mobile.strip.overSpoken": {
     id: "{count} mata kuliah lewat batas absen",
     en: { one: "{count} course over its absence limit", other: "{count} courses over their absence limit" },
   },
-  "mobile.strip.examAway": { id: "{unit} ke {kind}", en: "{unit} to {kind}" },
   "mobile.strip.examSpoken": { id: "{away} lagi ke {kind}", en: "{away} to {kind}" },
   "mobile.strip.wait.tasks": { id: "Tugas", en: "Tasks" },
   "mobile.strip.wait.absences": { id: "Absen", en: "Absences" },

@@ -19,7 +19,7 @@
 //   EDUNEX_DEMO_SLOW=<seconds>  the first read waits that long before it begins, then plays as usual
 //   EDUNEX_DEMO_EMPTY=tasks,exams,material,alerts,grades   Edunex has none of those (a Student with nothing yet);
 //                               a week with no classes is EDUNEX_DEMO_NOW instead (superapp-states.md says which)
-//   EDUNEX_DEMO_LONG=1          II4091 and Task 117001 carry very long names (a big font's worst case)
+//   EDUNEX_DEMO_LONG=1          II4091, Task 117001 and the Student carry very long names (a big font's worst case)
 import { Linking } from "react-native";
 import type { SignInWindows } from "../../../src/desktop/signin-both";
 import { fillablePdf } from "../../../test/kit/fillable-pdf";
