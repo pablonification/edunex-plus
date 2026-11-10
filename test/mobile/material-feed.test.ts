@@ -2,8 +2,9 @@
 // worked out from each course's contents as its Modul tab does.
 import { describe, expect, it } from "vitest";
 import type { Entry } from "../../mobile/src/screens/course/contents";
-import { newestEntry, WEEK } from "../../mobile/src/screens/course/contents";
-import { type CourseSource, courseItems, feedLines, materialFeed, weekOf } from "../../mobile/src/screens/material/feed";
+import { newestEntry } from "../../mobile/src/screens/course/contents";
+import { type CourseSource, courseItems, feedLines, materialFeed, SHORT, weekOf } from "../../mobile/src/screens/material/feed";
+import { postedThisWeek } from "../../mobile/src/screens/material/weeks";
 import type { Material } from "../../src/core/models";
 
 const NOW = Date.UTC(2026, 10, 11, 3);
@@ -47,13 +48,28 @@ const source = (code: string, name: string, materials: Material[] | undefined): 
 });
 
 describe("Materi's weeks", () => {
-  it("calls the last 7 days this week, the 7 before last week, and the rest earlier", () => {
+  it("goes by calendar weeks, Monday to Sunday, as Tugas does", () => {
+    // NOW is Wed 11 Nov, 10:00 WIB: this week is Mon 9 to Sun 15 Nov.
     expect(weekOf(NOW - DAY, NOW)).toBe("thisWeek");
-    expect(weekOf(NOW - WEEK + 1, NOW)).toBe("thisWeek");
-    expect(weekOf(NOW - WEEK, NOW)).toBe("lastWeek");
-    expect(weekOf(NOW - 2 * WEEK, NOW)).toBe("earlier");
+    expect(weekOf(NOW - 2 * DAY, NOW)).toBe("thisWeek");
+    expect(weekOf(NOW - 3 * DAY, NOW)).toBe("lastWeek");
+    expect(weekOf(NOW - 9 * DAY, NOW)).toBe("lastWeek");
+    expect(weekOf(NOW - 10 * DAY, NOW)).toBe("earlier");
     expect(weekOf(null, NOW)).toBe("earlier");
     expect(weekOf(NOW + DAY, NOW)).toBe("earlier");
+  });
+
+  it("puts the demo's dates where a student would: on Thu 8 Oct, 5 Oct is this week and 24 Sep is earlier, not last week", () => {
+    const wib = (day: string, time: string) => Date.parse(`${day}T${time}:00+07:00`);
+    const thursday = wib("2026-10-08", "08:07");
+    expect(weekOf(wib("2026-10-05", "16:52"), thursday)).toBe("thisWeek");
+    expect(weekOf(wib("2026-10-05", "00:00"), thursday)).toBe("thisWeek");
+    expect(weekOf(wib("2026-10-04", "23:59"), thursday)).toBe("lastWeek");
+    expect(weekOf(wib("2026-09-28", "00:00"), thursday)).toBe("lastWeek");
+    expect(weekOf(wib("2026-09-27", "23:59"), thursday)).toBe("earlier");
+    expect(weekOf(wib("2026-09-24", "15:58"), thursday)).toBe("earlier");
+    expect(postedThisWeek(wib("2026-10-05", "16:52"), thursday)).toBe(true);
+    expect(postedThisWeek(wib("2026-10-01", "09:00"), thursday)).toBe(false);
   });
 
   it("agrees with the Modul tab's own mark: the module it marks has an item under this week", () => {
@@ -99,19 +115,35 @@ describe("the feed", () => {
     ]);
   });
 
-  it("folds what's earlier while something newer leads, and opens it when asked", () => {
+  it("leaves what's earlier open under a short week, one line per item with its course's name, and folds it when asked", () => {
     const feed = materialFeed(sources, t, NOW);
-    const closed = feedLines(feed, false);
+    const open = feedLines(feed, false);
+    expect(open.find((line) => line.type === "week" && line.week === "earlier")).toMatchObject({ fold: "open", count: 1 });
+    expect(open.map((line) => (line.type === "item" ? `${line.item.course}: ${line.item.title}` : line.week))).toEqual([
+      "thisWeek",
+      "Tipografi: Tadi",
+      "Perencanaan Kota: Kemarin",
+      "lastWeek",
+      "Tipografi: Minggu lalu",
+      "earlier",
+      "Perencanaan Kota: Lama",
+    ]);
+    expect(new Set(open.map((line) => line.key)).size).toBe(open.length);
+    const closed = feedLines(feed, true);
     expect(closed.at(-1)).toMatchObject({ type: "week", week: "earlier", fold: "closed", count: 1 });
     expect(closed.filter((line) => line.type === "item")).toHaveLength(3);
-    const open = feedLines(feed, true);
-    expect(open.filter((line) => line.type === "item")).toHaveLength(4);
-    expect(new Set(open.map((line) => line.key)).size).toBe(open.length);
+  });
+
+  it("folds what's earlier when the newer weeks fill the screen", () => {
+    const many = Array.from({ length: SHORT + 1 }, (_, i) => material(10 + i, `Baru ${i}`, NOW - 3_600_000 * (i + 1)));
+    const feed = materialFeed([source("PL3002", "Perencanaan Kota", [...many, material(1, "Lama", NOW - 40 * DAY)])], t, NOW);
+    expect(feedLines(feed, false).at(-1)).toMatchObject({ type: "week", week: "earlier", fold: "closed" });
+    expect(feedLines(feed, true).at(-1)).toMatchObject({ type: "item" });
   });
 
   it("shows earlier material unfolded when it's all there is", () => {
     const feed = materialFeed([source("PL3002", "Perencanaan Kota", [material(1, "Lama", NOW - 40 * DAY)])], t, NOW);
-    expect(feedLines(feed, false).map((line) => line.type)).toEqual(["week", "course", "item"]);
+    expect(feedLines(feed, false).map((line) => line.type)).toEqual(["week", "item"]);
     expect(feedLines(feed, false)[0]).toMatchObject({ fold: null, first: true });
   });
 

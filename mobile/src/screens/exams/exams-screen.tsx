@@ -1,11 +1,13 @@
 // Ujian (/exams), behind Beranda's "Ujian" tile: every exam of the term, soonest first. The nearest one is the one
 // thing to pick up: a block in its course's colour with the time left as the big figure, then its day, time and room,
-// each said once. The rest are flat rows led by their date, by ITB's exam period where the calendar gives one ("Masa
+// each said once (the time left is said here only). The rest are flat rows led by their date and ended by the chevron, by ITB's exam period where the calendar gives one ("Masa
 // UTS 12–16 Okt"), else by Tugas's weeks; exams with no date yet come last; the ones behind fold under "Sudah lewat".
 // Every row opens the exam's own page (/exam/<id>). The same list as Tugas's (./view.ts): no new data, no new request.
-import { FlashList } from "@shopify/flash-list";
-import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
-import { RefreshControl, View } from "react-native";
+// A term's exams are a few dozen lines at most, so the page is a plain ScrollView: every line sits where the one before
+// it ends, with no measured or guessed heights (the virtualised list left a row-sized hole under a two-line row the
+// first time the page arrived).
+import { memo, useCallback, useMemo, useState } from "react";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { useCourseColor, useTermCourses } from "../../../../src/app/courses";
 import { useExamMarkList } from "../../../../src/app/exam-marks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -31,18 +33,19 @@ import { TopBar } from "../../ui/top-bar";
 import { FoldHeading } from "../material/fold";
 import { dayLabel, examWeekLabel } from "../tasks/exam-rows";
 import { countdown } from "../tasks/row-parts";
-import { type ExamItem, type ExamLine, examLines, examLineType, examsView } from "./view";
+import { examApart, examName } from "./names";
+import { type ExamItem, type ExamLine, examLines, examsView } from "./view";
 
 const RADIUS = 28;
 /** The date column at a row's start. */
 const DATE_WIDTH = 40;
 
-/** The course's name as the course list has it, else SIX's for its sitting, else its code (exam-rows.tsx's rule). */
+/** The exam's one name (./names.ts): its course's name as the course list has it, else SIX's for its sitting, else its code. */
 function useExamName(): (exam: Exam) => string {
   const t = useT();
   const courses = useTermCourses();
   return useCallback(
-    (exam) => `${t(`exam.kind.${exam.kind}`)} ${courses?.find((c) => c.code === exam.courseCode)?.name ?? exam.six[0]?.courseName ?? exam.courseCode}`,
+    (exam) => examName(t, exam, courses?.find((c) => c.code === exam.courseCode)?.name ?? exam.six[0]?.courseName ?? exam.courseCode),
     [t, courses],
   );
 }
@@ -85,20 +88,13 @@ export function ExamsScreen() {
   const lines = useMemo(() => (view ? examLines(view, pastOpen) : []), [view, pastOpen]);
   usePerfDrawn(view !== null);
   const toggle = useCallback(() => setPastOpen((open) => !open), []);
-  const renderItem = useCallback(({ item: line, index }: { item: ExamLine; index: number }) => <Line line={line} index={index} onFold={toggle} />, [toggle]);
   const reading = (state: typeof six) => state === "connecting" || state === "live";
   const loading = view === null && (reading(six) || reading(edunex));
   return (
     // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
     <View testID="screen.exams" style={{ flex: 1, backgroundColor: b.page, paddingBottom: bottom }}>
       <TopBar v4={b.dark} title={t("mobile.exams.title")} />
-      <FlashList
-        data={lines}
-        keyExtractor={(line) => line.key}
-        getItemType={examLineType}
-        renderItem={renderItem}
-        ListHeaderComponent={<ProblemBanner belowBar />}
-        ListEmptyComponent={loading ? <Loading /> : <Nothing signedOut={six === "signed-out" && view === null} />}
+      <ScrollView
         contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
         refreshControl={
           <RefreshControl
@@ -108,7 +104,18 @@ export function ExamsScreen() {
             progressBackgroundColor={theme.color.surfaceContainerHigh}
           />
         }
-      />
+      >
+        <ProblemBanner belowBar />
+        {lines.length === 0 ? (
+          loading ? (
+            <Loading />
+          ) : (
+            <Nothing signedOut={six === "signed-out" && view === null} />
+          )
+        ) : (
+          lines.map((line, index) => <Line key={line.key} line={line} index={index} onFold={toggle} />)
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -222,8 +229,11 @@ function Heading({ line, onFold }: { line: Extract<ExamLine, { type: "heading" }
   );
 }
 
-/** A row's start: the day of the month big over its month, then the course's colour as a bar. No day: a quiet glyph. */
-function DateMark({ at, code, quiet = false }: { at: number | null; code: string; quiet?: boolean }) {
+/**
+ * A row's start: the day of the month big over its month (red once its moment is behind), then the course's colour as
+ * a bar. No day yet: a plain dash in the date's place, so the names stay in one column.
+ */
+function DateMark({ at, code, quiet = false, late = false }: { at: number | null; code: string; quiet?: boolean; late?: boolean }) {
   const f = useFormat();
   const b = useB();
   const theme = useTheme();
@@ -232,10 +242,12 @@ function DateMark({ at, code, quiet = false }: { at: number | null; code: string
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
       <View style={{ width: DATE_WIDTH, alignItems: "center" }}>
         {at === null ? (
-          <Icons.CalendarClock size={24} color={b.muted} />
+          <Text face="display" weight="bold" style={{ color: b.muted, fontSize: 20, lineHeight: 24 }}>
+            –
+          </Text>
         ) : (
           <>
-            <Text face="display" weight="bold" tabular style={{ color: quiet ? b.fg2 : b.fg, fontSize: 20, lineHeight: 24 }}>
+            <Text face="display" weight="bold" tabular style={{ color: late ? b.red : quiet ? b.fg2 : b.fg, fontSize: 20, lineHeight: 24 }}>
               {String(Number(wibDay(at).slice(8)))}
             </Text>
             <Text size="bodyMedium" numberOfLines={1} style={{ color: b.muted, fontSize: 12, lineHeight: 16 }}>
@@ -253,68 +265,57 @@ function Row({
   exam,
   at,
   meta,
-  trailing,
   last,
   quiet,
+  late,
   label,
 }: {
   exam: Exam;
   at: number | null;
   meta: string | undefined;
-  trailing?: ReactNode;
   last: boolean;
   quiet?: boolean;
+  late?: boolean;
   label: string;
 }) {
+  const b = useB();
   const { go } = useNav();
   const name = useExamName()(exam);
   return (
     <BRow
       testID={`row.exam.${exam.id}`}
       last={last}
-      leading={<DateMark at={at} code={exam.courseCode} quiet={quiet} />}
+      leading={<DateMark at={at} code={exam.courseCode} quiet={quiet} late={late} />}
       title={name}
       meta={meta}
-      trailing={trailing}
+      // Every row opens its exam's page: the one quiet chevron.
+      trailing={<Icons.ChevronRight size={20} color={b.muted} />}
       onPress={() => go({ screen: "exam", examId: exam.id })}
       accessibilityLabel={factsLabel(name, label)}
     />
   );
 }
 
-/** An exam still ahead: the weekday, time and room on its line, how long is left at its end (amber within a day, red once late). */
+/**
+ * An exam still ahead: its date leads, then one line: what sets it apart ("Take-home"), the weekday, time and where.
+ * How long is left is the leading block's figure alone; here the date says it. Late: the date turns red under "Terlambat".
+ */
 function AheadRow({ item, last }: { item: ExamItem; last: boolean }) {
   const t = useT();
   const f = useFormat();
-  const b = useB();
   const now = useNow();
   const { day, time, place } = factsOf(t, f, item);
+  const apart = examApart(t, item);
   // The date is the row's start: the line keeps its weekday, then the time and where. SIX lists it on two days: the
   // other day follows the weekday ("Kam · dan 17 Des"), the first being the row's start.
   const others = item.sittings && item.sittings.length > 1 ? [...new Set(item.sittings.map((s) => f.dayMonth(s.start)))].slice(1) : [];
   const also = others.length ? t("mobile.exams.alsoOn", { days: f.list(others) }) : null;
-  const meta = factsLabel(item.at === null ? day : f.weekdayShort(item.at), also, time, place);
-  const left = item.at === null ? null : item.at <= now && !item.late ? t("home.today.now") : countdown(t, now, item.at).text;
-  const tone = item.at === null ? "neutral" : countdown(t, now, item.at).tone;
-  return (
-    <Row
-      exam={item.exam}
-      at={item.at}
-      meta={meta}
-      last={last}
-      label={factsLabel(day, time, place, left)}
-      trailing={
-        left ? (
-          <Text size="bodyMedium" weight="medium" tabular style={{ color: tone === "red" ? b.red : tone === "amber" ? b.amber : b.fg2 }}>
-            {left}
-          </Text>
-        ) : undefined
-      }
-    />
-  );
+  const onNow = item.at !== null && item.at <= now && !item.late;
+  const meta = factsLabel(onNow && t("home.today.now"), apart, item.at === null ? day : f.weekdayShort(item.at), also, time, place !== apart && place);
+  return <Row exam={item.exam} at={item.at} meta={meta} last={last} late={item.late} label={factsLabel(apart, day, time, place !== apart && place)} />;
 }
 
-/** No day yet: its exam period when ITB's calendar gives one, else nothing more to say (the heading says "Belum ada tanggal"). */
+/** No day yet (the heading says so): its name, and its exam period when ITB's calendar gives one. Nothing else. */
 function UndatedRow({ exam, last }: { exam: Exam; last: boolean }) {
   const t = useT();
   const f = useFormat();
