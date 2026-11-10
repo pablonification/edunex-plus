@@ -17,7 +17,7 @@ In this order, each fully visible:
    bell (`action.alerts`) beside it.
 2. `home.now`: the now card as it is (it keeps `card.now` inside).
 3. `home.strip`: 2–3 number tiles, each a tap into its page: `strip.due` (due this week → Tugas), `strip.attendance`
-   (courses at risk → `/presence`), `strip.exam` (the next exam, in days → the exam). A number and one or two words.
+   (courses at or past their limit → Kuliah), `strip.exam` (the next exam, in days → the exam). A number and one or two words.
    Nothing to show: one quiet line, or gone.
 4. `home.grid`: `ServiceGrid` with `HOME_GRID` (4 × 2).
 

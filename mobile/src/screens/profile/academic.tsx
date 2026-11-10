@@ -21,7 +21,7 @@ import { billUrgency, type KrsStage, krsOverlaps, krsStage } from "../../../../s
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { together } from "../../parts/day-word";
-import { SERVICES, type Service, type ServiceId } from "../../parts/services";
+import { GROUP_COLORS, SERVICES, type Service, type ServiceId } from "../../parts/services";
 import { useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { Skeleton } from "../../ui/display";
@@ -319,12 +319,12 @@ function ServiceIcon({ id }: { id: ServiceId }) {
         borderRadius: 13,
         // The row's divider starts where a 44 dp tile's text did: the 4 dp keeps the title on that line.
         marginRight: 4,
-        backgroundColor: service.color ? service.color[theme.scheme === "dark" ? "dark" : "light"] : theme.v4.chip,
+        backgroundColor: service.group ? GROUP_COLORS[service.group][theme.scheme === "dark" ? "dark" : "light"] : theme.v4.chip,
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      <Glyph size={22} color={service.color ? "#ffffff" : theme.v4.fg2} weight="fill" />
+      <Glyph size={22} color={service.group ? "#ffffff" : theme.v4.fg2} weight="fill" />
     </View>
   );
 }
