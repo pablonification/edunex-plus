@@ -24,6 +24,7 @@ import arrowUpload from "./fluent/arrow-upload";
 import attach from "./fluent/attach";
 import book from "./fluent/book";
 import bookOpen from "./fluent/book-open";
+import buildingBank from "./fluent/building-bank";
 import calendarCheckmark from "./fluent/calendar-checkmark";
 import calendarClock from "./fluent/calendar-clock";
 import calendarLtr from "./fluent/calendar-ltr";
@@ -44,6 +45,7 @@ import palette from "./fluent/color";
 import directions from "./fluent/directions";
 import dismiss from "./fluent/dismiss";
 import documentEdit from "./fluent/document-edit";
+import documentPdf from "./fluent/document-pdf";
 import documentRibbon from "./fluent/document-ribbon";
 import documentText from "./fluent/document-text";
 import edit from "./fluent/edit";
@@ -64,6 +66,7 @@ import image from "./fluent/image";
 import imageOff from "./fluent/image-off";
 import info from "./fluent/info";
 import layer from "./fluent/layer";
+import learningApp from "./fluent/learning-app";
 import library from "./fluent/library";
 import link from "./fluent/link";
 import location from "./fluent/location";
@@ -72,17 +75,21 @@ import mailInbox from "./fluent/mail-inbox";
 import megaphone from "./fluent/megaphone";
 import moreHorizontal from "./fluent/more-horizontal";
 import moreVertical from "./fluent/more-vertical";
+import musicNote2 from "./fluent/music-note-2";
 import note from "./fluent/note";
 import pageFit from "./fluent/page-fit";
 import person from "./fluent/person";
+import personFeedback from "./fluent/person-feedback";
 import phone from "./fluent/phone";
 import receipt from "./fluent/receipt";
 import ribbon from "./fluent/ribbon";
 import search from "./fluent/search";
 import settings from "./fluent/settings";
 import shapeIntersect from "./fluent/shape-intersect";
+import shareAndroid from "./fluent/share-android";
 import shieldCheckmark from "./fluent/shield-checkmark";
 import signOut from "./fluent/sign-out";
+import slideText from "./fluent/slide-text";
 import speaker2 from "./fluent/speaker-2";
 import speakerMute from "./fluent/speaker-mute";
 import spinnerIos from "./fluent/spinner-ios";
@@ -178,6 +185,16 @@ export const Icons = {
   AppWindow: icon(() => windowFrame),
   Target: icon(() => target),
   Flag: icon(() => flag),
+  /** Share a file or a link (Android's share mark). */
+  Share: icon(() => shareAndroid),
+  /** A file's kind: a PDF, slides, sound. */
+  FilePdf: icon(() => documentPdf),
+  FileSlides: icon(() => slideText),
+  FileAudio: icon(() => musicNote2),
+  /** SIX, the academic office: a building with columns. Never the Kuliah tab's cap. */
+  Six: icon(() => buildingBank),
+  /** Edunex, the LMS: a learning app's window. Never the Kuliah tab's cap, nor Materi's book. */
+  Edunex: icon(() => learningApp),
   /** The source code (Fluent draws no brand logos). */
   GitHub: icon(() => code),
   Chat: icon(() => chat),
@@ -269,6 +286,8 @@ export const ServiceIcons = {
   Needs: icon(() => warning, { filled: true }),
   /** Ringkasan awal (what the first read found) */
   FirstSummary: icon(() => history, { filled: true }),
+  /** Laporkan masalah: a person speaking up. */
+  Report: icon(() => personFeedback, { filled: true }),
 };
 
 export type ServiceIconName = keyof typeof ServiceIcons;

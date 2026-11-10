@@ -55,7 +55,7 @@ export const SERVICE_GROUPS: readonly { id: string; title: StringKey; services: 
     services: [
       { id: "alerts", label: "alerts.title", icon: "Notifications", tone: "blue", open: "/alerts" },
       { id: "settings", label: "nav.settings", icon: "Settings", tone: "grey", open: "/settings" },
-      { id: "report", label: "mobile.service.report", icon: "PersonFeedback28Filled", tone: "magenta", open: "/report" },
+      { id: "report", label: "mobile.service.report", icon: "Report", tone: "magenta", open: "/report" },
       { id: "scan", label: "mobile.service.scan", icon: "FirstSummary", tone: "teal", open: "/first-scan" },
     ],
   },
