@@ -77,7 +77,7 @@ export function NotifyCard({ hasClass }: { hasClass: boolean }) {
     if (allow) await Notifications.requestPermissionsAsync().catch(() => undefined);
   };
   // One question with its bell (no tile behind it: it's a mark, not a service), a close (Nanti, 48 dp), and Nyalakan
-  // as a quiet text button under the question: nothing here is filled, so it never outranks the classes above it.
+  // as an outlined button under the question: nothing here is filled, so it never outranks the classes above it.
   return (
     <View
       testID="card.notify"
@@ -96,11 +96,14 @@ export function NotifyCard({ hasClass }: { hasClass: boolean }) {
         onPress={() => void answer(true)}
         testID="action.notify.on"
         accessibilityRole="button"
-        style={{ alignSelf: "flex-start", marginLeft: 24 + space[3], minHeight: 48, minWidth: 48, paddingRight: space[4], justifyContent: "center" }}
+        style={{ alignSelf: "flex-start", marginLeft: 24 + space[3], minHeight: 48, minWidth: 48, justifyContent: "center" }}
       >
-        <Text size="labelLarge" weight="semibold" style={{ color: v.brandInk }}>
-          {t("mobile.home.notifyOn")}
-        </Text>
+        {/* A button that looks like one: an outlined pill in the brand's ink (48 dp to touch, 36 drawn). */}
+        <View style={{ height: 36, paddingHorizontal: space[4], borderRadius: 18, borderWidth: 1.5, borderColor: v.brandInk, justifyContent: "center" }}>
+          <Text size="labelLarge" weight="semibold" style={{ color: v.brandInk }}>
+            {t("mobile.home.notifyOn")}
+          </Text>
+        </View>
       </PressScale>
     </View>
   );
