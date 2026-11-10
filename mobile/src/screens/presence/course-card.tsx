@@ -41,7 +41,7 @@ export const CourseCard = memo(function CourseCard({ item, group, context }: { i
       onPress={() => go({ screen: "course", code: course.code })}
       onLongPress={() => openCourseColorPicker(course.code)}
       accessibilityLabel={factsLabel(course.code, title, model?.label ?? side, ...metaParts(t, f, item, context))}
-      style={{ borderRadius: 16, backgroundColor: tint, paddingVertical: 10, paddingHorizontal: space[4], minHeight: 64, justifyContent: "center" }}
+      style={{ borderRadius: 16, backgroundColor: tint, paddingVertical: space[2], paddingHorizontal: space[4], minHeight: 64, justifyContent: "center" }}
     >
       <Text size="bodyLarge" weight="semibold" numberOfLines={2} style={{ color: b.fg, lineHeight: 21 }}>
         {title}

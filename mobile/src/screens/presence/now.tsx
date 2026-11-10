@@ -60,7 +60,7 @@ function PresenceLine({ code, name, meta, button, testID }: { code: string; name
   const v = useTheme().v4;
   const { ink } = useCourseTile()(code);
   return (
-    <Appear testID={testID} style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 64, paddingVertical: space[2] }}>
+    <Appear testID={testID} style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 56, paddingVertical: space[1] }}>
       <View style={{ width: 4, alignSelf: "stretch", borderRadius: 2, backgroundColor: ink }} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="bodyLarge" weight="semibold" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>

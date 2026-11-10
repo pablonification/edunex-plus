@@ -34,7 +34,7 @@ import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
-import { useSlidingMark } from "../../ui/moves";
+import { CrossFade, useSlidingMark } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
@@ -157,7 +157,8 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
         />
       </View>
       <View style={{ paddingTop: space[3], minHeight: 480 }} testID={`panel.course.${current}`}>
-        {panel}
+        {/* A tab's panel replaces the last one in place: the new one fades through (at once with Remove animations). */}
+        <CrossFade id={current}>{panel}</CrossFade>
       </View>
     </Page>
   );

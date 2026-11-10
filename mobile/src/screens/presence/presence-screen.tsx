@@ -120,11 +120,8 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
         <View>
           <SixPageNote datasets={["six.courses", "six.schedule"]} />
           {!connected && courses.length > 0 && <SignInCard quiet={rows.zone.windows.length > 0} />}
-          {nowShown(rows.zone) && (
-            <Rise screen="courses" index={0}>
-              <NowZone zone={rows.zone} attendance={rows.attendance} />
-            </Rise>
-          )}
+          {/* Each line comes and goes with its window (Appear, in ./now.tsx): no second move around them. */}
+          {nowShown(rows.zone) && <NowZone zone={rows.zone} attendance={rows.attendance} />}
           {courses.length === 0 ? (
             !listChanged && (
               <EmptyState
@@ -134,8 +131,8 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
               />
             )
           ) : (
-            <Rise screen="courses" index={1}>
-              <View testID="list.courses" style={{ gap: space[2], marginTop: nowShown(rows.zone) || !connected ? space[2] : 0 }}>
+            <Rise screen="courses" index={0}>
+              <View testID="list.courses" style={{ gap: space[1.5], marginTop: nowShown(rows.zone) || !connected ? space[2] : 0 }}>
                 {list.slice(0, FIRST).map(({ group, item }) => (
                   <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
                 ))}
