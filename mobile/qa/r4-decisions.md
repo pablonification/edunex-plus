@@ -6,8 +6,8 @@ Written before the first wave so children don't collide. Change it only through 
 
 Beranda (`tab.home`, `index`) · Jadwal (`tab.schedule`) · Tugas (`tab.tasks`) · Kuliah (`tab.courses`) · **Profil**
 (`tab.profile`, `app/(tabs)/profile.tsx`, `screen.profile`). Akademik is no tab any more: its content is in Profil.
-The avatar is in no top bar. The bell is on Beranda only. Search is a bar on Beranda (`home.search`), not an icon on
-every tab.
+The avatar is in no top bar. The bell is on Beranda only. Search is a bar on Beranda (`home.search`); Jadwal, Tugas
+and Kuliah keep only a search icon (`action.search`) beside their own actions.
 
 ## Beranda's first screen (1080×2400 at 420 dpi = 411×914 dp, font size 1.1, no scrolling)
 
@@ -56,7 +56,7 @@ sentence that explains the screen.
 
 | Child | Owns | Leaves alone |
 | --- | --- | --- |
-| A, tabs and navigation | `app/(tabs)/_layout.tsx`, `src/shell/source-status.tsx` (`TabHeader`, `TabActions`: no avatar, no bell or search off Beranda), `assets/tab-icons` (`tab_profile`, `tab_profile_filled`), `src/nav.ts`, deep links, `flows/`, `qa/flows/`, `flows/screens.json`, testIDs that moved | home, profile, services |
+| A, tabs and navigation | `app/(tabs)/_layout.tsx`, `src/shell/source-status.tsx` (`TabHeader`, `TabActions`: no avatar, no bell off Beranda, a search icon on the other tabs), `assets/tab-icons` (`tab_profile`, `tab_profile_filled`), `src/nav.ts`, deep links, `flows/`, `qa/flows/`, `flows/screens.json`, testIDs that moved | home, profile, services |
 | B, Beranda | `src/screens/home/**`, `app/(tabs)/index.tsx` | `src/parts/services.tsx` (imports it) |
 | C, Semua layanan | `src/parts/services.tsx`, `app/services.tsx`, `src/screens/services/**` | home, profile |
 | D, Profil | `app/(tabs)/profile.tsx`, `src/screens/profile/**` (may reuse `src/screens/academic` and `src/screens/settings` parts) | tab layout, home |

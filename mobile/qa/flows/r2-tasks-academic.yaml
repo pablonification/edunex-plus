@@ -41,15 +41,15 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: 05-ujian
 - back
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - takeScreenshot: 06-akademik
 - scrollUntilVisible:
     element:
-      id: row.nav.grades
+      id: row.profile.grades
     direction: UP
 - tapOn:
-    id: row.nav.grades
+    id: row.profile.grades
 - waitForAnimationToEnd
 - takeScreenshot: 07-nilai
 - scrollUntilVisible:
@@ -60,46 +60,52 @@ appId: io.github.pablonification.edunexplus.demo
 - back
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.planner
+      id: row.profile.planner
 - tapOn:
-    id: row.nav.plan.planner
+    id: row.profile.planner
 - waitForAnimationToEnd
 - takeScreenshot: 09-rencana
 - back
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.curriculum
+      id: row.profile.curriculum
 - tapOn:
-    id: row.nav.plan.curriculum
+    id: row.profile.curriculum
 - waitForAnimationToEnd
 - takeScreenshot: 10-kurikulum
 - back
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.krs
+      id: row.profile.krs
 - tapOn:
-    id: row.nav.plan.krs
+    id: row.profile.krs
 - waitForAnimationToEnd
 - takeScreenshot: 11-krs
 - back
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.bills
+      id: row.profile.bills
 - tapOn:
-    id: row.nav.plan.bills
+    id: row.profile.bills
 - waitForAnimationToEnd
 - takeScreenshot: 12-ukt
 - back
 - scrollUntilVisible:
     element:
-      id: row.nav.plan.deadlines
+      id: row.profile.deadlines
 - tapOn:
-    id: row.nav.plan.deadlines
+    id: row.profile.deadlines
 - waitForAnimationToEnd
 - takeScreenshot: 13-kalender
 - back
 - tapOn:
-    id: action.account
+    id: tab.profile
+- scrollUntilVisible:
+    element:
+      id: row.profile.settings
+    direction: DOWN
+- tapOn:
+    id: row.profile.settings
 - waitForAnimationToEnd
 - takeScreenshot: 14-pengaturan
 - scrollUntilVisible:

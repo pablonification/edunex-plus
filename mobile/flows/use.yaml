@@ -160,7 +160,13 @@ appId: io.github.pablonification.edunexplus.demo
 # A17: Settings in English and dark, then back as it was. Each choice waits to show as chosen: the whole app draws
 # again on a theme or language change, and a tap in the middle of that is lost.
 - tapOn:
-    id: action.account
+    id: tab.profile
+- scrollUntilVisible:
+    element:
+      id: row.profile.settings
+    direction: DOWN
+- tapOn:
+    id: row.profile.settings
 - extendedWaitUntil:
     visible:
       id: screen.settings

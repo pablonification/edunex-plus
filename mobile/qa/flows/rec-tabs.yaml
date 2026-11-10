@@ -12,7 +12,7 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: 'tab\.(courses|presence)'
 - tapOn:
-    id: 'tab\.(academic|more)'
+    id: 'tab\.(profile|more)'
 - tapOn:
     id: tab.home
 - waitForAnimationToEnd

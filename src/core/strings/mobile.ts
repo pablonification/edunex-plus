@@ -23,8 +23,7 @@ export const mobileStrings = {
   "mobile.service.calendar": { id: "Kalender", en: "Calendar" },
   "mobile.service.bills": { id: "UKT", en: "UKT" },
   "mobile.service.more": { id: "Lainnya", en: "More" },
-  // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
-  "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
+  // A tab's top bar: ⋮ opens the screen's rarer actions.
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
   // search: the field's hint, short enough for a phone's field (the desktop's names modules too and ran past its end).
   // Settings › Tentang, Android's update from inside the app: downloaded, Android's installer waiting for the Student.
