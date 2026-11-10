@@ -47,6 +47,8 @@ import { blockClassKey, useBlockMovedOnTo } from "./banner";
 import { ClassSheet, classCard } from "./class-sheet";
 import { nameOf, shortName } from "./parts";
 
+/** The most the rows under the first take of its height: on a tall phone the first row's reach is too much air to repeat. */
+const EVEN = 128;
 /** A row at its least: the name and the room line with room for a thumb. */
 const ROW = 64;
 /** The most a first row grows to reach the fold: past this (a tall phone) the next class simply shows. */
@@ -181,7 +183,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
                     last={i === items.length - 1}
                     clash
                     courses={courses}
-                    minHeight={step}
+                    minHeight={step ? Math.min(step, EVEN) : undefined}
                     onOpen={() => open(item)}
                   />
                 ),
