@@ -1,9 +1,9 @@
 // Nilai on the phone: src/app/screens/grades.tsx in one column, flat on the page, the same figures from the same
 // hooks. The first view answers "after an exam: my grade and what it does to my IPK" (round 1's council): the IPK big,
 // and beside it what it becomes after this semester; the SKS passed over a thin bar of those needed; then this term's
-// courses, the grades that are out first as plain letters, the ones still to come under a heading that says in words
-// they aren't out yet, each row saying its letter is a guess beside a picker that's a 48 dp control, the target and
-// what it needs from them right over them (round 2's council). Then a row each on the
+// courses, the grades that are out first as plain letters, the ones still to come under a heading that says once
+// they're the Student's estimates, each a dashed 48 dp picker, then the target and what it takes as a figure under
+// them (round 3's council). Then a row each on the
 // way to graduating (when; the next honor
 // as "Butuh rata-rata 3,66", over which SKS a sheet away, or "Tak terkejar"; the highest IPK possible "jika semua A";
 // the first opens the planner), IP and IPK per
@@ -56,7 +56,7 @@ import { CourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { Later } from "../plan/deferred";
 import { useFreshPlan } from "../plan/fresh-plan";
-import { effortKey, GradeSelect, IpkChart, NeedText, TargetControl, useTermName } from "../plan/projection";
+import { effortKey, GradeSelect, IpkChart, NeedFigure, TargetControl, useTermName } from "../plan/projection";
 import { SixNeeded } from "../plan/six-needed";
 import { GradeLetter, shownIndex, Transcript } from "./transcript";
 
@@ -118,6 +118,15 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
   const { plan } = state;
   const termOnly = useMemo(() => project(record, { ...plan, terms: [] }), [record, plan]);
   const after = record.term && record.thisTerm.length ? (termOnly.steps.find((s) => s.term === record.term)?.ipk ?? null) : null;
+  // A target out of reach is answered under it by the highest IPK still possible this semester: when that's the same
+  // figure as the one on the way to graduating, it's said there once, and that row is left out.
+  const best = termOnly.bestIpk;
+  const bestSaid =
+    record.thisTerm.some((c) => c.grade === null) &&
+    termOnly.need(targetOf(record, plan)).kind === "out" &&
+    best !== null &&
+    state.projection.bestIpk !== null &&
+    Math.abs(best - state.projection.bestIpk) < 0.005;
   return (
     <>
       <Rise screen="grades" index={0}>
@@ -134,7 +143,7 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
         <ThisTerm record={record} state={state} termOnly={termOnly} />
       </Later>
       <Later frame={2}>
-        <Graduation record={record} state={state} />
+        <Graduation record={record} state={state} bestSaid={bestSaid} />
         <Chart record={record} state={state} />
       </Later>
       <Later frame={3}>
@@ -161,7 +170,6 @@ const Standing = memo(function Standing({ record, state, after }: { record: Stud
   const sks = passedSks(record);
   const need = sksModel(record, state.plan).need;
   const of = t("mobile.academic.sksOf", { need });
-  const forecast = record.thisTerm.some((c) => c.grade === null);
   return (
     <View testID="card.standing" style={{ marginHorizontal: space[1], marginTop: space[2], gap: space[4] }}>
       {/* Two figures on one baseline, the second wrapping under the first at a big font size. */}
@@ -172,10 +180,10 @@ const Standing = memo(function Standing({ record, state, after }: { record: Stud
         </View>
         {after !== null && (
           <View accessible accessibilityLabel={`${t("grades.ipkAfter")} ${f.number(after, 2)}`} style={{ paddingBottom: 4 }}>
-            {/* A forecast while a grade is still to come, and named one; alive in the brand's ink, never grey
-                (round 2's council: "3,29 is grey and reads as switched off"). */}
-            <FigureLabel>{t(forecast ? "mobile.grades.forecast" : "mobile.grades.afterTerm")}</FigureLabel>
-            <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={30} color={v.brandInk} />
+            {/* Named whole ("IPK setelah semester ini": round 3's council, "doesn't say IP or IPK"), a live number in
+                the page's own ink: blue read as a link that wasn't one. */}
+            <FigureLabel>{t("grades.ipkAfter")}</FigureLabel>
+            <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={30} color={v.fg} />
           </View>
         )}
       </View>
@@ -261,7 +269,7 @@ function Disagreement({ record }: { record: StudentRecord }) {
  * ("Jika semua A"). Over which SKS that average is (this term's and the plan's, which can be more than the card's SKS
  * left) is the honor row's sheet, never a count on screen beside "125 dari 144".
  */
-const Graduation = memo(function Graduation({ record, state }: { record: StudentRecord; state: PlanState }) {
+const Graduation = memo(function Graduation({ record, state, bestSaid }: { record: StudentRecord; state: PlanState; bestSaid: boolean }) {
   const t = useT();
   const f = useFormat();
   const nav = useNav();
@@ -349,20 +357,21 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
         }
       />,
     );
-  rows.push(
-    <GroupRow
-      key="best"
-      leading={<IconTile tone="plain" icon={(color) => <Icons.Target size={22} color={color} />} />}
-      title={t("grades.best")}
-      // Which SKS: the honor's sheet says it, once.
-      meta={projection.variableSks ? t("mobile.grades.bestHint") : t("grades.bestNone")}
-      trailing={
-        <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
-          {best === null ? "-" : f.number(best, 2)}
-        </Text>
-      }
-    />,
-  );
+  if (!bestSaid)
+    rows.push(
+      <GroupRow
+        key="best"
+        leading={<IconTile tone="plain" icon={(color) => <Icons.Target size={22} color={color} />} />}
+        title={t("grades.best")}
+        // Which SKS: the honor's sheet says it, once.
+        meta={projection.variableSks ? t("mobile.grades.bestHint") : t("grades.bestNone")}
+        trailing={
+          <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
+            {best === null ? "-" : f.number(best, 2)}
+          </Text>
+        }
+      />,
+    );
   return (
     <>
       <Heading>{t("mobile.grades.toGraduation")}</Heading>
@@ -406,9 +415,10 @@ function Chart({ record, state }: { record: StudentRecord; state: PlanState }) {
 
 /**
  * This term's courses. The grades that are out lead, as plain letters under "Semester ini"; the ones still to come sit
- * under "Belum keluar", each row saying its letter is a guess beside the picker (round 1's council: "are the AB chips
- * real or guesses?"), with the target and what it needs from this term right over them, and one quiet line on where a
- * course's own scores are.
+ * under a heading that says once they're the Student's estimates ("Perkiraanmu semester ini": round 3's council,
+ * "'perkiraan' on all five rows"), each a dashed picker, never a letter that looks final. The list first, then the
+ * target it answers and what that takes as a figure (the average needed, or the highest IPK still possible when the
+ * target is out of reach), never a sentence.
  */
 function ThisTerm({ record, state, termOnly }: { record: StudentRecord; state: PlanState; termOnly: Projection }) {
   const t = useT();
@@ -421,9 +431,9 @@ function ThisTerm({ record, state, termOnly }: { record: StudentRecord; state: P
   if (!record.term || !record.thisTerm.length) return null;
   // The figure itself (the IPK after this semester) is at the top of the page, once.
   const target = (
-    <View style={{ marginHorizontal: space[1], gap: space[3] }} testID="card.ipkAfter">
+    <View style={{ marginHorizontal: space[1], marginTop: space[5], gap: space[3] }} testID="card.ipkAfter">
       <TargetControl record={record} state={state} />
-      <NeedText need={termOnly.need(goal)} target={goal} sks={record.inProgressSks} scope="term" />
+      <NeedFigure need={termOnly.need(goal)} target={goal} sks={record.inProgressSks} best={termOnly.bestIpk} />
     </View>
   );
   return (
@@ -438,25 +448,18 @@ function ThisTerm({ record, state, termOnly }: { record: StudentRecord; state: P
           </Group>
         </>
       )}
-      {/* The target and what it needs from this term stand over the guesses that answer it (round 2's council: the
-          target "sits at the bottom with no visible link to the pickers"); with every grade out, under the grades. */}
-      {coming.length > 0 ? (
+      {coming.length > 0 && (
         <View testID="section.estimates">
-          <Heading>{t("mobile.grades.notOut")}</Heading>
-          {target}
-          <Group style={{ marginTop: space[3] }}>
+          <Heading>{t(out.length > 0 ? "mobile.grades.estimatesRest" : "mobile.grades.estimates")}</Heading>
+          <Group>
             {coming.map((course, i) => (
               <TermCourseRow key={course.code} record={record} state={state} course={course} first={i === 0} />
             ))}
           </Group>
-          {/* Where a course's own scores are: its row opens them. */}
-          <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[3], marginHorizontal: space[1] }}>
-            {t("mobile.grades.scoresWhere")}
-          </Text>
         </View>
-      ) : (
-        <View style={{ marginTop: space[5] }}>{target}</View>
       )}
+      {/* The target under the list it's answered by (round 3's council: "the target control sits above the list it changes"). */}
+      {target}
       {hidden && (
         <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
           {t("grades.edunexNote")}
@@ -494,8 +497,6 @@ function TermCourseRow({
     course.code,
     t("curriculum.sks", { sks: course.sks }),
     published ? t("grades.edunexGrade", { total: f.number(published.total, 1), letter: published.letter }) : null,
-    // The letter at the row's end is a guess: said in the row itself, beside the picker's shape (a grade from SIX is a plain letter).
-    course.grade ? null : t("mobile.grades.guess"),
   ]
     .filter(Boolean)
     .join(" · ");

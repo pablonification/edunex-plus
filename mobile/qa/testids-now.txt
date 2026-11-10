@@ -279,6 +279,7 @@ figure.gradeNeed
 grades.after
 grades.ipk
 grades.loading
+grades.need
 grades.sks
 grades.standing.<standing>
 group.deadlines.<month>
