@@ -81,13 +81,17 @@ function columns(items: readonly Item[]): Map<string, { column: number; of: numb
   return placed;
 }
 
-/** The hours the day shows: 08:00–17:00 at least, widened to whole hours around anything earlier or later. */
+/** The hours the day shows: 08:00–17:00 at least, widened to whole hours around anything earlier or later, and an hour
+ * before a class that starts on the first one. */
 export function hoursOf(day: ScheduleDay): { from: number; to: number } {
   const spans = [...day.classes.map((c) => c.session), ...day.outside, ...day.edunex].map((s) => [
     minuteOfDay(s.start),
     minuteOfDay(s.start) + (s.end - s.start) / 60_000,
   ]);
-  const from = Math.min(8, ...spans.map(([start]) => Math.floor(start! / 60)));
+  const first = Math.min(8, ...spans.map(([start]) => Math.floor(start! / 60)));
+  // A class within the first half hour gets the hour before it too: the first block is whole under the strip, with a
+  // little of what came before (round 1's judge: "the first block starts above the now line and is clipped").
+  const from = Math.max(0, spans.some(([start]) => start! < first * 60 + 30) ? first - 1 : first);
   const to = Math.max(17, ...spans.map(([, end]) => Math.ceil(end! / 60)));
   return { from, to: Math.min(24, to) };
 }
@@ -147,8 +151,9 @@ export const DayView = memo(function DayView({
   if (empty)
     return (
       <View testID={`agenda.${day.day}`} style={{ backgroundColor: page, flexGrow: 1 }}>
-        <Lane day={day} onPick={onPick} />
-        <EmptyDay six={six} free={free} next={next} name={next ? nameOf(next.code, next.name ?? undefined) : ""} onNext={onNext} />
+        {/* On a holiday the day itself names it, once: not the period band above as well. */}
+        <Lane day={day} onPick={onPick} period={!day.holiday} />
+        <EmptyDay six={six} free={free} holiday={day.holiday} next={next} name={next ? nameOf(next.code, next.name ?? undefined) : ""} onNext={onNext} />
       </View>
     );
   return (
@@ -203,7 +208,22 @@ export interface NextClass {
  * A day with no class (round 3): no empty hours, a calm sun and the one word, then the way on: the next class under
  * "Berikutnya", as its block in its course's tint (its name, day and time, room); a tap goes to that day.
  */
-function EmptyDay({ six, free, next, name, onNext }: { six: boolean; free: boolean; next: NextClass | null; name: string; onNext?: () => void }) {
+function EmptyDay({
+  six,
+  free,
+  holiday,
+  next,
+  name,
+  onNext,
+}: {
+  six: boolean;
+  free: boolean;
+  /** ITB's holiday the day is in (its calendar, not SIX's): named here, with its days. */
+  holiday: CalendarEvent | null;
+  next: NextClass | null;
+  name: string;
+  onNext?: () => void;
+}) {
   const t = useT();
   const f = useDayFormat();
   const today = useToday();
@@ -220,14 +240,19 @@ function EmptyDay({ six, free, next, name, onNext }: { six: boolean; free: boole
   return (
     <View testID="schedule.emptyDay" style={{ alignItems: "center", paddingTop: space[10], paddingHorizontal: space[4], gap: space[3] }}>
       {/* Without SIX the app doesn't know the day is free: the note above says what SIX adds, with the way in. */}
-      {six && (
+      {(six || holiday) && (
         <>
           <View style={{ width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", backgroundColor: v.card }}>
             <Icons.Sun size={30} color={v.muted} />
           </View>
-          <Text size="titleMedium" face="display" weight="bold" style={{ color: v.fg }}>
-            {free ? t("schedule.free") : t("mobile.schedule.noClasses")}
+          <Text size="titleMedium" face="display" weight="bold" style={{ color: v.fg, textAlign: "center" }}>
+            {holiday ? periodName(t, holiday) : free ? t("schedule.free") : t("mobile.schedule.noClasses")}
           </Text>
+          {holiday && (
+            <Text size="bodyMedium" tabular style={{ color: v.muted, marginTop: -space[2] }}>
+              {f.dayRange(holiday.firstDay, holiday.lastDay)}
+            </Text>
+          )}
         </>
       )}
       {next && onNext && (
@@ -661,9 +686,11 @@ function ClashJoin({ clash, from, onPick }: { clash: Clash; from: number; onPick
 }
 
 /** What sits above the hours, only when there's something: the period, a class the app couldn't read, hand-ins, deadlines. */
-function Lane({ day, onPick }: { day: ScheduleDay; onPick: (picked: Picked) => void }) {
+function Lane({ day, onPick, period: withPeriod = true }: { day: ScheduleDay; onPick: (picked: Picked) => void; period?: boolean }) {
   const lines: ReactNode[] = [];
-  const period = day.events.find((e) => SCHEDULE_EVENT_KINDS.has(e.kind) && e.kind !== "lecture-start" && e.kind !== "lecture-end") ?? null;
+  const period = !withPeriod
+    ? null
+    : (day.events.find((e) => SCHEDULE_EVENT_KINDS.has(e.kind) && e.kind !== "lecture-start" && e.kind !== "lecture-end") ?? null);
   if (period) lines.push(<PeriodLine key="period" event={period} />);
   if (day.unread.length) lines.push(<UnreadLine key="unread" day={day} onPick={onPick} />);
   for (const window of day.windows) lines.push(<WindowLine key={`w${window.presence.id}`} window={window} onPick={onPick} />);

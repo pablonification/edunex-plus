@@ -287,6 +287,8 @@ export const mobileStrings = {
   // superapp: Jadwal
   // Jadwal's top bar: the month view, by its name in the decisions.
   "mobile.schedule.monthly": { id: "Jadwal bulanan", en: "Monthly schedule" },
+  // Jadwal's day strip, for TalkBack: how many classes a day holds (the number under its date).
+  "mobile.schedule.dayCount": { id: "{count} kuliah", en: { one: "{count} class", other: "{count} classes" } },
   // Jadwal's ⋮: the phone's calendar kept the same as Jadwal, in a calendar of the app's own (W13). Label and hint each
   // on one line in the menu; the calendar's name is in the toast and the off toast.
   "mobile.calendar.sync": { id: "Kalender HP", en: "Phone calendar" },
