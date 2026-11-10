@@ -28,8 +28,8 @@ export const mobileStrings = {
   "mobile.services.group.academic": { id: "Akademik", en: "Academic" },
   "mobile.services.group.app": { id: "Aplikasi", en: "App" },
   "mobile.service.calendar": { id: "Kalender", en: "Calendar" },
-  "mobile.service.month": { id: "Bulanan", en: "Month" },
-  "mobile.service.needs": { id: "Urusan", en: "To handle" },
+  "mobile.service.month": { id: "Sebulan", en: "Month" },
+  "mobile.service.needs": { id: "Perlu kamu urus", en: "To handle" },
   "mobile.service.report": { id: "Lapor", en: "Report" },
   "mobile.service.scan": { id: "Ringkasan", en: "Summary" },
   // Profil: the counts under the Student's name, and the two groups of rows.
@@ -161,7 +161,7 @@ export const mobileStrings = {
   // The class sheet's facts as labels, never the how: the share against the target, Tandai Hadir's state, the Presence.
   "mobile.home.share": { id: "Kehadiran {percent}% · target {target}%", en: "Attendance {percent}% · target {target}%" },
   // The now card with no class in the week ahead.
-  "mobile.home.free": { id: "Tak ada kuliah 7 hari ke depan", en: "No classes in the next 7 days" },
+  "mobile.home.free": { id: "Tak ada kelas 7 hari ke depan", en: "No classes in the next 7 days" },
   // The first read's card on Beranda: the summary the welcome used to show.
   "mobile.home.scanOpen": { id: "Lihat ringkasan", en: "See summary" },
   // Notifications, asked on Beranda the first time there's a class.
@@ -369,6 +369,16 @@ export const mobileStrings = {
 // "HP ini" for "komputer ini", a page for a window, a tap for a click. translate() takes them on the
 // phone only (./wording.native.ts), so the desktop's words stay as they are.
 export const phoneWording: Partial<Record<StringKey, Entry>> = {
+  // superapp: one name per thing (mobile/qa/superapp-names.md). The phone's tab is "Tugas" and holds the exams too; the
+  // list on Beranda and its screen are "Perlu kamu urus"; the bell's history is "Notifikasi" wherever it's named; a
+  // Task handed in is "Terkumpul"; a course's outline of material is "Materi", as the Materi tile and the search hint
+  // call it.
+  "nav.tasks": { id: "Tugas", en: "Tasks" },
+  "task.backToTasks": { id: "Ke Tugas", en: "Go to Tasks" },
+  "home.needs": { id: "Perlu kamu urus", en: "To handle" },
+  "home.changes": { id: "Notifikasi", en: "Notifications" },
+  "handIn.final": { id: "Sudah terkumpul. Hanya dosen yang bisa mengembalikannya.", en: "Submitted. Only your lecturer can hand it back." },
+  "course.tab.modules": { id: "Materi", en: "Materials" },
   // Settings › Notifikasi: the two attendance alerts, each named by what it warns about (Presensi and Kehadiran read as
   // one thing to a student): the moment to check in (a class SIX counts starts, an Edunex Presence opens or is about to
   // close), and a problem with SIX's count (a class it didn't record, no absences left).

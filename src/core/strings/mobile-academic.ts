@@ -45,7 +45,7 @@ export const mobileAcademicStrings = {
   "mobile.academic.openGrades": { id: "Buka Nilai", en: "Open Nilai" },
   "mobile.academic.noIpk": { id: "IPK muncul di sini setelah SIX terbaca.", en: "Your IPK shows here once SIX is read." },
   // The to-do chips under it: only while there's something to do this term.
-  "mobile.academic.todo": { id: "Perlu kamu urus", en: "To take care of" },
+  "mobile.academic.todo": { id: "Urusan akademik", en: "Academic to-dos" },
   "mobile.academic.todo.krs": { id: "Kirim KRS", en: "Send your KRS" },
   "mobile.academic.todo.bills": { id: "Bayar UKT", en: "Pay UKT" },
   "mobile.academic.todo.deadlines": { id: "Isi kuesioner", en: "Fill in the questionnaire" },

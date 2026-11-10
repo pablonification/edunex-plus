@@ -20,6 +20,11 @@
     "phone": "Di SIX tertulis {date}. Bayar paling lambat tanggal yang lebih awal."
   },
   {
+    "key": "course.tab.modules",
+    "desktop": "Modul",
+    "phone": "Materi"
+  },
+  {
     "key": "curriculum.unlistedNote",
     "desktop": "{count} mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, pilih “Ada di kurikulumku” di menu ⋯ barisnya.",
     "phone": "Ada {count} mata kuliah di luar catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”."
@@ -75,6 +80,11 @@
     "phone": "Presensi sedang dibuka, jadi terhitung hadir."
   },
   {
+    "key": "handIn.final",
+    "desktop": "Sudah diserahkan. Hanya dosen yang bisa mengembalikannya.",
+    "phone": "Sudah terkumpul. Hanya dosen yang bisa mengembalikannya."
+  },
+  {
     "key": "handIn.submitAnyway",
     "desktop": "Kumpulkan tetap (tidak dihitung hadir)",
     "phone": "Tetap kumpulkan (tidak dihitung hadir)"
@@ -88,6 +98,11 @@
     "key": "handIn.why.noText",
     "desktop": "Tulis jawabanmu dulu. Berkas saja tidak cukup.",
     "phone": "Tulis jawabanmu dulu"
+  },
+  {
+    "key": "home.changes",
+    "desktop": "Yang berubah",
+    "phone": "Notifikasi"
   },
   {
     "key": "home.need.task.edited",
@@ -105,6 +120,11 @@
     "phone": "Diubah dosen · {change}"
   },
   {
+    "key": "home.needs",
+    "desktop": "Perlu perhatianmu",
+    "phone": "Perlu kamu urus"
+  },
+  {
     "key": "ics.handIn.note",
     "desktop": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam jendela ini.",
     "phone": "Hadir tercatat hanya jika tugasnya dikumpulkan dalam waktu ini."
@@ -118,6 +138,11 @@
     "key": "krs.stage.done",
     "desktop": "KRS sudah sah",
     "phone": "KRS sudah disahkan"
+  },
+  {
+    "key": "nav.tasks",
+    "desktop": "Tugas & Ujian",
+    "phone": "Tugas"
   },
   {
     "key": "planner.local",
@@ -208,6 +233,11 @@
     "key": "signIn.slowHint",
     "desktop": "Jendela masuknya terbuka lagi. Tunggu di sana, atau tutup lalu coba lagi.",
     "phone": "Halaman masuknya terbuka lagi. Tunggu sebentar, atau tutup lalu coba lagi."
+  },
+  {
+    "key": "task.backToTasks",
+    "desktop": "Ke Tugas & Ujian",
+    "phone": "Ke Tugas"
   },
   {
     "key": "task.note.attendanceCounted",
