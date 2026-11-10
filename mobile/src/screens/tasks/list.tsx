@@ -123,9 +123,9 @@ const isRow = (line: Line | undefined) => line?.type === "todo" || line?.type ==
 /**
  * A group's rows in date order, each a line of its own (FlashList draws and recycles them one by one). An exam period
  * is a sub-heading where it starts in the list's order (over the first dated thing on one of its days; `hero`, the
- * lead card, is drawn by the caller right under it); its exams with no day yet come after its dated ones (behind a fold while
- * it's far off). A period none of whose exams has a day comes after everything dated, and what has no day at all last:
- * nothing undated is ever above something dated.
+ * lead card, is drawn by the caller under it); its exams with no day yet come right under the label, before its dated
+ * ones (behind a fold while it's far off): under a dated row they read as that day's ("UTS ... · Belum ada tanggal" in the
+ * 16 Okt group). A period none of whose exams has a day comes after everything dated, and what has no day at all last.
  */
 export function groupLines(items: readonly TodoItem[], hero?: TodoItem): Line[] {
   const periods = items.filter((item): item is PeriodItem => item.kind === "period");
@@ -146,19 +146,17 @@ export function groupLines(items: readonly TodoItem[], hero?: TodoItem): Line[] 
   const shown = (period: PeriodItem) => period.exams.length > 0 || inOrder.some((item) => inPeriod(item, period));
   let open: PeriodItem | undefined;
   for (const item of inOrder) {
-    if (open && item.at >= open.week.end) {
-      tail(open);
-      open = undefined;
-    }
+    if (open && item.at >= open.week.end) open = undefined;
     const next = open ? undefined : periods.find((period) => within(item, period) && shown(period));
     if (next) {
       periods.splice(periods.indexOf(next), 1);
       head(next);
+      // Its exams with no day yet sit right under its label: after a dated row they read as that day's.
+      tail(next);
       open = next;
     }
     if (item !== hero) row(item);
   }
-  if (open) tail(open);
   // A period with nothing dated left under it (its one dated exam leads the list, or none has a day yet).
   for (const period of periods)
     if (period.exams.length) {
@@ -281,9 +279,14 @@ function tasksView(
         // The gap under the big card only when its group goes on with a row: a sub-heading or the next group brings its own.
         if (hero && group === heroGroup) {
           // The lead card's exam period is named over it, never under it ("Masa UTS 12–16 Okt", then the 15th).
+          // Its exams with no day yet stay with the label, over the card: the card and the rows after it are the dated ones.
           const first = under[0];
-          const over =
-            first?.type === "periodHead" && hero.at !== null && hero.at >= first.item.week.start && hero.at < first.item.week.end ? under.splice(0, 1) : [];
+          let labelled = first?.type === "periodHead" && hero.at !== null && hero.at >= first.item.week.start && hero.at < first.item.week.end ? 1 : 0;
+          while (labelled > 0 && (under[labelled]?.type === "periodExam" || under[labelled]?.type === "periodFold")) labelled += 1;
+          const over = under.splice(0, labelled);
+          // The row after the card starts a run of its own: no hairline from a row that's now over the card.
+          const next = under[0];
+          if (over.length > 1 && next && (next.type === "todo" || next.type === "periodExam")) under[0] = { ...next, first: true };
           lines.push(
             ...over,
             ...(over.length ? [{ type: "gap", key: "gap-period", size: 2 } as const] : []),
