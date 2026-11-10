@@ -15,6 +15,8 @@ export const mobileStrings = {
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
+  // search: the field's hint, short enough for a phone's field (the desktop's names modules too and ran past its end).
+  "mobile.search.placeholder": { id: "Cari mata kuliah, tugas, materi", en: "Search courses, Tasks, materials" },
   // Akademik: the screens behind it, as a list.
   "mobile.academic.screens": { id: "Studimu", en: "Your studies" },
   // Android's notification channels, as Settings › Notifications lists them.

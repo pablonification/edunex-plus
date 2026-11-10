@@ -5,7 +5,7 @@
 // `ActionSheet` is a menu of choices. A sheet's main action goes in `footer`: it stays in view under
 // the content however long that runs, as a dialog's buttons do on the desktop.
 import { type ReactNode, useState } from "react";
-import { Pressable, ScrollView, StatusBar, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
+import { Platform, Pressable, ScrollView, StatusBar, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormSheet } from "react-native-screens/experimental";
 import { iosPressed } from "./press";
@@ -21,6 +21,14 @@ const TOP_GAP = 72;
  * content's last 48 dp fall outside the sheet: the content ends with that much room to spare.
  */
 const GRABBER = 48;
+
+/**
+ * On an iPhone the sheet is UIKit's (UISheetPresentationController): its grabber floats over the content's top rather
+ * than above it, and the sheet runs to the screen's bottom edge, under the home indicator. The content starts below the
+ * grabber and ends above the indicator; Android's GRABBER cut doesn't happen there.
+ */
+const IOS = Platform.OS === "ios";
+const IOS_GRABBER = 28;
 
 /**
  * How wide a sheet is: the window's, up to Material's cap for a bottom sheet (material_bottom_sheet_max_width). The
@@ -65,7 +73,8 @@ export function Sheet({
       isOpen={open}
       detents="fitToContents"
       prefersGrabberVisible
-      preferredCornerRadius={shape.xl}
+      // iOS rounds a sheet to match the phone's own corners (Liquid Glass's concentric shapes on iOS 26).
+      preferredCornerRadius={IOS ? "systemDefault" : shape.xl}
       nativeContainerStyle={{ backgroundColor: background ?? c.surfaceContainerLow }}
       onNativeDismiss={onClose}
       onDidAppear={() => setAppeared(true)}
@@ -84,7 +93,8 @@ export function Sheet({
         style={{
           width: Math.min(width, MAX_WIDTH),
           maxHeight: height - insets.top - TOP_GAP,
-          paddingBottom: space[4] + GRABBER,
+          paddingTop: IOS ? IOS_GRABBER : 0,
+          paddingBottom: IOS ? Math.max(insets.bottom, space[4]) + space[2] : space[4] + GRABBER,
           backgroundColor: background ?? c.surfaceContainerLow,
         }}
       >

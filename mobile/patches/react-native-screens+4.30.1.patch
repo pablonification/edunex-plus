@@ -169,3 +169,19 @@ index 70eb400..dc5e0fe 100644
 +        dialog.window?.decorView?.removeOnLayoutChangeListener(windowLayoutListener)
      }
  }
+diff --git a/node_modules/react-native-screens/ios/gamma/modals/form-sheet/RNSFormSheetConfigurationApplicator.mm b/node_modules/react-native-screens/ios/gamma/modals/form-sheet/RNSFormSheetConfigurationApplicator.mm
+index 0000000..0000000 100644
+--- a/node_modules/react-native-screens/ios/gamma/modals/form-sheet/RNSFormSheetConfigurationApplicator.mm
++++ b/node_modules/react-native-screens/ios/gamma/modals/form-sheet/RNSFormSheetConfigurationApplicator.mm
+@@ -79,6 +79,11 @@
+   [sheet animateChanges:^{
+     // Behavior updates
+     sheet.detents = nativeDetents;
++    // A custom detent's height is worked out once and kept: a fitToContents sheet sized before its content was measured
++    // stayed at the screen's full height. Apple: "call invalidateDetents() when a custom detent's height changes".
++    if (@available(iOS 16.0, *)) {
++      [sheet invalidateDetents];
++    }
+     sheet.prefersScrollingExpandsWhenScrolledToEdge = prefersScrollingExpands;
+     if (initialDetentIdentifier != nil) {
+       sheet.selectedDetentIdentifier = initialDetentIdentifier;

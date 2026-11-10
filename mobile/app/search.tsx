@@ -120,7 +120,7 @@ export default function Search() {
             value={query}
             onChangeText={setQuery}
             autoFocus
-            placeholder={t("search.placeholder")}
+            placeholder={t("mobile.search.placeholder")}
             placeholderTextColor={v.muted}
             accessibilityLabel={t("search.open")}
             autoCorrect={false}

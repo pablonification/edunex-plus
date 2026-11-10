@@ -84,6 +84,7 @@ import { WarningIcon } from "phosphor-react-native/src/icons/Warning";
 import { WifiSlashIcon } from "phosphor-react-native/src/icons/WifiSlash";
 import { XIcon } from "phosphor-react-native/src/icons/X";
 import type { ComponentType } from "react";
+import { Platform } from "react-native";
 import { useTheme } from "./theme";
 
 export type IconWeight = "light" | "regular" | "bold" | "fill";
@@ -179,8 +180,8 @@ export const Icons = {
   MoreHorizontal: icon(() => DotsThreeIcon),
   /** Android's overflow menu (⋮). */
   MoreVertical: icon(() => DotsThreeVerticalIcon),
-  /** Android's Back in a top app bar (an arrow, not a chevron). */
-  ArrowLeft: icon(() => ArrowLeftIcon),
+  /** Back in a top bar: Android's arrow, an iPhone's chevron (each phone's own). */
+  ArrowLeft: icon(() => (Platform.OS === "ios" ? CaretLeftIcon : ArrowLeftIcon)),
   CalendarCheck: icon(() => CalendarCheckIcon),
   Hand: icon(() => HandIcon),
   Snooze: icon(() => AlarmIcon),
