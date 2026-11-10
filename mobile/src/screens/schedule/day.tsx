@@ -1,7 +1,8 @@
 // One day of Jadwal on the white page: the hours down the left, each class a block in its course's tint at its time and
-// length (its glyph, its whole name, never cut to "…", the room), grown taller when its name needs it; the part of a
-// class already gone a shade deeper, and today's now-line in the brand's blue. Classes that overlap sit side by side,
-// each at its own start and end, each with the app's one clash sign (the icon and "Bentrok"). Above the hours, only when
+// length, never taller (a block past its end time would lie about when the class ends): its glyph, its name on as many
+// lines as its height holds at the phone's font size, the room; the part of a class already gone a shade deeper, and
+// today's now-line in the brand's blue. Classes that overlap sit side by side, each at its own start and end, joined
+// under the pair by the app's one clash sign (kit's `ClashMark`), said once per clash. Above the hours, only when
 // there's something: ITB's period ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's
 // hand-ins and deadlines, a line each. A block shows at most one status, as an icon and its word (a clash, a new time,
 // not in SIX); the absences, the code and the rest are on its sheet (Beranda's class sheet). The minute's tick moves
@@ -22,6 +23,7 @@ import {
 } from "../../../../src/core/schedule";
 import { taskStatus } from "../../../../src/core/tasks";
 import { Icons } from "../../ui/icons";
+import { ClashMark } from "../../ui/kit";
 import { factsLabel } from "../../ui/layout";
 import { NOW } from "../../ui/palette";
 import { PressScale } from "../../ui/press";
@@ -179,6 +181,9 @@ export const DayView = memo(function DayView({
               />
             );
           })}
+          {clashes(items, placed, (code) => nameOf(code), from).map((clash) => (
+            <ClashJoin key={clash.key} clash={clash} from={from} onPick={onPick} />
+          ))}
         </View>
       </View>
     </View>
@@ -322,54 +327,42 @@ export const nowColour = (scheme: "light" | "dark") => NOW[scheme].now;
 /** What reads on today's circle. */
 export const onNowColour = (scheme: "light" | "dark") => NOW[scheme].on;
 
-type Status = { icon: (typeof Icons)[keyof typeof Icons]; tone: "amber" | "quiet"; words: string };
+/** `shown`: what the block shows in place of the words, when it says more ("09:00 → 08:00" for a new time). */
+type Status = { icon: (typeof Icons)[keyof typeof Icons]; tone: "amber" | "quiet"; words: string; shown?: string };
+
+/** Minutes after midnight as "09:00". */
+const hhmm = (minute: number) => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
 
 /**
  * A block's one status, the most pressing: a clash, a new time or room, extra, may not run, not in SIX. No absences: a
  * block stays calm, and the class's sheet has them in the app's absence colours.
  */
-function statusOf(t: ReturnType<typeof useT>, entry: Item): Status | null {
+function statusOf(t: ReturnType<typeof useT>, f: ReturnType<typeof useDayFormat>, entry: Item): Status | null {
   if (entry.kind === "meeting") return entry.notInSix ? { icon: Icons.Info, tone: "amber", words: t("home.today.notInSix") } : null;
   const { item } = entry;
   if (item.exam) return null;
   if (item.overlaps.length) return { icon: Icons.Overlap, tone: "amber", words: t("mobile.home.chip.clash") };
-  if (item.moved)
+  if (item.moved) {
+    const { kinds, usual } = item.moved;
+    // A new time says from what to what, on the same day: "09:00 → 08:00" (the history clock means only this).
+    if (kinds.includes("time") && !kinds.includes("day"))
+      return { icon: Icons.History, tone: "amber", words: t("mobile.home.timeMoved"), shown: `${hhmm(usual.start)} → ${f.time(entry.start)}` };
     return {
-      icon: Icons.History,
+      icon: kinds.includes("room") && kinds.length === 1 ? Icons.MapPin : Icons.History,
       tone: "amber",
-      words: t(item.moved.kinds.includes("room") && item.moved.kinds.length === 1 ? "mobile.home.roomMoved" : "mobile.home.timeMoved"),
+      words: t(kinds.includes("room") && kinds.length === 1 ? "mobile.home.roomMoved" : "mobile.home.timeMoved"),
     };
+  }
   if (item.extra) return { icon: Icons.Plus, tone: "amber", words: t("schedule.mark.extra") };
   if (item.uncertain) return { icon: Icons.Info, tone: "quiet", words: t("schedule.uncertain.short") };
   return null;
-}
-
-/**
- * The app's one clash sign: the warning icon and "Bentrok", in amber. A local stand-in for `ClashMark` in
- * ../../ui/kit.tsx (Foundations', not there yet when this was written): swap it in when it lands.
- */
-function ClashMark({ style }: { style?: object }) {
-  const t = useT();
-  const v = useTheme().v4;
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      testID="mark.clash"
-      style={[{ flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start" }, style]}
-    >
-      <Icons.AlertTriangle size={16} color={v.ambFg} />
-      <Text size="labelMedium" weight="semibold" style={{ color: v.ambFg }}>
-        {t("mobile.home.chip.clash")}
-      </Text>
-    </View>
-  );
 }
 
 /** A block's padding above and below its words, short and tall; the name's and the room's line heights (sp). */
 const PAD = { short: 6, tall: 10 };
 const NAME_LINE = 19;
 const ROOM_LINE = 17;
+const STATUS_LINE = 18;
 
 /** A class at its time, as tall as it is long; beside a class it clashes with, in its share of the width. */
 const Block = memo(function Block({
@@ -390,8 +383,8 @@ const Block = memo(function Block({
   onPick: (picked: Picked) => void;
 }) {
   const top = yOf(minuteOfDay(entry.start), from) + 2;
-  // As tall as the class is long, and taller when its whole name and its status need it: a name is never cut to "…"
-  // (the judges' charge 12), at any font size.
+  // As tall as the class is long, never taller: a block grown past its end would lie about when the class ends and run
+  // into the next one. The name takes the lines the height holds (BlockBody); the sheet has the rest.
   const height = Math.max(TOUCH, ((entry.end - entry.start) / 3_600_000) * HOUR - 4);
   const gap = of > 1 ? 4 : 0;
   return (
@@ -400,14 +393,14 @@ const Block = memo(function Block({
       style={{
         position: "absolute",
         top,
-        minHeight: height,
+        height,
         left: `${(column / of) * 100}%`,
         width: `${100 / of}%`,
         paddingLeft: column > 0 ? gap / 2 : 0,
         paddingRight: column < of - 1 ? gap / 2 : 0,
       }}
     >
-      <BlockBody entry={entry} name={name} clashWith={clashWith} onPick={onPick} short={height < 56} narrow={of > 1} />
+      <BlockBody entry={entry} name={name} clashWith={clashWith} onPick={onPick} height={height} narrow={of > 1} />
     </View>
   );
 });
@@ -422,16 +415,18 @@ function BlockBody({
   name,
   clashWith,
   onPick,
-  short = false,
+  height,
   narrow = false,
 }: {
   entry: Item;
   name: string;
   clashWith: string;
   onPick: (picked: Picked) => void;
-  short?: boolean;
+  height: number;
   narrow?: boolean;
 }) {
+  const { fontScale } = useWindowDimensions();
+  const short = height < 56;
   const t = useT();
   const f = useDayFormat();
   const theme = useTheme();
@@ -442,23 +437,40 @@ function BlockBody({
   const gone = useClockSelect((now) =>
     now <= entry.start ? 0 : now >= entry.end ? 1 : Math.round(((now - entry.start) / (entry.end - entry.start)) * 100) / 100,
   );
-  const status = statusOf(t, entry);
+  const status = statusOf(t, f, entry);
+  // The clash is said once for the pair, under it (ClashJoin): not on each block.
+  const shown = status && status.icon !== Icons.Overlap ? status : null;
   const session = entry.kind === "class" ? entry.item.session : null;
   const room = session ? session.room : entry.kind === "meeting" && entry.meeting.online ? t("schedule.online") : null;
   const exam = entry.kind === "class" && entry.item.exam ? entry.item.session.activity : null;
   const title = exam ? `${exam} ${name}` : name;
   const time = timeRange(f, entry.start, entry.end);
-  const second = !short ? (room ?? "") : "";
   const pad = short ? PAD.short : PAD.tall;
+  // What the block's height truly holds at this font size, in dp: the name's lines first, then the room, then the
+  // status; what doesn't fit is left to the sheet (the name ends in "…" after its last line, never past the block).
+  const nameLine = NAME_LINE * fontScale;
+  const roomLine = ROOM_LINE * fontScale + 3;
+  const statusLine = STATUS_LINE * fontScale + 6;
+  let room_ = height - pad * 2 - nameLine;
+  const showRoom = !short && room !== null && room_ >= roomLine;
+  if (showRoom) room_ -= roomLine;
+  const showStatus = shown !== null && room_ >= statusLine;
+  if (showStatus) room_ -= statusLine;
+  const lines = 1 + Math.max(0, Math.floor(room_ / nameLine));
+  const second = showRoom ? (room ?? "") : "";
   const label = factsLabel(
     exam ? `${exam} ${entry.code}` : entry.code,
     name,
     time,
     room,
     phase === "live" ? t("schedule.live") : null,
-    clashWith && status?.icon === Icons.Overlap ? t("mobile.course.ex.clash", { course: clashWith }) : status?.words,
+    clashWith && status?.icon === Icons.Overlap
+      ? t("mobile.course.ex.clash", { course: clashWith })
+      : status?.shown
+        ? `${status.words} ${status.shown}`
+        : status?.words,
   );
-  const tone = status?.tone === "amber" ? v.ambFg : v.muted;
+  const tone = shown?.tone === "amber" ? v.ambFg : v.muted;
   return (
     <PressScale
       testID={`row.class.${rowKey(entry.code, entry.start)}`}
@@ -499,7 +511,7 @@ function BlockBody({
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="bodyLarge" weight="semibold" style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
+            <Text size="bodyLarge" weight="semibold" numberOfLines={lines} style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
               {title}
             </Text>
             {second !== "" && (
@@ -507,25 +519,144 @@ function BlockBody({
                 {second}
               </Text>
             )}
-            {status &&
-              (status.icon === Icons.Overlap ? (
-                <ClashMark style={{ marginTop: 6 }} />
-              ) : (
-                <View
-                  accessibilityElementsHidden
-                  importantForAccessibility="no-hide-descendants"
-                  style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}
+            {showStatus && shown && (
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}
+              >
+                <shown.icon size={16} color={tone} />
+                <Text
+                  size="labelMedium"
+                  weight="semibold"
+                  tabular
+                  numberOfLines={1}
+                  style={{ color: tone, flexShrink: 1, fontSize: 13, lineHeight: STATUS_LINE }}
                 >
-                  <status.icon size={16} color={tone} />
-                  <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: tone, flexShrink: 1 }}>
-                    {status.words}
-                  </Text>
-                </View>
-              ))}
+                  {shown.shown ?? shown.words}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
     </PressScale>
+  );
+}
+
+/** A clash: the classes that share a stretch of time, side by side, and where the pair's last block ends. */
+interface Clash {
+  key: string;
+  end: number;
+  members: { column: number; of: number; bottom: number }[];
+  of: number;
+  first: Item & { kind: "class" };
+  names: string;
+}
+
+/** The day's clashes: each run of side-by-side classes where one says it overlaps another, once. */
+function clashes(items: readonly Item[], placed: Map<string, { column: number; of: number }>, nameOf: (code: string) => string, from: number): Clash[] {
+  const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
+  const out: Clash[] = [];
+  let run: Item[] = [];
+  let runEnd = -Infinity;
+  const close = () => {
+    const classes = run.filter((i): i is Item & { kind: "class" } => i.kind === "class");
+    if (run.length > 1 && classes.some((c) => c.item.overlaps.length)) {
+      const end = Math.max(...run.map((i) => i.end));
+      out.push({
+        key: `clash-${run[0]!.key}`,
+        end,
+        of: Math.max(...run.map((i) => placed.get(i.key)?.of ?? 1)),
+        members: run.map((i) => ({
+          ...(placed.get(i.key) ?? { column: 0, of: 1 }),
+          bottom: yOf(minuteOfDay(i.start), from) + 2 + Math.max(TOUCH, ((i.end - i.start) / 3_600_000) * HOUR - 4),
+        })),
+        first: classes[0]!,
+        names: run.map((i) => shortName(nameOf(i.code))).join(", "),
+      });
+    }
+    run = [];
+  };
+  for (const item of sorted) {
+    if (item.start >= runEnd) {
+      close();
+      runEnd = -Infinity;
+    }
+    run.push(item);
+    runEnd = Math.max(runEnd, item.end);
+  }
+  close();
+  return out;
+}
+
+/**
+ * The clash said once, for the pair: a thin amber line drops from under each block and joins below the later one's
+ * end, where kit's `ClashMark` (the overlap glyph and "Bentrok") sits on the join. A tap opens the first class's sheet,
+ * which names the other one and where to choose.
+ */
+function ClashJoin({ clash, from, onPick }: { clash: Clash; from: number; onPick: (picked: Picked) => void }) {
+  const t = useT();
+  const theme = useTheme();
+  const v = theme.v4;
+  const join = yOf(minuteOfDay(clash.end), from) + 2 + 12;
+  const centre = (column: number, of: number) => `${((column + 0.5) / of) * 100}%` as const;
+  const columnsUsed = clash.members.map((m) => m.column);
+  const leftmost = Math.min(...columnsUsed);
+  const rightmost = Math.max(...columnsUsed);
+  return (
+    <>
+      {clash.members.map((m) => (
+        <View
+          key={`${m.column}`}
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            top: m.bottom,
+            height: Math.max(0, join - m.bottom),
+            left: centre(m.column, m.of),
+            width: 2,
+            marginLeft: -1,
+            backgroundColor: v.ambFg,
+            opacity: 0.55,
+          }}
+        />
+      ))}
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: join - 1,
+          height: 2,
+          left: centre(leftmost, clash.of),
+          right: `${((clash.of - rightmost - 0.5) / clash.of) * 100}%`,
+          marginLeft: -1,
+          backgroundColor: v.ambFg,
+          opacity: 0.55,
+        }}
+      />
+      <View pointerEvents="box-none" style={{ position: "absolute", top: join - 16, left: 0, right: 0, alignItems: "center" }}>
+        <PressScale
+          testID="action.clash"
+          accessibilityLabel={factsLabel(t("mobile.home.chip.clash"), clash.names)}
+          hitSlop={{ top: 8, bottom: 8 }}
+          onPress={() => onPick({ kind: "class", item: clash.first.item })}
+          style={{
+            minHeight: 32,
+            justifyContent: "center",
+            paddingHorizontal: space[3],
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: v.ambFg,
+            backgroundColor: theme.color.surface,
+          }}
+        >
+          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+            <ClashMark />
+          </View>
+        </PressScale>
+      </View>
+    </>
   );
 }
 

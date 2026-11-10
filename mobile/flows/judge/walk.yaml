@@ -158,8 +158,6 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.today
 - tapOn:
-    id: action.scheduleMenu
-- tapOn:
     id: action.month
 - extendedWaitUntil:
     visible:

@@ -342,8 +342,9 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
             <StatusLine />
           </Pressable>
         </View>
-        <IconButton label={t("mobile.schedule.month")} onPress={() => router.push("/schedule-month")} testID="action.month">
-          <Icons.Calendar size={24} color={theme.color.onSurfaceVariant} />
+        {/* A grid of days, not the tab's calendar (stand-in for Fluent's CalendarMonth until ui/icons.tsx has it). */}
+        <IconButton label={t("mobile.schedule.monthly")} onPress={() => router.push("/schedule-month")} testID="action.month">
+          <Icons.LayoutGrid size={24} color={theme.color.onSurfaceVariant} />
         </IconButton>
         <ScheduleMenu />
         <TabActions />
