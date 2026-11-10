@@ -21,7 +21,7 @@ import { partOfDay } from "./greeting";
 /** How far the now card reaches up into the blue band. */
 export const OVERLAP = 60;
 /** How wide the halftone reaches in from the right edge: about half a phone, so the greeting's start stays plain. */
-const TEXTURE_WIDTH = 224;
+const TEXTURE_WIDTH = 208;
 
 export const HomeBar = memo(function HomeBar() {
   const t = useT();

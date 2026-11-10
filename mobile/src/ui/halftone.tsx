@@ -8,7 +8,7 @@ import Svg, { Path } from "react-native-svg";
 
 /** The grid's step and a full-strength dot's side, in dp. */
 const CELL = 8;
-const DOT = 5;
+const DOT = 6;
 
 /** The path of every dot: column 0 hugs the right edge, row 0 the top, each dot centred in its cell. */
 export function halftonePath(width: number, height: number): string {

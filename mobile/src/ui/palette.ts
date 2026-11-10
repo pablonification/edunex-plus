@@ -200,7 +200,7 @@ export const V4 = {
     onHead: "#ffffff",
     // Beranda's header texture (screens/home/header.tsx): one alpha for every dot, low enough that the white greeting
     // and icons over a dot keep 4.5:1 (contrast test); the dots' size, not their alpha, carries the fade.
-    headDots: "rgba(255,255,255,0.08)",
+    headDots: "rgba(255,255,255,0.18)",
     brandTint: "#dbe6ff",
     brandInk: "#1450c4",
     okBg: "#e3f4e8",
@@ -228,7 +228,7 @@ export const V4 = {
     // Dark: a deep, desaturated blue rather than Edunex's bright one (Arqila's review); the status bar's strip takes it too.
     head: "#1a3158",
     onHead: "#ffffff",
-    headDots: "rgba(255,255,255,0.07)",
+    headDots: "rgba(255,255,255,0.14)",
     brandTint: "#22355f",
     brandInk: "#b9ceff",
     okBg: "#14301f",
