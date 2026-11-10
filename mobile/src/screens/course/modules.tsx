@@ -20,13 +20,13 @@ import { edunexMaterialUrl, type MaterialKind, materialAction, materialKind, upl
 import { linkHost } from "../../../../src/core/links";
 import type { Material } from "../../../../src/core/models";
 import { taskStatus } from "../../../../src/core/tasks";
-import { FileProblemNote, useEdunexFile } from "../../parts/files";
+import { FILE_KINDS, FileProblemNote, useEdunexFile } from "../../parts/files";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { BHeading } from "../../ui/b";
 import { IconButton } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { type TileTone, useToneTile } from "../../ui/icon-tile";
+import { useToneTile } from "../../ui/icon-tile";
 import { type IconProps, Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Appear, Tap } from "../../ui/moves";
@@ -39,12 +39,12 @@ import { TaskRow } from "../tasks/rows";
 import { contentsOf, countFacts, currentEntry, dayAndTime, type Entry, entrySlug } from "./contents";
 
 /** The table of contents; picking a module opens its own screen (`onPick`). */
-export function ModulesTab({ page, onPick }: { page: CoursePage; onPick: (module: number) => void }) {
+export function ModulesTab({ page, onPick, classModule = null }: { page: CoursePage; onPick: (module: number) => void; classModule?: number | null }) {
   const t = useT();
   const theme = useTheme();
   const entries = contentsOf(page, t);
   if (!entries.length) return <EmptyState icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />} title={t("course.noMaterials")} />;
-  return <Contents entries={entries} code={page.course.code} name={page.course.name} onPick={onPick} />;
+  return <Contents entries={entries} code={page.course.code} name={page.course.name} onPick={onPick} classModule={classModule} />;
 }
 
 /**
@@ -57,13 +57,31 @@ export function moduleEntry(entries: readonly Entry[], module: number): Entry | 
   return opened.find((e) => e.id === String(module)) ?? opened.find((e) => e.tasks.some((task) => task.moduleId === module));
 }
 
-function Contents({ entries, code, name, onPick }: { entries: Entry[]; code: string; name: string; onPick: (module: number) => void }) {
+function Contents({
+  entries,
+  code,
+  name,
+  onPick,
+  classModule,
+}: {
+  entries: Entry[];
+  code: string;
+  name: string;
+  onPick: (module: number) => void;
+  /** The module the course's latest class was on (the course's page works it out from its meetings), when it's known. */
+  classModule: number | null;
+}) {
   const t = useT();
   const now = useNow();
-  const current = useMemo(() => currentEntry(entries, now), [entries, now]);
-  // The module the course is on, unfolded at the top with its files: "this week's material, opened, in two taps"
-  // (Kuliah's course, then the file). Below it, the whole table of contents.
-  const unfolded = current && current.entry.materials.length > 0 ? current : undefined;
+  // The module the course is on: the one its class is on (round 1: the list started at module 1 while the class was on
+  // module 7), else the one new material came to this week, else the newest.
+  const current = useMemo(() => {
+    const byClass = classModule === null ? undefined : entries.find((entry) => !entry.unopened && !entry.intro && entry.id === String(classModule));
+    return byClass ? { entry: byClass, thisWeek: true, byClass: true } : currentEntry(entries, now);
+  }, [entries, now, classModule]);
+  // Unfolded at the top with its files: "this week's material, opened, in two taps" (Kuliah's course, then the file).
+  // Below it, the whole table of contents, the current module's number in a filled circle.
+  const unfolded = current && ("byClass" in current || current.entry.materials.length > 0) ? current : undefined;
   // The class's own, then the joint class's under its own title (both can have a Modul 1).
   const firstParent = entries.findIndex((e) => e.parent);
   const groups = (firstParent === -1 ? [entries] : [entries.slice(0, firstParent), entries.slice(firstParent)]).filter((group) => group.length > 0);
@@ -89,8 +107,10 @@ function Contents({ entries, code, name, onPick }: { entries: Entry[]; code: str
                   code={code}
                   name={name}
                   onPick={onPick}
-                  // The unfolded module is named by its heading above: its row doesn't say "Minggu ini" again.
+                  // The unfolded module is named by its heading above: its row doesn't say "Minggu ini" again, its
+                  // number sits in a filled circle (a calendar's "today").
                   now={current?.entry === entry && !unfolded ? (current.thisWeek ? "week" : "latest") : null}
+                  here={current?.entry === entry}
                 />
               ))}
             </View>
@@ -124,22 +144,34 @@ function CurrentModule({ entry, thisWeek, onPick }: { entry: Entry; thisWeek: bo
         </Text>
         <Icons.ChevronRight size={18} color={v.muted} />
       </Tap>
-      <View style={{ marginHorizontal: -14 }}>
-        {entry.materials.map((material, i) => (
-          <MaterialRow key={material.id} material={material} first={i === 0} />
-        ))}
-      </View>
+      {entry.materials.length === 0 ? (
+        <Text size="bodyMedium" style={{ color: v.muted }}>
+          {t("mobile.course.material.none")}
+        </Text>
+      ) : (
+        <View style={{ marginHorizontal: -14 }}>
+          {entry.materials.map((material, i) => (
+            <MaterialRow key={material.id} material={material} first={i === 0} />
+          ))}
+        </View>
+      )}
     </Appear>
   );
 }
 
-/** A module's number ("3"), bare in the course's ink (no pale square behind it). `tint` is kept for its callers. */
-function NumberTile({ no, ink }: { no: string; ink: string; tint?: string }) {
+/**
+ * A module's number ("3"), bare in the course's ink (no pale square behind it). `here`: the module the course is on,
+ * its number on a filled circle of that ink (a mark, not a colour alone). `tint` is kept for its callers.
+ */
+function NumberTile({ no, ink, here = false }: { no: string; ink: string; tint?: string; here?: boolean }) {
+  const v = useTheme().v4;
   return (
     <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-      <Text face="display" weight="extrabold" tabular style={{ color: ink, fontSize: no.length > 2 ? 16 : 22, lineHeight: 28 }}>
-        {no}
-      </Text>
+      <View style={here ? { width: 36, height: 36, borderRadius: 18, backgroundColor: ink, alignItems: "center", justifyContent: "center" } : undefined}>
+        <Text face="display" weight="extrabold" tabular style={{ color: here ? v.page : ink, fontSize: no.length > 2 ? 16 : here ? 18 : 22, lineHeight: 28 }}>
+          {no}
+        </Text>
+      </View>
     </View>
   );
 }
@@ -151,6 +183,7 @@ function ModuleRow({
   name,
   onPick,
   now: mark,
+  here = false,
 }: {
   entry: Entry;
   first: boolean;
@@ -159,6 +192,8 @@ function ModuleRow({
   onPick: (module: number) => void;
   /** The module the course is on: new material this week, else the newest. */
   now: "week" | "latest" | null;
+  /** The module the course is on: its number in a filled circle. */
+  here?: boolean;
 }) {
   const t = useT();
   const f = useFormat();
@@ -191,7 +226,9 @@ function ModuleRow({
   const markText = mark === "week" ? t("course.thisWeek") : mark === "latest" ? t("course.latest") : null;
   // With open Tasks the chip is theirs: the mark leads the meta line instead, so which module is now still shows.
   const facts = [open > 0 ? markText : null, ...(empty ? [] : countFacts(t, entry))].filter((x): x is string => !!x);
-  const tile = empty ? { ink: v.muted, tint: neutral.tint } : course;
+  // One colour for every opened module's number (round 1: "purple or grey with no clue why"); a closed one is grey
+  // with its lock, the current one sits in a filled circle.
+  const tile = course;
   // One chip: open Tasks first (something to do), else the module the course is on.
   const status =
     open > 0 ? (
@@ -203,12 +240,20 @@ function ModuleRow({
     <TileRow
       testID={testID}
       first={first}
-      leading={entry.intro ? <CourseTile code={code} name={name} /> : <NumberTile no={entry.label ?? ""} ink={tile.ink} tint={tile.tint} />}
+      leading={entry.intro ? <CourseTile code={code} name={name} /> : <NumberTile no={entry.label ?? ""} ink={tile.ink} tint={tile.tint} here={here} />}
       title={entry.title}
       meta={facts.join(" · ") || undefined}
       status={status}
       onPress={() => onPick(Number(entry.id))}
-      label={factsLabel(label, ...facts, entry.title, whose, open > 0 ? t("course.openTasks", { count: open }) : null, open > 0 ? null : markText)}
+      label={factsLabel(
+        label,
+        ...facts,
+        entry.title,
+        whose,
+        open > 0 ? t("course.openTasks", { count: open }) : null,
+        open > 0 ? null : markText,
+        here && !mark ? t("mobile.course.material.current") : null,
+      )}
     />
   );
 }
@@ -298,19 +343,6 @@ export function ModulePage({
 
 type Glyph = (props: IconProps) => ReactNode;
 
-/** A file's look by its extension, as phones' file apps colour them: PDF red, Word blue, slides amber, sheets green. */
-const BY_EXTENSION: readonly [RegExp, Glyph, TileTone][] = [
-  [/^pdf$/, Icons.FileText, "red"],
-  [/^(docx?|odt|rtf)$/, Icons.FileText, "brand"],
-  [/^(pptx?|odp|key)$/, Icons.AppWindow, "amber"],
-  [/^csv$/, Icons.LayoutGrid, "ok"],
-  [/^(xlsx?|ods)$/, Icons.LayoutGrid, "ok"],
-  [/^(zip|rar|7z|tar|gz)$/, Icons.FolderDown, "neutral"],
-  [/^(png|jpe?g|gif|webp|svg|bmp|heic)$/, Icons.Image, "neutral"],
-  [/^(mp4|mov|mkv|avi|webm)$/, Icons.Video, "neutral"],
-  [/^(mp3|wav|m4a|ogg|aac)$/, Icons.Speaker, "neutral"],
-];
-
 /** Edunex's own kinds, each a neutral glyph (the app's one icon family, ui/icons.tsx). */
 const KIND_GLYPH: Record<MaterialKind, Glyph> = {
   pdf: Icons.FileText,
@@ -337,7 +369,7 @@ function extensionOf(material: Material, name: string | null): string | null {
 /** A file's kind as a bare glyph in its kind's ink: no pale square behind it. */
 function KindTile({ kind, extension }: { kind: MaterialKind; extension: string | null }) {
   const tone = useToneTile();
-  const byExtension = extension ? BY_EXTENSION.find(([pattern]) => pattern.test(extension)) : undefined;
+  const byExtension = extension ? FILE_KINDS.find(([pattern]) => pattern.test(extension)) : undefined;
   const Glyph = byExtension?.[1] ?? KIND_GLYPH[kind];
   const { ink } = tone(byExtension?.[2] ?? (kind === "pdf" ? "red" : "neutral"));
   return (

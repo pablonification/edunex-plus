@@ -19,7 +19,6 @@ import { iosPressed, PressScale } from "../../ui/press";
 import { ActionSheet } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, TOUCH, useTheme } from "../../ui/theme";
-import { useCardStyle } from "../home/now";
 
 // The letter aimed for, per course, while the app runs (the desktop keeps it in the page's place in history).
 const aims = new Map<string, ContractLetter>();
@@ -28,13 +27,13 @@ export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenMod
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
-  const surface = useCardStyle();
   const grade = page.outline?.grade ?? null;
   return (
     <View style={{ gap: space[4] }}>
       <Calculator page={page} onOpenModules={onOpenModules} />
       {/* Edunex's own grade, once the lecturer publishes it: the number and the letter, big. */}
-      <View style={[surface, { paddingHorizontal: space[4], paddingVertical: space[4] }]}>
+      {/* Flat on the page under a hairline: no box (the page is white; a white card on it read as a frame). */}
+      <View style={{ paddingTop: space[4], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: v.line }}>
         <Text size="bodyMedium" weight="medium" style={{ color: v.muted }}>
           {t("grade.edunex")}
         </Text>
@@ -208,7 +207,6 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const f = useFormat();
   const theme = useTheme();
   const c = theme.color;
-  const surface = useCardStyle();
   const bridge = useBridge();
   const code = page.course.code;
   const saved = useDataset("local.courseWeights");
@@ -297,7 +295,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
     <View>
       {isExample && <ExampleBanner code={code} onOpen={contractFile ? onOpenModules : undefined} />}
 
-      <View style={[surface, { padding: space[4] }]}>
+      <View>
         <View accessibilityLiveRegion="polite">
           {weightsOk && result.final === null && (
             <View style={{ marginBottom: space[4], gap: space[2] }}>

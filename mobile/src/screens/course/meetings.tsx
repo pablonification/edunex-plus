@@ -25,7 +25,6 @@ import { dayStart } from "../../../../src/core/schedule";
 import { SixEmptyState, useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { EmptyState } from "../../ui/display";
-import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
@@ -41,6 +40,9 @@ type T = ReturnType<typeof useT>;
 /** Each meeting's Edunex module, where one goes with it (see meetingModules). From src/app/screens/course/meetings.tsx. */
 export const pageModules = (page: CoursePage) =>
   meetingModules(page.meetings, page.outline && page.course.edunex ? outlineEntries(page.outline, page.course.edunex.courseId) : []);
+
+/** A row's leading slot with nothing behind it: the date (or an icon) bare on the page, no pale square. */
+const BARE = { width: 44, height: 44, alignItems: "center", justifyContent: "center" } as const;
 
 /** "Modul 7 · Inovasi Pelayanan Publik" for a meeting known only as a class. From src/app/screens/course/meetings.tsx. */
 export function meetingModuleTitle(t: T, modules: ReadonlyMap<string, OutlineEntry>, meeting: Meeting): string | null {
@@ -155,9 +157,9 @@ function EarlierRow({ earlier, first }: { earlier: Earlier; first: boolean }) {
       testID="row.meetingsEarlier"
       first={first}
       leading={
-        <IconTile tint={v.chip}>
+        <View style={BARE}>
           <Icons.History size={20} color={v.muted} />
-        </IconTile>
+        </View>
       }
       title={
         <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg2, lineHeight: 21 }}>
@@ -231,14 +233,14 @@ function DateTile({ at, past }: { at: number; past: boolean }) {
   const [day, month] = f.dayMonth(at).split(/\s+/);
   const fg = past ? v.muted : v.fg;
   return (
-    <IconTile tint={v.chip}>
+    <View style={BARE}>
       <Text size="titleMedium" face="display" weight="bold" tabular style={{ color: fg, fontSize: 17, lineHeight: 19 }}>
         {day ?? ""}
       </Text>
       <Text size="labelSmall" weight="medium" style={{ color: fg, fontSize: 11, lineHeight: 13 }}>
         {month ?? ""}
       </Text>
-    </IconTile>
+    </View>
   );
 }
 

@@ -22,12 +22,13 @@ export const mobileKuliahStrings = {
   "mobile.kuliah.clash.choose": { id: "Pilih kelas", en: "Which class?" },
   "mobile.kuliah.clash.pick": { id: "Pilih {code}", en: "Go to {code}" },
   // superapp: Kuliah
-  // A clash's one sign on every tab: an icon and this word.
-  "mobile.kuliah.clash.word": { id: "Bentrok", en: "Clash" },
-  // The line at the top while SIX shows Tandai Hadir: until when the class runs, beside the course's name.
-  "mobile.kuliah.classUntil": { id: "kuliah sampai {time}", en: "class until {time}" },
   // What the "Isi Presensi" button says to a screen reader: it opens Edunex, where the Presence is marked.
   "mobile.kuliah.presenceLabel": { id: "Isi Presensi {course} di Edunex", en: "Fill in Presence for {course} in Edunex" },
+  // A course's absences as a count, once, after its state ("Jatah absen habis", then "3 dari 3 absen"): used of allowed.
+  "mobile.kuliah.absences": { id: "{used} dari {allowed} absen", en: "{used} of {allowed} absences" },
+  // Kuliah's two headings, read top to bottom: what's on today (a Presence open, a clash), then the term's courses.
+  "mobile.kuliah.today": { id: "Hari ini", en: "Today" },
+  "mobile.kuliah.term": { id: "Semester ini", en: "This semester" },
 } as const satisfies Record<string, Entry>;
 
 export const mobileCourseStrings = {
@@ -95,8 +96,6 @@ export const mobileCourseStrings = {
   "mobile.grade.remove": { id: "Hapus", en: "Remove" },
   "mobile.grade.removed": { id: "{part} dihapus", en: "{part} removed" },
   // superapp: Kuliah
-  // A course's first tab: its material (Edunex's modules). The word the Student looks for after class.
-  "mobile.course.tab.material": { id: "Materi", en: "Material" },
   // Over the module the course is on, unfolded at the top of Materi: new material this week, else the newest.
   "mobile.course.material.thisWeek": { id: "Materi minggu ini", en: "This week's material" },
   "mobile.course.material.latest": { id: "Materi terbaru", en: "Latest material" },
@@ -104,6 +103,10 @@ export const mobileCourseStrings = {
   "mobile.course.material.all": { id: "Semua modul", en: "All modules" },
   // The way into the unfolded module's own page (its Tasks, who posted it).
   "mobile.course.material.openModule": { id: "Buka {module}", en: "Open {module}" },
+  // The module the class is on has no files yet: said once, under its name.
+  "mobile.course.material.none": { id: "Belum ada materi untuk modul ini", en: "No material for this module yet" },
+  // What a screen reader says for the module the course is on, in the list of all modules (the eye sees its number in a filled circle).
+  "mobile.course.material.current": { id: "Modul sekarang", en: "Current module" },
 } as const satisfies Record<string, Entry>;
 
 export const mobileModuleStrings = {
