@@ -140,6 +140,46 @@ describe("layout-read: a grid React Native draws flat", () => {
     expect(row?.ok).toBe(true);
   });
 
+  it('does not call a whole label cut because its box is narrow: "Ujian" and "Nilai" on the real phone', () => {
+    // The A52's tiles: a 13 sp label is 34 px, its text box about 52 px tall, and "Ujian" is 87 px wide, "Nilai" 80: whole words.
+    const tiles = page(LABELS);
+    const narrow = (label: string, width: number) => {
+      const i = LABELS.indexOf(label);
+      const x = 42 + (i % 4) * 249;
+      const y = 1000 + Math.floor(i / 4) * 240;
+      return {
+        id: `action.service.s${i}`,
+        tap: true,
+        box: [x, y, x + 249, y + 240],
+        kids: [{ text: label, box: [x + 80, y + 150, x + 80 + width, y + 202] }],
+      } as Spec;
+    };
+    const put = (label: string, width: number) => {
+      tiles[tiles.findIndex((t) => t.id === `action.service.s${LABELS.indexOf(label)}`)] = narrow(label, width);
+    };
+    // Every label's box is 52 px tall and about 17.4 px a letter wide: "Ujian" 87 px, "Nilai" 87 px (the first guess asked 21 px
+    // a letter and flagged them all).
+    for (const label of LABELS) put(label, Math.round([...label].length * 17.4));
+    const row = readLayout(readDump(asMaestro(screen(tiles)))).rows.find((r: { key: string }) => r.key === "service grid");
+    expect(row?.value).not.toContain("may be cut");
+    expect(row?.ok).toBe(true);
+  });
+
+  it("still flags a label squeezed far under its letters", () => {
+    const tiles = page(LABELS);
+    const i = LABELS.indexOf("Kalender");
+    const x = 42 + (i % 4) * 249;
+    const y = 1000 + Math.floor(i / 4) * 240;
+    tiles[tiles.findIndex((t) => t.id === `action.service.s${i}`)] = {
+      id: `action.service.s${i}`,
+      tap: true,
+      box: [x, y, x + 249, y + 240],
+      kids: [{ text: "Kalender", box: [x + 100, y + 150, x + 140, y + 192] }],
+    } as Spec;
+    const row = readLayout(readDump(asMaestro(screen(tiles)))).rows.find((r: { key: string }) => r.key === "service grid");
+    expect(row?.value).toContain("may be cut");
+  });
+
   it("leaves out a service tile that lies outside the grid", () => {
     const tiles = page(LABELS);
     tiles.push({ id: "action.service.stray", tap: true, box: [42, 1700, 291, 1900], kids: [{ text: "Nyasar", box: [60, 1800, 250, 1850] }] });

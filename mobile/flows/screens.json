@@ -233,15 +233,15 @@
           },
           {
             "extendedWaitUntil": {
-              "visible": {
-                "id": "card.firstScan"
+              "notVisible": {
+                "id": "status.firstRead"
               },
               "timeout": 600000
             }
           }
         ]
       },
-      "$comment": "Round 2 (W15): the welcome is one screen; 'connected' is who's signed in, on Settings once SIX joined; 'ready' is Beranda's summary card once the first read is in.",
+      "$comment": "Round 2 (W15): the welcome is one screen; 'connected' is who's signed in, on Settings once SIX joined; 'ready' is Beranda once the first read is in (it draws no summary card now: the summary is the snackbar's \"Lihat ringkasan\" or Settings.",
       "relaunch": true
     },
     "first-scan": {
@@ -309,16 +309,22 @@
               },
               {
                 "extendedWaitUntil": {
-                  "visible": {
-                    "id": "card.firstScan"
+                  "notVisible": {
+                    "id": "status.firstRead"
                   },
                   "timeout": 600000
                 }
               },
               {
-                "tapOn": {
-                  "id": "action.firstScan.open",
-                  "optional": true
+                "runFlow": {
+                  "when": {
+                    "visible": "Lihat ringkasan"
+                  },
+                  "commands": [
+                    {
+                      "tapOn": "Lihat ringkasan"
+                    }
+                  ]
                 }
               },
               {
