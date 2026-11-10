@@ -23,6 +23,7 @@ import { EDUNEX_SIGN_IN_URL, EDUNEX_SITE_HOST, readSignInToken } from "../../../
 import { isSixAfterSignIn, readSixSession, SIX_LOGIN_PAGE, SIX_SIGN_IN_URL, SIX_SITE_HOST } from "../../../src/engine/sources/six/signin";
 import { cookiesFor } from "../../modules/web-cookies";
 import { guardMessage, guardScript, navigationAllowed } from "../host/guard";
+import { noServiceWorkerScript } from "../host/page-fixes";
 import { R3_GUARD } from "../host/version";
 import { IconButton } from "../ui/controls";
 import { Icons } from "../ui/icons";
@@ -320,8 +321,9 @@ function SignInPage({ run }: { run: Run }) {
           ref={view}
           testID={`signin.${run.source}`}
           source={{ uri: system.start }}
-          // A QA build's sign-in signs in and nothing else (../host/guard.ts): no other write, no signing out.
-          injectedJavaScriptBeforeContentLoaded={R3_GUARD ? guardScript : undefined}
+          // Edunex's page needs a service worker to start (../host/page-fixes.ts). A QA build's sign-in signs in and
+          // nothing else (../host/guard.ts): no other write, no signing out.
+          injectedJavaScriptBeforeContentLoaded={R3_GUARD ? `${guardScript}\n${noServiceWorkerScript}` : noServiceWorkerScript}
           onShouldStartLoadWithRequest={(request) => {
             if (R3_GUARD && !navigationAllowed(request.url)) return false;
             if (request.isTopFrame !== false) going(request.url);
