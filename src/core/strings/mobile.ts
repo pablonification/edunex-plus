@@ -152,6 +152,22 @@ export const mobileStrings = {
   "mobile.home.notifyLater": { id: "Nanti", en: "Not now" },
   // The top bar's status line while the first read runs: which system and which part.
   "mobile.home.reading": { id: "Membaca {part}…", en: "Reading {part}…" },
+  // r4 home
+  // Beranda's strip under the now card: a big number, and these words under it. Each opens its page.
+  // What's due in the next seven days (Tugas tab).
+  "mobile.home.strip.due": { id: "Tugas minggu ini", en: "Due this week" },
+  // Courses at or past their absence limit (Presensi), the Glossary's "Jatah absen"; none: "Aman" in the number's place.
+  "mobile.home.strip.absences": { id: "Jatah absen habis", en: "Out of absences" },
+  "mobile.home.strip.absencesSafe": { id: "Aman", en: "Safe" },
+  "mobile.home.strip.absencesSafeLabel": { id: "Jatah absen", en: "Absences" },
+  // What TalkBack reads for the tile with courses at risk.
+  "mobile.home.strip.absencesSpoken": {
+    id: "Jatah absen habis di {count} mata kuliah",
+    en: { one: "Out of absences in {count} course", other: "Out of absences in {count} courses" },
+  },
+  // The next exam: days to it ("3 · hari ke UTS"), or "Hari ini" in the number's place on its day.
+  "mobile.home.strip.examDays": { id: "hari ke {kind}", en: { one: "day to {kind}", other: "days to {kind}" } },
+  "mobile.home.strip.examToday": { id: "Hari ini", en: "Today" },
   // tasks
   // A file from Edunex opens in the phone's own apps (A12, A13), or goes elsewhere through the share sheet.
   // Edunex's and SIX's own pages inside the app (W14): the demo's pages are pretend, so it says what the real app shows.

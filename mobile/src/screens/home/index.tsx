@@ -1,21 +1,23 @@
-// Beranda (round 2, v4, chosen by Arqila: mobile/design/r2-directions/v4): in three seconds, whether a class is on and
-// what to press, and what to handle next. The blue bar with the greeting (the screen's one title) and every tab's
-// actions (./header.tsx, the route's fixed header); the now card over the blue band's edge (./now.tsx: the wave, the
-// minutes left, Tandai Hadir); "Perlu kamu urus", what needs the Student most serious first as one list: courses at or
-// past their absence limit, classes that clash, then what to hand in and by when (./urus.tsx); "Nanti hari ini", the
-// classes still to come (./later.tsx). One fact, one place: the term's
-// courses are Kuliah's (round 3 took their list off Beranda), the now card's class is never a row under it. Everything
-// else (the whole list, the date and term, what changed) is one tap deeper, on "Perlu kamu urus"'s screen
-// (./needs-screen.tsx). The data and the reasoning are the desktop's (src/core/needs). While the first
-// read runs, each part stands in its own shape and fills in. Cards rise in a stagger the first time only. At a cold start
-// the first frame holds what's in view (the now card, Perlu kamu urus); what's under it comes right after (../../ui/parts.tsx),
-// so the splash doesn't wait for it.
+// Beranda (round 4, the super-app layout students know from the apps they use daily): in three seconds, whether a
+// class is on and what to press, whether the week is fine, and where everything else is. The blue bar with the
+// greeting, the search bar and the bell (./header.tsx, the route's fixed header); the now card over the blue band's edge
+// (./now.tsx: the wave, the minutes left, Tandai Hadir); the strip, the week in two or three numbers (./strip.tsx: due
+// this week, courses out of absences, days to the next exam); the services, four across (../../parts/services.tsx,
+// "Lainnya" last). All four fit the first screen without scrolling (app/(tabs)/index.tsx has the height budget). Under
+// the fold: "Nanti hari ini", the classes still to come (./later.tsx), then "Perlu kamu urus", what needs the Student,
+// most serious first (./urus.tsx), then the first read's and the notifications' cards. One fact, one place: the term's
+// courses are Kuliah's, the now card's class is never a row under it. The whole list, the date and term, what changed,
+// are one tap deeper, on "Perlu kamu urus"'s screen (./needs-screen.tsx). The data and the reasoning are the desktop's
+// (src/core/needs). While the first read runs, each part stands in its own shape and fills in, the grid as it is.
+// Cards rise in a stagger the first time only. At a cold start the first frame holds what's in view; what's under the
+// fold comes right after (../../ui/parts.tsx), so the splash doesn't wait for it.
 import { useLayoutEffect, useMemo } from "react";
 import { View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useHomeWorld } from "../../../../src/app/home-world";
 import { useDataset } from "../../../../src/app/store";
 import { attention, dueItems, type HomeContext, homeContext, nowCard, todayPlan, unreadAhead } from "../../../../src/core/needs";
+import { HOME_GRID, ServiceGrid } from "../../parts/services";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { perfFirstData, usePerfDrawn } from "../../perf";
 import { ProblemBanner } from "../../shell/source-status";
@@ -28,7 +30,11 @@ import { Later } from "./later";
 import { HeldShape, NowSection } from "./now";
 import { cardKey } from "./parts";
 import { problems } from "./problems";
-import { Urus, UrusLoading } from "./urus";
+import { Strip, StripShape } from "./strip";
+import { Urus, useUrusRows } from "./urus";
+
+/** The space between the first screen's parts. */
+export const HOME_GAP = space[4];
 
 /** Everything on Beranda's page: the page itself is the route's (app/(tabs)/index.tsx). */
 export function Home() {
@@ -64,23 +70,34 @@ export function Home() {
   );
 }
 
-/**
- * Beranda's shape before its data: the now card as it waits during the first read, then Perlu kamu urus's rows where
- * they'll be (under its title's row), so nothing moves when the data comes. Never a spinner on a blank page.
- */
-function Loading() {
+/** The services, four across: the same with or without data, so they never move. */
+function Grid() {
   return (
-    <View accessibilityState={{ busy: true }} testID="home.loading">
-      <HeldShape testID="home.loading.now" />
-      {/* Perlu kamu urus's title row: its margin, the 48 dp chevron, the gap under it. */}
-      <View style={{ marginTop: space[6] + 48 + space[2] }}>
-        <UrusLoading />
-      </View>
+    <View style={{ marginTop: HOME_GAP }}>
+      <ServiceGrid ids={HOME_GRID} testID="home.grid" />
     </View>
   );
 }
 
-/** The class now, what to handle, and what's left today: one column, in the order a thumb scrolls. */
+/**
+ * Beranda's shape before its data: the now card as it waits during the first read, the strip's three tiles, then the
+ * services as they are, each where it'll be, so nothing moves when the data comes. Never a spinner on a blank page.
+ */
+function Loading() {
+  return (
+    <View accessibilityState={{ busy: true }} testID="home.loading">
+      <View testID="home.now">
+        <HeldShape testID="home.loading.now" />
+      </View>
+      <View style={{ marginTop: HOME_GAP }}>
+        <StripShape />
+      </View>
+      <Grid />
+    </View>
+  );
+}
+
+/** The class now, the week in numbers, the services; under the fold what's left today and what to handle. */
 function Answers({ context, courses: list }: { context: HomeContext; courses: readonly TermCourse[] | undefined }) {
   const courses = list ?? [];
   const card = useMemo(() => nowCard(context), [context]);
@@ -88,20 +105,29 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
   const needs = useMemo(() => attention(context, card, plan), [context, card, plan]);
   const due = useMemo(() => dueItems(context, plan), [context, plan]);
   const found = useMemo(() => problems(context), [context]);
+  const rows = useUrusRows(found, needs, due, courses);
   return (
     <>
-      <Rise screen="home" index={0}>
-        <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} />
-      </Rise>
+      <View testID="home.now">
+        <Rise screen="home" index={0}>
+          <NowSection card={card} courses={courses} hasSchedule={context.schedule !== null} unread={unreadAhead(context, card)} />
+        </Rise>
+      </View>
       <Rise screen="home" index={1}>
-        <FirstScanCard />
+        <View style={{ marginTop: HOME_GAP }}>
+          <Strip context={context} problems={found} rows={rows} needs={needs} />
+        </View>
       </Rise>
-      <Urus problems={found} needs={needs} due={due} courses={courses} />
+      <Grid />
       <Part at={1}>
         <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
+        <Urus problems={found} needs={needs} due={due} courses={courses} />
       </Part>
-      {/* The one ask, after what the Student came for: the now card and Perlu kamu urus stay the first things seen. */}
+      {/* The asks, after what the Student came for: the first screen stays the now card, the strip and the services. */}
       <Part at={2}>
+        <Rise screen="home" index={8}>
+          <FirstScanCard />
+        </Rise>
         <Rise screen="home" index={9}>
           <NotifyCard hasClass={card?.class !== null && card?.class !== undefined} />
         </Rise>
