@@ -270,9 +270,6 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
     hello.value = withTiming(greeted ? 1 : 0, { duration: HELLO_MS });
   }, [greeted, hello]);
 
-  // The doors close onto the mark while the other system connects (its ring turning as its door comes over), so
-  // they've met when its tick lands: two become one, in time that was passing anyway. A system that stopped keeps its
-  // door where it is until the hand-over. With less motion asked for, the doors stay where they are.
   // The stage's one light grows with each system in: tight around the mark at rest, out to the first lit door, then
   // over both. A scale on the one small glow, over a door's lighting, so it's done before the stage lifts.
   const systemsIn = (edunexIn ? 1 : 0) + (sixIn ? 1 : 0);
@@ -283,6 +280,9 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
     light.value = withTiming(systemsIn, { duration: LIT_MS, easing: EMPHASIZED });
   }, [systemsIn, still, light]);
 
+  // The doors close onto the mark while the other system connects (its ring turning as its door comes over), so
+  // they've met when its tick lands: two become one, in time that was passing anyway. A system that had stopped by then
+  // keeps its door where it is until the hand-over. With less motion asked for, the doors stay where they are.
   const meet = !still && anyIn && (bothIn || !otherStopped);
   const meeting = useRef(false);
   useEffect(() => {
