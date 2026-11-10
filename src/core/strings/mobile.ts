@@ -53,6 +53,9 @@ export const mobileStrings = {
   "mobile.search.placeholder": { id: "Cari mata kuliah, tugas, materi", en: "Search courses, Tasks, materials" },
   // Akademik: the screens behind it, as a list.
   "mobile.academic.screens": { id: "Studimu", en: "Your studies" },
+  // r4 profile: Profil's group headings (Akun is Settings' own "settings.accounts").
+  "mobile.profile.academic": { id: "Akademik", en: "Studies" },
+  "mobile.profile.app": { id: "Aplikasi", en: "App" },
   // Android's notification channels, as Settings › Notifications lists them.
   "mobile.channel.presence": { id: "Presensi dibuka dan ditutup", en: "Presence opening and closing" },
   "mobile.channel.alerts": { id: "Tugas, tenggat dan perubahan", en: "Tasks, deadlines and changes" },

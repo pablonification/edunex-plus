@@ -1,11 +1,12 @@
-// Settings (A6, round 2's v4), from the avatar on every tab: change one thing fast. The desktop's settings
-// (src/app/shell/settings.tsx) with the same words, on v4's grey page: who's signed in on top (a white card), then each
-// group a heading over one card of rows: Akun, Notifikasi, Tampilan, Beranda, Kehadiran, Warna mata kuliah, problem
-// reports (while the app has the maintainer's relay), Tentang, and signing out of everything last, in its own card.
+// Settings (A6, round 2's v4), from Profil's Pengaturan row (round 4; the avatar on every tab before it): change one
+// thing fast. The desktop's settings (src/app/shell/settings.tsx) with the same words, on v4's grey page, each group a
+// heading over one card of rows: Notifikasi, Tampilan, Beranda, Kehadiran, Warna mata kuliah, problem reports (while
+// the app has the maintainer's relay), Tentang. Who's signed in, the accounts and signing out of everything are
+// Profil's (src/screens/profile), said once there.
 // A row is a title, its current value and one thing at its end; on/off is Android's MaterialSwitch, a pick-one opens
 // a native sheet, what explains a setting is spoken or one tap deeper. What only a computer has is left out: closing
 // to the tray, installing updates (the phone shows the version and asks GitHub, D5) and phone alerts through ntfy
-// (A18). A setting that can't be saved says so under the top bar, never in a snackbar. `?at=alerts|courseColors`
+// (A18). A setting that can't be saved says so under the top bar, never in a snackbar. `?at=alerts|courseColors|about`
 // opens it at that group. The groups under the first screenful mount a frame apart (all at once when opened at one).
 import { type ComponentRef, type ReactNode, useCallback, useRef, useState } from "react";
 import { type ScrollView, View } from "react-native";
@@ -21,8 +22,7 @@ import { ErrorBanner } from "../../ui/settings-list";
 import { useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { Later } from "../plan/deferred";
-import { AboutSettings, ReportSettings, SignOutAll } from "./about";
-import { Accounts, Profile } from "./accounts";
+import { AboutSettings, ReportSettings } from "./about";
 import { AlertSettings } from "./alerts";
 import { Appearance, AttendanceTargets, CourseColors, HomeSettings } from "./choices";
 import type { Report, Update } from "./save";
@@ -67,42 +67,33 @@ export function SettingsScreen() {
       }
       scrollRef={scroll}
     >
-      <Rise screen="settings" index={0}>
-        <Profile />
-      </Rise>
-      <Rise screen="settings" index={1}>
-        <Accounts report={report} />
-      </Rise>
-      <Section index={2} onY={anchor("alerts")}>
+      <Section index={0} onY={anchor("alerts")}>
         <AlertSettings settings={settings} update={update} report={report} />
       </Section>
       <Part now={now} frame={1}>
-        <Section index={3}>
+        <Section index={1}>
           <Appearance settings={settings} update={update} />
         </Section>
-        <Section index={4}>
+        <Section index={2}>
           <HomeSettings settings={settings} update={update} />
         </Section>
       </Part>
       <Part now={now} frame={2}>
-        <Section index={5}>
+        <Section index={3}>
           <AttendanceTargets settings={settings} update={update} />
         </Section>
-        <Section index={6} onY={anchor("courseColors")}>
+        <Section index={4} onY={anchor("courseColors")}>
           <CourseColors />
         </Section>
       </Part>
       <Part now={now} frame={3}>
         {store.relay && (
-          <Section index={7}>
+          <Section index={5}>
             <ReportSettings settings={settings} update={update} report={report} />
           </Section>
         )}
-        <Section index={8}>
+        <Section index={6} onY={anchor("about")}>
           <AboutSettings version={store.version} relay={!!store.relay} />
-        </Section>
-        <Section index={9}>
-          <SignOutAll report={report} />
         </Section>
       </Part>
     </Page>

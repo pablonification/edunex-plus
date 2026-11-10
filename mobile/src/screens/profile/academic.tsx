@@ -1,7 +1,7 @@
-// Akademik (round 2, v4; the tab that replaced Lainnya): in three seconds, the IPK and what to do this term.
-// 1. One leading card: the IPK as its one big number, the SKS passed a smaller one over a thin bar of those needed
-//    (parts/standing.tsx), the name and NIM a quiet line over them. The whole card is one target that opens Nilai (the
-//    avatar in the bar is the way to the account and Settings).
+// Profil's academic half (round 4; Akademik's tab before it): in three seconds, the IPK and what to do this term.
+// 1. The IPK card, the screen's one colour (v4's `head`): the IPK as its one big number, the SKS passed a smaller one
+//    over a thin bar of those needed, white on the blue. The whole card is one target that opens Nilai. Whose record it
+//    is sits once, over it, in the identity hero (./identity.tsx).
 // 2. To-do chips, only while something's due (send the KRS, pay UKT, fill in the questionnaire SIX hides grades
 //    behind), each opening its screen. Nothing due: nothing shown.
 // 3. Nilai and Rencana studi's parts (Rencana, Kurikulum, KRS, UKT, Kalender akademik) as rows in one card, each with
@@ -11,8 +11,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
-import { displayName } from "../../../../src/app/names";
+import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
 import { usePlanTabBadges } from "../../../../src/app/shell/badges";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
 import { useDataset, useStatus } from "../../../../src/app/store";
@@ -21,18 +20,17 @@ import { billUrgency, type KrsStage, krsOverlaps, krsStage } from "../../../../s
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { together } from "../../parts/day-word";
-import { StandingFigures } from "../../parts/standing";
 import { useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { Skeleton } from "../../ui/display";
-import { Rise } from "../../ui/expressive";
+import { CountUp } from "../../ui/expressive";
 import { Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { Part } from "../../ui/parts";
+import { Meter } from "../../ui/meter";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
-import { space, TOUCH, useTheme } from "../../ui/theme";
+import { font, space, TOUCH, useTheme } from "../../ui/theme";
 import { shownIndex } from "../grades/transcript";
 
 type IconKind = (typeof Icons)[keyof typeof Icons];
@@ -56,125 +54,147 @@ const TODO: Partial<Record<PlanTab, { key: "mobile.academic.todo.krs" | "mobile.
 /** The KRS row's pill for each stage: amber while the Student has something to do, green once it's official. */
 const KRS_TONE: Readonly<Record<KrsStage, PillTone>> = { send: "amber", advisor: "plain", ukt: "amber", official: "brand", done: "ok" };
 
+/** The track under the SKS bar and the skeleton's bones on the IPK card's blue: white, faint (the figure says the number). */
+const ON_HEAD_FAINT = "rgba(255,255,255,0.28)";
+
 /** A source's first read is still running: what it brings stands in its shape until it's here. */
 function useFirstRead(source: "six" | "itb"): boolean {
   const status = useStatus(source);
   return status.state === "connecting" || (status.state === "live" && status.updatedAt === null);
 }
 
-export function AcademicContent() {
-  const badges = usePlanTabBadges();
+/** The IPK card (or its shape while SIX reads, or the way to connect SIX). */
+export function StandingCard() {
   const record = useStudentRecord();
   const six = useStatus("six");
   const student = useDataset("six.student");
+  if (record?.transcript) return <Standing record={record} />;
+  if (student || six.state === "connecting" || six.state === "live") return <StandingSkeleton />;
+  return <ConnectSix />;
+}
+
+/** What to take care of this term, as chips: shown only while something is due. */
+export function AcademicTodos() {
+  const badges = usePlanTabBadges();
   const todos = builtPlanTabs.filter((part) => TODO[part] && badges[part]?.tone === "warning");
+  return todos.length > 0 ? <Todos parts={todos} /> : null;
+}
+
+/** Nilai and Rencana studi's parts as rows in one card. */
+export function AcademicRows() {
+  const record = useStudentRecord();
   return (
-    <View style={{ gap: space[4] }}>
-      <Rise screen="academic" index={0}>
-        {record?.transcript ? (
-          <Standing record={record} />
-        ) : student || six.state === "connecting" || six.state === "live" ? (
-          <StandingSkeleton />
-        ) : (
-          <ConnectSix />
-        )}
-      </Rise>
-      {todos.length > 0 && (
-        <Rise screen="academic" index={1}>
-          <Todos parts={todos} />
-        </Rise>
-      )}
-      {/* Akademik's screens under the IPK: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
-      <Part at={1}>
-        <Rise screen="academic" index={2} style={{ marginTop: space[2] }}>
-          <Group testID="section.academic.screens">
-            <GradesRow record={record} />
-            <PlannerRow record={record} />
-            <CurriculumRow record={record} />
-            <KrsRow />
-            <BillsRow />
-            <DeadlinesRow />
-          </Group>
-        </Rise>
-      </Part>
-    </View>
+    <Group testID="section.profile.academic">
+      <GradesRow record={record} />
+      <PlannerRow record={record} />
+      <CurriculumRow record={record} />
+      <KrsRow />
+      <BillsRow />
+      <DeadlinesRow />
+    </Group>
   );
 }
 
-// ------------------------------------------------------------ the leading card
+// ------------------------------------------------------------ the IPK card
 
-/** The IPK, big, and the SKS passed over a thin bar: the answer the Student opens Akademik for. One target: Nilai. */
+/** The IPK, big, and the SKS passed over a thin bar, white on the screen's one colour. One target: Nilai. */
 const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
   const t = useT();
   const f = useFormat();
+  const lang = useLang();
   const nav = useNav();
   const v = useTheme().v4;
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  const name = account?.name ?? student?.name;
   const ipk = shownIndex(record.transcript!.ipk);
   const ipkText = ipk === null ? "-" : f.number(ipk, 2);
   const sks = passedSks(record);
   const sksText = sks === null ? "-" : String(sks);
-  const of = t("mobile.academic.sksOf", { need: record.graduationSks });
-  const who = factsLabel(name ? displayName(name) : null, account?.nim ?? student?.nim);
+  const need = record.graduationSks;
+  const of = t("mobile.academic.sksOf", { need });
+  const ink = v.onHead;
   return (
     // The card's ID for the flows (W12 taps it), the press's for what it does.
     <View testID="card.profile">
       <Panel
+        tint={v.head}
         onPress={() => nav.go({ screen: "grades" })}
-        accessibilityLabel={factsLabel(`${t("grades.chart.ipk")} ${ipkText}`, `${t("grades.sksPassed")} ${sksText} ${of}`, who)}
+        accessibilityLabel={factsLabel(`${t("grades.chart.ipk")} ${ipkText}`, `${t("grades.sksPassed")} ${sksText} ${of}`)}
         accessibilityHint={t("mobile.academic.openGrades")}
         testID="action.academic.grades"
-        style={{ padding: space[5], gap: space[3] }}
+        style={{ padding: space[6], gap: space[5] }}
       >
-        {who ? (
-          <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
-            {who}
-          </Text>
-        ) : null}
-        <StandingFigures id="academic" ipk={ipk} sks={sks} need={record.graduationSks} />
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space[3] }}>
+          <View style={{ gap: space[1] }}>
+            <Text size="labelLarge" style={{ color: ink }}>
+              {t("grades.chart.ipk")}
+            </Text>
+            {ipk === null ? (
+              <Text style={{ fontFamily: font.display.extrabold, fontSize: 56, lineHeight: 64, color: ink }}>-</Text>
+            ) : (
+              <CountUp
+                id="profile.ipk"
+                value={ipk}
+                decimals={2}
+                comma={lang === "id"}
+                style={{ fontFamily: font.display.extrabold, fontSize: 56, lineHeight: 64, letterSpacing: -1.5, color: ink }}
+              />
+            )}
+          </View>
+          <Icons.ChevronRight size={22} color={ink} />
+        </View>
+        <View style={{ gap: space[2] }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", columnGap: space[3] }}>
+            <Text size="labelLarge" style={{ color: ink }}>
+              {t("grades.sksPassed")}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[1] }}>
+              {sks === null ? (
+                <Text size="titleMedium" style={{ color: ink }}>
+                  -
+                </Text>
+              ) : (
+                <CountUp id="profile.sks" value={sks} style={{ fontFamily: font.display.bold, fontSize: 22, lineHeight: 28, color: ink }} />
+              )}
+              <Text size="bodyMedium" style={{ color: ink }}>
+                {of}
+              </Text>
+            </View>
+          </View>
+          {sks !== null && need > 0 && <Meter value={sks / need} color={ink} track={ON_HEAD_FAINT} label={`${t("grades.sksPassed")} ${sks} ${of}`} />}
+        </View>
       </Panel>
     </View>
   );
 });
 
-/** The card's shape while SIX's record is on its way: the name's line, the IPK, the SKS and its bar. */
+/** The card's shape while SIX's record is on its way: the IPK, the SKS and its bar, on the same blue. */
 function StandingSkeleton() {
+  const v = useTheme().v4;
+  const bone = { backgroundColor: ON_HEAD_FAINT };
   return (
-    <Panel accessibilityState={{ busy: true }} testID="academic.loading" style={{ padding: space[5], gap: space[3] }}>
-      <Skeleton width="55%" height={14} />
+    <Panel tint={v.head} accessibilityState={{ busy: true }} testID="academic.loading" style={{ padding: space[6], gap: space[5] }}>
       <View style={{ gap: space[2] }}>
-        <Skeleton width={32} height={14} />
-        <Skeleton width={104} height={44} />
+        <Skeleton width={32} height={14} style={bone} />
+        <Skeleton width={128} height={56} style={bone} />
       </View>
-      <View style={{ gap: space[2], marginTop: space[2] }}>
+      <View style={{ gap: space[2] }}>
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Skeleton width={64} height={14} />
-          <Skeleton width={88} height={18} />
+          <Skeleton width={64} height={14} style={bone} />
+          <Skeleton width={88} height={18} style={bone} />
         </View>
-        <Skeleton width="100%" height={6} />
+        <Skeleton width="100%" height={6} style={bone} />
       </View>
     </Panel>
   );
 }
 
-/** No SIX to read the IPK from: whose record it is (from Edunex), where the IPK will show, and the way to connect while SIX isn't signed in. */
+/** No SIX to read the IPK from: where the IPK will show, and the way to connect while SIX isn't signed in. */
 function ConnectSix() {
   const t = useT();
   const v = useTheme().v4;
   const status = useStatus("six");
   const { signIn, busy } = useSignIn();
-  // Edunex knows the Student too: the card keeps its quiet line of whose record it is, as it does with SIX.
-  const account = useDataset("edunex.account");
-  const who = factsLabel(account?.name ? displayName(account.name) : null, account?.nim);
   return (
     <Panel style={{ padding: space[5], gap: space[4] }} testID="academic.noSix">
-      {who ? (
-        <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
-          {who}
-        </Text>
-      ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
         <IconTile icon={(color) => <Icons.GraduationCap size={24} color={color} />} />
         <Text size="bodyLarge" style={{ color: v.fg, flex: 1 }}>
@@ -294,7 +314,14 @@ function GradesRow({ record }: { record: StudentRecord | undefined }) {
     return ip === null ? null : t("mobile.grades.lastIp", { ip: f.number(ip, 2) });
   }, [record, t, f]);
   return (
-    <ScreenRow icon={Icons.ClipboardCheck} title={t("nav.grades")} meta={record?.transcript ? text : missing} route="grades" first testID="row.nav.grades" />
+    <ScreenRow
+      icon={Icons.ClipboardCheck}
+      title={t("nav.grades")}
+      meta={record?.transcript ? text : missing}
+      route="grades"
+      first
+      testID="row.profile.grades"
+    />
   );
 }
 
@@ -343,7 +370,7 @@ function PartRow({
   tone?: MetaTone;
   pill?: { tone: PillTone; text: string } | null;
 }) {
-  return <ScreenRow icon={PART_ICON[part]} title={title} meta={meta} tone={tone} pill={pill} route={part} testID={`row.nav.plan.${part}`} />;
+  return <ScreenRow icon={PART_ICON[part]} title={title} meta={meta} tone={tone} pill={pill} route={part} testID={`row.profile.${part}`} />;
 }
 
 function CurriculumRow({ record }: { record: StudentRecord | undefined }) {

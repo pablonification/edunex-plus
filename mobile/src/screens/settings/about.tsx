@@ -1,8 +1,8 @@
 // Settings' last groups. Laporan masalah (only while the app has the maintainer's relay): whether reports go by
 // themselves, picked in a sheet, then each report sent. Tentang: the app and its licence, the version (the row asks
 // GitHub now; a newer one turns the row into its download), Laporkan masalah, the open-source licences, and the line
-// saying this isn't ITB's app. Last, in its own card in the danger colour: signing out of everything, confirmed in a
-// sheet that says what goes.
+// saying this isn't ITB's app. And signing out of everything (Profil's last card since round 4), confirmed in a sheet
+// that says what goes.
 import { router } from "expo-router";
 import { useState } from "react";
 import { Image, View } from "react-native";
