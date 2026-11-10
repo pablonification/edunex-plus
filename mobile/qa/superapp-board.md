@@ -42,6 +42,28 @@ remember 8, never waited 6, nothing shows off 6. **Not at the top (9).** What al
 over to the real Beranda at about 6 s and let its cards fill in place); the doors must not look like a choice; the button becomes the
 status in words; names in the app's language; no late "Semua siap" bar; no dark-to-light flash; jank far under 24%.
 
+## Round 4's council (06:25): the last full round
+
+Commit 91a8088b beside today's app and round 3 (three versions by letter, shuffled per judge, light and dark).
+
+| | Designer | Student | Prosecutor |
+| --- | --- | --- | --- |
+| Rank of the three versions | **round 3**, round 4, today's | **round 4**, round 3, today's | **round 4** (10 serious charges on 15 screens), round 3 (13), today's (26 on its 11) |
+| Against today's app | ours on 11 of 11 | ours on 11 of 11 | ours on 10; today's on Nilai (narrowly: "shows real history") |
+| Against last round | **round 3 on Beranda, Beranda scrolled, Jadwal (close), Tugas (close), Kuliah, Profil (a hair), a course's page, a Task (a hair)**; round 4 on Semua layanan, Materi, Ujian, Nilai, Notifikasi, Pengaturan, Search | round 4 on 10 of 15; **round 3 on Tugas, Kuliah, Materi, Ujian, Search** | round 4 on 9; **round 3 on Beranda (narrowly), Tugas, Kuliah, a course's page, Nilai (narrowly)** |
+| "I know where everything is", five apps | 2nd (behind Gojek) | **1st** | 3rd (behind Gojek and Grab) |
+| Overall, five apps | 2nd (behind Duolingo) | 2nd (behind Duolingo) | 4th (Duolingo, Gojek, Grab, ours) |
+| Squint | 5 of 5 | 5 of 5 | 5 of 5 |
+| Scores per screen, lowest–highest | (scored round 3: 5–9) | 5–9; Beranda 8 8 8 8 7 8 8 7 8 8 | 5–8; Beranda 6 7 7 7 6 6 6 7 6 6 |
+| Sureness: due soonest · attendance · material | | 8 · 7 · 8 | |
+
+**Not at the top, and one judge prefers last round's.** The designer puts round 3 first on the five tabs; two or more judges
+prefer round 3's Tugas (an undated exam now sits inside a dated group), Kuliah (the dots and "absen" on every row), Beranda (the
+strip's "1 lewat batas" reads as an overdue task; "Presensi" twice on the class block; the clash's time on two rows) and a
+course's page (this week's module named twice). Those six parts went back to round 3's form in a last change after this council
+(the six fixes below, **not judged**). What round 4 kept and every judge preferred: Semua layanan's tiles, a Materi page that
+isn't empty, Nilai's guesses said once, Notifikasi and Search with one glyph per row, Jadwal's clash side by side.
+
 ## Round 3's council (05:05)
 
 Commit d09a29a0 beside today's app and round 2 (three versions by letter, shuffled per judge, all in light and dark).
@@ -103,6 +125,23 @@ Notifikasi (3–8: loading rows that stay), Ujian (4–9: a blank hole in light,
 label, mostly empty), a course's page (4–9: the old class card, two buttons, a countdown to the wrong thing). Across the app:
 numbers that disagree between screens (4 and 7 days to the same exam), one action under three names, colours reused with no rule,
 rows that don't look tappable, six controls under 48 dp. Above Edunex Mobile LMS for every judge; not first for "where" for any.
+
+## The first minute: rounds 5 and 6 (06:08 and 06:35)
+
+Round 5: nothing at a door's foot before the tap, a bright ring, the name staying on its door, the greeting when the first door
+lights. Judged blind beside today's welcome and round 4's scene by three new judges.
+
+| | Designer | Student | Prosecutor |
+| --- | --- | --- | --- |
+| Rank of the three | **round 5** (narrowly), round 4, today's | **round 5**, round 4, today's | **round 4** (4 serious charges in light, 3 in dark), round 5 (5 and 3), today's (7) |
+| "Sets a mood" · "I'd remember it" · "it never made me wait" | 8 · 8 · 7 | 7 · 7 · 6 | 7 · 7 · 6 |
+| Motion has a job · hand-over · would ship | 7 · 7 · 7 | (knew what was happening 8, trust 8, one move 6) | nothing shows off or delays 7 · 7 · 5 |
+
+**One judge preferred last round's**: the prosecutor, for a headline swap that printed two lines over each other, doors that met a
+second before the second system was in, and stutter. Round 6 fixed the first two, fades the doors as the stage lifts (they were
+cut by the status bar's line), and gives the phone's own buttons white ink on the stage. Measured on the phone over five runs
+each, without recording: tap to the end of the lift **7–11% janky frames in round 5, 8–10% in round 6** (the top is under 5%);
+the stage at rest draws 0 frames; Beranda filling 3–8%. Round 6's own check by two judges is in the hand-off, not here.
 
 ## The first minute: round 4 (05:05)
 
@@ -224,6 +263,33 @@ Ujian 9 · 7 · 7, Kelas berikutnya 8 · 8 · 6, Pintasan 5 · 3 · 5, Satu mata
 it: Pintasan leaves the set ("a launcher folder already does this": seven widgets ship), and the absence dots follow one rule in
 the app and the widgets, the one all three judges named: a full dot is an absence still left, a ring one used, red one over.
 
+**The widget council, round 4 (06:27):** seven widgets (Pintasan is out), the dots under one rule, every deadline with its hour.
+The designer and the prosecutor prefer this round's set (5 serious charges against 8); **the student prefers round 3's** on
+Tenggat (course names, not codes), Kehadiran (marks in the state's colour drew the eye to the courses in trouble) and Kelas
+berikutnya. "I'd keep this on my home screen" (designer · prosecutor; the student scored round 3's set): Sekarang 8 · 8, Hari ini
+8 · 7, Tenggat 7 · 6, Kehadiran 8 · 7, Ujian 7 · 6, Kelas berikutnya 8 · 7, Satu mata kuliah 5 · 6. **Not at the top (9).**
+
+**On the real phone (06:24):** the launcher's cells are bigger than every render assumed: a 4×2 is 373×260 dp on this Samsung,
+not about 290×200. At that size "Sekarang" drew only its block, stretched, with none of its rows. Every widget score above is
+for a grid this phone doesn't have. The last widget change makes each widget choose its layout from the dp it is given and
+renders at this phone's sizes; it is **not judged**.
+
+## Motion, on film strips (06:30)
+
+Five interactions recorded on the phone (the demo, commit 91a8088b), 12 frames each, 0.1 s apart: opening Semua layanan, the
+Tugas tab, "Belum selesai" to "Selesai", opening Materi, unfolding Materi's older items. Two judges (a designer and a prosecutor).
+
+| | Designer | Prosecutor |
+| --- | --- | --- |
+| The touch is answered at once (A · B · C · D · E) | 7 · 8 · 6 · 7 · 8 | 7 · 9 · 8 · 8 · 9 |
+| The motion has a job / nothing cut, blank or broken | 6 · 5 · 2 · 6 · 2 | 5 · 4 · 2 · 5 · 3 |
+| The right length / nothing delays | 4 · 8 · 3 · 4 · 4 | 4 · 9 · 4 · 4 · 8 |
+| Verdict | "unfinished" | "yes with the listed charges cleared; as it stands, no" |
+
+**Not at the top (9).** Every touch is answered in the frame it lands and nothing decorates. But the switch to "Selesai" shows
+an empty list for 0.2 s with the underline still under the other tab; a pushed page starts 0.4 s after the touch and passes
+through one frame of both pages at half strength; the Tugas tab and Materi's unfold cut. Not fixed tonight.
+
 ## Rounds
 
 Speed is read beside `main` measured in the same minutes, for two reasons found tonight. A build Android has only just installed
@@ -233,6 +299,7 @@ the charger the phone runs warm (thermal status up to 2, skin about 40 °C). Eac
 
 | Round | Commit | Cold start (ours · `main` back to back) | Tab p90 (ours · `main`) | Scroll (Tugas · Kuliah · Jadwal) | Hill 1 | Judges | What changed |
 | --- | --- | ---: | ---: | --- | --- | --- | --- |
+| 4 | 91a8088b (fifth and sixth waves: motion in the kit and the screens; Beranda's strip naming the task and its hour, tomorrow in the day list, exams as exams; Jadwal's clash side by side; Kuliah's absences as rings and full dots with their noun; Materi filled; Nilai's guesses said once; tiles in the app's pale blue instead of grey, new glyphs for KRS, Rencana, Ujian; seven widgets; the first minute's round 5) | 1122 ms · 1079 ms (both compiled, **thermal 2, 38 °C**: the phone was warm from an hour of jobs; +4.0%) | 89 ms · 98 ms | 1.79% · n/a · n/a (`main`: 1.10% · 0.10% · 0.41%; an earlier build of this round: 2.96% · 0.20% · n/a) | all rows ✓: 16 things to tap, 50 words (the limit), 8 tiles ending in "Lainnya", no "0" | round 4's council: below | the phone ran warm: every number in this row is slower than round 3's for both builds; cold start is 4% behind `main` here against 0.3% in round 3: to be taken again cool |
 | 3 | d09a29a0 (fourth wave: Beranda at 48 words with the absence tile counting every course at its limit and a held first read; Tugas led by the soonest thing of any kind; Jadwal's blocks at their real heights with clashes offset; Kuliah's absences as dots said once; a course's page under its name; Materi folded to this week; Ujian, Search and Notifikasi with course glyphs; Profil's card strong in dark; the first minute's greeting and lift) | 991 ms · 988 ms (both compiled, thermal 0, 33–36 °C) | 78 ms · 87 ms | 0.1–2.4% over four runs, median 1.5% · 0.51% · 0.22% (`main`: 1.29% · 0.19% · 0.31%) | all rows ✓: bar ends in `tab.profile`, no avatar, the four blocks in order and fully visible, 16 things to tap, **48 words**, 8 tiles ending in "Lainnya", no "0" | round 3's council: below | Beranda's words back under 50; nothing redraws at rest; Tugas's scroll back beside `main`'s (5 to 20 janky frames in about 900, `main` 13) |
 | 2 | 1eced93a (third wave: true numbers and tags on Beranda, one presence part, a Task page with one status line, Kuliah as counts, a course's page opening on its material, Ujian without the hole, Materi by calendar week, search by course name, Notifikasi without the stuck loader, Settings' switches folded away while off) | 1174 ms · 1167 ms (both compiled, thermal 0) | 82–110 ms · 90 ms (the first tour after a start is the slow one; a second run of ours: 82) | **2.1–2.7%** · 0.51% · 0.32% (`main`: 1.10% · 0.10% · 0.42%): **Tugas is twice as janky as `main`** | bar, avatar, four blocks, 17 things to tap, 8 tiles, no "0": ✓ · **words 58 (over 50)** | round 2's council: below | to fix before round 3: Tugas's scroll, Beranda's words, Beranda redrawing 87 times a second at rest (the "now" dot) |
 | 1 | 0aa4379e (every screen in the new look: Foundations' solid tiles and kit, Beranda, Tugas as an agenda, Kuliah in course colours, Profil's card, Jadwal, Materi and Ujian, Search, the first minute's curtain; flows moved) | fresh installs: 1234 ms · 1228 ms (thermal 0–1). Compiled: 984 ms (ours) | 100 ms · 108 ms | 0.94% · 0.31% · 0.20% (`main` in the same minutes: 1.02% · 0.20% · 0.42%) | all rows ✓: bar ends in `tab.profile`, no avatar, the four blocks in order and fully visible, 17 things to tap, 46 words, 8 tiles (4+4) ending in "Lainnya", no "0". The reader's guess that "Ujian" and "Nilai" may be cut is wrong on the picture | round 1's council: below | Beranda no longer says a fact twice; the wave is a plain bar; presence is "Isi Presensi" on Beranda and Kuliah; 0 flows name an id the app lacks |
