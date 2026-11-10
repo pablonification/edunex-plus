@@ -54,7 +54,7 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Typeface | Plus Jakarta Sans is in the iOS bundle too. |
 | **Home-screen widget** | **Not there.** It's Android's (`react-native-android-widget`); an iPhone widget needs its own Swift (WidgetKit) code. |
 | Back gesture, navigation bar colour, 120 Hz plugin | Android-only, skipped on iOS (iOS does these itself). |
-| The first minute (`src/shell/first-minute/`) | Same code: the stage, the doors, the hand-over. Its haptics are the Taptic Engine's nearest (`ui/haptics.ts`: a medium tap per system in and at the hand-over, the selection tick as the mark lands). The button dims under the finger (no ripple on iOS). |
+| The first minute (`src/shell/first-minute/`) | Same code: the stage, the doors, the curtain. Its haptics are the Taptic Engine's nearest (`ui/haptics.ts`: a medium tap per system in and at the hand-over, the selection tick as the mark lands). The button dims under the finger (no ripple on iOS). |
 | Exact alarms | Android-only permission; iOS fires a booked notification on time anyway. |
 | Push notifications | Off: the app never uses them, and a free Apple ID can't sign them. |
 
@@ -64,9 +64,10 @@ Everything above is untested on iOS: the build itself, the SIX cookie read, whol
 how the screens look (they're drawn for Android's Material style), the keyboard over the report form,
 and the background sync.
 
-The first minute, to check on an iPhone: the status bar's icons stay white over the stage from the first frame to
-Beranda (`expo-status-bar`, set by the stage and the scene); the headline, button and note clear the home indicator
-(the stage pads by the safe area's bottom); the greeting lands where Beranda's is under the notch or Dynamic Island
-(`seam.ts` reads the safe area's top); the three haptics are felt once each and not doubled; and the sign-in page
+The first minute, to check on an iPhone: the status bar's icons stay white over the stage and turn to Beranda's as
+the curtain clears them (`expo-status-bar`, set by the stage and the scene; `seam.ts` says which Beranda wants); the
+headline, button and note clear the home indicator (the stage pads by the safe area's bottom) and the language chip
+clears the notch or Dynamic Island (by its top); the curtain's rounded lower edge shows no gap at the screen's own
+rounded corners as it starts to lift; the three haptics are felt once each and not doubled; and the sign-in page
 stepping aside after Microsoft hands back (`shell/sign-in.tsx`: unseen, still read every 400 ms) still finishes the
 sign-in, since an unseen web view is throttled differently by iOS than by Android.

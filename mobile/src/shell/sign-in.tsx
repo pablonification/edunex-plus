@@ -301,7 +301,8 @@ function SignInPage({ run }: { run: Run }) {
   return (
     <Animated.View
       entering={quiet ? undefined : reduceMotion() ? FadeIn.duration(motion.duration.medium) : SlideInDown.duration(motion.duration.long).easing(EMPHASIZED)}
-      exiting={quiet ? undefined : FadeOut.duration(motion.duration.short)}
+      // Stepped aside, it's already unseen: a fade out would draw it again for a moment first.
+      exiting={quiet || aside ? undefined : FadeOut.duration(motion.duration.short)}
       pointerEvents={quiet || aside ? "none" : "auto"}
       style={
         quiet

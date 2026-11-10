@@ -269,7 +269,7 @@ async function makeHost(): Promise<Host> {
       },
     );
     // The first-run demo signs nobody in: it has settled once its language is saved, a moment from now. Waited out
-    // (40 ms at most, a fresh demo start only), so its first frame is the welcome's stage, not an empty Beranda that
+    // (100 ms at most, a fresh demo start only), so its first frame is the welcome's stage, not an empty Beranda that
     // "settling" drew for a moment before it.
     await Promise.race([settled, new Promise((done) => setTimeout(done, FIRST_RUN_SETTLE_MS))]);
   }
@@ -396,7 +396,7 @@ async function makeHost(): Promise<Host> {
   return { engine, api, ui, reminders, clockOffset: world.clockOffset, running: () => started, start, stop };
 }
 /** The most a fresh demo's start waits to learn that it signs nobody in (the first-run demo), before the first frame. */
-const FIRST_RUN_SETTLE_MS = 40;
+const FIRST_RUN_SETTLE_MS = 100;
 
 /**
  * How long after app.ready each part of the engine's start that can wait does (ms): the feeds go at once (the network is

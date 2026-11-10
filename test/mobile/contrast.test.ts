@@ -10,7 +10,18 @@
 // A pair every theme draws is checked in light and dark with no more to write. `node mobile/qa/contrast-read.mjs --top 5`
 // prints every pair here with its ratio, worst first, the new ones too.
 import { describe, expect, it } from "vitest";
-import { CHIP_EDGE_ALPHA, DOOR_INK, DOOR_LIT, DOOR_REST_ALPHA, MARK_COLOR, MARK_INK } from "../../mobile/src/shell/first-minute/colors";
+import {
+  CHIP_EDGE_ALPHA,
+  DOOR_BREATH,
+  DOOR_INK,
+  DOOR_LIT,
+  DOOR_REST_ALPHA,
+  FAILED,
+  MARK_COLOR,
+  MARK_INK,
+  STAGE,
+  STAGE_INK,
+} from "../../mobile/src/shell/first-minute/colors";
 import { BUSY_OPACITY, COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, type Palette, V4, type V4Palette } from "../../mobile/src/ui/palette";
 
 type Scheme = "light" | "dark";
@@ -239,23 +250,24 @@ const PAIRS: Pair[] = [
       [`check on ${id} swatch`, (t) => t.v.onCourse, tone, MARK, "parts/course-color-picker.tsx"],
     ];
   }),
-  // The first minute's stage (Beranda's header colour, full height), its doors, its button and the mark.
-  ["onHead on head (the stage's headline, status and note)", (t) => t.v.onHead, (t) => t.v.head, TEXT, FIRST_MINUTE],
-  ["onHead on a resting door", (t) => t.v.onHead, (t) => over("#ffffff", t.v.head, DOOR_REST_ALPHA[scheme(t)]), LARGE, FIRST_MINUTE],
-  ["Edunex's ink on a lit door", () => DOOR_INK.edunex, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
-  ["SIX's ink on a lit door", () => DOOR_INK.six, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
-  ["a lit door on the stage", (t) => DOOR_LIT[scheme(t)], (t) => t.v.head, MARK, FIRST_MINUTE],
+  // The first minute's stage (Edunex Plus's blue, full height; its own colours, not the palette's), its doors, its
+  // button and the mark.
+  ["the stage's headline, greeting, status and note", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
+  ["a resting door's name", () => STAGE_INK, (t) => over("#ffffff", STAGE[scheme(t)], DOOR_REST_ALPHA[scheme(t)]), LARGE, FIRST_MINUTE],
   [
-    "the sign-in button's words",
-    (t) => (scheme(t) === "light" ? DOOR_INK.edunex : t.v.onBrand),
-    (t) => (scheme(t) === "light" ? DOOR_LIT.light : t.v.brand),
-    TEXT,
+    "a working door's name, at the top of its breath",
+    () => STAGE_INK,
+    (t) => over(DOOR_LIT[scheme(t)], over("#ffffff", STAGE[scheme(t)], DOOR_REST_ALPHA[scheme(t)]), DOOR_BREATH.high),
+    LARGE,
     FIRST_MINUTE,
   ],
+  ["Edunex's ink on a lit door, and on the sign-in button", () => DOOR_INK.edunex, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["SIX's ink on a lit door", () => DOOR_INK.six, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["a lit door on the stage", (t) => DOOR_LIT[scheme(t)], (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
   ["the mark on its badge", () => MARK_INK, () => MARK_COLOR, MARK, FIRST_MINUTE],
-  ["the mark's ring on the stage", () => MARK_INK, (t) => t.v.head, MARK, FIRST_MINUTE],
-  ["the language chip's edge on the stage", (t) => over("#ffffff", t.v.head, CHIP_EDGE_ALPHA), (t) => t.v.head, MARK, FIRST_MINUTE],
-  ["v4.redFg on v4.redBg (a sign-in that failed)", (t) => t.v.redFg, (t) => t.v.redBg, TEXT, FIRST_MINUTE],
+  ["the mark's ring on the stage", () => MARK_INK, (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
+  ["the language chip's edge on the stage", (t) => over("#ffffff", STAGE[scheme(t)], CHIP_EDGE_ALPHA), (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
+  ["a sign-in that failed, said over the button", () => FAILED.ink, () => FAILED.bg, TEXT, FIRST_MINUTE],
 ];
 
 // A neutral pill, a neutral icon tile and a disabled button on a card (or the Task's bottom bar, the card's colour) are a
