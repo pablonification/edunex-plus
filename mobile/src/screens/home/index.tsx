@@ -69,7 +69,7 @@ function Loading() {
   return (
     <View accessibilityState={{ busy: true }} testID="home.loading">
       <BannerShape testID="home.loading.now" />
-      <View style={{ marginTop: space[1] }}>
+      <View style={{ marginTop: space[2] }}>
         <StripShape />
       </View>
       <View style={{ marginTop: space[4] }}>
@@ -97,7 +97,7 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
         <NowBanner card={card} courses={courses} schedule={context.schedule} unread={unreadAhead(context, card)} />
       </Rise>
       {/* The tiles bring their own padding: the strip sits close under the block it belongs with, the services apart. */}
-      <Rise screen="home" index={1} style={{ marginTop: space[1] }}>
+      <Rise screen="home" index={1} style={{ marginTop: space[2] }}>
         <HomeStrip over={over} none={found.absences.length - over} />
       </Rise>
       <Rise screen="home" index={2} style={{ marginTop: space[4] }}>

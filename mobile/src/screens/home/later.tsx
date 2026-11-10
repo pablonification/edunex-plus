@@ -8,7 +8,7 @@
 //
 // Round 2: a clash is said once for the pair, on its first row (the kit's ClashMark); the row opens the class's sheet,
 // which says which of the two to go to. Every row ends in the same quiet chevron: it opens something. And a short day
-// isn't followed by a blank page: when two classes or fewer are left today, the next class day's follow under its own
+// isn't followed by a blank page: when three classes or fewer are left today, the next class day's follow under its own
 // day ("Besok"), the same rows.
 //
 // Round 3, the row rethought (round 1's whole name and time column, round 2's one mark per pair and chevron): the time
@@ -50,9 +50,9 @@ type Item =
   | { kind: "meeting"; key: string; start: number; end: number; code: string; meeting: TodayPlan["announced"][number] };
 
 /** Today's list is short at this many rows or fewer: the next class day follows it. */
-const SHORT_DAY = 2;
+const SHORT_DAY = 3;
 /** Rows under the fold's first screen, today's and the next day's together. */
-const ROWS_AHEAD = 4;
+const ROWS_AHEAD = 5;
 
 /** A clash's pair, the same whichever class comes first. */
 const pairOf = (a: string, b: string) => [a, b].sort().join("|");
@@ -161,7 +161,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
           },
     );
   // A section of its own under the services: the heading and the day's next class close Beranda's first screen.
-  const heading = { marginTop: space[6], marginBottom: space[2], marginLeft: space[1] };
+  const heading = { marginTop: space[8], marginBottom: space[2], marginLeft: space[1] };
   return (
     <View testID="section.today">
       {(items.length > 0 || unread.length > 0) && (
@@ -241,7 +241,7 @@ export function LaterShape() {
   const timeColumn = useTextWidth(44);
   return (
     <View testID="section.today.reading" accessibilityState={{ busy: true }}>
-      <SectionHeading style={{ marginTop: space[6], marginBottom: space[2], marginLeft: space[1] }}>{t("mobile.home.laterToday")}</SectionHeading>
+      <SectionHeading style={{ marginTop: space[8], marginBottom: space[2], marginLeft: space[1] }}>{t("mobile.home.laterToday")}</SectionHeading>
       {[0, 1].map((row) => (
         <View key={row} style={{ flexDirection: "row", gap: space[3], paddingHorizontal: ROW_SIDE, minHeight: ROW }}>
           <View style={{ width: timeColumn, paddingTop: space[2.5] + 4 }}>
