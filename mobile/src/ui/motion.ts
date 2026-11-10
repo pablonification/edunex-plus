@@ -3,6 +3,7 @@
 import { NavigationContext } from "expo-router/react-navigation";
 import { useContext, useSyncExternalStore } from "react";
 import { AccessibilityInfo, AppState } from "react-native";
+import { useFirstMinuteCovering } from "../shell/first-minute/covering";
 
 let reduced = false;
 const watchers = new Set<() => void>();
@@ -76,5 +77,7 @@ export function useLoopWhileShown(): boolean {
   const still = useReduceMotion();
   const shown = useShown();
   const active = useAppActive();
-  return !still && shown && active;
+  // Nor under the first minute's stage: it covers the whole screen, and a loop redrawing beneath it redraws the stage too.
+  const covered = useFirstMinuteCovering();
+  return !still && shown && active && !covered;
 }
