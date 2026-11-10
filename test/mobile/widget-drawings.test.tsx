@@ -72,6 +72,8 @@ function css(style: Record<string, unknown> = {}): string {
     padding: (value) => `padding:${value}px`,
     paddingHorizontal: (value) => `padding-left:${value}px;padding-right:${value}px`,
     paddingVertical: (value) => `padding-top:${value}px;padding-bottom:${value}px`,
+    paddingTop: (value) => `padding-top:${value}px`,
+    paddingBottom: (value) => `padding-bottom:${value}px`,
     borderRadius: (value) => `border-radius:${value}px`,
     backgroundColor: (value) => `background:${value}`,
   };
@@ -112,7 +114,7 @@ function walk(node: Element, drawn: Drawn): string {
     const { text, maxLines = 1 } = element.props as { text: string; maxLines?: number };
     drawn.texts.push(text);
     const clamp = maxLines === 1 ? "white-space:nowrap;" : `display:-webkit-box;-webkit-line-clamp:${maxLines};-webkit-box-orient:vertical;`;
-    return `<div${tap} style="flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;${clamp}font-size:${style.fontSize * fontScale}px;line-height:${Math.round(style.fontSize * fontScale * 1.3)}px;color:${style.color};font-weight:${style.fontWeight === "700" ? 700 : style.fontWeight === "500" ? 600 : 400}">${text}</div>`;
+    return `<div${tap} style="flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;${clamp}font-size:${style.fontSize * fontScale}px;line-height:${Math.round(style.fontSize * fontScale * 1.3)}px;color:${style.color};font-weight:${style.fontWeight === "700" ? 700 : style.fontWeight === "500" ? 500 : 400}">${text}</div>`;
   }
   if (name === "SvgWidget") {
     const { svg } = element.props as { svg: string };
@@ -123,7 +125,7 @@ function walk(node: Element, drawn: Drawn): string {
 
 function draw(tree: unknown, size: { width: number; height: number }): Drawn {
   const drawn: Drawn = { html: "", taps: [], texts: [] };
-  drawn.html = `<div style="width:${size.width}px;height:${size.height}px;display:flex;overflow:hidden;border-radius:20px">${walk(tree as Element, drawn)}</div>`;
+  drawn.html = `<div data-widget style="width:${size.width}px;height:${size.height}px;display:flex;overflow:hidden;border-radius:22px">${walk(tree as Element, drawn)}</div>`;
   return drawn;
 }
 
@@ -148,26 +150,105 @@ const SIZES: Record<string, ReturnType<typeof cell>[]> = {
 
 type Facts = ReturnType<typeof widgetFacts>;
 type Size = { width: number; height: number; fontScale: number };
-let facts: Facts;
-let main: ReturnType<typeof widgetModel>;
+type Shot = Parameters<typeof widgetFacts>[0];
+/** One moment of the pretend Student's data: the shared facts and "Sekarang"'s model. */
+interface World {
+  facts: Facts;
+  main: ReturnType<typeof widgetModel>;
+}
+let world: World;
+let shot: Shot;
+let moment: number;
+const worldOf = (change: (shot: Shot) => Shot = (one) => one): World => ({
+  facts: widgetFacts(change(shot), moment),
+  main: widgetModel(change(shot), moment),
+});
 
 const theme = (scheme: "light" | "dark") => THEMES[scheme];
-const DRAW: Record<string, (size: Size, scheme: "light" | "dark") => unknown> = {
-  Now: (size, scheme) => widgetDrawing({ ...main, theme: scheme }, size).light,
-  Today: (size, scheme) => todayDrawing({ ...main, theme: scheme }, size).light,
-  Due: (size, scheme) => DueView({ model: dueWidget(facts), size, theme: theme(scheme), lang: "id" }),
-  Attendance: (size, scheme) => AttendanceView({ model: attendanceWidget(facts), size, theme: theme(scheme), lang: "id" }),
-  Exam: (size, scheme) => ExamView({ model: examWidget(facts), size, theme: theme(scheme) }),
-  Next: (size, scheme) => NextView({ model: nextWidget(facts), size, theme: theme(scheme) }),
-  Services: (size, scheme) => ServicesView({ model: servicesWidget(facts), size, theme: theme(scheme) }),
-  Course: (size, scheme) => CourseView({ model: courseWidget(facts, null), size, theme: theme(scheme) }),
+const DRAW: Record<string, (size: Size, scheme: "light" | "dark", from?: World) => unknown> = {
+  Now: (size, scheme, { main } = world) => widgetDrawing({ ...main, theme: scheme }, size).light,
+  Today: (size, scheme, { main } = world) => todayDrawing({ ...main, theme: scheme }, size).light,
+  Due: (size, scheme, { facts } = world) => DueView({ model: dueWidget(facts), size, theme: theme(scheme), lang: "id" }),
+  Attendance: (size, scheme, { facts } = world) => AttendanceView({ model: attendanceWidget(facts), size, theme: theme(scheme), lang: "id" }),
+  Exam: (size, scheme, { facts } = world) => ExamView({ model: examWidget(facts), size, theme: theme(scheme) }),
+  Next: (size, scheme, { facts } = world) => NextView({ model: nextWidget(facts), size, theme: theme(scheme) }),
+  Services: (size, scheme, { facts } = world) => ServicesView({ model: servicesWidget(facts), size, theme: theme(scheme) }),
+  Course: (size, scheme, { facts } = world) => CourseView({ model: courseWidget(facts, null), size, theme: theme(scheme) }),
 };
 
 beforeAll(async () => {
   const h = await startHome();
-  facts = widgetFacts(h.engine.snapshot(), h.world.clock.now());
-  main = widgetModel(h.engine.snapshot(), h.world.clock.now());
+  shot = h.engine.snapshot();
+  moment = h.world.clock.now();
+  world = worldOf();
 }, 120_000);
+
+// ---------------------------------------------------------------- the pictures for the judges (WIDGET_RENDER=<folder>)
+
+/** This phone's launcher (Samsung One UI, 4 across): a 4×2 widget measured 325×227 dp on its home screen. */
+const phone = (w: number, h: number) => ({ label: `${w}×${h}`, width: Math.round(81.25 * w), height: Math.round(113.5 * h) });
+/** Each widget at its smallest, a step between, its first size (marked) and its largest on a 4-wide launcher. */
+const RENDER: Record<string, { title: string; sizes: ReturnType<typeof phone>[]; first: string }> = {
+  Now: { title: "Sekarang", sizes: [phone(2, 1), phone(4, 1), phone(4, 2), phone(4, 4)], first: "4×2" },
+  Services: { title: "Pintasan", sizes: [phone(2, 1), phone(4, 1), phone(4, 2)], first: "4×1" },
+  Exam: { title: "Ujian", sizes: [phone(2, 1), phone(2, 2), phone(4, 1), phone(4, 2)], first: "2×2" },
+  Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 3), phone(4, 4)], first: "3×2" },
+  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 3), phone(4, 5)], first: "3×2" },
+  Attendance: { title: "Kehadiran", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 4)], first: "3×2" },
+  Next: { title: "Kelas berikutnya", sizes: [phone(1, 1), phone(2, 1), phone(2, 2)], first: "1×1" },
+  Course: { title: "Satu mata kuliah", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
+};
+
+const emptied = (names: string[]) => (one: Shot) => ({ ...one, datasets: one.datasets.map((d) => (names.includes(d.name) ? { ...d, value: [] } : d)) }) as Shot;
+/** The states beside the normal one, each made from the same pretend Thursday (as test/mobile/widget-models.test.ts makes them). */
+const STATES: Record<string, { title: string; change: (one: Shot) => Shot }> = {
+  empty: { title: "Empty (nothing due, no class, no exam)", change: emptied(["edunex.tasks", "edunex.exams", "six.schedule"]) },
+  signedOut: {
+    title: "Signed out",
+    change: (one) =>
+      ({
+        ...one,
+        statuses: one.statuses.map((status) => ({ ...status, state: "signed-out" as const, updatedAt: null })),
+        datasets: one.datasets.filter((dataset) => !dataset.name.startsWith("six.") && !dataset.name.startsWith("edunex.")),
+      }) as Shot,
+  },
+  offline: { title: "Offline", change: (one) => ({ ...one, statuses: one.statuses.map((status) => ({ ...status, state: "offline" as const })) }) as Shot },
+  holiday: { title: "Holiday (no class in the week ahead)", change: emptied(["six.schedule"]) },
+};
+
+const WALLPAPER = { light: "linear-gradient(135deg,#bfeeee 0%,#9fd84a 48%,#6b3fe0 100%)", dark: "linear-gradient(135deg,#10222c 0%,#1d3a17 48%,#2a1a5e 100%)" };
+
+function renderPages(folder: string): void {
+  fs.mkdirSync(folder, { recursive: true });
+  const tile = (name: string, state: string, size: ReturnType<typeof phone>, scheme: "light" | "dark", from: World) => {
+    let inner: string;
+    try {
+      inner = draw(DRAW[name]!({ ...size, fontScale: 1 }, scheme, from), size).html;
+    } catch (error) {
+      inner = `<div style="width:${size.width}px;font:12px system-ui;color:#b00">could not draw: ${String(error)}</div>`;
+    }
+    return `<figure style="margin:0"><div data-shot="${name.toLowerCase()}-${state}-${size.label.replace("×", "x")}-${scheme}" style="display:inline-block;padding:18px;border-radius:12px;background:${WALLPAPER[scheme]}">${inner}</div></figure>`;
+  };
+  for (const [name, { title, sizes, first }] of Object.entries(RENDER)) {
+    const rows: string[] = [];
+    const row = (label: string, state: string, size: ReturnType<typeof phone>, from: World) =>
+      rows.push(
+        `<section><h2>${label}</h2><div style="display:flex;gap:14px;align-items:flex-start">${tile(name, state, size, "light", from)}${tile(name, state, size, "dark", from)}</div></section>`,
+      );
+    for (const size of sizes) row(`${size.label}${size.label === first ? " (as first placed)" : ""} · ${size.width}×${size.height} dp`, "normal", size, world);
+    // Pintasan says nothing that changes: one state.
+    if (name !== "Services")
+      for (const [state, { title: stateTitle, change }] of Object.entries(STATES)) {
+        const from = worldOf(change);
+        for (const size of [sizes.find((one) => one.label === first)!, sizes[0]!].filter((one, index, all) => all.indexOf(one) === index))
+          row(`${stateTitle} · ${size.label}`, state, size, from);
+      }
+    fs.writeFileSync(
+      path.join(folder, `${name.toLowerCase()}.html`),
+      `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{margin:24px;font-family:Roboto,"Helvetica Neue",system-ui,sans-serif;background:#fff;color:#14171c}h1{font-size:22px;margin:0 0 4px}h2{font-size:13px;font-weight:600;margin:18px 0 6px;color:#3f4652}p{margin:0;font-size:13px;color:#5f6673}</style></head><body><h1>${title}</h1><p>Edunex Plus widget, drawn from the demo's made-up Thursday 8 Oct, 08:12. Light left, dark right.</p>${rows.join("")}</body></html>`,
+    );
+  }
+}
 
 describe("every widget at every size", () => {
   it("each tap opens a place in the app, or a page; every tap area has a name TalkBack reads, or its own words", () => {
@@ -194,6 +275,7 @@ describe("every widget at every size", () => {
         }
       }
     }
+    if (process.env.WIDGET_RENDER) renderPages(process.env.WIDGET_RENDER);
     const out = process.env.WIDGET_GALLERY;
     if (out) {
       fs.mkdirSync(path.dirname(out), { recursive: true });
@@ -205,7 +287,7 @@ describe("every widget at every size", () => {
     const drawn = draw(DRAW.Due!({ ...cell(4, 4), fontScale: 1 }, "light"), cell(4, 4));
     const tasks = drawn.taps.filter((tap) => tap.uri?.startsWith("edunexplus://task/"));
     expect(tasks.map((tap) => tap.uri)).toEqual(
-      dueWidget(facts)
+      dueWidget(world.facts)
         .rows.slice(0, tasks.length)
         .map((row) => `edunexplus://task/${(row.open as { route: { taskId: number } }).route.taskId}`),
     );
@@ -216,6 +298,44 @@ describe("every widget at every size", () => {
     const drawn = draw(DRAW.Next!({ ...cell(1, 1, true), fontScale: 1 }, "light"), cell(1, 1, true));
     expect(drawn.texts).toEqual(expect.arrayContaining(["11:00", "DK4073"]));
     expect(drawn.taps[0]).toMatchObject({ uri: "edunexplus://schedule?class=2153983", label: "Hari ini, 11:00–12:59, DK4073, TVST C" });
+  });
+
+  it("Sekarang as first placed: the course's name whole and no code, one button with the one time, each said once", () => {
+    const size = phone(4, 2);
+    const drawn = draw(DRAW.Now!({ ...size, fontScale: 1 }, "light"), size);
+    expect(drawn.texts).toEqual(expect.arrayContaining(["Ekonomi dan Inovasi dalam Perencanaan", "Isi Presensi", "Tutup 09:30", "Diperbarui pukul 08:12"]));
+    expect(drawn.texts.some((text) => text.includes("PL3002"))).toBe(false);
+    expect(new Set(drawn.texts).size).toBe(drawn.texts.length);
+    // The block opens the class, the button the Presence's own page.
+    expect(drawn.taps[1]?.uri).toBe("edunexplus://course/PL3002?tab=meetings");
+    expect(drawn.taps.some((tap) => tap.label === "Isi Presensi PL3002, Tutup 09:30" && tap.uri?.startsWith("https://"))).toBe(true);
+  });
+
+  it("a course's name is never cut: where it doesn't fit whole, its code stands in", () => {
+    const small = phone(2, 1);
+    expect(draw(DRAW.Now!({ ...small, fontScale: 1 }, "light"), small).texts).toContain("PL3002");
+    // With the width for it, the name again, over two lines (the render script's report.txt lists any line the browser cut).
+    const wide = phone(4, 1);
+    expect(draw(DRAW.Now!({ ...wide, fontScale: 1 }, "light"), wide).texts).toContain("Ekonomi dan Inovasi dalam Perencanaan");
+  });
+
+  it("Kehadiran: each course's absences as marks, the danger in its word", () => {
+    const size = phone(4, 4);
+    const drawn = draw(DRAW.Attendance!({ ...size, fontScale: 1 }, "light"), size);
+    expect(drawn.texts).toEqual(expect.arrayContaining(["Lewat 1×", "Habis", "Sisa 2×"]));
+    // A mark is a 9 dp dot: one per absence the term allows, and one for each past it.
+    const rows = attendanceWidget(world.facts).rows;
+    const marks = rows.reduce((sum, row) => sum + (row.allowed ?? 0) + row.over, 0);
+    expect(drawn.html.split("width:9px;height:9px").length - 1).toBe(marks);
+  });
+
+  it("Pintasan two rows high: all four as blocks that fill it", () => {
+    const size = phone(4, 2);
+    expect(
+      draw(DRAW.Services!({ ...size, fontScale: 1 }, "light"), size)
+        .taps.slice(1)
+        .map((tap) => tap.uri),
+    ).toEqual(["edunexplus://schedule", "edunexplus://tasks", "edunexplus://courses", "edunexplus://grades"]);
   });
 
   it("Pintasan: as many as fit, each opening its tab", () => {
