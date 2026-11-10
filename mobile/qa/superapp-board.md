@@ -42,9 +42,29 @@ remember 8, never waited 6, nothing shows off 6. **Not at the top (9).** What al
 over to the real Beranda at about 6 s and let its cards fill in place); the doors must not look like a choice; the button becomes the
 status in words; names in the app's language; no late "Semua siap" bar; no dark-to-light flash; jank far under 24%.
 
-## The direction round
+## The direction round (00:55)
 
-Not yet judged.
+Three directions built in the demo as real screens (Beranda, Tugas, Kuliah, Profil, Semua layanan), each photographed on the phone in
+light and dark, and judged blind against today's app: four candidates by letter, shuffled per judge. Three judges (Claude Fable 5.2,
+one per account): a designer, a student, a prosecutor.
+
+| Candidate | Designer | Student (want on my phone · "where everything is") | Prosecutor (serious charges · "where") | Home, lowest–highest score |
+| --- | --- | --- | --- | --- |
+| A, closest to Gojek (a blue strip, coloured tiles, sideways class cards) | 1st | 4th · 4th | 2nd (7) · 2nd | 4–8 |
+| **B, Edunex Mobile done right** (a white page, the class as the one colour block, quiet counts, a timeline) | 3rd | **1st** · 2nd | 3rd (8) · 3rd | 4–8 |
+| C, its own character (chunky solid blocks you press into) | 2nd | 2nd · 3rd | 4th (9) · 4th | 4–8 |
+| Today's app (`main`) | 4th | 3rd · **1st** | **1st (6)** · **1st** | 4–8 |
+
+**B is the base**: it and C beat today's app for two judges (A for one), and B is the student's first and the prosecutor's cleaner of
+the two. **Not at the top:** no home screen reached 9 in any category for every judge, and the prosecutor still counts fewer serious
+charges on today's app than on any direction. The student's sureness on the three jobs in B: due soonest 8, attendance 8, this week's
+material 5. Squint: every judge told B's five tabs apart; all three found Tugas and Profil most alike. Every judge put all four above
+the official Edunex Mobile LMS home, and none at Gojek's or GoPay's level.
+
+Taken into B (two or more judges): C's solid-colour service tiles with white filled glyphs; A's Profil card (name, NIM, IPK, SKS bar)
+and plain group names on Semua layanan; today's app's Kuliah rows readable in full. Fixed first: a fact said twice on Beranda (the
+strip's counts repeated as rows), pale-circle icons and glyph mix-ups, light and dark laid out differently, Kuliah's cut-off statuses
+and course codes as titles, presence as two different things, the wave. The decisions: `superapp-decisions.md`.
 
 ## Rounds
 
