@@ -46,6 +46,7 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Background sync | iOS decides when, and much less often than Android. |
 | Phone calendar | Made inside the account your default calendar uses (often iCloud). |
 | Switches | iOS's own switch instead of Android's Material one. |
+| Presses and haptics | Android's ripple is an iPhone's tint or dim: a card or tile (`PressScale`, `Tap`) tints and gives as on Android, a button or chip dims to 55% (`ui/controls.tsx`). Every haptic is in `ui/haptics.ts`, each the Taptic Engine's nearest: a long press that runs (`hold`) a medium tap, an earned moment (`success`) the success pattern. |
 | Bottom tabs | iOS's own tab bar with Apple's symbols; Liquid Glass on iOS 26, which iOS draws itself. |
 | Liquid Glass | On iOS 26: a top bar's back button and actions, and the snackbar (`src/ui/glass.tsx`). Older iPhones and Android keep the Material look. |
 | App icon | Its own, edge to edge and opaque (`assets/ios-icon.png`, `scripts/make-icons.mjs`): iOS rounds it and fills see-through parts with white. |
