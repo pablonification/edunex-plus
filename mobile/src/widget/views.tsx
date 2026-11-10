@@ -5,22 +5,10 @@ import { THEMES, type Theme } from "../ui/theme";
 // The widgets beyond "Sekarang" and "Hari ini" (qa/superapp-widgets.md), as Android draws them: react-native-android-widget
 // turns this tree into a picture, so no state or hooks here. Each is built around one shape that answers its question at
 // a glance: one course is one block in its colour (Ujian's figure of days, Kelas berikutnya's time, Satu mata kuliah),
-// many are a short list on the widget's white surface with a colour bar per course (Tenggat, Kehadiran's marks), and
-// Pintasan is the app's solid service tiles. Each takes its model (./model.ts) and the size the Student gave it, and
+// many are a short list on the widget's white surface with a colour bar per course (Tenggat, Kehadiran's marks). Each takes its model (./model.ts) and the size the Student gave it, and
 // shows what fits, most important first. Every row opens its own place; the surface around it opens the app.
-import { FlexWidget, SvgWidget, TextWidget } from "./kit";
-import type {
-  AttendanceRow,
-  AttendanceWidget,
-  CourseWidget,
-  DueRow,
-  DueWidget,
-  ExamWidget,
-  NextWidget,
-  ServiceIcon,
-  ServicesWidget,
-  WidgetStatus,
-} from "./model";
+import { FlexWidget, TextWidget } from "./kit";
+import type { AttendanceRow, AttendanceWidget, CourseWidget, DueRow, DueWidget, ExamWidget, NextWidget, WidgetStatus } from "./model";
 import { courseBlock, courseInk, courseLabel, Foot, Frame, hex, LINE, linesOf, PAD, RADIUS, StateCard, Text, tap, type WidgetSize } from "./view";
 
 /** Room for rows: the widget's height less its padding, its heading and its foot (said wherever there's something to say). */
@@ -58,13 +46,19 @@ export function DueView({ model, size, theme, lang }: { model: DueWidget; size: 
   const wide = size.width >= 250 * scale;
   const inner = size.width - 2 * PAD - 12;
   // The row's end: how close, over the date (the time when it's today or tomorrow).
-  const topOf = (row: DueRow) => row.near ?? row.day;
-  const bottomOf = (row: DueRow) => (row.mark || !row.near ? row.time : row.day);
+  const topOf = (row: DueRow) => row.near ?? row.day.replace(", ", " ");
+  // One pattern down the list: the count in bold ("Hari ini", "8 hari"; from two weeks out, the date) over the hour,
+  // with the date before it where the count stands in for it ("Jum 16 Okt, 23:59"). Every row says its hour.
+  const bottomOf = (row: DueRow) => (row.mark || !row.near ? row.time : `${row.day.replace(", ", " ")}, ${row.time}`);
   const rightWidth = wide ? Math.max(0, ...model.rows.flatMap((row) => [safeWidth(topOf(row), 14 * scale), safeWidth(bottomOf(row), 12 * scale)])) : 0;
   const titleWidth = inner - (wide ? rightWidth + 8 : 0);
   // The course by its name where the line holds it whole, else its code.
   const courseOf = (row: DueRow) => (row.name && safeWidth(row.name, 12 * scale) <= titleWidth ? row.name : row.code);
-  const underOf = (row: DueRow) => `${topOf(row)} · ${bottomOf(row)}`;
+  // Narrow: the same two facts on one line under the title, and the course's code after them where it's held whole.
+  const underOf = (row: DueRow) => {
+    const said = `${topOf(row)} · ${row.time}`;
+    return safeWidth(`${said} · ${row.code}`, 12 * scale) <= titleWidth ? `${said} · ${row.code}` : said;
+  };
   // A title that's a line and a bit by the (safe) estimate sits on one; a long one keeps two before it's cut.
   const linesFor = (row: DueRow, most: number) => {
     const need = linesOf(row.title, 14 * scale, titleWidth);
@@ -83,8 +77,18 @@ export function DueView({ model, size, theme, lang }: { model: DueWidget; size: 
     space -= heightOf(row, most);
   }
   const left = model.rows.length - rows.length;
+  // Height left over goes to a title that would be cut: its second line.
+  const extra = new Set<DueRow>();
+  let spare = space - (left > 0 ? moreHeight : 0);
+  for (const row of rows) {
+    if (linesOf(row.title, 14 * scale, titleWidth) > linesFor(row, most) && spare >= LINE.small * scale) {
+      extra.add(row);
+      spare -= LINE.small * scale;
+    }
+  }
+  const shownLines = (row: DueRow) => linesFor(row, most) + (extra.has(row) ? 1 : 0);
   // Close is loud, far is quiet: amber within a day, the ink while it's a count of days, grey once it's only a date.
-  const inkOf = (row: DueRow) => (row.soon || row.mark === "today" ? v.ambFg : row.near ? v.fg : v.muted);
+  const inkOf = (row: DueRow) => (row.soon || row.mark === "today" ? v.ambFg : v.fg);
   return (
     <Frame theme={theme}>
       <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "column", flexGap: 8 }}>
@@ -96,18 +100,21 @@ export function DueView({ model, size, theme, lang }: { model: DueWidget; size: 
             accessibilityLabel={`${row.title}, ${row.name ?? row.code}, ${row.when}`}
             style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 8 }}
           >
-            <FlexWidget style={{ width: 4, height: heightOf(row, most) - 8, borderRadius: 2, backgroundColor: hex(courseInk(theme, row.tone)) }} />
+            <FlexWidget
+              style={{
+                width: 4,
+                height: heightOf(row, most) - 8 + (extra.has(row) ? LINE.small * scale : 0),
+                borderRadius: 2,
+                backgroundColor: hex(courseInk(theme, row.tone)),
+              }}
+            />
             <FlexWidget style={{ flex: 1, flexDirection: "column" }}>
-              <Text text={row.title} size="small" color={v.fg} weight="700" lines={linesFor(row, most)} />
-              {wide ? (
-                <Text text={courseOf(row)} size="micro" color={v.muted} />
-              ) : (
-                <Text text={underOf(row)} size="micro" color={inkOf(row)} bold={Boolean(row.near)} />
-              )}
+              <Text text={row.title} size="small" color={v.fg} weight="700" lines={shownLines(row)} />
+              {wide ? <Text text={courseOf(row)} size="micro" color={v.muted} /> : <Text text={underOf(row)} size="micro" color={inkOf(row)} bold />}
             </FlexWidget>
             {wide ? (
               <FlexWidget style={{ width: rightWidth, flexDirection: "column", alignItems: "flex-end" }}>
-                <Text text={topOf(row)} size="small" color={inkOf(row)} weight={row.near ? "700" : "500"} />
+                <Text text={topOf(row)} size="small" color={inkOf(row)} weight="700" />
                 <Text text={bottomOf(row)} size="micro" color={v.muted} />
               </FlexWidget>
             ) : null}
@@ -132,53 +139,68 @@ function absenceColor(theme: Theme, state: AttendanceState, rest: string): strin
 const MOST_DOTS = 8;
 
 /**
- * A course's absences, the phone's one way (screens/presence/absence-dots.tsx): a dot per absence the term allows, the
- * used ones filled and the rest outlined, one more dot for each absence over the limit (`overInk`: red on a card).
+ * A course's absences, the phone's one way (screens/presence/absence-dots.tsx): a dot per absence the term allows, full
+ * (`ink`, the ink of the surface it sits on) while it's still left and a ring once it's used, then one more dot, set a
+ * little apart, for each absence over the limit (`overInk`: red). "sisa 2 absen" is two full dots, "absen habis" all
+ * rings, "lewat 1 absen" all rings and one red. Never green or amber: colour on a dot means over.
  */
 function Dots({
   row,
   ink,
   ring,
   overInk,
+  overEdge,
   size = 10,
 }: {
   row: { allowed: number | null; used: number | null; over: number };
   ink: string;
   ring: string;
   overInk: string;
+  /** On a colour block: the red dot's own edge, so it's seen on any course's colour. */
+  overEdge?: string;
   size?: number;
 }) {
   if (row.allowed === null || row.used === null) return null;
   const allowed = Math.max(0, row.allowed);
   if (allowed + row.over > MOST_DOTS || allowed + row.over === 0) return null;
+  const dot = (index: number) => {
+    const past = index >= allowed;
+    const used = past || index < (row.used ?? 0);
+    return (
+      <FlexWidget
+        key={index}
+        style={{
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          ...(past
+            ? { backgroundColor: hex(overInk), ...(overEdge ? { borderWidth: 1.5, borderColor: hex(overEdge) } : {}) }
+            : used
+              ? { borderWidth: 1.5, borderColor: hex(ring) }
+              : { backgroundColor: hex(ink) }),
+        }}
+      />
+    );
+  };
   return (
-    <FlexWidget style={{ flexDirection: "row", alignItems: "center", flexGap: 4 }}>
-      {Array.from({ length: allowed + row.over }, (_, index) => {
-        const past = index >= allowed;
-        const used = past || index < (row.used ?? 0);
-        return (
-          <FlexWidget
-            // biome-ignore lint/suspicious/noArrayIndexKey: the dots are positions, nothing else tells them apart.
-            key={index}
-            style={{
-              width: size,
-              height: size,
-              borderRadius: size / 2,
-              ...(used ? { backgroundColor: hex(past ? overInk : ink) } : { borderWidth: 1.5, borderColor: hex(ring) }),
-            }}
-          />
-        );
-      })}
+    <FlexWidget style={{ flexDirection: "row", alignItems: "center", flexGap: OVER_GAP }}>
+      {allowed > 0 ? (
+        <FlexWidget style={{ flexDirection: "row", alignItems: "center", flexGap: 4 }}>{Array.from({ length: allowed }, (_, index) => dot(index))}</FlexWidget>
+      ) : null}
+      {row.over > 0 ? (
+        <FlexWidget style={{ flexDirection: "row", alignItems: "center", flexGap: 4 }}>
+          {Array.from({ length: row.over }, (_, index) => dot(allowed + index))}
+        </FlexWidget>
+      ) : null}
     </FlexWidget>
   );
 }
 
-/** Amber for a dot: brighter than the amber ink, so "habis" and "lewat" are told apart at a glance in light. */
-const dotInk = (theme: Theme, state: AttendanceState) => {
-  const tone = absenceTone(state);
-  if (tone === "amber") return theme === THEMES.light ? "#c77700" : theme.v4.ambFg;
-  return tone ? absenceInk(theme.v4, tone).fg : theme.v4.muted;
-};
+/** The gap before the dots over the limit: two dots' gaps, so "these, and one more" reads at a glance. */
+const OVER_GAP = 8;
+
+/** A red that stays red on a dark card and on a course's colour (the theme's dark red ink reads as salmon at a dot's size). */
+const OVER_RED = "#e5484d";
 
 /** Every course's absences, the worst first: its name, its dots, then "sisa 1", "habis" or "lewat 1" in the state's colour. One size at every width: fewer rows and "+2 lagi", never smaller type. */
 export function AttendanceView({ model, size, theme, lang }: { model: AttendanceWidget; size: WidgetSize; theme: Theme; lang: "id" | "en" }) {
@@ -188,16 +210,24 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
   // (The last line has no gap under it: 8 back.)
   const room = counted + 8;
   // Narrow (2 cells): the name over its dots and its word. Wider: the name, the dots in one column, the word at the end.
-  const narrow = size.width < 220;
+  const thin = size.width < 220;
   const drawn = (row: AttendanceRow) => row.allowed !== null && row.allowed + row.over <= MOST_DOTS && row.allowed + row.over > 0;
-  const dotsWidth = Math.max(0, ...model.rows.filter(drawn).map((row) => ((row.allowed ?? 0) + row.over) * 14 - 4));
+  const dotsWidth = Math.max(
+    0,
+    ...model.rows.filter(drawn).map((row) => ((row.allowed ?? 0) + row.over) * 14 - 4 + (row.over > 0 && (row.allowed ?? 0) > 0 ? OVER_GAP - 4 : 0)),
+  );
   const wordWidth = Math.max(0, ...model.rows.map((row) => safeWidth(row.short, 12 * scale)));
-  const nameWidth = narrow ? size.width - 2 * PAD : size.width - 2 * PAD - dotsWidth - 10 - wordWidth - 10;
+  const beside = size.width - 2 * PAD - dotsWidth - 10 - wordWidth - 10;
+  // (Big text: the name's column would hold four letters, so the name goes over its dots as in two cells.)
+  const narrow = thin || beside < 96 * scale;
+  const nameWidth = narrow ? size.width - 2 * PAD : beside;
   // Names down the whole list (wrapped where one line doesn't hold it), or codes down the whole list: never a mix.
   // (The phone's text made big: two lines at most, where the estimate of a third is least sure.)
   const most = scale > 1 ? 2 : 3;
   const codes = model.rows.some((row) => courseLabel(row.name, row.code, 14 * scale, nameWidth, most).text !== (row.name ?? row.code));
-  const labelOf = (row: AttendanceRow) => (codes ? { text: row.code, lines: 1 } : courseLabel(row.name, row.code, 14 * scale, nameWidth, most));
+  // Beside the dots, a name that doesn't fit whole keeps one line and ends on "…": every course still gets its row.
+  const labelOf = (row: AttendanceRow) =>
+    codes ? { text: narrow ? row.code : (row.name ?? row.code), lines: 1 } : courseLabel(row.name, row.code, 14 * scale, nameWidth, most);
   const heightOf = (row: AttendanceRow) => labelOf(row).lines * LINE.small * scale + (narrow ? LINE.micro * scale + 3 : 0) + 8;
   const moreHeight = (LINE.micro + 8) * scale;
   const rows: AttendanceRow[] = [];
@@ -216,7 +246,7 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
         <Text text={model.heading} size="micro" color={v.muted} bold open={model.all} />
         {rows.map((row) => {
           const danger = row.state === "out" || row.state === "missed";
-          const dots = <Dots row={row} ink={dotInk(theme, row.state)} ring={theme.color.pipRing} overInk={v.redFg} />;
+          const dots = <Dots row={row} ink={v.fg} ring={v.muted} overInk={theme === THEMES.light ? v.redFg : OVER_RED} />;
           const label = labelOf(row);
           const word = <Text text={row.short} size="micro" color={absenceColor(theme, row.state, v.fg)} weight={danger ? "700" : "500"} />;
           return (
@@ -435,95 +465,6 @@ export function NextView({ model, size, theme }: { model: NextWidget; size: Widg
   );
 }
 
-// ---------------------------------------------------------------- Pintasan
-
-/** Fluent's filled icons at 24 (MIT, @fluentui/react-icons' headless SVG), as Beranda's service tiles use them. */
-const ICON_PATH: Record<ServiceIcon, string> = {
-  calendar:
-    "M21 8.5v9.25c0 1.8-1.46 3.25-3.25 3.25H6.25A3.25 3.25 0 0 1 3 17.75V8.5zM7.25 15a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5M12 15a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m-4.75-4.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m4.75 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m4.75 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m1-7.5C19.55 3 21 4.46 21 6.25V7H3v-.75C3 4.45 4.46 3 6.25 3z",
-  tasks:
-    "M13.75 2h-3.5c-1.16 0-2.11.87-2.24 2H6.25C5.01 4 4 5 4 6.25v13.5C4 20.99 5 22 6.25 22h11.5c1.24 0 2.25-1 2.25-2.25V6.25C20 5.01 19 4 17.75 4h-1.76a2.25 2.25 0 0 0-2.24-2m-3.5 1.5h3.5a.75.75 0 0 1 0 1.5h-3.5a.75.75 0 0 1 0-1.5m6.78 7.53-5.5 5.5c-.3.3-.77.3-1.06 0l-2.5-2.5a.75.75 0 1 1 1.06-1.06L11 14.94l4.97-4.97a.75.75 0 1 1 1.06 1.06",
-  courses:
-    "M4 4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h6c.77 0 1.47-.29 2-.76.53.47 1.23.76 2 .76h6a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-6c-.77 0-1.47.29-2 .76A3 3 0 0 0 10 4zm7 3v10a1 1 0 0 1-1 1H4V6h6a1 1 0 0 1 1 1m2 10V7a1 1 0 0 1 1-1h6v12h-6a1 1 0 0 1-1-1",
-  grades:
-    "M5 17.75v-3.77l4.06 2.66a5.4 5.4 0 0 0 5.88 0L19 13.98v3.77q0 .25-.15.45l-.01.02-.02.01v.02a3 3 0 0 1-.41.43q-.42.42-1.25.96A9.7 9.7 0 0 1 12 21a9.7 9.7 0 0 1-5.16-1.36 7 7 0 0 1-1.68-1.42v-.01a1 1 0 0 1-.16-.46m17.16-7.62-8.04 5.25a3.9 3.9 0 0 1-4.24 0L3 10.88v5.37a.75.75 0 0 1-1.5 0V10q0-.13.04-.25a.75.75 0 0 1 .3-.88L9.92 3.7a3.9 3.9 0 0 1 4.18 0l8.06 5.17a.75.75 0 0 1 .01 1.26",
-};
-
-/**
- * Each service its own solid colour, the same in light and dark, white on it (4.5:1 or more): no two the same, and no
- * red or amber, which the app keeps for states.
- */
-const SERVICE_COLOR: Record<ServiceIcon, string> = {
-  calendar: "#1f63e0",
-  tasks: "#0f7a86",
-  courses: "#7a3ee6",
-  grades: "#178a4a",
-};
-
-const svgOf = (icon: ServiceIcon, color: string) =>
-  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="${color}" d="${ICON_PATH[icon]}"/></svg>`;
-
-/**
- * Four places, on the set's own card: each its icon on its colour, its word, and under it its one figure with its noun
- * ("4 kelas", "2 tenggat", "3 di batas") where the column holds it; nothing where there's none. Never a grade. As many
- * as the width holds with every word whole. Signed out: the shared card, with Masuk.
- */
-export function ServicesView({ model, size, theme }: { model: ServicesWidget; size: WidgetSize; theme: Theme }) {
-  const v = theme.v4;
-  if (model.quiet) return <StateCard quiet={model.quiet} status={model.status} size={size} theme={theme} />;
-  const scale = Math.max(1, size.fontScale);
-  const inner = size.width - 2 * PAD;
-  const widest = Math.max(44, ...model.items.map((item) => safeWidth(item.label, 12 * scale)));
-  const each = Math.max(1, Math.min(model.items.length, Math.floor(inner / widest)));
-  const column = inner / each;
-  const items = model.items.slice(0, each);
-  const problem = model.status.problem && Boolean(model.status.text);
-  const icon = size.height >= 110 * scale ? 40 : 32;
-  const words = size.height - 2 * PAD - (problem ? (LINE.foot + 6) * scale : 0) >= icon + 6 + LINE.micro * scale;
-  // The figures on every tile that has one, or on none: each must fit its column, and the card its height.
-  const figures =
-    words &&
-    items.every((item) => !item.figure || safeWidth(item.figure, 12 * scale) <= column) &&
-    size.height - 2 * PAD - (problem ? (LINE.foot + 6) * scale : 0) >= icon + 6 + 2 * LINE.micro * scale;
-  return (
-    <Frame theme={theme}>
-      <FlexWidget style={{ width: "match_parent", flex: 1, flexDirection: "row", alignItems: "center" }}>
-        {items.map((item) => (
-          <FlexWidget
-            key={item.icon}
-            {...tap(item.open)}
-            accessibilityLabel={item.a11y}
-            style={{ flex: 1, flexDirection: "column", alignItems: "center", flexGap: 6 }}
-          >
-            <FlexWidget
-              style={{
-                width: icon,
-                height: icon,
-                borderRadius: icon * 0.34,
-                backgroundColor: hex(SERVICE_COLOR[item.icon]),
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <SvgWidget svg={svgOf(item.icon, "#ffffff")} style={{ width: icon * 0.56, height: icon * 0.56 }} />
-            </FlexWidget>
-            {words ? (
-              // One height on every tile, so the icons stand in one line whether or not a tile has a figure.
-              <FlexWidget
-                style={{ height: (figures && items.some((one) => one.figure) ? 2 : 1) * LINE.micro * scale, flexDirection: "column", alignItems: "center" }}
-              >
-                <Text text={item.label} size="micro" color={v.fg} weight="700" />
-                {figures && item.figure ? <Text text={item.figure} size="micro" color={item.icon === "courses" ? v.ambFg : v.muted} /> : null}
-              </FlexWidget>
-            ) : null}
-          </FlexWidget>
-        ))}
-      </FlexWidget>
-      {problem ? <Foot status={model.status} theme={theme} width={inner} scale={scale} /> : null}
-    </Frame>
-  );
-}
-
 // ---------------------------------------------------------------- Satu mata kuliah
 
 /**
@@ -588,7 +529,7 @@ export function CourseView({ model, size, theme }: { model: CourseWidget; size: 
             <Text text={coded ? course.code : ""} size="micro" color={block.soft} bold />
             {model.absences ? (
               <FlexWidget accessibilityLabel={model.absences.label} style={{ flexDirection: "row", alignItems: "center", flexGap: 6 }}>
-                {model.marks ? <Dots row={model.marks} ink={block.on} ring={block.soft} overInk={block.on} size={9} /> : null}
+                {model.marks ? <Dots row={model.marks} ink={block.on} ring={block.on} overInk={OVER_RED} overEdge={block.on} size={9} /> : null}
                 <Text text={model.absences.short} size="micro" color={block.on} weight={danger ? "700" : "500"} />
               </FlexWidget>
             ) : null}

@@ -3,16 +3,7 @@
 // (08:12: PL3002 on now, DK4073 at 11:00). Every state: its data, nothing to show, signed out, offline, a holiday. The
 // output is plain data, the same an iPhone widget would be given.
 import { beforeAll, describe, expect, it } from "vitest";
-import {
-  attendanceWidget,
-  courseWidget,
-  dueWidget,
-  examWidget,
-  nextWidget,
-  servicesWidget,
-  type WidgetFacts,
-  widgetFacts,
-} from "../../mobile/src/widget/model";
+import { attendanceWidget, courseWidget, dueWidget, examWidget, nextWidget, type WidgetFacts, widgetFacts } from "../../mobile/src/widget/model";
 import type { Snapshot } from "../../src/core/snapshot";
 import { startEngine } from "../engine/harness";
 import { startHome } from "../engine/needs-harness";
@@ -125,11 +116,11 @@ describe("Kehadiran", () => {
     plain(model);
     expect(model.heading).toBe("Jatah absen");
     expect(model.rows.map(({ code, state, short, label }) => [code, state, short, label])).toEqual([
-      ["KU5014", "out", "lewat 1", "Lewat jatah absen 1×"],
-      ["DK4073", "none", "habis", "Jatah absen habis"],
-      ["PL3032", "none", "habis", "Jatah absen habis"],
-      ["PL3002", "risk", "sisa 1", "Sisa jatah absen 1×"],
-      ["II4091", "safe", "sisa 2", "Sisa jatah absen 2×"],
+      ["KU5014", "out", "lewat 1 absen", "Lewat jatah absen 1×"],
+      ["DK4073", "none", "absen habis", "Jatah absen habis"],
+      ["PL3032", "none", "absen habis", "Jatah absen habis"],
+      ["PL3002", "risk", "sisa 1 absen", "Sisa jatah absen 1×"],
+      ["II4091", "safe", "sisa 2 absen", "Sisa jatah absen 2×"],
     ]);
     expect(model.rows[0]?.open).toEqual({ kind: "route", route: { screen: "course", code: "KU5014" } });
     // The marks a row draws: every absence the term allows, the ones used, and the ones past the limit.
@@ -160,7 +151,7 @@ describe("Kehadiran", () => {
     await own.engine.updateSettings({ lang: "en" });
     const model = attendanceWidget(factsOf(own));
     expect(model.heading).toBe("Absences");
-    expect(model.rows.slice(0, 2).map((row) => row.short)).toEqual(["1 over", "none left"]);
+    expect(model.rows.slice(0, 2).map((row) => row.short)).toEqual(["1 absence over", "no absences left"]);
   }, 120_000);
 });
 
@@ -238,7 +229,7 @@ describe("Kelas berikutnya", () => {
       tone: expect.stringMatching(/^var\(--course-/),
       day: null,
       // The day is always said above the time: a bare "11:00" could be any day's.
-      dayShort: "Hari ini",
+      dayShort: "Kam",
       checkIn: false,
       open: { kind: "class", sessionId: "2153983" },
       a11y: "Hari ini, 11:00–12:59, DK4073, TVST C",
@@ -292,45 +283,6 @@ describe("Kelas berikutnya", () => {
   }, 120_000);
 });
 
-describe("Pintasan", () => {
-  it("four places, each its own icon, opening its tab", () => {
-    const model = servicesWidget(facts);
-    plain(model);
-    expect(model.items.map(({ label, icon, open }) => [label, icon, open])).toEqual([
-      ["Jadwal", "calendar", { kind: "route", route: { screen: "schedule" } }],
-      ["Tugas", "tasks", { kind: "route", route: { screen: "tasks" } }],
-      ["Kuliah", "courses", { kind: "route", route: { screen: "presence" } }],
-      ["Nilai", "grades", { kind: "route", route: { screen: "grades" } }],
-    ]);
-  });
-
-  it("each tile's figure with its noun, said whole to TalkBack; never a grade; a class ending redraws it", () => {
-    const model = servicesWidget(facts);
-    // 08:12 on Thursday: four classes still to end, nothing due within a week (no figure, never "0"), three courses at
-    // or past their absence limit. Nilai is its icon and word: a grade average isn't for a home screen.
-    expect(model.items.map(({ figure, a11y }) => [figure, a11y])).toEqual([
-      ["4 kelas", "Jadwal, 4 kuliah lagi hari ini"],
-      [null, "Tugas"],
-      ["3 di batas", "Kuliah, 3 mata kuliah di batas absen"],
-      [null, "Nilai"],
-    ]);
-    expect(model.quiet).toBeNull();
-    expect(model.changesAt).toBe(at("2026-10-08T10:00:00+07:00"));
-    for (const item of model.items) expect(item.figure).not.toBe("0");
-  });
-
-  it("signed out: the shared card with Masuk, and no figure on any tile", () => {
-    const model = servicesWidget(factsOf(h, (shot) => without("six")(without("edunex")(shot))));
-    expect(model.items.map((item) => [item.figure, item.a11y])).toEqual([
-      [null, "Jadwal"],
-      [null, "Tugas"],
-      [null, "Kuliah"],
-      [null, "Nilai"],
-    ]);
-    expect(model).toMatchObject({ state: "signedOut", quiet: { name: "Pintasan", label: "Kamu belum masuk.", action: "Masuk" } });
-  });
-});
-
 describe("Satu mata kuliah", () => {
   it("before a choice: the course on now or next, its absences, its next class and Task", () => {
     const model = courseWidget(facts, null);
@@ -340,7 +292,7 @@ describe("Satu mata kuliah", () => {
       name: "Ekonomi dan Inovasi dalam Perencanaan",
       open: { kind: "route", route: { screen: "course", code: "PL3002" } },
     });
-    expect(model.absences).toEqual({ state: "risk", label: "Sisa jatah absen 1×", short: "sisa 1" });
+    expect(model.absences).toEqual({ state: "risk", label: "Sisa jatah absen 1×", short: "sisa 1 absen" });
     // The same as marks: one of the two absences the term allows is used.
     expect(model.marks).toEqual({ allowed: 2, used: 1, over: 0 });
     expect(model.next).toEqual({
@@ -367,7 +319,7 @@ describe("Satu mata kuliah", () => {
     expect(model).toMatchObject({
       state: "empty",
       course: null,
-      quiet: { name: "Mata kuliah", label: "Tahan widget ini untuk memilih mata kuliah.", short: "Pilih mata kuliah", action: "Buka Kuliah" },
+      quiet: { name: "Mata kuliah", label: "Belum ada mata kuliah yang dipilih.", short: "Pilih mata kuliah", action: "Buka Kuliah" },
     });
     // A day turning over can bring a class within reach.
     expect(model.changesAt).toBe(at("2026-10-09T00:00:00+07:00"));

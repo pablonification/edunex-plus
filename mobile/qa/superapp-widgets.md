@@ -1,11 +1,11 @@
 # Home-screen widgets: what a student would put there
 
-Eight widgets, each answering one question at a glance, all drawn from what the app already saved (no new
+Seven widgets, each answering one question at a glance, all drawn from what the app already saved (no new
 requests, no new data). Declared natively in `mobile/app.config.ts`; drawn by `mobile/src/widget/`; picker pictures
 made by `mobile/scripts/make-widget-previews.mjs` (`assets/widget-preview-<name>.png`).
 
 Sizes are in launcher cells (w×h). "Min" is the smallest it can be made, "first" what it's placed at, "max" the
-largest. All eight resize both ways. Every tap below is a deep link the app already handles
+largest. All seven resize both ways. Every tap below is a deep link the app already handles
 (`edunexplus://…`, `src/nav.ts`), except Tandai Hadir (SIX's own page, through `check-in/<id>`) and Presensi
 (Edunex's page in the browser).
 
@@ -25,7 +25,7 @@ wrong.
 
 Where this section and the older ones below disagree, this one is right.
 
-**States that are true.** Signed out, empty and holiday are one layout on all eight (`StateCard` in `src/widget/view.tsx`,
+**States that are true.** Signed out, empty and holiday are one layout on all seven (`StateCard` in `src/widget/view.tsx`,
 fed by each model's `quiet`): the widget's own name, one sentence, one thing to tap in the only blue ("Masuk", "Buka
 Jadwal"). One cell: the sentence's two words ("Libur", "Belum masuk"). A holiday says "Libur". Offline is one line on
 every widget and size, "Tidak terhubung · data 08:12" (amber; `status.offline`), and "Sekarang" then draws no button:
@@ -53,7 +53,6 @@ figures (a class ending, a deadline passing or coming within the week, midnight)
 | Jatah absen (was "Kehadiran") | 2×2 | 3×2 | 4×3 | every course |
 | Ujian | 2×1 | 2×1 | 4×2 | the exams after the next |
 | Kelas berikutnya | 1×1 | 1×1 | 2×1 | the course's name and room |
-| Pintasan | 2×1 | 4×1 | 4×1 | (two tiles at 2×1) |
 | Satu mata kuliah | 3×1 | 3×1 | 4×2 | absences, then its next Task where the title fits whole |
 
 **Why the phone's "Hari ini" at 3×2 cut a name and showed one room.** The render drew 3×2 at 244 dp; the phone's is
@@ -72,7 +71,7 @@ the word. No tray behind the tiles, no red or amber tile.
 first size, light, an hour before the first class and with no read stamped, so nothing claims to be live.
 
 **Native this round (one commit):** the size caps and first sizes above, the picker's label "Jatah absen", new
-descriptions, and the eight preview pictures. The drawings don't depend on them.
+descriptions, and the seven preview pictures. The drawings don't depend on them.
 
 **The iPhone must mirror** (the model stays compatible: fields were only added): `quiet` on every model and
 `WidgetModel.quiet.now/today` (the shared state layout); `status` (no "Memperbarui…", `offline`); `WidgetClass.lead` and
@@ -88,7 +87,7 @@ Two shapes, and every widget is one of them:
   button when there's something to press: Sekarang, Ujian, Kelas berikutnya, Satu mata kuliah. The colour is the
   course tile's light ink (`courseBlock` in `src/widget/view.tsx`): white reads on every one at 4.5:1 or more.
 - **Many things are a short list on the widget's own surface** (white, one dark surface in dark), the time first and
-  a bar in each course's colour: Hari ini, Tenggat, Kehadiran. Pintasan is Beranda's solid service tiles.
+  a bar in each course's colour: Hari ini, Tenggat, Kehadiran.
 
 Rules they all follow:
 
@@ -110,7 +109,7 @@ opacity (a "soft white" is mixed into the course's colour as hex, `mix`); no tex
 estimated on the safe side, `linesOf`); a child isn't clipped to its parent's corners (a block inside the surface has
 its own corners and a 6 dp inset); `adjustsFontSizeToFit` only on the big figures.
 
-## The eight, size by size
+## The seven, size by size
 
 Sizes are this phone's (Samsung One UI, 4 across: a 4×2 measured 325×227 dp). Pictures of all of it:
 `node mobile/scripts/render-widgets.mjs <folder>` (below).
@@ -206,18 +205,24 @@ they read down the list like a chart.
   keeps its class: a cell has no room to say more, and the time is still true).
 - Model: `nextWidget(facts)` (now with the course's `name`, and `empty.short`).
 
-### 7. Pintasan (`Services`): "Take me straight to Jadwal, Tugas, Kuliah or Nilai"
+### Round 4 (after the third council), in one place
 
-| Size | Shows |
-| --- | --- |
-| 2×1 (min) | Two solid tiles (Jadwal, Tugas), a white filled glyph, the word under each |
-| 4×1 (first) | All four: blue, orange, purple, green |
-| 2×2, 4×2 and up | All four as blocks that fill the widget, two by two, the glyph and the word inside each |
+- **Dots**: a full dot is an absence still left, a ring one used, a red dot set apart one over the limit; the label has
+  its noun ("sisa 1 absen"). The same in the app (`screens/presence/absence-dots.tsx`).
+- **Tenggat**: one pattern on every row: the count in bold ("8 hari"; from two weeks out the date) over "Jum 16 Okt,
+  23:59" (the hour alone when the top line is the date or "Besok"). Three cells wide at most.
+- **Offline**: "Tidak terhubung · data 08:12", then "Tidak terhubung · 08:12" where that doesn't fit; "Data 08:12" in
+  one cell only. On Sekarang it sits on the block, where the button was.
+- **Kelas berikutnya** says the weekday ("Kam"), never "Hari ini". **Masuk** is a button on the signed-out card.
+- **Satu mata kuliah** with no course picked says "Belum ada mata kuliah yang dipilih." over "Buka Kuliah": no how-to.
 
-- Taps: each opens its tab or screen. One state: it says nothing that changes.
-- Model: `servicesWidget(facts)`.
+### Pintasan (`Services`): removed in round 4
 
-### 8. Satu mata kuliah (`Course`): "How is this one course going?"
+Three blind judges, two rounds at 3–5: "a launcher folder already does this", "the app icon already does it". It is
+gone from `app.config.ts`, the model, the views and the tests; a Pintasan already placed goes blank after the update
+and is removed by hand. Anything about Pintasan elsewhere on this page is history.
+
+### 7. Satu mata kuliah (`Course`): "How is this one course going?"
 
 The whole widget in the course's colour.
 
@@ -277,7 +282,7 @@ remaking from these drawings in the next build.
   (`RNWidgetConfigurationActivity`, the screen registered with `registerWidgetConfigurationScreen`). Native, so it's
   in tonight: "Satu mata kuliah" uses it. `reconfigurable|configuration_optional` means Android 12+ doesn't ask on
   placing.
-- **Update period**: 30 minutes at least (the library clamps it). Kehadiran and Pintasan are 0: the app and the
+- **Update period**: 30 minutes at least (the library clamps it). Kehadiran is 0: the app and the
   background sync draw them when their data changes.
 - **"Add to home screen" from inside the app**: `requestWidgetPin` is in the library already, JavaScript only, if a
   screen wants to offer a widget later.
@@ -332,7 +337,7 @@ around the stall.
 
 ## How it was checked
 
-`test/mobile/widget-drawings.test.tsx` walks the real trees for all eight widgets, at 4–5 sizes each, light and
+`test/mobile/widget-drawings.test.tsx` walks the real trees for all seven widgets, at 4–5 sizes each, light and
 dark, at text size 1 and 1.3. It checks every tap (a deep link into the app, or an https page), the exact target of
 each row, that Sekarang says each thing once and names its course whole, and that Kehadiran draws one mark per
 absence. Text size 1.3 is planned for (line heights grow with it, so fewer rows fit).

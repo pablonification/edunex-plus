@@ -59,7 +59,8 @@ const WIDGETS = [
     targetCellHeight: 2,
     minResizeWidth: "110dp",
     minResizeHeight: "110dp",
-    maxResizeWidth: "530dp",
+    // Three cells at most: wider, the list is the same rows with an empty middle.
+    maxResizeWidth: "320dp",
     maxResizeHeight: "280dp",
     resizeMode: "horizontal|vertical",
     updatePeriodMillis: HALF_HOUR,
@@ -84,7 +85,7 @@ const WIDGETS = [
   {
     name: "Exam",
     label: { id: "Ujian", en: "Exams" },
-    description: { id: "Hari dan jam ujian berikutnya, lalu ujian sesudahnya", en: "Your next exam's day and time, then the ones after it" },
+    description: { id: "Berapa hari lagi ujian berikutnya, dengan hari, jam dan ruangnya", en: "Days left to your next exam, with its day, time and room" },
     minWidth: "110dp",
     minHeight: "40dp",
     targetCellWidth: 2,
@@ -113,25 +114,6 @@ const WIDGETS = [
     maxResizeHeight: "140dp",
     resizeMode: "horizontal|vertical",
     updatePeriodMillis: HALF_HOUR,
-  },
-  {
-    name: "Services",
-    label: { id: "Pintasan", en: "Shortcuts" },
-    description: {
-      id: "Kuliah tersisa hari ini, tugas minggu ini, batas absen dan IPK, sekali ketuk",
-      en: "Classes left today, Tasks this week, absence limits and your GPA, one tap away",
-    },
-    minWidth: "250dp",
-    minHeight: "40dp",
-    targetCellWidth: 4,
-    targetCellHeight: 1,
-    minResizeWidth: "110dp",
-    minResizeHeight: "40dp",
-    maxResizeWidth: "530dp",
-    maxResizeHeight: "110dp",
-    resizeMode: "horizontal|vertical",
-    // Says nothing that changes by the hour: drawn when it's added, resized, or the language or look changes.
-    updatePeriodMillis: 0,
   },
   {
     name: "Course",

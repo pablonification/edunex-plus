@@ -414,17 +414,16 @@ export const mobileStrings = {
   "mobile.widget.examNone": { id: "Belum ada ujian terjadwal", en: "No exams scheduled yet" },
   // "Satu mata kuliah": the page that asks which course the widget shows, as it's placed or from "Ubah widget".
   "mobile.widget.pickCourse": { id: "Pilih mata kuliah", en: "Pick a course" },
-  // The same widget with no course picked and no class ahead to pick by: how to pick one, from the home screen.
-  "mobile.widget.pickCourseHint": { id: "Tahan widget ini untuk memilih mata kuliah.", en: "Hold this widget to pick a course." },
+  // The same widget with no course picked and no class ahead to pick by: what's true, no how-to (the link under it says where the tap goes).
+  "mobile.widget.pickCourseHint": { id: "Belum ada mata kuliah yang dipilih.", en: "No course picked yet." },
   // superapp: widgets
   // "Kelas berikutnya" in one cell on a week without classes: two words, as the cell holds no more. A tap opens Jadwal.
   "mobile.widget.noClass": { id: "Tidak ada kuliah", en: "No classes" },
-  // A widget with nothing of its own to show, the same on all eight: its name, one sentence, one thing to tap.
+  // A widget with nothing of its own to show, the same on all seven: its name, one sentence, one thing to tap.
   "mobile.widget.name.now": { id: "Sekarang", en: "Now" },
   "mobile.widget.name.exam": { id: "Ujian", en: "Exams" },
   "mobile.widget.name.next": { id: "Kelas berikutnya", en: "Next class" },
   "mobile.widget.name.course": { id: "Mata kuliah", en: "Course" },
-  "mobile.widget.name.services": { id: "Pintasan", en: "Shortcuts" },
   "mobile.widget.signedOutAny": { id: "Kamu belum masuk.", en: "You're not signed in." },
   // The same in a one-cell widget.
   "mobile.widget.signedOutShort": { id: "Belum masuk", en: "Signed out" },
@@ -436,24 +435,14 @@ export const mobileStrings = {
   "mobile.widget.ends": { id: "selesai {time}", en: "ends {time}" },
   // The foot when the last read didn't get through: the data stays, from when ("08:12", "kemarin, 20:16").
   "mobile.widget.offline": { id: "Tidak terhubung · data {when}", en: "Offline · data from {when}" },
+  // The same where that line doesn't fit (two cells wide): still says it's offline, then from when.
+  "mobile.widget.offlineMid": { id: "Tidak terhubung · {when}", en: "Offline · {when}" },
   // The same in a one-cell widget.
   "mobile.widget.offlineShort": { id: "Data {when}", en: "Data {when}" },
   // The foot while all is well: when the data was last read, small and quiet.
   "mobile.widget.updated": { id: "Diperbarui {time}", en: "Updated {time}" },
   // "Tenggat": how close a deadline is, beside its Task, up to two weeks out ("Besok" and "Hari ini" say the nearer ones).
   "mobile.widget.inDays": { id: "{count} hari", en: { one: "{count} day", other: "{count} days" } },
-  // "Pintasan": a tile's one figure with its noun, under its name: classes left today, Tasks due within a week, courses
-  // at or past their absence limit.
-  "mobile.widget.svc.classesFig": { id: "{count} kelas", en: { one: "{count} class", other: "{count} classes" } },
-  "mobile.widget.svc.dueFig": { id: "{count} tenggat", en: "{count} due" },
-  "mobile.widget.svc.limitFig": { id: "{count} di batas", en: "{count} at limit" },
-  // What TalkBack says after a tile's name.
-  "mobile.widget.svc.classes": { id: "{count} kuliah lagi hari ini", en: { one: "{count} class left today", other: "{count} classes left today" } },
-  "mobile.widget.svc.due": { id: "{count} tugas dalam seminggu", en: { one: "{count} Task due this week", other: "{count} Tasks due this week" } },
-  "mobile.widget.svc.limit": {
-    id: "{count} mata kuliah di batas absen",
-    en: { one: "{count} course at its absence limit", other: "{count} courses at their absence limit" },
-  },
   // presence
   // Kuliah's ⋮: the attendance targets, with the range in force under it ("80%", "75–80%").
   "mobile.courses.targets": { id: "Target kehadiran", en: "Attendance targets" },

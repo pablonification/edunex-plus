@@ -14,7 +14,7 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
     colour with a white glyph, the last "Lainnya", which opens Semua layanan (every service in three named groups). Materi
     and Ujian are new views of data the app already read. One white page and flat lists in both themes; a course is its own
     glyph in its colour; a course's absences are dots and one short label. One icon family, Fluent's, filled where the Student
-    is. The first minute is "two doors, one room" (`src/shell/first-minute/`). Eight Android widgets, two iPhone widgets and a
+    is. The first minute is "two doors, one room" (`src/shell/first-minute/`). Seven Android widgets, two iPhone widgets and a
     Live Activity from one model. Touch and change answer in the frame they land (`src/ui/moves.tsx`).
   - **Where the numbers and verdicts live.** `mobile/qa/superapp-board.md`: `main`'s baseline, every council with its scores
     and what kept it from the top, the journeys, the widgets, the first minute's rounds. The binding choices:

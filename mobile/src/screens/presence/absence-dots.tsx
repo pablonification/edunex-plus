@@ -1,9 +1,11 @@
-// A course's absences, the one way the phone says them (the decisions' "Absences, everywhere"). One rule, read with no
-// key (round 4: "is a filled dot used or left?"): a ring is an absence still left, a filled grey dot is one used, a red
-// dot, set a little apart, is one over the limit. Colour on a dot means over and nothing else: a used absence is never
-// green. Then one short label with the noun, in the state's colour ("sisa 1 absen", "absen habis", "lewat 1 absen":
-// Beranda's strip says "absen habis" in the same words). Never a count or a sentence beside them: the whole sentence
-// is the row's accessible name. Kuliah's rows and a course's header both draw this.
+// A course's absences, the one way the phone says them (the decisions' "Absences, everywhere"), in the app and on the
+// home-screen widgets (src/widget/views.tsx draws the same). One rule, read with no key (the widgets' round 3, three
+// judges in the same words: "full = left, ring = used, red = over"): a full dot, in the page's ink, is an absence still
+// left; a ring is one used; a red dot, set a little apart, is one over the limit. So "sisa 2 absen" is two full dots,
+// "absen habis" is all rings, "lewat 1 absen" is all rings and one red. Colour on a dot means over and nothing else: a
+// dot is never green or amber. Then one short label with the noun, in the state's colour ("sisa 1 absen", "absen
+// habis", "lewat 1 absen": Beranda's strip says "absen habis" in the same words). Never a count or a sentence beside
+// them: the whole sentence is the row's accessible name. Kuliah's rows, a course's header and the class sheet draw this.
 import { memo } from "react";
 import { View } from "react-native";
 import type { Translate } from "../../../../src/app/i18n";
@@ -50,8 +52,9 @@ export const AbsenceDots = memo(function AbsenceDots({ model, label, testID }: {
                   borderRadius: 5,
                   // The first one over stands a dot's gap away from the allowed ones: "these, and one more".
                   marginLeft: past && i === allowed && allowed > 0 ? 4 : 0,
-                  backgroundColor: used ? (past ? v.redFg : v.fg2) : "transparent",
-                  borderWidth: used ? 0 : 1.5,
+                  // Full while it's still left, a ring once it's used, red when it's one too many.
+                  backgroundColor: past ? v.redFg : used ? "transparent" : v.fg2,
+                  borderWidth: used && !past ? 1.5 : 0,
                   borderColor: v.fg2,
                 }}
               />

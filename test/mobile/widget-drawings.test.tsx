@@ -40,12 +40,10 @@ vi.mock("../../mobile/src/nav", () => ({
   },
 }));
 
-const { attendanceWidget, courseWidget, dueWidget, examWidget, nextWidget, servicesWidget, widgetFacts, widgetModel } = await import(
-  "../../mobile/src/widget/model"
-);
+const { attendanceWidget, courseWidget, dueWidget, examWidget, nextWidget, widgetFacts, widgetModel } = await import("../../mobile/src/widget/model");
 const { THEMES } = await import("../../mobile/src/ui/theme");
 const { todayDrawing, widgetDrawing } = await import("../../mobile/src/widget/view");
-const { AttendanceView, CourseView, DueView, ExamView, NextView, ServicesView } = await import("../../mobile/src/widget/views");
+const { AttendanceView, CourseView, DueView, ExamView, NextView } = await import("../../mobile/src/widget/views");
 
 // ---------------------------------------------------------------- the walk
 
@@ -150,7 +148,6 @@ const SIZES: Record<string, ReturnType<typeof cell>[]> = {
   Attendance: [cell(2, 2, true), cell(3, 2, true), cell(4, 2), cell(4, 3)],
   Exam: [cell(2, 1), cell(2, 2, true), cell(2, 2), cell(4, 2, true)],
   Next: [cell(1, 1, true), cell(1, 1), cell(2, 1), cell(2, 2, true)],
-  Services: [cell(2, 1, true), cell(4, 1, true), cell(4, 1), cell(5, 2, true)],
   Course: [cell(2, 2, true), cell(3, 2, true), cell(3, 2), cell(5, 3)],
 };
 
@@ -178,7 +175,6 @@ const DRAW: Record<string, (size: Size, scheme: "light" | "dark", from?: World) 
   Attendance: (size, scheme, { facts } = world) => AttendanceView({ model: attendanceWidget(facts), size, theme: theme(scheme), lang: "id" }),
   Exam: (size, scheme, { facts } = world) => ExamView({ model: examWidget(facts), size, theme: theme(scheme) }),
   Next: (size, scheme, { facts } = world) => NextView({ model: nextWidget(facts), size, theme: theme(scheme) }),
-  Services: (size, scheme, { facts } = world) => ServicesView({ model: servicesWidget(facts), size, theme: theme(scheme) }),
   Course: (size, scheme, { facts } = world) => CourseView({ model: courseWidget(facts, null), size, theme: theme(scheme) }),
 };
 
@@ -199,10 +195,9 @@ const phone = (w: number, h: number) => ({ label: `${w}×${h}`, width: Math.roun
 /** Each widget at its smallest, a step between, its first size (marked) and its largest on a 4-wide launcher. */
 const RENDER: Record<string, { title: string; sizes: ReturnType<typeof phone>[]; first: string }> = {
   Now: { title: "Sekarang", sizes: [phone(2, 1), phone(4, 1), phone(4, 2), phone(4, 3)], first: "4×2" },
-  Services: { title: "Pintasan", sizes: [phone(2, 1), phone(4, 1)], first: "4×1" },
   Exam: { title: "Ujian", sizes: [phone(2, 1), phone(3, 1), phone(4, 1)], first: "2×1" },
   Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
-  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
+  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2)], first: "3×2" },
   Attendance: { title: "Jatah absen", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
   Next: { title: "Kelas berikutnya", sizes: [phone(1, 1), phone(2, 1)], first: "1×1" },
   Course: { title: "Satu mata kuliah", sizes: [phone(3, 1), phone(3, 2)], first: "3×1" },
@@ -365,28 +360,10 @@ describe("every widget at every size", () => {
   it("Kehadiran: each course's absences as marks, the danger in its word", () => {
     const size = phone(4, 4);
     const drawn = draw(DRAW.Attendance!({ ...size, fontScale: 1 }, "light"), size);
-    expect(drawn.texts).toEqual(expect.arrayContaining(["lewat 1", "habis", "sisa 2"]));
+    expect(drawn.texts).toEqual(expect.arrayContaining(["lewat 1 absen", "absen habis", "sisa 2 absen"]));
     // A mark is a 10 dp dot: one per absence the term allows, and one for each past it.
     const rows = attendanceWidget(world.facts).rows;
     const marks = rows.reduce((sum, row) => sum + (row.allowed ?? 0) + row.over, 0);
     expect(drawn.html.split("width:10px;height:10px").length - 1).toBe(marks);
-  });
-
-  it("Pintasan two rows high: all four as blocks that fill it", () => {
-    const size = phone(4, 2);
-    expect(
-      draw(DRAW.Services!({ ...size, fontScale: 1 }, "light"), size)
-        .taps.slice(1)
-        .map((tap) => tap.uri),
-    ).toEqual(["edunexplus://schedule", "edunexplus://tasks", "edunexplus://courses", "edunexplus://grades"]);
-  });
-
-  it("Pintasan: as many as fit, each opening its tab", () => {
-    expect(
-      draw(DRAW.Services!({ ...cell(4, 1), fontScale: 1 }, "light"), cell(4, 1))
-        .taps.slice(1)
-        .map((tap) => tap.uri),
-    ).toEqual(["edunexplus://schedule", "edunexplus://tasks", "edunexplus://courses", "edunexplus://grades"]);
-    expect(draw(DRAW.Services!({ ...cell(2, 1, true), fontScale: 1 }, "light"), cell(2, 1, true)).taps.length - 1).toBe(2);
   });
 });
