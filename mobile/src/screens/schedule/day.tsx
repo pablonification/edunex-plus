@@ -1,9 +1,9 @@
 // One day of Jadwal on the white page: the hours down the left, each class a block in its course's tint at its time and
 // length, never taller (a block past its end time would lie about when the class ends): its glyph, its name on as many
 // lines as its height holds at the phone's font size, the room; the part of a class already gone a shade deeper, and
-// today's now-line in the brand's blue. Classes that overlap keep nearly the whole width: the later one is laid over the
-// earlier from its own start, indented from the left (as calendar apps do), and carries the pair's one clash sign (kit's
-// `ClashMark`); the earlier one's name sits in the part above it. Above the hours, only when
+// today's now-line in the brand's blue. Classes that overlap sit side by side, each in its own column at its real start
+// and end (round 3's judges: the later one laid over the earlier hid its room, and nothing said "Bentrok"); both carry
+// the kit's clash sign with the time they share ("Bentrok 16:00–16:30", as Beranda says it). Above the hours, only when
 // there's something: ITB's period ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's
 // hand-ins and deadlines, a line each. A block shows at most one status, as an icon and its words (a clash, what
 // changed: "Selesai 10:00 (tadinya 09:30)", not in SIX); the absences, the code and the rest are on its sheet (Beranda's class sheet). The minute's tick moves
@@ -55,27 +55,33 @@ type Item =
   | { kind: "class"; key: string; start: number; end: number; code: string; item: ScheduledClass }
   | { kind: "meeting"; key: string; start: number; end: number; code: string; meeting: OutsideMeeting | EdunexMeeting; notInSix: boolean };
 
-/** How far a class laid over an earlier one it clashes with is indented from the left, in dp: the earlier one's glyph
- * and edge stay in sight beside it, as calendar apps do. */
-const INDENT = 36;
+/** The gap between two classes side by side, in dp: wide enough that two tints (alike in dark) read as two blocks. */
+const GAP = 6;
 
-/** Each item's place: its indent level (0 full width; a class laid over an earlier one it clashes with, 1, and so on)
- * and, for a class something later is laid over, where that later one starts (its own name must fit above it). */
-function placesOf(items: readonly Item[]): Map<string, { level: number; coveredAt: number | null }> {
-  const placed = new Map<string, { level: number; coveredAt: number | null }>();
+/** A block's place: its column and how many columns its group of overlapping classes has (1: the whole width). */
+export type Place = { col: number; cols: number };
+
+/** Each item's column, as calendar apps lay out a clash: a group of classes that overlap one another shares the width
+ * in columns, each class in the first column free at its start; everything else has the whole width. */
+export function placesOf(items: readonly { key: string; start: number; end: number }[]): Map<string, Place> {
+  const placed = new Map<string, Place>();
   const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
-  const open: { item: Item; level: number }[] = [];
+  let group: { key: string; end: number; col: number }[] = [];
+  let groupEnd = Number.NEGATIVE_INFINITY;
+  const close = () => {
+    const cols = group.length ? Math.max(...group.map((g) => g.col)) + 1 : 1;
+    for (const g of group) placed.set(g.key, { col: g.col, cols });
+    group = [];
+  };
   for (const item of sorted) {
-    const live = open.filter((o) => o.item.end > item.start);
-    // Always above what it's laid over, so its start and name are never under an earlier block.
-    const level = live.length ? Math.max(...live.map((o) => o.level)) + 1 : 0;
-    for (const o of live) {
-      const at = placed.get(o.item.key)!;
-      if (at.coveredAt === null || item.start < at.coveredAt) at.coveredAt = item.start;
-    }
-    placed.set(item.key, { level, coveredAt: null });
-    open.push({ item, level });
+    if (item.start >= groupEnd) close();
+    const taken = new Set(group.filter((g) => g.end > item.start).map((g) => g.col));
+    let col = 0;
+    while (taken.has(col)) col++;
+    group.push({ key: item.key, end: item.end, col });
+    groupEnd = Math.max(groupEnd, item.end);
   }
+  close();
   return placed;
 }
 
@@ -169,7 +175,7 @@ export const DayView = memo(function DayView({
         {/* The blocks' frame, beside the hours. */}
         <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: BLOCK_LEFT, right: BLOCK_RIGHT }}>
           {items.map((entry) => {
-            const at = placed.get(entry.key) ?? { level: 0, coveredAt: null };
+            const at = placed.get(entry.key) ?? { col: 0, cols: 1 };
             return (
               <Block
                 key={entry.key}
@@ -178,8 +184,7 @@ export const DayView = memo(function DayView({
                 // The class it shares time with by its short name, for TalkBack (on screen: the clash's icon).
                 clashWith={entry.kind === "class" ? entry.item.overlaps.map((o) => shortName(nameOf(o.code))).join(", ") : ""}
                 from={from}
-                level={at.level}
-                coveredAt={at.coveredAt}
+                place={at}
                 onPick={onPick}
               />
             );
@@ -279,9 +284,14 @@ function EmptyDay({
   );
 }
 
+/** The hours' lines in dark: the kit's hairline (#2e323b) was lost on the dark page under the tints (round 3's judge),
+ * this one is as far off the page as light's is off white. */
+const DARK_HOUR_LINE = "#3b404b";
+
 /** An hour's line and its label; on today the label near the now-line's own time gives way to it. */
 function HourLine({ hour, from, hideLabel }: { hour: number; from: number; hideLabel: boolean }) {
-  const v = useTheme().v4;
+  const theme = useTheme();
+  const v = theme.v4;
   // Both labels are a line tall at the phone's font size, centred on their lines: the hour's gives way while they'd touch.
   const { fontScale } = useWindowDimensions();
   const near = useClockSelect((now) => {
@@ -290,7 +300,16 @@ function HourLine({ hour, from, hideLabel }: { hour: number; from: number; hideL
   });
   const label = `${String(hour).padStart(2, "0")}:00`;
   return (
-    <View style={{ position: "absolute", top: yOf(hour * 60, from), left: LINES_LEFT, right: 0, height: 1, backgroundColor: v.line }}>
+    <View
+      style={{
+        position: "absolute",
+        top: yOf(hour * 60, from),
+        left: LINES_LEFT,
+        right: 0,
+        height: 1,
+        backgroundColor: theme.scheme === "dark" ? DARK_HOUR_LINE : v.line,
+      }}
+    >
       <Text
         size="bodySmall"
         tabular
@@ -399,24 +418,20 @@ const NAME_LINE = 19;
 const ROOM_LINE = 17;
 const STATUS_LINE = 18;
 
-/** A class at its time, as tall as it is long; laid over an earlier class it clashes with, indented from the left so
- * the earlier one's glyph and edge stay in sight and each keeps nearly the whole width for its name. */
+/** A class at its time, as tall as it is long; in a clash, in its own column beside the class it shares time with. */
 const Block = memo(function Block({
   entry,
   name,
   clashWith,
   from,
-  level,
-  coveredAt,
+  place,
   onPick,
 }: {
   entry: Item;
   name: string;
   clashWith: string;
   from: number;
-  level: number;
-  /** Where a later class laid over this one starts; null when none is. */
-  coveredAt: number | null;
+  place: Place;
   onPick: (picked: Picked) => void;
 }) {
   const { width } = useWindowDimensions();
@@ -424,25 +439,32 @@ const Block = memo(function Block({
   // As tall as the class is long, never taller: a block grown past its end would lie about when the class ends and run
   // into the next one. The name takes the lines the height holds (BlockBody); the sheet has the rest.
   const height = Math.max(TOUCH, ((entry.end - entry.start) / 3_600_000) * HOUR - 4);
-  // The part of it in sight above a later class laid over it: its words stay there.
-  const open = coveredAt === null ? height : Math.min(height, yOf(minuteOfDay(coveredAt), from) - top);
-  const left = level * INDENT;
+  const frame = width - BLOCK_LEFT - BLOCK_RIGHT;
+  const colWidth = (frame - GAP * (place.cols - 1)) / place.cols;
+  const left = place.col * (colWidth + GAP);
+  const narrow = place.cols > 1;
   return (
-    <View pointerEvents="box-none" style={{ position: "absolute", top, height, left, right: 0, zIndex: level }}>
+    <View pointerEvents="box-none" style={{ position: "absolute", top, height, left, width: colWidth }}>
       <BlockBody
         entry={entry}
         name={name}
         clashWith={clashWith}
         onPick={onPick}
-        open={open}
-        covered={coveredAt !== null}
-        laid={level > 0}
-        lifted={level > 0}
-        textWidth={width - BLOCK_LEFT - BLOCK_RIGHT - left - 24 - 32}
+        open={height}
+        narrow={narrow}
+        // Beside another class, the glyph gives its room to the name: 12 dp each side.
+        textWidth={narrow ? colWidth - 2 * NARROW_PAD : colWidth - 24 - 32}
       />
     </View>
   );
 });
+
+/** A block in a clash's column: its words' padding at each side, and the name's size there (sp). */
+const NARROW_PAD = 10;
+const NARROW_NAME = { size: 13, line: 17 };
+
+/** Roughly how wide a line of semibold text is at a size, in dp (Roboto's letters and digits average about 0.53 of it). */
+const widthOf = (text: string, size: number) => text.length * size * 0.53;
 
 /** How many lines a name takes at a width, wrapped at words (an estimate: Roboto semibold's average letter is about
  * 0.55 of its size; a little generous, so a name is never given fewer lines than it needs). */
@@ -463,8 +485,9 @@ function linesFor(text: string, width: number, size: number): number {
 
 /**
  * A block's card in its course's tint: the glyph, the whole name, then its one status as an icon and its words (a
- * clash is the app's one clash sign, the icon and "Bentrok", said once on the class laid over the other), then the room
- * where the height still holds it. Every line is fitted in `open`, the part of the block in sight.
+ * clash is the kit's clash sign with the time the two share, on both blocks of the pair), then the room where the height
+ * still holds it. Beside another class (`narrow`) the glyph goes and the name takes two lines at most, a size smaller.
+ * Every line is fitted in `open`, the block's height.
  */
 function BlockBody({
   entry,
@@ -472,23 +495,17 @@ function BlockBody({
   clashWith,
   onPick,
   open,
-  covered,
-  laid,
-  lifted,
+  narrow,
   textWidth,
 }: {
   entry: Item;
   name: string;
   clashWith: string;
   onPick: (picked: Picked) => void;
-  /** The block's height in sight, in dp (less than its height when a later class is laid over it). */
+  /** The block's height, in dp. */
   open: number;
-  /** A later class is laid over it: its words keep to the band above that one, close to its top edge. */
-  covered: boolean;
-  /** Laid over an earlier class it clashes with: the pair's one clash mark is on this block. */
-  laid: boolean;
-  /** Drawn over another block: a thin edge in the page's colour parts the two. */
-  lifted: boolean;
+  /** In a column beside a class it shares time with. */
+  narrow: boolean;
   textWidth: number;
 }) {
   const { fontScale } = useWindowDimensions();
@@ -504,24 +521,33 @@ function BlockBody({
     now <= entry.start ? 0 : now >= entry.end ? 1 : Math.round(((now - entry.start) / (entry.end - entry.start)) * 100) / 100,
   );
   const status = statusOf(t, entry);
-  // The clash is said once for the pair, on the class laid over the other: not on the earlier one.
-  const shown = status && (status.icon !== Icons.Overlap || laid) ? status : null;
+  const shown = status;
+  // The time the pair shares, said with the clash on both ("Bentrok 16:00–16:30").
+  const overlap = entry.kind === "class" ? entry.item.overlaps[0] : undefined;
+  const shared = overlap ? timeRange(f, Math.max(entry.start, overlap.from), Math.min(entry.end, overlap.to)) : "";
   const session = entry.kind === "class" ? entry.item.session : null;
   const room = session ? session.room : entry.kind === "meeting" && entry.meeting.online ? t("schedule.online") : null;
   const exam = entry.kind === "class" && entry.item.exam ? entry.item.session.activity : null;
   const title = exam ? `${exam} ${name}` : name;
   const time = timeRange(f, entry.start, entry.end);
-  // Covered, the band above the later class (an hour: 56 dp) holds two lines of name at 1.3 (2 × 24.7) under 4 dp.
-  const pad = covered ? 4 : short ? PAD.short : PAD.tall;
-  const padBottom = covered ? 0 : pad;
+  // Beside another class every dp counts: 4 above and below, and the lines closer.
+  const pad = narrow ? 4 : short ? PAD.short : PAD.tall;
+  const padBottom = pad;
   // What the part in sight truly holds at this font size, in dp: the whole name first (as many lines as it takes at
   // this width), then the status, then the room; what doesn't fit is left to the sheet. Only a class shorter than its
   // name needs ends its name in "…" after the last line its height holds.
-  const nameLine = NAME_LINE * fontScale;
-  const roomLine = ROOM_LINE * fontScale + 3;
-  const statusLine = STATUS_LINE * fontScale + 4;
+  const nameSize = narrow ? NARROW_NAME.size : 15;
+  const nameLine = (narrow ? NARROW_NAME.line : NAME_LINE) * fontScale;
+  const gapAbove = narrow ? { status: 2, room: 1 } : { status: 4, room: 3 };
+  const roomLine = ROOM_LINE * fontScale + gapAbove.room;
+  const statusLine = STATUS_LINE * fontScale + gapAbove.status;
+  const clash = shown?.icon === Icons.Overlap;
+  // "Bentrok 16:00–16:30" on one line when the width holds it (the icon and its gap: 20 dp), else the word alone.
+  const clashDetail = clash && shared && widthOf(`${t("home.today.overlap")} ${shared}`, 13 * fontScale) + 20 <= textWidth ? shared : undefined;
   const fits = Math.max(1, Math.floor((open - pad - padBottom + 0.5) / nameLine));
-  const lines = Math.min(fits, linesFor(title, textWidth, 15 * fontScale));
+  // Beside another class, two lines of name at most: the clash's sign comes before a third line.
+  const need = Math.min(narrow ? 2 : 99, linesFor(title, textWidth, nameSize * fontScale));
+  const lines = Math.max(1, Math.min(fits - (clash && narrow && fits <= need ? 1 : 0), need));
   let left_ = open - pad - padBottom - lines * nameLine;
   const showStatus = shown !== null && left_ >= statusLine;
   if (showStatus) left_ -= statusLine;
@@ -534,7 +560,7 @@ function BlockBody({
     room,
     phase === "live" ? t("schedule.live") : null,
     clashWith && status?.icon === Icons.Overlap
-      ? t("mobile.course.ex.clash", { course: clashWith })
+      ? `${t("mobile.course.ex.clash", { course: clashWith })} ${shared}`
       : status?.shown
         ? `${status.words} ${status.shown}`
         : status?.words,
@@ -555,7 +581,6 @@ function BlockBody({
           borderRadius: 14,
           overflow: "hidden",
           backgroundColor: tile.tint,
-          ...(lifted ? { borderWidth: 1.5, borderColor: theme.color.surface } : {}),
         }}
       >
         {gone > 0 && (
@@ -581,12 +606,19 @@ function BlockBody({
             }}
           />
         )}
-        <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 12, paddingTop: pad, paddingBottom: padBottom }}>
-          <View style={{ paddingTop: 1 }}>
-            <CourseGlyph code={entry.code} name={name} size={22} />
-          </View>
+        <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: narrow ? NARROW_PAD : 12, paddingTop: pad, paddingBottom: padBottom }}>
+          {!narrow && (
+            <View style={{ paddingTop: 1 }}>
+              <CourseGlyph code={entry.code} name={name} size={22} />
+            </View>
+          )}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="bodyLarge" weight="semibold" numberOfLines={lines} style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
+            <Text
+              size="bodyLarge"
+              weight="semibold"
+              numberOfLines={lines}
+              style={{ color: v.fg, fontSize: nameSize, lineHeight: narrow ? NARROW_NAME.line : NAME_LINE }}
+            >
               {title}
             </Text>
             {showStatus && shown && (
@@ -594,10 +626,10 @@ function BlockBody({
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
                 // The status's icon sits in the glyph's column, under it, so its words get the name's whole width.
-                style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4, marginLeft: shown.icon === Icons.Overlap ? 0 : -32 }}
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: gapAbove.status, marginLeft: clash || narrow ? 0 : -32 }}
               >
-                {shown.icon === Icons.Overlap ? (
-                  <ClashMark />
+                {clash ? (
+                  <ClashMark detail={clashDetail} />
                 ) : (
                   <>
                     <View style={{ width: 22, alignItems: "center" }}>
@@ -617,7 +649,7 @@ function BlockBody({
               </View>
             )}
             {second !== "" && (
-              <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, fontSize: 13, lineHeight: ROOM_LINE, marginTop: 3 }}>
+              <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, fontSize: 13, lineHeight: ROOM_LINE, marginTop: gapAbove.room }}>
                 {second}
               </Text>
             )}

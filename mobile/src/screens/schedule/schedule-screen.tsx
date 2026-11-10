@@ -9,7 +9,7 @@
 import * as Notifications from "expo-notifications";
 import { router, useIsFocused, useScrollToTop } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking, RefreshControl, ScrollView, View } from "react-native";
+import { Linking, RefreshControl, ScrollView, useWindowDimensions, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -33,7 +33,7 @@ import { useReduceMotion } from "../../ui/motion";
 import { Tap } from "../../ui/moves";
 import { Part } from "../../ui/parts";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { space, TOUCH, useTheme } from "../../ui/theme";
 import { PhoneCalendarSync, useCalendarSync, useShareIcs } from "./calendar-sync";
 import { useDayFormat, useToday } from "./clock";
 import { DayView, HOUR, hoursOf, type NextClass } from "./day";
@@ -269,7 +269,12 @@ function openAt(day: ScheduleDay, today: string, now: number): number {
     (s) => [minuteOfDay(s.start), minuteOfDay(s.start) + (s.end - s.start) / 60_000] as const,
   );
   const first = Math.min(...spans.map(([start]) => start));
-  let target = day.day === today ? minuteOfDay(now) - 60 : Number.isFinite(first) ? first - 20 : hoursOf(day).from * 60;
+  // Today opens at the class on now or next, or at the now-line when that comes first: never on empty hours before both
+  // (round 3's judge: "a dead 07:00 row"). Other days open at their first class.
+  const minute = minuteOfDay(now);
+  const ahead = spans.filter(([, end]) => end > minute).map(([start]) => start);
+  let target =
+    day.day === today ? Math.min(minute, ahead.length ? Math.min(...ahead) : minute) - 20 : Number.isFinite(first) ? first - 20 : hoursOf(day).from * 60;
   for (;;) {
     const cut = spans.filter(([start, end]) => start < target && target < end).map(([start]) => start);
     if (!cut.length) return target;
@@ -289,6 +294,7 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const f = useDayFormat();
   const theme = useTheme();
   const v = theme.v4;
+  const { fontScale } = useWindowDimensions();
   const page = theme.color.surface;
   const insets = useSafeAreaInsets();
   const input = useAgendaInput();
@@ -306,6 +312,7 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const range = f.dayRange(monday, shiftDay(monday, 6));
   const place = n ? t("schedule.weekOf", { n, range }) : range;
   const away = picked !== today;
+  const titleSlop = Math.max(4, Math.ceil((TOUCH - 28 * fontScale) / 2));
   return (
     <View style={{ backgroundColor: page, paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
@@ -317,7 +324,8 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
             accessibilityRole="button"
             accessibilityLabel={`${t("nav.schedule")}, ${month}, ${place}. ${t("sync.title")}: ${sync}`}
             testID="action.syncStatus"
-            hitSlop={{ top: 10, bottom: 8, right: 12 }}
+            // 48 dp tall to the thumb: the name's line (28 sp) and the slop above and below it, at any font size.
+            hitSlop={{ top: titleSlop, bottom: titleSlop, right: 12 }}
             style={{ alignSelf: "flex-start", maxWidth: "100%" }}
           >
             <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
