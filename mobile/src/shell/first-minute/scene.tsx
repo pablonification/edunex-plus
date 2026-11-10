@@ -3,16 +3,19 @@
 // to wait for and there's nothing to swipe or skip. Second by second (DESIGN.md, "The first minute"):
 //
 //   1. The stage is Edunex Plus's blue, full height, from the app's first frame (../welcome.tsx). On it: two doors in
-//      the upper half, one per system, both the same; between them the app's mark with a still glow, the stage's one
-//      light; the headline bottom-left; one button under the thumb. Once drawn, nothing on it moves: no frame is drawn.
+//      the upper half, one per system, both the same; between them the app's mark with a glow, the stage's one
+//      light, tight at rest and wider with each system in; the headline bottom-left; one button under the thumb.
+//      Once drawn, nothing on it moves: no frame is drawn.
 //   2. The tap: the button becomes the status in words, in place; the language chip and the note about signing in go
-//      with it. At each door's foot is an empty ring: while its system connects, the ring turns (the one thing that
-//      moves). Once it's in, the door lights in three steps that never overlap (its white words go, the door lights,
-//      its dark words come), then shows what the system just said (the name and NIM under Edunex, the programme under
-//      SIX, two lines' room on both) and the ring is a tick, the same size and colour on both doors. A haptic each.
-//   3. The second system in: as its door lights, the headline becomes the greeting in the same spot ("Pagi, Dimas.":
-//      Beranda has none, so it's said once). The instant its tick lands the stage lifts, and the doors close onto the
-//      mark while it rises: there's no hold, and the lower half is never empty.
+//      with it. A door's foot is empty until its system starts: then a ring is there, already turning, a bright half
+//      on a dim track (the one thing that moves). Once the system is in, the door lights and its name, never absent,
+//      turns from white to navy with it; the ring becomes a tick, the same size and colour on both doors; and what the
+//      system just said comes under the name (the name and NIM under Edunex, the programme under SIX once SIX has
+//      said it; no word that only repeats the tick). A haptic each.
+//   3. The first system in with the name: the headline becomes the greeting in the same spot ("Pagi, Dimas.": Beranda
+//      has none, so it's said once), so it's read while the other system connects. Meanwhile the doors close onto
+//      the mark: they have met by the time the second tick lands, the mark answers with one beat, and the stage lifts
+//      that instant. There's no hold, and the lower half is never empty.
 //   4. The hand-over: the whole stage (doors, mark, greeting) lifts away like a curtain. Under it the real Beranda
 //      was there all along, filling as the first read brings it. A strip of the stage's blue holds the status bar
 //      until the curtain's edge has gone under it, then fades where it is: nothing slides across the clock. The scene
@@ -21,7 +24,8 @@
 // Nothing here waits for the read: the lift starts 0.4 s after the second system is in. Every move runs on the UI
 // thread (Reanimated), on transforms and opacity only, each a timing that ends; the whole hand-over is set going in
 // one go, so the first read's JavaScript can't hold a step of it up. Every colour is opaque (./colors.ts) and no shape
-// is clipped, so a frame is a few flat fills. With Remove animations the same steps cross-fade and nothing moves.
+// is clipped, so a frame is a few flat fills; everything on the sheet is still by the time it lifts, so it lifts as one
+// picture (a hardware texture). With Remove animations the same steps cross-fade and nothing moves.
 // Loaded only when nobody is signed in (./gate.tsx).
 import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
@@ -91,16 +95,18 @@ const SIDE = space[6];
 const BADGE = { min: 48, max: 104 } as const;
 /** The glow behind the mark, by the mark's size: small and steep, so its steps can't show as bands on a dark stage. */
 const GLOW = 1.7;
+/** The glow's size with no system in, one, both: tight around the mark, out to the lit door, over both. */
+const GLOW_GROWS = [0.8, 1, 1.24];
 /** A door's tick and the ring it comes from (one size on both doors), and the room under it. */
 const TICK = 32;
-const RING = 26;
+const RING = 28;
 const FOOT = space[4];
 /** What a system just learned: two lines of this height (sp) under its name, on both doors. */
 const FACT_LINE = 20;
 const FACT_LINES = 2;
-/** A door lighting, start to tick: its white words go, it lights, its dark words and tick come. */
+/** A door lighting, start to end: it lights, its name and its ring turn into navy and a tick midway, its facts come. */
 const LIT_MS = 420;
-/** The greeting's time alone before the stage moves: the second door's lighting, to the instant its tick lands. */
+/** The last door's lighting, to the instant the stage moves. */
 const LEAD_MS = LIT_MS;
 /** The headline turning into the greeting, in place. */
 const HELLO_MS = 260;
@@ -108,8 +114,12 @@ const HELLO_MS = 260;
 const OTHER_WAIT_MS = 2_000;
 /** One in and the other stopped: this long to read why, before the hand-over (the line leaves with the stage). */
 const OTHER_STOPPED_MS = 1_200;
-/** The doors closing onto the mark, while the stage lifts. */
+/** The doors closing onto the mark, while the other system connects (or, with nothing to wait for, while the last
+ *  door lights): always over before the stage lifts. */
 const JOIN_MS = 380;
+/** The mark's one beat as the doors have met: up, then back, done as the stage starts to lift. */
+const BEAT_UP_MS = 120;
+const BEAT_DOWN_MS = 200;
 /** The stage lifting off Beranda. */
 const LIFT_MS = 700;
 /** How far into the lift the curtain's edge is under the status bar's strip: its icons turn then. */
@@ -173,6 +183,7 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   const beat = useSharedValue(0);
   const lift = useSharedValue(0);
   const out = useSharedValue(0);
+  const light = useSharedValue(0);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const later = useCallback((run: () => void, ms: number) => void timers.current.push(setTimeout(run, ms)), []);
@@ -210,9 +221,9 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   const handOver = useCallback(() => {
     setPhase("joining");
     // The whole hand-over is set going here, in one go, on the UI thread: the first read's JavaScript can't hold a
-    // step of it up. The greeting first, while the last door lights; the instant its tick lands (LEAD_MS), the stage.
-    // The timers after it only tell the screen reader, the touch layer, the phone's bars and the haptics where it is.
-    hello.value = withTiming(1, { duration: HELLO_MS });
+    // step of it up. The last door lights; the instant it has (LEAD_MS), the stage lifts. The greeting is up already
+    // and the doors have met, or do both now. The timers after it only tell the screen reader, the touch layer, the
+    // phone's bars and the haptics where it is.
     if (still) {
       // The same beats as fades: the greeting, then the stage cross-fades to Beranda. Nothing moves, nothing cuts.
       const fade = LEAD_MS + STILL_HOLD_MS;
@@ -226,20 +237,59 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
       return;
     }
     lift.value = withDelay(LEAD_MS, withTiming(1, { duration: LIFT_MS, easing: LIFTING }));
-    join.value = withDelay(LEAD_MS, withTiming(1, { duration: JOIN_MS, easing: EMPHASIZED }));
-    beat.value = withDelay(LEAD_MS + JOIN_MS - 160, withSequence(withTiming(1, { duration: 120 }), withTiming(0, { duration: 200 })));
-    later(() => {
-      setPhase("lifting");
-      haptic.confirm();
-    }, LEAD_MS);
-    later(() => haptic.tick(), LEAD_MS + JOIN_MS - 100);
+    // The doors that haven't met yet (the other system stopped, or both came at once) meet while the last one lights.
+    if (!meeting.current) join.value = withTiming(1, { duration: JOIN_MS, easing: EMPHASIZED });
+    // The mark's beat, over as the stage starts to move: the sheet lifts with nothing on it still changing.
+    beat.value = withDelay(
+      LEAD_MS - BEAT_UP_MS - BEAT_DOWN_MS,
+      withSequence(withTiming(1, { duration: BEAT_UP_MS }), withTiming(0, { duration: BEAT_DOWN_MS })),
+    );
+    // One haptic, at the beat's top (each system in already gave its own).
+    later(() => haptic.tick(), LEAD_MS - BEAT_DOWN_MS);
+    later(() => setPhase("lifting"), LEAD_MS);
     later(() => setUncovered(true), LEAD_MS + LIFT_MS * CLEARS_TOP);
     later(() => done.current(), LEAD_MS + LIFT_MS + 40);
-  }, [still, hello, join, beat, lift, out, later]);
+  }, [still, join, beat, lift, out, later]);
 
   // The other system, with one in: still on its way (the same sign-in is trying it), or stopped (it asked for the
   // Student, or failed): then Beranda has its own way to connect it.
   const otherStopped = anyIn && !bothIn && busy === null && (edunexIn ? sixStep : edunexStep) === null;
+
+  // The greeting, as soon as a door has lit with the name (the name is known then): the headline becomes it in place,
+  // so it's read while the other system connects, not in the instant before the stage leaves. Without a name, at the
+  // hand-over, as the part of the day alone.
+  const hour = new Date(now).getHours();
+  const dayPart = hour < 11 ? "morning" : hour < 15 ? "midday" : hour < 18 ? "afternoon" : "evening";
+  const called = account ? firstName(account.name) : student ? firstName(student.name) : "";
+  const greeting = called ? t(`mobile.welcome.hello.${dayPart}`, { name: called }) : `${t(`time.greeting.${dayPart}`)}.`;
+  const greeted = anyIn && (called !== "" || phase !== "doors");
+  const wasGreeted = useRef(false);
+  useEffect(() => {
+    if (greeted === wasGreeted.current) return;
+    wasGreeted.current = greeted;
+    hello.value = withTiming(greeted ? 1 : 0, { duration: HELLO_MS });
+  }, [greeted, hello]);
+
+  // The doors close onto the mark while the other system connects (its ring turning as its door comes over), so
+  // they've met when its tick lands: two become one, in time that was passing anyway. A system that stopped keeps its
+  // door where it is until the hand-over. With less motion asked for, the doors stay where they are.
+  // The stage's one light grows with each system in: tight around the mark at rest, out to the first lit door, then
+  // over both. A scale on the one small glow, over a door's lighting, so it's done before the stage lifts.
+  const systemsIn = (edunexIn ? 1 : 0) + (sixIn ? 1 : 0);
+  const shone = useRef(0);
+  useEffect(() => {
+    if (still || systemsIn === shone.current) return;
+    shone.current = systemsIn;
+    light.value = withTiming(systemsIn, { duration: LIT_MS, easing: EMPHASIZED });
+  }, [systemsIn, still, light]);
+
+  const meet = !still && anyIn && (bothIn || !otherStopped);
+  const meeting = useRef(false);
+  useEffect(() => {
+    if (meet === meeting.current) return;
+    meeting.current = meet;
+    if (meet) join.value = withTiming(1, { duration: JOIN_MS, easing: EMPHASIZED });
+  }, [meet, join]);
   // Both in: the hand-over starts at once (its first 0.4 s is the second door lighting). One in: once the other has
   // come along, or after a moment to read why it stopped, or soon without it (it joins on Beranda if it's only slow).
   useEffect(() => {
@@ -257,6 +307,8 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
       cancelAnimation(value);
       value.value = 0;
     }
+    meeting.current = false;
+    wasGreeted.current = false;
     setUncovered(false);
     setPhase("doors");
   }, [phase, anyIn, clearTimers, hello, join, beat, lift, out]);
@@ -303,9 +355,12 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   });
   const stripStyle = useAnimatedStyle(() => ({ opacity: top > 0 ? Math.min(1, Math.max(0, (curtain * (1 - lift.value)) / top)) : 0 }));
   const headlineStyle = useAnimatedStyle(() => ({ opacity: 1 - hello.value }));
-  const helloStyle = useAnimatedStyle(() => ({ opacity: hello.value }));
+  // The greeting comes up into the headline's place (a fade alone where the phone asks for less motion).
+  const rise = still ? 0 : motion.nudge;
+  const helloStyle = useAnimatedStyle(() => ({ opacity: hello.value, transform: [{ translateY: (1 - hello.value) * rise }] }));
   const leftDoor = useAnimatedStyle(() => ({ transform: [{ translateX: (join.value * GAP) / 2 }] }));
   const rightDoor = useAnimatedStyle(() => ({ transform: [{ translateX: (-join.value * GAP) / 2 }] }));
+  const glowStyle = useAnimatedStyle(() => ({ transform: [{ scale: still ? 1 : interpolate(light.value, [0, 1, 2], GLOW_GROWS) }] }));
   const markStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + beat.value * 0.14 }] }));
 
   // Each part comes up a beat after the one before, once (a fade where the phone asks for less motion).
@@ -320,19 +375,10 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   const doorState = (source: Source): DoorState =>
     (source === "edunex" ? edunexIn : sixIn) ? "in" : stepOf(source) !== null || busy === source ? "working" : "rest";
   // What each system just said, for its door, two lines' room each: Edunex the name and NIM; SIX the programme (the
-  // name is said already), or that it's connected until its first page is read.
+  // name is said already). Nothing until it has said it: the tick alone says it's connected.
   const doorInner = doorWidth - space[2] * 2;
-  const learned = (source: Source): [string, string?] =>
-    source === "edunex"
-      ? account
-        ? [doorName(displayName(account.name), doorInner), account.nim]
-        : [t("mobile.welcome.doorIn")]
-      : [student?.program ?? t("mobile.welcome.doorIn")];
-  // The greeting the headline becomes: the part of the day and the first name, said here once (Beranda has none).
-  const hour = new Date(now).getHours();
-  const dayPart = hour < 11 ? "morning" : hour < 15 ? "midday" : hour < 18 ? "afternoon" : "evening";
-  const called = account ? firstName(account.name) : student ? firstName(student.name) : "";
-  const greeting = called ? t(`mobile.welcome.hello.${dayPart}`, { name: called }) : `${t(`time.greeting.${dayPart}`)}.`;
+  const learned = (source: Source): [string?, string?] =>
+    source === "edunex" ? (account ? [doorName(displayName(account.name), doorInner), account.nim] : []) : [student?.program ?? undefined];
 
   // What the button became: where the sign-in is, in words. Nothing once both are in: the doors say that.
   const sourceName = (source: Source) => t(`source.${source}`);
@@ -385,7 +431,13 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
       <NavigationBar style={lifting ? (scheme === "dark" ? "dark" : "light") : "dark"} />
 
       {/* The stage and everything on it, one sheet: it lifts as one at the hand-over (a transform on this one view). */}
-      <Animated.View style={[styles.curtain, { height: curtain, backgroundColor: HEM[scheme] }, curtainStyle]}>
+      <Animated.View
+        // Lifting, nothing on the sheet changes any more: it's kept as one picture, so each frame of the lift moves
+        // that picture instead of drawing the doors, the mark's glow and the words again.
+        renderToHardwareTextureAndroid={lifting && !still}
+        shouldRasterizeIOS={lifting && !still}
+        style={[styles.curtain, { height: curtain, backgroundColor: HEM[scheme] }, curtainStyle]}
+      >
         {/* The sheet's face over its hem: in dark the hem is a clear line along the lower edge. */}
         {HEM[scheme] !== STAGE[scheme] && <View style={[styles.face, { backgroundColor: STAGE[scheme] }]} />}
         {/* What's said on the stage: the headline bottom-left, the one button under the thumb. */}
@@ -402,12 +454,12 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
             style={{ flex: 1, minHeight: 140 }}
           />
           <Animated.View entering={enter(2)} style={{ paddingHorizontal: SIDE, paddingTop: space[4] }}>
-            {/* The desktop's headline, broken where it breathes: each half keeps to its one line at any font size. At
-                the hand-over it becomes the greeting, in the same spot and the same size, and leaves with the stage. */}
+            {/* The desktop's headline, broken where it breathes: each half keeps to its one line at any font size. Once
+                a door lights with the name it becomes the greeting, in the same spot and size, and leaves with the stage. */}
             <View
               accessible
               accessibilityRole="header"
-              accessibilityLabel={phase === "doors" ? headline.join(" ") : greeting}
+              accessibilityLabel={greeted ? greeting : headline.join(" ")}
               style={{ height: headlineRoom, justifyContent: "flex-end" }}
             >
               <Animated.View style={headlineStyle}>
@@ -504,7 +556,9 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
               >
-                <Glow size={glow} scheme={scheme} />
+                <Animated.View style={glowStyle}>
+                  <Glow size={glow} scheme={scheme} />
+                </Animated.View>
                 <Animated.View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }, markStyle]}>
                   {/* A thin edge in the stage's own blue around the white ring: unseen on the stage, and what keeps the
                       ring whole where it crosses a lit door. */}
@@ -595,7 +649,8 @@ function doorName(name: string, width: number): string {
 }
 
 /**
- * The still glow behind the mark: the stage's one light, drawn once and never moved. Small, and falling off along a
+ * The glow behind the mark: the stage's one light, drawn once (it grows by a scale as each system comes in, and is
+ * still otherwise). Small, and falling off along a
  * curve in six steps rather than a straight line in two: on a dark stage a wide, faint gradient showed its steps.
  */
 const Glow = memo(function Glow({ size, scheme }: { size: number; scheme: Scheme }) {
@@ -619,13 +674,15 @@ const Glow = memo(function Glow({ size, scheme }: { size: number; scheme: Scheme
 
 /**
  * A system as a door: its logo and its name on an arch. Nothing on it is a control, and both doors are the same until
- * a system moves. At its foot, an empty ring the size of the tick it will become. At rest nothing on it changes. While
- * its sign-in runs the ring turns (a bright quarter on a dim track): the scene's one endless move, a rotation of one
- * small view on the UI thread, stopped the moment the system is in. Once it's in, one value lights the door in three
- * steps that don't overlap: its white name and ring go (the first fifth), the door lights (to two thirds), and only on
- * the lit door do its dark name, what the system said and the tick come. So no frame has white words on a pale door
- * or dark words on a dark one; the logo is drawn once and never changes. Its size never changes, and the two lines of
- * what it learned have their room from the start. With less motion asked for, the ring is still and nothing turns.
+ * a system moves: at rest a door's foot is empty (a ring there read as something to pick). When its sign-in starts, a
+ * ring is there already turning, a bright half on a dim track, the brightest thing on the door: the scene's one
+ * endless move, a rotation of one small view on the UI thread, stopped the moment the system is in. Once it's in, one
+ * value lights the door: the door's fill first, and midway, in a few frames, the name turns from white to navy where
+ * it stands (the navy laid over the white, so it's never absent and never thin) while the ring gives way to the tick
+ * in the same spot; then what the system said comes under the name. The white name is on the door while it's still
+ * more blue than white, the navy one once it's more white than blue. The logo is drawn once and never changes; the
+ * door's size never changes, and the two lines of what it learned have their room from the start. With less motion
+ * asked for, the ring is still and nothing turns or grows.
  */
 const Door = memo(function Door({
   source,
@@ -643,8 +700,8 @@ const Door = memo(function Door({
   state: DoorState;
   /** The ring may turn (the stage is in view). */
   turning: boolean;
-  /** What the system just said about the Student: one line that may run to two, or two lines of one. */
-  first: string;
+  /** What the system just said about the Student, if it has: one line that may run to two, or two lines of one. */
+  first?: string;
   second?: string;
   /** The two lines' room (dp). */
   factsRoom: number;
@@ -658,6 +715,11 @@ const Door = memo(function Door({
   const still = useReduceMotion();
   const isIn = state === "in";
   const working = state === "working";
+  // The ring is on the door from the moment its system starts until the tick has taken its place; a door that was
+  // never seen working goes straight to its tick.
+  const ringed = useRef(false);
+  if (working) ringed.current = true;
+  else if (state === "rest") ringed.current = false;
   // The door's light, 0 to 1 (everything about being in comes from it), and the ring's turn.
   const lit = useSharedValue(isIn ? 1 : 0);
   const turn = useSharedValue(0);
@@ -673,9 +735,17 @@ const Door = memo(function Door({
       turn.value = 0;
     };
   }, [working, turning, still, turn]);
-  const restStyle = useAnimatedStyle(() => ({ opacity: interpolate(lit.value, [0, 0.2], [1, 0], Extrapolation.CLAMP) }));
-  const lightStyle = useAnimatedStyle(() => ({ opacity: interpolate(lit.value, [0.15, 0.65], [0, 1], Extrapolation.CLAMP) }));
-  const litStyle = useAnimatedStyle(() => ({ opacity: interpolate(lit.value, [0.65, 1], [0, 1], Extrapolation.CLAMP) }));
+  // The fill; the turn of the ink (name and tick) midway through it; what the system said, last.
+  const lightStyle = useAnimatedStyle(() => ({ opacity: interpolate(lit.value, [0, 0.7], [0, 1], Extrapolation.CLAMP) }));
+  const inkStyle = useAnimatedStyle(() => ({ opacity: interpolate(lit.value, INK, [0, 1], Extrapolation.CLAMP) }));
+  // The white name stays whole under the navy one until that has fully come, then goes.
+  const restStyle = useAnimatedStyle(() => ({ opacity: lit.value > INK[1] ? 0 : 1 }));
+  const ringFade = useAnimatedStyle(() => ({ opacity: interpolate(lit.value, INK, [1, 0], Extrapolation.CLAMP) }));
+  const tickStyle = useAnimatedStyle(() => {
+    const ink = interpolate(lit.value, INK, [0, 1], Extrapolation.CLAMP);
+    return { opacity: ink, transform: [{ scale: still ? 1 : 0.7 + ink * 0.3 }] };
+  });
+  const factStyle = useAnimatedStyle(() => ({ opacity: interpolate(lit.value, [INK[1], 1], [0, 1], Extrapolation.CLAMP) }));
   const ringStyle = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value}deg` }] }));
   const name = t(`source.${source}`);
   const says = isIn
@@ -711,37 +781,39 @@ const Door = memo(function Door({
     <View testID={`door.${source}`} accessible accessibilityLabel={says} style={[{ flex: 1, backgroundColor: DOOR_REST[scheme] }, arch]}>
       {/* The door's light. */}
       <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: DOOR_LIT[scheme] }, arch, lightStyle]} />
-      {/* The resting face: the name in white, and the ring at the foot (turning while the system connects). */}
-      <Animated.View style={[StyleSheet.absoluteFill, inside, restStyle]}>
-        <View
+      {/* The resting face: the name in white, and at the foot nothing, or the ring once the system has started. */}
+      <View style={[StyleSheet.absoluteFill, inside]}>
+        <Animated.View
           onLayout={(event: LayoutChangeEvent) => onName?.(event.nativeEvent.layout.y + event.nativeEvent.layout.height)}
-          style={{ alignItems: "center", gap: space[2] }}
+          style={[styles.name, restStyle]}
         >
           {title(STAGE_INK)}
-        </View>
-        <View style={styles.foot}>
-          <Animated.View style={[styles.ring, { borderColor: working ? RING_TRACK[scheme] : DOOR_LIGHT, borderTopColor: DOOR_LIGHT }, ringStyle]} />
-        </View>
-      </Animated.View>
+        </Animated.View>
+        <Animated.View style={[styles.foot, ringFade]}>
+          {ringed.current && <Animated.View style={[styles.ring, { borderColor: RING_TRACK[scheme] }, styles.ringBright, ringStyle]} />}
+        </Animated.View>
+      </View>
       {/* The lit face: the same name in the same place in navy, what the system said in its two lines' room, the tick. */}
-      <Animated.View style={[StyleSheet.absoluteFill, inside, litStyle]}>
-        <View style={{ alignItems: "center", gap: space[2], alignSelf: "stretch" }}>
-          {title(DOOR_INK[scheme][source])}
-          <View style={{ alignSelf: "stretch", height: factsRoom, marginTop: -space[1], justifyContent: "center" }}>
-            <Text size="bodyMedium" weight="medium" numberOfLines={second ? 1 : 2} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.fact}>
-              {first}
-            </Text>
+      <View style={[StyleSheet.absoluteFill, inside]}>
+        <View style={[styles.name, { alignSelf: "stretch" }]}>
+          <Animated.View style={[styles.name, inkStyle]}>{title(DOOR_INK[scheme][source])}</Animated.View>
+          <Animated.View style={[{ alignSelf: "stretch", height: factsRoom, marginTop: -space[1], justifyContent: "center" }, factStyle]}>
+            {first !== undefined && (
+              <Text size="bodyMedium" weight="medium" numberOfLines={second ? 1 : 2} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.fact}>
+                {first}
+              </Text>
+            )}
             {second !== undefined && (
               <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.fact}>
                 {second}
               </Text>
             )}
-          </View>
+          </Animated.View>
         </View>
-        <View style={styles.foot}>
+        <Animated.View style={[styles.foot, tickStyle]}>
           <Icons.CheckCircle size={TICK} weight="fill" color={DOOR_TICK} />
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </View>
       {/* The logo, once, over both faces. */}
       <View style={[StyleSheet.absoluteFill, inside, { justifyContent: "flex-start" }]}>
         <SourceLogo source={source} size={logo} />
@@ -749,6 +821,10 @@ const Door = memo(function Door({
     </View>
   );
 });
+
+/** Where in a door's lighting its ink turns (the name white to navy, the ring to the tick): a fifth of it, about five
+ *  frames, with the door 43% lit before (white reads on it) and 71% after (navy does). */
+const INK = [0.3, 0.5];
 
 /** Indonesia or English, as a small chip: the phone's language picked it; a tap switches. Gone once the Student taps in. */
 function LanguageChip() {
@@ -781,7 +857,9 @@ const styles = StyleSheet.create({
   face: { position: "absolute", top: 0, left: 0, right: 0, bottom: 2, borderBottomLeftRadius: seam.edge, borderBottomRightRadius: seam.edge },
   strip: { position: "absolute", top: 0, left: 0, right: 0 },
   foot: { height: TICK, alignItems: "center", justifyContent: "center" },
-  ring: { width: RING, height: RING, borderRadius: RING / 2, borderWidth: 2.5 },
+  name: { alignItems: "center", gap: space[2] },
+  ring: { width: RING, height: RING, borderRadius: RING / 2, borderWidth: 3 },
+  ringBright: { borderTopColor: DOOR_LIGHT, borderRightColor: DOOR_LIGHT },
   fact: { color: DOOR_FACT, textAlign: "center" },
   failed: { flexDirection: "row", alignItems: "flex-start", gap: space[2] },
   button: {
