@@ -1,8 +1,9 @@
 // Kuliah on the phone (the super-app round; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds,
-// is my attendance safe in every course, and the way into each. On the white page under the bar's "Kuliah": what needs
-// the Student now, each on one line (./now.tsx: "Isi Presensi", a clash), then every course as a block in its own
-// colour (./course-card.tsx): its name whole, its absences as pips with the state in words, its code. The courses at
-// risk come first, the rest after them with no heading between (the pips' colour says which is which; "Aman" as a
+// is my attendance safe in every course, and the way into each. On the white page under the bar's "Kuliah", read top
+// to bottom: "Hari ini" (./now.tsx: the class on now as a line in its colour with "Isi Presensi", a clash), then
+// "Semester ini", every course as a block in its own colour (./course-card.tsx): its name whole, its state in words
+// and its absences as a count ("2 dari 3 absen"), its code, a chevron. The courses at
+// risk come first, the rest after them with no heading between (the state's colour says which is which; "Aman" as a
 // heading pushed the safe ones off the first screen). Without SIX the count is unknown: said once, on a line at the
 // top, never on each course. The targets and how it's counted are in ⋮ (./footer.tsx's sheet).
 import { useState } from "react";
@@ -14,7 +15,7 @@ import { useDataset, useSettings } from "../../../../src/app/store";
 import { BTabHeader } from "../../parts/b-header";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
-import { useB } from "../../ui/b";
+import { BHeading, useB } from "../../ui/b";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
@@ -106,6 +107,8 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   const menu = choices.length ? <OverflowMenu testID="action.coursesMenu" choices={choices} /> : undefined;
   // At risk first (the desktop's order), one list: each course says its own state.
   const list = groups.flatMap(({ group, items }) => items.map((item) => ({ group, item })));
+  // What's above the courses is about today (a Presence open, Tandai Hadir, a clash) or, with none of those, a count to check.
+  const today = rows ? rows.zone.checkIns.length + rows.zone.windows.length + rows.zone.clashes.length > 0 : false;
   return (
     <Page
       testID="screen.courses"
@@ -121,7 +124,12 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
           <SixPageNote datasets={["six.courses", "six.schedule"]} />
           {!connected && courses.length > 0 && <SignInCard quiet={rows.zone.windows.length > 0} />}
           {/* Each line comes and goes with its window (Appear, in ./now.tsx): no second move around them. */}
-          {nowShown(rows.zone) && <NowZone zone={rows.zone} attendance={rows.attendance} />}
+          {nowShown(rows.zone) && (
+            <View testID="section.coursesNow">
+              <BHeading style={{ marginBottom: space[2] }}>{t(today ? "mobile.kuliah.today" : "mobile.kuliah.attention")}</BHeading>
+              <NowZone zone={rows.zone} attendance={rows.attendance} />
+            </View>
+          )}
           {courses.length === 0 ? (
             !listChanged && (
               <EmptyState
@@ -132,7 +140,9 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
             )
           ) : (
             <Rise screen="courses" index={0}>
-              <View testID="list.courses" style={{ gap: space[1.5], marginTop: nowShown(rows.zone) || !connected ? space[2] : 0 }}>
+              {/* A heading only when something sits above the courses: alone under the bar's "Kuliah" they need none. */}
+              {nowShown(rows.zone) && <BHeading style={{ marginTop: space[4], marginBottom: space[2] }}>{t("mobile.kuliah.term")}</BHeading>}
+              <View testID="list.courses" style={{ gap: space[1.5], marginTop: !nowShown(rows.zone) && !connected ? space[2] : 0 }}>
                 {list.slice(0, FIRST).map(({ group, item }) => (
                   <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
                 ))}

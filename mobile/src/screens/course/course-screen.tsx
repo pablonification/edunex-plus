@@ -16,7 +16,7 @@ import { type LayoutChangeEvent, ScrollView, View } from "react-native";
 import Animated from "react-native-reanimated";
 import type { CourseAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
-import { type StringKey, useT } from "../../../../src/app/i18n";
+import { type StringKey, useNow, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
 import { type CoursePage, useCoursePage } from "../../../../src/app/screens/course/data";
 import { useDataset, useStatus } from "../../../../src/app/store";
@@ -47,7 +47,7 @@ import { useAttendanceLine } from "./attendance-line";
 import { CourseSheet } from "./course-sheet";
 import { GradesTab } from "./grades";
 import { AnnouncementsTab, TasksTab } from "./lists";
-import { MeetingsTab } from "./meetings";
+import { MeetingsTab, pageModules } from "./meetings";
 import { ModulesTab } from "./modules";
 import { MeetingNow, useRecordInEdunexUrl } from "./now";
 import { SaveOfflineProgress, useSaveOfflineChoice } from "./save-offline";
@@ -56,7 +56,7 @@ import { TABS, type Tab, useVisitTabs } from "./tab-order";
 /** The tabs' names: the desktop's, but "Tugas" alone, so five fit a phone's width better. */
 const TAB_LABEL: Record<Tab, StringKey> = {
   // "Materi": the word a Student looks for after class (Edunex calls them modules; the list under it still does).
-  modules: "mobile.course.tab.material",
+  modules: "course.tab.modules",
   meetings: "course.tab.meetings",
   tasks: "mobile.course.tab.tasks",
   grades: "course.tab.grades",
@@ -70,6 +70,7 @@ const TAB_LABEL: Record<Tab, StringKey> = {
 export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const t = useT();
   const b = useB();
+  const now = useNow();
   const page = useCoursePage(code);
   const edunexState = useStatus("edunex").state;
   const edunexReading = edunexState === "connecting" || edunexState === "live";
@@ -119,9 +120,17 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const rise = `course:${page.course.code}`;
 
   let panel: ReactNode;
+  // The module the course's latest class was on (Edunex numbers it by the meeting): Materi opens there.
+  const held = page.meetings.filter((m) => m.start <= now);
+  const onModules = pageModules(page);
+  const classModule =
+    held
+      .map((m) => onModules.get(m.key)?.module.id)
+      .filter((id): id is number => id !== undefined)
+      .pop() ?? null;
   if (current === "grades") panel = <GradesTab page={page} onOpenModules={() => pickTab("modules")} />;
   else if (!loaded) panel = <NotLoaded />;
-  else if (current === "modules") panel = <ModulesTab page={page} onPick={pickModule} />;
+  else if (current === "modules") panel = <ModulesTab page={page} onPick={pickModule} classModule={classModule} />;
   else if (current === "meetings") panel = <MeetingsTab page={page} />;
   else if (current === "tasks") panel = <TasksTab code={page.course.code} exams={page.exams} />;
   else panel = <AnnouncementsTab announcements={page.announcements} mainCourseId={page.course.edunex?.courseId ?? null} code={page.course.code} />;
@@ -130,7 +139,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
     <Page
       testID="screen.course"
       background={b.page}
-      header={<TopBar v4 title={page.course.name} lines={2} actions={<MoreMenu page={page} />} />}
+      header={<TopBar v4 title={page.course.code} actions={<MoreMenu page={page} />} />}
       scrollRef={scroll}
       // The tabs stay under the bar while a long tab scrolls.
       stickyHeaderIndices={[1]}
@@ -171,9 +180,10 @@ function CourseMissing() {
 }
 
 /**
- * Under the bar (the course's name is the bar's title): the course's tile, its code and SKS, then its absences as one
- * meter with its one word and one ⓘ (from `item` and `context`). A tap opens the course's sheet (lecturer, SKS,
- * attendance in full, the advice).
+ * Under the bar (its title is the course's code, on one line): the course's name whole, said once on the screen, with
+ * its glyph in its colour; then its SKS and its absences in words (./attendance-line.tsx, as Kuliah's card says them).
+ * The whole header is one target, 48 dp and more, ending in the chevron every row that opens has: it opens the
+ * course's sheet (lecturer, SKS, attendance in full, the advice).
  */
 function Header({
   page,
@@ -188,25 +198,31 @@ function Header({
 }) {
   const t = useT();
   const v = useTheme().v4;
-  const attendance = useAttendanceLine(item, context);
   const { course, outline } = page;
   const sks = course.sks ?? outline?.credits ?? null;
-  const line = [course.code, sks !== null ? t("course.sks", { count: sks }) : null].filter(Boolean).join(" · ");
+  const line = sks !== null ? t("course.sks", { count: sks }) : null;
+  const attendance = useAttendanceLine(item, context, line);
   return (
     <PressScale
       onPress={onOpen}
-      accessibilityLabel={[`${course.name}, ${line}`, attendance?.label].filter(Boolean).join(". ")}
+      accessibilityLabel={[[course.name, course.code, line].filter(Boolean).join(", "), attendance?.label].filter(Boolean).join(". ")}
       accessibilityHint={t("mobile.course.aboutHint")}
       testID="action.courseAbout"
-      style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 56 }}
     >
       <CourseTile code={course.code} name={course.name} size={44} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: v.muted }}>
-          {line}
+        <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" style={{ color: v.fg, letterSpacing: -0.3 }}>
+          {course.name}
         </Text>
-        {attendance?.node}
+        {attendance?.node ??
+          (line && (
+            <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg2, marginTop: 2 }}>
+              {line}
+            </Text>
+          ))}
       </View>
+      <Icons.ChevronRight size={18} color={v.muted} />
     </PressScale>
   );
 }
@@ -306,7 +322,8 @@ function TabBar<T extends string>({
         onContentSizeChange={fades.onContentSizeChange}
         onScroll={fades.onScroll}
         scrollEventThrottle={32}
-        contentContainerStyle={{ paddingHorizontal: space.page, gap: space[1] }}
+        // Five fit a 411 dp phone at font size 1.1 and spread over its width; at 1.3 they scroll under the faded edge.
+        contentContainerStyle={{ paddingHorizontal: space[3], minWidth: "100%", justifyContent: "space-between" }}
       >
         {/* The picked tab's pill, inside the scrolled content so it moves with the tabs. */}
         <Animated.View style={[{ position: "absolute", top: 6, height: 36, borderRadius: 18, backgroundColor: v.brandTint }, mark.style]} />
@@ -327,14 +344,19 @@ function TabBar<T extends string>({
                 accessibilityState={{ selected: on }}
                 accessibilityLabel={tab.count !== undefined ? `${tab.label}, ${tab.count}` : tab.label}
                 onPress={() => onChange(tab.value)}
-                style={{ minHeight: 48, paddingHorizontal: space[4], flexDirection: "row", alignItems: "center", gap: 6 }}
+                style={{ minHeight: 48, paddingHorizontal: space[2], flexDirection: "row", alignItems: "center", gap: 4 }}
               >
                 {/* Never cut short: the row scrolls, so a tab keeps its whole name ("Pe…" read as a word cut, round 3). */}
-                <Text size="labelLarge" weight="semibold" style={{ color: on ? v.brandInk : v.fg2, flexShrink: 0 }}>
+                <Text
+                  size="labelLarge"
+                  weight="semibold"
+                  numberOfLines={1}
+                  style={{ color: on ? v.brandInk : v.fg2, fontSize: 13, letterSpacing: 0, flexShrink: 0 }}
+                >
                   {tab.label}
                 </Text>
                 {tab.count !== undefined && (
-                  <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: on ? v.brandInk : v.muted }}>
+                  <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: on ? v.brandInk : v.fg2, fontSize: 13 }}>
                     {String(tab.count)}
                   </Text>
                 )}

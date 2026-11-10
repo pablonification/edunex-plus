@@ -1,12 +1,13 @@
 // What needs the Student now, on Kuliah (the super-app round; src/app/screens/presence.tsx's NowZone), each said once
-// and only while there's something to do, each **one line** flat on the page: a Presence open in Edunex or Tandai Hadir
-// open in SIX (the course, "tutup 09:30", and the one presence button, the same part as Beranda's: never a card titled
-// "Isi Presensi" with a button named something else), SIX's count that didn't go up after a class, and a clash today
+// and only while there's something to do: a Presence open in Edunex or Tandai Hadir open in SIX as the class-on-now
+// part's line, in the course's colour (the course's name whole, "tutup 09:30", and the kit's one presence button, the
+// same part as Beranda's), SIX's count that didn't go up after a class, and a clash today
 // (the one clash sign, the time, the two courses; a tap says which class to go to and why). Signing in to SIX is
 // Kuliah's line instead (./lead.tsx). Why a window may not count is in ⋮ ("Cara menghitung"), not under the line.
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
 import type { Attendance, OpenWindow } from "../../../../src/app/attendance";
+import { useCourseColor } from "../../../../src/app/courses";
 import { useOpenCheckIn, useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
@@ -17,14 +18,14 @@ import type { ClassSession } from "../../../../src/core/models";
 import { useNav } from "../../nav";
 import { BigButton } from "../../ui/big-button";
 import { Icons } from "../../ui/icons";
+import { ClashMark, PresenceButton } from "../../ui/kit";
 import { factsLabel } from "../../ui/layout";
 import { Appear, Tap } from "../../ui/moves";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
-import { useCourseTile } from "../../ui/tile";
+import { space, THEMES, useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
-import { ClashMark, PresenceButton } from "./kit-standin";
+import { HandButton } from "./hand-button";
 import { clashAnswer, dayLabel, type Zone } from "./logic";
 
 /** Whether the zone has anything to show above the courses. */
@@ -53,24 +54,41 @@ export function NowZone({ zone, attendance }: { zone: Zone; attendance: Attendan
 }
 
 /**
- * One line for a class whose attendance can be marked now: a dot in the course's colour, its name, when the window
- * closes under it, and the one presence button at its end. It comes and goes with the window (Appear).
+ * The class on now as a line: the block's small size (Beranda's and a course's page), in the course's own colour, white
+ * on it in both themes. The course's name whole, the one time that matters under it ("tutup 09:30"), and the one
+ * presence button, white. On a narrow line (font size 1.3) the button drops under the name instead of cutting it. It
+ * comes and goes with the window (Appear).
  */
-function PresenceLine({ code, name, meta, button, testID }: { code: string; name: string; meta: string; button: ReactNode; testID: string }) {
+function PresenceLine({ code, name, meta, button, testID }: { code: string; name: string; meta: string; button: (ink: string) => ReactNode; testID: string }) {
   const v = useTheme().v4;
-  const { ink } = useCourseTile()(code);
+  const tone = useCourseColor();
+  const fill = THEMES.light.courseTile(tone(code)).ink;
+  const on = v.onHead;
   return (
-    <Appear testID={testID} style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 56, paddingVertical: space[1] }}>
-      <View style={{ width: 4, alignSelf: "stretch", borderRadius: 2, backgroundColor: ink }} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="bodyLarge" weight="semibold" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+    <Appear
+      testID={testID}
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: space[3],
+        rowGap: space[3],
+        backgroundColor: fill,
+        borderRadius: 20,
+        paddingVertical: space[3],
+        paddingHorizontal: space[4],
+        marginBottom: space[2],
+      }}
+    >
+      <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 }}>
+        <Text size="bodyLarge" face="display" weight="bold" style={{ color: on, lineHeight: 22 }}>
           {name}
         </Text>
-        <Text size="bodyMedium" tabular style={{ color: v.fg2, marginTop: 2 }}>
+        <Text size="bodyMedium" weight="medium" tabular style={{ color: on, marginTop: 2 }}>
           {meta}
         </Text>
       </View>
-      {button}
+      {button(fill)}
     </Appear>
   );
 }
@@ -87,17 +105,18 @@ function OpenCheckIn({ session }: { session: ClassSession }) {
     <PresenceLine
       testID="card.checkIn"
       code={session.courseCode}
-      name={shortName(names(session.courseCode, undefined))}
-      meta={t("mobile.kuliah.classUntil", { time: f.time(session.end) })}
-      button={
-        <PresenceButton
+      name={names(session.courseCode, undefined)}
+      meta={t("mobile.home.ends", { time: f.time(session.end) })}
+      button={(ink) => (
+        <HandButton
+          word={t("mobile.notification.checkIn")}
+          tone="course"
+          ink={ink}
           onPress={() => openCheckIn(session.id, sixTimetableUrl(student, session.start))}
           label={t("home.now.openSixLabel", { course: session.courseCode })}
           testID="action.checkIn"
-        >
-          {t("mobile.notification.checkIn")}
-        </PresenceButton>
-      }
+        />
+      )}
     />
   );
 }
@@ -105,7 +124,7 @@ function OpenCheckIn({ session }: { session: ClassSession }) {
 /**
  * An Edunex window open now: the course, "tutup 09:30" (and "belum pasti dihitung" while nobody can say it counts:
  * without SIX, or before either has a count), and "Isi Presensi", which opens it in Edunex. A Presence that is a Task
- * opens that Task instead. Without SIX the button is the quiet one.
+ * opens that Task instead.
  */
 function OpenPresence({ window }: { window: OpenWindow }) {
   const t = useT();
@@ -117,22 +136,25 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   const task = action.activity === "assignment" ? action.task : null;
   const noSix = health?.countedIn === "noSix";
   const notKnown = !noSix && health?.countedIn === "unknown";
-  const name = shortName(names(code, window.course?.name));
+  const name = names(code, window.course?.name);
   return (
     <PresenceLine
       testID={`card.presenceOpen.${code}`}
       code={code}
       name={name}
       meta={factsLabel(t("presence.open.closes", { time: f.time(session.closesAt) }), (noSix || notKnown) && t("presence.open.maybe"))}
-      button={
+      button={(ink) =>
         task ? (
-          <PresenceButton quiet={noSix} onPress={() => go({ screen: "task", taskId: task.id })} testID="action.presenceTask">
-            {t("presence.open.task")}
-          </PresenceButton>
+          <HandButton
+            word={t("presence.open.task")}
+            icon="ListChecks"
+            tone="course"
+            ink={ink}
+            onPress={() => go({ screen: "task", taskId: task.id })}
+            testID="action.presenceTask"
+          />
         ) : (
-          <PresenceButton quiet={noSix} onPress={() => open(action.url)} label={t("mobile.kuliah.presenceLabel", { course: name })}>
-            {t("presence.open.fill")}
-          </PresenceButton>
+          <PresenceButton tone="course" ink={ink} onPress={() => open(action.url)} accessibilityLabel={t("mobile.kuliah.presenceLabel", { course: name })} />
         )
       }
     />
@@ -210,12 +232,7 @@ function ClashRow({ clash }: { clash: Zone["clashes"][number] }) {
         style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 56, paddingVertical: space[2] }}
       >
         <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", flexWrap: "wrap", columnGap: space[2] }}>
-            <ClashMark />
-            <Text size="bodyMedium" weight="semibold" tabular style={{ color: v.fg }}>
-              {time}
-            </Text>
-          </View>
+          <ClashMark detail={time} />
           <Text size="bodyMedium" style={{ color: v.fg2, marginTop: 2 }}>
             {names2}
           </Text>

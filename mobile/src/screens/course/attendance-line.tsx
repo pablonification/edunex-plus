@@ -1,5 +1,6 @@
-// A course's attendance on its page (round 3): in the header under the bar (beside the course's tile, under its code), the meter of its absences with one word
-// (parts/attendance-meter.tsx, as Kuliah's row draws it) and the one exception when it's a fact. The header is one
+// A course's attendance on its page: in the header under the bar (beside the course's glyph, under its name), its SKS,
+// then its absences as Kuliah's card says them (the state in words, the count once: "Sisa 1×", "1 dari 2 absen"; no
+// pips to learn) and the one exception when it's a fact. The header is one
 // target: the course's sheet (./course-sheet.tsx) says it all, the count, the target, the exception's whole sentence,
 // the advice and its way back too. Words and figures are the desktop's (src/app/screens/presence.tsx).
 import type { ReactNode } from "react";
@@ -11,7 +12,7 @@ import { useCourseNames } from "../../../../src/app/schedule-data";
 import { isExamActivity, onUsualSlot, percent } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
-import { AttendanceMeter, meterModel } from "../../parts/attendance-meter";
+import { meterModel } from "../../parts/attendance-meter";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -25,7 +26,12 @@ import { classOf, dayLabel, GONE_FOR, type RowContext, uncertainText, windowWhen
  * ada", "Presensi Edunex …"); a clash is on the next class's row, advice is in the sheet.
  * `label`: the whole of it for a screen reader, the share and the target too.
  */
-export function useAttendanceLine(item: CourseAttendance | undefined, context: RowContext | undefined): { node: ReactNode; label: string } | null {
+export function useAttendanceLine(
+  item: CourseAttendance | undefined,
+  context: RowContext | undefined,
+  /** What leads the line ("3 SKS"), before the absences. */
+  lead: string | null = null,
+): { node: ReactNode; label: string } | null {
   const t = useT();
   const v = useTheme().v4;
   const found = useCourseException(item, context);
@@ -43,14 +49,35 @@ export function useAttendanceLine(item: CourseAttendance | undefined, context: R
   const label = [meter?.label, count, share !== null && !over ? t("presence.row.ownTarget", { value: health.target }) : null, exception?.short ?? advice?.short]
     .filter(Boolean)
     .join(". ");
+  // As Kuliah's card says it: the state in words in the one absence colouring, then the count once ("1 dari 2 absen").
+  const ink = meter?.tone === "red" ? v.redFg : meter?.tone === "amber" ? v.ambFg : meter?.tone === "ok" ? v.okFg : v.fg2;
+  const bar = meter?.bar && !meter.bar.estimate ? meter.bar : null;
+  const used = bar && bar.allowed > 0 ? t("mobile.kuliah.absences", { used: bar.used + bar.over, allowed: bar.allowed }) : null;
+  const word = meter ? (meter.word ?? meter.label) : null;
   const node = (
-    <View style={{ marginTop: space[1], gap: space[1] }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        {meter && <AttendanceMeter model={meter} size="header" hideLabel testID="meter.courseAttendance" />}
-        {/* The why is one step away: the header opens the sheet that says it. */}
-        <View testID={advice ? "mark.courseAdvice" : undefined}>
-          <Icons.Info size={18} weight={advice ? "fill" : "regular"} color={v.muted} />
-        </View>
+    <View style={{ marginTop: 2, gap: 2 }}>
+      <View testID="meter.courseAttendance" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
+        {lead && (
+          <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg2 }}>
+            {lead}
+          </Text>
+        )}
+        {word && (
+          <Text size="bodyMedium" weight="semibold" tabular style={{ color: ink }}>
+            {word}
+          </Text>
+        )}
+        {used && (
+          <Text size="bodyMedium" tabular style={{ color: v.fg2 }}>
+            {used}
+          </Text>
+        )}
+        {/* Advice waits in the sheet the header opens: a filled mark says there is some. */}
+        {advice && (
+          <View testID="mark.courseAdvice">
+            <Icons.Info size={16} weight="fill" color={v.fg2} />
+          </View>
+        )}
       </View>
       {exception && (
         <View testID="note.courseException" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>

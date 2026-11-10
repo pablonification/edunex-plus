@@ -1,9 +1,9 @@
-# W4/W11 on Kuliah (round 3, after the blind review): in three seconds, which course is at risk and the way in. The
-# courses at risk come first under "Perlu perhatian", the rest under "Aman"; each one row with one target (its tile, its
-# name, its code, and at its end its absences in plain words: "Lewat batas 1×" and "Jatah habis" as pills, "Sisa 1×"
-# quiet; no meter, no tick, no links of its own); the row opens the course, where the meter, the count, the target and
-# the one exception are. No explanatory sentence and no big number on the first screen: the day's answer and how it's
-# counted are in ⋮, beside the targets.
+# W4/W11 on Kuliah (the super-app round, after round 1's council): in three seconds, which course is at risk and the
+# way in. Read top to bottom: "Hari ini" (the class on now as a line in its colour with the one presence button, a
+# clash), then "Semester ini": the courses at risk first, each one card with one target (its name whole, its state in
+# words, its absences as a count, "4 dari 3 absen", its code, a chevron; no pips, no links of its own). The card opens
+# the course, where the count, the target and the one exception are. No explanatory sentence on the first screen: the
+# day's answer and how it's counted are in ⋮, beside the targets.
 # Round 1 (9395cea): no Kuliah tab, Presensi's long cards.
 appId: io.github.pablonification.edunexplus.demo
 name: "w11 Kuliah one row one target"
@@ -20,18 +20,22 @@ name: "w11 Kuliah one row one target"
     visible:
       id: screen.courses
     timeout: 10000
-# At risk first, under its heading: the course out of reach heads the list, its words say how far; then no absences
-# left; then the rest, under a heading of its own.
-- assertVisible: "Perlu perhatian"
-# pending: Kuliah (the base's Kuliah has no "at risk first" group: if the new Kuliah keeps it, give it this id back or follow its new one)
+# What's on today leads, under its heading: the Presence open now, in the course's colour, with the one button.
+- assertVisible: "Hari ini"
 - assertVisible:
-    id: group.presence.out
+    id: card.presenceOpen.PL3002
+- assertVisible:
+    id: action.presence
+- assertVisible: "Ekonomi dan Inovasi dalam Perencanaan"
+# Then the courses, at risk first: the course out of reach heads the list, its words and its count say how far.
+- assertVisible: "Semester ini"
 - assertVisible:
     id: row.course.KU5014
 - assertVisible:
     id: status.course.KU5014
-- assertVisible: "Lewat batas 1×"
-- assertVisible: "Jatah habis"
+- assertVisible: "Lewat jatah absen 1×"
+- assertVisible: "4 dari 3 absen"
+- assertVisible: "Jatah absen habis"
 - assertNotVisible:
     id: "meter.course.*"
 - assertNotVisible:
@@ -41,14 +45,14 @@ name: "w11 Kuliah one row one target"
     id: row.course.DK4073
     below:
       id: row.course.KU5014
-- assertVisible: "Aman"
 - assertVisible:
     id: row.course.PL3002
     below:
       id: row.course.PL3032
-# Today's clash: the row says when and which to go to; the why is one tap deeper.
+# Today's clash: the one clash sign with its time; which to go to and why is one tap deeper.
 - assertVisible: "Bentrok 16:00–16:30"
-- assertVisible: "Pilih PL3032"
+- assertVisible:
+    id: "row.clash.*"
 # One target per row: no links of their own on Kuliah, and no explanatory sentence on its first screen.
 - assertNotVisible:
     id: action.checkSix
@@ -70,7 +74,7 @@ name: "w11 Kuliah one row one target"
 - assertVisible: "Target 80%"
 - takeScreenshot: w11-2-facts
 - back
-# The row opens its course: its meter under the name; "Cek ke dosen" is advice, so it's in the sheet behind the header.
+# The card opens its course: its absences in words under the name; "Cek ke dosen" is advice, so it's in the sheet behind the header.
 - tapOn:
     id: row.course.KU5014
 - extendedWaitUntil:
