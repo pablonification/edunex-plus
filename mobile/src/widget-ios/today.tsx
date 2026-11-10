@@ -51,11 +51,13 @@ export function TodayWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
     weight: "regular" | "medium" | "semibold" | "bold" = "regular",
     lines = 1,
   ) => <Text modifiers={[font({ textStyle: style, weight }), foregroundStyle(color), lineLimit(lines)]}>{text}</Text>;
+  /** The Lock Screen's one line beside the date (every widget's root takes the container background, as Expo's docs say). */
+  const inline = (text: string, url?: string) => <Text modifiers={[containerBackground("clear", "widget"), ...(url ? [widgetURL(url)] : [])]}>{text}</Text>;
 
   if (!ready || doc.state === "setup") {
     const title = ready ? doc.title : "Edunex Plus";
     const hint = ready ? doc.hint : null;
-    if (family === "accessoryInline") return <Text>{title}</Text>;
+    if (family === "accessoryInline") return inline(title, ready ? doc.url : undefined);
     return root(
       ready ? doc.url : undefined,
       <VStack alignment="leading" spacing={6}>
@@ -76,7 +78,7 @@ export function TodayWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
   const today = doc.today;
   // Without SIX there's no timetable: the app's name and what's wrong, which the app fixes.
   if (!today) {
-    if (family === "accessoryInline") return <Text>{doc.status.text || doc.title}</Text>;
+    if (family === "accessoryInline") return inline(doc.status.text || doc.title, doc.url);
     return root(
       doc.url,
       <VStack alignment="leading" spacing={4}>
@@ -96,7 +98,10 @@ export function TodayWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
 
   if (family === "accessoryInline") {
     const next = ahead[0];
-    return <Text>{next ? [next.time.split(/[–-]/)[0], next.code, next.room].filter(Boolean).join(" · ") : (today.none?.label ?? today.heading)}</Text>;
+    return inline(
+      next ? [next.time.split(/[–-]/)[0], next.code, next.room].filter(Boolean).join(" · ") : (today.none?.label ?? today.heading),
+      next?.url ?? today.none?.url ?? doc.url,
+    );
   }
 
   const row = (one: (typeof today.classes)[number], wide: boolean) => {

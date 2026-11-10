@@ -58,6 +58,8 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
     weight: "regular" | "medium" | "semibold" | "bold" = "regular",
     lines = 1,
   ) => <Text modifiers={[font({ textStyle: style, weight }), foregroundStyle(color), lineLimit(lines)]}>{text}</Text>;
+  /** The Lock Screen's one line beside the date (every widget's root takes the container background, as Expo's docs say). */
+  const inline = (text: string, url?: string) => <Text modifiers={[containerBackground("clear", "widget"), ...(url ? [widgetURL(url)] : [])]}>{text}</Text>;
 
   // ---------------------------------------------------------------- before the app has anything
 
@@ -67,7 +69,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
     const title = ready ? doc.title : "Edunex Plus";
     const hint = ready ? doc.hint || doc.status.text || null : null;
     const warn = ready && doc.status.problem && !doc.hint;
-    if (family === "accessoryInline") return <Text>{title}</Text>;
+    if (family === "accessoryInline") return inline(title, ready ? doc.url : undefined);
     if (family === "accessoryCircular")
       return root(
         ready ? doc.url : undefined,
@@ -121,8 +123,8 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
 
   if (family === "accessoryInline") {
     // One line beside the date: "08:00 DK4073 · 7602", or the line saying there's none.
-    if (klass) return <Text>{[klass.start, klass.code, klass.where].filter(Boolean).join(" · ")}</Text>;
-    return <Text>{plain ? plain.label : doc.title}</Text>;
+    if (klass) return inline([klass.start, klass.code, klass.where].filter(Boolean).join(" · "), primary?.url ?? klass.url);
+    return inline(plain ? plain.label : doc.title, plain?.url ?? doc.url);
   }
   if (family === "accessoryCircular") {
     return root(
