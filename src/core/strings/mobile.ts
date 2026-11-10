@@ -375,6 +375,8 @@ export const mobileStrings = {
   "mobile.exams.title": { id: "Ujian", en: "Exams" },
   "mobile.exams.past": { id: "Sudah lewat", en: "Past" },
   "mobile.exams.count": { id: "{count} ujian", en: { one: "{count} exam", other: "{count} exams" } },
+  // A row for an exam SIX lists on two days: its first day is the row's start, the line says the other ("Kam · dan 17 Des").
+  "mobile.exams.alsoOn": { id: "dan {days}", en: "and {days}" },
   "mobile.exams.empty": { id: "Belum ada ujian diumumkan", en: "No exams announced yet" },
   "mobile.exams.emptyHint": {
     id: "Ujian muncul di sini begitu SIX atau dosenmu menjadwalkannya.",

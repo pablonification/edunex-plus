@@ -18,7 +18,7 @@ import { doneList, type PastExam, todoList } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh, useSignIn } from "../../shell/source-status";
-import { BHeading, BRow, useB } from "../../ui/b";
+import { BRow, useB } from "../../ui/b";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { type IconName, Icons } from "../../ui/icons";
@@ -28,9 +28,10 @@ import { Arrive, Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { space, THEMES, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
+import { FoldHeading } from "../material/fold";
 import { examWeekLabel } from "../tasks/exam-rows";
 import { countdown } from "../tasks/row-parts";
-import { type ExamItem, type ExamLine, examLines, examLineType, examsView, type GroupTitle } from "./view";
+import { type ExamItem, type ExamLine, examLines, examLineType, examsView } from "./view";
 
 const RADIUS = 28;
 /** The date column at a row's start. */
@@ -109,7 +110,7 @@ export function ExamsScreen() {
 }
 
 const Line = memo(function Line({ line, index, onFold }: { line: ExamLine; index: number; onFold: () => void }) {
-  if (line.type === "heading") return <Heading title={line.title} count={line.count} first={line.first} fold={line.fold} onFold={onFold} />;
+  if (line.type === "heading") return <Heading line={line} onFold={onFold} />;
   return (
     <Arrive list={line.type === "past" ? "exams.past" : "exams"} index={index}>
       {line.type === "lead" ? (
@@ -191,23 +192,11 @@ function Lead({ item }: { item: ExamItem }) {
   );
 }
 
-/** A group's name; "Sudah lewat" folds, its chevron saying which way. */
-function Heading({
-  title,
-  count,
-  first,
-  fold,
-  onFold,
-}: {
-  title: GroupTitle | "undated" | "past";
-  count: number;
-  first: boolean;
-  fold: "open" | "closed" | null;
-  onFold: () => void;
-}) {
+/** A group's name: ITB's exam period, one of Tugas's weeks, "Belum ada tanggal", or "Sudah lewat" (which folds). */
+function Heading({ line, onFold }: { line: Extract<ExamLine, { type: "heading" }>; onFold: () => void }) {
   const t = useT();
   const f = useFormat();
-  const b = useB();
+  const { title } = line;
   const text =
     title === "past"
       ? t("mobile.exams.past")
@@ -216,33 +205,16 @@ function Heading({
         : "period" in title
           ? examWeekLabel(t, f, title.examKind, title.period)
           : t(`tasks.group.${title.group}`);
-  const top = first ? space[2] : space[6];
-  if (!fold) return <BHeading style={{ marginTop: top, marginBottom: 0 }}>{text}</BHeading>;
   return (
-    <Tap
-      feel="row"
-      onPress={onFold}
+    <FoldHeading
+      title={text}
+      count={line.count}
+      countLabel={t("mobile.exams.count", { count: line.count })}
+      first={line.first}
+      fold={line.fold}
+      onFold={onFold}
       testID="action.exams.past"
-      accessibilityLabel={factsLabel(text, t("mobile.exams.count", { count }))}
-      accessibilityState={{ expanded: fold === "open" }}
-      style={{ marginTop: top, minHeight: 48, justifyContent: "center" }}
-    >
-      <BHeading
-        style={{ marginBottom: 0 }}
-        trailing={
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-            <Text size="bodyMedium" tabular style={{ color: b.muted }}>
-              {count}
-            </Text>
-            <View style={{ transform: [{ rotate: fold === "open" ? "180deg" : "0deg" }] }}>
-              <Icons.ChevronDown size={20} color={b.muted} />
-            </View>
-          </View>
-        }
-      >
-        {text}
-      </BHeading>
-    </Tap>
+    />
   );
 }
 
@@ -313,9 +285,11 @@ function AheadRow({ item, last }: { item: ExamItem; last: boolean }) {
   const b = useB();
   const now = useNow();
   const { day, time, place } = factsOf(t, f, item);
-  const one = !item.sittings || item.sittings.length < 2;
-  // The date is the row's start: the line keeps the weekday (both days, when SIX lists two), then the time and where.
-  const meta = factsLabel(item.at === null ? day : one ? f.weekdayShort(item.at) : day, time, place);
+  // The date is the row's start: the line keeps its weekday, then the time and where. SIX lists it on two days: the
+  // other day follows the weekday ("Kam · dan 17 Des"), the first being the row's start.
+  const others = item.sittings && item.sittings.length > 1 ? [...new Set(item.sittings.map((s) => f.dayMonth(s.start)))].slice(1) : [];
+  const also = others.length ? t("mobile.exams.alsoOn", { days: f.list(others) }) : null;
+  const meta = factsLabel(item.at === null ? day : f.weekdayShort(item.at), also, time, place);
   const left = item.at === null ? null : item.at <= now && !item.late ? t("home.today.now") : countdown(t, now, item.at).text;
   const tone = item.at === null ? "neutral" : countdown(t, now, item.at).tone;
   return (

@@ -17,7 +17,7 @@ import { useNav } from "../../nav";
 import { FileProblemNote, useEdunexFile } from "../../parts/files";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh, useSignIn } from "../../shell/source-status";
-import { BHeading, BRow, useB } from "../../ui/b";
+import { BRow, useB } from "../../ui/b";
 import { Button } from "../../ui/controls";
 import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
 import { type IconName, Icons } from "../../ui/icons";
@@ -28,7 +28,8 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { dayAndTime } from "../course/contents";
-import { type FeedItem, type FeedLine, type FeedWeek, feedLines, feedLineType, materialFeed } from "./feed";
+import { type FeedItem, type FeedLine, feedLines, feedLineType, materialFeed } from "./feed";
+import { FoldHeading } from "./fold";
 
 /** A kind's glyph, the one family's (ui/icons.tsx). A PDF and slides share the document until the family has theirs. */
 const KIND_ICON: Record<MaterialKind, IconName> = {
@@ -109,7 +110,19 @@ export function MaterialScreen() {
 
 /** One line of the feed; the first few arrive once, the first time Materi shows (and "Sebelumnya"'s, when it opens). */
 const Line = memo(function Line({ line, index, onFold }: { line: FeedLine; index: number; onFold: () => void }) {
-  if (line.type === "week") return <WeekHeading week={line.week} count={line.count} first={line.first} fold={line.fold} onFold={onFold} />;
+  const t = useT();
+  if (line.type === "week")
+    return (
+      <FoldHeading
+        title={t(WEEK_TITLE[line.week])}
+        count={line.count}
+        countLabel={t("mobile.material.count", { count: line.count })}
+        first={line.first}
+        fold={line.fold}
+        onFold={onFold}
+        testID="action.material.earlier"
+      />
+    );
   const list = line.key.startsWith("earlier") || line.key.startsWith("course:earlier") ? "material.earlier" : "material";
   return (
     <Arrive list={list} index={index}>
@@ -117,53 +130,6 @@ const Line = memo(function Line({ line, index, onFold }: { line: FeedLine; index
     </Arrive>
   );
 });
-
-/** A week's name; "Sebelumnya" folds, its chevron saying which way. */
-function WeekHeading({
-  week,
-  count,
-  first,
-  fold,
-  onFold,
-}: {
-  week: FeedWeek;
-  count: number;
-  first: boolean;
-  fold: "open" | "closed" | null;
-  onFold: () => void;
-}) {
-  const t = useT();
-  const b = useB();
-  const title = t(WEEK_TITLE[week]);
-  const top = first ? space[2] : space[6];
-  if (!fold) return <BHeading style={{ marginTop: top, marginBottom: 0 }}>{title}</BHeading>;
-  return (
-    <Tap
-      feel="row"
-      onPress={onFold}
-      testID="action.material.earlier"
-      accessibilityLabel={factsLabel(title, t("mobile.material.count", { count }))}
-      accessibilityState={{ expanded: fold === "open" }}
-      style={{ marginTop: top, minHeight: 48, justifyContent: "center" }}
-    >
-      <BHeading
-        style={{ marginBottom: 0 }}
-        trailing={
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-            <Text size="bodyMedium" tabular style={{ color: b.muted }}>
-              {count}
-            </Text>
-            <View style={{ transform: [{ rotate: fold === "open" ? "180deg" : "0deg" }] }}>
-              <Icons.ChevronDown size={20} color={b.muted} />
-            </View>
-          </View>
-        }
-      >
-        {title}
-      </BHeading>
-    </Tap>
-  );
-}
 
 /** The course a week's items are from, in its colour: one target, to the course's own page (on Modul). */
 function CourseName({ code, name }: { code: string; name: string }) {
@@ -177,7 +143,7 @@ function CourseName({ code, name }: { code: string; name: string }) {
       onPress={() => go({ screen: "course", code, tab: "modules" })}
       testID={`action.course.${code}`}
       accessibilityLabel={t("mobile.material.openCourse", { course: name })}
-      style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 48, marginTop: space[2] }}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 48, marginTop: space[2] }}
     >
       <View style={{ width: 28, alignItems: "center" }}>
         <CourseDot color={color(code)} size={12} />
