@@ -115,9 +115,10 @@ export const mobileStrings = {
   "mobile.grades.estimates": { id: "Perkiraanmu semester ini", en: "Your estimates this semester" },
   "mobile.grades.estimatesRest": { id: "Perkiraanmu untuk yang belum keluar", en: "Your estimates for the rest" },
   // Nilai, under the IPK target: what it takes from this semester as a figure at the line's end ("Butuh rata-rata di 11 SKS ·
-  // 3,66 · AB"), or the highest IPK still possible when even straight A's fall short ("Tertinggi jika semua A · 3,39").
+  // 3,66 · AB"), or the highest IPK still possible when even straight A's fall short ("Tertinggi semester ini · 3,33":
+  // this semester's courses alone, so it's named apart from "IPK tertinggi yang mungkin", which counts the plan's too).
   "mobile.grades.needAverage": { id: "Butuh rata-rata di {sks} SKS", en: "Average needed over {sks} SKS" },
-  "mobile.grades.termBest": { id: "Tertinggi jika semua A", en: "Highest with straight A's" },
+  "mobile.grades.termBest": { id: "Tertinggi semester ini", en: "Highest this semester" },
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
