@@ -197,7 +197,7 @@ const RENDER: Record<string, { title: string; sizes: ReturnType<typeof phone>[];
   Now: { title: "Sekarang", sizes: [phone(2, 1), phone(4, 1), phone(4, 2), phone(4, 3)], first: "4×2" },
   Exam: { title: "Ujian", sizes: [phone(2, 1), phone(3, 1), phone(4, 1)], first: "2×1" },
   Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
-  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
+  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2)], first: "3×2" },
   Attendance: { title: "Jatah absen", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
   Next: { title: "Kelas berikutnya", sizes: [phone(1, 1), phone(2, 1)], first: "1×1" },
   Course: { title: "Satu mata kuliah", sizes: [phone(3, 1), phone(3, 2)], first: "3×1" },

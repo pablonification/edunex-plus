@@ -77,6 +77,16 @@ export function DueView({ model, size, theme, lang }: { model: DueWidget; size: 
     space -= heightOf(row, most);
   }
   const left = model.rows.length - rows.length;
+  // Height left over goes to a title that would be cut: its second line.
+  const extra = new Set<DueRow>();
+  let spare = space - (left > 0 ? moreHeight : 0);
+  for (const row of rows) {
+    if (linesOf(row.title, 14 * scale, titleWidth) > linesFor(row, most) && spare >= LINE.small * scale) {
+      extra.add(row);
+      spare -= LINE.small * scale;
+    }
+  }
+  const shownLines = (row: DueRow) => linesFor(row, most) + (extra.has(row) ? 1 : 0);
   // Close is loud, far is quiet: amber within a day, the ink while it's a count of days, grey once it's only a date.
   const inkOf = (row: DueRow) => (row.soon || row.mark === "today" ? v.ambFg : v.fg);
   return (
@@ -90,9 +100,16 @@ export function DueView({ model, size, theme, lang }: { model: DueWidget; size: 
             accessibilityLabel={`${row.title}, ${row.name ?? row.code}, ${row.when}`}
             style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 8 }}
           >
-            <FlexWidget style={{ width: 4, height: heightOf(row, most) - 8, borderRadius: 2, backgroundColor: hex(courseInk(theme, row.tone)) }} />
+            <FlexWidget
+              style={{
+                width: 4,
+                height: heightOf(row, most) - 8 + (extra.has(row) ? LINE.small * scale : 0),
+                borderRadius: 2,
+                backgroundColor: hex(courseInk(theme, row.tone)),
+              }}
+            />
             <FlexWidget style={{ flex: 1, flexDirection: "column" }}>
-              <Text text={row.title} size="small" color={v.fg} weight="700" lines={linesFor(row, most)} />
+              <Text text={row.title} size="small" color={v.fg} weight="700" lines={shownLines(row)} />
               {wide ? <Text text={courseOf(row)} size="micro" color={v.muted} /> : <Text text={underOf(row)} size="micro" color={inkOf(row)} bold />}
             </FlexWidget>
             {wide ? (
@@ -151,7 +168,6 @@ function Dots({
     const used = past || index < (row.used ?? 0);
     return (
       <FlexWidget
-        // biome-ignore lint/suspicious/noArrayIndexKey: the dots are positions, nothing else tells them apart.
         key={index}
         style={{
           width: size,
@@ -194,19 +210,24 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
   // (The last line has no gap under it: 8 back.)
   const room = counted + 8;
   // Narrow (2 cells): the name over its dots and its word. Wider: the name, the dots in one column, the word at the end.
-  const narrow = size.width < 220;
+  const thin = size.width < 220;
   const drawn = (row: AttendanceRow) => row.allowed !== null && row.allowed + row.over <= MOST_DOTS && row.allowed + row.over > 0;
   const dotsWidth = Math.max(
     0,
     ...model.rows.filter(drawn).map((row) => ((row.allowed ?? 0) + row.over) * 14 - 4 + (row.over > 0 && (row.allowed ?? 0) > 0 ? OVER_GAP - 4 : 0)),
   );
   const wordWidth = Math.max(0, ...model.rows.map((row) => safeWidth(row.short, 12 * scale)));
-  const nameWidth = narrow ? size.width - 2 * PAD : size.width - 2 * PAD - dotsWidth - 10 - wordWidth - 10;
+  const beside = size.width - 2 * PAD - dotsWidth - 10 - wordWidth - 10;
+  // (Big text: the name's column would hold four letters, so the name goes over its dots as in two cells.)
+  const narrow = thin || beside < 96 * scale;
+  const nameWidth = narrow ? size.width - 2 * PAD : beside;
   // Names down the whole list (wrapped where one line doesn't hold it), or codes down the whole list: never a mix.
   // (The phone's text made big: two lines at most, where the estimate of a third is least sure.)
   const most = scale > 1 ? 2 : 3;
   const codes = model.rows.some((row) => courseLabel(row.name, row.code, 14 * scale, nameWidth, most).text !== (row.name ?? row.code));
-  const labelOf = (row: AttendanceRow) => (codes ? { text: row.code, lines: 1 } : courseLabel(row.name, row.code, 14 * scale, nameWidth, most));
+  // Beside the dots, a name that doesn't fit whole keeps one line and ends on "…": every course still gets its row.
+  const labelOf = (row: AttendanceRow) =>
+    codes ? { text: narrow ? row.code : (row.name ?? row.code), lines: 1 } : courseLabel(row.name, row.code, 14 * scale, nameWidth, most);
   const heightOf = (row: AttendanceRow) => labelOf(row).lines * LINE.small * scale + (narrow ? LINE.micro * scale + 3 : 0) + 8;
   const moreHeight = (LINE.micro + 8) * scale;
   const rows: AttendanceRow[] = [];

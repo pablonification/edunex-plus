@@ -59,7 +59,8 @@ const WIDGETS = [
     targetCellHeight: 2,
     minResizeWidth: "110dp",
     minResizeHeight: "110dp",
-    maxResizeWidth: "530dp",
+    // Three cells at most: wider, the list is the same rows with an empty middle.
+    maxResizeWidth: "320dp",
     maxResizeHeight: "280dp",
     resizeMode: "horizontal|vertical",
     updatePeriodMillis: HALF_HOUR,
