@@ -1,6 +1,0 @@
-{
-  // The tests that read phone code (react-native types), apart from tsconfig.test.json: see the "exclude" there.
-  "extends": "./tsconfig.test.json",
-  "include": ["test/mobile/widget-drawings.test.tsx", "test/mobile/search-services.test.ts"],
-  "exclude": []
-}
