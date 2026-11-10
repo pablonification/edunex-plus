@@ -100,7 +100,6 @@ step only worth doing if the one before it worked:
     to do.
 11. **Memory.** A widget gets little memory, and these run a small JavaScript engine: if a widget stays blank
     or greyed after step 3, that's the first suspect (Console.app on the Mac, the `ExpoWidgetsTarget` process).
-and the background sync.
 
 The first minute, to check on an iPhone: the status bar's icons stay white over the stage and turn to Beranda's as
 the strip of the stage's blue over them fades (it holds the status bar, notch or Dynamic Island until the curtain's edge is under it, then fades in place; `expo-status-bar`, set by the stage and the scene; `seam.ts` says which Beranda wants); the
@@ -109,3 +108,106 @@ clears the notch or Dynamic Island (by its top); the curtain's rounded lower edg
 rounded corners as it starts to lift; the three haptics are felt once each and not doubled; and the sign-in page
 stepping aside after Microsoft hands back (`shell/sign-in.tsx`: unseen, still read every 400 ms) still finishes the
 sign-in, since an unseen web view is throttled differently by iOS than by Android.
+
+## What to check on an iPhone after the super-app pass
+
+Nobody has run iOS since the layout changed (the tabs, Beranda, Semua layanan, the first minute, the widgets). Walk this
+with the demo (`EXPO_PUBLIC_DEMO=1`, see above) and an iPhone in hand, once in light and once in dark. A line that
+fails: write down the screen, the iPhone's model and iOS version, and a screenshot. Tick as you go.
+
+**The tab bar** (`app/(tabs)/_layout.tsx`, the `Platform.OS === "ios"` branch)
+
+- [ ] Five tabs, in this order: Beranda, Jadwal, Tugas, Kuliah, Profil. Profil is last. No Akademik.
+- [ ] Five Apple symbols: a house, a calendar, a tick in a circle, a book, a person. The picked one is filled (the
+      calendar has no filled form: it only turns the accent colour) and takes the app's blue; the rest are grey.
+- [ ] The bar is iOS's own. On iOS 26 it floats as Liquid Glass; before that, a plain bar with its own hairline (the
+      app draws none on an iPhone: `BarHairline`). Nothing doubled.
+- [ ] The last row of every tab (Tugas, Kuliah, Jadwal, Profil, Beranda scrolled to its foot) clears the bar and the
+      home indicator, and nothing sits under the bar.
+- [ ] Tugas's badge shows only while something is late or due within a day. A second tap on the open tab scrolls it to
+      the top. A switch between tabs is instant and each tab keeps where it was.
+
+**Safe areas**
+
+- [ ] Beranda (`screens/home/header.tsx`): the search bar and the bell sit below the notch or the Dynamic Island, not
+      under it, with a clear gap (the bar adds the top inset plus 8 dp). On an iPhone SE, with no notch, the same gap.
+- [ ] The bar is a 48 pt pill, and a tap anywhere on it opens Search with the keyboard already up.
+- [ ] Beranda's first screen, at the default text size: the search bar, the class block, the strip and the grid of
+      eight, with no scrolling. At a larger text size (Settings › Display & Brightness › Text Size): the grid may run
+      below the fold, but no tile is cut in half and no word breaks one letter per line.
+- [ ] Semua layanan (Lainnya): the last row of tiles clears the home indicator.
+- [ ] The app stays portrait (`orientation` in `app.config.ts`): turn the phone and nothing rotates.
+
+**Back, on every pushed page** (the native stack: `app/_layout.tsx`)
+
+- [ ] Swipe from the screen's left edge on each: a course, a module, a Task, an exam, Nilai, Materi, Ujian, Semua
+      layanan, each part of Rencana, Settings, Search, Notifikasi, the report form. It goes back, and the page under it
+      slides in with it.
+- [ ] The back button is a chevron (`Icons.ArrowLeft` draws one on iOS), on a Liquid Glass circle on iOS 26
+      (`ui/glass.tsx`), with the actions beside it on one capsule.
+- [ ] A row you can swipe (Tugas, Notifikasi): a sideways swipe on the row does its action, and a swipe that starts at
+      the very edge of the screen still goes back instead.
+
+**Haptics** (`ui/haptics.ts`: a medium tap for a commit, a selection tick for a step, a light or soft tap for a switch)
+
+- [ ] Felt: a Task marked done; a row's swipe passing its line (a tick), then letting go (a medium tap); a switch turned on and off (a light tap, then a softer one); "Isi Presensi" or "Tandai
+      Hadir" done, once, when the block moves on; a Task handed in (the success buzz, with its drawn check).
+- [ ] Not felt: a plain tap on a row, a tab, a tile or the search bar; a scroll; opening a page.
+- [ ] Settings › Sounds & Haptics › System Haptics off: nothing is felt and nothing breaks.
+
+**Sheets and menus** (`ui/sheet.tsx`, `ui/menu.tsx`)
+
+- [ ] A class's sheet (tap the class block): UIKit's sheet rises, rounded to the phone's corners, with its grabber over
+      the content. Drag down closes it; a tap on the dimmed page closes it. The title is not under the grabber and the
+      last button clears the home indicator.
+- [ ] A long press on a row: the action sheet. A choice sheet in Settings: its options are radios, the picked one marked.
+- [ ] A row pressed in a sheet or a menu dims (there is no ripple on an iPhone: `iosPressed`).
+- [ ] A sheet over Beranda, in dark: the status bar's icons stay legible.
+
+**The first minute** (`src/shell/first-minute/`: sign out first, or use the demo's first-run link)
+
+- [ ] The stage: Edunex Plus's blue over the whole screen, the status bar's icons white, the notch or island over blue.
+- [ ] The two doors rise, the same, each with its logo and name; the mark between them; the headline bottom-left, the one
+      button under the thumb above the home indicator, the language chip top-right clear of the island.
+- [ ] Tap "Masuk dengan akun ITB": the button becomes a line of words in its place; Microsoft's page covers the stage;
+      when it hands back, the stage shows again, not a spinner.
+- [ ] Each door lights when its system is in, with a tap of the Taptic Engine each, felt once, not doubled. A ring turns
+      at a door's foot only while its system connects.
+- [ ] The second system in: the headline becomes the greeting. Then the stage lifts like a curtain, its lower edge
+      rounded with no gap at the screen's corners, the doors closing onto the mark, a medium tap as it starts and a tick as
+      the doors meet the mark. The status bar's icons turn dark over Beranda at the end. Beranda is already there, filling
+      in place, with nothing of the first run left on it and no flash of dark or white.
+- [ ] Settings › Accessibility › Motion › Reduce Motion on, and the same again: nothing slides or turns; the greeting
+      holds a moment, then the stage fades to Beranda. One tap of the Taptic Engine.
+- [ ] VoiceOver on: it reads the headline, each door's state ("Edunex terhubung" as it happens), the button, and once the
+      curtain lifts only Beranda.
+- [ ] A sign-in that fails or is closed: the button comes back where it was and the note under it says why.
+
+**The widgets and the Live Activity** (`src/widget-ios/`; the longer walk is "The widgets and the Live Activity" above)
+
+- [ ] The gallery lists "Edunex Plus" and "Hari ini" in small, medium and large, and on the Lock Screen
+      (`accessoryRectangular`, `accessoryCircular`, `accessoryInline`).
+- [ ] Both fill from the demo within seconds of leaving the app, and show the class on now or next and today's classes,
+      the same as Beranda's block.
+- [ ] A tap opens the class (SIX's "Tandai Hadir" while it is open), a need opens its screen, a class opens its sheet on
+      Jadwal.
+- [ ] Light and dark follow the app's choice, not only the phone's. Nothing is cut at the largest text size.
+- [ ] The Live Activity during a class (`widget-ios/live.tsx`): the course, a bar through the class, and "Isi Presensi"
+      with the time left while a Presence is open, on the Lock Screen and in the Dynamic Island; gone after the class.
+- [ ] Signed out of everything: both widgets say "Hubungkan Edunex atau SIX dulu".
+
+**Dark mode** (Settings › Display & Brightness, and the app's own Settings › Tampilan › Tema: they can differ)
+
+- [ ] Beranda, Jadwal, Tugas, Kuliah, Profil: one dark surface, flat lists with hairlines, no box that is there in dark
+      and not in light.
+- [ ] The class block is the course's deep colour with white words in both themes, with its white button.
+- [ ] The service tiles: each its own colour, a white glyph, none lost against the page.
+- [ ] The status bar's icons: light on dark pages, dark on light ones, on every screen and under a sheet.
+- [ ] The snackbar and the Liquid Glass bar buttons take the app's theme, not the phone's.
+
+**Other iPhone-only things this pass touched**
+
+- [ ] Switches are iOS's own (Settings, Notifikasi): green when on, with the haptics above.
+- [ ] A pressed row, tile or button dims (`iosPressed`, `Tap`'s tint): it answers in the frame the finger lands.
+- [ ] The "Turn on notifications" button opens the app's page in iOS Settings (`parts/notifications-off.tsx`).
+- [ ] Jadwal's "Tambahkan ke kalender HP" writes events into the calendar the iPhone uses by default (`phone-calendar.ts`).
