@@ -4,6 +4,7 @@
   "main": "./index.ts",
   "dependencies": {
     "@expo/metro-runtime": "~58.0.15",
+    "@expo/ui": "~58.0.27",
     "@shopify/flash-list": "2.3.2",
     "cheerio": "1.2.0",
     "domhandler": "5.0.3",
@@ -33,6 +34,7 @@
     "expo-system-ui": "~58.0.7",
     "expo-task-manager": "~58.0.12",
     "expo-web-browser": "~58.0.7",
+    "expo-widgets": "~58.0.27",
     "htmlparser2": "10.1.0",
     "phosphor-react-native": "^3.0.6",
     "react": "19.3.0",
@@ -64,5 +66,15 @@
     "licences": "node scripts/third-party-notices.mjs",
     "postinstall": "patch-package"
   },
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "android": {
+        "exclude": [
+          "expo-widgets",
+          "@expo/ui"
+        ]
+      }
+    }
+  }
 }

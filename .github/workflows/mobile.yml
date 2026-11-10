@@ -388,12 +388,43 @@ jobs:
         run: npm run licences
       - name: Generate the iOS project
         run: npx expo prebuild --platform ios --clean
+      - name: Check the widget extension was made
+        # expo-widgets (app.config.ts) adds the WidgetKit target, its App Group and the two widgets at prebuild.
+        run: |
+          ls ios/ExpoWidgetsTarget
+          grep -q "ExpoWidgetsTarget" ios/*.xcodeproj/project.pbxproj || { echo "::error::No widget target in the Xcode project."; exit 1; }
+          grep -l "group.io.github.pablonification.edunexplus" ios/*/*.entitlements | grep -qv ExpoWidgetsTarget || { echo "::error::No App Group on the app."; exit 1; }
+          for widget in EdunexNow EdunexToday; do
+            test -f "ios/ExpoWidgetsTarget/$widget.swift" || { echo "::error::No $widget widget."; exit 1; }
+          done
       - name: Build the app, unsigned
         run: |
           xcodebuild -workspace ios/*.xcworkspace -scheme "$(basename ios/*.xcworkspace .xcworkspace)" \
             -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 200
           test "${PIPESTATUS[0]}" -eq 0
+      - name: Check the widgets are inside the app
+        # The widget extension rides in the app's PlugIns folder, with the layouts it draws before the app's first
+        # run (expo-widgets' layout registry). Unsigned, so no entitlement is checked here: that's the phone's to prove.
+        run: |
+          app=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -n 1)
+          appex="$app/PlugIns/ExpoWidgetsTarget.appex"
+          test -d "$appex" || { echo "::error::The app has no widget extension."; ls "$app/PlugIns" || true; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$appex/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :NSSupportsLiveActivities" "$app/Info.plist"
+          registry=$(find "$appex" "$app" -name ExpoWidgetsLayoutRegistry.json | head -n 1)
+          echo "Layout registry: ${registry:-none}"
+          if [ -n "$registry" ]; then
+            for widget in EdunexNow EdunexToday; do
+              grep -q "$widget" "$registry" || echo "::warning::$widget has no first layout: the gallery may show it blank until the app is opened."
+            done
+          fi
+          {
+            echo "### iPhone widgets"
+            echo
+            echo "- Extension: \`$(basename "$appex")\` ($(du -sh "$appex" | cut -f1))"
+            if [ -n "$registry" ]; then echo "- First layouts: found"; else echo "- First layouts: missing"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Pack the .ipa
         run: |
           mkdir -p "$RUNNER_TEMP/ipa/Payload"

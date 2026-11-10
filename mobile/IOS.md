@@ -52,7 +52,7 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Edunex's pages | Get a stand-in service worker (`src/host/page-fixes.ts`): an app's web view has none, and Edunex's site stopped on its spinner without one. |
 | "Turn on notifications" button | Opens the app's page in iOS Settings. |
 | Typeface | Plus Jakarta Sans is in the iOS bundle too. |
-| **Home-screen widget** | **Not there.** It's Android's (`react-native-android-widget`); an iPhone widget needs its own Swift (WidgetKit) code. |
+| Widgets | Their own, through Expo's `expo-widgets` (WidgetKit, SwiftUI): "Edunex Plus" and "Hari ini" on the Home Screen (small, medium, large) and the Lock Screen, fed by the same model as Android's (`qa/superapp-ios-widgets.md`). Never seen running yet. |
 | Back gesture, navigation bar colour, 120 Hz plugin | Android-only, skipped on iOS (iOS does these itself). |
 | Exact alarms | Android-only permission; iOS fires a booked notification on time anyway. |
 | Push notifications | Off: the app never uses them, and a free Apple ID can't sign them. |
