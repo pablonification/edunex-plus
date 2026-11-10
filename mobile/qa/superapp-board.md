@@ -42,6 +42,27 @@ remember 8, never waited 6, nothing shows off 6. **Not at the top (9).** What al
 over to the real Beranda at about 6 s and let its cards fill in place); the doors must not look like a choice; the button becomes the
 status in words; names in the app's language; no late "Semua siap" bar; no dark-to-light flash; jank far under 24%.
 
+## Round 3's council (05:05)
+
+Commit d09a29a0 beside today's app and round 2 (three versions by letter, shuffled per judge, all in light and dark).
+
+| | Designer | Student | Prosecutor |
+| --- | --- | --- | --- |
+| Rank of the three versions | **round 3**, round 2, today's | **round 3**, round 2, today's | **round 3** (11 serious charges on 15 screens), round 2 (14), today's (26 on its 11) |
+| Against today's app | ours on 11 of 11 | ours on 10; today's on Nilai ("answers at a glance") | ours on 10; today's on Beranda scrolled (narrowly) |
+| Against last round | round 3 on 13 of 15; **round 2 on Materi and Nilai (close)** | round 3 on 10; **round 2 on Semua layanan, Materi, Ujian, a course's page, Nilai** | round 3 on 10; **round 2 on Beranda scrolled, Semua layanan, Materi, Nilai, Search** |
+| "I know where everything is", five apps | 2nd (behind Gojek) | **1st** | 3rd (behind Gojek and Grab) |
+| Overall, five apps | 3rd (Duolingo, Gojek, ours) | 2nd (Duolingo, ours) | 3rd (Duolingo, Gojek, ours) |
+| Squint | 5 of 5 | 5 of 5 | 5 of 5 |
+| Scores per screen, lowest–highest | 5–9; Beranda 9 8 8 8 7 7 7 8 9 8 | 5–9; Beranda 9 8 8 8 8 8 8 7 8 8 | 4–8; Beranda 6 7 7 7 7 7 7 7 6 6 |
+| Sureness: due soonest · attendance · material | | 7 · 8 · 7 | |
+
+**Not at the top.** No judge prefers today's app or round 2 overall, but every judge prefers round 2's Materi (round 3's opens on one
+row and a folded "Sebelumnya 12") and none prefers round 3's Nilai ("perkiraan" on every row). The prosecutor would ship round 3
+"with the listed charges cleared": Beranda's day list skips tomorrow's meeting and shows an exam as a class; two strip tiles need
+a second read; the clash on Jadwal hides a room; Kuliah's dots need a key; grey service tiles look switched off. Round 4 works
+from that list (seven screen children and the kit).
+
 ## Round 2's council (02:25)
 
 Commit 1eced93a beside today's app and round 1 (three versions by letter, shuffled per judge; round 1 in light only, which made
@@ -82,6 +103,24 @@ Notifikasi (3–8: loading rows that stay), Ujian (4–9: a blank hole in light,
 label, mostly empty), a course's page (4–9: the old class card, two buttons, a countdown to the wrong thing). Across the app:
 numbers that disagree between screens (4 and 7 days to the same exam), one action under three names, colours reused with no rule,
 rows that don't look tappable, six controls under 48 dp. Above Edunex Mobile LMS for every judge; not first for "where" for any.
+
+## The first minute: round 4 (05:05)
+
+No hold after the ticks: as SIX connects the headline becomes "Pagi, Dimas.", the doors close onto the mark and the stage lifts
+in the same move; each door's ring turns while its system connects; the failed, offline and SIX-later ways in have their own
+state. Judged blind beside today's welcome and round 3's scene by three new judges.
+
+| | Designer | Student | Prosecutor |
+| --- | --- | --- | --- |
+| Rank of the three | **round 4**, round 3, today's | **round 4**, round 3, today's | **round 4** (1 serious charge in light, 1 more in dark), round 3 (2 and 3), today's (6) |
+| "Sets a mood" · "I'd remember it" · "it never made me wait" | 7 · 7 · 8 | 8 · 8 · 7 | 8 · 8 · 8 |
+| Motion has a job · hand-over · would ship | 8 · 7 · 7 | (knew what was happening 8, trust 8, one move 8) | nothing shows off or delays 8 · 8 (light) · 7 |
+
+Preferred to today's and to last round's by every judge, three rounds in a row. **Not at the top (9).** Janky frames on the phone:
+the stage at rest 0 frames drawn, tap to the end of the lift 8% (22 of 276), Beranda filling 2%. Left: the empty rings at rest
+read as radio buttons; the turning ring is faint; the greeting is on screen for under a second; "Terhubung" repeats the tick; the
+dark strip the judges got missed the lift (the lead's mistake: it is recorded, and goes in the next pack). Round 5 works from
+that list.
 
 ## The first minute: round 3 (02:40)
 
