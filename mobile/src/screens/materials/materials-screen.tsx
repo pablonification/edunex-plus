@@ -1,8 +1,8 @@
 // Materi (/materials, round 4): this week's material from every course of the term, two taps from Beranda (the tile,
 // then the material). One section per course whose Modul tab marks a module "Minggu ini" (./week.ts): the course's
-// tile and short name, the module's number and title in the course's ink, then that module's materials as the
-// module's own page draws them (MaterialRow: a file opens in the phone's app and works offline once saved), and the
-// way to the whole course. "Minggu lalu" shows the week before.
+// tile and short name, the module's number and title on one quiet line, then that module's materials as short rows
+// (MaterialRow with its course: the kind's icon in the course's colour, the title, its kind and one date; a file opens
+// in the phone's app, a link opens, a note unfolds on tap), and the way to the whole course. "Minggu lalu" shows the week before.
 import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
@@ -77,7 +77,7 @@ export function MaterialsScreen() {
   );
 }
 
-/** A course's part: its tile and short name, the module in the course's ink, the module's materials, the way to the course. */
+/** A course's part: its tile and short name, the module on one quiet line, the module's materials, the way to the course. */
 function CourseSection({ course, entry }: { course: TermCourse; entry: Entry }) {
   const t = useT();
   const v = useTheme().v4;
@@ -98,14 +98,14 @@ function CourseSection({ course, entry }: { course: TermCourse; entry: Entry }) 
           <Text size="titleMedium" face="display" weight="bold" numberOfLines={1} style={{ color: v.fg, fontSize: 17, letterSpacing: -0.2 }}>
             {short}
           </Text>
-          <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ color: ink, marginTop: 1 }}>
+          <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted, marginTop: 1 }}>
             {module}
           </Text>
         </View>
       </View>
       <CardGroup>
         {entry.materials.map((material, i) => (
-          <MaterialRow key={material.id} material={material} first={i === 0} />
+          <MaterialRow key={material.id} material={material} first={i === 0} course={course.code} />
         ))}
       </CardGroup>
       <PressScale

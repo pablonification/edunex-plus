@@ -28,7 +28,7 @@ import { NoteIcon } from "phosphor-react-native/src/icons/Note";
 import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
 import { StackIcon } from "phosphor-react-native/src/icons/Stack";
 import { VideoCameraIcon } from "phosphor-react-native/src/icons/VideoCamera";
-import { type ComponentType, type ReactNode, useMemo } from "react";
+import { type ComponentType, type ReactNode, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -307,11 +307,13 @@ function extensionOf(material: Material, name: string | null): string | null {
   return (name && /\.([a-z0-9]{2,5})$/i.exec(name)?.[1]?.toLowerCase()) || null;
 }
 
-function KindTile({ kind, extension }: { kind: MaterialKind; extension: string | null }) {
+function KindTile({ kind, extension, course }: { kind: MaterialKind; extension: string | null; course?: string }) {
   const tone = useToneTile();
+  const courseTile = useCourseTile();
   const byExtension = extension ? BY_EXTENSION.find(([pattern]) => pattern.test(extension)) : undefined;
   const Glyph = byExtension?.[1] ?? KIND_GLYPH[kind];
-  const { ink, tint } = tone(byExtension?.[2] ?? (kind === "pdf" ? "red" : "neutral"));
+  // In a course's colour where the list mixes courses (Materi); by the file's kind on the module's own page.
+  const { ink, tint } = course ? courseTile(course) : tone(byExtension?.[2] ?? (kind === "pdf" ? "red" : "neutral"));
   return (
     <IconTile tint={tint}>
       <Glyph size={23} color={ink} weight="duotone" duotoneOpacity={0.35} />
@@ -331,43 +333,90 @@ function whenOf(t: Translate, f: Format, material: Material): string | null {
   return posted;
 }
 
+/** One date: when it last changed if that came later ("Diperbarui 28 Agu 14:03"), else when it was posted. */
+function lastWhen(t: Translate, f: Format, material: Material): string | null {
+  const { postedAt, updatedAt } = material;
+  if (updatedAt !== null && (postedAt === null || updatedAt - postedAt >= 60_000)) return t("note.updated", { when: dayAndTime(f, updatedAt) });
+  return postedAt === null ? null : dayAndTime(f, postedAt);
+}
+
 /** `"` and `<` kept out of a picture's address, for the one-picture HTML an image material is drawn from. */
 const attr = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
 const rowStyle = { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 } as const;
 
-export function MaterialRow({ material, first }: { material: Material; first: boolean }) {
+/**
+ * A material as a row. `course` (Materi, every course in one list): one short row, its tile in the course's colour,
+ * the title in at most two lines, its kind and one date, a note or picture folded until tapped.
+ */
+export function MaterialRow({ material, first, course }: { material: Material; first: boolean; course?: string }) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
   const openExternal = useOpenExternal();
   const openLink = useOpenLink();
+  const [unfolded, setUnfolded] = useState(false);
+  const brief = course !== undefined;
   const kind = materialKind(material.type);
   const action = materialAction(material);
-  const when = whenOf(t, f, material);
+  const when = brief ? lastWhen(t, f, material) : whenOf(t, f, material);
   const testID = `row.material.${material.id}`;
   const extension = extensionOf(material, action.kind === "download" ? action.name : null);
-  const tile = <KindTile kind={kind} extension={extension} />;
+  const tile = <KindTile kind={kind} extension={extension} course={course} />;
+  const title = brief ? (
+    <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
+      {material.title}
+    </Text>
+  ) : (
+    material.title
+  );
 
   // Notes and pictures are read right here, in full, as on Edunex: the title and when, then what the lecturer posted.
-  if (action.kind === "note" || action.kind === "image")
+  // In Materi the row folds them: a tap unfolds it.
+  if (action.kind === "note" || action.kind === "image") {
+    const meta = brief ? factsLabel(t(`material.${kind}`), when) : (when ?? undefined);
     return (
       <View testID={testID}>
-        <TileRow first={first} leading={tile} title={material.title} meta={when ?? undefined} />
-        <View style={{ paddingHorizontal: 14, paddingBottom: space[4] }}>
-          {action.kind === "image" ? (
-            // The picture through the same reader as a note's pictures (Edunex's storage, read in by the host).
-            <LecturerHtml html={`<img src="${attr(action.url)}">`} pictureAlt={material.title} edunexUrl={edunexMaterialUrl(material)} />
-          ) : action.html ? (
-            <LecturerHtml html={action.html} edunexUrl={edunexMaterialUrl(material)} />
-          ) : (
-            <Text size="body" style={{ color: v.muted }}>
-              {t("note.empty")}
-            </Text>
-          )}
-        </View>
+        {brief ? (
+          <PressScale
+            testID={`${testID}.fold`}
+            accessibilityLabel={factsLabel(material.title, meta)}
+            accessibilityState={{ expanded: unfolded }}
+            onPress={() => setUnfolded(!unfolded)}
+            style={rowStyle}
+          >
+            {!first && <View style={{ position: "absolute", top: 0, left: ROW_INSET, right: 0, height: 1, backgroundColor: v.line }} />}
+            {tile}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              {title}
+              <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted, marginTop: 2 }}>
+                {meta}
+              </Text>
+            </View>
+            <View style={{ transform: [{ rotate: unfolded ? "180deg" : "0deg" }] }}>
+              <Icons.ChevronDown size={20} color={v.muted} />
+            </View>
+          </PressScale>
+        ) : (
+          <TileRow first={first} leading={tile} title={title} meta={meta} />
+        )}
+        {(!brief || unfolded) && (
+          <View style={{ paddingHorizontal: 14, paddingBottom: space[4] }}>
+            {action.kind === "image" ? (
+              // The picture through the same reader as a note's pictures (Edunex's storage, read in by the host).
+              <LecturerHtml html={`<img src="${attr(action.url)}">`} pictureAlt={material.title} edunexUrl={edunexMaterialUrl(material)} />
+            ) : action.html ? (
+              <LecturerHtml html={action.html} edunexUrl={edunexMaterialUrl(material)} />
+            ) : (
+              <Text size="body" style={{ color: v.muted }}>
+                {t("note.empty")}
+              </Text>
+            )}
+          </View>
+        )}
       </View>
     );
+  }
 
   const size = material.sizeBytes ? f.fileSize(material.sizeBytes) : null;
   const where = action.kind === "open" ? linkHost(action.url) : null;
@@ -377,11 +426,22 @@ export function MaterialRow({ material, first }: { material: Material; first: bo
   else if (kind === "vicon") what = [t("material.vicon"), ...(VICON_PROVIDERS[material.type] ? [VICON_PROVIDERS[material.type]!] : [])];
   else if (extension && (kind === "file" || uploadExtension(material.type))) what = [extension.toUpperCase()];
   else what = [t(`material.${kind}`)];
-  const facts = [...what, kind !== "vicon" && where ? where : kind !== "vicon" && size ? size : null, when];
+  // Materi: what it is and one date, no more.
+  const facts = brief ? [what[0] ?? null, when] : [...what, kind !== "vicon" && where ? where : kind !== "vicon" && size ? size : null, when];
   const meta = factsLabel(...facts);
 
   if (action.kind === "download")
-    return <FileItem material={material} file={{ url: action.url, name: action.name }} first={first} tile={tile} meta={meta} testID={testID} />;
+    return (
+      <FileItem
+        material={material}
+        file={{ url: action.url, name: action.name }}
+        first={first}
+        tile={tile}
+        meta={meta}
+        testID={testID}
+        lines={brief ? 2 : undefined}
+      />
+    );
 
   // A lecturer's link, or anything else: the row does the one thing that fits it (a link opens as a lecturer's link
   // does, a class is joined, the rest opens on Edunex), the arrow saying it leaves this screen.
@@ -395,7 +455,7 @@ export function MaterialRow({ material, first }: { material: Material; first: bo
       testID={testID}
       first={first}
       leading={tile}
-      title={material.title}
+      title={title}
       meta={meta}
       status={<Icons.ArrowUpRight size={18} color={v.muted} />}
       onPress={go}
@@ -416,6 +476,7 @@ function FileItem({
   tile,
   meta,
   testID,
+  lines,
 }: {
   material: Material;
   file: { url: string; name: string };
@@ -423,6 +484,8 @@ function FileItem({
   tile: ReactNode;
   meta: string;
   testID: string;
+  /** The title's most lines (Materi: 2); every line on the module's page. */
+  lines?: number;
 }) {
   const t = useT();
   const v = useTheme().v4;
@@ -441,7 +504,7 @@ function FileItem({
         >
           {tile}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="bodyLarge" weight="medium" style={{ color: v.fg, lineHeight: 21 }}>
+            <Text size="bodyLarge" weight="medium" numberOfLines={lines} style={{ color: v.fg, lineHeight: 21 }}>
               {material.title}
             </Text>
             <Text size="bodyMedium" tabular style={{ color: v.muted, marginTop: 2 }}>
