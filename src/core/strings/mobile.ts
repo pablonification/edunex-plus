@@ -502,6 +502,8 @@ export const mobileStrings = {
   "mobile.material.title": { id: "Materi", en: "Materials" },
   "mobile.material.lastWeek": { id: "Minggu lalu", en: "Last week" },
   "mobile.material.earlier": { id: "Sebelumnya", en: "Earlier" },
+  // The newest few, leading the page when this week and last week brought nothing.
+  "mobile.material.latest": { id: "Terbaru", en: "Latest" },
   // What TalkBack says after a folded week's name: how many it holds.
   "mobile.material.count": { id: "{count} materi", en: { one: "{count} item", other: "{count} items" } },
   // A course's name over its items is the way to the course.

@@ -2,8 +2,10 @@
 // the white page, the field its one title. Before anything is typed it isn't blank: what was opened lately as chips,
 // then the next Tasks, the courses and the services, each one tap. Typed, everything the app has saved is searched
 // (src/core/search.ts's index and ranking, so it works offline) and the phone's services (screens/search/services.ts);
-// results come grouped by kind, flat rows with the kind's glyph in the course's colour and the typed part marked. With
-// no match, a few words say so and what's close is offered. Typing is debounced so the keyboard never waits.
+// results come grouped by kind, flat rows led by the course's own glyph (the kind a small mark on it) with the typed
+// part marked and a one-line quiet line. Before typing, the order is by what's opened most and what fits over the
+// keyboard (about 420 dp under the field): lately opened and the courses as chips, the next Tasks, then the services.
+// With no match, a few words say so and what's close is offered. Typing is debounced so the keyboard never waits.
 import { router, useNavigation } from "expo-router";
 import { type ComponentRef, type ComponentType, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from "react-native";
@@ -34,6 +36,7 @@ import { factsLabel } from "../src/ui/layout";
 import { CrossFade } from "../src/ui/moves";
 import { Text, useFieldColors } from "../src/ui/text";
 import { shape, space, TOUCH, type } from "../src/ui/theme";
+import { CourseGlyph } from "../src/ui/tile";
 
 /** What the index reads: the desktop's list. */
 const SEARCHED: readonly DatasetName[] = [
@@ -93,6 +96,7 @@ function kindIcon(item: SearchItem): ComponentType<IconProps> {
 type Line =
   | { kind: "heading"; key: string; title: string; first: boolean }
   | { kind: "recent"; key: string; items: SearchItem[] }
+  | { kind: "courses"; key: string; items: SearchItem[]; first: boolean }
   | { kind: "item"; key: string; item: SearchItem; last: boolean }
   | { kind: "service"; key: string; service: Service; last: boolean }
   | { kind: "none"; key: string; query: string };
@@ -195,10 +199,14 @@ export default function Search() {
     const offer = () => {
       for (const group of before) {
         if (group.kind === "recent" && !typed) out.push({ kind: "recent", key: "recent", items: group.items });
-        // The next three due, and its heading says just that (the Tugas tab has all of them).
-        else if (group.kind === "task") addGroup(group, 3, t("mobile.search.group.nextDue"));
-        else if (group.kind === "course") addGroup(group, 8);
       }
+      // The courses next, as one row of chips (what a search is most often for), so the next Tasks still sit over the
+      // keyboard under them.
+      const mine = before.find((group) => group.kind === "course");
+      if (mine?.items.length) out.push({ kind: "courses", key: "courses", items: mine.items.slice(0, 8), first: out.length === 0 });
+      // The next three due, and its heading says just that (the Tugas tab has all of them).
+      const due = before.find((group) => group.kind === "task");
+      if (due) addGroup(due, 3, t("mobile.search.group.nextDue"));
       addServices(SEARCH_SERVICES.slice(0, 6));
     };
     if (!typed) offer();
@@ -233,6 +241,23 @@ export default function Search() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space[2] }}>
                 {line.items.map((item) => (
                   <RecentChip key={item.key} label={item.title} onPress={() => open(item)} testID={`row.recent.${item.key}`} />
+                ))}
+              </ScrollView>
+            </View>
+          );
+        case "courses":
+          return (
+            <View>
+              <SectionHeading first={line.first}>{t("search.group.course")}</SectionHeading>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space[2] }}>
+                {line.items.map((item) => (
+                  <RecentChip
+                    key={item.key}
+                    label={shortName(item.title)}
+                    leading={<CourseGlyph code={item.code ?? ""} name={item.title} size={20} />}
+                    onPress={() => open(item)}
+                    testID={`row.search.${item.key}`}
+                  />
                 ))}
               </ScrollView>
             </View>
@@ -273,10 +298,20 @@ export default function Search() {
               testID={`row.search.${item.key}`}
               label={factsLabel(item.title, named, detail)}
               last={line.last}
-              leading={item.kind === "course" ? <CourseMark code={item.code ?? ""} name={item.title} /> : <KindMark icon={kindIcon(item)} code={item.code} />}
+              // The course's own glyph leads, what the thing is small on it; with no course, the kind alone.
+              leading={
+                item.kind === "course" ? (
+                  <CourseMark code={item.code ?? ""} name={item.title} />
+                ) : item.code ? (
+                  <CourseMark code={item.code} name={course?.name} kind={kindIcon(item)} />
+                ) : (
+                  <KindMark icon={kindIcon(item)} code={null} />
+                )
+              }
               title={<Marked text={item.title} query={typed} />}
               course={named && item.code ? { code: item.code, name: named } : undefined}
               meta={detail}
+              metaWhole={item.kind === "task" || item.kind === "exam" || item.kind === "announcement"}
               chevron
               onPress={() => open(item)}
             />
@@ -370,10 +405,19 @@ function useFocusField(field: RefObject<ComponentRef<typeof TextInput> | null>):
 /** When an exam is, as its row says it (the desktop's examWhen). */
 function examWhen(exam: Exam, t: Translate, f: Format): string {
   const session = exam.six[0];
-  if (session) return factsLabel(`${f.relativeDay(session.start)}, ${f.timeRange(session.start, session.end)}`, session.room);
+  // The room is on the exam's own page: here the line is one line, the day and the hours.
+  if (session) return `${f.relativeDay(session.start)}, ${f.timeRange(session.start, session.end)}`;
   if (exam.at !== null) return f.dueLabel(exam.at);
   if (exam.week) return t("search.examWeek", { kind: t(`exam.kind.${exam.kind}`), range: f.dayRange(exam.week.firstDay, exam.week.lastDay) });
   return t("search.noDate");
+}
+
+/**
+ * A Task's day on its row: the hour is left out when it's the end of the day, Edunex's default ("Kam, 15 Okt", not
+ * "Kam, 15 Okt, 23:59"), and kept beside the day when the lecturer set one.
+ */
+function dueDay(dueAt: number, f: Format): string {
+  return f.dayTimeWord(dueAt).replace(/, 23[.:]59$/, "");
 }
 
 /**
@@ -388,9 +432,7 @@ function detailOf(item: SearchItem, t: Translate, f: Format, now: number): strin
       break;
     case "task": {
       const status = taskStatus(item.task, now);
-      parts.push(
-        isOpenStatus(status) && item.task.dueAt !== null ? f.dayTimeWord(item.task.dueAt) : status === "not_started" ? null : t(`taskStatus.${status}`),
-      );
+      parts.push(isOpenStatus(status) && item.task.dueAt !== null ? dueDay(item.task.dueAt, f) : status === "not_started" ? null : t(`taskStatus.${status}`));
       break;
     }
     case "exam":

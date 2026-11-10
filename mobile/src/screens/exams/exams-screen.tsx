@@ -29,25 +29,22 @@ import { factsLabel } from "../../ui/layout";
 import { Arrive, Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { space, THEMES, useTheme } from "../../ui/theme";
+import { CourseGlyph } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { FoldHeading } from "../material/fold";
-import { dayLabel, examWeekLabel } from "../tasks/exam-rows";
+import { dayLabel, examName, examNote, examWeekLabel } from "../tasks/exam-rows";
 import { countdown } from "../tasks/row-parts";
-import { examApart, examName } from "./names";
 import { type ExamItem, type ExamLine, examLines, examsView } from "./view";
 
 const RADIUS = 28;
 /** The date column at a row's start. */
 const DATE_WIDTH = 40;
 
-/** The exam's one name (./names.ts): its course's name as the course list has it, else SIX's for its sitting, else its code. */
+/** The exam's one name, the app's shared one (../tasks/exam-rows): its kind, then its course's short name. */
 function useExamName(): (exam: Exam) => string {
   const t = useT();
   const courses = useTermCourses();
-  return useCallback(
-    (exam) => examName(t, exam, courses?.find((c) => c.code === exam.courseCode)?.name ?? exam.six[0]?.courseName ?? exam.courseCode),
-    [t, courses],
-  );
+  return useCallback((exam) => examName(t, exam, courses?.find((c) => c.code === exam.courseCode)?.name), [t, courses]);
 }
 
 /**
@@ -162,6 +159,8 @@ function Lead({ item }: { item: ExamItem }) {
   const fill = THEMES.light.courseTile(tone).ink;
   const name = useExamName()(item.exam);
   const { day, time, place } = factsOf(t, f, item);
+  // What tells it from its course's other exam ("Take-home") sits in the title line, so it isn't said again as a place.
+  const note = examNote(t, item.part);
   const at = item.at ?? now;
   const left = countdown(t, now, at);
   // On now: the word, no figure. Ahead: how long is left, the number big.
@@ -172,12 +171,24 @@ function Lead({ item }: { item: ExamItem }) {
       feel="card"
       onPress={() => go({ screen: "exam", examId: item.exam.id })}
       testID="card.exam.next"
-      accessibilityLabel={factsLabel(name, figure, day, time, place)}
+      accessibilityLabel={factsLabel(name, note, figure, day, time, place !== note && place)}
       style={{ backgroundColor: fill, borderRadius: RADIUS, overflow: "hidden", padding: space[5], marginTop: space[2], gap: space[4] }}
     >
-      <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: on, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 }}>
-        {name}
-      </Text>
+      {/* The name, and the chevron every row that opens ends in: the block opens the exam's page. */}
+      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[2] }}>
+        <Text
+          size="titleLarge"
+          face="display"
+          weight="bold"
+          numberOfLines={2}
+          style={{ flex: 1, color: on, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 }}
+        >
+          {factsLabel(name, note)}
+        </Text>
+        <View style={{ height: 26, justifyContent: "center" }}>
+          <Icons.ChevronRight size={20} color={on} />
+        </View>
+      </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[5] }}>
         {onNow ? (
           <Text face="display" weight="extrabold" style={{ color: on, fontSize: 28, lineHeight: 36, letterSpacing: -0.4 }}>
@@ -196,7 +207,7 @@ function Lead({ item }: { item: ExamItem }) {
         <View style={{ flex: 1, minWidth: 0, gap: space[2] }}>
           <Fact icon="Calendar">{day}</Fact>
           {time && <Fact icon="Clock">{time}</Fact>}
-          {place && <Fact icon="MapPin">{place}</Fact>}
+          {place && place !== note && <Fact icon="MapPin">{place}</Fact>}
         </View>
       </View>
     </Tap>
@@ -231,20 +242,19 @@ function Heading({ line, onFold }: { line: Extract<ExamLine, { type: "heading" }
 
 /**
  * A row's start: the day of the month big over its month (red once its moment is behind), then the course's colour as
- * a bar. No day yet: a plain dash in the date's place, so the names stay in one column.
+ * a bar. No day yet: no date column to fill, so the course's own glyph stands there and the names stay in one column.
  */
 function DateMark({ at, code, quiet = false, late = false }: { at: number | null; code: string; quiet?: boolean; late?: boolean }) {
   const f = useFormat();
   const b = useB();
   const theme = useTheme();
   const tone = useCourseColor()(code);
+  const courses = useTermCourses();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
       <View style={{ width: DATE_WIDTH, alignItems: "center" }}>
         {at === null ? (
-          <Text face="display" weight="bold" style={{ color: b.muted, fontSize: 20, lineHeight: 24 }}>
-            –
-          </Text>
+          <CourseGlyph code={code} name={courses?.find((c) => c.code === code)?.name} size={24} />
         ) : (
           <>
             <Text face="display" weight="bold" tabular style={{ color: late ? b.red : quiet ? b.fg2 : b.fg, fontSize: 20, lineHeight: 24 }}>
@@ -265,6 +275,7 @@ function Row({
   exam,
   at,
   meta,
+  note,
   last,
   quiet,
   late,
@@ -273,14 +284,15 @@ function Row({
   exam: Exam;
   at: number | null;
   meta: string | undefined;
+  /** What tells it from its course's other exam, beside its name. */
+  note?: string | null;
   last: boolean;
   quiet?: boolean;
   late?: boolean;
   label: string;
 }) {
-  const b = useB();
   const { go } = useNav();
-  const name = useExamName()(exam);
+  const name = factsLabel(useExamName()(exam), note);
   return (
     <BRow
       testID={`row.exam.${exam.id}`}
@@ -288,8 +300,7 @@ function Row({
       leading={<DateMark at={at} code={exam.courseCode} quiet={quiet} late={late} />}
       title={name}
       meta={meta}
-      // Every row opens its exam's page: the one quiet chevron.
-      trailing={<Icons.ChevronRight size={20} color={b.muted} />}
+      // Every row opens its exam's page: the rows' shared chevron (BRow draws it).
       onPress={() => go({ screen: "exam", examId: exam.id })}
       accessibilityLabel={factsLabel(name, label)}
     />
@@ -297,7 +308,7 @@ function Row({
 }
 
 /**
- * An exam still ahead: its date leads, then one line: what sets it apart ("Take-home"), the weekday, time and where.
+ * An exam still ahead: its date leads, its name with what sets it apart ("Take-home"), then one line: the weekday, time and where.
  * How long is left is the leading block's figure alone; here the date says it. Late: the date turns red under "Terlambat".
  */
 function AheadRow({ item, last }: { item: ExamItem; last: boolean }) {
@@ -305,14 +316,14 @@ function AheadRow({ item, last }: { item: ExamItem; last: boolean }) {
   const f = useFormat();
   const now = useNow();
   const { day, time, place } = factsOf(t, f, item);
-  const apart = examApart(t, item);
+  const apart = examNote(t, item.part);
   // The date is the row's start: the line keeps its weekday, then the time and where. SIX lists it on two days: the
   // other day follows the weekday ("Kam · dan 17 Des"), the first being the row's start.
   const others = item.sittings && item.sittings.length > 1 ? [...new Set(item.sittings.map((s) => f.dayMonth(s.start)))].slice(1) : [];
   const also = others.length ? t("mobile.exams.alsoOn", { days: f.list(others) }) : null;
   const onNow = item.at !== null && item.at <= now && !item.late;
-  const meta = factsLabel(onNow && t("home.today.now"), apart, item.at === null ? day : f.weekdayShort(item.at), also, time, place !== apart && place);
-  return <Row exam={item.exam} at={item.at} meta={meta} last={last} late={item.late} label={factsLabel(apart, day, time, place !== apart && place)} />;
+  const meta = factsLabel(onNow && t("home.today.now"), item.at === null ? day : f.weekdayShort(item.at), also, time, place !== apart && place);
+  return <Row exam={item.exam} at={item.at} meta={meta} note={apart} last={last} late={item.late} label={factsLabel(day, time, place !== apart && place)} />;
 }
 
 /** No day yet (the heading says so): its name, and its exam period when ITB's calendar gives one. Nothing else. */

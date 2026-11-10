@@ -1,7 +1,8 @@
 // Materi's feed (/material): what the lecturers posted across this term's courses, newest first, in weeks. No React
 // here, tested in Node (test/mobile/material-feed.test.ts). Each course's contents are worked out exactly as its Modul
 // tab does (contentsOf, ../course/contents.ts). The weeks are calendar weeks, Monday to Sunday (./weeks.ts), as Tugas's
-// are: on Thu 8 Oct, "Minggu ini" is 5–11 Oct, "Minggu lalu" 28 Sep–4 Oct, and 24 Sep is "Sebelumnya".
+// are: on Thu 8 Oct, "Minggu ini" is 5–11 Oct, "Minggu lalu" 28 Sep–4 Oct, and 24 Sep is "Sebelumnya". Only material is
+// listed: a module the lecturer made to hold a Task or an exam ("Tugas", "UTS Markom") has none, and stays out.
 import type { TermCourse } from "../../../../src/app/courses";
 import type { Translate } from "../../../../src/app/i18n";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
@@ -21,8 +22,8 @@ export interface FeedItem {
   module: number;
   /** When it was posted, else last changed; null when Edunex gives neither. */
   at: number | null;
-  /** A lecturer's item; null for a module that holds Tasks only, listed by its own title. */
-  material: Material | null;
+  /** The lecturer's item. A module that only holds a Task or an exam isn't material: Tugas and Ujian list those. */
+  material: Material;
   title: string;
 }
 
@@ -53,7 +54,10 @@ export function weekOf(at: number | null, now: number): FeedWeek {
   return ago === 0 ? "thisWeek" : ago === 1 ? "lastWeek" : "earlier";
 }
 
-/** One course's opened modules as things to open: every material at its own date, a module with Tasks only at its own. */
+/**
+ * One course's opened modules as things to open: every material at its own date. A module with no material in it (the
+ * lecturer's "Tugas" or "UTS Markom", which hold a Task only) is left out: its Task is on Tugas, its exam on Ujian.
+ */
 export function courseItems(code: string, entries: readonly Entry[], course = code): FeedItem[] {
   const items: FeedItem[] = [];
   for (const entry of entries) {
@@ -69,8 +73,6 @@ export function courseItems(code: string, entries: readonly Entry[], course = co
         material,
         title: material.title,
       });
-    if (!entry.materials.length && entry.tasks.length && !entry.intro)
-      items.push({ key: `${code}:e${entry.id}`, code, course, module, at: entry.postedAt, material: null, title: entry.title });
   }
   return items;
 }
@@ -101,39 +103,58 @@ export function materialFeed(sources: readonly CourseSource[], t: Translate, now
     .filter((section) => section.count > 0);
 }
 
-/** A line of the list, for FlashList: a week's heading or an item (its course is its colour and its quiet line). */
+/** A heading of the list: a week, or "Terbaru" (the newest few, when this week and last week have nothing). */
+export type FeedHeading = FeedWeek | "latest";
+
+/** A line of the list, for FlashList: a heading, a course's quiet name over its items, or an item. */
 export type FeedLine =
-  | { type: "week"; key: string; week: FeedWeek; count: number; first: boolean; fold: "open" | "closed" | null }
+  | { type: "week"; key: string; week: FeedHeading; count: number; first: boolean; fold: "open" | "closed" | null }
+  | { type: "course"; key: string; code: string; name: string }
   | { type: "item"; key: string; item: FeedItem; last: boolean };
 
-/** This many items or fewer over "Sebelumnya" leave room on the first screen: it starts open under them. */
-export const SHORT = 5;
+/** How many of the newest items stand in for "Minggu ini" when the last two weeks brought nothing. */
+export const LATEST = 5;
+
+const only = (courses: readonly FeedCourse[], keep: (item: FeedItem) => boolean): FeedCourse[] =>
+  courses.map((course) => ({ ...course, items: course.items.filter(keep) })).filter((course) => course.items.length > 0);
 
 /**
- * The feed as lines, a week's items by course (one colour together), newest course first. "Sebelumnya" folds only when
- * what's newer is long enough to fill the screen (more than `SHORT` items); `toggled` flips it from where it starts.
- * When it's all there is, it's simply the list.
+ * The feed as lines: "Minggu ini" and "Minggu lalu" open, each by course (the course's name, then its items), and
+ * "Sebelumnya" folded under its count, so the first screen is what's new. `toggled` opens it. When the last two weeks
+ * brought nothing, the newest `LATEST` items lead instead under "Terbaru", and the rest folds under "Sebelumnya".
  */
 export function feedLines(sections: readonly FeedSection[], toggled: boolean): FeedLine[] {
   const lines: FeedLine[] = [];
-  const newer = sections.reduce((sum, section) => sum + (section.week === "earlier" ? 0 : section.count), 0);
-  sections.forEach((section, s) => {
-    const foldable = section.week === "earlier" && newer > 0;
-    const open = !foldable || newer <= SHORT !== toggled;
-    lines.push({
-      type: "week",
-      key: `week:${section.week}`,
-      week: section.week,
-      count: section.count,
-      first: s === 0,
-      fold: foldable ? (open ? "open" : "closed") : null,
-    });
-    if (!open) return;
-    const items = section.courses.flatMap((course) => course.items);
-    items.forEach((item, i) => {
-      lines.push({ type: "item", key: `${section.week}:${item.key}`, item, last: i === items.length - 1 });
-    });
-  });
+  const group = (week: FeedHeading, courses: readonly FeedCourse[], fold: "open" | "closed" | null) => {
+    const count = courses.reduce((sum, course) => sum + course.items.length, 0);
+    if (!count) return;
+    lines.push({ type: "week", key: `week:${week}`, week, count, first: lines.length === 0, fold });
+    if (fold === "closed") return;
+    for (const course of courses) {
+      lines.push({ type: "course", key: `${week}:${course.code}`, code: course.code, name: course.name });
+      course.items.forEach((item, i) => {
+        lines.push({ type: "item", key: `${week}:${item.key}`, item, last: i === course.items.length - 1 });
+      });
+    }
+  };
+  const newer = sections.filter((section) => section.week !== "earlier");
+  for (const section of newer) group(section.week, section.courses, null);
+  let rest = sections.find((section) => section.week === "earlier")?.courses ?? [];
+  if (!newer.length) {
+    const top = new Set(
+      rest
+        .flatMap((course) => course.items)
+        .sort(newest)
+        .slice(0, LATEST),
+    );
+    group(
+      "latest",
+      only(rest, (item) => top.has(item)),
+      null,
+    );
+    rest = only(rest, (item) => !top.has(item));
+  }
+  group("earlier", rest, toggled ? "open" : "closed");
   return lines;
 }
 

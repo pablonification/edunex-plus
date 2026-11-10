@@ -1,14 +1,16 @@
 // Materi (/material), behind Beranda's "Materi" tile: what the lecturers posted across this term's courses, newest
-// first, in calendar weeks ("Minggu ini", "Minggu lalu", then "Sebelumnya", open while the newer weeks are short). A
-// feed of things to open, and the item is the row: its kind as a glyph in its course's colour (a week's items of one
-// course sit together, so the colour groups them), its name as the lecturer wrote it, then one quiet line: the course
-// and the day. One mark at the end: a chevron when it opens here (a file in the phone's own viewer, a note or a picture
-// on its module's screen), an arrow when it leaves the app (a link, a video meeting, Edunex). One tap opens it.
+// first. The first screen is what's new: "Minggu ini" and "Minggu lalu" open, "Sebelumnya" folded under its count (one
+// tap opens it); when the last two weeks brought nothing, the newest few lead under "Terbaru" (./feed.ts). Within a
+// week the items sit under their course: a quiet line with the course's own glyph in its colour and its name (a
+// heading, not a row), then each item on one row: its kind's glyph (a PDF, slides, a class link, a note), its name as
+// the lecturer wrote it, the day, and one mark at the end: the shared chevron when it opens here (a file in the
+// phone's own viewer, a note or a picture on its module's screen), an arrow when it leaves the app (a link, a video
+// meeting, Edunex). One tap opens it. Only material is here: a module that just holds a Task is on Tugas.
 // The same data and rules as a course's Modul tab (./feed.ts). No new request: it reads what the app already holds.
 import { FlashList } from "@shopify/flash-list";
 import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, RefreshControl, StyleSheet, View } from "react-native";
-import { useCourseColor, useTermCourses } from "../../../../src/app/courses";
+import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDataset, useStatus } from "../../../../src/app/store";
@@ -24,18 +26,20 @@ import { EmptyState, Skeleton } from "../../ui/display";
 import { type IconName, Icons } from "../../ui/icons";
 import { useBottomInset } from "../../ui/insets";
 import { factsLabel } from "../../ui/layout";
+import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
+import { CourseGlyph } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { type FeedItem, type FeedLine, feedLines, feedLineType, materialFeed } from "./feed";
 import { FoldHeading } from "./fold";
 
-/** A kind's glyph, the one family's (ui/icons.tsx). A PDF and slides share the document until the family has theirs. */
+/** A kind's glyph, the one family's (ui/icons.tsx). Slides are told from other files by their name (kindIcon). */
 const KIND_ICON: Record<MaterialKind, IconName> = {
-  pdf: "FileText",
+  pdf: "FilePdf",
   file: "FileText",
   vicon: "Video",
   video: "Video",
-  audio: "Speaker",
+  audio: "FileAudio",
   note: "StickyNote",
   link: "Link",
   page: "Globe",
@@ -44,10 +48,20 @@ const KIND_ICON: Record<MaterialKind, IconName> = {
   other: "FileText",
 };
 
+const SLIDES = /\.(pptx?|ppsx?|key|odp)$/i;
+
+/** A file that is a deck gets the slides glyph, by its file's name or the name the lecturer gave it. */
+const kindIcon = (kind: MaterialKind, name: string): IconName => (kind === "file" && SLIDES.test(name) ? "FileSlides" : KIND_ICON[kind]);
+
 /** Where a row's text starts: the glyph's column and the gap after it (BRow's). */
 const TEXT_INSET = 28 + space[4];
 
-const WEEK_TITLE = { thisWeek: "course.thisWeek", lastWeek: "mobile.material.lastWeek", earlier: "mobile.material.earlier" } as const;
+const WEEK_TITLE = {
+  thisWeek: "course.thisWeek",
+  lastWeek: "mobile.material.lastWeek",
+  earlier: "mobile.material.earlier",
+  latest: "mobile.material.latest",
+} as const;
 
 export function MaterialScreen() {
   const t = useT();
@@ -61,7 +75,7 @@ export function MaterialScreen() {
   const materials = useDataset("edunex.materials");
   const tasks = useDataset("edunex.tasks");
   const edunex = useStatus("edunex").state;
-  // "Sebelumnya" starts open or folded by how much is over it (feedLines); a tap flips it.
+  // "Sebelumnya" starts folded, so the first screen is what's new (feedLines); a tap opens it.
   const [toggled, setToggled] = useState(false);
   const sections = useMemo(() => {
     if (!courses || !materials) return null;
@@ -126,16 +140,36 @@ const Line = memo(function Line({ line, onFold }: { line: FeedLine; onFold: () =
         testID="action.material.earlier"
       />
     );
+  if (line.type === "course") return <CourseLine code={line.code} name={line.name} />;
   return <Item item={line.item} last={line.last} />;
 });
 
-function Glyph({ name, code }: { name: IconName; code: string }) {
+/** Whose items follow: the course's own glyph in its colour and its name, quiet and not a row (nothing to tap). */
+function CourseLine({ code, name }: { code: string; name: string }) {
+  const b = useB();
+  return (
+    <View
+      accessibilityRole="header"
+      accessibilityLabel={name}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 32, marginTop: space[3] }}
+    >
+      <View style={{ width: 28, alignItems: "center" }}>
+        <CourseGlyph code={code} name={name} size={20} />
+      </View>
+      <Text size="labelLarge" weight="medium" numberOfLines={1} style={{ flex: 1, color: b.muted }}>
+        {name}
+      </Text>
+    </View>
+  );
+}
+
+/** An item's kind, in the page's quiet ink: the colour is its course's, on the line over it. */
+function Glyph({ name }: { name: IconName }) {
   const theme = useTheme();
-  const tone = useCourseColor()(code);
   const Icon = Icons[name];
   return (
     <View style={{ width: 28, alignItems: "center" }}>
-      <Icon size={24} color={tone ? theme.courseTile(tone).ink : theme.v4.fg2} />
+      <Icon size={24} color={theme.v4.fg2} />
     </View>
   );
 }
@@ -148,36 +182,21 @@ function Item({ item, last }: { item: FeedItem; last: boolean }) {
   const { go } = useNav();
   const openExternal = useOpenExternal();
   const openLink = useOpenLink();
-  // The quiet line: which course, then the day it was posted (its hour isn't something to act on).
-  const when = factsLabel(item.course, item.at !== null ? f.dayMonth(item.at) : null);
-  const here = <Icons.ChevronRight size={20} color={b.muted} />;
-  const testID = `row.material.${item.material?.id ?? `module-${item.module}`}`;
-  const toModule = () => go({ screen: "course", code: item.code, module: item.module });
+  // The quiet line is the day it was posted alone (its course is the line over the group): short, so it never wraps.
+  const when = item.at !== null ? f.dayMonth(item.at) : undefined;
+  const testID = `row.material.${item.material.id}`;
   const { material } = item;
-  if (!material)
-    return (
-      <BRow
-        testID={testID}
-        last={last}
-        leading={<Glyph name="BookOpen" code={item.code} />}
-        title={item.title}
-        meta={when}
-        trailing={here}
-        onPress={toModule}
-        accessibilityLabel={factsLabel(item.title, when)}
-      />
-    );
   const kind = materialKind(material.type);
   const action = materialAction(material);
-  const glyph = <Glyph name={KIND_ICON[kind]} code={item.code} />;
-  const label = factsLabel(material.title, t(`material.${kind}`), when);
+  const glyph = <Glyph name={kindIcon(kind, action.kind === "download" ? action.name : material.title)} />;
+  const label = factsLabel(material.title, t(`material.${kind}`), item.course, when);
   if (action.kind === "download")
     return <FileItem material={material} file={{ url: action.url, name: action.name }} last={last} glyph={glyph} when={when} label={label} testID={testID} />;
-  // A note or a picture is read in full on its module's screen (the chevron); a link opens as a lecturer's link does,
-  // a class is joined, anything else opens on Edunex: the arrow says the row leaves the app.
+  // A note or a picture is read in full on its module's screen (the rows' chevron); a link opens as a lecturer's link
+  // does, a class is joined, anything else opens on Edunex: the arrow says the row leaves the app.
   const leaves = action.kind !== "note" && action.kind !== "image";
   const open = () => {
-    if (action.kind === "note" || action.kind === "image") toModule();
+    if (action.kind === "note" || action.kind === "image") go({ screen: "course", code: item.code, module: item.module });
     else if (action.kind === "open") openLink(action.url);
     else openExternal(action.url || edunexMaterialUrl(material));
   };
@@ -188,7 +207,7 @@ function Item({ item, last }: { item: FeedItem; last: boolean }) {
       leading={glyph}
       title={material.title}
       meta={when}
-      trailing={leaves ? <Icons.ArrowUpRight size={20} color={b.muted} /> : here}
+      trailing={leaves ? <Icons.ArrowUpRight size={20} color={b.muted} /> : undefined}
       onPress={open}
       accessibilityLabel={label}
     />
@@ -208,7 +227,7 @@ function FileItem({
   file: { url: string; name: string };
   last: boolean;
   glyph: ReactNode;
-  when: string;
+  when: string | undefined;
   label: string;
   testID: string;
 }) {
@@ -224,8 +243,8 @@ function FileItem({
         leading={glyph}
         title={material.title}
         meta={when}
-        // A file opens on this phone, downloaded or not yet: the same chevron, a spinner while it comes.
-        trailing={busy ? <ActivityIndicator size="small" color={b.muted} /> : <Icons.ChevronRight size={20} color={b.muted} />}
+        // A file opens on this phone, downloaded or not yet: the rows' chevron, a spinner while it comes.
+        trailing={busy ? <ActivityIndicator size="small" color={b.muted} /> : undefined}
         onPress={() => void open()}
         accessibilityLabel={label}
         accessibilityState={{ busy }}
@@ -245,20 +264,24 @@ function FileItem({
   );
 }
 
-/** The feed's shape while Edunex's part is on its way: a week's heading, then its items. */
+/** The feed's shape while Edunex's part is on its way: a week's heading, a course's line, then its items. */
 function Loading() {
   return (
     <View testID="skeleton.material" accessibilityState={{ busy: true }} style={{ paddingTop: space[2] }}>
       {[3, 2].map((rows, group) => (
         <View key={rows} style={{ marginTop: group ? space[6] : 0 }}>
           <Skeleton height={22} width={group ? 130 : 110} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[4], height: 32, marginTop: space[3] }}>
+            <Skeleton height={20} width={20} style={{ marginHorizontal: 4 }} />
+            <Skeleton height={12} width={group ? 120 : 170} />
+          </View>
           {Array.from({ length: rows }, (_, row) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: still placeholders
             <View key={row} style={{ flexDirection: "row", alignItems: "center", gap: space[4], height: 64 }}>
               <Skeleton height={24} width={24} style={{ marginHorizontal: 2 }} />
               <View style={{ flex: 1, gap: space[2] }}>
                 <Skeleton height={16} width={row === 1 ? "58%" : "80%"} />
-                <Skeleton height={12} width={150} />
+                <Skeleton height={12} width={48} />
               </View>
             </View>
           ))}

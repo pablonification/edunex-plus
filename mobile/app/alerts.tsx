@@ -29,7 +29,7 @@ import { usePerfDrawn } from "../src/perf";
 import { type Outcome, type PastAlert, pastAlert } from "../src/screens/alerts/past";
 import { type MeetingExtra, sameMeeting } from "../src/screens/alerts/same-meeting";
 import { useShortCourseName } from "../src/screens/home/parts";
-import { KindMark } from "../src/screens/search/parts";
+import { CourseMark, KindMark } from "../src/screens/search/parts";
 import { BHeading, BRow, useB } from "../src/ui/b";
 import { IconButton } from "../src/ui/controls";
 import { Skeleton } from "../src/ui/display";
@@ -39,7 +39,6 @@ import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel, Page } from "../src/ui/layout";
 import { Text } from "../src/ui/text";
 import { space } from "../src/ui/theme";
-import { courseGlyph, useCourseTile } from "../src/ui/tile";
 import { TopBar } from "../src/ui/top-bar";
 
 const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
@@ -256,32 +255,23 @@ export default function Alerts() {
                           </Text>
                         </View>
                       ) : meta ? (
-                        // Wraps, never cut: a change shows old → new in full, a room on its own line.
-                        <View>
-                          <Text size="bodyMedium" tabular style={{ color: b.muted }}>
-                            {meta}
-                          </Text>
-                          {room && (
-                            <Text size="bodyMedium" style={{ color: b.muted }}>
-                              {room}
-                            </Text>
-                          )}
-                        </View>
+                        // One line, what changed (old → new) and a sitting's room after it; it wraps only when it must, never cut.
+                        <Text size="bodyMedium" tabular style={{ color: b.muted }}>
+                          {factsLabel(meta, room)}
+                        </Text>
                       ) : undefined
                     }
                     // The time, under it a small calm dot while unread (its shape says it, never the colour alone), then the
-                    // chevron: every row opens something.
+                    // rows' shared chevron: every row opens something.
                     trailing={
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
-                        <View style={{ alignItems: "flex-end", gap: space[1] }}>
-                          <Text size="labelMedium" tabular style={{ color: b.muted }}>
-                            {time}
-                          </Text>
-                          {unread && <View testID={`row.alert.${key}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: b.brand }} />}
-                        </View>
-                        <Icons.ChevronRight size={20} color={b.muted} />
+                      <View style={{ alignItems: "flex-end", gap: space[1] }}>
+                        <Text size="labelMedium" tabular style={{ color: b.muted }}>
+                          {time}
+                        </Text>
+                        {unread && <View testID={`row.alert.${key}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: b.brand }} />}
                       </View>
                     }
+                    chevron
                     onPress={() =>
                       past
                         ? nav.go(past.kind === "class" ? { screen: "course", code: past.code } : item.target)
@@ -303,7 +293,6 @@ export default function Alerts() {
           accessibilityLabel={t("alerts.settings")}
           leading={<KindMark icon={Icons.Settings} code={null} />}
           title={t("alerts.settings")}
-          trailing={<Icons.ChevronRight size={20} color={b.muted} />}
           onPress={() => router.push({ pathname: "/settings", params: { at: "alerts" } })}
         />
         {/* Without SIX the bell hears only Edunex: said once, quietly, where the bell's settings are. */}
@@ -318,26 +307,20 @@ export default function Alerts() {
 }
 
 /**
- * A notification's mark: its course's own glyph in the course's colour (the kind's glyph, neutral, when it has no course);
- * one that presses (a deadline, presence, attendance at risk; `past`: no longer) carries a small amber dot on its corner,
+ * A notification's mark: its course's own glyph in the course's colour, what kind of change it is a small mark on its
+ * corner (Search's CourseMark), so every row starts the same way; the kind's glyph alone, neutral, when it has no course.
+ * One that presses (a deadline, presence, attendance at risk; `past`: no longer) carries a small amber dot on its corner,
  * the same shape, so the course is still the one you know.
  */
 function KindTile({ item, past }: { item: Alert; past: boolean }) {
   const b = useB();
-  const tile = useCourseTile();
   const courses = useTermCourses();
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
-  const course = code ? courses?.find((one) => one.code === code) : undefined;
   const pressing = PRESSING.has(item.kind) && !past;
   if (!code) return <KindMark icon={KIND_ICON[item.kind]} code={null} color={pressing ? b.amber : undefined} />;
-  const Glyph = courseGlyph(course?.name);
   return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
-    >
-      <Glyph size={24} color={tile(code).ink} weight="duotone" duotoneOpacity={0.35} />
+    <View>
+      <CourseMark code={code} name={courses?.find((one) => one.code === code)?.name} kind={KIND_ICON[item.kind]} />
       {pressing && (
         <View
           style={{
