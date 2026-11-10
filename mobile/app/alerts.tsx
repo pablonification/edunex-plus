@@ -1,7 +1,7 @@
 // The bell: the history of everything the app noticed (src/app/shell/alerts.tsx), as a screen (round 2, v4). Every
 // alert the engine raised joined with the changes it can see in the data itself (src/core/needs.ts alertFeed), so
-// Beranda's "Yang berubah" is a preview of this list. On v4's grey page, by day (Hari ini, Kemarin, then the date), each
-// day a white card of rows: the kind's icon on its course's colour (amber for what presses), the title with the course's
+// Beranda's "Yang berubah" is a preview of this list. On direction B's white page, by day (Hari ini, Kemarin, then the
+// date), flat rows with a hairline between them: the kind's bare glyph in its course's colour (amber for what presses), the title with the course's
 // name, one meta line (what changed, old → new, or the action and its deadline; a room on its own line, never cut), and
 // at the row's end the time the thing itself happened (a Task posted, a Presence opening); none when only the time the
 // app noticed it is known (SIX never dates a moved class: "00:45" read as the class's time). A small calm dot on each unread row, and the bell's dot on every tab, until "Tandai
@@ -12,7 +12,6 @@
 // row were hard to read); a meeting and its Teams link or material posted close by are one row
 // (../src/screens/alerts/same-meeting.ts).
 import { router } from "expo-router";
-import { ChecksIcon } from "phosphor-react-native/src/icons/Checks";
 import { type ComponentType, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useHomeWorld } from "../../src/app/home-world";
@@ -24,19 +23,21 @@ import type { Alert, AlertKind, ClassSession } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
 import { changeLines, eventTime } from "../src/parts/change-meta";
+import { NotificationsOff, useNotificationPermission } from "../src/parts/notifications-off";
 import { usePerfDrawn } from "../src/perf";
 import { type Outcome, type PastAlert, pastAlert } from "../src/screens/alerts/past";
 import { type MeetingExtra, sameMeeting } from "../src/screens/alerts/same-meeting";
 import { useShortCourseName } from "../src/screens/home/parts";
+import { KindMark } from "../src/screens/search/parts";
+import { BHeading, BRow, useB } from "../src/ui/b";
 import { IconButton } from "../src/ui/controls";
-import { CourseIconTile } from "../src/ui/course-icon-tile";
+import { Skeleton } from "../src/ui/display";
 import { Rise } from "../src/ui/expressive";
-import { Group, GroupRow, Heading, IconTile } from "../src/ui/group";
 import { haptic } from "../src/ui/haptics";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel, Page } from "../src/ui/layout";
 import { Text } from "../src/ui/text";
-import { space, useTheme } from "../src/ui/theme";
+import { space } from "../src/ui/theme";
 import { TopBar } from "../src/ui/top-bar";
 
 const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
@@ -98,7 +99,7 @@ export default function Alerts() {
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const v = useTheme().v4;
+  const b = useB();
   const bridge = useBridge();
   const nav = useNav();
   const openCheckIn = useOpenCheckIn();
@@ -106,6 +107,8 @@ export default function Alerts() {
   const sixOut = useStatus("six").state === "signed-out";
   const world = useHomeWorld();
   const name = useShortCourseName();
+  // Android's permission for notifications: off, the notice and its one button lead the page (as in Settings).
+  const permission = useNotificationPermission();
   // Read up to: what the engine keeps (the bell's dot reads the same), or the moment the Student said so here.
   const [markedAt, setMarkedAt] = useState(0);
   const readAt = Math.max(history?.readAt ?? 0, markedAt);
@@ -158,33 +161,48 @@ export default function Alerts() {
   return (
     <Page
       testID="screen.alerts"
-      background={v.page}
+      background={b.page}
       header={
         <TopBar
           title={t("alerts.title")}
           actions={
             anyUnread ? (
               <IconButton label={t("alerts.markAllRead")} onPress={markAllRead} testID="action.markAllRead">
-                <ChecksIcon size={24} color={v.fg} />
+                <Icons.CheckCircle size={24} color={b.fg} />
               </IconButton>
             ) : undefined
           }
         />
       }
     >
-      {items.length === 0 && (
-        // Calm: the bell and one line. Atur notifikasi under it is the next step.
-        <Rise screen="alerts" index={0} style={{ alignItems: "center", gap: space[4], paddingTop: space[12], paddingBottom: space[4] }}>
-          <IconTile size={64} icon={(color) => <Icons.Bell size={30} color={color} />} />
-          <Text size="bodyLarge" style={{ color: v.fg2, textAlign: "center" }}>
+      <NotificationsOff state={permission} />
+      {history === undefined && (
+        // Still being read from the phone: the rows' shapes stand in, so nothing jumps when they come.
+        <View testID="alerts.loading" style={{ gap: space[4], paddingTop: space[4] }}>
+          {[0, 1, 2].map((at) => (
+            <View key={at} style={{ flexDirection: "row", gap: space[4], alignItems: "center" }}>
+              <Skeleton width={28} height={28} style={{ borderRadius: 14 }} />
+              <View style={{ flex: 1, gap: space[2] }}>
+                <Skeleton width="70%" />
+                <Skeleton width="45%" height={12} />
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+      {history !== undefined && items.length === 0 && (
+        // Calm: the bell, bare, and one line. Atur notifikasi under it is the next step.
+        <Rise screen="alerts" index={0} style={{ alignItems: "center", gap: space[3], paddingTop: space[12], paddingBottom: space[6] }}>
+          <Icons.Bell size={48} color={b.muted} />
+          <Text size="bodyLarge" style={{ color: b.fg2, textAlign: "center" }} testID="alerts.empty">
             {t("alerts.empty")}
           </Text>
         </Rise>
       )}
       {days.map((day, index) => (
         <Rise key={day.offset} screen="alerts" index={Math.min(index, RISE_STEPS)}>
-          <Heading first={index === 0}>{dayTitle(day, t, f)}</Heading>
-          <Group>
+          <BHeading style={{ marginTop: index === 0 ? space[2] : space[6], marginBottom: space[1] }}>{dayTitle(day, t, f)}</BHeading>
+          <View>
             {day.rows.map(({ key, item, happened, past, sitting, joined }, i) => {
               const unread = isUnread(item) || (joined !== null && isUnread(joined.material));
               const lines = changeLines(t, item, name);
@@ -212,36 +230,32 @@ export default function Alerts() {
               const at = happened !== null ? f.time(happened) : null;
               const time = at && !`${title} ${meta ?? ""}`.includes(at) ? at : null;
               return (
-                <GroupRow
+                <BRow
                   key={key}
                   testID={`row.alert.${key}`}
-                  first={i === 0}
+                  last={i === day.rows.length - 1}
                   // Unread first in what's read out, as the dot says it to the eye.
                   accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken, time)}
                   leading={<KindTile item={item} past={past !== null} />}
-                  title={
-                    <Text size="bodyLarge" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
-                      {title}
-                    </Text>
-                  }
+                  title={title}
                   // One meta line: what changed, old → new, or the action and its deadline (short where the desktop's runs
                   // long or says how, ../src/parts/change-meta.ts).
                   meta={
                     outcome ? (
                       <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
-                        <outcome.Icon size={14} weight="bold" color={v[outcome.ink]} />
-                        <Text size="bodyMedium" numberOfLines={1} style={{ color: v[outcome.ink], flexShrink: 1 }}>
+                        <outcome.Icon size={14} weight="bold" color={outcomeInk(b, outcome.ink)} />
+                        <Text size="bodyMedium" numberOfLines={1} style={{ color: outcomeInk(b, outcome.ink), flexShrink: 1 }}>
                           {outcome.text}
                         </Text>
                       </View>
                     ) : meta ? (
                       // Two lines at most, so a room is never cut: the whole of it is in the row's spoken name too.
                       <View>
-                        <Text size="bodyMedium" tabular numberOfLines={room ? 1 : 2} style={{ color: v.muted }}>
+                        <Text size="bodyMedium" tabular numberOfLines={room ? 1 : 2} style={{ color: b.muted }}>
                           {meta}
                         </Text>
                         {room && (
-                          <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
+                          <Text size="bodyMedium" numberOfLines={1} style={{ color: b.muted }}>
                             {room}
                           </Text>
                         )}
@@ -252,11 +266,11 @@ export default function Alerts() {
                   trailing={
                     <View style={{ alignItems: "flex-end", gap: space[1] }}>
                       {time && (
-                        <Text size="labelMedium" tabular style={{ color: v.muted }}>
+                        <Text size="labelMedium" tabular style={{ color: b.muted }}>
                           {time}
                         </Text>
                       )}
-                      {unread && <View testID={`row.alert.${key}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brand }} />}
+                      {unread && <View testID={`row.alert.${key}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: b.brand }} />}
                     </View>
                   }
                   onPress={() =>
@@ -270,23 +284,22 @@ export default function Alerts() {
                 />
               );
             })}
-          </Group>
+          </View>
         </Rise>
       ))}
       <Rise screen="alerts" index={Math.min(days.length, RISE_STEPS + 1)} style={{ marginTop: items.length ? space[6] : 0 }}>
-        <Group>
-          <GroupRow
-            first
-            testID="action.alertSettings"
-            leading={<IconTile tone="plain" icon={(color) => <Icons.Settings size={22} color={color} />} />}
-            title={t("alerts.settings")}
-            trailing={<Icons.ChevronRight size={20} color={v.muted} />}
-            onPress={() => router.push({ pathname: "/settings", params: { at: "alerts" } })}
-          />
-        </Group>
+        <BRow
+          last
+          testID="action.alertSettings"
+          accessibilityLabel={t("alerts.settings")}
+          leading={<KindMark icon={Icons.Settings} code={null} />}
+          title={t("alerts.settings")}
+          trailing={<Icons.ChevronRight size={20} color={b.muted} />}
+          onPress={() => router.push({ pathname: "/settings", params: { at: "alerts" } })}
+        />
         {/* Without SIX the bell hears only Edunex: said once, quietly, where the bell's settings are. */}
         {sixOut && (
-          <Text size="bodySmall" style={{ color: v.muted, marginTop: space[3], marginHorizontal: space[4] }}>
+          <Text size="bodySmall" style={{ color: b.muted, marginTop: space[3] }}>
             {t("alerts.footnoteEdunex")}
           </Text>
         )}
@@ -296,16 +309,18 @@ export default function Alerts() {
 }
 
 /**
- * A notification's tile: its kind's icon, amber while it presses (a deadline, presence, attendance at risk; `past`: no
+ * A notification's mark: its kind's bare glyph, amber while it presses (a deadline, presence, attendance at risk; `past`: no
  * longer), else on its course's colour, else the brand's.
  */
 function KindTile({ item, past }: { item: Alert; past: boolean }) {
-  const Icon = KIND_ICON[item.kind];
-  const glyph = (color: string) => <Icon size={22} color={color} />;
+  const b = useB();
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
-  if (PRESSING.has(item.kind) && !past) return <IconTile tone="amber" icon={glyph} />;
-  if (code) return <CourseIconTile code={code} icon={glyph} />;
-  return <IconTile tone="brand" icon={glyph} />;
+  return <KindMark icon={KIND_ICON[item.kind]} code={code} color={PRESSING.has(item.kind) && !past ? b.amber : undefined} />;
+}
+
+/** An outcome's ink on B's page. */
+function outcomeInk(b: ReturnType<typeof useB>, ink: "okFg" | "redFg" | "muted"): string {
+  return ink === "okFg" ? b.ok : ink === "redFg" ? b.red : b.muted;
 }
 
 /** A row's title once it's over: "Kuliah selesai · {course}", "Presensi ditutup · {course}", "Tenggat lewat · {Task}". */
