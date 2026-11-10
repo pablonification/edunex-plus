@@ -1,12 +1,12 @@
 // The few earned moments (DESIGN.md, "Motion"): something done that matters, answered with v4's cookie turning in and
 // its check drawing itself (./expressive.tsx), and the phone's own "success" haptic. Drawn on the UI thread
 // (Reanimated); with Remove animations it only fades in, the check already drawn.
-import * as Haptics from "expo-haptics";
 import { useEffect, useState } from "react";
 import { AccessibilityInfo, StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 import { CookieCheck } from "./expressive";
+import { haptic } from "./haptics";
 import { useReduceMotion } from "./motion";
 import { Text } from "./text";
 import { motion, space, useTheme } from "./theme";
@@ -25,11 +25,11 @@ export function DrawnCheck({ size = 72 }: { size?: number }) {
   const opacity = useSharedValue(0);
   const drawn = useSharedValue(still ? 1 : 0);
   useEffect(() => {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    haptic.success();
     opacity.value = withTiming(1, { duration: motion.duration.short });
     if (still) return;
     scale.value = withSpring(1, motion.expressive);
-    drawn.value = withDelay(140, withTiming(1, { duration: 380, easing: Easing.bezier(0.2, 0, 0, 1) }));
+    drawn.value = withDelay(140, withTiming(1, { duration: 380, easing: Easing.bezier(...motion.easing.standard) }));
     // Once, as the moment starts: the values are the animation's own.
   }, [still, scale, opacity, drawn]);
   const circle = useAnimatedStyle(() => ({ opacity: opacity.value, transform: [{ scale: scale.value }] }));
@@ -70,7 +70,7 @@ export function Celebration({ title, detail, onDone }: { title: string; detail?:
   const [gone, setGone] = useState(false);
   useEffect(() => {
     AccessibilityInfo.announceForAccessibility(detail ? `${title}. ${detail}` : title);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+    haptic.success();
     shown.value = withTiming(1, { duration: motion.duration.short });
     const out = setTimeout(() => {
       shown.value = withTiming(0, { duration: motion.duration.medium });

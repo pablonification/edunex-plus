@@ -8,7 +8,6 @@ import { type StyleProp, StyleSheet, TextInput, type TextStyle, View, type ViewS
 import Animated, {
   cancelAnimation,
   Easing,
-  FadeInDown,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -21,6 +20,9 @@ import Svg, { Path } from "react-native-svg";
 import { firstFrameShown } from "../shell/first-frame";
 import { useLoopWhileShown, useReduceMotion } from "./motion";
 import { motion } from "./theme";
+
+/** Material's standard easing (`motion.easing.standard`). */
+const STANDARD = Easing.bezier(...motion.easing.standard);
 
 /** The height the progress bar's row takes (the wave's old height, so the callers' rows keep theirs). */
 const WAVE_HEIGHT = 14;
@@ -71,7 +73,7 @@ export function CookieCheck({ color, check, size = 28 }: { color: string; check:
     seen.value = withTiming(1, { duration: motion.duration.short });
     if (still) return;
     grow.value = withSpring(1, motion.expressive);
-    drawn.value = withDelay(350, withTiming(1, { duration: 350, easing: Easing.bezier(0.2, 0, 0, 1) }));
+    drawn.value = withDelay(350, withTiming(1, { duration: 350, easing: STANDARD }));
   }, [still, grow, seen, drawn]);
   const badge = useAnimatedStyle(() => ({ opacity: seen.value, transform: [{ scale: grow.value }, { rotate: `${(1 - grow.value) * -129}deg` }] }));
   const stroke = useAnimatedProps(() => ({ strokeDashoffset: CHECK_LENGTH * (1 - drawn.value) }));
@@ -203,8 +205,8 @@ function risingSince(screen: string, shown: boolean): number | null {
 }
 
 /**
- * A screen's part rising into place on its first showing, `index` steps after the first (55 ms apart, on M3
- * Expressive's spring); just there with Remove animations, and the next time `screen` is drawn in this run. (A fade in
+ * A screen's part rising into place on its first showing, `index` steps after the first (`motion.stagger` apart, a
+ * `motion.nudge` up, on the default spatial spring); just there with Remove animations, and the next time `screen` is drawn in this run. (A fade in
  * its place was now and then left at nothing on the emulator with animations off: Kuliah drawn blank.) A part drawn a
  * moment after the rest (./parts.tsx: a tab's lower parts) still rises in the same stagger, its delay counted from the
  * screen's first part. A cold start's Beranda is just there as the splash goes, with nothing rising.
@@ -221,12 +223,20 @@ export function Rise({ screen, index, style, children }: { screen: string; index
   // Animated.View and its layout animation, one per card, were work the splash waited for, for a rise mostly behind it.
   // Chosen once, at mount: a part that turned into another kind of view would be drawn again whole.
   if (since === null) return <View style={style}>{children}</View>;
+  const delay = Math.max(0, 80 + index * motion.stagger - since);
+  // Fades in (medium, standard) while rising a nudge on the default spatial spring: the tokens every arrival moves on.
   const entering = still
     ? undefined
-    : FadeInDown.delay(Math.max(0, 80 + index * 55 - since))
-        .springify()
-        .damping(16)
-        .stiffness(170);
+    : () => {
+        "worklet";
+        return {
+          initialValues: { opacity: 0, transform: [{ translateY: motion.nudge }] },
+          animations: {
+            opacity: withDelay(delay, withTiming(1, { duration: motion.duration.medium, easing: STANDARD })),
+            transform: [{ translateY: withDelay(delay, withSpring(0, motion.spatialDefault)) }],
+          },
+        };
+      };
   return (
     <Animated.View entering={entering} style={style}>
       {children}
