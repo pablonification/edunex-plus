@@ -9,8 +9,8 @@ import { space, type Theme } from "../../ui/theme";
 /** The page: white in light, the dark surface in dark (../../ui/b.tsx's `page`, without a hook of its own). */
 export const pageOf = (theme: Theme): string => (theme.scheme === "dark" ? theme.v4.page : theme.v4.card);
 
-/** A soft fill a step off the page, for the one thing a section holds. */
-export const softOf = (theme: Theme): string => (theme.scheme === "dark" ? theme.v4.card : theme.v4.page);
+/** A soft fill a step off the page, for the one thing a section holds: the chip's (page and card are one colour now). */
+export const softOf = (theme: Theme): string => theme.v4.chip;
 
 /**
  * A section's content, flat on the page: nothing around it, no padding of its own. Given a fill (`style.backgroundColor`:

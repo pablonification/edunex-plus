@@ -81,4 +81,6 @@ export const mobileTasksStrings = {
   "mobile.tasks.editedWhy": { id: "Tentang perubahan ini", en: "About this change" },
   // What a row or the lead card is when it's an exam, beside the exam glyph.
   "mobile.tasks.kindExam": { id: "Ujian", en: "Exam" },
+  // superapp: Tugas, round 3. What the lead card is when it's a Task, beside the Task glyph.
+  "mobile.tasks.kindTask": { id: "Tugas", en: "Task" },
 } as const satisfies Record<string, Entry>;

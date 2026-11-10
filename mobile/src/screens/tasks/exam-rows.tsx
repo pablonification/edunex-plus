@@ -26,8 +26,7 @@ import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { shortName } from "../home/parts";
-import { softOf } from "./flat";
+import { examName, examTitle } from "./exam-name";
 import {
   countdown,
   FlatSlice,
@@ -87,21 +86,7 @@ export const namesKind = (title: string, kind: string) =>
 /** "Kuis Komunikasi Pemasaran": the exam's name, the course's whole, for a control's spoken label. */
 const examLabel = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
 
-/**
- * The one name an exam has on every screen (Tugas, a Task's page, the exam's page, Ujian, search): its kind, then its
- * course's one short name: "UTS Komunikasi Pemasaran". Never a take-home's own title ("UTS Markom"): a course's two
- * exams are told apart by examNote's quiet word. `courseName`: the course list's name; without it SIX's, else the code.
- */
-export const examName = (t: Translate, exam: Pick<Exam, "kind" | "courseCode" | "six">, courseName?: string): string =>
-  `${t(`exam.kind.${exam.kind}`)} ${shortName(courseName ?? exam.six[0]?.courseName ?? exam.courseCode)}`;
-
-/** What tells one course's exams apart, as a quiet word beside the one name: "Take-home", "Di Edunex", else nothing. */
-export function examNote(t: Translate, part: { kind: string; source?: string } | null | undefined): string | null {
-  if (part?.kind === "takehome") return t("exam.takeHome");
-  if (part?.kind === "window" || (part?.kind === "sitting" && part.source === "edunex")) return t("exam.onEdunex");
-  return null;
-}
-const examTitle = examName;
+export { examName, examNote, examTitle } from "./exam-name";
 
 /** Moves an open Edunex window to Done, with Undo; a failure goes to the list's banner. */
 function useMarkDone() {
@@ -149,7 +134,6 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const [menu, setMenu] = useState(false);
   const { exam, part } = item;
   const name = examCourse(world.courses, exam);
-  const days = sourceDays(f, exam);
   const code = inCourse ? "" : exam.courseCode;
   const dayTime = (at: number) => f.dueLabel(at);
   // On Tugas the day leads the row (its leaf): the line keeps the weekday and the time. On a course's page, the whole date.
@@ -173,7 +157,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     // The day alone beside the kind (its page and spoken name keep the time); not the kind when the name says it ("UTS Markom").
     // A take-home goes by its own name ("UTS Markom"): the line names its course, as every row of a Task does.
     // One name per exam: the title is the exam's, as its sitting's row; "Take-home" is the quiet word that tells them apart.
-    shown = [t("exam.takeHome"), part.at === null ? t("task.noDeadline") : short(part.at, !inCourse)];
+    shown = [part.at === null ? t("task.noDeadline") : short(part.at, !inCourse)];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
@@ -222,7 +206,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     ...facts,
     late ? t("home.need.task.overdue") : null,
     moved ? t("exam.markChanged") : null,
-    disagree ? t("exam.row.disagree", days) : null,
+    // The days each source gives: worked out only for the row that needs them.
+    disagree ? t("exam.row.disagree", sourceDays(f, exam)) : null,
     when,
     moment !== null ? f.fromNow(moment) : null,
   );
@@ -241,11 +226,10 @@ export const ExamPartRow = inWorld(function ExamPartRow({
         at={part.at}
         date={f.dayMonth(part.at)}
         weekday={f.weekdayShort(part.at)}
-        title={examTitle(t, exam, name)}
-        // What it is, in a word ("Ujian", with its glyph), what tells it apart, and its time: the day is the leaf's.
-        meta={[t("mobile.tasks.kindExam"), examNote(t, part), part.kind === "sitting" && part.end !== null ? f.timeRange(part.at, part.end) : f.time(part.at)]
-          .filter(Boolean)
-          .join(" · ")}
+        // What it is, in a word ("Ujian", with its glyph); its name with what tells it apart; its time by its day.
+        kindLabel={t("mobile.tasks.kindExam")}
+        title={examTitle(t, exam, part, name)}
+        time={part.kind === "sitting" && part.end !== null ? f.timeRange(part.at, part.end) : f.time(part.at)}
         kind="exam"
       />
     );
@@ -259,8 +243,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
       quick={window ? [{ label: t("exam.markDoneFor", { title }), onPress: () => void markDone(window) }] : quick}
       code={code || null}
       course={name}
-      // What it is, every row the same: a take-home's own name, else the exam's ("UAS Komunikasi Pemasaran").
-      title={examTitle(t, exam, name)}
+      // The exam's one name and, in the same line, what tells a course's two apart ("UTS Komunikasi Pemasaran · Take-home").
+      title={examTitle(t, exam, part, name)}
       meta={shown.filter(Boolean).join(" · ") || t("mobile.tasks.kindExam")}
       status={status}
       date={inCourse ? undefined : part && part.at !== null ? f.dayMonth(part.at) : null}
@@ -295,22 +279,78 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   );
 });
 
-const NO_EXAMS: readonly Extract<TodoItem, { kind: "exam" }>[] = [];
+/**
+ * An exam period on Tugas, as a sub-heading where its first exam falls in date order: "Masa UTS" and its days. Its
+ * exams are the list's own rows under it (./list.tsx), never drawn inside one cell: a block holding five exam rows was
+ * built in one go each time it scrolled into view (round 3's scroll).
+ */
+export const PeriodHead = inWorld(function PeriodHead({ item }: { item: Extract<TodoItem, { kind: "period" }> }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const { f } = useRowWorld();
+  const { week } = item;
+  const title = t("exam.period", { kind: item.examKind });
+  const main = item.state === "during" ? t("exam.until", { time: f.dayMonth(week.end - 1) }) : f.dayRange(week.firstDay, week.lastDay);
+  return (
+    <View
+      testID={`row.period.${item.examKind}`}
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={factsLabel(title, main, f.fromNow(item.state === "during" ? week.end - 1 : week.start))}
+      style={{ flexDirection: "row", alignItems: "baseline", gap: space[2], paddingHorizontal: space[1], paddingTop: space[4], paddingBottom: space[1] }}
+    >
+      <Text size="titleSmall" face="display" weight="bold" style={{ color: v.fg }}>
+        {title}
+      </Text>
+      <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.muted }}>
+        {main}
+      </Text>
+    </View>
+  );
+});
 
 /**
- * An exam period whose exams have no day yet: one row where the period falls ("Masa UTS", 12–16 Okt), opening to list
- * them. Closed while it's far off; open within two weeks and while it's on.
+ * A far-off period's exams with no day yet, behind one line that says how many (they aren't counted in "Belum selesai"
+ * until the period is near, so the count over the list matches its rows).
  */
-export const PeriodRow = inWorld(function PeriodRow({
-  item,
-  inCourse = false,
-  inside = NO_EXAMS,
-}: {
-  item: Extract<TodoItem, { kind: "period" }>;
-  inCourse?: boolean;
-  /** Tugas: the exams with a day in this period, in date order, drawn inside it. */
-  inside?: readonly Extract<TodoItem, { kind: "exam" }>[];
-}) {
+export const PeriodFold = inWorld(function PeriodFold({ item }: { item: Extract<TodoItem, { kind: "period" }> }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const { f } = useRowWorld();
+  const [open, setOpen] = useState(false);
+  const codes = item.exams.map((exam) => exam.courseCode);
+  const fact = codes.length <= 2 ? t("exam.period.noDayFor", { codes: f.list(codes) }) : t("exam.period.noDayCount", { count: codes.length });
+  return (
+    <View>
+      <PressScale
+        testID={`action.period.${item.examKind}`}
+        accessibilityLabel={fact}
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen(!open)}
+        style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48, paddingHorizontal: space[1] }}
+      >
+        <Text size="bodyMedium" style={{ flex: 1, color: v.muted }}>
+          {fact}
+        </Text>
+        <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
+          <Icons.ChevronDown size={20} color={v.muted} />
+        </View>
+      </PressScale>
+      {open &&
+        item.exams.map((exam, i) => (
+          <FlatSlice key={exam.id} first={i === 0}>
+            <PeriodExam exam={exam} inCourse={false} />
+          </FlatSlice>
+        ))}
+    </View>
+  );
+});
+
+/**
+ * An exam period whose exams have no day yet, on a course's page: one row where the period falls ("Masa UTS",
+ * 12–16 Okt), opening to list them. Closed while it's far off; open within two weeks and while it's on.
+ */
+export const PeriodRow = inWorld(function PeriodRow({ item, inCourse = false }: { item: Extract<TodoItem, { kind: "period" }>; inCourse?: boolean }) {
   const t = useT();
   const theme = useTheme();
   const v = theme.v4;
@@ -324,66 +364,6 @@ export const PeriodRow = inWorld(function PeriodRow({
   const main = item.state === "during" ? t("exam.until", { time: f.dayMonth(week.end - 1) }) : f.dayRange(week.firstDay, week.lastDay);
   const sub = f.fromNow(item.state === "during" ? week.end - 1 : week.start);
   const line = inCourse ? t("exam.dayUnknown") : fact;
-  if (!inCourse)
-    // On Tugas: a sub-heading where the period falls in date order, "Masa UTS" and its days, with its exams inside it
-    // on one soft block: those with a day first, in date order, then those with none yet, which say so in words.
-    return (
-      <View
-        testID={`row.period.${item.examKind}`}
-        style={{
-          backgroundColor: softOf(theme),
-          borderRadius: 20,
-          marginVertical: space[2],
-          marginHorizontal: -space[2],
-          paddingHorizontal: space[2],
-          paddingTop: space[3],
-          paddingBottom: space[1],
-        }}
-      >
-        <View
-          accessible
-          accessibilityRole="header"
-          accessibilityLabel={factsLabel(title, main, sub)}
-          style={{ flexDirection: "row", alignItems: "baseline", gap: space[2], paddingHorizontal: space[1] }}
-        >
-          <Text size="titleSmall" face="display" weight="bold" style={{ color: v.fg }}>
-            {title}
-          </Text>
-          <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.muted }}>
-            {main}
-          </Text>
-        </View>
-        {inside.map((exam, i) => (
-          <FlatSlice key={exam.key} first={i === 0}>
-            <ExamPartRow item={exam} />
-          </FlatSlice>
-        ))}
-        {/* Far off: its exams with no day yet stay behind one line that says how many (they aren't counted in "Belum
-            selesai" until the period is near, so the count over the list matches its rows). */}
-        {item.state === "far" && item.exams.length > 0 && (
-          <PressScale
-            testID={`action.period.${item.examKind}`}
-            accessibilityLabel={fact}
-            accessibilityState={{ expanded: open }}
-            onPress={() => setToggled(!toggled)}
-            style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48, paddingHorizontal: space[1] }}
-          >
-            <Text size="bodyMedium" style={{ flex: 1, color: v.muted }}>
-              {fact}
-            </Text>
-            <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
-              <Icons.ChevronDown size={20} color={v.muted} />
-            </View>
-          </PressScale>
-        )}
-        {open &&
-          item.exams.map((exam, i) => (
-            <FlatSlice key={exam.id} first={i === 0 && inside.length === 0 && item.state !== "far"}>
-              <PeriodExam exam={exam} inCourse={false} />
-            </FlatSlice>
-          ))}
-      </View>
-    );
   return (
     <View>
       <TaskLine
@@ -416,7 +396,8 @@ export const PeriodRow = inWorld(function PeriodRow({
   );
 });
 
-function PeriodExam({ exam, inCourse }: { exam: Exam; inCourse: boolean }) {
+/** An exam of a period with no day yet: its row says so, in the same columns as the dated ones. */
+export const PeriodExam = inWorld(function PeriodExam({ exam, inCourse = false }: { exam: Exam; inCourse?: boolean }) {
   const t = useT();
   const { go } = useNav();
   const world = useRowWorld();
@@ -428,14 +409,14 @@ function PeriodExam({ exam, inCourse }: { exam: Exam; inCourse: boolean }) {
       onPress={() => go({ screen: "exam", examId: exam.id })}
       code={exam.courseCode}
       course={name}
-      title={examTitle(t, exam, name)}
+      title={examName(t, exam, name)}
       // Every exam row says when, this one too: no day yet.
       meta={t("exam.noDate")}
       date={inCourse ? undefined : null}
       kind="exam"
     />
   );
-}
+});
 
 /**
  * An exam behind the Student, in Done: where it was sat, or that its day was never announced. A window the Student
@@ -498,7 +479,7 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
       quick={mark ? [{ label: t("exam.unmarkFor", { title }), onPress: () => void unmark() }] : undefined}
       code={code || null}
       course={name}
-      title={examTitle(t, exam, name)}
+      title={title}
       // The title names the course: the line is when.
       meta={at !== null ? (code ? f.weekdayShort(at) : rowWhen(f, at, false)) : main || t("exam.neverAnnounced")}
       date={code ? (at !== null ? f.dayMonth(at) : null) : undefined}
