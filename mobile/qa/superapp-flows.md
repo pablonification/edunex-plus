@@ -63,22 +63,22 @@ Beranda.
 
 ### `mobile/flows/judge/edunex-only.yaml`
 
-Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/tab.yaml`; `mobile/flows/judge/walk.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/superapp-flows.md`
+Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/tab.yaml`; `mobile/flows/judge/walk.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-map.md`
 
 - mobile/flows/judge/edunex-only.yaml:7: `tab.home`, tab bar
 - mobile/flows/judge/edunex-only.yaml:11: `status.settling`, top bar
 
 ### `mobile/flows/judge/first-run.yaml`
 
-Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/walk.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/superapp-flows.md`
+Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/walk.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-map.md`
 
-- mobile/flows/judge/first-run.yaml:18: `status.firstRead`, top bar
+- mobile/flows/judge/first-run.yaml:18: `status.firstRead`, top bar (also drawn in shell/first-minute/scene.tsx)
 - mobile/flows/judge/first-run.yaml:24: `card.firstScan`, Beranda
 - mobile/flows/judge/first-run.yaml:29: `action.firstScan.open`, Beranda
 
 ### `mobile/flows/judge/walk.yaml`
 
-Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/tab.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/superapp-flows.md`; `mobile/scripts/make-report.mjs`
+Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/tab.yaml`; `mobile/flows/judge-dark.yaml`; `mobile/flows/judge-light.yaml`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`; `mobile/qa/superapp-map.md`; `mobile/scripts/make-report.mjs`
 
 - mobile/flows/judge/walk.yaml:11: `tab.home`, tab bar
 - mobile/flows/judge/walk.yaml:15: `status.settling`, top bar
@@ -92,19 +92,19 @@ Run by: not run on its own (mobile-e2e.sh skips `judge/`); `mobile/flows/judge/t
 - mobile/flows/judge/walk.yaml:236: `row.nav.plan.krs`, Akademik
 - mobile/flows/judge/walk.yaml:246: `row.nav.plan.bills`, Akademik
 - mobile/flows/judge/walk.yaml:256: `row.nav.plan.deadlines`, Akademik
-- mobile/flows/judge/walk.yaml:314: `action.search`, top bar
-- mobile/flows/judge/walk.yaml:317: `action.search`, top bar
+- mobile/flows/judge/walk.yaml:314: `action.search`, top bar (also drawn in parts/b-header.tsx)
+- mobile/flows/judge/walk.yaml:317: `action.search`, top bar (also drawn in parts/b-header.tsx)
 - mobile/flows/judge/walk.yaml:329: `tab.home`, tab bar
 - mobile/flows/judge/walk.yaml:333: `status.settling`, top bar
-- mobile/flows/judge/walk.yaml:336: `action.syncStatus`, top bar and Beranda (also drawn in screens/home/header.tsx, screens/schedule/schedule-screen.tsx; also drawn in screens/schedule/schedule-screen.tsx, shell/source-status.tsx)
+- mobile/flows/judge/walk.yaml:336: `action.syncStatus`, top bar and Beranda (also drawn in parts/b-header.tsx, screens/home/index.tsx, screens/schedule/schedule-screen.tsx; also drawn in parts/b-header.tsx, screens/schedule/schedule-screen.tsx, shell/source-status.tsx)
 - mobile/flows/judge/walk.yaml:338: `action.refreshNow`, top bar
 - mobile/flows/judge/walk.yaml:342: text ".*Memperbarui.*", top bar? (string `sync.checking` is used there)
-- mobile/flows/judge/walk.yaml:348: `action.alerts`, top bar
-- mobile/flows/judge/walk.yaml:360: `action.account`, top bar
+- mobile/flows/judge/walk.yaml:348: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
+- mobile/flows/judge/walk.yaml:360: `action.account`, top bar and Akademik (also drawn in screens/academic/academic-screen.tsx)
 
 ### `mobile/flows/round2/w01-files.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w01-files.yaml:13: `tab.home`, tab bar
 - mobile/flows/round2/w01-files.yaml:18: text "Slide Pengantar Proposal TA", Beranda? (after `tab.home` at line 13, nothing else tapped since)
@@ -112,17 +112,16 @@ Run by: `mobile/qa/superapp-flows.md`
 
 ### `mobile/flows/round2/w04-hierarchy.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w04-hierarchy.yaml:10: `tab.home`, tab bar
 - mobile/flows/round2/w04-hierarchy.yaml:13: `tab.tasks`, tab bar
-- mobile/flows/round2/w04-hierarchy.yaml:44: `tab.academic`, tab bar
 - mobile/flows/round2/w04-hierarchy.yaml:46: `action.academic.grades`, Akademik
-- mobile/flows/round2/w04-hierarchy.yaml:47: text "3,26", Akademik? (after `tab.academic` at line 44, nothing else tapped since)
+- mobile/flows/round2/w04-hierarchy.yaml:47: text "3,26", Akademik? (after `action.academic.grades` at line 46, nothing else tapped since)
 
 ### `mobile/flows/round2/w04-home-hierarchy.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w04-home-hierarchy.yaml:12: `tab.home`, tab bar
 - mobile/flows/round2/w04-home-hierarchy.yaml:16: `status.settling`, top bar
@@ -173,11 +172,11 @@ Run by: `mobile/qa/superapp-flows.md`
 Run by: `mobile/qa/superapp-flows.md`
 
 - mobile/flows/round2/w09-native-ui.yaml:10: `tab.home`, tab bar
-- mobile/flows/round2/w09-native-ui.yaml:13: `action.account`, top bar
+- mobile/flows/round2/w09-native-ui.yaml:13: `action.account`, top bar and Akademik (also drawn in screens/academic/academic-screen.tsx)
 
 ### `mobile/flows/round2/w10-check-in-done.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w10-check-in-done.yaml:11: `tab.home`, tab bar
 - mobile/flows/round2/w10-check-in-done.yaml:15: `status.settling`, top bar
@@ -187,7 +186,7 @@ Run by: `mobile/qa/superapp-flows.md`
 
 ### `mobile/flows/round2/w10-hand-in-moment.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w10-hand-in-moment.yaml:10: `tab.home`, tab bar
 - mobile/flows/round2/w10-hand-in-moment.yaml:13: `tab.tasks`, tab bar
@@ -201,16 +200,15 @@ Run by: `mobile/qa/superapp-flows.md`
 
 ### `mobile/flows/round2/w12-one-target-akademik.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w12-one-target-akademik.yaml:10: `tab.home`, tab bar
-- mobile/flows/round2/w12-one-target-akademik.yaml:13: `tab.academic`, tab bar
 - mobile/flows/round2/w12-one-target-akademik.yaml:15: `card.profile`, Akademik (also drawn in screens/settings/accounts.tsx)
 - mobile/flows/round2/w12-one-target-akademik.yaml:22: `tab.tasks`, tab bar
 
 ### `mobile/flows/round2/w12-one-target.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w12-one-target.yaml:12: `tab.home`, tab bar
 - mobile/flows/round2/w12-one-target.yaml:16: `status.settling`, top bar
@@ -233,7 +231,7 @@ Run by: `mobile/qa/superapp-flows.md`
 
 ### `mobile/flows/round2/w13-tandai-hadir.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/flows/round2/w13-tandai-hadir.yaml:19: `tab.home`, tab bar
 - mobile/flows/round2/w13-tandai-hadir.yaml:28: text "Kuliah sudah mulai . PL3002", Beranda? (after `tab.home` at line 19, nothing else tapped since)
@@ -251,15 +249,14 @@ Run by: `mobile/qa/superapp-flows.md`
 
 ### `mobile/flows/screens.json`
 
-Run by: CI `e2e (<scenario>)` (nightly and full runs): mobile/scripts/flows-from-inventory.mjs makes mobile/flows/data/<scenario>/*.yaml from it and mobile/flows/expected/*.json; `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-flows.mjs`; `mobile/scripts/flows-from-inventory.mjs`; `mobile/scripts/inventory.mjs`
+Run by: CI `e2e (<scenario>)` (nightly and full runs): mobile/scripts/flows-from-inventory.mjs makes mobile/flows/data/<scenario>/*.yaml from it and mobile/flows/expected/*.json; `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-flows.mjs`; `mobile/qa/superapp-journeys.md`; `mobile/scripts/flows-from-inventory.mjs`; `mobile/scripts/inventory.mjs`
 
 - mobile/flows/screens.json:48, 144, 227, 303, 429, 470, 560, 649, 936, 1536, 1626, 1802, 1835: `tab.home`, tab bar
 - mobile/flows/screens.json:56, 269: `status.settling`, top bar
-- mobile/flows/screens.json:151, 173, 344, 366, 1868, 4592, 4629, 4704, 4733, 4787, 4815, 4843, 4871, 5383, 5405: `tab.academic`, tab bar
-- mobile/flows/screens.json:157, 167, 350, 360, 1873, 5389, 5399: `screen.academic`, Akademik
-- mobile/flows/screens.json:182, 189, 375, 382, 5414, 5421: `action.account`, top bar
+- mobile/flows/screens.json:182, 189, 375, 382, 5414, 5421: `action.account`, top bar and Akademik (also drawn in screens/academic/academic-screen.tsx)
+- mobile/flows/screens.json:203: text ".*Sistem dan Teknologi Informasi.*", top bar? (after `action.account` at line 182, nothing else tapped since)
 - mobile/flows/screens.json:235, 311: `card.firstScan`, Beranda
-- mobile/flows/screens.json:261: `(tab\.home|screen\.welcome)`, tab bar (also drawn in shell/welcome.tsx)
+- mobile/flows/screens.json:261: `(tab\.home|screen\.welcome)`, tab bar (also drawn in shell/first-minute/scene.tsx)
 - mobile/flows/screens.json:318: `action.firstScan.open`, Beranda
 - mobile/flows/screens.json:434, 476, 566, 655, 942, 1542, 1632, 1808: `screen.home`, Beranda
 - mobile/flows/screens.json:454, 544, 633, 722, 774, 784, 800, 821, 873, 883, 899, 920, 1047, 1099, 1109, 1125, 1146, 1198, 1208, 1224, 1245, 1297, 1307, 1323, 1344, 1396, 1406, 1422, 1499, 1520, 1610, 1720, 1786, 2107, 2130, 2169, 2222, 2278, 2327, 2354, 2381, 2408, 2435, 2462, 2489, 2516, 2543, 2570, 2597, 2624, 2651, 2678, 2705, 2716, 2743, 2754, 2781, 2792, 2819, 2830, 2857, 2868, 2924, 2935, 2991, 3002, 3058, 3069, 3125, 3136, 3153, 3170, 3216, 3262, 3303, 3341, 3389, 3422, 3434, 3541, 3553, 3671: `sheet\.(nowClass|class)`, Beranda (also drawn in screens/schedule/details.tsx)
@@ -272,10 +269,10 @@ Run by: CI `e2e (<scenario>)` (nightly and full runs): mobile/scripts/flows-from
 - mobile/flows/screens.json:732, 831, 1057, 1156, 1255, 1354: `screen\.(course|needs)`, Beranda (also drawn in screens/course/course-screen.tsx)
 - mobile/flows/screens.json:740, 839, 1065, 1164, 1263, 1362, 1461, 2115, 2138, 2177, 3318, 3351: `tab.schedule`, tab bar
 - mobile/flows/screens.json:971, 991, 1014: `action.nowClass`, Beranda
-- mobile/flows/screens.json:981: `action.syncStatus`, top bar and Beranda (also drawn in screens/home/header.tsx, screens/schedule/schedule-screen.tsx; also drawn in screens/schedule/schedule-screen.tsx, shell/source-status.tsx)
+- mobile/flows/screens.json:981: `action.syncStatus`, top bar and Beranda (also drawn in parts/b-header.tsx, screens/home/index.tsx, screens/schedule/schedule-screen.tsx; also drawn in parts/b-header.tsx, screens/schedule/schedule-screen.tsx, shell/source-status.tsx)
 - mobile/flows/screens.json:1687: `section.changes`, Beranda (also drawn in screens/plan/curriculum.tsx)
 - mobile/flows/screens.json:1756, 1855, 1900, 3687, 3736, 3807, 3878, 4016, 4154, 4292, 4430, 4568, 5121, 5200, 5271: `tab.courses`, tab bar
-- mobile/flows/screens.json:1840, 5354: `action.alerts`, top bar
+- mobile/flows/screens.json:1840, 5354: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
 - mobile/flows/screens.json:1916, 1943, 1974, 2017: `tab.tasks`, tab bar
 - mobile/flows/screens.json:3402, 3521: `sheet\.(nowClass|class|course)|screen\.course`, Beranda (also drawn in screens/course/course-screen.tsx, screens/course/course-sheet.tsx, screens/schedule/details.tsx)
 - mobile/flows/screens.json:3440, 3559: `action.openCourse`, Beranda (also drawn in screens/schedule/details.tsx)
@@ -285,11 +282,11 @@ Run by: CI `e2e (<scenario>)` (nightly and full runs): mobile/scripts/flows-from
 - mobile/flows/screens.json:4821, 4828: `row.nav.plan.krs`, Akademik
 - mobile/flows/screens.json:4849, 4856: `row.nav.plan.bills`, Akademik
 - mobile/flows/screens.json:4877, 4884: `row.nav.plan.deadlines`, Akademik
-- mobile/flows/screens.json:5335: `action.search`, top bar
+- mobile/flows/screens.json:5335: `action.search`, top bar (also drawn in parts/b-header.tsx)
 
 ### `mobile/flows/smoke.yaml`
 
-Run by: CI `e2e (app)`: .github/workflows/mobile.yml, through scripts/ci/mobile-e2e.sh (`*.yaml` of mobile/flows), on a pull request or push that changes mobile/, every night and by hand; `mobile/qa/superapp-flows.md`; `.github/workflows/mobile.yml`
+Run by: CI `e2e (app)`: .github/workflows/mobile.yml, through scripts/ci/mobile-e2e.sh (`*.yaml` of mobile/flows), on a pull request or push that changes mobile/, every night and by hand; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`; `.github/workflows/mobile.yml`
 
 - mobile/flows/smoke.yaml:8: `tab.home`, tab bar
 - mobile/flows/smoke.yaml:12: `status.settling`, top bar
@@ -300,22 +297,22 @@ Run by: CI `e2e (app)`: .github/workflows/mobile.yml, through scripts/ci/mobile-
 
 ### `mobile/flows/use.yaml`
 
-Run by: CI `e2e (app)`: .github/workflows/mobile.yml, through scripts/ci/mobile-e2e.sh (`*.yaml` of mobile/flows), on a pull request or push that changes mobile/, every night and by hand; `mobile/flows/round2/w10-hand-in-moment.yaml`; `mobile/qa/emu.sh`; `mobile/qa/superapp-flows.md`; `scripts/ci/mobile-e2e.sh`
+Run by: CI `e2e (app)`: .github/workflows/mobile.yml, through scripts/ci/mobile-e2e.sh (`*.yaml` of mobile/flows), on a pull request or push that changes mobile/, every night and by hand; `mobile/flows/round2/w10-hand-in-moment.yaml`; `mobile/qa/emu.sh`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`; `mobile/qa/superapp-map.md`; `scripts/ci/mobile-e2e.sh`
 
 - mobile/flows/use.yaml:10: `tab.home`, tab bar
 - mobile/flows/use.yaml:14: `status.settling`, top bar
 - mobile/flows/use.yaml:20: `tab.tasks`, tab bar
 - mobile/flows/use.yaml:97: `tab.schedule`, tab bar
 - mobile/flows/use.yaml:145: `tab.courses`, tab bar
-- mobile/flows/use.yaml:163: `action.account`, top bar
+- mobile/flows/use.yaml:163: `action.account`, top bar and Akademik (also drawn in screens/academic/academic-screen.tsx)
 
 ### `mobile/qa/flows/before.yaml`
 
 Run by: `mobile/qa/BASELINE.md`; `mobile/qa/superapp-flows.md`
 
 - mobile/qa/flows/before.yaml:8: `tab.home`, tab bar
-- mobile/qa/flows/before.yaml:13: `action.alerts`, top bar
-- mobile/qa/flows/before.yaml:19: `action.search`, top bar
+- mobile/qa/flows/before.yaml:13: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
+- mobile/qa/flows/before.yaml:19: `action.search`, top bar (also drawn in parts/b-header.tsx)
 - mobile/qa/flows/before.yaml:27: `tab.tasks`, tab bar
 - mobile/qa/flows/before.yaml:45: `tab.tasks`, tab bar
 - mobile/qa/flows/before.yaml:53: `tab.schedule`, tab bar
@@ -342,8 +339,8 @@ Run by: `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`
 
 Run by: `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`
 
-- mobile/qa/flows/home-shots.yaml:18: `status.firstRead`, top bar
-- mobile/qa/flows/home-shots.yaml:24: `status.firstRead`, top bar
+- mobile/qa/flows/home-shots.yaml:18: `status.firstRead`, top bar (also drawn in shell/first-minute/scene.tsx)
+- mobile/qa/flows/home-shots.yaml:24: `status.firstRead`, top bar (also drawn in shell/first-minute/scene.tsx)
 - mobile/qa/flows/home-shots.yaml:28: `card.firstScan`, Beranda
 - mobile/qa/flows/home-shots.yaml:39: `card.now`, Beranda
 - mobile/qa/flows/home-shots.yaml:43: `status.settling`, top bar
@@ -364,7 +361,7 @@ Run by: `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`
 
 ### `mobile/qa/flows/home-tour.yaml`
 
-Run by: `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/home-notes.md`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/home-tour.yaml:6: `tab.home`, tab bar
 - mobile/qa/flows/home-tour.yaml:8: `action.notify.later`, Beranda
@@ -390,10 +387,9 @@ Run by: `mobile/qa/superapp-flows.md`
 
 ### `mobile/qa/flows/r2-akademik.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`; `mobile/qa/superapp-map.md`
 
 - mobile/qa/flows/r2-akademik.yaml:9: `tab.home`, tab bar
-- mobile/qa/flows/r2-akademik.yaml:12: `tab.academic`, tab bar
 - mobile/qa/flows/r2-akademik.yaml:15: `card.profile`, Akademik (also drawn in screens/settings/accounts.tsx)
 - mobile/qa/flows/r2-akademik.yaml:20: `card.profile`, Akademik (also drawn in screens/settings/accounts.tsx)
 - mobile/qa/flows/r2-akademik.yaml:36: `row.nav.plan.planner`, Akademik
@@ -406,18 +402,17 @@ Run by: `mobile/qa/superapp-flows.md`
 - mobile/qa/flows/r2-akademik.yaml:62: `row.nav.plan.bills`, Akademik
 - mobile/qa/flows/r2-akademik.yaml:68: `row.nav.plan.deadlines`, Akademik
 - mobile/qa/flows/r2-akademik.yaml:70: `row.nav.plan.deadlines`, Akademik
-- mobile/qa/flows/r2-akademik.yaml:75: `action.account`, top bar
-- mobile/qa/flows/r2-akademik.yaml:95: `action.search`, top bar
+- mobile/qa/flows/r2-akademik.yaml:75: `action.account`, top bar and Akademik (also drawn in screens/academic/academic-screen.tsx)
+- mobile/qa/flows/r2-akademik.yaml:95: `action.search`, top bar (also drawn in parts/b-header.tsx)
 - mobile/qa/flows/r2-akademik.yaml:104: `tab.home`, tab bar
-- mobile/qa/flows/r2-akademik.yaml:106: `action.alerts`, top bar
+- mobile/qa/flows/r2-akademik.yaml:106: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
 
 ### `mobile/qa/flows/r2-tasks-academic.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/r2-tasks-academic.yaml:9: `tab.home`, tab bar
 - mobile/qa/flows/r2-tasks-academic.yaml:12: `tab.tasks`, tab bar
-- mobile/qa/flows/r2-tasks-academic.yaml:44: `tab.academic`, tab bar
 - mobile/qa/flows/r2-tasks-academic.yaml:49: `row.nav.grades`, Akademik
 - mobile/qa/flows/r2-tasks-academic.yaml:52: `row.nav.grades`, Akademik
 - mobile/qa/flows/r2-tasks-academic.yaml:63: `row.nav.plan.planner`, Akademik
@@ -430,14 +425,14 @@ Run by: `mobile/qa/superapp-flows.md`
 - mobile/qa/flows/r2-tasks-academic.yaml:89: `row.nav.plan.bills`, Akademik
 - mobile/qa/flows/r2-tasks-academic.yaml:95: `row.nav.plan.deadlines`, Akademik
 - mobile/qa/flows/r2-tasks-academic.yaml:97: `row.nav.plan.deadlines`, Akademik
-- mobile/qa/flows/r2-tasks-academic.yaml:102: `action.account`, top bar
-- mobile/qa/flows/r2-tasks-academic.yaml:116: `action.search`, top bar
+- mobile/qa/flows/r2-tasks-academic.yaml:102: `action.account`, top bar and Akademik (also drawn in screens/academic/academic-screen.tsx)
+- mobile/qa/flows/r2-tasks-academic.yaml:116: `action.search`, top bar (also drawn in parts/b-header.tsx)
 - mobile/qa/flows/r2-tasks-academic.yaml:125: `tab.home`, tab bar
-- mobile/qa/flows/r2-tasks-academic.yaml:127: `action.alerts`, top bar
+- mobile/qa/flows/r2-tasks-academic.yaml:127: `action.alerts`, top bar (also drawn in parts/b-header.tsx)
 
 ### `mobile/qa/flows/r3/01-today-due.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/r3/01-today-due.yaml:18: `screen.home`, Beranda
 - mobile/qa/flows/r3/01-today-due.yaml:23: `home.loading`, Beranda
@@ -449,16 +444,16 @@ Run by: `mobile/qa/superapp-flows.md`
 
 ### `mobile/qa/flows/r3/02-task-file.yaml`
 
-Run by: `mobile/qa/flows/r3/_next-task.yaml`; `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/flows/r3/_next-task.yaml`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/r3/02-task-file.yaml:20: `screen.home`, Beranda
 - mobile/qa/flows/r3/02-task-file.yaml:24: `home.loading`, Beranda
 - mobile/qa/flows/r3/02-task-file.yaml:28: `section.needs.reading`, Beranda (also drawn in screens/plan/curriculum.tsx)
-- mobile/qa/flows/r3/02-task-file.yaml:82: `screen\..*`, Beranda and Akademik (also drawn in screens/course/course-screen.tsx, screens/course/module-screen.tsx, screens/first-scan/first-scan-screen.tsx, …)
+- mobile/qa/flows/r3/02-task-file.yaml:82: `screen\..*`, Beranda (also drawn in screens/course/course-screen.tsx, screens/course/module-screen.tsx, screens/first-scan/first-scan-screen.tsx, …)
 
 ### `mobile/qa/flows/r3/03-tandai-hadir.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/r3/03-tandai-hadir.yaml:21: `screen.home`, Beranda
 - mobile/qa/flows/r3/03-tandai-hadir.yaml:25: `home.loading`, Beranda
@@ -473,18 +468,16 @@ Run by: `mobile/qa/superapp-flows.md`
 
 ### `mobile/qa/flows/r3/04-course-material.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/r3/04-course-material.yaml:17: `screen.home`, Beranda
 - mobile/qa/flows/r3/04-course-material.yaml:20: `tab.courses`, tab bar
 
 ### `mobile/qa/flows/r3/05-grades.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/r3/05-grades.yaml:16: `screen.home`, Beranda
-- mobile/qa/flows/r3/05-grades.yaml:19: `tab.academic`, tab bar
-- mobile/qa/flows/r3/05-grades.yaml:23: `screen.academic`, Akademik
 - mobile/qa/flows/r3/05-grades.yaml:27: `academic.loading`, Akademik
 - mobile/qa/flows/r3/05-grades.yaml:32: `action.academic.grades`, Akademik
 - mobile/qa/flows/r3/05-grades.yaml:35: `action.academic.grades`, Akademik
@@ -509,13 +502,13 @@ Run by: `mobile/qa/superapp-flows.md`
 
 - mobile/qa/flows/rec-home-first-run.yaml:15: `tab.home`, tab bar
 - mobile/qa/flows/rec-home-first-run.yaml:19: `status.settling`, top bar
-- mobile/qa/flows/rec-home-first-run.yaml:23: `status.firstRead`, top bar
+- mobile/qa/flows/rec-home-first-run.yaml:23: `status.firstRead`, top bar (also drawn in shell/first-minute/scene.tsx)
 - mobile/qa/flows/rec-home-first-run.yaml:27: `card.firstScan`, Beranda
 - mobile/qa/flows/rec-home-first-run.yaml:33: `action.firstScan.open`, Beranda
 
 ### `mobile/qa/flows/rec-home-v4.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/rec-home-v4.yaml:9: `card.now`, Beranda
 - mobile/qa/flows/rec-home-v4.yaml:13: `status.settling`, top bar
@@ -590,27 +583,22 @@ Run by: `mobile/qa/shell-notes.md`; `mobile/qa/superapp-flows.md`
 - mobile/qa/flows/shell-tabs.yaml:10: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:13: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:16: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tabs.yaml:19: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:22: `tab.home`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:25: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:28: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:31: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tabs.yaml:34: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:37: `tab.home`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:40: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:43: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:46: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tabs.yaml:49: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:52: `tab.home`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:55: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:58: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:61: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tabs.yaml:64: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:67: `tab.home`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:70: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:73: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:76: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tabs.yaml:79: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tabs.yaml:82: `tab.home`, tab bar
 
 ### `mobile/qa/flows/shell-tour-round1.yaml`
@@ -648,70 +636,56 @@ Run by: `mobile/qa/shell-notes.md`; `mobile/qa/superapp-flows.md`
 - mobile/qa/flows/shell-tour.yaml:10: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tour.yaml:13: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tour.yaml:16: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tour.yaml:19: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:22: `tab.home`, tab bar
 - mobile/qa/flows/shell-tour.yaml:25: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tour.yaml:28: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tour.yaml:31: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tour.yaml:34: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:37: `tab.home`, tab bar
 - mobile/qa/flows/shell-tour.yaml:40: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tour.yaml:43: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tour.yaml:46: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tour.yaml:49: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:52: `tab.home`, tab bar
 - mobile/qa/flows/shell-tour.yaml:55: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tour.yaml:58: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tour.yaml:61: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tour.yaml:64: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:67: `tab.home`, tab bar
 - mobile/qa/flows/shell-tour.yaml:70: `tab.schedule`, tab bar
 - mobile/qa/flows/shell-tour.yaml:73: `tab.tasks`, tab bar
 - mobile/qa/flows/shell-tour.yaml:76: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tour.yaml:79: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:82: `tab.home`, tab bar
 - mobile/qa/flows/shell-tour.yaml:85: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tour.yaml:101: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:105: `row.nav.grades`, Akademik
 - mobile/qa/flows/shell-tour.yaml:108: `row.nav.grades`, Akademik
-- mobile/qa/flows/shell-tour.yaml:117: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:121: `row.nav.plan.krs`, Akademik
 - mobile/qa/flows/shell-tour.yaml:124: `row.nav.plan.krs`, Akademik
-- mobile/qa/flows/shell-tour.yaml:133: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:137: `row.nav.plan.curriculum`, Akademik
 - mobile/qa/flows/shell-tour.yaml:140: `row.nav.plan.curriculum`, Akademik
 - mobile/qa/flows/shell-tour.yaml:149: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tour.yaml:165: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:169: `row.nav.grades`, Akademik
 - mobile/qa/flows/shell-tour.yaml:172: `row.nav.grades`, Akademik
-- mobile/qa/flows/shell-tour.yaml:181: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:185: `row.nav.plan.krs`, Akademik
 - mobile/qa/flows/shell-tour.yaml:188: `row.nav.plan.krs`, Akademik
-- mobile/qa/flows/shell-tour.yaml:197: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:201: `row.nav.plan.curriculum`, Akademik
 - mobile/qa/flows/shell-tour.yaml:204: `row.nav.plan.curriculum`, Akademik
 - mobile/qa/flows/shell-tour.yaml:213: `tab.courses`, tab bar
-- mobile/qa/flows/shell-tour.yaml:229: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:233: `row.nav.grades`, Akademik
 - mobile/qa/flows/shell-tour.yaml:236: `row.nav.grades`, Akademik
-- mobile/qa/flows/shell-tour.yaml:245: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:249: `row.nav.plan.krs`, Akademik
 - mobile/qa/flows/shell-tour.yaml:252: `row.nav.plan.krs`, Akademik
-- mobile/qa/flows/shell-tour.yaml:261: `tab.academic`, tab bar
 - mobile/qa/flows/shell-tour.yaml:265: `row.nav.plan.curriculum`, Akademik
 - mobile/qa/flows/shell-tour.yaml:268: `row.nav.plan.curriculum`, Akademik
 - mobile/qa/flows/shell-tour.yaml:277: `tab.courses`, tab bar
 
 ### `mobile/qa/flows/to-courses.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/to-courses.yaml:6: `tab.home`, tab bar
 - mobile/qa/flows/to-courses.yaml:9: `tab.courses`, tab bar
 
 ### `mobile/qa/flows/to-curriculum.yaml`
 
-Run by: `mobile/qa/README.md`; `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/README.md`; `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/to-curriculum.yaml:7: `tab.home`, tab bar
 - mobile/qa/flows/to-curriculum.yaml:10: `tab\.(academic|more)`, tab bar
@@ -734,7 +708,7 @@ Run by: `mobile/qa/README.md`; `mobile/qa/superapp-flows.md`
 
 ### `mobile/qa/flows/v4-tasks.yaml`
 
-Run by: `mobile/qa/superapp-flows.md`
+Run by: `mobile/qa/superapp-flows.md`; `mobile/qa/superapp-journeys.md`
 
 - mobile/qa/flows/v4-tasks.yaml:9: `tab.home`, tab bar
 - mobile/qa/flows/v4-tasks.yaml:12: `tab.tasks`, tab bar
@@ -750,12 +724,11 @@ Run by: `mobile/qa/superapp-flows.md`
 | `status.settling` | top bar | 15 | 18 |
 | `sheet.nowClass` | Beranda | 10 | 24 |
 | `tab.courses` | tab bar | 9 | 35 |
-| `tab.academic` | tab bar | 8 | 39 |
 | `row.nav.grades` | Akademik | 7 | 23 |
 | `screen.home` | Beranda | 7 | 15 |
+| `action.account` | top bar | 6 | 22 |
 | `row.nav.plan.curriculum` | Akademik | 6 | 15 |
 | `action.needs.all` | Beranda | 6 | 12 |
-| `action.account` | top bar | 6 | 11 |
 | `screen.needs` | Beranda | 5 | 15 |
 | `row.nav.plan.krs` | Akademik | 5 | 13 |
 | `action.nowClass` | Beranda | 5 | 7 |
@@ -774,6 +747,7 @@ Run by: `mobile/qa/superapp-flows.md`
 | `section.today` | Beranda | 3 | 3 |
 | `card.now.checkedIn` | Beranda | 3 | 3 |
 | `tab\.(academic|more)` | tab bar | 3 | 3 |
+| `home.loading` | Beranda | 3 | 3 |
 
 ### Flows with nothing on those surfaces
 
@@ -788,12 +762,19 @@ Run by: `mobile/qa/superapp-flows.md`
 
 - mobile/flows/round2/w01-files.yaml:59: `row.module.2-catatan`
 - mobile/flows/round2/w01-files.yaml:61: `row.module.2-catatan`
+- mobile/flows/round2/w04-hierarchy.yaml:44: `tab.profile`
 - mobile/flows/round2/w04-jadwal.yaml:27: `segment.view.*`
+- mobile/flows/round2/w11-kuliah.yaml:27: `group.presence.out`
 - mobile/flows/round2/w11-kuliah.yaml:37: `mark.counted.*`
 - mobile/flows/round2/w11-kuliah.yaml:55: `action.changeTarget.*`
 - mobile/flows/round2/w11-kuliah.yaml:82: `mark.courseAdvice`
+- mobile/flows/round2/w12-one-target-akademik.yaml:13: `tab.profile`
 - mobile/flows/round2/w12-one-target.yaml:47: `action.openExternal`
 - mobile/flows/round2/w15-onboarding.yaml:14: `action.start`
+- mobile/flows/screens.json:151: `tab.profile`
+- mobile/flows/screens.json:173: `tab.profile`
+- mobile/flows/screens.json:344: `tab.profile`
+- mobile/flows/screens.json:366: `tab.profile`
 - mobile/flows/screens.json:753: `day.2026-10-08`
 - mobile/flows/screens.json:852: `day.2026-10-08`
 - mobile/flows/screens.json:1078: `day.2026-10-08`
@@ -803,6 +784,7 @@ Run by: `mobile/qa/superapp-flows.md`
 - mobile/flows/screens.json:1472: `day.2026-10-09`
 - mobile/flows/screens.json:1481: `day.2026-10-09`
 - mobile/flows/screens.json:1730: `sheet.changes`
+- mobile/flows/screens.json:1868: `tab.profile`
 - mobile/flows/screens.json:2246: `day.2026-10-08`
 - mobile/flows/screens.json:2287: `day.2026-10-08`
 - mobile/flows/screens.json:2296: `day.2026-10-08`
@@ -851,13 +833,23 @@ Run by: `mobile/qa/superapp-flows.md`
 - mobile/flows/screens.json:3756: `card.kuliahNumber`
 - mobile/flows/screens.json:3818: `card.kuliahNumber`
 - mobile/flows/screens.json:3827: `card.kuliahNumber`
+- mobile/flows/screens.json:4592: `tab.profile`
+- mobile/flows/screens.json:4629: `tab.profile`
 - mobile/flows/screens.json:4651: `row.term.{{2}}`
 - mobile/flows/screens.json:4662: `row.term.{{2}}`
 - mobile/flows/screens.json:4669: `row.term.{{2}}`
 - mobile/flows/screens.json:4682: `row.term.{{2}}.open`
 - mobile/flows/screens.json:4688: `row.term.{{2}}`
+- mobile/flows/screens.json:4704: `tab.profile`
+- mobile/flows/screens.json:4733: `tab.profile`
+- mobile/flows/screens.json:4787: `tab.profile`
+- mobile/flows/screens.json:4815: `tab.profile`
+- mobile/flows/screens.json:4843: `tab.profile`
+- mobile/flows/screens.json:4871: `tab.profile`
 - mobile/flows/screens.json:5250: `row.module.{{3}}`
 - mobile/flows/screens.json:5256: `row.module.{{3}}`
+- mobile/flows/screens.json:5383: `tab.profile`
+- mobile/flows/screens.json:5405: `tab.profile`
 - mobile/flows/use.yaml:136: `day.2026-10-15`
 - mobile/qa/flows/before-welcome.yaml:8: `action.start`
 - mobile/qa/flows/before-welcome.yaml:13: `action.start`
@@ -872,6 +864,8 @@ Run by: `mobile/qa/superapp-flows.md`
 - mobile/qa/flows/home-tour.yaml:60: `card.need.exam:DK4073-UTS`
 - mobile/qa/flows/kuliah-shots.yaml:82: `row.module.2-catatan`
 - mobile/qa/flows/kuliah-shots.yaml:86: `row.module.2-catatan`
+- mobile/qa/flows/r2-akademik.yaml:12: `tab.profile`
+- mobile/qa/flows/r2-tasks-academic.yaml:44: `tab.profile`
 - mobile/qa/flows/r3/02-task-file.yaml:35: `card\.need\.task:.*`
 - mobile/qa/flows/r3/02-task-file.yaml:38: `card\.need\.task:.*`
 - mobile/qa/flows/r3/04-course-material.yaml:46: `row\.module\..*`
@@ -879,6 +873,7 @@ Run by: `mobile/qa/superapp-flows.md`
 - mobile/qa/flows/r3/04-course-material.yaml:63: `row\.module\..*`
 - mobile/qa/flows/r3/04-course-material.yaml:66: `row\.module\..*`
 - mobile/qa/flows/r3/04-course-material.yaml:81: `row\.module\..*`
+- mobile/qa/flows/r3/05-grades.yaml:19: `tab.profile`
 - mobile/qa/flows/rec-module.yaml:24: `row.module.modul-3`
 - mobile/qa/flows/rec-module.yaml:28: `row.material.880004`
 - mobile/qa/flows/shell-tabs-round1.yaml:16: `tab.presence`
@@ -891,6 +886,11 @@ Run by: `mobile/qa/superapp-flows.md`
 - mobile/qa/flows/shell-tabs-round1.yaml:64: `tab.more`
 - mobile/qa/flows/shell-tabs-round1.yaml:76: `tab.presence`
 - mobile/qa/flows/shell-tabs-round1.yaml:79: `tab.more`
+- mobile/qa/flows/shell-tabs.yaml:19: `tab.profile`
+- mobile/qa/flows/shell-tabs.yaml:34: `tab.profile`
+- mobile/qa/flows/shell-tabs.yaml:49: `tab.profile`
+- mobile/qa/flows/shell-tabs.yaml:64: `tab.profile`
+- mobile/qa/flows/shell-tabs.yaml:79: `tab.profile`
 - mobile/qa/flows/shell-tour-round1.yaml:16: `tab.presence`
 - mobile/qa/flows/shell-tour-round1.yaml:19: `tab.more`
 - mobile/qa/flows/shell-tour-round1.yaml:31: `tab.presence`
@@ -919,6 +919,20 @@ Run by: `mobile/qa/superapp-flows.md`
 - mobile/qa/flows/shell-tour-round1.yaml:217: `row.nav.plan`
 - mobile/qa/flows/shell-tour-round1.yaml:220: `row.nav.plan`
 - mobile/qa/flows/shell-tour-round1.yaml:223: `screen.plan`
+- mobile/qa/flows/shell-tour.yaml:19: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:34: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:49: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:64: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:79: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:101: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:117: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:133: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:165: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:181: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:197: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:229: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:245: `tab.profile`
+- mobile/qa/flows/shell-tour.yaml:261: `tab.profile`
 - mobile/qa/flows/shell-tour.yaml:287: `row.module.*`
 - mobile/qa/flows/shell-tour.yaml:290: `row.module.*`
 - mobile/qa/flows/to-curriculum.yaml:25: `row.nav.plan`
