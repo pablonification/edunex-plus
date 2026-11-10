@@ -34,7 +34,6 @@ import { CrossFade, useSlidingMark } from "../../ui/moves";
 import { useDrawAhead, useLinesShown, usePart } from "../../ui/parts";
 import { iosPressed, PressScale } from "../../ui/press";
 import { ChoiceSheet } from "../../ui/settings-list";
-import { SEGMENT_HEIGHT, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -74,8 +73,19 @@ function shownGroup(item: TodoItem, now: number): ShownGroup {
   return group === "thisWeek" && item.kind !== "period" && item.at !== null && wibDay(item.at) === wibDay(now) ? "today" : group;
 }
 
-/** Inside a group: what has a day first (soonest first, as given), then what has none yet, then an exam period's line. */
-const undatedLast = (item: TodoItem) => (item.kind === "period" ? 2 : item.at === null || (item.kind === "exam" && item.part === null) ? 1 : 0);
+/** Inside a group: what has a day first (soonest first, as given: an exam period where it starts), then what has none yet. */
+const undatedLast = (item: TodoItem) => (item.kind !== "period" && (item.at === null || (item.kind === "exam" && item.part === null)) ? 1 : 0);
+
+type PeriodItem = Extract<TodoItem, { kind: "period" }>;
+type ExamItem = Extract<TodoItem, { kind: "exam" }>;
+/** Whether an exam with a day sits in an exam period of its kind: it's drawn inside the period's sub-heading. */
+const inPeriod = (item: TodoItem, period: PeriodItem): item is ExamItem =>
+  item.kind === "exam" &&
+  item.at !== null &&
+  item.part !== null &&
+  item.exam.kind === period.examKind &&
+  item.at >= period.week.start &&
+  item.at < period.week.end;
 
 /** Where a row sits in its group: the group's round ends are drawn row by row. */
 interface Place {
@@ -86,7 +96,7 @@ interface Place {
 /** One line of the list. */
 export type Line =
   | { type: "heading"; key: string; title: string; count?: number; first: boolean }
-  | ({ type: "todo"; key: string; item: TodoItem } & Place)
+  | ({ type: "todo"; key: string; item: TodoItem; inside?: readonly ExamItem[] } & Place)
   | { type: "hero"; key: string; item: TodoItem }
   | ({ type: "done"; key: string; task: Task; exam?: Exam } & Place)
   | ({ type: "past"; key: string; past: PastExam } & Place)
@@ -165,7 +175,10 @@ function tasksView(
   // The one thing to pick up: the soonest thing ahead, a Task or an exam, in its course's colour at the top of its group,
   // not listed again under it. The rest reads in date order.
   const heroGroup = show === "open" && !nothingToDo && groups[0] && groups[0].group !== "later" && groups[0].group !== "undated" ? groups[0] : undefined;
-  const soonest = heroGroup?.items[0];
+  // An exam in its period stays in its period (the sub-heading holds it): the card leads with the nearest thing outside one.
+  const periodsOf = (list: readonly TodoItem[]) => list.filter((item): item is PeriodItem => item.kind === "period");
+  const heroPeriods = periodsOf(heroGroup?.items ?? []);
+  const soonest = heroGroup?.items.find((item) => item.kind !== "period" && !heroPeriods.some((period) => inPeriod(item, period)));
   // A Task with a deadline, or an exam's part still ahead (one going on now is its row's "Sekarang", not a countdown).
   const hero =
     soonest?.kind === "task"
@@ -210,11 +223,23 @@ function tasksView(
           title: t(group.title),
           first: lines.length === 0,
         });
-        const others = group.items.filter((item) => item !== hero);
+        const periods = periodsOf(group.items);
+        const held = (item: TodoItem) => periods.some((period) => inPeriod(item, period));
+        const others = group.items.filter((item) => item !== hero && !held(item));
         // The gap under the big card only when its group goes on: the next group's title brings its own (one even gap).
         if (hero && group === heroGroup)
           lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, ...(others.length ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []));
-        lines.push(...todoCard(others));
+        lines.push(
+          ...card(others, (item, place): Line => {
+            if (item.kind !== "period") return { type: "todo", key: item.key, item, ...place };
+            // "Masa UTS 12–16 Okt" as a sub-heading in date order, its exams inside it; the row after it starts afresh.
+            return { type: "todo", key: item.key, item, inside: group.items.filter((each) => inPeriod(each, item)), first: true, last: place.last };
+          }).map((line, i, all) =>
+            i > 0 && all[i - 1]?.type === "todo" && (all[i - 1] as { item: TodoItem }).item.kind === "period" && line.type === "todo"
+              ? { ...line, first: true }
+              : line,
+          ),
+        );
         if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
       }
     if (examsNoSix) lines.push({ type: "examsNoSix", key: "examsNoSix" });
@@ -390,21 +415,19 @@ function ShowCounts({
               accessibilityState={{ selected: picked }}
               accessibilityLabel={cell.count === undefined ? cell.label : `${cell.label}, ${cell.count}`}
               testID={`segment.show.${cell.value}`}
-              style={{ minHeight: 56, justifyContent: "center", paddingBottom: 7 }}
+              style={{ minHeight: 48, justifyContent: "center", paddingBottom: 7 }}
             >
-              <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
-                <Text
-                  size="headlineSmall"
-                  face="display"
-                  weight="extrabold"
-                  tabular
-                  style={{ color: picked ? b.brand : b.muted, fontSize: 26, lineHeight: 32, letterSpacing: -0.5 }}
-                >
-                  {cell.count === undefined ? "–" : String(cell.count)}
-                </Text>
-                <Text size="bodyLarge" weight={picked ? "semibold" : undefined} style={{ color: picked ? b.fg : b.muted }}>
+              {/* A tab and how many are in it: the word leads, the count quiet after it, one size (never a big figure that
+                  reads as a countdown beside the lead card's date). */}
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: 6 }}>
+                <Text size="titleMedium" face="display" weight={picked ? "bold" : "medium"} style={{ color: picked ? b.fg : b.muted }}>
                   {cell.label}
                 </Text>
+                {cell.count !== undefined && (
+                  <Text size="bodyLarge" weight="medium" tabular style={{ color: b.muted }}>
+                    {String(cell.count)}
+                  </Text>
+                )}
               </View>
             </PressScale>
           </View>
@@ -440,16 +463,15 @@ function CourseFilter({ courses, course, onCourse }: { courses: readonly TermCou
         accessibilityLabel={factsLabel(t("tasks.filter.course"), picked ? `${picked.code} ${picked.name}` : t("tasks.filter.all"))}
         accessibilityState={{ selected: picked !== undefined }}
         onPress={() => setOpen(true)}
-        hitSlop={slopY(SEGMENT_HEIGHT)}
         android_ripple={{ color: c.selected, borderless: false }}
         style={({ pressed }) => [
           {
-            height: SEGMENT_HEIGHT,
-            minWidth: 56,
-            paddingHorizontal: space[4],
-            borderRadius: SEGMENT_HEIGHT / 2,
-            borderWidth: 1,
-            borderColor: picked ? c.secondaryContainer : c.outline,
+            // An icon button, as the top bar's search and bell over it: no outline at rest; the picked course's tile on a
+            // tonal fill once one is picked.
+            height: 48,
+            minWidth: 48,
+            paddingHorizontal: picked ? space[3] : 0,
+            borderRadius: 24,
             backgroundColor: picked ? c.secondaryContainer : undefined,
             flexDirection: "row",
             alignItems: "center",
@@ -460,7 +482,7 @@ function CourseFilter({ courses, course, onCourse }: { courses: readonly TermCou
           iosPressed(pressed),
         ]}
       >
-        <Icons.Filter size={18} weight={picked ? "fill" : "regular"} color={picked ? c.onSecondaryContainer : c.onSurfaceVariant} />
+        <Icons.Filter size={24} weight={picked ? "fill" : "regular"} color={picked ? c.onSecondaryContainer : c.onSurfaceVariant} />
         {picked && <CourseTile code={picked.code} name={picked.name} size={20} />}
       </Pressable>
       <ChoiceSheet
@@ -529,7 +551,7 @@ export const LineView = memo(function LineView({
     case "todo":
       return (
         <Slice first={line.first} last={line.last} inCourse={inCourse}>
-          <TodoRow item={line.item} inCourse={inCourse} />
+          <TodoRow item={line.item} inCourse={inCourse} inside={line.inside} />
         </Slice>
       );
     case "hero":

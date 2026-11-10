@@ -43,7 +43,7 @@ import { CourseTile, useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { addToPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
 import { examCalendarItems } from "./exam-calendar";
-import { dayLabel, examWeekLabel, sourceDays } from "./exam-rows";
+import { dayLabel, examName, examWeekLabel, sourceDays } from "./exam-rows";
 import { Flat as Panel, pageOf, softOf } from "./flat";
 
 export function ExamScreen({ examId }: { examId: string }) {
@@ -141,14 +141,14 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
     // One title: the exam's own, on the page; the bar carries Back and ⋮.
     <Page testID="screen.exam" header={<TopBar actions={<OverflowMenu choices={menu} testID="action.examMenu" />} />} background={pageOf(theme)} {...pull}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <KindPill kind={t(`exam.kind.${exam.kind}`)} />
         <CourseTile code={exam.courseCode} name={course?.name} size={24} />
         <Text size="labelLarge" tabular style={{ color: v.fg2 }}>
           {exam.courseCode}
         </Text>
       </View>
+      {/* The exam's one name, as Tugas, Ujian and a Task's page call it (./exam-rows.tsx examName): the kind is in it, once. */}
       <Text size="headlineSmall" face="display" weight="bold" accessibilityRole="header" style={{ marginTop: space[2], color: v.fg, letterSpacing: -0.3 }}>
-        {name}
+        {examName(t, exam, name)}
       </Text>
       {!card && (
         <Text size="bodyMedium" style={{ marginTop: space[1], color: v.muted }}>
@@ -493,8 +493,10 @@ function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
             accessibilityRole="button"
             onPress={() => go({ screen: "task", taskId: task.id })}
             leading={<IconTile icon={(color) => <Icons.FileText size={22} color={color} />} />}
-            title={task.title}
-            meta={factsLabel(t("exam.takeHome"), task.dueAt !== null ? f.dueLabel(task.dueAt) : t("exam.noDate"))}
+            // The exam has one name, the page's title: its take-home is "Take-home" here, never a second name ("UTS Markom").
+            accessibilityLabel={factsLabel(t("exam.takeHome"), task.title, task.dueAt !== null ? f.dueLabel(task.dueAt) : t("exam.noDate"))}
+            title={t("exam.takeHome")}
+            meta={task.dueAt !== null ? f.dueLabel(task.dueAt) : t("exam.noDate")}
             trailing={pill ? <Pill tone={pill}>{t(`taskStatus.${status}`)}</Pill> : undefined}
           />
         );

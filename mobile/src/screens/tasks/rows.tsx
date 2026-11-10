@@ -26,7 +26,7 @@ import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
-import { ExamPartRow, namesKind, PeriodRow } from "./exam-rows";
+import { ExamPartRow, examName, PeriodRow } from "./exam-rows";
 import {
   countdown,
   type DueWhen,
@@ -151,8 +151,8 @@ export const TaskRow = inWorld(function TaskRow({
   // their own. Everything else is in the row's spoken name and on the Task's page.
   const sentAt = submittedAt(task);
   // A take-home's kind, unless its name says it already ("UTS Markom · Kam, 22 Okt", not "· UTS ·").
-  const examKind = exam ? t(`exam.kind.${exam.kind}`) : null;
-  const kind = examKind && !namesKind(task.title, examKind) ? examKind : null;
+  // A take-home goes by its exam's one name (./exam-rows.tsx examName); "Take-home" is the quiet word beside it.
+  const kind = exam ? t("exam.takeHome") : null;
   const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
   const when =
     sentAt !== null
@@ -168,13 +168,8 @@ export const TaskRow = inWorld(function TaskRow({
   // the weekday and, within a week, the time. Handed in: the leaf is the day it was, and the group's title says the rest.
   const onTugas = meta === "course";
   const courseName = course ? shortName(course.name) : task.courseCode;
-  const day =
-    sentAt !== null || task.dueAt === null || status === "closed"
-      ? null
-      : timeShown(world.now, task.dueAt)
-        ? `${world.f.weekdayShort(task.dueAt)}, ${world.f.time(task.dueAt)}`
-        : world.f.weekdayShort(task.dueAt);
-  const tugasLine = [courseName, kind, sentAt === null && task.dueAt === null ? t("task.noDeadline") : day].filter(Boolean).join(" · ");
+  const day = sentAt !== null || task.dueAt === null || status === "closed" ? null : timeShown(world.now, task.dueAt) ? world.f.time(task.dueAt) : null;
+  const tugasLine = [exam ? null : courseName, kind, sentAt === null && task.dueAt === null ? t("task.noDeadline") : day].filter(Boolean).join(" · ");
   const leafAt = sentAt ?? task.dueAt;
   const statusPill =
     sentAt !== null ? (
@@ -187,7 +182,7 @@ export const TaskRow = inWorld(function TaskRow({
       <StatusPill tone={away.tone} text={away.text} />
     ) : null;
   // The row's title is the Task's own name, a take-home's too: a row never switches to its course's name.
-  const name = task.title;
+  const name = exam ? examName(t, exam, course?.name) : task.title;
   const open = () => go({ screen: "task", taskId: task.id });
   if (hero && task.dueAt !== null)
     return (
@@ -199,9 +194,11 @@ export const TaskRow = inWorld(function TaskRow({
         quick={quick}
         code={task.courseCode}
         at={task.dueAt}
+        date={world.f.dayMonth(task.dueAt)}
+        weekday={world.f.weekdayShort(task.dueAt)}
         title={name}
-        // The course is the card's tint, and named: then the exam's kind for a take-home, and when.
-        meta={[courseName, kind, when].filter(Boolean).join(" · ")}
+        // The course is the card's tint, and named (an exam's name says it already); then the time. The day is the leaf's.
+        meta={[exam ? t("mobile.tasks.kindExam") : courseName, kind, world.f.time(task.dueAt)].filter(Boolean).join(" · ")}
         kind={exam ? "exam" : "task"}
       />
     );
@@ -218,6 +215,7 @@ export const TaskRow = inWorld(function TaskRow({
       meta={onTugas ? tugasLine : line}
       status={statusPill}
       date={onTugas ? (leafAt === null ? null : world.f.dayMonth(leafAt)) : undefined}
+      weekday={onTugas && leafAt !== null ? world.f.weekdayShort(leafAt) : null}
       kind={exam ? "exam" : "task"}
     />
   );
@@ -232,7 +230,18 @@ export const lateTitle = (item: TodoItem) =>
  * put off ("Ingatkan nanti") as on Beranda, the same snooze for the same Task: the alarm, a swipe
  * or a long press.
  */
-export const TodoRow = inWorld(function TodoRow({ item, inCourse = false, hero = false }: { item: TodoItem; inCourse?: boolean; hero?: boolean }) {
+export const TodoRow = inWorld(function TodoRow({
+  item,
+  inCourse = false,
+  hero = false,
+  inside,
+}: {
+  item: TodoItem;
+  inCourse?: boolean;
+  hero?: boolean;
+  /** An exam period's exams that have a day, drawn inside it on Tugas. */
+  inside?: readonly Extract<TodoItem, { kind: "exam" }>[];
+}) {
   const t = useT();
   const { now } = useRowWorld();
   const { page } = useB();
@@ -240,7 +249,7 @@ export const TodoRow = inWorld(function TodoRow({ item, inCourse = false, hero =
   const snoozable = late && canSnooze(late, now) ? late : null;
   const snooze = useSnooze(snoozable);
   const swipe = useRowActions({ snooze: snoozable ? snooze : null });
-  if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} />;
+  if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} inside={inside} />;
   const quick = snoozable ? [{ label: t("snooze.actionFor", { title: lateTitle(item) }), onPress: snooze.open }] : undefined;
   const longPress = snoozable ? snooze.open : undefined;
   return (

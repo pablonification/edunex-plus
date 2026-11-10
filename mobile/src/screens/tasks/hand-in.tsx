@@ -331,7 +331,16 @@ const GLYPH_TONE: Record<TaskStatus, keyof Palette> = {
 };
 
 /** The submission card: status, the Student's answer, its files, attaching from the phone, and what's marked about it. */
-export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus?: () => void }) {
+export function HandInCard({
+  h,
+  onAnswerFocus,
+  statusAbove = false,
+}: {
+  h: HandInState;
+  onAnswerFocus?: () => void;
+  /** The page's status line already says "Terkumpul" and when: the card says it only when it knows more (in review, a score). */
+  statusAbove?: boolean;
+}) {
   const fieldColors = useFieldColors();
   const t = useT();
   const f = useFormat();
@@ -357,9 +366,11 @@ export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus
         ? t("handIn.lateStill")
         : status === "closed"
           ? t("handIn.closedStatus")
-          : sentAt !== null
+          : sentAt !== null && !statusAbove
             ? t("handIn.recorded", { when: f.dayTimeWord(sentAt) })
             : "";
+  // Plainly handed in, no score yet: the page's status line said all of it ("Terkumpul 18 Sep"), so no header here.
+  const saidAbove = statusAbove && !marked && status === "submitted" && task.score === null;
   const inFlight = h.attached.filter((item) => item.state !== "failed");
   const done = inFlight.filter((item) => item.state === "uploaded").length;
   const glyph = c[GLYPH_TONE[status]];
@@ -368,7 +379,7 @@ export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus
     // The answer is one thing to pick up: a soft card a step off the white page, the same in both themes.
     <Panel flush testID="card.handIn" style={{ backgroundColor: softOf(theme) }}>
       <View style={{ padding: space[4], gap: space[4] }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], display: saidAbove ? "none" : "flex" }}>
           {marked ? <Icons.CheckCircle size={24} weight="fill" color={c.successFg} /> : <StatusGlyph status={status} size={24} color={glyph} />}
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text
