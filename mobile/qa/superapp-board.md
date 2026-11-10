@@ -68,5 +68,9 @@ and course codes as titles, presence as two different things, the wave. The deci
 
 ## Rounds
 
-| Round | Commit | Cold start | Tab p90 | Scroll (Tugas · Kuliah · Jadwal) | Hill 1 | Judges | What changed |
+Speed is read beside `main` measured in the same minutes: after an hour of installs and recordings on the charger the phone runs warm
+(Android's thermal status 2, skin about 40 °C) and `main` itself cold-starts in about 1.18 s, not 0.92 s. Each row gives both.
+
+| Round | Commit | Cold start (ours · `main` back to back) | Tab p90 (ours · `main`) | Scroll (Tugas · Kuliah · Jadwal) | Hill 1 | Judges | What changed |
 | --- | --- | ---: | ---: | --- | --- | --- | --- |
+| 0, the base | 53c054cd (B merged over the Fluent icons, the first-minute scene, eight widgets) | 1197 ms · 1179 ms (warm, status 2) | 100 ms · 105 ms | 3.48% · 1.07% · 0.83% (warm; `main` cool: 0.38% · 0.27% · 0.29%; to be taken again back to back) | bar ends in `tab.profile` ✓ · no avatar ✓ · `home.search`, `home.now`, `home.strip`, `home.grid` in order and fully visible ✓ · 17 things to tap ✓ · 40 words ✓ · no "0" ✓ · the grid's tiles not yet countable by the reader | the direction round, above | step by step from `main`: icons 1190, first minute 1198, widgets 1161, iPhone widgets 1177, B 1197: no merge costs a start |
