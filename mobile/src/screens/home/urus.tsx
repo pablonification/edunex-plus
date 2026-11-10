@@ -308,7 +308,7 @@ export function UrusLoading() {
     <View testID="section.needs.reading" accessibilityState={{ busy: true }} style={{ backgroundColor: v.card, borderRadius: 20 }}>
       {[0, 1].map((i) => (
         <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
-          <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
+          <Skeleton height={44} width={44} style={{ borderRadius: 22 }} />
           <View style={{ flex: 1, gap: space[2] }}>
             <Skeleton height={16} width="70%" />
             <Skeleton height={12} width="45%" />

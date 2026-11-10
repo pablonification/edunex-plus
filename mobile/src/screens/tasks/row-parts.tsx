@@ -412,7 +412,7 @@ export function TaskLine({
 export function IconTile({ children }: { children: ReactNode }) {
   const v = useTheme().v4;
   return (
-    <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}>{children}</View>
+    <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}>{children}</View>
   );
 }
 

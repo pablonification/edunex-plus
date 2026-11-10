@@ -193,7 +193,7 @@ function Loading() {
         <View key={row} style={{ flexDirection: "row", gap: space[4] }}>
           {[0, 1].map((i) => (
             <View key={i} style={{ flex: 1, gap: space[2] }}>
-              <Skeleton height={96} style={{ borderRadius: 20 }} />
+              <Skeleton height={88} style={{ borderRadius: 20 }} />
               <Skeleton height={16} width={i ? "60%" : "80%"} />
               <Skeleton height={12} width={96} />
             </View>

@@ -580,7 +580,7 @@ export function NoTasksYet() {
         {[0, 1, 2].map((i) => (
           <CardSlice key={i} first={i === 0} last={i === 2}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
-              <Skeleton width={44} height={44} style={{ borderRadius: 14 }} />
+              <Skeleton width={44} height={44} style={{ borderRadius: 22 }} />
               <View style={{ flex: 1, gap: space[2] }}>
                 <Skeleton width="70%" height={16} />
                 <Skeleton width="45%" height={12} />

@@ -214,7 +214,7 @@ export function IconTile({ icon, tone = "brand", size = 44 }: { icon: (color: st
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), backgroundColor: bg, alignItems: "center", justifyContent: "center" }}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}
     >
       {icon(fg)}
     </View>

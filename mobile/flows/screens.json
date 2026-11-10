@@ -148,13 +148,13 @@
           },
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "screen.academic"
+                "id": "screen.profile"
               },
               "timeout": 5000,
               "optional": true
@@ -164,13 +164,13 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen.academic"
+                  "id": "screen.profile"
                 }
               },
               "commands": [
                 {
                   "tapOn": {
-                    "id": "tab.academic"
+                    "id": "tab.profile"
                   }
                 }
               ]
@@ -341,13 +341,13 @@
             "commands": [
               {
                 "tapOn": {
-                  "id": "tab.academic"
+                  "id": "tab.profile"
                 }
               },
               {
                 "extendedWaitUntil": {
                   "visible": {
-                    "id": "screen.academic"
+                    "id": "screen.profile"
                   },
                   "timeout": 5000,
                   "optional": true
@@ -357,13 +357,13 @@
                 "runFlow": {
                   "when": {
                     "notVisible": {
-                      "id": "screen.academic"
+                      "id": "screen.profile"
                     }
                   },
                   "commands": [
                     {
                       "tapOn": {
-                        "id": "tab.academic"
+                        "id": "tab.profile"
                       }
                     }
                   ]
@@ -1865,12 +1865,12 @@
         "^courses\\.account\\.": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
             "assertVisible": {
-              "id": "screen.academic"
+              "id": "screen.profile"
             }
           }
         ],
@@ -4589,7 +4589,7 @@
             "commands": [
               {
                 "tapOn": {
-                  "id": "tab.academic"
+                  "id": "tab.profile"
                 }
               },
               {
@@ -4626,7 +4626,7 @@
               "commands": [
                 {
                   "tapOn": {
-                    "id": "tab.academic"
+                    "id": "tab.profile"
                   }
                 },
                 {
@@ -4701,7 +4701,7 @@
       "steps": [
         {
           "tapOn": {
-            "id": "tab.academic"
+            "id": "tab.profile"
           }
         },
         {
@@ -4730,7 +4730,7 @@
         "^rencana$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -4784,7 +4784,7 @@
         "^kurikulum$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -4812,7 +4812,7 @@
         "^krs$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -4840,7 +4840,7 @@
         "^ukt$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -4868,7 +4868,7 @@
         "^kalender-akademik$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -5380,13 +5380,13 @@
       "steps": [
         {
           "tapOn": {
-            "id": "tab.academic"
+            "id": "tab.profile"
           }
         },
         {
           "extendedWaitUntil": {
             "visible": {
-              "id": "screen.academic"
+              "id": "screen.profile"
             },
             "timeout": 5000,
             "optional": true
@@ -5396,13 +5396,13 @@
           "runFlow": {
             "when": {
               "notVisible": {
-                "id": "screen.academic"
+                "id": "screen.profile"
               }
             },
             "commands": [
               {
                 "tapOn": {
-                  "id": "tab.academic"
+                  "id": "tab.profile"
                 }
               }
             ]

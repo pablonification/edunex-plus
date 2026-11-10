@@ -16,7 +16,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -31,7 +31,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -46,7 +46,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -61,7 +61,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
@@ -76,7 +76,7 @@ appId: io.github.pablonification.edunexplus.demo
     id: tab.courses
 - waitForAnimationToEnd
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - tapOn:
     id: tab.home
