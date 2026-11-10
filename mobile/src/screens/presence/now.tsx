@@ -67,9 +67,11 @@ function LiveHead({ title, meta }: { title: string; meta: string }) {
           {title}
         </Text>
       </View>
-      <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[1] }}>
-        {meta}
-      </Text>
+      {meta !== "" && (
+        <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[1] }}>
+          {meta}
+        </Text>
+      )}
     </View>
   );
 }
@@ -120,11 +122,15 @@ function OpenPresence({ window }: { window: OpenWindow }) {
   const notKnown = !noSix && health?.countedIn === "unknown";
   const time = f.time(session.closesAt);
   const iconColor = noSix ? v.fg : v.onBrand;
+  const fill = action.activity === "course";
+  const course = shortName(names(code, window.course?.name));
   return (
     <View style={[surface, { padding: space[4], gap: space[3] }]} testID={`card.presenceOpen.${code}`}>
       <LiveHead
-        title={action.activity === "course" ? t("presence.open.fill") : actionLabel(window)}
-        meta={factsLabel(shortName(names(code, window.course?.name)), (noSix || notKnown) && t("presence.open.maybe"))}
+        // A course's own Presence: the course is the card's title and "Isi Presensi" its button, the one name Beranda's
+        // now card has for it too (round 4's council: one action, two names).
+        title={fill ? course : actionLabel(window)}
+        meta={factsLabel(!fill && course, (noSix || notKnown) && t("presence.open.maybe"))}
       />
       {/* The bar says how much is left, "tutup 09:30" beside it says when (round 3's fourth review: a bar with no words
           read as decoration); its spoken name has both. */}
@@ -156,7 +162,7 @@ function OpenPresence({ window }: { window: OpenWindow }) {
           onPress={() => open(action.url)}
           testID="action.presenceRecord"
         >
-          {t("presence.open.record")}
+          {t(fill ? "presence.open.fill" : "presence.open.record")}
         </BigButton>
       )}
     </View>
