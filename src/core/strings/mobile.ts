@@ -12,6 +12,17 @@ export const mobileStrings = {
   // Kuliah: the term's courses with each one's absences left (Presensi's page). Akademik: IPK, Nilai, the study plan, KRS, UKT.
   "mobile.tab.courses": { id: "Kuliah", en: "Courses" },
   "mobile.tab.academic": { id: "Akademik", en: "Academic" },
+  // Round 4: the Student's own tab, last in the bar as in the apps they use daily. Akademik's content lives in it.
+  "mobile.tab.profile": { id: "Profil", en: "Profile" },
+  // Round 4, services: one word under each tile on Beranda's grid and on "Semua layanan" (mobile/src/parts/services.tsx).
+  "mobile.service.presence": { id: "Presensi", en: "Presence" },
+  "mobile.service.grades": { id: "Nilai", en: "Grades" },
+  "mobile.service.exams": { id: "Ujian", en: "Exams" },
+  "mobile.service.materials": { id: "Materi", en: "Materials" },
+  "mobile.service.krs": { id: "KRS", en: "KRS" },
+  "mobile.service.calendar": { id: "Kalender", en: "Calendar" },
+  "mobile.service.bills": { id: "UKT", en: "UKT" },
+  "mobile.service.more": { id: "Lainnya", en: "More" },
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },

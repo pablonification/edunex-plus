@@ -48,7 +48,7 @@ export default function TabsLayout() {
     { name: "schedule", title: t("nav.schedule"), id: "schedule", icon: "schedule", badge: null },
     { name: "tasks", title: t("mobile.tab.tasks"), id: "tasks", icon: "tasks", badge: tasks },
     { name: "courses", title: t("mobile.tab.courses"), id: "courses", icon: "courses", badge: presence },
-    { name: "academic", title: t("mobile.tab.academic"), id: "academic", icon: "academic", badge: plan },
+    { name: "profile", title: t("mobile.tab.profile"), id: "profile", icon: "academic", badge: plan },
   ] as const;
   return (
     <InTabs.Provider value>
