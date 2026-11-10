@@ -5,9 +5,10 @@
 // column is a target that shows its figures, and carries them as its accessible name, the way
 // the desktop's table for screen readers does ("Smt 7 (Perkiraan) · IPK 3,29 · IP semester 3,50").
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
 import { factsLabel } from "../../ui/layout";
+import { Appear, Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
 
@@ -198,20 +199,23 @@ export function LineChart({
         {/* A column each, wider than its marks: tap for its figures; a screen reader reads them as the desktop's table. */}
         {width > 0 &&
           columns.map((col, i) => (
-            <Pressable
+            <Tap
               // biome-ignore lint/suspicious/noArrayIndexKey: a column is its place on the axis; labels can repeat
               key={`hit-${col}-${i}`}
-              accessibilityRole="button"
+              feel="row"
+              borderless
               accessibilityLabel={facts(i)}
               accessibilityState={{ selected: picked === i }}
               onPress={() => setTapped(picked === i ? null : i)}
               style={{ position: "absolute", left: x(i) - hit / 2, top: PAD.top - 6, width: hit, height: plotH + 12 }}
-            />
+            >
+              {null}
+            </Tap>
           ))}
         {picked !== null && width > 0 && (
-          <View
-            pointerEvents="none"
+          <Appear
             style={{
+              pointerEvents: "none",
               position: "absolute",
               top: 0,
               left: Math.min(Math.max(x(picked) - 70, 0), width - 140),
@@ -248,7 +252,7 @@ export function LineChart({
                 </View>
               ),
             )}
-          </View>
+          </Appear>
         )}
       </View>
     </View>

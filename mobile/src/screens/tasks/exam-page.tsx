@@ -5,7 +5,7 @@
 // An Edunex window open now can be marked done here too, with Undo (Tandai selesai).
 import * as Clipboard from "expo-clipboard";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
-import { Linking, Text as NativeText, Pressable, StyleSheet, View } from "react-native";
+import { Linking, Text as NativeText, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { budgetLabel } from "../../../../src/app/attendance-labels";
 import { errorKey } from "../../../../src/app/bridge";
@@ -35,6 +35,7 @@ import { Group, GroupRow, IconTile, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice, Page, Row } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
+import { Tap } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
@@ -562,7 +563,9 @@ function Study({ exam }: { exam: Exam }) {
             <Text size="labelLarge" style={{ flex: 1, color: theme.v4.muted }}>
               {modulesTitle}
             </Text>
-            <Pressable
+            <Tap
+              feel="row"
+              borderless
               accessibilityRole="link"
               onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
               hitSlop={8}
@@ -572,7 +575,7 @@ function Study({ exam }: { exam: Exam }) {
                 {t("examPage.openModules")}
               </Text>
               <Icons.ChevronRight size={14} color={theme.color.accentFg} />
-            </Pressable>
+            </Tap>
           </View>
           <CardList inset={56}>
             {/* A module with something in it: its number, its title on up to two lines, how many items under it. */}

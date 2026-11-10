@@ -13,7 +13,7 @@
 // Student).
 import { createEventInCalendarAsync } from "expo-calendar/legacy";
 import { useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
@@ -30,6 +30,7 @@ import { Rise } from "../../ui/expressive";
 import { Figure, Group, GroupRow, Heading, IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { ROW_SIDE } from "../../ui/row-end";
 import { ActionSheet } from "../../ui/sheet";
 import { LINK_SLOP } from "../../ui/sizes";
@@ -515,7 +516,9 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
           {filtered ? t("calendar.countOf", { shown, count: total }) : t("calendar.count", { count: total })}
         </Text>
         {filtered && (
-          <Pressable
+          <Tap
+            feel="row"
+            borderless
             accessibilityRole="button"
             hitSlop={LINK_SLOP}
             onPress={() => {
@@ -526,7 +529,7 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
             <Text size="bodyMedium" weight="medium" style={{ color: v.brandInk }}>
               {t("calendar.clear")}
             </Text>
-          </Pressable>
+          </Tap>
         )}
       </View>
       {before.length > 0 && (

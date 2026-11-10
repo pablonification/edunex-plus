@@ -7,7 +7,7 @@
 // its comments (./thread.tsx), History. Kumpulkan stays at the bottom of the screen, the screen's one filled button,
 // with Simpan draf beside it while there's something to save.
 import { type ComponentRef, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Keyboard, KeyboardAvoidingView, Pressable, type ScrollView, StyleSheet, View } from "react-native";
+import { Keyboard, KeyboardAvoidingView, type ScrollView, StyleSheet, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -43,7 +43,7 @@ import { Button } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Page } from "../../ui/layout";
-import { Appear } from "../../ui/moves";
+import { Appear, Tap } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
 import { LINK_SLOP } from "../../ui/sizes";
@@ -304,7 +304,8 @@ function StatusLine({ task, status, late, soon, presence }: { task: Task; status
           )}
         </View>
         {about !== "" && (
-          <Pressable
+          <Tap
+            feel="icon"
             testID={counted ? "line.presence" : "action.statusWhy"}
             accessibilityRole="button"
             accessibilityLabel={t("mobile.tasks.statusWhy")}
@@ -312,7 +313,7 @@ function StatusLine({ task, status, late, soon, presence }: { task: Task; status
             style={styles.info}
           >
             <Icons.Info size={24} color={v.fg2} />
-          </Pressable>
+          </Tap>
         )}
       </View>
       {sentAt !== null && task.dueAt !== null && (
@@ -334,7 +335,8 @@ function StatusLine({ task, status, late, soon, presence }: { task: Task; status
             );
             const why = mark.why;
             return why ? (
-              <Pressable
+              <Tap
+                feel="row"
                 key={mark.key}
                 testID={mark.testID}
                 accessibilityRole="button"
@@ -344,7 +346,7 @@ function StatusLine({ task, status, late, soon, presence }: { task: Task; status
               >
                 {body}
                 <Icons.Info size={20} color={v.fg2} />
-              </Pressable>
+              </Tap>
             ) : (
               <View key={mark.key} style={styles.mark}>
                 {body}
@@ -491,7 +493,9 @@ function EditRow({ task, onSee }: { task: Task; onSee: (at: number) => void }) {
         <Text size="bodyMedium" style={{ flexShrink: 1, color: v.muted }}>
           {line}
         </Text>
-        <Pressable
+        <Tap
+          feel="row"
+          borderless
           accessibilityRole="button"
           accessibilityLabel={t("done.undoFor", { what: line })}
           onPress={() => void unmark(checked.id).catch(() => undefined)}
@@ -501,7 +505,7 @@ function EditRow({ task, onSee }: { task: Task; onSee: (at: number) => void }) {
           <Text size="bodyMedium" weight="semibold" tone="accent">
             {t("action.undo")}
           </Text>
-        </Pressable>
+        </Tap>
       </Appear>
     );
   }
@@ -526,7 +530,8 @@ function EditRow({ task, onSee }: { task: Task; onSee: (at: number) => void }) {
       <Text size="bodyLarge" weight="semibold" style={{ flex: 1, color: fg }}>
         {head}
       </Text>
-      <Pressable
+      <Tap
+        feel="icon"
         testID="action.editedWhy"
         accessibilityRole="button"
         accessibilityLabel={factsLabel(t("mobile.tasks.editedWhy"), sentence)}
@@ -535,7 +540,7 @@ function EditRow({ task, onSee }: { task: Task; onSee: (at: number) => void }) {
         style={{ width: 40, height: 48, alignItems: "center", justifyContent: "center" }}
       >
         <Icons.Info size={20} color={fg} />
-      </Pressable>
+      </Tap>
       <PressScale
         testID="action.done"
         accessibilityRole="button"
@@ -629,7 +634,8 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
                     <View style={[styles.dot, dot, { borderColor: (dot as { borderColor?: string }).borderColor ?? v.card }]} />
                     {known ? (
                       <>
-                        <Pressable
+                        <Tap
+                          feel="row"
                           accessibilityRole="button"
                           accessibilityState={{ expanded: isOpen }}
                           onPress={() => setOpened(isOpen ? null : step.at)}
@@ -647,7 +653,7 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
                           <View style={{ transform: [{ rotate: isOpen ? "180deg" : "0deg" }], marginTop: 2 }}>
                             <Icons.ChevronDown size={14} color={c.faint} />
                           </View>
-                        </Pressable>
+                        </Tap>
                         {isOpen && (
                           <View style={{ paddingTop: space[1.5], gap: space[2] }}>
                             <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
@@ -728,11 +734,11 @@ function ChangeList({ changes, onCompare }: { changes: readonly TaskChange[]; on
         return (
           <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
             <Text size="small">{t("change.instructions")}</Text>
-            <Pressable accessibilityRole="button" onPress={() => onCompare(change)} hitSlop={LINK_SLOP}>
+            <Tap feel="row" borderless accessibilityRole="button" onPress={() => onCompare(change)} hitSlop={LINK_SLOP}>
               <Text size="small" weight="medium" tone="accent">
                 {t("change.instructions.show")}
               </Text>
-            </Pressable>
+            </Tap>
           </View>
         );
       case "files": {

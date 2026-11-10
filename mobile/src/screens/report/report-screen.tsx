@@ -9,7 +9,7 @@
 // up in LINE on this phone instead of a QR code scanned with it.
 import * as Clipboard from "expo-clipboard";
 import { type ReactNode, useEffect, useState } from "react";
-import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, BackHandler, KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
 import { errorKey } from "../../../../src/app/bridge";
 import { useFormat, useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useSettings, useStore } from "../../../../src/app/store";
@@ -26,6 +26,7 @@ import { Button } from "../../ui/controls";
 import { Card, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Meta, Notice, Page } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { font, radius, space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
@@ -273,7 +274,8 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
         </Text>
         {(report.problems.length > 0 || log.length > 0) && (
           <View style={[{ paddingHorizontal: space[2], paddingVertical: space[1.5] }, rule]}>
-            <Pressable
+            <Tap
+              feel="row"
               accessibilityRole="button"
               accessibilityState={{ expanded: technical }}
               onPress={() => setTechnical(!technical)}
@@ -287,7 +289,7 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
               <Text size="small" weight="semibold" tone="muted">
                 {t("report.details")}
               </Text>
-            </Pressable>
+            </Tap>
             {technical && (
               <View style={{ gap: space[3], paddingHorizontal: space[2], paddingTop: space[1.5], paddingBottom: space[2] }}>
                 {report.problems.map((problem) => (
@@ -389,14 +391,13 @@ function Way({
   const theme = useTheme();
   const c = theme.color;
   return (
-    <Pressable
+    <Tap
       testID={testID}
-      accessibilityRole="button"
+      feel="card"
       accessibilityLabel={`${label}. ${hint}`}
       accessibilityState={{ disabled, busy }}
       onPress={disabled ? undefined : onPress}
-      android_ripple={{ color: c.selected, foreground: true }}
-      style={({ pressed }) => ({
+      style={{
         flexDirection: "row",
         alignItems: "flex-start",
         gap: space[3.5],
@@ -408,8 +409,7 @@ function Way({
         overflow: "hidden",
         opacity: disabled && !busy ? 0.6 : 1,
         elevation: theme.scheme === "dark" ? 0 : 1,
-        transform: [{ scale: pressed && !disabled ? 0.99 : 1 }],
-      })}
+      }}
     >
       {/* The marks keep their own room: nothing touches them. */}
       <View style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}>
@@ -426,7 +426,7 @@ function Way({
       <View style={{ width: 32, height: 32, borderRadius: 16, alignSelf: "center", alignItems: "center", justifyContent: "center", backgroundColor: c.fill }}>
         <Icons.ArrowRight size={16} color={c.fg} weight="bold" />
       </View>
-    </Pressable>
+    </Tap>
   );
 }
 

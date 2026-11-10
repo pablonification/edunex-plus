@@ -4,7 +4,7 @@
 // blocks every hand-in), within a thumb's reach. The answer box is a plain multi-line text
 // box: an answer Edunex holds with formatting stays as it is, changed on Edunex.
 import { type ComponentRef, createContext, type ReactNode, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
 import { ActionError, errorKey } from "../../../../src/app/bridge";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useClock, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -38,6 +38,7 @@ import { ProgressBar, StatusGlyph } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { reportBarTop, useBottomInset } from "../../ui/insets";
 import { factsLabel, Meta } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { ActionSheet, Sheet } from "../../ui/sheet";
 import { Text, type TextTone, useFieldColors } from "../../ui/text";
 import { type Palette, shape, space, useTheme } from "../../ui/theme";
@@ -1023,7 +1024,8 @@ function FileRowView({
     <View style={[styles.file, { backgroundColor: failed ? c.errorContainer : onPage ? softOf(theme) : pageOf(theme) }]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2.5] }}>
         {onOpen && !failed ? (
-          <Pressable
+          <Tap
+            feel="row"
             accessibilityRole="button"
             accessibilityLabel={t("mobile.file.openFor", { name })}
             accessibilityState={{ busy: opening }}
@@ -1031,7 +1033,7 @@ function FileRowView({
             style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[2.5], minHeight: 48 }}
           >
             {body}
-          </Pressable>
+          </Tap>
         ) : (
           <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[2.5], minHeight: 48 }}>{body}</View>
         )}

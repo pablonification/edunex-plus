@@ -2,7 +2,7 @@
 // what the plan needs (required courses left, a specialization's or a minor's, retakes that lift the IPK), the
 // program's electives, a minor's courses, or every ITB course in SIX's public catalog.
 import { useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { PlanState } from "../../../../src/app/study-plan";
 import { nearestLetter } from "../../../../src/core/honors";
@@ -25,6 +25,7 @@ import {
 import { Button, Chip, ChipRow } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { Sheet, SheetTitle } from "../../ui/sheet";
 import { slopY } from "../../ui/sizes";
 import { Text, useFieldColors } from "../../ui/text";
@@ -233,7 +234,8 @@ export function AddCourse({
                   {m.courses.map((code) => {
                     const done = !canAdd(courseState(record, plan, code));
                     return (
-                      <Pressable
+                      <Tap
+                        feel="tile"
                         key={code}
                         disabled={done}
                         accessibilityRole="button"
@@ -258,7 +260,7 @@ export function AddCourse({
                           {code}
                         </Text>
                         {done ? <Icons.Check size={12} color={theme.color.successFg} weight="bold" /> : <Icons.Plus size={12} color={theme.color.muted} />}
-                      </Pressable>
+                      </Tap>
                     );
                   })}
                 </View>
