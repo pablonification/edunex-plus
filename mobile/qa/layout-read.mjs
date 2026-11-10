@@ -20,9 +20,11 @@
 //   strip         no tile of home.strip says exactly "0"
 //
 // "Cut off" for a grid label, three signs: the text ends with "…" or "..."; its box wraps onto more lines (taller than 1.8
-// times the shortest label's); or its box is narrower than 85% of a rough width for its letters. The rough width is
-// letters × 0.4 × the shortest label's height (a line is about 1.25 × the font size, and a letter averages about half of
-// it). It is a guess to point at a label to look at in the picture, not a measure; a wide word (mmm) can still pass.
+// times the shortest label's); or its box is far narrower than its letters could be. A label is a 13 sp semibold word: at the
+// A52's 2.625 px per dp a letter averages about 0.5 em, or 17 px, and the text node's box is about 1.5 em (52 px) tall, so a
+// letter is never under a third of the box's height wide. The floor is letters × 0.25 × the shortest label's height, with
+// the box 85% of it at least (the first guess, 0.4, asked 21 px a letter and flagged "Ujian" and "Nilai", which are whole on the
+// phone). It is a guess to point at a label to look at in the picture, not a measure; a wide word (mmm) can still pass.
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
 import { describe, heightOf, insideTap, labelOf, readDump, shareInside, widthOf, within, wordsIn } from "./dump-lib.mjs";
@@ -193,11 +195,11 @@ export function readLayout(dump, options = {}) {
       if (count !== 1) marks.push(`${count} words`);
       for (const box of tile.box) {
         const chars = [...box.text.trim()].length;
-        const needed = 0.4 * line * chars;
+        const needed = 0.25 * line * chars;
         if (/(?:…|\.\.\.)$/.test(box.text.trim())) marks.push("ends with an ellipsis");
         else if (line > 0 && heightOf(box) > 1.8 * line) marks.push(`wraps (${heightOf(box)} px tall, a line is ${line})`);
         else if (line > 0 && widthOf(box) < 0.85 * needed)
-          marks.push(`box ${widthOf(box)} px wide, about ${Math.round(needed)} needed for ${chars} letters: may be cut`);
+          marks.push(`box ${widthOf(box)} px wide, at least ${Math.round(needed)} for ${chars} letters: may be cut`);
       }
       if (marks.length) problems.push(`"${tile.label}": ${marks.join("; ")}`);
       gridDetail.push(

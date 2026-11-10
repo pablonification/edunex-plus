@@ -6,9 +6,11 @@
 #   scripts/ci/mobile-e2e.sh <apk> <out-dir> [glob]
 #
 # glob: which flows, from mobile/flows (default: all of them, "**/*"). A folder named
-# `expected` (inventories, not flows), `judge` (the walk judge-light/-dark.yaml run with a theme),
-# `journeys` (the seven journeys, run by hand on the demo until the screens they name are built: mobile/flows/journeys/README.md)
+# `expected` (inventories, not flows), `judge` (the walk judge-light/-dark.yaml run with a theme)
 # and Maestro's config.yaml are never run on their own.
+# `journeys` (the seven journeys of mobile/flows/journeys/README.md) run with the rest, and last: a journey that breaks fails the
+# pull request, and when the job's time is short they are the ones to cut. They add about 6 minutes to the quick run
+# (each starts the demo cold, 40 to 60 s: the seven are about 5 to 7 minutes on the emulator).
 set -uo pipefail
 
 apk=$1
@@ -55,14 +57,17 @@ trap 'kill "$logcat" "$watchdog" 2> /dev/null' EXIT
 shopt -s globstar nullglob
 cd "$root/mobile/flows" || exit 1
 flows=()
+journeys=()
 # shellcheck disable=SC2206 # the glob is meant to expand here
 candidates=($pattern)
 for flow in "${candidates[@]}"; do
   [[ -f $flow && ($flow == *.yaml || $flow == *.yml) ]] || continue
   name=$(basename "$flow")
-  [[ /$flow == */expected/* || /$flow == */judge/* || /$flow == */journeys/* || $name == config.yaml || $name == config.yml ]] && continue
-  flows+=("$PWD/$flow")
+  [[ /$flow == */expected/* || /$flow == */judge/* || $name == config.yaml || $name == config.yml ]] && continue
+  if [[ /$flow == */journeys/* ]]; then journeys+=("$PWD/$flow"); else flows+=("$PWD/$flow"); fi
 done
+# The journeys last (each is a path of its own, in file order: 01 to 07).
+if [ ${#journeys[@]} -gt 0 ]; then flows+=("${journeys[@]}"); fi
 if [ ${#flows[@]} -eq 0 ]; then
   echo "::error::No flow in mobile/flows matches \"$pattern\"."
   exit 1
