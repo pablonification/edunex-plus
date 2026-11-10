@@ -15,7 +15,7 @@ folder.
 | --- | --- | --- |
 | `mobile/flows/*.yaml` (`smoke`, `use`, `judge-light`, `judge-dark`) | CI job `e2e (app)` in `.github/workflows/mobile.yml`, through `scripts/ci/mobile-e2e.sh` (glob `*.yaml`) | a pull request or push that changes `mobile/`, every night, by hand |
 | `mobile/flows/judge/*.yaml` | the same job, but only through `judge-light.yaml` and `judge-dark.yaml` (`runFlow`); `mobile-e2e.sh` skips the folder on its own. `mobile/scripts/make-report.mjs` runs `walk.yaml` for the report's pictures | with the job above |
-| `mobile/flows/data/<scenario>/*.yaml` (made, not in the repository) | CI jobs `e2e (signed-in)`, `e2e (edunex-only)` and fourteen more scenarios, made by `mobile/scripts/flows-from-inventory.mjs` from `mobile/flows/screens.json` and `mobile/flows/expected/*.json` | nightly and full runs only (1.5 to 3 hours each) |
+| `mobile/flows/data/<scenario>/*.yaml` (made, not in the repository) | CI jobs `e2e (signed-in)`, `e2e (edunex-only)` and thirteen more scenarios, made by `mobile/scripts/flows-from-inventory.mjs` from `mobile/flows/screens.json` and `mobile/flows/expected/*.json` | nightly and full runs only (1.5 to 3 hours each) |
 | `mobile/flows/round2/*` | nothing; run by hand in round 2 | never in CI |
 | `mobile/qa/flows/*.yaml`, `r3/*` | the lab's scripts (`jank.sh` runs `to-<list>.yaml`, `flashlight.sh` runs `flashlight.yaml`, `r3/run.sh` runs `r3/0*.yaml`); the rest by hand | never in CI |
 
