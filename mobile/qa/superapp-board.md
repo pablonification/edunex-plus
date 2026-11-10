@@ -85,9 +85,12 @@ and course codes as titles, presence as two different things, the wave. The deci
 
 ## Rounds
 
-Speed is read beside `main` measured in the same minutes: after an hour of installs and recordings on the charger the phone runs warm
-(Android's thermal status 2, skin about 40 °C) and `main` itself cold-starts in about 1.18 s, not 0.92 s. Each row gives both.
+Speed is read beside `main` measured in the same minutes, for two reasons found tonight. A build Android has only just installed
+runs unoptimised until the system compiles it: `main` freshly installed cold-starts in about 1.2 s, the same code installed since the
+morning in 0.92 s, and 0.98 s once compiled by hand (`cmd package compile -m speed`). And after an hour of installs and recordings on
+the charger the phone runs warm (thermal status up to 2, skin about 40 °C). Each row gives both builds in the same state.
 
 | Round | Commit | Cold start (ours · `main` back to back) | Tab p90 (ours · `main`) | Scroll (Tugas · Kuliah · Jadwal) | Hill 1 | Judges | What changed |
 | --- | --- | ---: | ---: | --- | --- | --- | --- |
+| 1 | 0aa4379e (every screen in the new look: Foundations' solid tiles and kit, Beranda, Tugas as an agenda, Kuliah in course colours, Profil's card, Jadwal, Materi and Ujian, Search, the first minute's curtain; flows moved) | fresh installs: 1234 ms · 1228 ms (thermal 0–1). Compiled: 984 ms (ours) | 100 ms · 108 ms | 0.94% · 0.31% · 0.20% (`main` in the same minutes: 1.02% · 0.20% · 0.42%) | all rows ✓: bar ends in `tab.profile`, no avatar, the four blocks in order and fully visible, 17 things to tap, 46 words, 8 tiles (4+4) ending in "Lainnya", no "0". The reader's guess that "Ujian" and "Nilai" may be cut is wrong on the picture | round 1's council: below | Beranda no longer says a fact twice; the wave is a plain bar; presence is "Isi Presensi" on Beranda and Kuliah; 0 flows name an id the app lacks |
 | 0, the base | 53c054cd (B merged over the Fluent icons, the first-minute scene, eight widgets) | 1197 ms · 1179 ms (warm, status 2) | 100 ms · 105 ms | 3.48% · 1.07% · 0.83% (warm; `main` cool: 0.38% · 0.27% · 0.29%; to be taken again back to back) | bar ends in `tab.profile` ✓ · no avatar ✓ · `home.search`, `home.now`, `home.strip`, `home.grid` in order and fully visible ✓ · 17 things to tap ✓ · 40 words ✓ · no "0" ✓ · the grid's tiles not yet countable by the reader | the direction round, above | step by step from `main`: icons 1190, first minute 1198, widgets 1161, iPhone widgets 1177, B 1197: no merge costs a start |
