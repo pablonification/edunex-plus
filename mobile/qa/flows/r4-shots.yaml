@@ -1,0 +1,112 @@
+# Round 4's pictures for the council and the pull request: the five tabs, then the screens behind Beranda's grid and
+# Profil, from the demo. Run once per theme: `maestro test -e THEME=light mobile/qa/flows/r4-shots.yaml` (Android's
+# own theme set first: `adb shell cmd uimode night no|yes`). Pictures land in the folder Maestro runs in.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_THEME=${THEME}"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 60000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${THEME}-01-beranda
+- runFlow:
+    file: ../../flows/judge/tab.yaml
+    env:
+      TAB: schedule
+- takeScreenshot: ${THEME}-02-jadwal
+- runFlow:
+    file: ../../flows/judge/tab.yaml
+    env:
+      TAB: tasks
+- takeScreenshot: ${THEME}-03-tugas
+- runFlow:
+    file: ../../flows/judge/tab.yaml
+    env:
+      TAB: courses
+- takeScreenshot: ${THEME}-04-kuliah
+- runFlow:
+    file: ../../flows/judge/tab.yaml
+    env:
+      TAB: profile
+- takeScreenshot: ${THEME}-05-profil
+- scroll
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${THEME}-06-profil-bawah
+- runFlow:
+    file: ../../flows/judge/tab.yaml
+    env:
+      TAB: home
+- scroll
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${THEME}-07-beranda-bawah
+- scrollUntilVisible:
+    element:
+      id: service.more
+    direction: UP
+- tapOn:
+    id: service.more
+- extendedWaitUntil:
+    visible:
+      id: screen.services
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${THEME}-08-semua-layanan
+- tapOn:
+    id: action.back
+- tapOn:
+    id: service.materials
+- extendedWaitUntil:
+    visible:
+      id: screen.materials
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${THEME}-09-materi
+- tapOn:
+    id: action.back
+- tapOn:
+    id: service.exams
+- extendedWaitUntil:
+    visible:
+      id: screen.exams
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${THEME}-10-ujian
+- tapOn:
+    id: action.back
+- tapOn:
+    id: service.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${THEME}-11-nilai
+- tapOn:
+    id: action.back
+- tapOn:
+    id: home.search
+- extendedWaitUntil:
+    visible:
+      id: screen.search
+    timeout: 20000
+- inputText: "uts"
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ${THEME}-12-cari
