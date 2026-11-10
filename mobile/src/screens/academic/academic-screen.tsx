@@ -1,18 +1,18 @@
-// Akademik (round 2, v4; the tab that replaced Lainnya): in three seconds, the IPK and what to do this term.
-// 1. One leading card: the IPK as its one big number, the SKS passed a smaller one over a thin bar of those needed
-//    (parts/standing.tsx), the name and NIM a quiet line over them. The whole card is one target that opens Nilai (the
-//    avatar in the bar is the way to the account and Settings).
-// 2. To-do chips, only while something's due (send the KRS, pay UKT, fill in the questionnaire SIX hides grades
-//    behind), each opening its screen. Nothing due: nothing shown.
-// 3. Nilai and Rencana studi's parts (Rencana, Kurikulum, KRS, UKT, Kalender akademik) as rows in one card, each with
-//    the one line that answers it (none when the card above already says it) and at most one status pill, a chevron at
-//    the end of each: each opens its screen. The screens' content lives in their own files.
-// Before SIX's first read, the card and the rows' lines stand in their own shape; never a spinner.
+// Profil (direction B; the tab that was Akademik): the Student, then everything Akademik held.
+// 1. Who: the initials big in a filled circle, the name, the NIM and the program, centred on the white page.
+// 2. Counts to tap, the official app's logbook numbers: the IPK (opens Nilai), the SKS passed (Kurikulum), the semester
+//    (Rencana). While SIX's record is on its way they stand in their shape; without SIX, the way to connect.
+// 3. To-do chips, only while something's due (send the KRS, pay UKT, fill in the questionnaire), each opening its screen.
+// 4. "Studi": Nilai and Rencana studi's parts as rows on the page, each with its round mark (the same glyph and colour
+//    as on Beranda's grid), the one line that answers it and at most one status pill.
+// 5. "Aplikasi": the account and Settings, and reporting a problem.
+
+import { router } from "expo-router";
 import { memo, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
-import { displayName } from "../../../../src/app/names";
+import { displayName, initials } from "../../../../src/app/names";
 import { usePlanTabBadges } from "../../../../src/app/shell/badges";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
 import { useDataset, useStatus } from "../../../../src/app/store";
@@ -21,12 +21,13 @@ import { billUrgency, type KrsStage, krsOverlaps, krsStage } from "../../../../s
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { together } from "../../parts/day-word";
-import { StandingFigures } from "../../parts/standing";
 import { useSignIn } from "../../shell/source-status";
+import { BHeading, BRow, CountCell, CountStrip, ServiceCircle, type ServiceTone, useB } from "../../ui/b";
 import { BigButton } from "../../ui/big-button";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
+import { Fluent, type FluentName } from "../../ui/fluent";
+import { IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Part } from "../../ui/parts";
@@ -38,12 +39,14 @@ import { shownIndex } from "../grades/transcript";
 type IconKind = (typeof Icons)[keyof typeof Icons];
 type MetaTone = "muted" | "red" | "amber" | "ok";
 
-const PART_ICON: Readonly<Record<PlanTab, IconKind>> = {
-  planner: Icons.Route,
-  curriculum: Icons.Layers,
-  krs: Icons.CalendarCheck,
-  bills: Icons.Wallet,
-  deadlines: Icons.CalendarClock,
+/** Each screen's round mark: the glyph and colour it has on Beranda's grid. */
+const MARK: Readonly<Record<PlanTab | "grades", { icon: FluentName; tone: ServiceTone }>> = {
+  grades: { icon: "Ribbon24Filled", tone: "amber" },
+  planner: { icon: "HatGraduation24Filled", tone: "magenta" },
+  curriculum: { icon: "Library24Filled", tone: "lime" },
+  krs: { icon: "Form24Filled", tone: "indigo" },
+  bills: { icon: "Wallet24Filled", tone: "teal" },
+  deadlines: { icon: "CalendarLtr24Filled", tone: "blue" },
 };
 
 /** What a to-do chip says, for a part whose badge is a warning (something the Student has to do now). */
@@ -63,99 +66,145 @@ function useFirstRead(source: "six" | "itb"): boolean {
 }
 
 export function AcademicContent() {
+  const t = useT();
   const badges = usePlanTabBadges();
   const record = useStudentRecord();
   const six = useStatus("six");
   const student = useDataset("six.student");
   const todos = builtPlanTabs.filter((part) => TODO[part] && badges[part]?.tone === "warning");
   return (
-    <View style={{ gap: space[4] }}>
+    <View>
       <Rise screen="academic" index={0}>
+        <Who />
         {record?.transcript ? (
           <Standing record={record} />
         ) : student || six.state === "connecting" || six.state === "live" ? (
-          <StandingSkeleton />
+          <StandingPending />
         ) : (
           <ConnectSix />
         )}
       </Rise>
       {todos.length > 0 && (
-        <Rise screen="academic" index={1}>
+        <Rise screen="academic" index={1} style={{ marginTop: space[4] }}>
           <Todos parts={todos} />
         </Rise>
       )}
-      {/* Akademik's screens under the IPK: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
+      {/* The screens under the counts: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
       <Part at={1}>
-        <Rise screen="academic" index={2} style={{ marginTop: space[2] }}>
-          <Group testID="section.academic.screens">
+        <Rise screen="academic" index={2} style={{ marginTop: space[6] }}>
+          <BHeading>{t("mobile.profile.studies")}</BHeading>
+          <View testID="section.academic.screens">
             <GradesRow record={record} />
             <PlannerRow record={record} />
             <CurriculumRow record={record} />
             <KrsRow />
             <BillsRow />
             <DeadlinesRow />
-          </Group>
+          </View>
+        </Rise>
+        <Rise screen="academic" index={3} style={{ marginTop: space[6] }}>
+          <BHeading>{t("mobile.profile.app")}</BHeading>
+          <AppRows />
         </Rise>
       </Part>
     </View>
   );
 }
 
-// ------------------------------------------------------------ the leading card
+// ------------------------------------------------------------ who
 
-/** The IPK, big, and the SKS passed over a thin bar: the answer the Student opens Akademik for. One target: Nilai. */
+/** The Student: their initials in a filled circle, the name, the NIM and the program. */
+function Who() {
+  const b = useB();
+  const account = useDataset("edunex.account");
+  const student = useDataset("six.student");
+  const name = account?.name ?? student?.name;
+  const facts = factsLabel(account?.nim ?? student?.nim, student?.program);
+  return (
+    <View
+      testID="card.profile"
+      accessible
+      accessibilityLabel={factsLabel(name ? displayName(name) : null, facts)}
+      style={{ alignItems: "center", paddingTop: space[2] }}
+    >
+      <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: b.brand, alignItems: "center", justifyContent: "center" }}>
+        {name ? (
+          <Text size="headlineMedium" face="display" weight="bold" style={{ color: b.onBrand, letterSpacing: -0.5 }}>
+            {initials(name)}
+          </Text>
+        ) : (
+          <Fluent name="Person24Filled" color={b.onBrand} size={40} />
+        )}
+      </View>
+      {name ? (
+        <Text
+          size="titleLarge"
+          face="display"
+          weight="bold"
+          numberOfLines={2}
+          style={{ color: b.fg, letterSpacing: -0.3, textAlign: "center", marginTop: space[3] }}
+        >
+          {displayName(name)}
+        </Text>
+      ) : null}
+      {facts ? (
+        <Text size="bodyMedium" numberOfLines={2} style={{ color: b.muted, textAlign: "center", marginTop: 2 }}>
+          {facts}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+// ------------------------------------------------------------ the counts
+
+/** The IPK, the SKS passed and the semester, as counts to tap: each opens the screen with its detail. */
 const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
   const t = useT();
   const f = useFormat();
   const nav = useNav();
-  const v = useTheme().v4;
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  const name = account?.name ?? student?.name;
   const ipk = shownIndex(record.transcript!.ipk);
-  const ipkText = ipk === null ? "-" : f.number(ipk, 2);
   const sks = passedSks(record);
-  const sksText = sks === null ? "-" : String(sks);
-  const of = t("mobile.academic.sksOf", { need: record.graduationSks });
-  const who = factsLabel(name ? displayName(name) : null, account?.nim ?? student?.nim);
   return (
-    // The card's ID for the flows (W12 taps it), the press's for what it does.
-    <View testID="card.profile">
-      <Panel
-        onPress={() => nav.go({ screen: "grades" })}
-        accessibilityLabel={factsLabel(`${t("grades.chart.ipk")} ${ipkText}`, `${t("grades.sksPassed")} ${sksText} ${of}`, who)}
-        accessibilityHint={t("mobile.academic.openGrades")}
-        testID="action.academic.grades"
-        style={{ padding: space[5], gap: space[3] }}
-      >
-        {who ? (
-          <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
-            {who}
-          </Text>
+    <View style={{ marginTop: space[5] }}>
+      <CountStrip testID="profile.counts">
+        <CountCell
+          value={ipk === null ? "-" : f.number(ipk, 2)}
+          label={t("grades.chart.ipk")}
+          onPress={() => nav.go({ screen: "grades" })}
+          accessibilityHint={t("mobile.academic.openGrades")}
+          testID="action.academic.grades"
+        />
+        <CountCell
+          value={sks === null ? "-" : String(sks)}
+          label={t("grades.sksPassed")}
+          onPress={() => nav.go({ screen: "plan", tab: "curriculum" })}
+          testID="action.academic.sks"
+        />
+        {record.semesterNow !== null ? (
+          <CountCell
+            value={String(record.semesterNow)}
+            label={t("mobile.profile.semester")}
+            onPress={() => nav.go({ screen: "plan", tab: "planner" })}
+            testID="action.academic.semester"
+          />
         ) : null}
-        <StandingFigures id="academic" ipk={ipk} sks={sks} need={record.graduationSks} />
-      </Panel>
+      </CountStrip>
     </View>
   );
 });
 
-/** The card's shape while SIX's record is on its way: the name's line, the IPK, the SKS and its bar. */
-function StandingSkeleton() {
+/** The counts' shape while SIX's record is on its way. */
+function StandingPending() {
+  const t = useT();
+  const nav = useNav();
   return (
-    <Panel accessibilityState={{ busy: true }} testID="academic.loading" style={{ padding: space[5], gap: space[3] }}>
-      <Skeleton width="55%" height={14} />
-      <View style={{ gap: space[2] }}>
-        <Skeleton width={32} height={14} />
-        <Skeleton width={104} height={44} />
-      </View>
-      <View style={{ gap: space[2], marginTop: space[2] }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Skeleton width={64} height={14} />
-          <Skeleton width={88} height={18} />
-        </View>
-        <Skeleton width="100%" height={6} />
-      </View>
-    </Panel>
+    <View accessibilityState={{ busy: true }} testID="academic.loading" style={{ marginTop: space[5] }}>
+      <CountStrip>
+        <CountCell pending value="" label={t("grades.chart.ipk")} onPress={() => nav.go({ screen: "grades" })} />
+        <CountCell pending value="" label={t("grades.sksPassed")} onPress={() => nav.go({ screen: "plan", tab: "curriculum" })} />
+      </CountStrip>
+    </View>
   );
 }
 
@@ -165,16 +214,8 @@ function ConnectSix() {
   const v = useTheme().v4;
   const status = useStatus("six");
   const { signIn, busy } = useSignIn();
-  // Edunex knows the Student too: the card keeps its quiet line of whose record it is, as it does with SIX.
-  const account = useDataset("edunex.account");
-  const who = factsLabel(account?.name ? displayName(account.name) : null, account?.nim);
   return (
-    <Panel style={{ padding: space[5], gap: space[4] }} testID="academic.noSix">
-      {who ? (
-        <Text size="bodyMedium" numberOfLines={2} style={{ color: v.muted }}>
-          {who}
-        </Text>
-      ) : null}
+    <Panel style={{ padding: space[5], gap: space[4], marginTop: space[5] }} testID="academic.noSix">
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
         <IconTile icon={(color) => <Icons.GraduationCap size={24} color={color} />} />
         <Text size="bodyLarge" style={{ color: v.fg, flex: 1 }}>
@@ -231,45 +272,70 @@ function Todos({ parts }: { parts: readonly PlanTab[] }) {
 
 // ------------------------------------------------------------ the screens
 
-/** A screen's row: its tile, its name, the one line that answers it (or that line's shape while SIX reads), one pill. */
+/** A screen's row on the page: its round mark, its name, the one line that answers it (or that line's shape while SIX reads), one pill. */
 function ScreenRow({
-  icon: Icon,
   title,
   meta,
   tone = "muted",
   pill,
   route,
-  first = false,
+  last = false,
   testID,
 }: {
-  icon: IconKind;
   title: string;
   /** The line; `"pending"` while what it says is still on its way. */
   meta: string | null | "pending";
   tone?: MetaTone;
   pill?: { tone: PillTone; text: string } | null;
   route: PlanTab | "grades";
-  first?: boolean;
+  last?: boolean;
   testID: string;
 }) {
   const nav = useNav();
-  const v = useTheme().v4;
+  const b = useB();
+  const mark = MARK[route];
   return (
-    <GroupRow
-      first={first}
-      leading={<IconTile icon={(color) => <Icon size={22} color={color} />} />}
+    <BRow
+      leading={<ServiceCircle icon={mark.icon} tone={mark.tone} size={44} />}
       title={title}
-      meta={meta === "pending" ? <Skeleton width={128} height={12} style={{ marginTop: space[1] }} /> : meta}
-      metaTone={tone}
+      meta={meta === "pending" ? <Skeleton width={128} height={12} style={{ marginTop: space[1] }} /> : (meta ?? undefined)}
+      metaColor={tone === "red" ? b.red : tone === "amber" ? b.amber : tone === "ok" ? b.ok : undefined}
       trailing={
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
           {pill ? <Pill tone={pill.tone}>{pill.text}</Pill> : null}
-          <Icons.ChevronRight size={18} color={v.muted} />
+          <Fluent name="ChevronRight20Regular" color={b.muted} />
         </View>
       }
+      last={last}
       onPress={() => nav.go(route === "grades" ? { screen: "grades" } : { screen: "plan", tab: route })}
       testID={testID}
     />
+  );
+}
+
+/** The app's own rows: the account and Settings (once the avatar in every top bar), and reporting a problem. */
+function AppRows() {
+  const t = useT();
+  const b = useB();
+  const chevron = <Fluent name="ChevronRight20Regular" color={b.muted} />;
+  return (
+    <View testID="section.profile.app">
+      <BRow
+        leading={<ServiceCircle icon="Settings24Filled" tone="grey" size={44} />}
+        title={t("mobile.account.open")}
+        trailing={chevron}
+        onPress={() => router.push("/settings")}
+        testID="action.account"
+      />
+      <BRow
+        leading={<ServiceCircle icon="PersonFeedback24Filled" tone="green" size={44} />}
+        title={t("mobile.profile.report")}
+        trailing={chevron}
+        last
+        onPress={() => router.push("/report")}
+        testID="action.report"
+      />
+    </View>
   );
 }
 
@@ -293,9 +359,7 @@ function GradesRow({ record }: { record: StudentRecord | undefined }) {
     // Named as Nilai names it.
     return ip === null ? null : t("mobile.grades.lastIp", { ip: f.number(ip, 2) });
   }, [record, t, f]);
-  return (
-    <ScreenRow icon={Icons.ClipboardCheck} title={t("nav.grades")} meta={record?.transcript ? text : missing} route="grades" first testID="row.nav.grades" />
-  );
+  return <ScreenRow title={t("nav.grades")} meta={record?.transcript ? text : missing} route="grades" testID="row.nav.grades" />;
 }
 
 /**
@@ -343,7 +407,7 @@ function PartRow({
   tone?: MetaTone;
   pill?: { tone: PillTone; text: string } | null;
 }) {
-  return <ScreenRow icon={PART_ICON[part]} title={title} meta={meta} tone={tone} pill={pill} route={part} testID={`row.nav.plan.${part}`} />;
+  return <ScreenRow title={title} meta={meta} tone={tone} pill={pill} route={part} last={part === "deadlines"} testID={`row.nav.plan.${part}`} />;
 }
 
 function CurriculumRow({ record }: { record: StudentRecord | undefined }) {

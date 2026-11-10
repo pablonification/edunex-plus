@@ -41,7 +41,7 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: 05-ujian
 - back
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - takeScreenshot: 06-akademik
 - scrollUntilVisible:

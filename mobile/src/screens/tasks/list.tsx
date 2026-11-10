@@ -20,14 +20,16 @@ import type { StringKey } from "../../../../src/core/strings";
 import { taskStatus } from "../../../../src/core/tasks";
 import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoForCourse, todoGroup } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
-import { TabHeader, usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
+import { BTabHeader } from "../../parts/b-header";
+import { usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
+import { useB } from "../../ui/b";
 import { CardSlice, SectionTitle } from "../../ui/card-list";
-import { Button, Segmented } from "../../ui/controls";
+import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, GroupTile } from "../../ui/layout";
 import { useDrawAhead, useLinesShown, usePart } from "../../ui/parts";
-import { iosPressed } from "../../ui/press";
+import { iosPressed, PressScale } from "../../ui/press";
 import { ChoiceSheet } from "../../ui/settings-list";
 import { SEGMENT_HEIGHT, slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
@@ -214,6 +216,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
     [bridge],
   );
   const [putOffOpen, setPutOffOpen] = useState(false);
+  const { page } = useB();
   const view = useMemo(() => tasksView(t, todo, courses, course, show, sixOut), [t, todo, courses, course, show, sixOut]);
   if (putOffOpen && !view.hasPutOff) setPutOffOpen(false);
   const listed = usePart(1);
@@ -243,8 +246,8 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   );
 
   return (
-    <View testID="screen.tasks" style={{ flex: 1, backgroundColor: theme.v4.page }}>
-      <TabHeader v4 title={t("nav.tasks")} />
+    <View testID="screen.tasks" style={{ flex: 1, backgroundColor: page }}>
+      <BTabHeader title={t("nav.tasks")} />
       <TaskRowWorld>
         {listed && (
           <FlashList
@@ -304,24 +307,71 @@ const Header = memo(function Header({
     <View style={{ paddingTop: space[2], paddingBottom: space[6] }}>
       <RowProblemBanner />
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Segmented
-            testID="segment.show"
-            label={t("tasks.show")}
-            value={show}
-            onChange={onShow}
-            check={false}
-            options={[
-              { value: "open", label: t("tasks.filter.open"), count: openCount },
-              { value: "done", label: t("tasks.filter.done"), count: doneCount },
-            ]}
-          />
+        <View style={{ flex: 1, minWidth: 0 }} accessibilityRole="tablist" accessibilityLabel={t("tasks.show")} testID="segment.show">
+          <ShowCounts show={show} onShow={onShow} openCount={openCount} doneCount={doneCount} />
         </View>
         {courses.length > 1 && <CourseFilter courses={courses} course={course} onCourse={onCourse} />}
       </View>
     </View>
   );
 });
+
+/**
+ * Belum selesai and Selesai as counts to tap (direction B, the official app's logbook numbers): the number big, what it
+ * counts under it, the one shown in the app's blue with a bar under it.
+ */
+function ShowCounts({
+  show,
+  onShow,
+  openCount,
+  doneCount,
+}: {
+  show: "open" | "done";
+  onShow: (show: "open" | "done") => void;
+  openCount: number | undefined;
+  doneCount: number | undefined;
+}) {
+  const t = useT();
+  const b = useB();
+  const cells = [
+    { value: "open" as const, label: t("tasks.filter.open"), count: openCount },
+    { value: "done" as const, label: t("tasks.filter.done"), count: doneCount },
+  ];
+  return (
+    <View style={{ flexDirection: "row", gap: space[6] }}>
+      {cells.map((cell) => {
+        const picked = cell.value === show;
+        return (
+          <PressScale
+            key={cell.value}
+            onPress={() => onShow(cell.value)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: picked }}
+            accessibilityLabel={cell.count === undefined ? cell.label : `${cell.label}, ${cell.count}`}
+            testID={`segment.show.${cell.value}`}
+            style={{ minHeight: 56, justifyContent: "center" }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
+              <Text
+                size="headlineSmall"
+                face="display"
+                weight="extrabold"
+                tabular
+                style={{ color: picked ? b.brand : b.muted, fontSize: 26, lineHeight: 32, letterSpacing: -0.5 }}
+              >
+                {cell.count === undefined ? "–" : String(cell.count)}
+              </Text>
+              <Text size="bodyLarge" weight={picked ? "semibold" : undefined} style={{ color: picked ? b.fg : b.muted }}>
+                {cell.label}
+              </Text>
+            </View>
+            <View style={{ height: 3, borderRadius: 2, marginTop: space[1], backgroundColor: picked ? b.brand : "transparent" }} />
+          </PressScale>
+        );
+      })}
+    </View>
+  );
+}
 
 const ALL = "__all";
 
@@ -530,7 +580,7 @@ export function NoTasksYet() {
         {[0, 1, 2].map((i) => (
           <CardSlice key={i} first={i === 0} last={i === 2}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
-              <Skeleton width={44} height={44} style={{ borderRadius: 14 }} />
+              <Skeleton width={44} height={44} style={{ borderRadius: 22 }} />
               <View style={{ flex: 1, gap: space[2] }}>
                 <Skeleton width="70%" height={16} />
                 <Skeleton width="45%" height={12} />

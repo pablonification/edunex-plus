@@ -30,6 +30,7 @@ import { useFirstReadRunning } from "../../shell/source-status";
 import { absenceName } from "../../ui/absence";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
+import { Fluent, type FluentName } from "../../ui/fluent";
 import { Group, GroupRow, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
@@ -307,7 +308,7 @@ export function UrusLoading() {
     <View testID="section.needs.reading" accessibilityState={{ busy: true }} style={{ backgroundColor: v.card, borderRadius: 20 }}>
       {[0, 1].map((i) => (
         <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
-          <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
+          <Skeleton height={44} width={44} style={{ borderRadius: 22 }} />
           <View style={{ flex: 1, gap: space[2] }}>
             <Skeleton height={16} width="70%" />
             <Skeleton height={12} width="45%" />
@@ -335,7 +336,7 @@ function AbsenceRow({ item, first, courses }: { item: AbsenceProblem; first: boo
       testID={`row.need.absence.${item.code}`}
       accessibilityRole="button"
       accessibilityLabel={factsLabel(name, words, spoken)}
-      leading={<IconTile tone={over ? "red" : "amber"} icon={(color) => <Icons.CalendarCheck size={22} color={color} />} />}
+      leading={<Mark tone={over ? "red" : "amber"} icon="CalendarCheckmark24Filled" />}
       title={<RowTitle text={shortName(name)} />}
       meta={<Meta tone={over ? "red" : "amber"} text={words} />}
       onPress={() => go({ screen: "course", code: item.code })}
@@ -359,7 +360,7 @@ function ClashRow({ item, first, courses }: { item: ClashProblem; first: boolean
       accessibilityRole="button"
       accessibilityLabel={factsLabel(t("alert.overlap", { a, b }), f.dayTimeRange(item.from, item.to))}
       // The warning tone with the clash's own icon; the pair in the quiet ink (amber words are for absences).
-      leading={<IconTile tone="amber" icon={(color) => <Icons.Overlap size={22} weight="bold" color={color} />} />}
+      leading={<Mark tone="amber" icon="Warning20Filled" />}
       title={<RowTitle text={title} />}
       meta={<Meta text={pair} />}
       onPress={() => {
@@ -401,6 +402,20 @@ function TodoRowView({ row, first }: { row: TodoRow; first: boolean }) {
       }
       onPress={() => (need.action.kind === "go" ? go(need.action.route) : open(need.action.url))}
     />
+  );
+}
+
+/** A problem's round mark (direction B): a filled Fluent glyph in a circle of its tone. */
+function Mark({ tone, icon }: { tone: "red" | "amber"; icon: FluentName }) {
+  const v = useTheme().v4;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: tone === "red" ? v.redBg : v.ambBg, alignItems: "center", justifyContent: "center" }}
+    >
+      <Fluent name={icon} color={tone === "red" ? v.redFg : v.ambFg} />
+    </View>
   );
 }
 

@@ -16,11 +16,11 @@ name: "r3 5 grades"
       id: screen.home
     timeout: 60000
 - tapOn:
-    id: tab.academic
+    id: tab.profile
     label: "tap: Akademik tab"
 - extendedWaitUntil:
     visible:
-      id: screen.academic
+      id: screen.profile
     timeout: 20000
 - extendedWaitUntil:
     notVisible:

@@ -1,7 +1,7 @@
 // The bottom tabs: Android's own navigation bar (expo-router's NativeTabs, a Material
 // BottomNavigationView through react-native-screens), five jobs a Student has every day (PROGRESS.md,
 // "The new shape of the app"): Beranda, Jadwal, Tugas, Kuliah (the courses with their absences left,
-// once Presensi) and Akademik (IPK, Nilai, the study plan, KRS, UKT). Every tab is mounted ahead, so a
+// once Presensi) and Profil (the Student, their IPK, Nilai, the study plan, KRS, UKT, Settings and the account). Every tab is mounted ahead, so a
 // switch is instant and each keeps its scroll; a second tap on the open tab scrolls it to the top.
 // Labels always show. The icons are the app's own Phosphor glyphs as Android drawables
 // (plugins/tab-icons.js), outlined at rest and filled when picked. On an iPhone it's iOS's own tab bar: Apple's
@@ -48,7 +48,7 @@ export default function TabsLayout() {
     { name: "schedule", title: t("nav.schedule"), id: "schedule", icon: "schedule", badge: null },
     { name: "tasks", title: t("mobile.tab.tasks"), id: "tasks", icon: "tasks", badge: tasks },
     { name: "courses", title: t("mobile.tab.courses"), id: "courses", icon: "courses", badge: presence },
-    { name: "academic", title: t("mobile.tab.academic"), id: "academic", icon: "academic", badge: plan },
+    { name: "profile", title: t("mobile.tab.profile"), id: "profile", icon: "profile", badge: plan },
   ] as const;
   return (
     <InTabs.Provider value>
@@ -96,12 +96,12 @@ interface Badges {
 }
 
 /** Each tab's icon on an iPhone: Apple's symbol, outlined at rest and filled when picked, as Android's drawables are. */
-const SF: Record<"home" | "schedule" | "tasks" | "courses" | "academic", SFSymbolIcon["sf"]> = {
+const SF: Record<"home" | "schedule" | "tasks" | "courses" | "profile", SFSymbolIcon["sf"]> = {
   home: { default: "house", selected: "house.fill" },
   schedule: { default: "calendar", selected: "calendar" },
   tasks: { default: "checkmark.circle", selected: "checkmark.circle.fill" },
   courses: { default: "book", selected: "book.fill" },
-  academic: { default: "graduationcap", selected: "graduationcap.fill" },
+  profile: { default: "person", selected: "person.fill" },
 };
 
 const NO_BADGES: Badges = { tasks: null, presence: null, plan: null };
@@ -120,7 +120,7 @@ function TabBadges({ onChange }: { onChange: Dispatch<SetStateAction<Badges>> })
   useState(() => perfDoing("the tabs' badges"));
   const tasks = useTasksBadge();
   const presence = usePresenceBadge();
-  // Akademik carries what's to do there (send the KRS, pay the UKT); a clash to ask about stays on its row.
+  // Profil carries what's to do in the Student's studies (send the KRS, pay the UKT); a clash to ask about stays on its row.
   const planCount = usePlanBadge();
   const plan = planCount?.tone === "warning" ? planCount : null;
   const key = JSON.stringify([tasks, presence, plan]);

@@ -13,12 +13,13 @@ import { wibDay } from "../../../../src/core/course-meetings";
 import type { UnreadSession } from "../../../../src/core/models";
 import type { ClassFacts, HomeContext, NowCard, TodayPlan } from "../../../../src/core/needs";
 import { Rise } from "../../ui/expressive";
+import { Fluent } from "../../ui/fluent";
 import { IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
-import { Text } from "../../ui/text";
+import { Text, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CourseTile } from "../../ui/tile";
+import { useCourseTile } from "../../ui/tile";
 import { DetailSheet } from "../schedule/details";
 import { ClassSheet, classCard } from "./class-sheet";
 import { nameOf, shortName } from "./parts";
@@ -30,7 +31,6 @@ type Item =
 export function Later({ context, plan, courses, onCard }: { context: HomeContext; plan: TodayPlan; courses: readonly TermCourse[]; onCard: string | null }) {
   const t = useT();
   const now = useNow();
-  const v = useTheme().v4;
   const [picked, setPicked] = useState<NowCard | null>(null);
   const [unreadOpen, setUnreadOpen] = useState(false);
   const day = wibDay(context.now);
@@ -74,7 +74,8 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
         </Text>
       </Rise>
       <Rise screen="home" index={6}>
-        <View style={{ backgroundColor: v.card, borderRadius: 20, overflow: "hidden" }}>
+        {/* Direction B: a timeline on the page itself (the official app's "Timeline Activity"), not a card of rows. */}
+        <View>
           {unread.map((one, i) => (
             <UnreadRow key={`unread:${one.row}`} one={one} first={i === 0} onOpen={() => setUnreadOpen(true)} />
           ))}
@@ -83,6 +84,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
               key={item.key}
               item={item}
               first={i === 0 && !unread.length}
+              last={i === items.length - 1}
               courses={courses}
               onOpen={() =>
                 setPicked(
@@ -108,10 +110,13 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
   );
 }
 
-function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; courses: readonly TermCourse[]; onOpen(): void }) {
+/** One class on the day's timeline: its time, a dot in the course's colour on the line down the day, its name and room. */
+function Row({ item, first, last, courses, onOpen }: { item: Item; first: boolean; last: boolean; courses: readonly TermCourse[]; onOpen(): void }) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
+  const tile = useCourseTile();
+  const timeColumn = useTextWidth(44);
   const name = item.kind === "class" ? nameOf(courses, item.code, item.facts.session.courseName) : nameOf(courses, item.code);
   const place = item.kind === "class" ? item.facts.session.room : item.meeting.meeting.online ? t("mobile.home.online") : null;
   const chip = chipOf(t, item);
@@ -123,26 +128,40 @@ function Row({ item, first, courses, onOpen }: { item: Item; first: boolean; cou
       onPress={onOpen}
       accessibilityLabel={[name, meta, clash, chip].filter(Boolean).join(", ")}
       testID={`row.today.${item.key}`}
-      style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}
+      style={{ flexDirection: "row", alignItems: "stretch", gap: space[3], paddingHorizontal: space[1], minHeight: 64 }}
     >
-      {!first && <View style={{ position: "absolute", top: 0, left: 70, right: 0, height: 1, backgroundColor: v.line }} />}
-      <CourseTile code={item.code} name={name} />
-      <View style={{ flex: 1, minWidth: 0 }}>
+      <Text
+        size="bodyLarge"
+        face="display"
+        weight="bold"
+        tabular
+        style={{ color: v.fg, width: timeColumn, fontSize: 15, lineHeight: 21, paddingTop: space[3] }}
+      >
+        {f.time(item.start)}
+      </Text>
+      <View style={{ width: 12, alignItems: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <View style={{ width: 2, height: 16, backgroundColor: first ? "transparent" : v.line }} />
+        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tile(item.code).ink }} />
+        <View style={{ width: 2, flex: 1, backgroundColor: last ? "transparent" : v.line }} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0, paddingVertical: space[3] }}>
         <Text size="bodyLarge" weight="medium" style={{ color: v.fg, lineHeight: 21 }}>
           {shortName(name)}
         </Text>
-        <Text size="bodyMedium" tabular style={{ color: v.muted, marginTop: 2 }}>
-          {meta}
-        </Text>
+        {place ? (
+          <Text size="bodyMedium" tabular style={{ color: v.muted, marginTop: 2 }}>
+            {place}
+          </Text>
+        ) : null}
       </View>
       {overlap && (
-        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={`clash.today.${item.key}`}>
-          <Icons.Overlap size={20} weight="bold" color={v.ambFg} />
+        <View style={{ alignSelf: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={`clash.today.${item.key}`}>
+          <Fluent name="Warning20Filled" color={v.ambFg} />
         </View>
       )}
       {/* Neutral: amber is for the Student's standing (absences), and a new room isn't. */}
       {chip && (
-        <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: v.chip }}>
+        <View style={{ alignSelf: "center", borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5, backgroundColor: v.chip }}>
           <Text size="labelMedium" weight="semibold" style={{ color: v.fg2 }}>
             {chip}
           </Text>
