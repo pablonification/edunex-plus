@@ -44,6 +44,8 @@ round's picture of a tab against this round's, sides shuffled (round 1's "last r
 | 1 | 7c640072 | designer | 1st | 2nd (Duolingo 1st) | yes (LMS 5th) | 5 of 5 (Tugas and Kuliah most alike) | 3–8; none | 7 of 17 (Beranda ×3, Kuliah ×2, Materi) | Jadwal, Tugas, Kuliah; prefers `main`'s Beranda and Akademik over Profil | |
 | 1 | 7c640072 | student | 1st | 1st | yes (LMS 4th and 5th) | 5 of 5 (Tugas and Kuliah most alike) | 4–9; Jadwal, Ujian | 5 of 17 (Beranda ×3, Materi, Nilai) | Beranda, Tugas, Kuliah, Jadwal; prefers `main`'s Akademik over Profil | 6 · 8 · 8 (LMS: 4 · 4 · 3) |
 | 1 | 7c640072 | prosecutor | 1st | 2nd (Duolingo 1st) | yes (LMS 5th) | 5 of 5 (Kuliah and Beranda most alike) | 3–8; none | 12 of 17 (facts repeated across screens) | Jadwal, Tugas, Kuliah; prefers `main`'s Beranda and Akademik over Profil | |
+| 2 | 0956276c | designer | 1st | 2nd (Duolingo 1st) | yes (LMS 4th and 5th) | 5 of 5 (Beranda and Kuliah most alike) | 5–8; none | 4 of 17 (Beranda ×2, Kuliah ×2) | 8 of 10 that changed; prefers round 1's Tugas (no empty "Hari ini") and Kuliah (the list) | |
+| 2 | 0956276c | student | 1st | 1st | yes (LMS 5th) | 5 of 5 (Beranda and Kuliah most alike) | 4–9; Jadwal, Profil, Cari | 2 of 17 (Kuliah ×2) | 7 of 10 that changed; prefers round 1's Kuliah (the list), Beranda's lower half and Ujian's smaller hero | 8 · 8 · 7 (LMS: 3 · 3 · 3) |
 
 What two or more judges raised in round 1, and what was done:
 
@@ -61,4 +63,3 @@ What two or more judges raised in round 1, and what was done:
   asked to keep them), Profil holding Nilai, KRS and UKT (the blueprint; Nilai, KRS and UKT are on Beranda's grid too).
 - The grey box behind the greeting in dark was the emulator's keyboard-focus mark, not the app: the picture flow now
   touches the screen first.
-
