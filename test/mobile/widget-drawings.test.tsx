@@ -191,7 +191,14 @@ beforeAll(async () => {
  * This phone's launcher (Samsung One UI, 4 across): "Sekarang" at 4×2 is 1017×703 px on its home screen, at 2.625 px
  * per dp 387×268 dp. The first round drew it at 325×227, so the phone had width the pictures didn't.
  */
-const phone = (w: number, h: number) => ({ label: `${w}×${h}`, width: Math.round(96.85 * w), height: Math.round(133.9 * h) });
+const pixel = (w: number, h: number) => ({ label: `${w}×${h}`, width: Math.round(96.85 * w), height: Math.round(133.9 * h) });
+/**
+ * What the Galaxy A52's launcher (One UI 5, 4 across) really reports for a placed widget (dumpsys appwidget, in dp):
+ * a column 85 with 11 between, a row 124 with 12 between. 4×1 is 373×124, 4×2 373×260, 3×2 277×260.
+ */
+const samsung = (w: number, h: number) => ({ label: `${w}×${h}`, width: 96 * w - 11, height: 136 * h - 12 });
+/** The pictures' grid: the first one, or the Samsung's with WIDGET_GRID=samsung (mobile/scripts/render-widgets.mjs --grid=samsung). */
+const phone = process.env.WIDGET_GRID === "samsung" ? samsung : pixel;
 /** Each widget at its smallest, a step between, its first size (marked) and its largest on a 4-wide launcher. */
 const RENDER: Record<string, { title: string; sizes: ReturnType<typeof phone>[]; first: string }> = {
   Now: { title: "Sekarang", sizes: [phone(2, 1), phone(4, 1), phone(4, 2), phone(4, 3)], first: "4×2" },
@@ -337,7 +344,7 @@ describe("every widget at every size", () => {
   });
 
   it("Sekarang as first placed: the course's name whole and no code, one button with the one time, each said once", () => {
-    const size = phone(4, 2);
+    const size = pixel(4, 2);
     const drawn = draw(DRAW.Now!({ ...size, fontScale: 1 }, "light"), size);
     expect(drawn.texts).toEqual(
       expect.arrayContaining(["Ekonomi dan Inovasi dalam Perencanaan", "Isi Presensi", "Tutup 09:30", "Perlu perhatianmu", "Diperbarui 08:12"]),
@@ -349,16 +356,70 @@ describe("every widget at every size", () => {
     expect(drawn.taps.some((tap) => tap.label === "Isi Presensi PL3002, Tutup 09:30" && tap.uri?.startsWith("https://"))).toBe(true);
   });
 
+  it("on the Samsung's real sizes: Sekarang at 373×260 keeps the next class and the foot under its block, and taller shows more", () => {
+    const at = (name: string, size: ReturnType<typeof samsung>, scale = 1) => draw(DRAW[name]!({ ...size, fontScale: scale }, "light"), size);
+    // The phone's text at 1 and at its 1.1: the block, its button, the next class under it, when the data was read.
+    for (const scale of [1, 1.1]) {
+      const two = at("Now", samsung(4, 2), scale).texts;
+      expect(two, `text ×${scale}`).toEqual(
+        expect.arrayContaining(["Ekonomi dan Inovasi dalam Perencanaan", "Isi Presensi", "Tutup 09:30", "11:00", "Komunikasi Pemasaran", "Diperbarui 08:12"]),
+      );
+      // Three rows high: all of that, and what needs the Student.
+      const three = at("Now", samsung(4, 3), scale).texts;
+      expect(three, `text ×${scale}`).toEqual(
+        expect.arrayContaining(["Isi Presensi", "Tutup 09:30", "11:00", "Komunikasi Pemasaran", "Perlu perhatianmu", "Diperbarui 08:12"]),
+      );
+      expect(three.length, `text ×${scale}`).toBeGreaterThan(two.length);
+    }
+    // One row high: the class and its button side by side, nothing under.
+    expect(at("Now", samsung(4, 1)).texts).toEqual(expect.arrayContaining(["Ekonomi dan Inovasi dalam Perencanaan", "Isi Presensi"]));
+    expect(at("Now", samsung(2, 1)).texts).toEqual(expect.arrayContaining(["PL3002"]));
+    // Every other widget at every size this launcher gives it draws, and nothing it draws is said twice.
+    const sizes: Record<string, [number, number][]> = {
+      Today: [
+        [2, 2],
+        [3, 2],
+        [4, 2],
+      ],
+      Due: [
+        [2, 2],
+        [3, 2],
+      ],
+      Attendance: [
+        [2, 2],
+        [3, 2],
+        [4, 2],
+      ],
+      Exam: [
+        [2, 1],
+        [3, 1],
+        [4, 1],
+      ],
+      Next: [
+        [1, 1],
+        [2, 1],
+      ],
+      Course: [
+        [3, 1],
+        [3, 2],
+      ],
+    };
+    for (const [name, cells] of Object.entries(sizes))
+      for (const [w, h] of cells) expect(at(name, samsung(w, h)).texts.length, `${name} ${w}×${h}`).toBeGreaterThan(0);
+    expect(at("Today", samsung(3, 2)).texts).toEqual(expect.arrayContaining(["08:00", "11:00", "15:00", "16:00", "Diperbarui 08:12"]));
+    expect(at("Next", samsung(1, 1)).texts).toEqual(expect.arrayContaining(["11:00", "DK4073"]));
+  });
+
   it("a course's name is never cut: where it doesn't fit whole, its code stands in", () => {
-    const small = phone(2, 1);
+    const small = pixel(2, 1);
     expect(draw(DRAW.Now!({ ...small, fontScale: 1 }, "light"), small).texts).toContain("PL3002");
     // With the width for it, the name again, over two lines (the render script's report.txt lists any line the browser cut).
-    const wide = phone(4, 1);
+    const wide = pixel(4, 1);
     expect(draw(DRAW.Now!({ ...wide, fontScale: 1 }, "light"), wide).texts).toContain("Ekonomi dan Inovasi dalam Perencanaan");
   });
 
   it("Kehadiran: each course's absences as marks, the danger in its word", () => {
-    const size = phone(4, 4);
+    const size = pixel(4, 4);
     const drawn = draw(DRAW.Attendance!({ ...size, fontScale: 1 }, "light"), size);
     expect(drawn.texts).toEqual(expect.arrayContaining(["lewat 1 absen", "absen habis", "sisa 2 absen"]));
     // A mark is a 10 dp dot: one per absence the term allows, and one for each past it.

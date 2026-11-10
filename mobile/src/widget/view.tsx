@@ -217,14 +217,14 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
       accessibilityLabel={label}
       style={{
         width: "match_parent",
-        ...(plan.below ? {} : { height: "match_parent" }),
+        ...(plan.split ? {} : { height: "match_parent" }),
         flexDirection: plan.row ? "row" : "column",
         alignItems: plan.row ? "center" : "flex-start",
         justifyContent: "space-between",
         flexGap: plan.row ? 10 : 8,
         padding: 12,
         // With the list under it, the block is the widget's own top, edge to edge: never a card inside a card.
-        ...(plan.below
+        ...(plan.split
           ? { borderTopLeftRadius: RADIUS, borderTopRightRadius: RADIUS }
           : { borderRadius: RADIUS, borderWidth: 1, borderColor: hex(block.edge) }),
         backgroundColor: hex(block.bg),
@@ -241,7 +241,7 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
       ) : null}
     </FlexWidget>
   );
-  if (!plan.below) return inside;
+  if (!plan.split) return inside;
   return (
     <FlexWidget
       clickAction="OPEN_APP"
@@ -276,22 +276,24 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
               ))}
             </FlexWidget>
           ) : null}
-          <Needs
-            needs={plan.below}
-            theme={theme}
-            heading={model.needs?.items.length ? model.needs.heading : null}
-            width={size.width - 24}
-            scale={scale}
-            link={false}
-          />
+          {plan.below ? (
+            <Needs
+              needs={plan.below}
+              theme={theme}
+              heading={model.needs?.items.length ? model.needs.heading : null}
+              width={size.width - 24}
+              scale={scale}
+              link={false}
+            />
+          ) : null}
         </FlexWidget>
         <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexGap: 8 }}>
-          {plan.below.more ? <Text text={plan.below.more.label} size="small" color={v.brandInk} bold open={plan.below.more.open} /> : null}
+          {plan.below?.more ? <Text text={plan.below.more.label} size="small" color={v.brandInk} bold open={plan.below.more.open} /> : null}
           {plan.footInside ? null : (
             <Foot
               status={model.status}
               theme={theme}
-              width={size.width - 24 - (plan.below.more ? plan.below.more.label.length * FONT.small * scale * 0.62 + 8 : 0)}
+              width={size.width - 24 - (plan.below?.more ? plan.below.more.label.length * FONT.small * scale * 0.62 + 8 : 0)}
               scale={scale}
             />
           )}
@@ -339,8 +341,10 @@ interface FittedNow {
   footInside: boolean;
   /** A narrow widget: "Tutup 09:30" on its own line under the button. */
   detailUnder: boolean;
-  /** What needs the Student, under the block on the widget's own surface; null when the block is the whole widget. */
+  /** What needs the Student, under the block on the widget's own surface; null when none fits. */
   below: FittedNeeds | null;
+  /** The block is the widget's top with a list under it (classes, needs, the foot); else the block is the whole widget. */
+  split: boolean;
   /** Today's classes still to come, under the needs, where a tall widget has the room: growing it shows more of the day. */
   later: WidgetTodayClass[];
 }
@@ -414,9 +418,16 @@ function fitNow(model: WidgetModel, cls: WidgetClass, size: WidgetSize): FittedN
   const below = !row && model.needs ? fitNeedsList(model.needs, under - nextUp * (rowHeight + 10) - headHeight + 8, scale, inner, true) : null;
   const used = nextUp * (rowHeight + 10) + (below ? below.height + headHeight : 0);
   // The lines above are counted on the safe side, so a row that's 8 dp short by the count still has its place.
-  const later = below ? ahead.slice(0, nextUp + Math.max(0, Math.floor((under - used + 8) / rowHeight))) : [];
+  // Between two designed heights (a launcher's rows differ: 260 dp for two on a Samsung, 268 on a Pixel) no need may
+  // fit yet: the day's next classes take the room instead, as many as fit, never the block stretched over a hole.
+  const later = row
+    ? []
+    : below
+      ? ahead.slice(0, nextUp + Math.max(0, Math.floor((under - used + 8) / rowHeight)))
+      : ahead.slice(0, Math.max(0, Math.floor((under + 2) / (rowHeight + 2))));
   return {
     later,
+    split: Boolean(below) || later.length > 0,
     head,
     big,
     name: label.text,
@@ -427,7 +438,7 @@ function fitNow(model: WidgetModel, cls: WidgetClass, size: WidgetSize): FittedN
     below,
     detailUnder,
     // On the block, only what's wrong: when all is well the class is the whole widget.
-    footInside: (!below || offline) && Boolean(model.status.text) && model.status.problem,
+    footInside: ((!below && !later.length) || offline) && Boolean(model.status.text) && model.status.problem,
   };
 }
 
@@ -598,7 +609,9 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
   const over = today.classes.filter((one) => one.past).reverse();
   const headHeight = (LINE.micro + 8) * scale;
   const foot = Boolean(model.status.text);
-  let room = size.height - 2 * PAD - headHeight - (foot ? (LINE.foot + 6) * scale : 0);
+  // (A row's height counts the 2 dp gap under it, and the last row has none: 2 back. At 260 dp, a Samsung's two rows,
+  // that is the fourth class of the day.)
+  let room = size.height - 2 * PAD - headHeight - (foot ? (LINE.foot + 6) * scale : 0) + 2;
   // "Tidak ada kuliah hari ini.", or once the last one is over, "Kelas hari ini sudah selesai".
   const said = today.none?.label ?? today.done ?? null;
   const saidLines = said ? linesOf(said, FONT.body * scale, size.width - 2 * PAD - 12) : 0;

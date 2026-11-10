@@ -3,6 +3,10 @@
 // pretend Student's Thursday, on a wallpaper-like background. One PNG per picture and one contact sheet per widget.
 //
 //   node mobile/scripts/render-widgets.mjs [folder]      (default: a folder in the system's temp directory)
+//   node mobile/scripts/render-widgets.mjs [folder] --grid=samsung
+//
+// Two grids, the sizes labelled the same: the first one (a cell about 97×134 dp), and with --grid=samsung the dp a
+// Galaxy A52's launcher really gives a placed widget (4×1 373×124, 4×2 373×260, 3×2 277×260).
 //
 // How: test/mobile/widget-drawings.test.tsx walks the real widget trees (mobile/src/widget) into web pages when
 // WIDGET_RENDER names a folder; this script runs it, then photographs the pages with the Playwright in the root
@@ -18,13 +22,14 @@ const root = path.resolve(import.meta.dirname, "..", "..");
 const args = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
 // --previews: also keep each widget's picker picture (assets/widget-preview-<name>.png), cut from the same drawing.
 const previews = process.argv.includes("--previews");
+const grid = process.argv.find((arg) => arg.startsWith("--grid="))?.slice("--grid=".length) ?? "";
 const out = path.resolve(args[0] ?? path.join(os.tmpdir(), "edunex-plus-widget-render"));
 const pages = path.join(out, "pages");
 
 const test = spawnSync("npx", ["vitest", "run", "test/mobile/widget-drawings.test.tsx"], {
   cwd: root,
   stdio: "inherit",
-  env: { ...process.env, WIDGET_RENDER: pages },
+  env: { ...process.env, WIDGET_RENDER: pages, WIDGET_GRID: grid },
 });
 if (test.status !== 0) process.exit(test.status ?? 1);
 

@@ -2,8 +2,9 @@
 // home-screen widgets (src/widget/views.tsx draws the same). One rule, read with no key (the widgets' round 3, three
 // judges in the same words: "full = left, ring = used, red = over"): a full dot, in the page's ink, is an absence still
 // left; a ring is one used; a red dot, set a little apart, is one over the limit. So "sisa 2 absen" is two full dots,
-// "absen habis" is all rings, "lewat 1 absen" is all rings and one red. Colour on a dot means over and nothing else: a
-// dot is never green or amber. Then one short label with the noun, in the state's colour ("sisa 1 absen", "absen
+// "absen habis" is all rings, "lewat 1 absen" is all rings and one red. The marks take their row's state colour (the
+// widgets' round 4: black dots on safe rows outweighed the rows in trouble): green while some are left, amber at none,
+// red past the limit. Then one short label with the noun, in the state's colour ("sisa 1 absen", "absen
 // habis", "lewat 1 absen": Beranda's strip says "absen habis" in the same words). Never a count or a sentence beside
 // them: the whole sentence is the row's accessible name. Kuliah's rows, a course's header and the class sheet draw this.
 import { memo } from "react";
@@ -53,9 +54,10 @@ export const AbsenceDots = memo(function AbsenceDots({ model, label, testID }: {
                   // The first one over stands a dot's gap away from the allowed ones: "these, and one more".
                   marginLeft: past && i === allowed && allowed > 0 ? 4 : 0,
                   // Full while it's still left, a ring once it's used, red when it's one too many.
-                  backgroundColor: past ? v.redFg : used ? "transparent" : v.fg2,
+                  // All in the row's state colour: green while some are left, amber at none, red past the limit.
+                  backgroundColor: past ? v.redFg : used ? "transparent" : ink,
                   borderWidth: used && !past ? 1.5 : 0,
-                  borderColor: v.fg2,
+                  borderColor: ink,
                 }}
               />
             );
