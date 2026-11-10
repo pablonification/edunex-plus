@@ -551,7 +551,7 @@ section {
   display: flex;
 }
 .os-tab {
-  min-width: 112px;
+  min-width: 96px;
   padding: 9px 20px;
   border: 0;
   border-radius: 999px;
@@ -625,6 +625,10 @@ section {
 .guide p {
   font-size: 15px;
   color: var(--fg-muted);
+}
+/* A step said in a few short paragraphs (the iPhone's). */
+.guide p + p {
+  margin-top: 8px;
 }
 /* A link inside a sentence: the accent colour and an underline, so colour isn't the only cue. */
 .inline-link {
@@ -1213,9 +1217,11 @@ code {
   .ss {
     min-height: 0;
   }
+  /* Five tabs (three computers, two phones) in one row on a 360 px phone. */
   .os-tab {
     min-width: 0;
-    padding: 9px 18px;
+    padding: 8px 10px;
+    font-size: 14px;
   }
 }
 

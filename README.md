@@ -1,7 +1,7 @@
 # Edunex Plus
 
-**Edunex and SIX in one calm window.** A free desktop app for ITB students, on macOS, Windows
-and Linux.
+**Edunex and SIX in one calm window.** A free app for ITB students, on macOS, Windows, Linux,
+Android and iPhone.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/home-dark.png">
@@ -46,13 +46,15 @@ light and dark.
 Get the newest version from [Releases](https://github.com/pablonification/edunex-plus/releases),
 under **Assets** (Windows or Linux on ARM: see the [install guide](docs/install.md#which-file-to-download)):
 
-| Your computer | File |
+| Your device | File |
 | --- | --- |
 | Mac with Apple silicon (M1 or newer) | `Edunex-Plus-<version>-arm64.dmg` |
 | Mac with Intel | `Edunex-Plus-<version>-x64.dmg` |
 | Windows 10 or 11 | `Edunex-Plus-Setup-<version>.exe` |
 | Ubuntu, Debian, Mint | `edunex-plus_<version>_amd64.deb` |
 | Other Linux | `Edunex-Plus-<version>-x86_64.AppImage` |
+| Android phone | `Edunex-Plus-<version>-android.apk` |
+| iPhone | `Edunex-Plus-<version>-iphone.ipa` (you sign it with your own Apple ID: [steps](docs/install.md#iphone)) |
 
 Your browser and your system warn you the first time you open each new version: few people have
 downloaded it yet, and the Mac app isn't signed by Apple. The [install guide](docs/install.md)
