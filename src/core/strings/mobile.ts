@@ -12,6 +12,31 @@ export const mobileStrings = {
   // Kuliah: the term's courses with each one's absences left (Presensi's page). Akademik: IPK, Nilai, the study plan, KRS, UKT.
   "mobile.tab.courses": { id: "Kuliah", en: "Courses" },
   "mobile.tab.academic": { id: "Akademik", en: "Academic" },
+  // The last tab: the Student, their IPK and SKS, everything Akademik held, and the way to Settings and the account.
+  "mobile.tab.profile": { id: "Profil", en: "Profile" },
+  // Beranda's strip: counts to tap. A count of none is a check and two words, never "0".
+  "mobile.strip.tasksNone": { id: "Tugas beres", en: "Tasks done" },
+  "mobile.strip.absences": { id: "Absen habis", en: "Absences out" },
+  "mobile.strip.absencesNone": { id: "Absen aman", en: "Absences fine" },
+  "mobile.strip.classes": { id: "Kuliah lagi", en: "Classes left" },
+  // Beranda's services, round and four across, and Semua layanan behind "Lainnya": every service in named groups.
+  "mobile.home.services": { id: "Layanan", en: "Services" },
+  "mobile.services.title": { id: "Semua layanan", en: "All services" },
+  "mobile.services.search": { id: "Cari layanan", en: "Search services" },
+  "mobile.services.none": { id: "Tak ada layanan bernama “{query}”", en: "No service named “{query}”" },
+  "mobile.services.group.daily": { id: "Sehari-hari", en: "Every day" },
+  "mobile.services.group.academic": { id: "Akademik", en: "Academic" },
+  "mobile.services.group.app": { id: "Aplikasi", en: "App" },
+  "mobile.service.calendar": { id: "Kalender", en: "Calendar" },
+  "mobile.service.month": { id: "Bulanan", en: "Month" },
+  "mobile.service.needs": { id: "Urusan", en: "To handle" },
+  "mobile.service.report": { id: "Lapor", en: "Report" },
+  "mobile.service.scan": { id: "Ringkasan", en: "Summary" },
+  // Profil: the counts under the Student's name, and the two groups of rows.
+  "mobile.profile.studies": { id: "Studi", en: "Studies" },
+  "mobile.profile.app": { id: "Aplikasi", en: "App" },
+  "mobile.profile.semester": { id: "Semester", en: "Semester" },
+  "mobile.profile.report": { id: "Laporkan masalah", en: "Report a problem" },
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },

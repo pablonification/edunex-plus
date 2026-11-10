@@ -12,9 +12,10 @@ import { useNow, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
 import { useDataset, useSettings } from "../../../../src/app/store";
 import type { PresenceGroup } from "../../../../src/core/attendance";
+import { BTabHeader } from "../../parts/b-header";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
-import { TabHeader } from "../../shell/source-status";
+import { BHeading, useB } from "../../ui/b";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
@@ -22,8 +23,7 @@ import { Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { Part } from "../../ui/parts";
 import { space, useTheme } from "../../ui/theme";
-import { CardGroup, SectionTitle } from "../../ui/v4-list";
-import { CourseRow } from "./course-row";
+import { CourseCard } from "./course-card";
 import { FactsSheet } from "./footer";
 import { SignInCard } from "./lead";
 import { groupsOf, nowZone, type RowContext, type Still, targetRange, type Zone } from "./logic";
@@ -72,7 +72,7 @@ const CALM: readonly PresenceGroup[] = ["spare", "met"];
 export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
   const t = useT();
   const theme = useTheme();
-  const v = theme.v4;
+  const b = useB();
   const name = useCourseNames();
   const [targets, setTargets] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null });
   const [facts, setFacts] = useState(false);
@@ -111,8 +111,8 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   return (
     <Page
       testID="screen.courses"
-      header={<TabHeader v4 title={t("mobile.tab.courses")} actions={menu} />}
-      background={v.page}
+      header={<BTabHeader title={t("mobile.tab.courses")} actions={menu} />}
+      background={b.page}
       onRefresh={onRefresh}
       refreshing={refreshing}
     >
@@ -145,21 +145,21 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
                   <Rise screen="courses" index={2 + i}>
                     {/* With both bands, each under its name (said once for all its courses): never the rest under "Perlu perhatian". */}
                     {bands.length > 1 && (
-                      <View style={i > 0 ? { marginTop: space[2] } : undefined}>
-                        <SectionTitle first>
-                          {t(i === 0 ? "mobile.kuliah.attention" : band.every((g) => CALM.includes(g.group)) ? "mobile.kuliah.calm" : "mobile.kuliah.rest")}
-                        </SectionTitle>
-                      </View>
+                      <BHeading style={i > 0 ? { marginTop: space[4] } : undefined}>
+                        {t(i === 0 ? "mobile.kuliah.attention" : band.every((g) => CALM.includes(g.group)) ? "mobile.kuliah.calm" : "mobile.kuliah.rest")}
+                      </BHeading>
                     )}
-                    <CardGroup>
-                      {band.map(({ group, items }, g) => (
-                        <View key={group} testID={`group.presence.${group}`}>
-                          {items.map((item, r) => (
-                            <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={g === 0 && r === 0} />
+                    {/* Two across, as the official app lists courses: each a card of its own, in its colour. */}
+                    <View style={{ gap: space[5] }}>
+                      {pairs(band.flatMap(({ group, items }) => items.map((item) => ({ group, item })))).map((pair) => (
+                        <View key={pair[0]!.item.course.code} style={{ flexDirection: "row", gap: space[4] }}>
+                          {pair.map(({ group, item }) => (
+                            <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
                           ))}
+                          {pair.length === 1 && <View style={{ flex: 1 }} />}
                         </View>
                       ))}
-                    </CardGroup>
+                    </View>
                   </Rise>
                 </Part>
               ))}
@@ -178,22 +178,28 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   );
 }
 
+/** A list two by two. */
+function pairs<T>(list: readonly T[]): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < list.length; i += 2) out.push(list.slice(i, i + 2));
+  return out;
+}
+
 /** Kuliah's shape before its data: a card of rows, each a name over its meter. Never a spinner on a blank page. */
 function Loading() {
-  const v = useTheme().v4;
   return (
-    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[4] }}>
-      <View style={{ backgroundColor: v.card, borderRadius: 20, overflow: "hidden" }}>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
-            <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
-            <View style={{ flex: 1, gap: space[2] }}>
-              <Skeleton height={16} width={i % 2 ? "60%" : "80%"} />
-              <Skeleton height={12} width={112} />
+    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[5] }}>
+      {[0, 1, 2].map((row) => (
+        <View key={row} style={{ flexDirection: "row", gap: space[4] }}>
+          {[0, 1].map((i) => (
+            <View key={i} style={{ flex: 1, gap: space[2] }}>
+              <Skeleton height={96} style={{ borderRadius: 20 }} />
+              <Skeleton height={16} width={i ? "60%" : "80%"} />
+              <Skeleton height={12} width={96} />
             </View>
-          </View>
-        ))}
-      </View>
+          ))}
+        </View>
+      ))}
     </View>
   );
 }
