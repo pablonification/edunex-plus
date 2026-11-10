@@ -23,7 +23,7 @@ export function Meter({
   thenColor?: string;
   label: string;
   height?: number;
-  /** The empty part's colour, when it must read on its own (v4's `track`, 3:1 on a card); else the page's grey. */
+  /** The empty part's colour, when it must read on its own (v4's `track`, 3:1 on a card); else the soft fill a step off the page. */
   track?: string;
 }) {
   const v = useTheme().v4;
@@ -35,7 +35,7 @@ export function Meter({
       accessibilityRole="progressbar"
       accessibilityLabel={label}
       accessibilityValue={{ min: 0, max: 100, now: Math.round(first * 100) }}
-      style={{ height, borderRadius: height / 2, backgroundColor: track ?? v.page, flexDirection: "row", overflow: "hidden" }}
+      style={{ height, borderRadius: height / 2, backgroundColor: track ?? v.chip, flexDirection: "row", overflow: "hidden" }}
     >
       {/* The fill runs straight into the track, rounded at its end: one bar, not a bar, a gap and a stub (M3's gap read as two pieces). */}
       <View style={{ width: `${first * 100}%`, borderRadius: second > 0 ? 0 : height / 2, backgroundColor: color ?? v.brand }} />
