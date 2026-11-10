@@ -10,7 +10,9 @@ import type { AttendanceState } from "../../../../src/core/attendance";
 import { type DoneTerms, doneTerms } from "../../../../src/core/done";
 import type { ClassFacts, NeedDraft, NowCard } from "../../../../src/core/needs";
 import type { Snoozable, SnoozeKey } from "../../../../src/core/snooze";
+import { hold } from "../../parts/hold";
 import { canSnooze, type RowDone, useMarkDone, useRowActions, useSnooze } from "../../parts/snooze";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { useLoopWhileShown } from "../../ui/motion";
 import { ActionSheet } from "../../ui/sheet";
@@ -156,14 +158,25 @@ export function QuickRow({
   const put = useMarkDone(done?.item ?? null, done?.how ?? null, done?.said ?? "");
   const swipe = useRowActions({ done: done ? { how: done.how, put } : null, snooze: later ? sheet : null });
   const [menu, setMenu] = useState(false);
+  // Done from the sheet or TalkBack's action: the same commit as the swipe, felt the same (the swipe plays its own).
+  const doneFromMenu = () => {
+    haptic.confirm();
+    put();
+  };
   const choices = [
     ...(done
-      ? [{ label: t(`done.${done.how}`), icon: <Icons.Check size={20} weight="bold" color={theme.color.muted} />, onPress: put, testID: "menu.done" }]
+      ? [{ label: t(`done.${done.how}`), icon: <Icons.Check size={20} weight="bold" color={theme.color.muted} />, onPress: doneFromMenu, testID: "menu.done" }]
       : []),
     ...(later ? [{ label: t("snooze.action"), icon: <Icons.Snooze size={20} color={theme.color.muted} />, onPress: sheet.open, testID: "menu.snooze" }] : []),
   ];
   // Only "Ingatkan nanti": straight to its times, as on Tugas (a menu of one would be a sheet too many).
-  const onLongPress = !choices.length ? undefined : !done && later ? sheet.open : () => setMenu(true);
+  const onLongPress = !choices.length
+    ? undefined
+    : () => {
+        hold();
+        if (!done && later) sheet.open();
+        else setMenu(true);
+      };
   const quick = choices.length ? choices.map((choice) => ({ label: choice.label, onPress: choice.onPress })) : undefined;
   return (
     <>

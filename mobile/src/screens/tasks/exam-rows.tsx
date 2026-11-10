@@ -16,9 +16,11 @@ import { dueOn, type Exam, examMarkKey, isExamWindow, takeHomeOf } from "../../.
 import type { CalendarEvent, Task } from "../../../../src/core/models";
 import type { PastExam, TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
+import { hold } from "../../parts/hold";
 import { toast } from "../../swaps/overlays";
 import { useB } from "../../ui/b";
 import { LINE_INSET } from "../../ui/card-list";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
@@ -132,6 +134,15 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const { f, now } = world;
   const markDone = useMarkDone();
   const [menu, setMenu] = useState(false);
+  const openMenu = () => {
+    hold();
+    setMenu(true);
+  };
+  // Done from the sheet or TalkBack's action: the same commit as the swipe, felt the same (the swipe plays its own).
+  const doneFromMenu = (exam: Parameters<typeof markDone>[0]) => {
+    haptic.confirm();
+    void markDone(exam);
+  };
   const { exam, part } = item;
   const name = examCourse(world.courses, exam);
   const code = inCourse ? "" : exam.courseCode;
@@ -239,8 +250,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
       testID={testID}
       label={label}
       onPress={open}
-      onLongPress={window ? () => setMenu(true) : onLongPress}
-      quick={window ? [{ label: t("exam.markDoneFor", { title }), onPress: () => void markDone(window) }] : quick}
+      onLongPress={window ? openMenu : onLongPress}
+      quick={window ? [{ label: t("exam.markDoneFor", { title }), onPress: () => doneFromMenu(window) }] : quick}
       code={code || null}
       course={name}
       // The exam's one name and, in the same line, what tells a course's two apart ("UTS Komunikasi Pemasaran · Take-home").
@@ -273,7 +284,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
         open={menu}
         onClose={() => setMenu(false)}
         title={title}
-        choices={[{ label: t("exam.markDone"), icon: <Icons.CheckCircle size={20} />, onPress: () => void markDone(window), testID: "menu.markDone" }]}
+        choices={[{ label: t("exam.markDone"), icon: <Icons.CheckCircle size={20} />, onPress: () => doneFromMenu(window), testID: "menu.markDone" }]}
       />
     </>
   );
@@ -475,7 +486,14 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
       testID={`row.exam.${exam.id}`}
       label={factsLabel(title, ...facts, main, sub)}
       onPress={() => go({ screen: "exam", examId: exam.id })}
-      onLongPress={mark ? () => setMenu(true) : undefined}
+      onLongPress={
+        mark
+          ? () => {
+              hold();
+              setMenu(true);
+            }
+          : undefined
+      }
       quick={mark ? [{ label: t("exam.unmarkFor", { title }), onPress: () => void unmark() }] : undefined}
       code={code || null}
       course={name}

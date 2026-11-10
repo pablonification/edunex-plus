@@ -33,6 +33,7 @@ import {
   targetOf,
 } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
+import { useArrivalId } from "../../parts/arrival";
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
@@ -45,6 +46,7 @@ import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
 import { Meter } from "../../ui/meter";
+import { CrossFade } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import { ROW_SIDE } from "../../ui/row-end";
 import { Sheet } from "../../ui/sheet";
@@ -101,10 +103,12 @@ function GradesOrWithoutSix() {
   const six = useStatus("six");
   // Drawn with its data: SIX's record, or what shows without it once there's nothing to wait for.
   usePerfDrawn(Boolean(record && state) || (six.state !== "connecting" && six.state !== "live"));
-  if (record && state) return <Grades record={record} state={state} />;
+  const here = Boolean(record && state);
   // SIX's first read still running: the page's shape, never a spinner.
   const firstRead = six.state === "connecting" || (six.state === "live" && six.updatedAt === null);
-  return firstRead ? <GradesSkeleton /> : <WithoutSix />;
+  const arrival = useArrivalId(here || !firstRead);
+  // The shape becoming the record: it fades through, once (the big number still rises on its own).
+  return <CrossFade id={arrival}>{record && state ? <Grades record={record} state={state} /> : firstRead ? <GradesSkeleton /> : <WithoutSix />}</CrossFade>;
 }
 
 function Grades({ record, state }: { record: StudentRecord; state: PlanState }) {

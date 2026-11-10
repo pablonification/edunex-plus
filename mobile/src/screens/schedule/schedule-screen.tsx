@@ -9,7 +9,7 @@
 import * as Notifications from "expo-notifications";
 import { router, useIsFocused, useScrollToTop } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Linking, RefreshControl, ScrollView, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -30,6 +30,7 @@ import { Icons } from "../../ui/icons";
 import { Notice } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { useReduceMotion } from "../../ui/motion";
+import { Tap } from "../../ui/moves";
 import { Part } from "../../ui/parts";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -309,7 +310,9 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
     <View style={{ backgroundColor: page, paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
         <View style={{ flex: 1, minWidth: 0, justifyContent: "center" }}>
-          <Pressable
+          <Tap
+            feel="row"
+            borderless
             onPress={() => setPanel(true)}
             accessibilityRole="button"
             accessibilityLabel={`${t("nav.schedule")}, ${month}, ${place}. ${t("sync.title")}: ${sync}`}
@@ -320,13 +323,15 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
             <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
               {t("nav.schedule")}
             </Text>
-          </Pressable>
+          </Tap>
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], marginTop: -2 }}>
             <Text size="bodyMedium" tabular numberOfLines={1} importantForAccessibility="no" testID="label.place" style={{ color: v.muted, flexShrink: 1 }}>
               {n ? `${month} · ${t("mobile.schedule.week", { n })}` : `${month} · ${range}`}
             </Text>
             {away && (
-              <Pressable
+              <Tap
+                feel="row"
+                borderless
                 onPress={onToday}
                 accessibilityRole="button"
                 accessibilityLabel={t("mobile.schedule.todayLabel")}
@@ -336,12 +341,12 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
                 <Text size="labelLarge" weight="semibold" style={{ color: v.brandInk }}>
                   {t("mobile.schedule.today")}
                 </Text>
-              </Pressable>
+              </Tap>
             )}
           </View>
-          <Pressable onPress={() => setPanel(true)} style={{ alignSelf: "flex-start" }} importantForAccessibility="no-hide-descendants">
+          <Tap feel="row" borderless onPress={() => setPanel(true)} style={{ alignSelf: "flex-start" }} importantForAccessibility="no-hide-descendants">
             <StatusLine />
-          </Pressable>
+          </Tap>
         </View>
         {/* The month view: Fluent's month calendar, not the tab's calendar or the four squares ("Lainnya" on Beranda). */}
         <IconButton label={t("mobile.schedule.monthly")} onPress={() => router.push("/schedule-month")} testID="action.month">

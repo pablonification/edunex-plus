@@ -10,6 +10,7 @@ import { BHeading, ServiceRow, ServiceTile, useB } from "../../ui/b";
 import { Fluent } from "../../ui/fluent";
 import { useBottomInset } from "../../ui/insets";
 import { Page } from "../../ui/layout";
+import { Arrive } from "../../ui/moves";
 import { Text, useFieldColors } from "../../ui/text";
 import { space } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
@@ -67,28 +68,31 @@ export function ServicesScreen() {
           {...field}
         />
       </View>
-      {groups.map((group) => (
-        <View key={group.id} testID={`section.services.${group.id}`} style={{ marginTop: space[6] }}>
-          <BHeading>{t(group.title)}</BHeading>
-          <View style={{ gap: space[3] }}>
-            {rowsOf(group.services).map((row) => (
-              <ServiceRow key={row[0]!.id} count={row.length} top>
-                {row.map((service) => (
-                  <ServiceTile
-                    key={service.id}
-                    icon={service.icon}
-                    tone={service.tone}
-                    label={t(service.label)}
-                    tag={tags[service.id] ?? undefined}
-                    lines={2}
-                    onPress={() => open(service)}
-                    testID={`action.service.${service.id}`}
-                  />
-                ))}
-              </ServiceRow>
-            ))}
+      {/* The groups arrive once, on the page's first showing in this run; a search's groups are simply there. */}
+      {groups.map((group, index) => (
+        <Arrive key={group.id} list="services" index={index}>
+          <View testID={`section.services.${group.id}`} style={{ marginTop: space[6] }}>
+            <BHeading>{t(group.title)}</BHeading>
+            <View style={{ gap: space[3] }}>
+              {rowsOf(group.services).map((row) => (
+                <ServiceRow key={row[0]!.id} count={row.length} top>
+                  {row.map((service) => (
+                    <ServiceTile
+                      key={service.id}
+                      icon={service.icon}
+                      tone={service.tone}
+                      label={t(service.label)}
+                      tag={tags[service.id] ?? undefined}
+                      lines={2}
+                      onPress={() => open(service)}
+                      testID={`action.service.${service.id}`}
+                    />
+                  ))}
+                </ServiceRow>
+              ))}
+            </View>
           </View>
-        </View>
+        </Arrive>
       ))}
       {/* The last row's names clear of the phone's own bar: its height and a row's gap after the last group. Every name is
           one line at the usual font size; at a bigger one it may take two, both whole. */}

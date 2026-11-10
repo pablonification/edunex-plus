@@ -7,12 +7,14 @@ import { View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
 import { useCoursePage } from "../../../../src/app/screens/course/data";
 import { useStatus } from "../../../../src/app/store";
+import { useArrivalId } from "../../parts/arrival";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
 import { useB } from "../../ui/b";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
+import { CrossFade } from "../../ui/moves";
 import { ROW_SIDE } from "../../ui/row-end";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
@@ -32,6 +34,7 @@ export function ModuleScreen({ code, module }: { code: string; module: number })
   usePerfDrawn(entries !== null);
   const reading = edunex === "connecting" || edunex === "live";
   const loading = !entry && entries === null && reading;
+  const arrival = useArrivalId(!loading);
   const course = page?.course.name ?? code;
   return (
     <Page
@@ -42,13 +45,15 @@ export function ModuleScreen({ code, module }: { code: string; module: number })
       header={<TopBar v4 title={entry ? entry.title : loading ? "" : course} lines={2} />}
       {...pull}
     >
-      {entry && entries ? (
-        <ModulePage entry={entry} anyContent={entries.some((e) => e.tasks.length || e.materials.length)} course={course} />
-      ) : loading ? (
-        <ModuleSkeleton />
-      ) : (
-        <EmptyState icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />} title={t("course.unavailable")} />
-      )}
+      <CrossFade id={arrival}>
+        {entry && entries ? (
+          <ModulePage entry={entry} anyContent={entries.some((e) => e.tasks.length || e.materials.length)} course={course} />
+        ) : loading ? (
+          <ModuleSkeleton />
+        ) : (
+          <EmptyState icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />} title={t("course.unavailable")} />
+        )}
+      </CrossFade>
     </Page>
   );
 }

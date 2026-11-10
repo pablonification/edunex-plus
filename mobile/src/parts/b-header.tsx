@@ -4,13 +4,14 @@
 // the sources' sheet, as before.
 import { router } from "expo-router";
 import { type ReactNode, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../src/app/i18n";
 import { ProblemBanner, StatusLine, SyncPanel, useSyncText, useUnreadAlerts } from "../shell/source-status";
 import { useB } from "../ui/b";
 import { IconButton } from "../ui/controls";
 import { Fluent } from "../ui/fluent";
+import { Tap } from "../ui/moves";
 import { Text } from "../ui/text";
 import { space, TOUCH } from "../ui/theme";
 
@@ -54,7 +55,8 @@ export function BTabHeader({ title, actions, search = true }: { title: string; a
   return (
     <View style={{ backgroundColor: b.page }}>
       <View style={{ marginTop: insets.top, flexDirection: "row", alignItems: "center", paddingLeft: space[5], paddingRight: space[2], minHeight: 64 }}>
-        <Pressable
+        <Tap
+          feel="row"
           testID="action.syncStatus"
           accessibilityRole="button"
           accessibilityLabel={`${title}. ${t("sync.title")}: ${sync}`}
@@ -65,7 +67,7 @@ export function BTabHeader({ title, actions, search = true }: { title: string; a
             {title}
           </Text>
           <StatusLine />
-        </Pressable>
+        </Tap>
         {actions}
         {search && (
           <IconButton label={t("search.open")} onPress={() => router.push("/search")} testID="action.search">

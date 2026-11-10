@@ -17,6 +17,7 @@ import { editView } from "../../../../src/core/task-edits";
 import { isOpenStatus, notOpenYet, shortWindow, submittedAt } from "../../../../src/core/tasks";
 import { lateSnoozable, type TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
+import { hold } from "../../parts/hold";
 import { canSnooze, useRowActions, useSnooze } from "../../parts/snooze";
 import { useB } from "../../ui/b";
 import { Button } from "../../ui/controls";
@@ -245,7 +246,12 @@ export const TodoRow = inWorld(function TodoRow({ item, inCourse = false, hero =
   const swipe = useRowActions({ snooze: snoozable ? snooze : null });
   if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} />;
   const quick = snoozable ? [{ label: t("snooze.actionFor", { title: lateTitle(item) }), onPress: snooze.open }] : undefined;
-  const longPress = snoozable ? snooze.open : undefined;
+  const longPress = snoozable
+    ? () => {
+        hold();
+        snooze.open();
+      }
+    : undefined;
   return (
     <>
       {/* The big card isn't swiped: its long press and TalkBack's actions put it off. */}

@@ -13,6 +13,7 @@ import type { PresenceGroup } from "../../../../src/core/attendance";
 import { useNav } from "../../nav";
 import { meterModel } from "../../parts/attendance-meter";
 import { openCourseColorPicker } from "../../parts/course-color-picker";
+import { hold } from "../../parts/hold";
 import { useB } from "../../ui/b";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
@@ -40,7 +41,10 @@ export const CourseCard = memo(function CourseCard({ item, group, context }: { i
       feel="row"
       testID={`row.course.${course.code}`}
       onPress={() => go({ screen: "course", code: course.code })}
-      onLongPress={() => openCourseColorPicker(course.code)}
+      onLongPress={() => {
+        hold();
+        openCourseColorPicker(course.code);
+      }}
       accessibilityLabel={factsLabel(course.code, title, model?.label ?? side, ...metaParts(t, f, item, context))}
       // 60 dp for a one-line name, 84 for two at font size 1.1: five courses under "Hari ini" on the first screen.
       style={{ minHeight: 60, paddingVertical: space[1.5], flexDirection: "row", alignItems: "center", gap: space[3] }}

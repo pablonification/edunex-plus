@@ -5,10 +5,10 @@ import Constants from "expo-constants";
 import * as IntentLauncher from "expo-intent-launcher";
 import * as Notifications from "expo-notifications";
 import { useCallback, useEffect, useState } from "react";
-import { AppState, Linking, Platform, View } from "react-native";
+import { AppState, Linking, Platform } from "react-native";
 import { useT } from "../../../src/app/i18n";
 import { Icons } from "../ui/icons";
-import { Tap } from "../ui/moves";
+import { Appear, Tap } from "../ui/moves";
 import { Text } from "../ui/text";
 import { space, useTheme } from "../ui/theme";
 
@@ -56,7 +56,8 @@ export function NotificationsOff({ state }: { state: NotificationPermission }) {
     await check();
   };
   return (
-    <View
+    // It comes a moment after the screen (Android is asked first) and goes when notifications are on: seen doing both.
+    <Appear
       testID="note.notificationsOff"
       style={{
         marginBottom: space[3],
@@ -86,6 +87,6 @@ export function NotificationsOff({ state }: { state: NotificationPermission }) {
           {t("mobile.settings.alertsTurnOn")}
         </Text>
       </Tap>
-    </View>
+    </Appear>
   );
 }

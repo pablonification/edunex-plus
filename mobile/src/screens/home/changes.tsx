@@ -2,7 +2,7 @@
 // 2, v4: one tap from Beranda). The bell keeps all of them, with the same words: "Lihat semua" opens its screen.
 import { router } from "expo-router";
 import { useMemo } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import type { Alert, AlertKind } from "../../../../src/core/models";
@@ -13,6 +13,7 @@ import { CourseIconTile } from "../../ui/course-icon-tile";
 import { Group, GroupRow, Heading, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { useTheme } from "../../ui/theme";
 import { useShortCourseName } from "./parts";
@@ -49,7 +50,9 @@ export function Changes({ context }: { context: HomeContext }) {
     <View testID="section.changes">
       <Heading
         trailing={
-          <Pressable
+          <Tap
+            feel="row"
+            borderless
             accessibilityRole="link"
             onPress={() => router.push("/alerts")}
             hitSlop={12}
@@ -59,7 +62,7 @@ export function Changes({ context }: { context: HomeContext }) {
             <Text size="labelLarge" weight="medium" style={{ color: v.brandInk }}>
               {t("home.changes.all")}
             </Text>
-          </Pressable>
+          </Tap>
         }
       >
         {t("home.changes")}

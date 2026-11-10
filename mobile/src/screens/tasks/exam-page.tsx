@@ -5,7 +5,7 @@
 // An Edunex window open now can be marked done here too, with Undo (Tandai selesai).
 import * as Clipboard from "expo-clipboard";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
-import { Linking, Text as NativeText, Pressable, StyleSheet, View } from "react-native";
+import { Linking, Text as NativeText, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { budgetLabel } from "../../../../src/app/attendance-labels";
 import { errorKey } from "../../../../src/app/bridge";
@@ -32,9 +32,11 @@ import { CardList, SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Group, GroupRow, IconTile, Pill } from "../../ui/group";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice, Page, Row } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
+import { Tap } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
@@ -321,8 +323,10 @@ function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: Rea
     try {
       // Nothing else in the calendar is touched: no span to tidy, only these events put in or updated.
       const result = await addToPhoneCalendar(items, new Set(), { from: 0, until: 0 });
-      if (result.kind === "added") toast(t("mobile.calendar.added", { count: result.events }), "success");
-      else setProblem({ text: t("mobile.exam.calendarDenied"), fix: "settings" });
+      if (result.kind === "added") {
+        haptic.confirm();
+        toast(t("mobile.calendar.added", { count: result.events }), "success");
+      } else setProblem({ text: t("mobile.exam.calendarDenied"), fix: "settings" });
     } catch {
       setProblem({ text: t("mobile.calendar.failed"), fix: "share" });
     } finally {
@@ -383,6 +387,7 @@ function EdunexCard({ exam, edunex, lead }: { exam: Exam; edunex: Exam["edunex"]
     setFailed(null);
     try {
       await marks.mark(edunex);
+      haptic.confirm();
       toast(t("exam.marked"), "success", {
         label: t("action.undo"),
         onClick: () => void marks.unmark(edunex).catch((error: unknown) => setFailed(t(errorKey(error)))),
@@ -562,7 +567,9 @@ function Study({ exam }: { exam: Exam }) {
             <Text size="labelLarge" style={{ flex: 1, color: theme.v4.muted }}>
               {modulesTitle}
             </Text>
-            <Pressable
+            <Tap
+              feel="row"
+              borderless
               accessibilityRole="link"
               onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
               hitSlop={8}
@@ -572,7 +579,7 @@ function Study({ exam }: { exam: Exam }) {
                 {t("examPage.openModules")}
               </Text>
               <Icons.ChevronRight size={14} color={theme.color.accentFg} />
-            </Pressable>
+            </Tap>
           </View>
           <CardList inset={56}>
             {/* A module with something in it: its number, its title on up to two lines, how many items under it. */}

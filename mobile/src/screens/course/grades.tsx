@@ -12,6 +12,7 @@ import { useBridge, useDataset } from "../../../../src/app/store";
 import { percent } from "../../../../src/core/attendance";
 import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } from "../../../../src/core/course-contract";
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../../src/core/models";
+import { hold } from "../../parts/hold";
 import { dismissToast, toast } from "../../swaps/overlays";
 import { Button, Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
@@ -185,7 +186,10 @@ function PartName({
   return (
     <Pressable
       testID={testID}
-      onLongPress={onMenu}
+      onLongPress={() => {
+        hold();
+        onMenu();
+      }}
       android_ripple={{ color: theme.color.selected, foreground: true }}
       accessibilityLabel={name}
       accessibilityActions={[

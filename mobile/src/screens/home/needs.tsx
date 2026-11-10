@@ -4,7 +4,7 @@
 // put away ("Sudah beres"): a swipe (ui/swipe.tsx), or a long press, or TalkBack's actions. What's
 // put off and away is counted under the whole list, and opens there.
 import { useMemo, useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -25,6 +25,7 @@ import { Skeleton } from "../../ui/display";
 import { Group, GroupRow, IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Meta } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { LINK_SLOP } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -173,11 +174,19 @@ function AwayLine({ snoozed, done, open, onToggle }: { snoozed: number; done: nu
       ) : (
         ""
       )}
-      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={onToggle} hitSlop={LINK_SLOP} testID="action.heldBack">
+      <Tap
+        feel="row"
+        borderless
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={onToggle}
+        hitSlop={LINK_SLOP}
+        testID="action.heldBack"
+      >
         <Text size="small" weight="medium" tone="accent">
           {open ? t("snooze.hideList") : t("snooze.showList")}
         </Text>
-      </Pressable>
+      </Tap>
     </Meta>
   );
 }

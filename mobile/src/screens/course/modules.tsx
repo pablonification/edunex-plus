@@ -21,6 +21,7 @@ import { linkHost } from "../../../../src/core/links";
 import type { Material } from "../../../../src/core/models";
 import { taskStatus } from "../../../../src/core/tasks";
 import { FILE_KINDS, FileProblemNote, useEdunexFile } from "../../parts/files";
+import { hold } from "../../parts/hold";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { BHeading } from "../../ui/b";
 import { EmptyState } from "../../ui/display";
@@ -468,7 +469,14 @@ function FileItem({
           accessibilityLabel={factsLabel(t("mobile.file.openFor", { name: material.title }), meta)}
           accessibilityState={{ busy }}
           onPress={() => void open()}
-          onLongPress={here ? share : undefined}
+          onLongPress={
+            here
+              ? () => {
+                  hold();
+                  void share();
+                }
+              : undefined
+          }
           accessibilityHint={here ? t("mobile.file.shareFor", { name: file.name }) : undefined}
           style={[rowStyle, { flex: 1 }]}
         >
