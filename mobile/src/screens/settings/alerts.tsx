@@ -4,8 +4,8 @@
 // Kuliah sebentar lagi, a test notification (the row sends it; what happened is its one line) and, while there are
 // some, the reminders put off or marked handled (the row opens the way to bring them all back).
 // While Android's permission for notifications is off, no switch here can make one show: the group says so once with
-// the shared notice (parts/notifications-off.tsx: one line, its own small button, the same on Notifikasi), and the
-// switches are folded away until it's on, never half-on (round 1's council: "on, off or disabled can't be told").
+// the shared notice (parts/notifications-off.tsx: one line, its own small button, the same on Notifikasi) in place
+// of the group's heading, and the switches are folded away until it's on, never half-on (round 1's council: "on, off or disabled can't be told").
 import { useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
@@ -57,7 +57,9 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
   const off = permission.off;
   if (off)
     return (
-      <SettingsGroup title={t("settings.alerts")} lead={<NotificationsOff state={permission} />} testID="section.settings.alerts">
+      // No heading while the notice shows: it names the group itself ("Notifikasi mati"), and the word right over it
+      // said it twice (round 3's council).
+      <SettingsGroup lead={<NotificationsOff state={permission} />} testID="section.settings.alerts">
         <SnoozedReminders report={report} />
       </SettingsGroup>
     );

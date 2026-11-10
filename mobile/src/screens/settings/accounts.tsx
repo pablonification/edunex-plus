@@ -1,9 +1,9 @@
 // Settings' top, Akun (who's signed in is Profil's card, the screen this one is opened from): each system's row, its
 // name and its state as the one line under it: "Terhubung" in green, no dot (round 3's final review: the dot and the
 // word said it twice); when it was last checked only once that's stale. Signed out (or the session ended), the row signs
-// in; signed in, it opens a sheet whose one choice signs out of just that system. Each row starts with its system's own
-// mark (Icons.Edunex, Icons.Six: the same two as on Profil), quiet, with no tile behind it: the only rows of Settings
-// that name a system, so the only ones with a mark (round 2's council: "rows have no icons").
+// in; signed in, it opens a sheet whose one choice signs out of just that system. Each row's text starts at the page's
+// one edge, as every other row of Settings (round 3's council: "two left edges, icon rows and plain rows"); its
+// system's own mark (Icons.Edunex, Icons.Six: the same two as on Profil) sits quiet at the row's end, before the chevron.
 import { useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
@@ -15,7 +15,7 @@ import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Chevron, haptic, type MetaTone, SettingRow, SettingsGroup } from "../../ui/settings-list";
 import { ActionSheet } from "../../ui/sheet";
-import { useTheme } from "../../ui/theme";
+import { space, useTheme } from "../../ui/theme";
 import type { Report } from "./save";
 
 /** Akun: Edunex and SIX. The page's first group, right under its title. */
@@ -68,7 +68,6 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   return (
     <View testID={`row.account.${source}`}>
       <SettingRow
-        leading={<SourceMark source={source} />}
         title={name}
         // Connected: the word alone in green; a dot beside it said the same thing twice (round 3's final review).
         meta={state.text}
@@ -79,7 +78,16 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
         // A session that ended: signing in again is all it takes, and the last data stays readable meanwhile.
         hint={needsSignIn ? (status.state === "expired" ? t("settings.accounts.note") : undefined) : t("settings.signOutOf", { source: name })}
         onPress={() => (needsSignIn ? void run("auth.signIn") : setMenu(true))}
-        trailing={needsSignIn ? <Pill tone="brand">{t(status.state === "expired" ? "action.signInAgain" : "action.signIn")}</Pill> : <Chevron />}
+        trailing={
+          needsSignIn ? (
+            <Pill tone="brand">{t(status.state === "expired" ? "action.signInAgain" : "action.signIn")}</Pill>
+          ) : (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+              <SourceMark source={source} />
+              <Chevron />
+            </View>
+          )
+        }
         testID={needsSignIn ? `action.signIn.${source}` : `action.account.${source}`}
       />
       <ActionSheet
@@ -104,15 +112,11 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   );
 }
 
-/** The system's mark at its row's start: the glyph alone in the page's quiet ink, in a 44 dp slot. */
+/** The system's mark at its row's end: the glyph alone in the page's quiet ink. */
 function SourceMark({ source }: { source: SourceId }) {
   const v = useTheme().v4;
   const Glyph = source === "six" ? Icons.Six : Icons.Edunex;
-  return (
-    <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-      <Glyph size={24} color={v.fg2} />
-    </View>
-  );
+  return <Glyph size={24} color={v.muted} />;
 }
 
 function SignOutIcon() {
