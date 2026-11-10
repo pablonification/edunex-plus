@@ -49,7 +49,7 @@ import { GradesTab } from "./grades";
 import { AnnouncementsTab, TasksTab } from "./lists";
 import { MeetingsTab, pageModules } from "./meetings";
 import { ModulesTab } from "./modules";
-import { MeetingNow, useRecordInEdunexUrl } from "./now";
+import { MeetingNow, moduleSaidAbove, useRecordInEdunexUrl } from "./now";
 import { SaveOfflineProgress, useSaveOfflineChoice } from "./save-offline";
 import { TABS, type Tab, useVisitTabs } from "./tab-order";
 
@@ -131,7 +131,7 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
       .pop() ?? null;
   if (current === "grades") panel = <GradesTab page={page} onOpenModules={() => pickTab("modules")} />;
   else if (!loaded) panel = <NotLoaded />;
-  else if (current === "modules") panel = <ModulesTab page={page} onPick={pickModule} classModule={classModule} />;
+  else if (current === "modules") panel = <ModulesTab page={page} onPick={pickModule} classModule={classModule} saidAbove={moduleSaidAbove(page, now)} />;
   else if (current === "meetings") panel = <MeetingsTab page={page} />;
   else if (current === "tasks") panel = <TasksTab code={page.course.code} exams={page.exams} />;
   else panel = <AnnouncementsTab announcements={page.announcements} mainCourseId={page.course.edunex?.courseId ?? null} code={page.course.code} />;

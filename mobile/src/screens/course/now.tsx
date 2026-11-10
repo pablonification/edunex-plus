@@ -49,6 +49,16 @@ function nowAndNext(page: CoursePage, now: number) {
   return { windows, current, presence, meeting, next, meetingOf };
 }
 
+/**
+ * The module the block above the tabs names as its title (the class on now, or the open window's class), when it shows
+ * one. Materi doesn't lead with that module again: one fact, one place.
+ */
+export function moduleSaidAbove(page: CoursePage, now: number): number | null {
+  const { current, presence, meeting } = nowAndNext(page, now);
+  if ((!current && !presence) || !meeting) return null;
+  return pageModules(page).get(meeting.key)?.module.id ?? null;
+}
+
 /** The keys of the meetings the part above the tabs shows (the class on now, the next one, a window still open). */
 export function shownAbove(page: CoursePage, now: number): ReadonlySet<string> {
   const { windows, meeting, next, meetingOf } = nowAndNext(page, now);
