@@ -130,8 +130,7 @@ function TabBadges({ onChange }: { onChange: Dispatch<SetStateAction<Badges>> })
   const key = JSON.stringify([tasks, plan]);
   // biome-ignore lint/correctness/useExhaustiveDependencies: `key` is the three badges, said the same way when they are
   useEffect(
-    () =>
-      startTransition(() => onChange((before) => (JSON.stringify([before.tasks, before.plan]) === key ? before : { tasks, plan }))),
+    () => startTransition(() => onChange((before) => (JSON.stringify([before.tasks, before.plan]) === key ? before : { tasks, plan }))),
     [key, onChange],
   );
   return null;
