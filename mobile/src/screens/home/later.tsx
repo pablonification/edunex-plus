@@ -1,10 +1,10 @@
-// "Nanti hari ini" (round 2, v4): the classes and meetings still to come today, past the one on the now card. A row
-// each: the course's tile, its name, "15:00 · R.SG PWK LT.6", and at most one chip for what's new about today's class
-// (a new time or room; Hanya di Edunex for a meeting), in the neutral tone, and the clash's icon when it shares its time
-// with another class (Perlu kamu urus leaves a clash later today to this row). A course's absences are Perlu kamu
-// urus's, said once there (./urus.tsx). A row opens the class's sheet. A class on SIX's timetable today that the app couldn't read
-// comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX writes it; it opens Jadwal's
-// sheet for it, with SIX's timetable. Hidden when nothing's left.
+// "Nanti hari ini": the classes and meetings still to come today, past the one on the block, as a timeline on the page.
+// A row each: its time, a dot in the course's colour on the line down the day, the course's whole name (it wraps, never
+// cut to a name it isn't), its room, and at most one chip for what's new about today's class (a new time or room; Hanya
+// di Edunex for a meeting). A class that shares its time with another says so with one icon and the word "Bentrok". A
+// course's absences are the strip's, said once there. A row opens the class's sheet. A class on SIX's timetable today
+// that the app couldn't read comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX
+// writes it; it opens Jadwal's sheet for it, with SIX's timetable. Hidden when nothing's left.
 import { useRef, useState } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
