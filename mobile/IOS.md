@@ -54,7 +54,7 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Typeface | Plus Jakarta Sans is in the iOS bundle too. |
 | Widgets | Their own, through Expo's `expo-widgets` (WidgetKit, SwiftUI): "Edunex Plus" and "Hari ini" on the Home Screen (small, medium, large) and the Lock Screen, fed by the same model as Android's (`qa/superapp-ios-widgets.md`). A Live Activity for the class on now. Never seen running yet. |
 | Back gesture, navigation bar colour, 120 Hz plugin | Android-only, skipped on iOS (iOS does these itself). |
-| The first minute (`src/shell/first-minute/`) | Same code: the stage, the doors, the curtain. Its haptics are the Taptic Engine's nearest (`ui/haptics.ts`: a medium tap per system in and at the hand-over, the selection tick as the mark lands). The button dims under the finger (no ripple on iOS). |
+| The first minute (`src/shell/first-minute/`) | Same code: the stage, the doors, the ring at each door's foot (a bordered view turning, no native part), the greeting, the curtain. Its haptics are the Taptic Engine's nearest (`ui/haptics.ts`: a medium tap per system in and as the lift starts, the selection tick as the doors meet the mark). The curtain is no longer rasterised while it lifts (the doors move on it), on either platform. The button dims under the finger (no ripple on iOS). |
 | Exact alarms | Android-only permission; iOS fires a booked notification on time anyway. |
 | Push notifications | Off: the app never uses them, and a free Apple ID can't sign them. |
 
@@ -103,7 +103,7 @@ step only worth doing if the one before it worked:
 and the background sync.
 
 The first minute, to check on an iPhone: the status bar's icons stay white over the stage and turn to Beranda's as
-the curtain clears them (`expo-status-bar`, set by the stage and the scene; `seam.ts` says which Beranda wants); the
+the strip of the stage's blue over them fades (it holds the status bar, notch or Dynamic Island until the curtain's edge is under it, then fades in place; `expo-status-bar`, set by the stage and the scene; `seam.ts` says which Beranda wants); the
 headline, button and note clear the home indicator (the stage pads by the safe area's bottom) and the language chip
 clears the notch or Dynamic Island (by its top); the curtain's rounded lower edge shows no gap at the screen's own
 rounded corners as it starts to lift; the three haptics are felt once each and not doubled; and the sign-in page

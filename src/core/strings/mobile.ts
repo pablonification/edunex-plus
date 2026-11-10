@@ -142,6 +142,15 @@ export const mobileStrings = {
   // welcome.sixLater). When the first read is in, the snackbar says the desktop's "Semua siap." once
   // (welcome.readyTitlePlain), with the one action that opens the summary (mobile.home.scanOpen).
   "mobile.welcome.signIn": { id: "Masuk dengan akun ITB", en: "Sign in with your ITB account" },
+  // The headline turns into this as the stage hands over to Beranda: the greeting, said once (Beranda has none).
+  "mobile.welcome.hello.morning": { id: "Pagi, {name}.", en: "Morning, {name}." },
+  "mobile.welcome.hello.midday": { id: "Siang, {name}.", en: "Afternoon, {name}." },
+  "mobile.welcome.hello.afternoon": { id: "Sore, {name}.", en: "Afternoon, {name}." },
+  "mobile.welcome.hello.evening": { id: "Malam, {name}.", en: "Evening, {name}." },
+  // A lit door's line until its system has said more (SIX's programme comes with its first page).
+  "mobile.welcome.doorIn": { id: "Terhubung", en: "Connected" },
+  // The sign-in stopped because nothing could be reached: said under the button, which tries again.
+  "mobile.welcome.offline": { id: "Tidak bisa terhubung. Cek internetmu, lalu coba lagi.", en: "Couldn't connect. Check your internet, then try again." },
   // home
   // The now card is one target: a tap opens its class's sheet. Said to TalkBack after the card's own words.
   "mobile.home.nowHint": { id: "Buka rincian kuliah", en: "Opens the class details" },

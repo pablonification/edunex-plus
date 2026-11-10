@@ -11,25 +11,29 @@ export const STAGE_INK = "#ffffff";
 export const DOOR_REST = { light: "#3e79e4", dark: "#2f4467" } as const;
 /** A door once its system is in: lit. In dark a dimmer light, so two lit doors don't glare in a dark room. */
 export const DOOR_LIT = { light: "#ffffff", dark: "#8fa9dc" } as const;
-/** A system's name and tick on its lit door, each in its own colour. */
+/** A system's name on its lit door: each in its own blue on white; in dark both navy, as mid-blue on the dim light was faint. */
 export const DOOR_INK = {
   light: { edunex: "#1450c4", six: "#0f2f6b" },
-  dark: { edunex: "#123f9c", six: "#0f2f6b" },
+  dark: { edunex: "#0f2f6b", six: "#0f2f6b" },
 } as const;
+/** The tick on a lit door: one colour on both doors, in both themes. */
+export const DOOR_TICK = "#0f2f6b";
 /** What a system just learned, in small words on its lit door. */
 export const DOOR_FACT = "#0f2f6b";
-/** The line of light at a door's foot while its system is connecting. */
+/** The ring at a door's foot (empty at rest; its bright quarter while it turns), and the glow's light. */
 export const DOOR_LIGHT = "#ffffff";
+/** The rest of the ring while it turns: its track, the door a step lighter (white at 35% over a resting door). */
+export const RING_TRACK = { light: "#82a8ed", dark: "#78859c" } as const;
 /** The sign-in button and its words. */
 export const BUTTON = { bg: { light: "#ffffff", dark: "#dbe6ff" }, ink: "#1450c4" } as const;
 /** The app's mark between the doors: Edunex Plus's blue, ringed in white so it reads on a lit door and on the stage alike. */
 export const MARK_COLOR = { light: "#1f63e0", dark: "#1147b3" } as const;
 export const MARK_INK = "#ffffff";
+/** A thin edge around that white ring, in the stage's own colour: unseen on the stage, it keeps the ring whole on a lit door. */
+export const MARK_EDGE = STAGE;
 /** The still glow behind the mark, the stage's one light: white at this strength at its centre, nothing at its rim. */
-export const GLOW_ALPHA = { light: 0.34, dark: 0.2 } as const;
+export const GLOW_ALPHA = { light: 0.3, dark: 0.16 } as const;
 /** The stage's lower edge as it lifts off Beranda: in dark a clear line, where navy over near-black would blur. */
 export const HEM = { light: "#1f63e0", dark: "#6f8fd0" } as const;
 /** The language chip's edge: white at this strength over the stage. */
 export const CHIP_EDGE_ALPHA = 0.7;
-/** A sign-in that failed, said over the button: the same pale red and deep red in both themes (the stage is dark in both). */
-export const FAILED = { bg: "#fde8e8", ink: "#a11616" } as const;

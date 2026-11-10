@@ -18,8 +18,8 @@ appId: io.github.pablonification.edunexplus.demo
 - assertVisible: "Masuk dengan akun ITB"
 - tapOn:
     id: action.signIn
-# Beranda straight after the sign-in: no Lanjut, no reading step. The stage hands over about a second after the
-# systems are in, without another tap, and is gone.
+# Beranda straight after the sign-in: no Lanjut, no reading step. The stage hands over 0.4 s after the second
+# system is in, without another tap, and is gone.
 - extendedWaitUntil:
     notVisible:
       id: screen.firstMinute
