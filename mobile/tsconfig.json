@@ -13,5 +13,17 @@
       "phosphor-react-native/src/icons/*": ["./node_modules/phosphor-react-native/lib/typescript/icons/*"]
     }
   },
-  "include": ["index.ts", "app", "src", "app.config.ts", ".expo/types/**/*.ts", "expo-env.d.ts"]
+  // The three tests that read phone parts (react-native's types) are checked here, with the phone's own packages: the
+  // repository's type check runs without them (tsconfig.test.json leaves the three out).
+  "include": [
+    "index.ts",
+    "app",
+    "src",
+    "app.config.ts",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "../test/mobile/widget-drawings.test.tsx",
+    "../test/mobile/search-services.test.ts",
+    "../test/mobile/contrast.test.ts"
+  ]
 }
