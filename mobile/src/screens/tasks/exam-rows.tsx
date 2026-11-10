@@ -24,7 +24,7 @@ import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
-import { countdown, IconTile, inWorld, type Quick, reportRowProblem, rowWhen, StatusPill, TaskLine, useRowWorld } from "./row-parts";
+import { countdown, IconTile, inWorld, type Quick, reportRowProblem, rowWhen, StatusPill, soonPill, TaskLine, useRowWorld } from "./row-parts";
 
 /** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
 export function takeHomeWhy(t: Translate, task: Pick<Task, "kind" | "title">): string | null {
@@ -119,6 +119,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const code = inCourse ? "" : exam.courseCode;
   const kind = t(`exam.kind.${exam.kind}`);
   const dayTime = (at: number) => f.dueLabel(at);
+  // Within a few days the pill says the day ("Hari ini", "Besok", "2 hari"), so the line says only the time.
+  const soonAt = (at: number) => (soonPill(t, now, at) ? f.time(at) : null);
   const moved = part?.kind === "window" && part.moved;
   const disagree = part?.kind === "sitting" && exam.disagree;
 
@@ -134,14 +136,14 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     facts = [code, t("exam.takeHome"), part.task.title, part.status === "draft" ? t("taskStatus.draft") : ""];
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
     // The day alone beside the kind (its page and spoken name keep the time); not the kind when the name says it ("UTS Markom").
-    shown = [namesKind(part.task.title, kind) ? null : kind, part.at === null ? t("task.noDeadline") : rowWhen(f, part.at, false)];
+    shown = [namesKind(part.task.title, kind) ? null : kind, part.at === null ? t("task.noDeadline") : (soonAt(part.at) ?? rowWhen(f, part.at, false))];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
     const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dayTimeWord(part.opensAt) });
     facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     when = f.dueLabel(part.at);
-    shown = [rowWhen(f, part.at, !moved)];
+    shown = [(!moved && soonAt(part.at)) || rowWhen(f, part.at, !moved)];
     moment = part.at;
   } else if (part?.kind === "sitting" && item.sittings) {
     // SIX lists it in both weeks of the exam period: one row, both days ("Kam, 10 Des dan 17 Des, 11:00").
@@ -154,7 +156,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     const place = part.source === "six" ? (part.room ?? "") : (part.title ?? "");
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), place];
     when = part.end !== null ? f.dayTimeRange(part.at, part.end) : dayTime(part.at);
-    shown = [rowWhen(f, part.at, !disagree)];
+    shown = [(!disagree && soonAt(part.at)) || rowWhen(f, part.at, !disagree)];
     if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
     else moment = part.at;
   } else {
@@ -162,8 +164,10 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     shown = [t("exam.noDate")];
   }
   const away = moment !== null ? countdown(t, now, moment) : null;
-  // The countdown only once it's within a day: a calm one's day says when on its own.
-  if (away && !status && away.tone !== "neutral") status = <StatusPill tone={away.tone} text={away.text} />;
+  // Within a few days the day as a pill ("Hari ini" red, "Besok" amber), "lewat" once past: a calm one's day says when on its own.
+  const soon = moment !== null ? soonPill(t, now, moment) : null;
+  if (!status && soon) status = <StatusPill tone={soon.tone} text={soon.text} />;
+  else if (!status && away?.late) status = <StatusPill tone={away.tone} text={away.text} />;
 
   // Only a window of known length, open now: a quiz the Student may already have taken on Edunex.
   const window = part?.kind === "window" && part.opensAt !== null && part.open ? part.edunex : null;
