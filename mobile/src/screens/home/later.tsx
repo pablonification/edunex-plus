@@ -4,17 +4,23 @@
 // di Edunex for a meeting). A class that shares its time with another says so with one icon and the word "Bentrok". A
 // course's absences are the strip's, said once there. A row opens the class's sheet. A class on SIX's timetable today
 // that the app couldn't read comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX
-// writes it; it opens Jadwal's sheet for it, with SIX's timetable. Hidden when nothing's left.
-import { useRef, useState } from "react";
+// writes it; it opens Jadwal's sheet for it, with SIX's timetable.
+//
+// Round 2: a clash is said once for the pair, on its first row, with the time the other starts ("Bentrok 16:00", the
+// kit's ClashMark); the row opens the class's sheet, which says which of the two to go to. Every row ends in the same
+// quiet chevron: it opens something. And a short day isn't followed by a blank page: when two classes or fewer are
+// left today, the next class day's follow under its own day ("Besok"), the same rows.
+import { useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { UnreadSession } from "../../../../src/core/models";
-import type { ClassFacts, HomeContext, NowCard, TodayPlan } from "../../../../src/core/needs";
+import { type ClassFacts, classFacts, type HomeContext, type NowCard, type TodayPlan } from "../../../../src/core/needs";
 import { Rise } from "../../ui/expressive";
 import { IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
+import { ClashMark, SectionHeading } from "../../ui/kit";
 import { PressScale } from "../../ui/press";
 import { Text, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -27,8 +33,32 @@ type Item =
   | { kind: "class"; key: string; start: number; end: number; code: string; facts: ClassFacts }
   | { kind: "meeting"; key: string; start: number; end: number; code: string; meeting: TodayPlan["announced"][number] };
 
+/** Today's list is short at this many rows or fewer: the next class day follows it. */
+const SHORT_DAY = 2;
+/** Rows under the fold's first screen, today's and the next day's together. */
+const ROWS_AHEAD = 4;
+
+/** A clash's pair, the same whichever class comes first. */
+const pairOf = (a: string, b: string) => [a, b].sort().join("|");
+
+/** Which rows say the clash: the first of each pair in the list, the others leave it to that one. */
+function clashRows(items: readonly Item[]): Set<string> {
+  const pairs = new Set<string>();
+  const rows = new Set<string>();
+  for (const item of items) {
+    const overlap = item.kind === "class" ? item.facts.overlap : null;
+    if (!overlap) continue;
+    const pair = `${wibDay(item.start)}:${pairOf(item.code, overlap.code)}`;
+    if (pairs.has(pair)) continue;
+    pairs.add(pair);
+    rows.add(item.key);
+  }
+  return rows;
+}
+
 export function Later({ context, plan, courses, onCard }: { context: HomeContext; plan: TodayPlan; courses: readonly TermCourse[]; onCard: string | null }) {
   const t = useT();
+  const f = useFormat();
   const now = useNow();
   const [picked, setPicked] = useState<NowCard | null>(null);
   const [unreadOpen, setUnreadOpen] = useState(false);
@@ -61,51 +91,84 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
   ]
     .filter((item) => wibDay(item.start) === day && item.end > now && item.key !== onCard)
     .sort((a, b) => a.start - b.start);
-  if (!items.length && !unread.length) return null;
+  // A short day: the next day with a class follows it, so the page never ends in a blank third.
+  const ahead = useMemo((): Item[] => {
+    if (items.length + unread.length > SHORT_DAY) return [];
+    const later = (context.schedule ?? []).filter((session) => wibDay(session.start) > day).sort((a, b) => a.start - b.start);
+    const nextDay = later[0] ? wibDay(later[0].start) : null;
+    return later
+      .filter((session) => wibDay(session.start) === nextDay && `class:${session.id}` !== onCard)
+      .slice(0, ROWS_AHEAD - items.length)
+      .map((session) => ({
+        kind: "class",
+        key: `class:${session.id}`,
+        start: session.start,
+        end: session.end,
+        code: session.courseCode,
+        facts: classFacts(context, session),
+      }));
+  }, [context, day, items.length, unread.length, onCard]);
+  if (!items.length && !unread.length && !ahead.length) return null;
+  const clashes = clashRows([...items, ...ahead]);
+  const open = (item: Item) =>
+    setPicked(
+      item.kind === "class"
+        ? classCard(item.facts, now)
+        : {
+            state: "next",
+            class: null,
+            meeting: { code: item.code, meeting: item.meeting.meeting, maybeInSix: item.meeting.maybeInSix },
+            presence: null,
+            after: null,
+            unreadDay: null,
+          },
+    );
+  // Tight over the timeline: the heading and the day's next two classes belong on Beranda's first screen.
+  const heading = { marginTop: space[3], marginBottom: space[1], marginLeft: space[1] };
   return (
     <View testID="section.today">
-      <Rise screen="home" index={5}>
-        <Text
-          size="titleMedium"
-          face="display"
-          weight="bold"
-          accessibilityRole="header"
-          style={{ fontSize: 17, letterSpacing: -0.2, marginTop: space[6], marginBottom: space[3], marginLeft: space[1] }}
-        >
-          {t("mobile.home.laterToday")}
-        </Text>
-      </Rise>
-      <Rise screen="home" index={6}>
-        {/* Direction B: a timeline on the page itself (the official app's "Timeline Activity"), not a card of rows. */}
-        <View>
-          {unread.map((one, i) => (
-            <UnreadRow key={`unread:${one.row}`} one={one} first={i === 0} onOpen={() => setUnreadOpen(true)} />
-          ))}
-          {items.map((item, i) => (
+      {(items.length > 0 || unread.length > 0) && (
+        <>
+          <Rise screen="home" index={5}>
+            <SectionHeading style={heading}>{t("mobile.home.laterToday")}</SectionHeading>
+          </Rise>
+          <Rise screen="home" index={6}>
+            {/* Direction B: a timeline on the page itself (the official app's "Timeline Activity"), not a card of rows. */}
+            <View>
+              {unread.map((one, i) => (
+                <UnreadRow key={`unread:${one.row}`} one={one} first={i === 0} onOpen={() => setUnreadOpen(true)} />
+              ))}
+              {items.map((item, i) => (
+                <Row
+                  key={item.key}
+                  item={item}
+                  first={i === 0 && !unread.length}
+                  last={i === items.length - 1}
+                  clash={clashes.has(item.key)}
+                  courses={courses}
+                  onOpen={() => open(item)}
+                />
+              ))}
+            </View>
+          </Rise>
+        </>
+      )}
+      {ahead.length > 0 && (
+        <View testID="section.ahead">
+          <SectionHeading style={heading}>{f.relativeDay(ahead[0]?.start ?? now)}</SectionHeading>
+          {ahead.map((item, i) => (
             <Row
               key={item.key}
               item={item}
-              first={i === 0 && !unread.length}
-              last={i === items.length - 1}
+              first={i === 0}
+              last={i === ahead.length - 1}
+              clash={clashes.has(item.key)}
               courses={courses}
-              onOpen={() =>
-                setPicked(
-                  item.kind === "class"
-                    ? classCard(item.facts, now)
-                    : {
-                        state: "next",
-                        class: null,
-                        meeting: { code: item.code, meeting: item.meeting.meeting, maybeInSix: item.meeting.maybeInSix },
-                        presence: null,
-                        after: null,
-                        unreadDay: null,
-                      },
-                )
-              }
+              onOpen={() => open(item)}
             />
           ))}
         </View>
-      </Rise>
+      )}
       {sheets.current && (
         <>
           <ClassSheet card={picked} courses={courses} open={picked !== null} onClose={() => setPicked(null)} />
@@ -117,7 +180,22 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
 }
 
 /** One class on the day's timeline: its time, a dot in the course's colour on the line down the day, its name and room. */
-function Row({ item, first, last, courses, onOpen }: { item: Item; first: boolean; last: boolean; courses: readonly TermCourse[]; onOpen(): void }) {
+function Row({
+  item,
+  first,
+  last,
+  clash: saysClash,
+  courses,
+  onOpen,
+}: {
+  item: Item;
+  first: boolean;
+  last: boolean;
+  /** This row says its pair's clash (the pair's other row leaves it to this one). */
+  clash: boolean;
+  courses: readonly TermCourse[];
+  onOpen(): void;
+}) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
@@ -134,23 +212,23 @@ function Row({ item, first, last, courses, onOpen }: { item: Item; first: boolea
       onPress={onOpen}
       accessibilityLabel={[name, meta, clash, chip].filter(Boolean).join(", ")}
       testID={`row.today.${item.key}`}
-      style={{ flexDirection: "row", alignItems: "stretch", gap: space[3], paddingHorizontal: space[1], minHeight: 64 }}
+      style={{ flexDirection: "row", alignItems: "stretch", gap: space[3], paddingHorizontal: space[1], minHeight: 56 }}
     >
       <Text
         size="bodyLarge"
         face="display"
         weight="bold"
         tabular
-        style={{ color: v.fg, width: timeColumn, fontSize: 15, lineHeight: 21, paddingTop: space[3] }}
+        style={{ color: v.fg, width: timeColumn, fontSize: 15, lineHeight: 21, paddingTop: space[2] }}
       >
         {f.time(item.start)}
       </Text>
       <View style={{ width: 12, alignItems: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={{ width: 2, height: 16, backgroundColor: first ? "transparent" : v.line }} />
+        <View style={{ width: 2, height: 12, backgroundColor: first ? "transparent" : v.line }} />
         <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: tile(item.code).ink }} />
         <View style={{ width: 2, flex: 1, backgroundColor: last ? "transparent" : v.line }} />
       </View>
-      <View style={{ flex: 1, minWidth: 0, paddingVertical: space[3] }}>
+      <View style={{ flex: 1, minWidth: 0, paddingVertical: space[2] }}>
         {/* The course's whole name, on as many lines as it takes: never cut to a name it isn't. */}
         <Text size="bodyLarge" weight="medium" style={{ color: v.fg, lineHeight: 21 }}>
           {name}
@@ -161,18 +239,15 @@ function Row({ item, first, last, courses, onOpen }: { item: Item; first: boolea
           </Text>
         ) : null}
       </View>
-      {overlap && (
-        // A clash: one icon and the word, the same pair Jadwal and Kuliah show.
+      {overlap && saysClash && (
+        // A clash, once for the pair: the kit's mark, and when the other class starts unless it's this row's own time.
         <View
-          style={{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: space[1] }}
+          style={{ alignSelf: "center", flexShrink: 0 }}
           accessibilityElementsHidden
           importantForAccessibility="no-hide-descendants"
           testID={`clash.today.${item.key}`}
         >
-          <Icons.Overlap size={16} weight="fill" color={v.ambFg} />
-          <Text size="labelMedium" weight="semibold" style={{ color: v.ambFg }}>
-            {t("mobile.home.chip.clash")}
-          </Text>
+          <ClashMark detail={overlap.from > item.start ? f.time(overlap.from) : undefined} />
         </View>
       )}
       {/* Neutral: amber is for the Student's standing (absences), and a new room isn't. */}
@@ -183,6 +258,10 @@ function Row({ item, first, last, courses, onOpen }: { item: Item; first: boolea
           </Text>
         </View>
       )}
+      {/* It opens the class's sheet, and looks like it does: the same quiet chevron on every row that opens something. */}
+      <View style={{ alignSelf: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Icons.ChevronRight size={16} color={v.muted} />
+      </View>
     </PressScale>
   );
 }
