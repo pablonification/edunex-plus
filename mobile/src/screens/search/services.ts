@@ -1,21 +1,15 @@
-// Search's services (the phone's own layer, not src/core/search.ts): every service on Semua layanan, plus Materi
-// (/material) and Ujian (/exams), found by the name it carries tonight in either language. They stand in for the
+// Search's services (the phone's own layer, not src/core/search.ts): every service on Semua layanan, found by the name
+// it carries in either language (and a few words Students type for it). They stand in for the
 // desktop's "screen" results, which name the desktop's sidebar, not the phone's tiles.
 import { fold } from "../../../../src/core/search";
 import { type StringKey, translate } from "../../../../src/core/strings";
 import { SERVICE_GROUPS, type Service } from "../services/list";
 
-/** (Their `icon` is unused: search draws every service with ServiceIcons, see parts.tsx.) Materi and Ujian, the two views another track is building, found here by the name their tiles carry. */
-const EXTRA: readonly Service[] = [
-  { id: "material", label: "search.group.material", icon: "BookOpen28Filled", tone: "teal", open: "/material" },
-  { id: "exams", label: "search.group.exam", icon: "Form28Filled", tone: "red", open: "/exams" },
-];
-
-/** Every service once, in Semua layanan's order, then Materi and Ujian. */
+/** Every service once, in Semua layanan's order (Materi and Ujian among them), each with the list's own icon and tone. */
 export const SEARCH_SERVICES: readonly Service[] = (() => {
   const seen = new Set<string>();
   const all: Service[] = [];
-  for (const service of [...EXTRA, ...SERVICE_GROUPS.flatMap((group) => group.services)]) {
+  for (const service of SERVICE_GROUPS.flatMap((group) => group.services)) {
     if (seen.has(service.id)) continue;
     seen.add(service.id);
     all.push(service);
@@ -23,10 +17,20 @@ export const SEARCH_SERVICES: readonly Service[] = (() => {
   return all;
 })();
 
+/** The other words a Student types for a service: the month view is found by its old name and by "kalender" too. */
+const ALSO: Partial<Record<string, string>> = {
+  month: "bulan sebulan bulanan kalender month monthly calendar",
+};
+
 const words = (key: StringKey) => `${translate("id", key)} ${translate("en", key)}`;
 
 /** Each service with the folded words it's found by: its name in both languages. */
-const INDEX = SEARCH_SERVICES.map((service) => ({ service, words: fold(words(service.label)).split(" ") }));
+const INDEX = SEARCH_SERVICES.map((service) => ({
+  service,
+  words: fold(`${words(service.label)} ${ALSO[service.id] ?? ""}`)
+    .split(" ")
+    .filter(Boolean),
+}));
 
 /** The services every typed word begins (or, from 3 letters, sits inside) a word of. */
 export function matchServices(query: string): Service[] {

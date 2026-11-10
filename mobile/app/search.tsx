@@ -8,6 +8,7 @@ import { router, useNavigation } from "expo-router";
 import { type ComponentRef, type ComponentType, type RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTermCourses } from "../../src/app/courses";
 import { type Format, type Translate, useFormat, useLang, useNow, useT } from "../../src/app/i18n";
 import { useSaved } from "../../src/app/saved";
 import { useBridge } from "../../src/app/store";
@@ -19,7 +20,9 @@ import { type SearchGroup, type SearchItem, search, searchIndex, suggestions } f
 import { isOpenStatus, taskStatus } from "../../src/core/tasks";
 import { useNav } from "../src/nav";
 import { usePerfDrawn } from "../src/perf";
-import { KindMark, Marked, RecentChip, ResultRow, SectionHeading, ServiceMark } from "../src/screens/search/parts";
+import { shortName } from "../src/screens/home/parts";
+import { CourseMark, KindMark, Marked, RecentChip, ResultRow, SectionHeading, ServiceMark } from "../src/screens/search/parts";
+import { loadRecent, saveRecent } from "../src/screens/search/recent";
 import { matchServices, SEARCH_SERVICES } from "../src/screens/search/services";
 import type { Service } from "../src/screens/services/list";
 import { useOpenService } from "../src/screens/services/open";
@@ -55,11 +58,12 @@ const MATERIAL_ICON: Partial<Record<ReturnType<typeof materialKind>, ComponentTy
   link: Icons.Link,
 };
 
-/** What the Student opened from here lately, newest first: kept while the app runs (the phone has no small store for it). */
+/** What the Student opened from here lately, newest first: read from the phone once, kept across closing the app. */
 let recentKeys: string[] = [];
 function remember(key: string): void {
   if (key.startsWith("action:")) return;
   recentKeys = [key, ...recentKeys.filter((k) => k !== key)].slice(0, 6);
+  saveRecent(recentKeys);
 }
 
 /** How long typing rests before the index is asked: the keyboard never waits on a search. */
@@ -68,8 +72,6 @@ const DEBOUNCE_MS = 120;
 /** The kind's glyph, as a bare mark. */
 function kindIcon(item: SearchItem): ComponentType<IconProps> {
   switch (item.kind) {
-    case "course":
-      return Icons.GraduationCap;
     case "task":
       return Icons.ListChecks;
     case "exam":
@@ -108,6 +110,23 @@ export default function Search() {
   const saved = useSaved(SEARCHED);
   const bridge = useBridge();
   const openService = useOpenService();
+  const courses = useTermCourses();
+  // A course by its code: its full name picks its glyph, its short one names it on a Task's row.
+  const courseOf = useCallback((code: string | null) => (code ? courses?.find((one) => one.code === code) : undefined), [courses]);
+  // The recent searches, read from the phone once the screen is up (nothing at start-up).
+  const [recent, setRecent] = useState(recentKeys);
+  useEffect(() => {
+    let live = true;
+    void loadRecent().then((keys) => {
+      if (live && keys) {
+        recentKeys = keys;
+        setRecent(keys);
+      }
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
   const [query, setQuery] = useState("");
   const [typed, setTyped] = useState("");
   const field = useRef<ComponentRef<typeof TextInput>>(null);
@@ -124,7 +143,7 @@ export default function Search() {
   }, [query]);
   const groups = useMemo(() => (typed ? search(index, typed) : []), [index, typed]);
   const services = useMemo(() => (typed ? matchServices(typed) : []), [typed]);
-  const before = useMemo(() => suggestions(index, now, recentKeys), [index, now]);
+  const before = useMemo(() => suggestions(index, now, recent), [index, now, recent]);
   const nextTheme = b.dark ? "light" : "dark";
   useFocusField(field);
 
@@ -157,10 +176,10 @@ export default function Search() {
     const heading = (key: string, title: string) => {
       out.push({ kind: "heading", key: `h:${key}`, title, first: out.length === 0 });
     };
-    const addGroup = (group: SearchGroup, max: number) => {
+    const addGroup = (group: SearchGroup, max: number, title = t(`search.group.${group.kind}`)) => {
       const items = group.items.slice(0, max);
       if (items.length === 0) return;
-      heading(group.kind, t(`search.group.${group.kind}`));
+      heading(group.kind, title);
       items.forEach((item, i) => {
         out.push({ kind: "item", key: item.key, item, last: i === items.length - 1 });
       });
@@ -176,7 +195,8 @@ export default function Search() {
     const offer = () => {
       for (const group of before) {
         if (group.kind === "recent" && !typed) out.push({ kind: "recent", key: "recent", items: group.items });
-        else if (group.kind === "task") addGroup(group, 3);
+        // The next three due, and its heading says just that (the Tugas tab has all of them).
+        else if (group.kind === "task") addGroup(group, 3, t("mobile.search.group.nextDue"));
         else if (group.kind === "course") addGroup(group, 8);
       }
       addServices(SEARCH_SERVICES.slice(0, 6));
@@ -236,6 +256,7 @@ export default function Search() {
               label={name}
               last={line.last}
               leading={<ServiceMark service={line.service} />}
+              chevron
               title={<Marked text={name} query={typed} />}
               onPress={() => openTheService(line.service)}
             />
@@ -243,22 +264,27 @@ export default function Search() {
         }
         case "item": {
           const item = line.item;
-          const detail = item.kind === "action" ? undefined : detailOf(item, t, f, now);
+          const course = courseOf(item.code);
+          // A Task, an exam, material: its course by name, in the course's colour, before what differs (the date).
+          const named = item.kind !== "course" && item.code ? (course ? shortName(course.name) : item.code) : null;
+          const detail = item.kind === "action" ? undefined : detailOf(item, t, f, now) || undefined;
           return (
             <ResultRow
               testID={`row.search.${item.key}`}
-              label={detail ? `${item.title}, ${detail}` : item.title}
+              label={factsLabel(item.title, named, detail)}
               last={line.last}
-              leading={<KindMark icon={kindIcon(item)} code={item.code} />}
+              leading={item.kind === "course" ? <CourseMark code={item.code ?? ""} name={item.title} /> : <KindMark icon={kindIcon(item)} code={item.code} />}
               title={<Marked text={item.title} query={typed} />}
-              meta={detail || undefined}
+              course={named && item.code ? { code: item.code, name: named } : undefined}
+              meta={detail}
+              chevron
               onPress={() => open(item)}
             />
           );
         }
       }
     },
-    [b.fg, b.muted, t, f, now, typed, open, openTheService],
+    [b.fg, b.muted, t, f, now, typed, open, openTheService, courseOf],
   );
 
   return (
@@ -350,18 +376,20 @@ function examWhen(exam: Exam, t: Translate, f: Format): string {
   return t("search.noDate");
 }
 
-/** The row's second line: the course's code, then what this result is and when (the desktop's detailOf). */
+/**
+ * The row's quiet line: only what differs from row to row (the heading says what the rows are, the course is named
+ * beside it): a course's code and class, a Task's date, an exam's sitting, a material's module.
+ */
 function detailOf(item: SearchItem, t: Translate, f: Format, now: number): string {
-  const parts: (string | null)[] = [item.code];
+  const parts: (string | null)[] = [];
   switch (item.kind) {
     case "course":
-      parts.push(item.classNo && t("search.class", { classNo: item.classNo }), item.sks !== null ? t("search.sks", { sks: item.sks }) : null);
+      parts.push(item.code, item.classNo && t("search.class", { classNo: item.classNo }), item.sks !== null ? t("search.sks", { sks: item.sks }) : null);
       break;
     case "task": {
       const status = taskStatus(item.task, now);
       parts.push(
-        status === "not_started" ? null : t(`taskStatus.${status}`),
-        isOpenStatus(status) && item.task.dueAt !== null ? t("search.due", { when: f.dayTimeWord(item.task.dueAt) }) : null,
+        isOpenStatus(status) && item.task.dueAt !== null ? f.dayTimeWord(item.task.dueAt) : status === "not_started" ? null : t(`taskStatus.${status}`),
       );
       break;
     }
