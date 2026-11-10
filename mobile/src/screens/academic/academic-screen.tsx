@@ -33,7 +33,7 @@ import { useReduceMotion } from "../../ui/motion";
 import { RollTo, Tap } from "../../ui/moves";
 import { Part } from "../../ui/parts";
 import { Text } from "../../ui/text";
-import { font, motion, space, TOUCH, useTheme } from "../../ui/theme";
+import { font, motion, space, THEMES, TOUCH } from "../../ui/theme";
 import { shownIndex } from "../grades/transcript";
 import { HOME_SERVICES, SERVICE_GROUPS, type Service } from "../services/list";
 
@@ -91,8 +91,8 @@ export function AcademicContent() {
       {/* The rows under the card: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
       <Part at={1}>
         {/* A tighter rhythm than the other tabs': the sixth row (Kalender akademik) stands whole over the tab bar at font 1.1. */}
-        <Rise screen="academic" index={1} style={{ marginTop: space[4] }}>
-          <BHeading style={{ marginBottom: space[2] }}>{t("mobile.profile.record")}</BHeading>
+        <Rise screen="academic" index={1} style={{ marginTop: space[3] }}>
+          <BHeading style={{ marginBottom: space[1] }}>{t("mobile.profile.record")}</BHeading>
           <View testID="section.academic.screens">
             {/* Without SIX the card says so once: only the calendar (ITB's own) has something to show. */}
             {six !== "none" && (
@@ -107,7 +107,7 @@ export function AcademicContent() {
             <DeadlinesRow />
           </View>
         </Rise>
-        <Rise screen="academic" index={2} style={{ marginTop: space[6] }}>
+        <Rise screen="academic" index={2} style={{ marginTop: space[4] }}>
           <BHeading>{t("settings.accounts")}</BHeading>
           <AccountRows />
         </Rise>
@@ -119,17 +119,24 @@ export function AcademicContent() {
 // ------------------------------------------------------------ the card
 
 /**
- * The card's colours: the brand's blue with its own ink on it, in both themes. In dark that's the theme's bright blue
- * with deep navy words, so the card stays the tab's one strong block, as strong as Beranda's and Ujian's (round 1's
- * council: it "turns navy while Beranda's and Ujian's hero cards stay bright").
+ * The card's colours: the brand's strong blue with white on it, the same block in both themes, as Ujian's hero keeps
+ * its course colour in dark. The dark theme's own `brand` is a pale blue made for words and marks on a dark page: as a
+ * card's fill it went pale beside the vivid purple and exam cards (round 2's council), so the card takes the light
+ * theme's blue in both (white on it 5.4:1).
  */
+const CARD_INK = {
+  bg: THEMES.light.v4.brand,
+  ink: THEMES.light.v4.onBrand,
+  ink2: THEMES.light.v4.onBrand,
+  chip: THEMES.light.v4.onBrand,
+  onChip: THEMES.light.v4.brand,
+  track: "rgba(255,255,255,0.3)",
+  fill: THEMES.light.v4.onBrand,
+} as const;
 function useCardInk() {
-  const theme = useTheme();
-  const v = theme.v4;
-  const track = theme.scheme === "dark" ? "rgba(10,42,102,0.22)" : "rgba(255,255,255,0.3)";
-  return { bg: v.brand, ink: v.onBrand, ink2: v.onBrand, chip: v.onBrand, onChip: v.brand, track, fill: v.onBrand };
+  return CARD_INK;
 }
-type CardInk = ReturnType<typeof useCardInk>;
+type CardInk = typeof CARD_INK;
 
 /** The Student and where they stand: one card, one target (Nilai). */
 const StudentCard = memo(function StudentCard({ record, six }: { record: StudentRecord | undefined; six: "here" | "reading" | "none" }) {
@@ -142,7 +149,7 @@ const StudentCard = memo(function StudentCard({ record, six }: { record: Student
   const name = account?.name ?? student?.name;
   const shown = name ? displayName(name) : null;
   const facts = factsLabel(account?.nim ?? student?.nim, student?.program);
-  const card = { borderRadius: 24, backgroundColor: c.bg, paddingHorizontal: space[5], paddingVertical: space[4], gap: space[4], overflow: "hidden" } as const;
+  const card = { borderRadius: 24, backgroundColor: c.bg, paddingHorizontal: space[5], paddingVertical: space[4], gap: space[3], overflow: "hidden" } as const;
   const who = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.chip, alignItems: "center", justifyContent: "center" }}>
@@ -214,12 +221,13 @@ function Standing({ ipk, sks, need, ink }: { ipk: number | null; sks: number | n
       pointerEvents="none"
       style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[5], rowGap: space[3] }}
     >
-      <View>
-        <Text size="labelLarge" style={{ color: ink.ink2 }}>
+      {/* The label on the number's own line, at its foot: a line less of card, so the rows under it stand higher. */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[2] }}>
+        <Text size="labelLarge" style={{ color: ink.ink2, paddingBottom: space[2] }}>
           {t("grades.chart.ipk")}
         </Text>
         {ipk === null ? (
-          <Text size="titleLarge" face="display" weight="bold" style={{ color: ink.ink, marginTop: space[1] }}>
+          <Text size="titleLarge" face="display" weight="bold" style={{ color: ink.ink, paddingBottom: space[1] }}>
             {t("mobile.profile.noGrades")}
           </Text>
         ) : (
@@ -228,7 +236,7 @@ function Standing({ ipk, sks, need, ink }: { ipk: number | null; sks: number | n
             decimals={2}
             comma={lang === "id"}
             testID="profile.ipk"
-            style={{ fontFamily: font.display.extrabold, fontSize: 40, lineHeight: 46, letterSpacing: -1, color: ink.ink }}
+            style={{ fontFamily: font.display.extrabold, fontSize: 36, lineHeight: 42, letterSpacing: -1, color: ink.ink }}
           />
         )}
       </View>
@@ -331,11 +339,6 @@ function ConnectSix({ ink }: { ink: CardInk }) {
 
 // ------------------------------------------------------------ the rows
 
-function Chevron() {
-  const b = useB();
-  return <Icons.ChevronRight size={20} color={b.muted} />;
-}
-
 function useMetaColor(tone: MetaTone | undefined): string | undefined {
   const b = useB();
   return tone === "red" ? b.red : tone === "amber" ? b.amber : tone === "ok" ? b.ok : undefined;
@@ -366,7 +369,6 @@ function ScreenRow({ title, meta, route, last = false, testID }: { title: string
         )
       }
       metaColor={color}
-      trailing={<Chevron />}
       last={last}
       onPress={() => nav.go(route === "grades" ? { screen: "grades" } : { screen: "plan", tab: route })}
       testID={testID}
@@ -538,25 +540,11 @@ function AccountRows() {
         leading={<Mark id="alerts" />}
         title={t("alerts.title")}
         meta={unread > 0 ? t("mobile.profile.unread", { count: unread }) : undefined}
-        trailing={<Chevron />}
         onPress={() => router.push("/alerts")}
         testID="row.nav.alerts"
       />
-      <BRow
-        leading={<Mark id="settings" />}
-        title={t("nav.settings")}
-        trailing={<Chevron />}
-        onPress={() => router.push("/settings")}
-        testID="action.account"
-      />
-      <BRow
-        leading={<Mark id="report" />}
-        title={t("mobile.profile.report")}
-        trailing={<Chevron />}
-        last
-        onPress={() => router.push("/report")}
-        testID="action.report"
-      />
+      <BRow leading={<Mark id="settings" />} title={t("nav.settings")} onPress={() => router.push("/settings")} testID="action.account" />
+      <BRow leading={<Mark id="report" />} title={t("mobile.profile.report")} last onPress={() => router.push("/report")} testID="action.report" />
     </View>
   );
 }
@@ -578,8 +566,8 @@ function SourceRow({ source }: { source: Extract<SourceId, "edunex" | "six"> }) 
           ? { text: t("status.connecting"), tone: "muted" }
           : { text: t(`status.${status.state}`, { source: name }), tone: "amber" };
   const color = useMetaColor(meta.tone);
-  // Not the Kuliah tab's cap (round 1's council: one glyph, one meaning): SIX is the web system, Edunex the course book.
-  const Glyph = source === "six" ? Icons.Globe : Icons.BookOpen;
+  // Each system's own mark (the same two as in Settings), never the Kuliah tab's cap or Materi's book.
+  const Glyph = source === "six" ? Icons.Six : Icons.Edunex;
   return (
     <BRow
       leading={
@@ -595,9 +583,7 @@ function SourceRow({ source }: { source: Extract<SourceId, "edunex" | "six"> }) 
           <Text size="labelLarge" weight="semibold" style={{ color: b.brand }}>
             {t(status.state === "expired" ? "action.signInAgain" : "action.signIn")}
           </Text>
-        ) : (
-          <Chevron />
-        )
+        ) : undefined
       }
       onPress={needsSignIn ? (busy ? undefined : () => void signIn(source)) : () => router.push("/settings")}
       accessibilityHint={needsSignIn ? undefined : t("nav.settings")}

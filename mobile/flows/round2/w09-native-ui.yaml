@@ -50,21 +50,14 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 10000
 - tapOn:
     id: segment.theme.system
+# The demo's phone has notifications off for the app: Settings folds the alert switches away and shows the one shared
+# notice with its button in their place (the switches come back once notifications are on).
 - scrollUntilVisible:
     element:
-      id: switch.alert.newTask
+      id: note.notificationsOff
     direction: UP
     centerElement: true
 - assertVisible:
+    id: action.notificationsOn
+- assertNotVisible:
     id: switch.alert.newTask
-    checked: true
-- tapOn:
-    id: switch.alert.newTask
-- assertVisible:
-    id: switch.alert.newTask
-    checked: false
-- tapOn:
-    id: switch.alert.newTask
-- assertVisible:
-    id: switch.alert.newTask
-    checked: true

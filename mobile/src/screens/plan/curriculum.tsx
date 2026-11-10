@@ -596,7 +596,6 @@ function Notes({ name, startedOn, year, unlisted }: { name: string; startedOn: n
       <GroupRow
         title={title}
         meta={meta}
-        trailing={<Icons.ChevronRight size={20} color={v.muted} />}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={factsLabel(name, note)}
