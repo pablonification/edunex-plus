@@ -1,4 +1,4 @@
-// Beranda's services (direction B): two rows of four round marks, each a filled Fluent glyph in a colour of its own,
+// Beranda's services: two rows of four solid tiles, each a white filled Fluent glyph on a colour of its own,
 // one word under it, the last one "Lainnya" (Semua layanan, every service in named groups). What the official app
 // calls "Navigation Bar", with a heading a Student would say.
 import { router } from "expo-router";
@@ -6,7 +6,7 @@ import { View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
 import { ServiceRow, ServiceTile } from "../../ui/b";
 import { space } from "../../ui/theme";
-import { HOME_SERVICES } from "../services/list";
+import { HOME_SERVICES, MORE } from "../services/list";
 import { useOpenService } from "../services/open";
 
 export function HomeGrid() {
@@ -15,7 +15,10 @@ export function HomeGrid() {
   const first = HOME_SERVICES.slice(0, 4);
   const second = HOME_SERVICES.slice(4, 7);
   return (
-    <View testID="home.grid" style={{ gap: space[3] }}>
+    // Not collapsed: the grid stays a view of its own that holds its tiles, so a reader of the screen (TalkBack's
+    // tree, qa/layout-read.mjs) finds the eight inside `home.grid`. A testID alone keeps the view but hands its
+    // children to the parent.
+    <View testID="home.grid" collapsable={false} style={{ gap: space[3] }}>
       <ServiceRow count={4}>
         {first.map((service) => (
           <ServiceTile
@@ -39,7 +42,7 @@ export function HomeGrid() {
             testID={`action.service.${service.id}`}
           />
         ))}
-        <ServiceTile icon="Apps28Filled" tone="grey" label={t("mobile.tab.more")} onPress={() => router.push("/services")} testID="action.service.more" />
+        <ServiceTile icon={MORE.icon} tone={MORE.tone} label={t(MORE.label)} onPress={() => router.push("/services")} testID="action.service.more" />
       </ServiceRow>
     </View>
   );

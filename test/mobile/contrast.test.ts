@@ -10,7 +10,20 @@
 // A pair every theme draws is checked in light and dark with no more to write. `node mobile/qa/contrast-read.mjs --top 5`
 // prints every pair here with its ratio, worst first, the new ones too.
 import { describe, expect, it } from "vitest";
-import { BUSY_OPACITY, COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, ON_SERVICE, type Palette, SERVICE_TONES, V4, type V4Palette } from "../../mobile/src/ui/palette";
+import {
+  BUSY_OPACITY,
+  COURSE,
+  COURSE_TILE,
+  dark,
+  GREY_TILE,
+  light,
+  NOW,
+  ON_SERVICE,
+  type Palette,
+  SERVICE_TONES,
+  V4,
+  type V4Palette,
+} from "../../mobile/src/ui/palette";
 
 type Scheme = "light" | "dark";
 interface Tones {

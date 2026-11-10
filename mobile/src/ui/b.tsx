@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { type AccessibilityProps, StyleSheet, View, type ViewStyle } from "react-native";
 import { Skeleton } from "./display";
 import { Fluent, type FluentName } from "./fluent";
-import { type ServiceIconName, ServiceIcons } from "./icons";
+import { Icons, type ServiceIconName, ServiceIcons } from "./icons";
 import { ON_SERVICE, SERVICE_TONES } from "./palette";
 import { PressScale } from "./press";
 import { Text } from "./text";
@@ -83,12 +83,24 @@ export function ServiceTile({
   lines = 1,
   onPress,
   testID,
-}: { icon: ServiceGlyph; tone: ServiceTone; label: string; lines?: 1 | 2; onPress(): void; testID?: string }) {
+}: {
+  icon: ServiceGlyph;
+  tone: ServiceTone;
+  label: string;
+  lines?: 1 | 2;
+  onPress(): void;
+  testID?: string;
+}) {
   const b = useB();
   return (
     <PressScale onPress={onPress} accessibilityLabel={label} testID={testID} style={styles.tile}>
       <ServiceCircle icon={icon} tone={tone} />
-      <Text size="bodyMedium" weight="semibold" numberOfLines={lines} style={{ color: b.fg, fontSize: 13, lineHeight: 18, letterSpacing: 0, textAlign: "center" }}>
+      <Text
+        size="bodyMedium"
+        weight="semibold"
+        numberOfLines={lines}
+        style={{ color: b.fg, fontSize: 13, lineHeight: 18, letterSpacing: 0, textAlign: "center" }}
+      >
         {label}
       </Text>
     </PressScale>
@@ -96,9 +108,10 @@ export function ServiceTile({
 }
 
 /** A row of service tiles, four across; a short row keeps the same columns. */
-export function ServiceRow({ children, count }: { children: ReactNode; count: number }) {
+export function ServiceRow({ children, count, top = false }: { children: ReactNode; count: number; top?: boolean }) {
   return (
-    <View style={{ flexDirection: "row" }}>
+    // `top`: tiles line up by their tops where a name may take two lines (Semua layanan).
+    <View style={{ flexDirection: "row", alignItems: top ? "flex-start" : undefined }}>
       {children}
       {Array.from({ length: Math.max(0, 4 - count) }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: empty columns, in order
@@ -163,9 +176,13 @@ export function CountCell({
           </Text>
         )}
       </View>
-      <Text size="bodyMedium" numberOfLines={1} style={{ color: b.fg2, fontSize: 13, lineHeight: 18, letterSpacing: 0 }}>
-        {label}
-      </Text>
+      {/* The label and a small chevron: the count opens something, and looks like it does. */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2, maxWidth: "100%" }}>
+        <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ color: b.fg2, fontSize: 13, lineHeight: 18, letterSpacing: 0, flexShrink: 1 }}>
+          {label}
+        </Text>
+        <Icons.ChevronRight size={12} color={b.muted} />
+      </View>
     </PressScale>
   );
 }
@@ -251,5 +268,5 @@ export function BRow({
 
 const styles = StyleSheet.create({
   tile: { flex: 1, minHeight: 48, alignItems: "center", gap: space[2], paddingVertical: space[1], paddingHorizontal: 2 },
-  count: { flex: 1, alignItems: "center", paddingVertical: space[2], gap: 2 },
+  count: { flex: 1, minHeight: 56, alignItems: "center", paddingVertical: space[2], paddingHorizontal: space[1], gap: 2 },
 });
