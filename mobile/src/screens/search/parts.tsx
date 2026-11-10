@@ -3,7 +3,7 @@
 // circle, as on Beranda and Semua layanan. The typed part of a name is marked in the brand colour.
 import { type ComponentType, memo, type ReactNode } from "react";
 import { StyleSheet, View } from "react-native";
-import { useB } from "../../ui/b";
+import { BHeading, useB } from "../../ui/b";
 import { type IconProps, Icons, ServiceIcons } from "../../ui/icons";
 import { Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
@@ -114,20 +114,9 @@ export const ResultRow = memo(function ResultRow({
   );
 });
 
-/** A section's name over its rows. */
+/** A section's name over its rows: B's heading, with the space a section needs above it. */
 export function SectionHeading({ children, first }: { children: string; first: boolean }) {
-  const b = useB();
-  return (
-    <Text
-      accessibilityRole="header"
-      size="titleMedium"
-      face="display"
-      weight="semibold"
-      style={{ color: b.fg, paddingTop: first ? space[2] : space[6], paddingBottom: space[1] }}
-    >
-      {children}
-    </Text>
-  );
+  return <BHeading style={{ marginTop: first ? space[2] : space[6], marginBottom: space[1] }}>{children}</BHeading>;
 }
 
 /** Something opened lately, as a chip: one tap opens it again. */

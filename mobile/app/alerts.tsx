@@ -23,6 +23,7 @@ import type { Alert, AlertKind, ClassSession } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
 import { changeLines, eventTime } from "../src/parts/change-meta";
+import { NotificationsOff, useNotificationPermission } from "../src/parts/notifications-off";
 import { usePerfDrawn } from "../src/perf";
 import { type Outcome, type PastAlert, pastAlert } from "../src/screens/alerts/past";
 import { type MeetingExtra, sameMeeting } from "../src/screens/alerts/same-meeting";
@@ -106,6 +107,8 @@ export default function Alerts() {
   const sixOut = useStatus("six").state === "signed-out";
   const world = useHomeWorld();
   const name = useShortCourseName();
+  // Android's permission for notifications: off, the notice and its one button lead the page (as in Settings).
+  const permission = useNotificationPermission();
   // Read up to: what the engine keeps (the bell's dot reads the same), or the moment the Student said so here.
   const [markedAt, setMarkedAt] = useState(0);
   const readAt = Math.max(history?.readAt ?? 0, markedAt);
@@ -172,6 +175,7 @@ export default function Alerts() {
         />
       }
     >
+      <NotificationsOff state={permission} />
       {history === undefined && (
         // Still being read from the phone: the rows' shapes stand in, so nothing jumps when they come.
         <View testID="alerts.loading" style={{ gap: space[4], paddingTop: space[4] }}>

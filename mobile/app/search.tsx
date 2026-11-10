@@ -208,10 +208,8 @@ export default function Search() {
           return <SectionHeading first={line.first}>{line.title}</SectionHeading>;
         case "recent":
           return (
-            <View style={{ paddingTop: space[2] }}>
-              <Text size="titleMedium" face="display" weight="semibold" accessibilityRole="header" style={{ color: b.fg, paddingBottom: space[2] }}>
-                {t("search.group.recent")}
-              </Text>
+            <View>
+              <SectionHeading first>{t("search.group.recent")}</SectionHeading>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: space[2] }}>
                 {line.items.map((item) => (
                   <RecentChip key={item.key} label={item.title} onPress={() => open(item)} testID={`row.recent.${item.key}`} />
