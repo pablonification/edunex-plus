@@ -188,21 +188,43 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 
 ## Motion
 
-- **Screens**: Android's own transition (native stack `animation: "default"`) and Back; nothing drawn in JS.
-- **Sheets**: the native Material sheet's slide and scrim fade, its drag and Back.
-- **Tabs**: no animation (Material's bar switches at once).
-- **Small things the app moves itself** use M3's springs (`motion.spatialFast/Default/Slow` for position,
-  `motion.effects…` for opacity and colour, which never overshoot), on the UI thread (Reanimated, or RN
-  Animated with `useNativeDriver`). Durations otherwise: `motion.duration.short` 150, `medium` 250, `long` 400.
-- **Joy in a few earned moments only** (`motion.expressive`, a slight overshoot): Kumpulkan, a swipe that
-  commits, Tandai Hadir done. Not on every tap.
-- **Remove animations** (`useReduceMotion()`): moving things only fade; the skeleton stops breathing.
+Every touch answers; every change of state is shown moving; joy only for what the Student earned. The full list of
+what moves, and how, is `qa/superapp-motion.md`; the parts to build it with are in `src/ui/moves.tsx`.
+
+- **Every touch answers in the frame it lands.** Android's ripple (drawn by the system, never late), an iPhone's
+  tint or dim, and for a card, a tile or an icon a small give. A bare `Pressable` with none of these is a bug: use
+  `Tap` (`feel` card, tile, row or icon), or a `Button`, `IconButton`, `Chip`. A full-width row tints, it doesn't
+  shrink.
+- **Every change the Student causes moves from where it was to where it is**, never a jump cut:
+  - something comes, goes or changes height (a fold, a banner, a row done, a section after a refresh): `Appear`, with
+    `shifts` on what's below so the page slides aside;
+  - content replaces content in the same place (skeleton to data, one filter's list to another's, a tab's panel):
+    `CrossFade`;
+  - a number that changes while seen (minutes left, a count, IPK after a refresh): `RollTo` (`CountUp` is for a
+    first showing only);
+  - the picked mark of a segment, a tab pill or a day slides to the new one: `useSlidingMark`;
+  - a list's first showing arrives once, in a short stagger: `Arrive` (a screen's big parts: `Rise`).
+- **Screens, sheets, menus, tabs, pull to refresh and switches are Android's own** (native stack `animation:
+  "default"`, the Material sheet, NativeTabs, `RefreshControl`, MaterialSwitch). Tabs switch at once (the speed wall).
+- **Tokens only** (`motion` in `ui/theme.ts`): `spatialFast/Default/Slow` for what moves, `effectsFast/Default` for
+  fades and colour (never overshoot), `duration.short` 150, `medium` 250, `long` 400. A spring or duration written out
+  in a screen is a bug; a new one is proposed for `theme.ts`.
+- **On the UI thread**: Reanimated, or RN Animated with `useNativeDriver`. Never animate on the JS thread.
+- **Joy in a few earned moments only** (`motion.expressive`, a slight overshoot; `ui/celebrate.tsx`): Kumpulkan,
+  presence marked, a swipe that commits. Not on every tap.
+- **Haptics on commits only** (`ui/haptics.ts`): done, sent, saved, a swipe past its threshold, a long press. Never on
+  a plain tap, a navigation or a scroll.
+- **Remove animations** (`useReduceMotion()`): nothing slides, springs or staggers; a change is simply there (a fade
+  only where it's already safe); a touch still answers with its ripple or tint; the skeleton stops breathing. A layout
+  animation never starts on a hidden screen (one started there with animations off left parts invisible: `Rise`).
 - **Endless loops run only while shown** (`useLoopWhileShown()` in `ui/motion.ts`): the wave, the "now" dot, a
   skeleton's breathing and a spinner run while their screen is in front and the app in the foreground, and stop
   otherwise (a hidden tab, a screen under a pushed one, the background). Use it for any new looping part: a loop
   left running redraws every frame for nobody (battery), and Android's tools see the app as never idle.
 - **Below the fold waits for the push** (`Later` in `screens/plan/deferred.ts`): a screen's first screenful draws at
   once; its lower parts mount one per frame after the push transition ends, never during it.
+- **Frames**: under 5% janky during every animation and list scroll on a Galaxy A52 (`qa/jank.sh`). No layout
+  animations inside a FlashList's recycled cells.
 
 ## Patterns
 
