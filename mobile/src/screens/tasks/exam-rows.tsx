@@ -21,6 +21,7 @@ import { useB } from "../../ui/b";
 import { LINE_INSET } from "../../ui/card-list";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { PressScale } from "../../ui/press";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { Text } from "../../ui/text";
@@ -357,11 +358,30 @@ export const PeriodRow = inWorld(function PeriodRow({
             <ExamPartRow item={exam} />
           </FlatSlice>
         ))}
-        {item.exams.map((exam, i) => (
-          <FlatSlice key={exam.id} first={i === 0 && inside.length === 0}>
-            <PeriodExam exam={exam} inCourse={false} />
-          </FlatSlice>
-        ))}
+        {/* Far off: its exams with no day yet stay behind one line that says how many (they aren't counted in "Belum
+            selesai" until the period is near, so the count over the list matches its rows). */}
+        {item.state === "far" && item.exams.length > 0 && (
+          <PressScale
+            testID={`action.period.${item.examKind}`}
+            accessibilityLabel={fact}
+            accessibilityState={{ expanded: open }}
+            onPress={() => setToggled(!toggled)}
+            style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48, paddingHorizontal: space[1] }}
+          >
+            <Text size="bodyMedium" style={{ flex: 1, color: v.muted }}>
+              {fact}
+            </Text>
+            <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
+              <Icons.ChevronDown size={20} color={v.muted} />
+            </View>
+          </PressScale>
+        )}
+        {open &&
+          item.exams.map((exam, i) => (
+            <FlatSlice key={exam.id} first={i === 0 && inside.length === 0 && item.state !== "far"}>
+              <PeriodExam exam={exam} inCourse={false} />
+            </FlatSlice>
+          ))}
       </View>
     );
   return (
