@@ -17,24 +17,31 @@
 // Nothing sits beside the name, so it never breaks one word per line. And Beranda's first screen ends on the day's
 // first class: its row runs down to the fold (the line down the day with it), so the next class starts under it
 // instead of half in (the first screen's 50 words).
+//
+// Round 4: the day that follows today's is the next day with anything on it, a class or a meeting only Edunex
+// announced (Friday's meeting was skipped for next week's classes). An exam's row says so: "UTS" before the course's
+// name and the exam glyph on the line, as Tugas and Jadwal draw it. A clash is marked on both rows, each with the
+// time the two share. And today's rows are one height (the first row's, which reaches the fold), so the line down
+// the day has even steps instead of one long one.
 import { type ComponentRef, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { isExamActivity } from "../../../../src/core/attendance";
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { UnreadSession } from "../../../../src/core/models";
 import { type ClassFacts, classFacts, type HomeContext, type NowCard, type TodayPlan } from "../../../../src/core/needs";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { IconTile } from "../../ui/group";
-import { Icons } from "../../ui/icons";
+import { Icons, ServiceIcons } from "../../ui/icons";
 import { useTabsBottom } from "../../ui/insets";
 import { ClashMark, SectionHeading } from "../../ui/kit";
 import { PressScale } from "../../ui/press";
 import { ROW_SIDE } from "../../ui/row-end";
 import { Text, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CourseGlyph } from "../../ui/tile";
+import { CourseGlyph, useCourseTile } from "../../ui/tile";
 import { DetailSheet } from "../schedule/details";
 import { blockClassKey, useBlockMovedOnTo } from "./banner";
 import { ClassSheet, classCard } from "./class-sheet";
@@ -53,24 +60,6 @@ type Item =
 const SHORT_DAY = 3;
 /** Rows under the fold's first screen, today's and the next day's together. */
 const ROWS_AHEAD = 5;
-
-/** A clash's pair, the same whichever class comes first. */
-const pairOf = (a: string, b: string) => [a, b].sort().join("|");
-
-/** Which rows say the clash: the first of each pair in the list, the others leave it to that one. */
-function clashRows(items: readonly Item[]): Set<string> {
-  const pairs = new Set<string>();
-  const rows = new Set<string>();
-  for (const item of items) {
-    const overlap = item.kind === "class" ? item.facts.overlap : null;
-    if (!overlap) continue;
-    const pair = `${wibDay(item.start)}:${pairOf(item.code, overlap.code)}`;
-    if (pairs.has(pair)) continue;
-    pairs.add(pair);
-    rows.add(item.key);
-  }
-  return rows;
-}
 
 export function Later({ context, plan, courses, onCard }: { context: HomeContext; plan: TodayPlan; courses: readonly TermCourse[]; onCard: string | null }) {
   const t = useT();
@@ -126,27 +115,31 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
   ]
     .filter((item) => wibDay(item.start) === day && item.end > now && item.key !== onCard && blockClassKey(item.code, item.start) !== onBlock)
     .sort((a, b) => a.start - b.start);
-  // A short day: the next day with a class follows it, so the page never ends in a blank third.
+  // A short day: the next day with anything on it follows, a class or a meeting only Edunex announced (the plan
+  // holds tomorrow's), so the page never ends in a blank third and never skips a day the Student has to turn up on.
   const ahead = useMemo((): Item[] => {
     if (items.length + unread.length > SHORT_DAY) return [];
-    const later = (context.schedule ?? []).filter((session) => wibDay(session.start) > day).sort((a, b) => a.start - b.start);
+    const classes = (context.schedule ?? [])
+      .filter((session) => wibDay(session.start) > day)
+      .map((session) => ({ start: session.start, code: session.courseCode, key: `class:${session.id}`, session, announced: null }));
+    const meetings = plan.announced
+      .filter((one) => wibDay(one.meeting.start) > day)
+      .map((one) => ({ start: one.meeting.start, code: one.code, key: `meeting:${one.code}:${one.meeting.start}`, session: null, announced: one }));
+    const later = [...classes, ...meetings].sort((a, b) => a.start - b.start);
     const nextDay = later[0] ? wibDay(later[0].start) : null;
     return later
-      .filter(
-        (session) => wibDay(session.start) === nextDay && `class:${session.id}` !== onCard && blockClassKey(session.courseCode, session.start) !== onBlock,
-      )
+      .filter((one) => wibDay(one.start) === nextDay && one.key !== onCard && blockClassKey(one.code, one.start) !== onBlock)
       .slice(0, ROWS_AHEAD - items.length)
-      .map((session) => ({
-        kind: "class",
-        key: `class:${session.id}`,
-        start: session.start,
-        end: session.end,
-        code: session.courseCode,
-        facts: classFacts(context, session),
-      }));
-  }, [context, day, items.length, unread.length, onCard, onBlock]);
+      .map(
+        (one): Item =>
+          one.session
+            ? { kind: "class", key: one.key, start: one.start, end: one.session.end, code: one.code, facts: classFacts(context, one.session) }
+            : { kind: "meeting", key: one.key, start: one.start, end: one.announced.meeting.end, code: one.code, meeting: one.announced },
+      );
+  }, [context, plan.announced, day, items.length, unread.length, onCard, onBlock]);
   if (!items.length && !unread.length && !ahead.length) return null;
-  const clashes = clashRows(items);
+  // Today's rows share the first row's height (it reaches the fold): even steps down the day.
+  const step = items.length + ahead.length > 1 && reach ? reach : undefined;
   const open = (item: Item) =>
     setPicked(
       item.kind === "class"
@@ -178,15 +171,7 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
               {items.map((item, i) =>
                 i === 0 ? (
                   <View key={item.key} ref={lead} collapsable={false}>
-                    <Row
-                      item={item}
-                      first={!unread.length}
-                      last={items.length === 1}
-                      clash={clashes.has(item.key)}
-                      courses={courses}
-                      minHeight={items.length + ahead.length > 1 && reach ? reach : undefined}
-                      onOpen={() => open(item)}
-                    />
+                    <Row item={item} first={!unread.length} last={items.length === 1} clash courses={courses} minHeight={step} onOpen={() => open(item)} />
                   </View>
                 ) : reach === null ? null : (
                   <Row
@@ -194,8 +179,9 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
                     item={item}
                     first={false}
                     last={i === items.length - 1}
-                    clash={clashes.has(item.key)}
+                    clash
                     courses={courses}
+                    minHeight={step}
                     onOpen={() => open(item)}
                   />
                 ),
@@ -280,7 +266,7 @@ function Row({
   item: Item;
   first: boolean;
   last: boolean;
-  /** This row says its pair's clash (the pair's other row leaves it to this one). */
+  /** This row says its clash: today's rows do, both of a pair, each with the time they share. */
   clash: boolean;
   courses: readonly TermCourse[];
   /** The first row's height when it runs down to the fold. */
@@ -291,7 +277,11 @@ function Row({
   const f = useFormat();
   const v = useTheme().v4;
   const timeColumn = useTextWidth(44);
-  const name = item.kind === "class" ? nameOf(courses, item.code, item.facts.session.courseName) : nameOf(courses, item.code);
+  const course = item.kind === "class" ? nameOf(courses, item.code, item.facts.session.courseName) : nameOf(courses, item.code);
+  // An exam says so before the course's name ("UTS Komunikasi Pemasaran"), as Jadwal's block does.
+  const exam = item.kind === "class" && isExamActivity(item.facts.session.activity) ? item.facts.session.activity : null;
+  const name = exam ? `${exam} ${course}` : course;
+  const { ink } = useCourseTile()(item.code);
   const place = item.kind === "class" ? item.facts.session.room : item.meeting.meeting.online ? t("mobile.home.online") : null;
   const chip = chipOf(t, item);
   const meta = [f.time(item.start), place].filter(Boolean).join(" · ");
@@ -318,7 +308,7 @@ function Row({
       <View style={{ width: 24, alignItems: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <View style={{ width: 2, height: space[2], backgroundColor: first ? "transparent" : v.line }} />
         <View style={{ height: 26, justifyContent: "center" }}>
-          <CourseGlyph code={item.code} name={name} size={22} />
+          {exam ? <ServiceIcons.Exams size={22} color={ink} /> : <CourseGlyph code={item.code} name={course} size={22} />}
         </View>
         <View style={{ width: 2, flex: 1, backgroundColor: last ? "transparent" : v.line }} />
       </View>
@@ -335,9 +325,9 @@ function Row({
               </Text>
             ) : null}
             {marked && (
-              // A clash, once for the pair, under the name on the room's line: the sheet this row opens says which to go to.
+              // A clash, on both rows of the pair with the time they share: the sheet this row opens says which to go to.
               <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={`clash.today.${item.key}`}>
-                <ClashMark />
+                <ClashMark detail={overlap ? f.timeRange(overlap.from, overlap.to) : undefined} />
               </View>
             )}
             {/* Neutral words: amber is for the Student's standing and the clash, and a new room isn't either. */}
