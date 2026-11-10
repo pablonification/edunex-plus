@@ -135,14 +135,20 @@ for changes to sessions, the window's protections, packaging or workflows.
 
 ## Packaged builds
 
-`npm run package:mac` (dmg and zip for Apple silicon and Intel, ad-hoc signed, needs macOS), `npm run
+`npm run package:mac` (dmg and zip for Apple silicon and Intel, ad-hoc signed, needs macOS;
+`MAC_ARCH=arm64` or `MAC_ARCH=x64` builds only one), `npm run
 package:win` (one-click installers, one for x64 and one for arm64) and `npm run package:linux`
 (AppImage and deb) build installers into `release/`. Windows builds are best
 made on Windows or in CI, Linux builds on Linux. After a Mac build, release builds run
 `node scripts/package-mac-update.mjs release`: the app in each zip again as a `.tar.xz` about a
 third smaller, listed in `latest-mac.yml`, which the app updates from. Builds that publish nothing add
-`--quick` (xz level 1: the same checks in seconds instead of minutes). The zip stays in every release:
+`--quick` (xz level 1: the same checks in seconds instead of minutes). With the `xz` program installed
+(`brew install xz`) it packs on every core, three times as fast. The zip stays in every release:
 copies up to 0.1.0-alpha.16 update only from it.
+
+The release workflow builds each kind of Mac on a Mac of its own, at the same time. Each keeps its
+`latest-mac.yml` as `latest-mac-<arch>.yml`, and the publish job joins the two into one
+(`node scripts/join-mac-update-info.mjs installers`).
 
 **The Mac app's signature.** Release builds sign the Mac app with the project's own certificate
 (`scripts/package-sign.mjs`), so every version is the same app to macOS. It isn't Apple's, so the

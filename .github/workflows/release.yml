@@ -1,7 +1,8 @@
 # The installable app for macOS, Windows and Linux, and on a version tag the phone app too (mobile-release.yml).
 #
 # - On a version tag (v1.2.3): checks that the tag matches package.json's
-#   version, builds all three, and puts them in a DRAFT release with notes
+#   version, builds all three (each kind of Mac on a Mac of its own), and puts
+#   them in a DRAFT release with notes
 #   written from the merged pull requests (.github/release.yml groups them).
 #   You publish the draft by hand after trying it on real accounts; only then
 #   does the app's once-a-day update check see the new version. Once SignPath
@@ -27,6 +28,7 @@ on:
       - "scripts/package-mac-update.mjs"
       - "scripts/package-zip-win.mjs"
       - "scripts/update-info.mjs"
+      - "scripts/join-mac-update-info.mjs"
       - "scripts/chunk-maps.mjs"
       - "scripts/build-desktop.mjs"
       - "scripts/desktop-bundle.mjs"
@@ -80,14 +82,25 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # Each kind of Mac on a Mac of its own, at the same time: one Mac building both took twice
+        # as long. publish joins their update info (scripts/join-mac-update-info.mjs).
         include:
-          - name: macOS
+          - name: macOS, Apple silicon
+            id: mac-arm64
             os: macos-latest
             target: mac
+            arch: arm64
+          - name: macOS, Intel
+            id: mac-x64
+            os: macos-latest
+            target: mac
+            arch: x64
           - name: Windows
+            id: win
             os: windows-latest
             target: win
           - name: Linux
+            id: linux
             os: ubuntu-latest
             target: linux
     runs-on: ${{ matrix.os }}
@@ -173,6 +186,8 @@ jobs:
       - name: Build and package
         env:
           TARGET: ${{ matrix.target }}
+          # Only this job's kind of Mac (electron-builder.config.mjs); empty elsewhere.
+          MAC_ARCH: ${{ matrix.arch }}
           # electron-builder signs the Mac app ad-hoc (electron-builder.config.mjs) and doesn't
           # look for certificates; with this keychain, scripts/package-sign.mjs signs it again.
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
@@ -191,6 +206,13 @@ jobs:
       # latest-mac.yml with its sha512, checked to unpack to the signed app
       # (scripts/package-mac-update.mjs). The zip stays: copies up to 0.1.0-alpha.16 update only from it.
       # Builds that publish nothing pack it at xz level 1 (--quick): the same checks in seconds, not minutes.
+      # xz itself packs on every core, where macOS's own tar packs on one; the runner doesn't come with it.
+      - name: Get xz ready (macOS)
+        if: matrix.target == 'mac'
+        env:
+          HOMEBREW_NO_AUTO_UPDATE: "1"
+          HOMEBREW_NO_INSTALL_CLEANUP: "1"
+        run: command -v xz || brew install xz
       - name: Pack the Mac update smaller (macOS)
         if: matrix.target == 'mac'
         run: |
@@ -418,13 +440,19 @@ jobs:
       # sha512 in the latest*.yml beside its file.
       - name: Write the chunk maps
         run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/chunk-maps.mjs release
+      # This Mac's half of the update info, named so the other Mac's doesn't overwrite it; publish joins them.
+      - name: Name the update info for this kind of Mac (macOS)
+        if: matrix.target == 'mac'
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: mv release/latest-mac.yml "release/latest-mac-$ARCH.yml"
       # With them, the update info files (latest-mac.yml, latest.yml, latest-linux*.yml): the
       # sha512 of each file the app downloads when it updates itself, which it checks before
       # installing (src/desktop/self-update.ts).
       - name: Keep the installers
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: app-${{ matrix.target }}
+          name: app-${{ matrix.id }}
           path: |
             release/*.dmg
             release/*.zip
@@ -529,12 +557,19 @@ jobs:
     permissions:
       contents: write # create the draft release and attach the installers
     steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Collect the installers
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: app-*
           path: installers
           merge-multiple: true
+      # The runner's own Node: the script needs no packages.
+      - name: Join the two Macs' update info
+        run: node scripts/join-mac-update-info.mjs installers
       - name: Write each file's SHA-256 checksum
         # SHA256SUMS.txt goes on the release beside the installers, so a student can check that
         # a download is the file this workflow built (docs/install.md, "Check a download").
