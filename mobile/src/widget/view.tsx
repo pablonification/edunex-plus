@@ -287,12 +287,14 @@ function NowWidget({ model: given, size, theme }: { model: WidgetModel; size: Wi
         </FlexWidget>
         <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexGap: 8 }}>
           {plan.below.more ? <Text text={plan.below.more.label} size="small" color={v.brandInk} bold open={plan.below.more.open} /> : null}
-          <Foot
-            status={model.status}
-            theme={theme}
-            width={size.width - 24 - (plan.below.more ? plan.below.more.label.length * FONT.small * scale * 0.62 + 8 : 0)}
-            scale={scale}
-          />
+          {plan.footInside ? null : (
+            <Foot
+              status={model.status}
+              theme={theme}
+              width={size.width - 24 - (plan.below.more ? plan.below.more.label.length * FONT.small * scale * 0.62 + 8 : 0)}
+              scale={scale}
+            />
+          )}
         </FlexWidget>
       </FlexWidget>
     </FlexWidget>
@@ -400,7 +402,9 @@ function fitNow(model: WidgetModel, cls: WidgetClass, size: WidgetSize): FittedN
   // Under the block: its frame (12) and the gap (10) come out of what's left.
   // (What's wrong already has its line kept above.)
   // The last line under the block is one row: the link to the rest at its left, when the data was read at its right.
-  const under = room - 22 - (L("small") + 6) + (model.status.problem ? L("foot") + 6 : 0);
+  // (Offline, the line stays on the block, where the button was: the reason there's none is said in its place.)
+  const offline = Boolean(model.status.offline);
+  const under = room - 22 - (L("small") + 6) + (model.status.problem && !offline ? L("foot") + 6 : 0);
   const rowHeight = (LINE.small + 10) * scale;
   const ahead = (model.today?.classes ?? []).filter((one) => !one.past && !one.live);
   // The next class right under the block, then what needs the Student under its heading, then the rest of the day.
@@ -423,7 +427,7 @@ function fitNow(model: WidgetModel, cls: WidgetClass, size: WidgetSize): FittedN
     below,
     detailUnder,
     // On the block, only what's wrong: when all is well the class is the whole widget.
-    footInside: !below && Boolean(model.status.text) && model.status.problem,
+    footInside: (!below || offline) && Boolean(model.status.text) && model.status.problem,
   };
 }
 
@@ -749,7 +753,7 @@ export function Foot({
   scale = 1,
   on,
 }: {
-  status: { text: string; problem: boolean; short?: string };
+  status: { text: string; problem: boolean; short?: string; mid?: string };
   theme: Theme;
   /** The line's width in dp: what's wrong is said in its short form before it's cut. */
   width?: number;
@@ -758,13 +762,15 @@ export function Foot({
 }) {
   if (!status.text) return null;
   // A tenth of slack: the phone's font runs wider than the estimate.
-  const fits = width === undefined || status.text.length * FONT.foot * scale * 0.62 <= width;
-  const text = fits || !status.short ? status.text : status.short;
+  const held = (text: string) => width === undefined || text.length * FONT.foot * scale * 0.62 <= width;
+  // Offline is said in words at every size ("Tidak terhubung · data 08:12", then "Tidak terhubung · 08:12"); the bare
+  // "Data 08:12" only in one cell, which holds no more.
+  const text = held(status.text) ? status.text : status.mid && (held(status.mid) || (width ?? 0) >= 110) ? status.mid : (status.short ?? status.text);
   return <Text text={text} size="foot" color={on ?? (status.problem ? theme.v4.ambFg : theme.v4.muted)} bold={status.problem} lines={1} />;
 }
 
 /**
- * A widget with nothing of its own to show, the same on all eight: its own name, one sentence that's true, and one
+ * A widget with nothing of its own to show, the same on all seven: its own name, one sentence that's true, and one
  * thing to tap, in the only blue on it. The whole widget is that tap. One cell: the sentence's two words alone.
  */
 export function StateCard({
@@ -774,7 +780,7 @@ export function StateCard({
   theme,
 }: {
   quiet: WidgetQuiet;
-  status: { text: string; problem: boolean; short?: string };
+  status: { text: string; problem: boolean; short?: string; mid?: string };
   size: WidgetSize;
   theme: Theme;
 }) {

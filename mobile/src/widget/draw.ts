@@ -9,22 +9,11 @@ import type { Snapshot } from "../../../src/core/snapshot";
 import { translate } from "../../../src/core/strings";
 import { THEMES, type Theme } from "../ui/theme";
 import { chosenCourse, forgetChoice } from "./choice";
-import {
-  attendanceWidget,
-  courseWidget,
-  dueWidget,
-  examWidget,
-  nextWidget,
-  servicesWidget,
-  type WidgetFacts,
-  type WidgetModel,
-  widgetFacts,
-  widgetModel,
-} from "./model";
+import { attendanceWidget, courseWidget, dueWidget, examWidget, nextWidget, type WidgetFacts, type WidgetModel, widgetFacts, widgetModel } from "./model";
 import { isWidgetName, type WidgetName } from "./names";
 import { readSaved } from "./saved";
 import { emptyDrawing, todayDrawing, type WidgetSize, widgetDrawing } from "./view";
-import { AttendanceView, CourseView, DueView, ExamView, NextView, ServicesView } from "./views";
+import { AttendanceView, CourseView, DueView, ExamView, NextView } from "./views";
 
 /** The engine as the app has it running: its snapshot and its moment (the demo's runs ahead). */
 export interface LiveSource {
@@ -78,8 +67,6 @@ export function currentDrawing(source: LiveSource | null = live): Drawing | null
           return once(name, () => examWidget(facts));
         case "Next":
           return once(name, () => nextWidget(facts));
-        case "Services":
-          return once(name, () => servicesWidget(facts));
         case "Course": {
           const code = chosenCourse(widgetId);
           return once(`${name}:${code ?? ""}`, () => courseWidget(facts, code));
@@ -130,8 +117,6 @@ export function drawingOf(drawing: Drawing | null, info: WidgetInfo): WidgetRepr
       return looks(theme, (t) => ExamView({ model: drawing.modelOf(name, info.widgetId) as ReturnType<typeof examWidget>, size, theme: t }));
     case "Next":
       return looks(theme, (t) => NextView({ model: drawing.modelOf(name, info.widgetId) as ReturnType<typeof nextWidget>, size, theme: t }));
-    case "Services":
-      return looks(theme, (t) => ServicesView({ model: drawing.modelOf(name, info.widgetId) as ReturnType<typeof servicesWidget>, size, theme: t }));
     case "Course":
       return looks(theme, (t) => CourseView({ model: drawing.modelOf(name, info.widgetId) as ReturnType<typeof courseWidget>, size, theme: t }));
   }
