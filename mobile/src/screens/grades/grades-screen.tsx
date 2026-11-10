@@ -2,7 +2,8 @@
 // hooks. The first view answers "after an exam: my grade and what it does to my IPK" (round 1's council): the IPK big,
 // and beside it what it becomes after this semester; the SKS passed over a thin bar of those needed; then this term's
 // courses, the grades that are out first as plain letters, the ones still to come under a heading that says in words
-// they're the Student's own estimates, each with a picker that's a 48 dp control. Then the target, a row each on the
+// they aren't out yet, each row saying its letter is a guess beside a picker that's a 48 dp control, the target and
+// what it needs from them right over them (round 2's council). Then a row each on the
 // way to graduating (when; the next honor
 // as "Butuh rata-rata 3,66", over which SKS a sheet away, or "Tak terkejar"; the highest IPK possible "jika semua A";
 // the first opens the planner), IP and IPK per
@@ -45,6 +46,7 @@ import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
 import { Meter } from "../../ui/meter";
 import { PressScale } from "../../ui/press";
+import { ROW_SIDE } from "../../ui/row-end";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { font, space, useTheme } from "../../ui/theme";
@@ -155,6 +157,7 @@ const Standing = memo(function Standing({ record, state, after }: { record: Stud
   const sks = passedSks(record);
   const need = sksModel(record, state.plan).need;
   const of = t("mobile.academic.sksOf", { need });
+  const forecast = record.thisTerm.some((c) => c.grade === null);
   return (
     <View testID="card.standing" style={{ marginHorizontal: space[1], marginTop: space[2], gap: space[4] }}>
       {/* Two figures on one baseline, the second wrapping under the first at a big font size. */}
@@ -165,8 +168,10 @@ const Standing = memo(function Standing({ record, state, after }: { record: Stud
         </View>
         {after !== null && (
           <View accessible accessibilityLabel={`${t("grades.ipkAfter")} ${f.number(after, 2)}`} style={{ paddingBottom: 4 }}>
-            <FigureLabel>{t("mobile.grades.afterTerm")}</FigureLabel>
-            <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={28} color={v.fg2} />
+            {/* A forecast while a grade is still to come, and named one; alive in the brand's ink, never grey
+                (round 2's council: "3,29 is grey and reads as switched off"). */}
+            <FigureLabel>{t(forecast ? "mobile.grades.forecast" : "mobile.grades.afterTerm")}</FigureLabel>
+            <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={30} color={v.brandInk} />
           </View>
         )}
       </View>
@@ -212,7 +217,7 @@ function GradesSkeleton() {
           <Skeleton width="100%" height={6} />
         </View>
       </Panel>
-      <Panel style={{ paddingHorizontal: 14, gap: space[5] }}>
+      <Panel style={{ paddingHorizontal: ROW_SIDE, gap: space[5] }}>
         {[0, 1, 2].map((i) => (
           <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
             <Skeleton width={44} height={44} style={{ borderRadius: 14 }} />
@@ -398,8 +403,9 @@ function Chart({ record, state }: { record: StudentRecord; state: PlanState }) {
 
 /**
  * This term's courses. The grades that are out lead, as plain letters under "Semester ini"; the ones still to come sit
- * under a heading that says, once and in words, that they're the Student's own estimates (round 1's council: "are the
- * AB chips real or guesses?"). Under them the target and what it needs from this term.
+ * under "Belum keluar", each row saying its letter is a guess beside the picker (round 1's council: "are the AB chips
+ * real or guesses?"), with the target and what it needs from this term right over them, and one quiet line on where a
+ * course's own scores are.
  */
 function ThisTerm({ record, state, termOnly }: { record: StudentRecord; state: PlanState; termOnly: Projection }) {
   const t = useT();
@@ -410,6 +416,13 @@ function ThisTerm({ record, state, termOnly }: { record: StudentRecord; state: P
   const coming = record.thisTerm.filter((c) => c.grade === null);
   const hidden = coming.some((c) => !outline?.[c.code]?.grade);
   if (!record.term || !record.thisTerm.length) return null;
+  // The figure itself (the IPK after this semester) is at the top of the page, once.
+  const target = (
+    <View style={{ marginHorizontal: space[1], gap: space[3] }} testID="card.ipkAfter">
+      <TargetControl record={record} state={state} />
+      <NeedText need={termOnly.need(goal)} target={goal} sks={record.inProgressSks} scope="term" />
+    </View>
+  );
   return (
     <View testID="section.thisTerm">
       {out.length > 0 && (
@@ -422,21 +435,25 @@ function ThisTerm({ record, state, termOnly }: { record: StudentRecord; state: P
           </Group>
         </>
       )}
-      {coming.length > 0 && (
+      {/* The target and what it needs from this term stand over the guesses that answer it (round 2's council: the
+          target "sits at the bottom with no visible link to the pickers"); with every grade out, under the grades. */}
+      {coming.length > 0 ? (
         <View testID="section.estimates">
-          <Heading>{t(out.length ? "mobile.grades.estimatesRest" : "mobile.grades.estimates")}</Heading>
-          <Group>
+          <Heading>{t("mobile.grades.notOut")}</Heading>
+          {target}
+          <Group style={{ marginTop: space[3] }}>
             {coming.map((course, i) => (
               <TermCourseRow key={course.code} record={record} state={state} course={course} first={i === 0} />
             ))}
           </Group>
+          {/* Where a course's own scores are: its row opens them. */}
+          <Text size="bodyMedium" style={{ color: v.muted, marginTop: space[3], marginHorizontal: space[1] }}>
+            {t("mobile.grades.scoresWhere")}
+          </Text>
         </View>
+      ) : (
+        <View style={{ marginTop: space[5] }}>{target}</View>
       )}
-      {/* The figure itself ("IPK setelah semester ini") is at the top of the page, once. */}
-      <View style={{ marginTop: space[5], marginHorizontal: space[1], gap: space[3] }} testID="card.ipkAfter">
-        <TargetControl record={record} state={state} />
-        <NeedText need={termOnly.need(goal)} target={goal} sks={record.inProgressSks} scope="term" />
-      </View>
       {hidden && (
         <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
           {t("grades.edunexNote")}
@@ -474,12 +491,14 @@ function TermCourseRow({
     course.code,
     t("curriculum.sks", { sks: course.sks }),
     published ? t("grades.edunexGrade", { total: f.number(published.total, 1), letter: published.letter }) : null,
+    // The letter at the row's end is a guess: said in the row itself, beside the picker's shape (a grade from SIX is a plain letter).
+    course.grade ? null : t("mobile.grades.guess"),
   ]
     .filter(Boolean)
     .join(" · ");
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", paddingRight: 14 }}>
-      {!first && <View style={{ position: "absolute", top: 0, left: 70, right: 0, height: 1, backgroundColor: v.line }} />}
+    <View style={{ flexDirection: "row", alignItems: "center", paddingRight: ROW_SIDE }}>
+      {!first && <View style={{ position: "absolute", top: 0, left: ROW_SIDE + 44 + space[3], right: 0, height: 1, backgroundColor: v.line }} />}
       <PressScale
         onPress={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
         accessibilityHint={t("grades.whatNeed")}
@@ -490,7 +509,7 @@ function TermCourseRow({
           flexDirection: "row",
           alignItems: "center",
           gap: space[3],
-          paddingLeft: 14,
+          paddingLeft: ROW_SIDE,
           paddingRight: space[3],
           paddingVertical: space[3],
           minHeight: 64,

@@ -25,6 +25,7 @@ import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { iosPressed } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
+import { SEGMENT_HEIGHT, slopY } from "../../ui/sizes";
 import { Text, type TextTone, useFieldColors, useTextWidth } from "../../ui/text";
 import { radius, space, TOUCH, type, useTheme } from "../../ui/theme";
 import { ChartLegend, LineChart } from "./chart";
@@ -246,6 +247,7 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
         <TextInput
           {...fieldColors}
           testID="input.target"
+          hitSlop={slopY(SEGMENT_HEIGHT)}
           inputMode="decimal"
           keyboardType="decimal-pad"
           accessibilityLabel={t("grades.targetOther")}
@@ -260,15 +262,17 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
           }}
           onBlur={() => setTyping(null)}
           style={{
-            width: 80,
-            height: TOUCH,
-            borderRadius: radius.lg,
+            // The fourth choice of the same control: the picks' own height, outline and round ends, no fill of its own
+            // (round 2's council: "boxed differently from the three beside it").
+            width: 88,
+            height: SEGMENT_HEIGHT,
+            borderRadius: SEGMENT_HEIGHT / 2,
             borderWidth: 1,
-            borderColor: invalid ? theme.color.dangerFg : theme.color.fieldEdge,
-            backgroundColor: theme.color.surfaceContainerLow,
-            paddingHorizontal: space[2],
+            borderColor: invalid ? theme.color.dangerFg : theme.color.outline,
+            backgroundColor: "transparent",
+            paddingHorizontal: space[3],
             paddingVertical: 0,
-            textAlign: "right",
+            textAlign: "center",
             textAlignVertical: "center",
             includeFontPadding: false,
             color: theme.color.fg,
