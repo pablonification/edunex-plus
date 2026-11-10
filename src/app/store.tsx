@@ -1,7 +1,7 @@
 // The window's memory: the snapshot it started with, kept current by engine
 // events. Screens read it through hooks that subscribe to one dataset or one
 // source each, so an update redraws only what uses it.
-import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo } from "react";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef } from "react";
 import type { AppSnapshot, DatasetPayload, Event, SignInStep } from "../core/contract";
 import type { DatasetName, DatasetValue, Settings, SourceId, SourceStatus, UpdateInstall } from "../core/models";
 import type { Route } from "../core/route";
@@ -174,6 +174,28 @@ export function useDatasetPayload(name: DatasetName): DatasetPayload | undefined
 export function useStatus(source: SourceId): SourceStatus {
   const store = useStore();
   return useTopic(store, `status:${source}`, () => store.status(source));
+}
+
+/**
+ * One part of a source's status (its state, the pages that changed), drawn again only when that part changes. Every
+ * read that goes well gives the status a new time: a screen that reads the whole status for its state was drawn again
+ * after each one (Beranda after SIX's every read of a pull to refresh, 125+ ms on a mid-range phone).
+ */
+export function useStatusPart<T>(source: SourceId, pick: (status: SourceStatus) => T): T {
+  const store = useStore();
+  const last = useRef<{ text: string; value: T } | null>(null);
+  return useTopic(store, `status:${source}`, () => {
+    const value = pick(store.status(source));
+    const text = JSON.stringify(value) ?? "";
+    if (last.current?.text === text) return last.current.value;
+    last.current = { text, value };
+    return value;
+  });
+}
+
+/** A source's state ("live", "signed-out"…), drawn again only when it changes (useStatusPart). */
+export function useSourceState(source: SourceId): SourceStatus["state"] {
+  return useStatusPart(source, (status) => status.state);
 }
 
 export function useSettings(): Settings {

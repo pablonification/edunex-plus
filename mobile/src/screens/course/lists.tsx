@@ -8,7 +8,7 @@ import { Text as RNText, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
-import { useStatus } from "../../../../src/app/store";
+import { useSourceState } from "../../../../src/app/store";
 import { meetingLinks } from "../../../../src/core/course-meetings";
 import type { Exam } from "../../../../src/core/exams";
 import { isOfficialUrl, isWebLink, linkHost } from "../../../../src/core/links";
@@ -53,7 +53,7 @@ function Quiet({ children }: { children: string }) {
 function NoExams() {
   const t = useT();
   const v = useTheme().v4;
-  const sixOut = useStatus("six").state === "signed-out";
+  const sixOut = useSourceState("six") === "signed-out";
   const { signIn, busy } = useSignIn();
   if (!sixOut)
     return (

@@ -87,8 +87,17 @@ function zoneClock(zone: string): Intl.DateTimeFormat | null {
   return zoneClocks.get(zone)!;
 }
 
-/** The zone's offset from UTC at an instant (ms), using the platform's time zone data. */
+/** WIB has been UTC+7 since 1 January 1964, with no summer time: ITB's dates need no zone data. */
+const WIB_OFFSET = 7 * 3_600_000;
+const WIB_SINCE = Date.UTC(1964, 0, 1);
+
+/**
+ * The zone's offset from UTC at an instant (ms), using the platform's time zone data. WIB's is known without it: on
+ * Android each asks the phone's zone data through Java, and ITB's 110 dates took four such questions each (most of
+ * the calendar's 100+ ms read on a mid-range phone).
+ */
 function zoneOffset(instant: number, zone: string): number {
+  if (zone === DEFAULT_ZONE && instant >= WIB_SINCE) return WIB_OFFSET;
   const parts = zoneClock(zone)!.formatToParts(new Date(instant));
   const get = (type: string) => Number(parts.find((p) => p.type === type)?.value);
   return Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second")) - instant;
@@ -160,17 +169,43 @@ function repeats(rule: string, first: number, allDay: boolean): number[] {
 
 /** Every event in a calendar; repeats come out as separate events. */
 export function parseIcs(text: string): IcsEvent[] {
+  const reader = icsReader(text);
+  reader.read(Number.POSITIVE_INFINITY);
+  return reader.events;
+}
+
+/** Lines read before the screens get a turn (parseIcsInSlices): about 20 events of ITB's. */
+const SLICE = 250;
+
+/**
+ * The same, with the screens given a turn (`breathe`) every few hundred lines: on the phone the engine and the screens
+ * share one thread, and the whole file read at once held it 100+ ms.
+ */
+export async function parseIcsInSlices(text: string, breathe: () => Promise<void>): Promise<IcsEvent[]> {
+  const reader = icsReader(text);
+  while (!reader.read(SLICE)) await breathe();
+  return reader.events;
+}
+
+/** A calendar read a few lines at a time: `read(n)` reads n more lines and says whether it got to the end. */
+function icsReader(text: string): { events: IcsEvent[]; read(lines: number): boolean } {
   const lines = unfold(text.replace(/^﻿/, ""));
   if (lines[0]?.trim().toUpperCase() !== "BEGIN:VCALENDAR") throw new IcsError("Not a calendar");
   const events: IcsEvent[] = [];
   let current: Property[] | null = null;
   let depth = 0; // components nested inside an event (alarms) are skipped
-  for (const line of lines) {
+  let at = 0;
+  const read = (count: number): boolean => {
+    const end = Math.min(lines.length, at + count);
+    for (; at < end; at++) step(lines[at]!);
+    return at >= lines.length;
+  };
+  const step = (line: string): void => {
     const property = parseLine(line);
     if (property.name === "BEGIN") {
       if (current) depth++;
       else if (property.value.toUpperCase() === "VEVENT") current = [];
-      continue;
+      return;
     }
     if (property.name === "END") {
       if (current && depth > 0) depth--;
@@ -178,11 +213,11 @@ export function parseIcs(text: string): IcsEvent[] {
         events.push(...toEvents(current));
         current = null;
       }
-      continue;
+      return;
     }
     if (current && depth === 0) current.push(property);
-  }
-  return events;
+  };
+  return { events, read };
 }
 
 function toEvents(properties: Property[]): IcsEvent[] {

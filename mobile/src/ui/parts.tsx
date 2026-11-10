@@ -82,6 +82,28 @@ export function useParts({
   return part;
 }
 
+/**
+ * How many of a long list's `total` lines it's handed: `first` while the screen's first draw comes in parts, then `step`
+ * more each time the JS thread is idle, until it has them all (and from then on, all of them). Handed the rest in one go,
+ * Tugas' list drew every row in reach at once: its last part held a mid-range phone's JS thread 111–114 ms. A few lines
+ * at a time is one small commit each.
+ */
+export function useLinesShown(total: number, first: number, { step = 3, idle = whenIdle }: { step?: number; idle?: WhenIdle } = {}): number {
+  const ready = useContext(Drawn) >= LAST_PART;
+  const [more, setMore] = useState(0);
+  const [all, setAll] = useState(false);
+  const shown = all ? total : Math.min(total, first + more);
+  useEffect(() => {
+    if (!ready || all) return;
+    if (shown >= total) {
+      setAll(true);
+      return;
+    }
+    return idle(() => startTransition(() => setMore((now) => now + step)));
+  }, [ready, all, shown, total, step, idle]);
+  return shown;
+}
+
 /** FlashList's own distance ahead on Android (dp), where a list starts. */
 export const DRAW_AHEAD_FIRST = 250;
 
