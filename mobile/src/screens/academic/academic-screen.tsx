@@ -216,18 +216,19 @@ function Standing({ ipk, sks, need, ink }: { ipk: number | null; sks: number | n
   const lang = useLang();
   return (
     // The numbers are read-only fields (RollTo): they take no touch, the card is the one target.
+    // Two figures, each in its own place with its label over it and a hairline between (round 3's council: "IPK and
+    // SKS squeezed into one line"): the IPK at the start, the SKS and its bar in the rest of the width.
     <View
       testID="profile.standing"
       pointerEvents="none"
-      style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[5], rowGap: space[3] }}
+      style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "stretch", columnGap: space[5], rowGap: space[3] }}
     >
-      {/* The label on the number's own line, at its foot: a line less of card, so the rows under it stand higher. */}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[2] }}>
-        <Text size="labelLarge" style={{ color: ink.ink2, paddingBottom: space[2] }}>
+      <View>
+        <Text size="labelLarge" style={{ color: ink.ink2, lineHeight: 18 }}>
           {t("grades.chart.ipk")}
         </Text>
         {ipk === null ? (
-          <Text size="titleLarge" face="display" weight="bold" style={{ color: ink.ink, paddingBottom: space[1] }}>
+          <Text size="titleLarge" face="display" weight="bold" style={{ color: ink.ink, paddingTop: space[1] }}>
             {t("mobile.profile.noGrades")}
           </Text>
         ) : (
@@ -236,24 +237,22 @@ function Standing({ ipk, sks, need, ink }: { ipk: number | null; sks: number | n
             decimals={2}
             comma={lang === "id"}
             testID="profile.ipk"
-            style={{ fontFamily: font.display.extrabold, fontSize: 36, lineHeight: 42, letterSpacing: -1, color: ink.ink }}
+            style={{ fontFamily: font.display.extrabold, fontSize: 36, lineHeight: 40, letterSpacing: -1, color: ink.ink }}
           />
         )}
       </View>
       {sks !== null && (
-        <View style={{ flexGrow: 1, flexBasis: 168, minWidth: 0, gap: space[2], paddingBottom: space[2] }}>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", columnGap: space[3] }}>
-            <Text size="labelLarge" style={{ color: ink.ink2, paddingBottom: 3 }}>
-              {t("grades.sksPassed")}
-            </Text>
-            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: space[1] }}>
-              <RollTo value={sks} testID="profile.sks" style={{ fontFamily: font.display.bold, fontSize: 20, lineHeight: 26, color: ink.ink }} />
-              {need > 0 && (
-                <Text size="bodyMedium" style={{ color: ink.ink2, paddingBottom: 3 }}>
-                  {t("mobile.academic.sksOf", { need })}
-                </Text>
-              )}
-            </View>
+        <View style={{ flexGrow: 1, flexBasis: 150, minWidth: 0, paddingLeft: space[5], borderLeftWidth: 1, borderLeftColor: ink.track }}>
+          <Text size="labelLarge" style={{ color: ink.ink2, lineHeight: 18 }}>
+            {t("grades.sksPassed")}
+          </Text>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[1], marginBottom: space[1] }}>
+            <RollTo value={sks} testID="profile.sks" style={{ fontFamily: font.display.bold, fontSize: 20, lineHeight: 26, color: ink.ink }} />
+            {need > 0 && (
+              <Text size="bodyMedium" style={{ color: ink.ink2, paddingBottom: 3 }}>
+                {t("mobile.academic.sksOf", { need })}
+              </Text>
+            )}
           </View>
           {need > 0 && <GrowingBar share={Math.max(0, Math.min(1, sks / need))} fill={ink.fill} track={ink.track} />}
         </View>
@@ -505,8 +504,14 @@ function DeadlinesRow() {
   const title = t("plan.tab.deadlines");
   if (!next) return <PartRow part="deadlines" title={title} meta={!calendar && reading ? "pending" : null} />;
   // A name that ran to two lines at font 1.1 ("Kuesioner evaluasi perkuliahan · 30 Nov") goes by its short one.
+  // The exam weeks are named as the weeks they are ("Masa UTS · 12 Okt"): Beranda's "7 hari ke UTS" counts to the
+  // Student's own first exam, a few days into them, and a bare "UTS" here read as the same thing on another date.
   const what =
-    next.event.kind === "questionnaire" ? t("mobile.academic.deadline.questionnaire") : t(`deadline.kind.${next.event.kind}` as Parameters<typeof t>[0]);
+    next.event.kind === "questionnaire"
+      ? t("mobile.academic.deadline.questionnaire")
+      : next.event.kind === "uts" || next.event.kind === "uas"
+        ? t("exam.period", { kind: t(next.event.kind === "uts" ? "exam.kind.UTS" : "exam.kind.UAS") })
+        : t(`deadline.kind.${next.event.kind}` as Parameters<typeof t>[0]);
   return (
     <PartRow
       part="deadlines"

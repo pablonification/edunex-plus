@@ -101,10 +101,11 @@ export function GradeSelect({
   const c = theme.color;
   const v = theme.v4;
   const [open, setOpen] = useState(false);
-  // A control, 48 dp tall: a soft fill, the letter, a chevron. A grade the Student picked is in the brand's tint; one
-  // the app still assumes is in the page's soft fill. That either is an estimate is said in words by the group's
-  // heading, never by a dashed edge (round 1's council).
-  const ink = guess ? v.fg : v.brandInk;
+  // A control, 48 dp tall: a dashed outline with no fill, the letter in a medium weight, a chevron. Either way it's an
+  // estimate, and looks like one (round 3's council: "bold 'AB' beside each course reads as a real grade"; a grade
+  // that's out is a plain bold letter): one the Student picked is in the brand's ink, one the app still assumes in the
+  // page's quiet ink. The group's heading says the word, once.
+  const ink = guess ? v.fg2 : v.brandInk;
   return (
     <>
       <Pressable
@@ -123,13 +124,15 @@ export function GradeSelect({
             gap: 6,
             paddingHorizontal: space[3],
             borderRadius: 14,
-            backgroundColor: guess ? v.chip : v.brandTint,
+            borderWidth: 1.5,
+            borderStyle: "dashed",
+            borderColor: guess ? c.outline : v.brandInk,
             overflow: "hidden",
           },
           iosPressed(pressed),
         ]}
       >
-        <Text size="titleMedium" face="display" weight="bold" tabular style={{ color: ink, fontSize: 17 }}>
+        <Text size="titleMedium" weight="medium" tabular style={{ color: ink, fontSize: 17 }}>
           {value}
         </Text>
         <Icons.ChevronDown size={14} color={guess ? v.muted : ink} weight="bold" />
@@ -315,6 +318,41 @@ export function NeedText({ need, target, sks, scope }: { need: Need; target: num
       sks,
       target: goal,
     }),
+  );
+}
+
+/**
+ * What a target takes from this semester, as a figure at the end of one line (Nilai): the average needed and its
+ * letter, or, when even straight A's fall short, the highest IPK still possible. A target already safe keeps its one
+ * positive line (`NeedText`).
+ */
+export function NeedFigure({ need, target, sks, best }: { need: Need; target: number; sks: number; best: number | null }) {
+  const t = useT();
+  const f = useFormat();
+  const v = useTheme().v4;
+  const out = need.kind === "out";
+  if (!(out && best !== null) && !(need.kind === "needs" && need.average > GRADE_POINTS.D + 1e-9)) {
+    return <NeedText need={need} target={target} sks={sks} scope="term" />;
+  }
+  const label = out ? t("mobile.grades.termBest") : t("mobile.grades.needAverage", { sks });
+  const figure = out
+    ? f.number(best ?? 0, 2)
+    : `${f.number(need.kind === "needs" ? need.average : 0, 2)} · ${letterForAverage(need.kind === "needs" ? need.average : 0)}`;
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label} ${figure}`}
+      accessibilityLiveRegion="polite"
+      testID="grades.need"
+      style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", columnGap: space[3] }}
+    >
+      <Text size="bodyMedium" style={{ color: v.muted }}>
+        {label}
+      </Text>
+      <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
+        {figure}
+      </Text>
+    </View>
   );
 }
 
