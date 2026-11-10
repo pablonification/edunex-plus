@@ -79,11 +79,18 @@ export function ServiceCircle({ icon, tone, size = 56 }: { icon: ServiceGlyph; t
 /**
  * One service on a grid, four across: its solid tile, its name under it (one word on Beranda; `lines` 2 where a name
  * needs two, on Semua layanan). The whole column is the one target and gives on a press.
+ *
+ * `tag`: the one fact a student wants before opening it (Nilai "3,26", UKT "Lunas", KRS "14 SKS"), as a small pill
+ * over the tile's top right corner. It's on the page's own surface with the page's ink and a hairline edge, so it
+ * reads on every tile colour in both themes and is never a state's colour (a fact, not an alarm). It floats over the
+ * tile: it takes no room, moves nothing, takes no touch, and grows leftwards so it stays inside its column. A screen
+ * reader hears it with the name ("Nilai, 3,26"). Pass it only once the fact is in (never a guess, never a placeholder).
  */
 export function ServiceTile({
   icon,
   tone,
   label,
+  tag,
   lines = 1,
   onPress,
   testID,
@@ -91,13 +98,14 @@ export function ServiceTile({
   icon: ServiceGlyph;
   tone: ServiceTone;
   label: string;
+  tag?: string;
   lines?: 1 | 2;
   onPress(): void;
   testID?: string;
 }) {
   const b = useB();
   return (
-    <PressScale onPress={onPress} accessibilityLabel={label} testID={testID} style={styles.tile}>
+    <PressScale onPress={onPress} accessibilityLabel={tag ? `${label}, ${tag}` : label} testID={testID} style={styles.tile}>
       <ServiceCircle icon={icon} tone={tone} />
       <Text
         size="bodyMedium"
@@ -107,6 +115,13 @@ export function ServiceTile({
       >
         {label}
       </Text>
+      {tag ? (
+        <View pointerEvents="none" testID={testID?.replace(/^action\./, "tag.")} style={[styles.tag, { borderColor: b.line, backgroundColor: b.page }]}>
+          <Text size="labelMedium" weight="bold" tabular numberOfLines={1} style={{ color: b.fg, fontSize: 11, lineHeight: 14, letterSpacing: 0 }}>
+            {tag}
+          </Text>
+        </View>
+      ) : null}
     </PressScale>
   );
 }
@@ -279,6 +294,17 @@ export function BRow({
 }
 
 const styles = StyleSheet.create({
+  // Its right edge 10 dp past the 56 dp tile's (half the tile, 28, and 10), its top 2 dp above the tile's top.
+  tag: {
+    position: "absolute",
+    top: 2,
+    right: "50%",
+    transform: [{ translateX: 38 }],
+    borderRadius: 999,
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
   tile: { flex: 1, minHeight: 48, alignItems: "center", gap: space[2], paddingVertical: space[1], paddingHorizontal: 2 },
   count: { flex: 1, minHeight: 56, alignItems: "center", paddingVertical: space[2], paddingHorizontal: space[1], gap: 2 },
 });
