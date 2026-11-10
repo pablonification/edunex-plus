@@ -46,11 +46,11 @@ export function ServiceMark({ service }: { service: Service }) {
   );
 }
 
-/** A thing's kind as its bare glyph, in its course's colour when it has one. */
-export function KindMark({ icon: Icon, code }: { icon: ComponentType<IconProps>; code: string | null }) {
+/** A thing's kind as its bare glyph, in its course's colour when it has one (or `color`: a state's, such as amber). */
+export function KindMark({ icon: Icon, code, color: own }: { icon: ComponentType<IconProps>; code: string | null; color?: string }) {
   const b = useB();
   const course = useCourseTile();
-  const color = code ? course(code).ink : b.fg2;
+  const color = own ?? (code ? course(code).ink : b.fg2);
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.mark}>
       <Icon size={24} color={color} />
