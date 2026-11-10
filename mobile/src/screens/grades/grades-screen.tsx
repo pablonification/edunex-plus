@@ -1,7 +1,9 @@
-// Nilai on the phone (round 2, v4: mobile/qa/v4-rollout.md): src/app/screens/grades.tsx in one column on v4's grey
-// page, the same figures from the same hooks. The key number first: one card led by the IPK, big and counting up once,
-// the predicate it heads for as plain words beside it, last semester's IP a quiet line, the SKS passed a smaller figure
-// over a thin bar of those needed (parts/standing.tsx). Then a row each on the way to graduating (when; the next honor
+// Nilai on the phone: src/app/screens/grades.tsx in one column, flat on the page, the same figures from the same
+// hooks. The first view answers "after an exam: my grade and what it does to my IPK" (round 1's council): the IPK big,
+// and beside it what it becomes after this semester; the SKS passed over a thin bar of those needed; then this term's
+// courses, the grades that are out first as plain letters, the ones still to come under a heading that says in words
+// they're the Student's own estimates, each with a picker that's a 48 dp control. Then the target, a row each on the
+// way to graduating (when; the next honor
 // as "Butuh rata-rata 3,66", over which SKS a sheet away, or "Tak terkejar"; the highest IPK possible "jika semua A";
 // the first opens the planner), IP and IPK per
 // semester with its legend and the target's line (the IPK at graduation at its end, when it differs from today's),
@@ -17,29 +19,40 @@ import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { type PlanState, usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import type { CalendarEvent } from "../../../../src/core/models";
-import { checkPlan, expectedGrade, hasWhatIfs, honorsOutlook, passedSks, project, type StudentRecord, sksModel, targetOf } from "../../../../src/core/planner";
+import {
+  checkPlan,
+  expectedGrade,
+  hasWhatIfs,
+  honorsOutlook,
+  type Projection,
+  passedSks,
+  project,
+  type StudentRecord,
+  sksModel,
+  targetOf,
+} from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
-import { StandingFigures } from "../../parts/standing";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
 import { useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
-import { Rise } from "../../ui/expressive";
+import { CountUp, Rise } from "../../ui/expressive";
 import { Figure, FigureDash, FigureLabel, Group, GroupRow, Heading, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { haptic } from "../../ui/haptics";
 import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
+import { Meter } from "../../ui/meter";
 import { PressScale } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { font, space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { Later } from "../plan/deferred";
 import { useFreshPlan } from "../plan/fresh-plan";
-import { effortKey, GradeSelect, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "../plan/projection";
+import { effortKey, GradeSelect, IpkChart, NeedText, TargetControl, useTermName } from "../plan/projection";
 import { SixNeeded } from "../plan/six-needed";
 import { GradeLetter, shownIndex, Transcript } from "./transcript";
 
@@ -93,12 +106,16 @@ function GradesOrWithoutSix() {
 }
 
 function Grades({ record, state }: { record: StudentRecord; state: PlanState }) {
-  // The key card is the first frame; this term, the way to graduating with the chart, and the transcript come after,
-  // a frame each, each drawing only itself when it comes.
+  // The key figures are the first frame; this term, the way to graduating with the chart, and the transcript come
+  // after, a frame each, each drawing only itself when it comes.
+  // This term alone: what the IPK becomes, and what the target needs from its courses. Worked out once, for both.
+  const { plan } = state;
+  const termOnly = useMemo(() => project(record, { ...plan, terms: [] }), [record, plan]);
+  const after = record.term && record.thisTerm.length ? (termOnly.steps.find((s) => s.term === record.term)?.ipk ?? null) : null;
   return (
     <>
       <Rise screen="grades" index={0}>
-        <Standing record={record} state={state} />
+        <Standing record={record} state={state} after={after} />
       </Rise>
       <View style={{ gap: space[3], marginTop: space[3] }}>
         <SixPageNote datasets={["six.transcript", "six.progress"]} />
@@ -108,7 +125,7 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
       {/* The newest grades next, with what they do to the IPK ("IPK setelah semester ini"): after an exam that's what
           the Student came for, so it's the first thing under the big number, not a screen or two down. */}
       <Later frame={1}>
-        <ThisTerm record={record} state={state} />
+        <ThisTerm record={record} state={state} termOnly={termOnly} />
       </Later>
       <Later frame={2}>
         <Graduation record={record} state={state} />
@@ -124,48 +141,55 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
 // ------------------------------------------------------------ the key card
 
 /**
- * The IPK, big, with the predicate it heads for as plain words beside it ("Sangat memuaskan"; "… saat lulus" when that
- * isn't today's), last semester's IP a quiet line, and the SKS passed over a thin bar of those needed.
+ * The IPK, big, and beside it what it becomes after this semester (from the grades that are out and the Student's
+ * estimates for the rest: the answer to "what does this grade do to my IPK"); under them the SKS passed over a thin
+ * bar of those needed. Flat on the page, starting at the headings' edge. No predicate in words beside the number
+ * (round 1's council: "words for what the number says"): the honors are rows of their own under "Menuju lulus".
  */
-const Standing = memo(function Standing({ record, state }: { record: StudentRecord; state: PlanState }) {
+const Standing = memo(function Standing({ record, state, after }: { record: StudentRecord; state: PlanState; after: number | null }) {
   const t = useT();
   const f = useFormat();
+  const lang = useLang();
   const v = useTheme().v4;
-  const predicate = usePredicate();
-  const transcript = record.transcript!;
-  const ipk = shownIndex(transcript.ipk);
+  const ipk = shownIndex(record.transcript!.ipk);
   const sks = passedSks(record);
   const need = sksModel(record, state.plan).need;
-  const { finalIpk, path, honor } = state.projection;
-  const word = predicate(predicateFor(finalIpk, path));
-  // Today's IPK heads for another predicate (grades still to come): the words say it's the one at graduation.
-  const later = word !== null && word !== predicate(predicateFor(ipk, path));
-  const graded = transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null);
-  const last = graded.at(-1);
-  const lastIp = last ? shownIndex(last.ip) : null;
+  const of = t("mobile.academic.sksOf", { need });
   return (
-    <Panel testID="card.standing" style={{ padding: space[5] }}>
-      <StandingFigures
-        id="grades"
-        ipk={ipk}
-        sks={sks}
-        need={need}
-        // Plain words, not a chip: nothing here to press.
-        aside={
-          word ? (
-            <Text size="bodyLarge" weight="medium" style={{ color: honor ? v.okFg : v.fg2 }}>
-              {later ? t("mobile.grades.predicateAtEnd", { predicate: word }) : word}
-            </Text>
-          ) : null
-        }
-      >
-        {lastIp !== null && (
-          <Text size="bodyMedium" tabular style={{ color: v.muted }}>
-            {t("mobile.grades.lastIp", { ip: f.number(lastIp, 2) })}
-          </Text>
+    <View testID="card.standing" style={{ marginHorizontal: space[1], marginTop: space[2], gap: space[4] }}>
+      {/* Two figures on one baseline, the second wrapping under the first at a big font size. */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[6], rowGap: space[3] }}>
+        <View>
+          <FigureLabel>{t("grades.chart.ipk")}</FigureLabel>
+          {ipk === null ? <FigureDash /> : <Figure id="grades.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
+        </View>
+        {after !== null && (
+          <View accessible accessibilityLabel={`${t("grades.ipkAfter")} ${f.number(after, 2)}`} style={{ paddingBottom: 4 }}>
+            <FigureLabel>{t("mobile.grades.afterTerm")}</FigureLabel>
+            <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={28} color={v.fg2} />
+          </View>
         )}
-      </StandingFigures>
-    </Panel>
+      </View>
+      <View style={{ gap: space[2] }}>
+        {/* The label at the start, the figure at the end, wrapping under it at a big font size. */}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", columnGap: space[3] }}>
+          <FigureLabel>{t("grades.sksPassed")}</FigureLabel>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[1] }}>
+            {sks === null ? (
+              <Text size="titleMedium" style={{ color: v.fg }}>
+                -
+              </Text>
+            ) : (
+              <CountUp id="grades.sks" value={sks} style={{ fontFamily: font.display.bold, fontSize: 20, lineHeight: 26, color: v.fg }} />
+            )}
+            <Text size="bodyMedium" style={{ color: v.muted }}>
+              {of}
+            </Text>
+          </View>
+        </View>
+        {sks !== null && need > 0 && <Meter value={sks / need} track={v.track} label={`${t("grades.sksPassed")} ${sks} ${of}`} />}
+      </View>
+    </View>
   );
 });
 
@@ -173,7 +197,8 @@ const Standing = memo(function Standing({ record, state }: { record: StudentReco
 function GradesSkeleton() {
   return (
     <View accessibilityState={{ busy: true }} testID="grades.loading" style={{ gap: space[6] }}>
-      <Panel style={{ padding: space[5], gap: space[3] }}>
+      {/* At the figures' own edge (the headings'), so nothing shifts when they arrive. */}
+      <Panel style={{ paddingHorizontal: space[1], paddingTop: space[2], gap: space[3] }}>
         <View style={{ gap: space[2] }}>
           <Skeleton width={32} height={14} />
           <Skeleton width={104} height={44} />
@@ -187,7 +212,7 @@ function GradesSkeleton() {
           <Skeleton width="100%" height={6} />
         </View>
       </Panel>
-      <Panel style={{ padding: space[4], gap: space[5] }}>
+      <Panel style={{ paddingHorizontal: 14, gap: space[5] }}>
         {[0, 1, 2].map((i) => (
           <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
             <Skeleton width={44} height={44} style={{ borderRadius: 14 }} />
@@ -371,36 +396,47 @@ function Chart({ record, state }: { record: StudentRecord; state: PlanState }) {
 
 // ------------------------------------------------------------ this term
 
-function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }) {
+/**
+ * This term's courses. The grades that are out lead, as plain letters under "Semester ini"; the ones still to come sit
+ * under a heading that says, once and in words, that they're the Student's own estimates (round 1's council: "are the
+ * AB chips real or guesses?"). Under them the target and what it needs from this term.
+ */
+function ThisTerm({ record, state, termOnly }: { record: StudentRecord; state: PlanState; termOnly: Projection }) {
   const t = useT();
-  const lang = useLang();
   const v = useTheme().v4;
   const outline = useDataset("edunex.outline");
-  const { plan } = state;
-  // This term alone: what the IPK becomes and what the target needs from its courses.
-  const termOnly = useMemo(() => project(record, { ...plan, terms: [] }), [record, plan]);
-  const after = termOnly.steps.find((s) => s.term === record.term)?.ipk ?? null;
-  const goal = targetOf(record, plan);
-  const pending = record.thisTerm.some((c) => c.grade === null);
-  const hidden = record.thisTerm.some((c) => c.grade === null && !outline?.[c.code]?.grade);
+  const goal = targetOf(record, state.plan);
+  const out = record.thisTerm.filter((c) => c.grade !== null);
+  const coming = record.thisTerm.filter((c) => c.grade === null);
+  const hidden = coming.some((c) => !outline?.[c.code]?.grade);
   if (!record.term || !record.thisTerm.length) return null;
   return (
     <View testID="section.thisTerm">
-      {/* Grades still to come: the ones shown are the Student's own estimates, said once by the heading. */}
-      <Heading trailing={pending ? <Pill tone="brand">{t("grades.estimate")}</Pill> : undefined}>{t("grades.thisTerm")}</Heading>
-      <Group>
-        {record.thisTerm.map((course, i) => (
-          <TermCourseRow key={course.code} record={record} state={state} course={course} first={i === 0} />
-        ))}
-      </Group>
-      <Panel style={{ marginTop: space[3], padding: space[5], gap: space[4] }} testID="card.ipkAfter">
-        <View>
-          <FigureLabel>{t("grades.ipkAfter")}</FigureLabel>
-          {after === null ? <FigureDash size={32} /> : <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={32} />}
+      {out.length > 0 && (
+        <>
+          <Heading>{t("grades.thisTerm")}</Heading>
+          <Group>
+            {out.map((course, i) => (
+              <TermCourseRow key={course.code} record={record} state={state} course={course} first={i === 0} />
+            ))}
+          </Group>
+        </>
+      )}
+      {coming.length > 0 && (
+        <View testID="section.estimates">
+          <Heading>{t(out.length ? "mobile.grades.estimatesRest" : "mobile.grades.estimates")}</Heading>
+          <Group>
+            {coming.map((course, i) => (
+              <TermCourseRow key={course.code} record={record} state={state} course={course} first={i === 0} />
+            ))}
+          </Group>
         </View>
+      )}
+      {/* The figure itself ("IPK setelah semester ini") is at the top of the page, once. */}
+      <View style={{ marginTop: space[5], marginHorizontal: space[1], gap: space[3] }} testID="card.ipkAfter">
         <TargetControl record={record} state={state} />
         <NeedText need={termOnly.need(goal)} target={goal} sks={record.inProgressSks} scope="term" />
-      </Panel>
+      </View>
       {hidden && (
         <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
           {t("grades.edunexNote")}

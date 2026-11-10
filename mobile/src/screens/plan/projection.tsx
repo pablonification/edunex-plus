@@ -100,40 +100,38 @@ export function GradeSelect({
   const c = theme.color;
   const v = theme.v4;
   const [open, setOpen] = useState(false);
-  // v4: a grade the Student picked is a tonal chip in the brand's tint; one still assumed is dashed and quiet.
-  const ink = guess ? v.muted : v.brandInk;
+  // A control, 48 dp tall: a soft fill, the letter, a chevron. A grade the Student picked is in the brand's tint; one
+  // the app still assumes is in the page's soft fill. That either is an estimate is said in words by the group's
+  // heading, never by a dashed edge (round 1's council).
+  const ink = guess ? v.fg : v.brandInk;
   return (
     <>
       <Pressable
         testID={testID}
         accessibilityRole="button"
         accessibilityLabel={`${label}: ${value}`}
-        hitSlop={4}
         onPress={() => setOpen(true)}
         android_ripple={{ color: c.selected, borderless: false }}
         style={({ pressed }) => [
           {
-            minWidth: 60,
-            height: 40,
+            minWidth: 68,
+            height: TOUCH,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 4,
-            paddingHorizontal: space[2],
-            borderRadius: 12,
-            borderWidth: guess ? 1 : 0,
-            borderStyle: "dashed",
-            borderColor: c.fieldEdge,
-            backgroundColor: guess ? "transparent" : v.brandTint,
+            gap: 6,
+            paddingHorizontal: space[3],
+            borderRadius: 14,
+            backgroundColor: guess ? v.chip : v.brandTint,
             overflow: "hidden",
           },
           iosPressed(pressed),
         ]}
       >
-        <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: ink }}>
+        <Text size="titleMedium" face="display" weight="bold" tabular style={{ color: ink, fontSize: 17 }}>
           {value}
         </Text>
-        <Icons.ChevronDown size={12} color={ink} weight="bold" />
+        <Icons.ChevronDown size={14} color={guess ? v.muted : ink} weight="bold" />
       </Pressable>
       <Sheet open={open} onClose={() => setOpen(false)} title={label} background={v.card} testID="sheet.grade">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2], paddingBottom: space[2] }}>
@@ -159,7 +157,7 @@ export function GradeSelect({
                     justifyContent: "center",
                     borderWidth: on ? 2 : 0,
                     borderColor: v.brandInk,
-                    backgroundColor: on ? v.brandTint : v.page,
+                    backgroundColor: on ? v.brandTint : v.chip,
                   },
                   iosPressed(pressed),
                 ]}
