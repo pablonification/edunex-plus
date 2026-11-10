@@ -97,8 +97,6 @@ export const mobileStrings = {
   // Beranda's two sections, and the screen behind the first.
   "mobile.home.toHandle": { id: "Perlu kamu urus", en: "To handle" },
   "mobile.home.laterToday": { id: "Nanti hari ini", en: "Later today" },
-  // Nothing in "Perlu kamu urus": one line, still the way to its screen.
-  "mobile.home.toHandleNone": { id: "Tak ada yang perlu diurus", en: "Nothing to handle" },
   // A card's kind where a word says it: "Pertemuan · Jum 13:00" on Perlu kamu urus, a Presence's pill on Jadwal's month.
   "mobile.home.kind.presence": { id: "Presensi", en: "Presence" },
   "mobile.home.kind.meeting": { id: "Pertemuan", en: "Meeting" },
@@ -174,16 +172,31 @@ export const mobileStrings = {
   "mobile.home.reading": { id: "Membaca {part}…", en: "Reading {part}…" },
   // r4 home
   // Beranda's strip under the now card: a big number, and these words under it. Each opens its page.
-  // What's due in the next seven days (Tugas tab).
-  "mobile.home.strip.due": { id: "Tugas minggu ini", en: "Due this week" },
-  // Courses at or past their absence limit (Presensi), the Glossary's "Jatah absen"; none: "Aman" in the number's place.
-  "mobile.home.strip.absences": { id: "Jatah absen habis", en: "Out of absences" },
+  // What's due today (red), or with nothing today what's due in the next seven days; "0" when nothing is (Tugas tab).
+  "mobile.home.strip.dueToday": { id: "Tenggat hari ini", en: "Due today" },
+  "mobile.home.strip.due": { id: "Tenggat minggu ini", en: "Due this week" },
+  // What TalkBack reads for each.
+  "mobile.home.strip.dueTodaySpoken": {
+    id: "{count} tenggat hari ini",
+    en: { one: "{count} thing due today", other: "{count} things due today" },
+  },
+  "mobile.home.strip.dueSpoken": {
+    id: "{count} tenggat minggu ini",
+    en: { one: "{count} thing due this week", other: "{count} things due this week" },
+  },
+  // Courses at or past their absence limit (Presensi's "Jatah absen"): true of both, so the rows can't contradict it.
+  // None: "Aman" in the number's place.
+  "mobile.home.strip.absences": { id: "Batas absen tercapai", en: "Absence limit reached" },
   "mobile.home.strip.absencesSafe": { id: "Aman", en: "Safe" },
   "mobile.home.strip.absencesSafeLabel": { id: "Jatah absen", en: "Absences" },
-  // What TalkBack reads for the tile with courses at risk.
+  // What TalkBack reads for the tile with courses at risk, then how many of them are already past it.
   "mobile.home.strip.absencesSpoken": {
-    id: "Jatah absen habis di {count} mata kuliah",
-    en: { one: "Out of absences in {count} course", other: "Out of absences in {count} courses" },
+    id: "{count} mata kuliah sudah sampai batas absen",
+    en: { one: "{count} course has reached its absence limit", other: "{count} courses have reached their absence limit" },
+  },
+  "mobile.home.strip.absencesOverSpoken": {
+    id: "{count} di antaranya sudah lewat",
+    en: { one: "{count} of them is past it", other: "{count} of them are past it" },
   },
   // The next exam: days to it ("3 · hari ke UTS"), or "Hari ini" in the number's place on its day.
   "mobile.home.strip.examDays": { id: "hari ke {kind}", en: { one: "day to {kind}", other: "days to {kind}" } },

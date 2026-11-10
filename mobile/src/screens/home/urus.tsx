@@ -4,12 +4,13 @@
 // beside a Task it can't read as an assignment past its deadline, and no pips (they had no key, and the words said
 // them again; Kuliah and the course page draw them); opens the course. One row per course, as the Student acts on a
 // course, not on a count (round 3's final review: one grouped row hid which courses, and "Absen di 3 mata kuliah" read
-// as "you were absent"); on Beranda at most three, so the Tasks stay in view. Then classes that clash ("Kelas bentrok ·
+// as "you were absent"); Beranda leaves them out, as its strip counts them (the whole list keeps them). Then classes that clash ("Kelas bentrok ·
 // Kam 16:00", the two short names under it, so neither is cut; opens Jadwal on that day), then what to hand in or do,
 // the soonest first (the Task's own name, its deadline under it the one way the app writes a date; "Presensi" at the
 // end when handing it in counts for attendance; red with a warning sign once late). At most five rows; the chevron opens
-// the whole list, with what's put off and away (./needs-screen.tsx), and says "+2 lagi" when Beranda holds rows back. Hidden behind one quiet line when there's nothing. While the first read runs, the
-// rows stand in their shape: picked from half the data, they swapped under the Student's eyes.
+// the whole list, with what's put off and away (./needs-screen.tsx), and says "+2 lagi" when Beranda holds rows back. On Beranda
+// the list holds only what the strip doesn't count (./strip.tsx), and is gone with nothing left. While the first read
+// runs, the rows stand in their shape: picked from half the data, they swapped under the Student's eyes.
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { Pressable, View } from "react-native";
@@ -33,18 +34,17 @@ import { Rise } from "../../ui/expressive";
 import { Group, GroupRow, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { iosPressed, PressScale } from "../../ui/press";
+import { iosPressed } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { showOnSchedule } from "../schedule/schedule-screen";
 import { dayAndTime, nameOf, shortName } from "./parts";
 import { type AbsenceProblem, type ClashProblem, firstRows, type Problems } from "./problems";
+import { type StripFacts, stripSays } from "./strip-facts";
 
 /** Rows Beranda shows; the rest are on the whole list. */
 export const URUS_ROWS = 5;
-/** Courses short on absences Beranda shows, before the first thing to do. */
-export const URUS_ABSENCES = 3;
 
 interface TodoRow {
   need: NeedDraft;
@@ -196,59 +196,23 @@ export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due
   }, [problems, needs, due, entries, handled, now, t, f, courses]);
 }
 
-export function Urus({
-  problems,
-  needs,
-  due,
-  courses,
-}: {
-  problems: Problems;
-  needs: readonly NeedDraft[];
-  due: readonly NeedDraft[];
-  courses: readonly TermCourse[];
-}) {
+/**
+ * Beranda's "Perlu kamu urus": only what the strip above doesn't already say (`stripSays`: the absences, the due rows it
+ * counts, the next exam), so each fact is said once. With nothing left, the section isn't there: the strip's tiles lead
+ * to the pages. The whole list stays one tap away on the section's chevron.
+ */
+export function Urus({ all, facts, courses }: { all: readonly UrusRow[]; facts: StripFacts; courses: readonly TermCourse[] }) {
   const t = useT();
   const v = useTheme().v4;
-  const all = useUrusRows(problems, needs, due, courses);
-  const rows = useMemo(() => {
-    let absences = 0;
-    return firstRows(
-      all.filter((row) => row.kind !== "absence" || ++absences <= URUS_ABSENCES),
-      URUS_ROWS,
-    );
-  }, [all]);
-  // What the whole list has that Beranda holds back, said by the chevron that opens it.
-  const more = all.length - rows.length;
+  const left = useMemo(() => all.filter((row) => !stripSays(facts, row)), [all, facts]);
+  const rows = useMemo(() => firstRows(left, URUS_ROWS), [left]);
+  // What Beranda holds back of its own rows, said by the chevron that opens the whole list.
+  const more = left.length - rows.length;
   // The demo's first sync, or the Student's first read after a sign-in (the top bar's "Membaca …").
   const settling = useSettling();
   const firstReading = useFirstReadRunning();
   const reading = settling || firstReading;
-  // Nothing to handle: a single quiet line stays as the way to the whole list (what's put off, what changed).
-  if (!rows.length && !reading)
-    return (
-      <Rise screen="home" index={2}>
-        <PressScale
-          onPress={() => router.push("/needs")}
-          testID="action.needs.all"
-          style={{
-            marginTop: space[6],
-            backgroundColor: v.card,
-            borderRadius: 20,
-            minHeight: 56,
-            paddingHorizontal: space[4],
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[3],
-          }}
-        >
-          <Icons.CheckCircle size={22} weight="fill" color={v.okFg} />
-          <Text size="bodyLarge" weight="medium" style={{ color: v.fg, flex: 1 }}>
-            {t("mobile.home.toHandleNone")}
-          </Text>
-          <Icons.ChevronRight size={20} color={v.muted} />
-        </PressScale>
-      </Rise>
-    );
+  if (!rows.length && !reading) return null;
   return (
     <View testID="section.needs">
       <Rise screen="home" index={2}>
