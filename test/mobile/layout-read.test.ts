@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { readDump } from "../../mobile/qa/dump-lib.mjs";
 import { MAX_WORDS, MIN_TAPS, readLayout } from "../../mobile/qa/layout-read.mjs";
+import { tabCentres } from "../../mobile/qa/tab-centres.mjs";
 import { readTargets } from "../../mobile/qa/targets-read.mjs";
 
 interface Spec {
@@ -188,5 +189,18 @@ describe("targets-read", () => {
 
   it("leaves a tap inside another tap to the one around it", () => {
     expect([...found.small, ...found.unnamed].map((f: { node: { id: string } }) => f.node.id)).not.toContain("row.nested.icon");
+  });
+});
+
+describe("tab-centres (phone.sh taps the tabs where it finds them)", () => {
+  it("gives each tab's middle, left to right, from either format", () => {
+    const bar = screen(tabBar());
+    const expected = TAB_IDS.map((id, i) => ({ id: `tab.${id}`, x: i * 216 + 108, y: 2169 }));
+    expect(tabCentres(readDump(asMaestro(bar)))).toEqual(expected);
+    expect(tabCentres(readDump(asXml(bar)))).toEqual(expected);
+  });
+
+  it("finds nothing on a screen with no tab bar", () => {
+    expect(tabCentres(readDump(asMaestro(screen(good()))))).toEqual([]);
   });
 });
