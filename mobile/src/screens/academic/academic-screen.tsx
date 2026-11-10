@@ -66,12 +66,16 @@ function useFirstRead(source: "six" | "itb"): boolean {
   return status.state === "connecting" || (status.state === "live" && status.updatedAt === null);
 }
 
-/** What SIX's part of the tab can show: the record, its shape while it's read, or nothing to read it from. */
+/**
+ * What SIX's part of the tab can show: the record ("here"; also a first-term Student SIX has read but has no grades
+ * for yet, said in words), its shape while the first read runs, or nothing to read it from.
+ */
 function useSixState(record: StudentRecord | undefined): "here" | "reading" | "none" {
   const six = useStatus("six");
-  const student = useDataset("six.student");
+  const firstRead = useFirstRead("six");
   if (record?.transcript) return "here";
-  return student || six.state === "connecting" || six.state === "live" ? "reading" : "none";
+  if (firstRead) return "reading";
+  return six.state === "live" ? "here" : "none";
 }
 
 export function AcademicContent() {
