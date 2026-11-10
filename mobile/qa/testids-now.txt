@@ -28,7 +28,6 @@ action.changes.all
 action.checkIn
 action.checkSix
 action.checkUpdate
-action.clash
 action.clearSearch
 action.comment
 action.commentCancel
@@ -52,7 +51,6 @@ action.courseTarget
 action.courseTargetDefault
 action.courseWhy
 action.coursesMenu
-action.currentModule
 action.curriculumNotes
 action.deadlines.next
 action.deadlines.past
@@ -70,7 +68,6 @@ action.fileRetry
 action.fileShare
 action.firstScan
 action.firstScan.all
-action.firstScan.open
 action.fix.countedAs
 action.fix.done
 action.fix.mine
@@ -200,6 +197,7 @@ action.signOutAll
 action.signOutAllConfirm
 action.snooze
 action.standIn.<code>
+action.statusWhy
 action.storySend
 action.strip.absences
 action.strip.exam
@@ -249,8 +247,6 @@ card.deadlines.next
 card.due
 card.exam.next
 card.examWeek
-card.firstRead
-card.firstScan
 card.graduation
 card.handIn
 card.ipkAfter
@@ -310,6 +306,7 @@ input.note
 input.story
 input.target
 label.place
+line.coursesToday
 line.kuliahDay
 line.presence
 list.agenda
@@ -482,6 +479,7 @@ section.settings.courseColors
 section.thisTerm
 section.thread
 section.today
+section.today.reading
 section.transcript
 section.when
 segment.gradeTarget
@@ -547,6 +545,8 @@ status.course.<code>
 status.firstRead
 status.settling
 status.signIn
+status.signInFailed
+status.signInOffline
 strip.week
 swipe.done
 swipe.markDone
@@ -561,7 +561,6 @@ tab.profile
 tab.schedule
 tab.tasks
 tabs.course
-tag.service.<id>
 task.<id>
 task.edited
 task.handedBack
@@ -578,4 +577,5 @@ tasks.saveDraft
 tasks.submit
 tasks.today
 tasks.upload
+text.firstMinuteHello
 web.<site>
