@@ -33,6 +33,7 @@ import { StatTile } from "../../ui/kit";
 import { PressScale } from "../../ui/press";
 import { space } from "../../ui/theme";
 import { countdown } from "../tasks/row-parts";
+import { tileName } from "./tile-name";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -59,28 +60,6 @@ export function soonestDue(items: readonly TodoItem[], now: number): Due {
   if (next?.at != null) return { kind: "next", at: next.at, title: next.task.title };
   return open.length > 0 ? { kind: "undated", count: open.length } : { kind: "none" };
 }
-
-/**
- * A Task's name as short as a tile's one line holds, with its hour when both fit: "Tugas 02, 23:59". The name is the
- * title up to its first ":" (or " - ", "("), and of that a kind and its number when it starts so ("Tugas 02" of
- * "Tugas 02 Bab II"), else its whole words up to the line's length.
- */
-export function tileName(title: string, time: string): string {
-  const head = (title.split(/:| - | – |\(/)[0] ?? title).trim();
-  const numbered = head.match(/^\p{L}+ \d+/u)?.[0];
-  let name = numbered ?? head;
-  if (name.length > LABEL) {
-    let short = "";
-    for (const word of name.split(/\s+/)) {
-      if (`${short} ${word}`.trim().length > LABEL) break;
-      short = `${short} ${word}`.trim();
-    }
-    name = short || name;
-  }
-  return name.length + time.length + 2 <= LABEL + 1 ? `${name}, ${time}` : name;
-}
-/** The letters a tile's label holds on one line at font size 1.3 (the kit shrinks it a little, then cuts it). */
-const LABEL = 14;
 
 /** The next exam with a day of its own (never the start of "Masa UTS": Tugas and Ujian count to the exam). */
 export function nextExam(items: readonly TodoItem[], now: number): { kind: ExamKind; at: number } | null {
