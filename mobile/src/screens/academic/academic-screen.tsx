@@ -15,7 +15,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTimi
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
 import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
 import { displayName, initials } from "../../../../src/app/names";
-import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
+import type { PlanTab } from "../../../../src/app/shell/built";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import { billUrgency, krsOverlaps, krsStage } from "../../../../src/core/academic";
@@ -89,7 +89,7 @@ export function AcademicContent() {
           <BHeading>{t("mobile.services.group.academic")}</BHeading>
           <View testID="section.academic.screens">
             {/* Without SIX the card says so once: only the calendar (ITB's own) has something to show. */}
-            {six !== "none" && builtPlanTabs.length > 0 && (
+            {six !== "none" && (
               <>
                 <GradesRow record={record} />
                 <PlannerRow record={record} />

@@ -1,6 +1,6 @@
-// Settings (A6, round 2's v4), from the avatar on every tab: change one thing fast. The desktop's settings
-// (src/app/shell/settings.tsx) with the same words, on v4's grey page: who's signed in on top (a white card), then each
-// group a heading over one card of rows: Akun, Notifikasi, Tampilan, Beranda, Kehadiran, Warna mata kuliah, problem
+// Settings, from Profil (its gear and its "Pengaturan" row): change one thing fast. The desktop's settings
+// (src/app/shell/settings.tsx) with the same words, on the white page. Who's signed in is Profil's card, a step back,
+// so it isn't said again here: each group is a heading over its rows: Akun, Notifikasi, Tampilan, Beranda, Kehadiran, Warna mata kuliah, problem
 // reports (while the app has the maintainer's relay), Tentang, and signing out of everything last, in its own card.
 // A row is a title, its current value and one thing at its end; on/off is Android's MaterialSwitch, a pick-one opens
 // a native sheet, what explains a setting is spoken or one tap deeper. What only a computer has is left out: closing
@@ -15,14 +15,14 @@ import { useBridge, useSettings, useStore } from "../../../../src/app/store";
 import type { Settings } from "../../../../src/core/models";
 import { useParam } from "../../nav";
 import { usePerfDrawn } from "../../perf";
+import { useB } from "../../ui/b";
 import { Rise } from "../../ui/expressive";
 import { Page } from "../../ui/layout";
 import { ErrorBanner } from "../../ui/settings-list";
-import { useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { Later } from "../plan/deferred";
 import { AboutSettings, ReportSettings, SignOutAll } from "./about";
-import { Accounts, Profile } from "./accounts";
+import { Accounts } from "./accounts";
 import { AlertSettings } from "./alerts";
 import { Appearance, AttendanceTargets, CourseColors, HomeSettings } from "./choices";
 import type { Report, Update } from "./save";
@@ -30,7 +30,7 @@ import type { Report, Update } from "./save";
 export function SettingsScreen() {
   usePerfDrawn(true);
   const t = useT();
-  const v = useTheme().v4;
+  const b = useB();
   const bridge = useBridge();
   const store = useStore();
   const settings = useSettings();
@@ -58,7 +58,7 @@ export function SettingsScreen() {
   return (
     <Page
       testID="screen.settings"
-      background={v.page}
+      background={b.page}
       header={
         <>
           <TopBar title={t("nav.settings")} />
@@ -68,12 +68,9 @@ export function SettingsScreen() {
       scrollRef={scroll}
     >
       <Rise screen="settings" index={0}>
-        <Profile />
-      </Rise>
-      <Rise screen="settings" index={1}>
         <Accounts report={report} />
       </Rise>
-      <Section index={2} onY={anchor("alerts")}>
+      <Section index={1} onY={anchor("alerts")}>
         <AlertSettings settings={settings} update={update} report={report} />
       </Section>
       <Part now={now} frame={1}>
