@@ -111,6 +111,14 @@ describe("Kehadiran", () => {
       ["II4091", "safe", "Sisa 2×", "Sisa jatah absen 2×"],
     ]);
     expect(model.rows[0]?.open).toEqual({ kind: "route", route: { screen: "course", code: "KU5014" } });
+    // The marks a row draws: every absence the term allows, the ones used, and the ones past the limit.
+    for (const row of model.rows) {
+      if (row.allowed === null || row.used === null) continue;
+      expect(row.used).toBeLessThanOrEqual(row.allowed);
+      expect(row.allowed - row.used).toBe(row.state === "out" ? 0 : Math.max(0, row.left ?? 0));
+      expect(row.over > 0).toBe(row.state === "out");
+    }
+    expect(model.rows.some((row) => row.allowed !== null)).toBe(true);
     expect(model.all).toEqual({ kind: "route", route: { screen: "presence" } });
     // Changes only with SIX's count: never on a timer.
     expect(model.changesAt).toBeNull();
@@ -136,7 +144,9 @@ describe("Ujian", () => {
     plain(model);
     expect(model.next).toEqual({
       title: "UTS DK4073",
+      kind: "UTS",
       code: "DK4073",
+      name: "Komunikasi Pemasaran",
       tone: expect.stringMatching(/^var\(--course-/),
       days: 7,
       big: "7",
@@ -169,6 +179,7 @@ describe("Kelas berikutnya", () => {
       time: "11:00",
       big: "11:00",
       code: "DK4073",
+      name: "Komunikasi Pemasaran",
       room: "TVST C",
       tone: expect.stringMatching(/^var\(--course-/),
       day: null,
@@ -195,7 +206,8 @@ describe("Kelas berikutnya", () => {
 
   it("a holiday (no class in the week ahead) says so; signed out of SIX says where to sign in", () => {
     const quiet = nextWidget(factsOf(h, (shot) => ({ ...shot, datasets: shot.datasets.map((d) => (d.name === "six.schedule" ? { ...d, value: [] } : d)) })));
-    expect(quiet).toMatchObject({ state: "holiday", next: null, empty: { label: "Tidak ada kuliah dalam seminggu ke depan." } });
+    // One cell holds two words: the short form says the same.
+    expect(quiet).toMatchObject({ state: "holiday", next: null, empty: { label: "Tidak ada kuliah dalam seminggu ke depan.", short: "Tidak ada kuliah" } });
     expect(nextWidget(factsOf(h, without("six")))).toMatchObject({ state: "signedOut", empty: { label: "Masuk ke SIX" } });
   });
 
@@ -236,6 +248,8 @@ describe("Satu mata kuliah", () => {
       open: { kind: "route", route: { screen: "course", code: "PL3002" } },
     });
     expect(model.absences).toEqual({ state: "risk", label: "Sisa jatah absen 1×", short: "Sisa 1×" });
+    // The same as marks: one of the two absences the term allows is used.
+    expect(model.marks).toEqual({ allowed: 2, used: 1, over: 0 });
     expect(model.next).toEqual({ label: "Hari ini, 08:00–10:00 · R.SG PWK LT.6", short: "08:00", open: { kind: "class", sessionId: "2194342" } });
     expect(model.task).toMatchObject({ detail: "Tenggat Kam, 26 Nov, 23:59", open: { kind: "route", route: { screen: "task" } } });
     // The class on now ends at 10:00.

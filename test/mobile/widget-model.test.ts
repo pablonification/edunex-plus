@@ -29,6 +29,8 @@ describe("the widget", () => {
     expect(model.actions).toEqual([
       {
         label: "Isi Presensi PL3002",
+        // The button's word: the class is named right above it.
+        short: "Isi Presensi",
         detail: "Tutup 09:30",
         open: { kind: "url", url: "https://edunex.itb.ac.id/courses/95001" },
       },
@@ -59,6 +61,8 @@ describe("the widget", () => {
       // Then the class's open Edunex Presence, as the tray lists it.
       {
         label: "Isi Presensi PL3002",
+        // The button's word: the class is named right above it.
+        short: "Isi Presensi",
         detail: "Tutup 09:30",
         open: { kind: "url", url: "https://edunex.itb.ac.id/courses/95001" },
       },
@@ -97,6 +101,8 @@ describe("the widget", () => {
       { time: "16:00–17:50", code: "KU5014", room: "9134", live: false, past: false },
     ]);
     expect(today?.classes[0]?.open).toEqual({ kind: "class", sessionId: expect.any(String) });
+    // A row calls its course by name, whole; the code is the short form.
+    expect(today?.classes[0]).toMatchObject({ code: "PL3002", name: "Ekonomi dan Inovasi dalam Perencanaan" });
     expect(today?.none).toBeNull();
     expect(today?.deadline).toMatchObject({ label: expect.stringMatching(/^Tenggat .+ · [A-Z]{2}\d{4}$/), open: { kind: "route", route: { screen: "task" } } });
     // The widget is drawn again when the class on now ends.
