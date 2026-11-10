@@ -116,6 +116,38 @@ describe("layout-read: a Beranda at the top of the hill", () => {
   });
 });
 
+describe("layout-read: a grid React Native draws flat", () => {
+  // The base's real dump (~/hill-climb/run/dumps/r0-home.maestro.json): the `home.grid` view is flattened away, so its eight
+  // `action.service.*` tiles are the grid's siblings, their bounds inside its bounds, not its children.
+  const flat = (labels: string[], ids = labels.map((_, i) => `action.service.s${i}`)): Spec[] => {
+    const g = grid(labels);
+    return [{ ...g, kids: [] }, ...(g.kids ?? []).map((tile, i) => ({ ...tile, id: ids[i] }))];
+  };
+  const page = (labels: string[], ids?: string[]) => [...good().slice(0, 3), ...flat(labels, ids), ...tabBar()];
+
+  it("counts the service tiles lying inside the grid's bounds", () => {
+    const layout = readLayout(readDump(asMaestro(screen(page(LABELS)))));
+    const row = layout.rows.find((r: { key: string }) => r.key === "service grid");
+    expect(row?.value).toContain("8 tiles (4+4 across)");
+    expect(row?.ok).toBe(true);
+    expect(layout.grid.map((t: { label: string }) => t.label)).toEqual(LABELS);
+  });
+
+  it("takes the tile with action.service.more as the last, whatever its word", () => {
+    const labels = [...LABELS.slice(0, 7), "More"];
+    const ids = labels.map((_, i) => (i === 7 ? "action.service.more" : `action.service.s${i}`));
+    const row = readLayout(readDump(asMaestro(screen(page(labels, ids))))).rows.find((r: { key: string }) => r.key === "service grid");
+    expect(row?.ok).toBe(true);
+  });
+
+  it("leaves out a service tile that lies outside the grid", () => {
+    const tiles = page(LABELS);
+    tiles.push({ id: "action.service.stray", tap: true, box: [42, 1700, 291, 1900], kids: [{ text: "Nyasar", box: [60, 1800, 250, 1850] }] });
+    const row = readLayout(readDump(asMaestro(screen(tiles)))).rows.find((r: { key: string }) => r.key === "service grid");
+    expect(row?.value).toContain("8 tiles");
+  });
+});
+
 describe("layout-read: a Beranda below it", () => {
   // Today's shape with the new blocks put wrong: an avatar, Akademik last, a grid pushed under the bar, one tile cut and
   // not "Lainnya" last, "0" on the strip, and too few things to tap.

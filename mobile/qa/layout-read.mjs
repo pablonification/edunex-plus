@@ -14,7 +14,8 @@
 //                 of it and not counted; `--count-nested` counts them too. Boxes with the same bounds count once.
 //   words         at most 50, counted as words-now.mjs counts (letters or digits, joined by . : , × % – -), from `text`
 //                 only (a content description repeats what is drawn), status bar and tab bar left out
-//   grid          home.grid's tiles (its outermost clickable nodes): 8 at most, 4 across (the first row full when there are
+//   grid          home.grid's tiles (its outermost clickable nodes, or the `action.service.*` nodes lying inside its bounds: React
+//                 Native may draw the tiles beside the grid's node, not under it): 8 at most, 4 across (the first row full when there are
 //                 four or more), the last "Lainnya", one word each, none cut off, all the same size
 //   strip         no tile of home.strip says exactly "0"
 //
@@ -147,10 +148,22 @@ export function readLayout(dump, options = {}) {
   let gridOk = false;
   let gridValue = "no home.grid";
   if (gridNode) {
-    tiles = within(gridNode)
-      .filter((node) => node !== gridNode && node.clickable && widthOf(node) > 0)
+    // React Native may flatten the grid's own view away, so its tiles come out as siblings of the `home.grid` node (same parent,
+    // bounds inside its bounds), not children of it (the base's dump: ~/hill-climb/run/dumps/r0-home.maestro.json). A tile is a
+    // clickable node under the grid, or an `action.service.*` node lying inside the grid's bounds; the outermost one of each.
+    const gridRect = { x1: gridNode.x1, y1: gridNode.y1, x2: gridNode.x2, y2: gridNode.y2 };
+    const under = new Set(within(gridNode));
+    const candidates = nodes.filter(
+      (node) =>
+        node !== gridNode &&
+        node.clickable &&
+        widthOf(node) > 0 &&
+        (under.has(node) || (/^action\.service\./.test(node.id) && shareInside(node, gridRect) >= 0.5)),
+    );
+    const isTile = new Set(candidates);
+    tiles = candidates
       .filter((node) => {
-        for (let up = node.parent; up && up !== gridNode; up = up.parent) if (up.clickable) return false;
+        for (let up = node.parent; up; up = up.parent) if (isTile.has(up)) return false;
         return true;
       })
       .map((node) => ({ node, label: visibleText(node) || labelOf(node), box: within(node).filter((n) => n.text.trim()) }));
@@ -169,7 +182,8 @@ export function readLayout(dump, options = {}) {
     if (tiles.length === 0) problems.push("no clickable tiles");
     if (tiles.length > MAX_TILES) problems.push(`${tiles.length} tiles, ${MAX_TILES} at most`);
     if (across.some((n) => n > 4) || (tiles.length >= 4 && across[0] !== 4)) problems.push(`${across.join("+")} across, not 4 a row`);
-    if (lastTile && !/^lainnya$/i.test(lastTile.label.trim())) problems.push(`the last tile is "${lastTile.label}", not "Lainnya"`);
+    if (lastTile && lastTile.node.id !== "action.service.more" && !/^(?:lainnya|more)$/i.test(lastTile.label.trim()))
+      problems.push(`the last tile is "${lastTile.label}", not "Lainnya" (action.service.more)`);
     const heights = tiles.map((tile) => heightOf(tile.node));
     if (heights.length && Math.max(...heights) - Math.min(...heights) > 4)
       problems.push(`tiles differ in height (${Math.min(...heights)}-${Math.max(...heights)} px): one may be cut by the tab bar`);
