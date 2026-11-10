@@ -54,6 +54,7 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Typeface | Plus Jakarta Sans is in the iOS bundle too. |
 | Widgets | Their own, through Expo's `expo-widgets` (WidgetKit, SwiftUI): "Edunex Plus" and "Hari ini" on the Home Screen (small, medium, large) and the Lock Screen, fed by the same model as Android's (`qa/superapp-ios-widgets.md`). A Live Activity for the class on now. Never seen running yet. |
 | Back gesture, navigation bar colour, 120 Hz plugin | Android-only, skipped on iOS (iOS does these itself). |
+| The first minute (`src/shell/first-minute/`) | Same code: the stage, the doors, the curtain. Its haptics are the Taptic Engine's nearest (`ui/haptics.ts`: a medium tap per system in and at the hand-over, the selection tick as the mark lands). The button dims under the finger (no ripple on iOS). |
 | Exact alarms | Android-only permission; iOS fires a booked notification on time anyway. |
 | Push notifications | Off: the app never uses them, and a free Apple ID can't sign them. |
 
@@ -99,3 +100,12 @@ step only worth doing if the one before it worked:
     to do.
 11. **Memory.** A widget gets little memory, and these run a small JavaScript engine: if a widget stays blank
     or greyed after step 3, that's the first suspect (Console.app on the Mac, the `ExpoWidgetsTarget` process).
+and the background sync.
+
+The first minute, to check on an iPhone: the status bar's icons stay white over the stage and turn to Beranda's as
+the curtain clears them (`expo-status-bar`, set by the stage and the scene; `seam.ts` says which Beranda wants); the
+headline, button and note clear the home indicator (the stage pads by the safe area's bottom) and the language chip
+clears the notch or Dynamic Island (by its top); the curtain's rounded lower edge shows no gap at the screen's own
+rounded corners as it starts to lift; the three haptics are felt once each and not doubled; and the sign-in page
+stepping aside after Microsoft hands back (`shell/sign-in.tsx`: unseen, still read every 400 ms) still finishes the
+sign-in, since an unseen web view is throttled differently by iOS than by Android.

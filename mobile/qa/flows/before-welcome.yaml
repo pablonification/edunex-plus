@@ -1,23 +1,26 @@
-# The "before" pictures of the first run (shots.sh): the welcome and the steps after it, in ${THEME}.
+# The first run's pictures (shots.sh), in ${THEME}: the stage before the tap, the button turned status after it, and
+# Beranda once the stage has handed over. (Round 1's three-step deck, which this flow first pictured, is gone: no
+# Mulai, no Hubungkan, no Lanjut.)
 appId: io.github.pablonification.edunexplus.demo
 ---
 - clearState: io.github.pablonification.edunexplus.demo
 - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=first-run&EDUNEX_DEMO_THEME=${THEME}"
 - extendedWaitUntil:
     visible:
-      id: action.start
+      id: action.signIn
     timeout: 60000
 - waitForAnimationToEnd
 - takeScreenshot: selamat-datang
 - tapOn:
-    id: action.start
-- waitForAnimationToEnd
-- takeScreenshot: selamat-datang-hubungkan
-- tapOn:
-    id: action.connect.edunex
+    id: action.signIn
 - extendedWaitUntil:
     visible:
-      id: screen.welcome.connected
+      id: status.signIn
+    timeout: 30000
+- takeScreenshot: selamat-datang-hubungkan
+- extendedWaitUntil:
+    notVisible:
+      id: screen.firstMinute
     timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: selamat-datang-terhubung

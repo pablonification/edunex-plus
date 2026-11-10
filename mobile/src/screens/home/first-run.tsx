@@ -1,6 +1,8 @@
-// What the first run leaves on Beranda instead of taking over the screen (W15): once the first read is in, one line
-// ("Semua siap, Dimas.") that opens the summary;
-// and, the first time there's a class, the one ask for notifications, saying what they're for, with Nyalakan and
+// What the first run leaves on Beranda instead of taking over the screen (W15): one card that holds its place from
+// the moment Beranda shows (the first minute hands over to it, ../../shell/first-minute). While the first read runs it
+// says what the read has brought so far ("5 mata kuliah · 10 tugas"); once the read is in it turns, in the same place,
+// into "Semua siap, Dimas." and opens the summary. It never arrives late and pushes what's under it down.
+// And, the first time there's a class, the one ask for notifications, saying what they're for, with Nyalakan and
 // Nanti, before Android's own prompt. Each goes for good once answered.
 import { File, Paths } from "expo-file-system";
 import * as Notifications from "expo-notifications";
@@ -10,6 +12,7 @@ import { View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
 import { firstName } from "../../../../src/app/names";
 import { useBridge, useDataset, useSettings } from "../../../../src/app/store";
+import { firstRead } from "../../../../src/core/first-scan";
 import { useSettling } from "../../host/settling";
 import { IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
@@ -18,7 +21,7 @@ import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { useScanReady } from "../first-scan/scan";
 
-/** "Semua siap": shown once the first read is in, until the Student opens the summary. */
+/** The first read's card: what's in so far while it runs, then "Semua siap", until the Student opens the summary. */
 export function FirstScanCard() {
   const { firstScanDone } = useSettings();
   // The demo's own first sync isn't the Student's first read.
@@ -27,15 +30,48 @@ export function FirstScanCard() {
   return <ScanCard />;
 }
 
-/** One line and its one action: "Semua siap, Dimas." and Lihat ringkasan; the whole card opens the summary. */
+/** The card's height, the same reading and ready: nothing under it moves when the read comes in. */
+const SCAN_CARD = 56;
+
+/**
+ * One line in one place. Reading: what the read has brought, as plain words, nothing to press. Ready: "Semua siap,
+ * Dimas." and Lihat ringkasan; the whole card opens the summary.
+ */
 function ScanCard() {
   const t = useT();
   const v = useTheme().v4;
   const bridge = useBridge();
   const account = useDataset("edunex.account");
   const student = useDataset("six.student");
-  const { ready } = useScanReady();
-  if (!ready) return null;
+  const courses = useDataset("edunex.courses")?.length ?? 0;
+  const tasks = useDataset("edunex.tasks")?.length ?? 0;
+  const { saved, statuses, ready } = useScanReady();
+  const shape = {
+    minHeight: SCAN_CARD,
+    borderRadius: 20,
+    backgroundColor: v.brandTint,
+    paddingHorizontal: space[4],
+    flexDirection: "row",
+    alignItems: "center",
+    gap: space[3],
+  } as const;
+  if (!ready) {
+    // Held only while a system is still bringing its part: a read that stopped (offline, a page that changed) leaves no
+    // card waiting for it.
+    if (firstRead(saved, statuses).next === null) return null;
+    const found = [courses ? t("scan.read.courses", { count: courses }) : null, tasks ? t("scan.read.tasks", { count: tasks }) : null]
+      .filter(Boolean)
+      .join(" · ");
+    return (
+      <View testID="card.firstRead" style={{ marginTop: space[4] }} accessibilityState={{ busy: true }}>
+        <View style={shape} accessible={found !== ""} accessibilityLabel={found}>
+          <Text size="bodyLarge" weight="medium" tabular numberOfLines={1} style={{ flex: 1, color: v.brandInk }}>
+            {found}
+          </Text>
+        </View>
+      </View>
+    );
+  }
   const name = account ? firstName(account.name) : student ? firstName(student.name) : null;
   const title = name ? t("welcome.readyTitle", { name }) : t("welcome.readyTitlePlain");
   const open = () => {
@@ -49,15 +85,7 @@ function ScanCard() {
         testID="action.firstScan.open"
         accessibilityRole="button"
         accessibilityLabel={`${title} ${t("mobile.home.scanOpen")}`}
-        style={{
-          minHeight: 56,
-          borderRadius: 20,
-          backgroundColor: v.brandTint,
-          paddingHorizontal: space[4],
-          flexDirection: "row",
-          alignItems: "center",
-          gap: space[3],
-        }}
+        style={shape}
       >
         <Icons.CheckCircle size={22} weight="fill" color={v.brandInk} />
         <Text size="bodyLarge" weight="medium" numberOfLines={1} style={{ flex: 1, color: v.brandInk }}>
