@@ -351,8 +351,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
       const absent = flow.ids.filter((r) => !r.found && r.absentOk);
       const wait = flow.ids.filter((r) => !r.found && r.pending);
       const old = flow.ids.filter((r) => !r.found && r.history);
-      if (args.includes("--missing") && !miss.length && !wait.length && !old.length && !absent.length && !built.length) continue;
       const built = flow.ids.filter((r) => r.found && r.pending);
+      if (args.includes("--missing") && !miss.length && !wait.length && !old.length && !absent.length && !built.length) continue;
       const verdict = miss.length ? "MISSING" : wait.length ? "pending" : old.length ? "history" : "ok";
       console.log(
         `${verdict.padEnd(7)} ${flow.file}  (${new Set(flow.ids.map((r) => r.id)).size} ids${miss.length ? `, ${miss.length} missing` : ""}${wait.length ? `, ${wait.length} pending` : ""}${old.length ? `, ${old.length} gone, in a snapshot of an older app` : ""}${absent.length ? `, ${absent.length} checked absent` : ""})`,

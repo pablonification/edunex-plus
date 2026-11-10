@@ -23,7 +23,7 @@ name: "journey 4 after class: Beranda, Materi, an item"
     timeout: 20000
 - takeScreenshot: journey-4-materi
 # tap 2: an item; it opens the module (the files and notes), not a list again.
-# pending: Materi and Ujian: its rows' ids (row.material.<id>)
+# (row.material.<id> is a module's file row today: the Materi view's own rows may take another id; run flows-check.mjs after it lands)
 - tapOn:
     id: 'row\.material\..*'
     index: 0

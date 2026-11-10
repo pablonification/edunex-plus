@@ -262,8 +262,7 @@ const dependencies = (file) => {
         });
       }
       if (hits.some((h) => h.surface === "tab bar")) here = TAB_SURFACE[sel.value] ? { surface: TAB_SURFACE[sel.value], line: sel.line, via: sel.value } : null;
-      else if (hits.some((h) => h.surface === "Beranda" || h.surface === "Profil"))
-        here = here ?? { surface: hits[0].surface, line: sel.line, via: sel.value };
+      else if (hits.some((h) => h.surface === "Beranda" || h.surface === "Profil")) here = here ?? { surface: hits[0].surface, line: sel.line, via: sel.value };
       else if (!/^(?:screen|status)\./.test(sel.value)) here = null;
     } else {
       const hand = TEXT_BY_HAND.find(([re]) => re.test(sel.value));
