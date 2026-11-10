@@ -22,10 +22,10 @@ appId: io.github.pablonification.edunexplus.demo
 - runFlow:
     when:
       visible:
-        id: row.nav.plan
+        id: row.profile.planner
     commands:
       - tapOn:
-          id: row.nav.plan
+          id: row.profile.planner
       - extendedWaitUntil:
           visible:
             id: screen.plan
