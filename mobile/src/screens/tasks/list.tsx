@@ -22,6 +22,7 @@ import type { StringKey } from "../../../../src/core/strings";
 import { taskStatus } from "../../../../src/core/tasks";
 import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
+import { useArrivalId } from "../../parts/arrival";
 import { BTabHeader } from "../../parts/b-header";
 import { usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
 import { useB } from "../../ui/b";
@@ -315,6 +316,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const view = useMemo(() => tasksView(t, todo, courses, course, show, sixOut), [t, todo, courses, course, show, sixOut]);
   if (putOffOpen && !view.hasPutOff) setPutOffOpen(false);
   const listed = usePart(1);
+  const arrival = useArrivalId(todo !== null && todo !== undefined);
   const chips = usePart(2);
   const ahead = useDrawAhead();
   const first = FIRST_LINES[chips ? 2 : 1];
@@ -346,8 +348,9 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
       {listed && <View style={{ paddingHorizontal: space[4] }}>{header}</View>}
       <TaskRowWorld>
         {listed && (
-          // One filter's list becoming the other's: the old goes, the new fades in (the counts over it stay put).
-          <CrossFade id={show} style={{ flex: 1 }}>
+          // One filter's list becoming the other's, and the skeleton becoming the list: the old goes, the new fades in
+          // (the counts over it stay put).
+          <CrossFade id={`${arrival}:${show}`} style={{ flex: 1 }}>
             <FlashList
               ref={list}
               data={lines}

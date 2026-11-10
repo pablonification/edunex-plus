@@ -17,6 +17,7 @@ import { useDataset, useStatus } from "../../../../src/app/store";
 import { edunexMaterialUrl, type MaterialKind, materialAction, materialKind } from "../../../../src/core/course-materials";
 import type { Material } from "../../../../src/core/models";
 import { useNav } from "../../nav";
+import { useArrivalId } from "../../parts/arrival";
 import { FileProblemNote, useEdunexFile } from "../../parts/files";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh, useSignIn } from "../../shell/source-status";
@@ -26,6 +27,7 @@ import { EmptyState, Skeleton } from "../../ui/display";
 import { type IconName, Icons } from "../../ui/icons";
 import { useBottomInset } from "../../ui/insets";
 import { factsLabel } from "../../ui/layout";
+import { CrossFade } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseGlyph } from "../../ui/tile";
@@ -96,28 +98,32 @@ export function MaterialScreen() {
   const toggle = useCallback(() => setToggled((on) => !on), []);
   const renderItem = useCallback(({ item: line }: { item: FeedLine }) => <Line line={line} onFold={toggle} />, [toggle]);
   const loading = sections === null && (edunex === "connecting" || edunex === "live");
+  const arrival = useArrivalId(!loading);
   return (
     // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
     <View testID="screen.material" style={{ flex: 1, backgroundColor: b.page, paddingBottom: bottom }}>
       {/* The bar in the page's own colour in both themes (v4's page is the dark page; the light one is the surface). */}
       <TopBar v4={b.dark} title={t("mobile.material.title")} />
-      <FlashList
-        data={lines}
-        keyExtractor={(line) => line.key}
-        getItemType={feedLineType}
-        renderItem={renderItem}
-        ListHeaderComponent={<ProblemBanner belowBar />}
-        ListEmptyComponent={loading ? <Loading /> : <Nothing signedOut={edunex === "signed-out"} />}
-        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
-        refreshControl={
-          <RefreshControl
-            refreshing={pull.refreshing}
-            onRefresh={pull.onRefresh}
-            colors={[theme.color.primary]}
-            progressBackgroundColor={theme.color.surfaceContainerHigh}
-          />
-        }
-      />
+      {/* The skeleton becoming the list: it fades through, once, when the data comes while the Student looks. */}
+      <CrossFade id={arrival} style={{ flex: 1 }}>
+        <FlashList
+          data={lines}
+          keyExtractor={(line) => line.key}
+          getItemType={feedLineType}
+          renderItem={renderItem}
+          ListHeaderComponent={<ProblemBanner belowBar />}
+          ListEmptyComponent={loading ? <Loading /> : <Nothing signedOut={edunex === "signed-out"} />}
+          contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
+          refreshControl={
+            <RefreshControl
+              refreshing={pull.refreshing}
+              onRefresh={pull.onRefresh}
+              colors={[theme.color.primary]}
+              progressBackgroundColor={theme.color.surfaceContainerHigh}
+            />
+          }
+        />
+      </CrossFade>
     </View>
   );
 }
