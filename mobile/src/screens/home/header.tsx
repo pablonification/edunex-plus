@@ -3,6 +3,8 @@
 // with the data's status under the greeting only when it says something to act on. The bar stays put as the page
 // scrolls (app/(tabs)/index.tsx passes it as the page's header); a band of the same blue starts the page, and the now
 // card overlaps its lower edge. A tap on the greeting opens the sources' sheet, as a tab's title does elsewhere.
+// A halftone (ui/halftone.tsx) lifts the bar's right side: strongest in the top-right corner, gone by the greeting and
+// by the bar's lower edge, so the band under it starts plain and nothing slides past a seam as the page scrolls.
 import { memo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -10,6 +12,7 @@ import { useLang, useNow, useT } from "../../../../src/app/i18n";
 import { firstName } from "../../../../src/app/names";
 import { useDataset } from "../../../../src/app/store";
 import { StatusLine, SyncPanel, TabActions, useSyncText } from "../../shell/source-status";
+import { Halftone } from "../../ui/halftone";
 import { Text } from "../../ui/text";
 import { space, TOUCH, useTheme } from "../../ui/theme";
 import { BAR_HEIGHT } from "../../ui/top-bar";
@@ -17,6 +20,8 @@ import { partOfDay } from "./greeting";
 
 /** How far the now card reaches up into the blue band. */
 export const OVERLAP = 60;
+/** How wide the halftone reaches in from the right edge: about half a phone, so the greeting's start stays plain. */
+const TEXTURE_WIDTH = 224;
 
 export const HomeBar = memo(function HomeBar() {
   const t = useT();
@@ -33,6 +38,7 @@ export const HomeBar = memo(function HomeBar() {
   const hello = name ? t(`mobile.home.hello.${part}`, { name: firstName(name) }) : t(`time.greeting.${part}`);
   return (
     <View style={{ backgroundColor: v.head, paddingTop: insets.top }} testID="home.header">
+      <Halftone width={TEXTURE_WIDTH} height={insets.top + BAR_HEIGHT} color={v.headDots} />
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: BAR_HEIGHT, paddingLeft: space[4], paddingRight: space[1] }}>
         <Pressable
           onPress={() => setPanel(true)}
