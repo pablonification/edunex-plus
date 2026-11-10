@@ -86,6 +86,25 @@ export function courseBlock(tone: string | undefined): { bg: string; on: string;
 /** A course's colour for a bar or a dot on the widget's own surface. */
 export const courseInk = (theme: Theme, tone: string | undefined) => theme.courseTile(tone).ink;
 
+/**
+ * A course in a list's row: its name whole at the row's size, else whole a step smaller, else its code. So a list at
+ * its first size says names, not a mix of names and codes.
+ */
+export function rowLabel(
+  name: string | null,
+  code: string,
+  width: number,
+  scale: number,
+  /** Every row of the list a step smaller, as one of them needs it: a list reads in one size. */
+  smaller = false,
+): { text: string; lines: number; size: "small" | "micro" } {
+  const normal = courseLabel(name, code, FONT.small * scale, width, 2);
+  if (!smaller && (!name || normal.text === name)) return { text: normal.text, lines: normal.lines, size: "small" };
+  const small = courseLabel(name, code, FONT.micro * scale, width, 2);
+  if (smaller || small.text === name) return { text: small.text, lines: small.lines, size: "micro" };
+  return { text: normal.text, lines: normal.lines, size: "small" };
+}
+
 // ---------------------------------------------------------------- Sekarang
 
 function NowWidget({ model, size, theme }: { model: WidgetModel; size: WidgetSize; theme: Theme }) {
@@ -257,7 +276,9 @@ interface FittedNow {
 }
 
 /** The lines `text` takes at `width` dp and `fontSize`: an estimate on the safe side (Roboto's average letter is about 0.54 em, and a wrap wastes some). */
-export const linesOf = (text: string, fontSize: number, width: number) => Math.max(1, Math.ceil((text.length * fontSize * 0.6) / Math.max(1, width)));
+export const linesOf = (text: string, fontSize: number, width: number) =>
+  // One line when it clearly fits (0.56 em a letter, a margin over Roboto's 0.54); wrapped, a line wastes its end (0.6).
+  text.length * fontSize * 0.56 <= width ? 1 : Math.max(2, Math.ceil((text.length * fontSize * 0.6) / Math.max(1, width)));
 
 /**
  * What to call a course in the room there is: its name when it fits whole in `most` lines, else its code. A name is
@@ -442,8 +463,11 @@ function TodayWidget({ model, size, theme }: { model: WidgetModel; size: WidgetS
   const scale = Math.max(1, size.fontScale);
   const narrow = size.width < 180;
   const nameWidth = size.width - 2 * PAD - 12 - 42 * scale - 20;
-  const labelOf = (one: WidgetTodayClass) => courseLabel(one.name, one.code, FONT.small * scale, nameWidth, 2);
-  const heightOf = (one: WidgetTodayClass, under: boolean) => (labelOf(one).lines * LINE.small + (under && one.room ? LINE.micro : 0)) * scale + 10;
+  // One size down the list: a step smaller for every row when one name needs it.
+  const smaller = today.classes.some((one) => rowLabel(one.name, one.code, nameWidth, scale).size === "micro");
+  const labelOf = (one: WidgetTodayClass) => rowLabel(one.name, one.code, nameWidth, scale, smaller);
+  const heightOf = (one: WidgetTodayClass, under: boolean) =>
+    (labelOf(one).lines * LINE[labelOf(one).size] + (under && one.room ? LINE.micro : 0)) * scale + 10;
   const total = (list: WidgetTodayClass[], under: boolean) => list.reduce((sum, one) => sum + heightOf(one, under), 0);
   const ahead = today.classes.filter((one) => !one.past);
   const over = today.classes.filter((one) => one.past).reverse();
@@ -505,7 +529,7 @@ function TodayRow({
   flush = false,
 }: {
   /** The course's name where it fits whole, else its code, and the lines it takes. */
-  label: { text: string; lines: number };
+  label: { text: string; lines: number; size?: "small" | "micro" };
   one: WidgetTodayClass;
   theme: Theme;
   two: boolean;
@@ -540,14 +564,14 @@ function TodayRow({
         <FlexWidget
           style={{
             width: 4,
-            height: (label.lines * LINE.small + (two && one.room ? LINE.micro : 0)) * scale - 2,
+            height: (label.lines * LINE[label.size ?? "small"] + (two && one.room ? LINE.micro : 0)) * scale - 2,
             borderRadius: 2,
             backgroundColor: hex(one.past ? v.line : courseInk(theme, one.tone)),
           }}
         />
       )}
       <FlexWidget style={{ flex: 1, flexDirection: "column" }}>
-        <Text text={label.text} size="small" color={ink} bold={!one.past} lines={label.lines} />
+        <Text text={label.text} size={label.size ?? "small"} color={ink} bold={!one.past} lines={label.lines} />
         {two && one.room ? <Text text={one.room} size="micro" color={quiet} /> : null}
       </FlexWidget>
       {!two && wide && one.room && label.lines === 1 ? <Text text={one.room} size="micro" color={quiet} /> : null}

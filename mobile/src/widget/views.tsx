@@ -21,7 +21,7 @@ import type {
   ServicesWidget,
   WidgetStatus,
 } from "./model";
-import { courseBlock, courseInk, courseLabel, Foot, Frame, hex, LINE, linesOf, mix, PAD, RADIUS, Text, tap, type WidgetSize } from "./view";
+import { courseBlock, courseInk, courseLabel, Foot, Frame, hex, LINE, linesOf, mix, PAD, RADIUS, rowLabel, Text, tap, type WidgetSize } from "./view";
 
 /** Room for rows: the widget's height less its padding, its heading and (when it says something wrong, or there's room) its foot. */
 function rowsRoom(size: WidgetSize, status: WidgetStatus, heading = true): { room: number; foot: boolean; scale: number } {
@@ -166,8 +166,10 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
   const marksWidth = Math.max(0, ...model.rows.filter(counted).map((row) => ((row.allowed ?? 0) + row.over) * 12 - 3));
   const wordWidth = 58 * scale;
   const nameWidth = narrow ? size.width - 2 * PAD : size.width - 2 * PAD - marksWidth - 8 - (words ? wordWidth + 8 : 0);
-  const labelOf = (row: AttendanceRow) => courseLabel(row.name, row.code, 14 * scale, nameWidth, 2);
-  const heightOf = (row: AttendanceRow) => labelOf(row).lines * LINE.small * scale + (narrow ? 12 * scale + 3 : 0) + 8;
+  // One size down the list: a step smaller for every row when one name needs it.
+  const smaller = model.rows.some((row) => rowLabel(row.name, row.code, nameWidth, scale).size === "micro");
+  const labelOf = (row: AttendanceRow) => rowLabel(row.name, row.code, nameWidth, scale, smaller);
+  const heightOf = (row: AttendanceRow) => labelOf(row).lines * LINE[labelOf(row).size] * scale + (narrow ? 12 * scale + 3 : 0) + 8;
   const moreHeight = (LINE.micro + 8) * scale;
   const rows: AttendanceRow[] = [];
   let space = room;
@@ -198,7 +200,7 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
               style={{ width: "match_parent", flexDirection: narrow ? "column" : "row", alignItems: narrow ? "flex-start" : "center", flexGap: narrow ? 3 : 8 }}
             >
               <FlexWidget style={narrow ? { width: "match_parent" } : { flex: 1 }}>
-                <Text text={label.text} size="small" color={v.fg} bold lines={label.lines} />
+                <Text text={label.text} size={label.size} color={v.fg} bold lines={label.lines} />
               </FlexWidget>
               {narrow ? (
                 <FlexWidget style={{ flexDirection: "row", alignItems: "center", flexGap: 6 }}>

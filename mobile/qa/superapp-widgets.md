@@ -34,8 +34,9 @@ Two shapes, and every widget is one of them:
 Rules they all follow:
 
 - A course is called by its **name, whole**, wrapped to two lines (three in a 2-cell widget) before anything is cut.
-  Where the name can't fit whole, its **code** stands in (`courseLabel`): a name is never cut mid-word. Only a
-  Task's title, which can run to a sentence, ends in "…", after two lines.
+  In a list, when one name still doesn't fit, the whole list goes a step smaller (12 sp) so it reads in one size
+  (`rowLabel`). Where the name can't fit whole even then, its **code** stands in (`courseLabel`): a name is never
+  cut mid-word. Only a Task's title, which can run to a sentence, ends in "…", after two or three lines.
 - Each fact once. The widget's name isn't written inside it, but the list headings "Tenggat" and "Jatah absen",
   which say what the rows are, and the date on Hari ini.
 - Times of day and days only ("Tutup 09:30", "7 hari lagi"): nothing counts down, and no bar shows a fraction that
@@ -77,7 +78,7 @@ Sizes are this phone's (Samsung One UI, 4 across: a 4×2 measured 325×227 dp). 
 | Size | Shows |
 | --- | --- |
 | 2×2 (min) | The date, each class one row: start time, colour bar, code (a name doesn't fit two cells). Then the next deadline |
-| 3×2 (first) | The same with names whole, over two lines where needed. The deadline gives way to the names |
+| 3×2 (first) | Names whole, over two lines where needed (the whole list a step smaller when one name needs it), then the foot. The deadline gives way to the names |
 | 4×3 | Names with the room under each, the deadline, the foot |
 | 4×4 and up | The same; a day has no more to say (the space under it is the day's end) |
 
@@ -110,7 +111,7 @@ they read down the list like a chart.
 | Size | Shows |
 | --- | --- |
 | 2×2 (min) | The course over its marks, the word beside them only for a danger ("Lewat 1×", "Habis") |
-| 3×2 (first) | Name, then marks |
+| 3×2 (first) | Name whole (two lines, the list a step smaller when one needs it), then its marks |
 | 4×2 and up | Name (two lines), marks, and the word at the end: "Lewat 1×" red, "Habis" amber, "Sisa 2×" green |
 
 - The nearest its limit first; what doesn't fit: "+2 lagi". More than six absences allowed: the word alone.
