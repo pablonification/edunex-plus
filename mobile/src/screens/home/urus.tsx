@@ -1,15 +1,14 @@
-// "Perlu kamu urus" (round 3, the real phone): what needs the Student, most serious first, as one calm list of
-// full-width rows in a white card. First the courses at or past their absence limit: Kuliah's calendar-check in the
-// absence tone, the course's name and the state in absence words ("Absen lewat 2×", "Jatah absen habis"), so
-// beside a Task it can't read as an assignment past its deadline, and no pips (they had no key, and the words said
-// them again; Kuliah and the course page draw them); opens the course. One row per course, as the Student acts on a
-// course, not on a count (round 3's final review: one grouped row hid which courses, and "Absen di 3 mata kuliah" read
-// as "you were absent"); on Beranda at most three, so the Tasks stay in view. Then classes that clash ("Kelas bentrok ·
-// Kam 16:00", the two short names under it, so neither is cut; opens Jadwal on that day), then what to hand in or do,
-// the soonest first (the Task's own name, its deadline under it the one way the app writes a date; "Presensi" at the
-// end when handing it in counts for attendance; red with a warning sign once late). At most five rows; the chevron opens
-// the whole list, with what's put off and away (./needs-screen.tsx), and says "+2 lagi" when Beranda holds rows back. Hidden behind one quiet line when there's nothing. While the first read runs, the
-// rows stand in their shape: picked from half the data, they swapped under the Student's eyes.
+// "Perlu kamu urus": what needs the Student, most serious first, as rows. On Beranda only what its strip doesn't
+// already say (./strip.tsx counts the courses out of absences, the Tasks due and the days to the next exam, each said
+// once, there): classes that clash on a day ahead ("Kelas bentrok · Kam 16:00", the two short names under it; opens
+// Jadwal on that day; a clash later today is on its "Nanti hari ini" row), a Presence open for another class, a meeting
+// only Edunex announced, a KRS or a bill due. At most five rows; the chevron opens the whole list (./needs-screen.tsx)
+// and says "+2 lagi" when Beranda holds rows back. With nothing of its own to say the section is gone. The whole list
+// keeps every row: a course at or past its absence limit (the raised hand in the absence tone, the state in absence
+// words; opens the course), the clashes, then what to hand in or do, the soonest first (the Task's own name, its
+// deadline the one way the app writes a date; "Presensi" at the end when handing it in counts for attendance; red with
+// a warning sign once late). While the first read runs, the rows stand in their shape: picked from half the data, they
+// swapped under the Student's eyes.
 import { router } from "expo-router";
 import { useMemo } from "react";
 import { Pressable, View } from "react-native";
@@ -30,11 +29,10 @@ import { useFirstReadRunning } from "../../shell/source-status";
 import { absenceName } from "../../ui/absence";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { Fluent, type FluentName } from "../../ui/fluent";
 import { Group, GroupRow, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { iosPressed, PressScale } from "../../ui/press";
+import { iosPressed } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -44,8 +42,6 @@ import { type AbsenceProblem, type ClashProblem, firstRows, type Problems } from
 
 /** Rows Beranda shows; the rest are on the whole list. */
 export const URUS_ROWS = 5;
-/** Courses short on absences Beranda shows, before the first thing to do. */
-export const URUS_ABSENCES = 3;
 
 interface TodoRow {
   need: NeedDraft;
@@ -165,6 +161,13 @@ export type UrusRow =
   | { kind: "clash"; key: string; item: ClashProblem }
   | { kind: "todo"; key: string; item: TodoRow };
 
+/**
+ * What Beranda's strip already says (./strip.tsx): the courses out of absences (its count opens Kuliah), the Tasks due
+ * (Tugas) and the exams (the days to the next one). Said once, there: never again as rows on Beranda. The whole list
+ * (./needs-screen.tsx) keeps them.
+ */
+const onStrip = (row: UrusRow) => row.kind === "absence" || (row.kind === "todo" && (row.item.need.kind === "task" || row.item.need.kind === "exam"));
+
 /** Every row the list has, most serious first: absences (a row per course), clashes, then what to do, the soonest first. */
 export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due: readonly NeedDraft[], courses: readonly TermCourse[]): UrusRow[] {
   const t = useT();
@@ -211,45 +214,17 @@ export function Urus({
   const t = useT();
   const v = useTheme().v4;
   const all = useUrusRows(problems, needs, due, courses);
-  const rows = useMemo(() => {
-    let absences = 0;
-    return firstRows(
-      all.filter((row) => row.kind !== "absence" || ++absences <= URUS_ABSENCES),
-      URUS_ROWS,
-    );
-  }, [all]);
-  // What the whole list has that Beranda holds back, said by the chevron that opens it.
-  const more = all.length - rows.length;
+  // Beranda's rows: only what its strip doesn't already say.
+  const mine = useMemo(() => all.filter((row) => !onStrip(row)), [all]);
+  const rows = useMemo(() => firstRows(mine, URUS_ROWS), [mine]);
+  // What Beranda holds back, said by the chevron that opens the whole list.
+  const more = mine.length - rows.length;
   // The demo's first sync, or the Student's first read after a sign-in (the top bar's "Membaca …").
   const settling = useSettling();
   const firstReading = useFirstReadRunning();
   const reading = settling || firstReading;
-  // Nothing to handle: a single quiet line stays as the way to the whole list (what's put off, what changed).
-  if (!rows.length && !reading)
-    return (
-      <Rise screen="home" index={2}>
-        <PressScale
-          onPress={() => router.push("/needs")}
-          testID="action.needs.all"
-          style={{
-            marginTop: space[6],
-            backgroundColor: v.card,
-            borderRadius: 20,
-            minHeight: 56,
-            paddingHorizontal: space[4],
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[3],
-          }}
-        >
-          <Icons.CheckCircle size={22} weight="fill" color={v.okFg} />
-          <Text size="bodyLarge" weight="medium" style={{ color: v.fg, flex: 1 }}>
-            {t("mobile.home.toHandleNone")}
-          </Text>
-          <Icons.ChevronRight size={20} color={v.muted} />
-        </PressScale>
-      </Rise>
-    );
+  // Nothing the strip doesn't say: no section. The whole list stays in Semua layanan.
+  if (!rows.length) return null;
   return (
     <View testID="section.needs">
       <Rise screen="home" index={2}>
@@ -336,7 +311,7 @@ function AbsenceRow({ item, first, courses }: { item: AbsenceProblem; first: boo
       testID={`row.need.absence.${item.code}`}
       accessibilityRole="button"
       accessibilityLabel={factsLabel(name, words, spoken)}
-      leading={<Mark tone={over ? "red" : "amber"} icon="CalendarCheckmark24Filled" />}
+      leading={<Mark tone={over ? "red" : "amber"} icon="Hand" />}
       title={<RowTitle text={shortName(name)} />}
       meta={<Meta tone={over ? "red" : "amber"} text={words} />}
       onPress={() => go({ screen: "course", code: item.code })}
@@ -360,7 +335,7 @@ function ClashRow({ item, first, courses }: { item: ClashProblem; first: boolean
       accessibilityRole="button"
       accessibilityLabel={factsLabel(t("alert.overlap", { a, b }), f.dayTimeRange(item.from, item.to))}
       // The warning tone with the clash's own icon; the pair in the quiet ink (amber words are for absences).
-      leading={<Mark tone="amber" icon="Warning20Filled" />}
+      leading={<Mark tone="amber" icon="Overlap" />}
       title={<RowTitle text={title} />}
       meta={<Meta text={pair} />}
       onPress={() => {
@@ -405,16 +380,17 @@ function TodoRowView({ row, first }: { row: TodoRow; first: boolean }) {
   );
 }
 
-/** A problem's round mark (direction B): a filled Fluent glyph in a circle of its tone. */
-function Mark({ tone, icon }: { tone: "red" | "amber"; icon: FluentName }) {
+/** A problem's round mark: the raised hand for absences, the overlapping squares for a clash (Jadwal's own), in its tone. */
+function Mark({ tone, icon }: { tone: "red" | "amber"; icon: "Hand" | "Overlap" }) {
   const v = useTheme().v4;
+  const Glyph = Icons[icon];
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: tone === "red" ? v.redBg : v.ambBg, alignItems: "center", justifyContent: "center" }}
     >
-      <Fluent name={icon} color={tone === "red" ? v.redFg : v.ambFg} />
+      <Glyph size={22} weight="fill" color={tone === "red" ? v.redFg : v.ambFg} />
     </View>
   );
 }

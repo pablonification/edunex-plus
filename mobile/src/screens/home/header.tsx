@@ -1,7 +1,6 @@
-// Beranda's top (direction B): a real search bar, the first thing on the page, with the bell beside it. It stays put as
+// Beranda's top (`home.search`): a real search bar, the first thing on the page, with the bell beside it. It stays put as
 // the page scrolls (app/(tabs)/index.tsx passes it as the page's header). The bar opens the app's search; the Student
-// themself is the Profil tab, so no avatar here. The greeting, the page's one title, starts the page under it
-// (./index.tsx).
+// themself is the Profil tab, so no avatar here. The class on now starts the page right under it (./index.tsx).
 import { router } from "expo-router";
 import { memo } from "react";
 import { View } from "react-native";
@@ -9,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../../src/app/i18n";
 import { BellButton } from "../../parts/b-header";
 import { useB } from "../../ui/b";
-import { Fluent } from "../../ui/fluent";
+import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space } from "../../ui/theme";
@@ -51,7 +50,7 @@ export const HomeBar = memo(function HomeBar() {
           paddingHorizontal: space[4],
         }}
       >
-        <Fluent name="Search20Regular" color={b.fg2} />
+        <Icons.Search size={20} color={b.fg2} />
         <Text size="bodyLarge" numberOfLines={1} style={{ color: b.muted, flex: 1 }}>
           {t("mobile.search.placeholder")}
         </Text>

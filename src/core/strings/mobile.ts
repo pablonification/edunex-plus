@@ -19,6 +19,20 @@ export const mobileStrings = {
   "mobile.strip.absences": { id: "Absen habis", en: "Absences out" },
   "mobile.strip.absencesNone": { id: "Absen aman", en: "Absences fine" },
   "mobile.strip.classes": { id: "Kuliah lagi", en: "Classes left" },
+  // superapp: Beranda
+  // The strip's three tiles: Tasks due within 7 days (late ones too), courses with no absence left, days to the next exam.
+  "mobile.strip.due": { id: "Tugas minggu ini", en: "Tasks this week" },
+  "mobile.strip.dueNone": { id: "Tak ada tenggat", en: "Nothing due" },
+  "mobile.strip.limit": { id: "Jatah absen habis", en: "No absences left" },
+  "mobile.strip.limitSpoken": {
+    id: "{count} mata kuliah, jatah absen habis",
+    en: { one: "{count} course with no absences left", other: "{count} courses with no absences left" },
+  },
+  "mobile.strip.examIn": { id: "hari ke {kind}", en: { one: "day to {kind}", other: "days to {kind}" } },
+  "mobile.strip.examToday": { id: "{kind} hari ini", en: "{kind} today" },
+  // The block's one time while a class is on with no Presence open, and its calm line once nothing is left.
+  "mobile.home.ends": { id: "selesai {time}", en: "ends {time}" },
+  "mobile.home.noneLeft": { id: "Kuliah hari ini selesai", en: "No more classes today" },
   // Beranda's services, round and four across, and Semua layanan behind "Lainnya": every service in named groups.
   "mobile.home.services": { id: "Layanan", en: "Services" },
   "mobile.services.title": { id: "Semua layanan", en: "All services" },

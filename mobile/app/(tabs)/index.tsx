@@ -1,5 +1,5 @@
-// Beranda (direction B): its parts are in src/screens/home. Its top is the search bar and the bell, fixed over the white
-// page as it scrolls.
+// Beranda: its parts are in src/screens/home. Its top is the search bar and the bell, fixed over the white page as it
+// scrolls; the class on now starts right under it.
 import { usePerfFocused } from "../../src/perf";
 import { Home } from "../../src/screens/home";
 import { HomeBar } from "../../src/screens/home/header";
