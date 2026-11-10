@@ -1,8 +1,8 @@
-# The phone app's motion: as it is, as it should be
+# The phone app's motion: as it is, and what's left
 
-Night of 10–11 Nov. Read from the code on `mobile-superapp-layout` (34948721), before tonight's layout rebuild: the
-new Beranda parts (search bar, strip, service grid, Semua layanan) are listed as "new" with what they should do.
-The parts to build it with are in `src/ui/moves.tsx`; the rule is in `DESIGN.md`, "Motion".
+Sections 1–3 are the app as the code is on the morning of 11 Nov (after the layout rebuild and the motion pass over
+`src/screens` and `src/parts`); the plan below is ticked against it. The parts to build with are in `src/ui/moves.tsx`;
+the rule is in `DESIGN.md`, "Motion".
 
 **The rule in one line:** every touch answers in the frame it lands; every change the Student causes moves from where
 it was to where it is; joy (an overshoot, a drawn check, the success buzz) only for what they earned.
@@ -18,174 +18,109 @@ Words used below:
 
 ## 1. Pressed
 
-What every kind of tappable thing shows under the finger. **NOTHING** = no ripple, no give, no tint on Android (most
-of them dim on an iPhone, or don't even do that). The 100 ms bar is met by a ripple whatever the JS thread is doing;
-a give alone depends on the JS thread hearing the touch (fine at rest, late while a list is loading).
+What each kind of tappable thing shows under the finger, as the code is on the morning of 11 Nov. Every touch in
+`src/screens` and `src/parts` answers on Android and on an iPhone; none is a bare `Pressable` with nothing.
 
-| Kind | Drawn by | Today | Should |
-| --- | --- | --- | --- |
-| Button (filled, tonal, outlined, text, danger) | `ui/controls.tsx` `Button` | ripple, dim | keep; filled and tonal also give 0.97 (M3 Expressive's press) |
-| Big button (Tandai hadir, Kumpulkan) | `ui/big-button.tsx` | give only | give **and** ripple: `Tap feel="card"` inside it |
-| Icon button (top bar, back, ⋮, close) | `ui/controls.tsx` `IconButton` | ripple (borderless, r 20), dim | keep; radius 24 so the ripple fills the 48 dp target |
-| Account circle in the top bar | `shell/source-status.tsx` `action.account` | dim on iPhone, **NOTHING** on Android | goes tonight (Profil tab); if it stays: `Tap feel="icon"` |
-| Screen title that opens the sync panel | `screens/home/header.tsx`, `screens/schedule/schedule-screen.tsx`, `shell/source-status.tsx` (`action.syncStatus`) | **NOTHING** | `Tap feel="row" borderless` |
-| Status line under Jadwal's title | `screens/schedule/schedule-screen.tsx` | **NOTHING** | `Tap feel="row" borderless` |
-| "Hari ini" link on Jadwal | `screens/schedule/schedule-screen.tsx` `action.today` | **NOTHING** | `Tap feel="row" borderless` |
-| "Lihat semua" link | `screens/home/changes.tsx` `action.changes.all` | **NOTHING** | `Tap feel="row" borderless` |
-| Fold / unfold toggle (held back, report details) | `screens/home/needs.tsx` `action.heldBack`; `screens/report/report-screen.tsx` `action.reportDetails` | **NOTHING** (report's chevron jumps 90°) | `Tap feel="row"`; chevron turns on `spatialFast` |
-| Task page: presence line, a step that opens, "batalkan" | `screens/tasks/task-page.tsx` (`line.presence`, steps, unmark) | **NOTHING** | `Tap feel="row"` |
-| Task title (shows it whole), course crumb | `screens/tasks/task-bar.tsx` | **NOTHING** | title: `Tap feel="row"`; crumb: `Tap feel="row" borderless` |
-| Exam's course link | `screens/tasks/exam-page.tsx` | **NOTHING** | `Tap feel="row" borderless` |
-| A handed-in file | `screens/tasks/hand-in.tsx` | **NOTHING** | `Tap feel="row"` |
-| "Tampilkan lagi" on Tenggat | `screens/plan/deadlines.tsx` | **NOTHING** | `Tap feel="row" borderless` |
-| A course to add to the plan | `screens/plan/planner-add.tsx` | **NOTHING** | `Tap feel="row"` |
-| A point on the IPK chart | `screens/plan/chart.tsx` | **NOTHING** (its label jumps in) | `Tap feel="icon" borderless`; label: `Appear` |
-| Row (classic list) | `ui/layout.tsx` `Row` | ripple, dim | keep |
-| Tile row, group row, panel, setting row | `ui/v4-list.tsx` `TileRow`, `ui/group.tsx` `Panel`/`GroupRow`, `ui/settings-list.tsx` `SettingRow` | give only | give is wrong for a full-width row (it looks like the page breathing): ripple or tint, no give: `Tap feel="row"` |
-| Card (now card, Perlu kamu urus, nanti, a class on the timeline, a Task row) | `screens/home/now.tsx`, `urus.tsx`, `later.tsx`, `screens/schedule/day.tsx`, `screens/tasks/row-parts.tsx` (all `PressScale`) | give only | give and ripple: `Tap feel="card"` |
-| Day in the day strip, a day in the month | `screens/schedule/strip.tsx`, `month.tsx` (`PressScale`) | give only | `Tap feel="tile"`; the picked mark slides (`useSlidingMark`) |
-| Course tab pill (Pertemuan, Materi, Tugas…) | `screens/course/course-screen.tsx` `TabBar` (`PressScale`) | give; the picked pill's colour jumps | `Tap feel="tile"`; picked mark slides (`useSlidingMark`) |
-| Segmented control (Tugas's filter, nilai, proyeksi, tenggat) | `ui/controls.tsx` `Segmented` | ripple; the picked segment jumps | keep the ripple; picked mark slides (`useSlidingMark`) |
-| Chip | `ui/controls.tsx` `Chip` | ripple; selected fill jumps | keep; fill fades on `effectsFast` |
-| Switch (Android) | `ui/controls.tsx` `MaterialSwitch` (native) | native ripple and thumb | keep |
-| Switch (drawn fallback) | `ui/controls.tsx` `DrawnSwitch` | none; thumb springs on the **JS thread** (`useNativeDriver: false`) | Reanimated (`interpolateColor` + `withSpring(motion.spatialFast)`) |
-| Sheet choice, menu item | `ui/sheet.tsx`, `ui/menu.tsx` | ripple, dim | keep |
-| Choice in a choice sheet | `ui/settings-list.tsx` `ChoiceSheet` | give | `Tap feel="row"`; the radio dot grows in on `spatialFast` |
-| Snackbar's Urungkan | `ui/toasts.tsx` | ripple, dim | keep |
-| Bottom tabs | `app/(tabs)/_layout.tsx` (NativeTabs) | native ripple, icon fills | keep (Android's own) |
-| Search bar (new, `home.search`) | tonight's Beranda | — | `Tap feel="row"` (tint, no give: it's a field) |
-| Strip tile (new, `home.strip`) | tonight's Beranda | — | `Tap feel="tile"` |
-| Service tile (new, `home.grid`, Semua layanan) | tonight's Beranda | — | `Tap feel="tile"`: the filled icon's colour square gives, the word stays |
-| Welcome, sign-in buttons | `shell/welcome.tsx`, `shell/sign-in.tsx` | ripple | keep |
+| Kind | Where | Drawn by | What the Student sees | How long | Remove animations |
+| --- | --- | --- | --- | --- | --- |
+| Button, icon button, chip, segmented | everywhere | `ui/controls.tsx` | ripple; an iPhone dims | the system's | same |
+| Row, sheet choice, menu item, snackbar's Urungkan | lists, sheets | `ui/layout.tsx`, `sheet.tsx`, `menu.tsx`, `toasts.tsx` | ripple; dim | the system's | same |
+| Card (now card, a class on Jadwal, a Task row, a strip tile, "nanti") | Beranda, Jadwal, Tugas, a course | `PressScale` (`ui/press.tsx`) | gives 3.5% | down 120 ms, back on `expressive` | no give |
+| Kit row and tile (`BRow`, `CountCell`, `ServiceTile`, `TileRow`, `GroupRow`, `SettingRow`, big button) | every list and grid | `PressScale` | gives 3.5% | as above | no give |
+| A word that's a link ("Lihat semua", "Hari ini", the held-back list's toggle, "Urungkan", a change's instructions, Tenggat's clear, a course crumb, an exam's way to its modules) | Beranda, Jadwal, Task page, Tenggat, exam page | `Tap feel="row" borderless` | round ripple; an iPhone tints | in the touch's frame; tint out `short` | same |
+| A title that opens the sync panel, Jadwal's status line | tab headers, Jadwal | `Tap feel="row"` | ripple; tint | as above | same |
+| A Task's title (shows it whole), a step that opens, a mark with its "why", a handed-in file, the report's details toggle | Task page, Lapor masalah | `Tap feel="row"` | ripple; tint, no give (full width) | as above | same |
+| The small "i" marks | Task page | `Tap feel="icon"` | round ripple, gives 12% | down `spatialFast`, back `expressive` | ripple only |
+| A code to add, a colour to pick | Rencana studi, a course's colours | `Tap feel="tile"` | ripple, gives 8% | as above | ripple only |
+| The two ways to send a report (cards) | Lapor masalah | `Tap feel="card"` | ripple, gives 3.5% | as above | ripple only |
+| A point on the IPK chart | the chart | `Tap feel="row" borderless` | round ripple on the column; its label arrives | label: `medium` | label there |
+| A course and today's lines on Kuliah, a Materi fold, a search result, an exam, Profil's cards, the notice's button | Kuliah, Materi, search, Ujian, Profil, Settings | `Tap` (row, tile, card) | ripple; tint | as above | same |
+| Bottom tabs, switches | — | Android's own | ripple, thumb | native | native |
 
-Count: **19 kinds answer with NOTHING on Android today**, every one of them a bare `Pressable`.
+Still a `Pressable` of their own, each with a ripple and an iPhone dim already (left as they are, nothing to fix): the
+"›" beside Perlu kamu urus (`home/urus.tsx`), Tugas's course filter (`tasks/list.tsx`), the comment field
+(`tasks/thread.tsx`), a grade part's name (`course/grades.tsx`), a stand-in course (`plan/curriculum.tsx`), the grade
+picker and its choices (`plan/projection.tsx`), a file row (`parts/files.tsx`), "Otomatis" in the colour picker.
 
 ## 2. State changes
 
-What the Student causes or sees, screen by screen. "Remove animations" is what happens with Android's setting on:
-nothing slides or springs; a change is simply there, and a fade only where it is already safe (see the last column).
+| Screen | Change (trigger) | What it tells | Part and token | How long | Remove animations |
+| --- | --- | --- | --- | --- | --- |
+| All | Push, Back, tab switch, sheet, menu, pull to refresh | where you went | Android's own | native; tabs at once | native |
+| Beranda | Now card: held shape to the class, one class to the next | the read landed; what's on now | `CrossFade` | fade `medium`, 98% to 100% on `spatialFast` | swap |
+| Tugas | Skeleton to the list (first read lands while you look) | the Tasks came | `CrossFade` + `useArrivalId` | as above, once | swap |
+| Tugas | Belum selesai / Selesai | which Tasks | `useSlidingMark` + `CrossFade` | mark `spatialFast`, list `medium` | mark jumps, list swaps |
+| Tugas | A Task swiped done | done, put away | `SwipeRow` | `medium` | fades, folds at once |
+| Materi | Skeleton to the list | the materials came | `CrossFade` + `useArrivalId` | once | swap |
+| Nilai | Skeleton to the record (the big number also rises) | your grades came | `CrossFade` + `useArrivalId`, `Rise` | once | swap |
+| A module | Skeleton to the module | it came | `CrossFade` + `useArrivalId` | once | swap |
+| Kuliah | Skeleton to the courses | they came | `Rise` on the list, `Appear` on today's lines | `Rise`'s spring | there |
+| A course | Skeleton to the page; a tab picked | it came; which part | `Rise`; `useSlidingMark` + `CrossFade` | `spatialFast` + `medium` | there; swap |
+| Ujian | The list's first showing | here are your exams | `Arrive` | 40 ms apart, six items, `medium` | there |
+| Semua layanan | The groups' first showing in a run | here's everything | `Arrive` | as above, once | there |
+| Search | Before, found, nothing | what matches | `CrossFade` | `medium` | swap |
+| Jadwal | A day picked | which day | `useSlidingMark`, the day slides in | `spatialFast` | jumps, swaps |
+| Task page | A step opens | the change, in detail | `Unfold` (`moves.arrive`) | fade `medium`, 8 dp on `spatialDefault`; folds at once | there |
+| Task page | Marked done / taken back | done, with Urungkan | `Appear` | arrive `medium`, leave `short` | there / gone |
+| Task page | Handed in | it's in | `Celebration` | `expressive` | fades, check drawn |
+| Lapor masalah | Details open | the technical part | `Unfold` | as a step | there |
+| Settings, Notifikasi | "Notifikasi mati" comes and goes | reminders can't show / can again | `Appear` | arrive `medium`, leave `short` | there / gone |
+| The IPK chart | A point tapped | that term's figures | `Appear` on the label | `medium` / `short` | there / gone |
+| Profil | IPK and SKS change after a refresh | they moved | `RollTo` | `medium`, 3 dp nod | in place |
 
-| Screen | Change (trigger) | What it tells | Today | Should | Token | Remove animations |
-| --- | --- | --- | --- | --- | --- | --- |
-| All | Push to a screen, Back | where you went | native | keep | native | native (instant) |
-| All | Tab switch (bottom bar) | which tab | native, instant | keep instant (speed wall: p90 < 100 ms) | — | same |
-| All | Tab badge appears (`TabBadges`, after the first frame) | something needs you there | native (BottomNavigationView) | keep native | — | same |
-| All | A screen's first showing | here's the page | `Rise` (stagger, M3 spring 16/170: not a token) | keep; move its spring to `spatialDefault`, its stagger to the proposed `motion.stagger` | spatialDefault | there at once |
-| All | Skeleton becomes content | the data came | **jump cut** | `CrossFade id={ready ? "data" : "wait"}` | medium | swap |
-| All | Pull to refresh | it's checking | native `RefreshControl` | keep native | native | native |
-| All | A section appears after a refresh (new Task, new change) | something new | **jump cut** (and what's below jumps down) | `Appear` on the new part, `Appear shifts` on what's below | arrive: medium + spatialDefault | there at once |
-| All | Error banner / offline line comes and goes (`ProblemBanner`, status line) | something's wrong / fine again | **jump cut**; the page jumps by its height | `Appear shifts` around the banner | arrive / leave: short | there / gone at once |
-| All | Snackbar arrives | what happened, with Urungkan | rises 16 dp and fades (RN Animated, native driver, emphasized decelerate, medium) | keep; on its own token (8 dp, `moves.arrive`) | medium | fades |
-| All | Snackbar leaves | — | **jump cut** (unmounts) | `moves.leave` on its view | short | gone |
-| All | Sheet opens, closes | a closer look | native Material sheet | keep | native | native |
-| All | Long-press menu opens | the row's actions | native sheet / menu (fade + scale) | keep | native | native |
-| Beranda | Now card: "next" → "now" → "window open" → "marked" | what to do about this class now | **jump cut** between kinds (button appears, wave appears, check appears); "marked" draws `CookieCheck` | each kind's new part `Appear`; the card `Appear shifts` so Beranda below it slides; the check stays the earned moment | spatialDefault | there at once (check already drawn) |
-| Beranda | Now card's minutes left (each minute) | how long | **jump cut** | `RollTo` (count + 3 dp nod) | medium | changes in place |
-| Beranda | Now card's wave (live class) | how far along | moves, loops only while shown | keep | — | still |
-| Beranda | Strip numbers (due, at risk) after a refresh (new) | today's load | — | `RollTo` | medium | in place |
-| Beranda | Strip tile leaving because it's good news now (new: "no tile that says 0") | done | — | `Appear` (leave short), its neighbours `shifts` | short + spatialDefault | gone at once |
-| Beranda | "Perlu kamu urus" held back unfolds (`action.heldBack`) | there's more | **jump cut** | `Appear` on the held part, `Appear shifts` below; chevron turns | spatialDefault | there at once |
-| Beranda | A card in Perlu kamu urus goes (done elsewhere) | one less | **jump cut** | `Appear` + neighbours `shifts` | short + spatialDefault | gone at once |
-| Beranda | Changes ("Perubahan") gets a new line | something moved | **jump cut** | `Appear` | medium | there |
-| Semua layanan (new) | Search filters the services | what matches | — | each group `Appear shifts`; tiles that go leave short | short | at once |
-| Search | Results arrive as the Student types | what matches | `Rise` on the first 1.5 s only; after that **jump cut** | `CrossFade id={query}` on the results block; first results `Arrive list="search"` | medium | swap |
-| Jadwal | Day picked in the strip | which day | the day's timeline slides in from the side it came from (FadeInLeft/Right, spring 20/220: not a token); the picked day's mark **jumps** | keep the slide, on `spatialDefault`; mark slides (`useSlidingMark`) | spatialDefault / spatialFast | timeline swaps, mark jumps |
-| Jadwal | "Hari ini" (back to today) | today | as above | as above | — | — |
-| Jadwal | Month view: a day picked | that day's classes | **jump cut** | `CrossFade id={day}` on the list under the month | medium | swap |
-| Jadwal | The "now" line moving through the day | where you are in the day | moves each minute (redraw) | keep (a minute's step is not a motion) | — | same |
-| Tugas | Filter (Segmented) switched | which Tasks | **jump cut**; mark jumps | mark slides (`useSlidingMark`), list `CrossFade id={filter}` | spatialFast + medium | swap |
-| Tugas | Task swiped past its threshold | letting go will do it | icon grows, haptic tick (`SwipeRow`) | keep | spatialFast | follows the finger, no grow |
-| Tugas | Task marked done (swipe) | done, put away | slides out, folds (`SwipeRow`), snackbar with Urungkan | keep; rows below use `moves.resize` so they close the gap together | medium | fades, folds at once |
-| Tugas | Task marked done (long-press menu, TalkBack action) | done | **jump cut** (row vanishes) | the row `Appear` (leave), rows below `shifts` | short + spatialDefault | gone at once |
-| Tugas | Urungkan (undo) brings the row back | it's back | **jump cut** | `Appear` | medium | there |
-| Tugas | Counts in section titles change | how many left | **jump cut** | `RollTo` | medium | in place |
-| Task page | Handed in (Kumpulkan) | it's in | `Celebration` (cookie, drawn check, success buzz) | keep: the earned moment | expressive | fades, check drawn |
-| Task page | Upload progress | how far | `ProgressBar` width **jumps** per step | width springs (`spatialDefault`) | spatialDefault | jumps |
-| Task page | Time left counting (`CountUp`) | how long | counts up once | keep for the first showing; later changes `RollTo` | — | there |
-| Task page | A step opens / folds | the detail | **jump cut** | `Appear shifts` | spatialDefault | at once |
-| Task page | Comment sent (thread) | it's there | **jump cut** (row appears) | the new comment `Appear` | medium | there |
-| Task page | Draft saved | safe | snackbar | keep | — | — |
-| Kuliah / course | Course tab switched (pill) | which part | panel **jump cut**; pill colour jumps | mark slides (`useSlidingMark`), panel `CrossFade id={tab}` | spatialFast + medium | swap |
-| Kuliah / course | Save offline progress | how far | bar jumps per file | width springs | spatialDefault | jumps |
-| Kuliah / course | Presence marked (course now card) | done | `CookieCheck` | keep: earned | expressive | check drawn |
-| Kuliah | Absences left number changes after a sync | how close to the limit | **jump cut** | `RollTo` | medium | in place |
-| Profil / Akademik | IPK, SKS (big numbers) first showing | your standing | `CountUp` once (`Figure`) | keep | — | there |
-| Profil / Akademik | IPK after a refresh changes | it moved | **jump cut** (CountUp counts only once) | `RollTo` | medium | in place |
-| Nilai | Transcript semester folds / unfolds | detail | **jump cut** | `Appear shifts` | spatialDefault | at once |
-| Nilai, Proyeksi | Segmented switched | which view | **jump cut** | mark slides, `CrossFade` | spatialFast + medium | swap |
-| Rencana studi | Course added, moved, removed; grade picked | the plan changed | **jump cut**, confirm haptic, snackbar | the row `Appear`, its group `shifts`; totals `RollTo` | spatialDefault | at once |
-| Rencana studi | Rules, hidden courses unfold | detail | **jump cut** | `Appear shifts` | spatialDefault | at once |
-| Tenggat | Chips switched, "show more" | which / more | **jump cut** | chip fill fades; new rows `Appear` | effectsFast / medium | at once |
-| Tenggat | A group unfolds | detail | **jump cut** | `Appear shifts` | spatialDefault | at once |
-| IPK chart | A point tapped | that semester's figure | label **jump cut** | label `Appear` | short | there |
-| Notifikasi | "Tandai semua dibaca" | read | dots **jump cut** | dots fade out (`moves.leave`) | short | gone |
-| Lapor masalah | Details unfold; report sent | detail; sent | **jump cut**; sent page swaps in | `Appear shifts`; sent: `CrossFade` + `DrawnCheck` (earned: it's sent) | medium | at once |
-| Pengaturan | A switch | on / off | native | keep | native | native |
-| Pengaturan | A choice picked in a sheet | saved | the radio dot jumps, sheet closes | dot grows in (spatialFast) | spatialFast | jumps |
-| Pengaturan | Error banner | couldn't save | **jump cut** | `Appear shifts` | short | at once |
-| First run | Welcome steps | the app, step by step | FadeInDown stagger (60–70 ms), fade out | keep; on tokens | medium | fades |
-| Sign-in | Web sign-in sheet | — | slides in (emphasized, long), fades out | keep | long | fades |
+**Still a jump cut** (not done tonight): the skeletons of Jadwal, Profil, Rencana studi and Lapor masalah; folds
+inside a group of rows (Beranda's held-back list, plan rules, Tenggat's groups, the transcript) and anything in a
+FlashList cell (Materi's "Sebelumnya", Tugas's put-off group); the page under a fold (it moves at once, the new part
+fades into the gap); the offline line and the problem banner (`shell/`); a row done from its menu; Tugas's two counts
+and Beranda's strip figures (`RollTo` is a text field: not on a first frame the speed wall measures).
 
 ## 3. Haptics
 
-`ui/haptics.ts` has three: **tick** (a small step), **confirm** (something done), **toggle** (a switch). Celebrations
-use the phone's own **success** directly (`ui/celebrate.tsx`).
+On commits only. `ui/haptics.ts`: **tick** (a small step), **confirm** (done), **toggle** (a switch). `parts/hold.ts`:
+**hold** (a long press took). No plain tap, navigation or scroll buzzes.
 
-**Where one fires today:**
-
-| Where | Haptic | Is it a commit? |
+| Commit | Where | Haptic |
 | --- | --- | --- |
-| `SwipeRow`: passing the threshold | tick | yes (a swipe past its threshold) |
-| `SwipeRow`: letting go past it | confirm | yes (done) |
-| Hand-in `Celebration`, `DrawnCheck` | success | yes (sent) |
-| Beranda's and Kuliah's now card: SIX no longer shows the check-in (`home/now.tsx`, `course/now.tsx` `useDone`) | confirm | yes (presence marked) |
-| Kuliah's now card: tapping **Tandai hadir** (`course/now.tsx:306`) | confirm | **no**: it only opens SIX. Beranda's same button has none. Remove it (the commit is when presence is marked, which already buzzes) |
-| Rencana studi: a change to the plan (`planner-kit.tsx` `commitHaptic`), a curriculum fix (`curriculum.tsx`) | confirm | yes (saved) |
-| Curriculum toggle (`curriculum.tsx:98`), `SwitchRow` (`settings-list.tsx`), alerts switch (`settings/alerts.tsx`) | toggle | yes (a setting saved); note Android's own switch already plays one: check it doesn't buzz twice |
-| A choice picked in a `ChoiceSheet` (`settings-list.tsx`) | tick | yes (saved) |
-| Attendance target stepper, course colour pick (`settings/choices.tsx`) | tick | borderline: each step saves, but a fast run of taps is a run of buzzes. Keep the tick for the colour pick; the stepper: tick only at its ends |
-| Reset course colours, wake all snoozed (`settings/choices.tsx`, `settings/alerts.tsx`) | confirm | yes |
-| Sign out (`settings/about.tsx`), sign out of one (`settings/accounts.tsx`) | confirm | yes |
-| Notifikasi: mark all read (`app/alerts.tsx`) | confirm | yes |
-| Nilai: a grade picked (`grades-screen.tsx`) | confirm | yes (a planned grade saved) |
+| A swipe passing its threshold; letting go past it | `ui/swipe.tsx` | tick; confirm |
+| A long press that opens a row's menu, its "Ingatkan nanti" times, a file's share sheet, a course's colours, a grade part's menu | `home/parts.tsx`, `tasks/rows.tsx`, `tasks/exam-rows.tsx`, `course/modules.tsx`, `presence/course-card.tsx`, `course/grades.tsx` | hold |
+| Done from the row's menu or TalkBack's action (the swipe plays its own) | `home/parts.tsx`, `tasks/exam-rows.tsx` | confirm |
+| An exam's Edunex part marked done on its page | `tasks/exam-page.tsx` | confirm |
+| "Ingatkan nanti": a time picked | `parts/snooze.tsx` | confirm |
+| Urungkan on a Task's page | `tasks/task-page.tsx` | tick |
+| A comment sent | `tasks/thread.tsx` | confirm |
+| A report sent | `report/report-screen.tsx` | confirm |
+| A course saved offline (every file here) | `course/save-offline.tsx` | confirm |
+| Exams added to the phone's calendar | `tasks/exam-page.tsx` | confirm |
+| Presence marked (SIX no longer shows the check-in) | `home/banner.tsx`, `home/now.tsx`, `course/now.tsx` | confirm |
+| Handed in | `ui/celebrate.tsx` | the phone's success |
+| A grade guessed, the plan changed, a curriculum fix | `grades-screen.tsx`, `plan/planner-kit.tsx`, `plan/curriculum.tsx` | confirm |
+| A setting saved: a switch; a choice or a colour; a step of the attendance target | `ui/settings-list.tsx`, `settings/*` | toggle; tick |
+| Signed out, colours reset, all woken, all read | `settings/*`, `app/alerts.tsx` | confirm |
 
-No haptic fires on a plain tap or a scroll today, except the Tandai hadir one above.
-
-**Commits with none:**
-
-| Commit | Should |
-| --- | --- |
-| A long press that opens a row's menu (26 `onLongPress` in the screens) | the phone's long-press (Android `Long_Press`; iOS medium impact). Proposed `haptic.hold()`, fired in one place: `PressScale`/`Tap` when `onLongPress` runs |
-| A Task marked done from the long-press menu or TalkBack's action | confirm (the same commit as the swipe) |
-| Ingatkan nanti: a time picked | confirm |
-| Urungkan (undo) | tick (it's a commit, but a small one) |
-| A comment sent (`tasks.comment`) | confirm |
-| A report sent (`report.send`) | success, with `DrawnCheck` on the sent page |
-| Save offline finished (`course.saveOffline`) | confirm |
-| Signed in to Edunex or SIX (`auth.signIn`) | confirm |
-| Exam added to the phone's calendar | confirm |
+The tap on **Tandai hadir** no longer buzzes anywhere (it only opens SIX; the buzz is when presence is marked).
+Not yet: signed in to Edunex or SIX (`shell/`); a report's "success" (there's none in `ui/haptics.ts`, so it's confirm).
 
 ## The plan: ten changes, in order
 
-1. Give every bare `Pressable` (the 19 **NOTHING** rows above) a press with `Tap` from `ui/moves.tsx`, so no touch in
-   the app goes unanswered.
-2. Swap `PressScale` for `Tap` on full-width rows (`TileRow`, `Panel`, `GroupRow`, `SettingRow`) as `feel="row"`, and on
-   cards and tiles as `feel="card"`/`"tile"`, so every card ripples and no full-width row shrinks.
-3. Turn every skeleton into content with `CrossFade` (`id={ready ? "data" : "wait"}`), so data arriving is seen arriving.
-4. Slide the picked mark in `Segmented`, the course tabs, the day strip and the month with `useSlidingMark`, and
-   cross-fade what they show with `CrossFade`, so a switch shows where you went.
-5. Open and fold every foldable part (held back, steps, transcript, plan rules, deadlines, report details) with
-   `Appear shifts`, so the page moves aside instead of jumping.
-6. Make the now card's kinds ("next" → "now" → "window open" → "marked") arrive with `Appear` and slide Beranda under it
-   with `Appear shifts`, keeping `CookieCheck` the one earned moment there.
-7. Roll every number the Student sees change (minutes left, strip counts, section counts, absences, IPK after a
-   refresh) with `RollTo`, keeping `CountUp` for a first showing only.
-8. Bring banners, the offline line, the snackbar's leaving and a row done from the menu in and out with `Appear`
-   (`moves.leave`), so nothing pops.
-9. Add the missing commit haptics (long press via a proposed `haptic.hold()` in `Tap`/`PressScale`; done from the
-   menu; sent; saved offline; signed in) and remove the Tandai hadir tap's, using `ui/haptics.ts`.
-10. Arrive each list's first showing (Tugas, Notifikasi, search, Semua layanan's groups) once with `Arrive`, and move
-    `Rise`, Jadwal's day slide and the welcome stagger onto the tokens, so the app arrives one way everywhere.
+- [x] **1. No touch unanswered.** Every bare `Pressable` in the screens and parts that answered with nothing is a `Tap`.
+  Nine keep their own `Pressable`: each already ripples and dims (listed under section 1).
+- [ ] **2. `PressScale` to `Tap` on the kit's rows, cards and tiles** (so a card ripples and a full-width row doesn't
+  shrink): `ui/`'s to do.
+- [x] **3. Skeleton to data.** `CrossFade` on Beranda's now card, Tugas, Materi, Nilai and a module (`useArrivalId` in
+  `parts/arrival.ts` plays it only when the data lands in front of the Student). Kuliah, a course and Ujian already
+  arrive (`Rise`, `Arrive`): a fade on top would be a second move. Left: Jadwal, Profil, Rencana studi, Lapor masalah,
+  Notifikasi (`app/`).
+- [x] **4. The picked mark slides** on Tugas's two counts, a course's tabs and the day strip, each with `CrossFade`.
+  Left: `Segmented` (`ui/`), the month.
+- [ ] **5. Folds.** Partly: a Task's step and the report's details arrive (`Unfold` in `parts/unfold.tsx`). The page
+  under them still moves at once, and folds inside a group of rows or a FlashList are as they were.
+- [ ] **6. The now card's kinds.** Partly: the card cross-fades between classes; the page under it doesn't slide.
+- [ ] **7. Numbers roll.** Profil's IPK and SKS only.
+- [ ] **8. Things that come and go.** Partly: "Notifikasi mati", a Task's done line, today's presence lines, the chart's
+  label. Left: the offline line and problem banner (`shell/`), the snackbar's leaving (`ui/`), a row done from its menu.
+- [x] **9. Haptics on commits.** All in section 3. Left: signed in (`shell/`); `hold` moving into `ui/haptics.ts`.
+- [ ] **10. First showings.** Semua layanan's groups and Ujian arrive once. Tugas doesn't (its rows are FlashList cells,
+  and the tab mounts hidden, so it would never play); Notifikasi and search are `app/`'s.
 
 ## The parts (`src/ui/moves.tsx`)
 
@@ -224,7 +159,8 @@ All honour Remove animations (still: no movement; a tint or ripple still answers
 - `ui/toasts.tsx`: the snackbar leaves with `moves.leave` instead of unmounting.
 - `ui/display.tsx`: `Bar` and `ProgressBar` spring their width (`spatialDefault`); `Skeleton` stays (its breathing
   already loops only while shown).
-- `screens/course/now.tsx:306`: drop the confirm haptic on the Tandai hadir tap.
+- `ui/haptics.ts` and `ui/press.tsx`, `ui/moves.tsx`: once `haptic.hold()` exists and `PressScale` / `Tap` play it when
+  their long press runs, delete `parts/hold.ts` and its seven calls (or a long press buzzes twice).
 
 ## How to check it on the phone (for the conductor)
 

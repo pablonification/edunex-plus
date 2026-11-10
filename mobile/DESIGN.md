@@ -290,6 +290,9 @@ what moves, and how, is `qa/superapp-motion.md`; the parts to build it with are 
     first showing only);
   - the picked mark of a segment, a tab pill or a day slides to the new one: `useSlidingMark`;
   - a list's first showing arrives once, in a short stagger: `Arrive` (a screen's big parts: `Rise`).
+  A skeleton fades to its data only when the data lands in front of the Student (`useArrivalId` in `parts/arrival.ts`
+  gives `CrossFade` its id): never on a hidden tab, and not on a screen whose parts already arrive (`Rise`, `Arrive`):
+  one change, one move. A fold in the middle of a list arrives and folds at once (`Unfold` in `parts/unfold.tsx`).
 - **Screens, sheets, menus, tabs, pull to refresh and switches are Android's own** (native stack `animation:
   "default"`, the Material sheet, NativeTabs, `RefreshControl`, MaterialSwitch). Tabs switch at once (the speed wall).
 - **Tokens only** (`motion` in `ui/theme.ts`): `spatialFast/Default/Slow` for what moves, `effectsFast/Default` for
@@ -298,8 +301,9 @@ what moves, and how, is `qa/superapp-motion.md`; the parts to build it with are 
 - **On the UI thread**: Reanimated, or RN Animated with `useNativeDriver`. Never animate on the JS thread.
 - **Joy in a few earned moments only** (`motion.expressive`, a slight overshoot; `ui/celebrate.tsx`): Kumpulkan,
   presence marked, a swipe that commits. Not on every tap.
-- **Haptics on commits only** (`ui/haptics.ts`): done, sent, saved, a swipe past its threshold, a long press. Never on
-  a plain tap, a navigation or a scroll.
+- **Haptics on commits only** (`ui/haptics.ts`; a long press: `hold()` in `parts/hold.ts`): done, sent, saved, a swipe
+  past its threshold, a long press that opens something. Never on a plain tap, a navigation or a scroll. Where a swipe
+  and a menu do the same thing, each buzzes once (the swipe plays its own). The list: `qa/superapp-motion.md`, 3.
 - **Remove animations** (`useReduceMotion()`): nothing slides, springs or staggers; a change is simply there (a fade
   only where it's already safe); a touch still answers with its ripple or tint; the skeleton stops breathing. A layout
   animation never starts on a hidden screen (one started there with animations off left parts invisible: `Rise`).
