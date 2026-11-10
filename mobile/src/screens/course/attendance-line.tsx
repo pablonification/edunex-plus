@@ -1,6 +1,6 @@
-// A course's attendance on its page: in the header under the bar (beside the course's glyph, under its name), its SKS,
-// then its absences as Kuliah's card says them (the state in words, the count once: "Sisa 1×", "1 dari 2 absen"; no
-// pips to learn) and the one exception when it's a fact. The header is one
+// A course's attendance on its page: in the header under the bar (beside the course's glyph), its code and SKS, then
+// its absences as Kuliah's row says them (dots and one short label: "sisa 1", "habis", "lewat 1"; never a count
+// beside them) and the one exception when it's a fact. The header is one
 // target: the course's sheet (./course-sheet.tsx) says it all, the count, the target, the exception's whole sentence,
 // the advice and its way back too. Words and figures are the desktop's (src/app/screens/presence.tsx).
 import type { ReactNode } from "react";
@@ -17,6 +17,7 @@ import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
+import { AbsenceDots, absenceShort } from "../presence/absence-dots";
 import { classOf, dayLabel, GONE_FOR, type RowContext, uncertainText, windowWhen } from "../presence/logic";
 
 /**
@@ -49,29 +50,16 @@ export function useAttendanceLine(
   const label = [meter?.label, count, share !== null && !over ? t("presence.row.ownTarget", { value: health.target }) : null, exception?.short ?? advice?.short]
     .filter(Boolean)
     .join(". ");
-  // As Kuliah's card says it: the state in words in the one absence colouring, then the count once ("1 dari 2 absen").
-  const ink = meter?.tone === "red" ? v.redFg : meter?.tone === "amber" ? v.ambFg : meter?.tone === "ok" ? v.okFg : v.fg2;
-  const bar = meter?.bar && !meter.bar.estimate ? meter.bar : null;
-  const used = bar && bar.allowed > 0 ? t("mobile.kuliah.absences", { used: bar.used + bar.over, allowed: bar.allowed }) : null;
-  const word = meter ? (meter.word ?? meter.label) : null;
+  // As Kuliah's row says it (../presence/absence-dots.tsx): the dots and one short label, nothing else.
   const node = (
-    <View style={{ marginTop: 2, gap: 2 }}>
-      <View testID="meter.courseAttendance" style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
-        {lead && (
-          <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg2 }}>
-            {lead}
-          </Text>
-        )}
-        {word && (
-          <Text size="bodyMedium" weight="semibold" tabular style={{ color: ink }}>
-            {word}
-          </Text>
-        )}
-        {used && (
-          <Text size="bodyMedium" tabular style={{ color: v.fg2 }}>
-            {used}
-          </Text>
-        )}
+    <View style={{ gap: 2 }}>
+      {lead && (
+        <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg2 }}>
+          {lead}
+        </Text>
+      )}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
+        {meter && <AbsenceDots model={meter} label={absenceShort(t, meter)} testID="meter.courseAttendance" />}
         {/* Advice waits in the sheet the header opens: a filled mark says there is some. */}
         {advice && (
           <View testID="mark.courseAdvice">

@@ -140,8 +140,7 @@ export function FileRow({
         {here && (
           <View style={{ paddingRight: space[1] }}>
             <IconButton label={t("mobile.file.shareFor", { name: file.name })} onPress={share} testID={testID ? `${testID}.share` : undefined}>
-              {/* Android's share glyph; src/ui/icons has no "Share" yet. */}
-              <Icons.ArrowUpRight size={20} color={theme.color.onSurfaceVariant} />
+              <Icons.Share size={20} color={theme.color.onSurfaceVariant} />
             </IconButton>
           </View>
         )}
@@ -238,15 +237,15 @@ type Glyph = (props: IconProps) => ReactNode;
  * One list for every place a file is drawn (a module's material, a Task's file, a file being handed in).
  */
 export const FILE_KINDS: readonly [RegExp, Glyph, TileTone][] = [
-  [/^pdf$/, Icons.FileText, "red"],
+  [/^pdf$/, Icons.FilePdf, "red"],
   [/^(docx?|odt|rtf)$/, Icons.FileText, "brand"],
-  [/^(pptx?|odp|key)$/, Icons.AppWindow, "amber"],
+  [/^(pptx?|odp|key)$/, Icons.FileSlides, "amber"],
   [/^csv$/, Icons.LayoutGrid, "ok"],
   [/^(xlsx?|ods)$/, Icons.LayoutGrid, "ok"],
   [/^(zip|rar|7z|tar|gz)$/, Icons.FolderDown, "neutral"],
   [/^(png|jpe?g|gif|webp|svg|bmp|heic)$/, Icons.Image, "neutral"],
   [/^(mp4|mov|mkv|avi|webm)$/, Icons.Video, "neutral"],
-  [/^(mp3|wav|m4a|ogg|aac)$/, Icons.Speaker, "neutral"],
+  [/^(mp3|wav|m4a|ogg|aac)$/, Icons.FileAudio, "neutral"],
 ];
 
 /** A file's kind as a bare glyph in its kind's colour (no letters on a pale square); a warning in red for one that failed. */

@@ -29,8 +29,9 @@ import { Rise } from "../../ui/expressive";
 import { useToneTile } from "../../ui/icon-tile";
 import { type IconProps, Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { Appear, Tap } from "../../ui/moves";
+import { Appear } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
+import { ROW_SIDE } from "../../ui/row-end";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile, useCourseTile } from "../../ui/tile";
@@ -79,15 +80,16 @@ function Contents({
     const byClass = classModule === null ? undefined : entries.find((entry) => !entry.unopened && !entry.intro && entry.id === String(classModule));
     return byClass ? { entry: byClass, thisWeek: true, byClass: true } : currentEntry(entries, now);
   }, [entries, now, classModule]);
-  // Unfolded at the top with its files: "this week's material, opened, in two taps" (Kuliah's course, then the file).
-  // Below it, the whole table of contents, the current module's number in a filled circle.
-  const unfolded = current && ("byClass" in current || current.entry.materials.length > 0) ? current : undefined;
+  // Its files unfolded at the top: "this week's material, opened, in two taps" (Kuliah's course, then the file). With
+  // no files yet there is no heading at all (never a sentence saying so). Below, the whole table of contents, the
+  // module the class is on marked "sekarang", its number in a filled circle.
+  const unfolded = current && current.entry.materials.length > 0 ? current : undefined;
   // The class's own, then the joint class's under its own title (both can have a Modul 1).
   const firstParent = entries.findIndex((e) => e.parent);
   const groups = (firstParent === -1 ? [entries] : [entries.slice(0, firstParent), entries.slice(firstParent)]).filter((group) => group.length > 0);
   return (
     <View testID="list.course.contents">
-      {unfolded && <CurrentModule entry={unfolded.entry} thisWeek={unfolded.thisWeek} onPick={onPick} />}
+      {unfolded && <CurrentModule entry={unfolded.entry} thisWeek={unfolded.thisWeek} />}
       {groups.map((group, g) => {
         const joint = group[0]?.parent ?? false;
         return (
@@ -98,7 +100,7 @@ function Contents({
               unfolded && <BHeading style={{ marginTop: space[6], marginBottom: 0 }}>{t("mobile.course.material.all")}</BHeading>
             )}
             {/* Flat on the page, a hairline between rows: the same in light and dark. */}
-            <View style={{ marginHorizontal: -14 }}>
+            <View style={{ marginHorizontal: -ROW_SIDE }}>
               {group.map((entry, i) => (
                 <ModuleRow
                   key={entry.id}
@@ -107,9 +109,9 @@ function Contents({
                   code={code}
                   name={name}
                   onPick={onPick}
-                  // The unfolded module is named by its heading above: its row doesn't say "Minggu ini" again, its
-                  // number sits in a filled circle (a calendar's "today").
-                  now={current?.entry === entry && !unfolded ? (current.thisWeek ? "week" : "latest") : null}
+                  // The module the class is on says "sekarang"; one picked by its material says "Minggu ini" or
+                  // "Terbaru", unless the heading above already did. Its number sits in a filled circle.
+                  now={current?.entry !== entry ? null : "byClass" in current ? "class" : unfolded ? null : current.thisWeek ? "week" : "latest"}
                   here={current?.entry === entry}
                 />
               ))}
@@ -122,39 +124,20 @@ function Contents({
 }
 
 /**
- * The module the course is on, open in place: "Materi minggu ini" (or "Materi terbaru" when nothing came this week),
- * which module it is (a tap opens its own page, with its Tasks), then its files and links, each one tap from open.
+ * The files of the module the course is on, open in place under "Materi minggu ini" (or "Materi terbaru" when nothing
+ * came this week), each one tap from open. The module isn't named here: the class's block above says its topic once,
+ * and its row in the list under this (marked "sekarang") opens its own page.
  */
-function CurrentModule({ entry, thisWeek, onPick }: { entry: Entry; thisWeek: boolean; onPick: (module: number) => void }) {
+function CurrentModule({ entry, thisWeek }: { entry: Entry; thisWeek: boolean }) {
   const t = useT();
-  const v = useTheme().v4;
-  const module = entry.intro ? entry.title : `${t("course.module", { no: entry.label ?? "" })} · ${entry.title}`;
   return (
     <Appear testID="module.current">
-      <BHeading style={{ marginBottom: 0 }}>{t(thisWeek ? "mobile.course.material.thisWeek" : "mobile.course.material.latest")}</BHeading>
-      <Tap
-        feel="row"
-        onPress={() => onPick(Number(entry.id))}
-        accessibilityLabel={t("mobile.course.material.openModule", { module })}
-        testID="action.currentModule"
-        style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48 }}
-      >
-        <Text size="bodyMedium" style={{ flex: 1, minWidth: 0, color: v.fg2 }}>
-          {module}
-        </Text>
-        <Icons.ChevronRight size={18} color={v.muted} />
-      </Tap>
-      {entry.materials.length === 0 ? (
-        <Text size="bodyMedium" style={{ color: v.muted }}>
-          {t("mobile.course.material.none")}
-        </Text>
-      ) : (
-        <View style={{ marginHorizontal: -14 }}>
-          {entry.materials.map((material, i) => (
-            <MaterialRow key={material.id} material={material} first={i === 0} />
-          ))}
-        </View>
-      )}
+      <BHeading style={{ marginBottom: space[1] }}>{t(thisWeek ? "mobile.course.material.thisWeek" : "mobile.course.material.latest")}</BHeading>
+      <View style={{ marginHorizontal: -ROW_SIDE }}>
+        {entry.materials.map((material, i) => (
+          <MaterialRow key={material.id} material={material} first={i === 0} />
+        ))}
+      </View>
     </Appear>
   );
 }
@@ -190,8 +173,8 @@ function ModuleRow({
   code: string;
   name: string;
   onPick: (module: number) => void;
-  /** The module the course is on: new material this week, else the newest. */
-  now: "week" | "latest" | null;
+  /** The module the course is on: the one its class is on ("sekarang"), else new material this week, else the newest. */
+  now: "class" | "week" | "latest" | null;
   /** The module the course is on: its number in a filled circle. */
   here?: boolean;
 }) {
@@ -223,7 +206,7 @@ function ModuleRow({
   }
   const open = entry.tasks.filter((task) => isOpenTask(task, now)).length;
   const empty = entry.tasks.length + entry.materials.length === 0;
-  const markText = mark === "week" ? t("course.thisWeek") : mark === "latest" ? t("course.latest") : null;
+  const markText = mark === "class" ? t("mobile.course.material.now") : mark === "week" ? t("course.thisWeek") : mark === "latest" ? t("course.latest") : null;
   // With open Tasks the chip is theirs: the mark leads the meta line instead, so which module is now still shows.
   const facts = [open > 0 ? markText : null, ...(empty ? [] : countFacts(t, entry))].filter((x): x is string => !!x);
   // One colour for every opened module's number (round 1: "purple or grey with no clue why"); a closed one is grey
@@ -323,7 +306,7 @@ export function ModulePage({
           {entry.materials.length > 0 && (
             <Rise screen="module" index={2}>
               {both ? <SectionTitle>{t("course.materials")}</SectionTitle> : <View style={{ height: space[6] }} />}
-              <View style={{ marginHorizontal: -14 }}>
+              <View style={{ marginHorizontal: -ROW_SIDE }}>
                 {entry.materials.map((material, i) => (
                   <MaterialRow key={material.id} material={material} first={i === 0} />
                 ))}
@@ -345,11 +328,11 @@ type Glyph = (props: IconProps) => ReactNode;
 
 /** Edunex's own kinds, each a neutral glyph (the app's one icon family, ui/icons.tsx). */
 const KIND_GLYPH: Record<MaterialKind, Glyph> = {
-  pdf: Icons.FileText,
+  pdf: Icons.FilePdf,
   vicon: Icons.Video,
   note: Icons.StickyNote,
   video: Icons.Video,
-  audio: Icons.Speaker,
+  audio: Icons.FileAudio,
   link: Icons.Link,
   file: Icons.Paperclip,
   image: Icons.Image,
@@ -394,7 +377,7 @@ function whenOf(t: Translate, f: Format, material: Material): string | null {
 /** `"` and `<` kept out of a picture's address, for the one-picture HTML an image material is drawn from. */
 const attr = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
 
-const rowStyle = { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 } as const;
+const rowStyle = { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: ROW_SIDE, paddingVertical: space[3], minHeight: 68 } as const;
 
 function MaterialRow({ material, first }: { material: Material; first: boolean }) {
   const t = useT();
@@ -414,7 +397,7 @@ function MaterialRow({ material, first }: { material: Material; first: boolean }
     return (
       <View testID={testID}>
         <TileRow first={first} leading={tile} title={material.title} meta={when ?? undefined} />
-        <View style={{ paddingHorizontal: 14, paddingBottom: space[4] }}>
+        <View style={{ paddingHorizontal: ROW_SIDE, paddingBottom: space[4] }}>
           {action.kind === "image" ? (
             // The picture through the same reader as a note's pictures (Edunex's storage, read in by the host).
             <LecturerHtml html={`<img src="${attr(action.url)}">`} pictureAlt={material.title} edunexUrl={edunexMaterialUrl(material)} />
@@ -497,7 +480,7 @@ function FileItem({
           accessibilityLabel={factsLabel(t("mobile.file.openFor", { name: material.title }), meta)}
           accessibilityState={{ busy }}
           onPress={() => void open()}
-          style={[rowStyle, { flex: 1, paddingRight: here ? space[1] : 14 }]}
+          style={[rowStyle, { flex: 1, paddingRight: here ? space[1] : ROW_SIDE }]}
         >
           {tile}
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -520,8 +503,7 @@ function FileItem({
         {here && (
           <View style={{ paddingRight: space[1] }}>
             <IconButton label={t("mobile.file.shareFor", { name: file.name })} onPress={share} testID={`${testID}.share`}>
-              {/* ui/icons has no "Share" yet (Fluent's ShareAndroid20Regular): the nearest, an arrow out, meanwhile. */}
-              <Icons.Upload size={20} color={v.muted} />
+              <Icons.Share size={20} color={v.muted} />
             </IconButton>
           </View>
         )}
@@ -534,7 +516,7 @@ function FileItem({
           onRetry={() => void open()}
           onShare={share}
           testID={`${testID}.problem`}
-          style={{ paddingLeft: ROW_INSET, paddingRight: 14 }}
+          style={{ paddingLeft: ROW_INSET, paddingRight: ROW_SIDE }}
         />
       )}
     </View>

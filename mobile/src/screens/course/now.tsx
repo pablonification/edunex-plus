@@ -30,7 +30,6 @@ import { space, THEMES, useTheme } from "../../ui/theme";
 import { StatusChip, TileRow } from "../../ui/v4-list";
 import { useCheckIn, useWentToCheckIn } from "../home/checked-in";
 import { shortName } from "../home/parts";
-import { HandButton } from "../presence/hand-button";
 import { FlatRows } from "./flat";
 import { meetingModuleTitle, meetingTitle, pageModules } from "./meetings";
 
@@ -350,24 +349,24 @@ function NowBlock({
             <PresenceButton tone="course" ink={fill} wide onPress={() => open(url)} accessibilityLabel={t("home.now.recordLabel", { course: code })} />
           ) : main === "six" && sixSession && student ? (
             // No haptic: the tap only opens SIX, where the Student presses Tandai Hadir (haptics are for commits).
-            <HandButton
-              word={t("mobile.notification.checkIn")}
+            <PresenceButton
+              label={t("mobile.notification.checkIn")}
               tone="course"
               ink={fill}
               wide
               onPress={() => checkIn(sixSession.id, sixTimetableUrl(student, sixSession.start), now)}
-              label={t("home.now.openSixLabel", { course: code })}
+              accessibilityLabel={t("home.now.openSixLabel", { course: code })}
               testID="action.checkIn"
             />
           ) : main === "join" && link ? (
-            <HandButton
-              word={t("course.join")}
+            <PresenceButton
+              label={t("course.join")}
               icon="Video"
               tone="course"
               ink={fill}
               wide
               onPress={() => open(link)}
-              label={t("home.today.joinLabel", { course: code })}
+              accessibilityLabel={t("home.today.joinLabel", { course: code })}
               testID="action.join"
             />
           ) : null}

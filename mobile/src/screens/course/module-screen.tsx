@@ -13,6 +13,7 @@ import { useB } from "../../ui/b";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
+import { ROW_SIDE } from "../../ui/row-end";
 import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { contentsOf } from "./contents";
@@ -67,7 +68,10 @@ function ModuleSkeleton() {
       <Skeleton height={28} width="78%" style={{ marginTop: space[2] }} />
       <FlatRows style={{ marginTop: space[6] }}>
         {[0, 1, 2].map((i) => (
-          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
+          <View
+            key={i}
+            style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: ROW_SIDE, paddingVertical: space[3], minHeight: 68 }}
+          >
             <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
             <View style={{ flex: 1, gap: space[1.5] }}>
               <Skeleton height={16} width={i === 1 ? "55%" : "75%"} />
