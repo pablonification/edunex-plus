@@ -21,11 +21,12 @@ import { heldBack } from "../../../src/core/held-back";
 import { snapshotDataset, snapshotHomeWorld, snapshotTermCourses } from "../../../src/core/home-world";
 import type { ClassSession, Lang, Settings } from "../../../src/core/models";
 import { attentionWithToday, DUE_NOW, type HomeContext, homeContext, type NowCard, needsRange, nowCard, todayPlan } from "../../../src/core/needs";
-import type { Route } from "../../../src/core/route";
 import type { Snapshot } from "../../../src/core/snapshot";
 import { type StringKey, translate, type Vars } from "../../../src/core/strings";
 import { isOpenStatus, taskStatus } from "../../../src/core/tasks";
 import { needAction, needLine, statusLine, type TrayAction } from "../../../src/desktop/tray-menu";
+// The phone's routes: the window's and the phone's own (Ujian's list), types only.
+import type { Route } from "../nav";
 
 /** Where a tap goes: a screen of the app, an official page or a lecturer's link in the browser, SIX's check-in page, or the app as it was. */
 export type WidgetTarget =
@@ -38,6 +39,8 @@ export type WidgetTarget =
 
 export interface WidgetLine {
   label: string;
+  /** The label with each course by its name, as the rest of the widget says it ("UTS Komunikasi Pemasaran"). */
+  named?: string;
   /** The same in a button's few words, where the label would be cut ("Tandai Hadir"). */
   short?: string;
   /** The when and where, in smaller type under it. */
@@ -69,7 +72,7 @@ export interface WidgetClass {
 export interface WidgetModel {
   theme: Settings["theme"];
   /** When the data was last right ("Diperbarui pukul 14:05", with the day when it isn't today), or what's wrong (`problem`). Never "Memperbarui…". */
-  status: { text: string; problem: boolean; offline?: boolean; at?: number | null };
+  status: { text: string; problem: boolean; offline?: boolean; at?: number | null /** Offline, in one cell's width: "Data 08:12". */; short?: string };
   /** "Sekarang" and "Hari ini" with nothing of their own to show (signed out, a holiday): the one shared layout's words. */
   quiet: { now: WidgetQuiet | null; today: WidgetQuiet | null };
   /** The class on now or next; a line instead when there's none in a week; null without a timetable (no SIX). */
@@ -111,6 +114,8 @@ export interface WidgetToday {
   none: WidgetLine | null;
   /** The next Task due, still open: "Tenggat 23:59 · DK4073", its title; opens the Task. */
   deadline: WidgetLine | null;
+  /** Every class of today's is over: "Kelas hari ini sudah selesai" (Kuliah's own words). */
+  done?: string;
   /** The next day with classes (within a week), for the room under today's: "Besok", "Sen, 12 Okt". */
   next: { heading: string; classes: WidgetTodayClass[] } | null;
 }
@@ -156,11 +161,12 @@ export function widgetModel(snapshot: Pick<Snapshot, "datasets" | "statuses" | "
   return {
     theme: snapshot.settings.theme,
     // The text and whether it's a problem, as before (the iPhone reads these two); `offline` only when it is.
-    status: { text: status.text, problem: status.problem, ...(status.offline ? { offline: true } : {}) },
+    status: { text: status.text, problem: status.problem, ...(status.offline ? { offline: true } : {}), ...(status.short ? { short: status.short } : {}) },
     quiet: {
       now: !context
         ? signedOut(names.now)
-        : holiday && !actions.length
+        : // A week without classes still has what needs the Student: the card alone only when there's nothing else to say.
+          holiday && !actions.length && !needs?.items.length
           ? quietOf(t, names.now, "holiday")
           : schedule === null && !actions.length && !needs?.items.length
             ? signedOut(names.now)
@@ -195,12 +201,17 @@ export function widgetStatus(snapshot: Pick<Snapshot, "datasets" | "statuses">, 
   if (offline && !other && !ended)
     return {
       text: at === null ? t("status.offline") : t("mobile.widget.offline", { when: today ? f.time(at) : f.dayTimeWord(at) }),
+      ...(at !== null && today ? { short: t("mobile.widget.offlineShort", { when: f.time(at) }) } : {}),
       problem: true,
       offline: true,
       at,
     };
   if (line.problem?.type === "item") return { text: line.problem.label, problem: true, at };
-  return { text: at === null ? "" : today ? t("tray.updatedAt", { time: f.time(at) }) : t("status.updated", { when: f.dayTimeWord(at) }), problem: false, at };
+  return {
+    text: at === null ? "" : today ? t("mobile.widget.updated", { time: f.time(at) }) : t("status.updated", { when: f.dayTimeWord(at) }),
+    problem: false,
+    at,
+  };
 }
 
 /** The shared words of a widget with nothing to show (WidgetQuiet). `source`: what to sign in to (null: either). */
@@ -208,14 +219,15 @@ function quietOf(
   t: Translate,
   name: string,
   state: WidgetQuiet["state"],
-  source: "six" | "edunex" | null = null,
+  _source: "six" | "edunex" | null = null,
   empty?: { label: string; short: string; place: string; open: WidgetTarget },
 ): WidgetQuiet {
   if (state === "signedOut")
     return {
       state,
       name,
-      label: source ? t("mobile.widget.signedOut", { source: t(`source.${source}`) }) : t("mobile.widget.signedOutAny"),
+      // One wording on every widget: the app's sign-in page says which of the two it needs.
+      label: t("mobile.widget.signedOutAny"),
       short: t("mobile.widget.signedOutShort"),
       action: t("action.signIn"),
       open: HOME,
@@ -224,8 +236,9 @@ function quietOf(
     return {
       state: "holiday",
       name,
-      label: t("mobile.widget.holiday"),
-      short: t("mobile.widget.holidayShort"),
+      // What SIX's timetable says, no more: a week without classes isn't always a holiday.
+      label: t("home.now.free"),
+      short: t("mobile.widget.noClass"),
       action: t("mobile.widget.open", { place: t("nav.schedule") }),
       open: { kind: "route", route: { screen: "schedule" } },
     };
@@ -254,7 +267,7 @@ function todayLines(snapshot: Pick<Snapshot, "datasets" | "statuses">, context: 
     end: f.time(session.end),
     code: session.courseCode,
     name: courses.find((c) => c.code === session.courseCode)?.name ?? session.courseName ?? null,
-    room: session.room ?? null,
+    room: roomOf(session.room),
     live: session.start <= now && now < session.end,
     past: session.end <= now,
     tone: toneOf(snapshot, codes, session.courseCode),
@@ -272,6 +285,7 @@ function todayLines(snapshot: Pick<Snapshot, "datasets" | "statuses">, context: 
     heading: `${t("home.today")} · ${f.weekdayShort(now)} ${f.dayMonth(now)}`,
     classes,
     none: classes.length ? null : { label: t("mobile.widget.todayNone"), open: { kind: "route", route: { screen: "schedule" } } },
+    ...(classes.length && classes.every((one) => one.past) ? { done: t("mobile.kuliah.today.over") } : {}),
     deadline: next
       ? {
           label: `${t("home.today.due")} ${f.dayOffset(next.dueAt!) === 0 ? f.time(next.dueAt!) : f.dayTime(next.dueAt!)} · ${next.courseCode}`,
@@ -284,6 +298,12 @@ function todayLines(snapshot: Pick<Snapshot, "datasets" | "statuses">, context: 
 }
 
 type Format = ReturnType<typeof makeFormat>;
+
+/** A room as a widget says it: SIX's bare number ("9134") reads as a room only with its "R." ("R. 9134"). */
+export function roomOf(room: string | null | undefined): string | null {
+  if (!room) return null;
+  return /^\d+$/.test(room.trim()) ? `R. ${room.trim()}` : room;
+}
 
 /** The tray's "the class" section (classSection), in parts a widget lays out: the card's class or meeting, else "no class this week". */
 function classLine(
@@ -305,7 +325,7 @@ function classLine(
   const courses = snapshotTermCourses(snapshot) ?? [];
   const course = courses.find((c) => c.code === code);
   const what = session
-    ? [session.room, /^kuliah$/i.test(session.activity) ? null : session.activity]
+    ? [roomOf(session.room), /^kuliah$/i.test(session.activity) ? null : session.activity]
     : [t(meeting!.meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: meeting!.meeting.number })];
   const live = card.state === "live";
   return {
@@ -382,6 +402,7 @@ function needsLines(
   const handled = snapshotDataset(snapshot, "local.done") ?? [];
   const { shown, snoozed, done } = heldBack(attentionWithToday(context, card), [], snoozes, handled, context.now);
   const heading = t("home.needs");
+  const courses = snapshotTermCourses(snapshot) ?? [];
   if (!shown.length) {
     const range = needsRange(context);
     const label = snoozed.length
@@ -398,7 +419,9 @@ function needsLines(
     items: shown.map((need) => {
       // The tray's own words for it, cut as the tray cuts them; the widget ends a line that still doesn't fit with "…".
       const { label, detail } = needLine(need, f, t);
-      return { label, ...(detail ? { detail } : {}), open: targetOf(needAction(need)) };
+      // One course, one name in one widget: the block and the rows say names, so the need does too.
+      const named = courses.reduce((text, course) => (course.name ? text.replaceAll(course.code, course.name) : text), label);
+      return { label, ...(named !== label ? { named } : {}), ...(detail ? { detail } : {}), open: targetOf(needAction(need)) };
     }),
     empty: null,
     all: { label: t("tray.needs.all", { count: shown.length }), open: HOME },
@@ -439,6 +462,8 @@ export interface WidgetStatus {
   at: number | null;
   /** Not reached at the last try: the data stays, the foot says from when, and nothing that needs the network is offered. */
   offline?: boolean;
+  /** The same in one cell's width, offline: "Data 08:12". */
+  short?: string;
 }
 
 /** What every widget's function starts from: worked out once, then shared. Not for drawing: it holds the formatters. */
@@ -498,6 +523,8 @@ export interface DueRow {
   /** What a row leads with: "Hari ini", "Besok", "Jum, 16 Okt"; then "23:59". */
   day: string;
   time: string;
+  /** How close it is, in a word, while that says more than the date: "Hari ini", "Besok", "8 hari"; null from two weeks out. */
+  near: string | null;
   /** Due today or tomorrow: marked. */
   mark: "today" | "tomorrow" | null;
   /** Due within a day: drawn in the warning ink. */
@@ -543,6 +570,12 @@ export function dueWidget(facts: WidgetFacts): DueWidget {
     when: f.dueLabel(task.dueAt!),
     day: f.relativeDay(task.dueAt!),
     time: f.time(task.dueAt!),
+    near:
+      f.dayOffset(task.dueAt!) <= 1
+        ? f.relativeDay(task.dueAt!)
+        : f.dayOffset(task.dueAt!) <= 14
+          ? t("mobile.widget.inDays", { count: f.dayOffset(task.dueAt!) })
+          : null,
     mark: f.dayOffset(task.dueAt!) === 0 ? ("today" as const) : f.dayOffset(task.dueAt!) === 1 ? ("tomorrow" as const) : null,
     soon: task.dueAt! - now <= DUE_NOW,
     open: { kind: "route", route: { screen: "task", taskId: task.id } } as WidgetTarget,
@@ -617,6 +650,8 @@ export function attendanceWidget(facts: WidgetFacts): AttendanceWidget {
       const health = context?.health.get(course.code);
       if (!health) return [];
       const budget = absenceBudget(health);
+      // No allowance to count (SIX gave none, or the term allows no absence and none is over): the list is about what's left.
+      if (!budget || budget.allowed + budget.over <= 0) return [];
       const label =
         health.state === "none"
           ? t("mobile.absence.none")
@@ -627,11 +662,11 @@ export function attendanceWidget(facts: WidgetFacts): AttendanceWidget {
               : "-";
       const short =
         health.state === "none"
-          ? t("mobile.widget.absencesNone")
+          ? t("mobile.absence.dots.none")
           : health.state === "out"
-            ? t("mobile.widget.absencesOver", { count: budget?.over ?? 0 })
+            ? t("mobile.absence.dots.over", { count: budget?.over ?? 0 })
             : budget
-              ? t("mobile.widget.absencesLeft", { count: budget.left })
+              ? t("mobile.absence.dots.left", { count: budget.left })
               : "-";
       return [
         {
@@ -720,8 +755,8 @@ export function examWidget(facts: WidgetFacts): ExamWidget {
     const quiet = quietOf(t, widgetName, "empty", null, {
       label: t("mobile.widget.examNone"),
       short: t("mobile.widget.examNone"),
-      place: t("mobile.tab.tasks"),
-      open: { kind: "route", route: { screen: "tasks" } },
+      place: t("mobile.exams.title"),
+      open: { kind: "route", route: { screen: "exams" } },
     });
     return { ...base, state: "empty", next: null, more: [], quiet, empty: { label: quiet.label, open: quiet.open }, changesAt: null };
   }
@@ -741,7 +776,7 @@ export function examWidget(facts: WidgetFacts): ExamWidget {
       tone: toneOf(snapshot, facts.codes, exam.courseCode),
       day: f.relativeDay(start),
       time: f.time(start),
-      room: room ?? null,
+      room: roomOf(room),
       left: days <= 1 ? null : `${days} ${t("mobile.calendar.daysLeft", { count: days })}`,
       days,
       big: days <= 1 ? f.relativeDay(start) : String(days),
@@ -782,6 +817,8 @@ export interface NextWidget {
     tone: string | undefined;
     /** "Hari ini" / "Besok" / "Sen, 12 Okt": said under the time when it isn't today. */
     day: string | null;
+    /** The day in a word, always said above the time: "Hari ini", "Besok", "Kam" (a class is never more than a week off). */
+    dayShort: string;
     /** On now, Tandai Hadir open: the cell turns green and a tap opens SIX's page. */
     checkIn: boolean;
     open: WidgetTarget;
@@ -817,7 +854,7 @@ export function nextWidget(facts: WidgetFacts): NextWidget {
           code: slot.code,
           room: t(slot.meeting.online ? "home.today.meetingOnline" : "home.today.meeting", { number: slot.meeting.number }),
         }
-      : { start: slot.session.start, end: slot.session.end, code: slot.session.courseCode, room: slot.session.room };
+      : { start: slot.session.start, end: slot.session.end, code: slot.session.courseCode, room: roomOf(slot.session.room) };
   const offset = f.dayOffset(start);
   const open: WidgetTarget =
     slot.kind === "checkIn"
@@ -836,6 +873,7 @@ export function nextWidget(facts: WidgetFacts): NextWidget {
       room,
       tone: toneOf(snapshot, facts.codes, code),
       day: offset === 0 ? null : f.relativeDay(start),
+      dayShort: offset <= 1 ? f.relativeDay(start) : f.weekdayShort(start),
       checkIn: slot.kind === "checkIn",
       open,
       a11y:
@@ -846,7 +884,7 @@ export function nextWidget(facts: WidgetFacts): NextWidget {
     quiet: null,
     empty: null,
     // It starts (the next one takes over once it has), or its check-in closes; a day's word turns over at midnight.
-    changesAt: earliest(slot.kind === "checkIn" ? end : start, offset === 0 ? null : nextMidnight(now)),
+    changesAt: earliest(slot.kind === "checkIn" ? end : start, nextMidnight(now)),
   };
 }
 
@@ -873,23 +911,28 @@ function upcoming(card: NowCard | null, schedule: readonly ClassSession[], now: 
 export type ServiceIcon = "calendar" | "tasks" | "courses" | "grades";
 
 export interface ServicesWidget {
+  state: WidgetState;
   items: {
     label: string;
     icon: ServiceIcon;
-    /** The tile's one live figure: classes left today, Tasks due within a week, courses at or past their absence limit, the IPK. Null when it isn't known (the tile is then its icon and word), or when it's zero and `good`. */
+    /**
+     * The tile's one live figure with its noun: "4 kelas" left today, "2 tenggat" within a week, "3 di batas" of their
+     * absences. Null when it isn't known or there are none (the tile is then its icon and word). Never a grade: a home
+     * screen is read by whoever sits beside the Student.
+     */
     figure: string | null;
-    /** Nothing left, nothing due, no course at its limit: a mark, never a "0". */
-    good: boolean;
     /** What TalkBack says: "Jadwal, 2 kuliah lagi hari ini". */
     a11y: string;
     open: WidgetTarget;
   }[];
+  /** Signed in to neither: the shared card, with Masuk. */
+  quiet: WidgetQuiet | null;
   status: WidgetStatus;
   changesAt: number | null;
 }
 
 export function servicesWidget(facts: Pick<WidgetFacts, "t"> & Partial<WidgetFacts>): ServicesWidget {
-  const { t, context, snapshot, now, f } = facts;
+  const { t, context, snapshot, now } = facts;
   const go = (route: Route): WidgetTarget => ({ kind: "route", route });
   const known = context !== undefined && now !== undefined;
   // Classes of today's not over yet (null without SIX's timetable).
@@ -901,14 +944,11 @@ export function servicesWidget(facts: Pick<WidgetFacts, "t"> & Partial<WidgetFac
       : null;
   const health = known && context.schedule !== null ? context.courses.flatMap((course) => context.health.get(course.code) ?? []) : null;
   const atLimit = health?.length ? health.filter((one) => one.state === "none" || one.state === "out").length : null;
-  const transcript = snapshot ? snapshotDataset(snapshot, "six.transcript") : undefined;
-  const ipk = transcript ? (transcript.ipk.six ?? transcript.ipk.computed) : null;
-  const tile = (label: string, icon: ServiceIcon, count: number | null, said: string, route: Route) => ({
+  const tile = (label: string, icon: ServiceIcon, count: number | null, figure: string, said: string, route: Route) => ({
     label,
     icon,
-    figure: count === null || count === 0 ? null : String(count),
-    good: count === 0,
-    a11y: count === null ? label : `${label}, ${said}`,
+    figure: count === null || count === 0 ? null : figure,
+    a11y: count === null || count === 0 ? label : `${label}, ${said}`,
     open: go(route),
   });
   const moments = known
@@ -918,21 +958,36 @@ export function servicesWidget(facts: Pick<WidgetFacts, "t"> & Partial<WidgetFac
         ...(tasks ?? []).map((task) => (task.dueAt ?? 0) - 7 * DAY_MS),
       ].filter((at) => at > now)
     : [];
+  const signedOut = facts.signedIn !== undefined && !facts.signedIn.six && !facts.signedIn.edunex && context === undefined;
   return {
+    state: signedOut ? "signedOut" : "ready",
+    quiet: signedOut ? quietOf(t, t("mobile.widget.name.services"), "signedOut") : null,
     items: [
-      tile(t("nav.schedule"), "calendar", classes ? classes.length : null, t("mobile.widget.svc.classes", { count: classes?.length ?? 0 }), {
-        screen: "schedule",
-      }),
-      tile(t("mobile.tab.tasks"), "tasks", due ? due.length : null, t("mobile.widget.svc.due", { count: due?.length ?? 0 }), { screen: "tasks" }),
-      tile(t("mobile.tab.courses"), "courses", atLimit, t("mobile.widget.svc.limit", { count: atLimit ?? 0 }), { screen: "presence" }),
-      {
-        label: t("nav.grades"),
-        icon: "grades",
-        figure: typeof ipk === "number" && f ? f.number(ipk) : null,
-        good: false,
-        a11y: typeof ipk === "number" && f ? `${t("nav.grades")}, ${t("mobile.widget.svc.ipk", { value: f.number(ipk) })}` : t("nav.grades"),
-        open: go({ screen: "grades" }),
-      },
+      tile(
+        t("nav.schedule"),
+        "calendar",
+        classes ? classes.length : null,
+        t("mobile.widget.svc.classesFig", { count: classes?.length ?? 0 }),
+        t("mobile.widget.svc.classes", { count: classes?.length ?? 0 }),
+        { screen: "schedule" },
+      ),
+      tile(
+        t("mobile.tab.tasks"),
+        "tasks",
+        due ? due.length : null,
+        t("mobile.widget.svc.dueFig", { count: due?.length ?? 0 }),
+        t("mobile.widget.svc.due", { count: due?.length ?? 0 }),
+        { screen: "tasks" },
+      ),
+      tile(
+        t("mobile.tab.courses"),
+        "courses",
+        atLimit,
+        t("mobile.widget.svc.limitFig", { count: atLimit ?? 0 }),
+        t("mobile.widget.svc.limit", { count: atLimit ?? 0 }),
+        { screen: "presence" },
+      ),
+      { label: t("nav.grades"), icon: "grades", figure: null, a11y: t("nav.grades"), open: go({ screen: "grades" }) },
     ],
     status: facts.status ?? { text: "", problem: false, at: null },
     // A class of today's ending, a deadline passing or coming within the week, and midnight (today's classes are tomorrow's).
@@ -952,7 +1007,13 @@ export interface CourseWidget {
     open: WidgetTarget;
   } | null;
   /** Its next class: "Besok, 08:00–10:00 · R.9009", opening its sheet on Jadwal; `short` "Besok 08:00" for a narrow widget. */
-  next: (WidgetLine & { short: string }) | null;
+  next:
+    | (WidgetLine & {
+        short: string /** The same without the room, and the room alone: each on its own line where one doesn't hold both. */;
+        when: string;
+        room: string | null;
+      })
+    | null;
   /** Its absences ("Sisa jatah absen 2×", or "Sisa 2×" narrow), in the state's ink. */
   absences: { label: string; short: string; state: AttendanceState } | null;
   /** The same as marks: the absences the term allows, how many are used, how many past the limit. Null without SIX's count. */
@@ -994,7 +1055,30 @@ export function courseWidget(facts: WidgetFacts, code: string | null): CourseWid
     };
   }
   const schedule = [...(context.schedule ?? [])].filter((s) => s.end > now).sort((a, b) => a.start - b.start);
-  const chosen = courses.find((c) => c.code === code) ?? courses.find((c) => c.code === schedule[0]?.courseCode) ?? courses[0]!;
+  const picked = courses.find((c) => c.code === code) ?? courses.find((c) => c.code === schedule[0]?.courseCode);
+  if (!picked) {
+    // None chosen and no class ahead to choose by: say how to pick one, never somebody's first course.
+    const quiet = quietOf(t, t("mobile.widget.name.course"), "empty", null, {
+      label: t("mobile.widget.pickCourseHint"),
+      short: t("mobile.widget.pickCourse"),
+      place: t("mobile.tab.courses"),
+      open: { kind: "route", route: { screen: "presence" } },
+    });
+    return {
+      ...base,
+      state: "empty",
+      course: null,
+      next: null,
+      absences: null,
+      marks: null,
+      task: null,
+      quiet,
+      empty: { label: quiet.label, open: quiet.open },
+      // A class appearing on SIX's timetable comes with a new save; a day turning over can bring one within reach.
+      changesAt: nextMidnight(now),
+    };
+  }
+  const chosen = picked;
   const session = schedule.find((s) => s.courseCode === chosen.code && s.start - now <= 14 * DAY_MS);
   const health = context.health.get(chosen.code);
   const budget = health ? absenceBudget(health) : null;
@@ -1015,10 +1099,13 @@ export function courseWidget(facts: WidgetFacts, code: string | null): CourseWid
           // On now: "Sedang berlangsung" with when it ends, never a bare "Hari ini, 08:00" that reads as still to come.
           label: [
             session.start <= now ? `${t("tray.now")} · ${t("mobile.widget.ends", { time: f.time(session.end) })}` : f.dayTimeRange(session.start, session.end),
-            session.room,
+            roomOf(session.room),
           ]
             .filter(Boolean)
             .join(" · "),
+          when:
+            session.start <= now ? `${t("tray.now")} · ${t("mobile.widget.ends", { time: f.time(session.end) })}` : f.dayTimeRange(session.start, session.end),
+          room: roomOf(session.room),
           short:
             session.start <= now
               ? `${t("tray.now")} · ${t("mobile.widget.ends", { time: f.time(session.end) })}`
@@ -1043,11 +1130,11 @@ export function courseWidget(facts: WidgetFacts, code: string | null): CourseWid
                     : "-",
             short:
               health.state === "none"
-                ? t("mobile.widget.absencesNone")
+                ? t("mobile.absence.dots.none")
                 : health.state === "out"
-                  ? t("mobile.widget.absencesOver", { count: budget?.over ?? 0 })
+                  ? t("mobile.absence.dots.over", { count: budget?.over ?? 0 })
                   : budget
-                    ? t("mobile.widget.absencesLeft", { count: budget.left })
+                    ? t("mobile.absence.dots.left", { count: budget.left })
                     : "-",
           }
         : null,

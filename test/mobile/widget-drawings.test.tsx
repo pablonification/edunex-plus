@@ -200,19 +200,22 @@ const phone = (w: number, h: number) => ({ label: `${w}×${h}`, width: Math.roun
 const RENDER: Record<string, { title: string; sizes: ReturnType<typeof phone>[]; first: string }> = {
   Now: { title: "Sekarang", sizes: [phone(2, 1), phone(4, 1), phone(4, 2), phone(4, 3)], first: "4×2" },
   Services: { title: "Pintasan", sizes: [phone(2, 1), phone(4, 1)], first: "4×1" },
-  Exam: { title: "Ujian", sizes: [phone(2, 1), phone(2, 2), phone(4, 1), phone(4, 2)], first: "2×1" },
-  Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
-  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
-  Attendance: { title: "Jatah absen", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
+  Exam: { title: "Ujian", sizes: [phone(2, 1), phone(3, 1), phone(4, 1)], first: "2×1" },
+  Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
+  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
+  Attendance: { title: "Jatah absen", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
   Next: { title: "Kelas berikutnya", sizes: [phone(1, 1), phone(2, 1)], first: "1×1" },
-  Course: { title: "Satu mata kuliah", sizes: [phone(3, 1), phone(3, 2), phone(4, 2)], first: "3×1" },
+  Course: { title: "Satu mata kuliah", sizes: [phone(3, 1), phone(3, 2)], first: "3×1" },
 };
 
 const emptied = (names: string[]) => (one: Shot) => ({ ...one, datasets: one.datasets.map((d) => (names.includes(d.name) ? { ...d, value: [] } : d)) }) as Shot;
 /** The states beside the normal one, each made from the same pretend Thursday (as test/mobile/widget-models.test.ts makes them). */
 const STATES: Record<string, { title: string; change: (one: Shot) => Shot }> = {
   // Nothing at all: no Task, no exam, no class, and so no Presence open for one (the first round kept the Presence, and drew its button with no class).
-  empty: { title: "Empty (nothing due, no class, no exam)", change: (one) => noPresence(emptied(["edunex.tasks", "edunex.exams", "six.schedule"])(one)) },
+  empty: {
+    title: "Empty (no course, nothing due, no class, no exam)",
+    change: (one) => noPresence(emptied(["edunex.tasks", "edunex.exams", "six.schedule", "six.courses", "edunex.courses"])(one)),
+  },
   signedOut: {
     title: "Signed out",
     change: (one) =>
@@ -233,6 +236,8 @@ const noPresence = (one: Shot) =>
     datasets: one.datasets.map((d) => (d.name === "edunex.presence" || d.name === "edunex.materials" ? { ...d, value: Array.isArray(d.value) ? [] : {} } : d)),
   }) as Shot;
 
+/** The picker's own grey behind a preview, so a white card's corners show (the script clears it before it cuts the asset). */
+const PICKER = "#e3e7ee";
 const WALLPAPER = { light: "linear-gradient(135deg,#bfeeee 0%,#9fd84a 48%,#6b3fe0 100%)", dark: "linear-gradient(135deg,#10222c 0%,#1d3a17 48%,#2a1a5e 100%)" };
 
 function renderPages(folder: string): void {
@@ -247,7 +252,7 @@ function renderPages(folder: string): void {
     } finally {
       fontScale = 1;
     }
-    return `<figure style="margin:0"><div data-shot="${name.toLowerCase()}-${state}-${size.label.replace("×", "x")}-${scheme}" style="display:inline-block;padding:18px;border-radius:12px;background:${state === "preview" ? "transparent" : WALLPAPER[scheme]}">${inner}</div></figure>`;
+    return `<figure style="margin:0"><div data-shot="${name.toLowerCase()}-${state}-${size.label.replace("×", "x")}-${scheme}" style="display:inline-block;padding:18px;border-radius:12px;background:${state === "preview" ? PICKER : WALLPAPER[scheme]}">${inner}</div></figure>`;
   };
   for (const [name, { title, sizes, first }] of Object.entries(RENDER)) {
     const rows: string[] = [];
@@ -273,12 +278,10 @@ function renderPages(folder: string): void {
         some.flatMap((size) => [tile(name, state, size, "light", from), tile(name, state, size, "dark", from)]),
       );
     }
-    // The picker's picture (scripts/make-widget-previews.mjs keeps it): the first size, light, an hour before the first
-    // class and with no read stamped, so it claims nothing live ("Sedang berlangsung", "Diperbarui pukul …").
-    const before = worldOf(
-      (one) => ({ ...one, statuses: one.statuses.map((status) => ({ ...status, updatedAt: null })) }) as Shot,
-      Date.parse("2026-10-08T07:00:00+07:00"),
-    );
+    // The picker's picture (scripts/make-widget-previews.mjs keeps it): the widget as it's first placed, light, at the
+    // same moment as the pictures above, so it shows what the widget is for (the class on now with its button, the
+    // same course in the same colour). No read stamped: a picture in the picker can't say when the data is from.
+    const before = worldOf((one) => ({ ...one, statuses: one.statuses.map((status) => ({ ...status, updatedAt: null })) }) as Shot);
     const firstSize = sizes.find((one) => one.label === first)!;
     rows.push(`<section><h2>In the picker · ${firstSize.label}</h2>${tile(name, "preview", firstSize, "light", before)}</section>`);
     fs.writeFileSync(
@@ -341,7 +344,9 @@ describe("every widget at every size", () => {
   it("Sekarang as first placed: the course's name whole and no code, one button with the one time, each said once", () => {
     const size = phone(4, 2);
     const drawn = draw(DRAW.Now!({ ...size, fontScale: 1 }, "light"), size);
-    expect(drawn.texts).toEqual(expect.arrayContaining(["Ekonomi dan Inovasi dalam Perencanaan", "Isi Presensi", "Tutup 09:30", "Diperbarui pukul 08:12"]));
+    expect(drawn.texts).toEqual(
+      expect.arrayContaining(["Ekonomi dan Inovasi dalam Perencanaan", "Isi Presensi", "Tutup 09:30", "Perlu perhatianmu", "Diperbarui 08:12"]),
+    );
     expect(drawn.texts.some((text) => text.includes("PL3002"))).toBe(false);
     expect(new Set(drawn.texts).size).toBe(drawn.texts.length);
     // The block opens the class, the button the Presence's own page.
@@ -360,11 +365,11 @@ describe("every widget at every size", () => {
   it("Kehadiran: each course's absences as marks, the danger in its word", () => {
     const size = phone(4, 4);
     const drawn = draw(DRAW.Attendance!({ ...size, fontScale: 1 }, "light"), size);
-    expect(drawn.texts).toEqual(expect.arrayContaining(["Lewat 1×", "Habis", "Sisa 2×"]));
-    // A mark is a 9 dp dot: one per absence the term allows, and one for each past it.
+    expect(drawn.texts).toEqual(expect.arrayContaining(["lewat 1", "habis", "sisa 2"]));
+    // A mark is a 10 dp dot: one per absence the term allows, and one for each past it.
     const rows = attendanceWidget(world.facts).rows;
     const marks = rows.reduce((sum, row) => sum + (row.allowed ?? 0) + row.over, 0);
-    expect(drawn.html.split("width:9px;height:9px").length - 1).toBe(marks);
+    expect(drawn.html.split("width:10px;height:10px").length - 1).toBe(marks);
   });
 
   it("Pintasan two rows high: all four as blocks that fill it", () => {

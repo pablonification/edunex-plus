@@ -66,6 +66,8 @@ for (const file of fs
   for (const shot of shots) {
     const id = await shot.getAttribute("data-shot");
     await shot.screenshot({ path: path.join(out, name, `${id}.png`) });
+    // The asset is the widget alone: the sheet's grey behind it comes off first, so its corners stay clear.
+    if (previews && id.includes("-preview-")) await shot.evaluate((node) => (node.style.background = "transparent"));
     if (previews && id.includes("-preview-"))
       await shot.locator("[data-widget]").screenshot({ path: path.join(root, "mobile", "assets", `widget-preview-${name}.png`), omitBackground: true });
     // A line that was cut, or a widget whose parts run past its edge.
