@@ -30,6 +30,7 @@ import { Rise } from "../../ui/expressive";
 import { Figure, Group, GroupRow, Heading, IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice } from "../../ui/layout";
+import { ROW_SIDE } from "../../ui/row-end";
 import { ActionSheet } from "../../ui/sheet";
 import { LINK_SLOP } from "../../ui/sizes";
 import { Text, useFieldColors } from "../../ui/text";
@@ -405,7 +406,7 @@ function TodayLine() {
   const now = useNow();
   const v = useTheme().v4;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: 14, paddingVertical: space[2] }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], paddingHorizontal: ROW_SIDE, paddingVertical: space[2] }}>
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: v.brandInk }} />
       <Text size="labelMedium" weight="semibold" style={{ color: v.brandInk }}>
         {t("deadlines.todayAt", { date: `${f.weekdayShort(now)}, ${f.dayMonth(now)}` })}

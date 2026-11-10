@@ -109,6 +109,15 @@ export const mobileStrings = {
   // own estimates. The second is used under "Semester ini", when some grades are already out.
   "mobile.grades.estimates": { id: "Perkiraanmu semester ini", en: "Your estimates this semester" },
   "mobile.grades.estimatesRest": { id: "Perkiraanmu untuk yang belum keluar", en: "Your estimates for the rest" },
+  // superapp: Profil, round 3
+  // Nilai: the figure beside the IPK while some of this term's grades aren't out: a forecast, and named one.
+  "mobile.grades.forecast": { id: "Perkiraan semester ini", en: "Forecast this semester" },
+  // Nilai: the heading over this term's courses whose grade isn't out yet (each row then says its letter is a guess).
+  "mobile.grades.notOut": { id: "Belum keluar", en: "Not out yet" },
+  // Nilai: the one word in a course's row that says the letter at its end is the Student's guess, not SIX's grade.
+  "mobile.grades.guess": { id: "perkiraan", en: "estimate" },
+  // Nilai: under this term's courses, where a course's own scores are, and that the row is the way there.
+  "mobile.grades.scoresWhere": { id: "Skor kuis dan ujian ada di tiap mata kuliah.", en: "Quiz and exam scores are in each course." },
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
@@ -520,7 +529,7 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "scan.heading": { id: "Ringkasan awal", en: "First summary" },
   // settings: Beranda › how far ahead its list looks. The phone's Beranda calls that list "Perlu kamu urus", not the
   // desktop's "Perlu perhatianmu", and the group's title already says it's about Beranda.
-  "settings.needsAhead": { id: "Jangkauan Perlu kamu urus", en: "How far ahead to look" },
+  "settings.needsAhead": { id: "Tampilkan tenggat hingga", en: "Show what's due within" },
   // settings: the test notification's body, as Android shows it.
   "alert.test.body": { id: "Ketuk untuk membuka Tugas & Ujian", en: "Tap to open Tasks & Exams" },
   // settings: Notifikasi › Coba notifikasi, once sent.
