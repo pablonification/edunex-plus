@@ -141,6 +141,51 @@ heading → headlineSmall, figure/display → headlineMedium.
 | `TopBar`, `TabHeader` | Small top app bar | surface at rest, surfaceContainer once the page scrolls under it (on the UI thread) |
 | `Toasts` | Snackbar | |
 
+## Icons
+
+One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icons** (MIT; `docs/design-system.md`,
+"Icons"). `src/ui/icons.tsx` keeps the names the app always used (`Icons.Home`, `Icons.Check`, …) and their props
+(`size`, `color`, `weight`).
+
+- **Drawn at the size Fluent made it for.** Fluent draws each icon anew at 12, 16, 20, 24, 28, 32 and 48 px, its lines
+  as thick as that size wants; an icon draws the form nearest the size it shows at (between two, the bigger:
+  `src/ui/icon-size.ts`). 18 draws the 20 px form, 22 the 24, 28 the 28.
+- **Regular, or filled where the Student is.** Regular by default; `weight="fill"` or `"bold"` draws Fluent's filled
+  form: a picked tab, a service's tile, a status that has to read at a glance (a check, a warning). `"light"` is
+  regular. A filled shape has to mean the same: `Icons.Circle` ("not started") stays a ring whatever the weight.
+- **Plain path data, loaded when drawn.** `scripts/make-ui-icons.mjs` copies each icon `icons.tsx` imports
+  (`./fluent/<name>`) from `@fluentui/react-icons` into `src/ui/fluent/<name>.ts`: its paths as strings, drawn with
+  `react-native-svg`. Never `@fluentui/react-icons`' components (they're DOM). Each icon's file loads when it's first
+  drawn (Metro's inline requires), so Beranda's first frame loads only the icons on it, not all 86 (about 300 KB in all).
+- **A new icon:** find its name in `node_modules/@fluentui/react-icons/lib/atoms/headless-svg/` (the repository
+  root's), import `./fluent/<name>` in `icons.tsx`, add it to `Icons`, run `node mobile/scripts/make-ui-icons.mjs`.
+- **The tabs** are the same family as Android drawables (24 px, regular and `_filled`): `scripts/make-tab-icons.mjs`
+  writes `assets/tab-icons/`, `plugins/tab-icons.js` copies them in at prebuild (a native build to change).
+- **Services** (Beranda's grid, Semua layanan): `ServiceIcons.<Name>`, filled by default, each in its own colour on
+  its tile. Drawn at 24, 28 and 32 px; where Fluent drew no 28 or 32, the nearest it drew (in brackets).
+
+| Service | Export | Fluent icon | Sizes Fluent drew (of 24, 28, 32) |
+| --- | --- | --- | --- |
+| Jadwal | `ServiceIcons.Schedule` | `calendar-ltr` | 24, 28, 32 |
+| Tugas | `ServiceIcons.Tasks` | `clipboard-task-list-ltr` | 24 (28, 32: the 24) |
+| Kuliah | `ServiceIcons.Courses` | `hat-graduation` | 24, 28, 32 |
+| Presensi | `ServiceIcons.Attendance` | `hand-right` | 24, 28 (32: the 28) |
+| Nilai | `ServiceIcons.Grades` | `ribbon` | 24, 28, 32 |
+| Ujian | `ServiceIcons.Exams` | `document-edit` | 24 (28, 32: the 24) |
+| Materi | `ServiceIcons.Materials` | `book` | 24, 28, 32 |
+| KRS | `ServiceIcons.Krs` | `clipboard-checkmark` | 24 (28, 32: the 24) |
+| UKT | `ServiceIcons.Bills` | `wallet` | 24, 28, 32 |
+| Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-star` | 24 (28, 32: the 24) |
+| Rencana studi | `ServiceIcons.StudyPlan` | `directions` | 24, 28, 32 |
+| Transkrip | `ServiceIcons.Transcript` | `document-ribbon` | 24, 28, 32 |
+| Notifikasi | `ServiceIcons.Notifications` | `alert` | 24, 28, 32 |
+| Pengaturan | `ServiceIcons.Settings` | `settings` | 24, 28, 32 |
+| Pencarian | `ServiceIcons.Search` | `search` | 24, 28, 32 |
+| Lainnya | `ServiceIcons.More` | `grid` | 24, 28 (32: the 28) |
+| Kurikulum | `ServiceIcons.Curriculum` | `library` | 24, 28, 32 |
+| Berkas | `ServiceIcons.Files` | `folder` | 24, 28, 32 |
+| Profil | `ServiceIcons.Profile` | `person` | 24, 28, 32 |
+
 ## Motion
 
 - **Screens**: Android's own transition (native stack `animation: "default"`) and Back; nothing drawn in JS.

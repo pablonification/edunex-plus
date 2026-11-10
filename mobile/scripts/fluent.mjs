@@ -1,6 +1,6 @@
 // Reads one Fluent UI System Icon (Microsoft, MIT) out of @fluentui/react-icons' headless build at the repo root:
 // the path data of one drawing, at one size, regular or filled. Plain text, no React: the phone draws these strings
-// with react-native-svg. Used by make-icons.mjs and make-tab-icons.mjs.
+// with react-native-svg. Used by make-ui-icons.mjs and make-tab-icons.mjs.
 import fs from "node:fs";
 import path from "node:path";
 
@@ -19,7 +19,9 @@ const cache = new Map();
 /** Every export of one icon file: name → [{ d, evenOdd }]. */
 function exportsOf(file) {
   if (cache.has(file)) return cache.get(file);
-  const source = fs.readFileSync(path.join(DIR, `${file}.js`), "utf8");
+  // A numbered variant lives in its family's file: "speaker-2" is Speaker2… in speaker.js.
+  const own = path.join(DIR, `${file}.js`);
+  const source = fs.readFileSync(fs.existsSync(own) ? own : path.join(DIR, `${file.replace(/-\d+$/, "")}.js`), "utf8");
   const all = new Map();
   for (const m of source.matchAll(/createFluentIcon\('(\w+)', "[^"]+", (\[.*\])(?:, \{[^}]*\})?\)\);$/gm)) {
     const drawing = JSON.parse(m[2]);

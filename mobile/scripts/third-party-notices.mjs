@@ -11,6 +11,7 @@
 // - what React Native builds into the app from outside npm (Hermes, its Android and C++ libraries),
 //   at the versions this React Native names;
 // - LINE's and GitHub's marks, drawn by "Laporkan masalah" from Simple Icons;
+// - the app's icons, Fluent UI System Icons' path data copied into src/ui/fluent (scripts/make-ui-icons.mjs);
 // - Plus Jakarta Sans, the headings' and numbers' typeface (assets/fonts, SIL Open Font License).
 //
 //   node scripts/third-party-notices.mjs               the list, from a fresh bundle (about 15 s)
@@ -39,6 +40,40 @@ const SIMPLE_ICONS = {
     "The marks themselves are trademarks of LY Corporation (LINE) and GitHub, Inc. Edunex Plus uses",
     "them only to name where a problem report goes, as their guidelines describe",
     "(https://line.me/en/logo, https://github.com/logos).",
+  ].join("\n"),
+};
+
+/**
+ * The app's icons: Fluent UI System Icons' path data, copied from @fluentui/react-icons into src/ui/fluent by
+ * scripts/make-ui-icons.mjs (and the tabs' drawables, scripts/make-tab-icons.mjs). No package ships them in the app.
+ */
+const FLUENT = {
+  name: "Fluent UI System Icons",
+  version: null,
+  licence: "MIT",
+  source: "https://github.com/microsoft/fluentui-system-icons",
+  text: [
+    "MIT License",
+    "",
+    "Copyright (c) 2020 Microsoft Corporation",
+    "",
+    "Permission is hereby granted, free of charge, to any person obtaining a copy",
+    'of this software and associated documentation files (the "Software"), to deal',
+    "in the Software without restriction, including without limitation the rights",
+    "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell",
+    "copies of the Software, and to permit persons to whom the Software is",
+    "furnished to do so, subject to the following conditions:",
+    "",
+    "The above copyright notice and this permission notice shall be included in all",
+    "copies or substantial portions of the Software.",
+    "",
+    'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR',
+    "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,",
+    "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE",
+    "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER",
+    "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,",
+    "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE",
+    "SOFTWARE.",
   ].join("\n"),
 };
 
@@ -298,7 +333,7 @@ export function openSourceList() {
     const entry = packageEntry(dir);
     byKey.set(`${entry.name}@${entry.version}`, entry);
   }
-  const entries = [...byKey.values(), ...nativeEntries(), SIMPLE_ICONS, JAKARTA];
+  const entries = [...byKey.values(), ...nativeEntries(), SIMPLE_ICONS, FLUENT, JAKARTA];
   return entries.sort((a, b) => a.name.localeCompare(b.name, "en") || (a.version ?? "").localeCompare(b.version ?? "", "en"));
 }
 
