@@ -52,6 +52,7 @@ import { shape, space, useTheme } from "../../ui/theme";
 import { useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { shortName } from "../home/parts";
+import { AfterHandIn } from "./after-hand-in";
 import { takeHomeWhy } from "./exam-rows";
 import { Folded } from "./folded";
 import { HandInBar, HandInCard, useHandIn } from "./hand-in";
@@ -108,6 +109,9 @@ function TaskPage({ task }: { task: Task }) {
   const soon = !late && isOpenStatus(status) && task.dueAt !== null && task.dueAt - now < DAY;
   const where = moduleLabel(t, task.module);
   const handIn = useHandIn(task, status);
+  // Handed in on this visit: the page's end leads on (./after-hand-in.tsx) for as long as it stays open.
+  const [finished, setFinished] = useState(false);
+  if (handIn.justDone === "submit" && !finished) setFinished(true);
   const presence = usePresence(task);
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const historyAt = useRef(0);
@@ -226,6 +230,7 @@ function TaskPage({ task }: { task: Task }) {
         </View>
       </Page>
       <HandInBar h={handIn} />
+      {finished && <AfterHandIn taskId={task.id} />}
       {handIn.justDone === "submit" && (
         <Celebration title={t("mobile.tasks.handedIn")} detail={sentAt !== null ? t("handIn.recorded", { when: f.dayTimeWord(sentAt) }) : undefined} />
       )}
