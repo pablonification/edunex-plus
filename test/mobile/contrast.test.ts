@@ -269,6 +269,21 @@ const PAIRS: Pair[] = [
       [`check on ${id} swatch`, (t) => t.v.onCourse, tone, MARK, "parts/course-color-picker.tsx"],
     ];
   }),
+  // The class on now (home/banner.tsx, the line on Kuliah): a block in the light theme's deep course colour in both themes,
+  // white words and a white bar on it, and a white button whose words and hand are the course colour. The bar's empty part
+  // is white at 35% over the block; the strong blue block (Profil's card) is checked above.
+  ...COURSES.flatMap((id): Pair[] => {
+    const fill: Pick = () => COURSE_TILE[id][0];
+    return [
+      [`v4.onHead on the ${id} block (the class on now: its words, the bar's fill)`, (t) => t.v.onHead, fill, TEXT, "home/banner.tsx"],
+      [`the ${id} block's colour on white (the presence button's words and hand)`, fill, () => "#ffffff", TEXT, "ui/kit.tsx PresenceButton tone=course"],
+      [`the bar's empty part on the ${id} block`, (t) => over(t.v.onHead, COURSE_TILE[id][0], 0x59 / 255), fill, 1.2, "home/banner.tsx PlainBar track"],
+    ];
+  }),
+  // The tabs' bar (app/(tabs)/_layout.tsx): the picked tab's icon and 12 sp label are the brand colour, the others
+  // onSurfaceVariant (checked on every surface above), on the page.
+  ["v4.brand on v4.page (the picked tab's label and icon)", (t) => t.v.brand, page, TEXT, "app/(tabs)/_layout.tsx"],
+  ["onSurfaceVariant on v4.page (an unpicked tab's label and icon)", (t) => t.c.onSurfaceVariant, page, TEXT, "app/(tabs)/_layout.tsx"],
   // The first minute's stage (Edunex Plus's blue, full height; its own colours, not the palette's, every one opaque),
   // its doors, its button, the mark and the lower edge it lifts by.
   ["the stage's headline, status and note", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
