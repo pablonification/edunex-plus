@@ -226,6 +226,46 @@ what moves, and how, is `qa/superapp-motion.md`; the parts to build it with are 
 - **Frames**: under 5% janky during every animation and list scroll on a Galaxy A52 (`qa/jank.sh`). No layout
   animations inside a FlashList's recycled cells.
 
+## The first minute
+
+The app's one loud place: the first open, the sign-in and the moment Beranda appears (`src/shell/first-minute/`,
+"two doors, one room"). Edunex and SIX are two doors every ITB student knows; the app is the one room behind both.
+It's loud because it happens once, and it's wrapped around what must happen anyway (one sign-in), so it never adds
+a wait: one tap, nothing to swipe, nothing to skip, and it ends about a second after the systems are in.
+
+| When | What the Student sees |
+| --- | --- |
+| First frame | The stage: Beranda's header colour over the whole screen (Edunex's blue in light, the deep navy in dark), status bar icons white (`shell/welcome.tsx`). |
+| A moment later | Two doors rise in the upper half, the same faint light on both, each with its system's logo and name. Bottom-left the headline, "Edunex dan SIX, / akhirnya di satu tempat."; under the thumb the one button, "Masuk dengan akun ITB"; the language chip top-right. |
+| The tap | The button becomes the status in words, in its place ("Menunggu Microsoft…", "Menyelesaikan masuk ke Edunex…", "Menghubungkan SIX juga…"); the language chip goes. Microsoft's page covers the stage while the Student types; once it hands back the stage shows again, not a spinner. |
+| Each system in | Its door, which breathed while it signed in, lights (white in light, pale blue in dark), its name in its own colour, a tick at its foot. One haptic each. A door has three states (nothing, working, in) and never a fill level: nothing there is measured. |
+| Both in (or 2 s after the first) | The doors close up and the app's mark lands on the seam between the names and the ticks. A tick haptic. |
+| About half a second on | The hand-over, one move: the stage draws up into Beranda's header and is the header; the greeting writes in where Beranda's is; the doors fly, small, to the start of one status line under it, in the words of Beranda's own ("Membaca Edunex · Tugas…"); the tab bar and Beranda's own cards are uncovered, filling in place as the first read brings them. One haptic. |
+| About 1.4 s later | The scene fades off the header and is gone; Beranda's own "Membaca …" line carries on in the same place. |
+
+Rules it keeps:
+
+- **Nothing stands in for Beranda.** The read's progress is Beranda's own cards filling in place, never a list drawn
+  for the wait and thrown away. The first read's card (`screens/home/first-run.tsx`) holds its place from the start:
+  what the read has brought ("5 mata kuliah · 10 tugas"), then "Semua siap, Dimas." in the same place. Nothing
+  arrives late and pushes the list down.
+- **Nothing on a door is a control**, and both doors look the same until a system moves: no ring, no fill level, no
+  list of features.
+- **All it knows of Beranda is `first-minute/seam.ts`** (the header's colour and height, where the greeting sits,
+  how long the small doors stay). A new Beranda re-points that file.
+- **UI thread only, transforms and opacity only**: no layout animation while the first read's JavaScript runs, no
+  blur, no per-frame drawing. Only the header's one line follows the read, for the second and a half it's there.
+- **Loaded only when nobody is signed in** (`first-minute/gate.tsx`): a start with someone signed in pays nothing.
+- **Remove animations**: the same steps as fades (the door's light, the tick, the mark), then a cross-fade straight
+  to Beranda; nothing moves or breathes. **TalkBack**: the headline, each door's state ("Edunex: Belum terhubung",
+  "Edunex terhubung"), the button, and the status line as it changes; once the stage has settled, only Beranda
+  speaks. **Font size 1.3 and a small phone**: each half of the headline keeps to its one line (smaller, never
+  broken), the doors shorten, and the note under the button gives way first.
+- **Every other way in keeps the stage**: a sign-in that fails or is closed brings the button back with the reason
+  over it; with SIX down or slow the hand-over goes with Edunex's door alone, 2 s after it's in (SIX's door lights in
+  the header if it makes it, and Beranda's status line offers SIX if it doesn't); signed out later, the stage is the
+  first frame again.
+
 ## Patterns
 
 - **One tap target per card or row, one outcome.** A card with an arrow that goes elsewhere is a bug (W12).

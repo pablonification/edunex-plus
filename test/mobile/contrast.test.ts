@@ -10,6 +10,7 @@
 // A pair every theme draws is checked in light and dark with no more to write. `node mobile/qa/contrast-read.mjs --top 5`
 // prints every pair here with its ratio, worst first, the new ones too.
 import { describe, expect, it } from "vitest";
+import { CHIP_EDGE_ALPHA, DOOR_INK, DOOR_LIT, DOOR_REST_ALPHA, MARK_COLOR, MARK_INK } from "../../mobile/src/shell/first-minute/colors";
 import { BUSY_OPACITY, COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, type Palette, V4, type V4Palette } from "../../mobile/src/ui/palette";
 
 type Scheme = "light" | "dark";
@@ -73,6 +74,9 @@ const tile = (id: keyof typeof COURSE_TILE | "grey", s: Scheme) => {
 /** [what, foreground, background, least ratio, where it's drawn]. */
 type Pair = [string, Pick, Pick, number, string];
 
+const FIRST_MINUTE = "shell/first-minute/scene.tsx";
+/** Which theme a pick is asked in: the first minute's own colours are per theme, not palette tokens. */
+const scheme = (t: Tones): Scheme => (t.v === V4.dark ? "dark" : "light");
 const card: Pick = (t) => t.v.card;
 const page: Pick = (t) => t.v.page;
 const BARS: [string, Pick][] = [
@@ -235,6 +239,23 @@ const PAIRS: Pair[] = [
       [`check on ${id} swatch`, (t) => t.v.onCourse, tone, MARK, "parts/course-color-picker.tsx"],
     ];
   }),
+  // The first minute's stage (Beranda's header colour, full height), its doors, its button and the mark.
+  ["onHead on head (the stage's headline, status and note)", (t) => t.v.onHead, (t) => t.v.head, TEXT, FIRST_MINUTE],
+  ["onHead on a resting door", (t) => t.v.onHead, (t) => over("#ffffff", t.v.head, DOOR_REST_ALPHA[scheme(t)]), LARGE, FIRST_MINUTE],
+  ["Edunex's ink on a lit door", () => DOOR_INK.edunex, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["SIX's ink on a lit door", () => DOOR_INK.six, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["a lit door on the stage", (t) => DOOR_LIT[scheme(t)], (t) => t.v.head, MARK, FIRST_MINUTE],
+  [
+    "the sign-in button's words",
+    (t) => (scheme(t) === "light" ? DOOR_INK.edunex : t.v.onBrand),
+    (t) => (scheme(t) === "light" ? DOOR_LIT.light : t.v.brand),
+    TEXT,
+    FIRST_MINUTE,
+  ],
+  ["the mark on its badge", () => MARK_INK, () => MARK_COLOR, MARK, FIRST_MINUTE],
+  ["the mark's ring on the stage", () => MARK_INK, (t) => t.v.head, MARK, FIRST_MINUTE],
+  ["the language chip's edge on the stage", (t) => over("#ffffff", t.v.head, CHIP_EDGE_ALPHA), (t) => t.v.head, MARK, FIRST_MINUTE],
+  ["v4.redFg on v4.redBg (a sign-in that failed)", (t) => t.v.redFg, (t) => t.v.redBg, TEXT, FIRST_MINUTE],
 ];
 
 // A neutral pill, a neutral icon tile and a disabled button on a card (or the Task's bottom bar, the card's colour) are a

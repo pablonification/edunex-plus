@@ -11,6 +11,10 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.signIn
 - extendedWaitUntil:
+    notVisible:
+      id: screen.firstMinute
+    timeout: 60000
+- extendedWaitUntil:
     visible:
       id: tab.home
     timeout: 30000

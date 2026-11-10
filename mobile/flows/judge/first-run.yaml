@@ -1,5 +1,6 @@
-# The first run (W15, round 2): the one welcome screen, the sign-in handing back, Beranda filling in with the first
-# read's progress in the top bar, the summary card once the read is in, and the summary it opens. Opened by
+# The first run (W15, round 2; the first minute): the stage with its two doors and one button, the button turned
+# status after the tap, the hand-over, Beranda filling in with the first read's progress in the top bar, the summary
+# card once the read is in, and the summary it opens. Opened by
 # judge-light.yaml and judge-dark.yaml on the first-run scenario.
 appId: io.github.pablonification.edunexplus.demo
 ---
@@ -11,8 +12,19 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-32-pertama-selamat-datang
 - tapOn:
     id: action.signIn
-# Beranda comes as soon as Edunex is in: its own shape while the semester is read, the first read's line under the
-# greeting. (The tabs sit under the welcome from the start, so tab.home alone caught the welcome still signing in.)
+# The button is the status now, in its place; a door breathes while its system signs in.
+- extendedWaitUntil:
+    visible:
+      id: status.signIn
+    timeout: 30000
+- takeScreenshot: ${THEME}-32b-pertama-masuk
+# Beranda comes about a second after the systems are in: its own shape while the semester is read, the first read's
+# line under the greeting. (Beranda sits under the stage from the moment Edunex is in, so its ids alone caught the
+# stage still up: the scene has to be gone first.)
+- extendedWaitUntil:
+    notVisible:
+      id: screen.firstMinute
+    timeout: 60000
 - extendedWaitUntil:
     visible:
       id: status.firstRead
