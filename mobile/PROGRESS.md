@@ -22,7 +22,7 @@ Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, d
     The rules the screens follow: `mobile/DESIGN.md`, which now says what the app is.
   - **The release checks that code can tick** (no phone needed): `node mobile/qa/touch-read.mjs <dump>` (taps under 48 dp,
     taps TalkBack can't name), `node mobile/qa/layout-read.mjs <dump>` (Beranda's four blocks, 14 taps, 50 words),
-    `node mobile/qa/contrast-read.mjs` (914 pairs, both themes, 0 under; now with the class block and the tab bar's ink),
+    `node mobile/qa/contrast-read.mjs` (914 checks, both themes, 0 under; now with the class block and the tab bar's ink),
     `test/mobile/no-english-left.test.ts` (every string in both languages, none left in English; the colour Plum is now
     "Prem" in Indonesian). Each has a test of its own.
   - **To check by hand.** The iPhone side: `mobile/IOS.md`, "What to check on an iPhone after the super-app pass".
