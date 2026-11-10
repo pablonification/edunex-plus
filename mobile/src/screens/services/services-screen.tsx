@@ -64,7 +64,7 @@ export function ServicesScreen() {
           returnKeyType="search"
           autoCorrect={false}
           testID="services.search"
-          style={{ flex: 1, color: b.fg, fontSize: 16, paddingVertical: 0 }}
+          style={{ flex: 1, height: 48, color: b.fg, fontSize: 16, paddingVertical: 0 }}
           {...field}
         />
       </View>

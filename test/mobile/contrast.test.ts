@@ -210,6 +210,7 @@ const PAIRS: Pair[] = [
   ["v4.onBrand on v4.brand", (t) => t.v.onBrand, (t) => t.v.brand, TEXT, "BigButton filled"],
   ["v4.brandInk on v4.brandTint", (t) => t.v.brandInk, (t) => t.v.brandTint, TEXT, "Pill brand, the picked day, Beranda's Semua siap"],
   ["v4.okFg on v4.okBg", (t) => t.v.okFg, (t) => t.v.okBg, TEXT, "Pill ok, BigButton done"],
+  ["onSecondaryContainer on picked", (t) => t.c.onSecondaryContainer, (t) => t.c.picked, TEXT, "Segmented's picked segment"],
   ["v4.redFg on v4.redBg", (t) => t.v.redFg, (t) => t.v.redBg, TEXT, "Pill red"],
   ["v4.ambFg on v4.ambBg", (t) => t.v.ambFg, (t) => t.v.ambBg, TEXT, "Pill amber"],
   ["v4.fg2 on v4.chip", (t) => t.v.fg2, (t) => t.v.chip, TEXT, "Pill plain, StatusChip neutral, tasks/row-parts.tsx StatusPill, IconTile plain"],
@@ -335,7 +336,7 @@ describe("service tiles", () => {
       it.each(Object.entries(SERVICE_TONES).map(([name, tone]) => ({ name, tone })))("$name", ({ name, tone }) => {
         const { v } = TONES[scheme];
         if (name === "grey") {
-          // The neutral tile: a soft square a step off the page, its glyph in grey ink (checked as ink on tint below).
+          // The quiet tile: the app's pale blue a step off the page, its glyph in blue (checked as ink on tint below).
           expect(ratio(tone.tint[at], v.page)).toBeGreaterThanOrEqual(1.15);
           expect(ratio(tone.edge[at], tone.tint[at])).toBeGreaterThanOrEqual(1.1);
         } else {
@@ -352,6 +353,30 @@ describe("service tiles", () => {
 // Colour belongs to Beranda's seven (mobile/qa/superapp-decisions.md, "Service colours"): each its own, none red or
 // amber (states' colours), told apart by lightness as well as hue; every other service is the neutral tile with a
 // glyph no other service has.
+// Dark's states (round 3): over the limit is clearly red, used up clearly amber, a step apart at a glance; the picked
+// segment reads off the page.
+describe("dark's states read as what they are", () => {
+  const hue = (hex: string) => {
+    const n = Number.parseInt(hex.slice(1), 16);
+    const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((c) => c / 255) as [number, number, number];
+    const max = Math.max(r, g, b);
+    const d = max - Math.min(r, g, b);
+    const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return (h * 60 + 360) % 360;
+  };
+  const { c, v } = TONES.dark;
+  it("red is red and amber is amber, 25 degrees of hue or more apart", () => {
+    for (const red of [c.error, v.redFg]) expect(hue(red)).toBeLessThanOrEqual(8);
+    for (const amber of [c.warningFg, v.ambFg]) {
+      expect(hue(amber)).toBeGreaterThanOrEqual(33);
+      expect(hue(amber)).toBeLessThanOrEqual(45);
+    }
+  });
+  it("the picked segment stands off the page", () => {
+    expect(ratio(c.picked, c.surface)).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe("service colours by the rule", () => {
   /** CIE lightness (L*) of a colour. */
   const lightness = (hex: string) => {

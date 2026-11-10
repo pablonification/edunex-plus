@@ -53,7 +53,8 @@ export const darkRoles: Roles = {
   onTertiary: "#3a1580",
   tertiaryContainer: "#3c2768",
   onTertiaryContainer: "#efe6fd",
-  error: "#ff9c8f",
+  // Clearly red on the dark page (6.2:1), not salmon: a "3" over the limit must read as a warning (round 3).
+  error: "#ff6259",
   onError: "#5c0f08",
   errorContainer: "#3a1c19",
   onErrorContainer: "#ffdad5",
@@ -95,6 +96,9 @@ export function legacy(r: Roles, scheme: "light" | "dark") {
     track: light ? "#d4d5dc" : "#3c3c43",
     fieldEdge: r.outline,
     segment: r.surfaceContainerLowest,
+    // Segmented's picked segment (onSecondaryContainer on it): in dark a blue that reads as chosen, not navy on
+    // near-black (round 3). Not the role itself: a chip's course dot must keep 3:1 on that.
+    picked: light ? r.secondaryContainer : "#35508f",
     fg: r.onSurface,
     muted: r.onSurfaceVariant,
     faint: r.onSurfaceVariant,
@@ -104,8 +108,8 @@ export function legacy(r: Roles, scheme: "light" | "dark") {
     onAccent: "#ffffff",
     dangerBg: r.errorContainer,
     dangerFg: r.error,
-    warningBg: light ? "#fdf2d6" : "#382d10",
-    warningFg: light ? "#855000" : "#f2c862",
+    warningBg: light ? "#fdf2d6" : "#4a3600",
+    warningFg: light ? "#855000" : "#ffb224",
     successBg: light ? "#dcf4e5" : "#12301f",
     successFg: light ? "#166240" : "#80e0a9",
     infoBg: r.primaryContainer,
@@ -114,12 +118,12 @@ export function legacy(r: Roles, scheme: "light" | "dark") {
     neutralFg: light ? "#4b4c53" : "#c4c4cc",
     live: light ? "#209b56" : "#2fbf6c",
     meterTrack: r.surfaceContainerHighest,
-    meterWarning: light ? "#b26b00" : "#f2c862",
+    meterWarning: light ? "#b26b00" : "#ffb224",
     meterSuccess: light ? "#1e8f4f" : "#2fbf6c",
     pipRing: r.outline,
     hatch: light ? "rgba(0,0,0,0.07)" : "rgba(255,255,255,0.08)",
-    statusDraftBg: light ? "#fdf2d6" : "#382d10",
-    statusDraftFg: light ? "#855000" : "#f2c862",
+    statusDraftBg: light ? "#fdf2d6" : "#4a3600",
+    statusDraftFg: light ? "#855000" : "#ffb224",
     statusSubmittedBg: light ? "#dcf4e5" : "#12301f",
     statusSubmittedFg: light ? "#166240" : "#80e0a9",
     statusOverdueBg: light ? "#fde4e2" : "#3a1817",
@@ -245,9 +249,11 @@ export const V4 = {
     okBg: "#14301f",
     okFg: "#8fe0a8",
     redBg: "#3d1b1a",
-    redFg: "#ffb4ab",
-    ambBg: "#3a2a12",
-    ambFg: "#ffcf8a",
+    // Over the limit is clearly red, used up clearly amber, a step apart at a glance (round 3: salmon and pale amber
+    // read as one); the amber fill is amber-tinted, not brown.
+    redFg: "#ff6b61",
+    ambBg: "#4a3600",
+    ambFg: "#ffb224",
     live: "#3cc77d",
     bellDot: "#ffcc4d",
     // On a course's colour (the picker's check): dark, as the dark tones are light.
@@ -269,12 +275,14 @@ export const NOW = {
  * A service's colour, light then dark: its solid tile (a white glyph reads on it at 3:1 or more), the tile's slightly
  * darker lower edge, and the same colour as an ink and a tint for what isn't a tile (a word, a soft fill).
  *
- * The rule (mobile/qa/superapp-decisions.md, "Service colours"): colour belongs to Beranda's seven, one each. None is
- * red or amber: those say a state (late, at risk), never a place. Each sits on its own step of lightness as well as
- * its own hue (light: 32, 37, 44, 49, 53, 56, 60; dark: 43, 46, 49, 52, 55, 58.5, 61), so they tell apart without
- * hue too. Dark can't spread wider: a tile must stand 3:1 off the dark page (lightness 42 or more) and keep its white
- * glyph at 3:1 (61.8 or less), so its seven share that band in even steps of about three. Every other service takes `grey`, the neutral tile: a soft grey square with its glyph in grey ink, the
- * same family in both themes, so no colour is ever used for two services. Checked in test/mobile/contrast.test.ts.
+ * The rule (mobile/qa/superapp-decisions.md, "Round 3"): a solid colour is one of Beranda's seven, one each (blue, rose,
+ * orange, teal, magenta, gold, green); every other service is the app's own pale blue with a blue glyph (`grey`, the
+ * quiet tile: its name is kept for the screens that pass it), one treatment in both themes, never grey and never a
+ * hue of its own. None of the seven is the states' red or amber, none is violet (the class on now may be), and only
+ * one is green. Each sits on its own step of lightness as well as its own hue (light: 37, 46, 49, 52, 54.5, 57, 60;
+ * dark: 43, 46, 49, 52, 55, 58.5, 61), so they tell apart without hue too. Dark can't spread wider: a tile must stand
+ * 3:1 off the dark page (lightness 42 or more) and keep its white glyph at 3:1 (61.8 or less). `indigo`, `violet` and
+ * `lime` are no service's now; they stay for whoever names them. Checked in test/mobile/contrast.test.ts.
  */
 export const SERVICE_TONES = {
   indigo: { solid: ["#3d32bd", "#584ee4"], edge: ["#2d2496", "#433ac0"], ink: ["#3d32bd", "#c0b8ff"], tint: ["#e6e3ff", "#2a2752"] },
@@ -284,8 +292,12 @@ export const SERVICE_TONES = {
   magenta: { solid: ["#d63ca2", "#dc4cac"], edge: ["#ad2a80", "#b13288"], ink: ["#a3157f", "#ffaede"], tint: ["#fbdcf0", "#43203a"] },
   lime: { solid: ["#6f9300", "#749900"], edge: ["#577300", "#597600"], ink: ["#4a6200", "#c5e384"], tint: ["#e6f2c4", "#2a3312"] },
   teal: { solid: ["#0a9eb8", "#0ca2bc"], edge: ["#087c91", "#097f95"], ink: ["#00697a", "#7fdbe8"], tint: ["#d3f0f4", "#10353b"] },
-  // The neutral tile: `tint` is the square, `edge` its lower edge, `ink` its glyph. `solid` is kept for a word or a dot.
-  grey: { solid: ["#5f6673", "#565d6b"], edge: ["#dde0e7", "#20242c"], ink: ["#3f4652", "#c8cdd6"], tint: ["#eceef2", "#2a2f39"] },
+  rose: { solid: ["#cf1f65", "#c21d5f"], edge: ["#a61952", "#9a174c"], ink: ["#a21850", "#f2b5ce"], tint: ["#fce6ef", "#521f33"] },
+  orange: { solid: ["#d85d0b", "#c1540a"], edge: ["#b34d09", "#9c4408"], ink: ["#8c3d07", "#eebd9c"], tint: ["#fbe8db", "#442a1a"] },
+  gold: { solid: ["#ac8400", "#af8700"], edge: ["#8f6e00", "#937100"], ink: ["#6a5100", "#e3c460"], tint: ["#f8eabf", "#382f15"] },
+  // The quiet tile (the app's own blue, never grey): `tint` is the square, `edge` its lower edge, `ink` its glyph.
+  // `solid` is kept for a word or a dot.
+  grey: { solid: ["#1f63e0", "#5b8cf0"], edge: ["#bdd0fb", "#1b2c54"], ink: ["#1450c4", "#b9ceff"], tint: ["#dbe6ff", "#263c6e"] },
 } as const;
 /** What's drawn on a service's solid tile, in both themes. */
 export const ON_SERVICE = "#ffffff";

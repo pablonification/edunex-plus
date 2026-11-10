@@ -52,8 +52,9 @@ export function useB() {
 /**
  * A service's mark: a rounded square in the service's own colour, its filled glyph in white. The big one (48 dp and
  * up) stands on a slightly darker lower edge; a row's small one (`size` 28 to 44) is the same colour and glyph, flat.
- * `grey` is the neutral tile (every service that isn't one of Beranda's seven, and "Lainnya"): a soft grey square, its
- * glyph in grey ink, so the coloured ones stay the only colour. Two views and one Path: no gradient, no shadow.
+ * `grey` is the quiet tile (every service that isn't one of Beranda's seven, and "Lainnya"): the app's own pale blue,
+ * its glyph in blue, alive in both themes and never grey, so the solid ones stay Beranda's. Two views and one Path: no
+ * gradient, no shadow.
  */
 export function ServiceCircle({ icon, tone, size = 56 }: { icon: ServiceGlyph; tone: ServiceTone; size?: number }) {
   const { solid, edge, tint, ink } = useB().tone(tone);
