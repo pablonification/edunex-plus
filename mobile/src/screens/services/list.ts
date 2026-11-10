@@ -12,13 +12,13 @@ export interface Service {
   label: StringKey;
   icon: ServiceGlyph;
   tone: ServiceTone;
-  /** A tab or a screen the window names (`Route`), or a path of the phone's own. */
+  /** A tab or a screen the app names (`Route`: the window's, and the phone's Materi and Ujian), or a path of the phone's own. */
   open: Route | `/${string}`;
 }
 
 // Harian: what a Student opens in a normal week.
-const material: Service = { id: "material", label: "mobile.service.material", icon: "Materials", tone: "blue", open: "/material" };
-const exams: Service = { id: "exams", label: "mobile.service.exams", icon: "Exams", tone: "red", open: "/exams" };
+const material: Service = { id: "material", label: "mobile.service.material", icon: "Materials", tone: "blue", open: { screen: "material" } };
+const exams: Service = { id: "exams", label: "mobile.service.exams", icon: "Exams", tone: "red", open: { screen: "exams" } };
 const presence: Service = { id: "presence", label: "nav.presence", icon: "Attendance", tone: "green", open: { screen: "presence" } };
 const month: Service = { id: "month", label: "mobile.service.month", icon: "CalendarMonth28Filled", tone: "indigo", open: "/schedule-month" };
 const needs: Service = { id: "needs", label: "mobile.service.needs", icon: "Needs", tone: "amber", open: "/needs" };
