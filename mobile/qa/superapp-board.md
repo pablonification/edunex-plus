@@ -83,6 +83,21 @@ label, mostly empty), a course's page (4–9: the old class card, two buttons, a
 numbers that disagree between screens (4 and 7 days to the same exam), one action under three names, colours reused with no rule,
 rows that don't look tappable, six controls under 48 dp. Above Edunex Mobile LMS for every judge; not first for "where" for any.
 
+## The first minute: round 3 (02:40)
+
+The doors now show what each system just learned, the mark is the stage's one light, nothing loops, and Beranda's blocks are held as
+shapes under the stage. Recorded in light and dark, judged blind beside today's welcome and round 2's scene by three new judges.
+
+| | Designer | Student | Prosecutor |
+| --- | --- | --- | --- |
+| Rank of the three | **round 3**, round 2, today's | **round 3**, today's, round 2 ("pretty but wrong about my absences") | **round 3** (2 serious charges), today's (5), round 2 (7) |
+| "Sets a mood" · "I'd remember it" · "it never made me wait" | 8 · 7 · 7 | 8 · 7 · 7 | 8 · 7 · 6 |
+| Motion has a job · hand-over · would ship | 8 · 7 · 7 | (knew what was happening 7, trust 8) | nothing shows off or delays 6 |
+
+Preferred to today's and to last round's by every judge, two rounds in a row. **Not at the top (9).** Janky frames on the phone: the
+stage at rest 0 frames drawn (was 51% of 586), tap to the lift 9%, Beranda filling 1%. Left: a one-second hold after both ticks; a
+blank lower third of Beranda as the stage lifts; the SIX door empty beside Edunex's name; in dark, a banded glow and a faint title.
+
 ## The first minute: round 2 (01:35)
 
 The winner rebuilt (no stand-in list; the stage lifts away like a curtain about 5 s after the tap and Beranda fills in place), recorded
