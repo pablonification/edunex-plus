@@ -105,6 +105,40 @@ button is "Isi Presensi" everywhere. A course is called by the same name in a ro
 `screen.profile`, `action.alerts` (the bell), `action.presence` ("Isi Presensi"). Everything else as `mobile/AGENTS.md` says.
 The grid's tiles sit inside the `home.grid` node so a reader can count them.
 
+## Round 3: decided after the third full council
+
+These replace the "Service colours" row above where they differ.
+
+- **One colour rule, said so a student can guess it: a solid colour is one of Beranda's seven; every other service
+  is the app's own pale blue with a blue glyph.** One treatment for all the others, in both themes (light `#dbe6ff`
+  with `#1450c4`; dark `#263c6e` with `#b9ceff`): on Semua layanan, "Lainnya", Profil's rows. Never grey (round 3's
+  grey read as switched off, and went near-black in dark), never a hue each (round 2's second rainbow, where two
+  tiles shared a colour). The tone keeps its name `grey` in code so no screen changes.
+- **Beranda's seven**, none the states' red or amber, none violet (violet is the live class's to take), one green,
+  each on its own step of lightness, a white glyph at 3:1 or more on each in both themes (light, dark):
+
+  | Tile | Tone | Light | Dark |
+  | --- | --- | --- | --- |
+  | Materi | blue | `#1f6fe5` | `#2c79ee` |
+  | Ujian | rose | `#cf1f65` | `#c21d5f` |
+  | Nilai | orange | `#d85d0b` | `#c1540a` |
+  | Kalender | teal | `#0a9eb8` | `#0ca2bc` |
+  | KRS | magenta | `#d63ca2` | `#dc4cac` |
+  | UKT | gold | `#ac8400` | `#af8700` |
+  | Rencana | green | `#0d652f` | `#0e7e3c` |
+
+  Gold is a tile's solid fill with a white glyph; the state amber is a word or a pale fill, never a solid tile.
+- **Glyphs that say their service** (Fluent, filled on tiles): KRS `TaskListSquareLtr` (was `StackAdd`), Rencana
+  `Steps` (was `Directions`), Ujian `DocumentBulletListClock` (was `DocumentEdit`), Kalender akademik
+  `CalendarAgenda` (was `CalendarStar`), Jadwal bulanan and Jadwal's month button `CalendarMonth` (was
+  `CalendarMultiple`), Kurikulum `Organization` (was `Library`), Lapor `ChatWarning` (was `PersonFeedback`).
+  The rest stay as learned. The Jadwal tab's own glyph is a native drawable and stays.
+- **Dark's states:** over the limit is red (`#ff6259`, `#ff6b61`), used up is amber (`#ffb224`), the amber fill is
+  `#4a3600`; `Segmented`'s picked segment is `picked` (`#35508f` in dark).
+- **Semua layanan:** groups of 4, 8 and 3, so the one short row is the page's last and sits left as a grid ends
+  ("Ringkasan" moved to Akademik). The search field stays a hairline, 48 dp tall. No line of help under a tile: with
+  fifteen it would make the page a list.
+
 ## Who owns what tonight
 
 | Files | Owner |
