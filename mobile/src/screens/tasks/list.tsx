@@ -107,7 +107,7 @@ export type Line =
   | ({ type: "done"; key: string; task: Task; exam?: Exam } & Place)
   | ({ type: "past"; key: string; past: PastExam } & Place)
   | { type: "putOff"; key: string; putOff: Todo["putOff"] }
-  | { type: "gap"; key: string; size?: 3 | 6 }
+  | { type: "gap"; key: string; size?: 2 | 3 | 6 }
   | { type: "today"; key: string; title: string }
   | { type: "empty"; key: string; title: string; description?: string; showAll: boolean; done: boolean }
   | { type: "loading"; key: string }
@@ -122,7 +122,8 @@ const isRow = (line: Line | undefined) => line?.type === "todo" || line?.type ==
 
 /**
  * A group's rows in date order, each a line of its own (FlashList draws and recycles them one by one). An exam period
- * is a sub-heading where its first exam falls; its exams with no day yet come after its dated ones (behind a fold while
+ * is a sub-heading where it starts in the list's order (over the first dated thing on one of its days; `hero`, the
+ * lead card, is drawn by the caller right under it); its exams with no day yet come after its dated ones (behind a fold while
  * it's far off). A period none of whose exams has a day comes after everything dated, and what has no day at all last:
  * nothing undated is ever above something dated.
  */
@@ -137,19 +138,25 @@ export function groupLines(items: readonly TodoItem[], hero?: TodoItem): Line[] 
     if (period.state === "far") out.push({ type: "periodFold", key: `${period.key}:fold`, item: period });
     else for (const exam of period.exams) out.push({ type: "periodExam", key: `${period.key}:${exam.id}`, exam, first: false });
   };
+  // A period's label sits where it starts in the list's order: over the first dated thing inside its days, of any kind
+  // (the lead card too, a Task on one of its days), so nothing dated inside it is ever above its label.
+  const lead = hero && dated(hero) ? [hero] : [];
+  const inOrder = [...lead, ...rows.filter(dated)];
+  const within = (item: { at: number }, period: PeriodItem) => item.at >= period.week.start && item.at < period.week.end;
+  const shown = (period: PeriodItem) => period.exams.length > 0 || inOrder.some((item) => inPeriod(item, period));
   let open: PeriodItem | undefined;
-  for (const item of rows.filter(dated)) {
+  for (const item of inOrder) {
     if (open && item.at >= open.week.end) {
       tail(open);
       open = undefined;
     }
-    const next = open ? undefined : periods.find((period) => inPeriod(item, period));
+    const next = open ? undefined : periods.find((period) => within(item, period) && shown(period));
     if (next) {
       periods.splice(periods.indexOf(next), 1);
       head(next);
       open = next;
     }
-    row(item);
+    if (item !== hero) row(item);
   }
   if (open) tail(open);
   // A period with nothing dated left under it (its one dated exam leads the list, or none has a day yet).
@@ -272,8 +279,18 @@ function tasksView(
         });
         const under = groupLines(group.items, group === heroGroup ? hero : undefined);
         // The gap under the big card only when its group goes on with a row: a sub-heading or the next group brings its own.
-        if (hero && group === heroGroup)
-          lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, ...(isRow(under[0]) ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []));
+        if (hero && group === heroGroup) {
+          // The lead card's exam period is named over it, never under it ("Masa UTS 12–16 Okt", then the 15th).
+          const first = under[0];
+          const over =
+            first?.type === "periodHead" && hero.at !== null && hero.at >= first.item.week.start && hero.at < first.item.week.end ? under.splice(0, 1) : [];
+          lines.push(
+            ...over,
+            ...(over.length ? [{ type: "gap", key: "gap-period", size: 2 } as const] : []),
+            { type: "hero", key: `hero:${hero.key}`, item: hero },
+            ...(isRow(under[0]) ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []),
+          );
+        }
         lines.push(...under);
         if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
       }
@@ -622,9 +639,9 @@ export const LineView = memo(function LineView({
     case "today":
       // Good news is a mark and a word: nothing runs out today.
       return (
-        <View testID="tasks.today" style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginLeft: space[1], minHeight: 24 }}>
-          <Icons.CheckCircle size={20} weight="fill" color={b.ok} />
-          <Text size="bodyLarge" weight="medium" style={{ flexShrink: 1, color: b.fg }}>
+        <View testID="tasks.today" style={{ flexDirection: "row", alignItems: "center", gap: 6, marginLeft: space[1], minHeight: 20 }}>
+          <Icons.CheckCircle size={16} weight="fill" color={b.ok} />
+          <Text size="bodyMedium" weight="medium" style={{ flexShrink: 1, color: b.fg2 }}>
             {line.title}
           </Text>
         </View>
