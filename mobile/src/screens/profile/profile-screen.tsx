@@ -1,11 +1,17 @@
 // Profil (round 4), the last tab, as students know it from Gojek, Grab and Edunex Mobile: who they are, how their
 // studies stand, then the lists. Top to bottom:
-// 1. Who they are (./identity.tsx): a large circle with their initials, their name as the screen's one title, the NIM and
-//    the program on one quiet line, straight on the grey page (no bar title saying "Profil" over it).
-// 2. The IPK card (./academic.tsx) in the screen's one colour, then the to-do chips while something is due. A centred
-//    hero over a blue card: Profil's own shape, apart from the other tabs' grey pages of white rows and Beranda's band.
+// 1. Who they are (./identity.tsx): one row, a circle with their initials, then their name as the screen's one title over
+//    the NIM and the program, straight on the grey page (no bar title saying "Profil" over it).
+// 2. The IPK card (./academic.tsx) in the screen's one colour, one row of two figures, then the to-do chips while
+//    something is due. The avatar over a blue card: Profil's own shape, apart from the other tabs and Beranda's band.
 // 3. Groups, each a heading over one card of rows: Akademik (Nilai and Rencana studi's parts), Akun (Edunex, SIX,
 //    Ringkasan awal), Aplikasi (Pengaturan, Tentang with the version), then Keluar alone, confirmed in a sheet.
+//
+// The first screen holds all six Akademik rows. A 411 × 914 dp phone at font size 1.1 with a 48 dp navigation bar and
+// an 80 dp tab bar leaves 786 dp from the screen's top to the tab bar. Top to the last row's bottom:
+//   status bar 48 (a tall one) + the page's top 16 + identity 56 + gap 12 + IPK card ~98 (14 + label 22 + IPK 48 + 14)
+//   + gap 12 + [to-do chips 48 + gap 12, only while something's due] + heading 54 (8 + 26 at 1.1 + 12, its 8 plus the
+//   part's 8 over it) + 6 rows × 71 (12 + title 23 + 2 + line 22 + 12; a row with no line is 64) = 722, 782 with chips.
 // What's below the first screenful mounts a part at a time (../../ui/parts.tsx). A sign-in or sign-out that fails says
 // so under the bar, as Settings does.
 import { router } from "expo-router";
@@ -37,7 +43,7 @@ export function ProfileScreen() {
   const report: Report = useCallback((error, fallback) => setProblem(t(errorKey(error, fallback))), [t]);
   return (
     <Page testID="screen.profile" background={v.page} header={<ProfileBar problem={problem} onClose={() => setProblem(null)} />} {...pull}>
-      <View style={{ gap: space[4] }}>
+      <View style={{ gap: space[3] }}>
         <Rise screen="profile" index={0}>
           <Identity />
         </Rise>
@@ -47,8 +53,8 @@ export function ProfileScreen() {
         <AcademicTodos />
       </View>
       <Part at={1}>
-        <Rise screen="profile" index={2}>
-          <Heading>{t("mobile.profile.academic")}</Heading>
+        <Rise screen="profile" index={2} style={{ marginTop: space[2] }}>
+          <Heading first>{t("mobile.profile.academic")}</Heading>
           <AcademicRows />
         </Rise>
       </Part>
