@@ -79,6 +79,18 @@ happening), tap to curtain 8%, Beranda filling 5%, Beranda settled 1%. What's le
 lifts; a muddy frame at 3 s; doors that stay blank for 4 s; and what Beranda shows while it still reads (a green "Absen aman" that
 turns into "3 Absen habis", the class block growing 100 px, two different task counts).
 
+## Widgets (so far)
+
+| What | `main` | Now |
+| --- | --- | --- |
+| In the phone's picker | 2, sharing one preview, one with no description | 8, each with its own name, size, one-line description and preview (the previews are native pictures made before the redesign: they show the first drawings) |
+| On the home screen | "Now" 4×2 as a white box of text lines | three placed on one new page of the phone (Sekarang 4×2, Hari ini 3×2, Pintasan 4×1) in the app's new look, drawn as the renders show |
+| Sizes | stretched only wider | each resizes both ways, laid out for 3–4 sizes (renders of all 8 at every size, light and dark, and four other states: 189 pictures) |
+| The app's frames while widgets redraw | a freeze reported on slow phones | scrolling Tugas across the three widgets' redraw after a cold start: 0.93% janky frames (0.94% with none redrawing): no freeze seen on this phone |
+| iPhone | none | two widgets (small, medium, large, Lock Screen) and a Live Activity built from the same model; green in CI; **nobody has seen them run** |
+
+Judged: the widget council is reading the renders and the phone's picture.
+
 ## The direction round (00:55)
 
 Three directions built in the demo as real screens (Beranda, Tugas, Kuliah, Profil, Semua layanan), each photographed on the phone in
