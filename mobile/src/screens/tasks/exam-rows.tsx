@@ -21,11 +21,27 @@ import { useB } from "../../ui/b";
 import { LINE_INSET } from "../../ui/card-list";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { PressScale } from "../../ui/press";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
-import { useTheme } from "../../ui/theme";
+import { Text } from "../../ui/text";
+import { space, useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
-import { countdown, HeroCard, IconTile, inWorld, LEAF_INSET, type Quick, reportRowProblem, rowWhen, StatusPill, TaskLine, useRowWorld } from "./row-parts";
+import { softOf } from "./flat";
+import {
+  countdown,
+  FlatSlice,
+  HeroCard,
+  IconTile,
+  inWorld,
+  LEAF_INSET,
+  type Quick,
+  reportRowProblem,
+  rowWhen,
+  StatusPill,
+  TaskLine,
+  useRowWorld,
+} from "./row-parts";
 
 /** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
 export function takeHomeWhy(t: Translate, task: Pick<Task, "kind" | "title">): string | null {
@@ -68,10 +84,24 @@ export const namesKind = (title: string, kind: string) =>
     .split(/[^\p{L}\p{N}]+/u)
     .includes(kind.toLowerCase());
 
-/** "Kuis Komunikasi Pemasaran": the exam's name for a control's label. */
-const examName = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
-/** "UTS Ekonomi Infrastruktur": an exam's row title, its course's name short (the whole name is in the row's spoken name). */
-const examTitle = (t: Translate, exam: Exam, name: string) => examName(t, exam, shortName(name));
+/** "Kuis Komunikasi Pemasaran": the exam's name, the course's whole, for a control's spoken label. */
+const examLabel = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
+
+/**
+ * The one name an exam has on every screen (Tugas, a Task's page, the exam's page, Ujian, search): its kind, then its
+ * course's one short name: "UTS Komunikasi Pemasaran". Never a take-home's own title ("UTS Markom"): a course's two
+ * exams are told apart by examNote's quiet word. `courseName`: the course list's name; without it SIX's, else the code.
+ */
+export const examName = (t: Translate, exam: Pick<Exam, "kind" | "courseCode" | "six">, courseName?: string): string =>
+  `${t(`exam.kind.${exam.kind}`)} ${shortName(courseName ?? exam.six[0]?.courseName ?? exam.courseCode)}`;
+
+/** What tells one course's exams apart, as a quiet word beside the one name: "Take-home", "Di Edunex", else nothing. */
+export function examNote(t: Translate, part: { kind: string; source?: string } | null | undefined): string | null {
+  if (part?.kind === "takehome") return t("exam.takeHome");
+  if (part?.kind === "window" || (part?.kind === "sitting" && part.source === "edunex")) return t("exam.onEdunex");
+  return null;
+}
+const examTitle = examName;
 
 /** Moves an open Edunex window to Done, with Undo; a failure goes to the list's banner. */
 function useMarkDone() {
@@ -121,10 +151,10 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const name = examCourse(world.courses, exam);
   const days = sourceDays(f, exam);
   const code = inCourse ? "" : exam.courseCode;
-  const kind = t(`exam.kind.${exam.kind}`);
   const dayTime = (at: number) => f.dueLabel(at);
   // On Tugas the day leads the row (its leaf): the line keeps the weekday and the time. On a course's page, the whole date.
-  const short = (at: number, time: boolean) => (inCourse ? rowWhen(f, at, time) : time ? `${f.weekdayShort(at)}, ${f.time(at)}` : f.weekdayShort(at));
+  // (The weekday is the leaf's too: it never trails the line.)
+  const short = (at: number, time: boolean) => (inCourse ? rowWhen(f, at, time) : time ? f.time(at) : null);
   const { page } = useB();
   const moved = part?.kind === "window" && part.moved;
   const disagree = part?.kind === "sitting" && exam.disagree;
@@ -142,11 +172,8 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
     // The day alone beside the kind (its page and spoken name keep the time); not the kind when the name says it ("UTS Markom").
     // A take-home goes by its own name ("UTS Markom"): the line names its course, as every row of a Task does.
-    shown = [
-      inCourse ? null : shortName(name),
-      namesKind(part.task.title, kind) ? null : kind,
-      part.at === null ? t("task.noDeadline") : short(part.at, !inCourse),
-    ];
+    // One name per exam: the title is the exam's, as its sitting's row; "Take-home" is the quiet word that tells them apart.
+    shown = [t("exam.takeHome"), part.at === null ? t("task.noDeadline") : short(part.at, !inCourse)];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
@@ -189,7 +216,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
         text={t(moved ? "mobile.home.timeMoved" : "mobile.tasks.chip.disagree")}
       />
     );
-  const title = examName(t, exam, name);
+  const title = examLabel(t, exam, name);
   const label = factsLabel(
     title,
     ...facts,
@@ -212,9 +239,13 @@ export const ExamPartRow = inWorld(function ExamPartRow({
         quick={quick}
         code={exam.courseCode}
         at={part.at}
-        title={part.kind === "takehome" ? part.task.title : examTitle(t, exam, name)}
-        // A take-home goes by its own name, so its course is named; then when, whole (an exam keeps its time).
-        meta={[part.kind === "takehome" ? shortName(name) : null, when].filter(Boolean).join(" · ")}
+        date={f.dayMonth(part.at)}
+        weekday={f.weekdayShort(part.at)}
+        title={examTitle(t, exam, name)}
+        // What it is, in a word ("Ujian", with its glyph), what tells it apart, and its time: the day is the leaf's.
+        meta={[t("mobile.tasks.kindExam"), examNote(t, part), part.kind === "sitting" && part.end !== null ? f.timeRange(part.at, part.end) : f.time(part.at)]
+          .filter(Boolean)
+          .join(" · ")}
         kind="exam"
       />
     );
@@ -229,10 +260,11 @@ export const ExamPartRow = inWorld(function ExamPartRow({
       code={code || null}
       course={name}
       // What it is, every row the same: a take-home's own name, else the exam's ("UAS Komunikasi Pemasaran").
-      title={part?.kind === "takehome" ? part.task.title : examTitle(t, exam, name)}
-      meta={shown.filter(Boolean).join(" · ")}
+      title={examTitle(t, exam, name)}
+      meta={shown.filter(Boolean).join(" · ") || t("mobile.tasks.kindExam")}
       status={status}
       date={inCourse ? undefined : part && part.at !== null ? f.dayMonth(part.at) : null}
+      weekday={!inCourse && part && part.at !== null && !item.sittings ? f.weekdayShort(part.at) : null}
       kind="exam"
     />
   );
@@ -263,13 +295,25 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   );
 });
 
+const NO_EXAMS: readonly Extract<TodoItem, { kind: "exam" }>[] = [];
+
 /**
  * An exam period whose exams have no day yet: one row where the period falls ("Masa UTS", 12–16 Okt), opening to list
  * them. Closed while it's far off; open within two weeks and while it's on.
  */
-export const PeriodRow = inWorld(function PeriodRow({ item, inCourse = false }: { item: Extract<TodoItem, { kind: "period" }>; inCourse?: boolean }) {
+export const PeriodRow = inWorld(function PeriodRow({
+  item,
+  inCourse = false,
+  inside = NO_EXAMS,
+}: {
+  item: Extract<TodoItem, { kind: "period" }>;
+  inCourse?: boolean;
+  /** Tugas: the exams with a day in this period, in date order, drawn inside it. */
+  inside?: readonly Extract<TodoItem, { kind: "exam" }>[];
+}) {
   const t = useT();
-  const v = useTheme().v4;
+  const theme = useTheme();
+  const v = theme.v4;
   const { f } = useRowWorld();
   const [toggled, setToggled] = useState(false);
   const open = toggled !== (item.state !== "far");
@@ -280,6 +324,66 @@ export const PeriodRow = inWorld(function PeriodRow({ item, inCourse = false }: 
   const main = item.state === "during" ? t("exam.until", { time: f.dayMonth(week.end - 1) }) : f.dayRange(week.firstDay, week.lastDay);
   const sub = f.fromNow(item.state === "during" ? week.end - 1 : week.start);
   const line = inCourse ? t("exam.dayUnknown") : fact;
+  if (!inCourse)
+    // On Tugas: a sub-heading where the period falls in date order, "Masa UTS" and its days, with its exams inside it
+    // on one soft block: those with a day first, in date order, then those with none yet, which say so in words.
+    return (
+      <View
+        testID={`row.period.${item.examKind}`}
+        style={{
+          backgroundColor: softOf(theme),
+          borderRadius: 20,
+          marginVertical: space[2],
+          marginHorizontal: -space[2],
+          paddingHorizontal: space[2],
+          paddingTop: space[3],
+          paddingBottom: space[1],
+        }}
+      >
+        <View
+          accessible
+          accessibilityRole="header"
+          accessibilityLabel={factsLabel(title, main, sub)}
+          style={{ flexDirection: "row", alignItems: "baseline", gap: space[2], paddingHorizontal: space[1] }}
+        >
+          <Text size="titleSmall" face="display" weight="bold" style={{ color: v.fg }}>
+            {title}
+          </Text>
+          <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.muted }}>
+            {main}
+          </Text>
+        </View>
+        {inside.map((exam, i) => (
+          <FlatSlice key={exam.key} first={i === 0}>
+            <ExamPartRow item={exam} />
+          </FlatSlice>
+        ))}
+        {/* Far off: its exams with no day yet stay behind one line that says how many (they aren't counted in "Belum
+            selesai" until the period is near, so the count over the list matches its rows). */}
+        {item.state === "far" && item.exams.length > 0 && (
+          <PressScale
+            testID={`action.period.${item.examKind}`}
+            accessibilityLabel={fact}
+            accessibilityState={{ expanded: open }}
+            onPress={() => setToggled(!toggled)}
+            style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48, paddingHorizontal: space[1] }}
+          >
+            <Text size="bodyMedium" style={{ flex: 1, color: v.muted }}>
+              {fact}
+            </Text>
+            <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
+              <Icons.ChevronDown size={20} color={v.muted} />
+            </View>
+          </PressScale>
+        )}
+        {open &&
+          item.exams.map((exam, i) => (
+            <FlatSlice key={exam.id} first={i === 0 && inside.length === 0 && item.state !== "far"}>
+              <PeriodExam exam={exam} inCourse={false} />
+            </FlatSlice>
+          ))}
+      </View>
+    );
   return (
     <View>
       <TaskLine
@@ -320,7 +424,7 @@ function PeriodExam({ exam, inCourse }: { exam: Exam; inCourse: boolean }) {
   return (
     <TaskLine
       testID={`row.exam.${exam.id}`}
-      label={factsLabel(examName(t, exam, name), exam.courseCode, t("exam.dayUnknown"))}
+      label={factsLabel(examLabel(t, exam, name), exam.courseCode, t("exam.dayUnknown"))}
       onPress={() => go({ screen: "exam", examId: exam.id })}
       code={exam.courseCode}
       course={name}

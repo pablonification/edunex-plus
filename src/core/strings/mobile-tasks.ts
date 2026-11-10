@@ -66,4 +66,19 @@ export const mobileTasksStrings = {
   "mobile.tasks.see": { id: "Lihat", en: "See" },
   "mobile.tasks.seeDone": { id: "Lihat di Selesai", en: "See it in Done" },
   "mobile.tasks.next": { id: "Berikutnya", en: "Next" },
+  // superapp: Tugas, round 2
+  // A Task's page: where it stands in one line ("Terkumpul 18 Sep", with "terlambat" after it when it went in past the
+  // deadline), then marks, a glyph and a word each, their sentences a sheet away: whether the hand-in counted as
+  // present, a Presensi that closed without it, a window that is short ("Hanya 2 jam").
+  "mobile.tasks.handedInOn": { id: "Terkumpul {date}", en: "Handed in {date}" },
+  "mobile.tasks.handedInLate": { id: "terlambat", en: "late" },
+  "mobile.tasks.present": { id: "Hadir", en: "Present" },
+  "mobile.tasks.notPresent": { id: "Tidak hadir", en: "Not present" },
+  "mobile.tasks.presenceMissed": { id: "Presensi terlewat", en: "Presence missed" },
+  "mobile.tasks.shortWindow": { id: "Hanya {duration}", en: "Only {duration}" },
+  // A lecturer's edit as one row ("Diubah dosen 22 Sep") with "Sudah kucek"; its info button's name for TalkBack.
+  "mobile.tasks.editedOn": { id: "Diubah dosen {date}", en: "Lecturer edited {date}" },
+  "mobile.tasks.editedWhy": { id: "Tentang perubahan ini", en: "About this change" },
+  // What a row or the lead card is when it's an exam, beside the exam glyph.
+  "mobile.tasks.kindExam": { id: "Ujian", en: "Exam" },
 } as const satisfies Record<string, Entry>;

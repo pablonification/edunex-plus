@@ -16,7 +16,6 @@ import { moduleName } from "../../../../src/core/tasks";
 import { toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
 import { CourseDot, Tag } from "../../ui/display";
-import { CountUp } from "../../ui/expressive";
 import { Icons, ServiceIcons } from "../../ui/icons";
 import { factsLabel, Notice, TrailingInline } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
@@ -359,27 +358,35 @@ export function KindIcon({ kind, color, size = 16 }: { kind: RowKind; color: str
 const leafOf = (date: string): [string, string] => [date.match(/\d+/)?.[0] ?? date, date.match(/\p{L}+/u)?.[0] ?? ""];
 
 /**
- * The day a row is about, leading it as a calendar's leaf: "15" over "Okt", the number in the course's colour. Tugas
- * reads down this column as an agenda, which no other tab has. A dash while no day is set.
+ * The day a row is about, leading it as a calendar's leaf, and the only thing in that column: the weekday small over
+ * "15" in the course's colour over "Okt". Tugas reads down this column as an agenda, which no other tab has. With no
+ * day set the column is empty (the row says so in words) and the row sorts last. `big`: the lead card's.
  */
-function DateLeaf({ date, ink }: { date: string | null; ink: string }) {
+function DateLeaf({ date, weekday, ink, big = false }: { date: string | null; weekday?: string | null; ink: string; big?: boolean }) {
   const v = useTheme().v4;
-  const width = useTextWidth(40);
-  const [day, month] = date === null ? ["–", ""] : leafOf(date);
+  const width = useTextWidth(big ? 48 : 40);
+  if (date === null) return <View style={{ width }} />;
+  const [day, month] = leafOf(date);
+  const small = { color: big ? v.fg2 : v.muted, fontSize: 12, lineHeight: 16, letterSpacing: 0 } as const;
   return (
     <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width, alignItems: "center" }}>
+      {weekday ? (
+        <Text size="labelMedium" weight="medium" numberOfLines={1} style={small}>
+          {weekday}
+        </Text>
+      ) : null}
       <Text
         size="titleLarge"
         face="display"
         weight="extrabold"
         tabular
         numberOfLines={1}
-        style={{ color: date === null ? v.muted : ink, fontSize: 22, lineHeight: 26, letterSpacing: -0.4 }}
+        style={big ? { color: ink, fontSize: 30, lineHeight: 34, letterSpacing: -0.6 } : { color: ink, fontSize: 22, lineHeight: 26, letterSpacing: -0.4 }}
       >
         {day}
       </Text>
       {month ? (
-        <Text size="labelMedium" weight="medium" numberOfLines={1} style={{ color: v.muted, fontSize: 12, lineHeight: 16, letterSpacing: 0 }}>
+        <Text size="labelMedium" weight="medium" numberOfLines={1} style={small}>
           {month}
         </Text>
       ) : null}
@@ -408,6 +415,7 @@ export function TaskLine({
   status,
   expanded,
   date,
+  weekday,
   kind,
   flat = false,
 }: {
@@ -428,6 +436,8 @@ export function TaskLine({
   expanded?: boolean;
   /** Tugas's own shape: the day ("15 Okt") leading the row; null while no day is set. */
   date?: string | null;
+  /** The day's weekday ("Jum"), with the date in its column: never after the course's name. */
+  weekday?: string | null;
   /** A Task or an exam: its glyph before the meta line. */
   kind?: RowKind;
   /** Flat on Tugas's page without a day (an exam period): the page's own inset, as the rows with one. */
@@ -453,7 +463,7 @@ export function TaskLine({
         minHeight: 68,
       }}
     >
-      {leaf ? <DateLeaf date={date} ink={ink} /> : (leading ?? (code ? <CourseTile code={code} name={course} /> : null))}
+      {leaf ? <DateLeaf date={date} weekday={weekday} ink={ink} /> : (leading ?? (code ? <CourseTile code={code} name={course} /> : null))}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
           {title}
@@ -468,6 +478,8 @@ export function TaskLine({
         ) : null}
       </View>
       {status}
+      {/* Every row that opens something ends in the same quiet chevron; one that folds a list has its own. */}
+      {expanded === undefined && <Icons.ChevronRight size={16} color={v.muted} />}
     </PressScale>
   );
 }
@@ -505,6 +517,8 @@ export function HeroCard({
   quick,
   code,
   at,
+  date,
+  weekday,
   title,
   meta,
   kind = "task",
@@ -518,8 +532,11 @@ export function HeroCard({
   code: string;
   course?: string;
   at: number;
+  /** The day as the rows' column says it: "16 Okt" and "Jum". */
+  date: string;
+  weekday: string;
   title: string;
-  /** "Komunikasi Pemasaran · Jum, 13 Nov, 23:59": whose it is and when. */
+  /** "Proposal Tugas Akhir · 23:59": whose it is (or what kind) and the time. The day is the leaf's, once. */
   meta: string;
   kind?: RowKind;
 }) {
@@ -543,28 +560,11 @@ export function HeroCard({
         paddingVertical: space[3],
         flexDirection: "row",
         alignItems: "center",
-        gap: space[4],
+        gap: space[3],
       }}
     >
-      {/* The number, its unit under it ("lewat" over it once past): one column, as wide as it needs. */}
-      <View style={{ alignItems: "center", minWidth: 48 }}>
-        {away.late && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-            <Icons.AlertTriangle size={12} weight="bold" color={color} />
-            <Text size="labelMedium" face="display" weight="semibold" style={{ color }}>
-              {t("mobile.home.late")}
-            </Text>
-          </View>
-        )}
-        <CountUp
-          id={`tasks:${testID}`}
-          value={away.value}
-          style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, lineHeight: 46, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
-        />
-        <Text size="labelLarge" face="display" weight="semibold" style={{ color, marginTop: -4 }}>
-          {away.unit}
-        </Text>
-      </View>
+      {/* The same column as every row under it: the date, a size up. Never a bare number. */}
+      <DateLeaf date={date} weekday={weekday} ink={ink} big />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg }}>
           {title}
@@ -575,6 +575,13 @@ export function HeroCard({
             {meta}
           </Text>
         </View>
+      </View>
+      {/* How long is left, quiet at the card's end: the one row that says it while it's still calm. */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+        {away.late && <Icons.AlertTriangle size={14} weight="bold" color={color} />}
+        <Text size="bodyMedium" weight="semibold" tabular style={{ color: away.late ? color : v.fg2 }}>
+          {away.text}
+        </Text>
       </View>
     </PressScale>
   );
