@@ -75,6 +75,10 @@ function css(style: Record<string, unknown> = {}): string {
     paddingTop: (value) => `padding-top:${value}px`,
     paddingBottom: (value) => `padding-bottom:${value}px`,
     borderRadius: (value) => `border-radius:${value}px`,
+    borderTopLeftRadius: (value) => `border-top-left-radius:${value}px`,
+    borderTopRightRadius: (value) => `border-top-right-radius:${value}px`,
+    borderWidth: (value) => `border:${value}px solid`,
+    borderColor: (value) => `border-color:${value}`,
     backgroundColor: (value) => `background:${value}`,
   };
   if (!style.flexDirection) out.push("flex-direction:column");
@@ -161,9 +165,9 @@ interface World {
 let world: World;
 let shot: Shot;
 let moment: number;
-const worldOf = (change: (shot: Shot) => Shot = (one) => one): World => ({
-  facts: widgetFacts(change(shot), moment),
-  main: widgetModel(change(shot), moment),
+const worldOf = (change: (shot: Shot) => Shot = (one) => one, at = moment): World => ({
+  facts: widgetFacts(change(shot), at),
+  main: widgetModel(change(shot), at),
 });
 
 const theme = (scheme: "light" | "dark") => THEMES[scheme];
@@ -187,24 +191,28 @@ beforeAll(async () => {
 
 // ---------------------------------------------------------------- the pictures for the judges (WIDGET_RENDER=<folder>)
 
-/** This phone's launcher (Samsung One UI, 4 across): a 4×2 widget measured 325×227 dp on its home screen. */
-const phone = (w: number, h: number) => ({ label: `${w}×${h}`, width: Math.round(81.25 * w), height: Math.round(113.5 * h) });
+/**
+ * This phone's launcher (Samsung One UI, 4 across): "Sekarang" at 4×2 is 1017×703 px on its home screen, at 2.625 px
+ * per dp 387×268 dp. The first round drew it at 325×227, so the phone had width the pictures didn't.
+ */
+const phone = (w: number, h: number) => ({ label: `${w}×${h}`, width: Math.round(96.85 * w), height: Math.round(133.9 * h) });
 /** Each widget at its smallest, a step between, its first size (marked) and its largest on a 4-wide launcher. */
 const RENDER: Record<string, { title: string; sizes: ReturnType<typeof phone>[]; first: string }> = {
-  Now: { title: "Sekarang", sizes: [phone(2, 1), phone(4, 1), phone(4, 2), phone(4, 4)], first: "4×2" },
-  Services: { title: "Pintasan", sizes: [phone(2, 1), phone(4, 1), phone(4, 2)], first: "4×1" },
-  Exam: { title: "Ujian", sizes: [phone(2, 1), phone(2, 2), phone(4, 1), phone(4, 2)], first: "2×2" },
-  Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 3), phone(4, 4)], first: "3×2" },
-  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 3), phone(4, 5)], first: "3×2" },
-  Attendance: { title: "Kehadiran", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 4)], first: "3×2" },
-  Next: { title: "Kelas berikutnya", sizes: [phone(1, 1), phone(2, 1), phone(2, 2)], first: "1×1" },
-  Course: { title: "Satu mata kuliah", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
+  Now: { title: "Sekarang", sizes: [phone(2, 1), phone(4, 1), phone(4, 2), phone(4, 3)], first: "4×2" },
+  Services: { title: "Pintasan", sizes: [phone(2, 1), phone(4, 1)], first: "4×1" },
+  Exam: { title: "Ujian", sizes: [phone(2, 1), phone(2, 2), phone(4, 1), phone(4, 2)], first: "2×1" },
+  Today: { title: "Hari ini", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
+  Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
+  Attendance: { title: "Jatah absen", sizes: [phone(2, 2), phone(3, 2), phone(4, 2), phone(4, 3)], first: "3×2" },
+  Next: { title: "Kelas berikutnya", sizes: [phone(1, 1), phone(2, 1)], first: "1×1" },
+  Course: { title: "Satu mata kuliah", sizes: [phone(3, 1), phone(3, 2), phone(4, 2)], first: "3×1" },
 };
 
 const emptied = (names: string[]) => (one: Shot) => ({ ...one, datasets: one.datasets.map((d) => (names.includes(d.name) ? { ...d, value: [] } : d)) }) as Shot;
 /** The states beside the normal one, each made from the same pretend Thursday (as test/mobile/widget-models.test.ts makes them). */
 const STATES: Record<string, { title: string; change: (one: Shot) => Shot }> = {
-  empty: { title: "Empty (nothing due, no class, no exam)", change: emptied(["edunex.tasks", "edunex.exams", "six.schedule"]) },
+  // Nothing at all: no Task, no exam, no class, and so no Presence open for one (the first round kept the Presence, and drew its button with no class).
+  empty: { title: "Empty (nothing due, no class, no exam)", change: (one) => noPresence(emptied(["edunex.tasks", "edunex.exams", "six.schedule"])(one)) },
   signedOut: {
     title: "Signed out",
     change: (one) =>
@@ -215,36 +223,64 @@ const STATES: Record<string, { title: string; change: (one: Shot) => Shot }> = {
       }) as Shot,
   },
   offline: { title: "Offline", change: (one) => ({ ...one, statuses: one.statuses.map((status) => ({ ...status, state: "offline" as const })) }) as Shot },
-  holiday: { title: "Holiday (no class in the week ahead)", change: emptied(["six.schedule"]) },
+  holiday: { title: "Holiday (no class in the week ahead)", change: (one) => noPresence(emptied(["six.schedule"])(one)) },
 };
+/** No Presence open: a week without classes has none to fill in. */
+const noPresence = (one: Shot) =>
+  ({
+    ...one,
+    // And no meeting Edunex announced: a week with one isn't a holiday.
+    datasets: one.datasets.map((d) => (d.name === "edunex.presence" || d.name === "edunex.materials" ? { ...d, value: Array.isArray(d.value) ? [] : {} } : d)),
+  }) as Shot;
 
 const WALLPAPER = { light: "linear-gradient(135deg,#bfeeee 0%,#9fd84a 48%,#6b3fe0 100%)", dark: "linear-gradient(135deg,#10222c 0%,#1d3a17 48%,#2a1a5e 100%)" };
 
 function renderPages(folder: string): void {
   fs.mkdirSync(folder, { recursive: true });
-  const tile = (name: string, state: string, size: ReturnType<typeof phone>, scheme: "light" | "dark", from: World) => {
+  const tile = (name: string, state: string, size: ReturnType<typeof phone>, scheme: "light" | "dark", from: World, scale = 1) => {
     let inner: string;
     try {
-      inner = draw(DRAW[name]!({ ...size, fontScale: 1 }, scheme, from), size).html;
+      fontScale = scale;
+      inner = draw(DRAW[name]!({ ...size, fontScale: scale }, scheme, from), size).html;
     } catch (error) {
       inner = `<div style="width:${size.width}px;font:12px system-ui;color:#b00">could not draw: ${String(error)}</div>`;
+    } finally {
+      fontScale = 1;
     }
-    return `<figure style="margin:0"><div data-shot="${name.toLowerCase()}-${state}-${size.label.replace("×", "x")}-${scheme}" style="display:inline-block;padding:18px;border-radius:12px;background:${WALLPAPER[scheme]}">${inner}</div></figure>`;
+    return `<figure style="margin:0"><div data-shot="${name.toLowerCase()}-${state}-${size.label.replace("×", "x")}-${scheme}" style="display:inline-block;padding:18px;border-radius:12px;background:${state === "preview" ? "transparent" : WALLPAPER[scheme]}">${inner}</div></figure>`;
   };
   for (const [name, { title, sizes, first }] of Object.entries(RENDER)) {
     const rows: string[] = [];
-    const row = (label: string, state: string, size: ReturnType<typeof phone>, from: World) =>
-      rows.push(
-        `<section><h2>${label}</h2><div style="display:flex;gap:14px;align-items:flex-start">${tile(name, state, size, "light", from)}${tile(name, state, size, "dark", from)}</div></section>`,
+    // Laid out as a judge reads it: every size in light, every size in dark, then each other state.
+    const strip = (label: string, tiles: string[]) =>
+      rows.push(`<section><h2>${label}</h2><div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">${tiles.join("")}</div></section>`);
+    const some = [sizes.find((one) => one.label === first)!, sizes[0]!].filter((one, index, all) => all.indexOf(one) === index);
+    const sizesSaid = sizes.map((size) => `${size.label}${size.label === first ? " (as first placed)" : ""} ${size.width}×${size.height} dp`).join(" · ");
+    for (const scheme of ["light", "dark"] as const)
+      strip(
+        `${scheme === "light" ? "Light" : "Dark"}: ${sizesSaid}`,
+        sizes.map((size) => tile(name, "normal", size, scheme, world)),
       );
-    for (const size of sizes) row(`${size.label}${size.label === first ? " (as first placed)" : ""} · ${size.width}×${size.height} dp`, "normal", size, world);
-    // Pintasan says nothing that changes: one state.
-    if (name !== "Services")
-      for (const [state, { title: stateTitle, change }] of Object.entries(STATES)) {
-        const from = worldOf(change);
-        for (const size of [sizes.find((one) => one.label === first)!, sizes[0]!].filter((one, index, all) => all.indexOf(one) === index))
-          row(`${stateTitle} · ${size.label}`, state, size, from);
-      }
+    // The phone's text at 1.3: the first size (and the smallest) still hold.
+    strip(
+      `Text ×1.3: ${some.map((size) => size.label).join(" · ")}`,
+      some.flatMap((size) => [tile(name, "text13", size, "light", world, 1.3), tile(name, "text13", size, "dark", world, 1.3)]),
+    );
+    for (const [state, { title: stateTitle, change }] of Object.entries(STATES)) {
+      const from = worldOf(change);
+      strip(
+        `${stateTitle}: ${some.map((size) => size.label).join(" · ")}`,
+        some.flatMap((size) => [tile(name, state, size, "light", from), tile(name, state, size, "dark", from)]),
+      );
+    }
+    // The picker's picture (scripts/make-widget-previews.mjs keeps it): the first size, light, an hour before the first
+    // class and with no read stamped, so it claims nothing live ("Sedang berlangsung", "Diperbarui pukul …").
+    const before = worldOf(
+      (one) => ({ ...one, statuses: one.statuses.map((status) => ({ ...status, updatedAt: null })) }) as Shot,
+      Date.parse("2026-10-08T07:00:00+07:00"),
+    );
+    const firstSize = sizes.find((one) => one.label === first)!;
+    rows.push(`<section><h2>In the picker · ${firstSize.label}</h2>${tile(name, "preview", firstSize, "light", before)}</section>`);
     fs.writeFileSync(
       path.join(folder, `${name.toLowerCase()}.html`),
       `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{margin:24px;font-family:Roboto,"Helvetica Neue",system-ui,sans-serif;background:#fff;color:#14171c}h1{font-size:22px;margin:0 0 4px}h2{font-size:13px;font-weight:600;margin:18px 0 6px;color:#3f4652}p{margin:0;font-size:13px;color:#5f6673}</style></head><body><h1>${title}</h1><p>Edunex Plus widget, drawn from the demo's made-up Thursday 8 Oct, 08:12. Light left, dark right.</p>${rows.join("")}</body></html>`,

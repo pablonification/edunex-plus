@@ -400,6 +400,34 @@ export const mobileStrings = {
   // superapp: widgets
   // "Kelas berikutnya" in one cell on a week without classes: two words, as the cell holds no more. A tap opens Jadwal.
   "mobile.widget.noClass": { id: "Tidak ada kuliah", en: "No classes" },
+  // A widget with nothing of its own to show, the same on all eight: its name, one sentence, one thing to tap.
+  "mobile.widget.name.now": { id: "Sekarang", en: "Now" },
+  "mobile.widget.name.exam": { id: "Ujian", en: "Exams" },
+  "mobile.widget.name.next": { id: "Kelas berikutnya", en: "Next class" },
+  "mobile.widget.name.course": { id: "Mata kuliah", en: "Course" },
+  "mobile.widget.signedOut": { id: "Kamu belum masuk ke {source}.", en: "You're not signed in to {source}." },
+  "mobile.widget.signedOutAny": { id: "Kamu belum masuk.", en: "You're not signed in." },
+  // The same in a one-cell widget.
+  "mobile.widget.signedOutShort": { id: "Belum masuk", en: "Signed out" },
+  // No class in the week ahead. The short one fills a one-cell widget.
+  "mobile.widget.holiday": { id: "Libur. Tidak ada kuliah seminggu ke depan.", en: "Break. No classes in the coming week." },
+  "mobile.widget.holidayShort": { id: "Libur", en: "Break" },
+  "mobile.widget.dueNone": { id: "Tidak ada tenggat", en: "Nothing due" },
+  // The one thing to tap on such a widget: "Buka Jadwal".
+  "mobile.widget.open": { id: "Buka {place}", en: "Open {place}" },
+  // The class block's first words. A widget doesn't tick, so times of day: "Mulai 11:00", and beside "Sedang berlangsung", "selesai 10:00".
+  "mobile.widget.starts": { id: "Mulai {time}", en: "Starts {time}" },
+  "mobile.widget.ends": { id: "selesai {time}", en: "ends {time}" },
+  // The foot when the last read didn't get through: the data stays, from when ("08:12", "kemarin, 20:16").
+  "mobile.widget.offline": { id: "Tidak terhubung · data {when}", en: "Offline · data from {when}" },
+  // "Pintasan": what TalkBack says after a tile's name. The tile itself shows the number alone.
+  "mobile.widget.svc.classes": { id: "{count} kuliah lagi hari ini", en: { one: "{count} class left today", other: "{count} classes left today" } },
+  "mobile.widget.svc.due": { id: "{count} tugas dalam seminggu", en: { one: "{count} Task due this week", other: "{count} Tasks due this week" } },
+  "mobile.widget.svc.limit": {
+    id: "{count} mata kuliah di batas absen",
+    en: { one: "{count} course at its absence limit", other: "{count} courses at their absence limit" },
+  },
+  "mobile.widget.svc.ipk": { id: "IPK {value}", en: "GPA {value}" },
   // presence
   // Kuliah's ⋮: the attendance targets, with the range in force under it ("80%", "75–80%").
   "mobile.courses.targets": { id: "Target kehadiran", en: "Attendance targets" },
