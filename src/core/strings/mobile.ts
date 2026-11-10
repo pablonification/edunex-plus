@@ -391,6 +391,30 @@ export const mobileStrings = {
   // settings: Tentang › Versi. The button beside the version says only the verb (its accessible name is update.check),
   // so "Diperiksa sendiri sekali sehari." keeps its room on a phone's width.
   "mobile.update.checkShort": { id: "Periksa", en: "Check" },
+  // superapp: material and exams
+  // Materi (/material): what the lecturers posted across the term's courses, by week. "Minggu ini" is course.thisWeek.
+  "mobile.material.title": { id: "Materi", en: "Materials" },
+  "mobile.material.lastWeek": { id: "Minggu lalu", en: "Last week" },
+  "mobile.material.earlier": { id: "Sebelumnya", en: "Earlier" },
+  // What TalkBack says after a folded week's name: how many it holds.
+  "mobile.material.count": { id: "{count} materi", en: { one: "{count} item", other: "{count} items" } },
+  // A course's name over its items is the way to the course.
+  "mobile.material.openCourse": { id: "Buka mata kuliah {course}", en: "Open the course {course}" },
+  "mobile.material.empty": { id: "Belum ada materi semester ini", en: "No materials yet this term" },
+  "mobile.material.emptyHint": { id: "Yang dosenmu unggah ke Edunex muncul di sini.", en: "What your lecturers post on Edunex shows up here." },
+  "mobile.material.noEdunex": { id: "Materi dibaca dari Edunex", en: "Materials come from Edunex" },
+  // Ujian (/exams): every exam of the term, the nearest one first with the time left as its big figure.
+  "mobile.exams.title": { id: "Ujian", en: "Exams" },
+  "mobile.exams.past": { id: "Sudah lewat", en: "Past" },
+  "mobile.exams.count": { id: "{count} ujian", en: { one: "{count} exam", other: "{count} exams" } },
+  // A row for an exam SIX lists on two days: its first day is the row's start, the line says the other ("Kam · dan 17 Des").
+  "mobile.exams.alsoOn": { id: "dan {days}", en: "and {days}" },
+  "mobile.exams.empty": { id: "Belum ada ujian diumumkan", en: "No exams announced yet" },
+  "mobile.exams.emptyHint": {
+    id: "Ujian muncul di sini begitu SIX atau dosenmu menjadwalkannya.",
+    en: "Exams show up here once SIX or a lecturer schedules them.",
+  },
+  "mobile.exams.noSix": { id: "Jadwal ujian dibaca dari SIX", en: "Exam times come from SIX" },
 } as const satisfies Record<string, Entry>;
 
 // The desktop's words the phone says its own way: the same facts, numbers and {placeholders}, with
