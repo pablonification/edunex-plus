@@ -494,7 +494,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   // Settings › Akun: the row that opens what the app found when Edunex and SIX were first read, on one line (round 3's
   // third review preferred a short name to "Yang tak disampaikan Edunex dan SIX" on two); when it was found is the row's
   // spoken hint.
-  "settings.firstScan": { id: "Ringkasan awal", en: "First summary" },
   // Settings › Notifikasi: the switch for a class moved, a Task edited or a meeting added, named by what changes ("Ada
   // perubahan" didn't say what).
   "settings.alerts.changes": { id: "Jadwal atau Tugas berubah", en: "Class or Task changes" },

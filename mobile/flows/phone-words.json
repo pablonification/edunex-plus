@@ -200,11 +200,6 @@
     "phone": "Terkirim. Tidak muncul? Izinkan notifikasi Edunex Plus di pengaturan HP."
   },
   {
-    "key": "settings.firstScan",
-    "desktop": "Ringkasan saat pertama terhubung",
-    "phone": "Ringkasan awal"
-  },
-  {
     "key": "settings.needsAhead",
     "desktop": "Jangkauan Perlu perhatianmu",
     "phone": "Jangkauan Perlu kamu urus"

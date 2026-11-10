@@ -56,7 +56,7 @@ import { TABS, type Tab, useVisitTabs } from "./tab-order";
 /** The tabs' names: the desktop's, but "Tugas" alone, so five fit a phone's width better. */
 const TAB_LABEL: Record<Tab, StringKey> = {
   // "Materi": the word a Student looks for after class (Edunex calls them modules; the list under it still does).
-  modules: "course.tab.modules",
+  modules: "mobile.course.tab.material",
   meetings: "course.tab.meetings",
   tasks: "mobile.course.tab.tasks",
   grades: "course.tab.grades",
