@@ -1,6 +1,6 @@
 # The first run (W15, round 2; the first minute): the stage with its two doors and one button, the button turned
-# status after the tap, the hand-over, Beranda filling in with the first read's progress in the top bar, the summary
-# card once the read is in, and the summary it opens. Opened by
+# status after the tap, the hand-over, Beranda filling in with the first read's progress in the top bar, the
+# snackbar "Semua siap" once the read is in, and the summary its Lihat ringkasan opens. Opened by
 # judge-light.yaml and judge-dark.yaml on the first-run scenario.
 appId: io.github.pablonification.edunexplus.demo
 ---
@@ -32,13 +32,11 @@ appId: io.github.pablonification.edunexplus.demo
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-33-pertama-beranda-mengisi
 - extendedWaitUntil:
-    visible:
-      id: card.firstScan
+    visible: "Lihat ringkasan"
     timeout: 600000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-34-pertama-siap
-- tapOn:
-    id: action.firstScan.open
+- tapOn: "Lihat ringkasan"
 - extendedWaitUntil:
     visible:
       id: screen.firstScan

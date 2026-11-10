@@ -27,6 +27,7 @@ import { cookiesFor } from "../../modules/web-cookies";
 import { guardMessage, guardScript, navigationAllowed } from "../host/guard";
 import { noServiceWorkerScript } from "../host/page-fixes";
 import { R3_GUARD } from "../host/version";
+import { FirstReadSaid } from "../screens/first-scan/said";
 import { IconButton } from "../ui/controls";
 import { Icons } from "../ui/icons";
 import { reduceMotion } from "../ui/motion";
@@ -138,13 +139,16 @@ export const phoneSignInWindows: SignInWindows = {
 /**
  * Draws every sign-in under way: quiet ones out of sight, the Student's over the whole screen. Under them, the first
  * minute (./first-minute/gate.tsx): the scene a sign-in happens in when nobody is signed in yet, which Microsoft's page
- * covers while the Student types and which carries on through the first read.
+ * covers while the Student types and which hands over to Beranda once a system is in; and what says the first read
+ * is done (../screens/first-scan/said.tsx).
  */
 export function SignInHost() {
   const current = useSyncExternalStore(subscribe, () => runs);
   return (
     <>
       <FirstMinuteGate />
+      {/* The first read is in: said once, as a snackbar (never under the stage). */}
+      <FirstReadSaid />
       {current.map((run) => (
         <SignInPage key={run.id} run={run} />
       ))}

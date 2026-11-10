@@ -11,12 +11,15 @@
 // prints every pair here with its ratio, worst first, the new ones too.
 import { describe, expect, it } from "vitest";
 import {
+  BUTTON,
   CHIP_EDGE_ALPHA,
-  DOOR_BREATH,
+  DOOR_FACT,
   DOOR_INK,
+  DOOR_LIGHT,
   DOOR_LIT,
-  DOOR_REST_ALPHA,
+  DOOR_REST,
   FAILED,
+  HEM,
   MARK_COLOR,
   MARK_INK,
   STAGE,
@@ -263,22 +266,21 @@ const PAIRS: Pair[] = [
       [`check on ${id} swatch`, (t) => t.v.onCourse, tone, MARK, "parts/course-color-picker.tsx"],
     ];
   }),
-  // The first minute's stage (Edunex Plus's blue, full height; its own colours, not the palette's), its doors, its
-  // button and the mark.
-  ["the stage's headline, greeting, status and note", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
-  ["a resting door's name", () => STAGE_INK, (t) => over("#ffffff", STAGE[scheme(t)], DOOR_REST_ALPHA[scheme(t)]), LARGE, FIRST_MINUTE],
-  [
-    "a working door's name, at the top of its breath",
-    () => STAGE_INK,
-    (t) => over(DOOR_LIT[scheme(t)], over("#ffffff", STAGE[scheme(t)], DOOR_REST_ALPHA[scheme(t)]), DOOR_BREATH.high),
-    LARGE,
-    FIRST_MINUTE,
-  ],
-  ["Edunex's ink on a lit door, and on the sign-in button", () => DOOR_INK.edunex, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
-  ["SIX's ink on a lit door", () => DOOR_INK.six, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  // The first minute's stage (Edunex Plus's blue, full height; its own colours, not the palette's, every one opaque),
+  // its doors, its button, the mark and the lower edge it lifts by.
+  ["the stage's headline, status and note", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
+  ["a resting door's name", () => STAGE_INK, (t) => DOOR_REST[scheme(t)], LARGE, FIRST_MINUTE],
+  ["the line of light on a connecting door", () => DOOR_LIGHT, (t) => DOOR_REST[scheme(t)], MARK, FIRST_MINUTE],
+  ["Edunex's name and tick on its lit door", (t) => DOOR_INK[scheme(t)].edunex, (t) => DOOR_LIT[scheme(t)], LARGE, FIRST_MINUTE],
+  ["SIX's name and tick on its lit door", (t) => DOOR_INK[scheme(t)].six, (t) => DOOR_LIT[scheme(t)], LARGE, FIRST_MINUTE],
+  ["what a system learned, on its lit door", () => DOOR_FACT, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
   ["a lit door on the stage", (t) => DOOR_LIT[scheme(t)], (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
-  ["the mark on its badge", () => MARK_INK, () => MARK_COLOR, MARK, FIRST_MINUTE],
+  ["the sign-in button's words", () => BUTTON.ink, (t) => BUTTON.bg[scheme(t)], TEXT, FIRST_MINUTE],
+  ["the sign-in button on the stage", (t) => BUTTON.bg[scheme(t)], (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
+  ["the mark on its badge", () => MARK_INK, (t) => MARK_COLOR[scheme(t)], MARK, FIRST_MINUTE],
+  ["the mark's badge on a lit door", (t) => MARK_COLOR[scheme(t)], (t) => DOOR_LIT[scheme(t)], MARK, FIRST_MINUTE],
   ["the mark's ring on the stage", () => MARK_INK, (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
+  ["the stage's lower edge over Beranda's page, lifting", (t) => HEM[scheme(t)], page, MARK, FIRST_MINUTE],
   ["the language chip's edge on the stage", (t) => over("#ffffff", STAGE[scheme(t)], CHIP_EDGE_ALPHA), (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
   ["a sign-in that failed, said over the button", () => FAILED.ink, () => FAILED.bg, TEXT, FIRST_MINUTE],
 ];

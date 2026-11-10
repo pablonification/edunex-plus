@@ -3,21 +3,27 @@
 // to wait for and there's nothing to swipe or skip. Second by second (DESIGN.md, "The first minute"):
 //
 //   1. The stage is Edunex Plus's blue, full height, from the app's first frame (../welcome.tsx). On it: two doors in
-//      the upper half, one per system, both the same; the headline bottom-left; one button under the thumb.
-//   2. The tap: the button becomes the status in words, in place, and the language chip goes. A door breathes, a line
-//      of light under it, while its system signs in, and lights with a tick once it's in, a haptic each. Three honest
-//      states, nothing measured. With the first system in, the headline becomes the greeting, by first name.
-//   3. The doors close up and the app's mark lands on the seam between them.
-//   4. The hand-over, at once: the whole stage (doors, mark, greeting) lifts away like a curtain. Under it the real
-//      Beranda was there all along, its own blocks in their places and filling as the first read brings them. The
-//      scene leaves nothing on Beranda and knows nothing of its layout (./seam.ts).
+//      the upper half, one per system, both the same; between them the app's mark with a still glow, the stage's one
+//      light; the headline bottom-left; one button under the thumb. Once drawn, nothing on it moves: no frame is drawn.
+//   2. The tap: the button becomes the status in words, in place; the language chip and the note about signing in go
+//      with it. While a system connects, a line of light breathes at its door's foot (the one thing that moves). Once
+//      it's in, its door lights and shows what the system just said: the name and NIM under Edunex, the programme
+//      under SIX, a tick at the foot, a haptic each. The headline stays through all of it.
+//   3. Both in: the doors close onto the mark, which answers with one beat.
+//   4. The hand-over, at once: the words fade, then the whole stage (doors, mark) lifts away like a curtain. Under it
+//      the real Beranda was there all along, filling as the first read brings it. A strip of the stage's blue holds
+//      the status bar until the curtain's edge reaches it, so nothing slides across the clock. The scene leaves
+//      nothing on Beranda and knows nothing of its layout (./seam.ts).
 //
 // Nothing here waits for the read: the scene ends about a second after the systems are in. Every move runs on the UI
-// thread (Reanimated), on transforms and opacity only, and the hand-over is one transform on one view. With Remove
-// animations the same steps cross-fade and nothing moves. Loaded only when nobody is signed in (./gate.tsx).
+// thread (Reanimated), on transforms and opacity only, each a timing that ends (no spring left to settle); every
+// colour is opaque (./colors.ts) and no shape is clipped, so a frame is a few flat fills. The hand-over is one
+// transform on one view, kept as one picture only while it lifts. With Remove animations the same steps cross-fade
+// and nothing moves. Loaded only when nobody is signed in (./gate.tsx).
+import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Image, type LayoutChangeEvent, PixelRatio, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { AccessibilityInfo, Image, type LayoutChangeEvent, PixelRatio, Pressable, StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -28,23 +34,39 @@ import Animated, {
   withDelay,
   withRepeat,
   withSequence,
-  withSpring,
   withTiming,
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 import { errorKey } from "../../../../src/app/bridge";
-import { useLang, useNow, useT } from "../../../../src/app/i18n";
-import { firstName } from "../../../../src/app/names";
+import { useT } from "../../../../src/app/i18n";
+import { displayName } from "../../../../src/app/names";
 import { useBridge, useDataset, useSettings, useSignInStep, useSourceState } from "../../../../src/app/store";
 import { SourceLogo } from "../../ui/brand";
 import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { useReduceMotion } from "../../ui/motion";
-import { moves, Tap } from "../../ui/moves";
+import { Tap } from "../../ui/moves";
 import { iosPressed } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { motion, shape, space, TOUCH, useTheme } from "../../ui/theme";
-import { CHIP_EDGE_ALPHA, DOOR_BREATH, DOOR_INK, DOOR_LIT, DOOR_REST_ALPHA, FAILED, MARK_COLOR, MARK_INK, STAGE, STAGE_INK } from "./colors";
+import {
+  BUTTON,
+  CHIP_EDGE_ALPHA,
+  DOOR_FACT,
+  DOOR_INK,
+  DOOR_LIGHT,
+  DOOR_LIT,
+  DOOR_REST,
+  FAILED,
+  GLOW_ALPHA,
+  HEM,
+  MARK_COLOR,
+  MARK_INK,
+  STAGE,
+  STAGE_INK,
+} from "./colors";
+import { setCovering } from "./covering";
 import { setFirstMinuteStageUp } from "./gate";
 import { seam } from "./seam";
 
@@ -52,32 +74,37 @@ type Source = "edunex" | "six";
 type Scheme = "light" | "dark";
 /** A door's three states, each one true: nothing yet, its system signing in, its system in. */
 type DoorState = "rest" | "working" | "in";
-/** The doors on the stage; the doors closing up under the mark; the stage lifting off Beranda. */
+/** The doors on the stage; the doors closing onto the mark; the stage lifting off Beranda. */
 type Phase = "doors" | "joining" | "lifting";
 
 /** The gap between the doors, closed as they join. */
-const GAP = 14;
+const GAP = 20;
 const SIDE = space[6];
-/** The mark's badge on the seam. */
-const BADGE = 52;
+/** The mark between the doors: as large as the room under the doors' words lets it be, between these. */
+const BADGE = { min: 48, max: 104 } as const;
+/** The glow behind the mark, by the mark's size. */
+const GLOW = 2.3;
 /** A door's tick, and the room under it. */
-const TICK = 24;
+const TICK = 32;
 const FOOT = space[4];
+/** What a system just learned: up to three lines of this height (sp) under its name. */
+const FACT_LINE = 20;
 /** Both in: this long to see the second door light before they join. */
-const BOTH_HOLD_MS = 250;
+const BOTH_HOLD_MS = 450;
 /** One in: this long for the other to come along on the same sign-in; then the hand-over goes without it. */
 const OTHER_WAIT_MS = 2_000;
-/** The doors closing up and the mark landing, before the stage moves. */
+/** The doors closing onto the mark, before the stage moves. */
 const JOIN_MS = 520;
 /** The stage lifting off Beranda. */
 const LIFT_MS = 600;
-/** Material's emphasized curve, for the lift. */
+/** How far into the lift the curtain's edge reaches the status bar: its icons turn then (the curve is fast early). */
+const CLEARS_TOP = 0.6;
+/** Material's emphasized curve, for the lift; its decelerate, for what arrives. */
 const EMPHASIZED = Easing.bezier(0.2, 0, 0, 1);
+const ARRIVING = Easing.bezier(0.05, 0.7, 0.1, 1);
 
 export function FirstMinute({ onDone }: { onDone(): void }) {
   const t = useT();
-  const lang = useLang();
-  const now = useNow();
   const scheme: Scheme = useTheme().scheme === "dark" ? "dark" : "light";
   const insets = useSafeAreaInsets();
   const bridge = useBridge();
@@ -106,11 +133,16 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   const bothIn = edunexIn && sixIn;
   // The tap is behind the Student: the button is the status now.
   const asked = busy !== null || anyIn;
+  // A system that tried to come along and stopped is said so; one that hasn't tried yet isn't.
+  const tried = useRef({ edunex: false, six: false });
+  if (edunexStep) tried.current.edunex = true;
+  if (sixStep) tried.current.six = true;
 
-  // One value per move, each on the UI thread: the doors closing up, the mark landing, the stage lifting off Beranda;
-  // and, where the phone asks for less motion, the scene fading off it instead.
+  // One value per move, each on the UI thread and each a timing that ends: the doors closing, the mark's beat, the
+  // words leaving, the stage lifting off Beranda; and, where the phone asks for less motion, the scene fading off it.
   const join = useSharedValue(0);
-  const mark = useSharedValue(0);
+  const beat = useSharedValue(0);
+  const words = useSharedValue(1);
   const lift = useSharedValue(0);
   const out = useSharedValue(0);
 
@@ -122,26 +154,37 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   }, []);
   useEffect(() => clearTimers, [clearTimers]);
 
-  // The stage is up while the doors are: a sign-in page with nothing left for the Student steps aside for it.
+  // The stage is up while the doors are: a sign-in page with nothing left for the Student steps aside for it. And it
+  // covers the screen until it lifts: what's under it rests and stays out of TalkBack's reach (./covering.ts).
   useEffect(() => {
     setFirstMinuteStageUp(phase === "doors");
-    return () => setFirstMinuteStageUp(false);
+    setCovering("scene", phase !== "lifting");
+    return () => {
+      setFirstMinuteStageUp(false);
+      setCovering("scene", false);
+    };
   }, [phase]);
 
-  // A system is in: felt, once each.
+  // A system is in: felt and said, once each.
   const was = useRef({ edunexIn, sixIn });
   useEffect(() => {
-    if ((edunexIn && !was.current.edunexIn) || (sixIn && !was.current.sixIn)) haptic.confirm();
+    const came: Source[] = [];
+    if (edunexIn && !was.current.edunexIn) came.push("edunex");
+    if (sixIn && !was.current.sixIn) came.push("six");
     was.current = { edunexIn, sixIn };
-  }, [edunexIn, sixIn]);
+    if (came.length === 0) return;
+    haptic.confirm();
+    AccessibilityInfo.announceForAccessibility(came.map((source) => t("scan.connected", { sources: t(`source.${source}`) })).join(". "));
+  }, [edunexIn, sixIn, t]);
 
   const done = useRef(onDone);
   done.current = onDone;
   const handOver = useCallback(() => {
     setPhase("joining");
+    // The words go first, so only the stage's blue and its doors pass under the status bar.
+    words.value = withDelay(JOIN_MS - 180, withTiming(0, { duration: 160 }));
     if (still) {
-      // The same steps as fades: the mark, then straight to Beranda's shapes.
-      mark.value = withTiming(1, { duration: motion.duration.short });
+      // The same steps as fades: the words, then the stage cross-fades to Beranda. Nothing moves, nothing cuts.
       out.value = withDelay(JOIN_MS, withTiming(1, { duration: motion.duration.long }));
       later(() => {
         setPhase("lifting");
@@ -152,19 +195,18 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
       return;
     }
     // The whole hand-over is set going here, on the UI thread: the first read's JavaScript can't hold a step of it up.
-    // The timers after it only tell the screen reader, the touch layer, the status bar and the haptics where it is.
-    join.value = withSpring(1, motion.spatialDefault);
-    mark.value = withDelay(120, withSpring(1, motion.expressive));
+    // The timers after it only tell the screen reader, the touch layer, the phone's bars and the haptics where it is.
+    join.value = withTiming(1, { duration: 360, easing: EMPHASIZED });
+    beat.value = withDelay(180, withSequence(withTiming(1, { duration: 120 }), withTiming(0, { duration: 200 })));
     lift.value = withDelay(JOIN_MS, withTiming(1, { duration: LIFT_MS, easing: EMPHASIZED }));
-    later(() => haptic.tick(), 160);
+    later(() => haptic.tick(), 240);
     later(() => {
       setPhase("lifting");
       haptic.confirm();
     }, JOIN_MS);
-    // The curtain's last part to go is the top: the status bar's icons turn as it clears them.
-    later(() => setUncovered(true), JOIN_MS + LIFT_MS * 0.8);
+    later(() => setUncovered(true), JOIN_MS + LIFT_MS * CLEARS_TOP);
     later(() => done.current(), JOIN_MS + LIFT_MS + 40);
-  }, [still, join, mark, lift, out, later]);
+  }, [still, join, beat, words, lift, out, later]);
 
   // A system is in: the hand-over starts once the other has come along, or soon after without it (Beranda has its own
   // way to connect the other, and it joins there if it's only slow).
@@ -178,13 +220,15 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   useEffect(() => {
     if (phase === "doors" || anyIn) return;
     clearTimers();
-    for (const value of [join, mark, lift, out]) {
+    for (const value of [join, beat, lift, out]) {
       cancelAnimation(value);
       value.value = 0;
     }
+    cancelAnimation(words);
+    words.value = 1;
     setUncovered(false);
     setPhase("doors");
-  }, [phase, anyIn, clearTimers, join, mark, lift, out]);
+  }, [phase, anyIn, clearTimers, join, beat, words, lift, out]);
 
   const signIn = async (source: Source) => {
     setFailed(null);
@@ -199,73 +243,82 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
     }
   };
 
+  const fontScale = PixelRatio.getFontScale();
   // Where the doors stand: the upper part of the screen, as tall as the room over the headline lets them be.
   const rowWidth = size.width - SIDE * 2;
   const doorWidth = (rowWidth - GAP) / 2;
   const room = area?.height ?? size.height * 0.4;
   const doorHeight = Math.max(120, Math.min(room - space[2], doorWidth * 2.25));
   const doorsTop = (area?.y ?? insets.top + TOUCH + space[2]) + Math.max(0, room - doorHeight) * 0.35;
-  // The mark lands on the seam between a door's name and its tick, touching neither.
-  const markY = ((nameEnd ?? doorHeight * 0.45) + doorHeight - FOOT - TICK) / 2;
+  // The mark stands between a door's words (its name, then what its system learned) and its tick, touching neither.
+  const wordsEnd = (nameEnd ?? 0) + space[1] + Math.round(3 * FACT_LINE * fontScale);
+  const tickTop = doorHeight - FOOT - TICK;
+  const badge = Math.max(BADGE.min, Math.min(BADGE.max, tickTop - wordsEnd - space[4]));
+  const markY = Math.max(wordsEnd + badge / 2, (wordsEnd + tickTop) / 2);
+  const glow = Math.round(badge * GLOW);
   // The curtain is the screen and its rounded lower edge, which waits under the screen until the lift.
   const curtain = size.height + seam.edge;
+  const top = insets.top;
 
   const rootStyle = useAnimatedStyle(() => ({ opacity: 1 - out.value }));
   const curtainStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -lift.value * curtain }] }));
+  // The strip over the status bar stays until the curtain's edge reaches it, then leaves with it.
+  const stripStyle = useAnimatedStyle(() => ({ transform: [{ translateY: Math.min(0, curtain * (1 - lift.value) - top) }] }));
+  const wordsStyle = useAnimatedStyle(() => ({ opacity: words.value }));
   const leftDoor = useAnimatedStyle(() => ({ transform: [{ translateX: (join.value * GAP) / 2 }] }));
   const rightDoor = useAnimatedStyle(() => ({ transform: [{ translateX: (-join.value * GAP) / 2 }] }));
-  const markStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, mark.value), transform: [{ scale: still ? 1 : mark.value }] }));
+  const markStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + beat.value * 0.14 }] }));
 
-  // Each part comes up a beat after the one before (a fade where the phone asks for less motion).
+  // Each part comes up a beat after the one before, once (a fade where the phone asks for less motion).
   const enter = (step: number) =>
     still
-      ? FadeIn.delay(step * 60)
-      : FadeInDown.delay(step * 80)
-          .springify()
-          .damping(18)
-          .stiffness(180);
+      ? FadeIn.delay(step * 60).duration(motion.duration.short)
+      : FadeInDown.delay(step * 70)
+          .duration(320)
+          .easing(ARRIVING);
 
-  const doorState = (source: Source): DoorState => {
-    const isIn = source === "edunex" ? edunexIn : sixIn;
-    const step = source === "edunex" ? edunexStep : sixStep;
-    return isIn ? "in" : step !== null || busy === source ? "working" : "rest";
-  };
+  const stepOf = (source: Source) => (source === "edunex" ? edunexStep : sixStep);
+  const doorState = (source: Source): DoorState =>
+    (source === "edunex" ? edunexIn : sixIn) ? "in" : stepOf(source) !== null || busy === source ? "working" : "rest";
+  // What each system just said, for its door: Edunex the name and NIM, SIX the programme (the name is said already).
+  const learned = (source: Source): string[] =>
+    source === "edunex" ? (account ? [displayName(account.name), account.nim] : []) : student ? [student.program ?? student.nim] : [];
 
-  // What the button became: where the sign-in is, in words.
+  // What the button became: where the sign-in is, in words. Nothing once both are in: the doors say that.
   const sourceName = (source: Source) => t(`source.${source}`);
-  const other = (source: Source, step: typeof sixStep) =>
-    step === "slow"
-      ? t("signIn.slow", { source: sourceName(source) })
-      : step
-        ? t("welcome.bringingAlong", { source: sourceName(source) })
-        : t("scan.connected", { sources: sourceName(source === "six" ? "edunex" : "six") });
+  const other = (source: Source) => {
+    const step = stepOf(source);
+    if (step === "slow") return t("signIn.slow", { source: sourceName(source) });
+    if (step) return t("welcome.bringingAlong", { source: sourceName(source) });
+    return tried.current[source] ? t(source === "six" ? "welcome.sixLater" : "welcome.edunexLater") : "";
+  };
   const busyStep = busy === "six" ? sixStep : edunexStep;
   const status = bothIn
-    ? t("welcome.bothConnected")
+    ? ""
     : edunexIn
-      ? other("six", sixStep)
+      ? other("six")
       : sixIn
-        ? other("edunex", edunexStep)
+        ? other("edunex")
         : busyStep === "slow"
           ? t("signIn.slow", { source: sourceName(busy ?? "edunex") })
           : busyStep === "finishing"
             ? t("signIn.finishing", { source: sourceName(busy ?? "edunex") })
             : t("welcome.waitingShort");
 
-  // The headline, until the app knows who came in: then the greeting, in its place. It leaves with the stage.
-  const name = account?.name ?? student?.name;
-  const hello = anyIn && name ? t(`mobile.first.hello.${partOfDay(new Date(now).getHours(), lang)}`, { name: firstName(name) }) : null;
   const headline = [t("welcome.headline1"), t("welcome.headline2")];
   const headlineFont = headlineSize(rowWidth, headline);
-  const headlineRoom = 2 * Math.round(headlineFont * LINE) * PixelRatio.getFontScale();
+  const headlineRoom = 2 * Math.round(headlineFont * LINE) * fontScale;
   const lifting = phase === "lifting";
   // Big text or a small phone: the note under the button goes before the doors lose their room.
-  const tight = size.height < 700 && PixelRatio.getFontScale() > 1.15;
+  const tight = size.height < 700 && fontScale > 1.15;
 
   return (
     <Animated.View
       testID="screen.firstMinute"
-      onLayout={(event: LayoutChangeEvent) => setSize({ width: event.nativeEvent.layout.width, height: event.nativeEvent.layout.height })}
+      onLayout={(event: LayoutChangeEvent) => {
+        const { width, height } = event.nativeEvent.layout;
+        setSize((now) => (now.width === width && now.height === height ? now : { width, height }));
+      }}
       // Lifting, Beranda under it is the Student's to touch and to hear; the scene only finishes leaving.
       pointerEvents={lifting ? "none" : "auto"}
       accessibilityViewIsModal={!lifting}
@@ -273,16 +326,20 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
       importantForAccessibility={lifting ? "no-hide-descendants" : "auto"}
       style={[StyleSheet.absoluteFill, { zIndex: 60 }, rootStyle]}
     >
-      {/* White icons on the stage, in both themes, until the stage has cleared the top of Beranda's page. */}
+      {/* White icons on the stage, in both themes. The status bar's turn once the stage has cleared the top of
+          Beranda's page; the three buttons' as the lift starts, when its lower edge leaves them. */}
       <StatusBar style={uncovered ? seam.statusBar(scheme) : "light"} />
+      <NavigationBar style={lifting ? (scheme === "dark" ? "dark" : "light") : "dark"} />
 
       {/* The stage and everything on it, one sheet: it lifts as one at the hand-over. */}
       <Animated.View
-        // Lifting, it's one picture moved by the GPU: nothing on it is drawn again frame by frame.
+        // Lifting, it's one picture moved by the GPU: nothing on it is drawn again frame by frame. Only then.
         renderToHardwareTextureAndroid={lifting}
         shouldRasterizeIOS={lifting}
-        style={[styles.curtain, { height: curtain, backgroundColor: STAGE[scheme] }, curtainStyle]}
+        style={[styles.curtain, { height: curtain, backgroundColor: HEM[scheme] }, curtainStyle]}
       >
+        {/* The sheet's face over its hem: in dark the hem is a clear line along the lower edge. */}
+        {HEM[scheme] !== STAGE[scheme] && <View style={[styles.face, { backgroundColor: STAGE[scheme] }]} />}
         {/* What's said on the stage: the headline bottom-left, the one button under the thumb. */}
         <View testID="screen.welcome" style={{ height: size.height, paddingTop: insets.top, paddingBottom: insets.bottom }}>
           <View style={{ flexDirection: "row", justifyContent: "flex-end", paddingHorizontal: space[4], minHeight: TOUCH + space[2], alignItems: "center" }}>
@@ -290,90 +347,121 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
           </View>
           {/* The doors' room: they're drawn over it (below), at a size worked out from it. */}
           <View
-            onLayout={(event: LayoutChangeEvent) => setArea({ y: event.nativeEvent.layout.y, height: event.nativeEvent.layout.height })}
+            onLayout={(event: LayoutChangeEvent) => {
+              const { y, height } = event.nativeEvent.layout;
+              setArea((now) => (now && now.y === y && now.height === height ? now : { y, height }));
+            }}
             style={{ flex: 1, minHeight: 140 }}
           />
-          <Animated.View entering={enter(2)} style={{ paddingHorizontal: SIDE, paddingTop: space[4] }}>
-            <View accessible accessibilityRole="header" style={{ minHeight: headlineRoom, justifyContent: "flex-end" }}>
-              {hello ? (
-                <Animated.View key="hello" entering={still ? FadeIn.duration(motion.duration.medium) : moves.arrive}>
-                  <Headline size={headlineFont}>{hello}</Headline>
-                </Animated.View>
-              ) : (
-                // The desktop's headline, broken where it breathes: each half keeps to its one line at any font size.
-                headline.map((half) => (
+          <Animated.View style={wordsStyle}>
+            <Animated.View entering={enter(2)} style={{ paddingHorizontal: SIDE, paddingTop: space[4] }}>
+              {/* The desktop's headline, broken where it breathes: each half keeps to its one line at any font size. */}
+              <View accessible accessibilityRole="header" style={{ minHeight: headlineRoom, justifyContent: "flex-end" }}>
+                {headline.map((half) => (
                   <Headline key={half} size={headlineFont}>
                     {half}
                   </Headline>
-                ))
-              )}
-            </View>
-          </Animated.View>
-          <Animated.View entering={enter(3)} style={{ paddingHorizontal: SIDE, paddingTop: space[5], paddingBottom: space[5], gap: space[3] }}>
-            {failed && !asked && (
-              <View style={{ borderRadius: shape.md, backgroundColor: FAILED.bg, padding: space[3] }} accessibilityLiveRegion="polite">
-                <Text size="bodyMedium" style={{ color: FAILED.ink }}>
-                  {failed}
-                </Text>
+                ))}
               </View>
-            )}
-            {asked ? (
-              // The button's place, now the status: words only, one line that changes as the sign-in moves.
-              <View testID="status.signIn" accessibilityLiveRegion="polite" style={{ minHeight: BUTTON, justifyContent: "center" }}>
-                <Animated.View key={status} entering={FadeIn.duration(motion.duration.short)}>
+            </Animated.View>
+            <Animated.View entering={enter(3)} style={{ paddingHorizontal: SIDE, paddingTop: space[5], paddingBottom: space[5], gap: space[3] }}>
+              {failed && !asked && (
+                <View
+                  style={{ borderRadius: shape.md, backgroundColor: FAILED.bg, padding: space[3] }}
+                  accessibilityRole="alert"
+                  accessibilityLiveRegion="polite"
+                >
+                  <Text size="bodyMedium" style={{ color: FAILED.ink }}>
+                    {failed}
+                  </Text>
+                </View>
+              )}
+              {asked ? (
+                // The button's place, now the status: words only, one line, swapped at once and at full strength.
+                <View testID="status.signIn" accessibilityLiveRegion="polite" style={{ minHeight: BUTTON_HEIGHT, justifyContent: "center" }}>
                   <Text size="bodyLarge" weight="semibold" style={{ color: STAGE_INK }}>
                     {status}
                   </Text>
-                </Animated.View>
-              </View>
-            ) : (
-              <Tap onPress={() => void signIn("edunex")} testID="action.signIn" style={[styles.button, { backgroundColor: DOOR_LIT[scheme] }]}>
-                <Text size="bodyLarge" weight="semibold" style={{ color: DOOR_INK.edunex, textAlign: "center" }}>
-                  {t("mobile.welcome.signIn")}
+                </View>
+              ) : (
+                <Tap onPress={() => void signIn("edunex")} testID="action.signIn" style={[styles.button, { backgroundColor: BUTTON.bg[scheme] }]}>
+                  <Text size="bodyLarge" weight="semibold" style={{ color: BUTTON.ink, textAlign: "center" }}>
+                    {t("mobile.welcome.signIn")}
+                  </Text>
+                </Tap>
+              )}
+              {!tight && (
+                // About signing in: it leaves with the button, its room kept so nothing above it moves at the tap.
+                <Text
+                  size="bodySmall"
+                  style={{ color: STAGE_INK, opacity: asked ? 0 : 1 }}
+                  accessibilityElementsHidden={asked}
+                  importantForAccessibility={asked ? "no" : "auto"}
+                >
+                  {t("welcome.connectLead")}
                 </Text>
-              </Tap>
-            )}
-            {!tight && (
-              <Text size="bodySmall" style={{ color: STAGE_INK }}>
-                {t("welcome.connectLead")}
-              </Text>
-            )}
+              )}
+            </Animated.View>
           </Animated.View>
         </View>
 
-        {/* The doors: the screen's one picture. Nothing on them is a control. */}
+        {/* The doors and the mark between them: the screen's one picture. Nothing on them is a control. */}
         {area !== null && (
           <View pointerEvents="none" style={{ position: "absolute", left: SIDE, top: doorsTop, width: rowWidth, height: doorHeight }}>
             <View style={{ flex: 1, flexDirection: "row", gap: GAP }}>
-              <Animated.View entering={enter(0)} style={{ flex: 1 }}>
-                <Animated.View style={[{ flex: 1 }, leftDoor]}>
-                  <Door source="edunex" state={doorState("edunex")} width={doorWidth} height={doorHeight} scheme={scheme} onName={setNameEnd} />
+              {(["edunex", "six"] as const).map((source, index) => (
+                <Animated.View key={source} entering={enter(index)} style={{ flex: 1 }}>
+                  <Animated.View style={[{ flex: 1 }, index === 0 ? leftDoor : rightDoor]}>
+                    <Door
+                      source={source}
+                      state={doorState(source)}
+                      // Seen only once Microsoft's page has stepped aside: nothing breathes under it.
+                      breathing={stepOf(source) !== null}
+                      facts={learned(source)}
+                      width={doorWidth}
+                      height={doorHeight}
+                      scheme={scheme}
+                      onName={index === 0 ? setNameEnd : undefined}
+                    />
+                  </Animated.View>
                 </Animated.View>
-              </Animated.View>
-              <Animated.View entering={enter(1)} style={{ flex: 1 }}>
-                <Animated.View style={[{ flex: 1 }, rightDoor]}>
-                  <Door source="six" state={doorState("six")} width={doorWidth} height={doorHeight} scheme={scheme} />
-                </Animated.View>
-              </Animated.View>
+              ))}
             </View>
-            {/* The app's mark, landing on the seam where the two doors meet. It leaves with the stage. */}
-            <Animated.View style={[styles.badge, { left: rowWidth / 2 - BADGE / 2, top: markY - BADGE / 2 }, markStyle]}>
-              <Image
-                source={require("../../../assets/android-icon-monochrome.png")}
-                style={{ width: BADGE * 1.5, height: BADGE * 1.5, tintColor: MARK_INK }}
-                accessibilityIgnoresInvertColors
+            {/* The app's mark, there from the start (once the doors know where their names end): the doors close onto
+                it, and it leaves with the stage. */}
+            {nameEnd !== null && (
+              <Animated.View
+                entering={enter(1)}
+                style={{ position: "absolute", left: rowWidth / 2 - glow / 2, top: markY - glow / 2, width: glow, height: glow }}
                 accessibilityElementsHidden
-              />
-            </Animated.View>
+                importantForAccessibility="no-hide-descendants"
+              >
+                <Glow size={glow} scheme={scheme} />
+                <Animated.View style={[StyleSheet.absoluteFill, { alignItems: "center", justifyContent: "center" }, markStyle]}>
+                  <View style={[styles.badge, { width: badge, height: badge, borderRadius: badge / 2, backgroundColor: MARK_COLOR[scheme] }]}>
+                    <Image
+                      source={require("../../../assets/android-icon-monochrome.png")}
+                      style={{ width: badge * 1.5, height: badge * 1.5, tintColor: MARK_INK }}
+                      accessibilityIgnoresInvertColors
+                    />
+                  </View>
+                </Animated.View>
+              </Animated.View>
+            )}
           </View>
         )}
       </Animated.View>
+
+      {/* The stage's blue held over the status bar from the hand-over on: the doors pass under it, not across the clock. */}
+      {phase !== "doors" && top > 0 && (
+        <Animated.View pointerEvents="none" style={[styles.strip, { height: top, backgroundColor: STAGE[scheme] }, stripStyle]} />
+      )}
     </Animated.View>
   );
 }
 
 /** The sign-in button's height, and the status line's that takes its place: nothing under it moves at the tap. */
-const BUTTON = 52;
+const BUTTON_HEIGHT = 52;
 
 /** The headline's size at its largest (sp), its line's height by its size, and a letter's share of it (a little over). */
 const HEADLINE = 32;
@@ -390,7 +478,7 @@ function headlineSize(width: number, halves: readonly string[]): number {
   return Math.min(HEADLINE, width / (longest * LETTER) / scale);
 }
 
-/** One line of the headline, or the greeting in its place (a hair smaller rather than broken, should it run wide). */
+/** One line of the headline (a hair smaller rather than broken, should it run wide). */
 function Headline({ size, children }: { size: number; children: string }) {
   return (
     <Text
@@ -407,25 +495,34 @@ function Headline({ size, children }: { size: number; children: string }) {
   );
 }
 
-/**
- * The part of the day the greeting names ("Pagi", "Siang", "Sore", "Malam"), as each language splits it; night until
- * 04:00, so 01:30 says "Malam". The scene's own: Beranda has no greeting to share it with.
- */
-function partOfDay(hour: number, lang: "id" | "en"): "morning" | "midday" | "afternoon" | "evening" {
-  if (hour < 4) return "evening";
-  if (lang === "id") return hour < 11 ? "morning" : hour < 15 ? "midday" : hour < 18 ? "afternoon" : "evening";
-  return hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening";
-}
+/** The still glow behind the mark: the stage's one light, drawn once and never moved. */
+const Glow = memo(function Glow({ size, scheme }: { size: number; scheme: Scheme }) {
+  return (
+    <Svg width={size} height={size}>
+      <Defs>
+        <RadialGradient id="firstMinuteGlow" cx="50%" cy="50%" r="50%">
+          <Stop offset="0.4" stopColor={DOOR_LIGHT} stopOpacity={GLOW_ALPHA[scheme]} />
+          <Stop offset="1" stopColor={DOOR_LIGHT} stopOpacity={0} />
+        </RadialGradient>
+      </Defs>
+      <Circle cx={size / 2} cy={size / 2} r={size / 2} fill="url(#firstMinuteGlow)" />
+    </Svg>
+  );
+});
 
 /**
  * A system as a door: its logo and its name on an arch. Nothing on it is a control, and both doors are the same until
- * a system moves: at rest a faint light; while its sign-in runs the light breathes, with a line of it under the door;
- * once it's in the door is lit, its name in its own colour and a tick at its foot. Its size never changes. With less
- * motion asked for, the light fades between the three and nothing breathes.
+ * a system moves. At rest nothing on it changes. While its sign-in runs, a line of light breathes at its foot: the
+ * scene's one endless move, an opacity on one small view, stopped the moment the system is in or the app is behind
+ * something. Once it's in, the door's lit face fades in over the resting one, whole (its name in the system's colour,
+ * what the system just said, a tick at its foot), so every frame between the two is two readable faces, never white
+ * words on a half-lit door. Its size never changes. With less motion asked for, the line is still and nothing pops.
  */
 function Door({
   source,
   state,
+  breathing,
+  facts,
   width,
   height,
   scheme,
@@ -433,6 +530,10 @@ function Door({
 }: {
   source: Source;
   state: DoorState;
+  /** The line of light may breathe (the stage is in view). */
+  breathing: boolean;
+  /** What the system just said about the Student, a line each. */
+  facts: readonly string[];
   width: number;
   height: number;
   scheme: Scheme;
@@ -442,78 +543,88 @@ function Door({
   const t = useT();
   const still = useReduceMotion();
   const isIn = state === "in";
-  // How lit the door is, 0 to 1, and the tick coming in.
+  const working = state === "working";
+  // The lit face over the resting one, the tick's size, and the line of light at the foot.
   const lit = useSharedValue(isIn ? 1 : 0);
-  const tick = useSharedValue(isIn ? 1 : 0);
+  const tick = useSharedValue(1);
+  const light = useSharedValue(0);
   useEffect(() => {
-    cancelAnimation(lit);
-    if (state === "in") {
-      lit.value = withTiming(1, { duration: motion.duration.medium });
-      tick.value = still ? withTiming(1, { duration: motion.duration.short }) : withDelay(100, withSpring(1, motion.expressive));
-    } else if (state === "working") {
-      tick.value = 0;
-      lit.value = still
-        ? withTiming(DOOR_BREATH.high, { duration: motion.duration.short })
-        : withRepeat(withSequence(withTiming(DOOR_BREATH.high, { duration: 700 }), withTiming(DOOR_BREATH.low, { duration: 700 })), -1);
-    } else {
-      tick.value = 0;
-      lit.value = withTiming(0, { duration: motion.duration.medium });
+    lit.value = withTiming(isIn ? 1 : 0, { duration: motion.duration.medium });
+    if (isIn && !still) {
+      tick.value = 0.6;
+      tick.value = withDelay(motion.duration.medium - 60, withSequence(withTiming(1.15, { duration: 140 }), withTiming(1, { duration: 160 })));
     }
-  }, [state, still, lit, tick]);
+  }, [isIn, still, lit, tick]);
+  useEffect(() => {
+    if (!working) {
+      light.value = 0;
+      return;
+    }
+    light.value = 1;
+    // Not through useLoopWhileShown: that rests whatever the stage covers, and this is on the stage.
+    if (!breathing || still) return;
+    light.value = withRepeat(withSequence(withTiming(0.3, { duration: 700 }), withTiming(1, { duration: 700 })), -1);
+    return () => cancelAnimation(light);
+  }, [working, breathing, still, light]);
   const litStyle = useAnimatedStyle(() => ({ opacity: lit.value }));
-  // The light under the door: there as soon as the door's light stirs, so "working" shows in a still picture too.
-  const floorStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, lit.value / DOOR_BREATH.high) }));
-  const tickStyle = useAnimatedStyle(() => ({ opacity: Math.min(1, tick.value), transform: [{ scale: still ? 1 : tick.value }] }));
+  const lightStyle = useAnimatedStyle(() => ({ opacity: light.value }));
+  const tickStyle = useAnimatedStyle(() => ({ transform: [{ scale: tick.value }] }));
   const name = t(`source.${source}`);
   const says = isIn
-    ? t("scan.connected", { sources: name })
-    : state === "working"
+    ? [t("scan.connected", { sources: name }), ...facts].join(", ")
+    : working
       ? t("signIn.joining", { source: name })
       : `${name}: ${t("welcome.notConnected")}`;
   // A short door (a small phone, big text) keeps a smaller logo, so the mark has its room under the name.
   const logo = height < 240 ? 36 : 44;
+  const arch = {
+    borderTopLeftRadius: width / 2,
+    borderTopRightRadius: width / 2,
+    borderBottomLeftRadius: shape.lg,
+    borderBottomRightRadius: shape.lg,
+  };
+  const inside = {
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: Math.min(space[8], Math.max(space[4], width * 0.2)),
+    paddingBottom: FOOT,
+    paddingHorizontal: space[2],
+  } as const;
+  const title = (color: string) => (
+    <>
+      <SourceLogo source={source} size={logo} />
+      <Text size="titleLarge" face="display" weight="bold" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={{ color, letterSpacing: -0.3 }}>
+        {name}
+      </Text>
+    </>
+  );
   return (
-    <View
-      testID={`door.${source}`}
-      accessible
-      accessibilityLabel={says}
-      style={{
-        flex: 1,
-        borderTopLeftRadius: width / 2,
-        borderTopRightRadius: width / 2,
-        borderBottomLeftRadius: shape.lg,
-        borderBottomRightRadius: shape.lg,
-        backgroundColor: `rgba(255,255,255,${DOOR_REST_ALPHA[scheme]})`,
-        overflow: "hidden",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingTop: Math.min(space[8], Math.max(space[4], width * 0.2)),
-        paddingBottom: FOOT,
-        paddingHorizontal: space[2],
-      }}
-    >
-      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: DOOR_LIT[scheme] }, litStyle]} />
-      <Animated.View pointerEvents="none" style={[styles.floor, { backgroundColor: DOOR_LIT[scheme] }, floorStyle]} />
+    <View testID={`door.${source}`} accessible accessibilityLabel={says} style={[{ flex: 1, backgroundColor: DOOR_REST[scheme] }, arch, inside]}>
+      {/* The resting face: the name in white, and the line of light while the system connects. */}
       <View
         onLayout={(event: LayoutChangeEvent) => onName?.(event.nativeEvent.layout.y + event.nativeEvent.layout.height)}
         style={{ alignItems: "center", gap: space[2] }}
       >
-        <SourceLogo source={source} size={logo} />
-        <Text
-          size="titleLarge"
-          face="display"
-          weight="bold"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.7}
-          style={{ color: isIn ? DOOR_INK[source] : STAGE_INK, letterSpacing: -0.3 }}
-        >
-          {name}
-        </Text>
+        {title(STAGE_INK)}
       </View>
-      {/* The tick: nothing here until the system is in. */}
-      <Animated.View style={[{ height: TICK, justifyContent: "center" }, tickStyle]}>
-        <Icons.Check size={TICK} weight="bold" color={DOOR_INK[source]} />
+      <View style={{ height: TICK, justifyContent: "center" }}>
+        <Animated.View style={[styles.light, lightStyle]} />
+      </View>
+      {/* The lit face, whole: the same logo and name in the same place, then what the system said, then the tick. */}
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: DOOR_LIT[scheme] }, arch, inside, litStyle]}>
+        <View style={{ alignItems: "center", gap: space[2], alignSelf: "stretch" }}>
+          {title(DOOR_INK[scheme][source])}
+          <View style={{ alignSelf: "stretch", marginTop: -space[1] }}>
+            {facts.map((fact) => (
+              <Text key={fact} size="bodyMedium" weight="medium" tabular numberOfLines={2} style={{ color: DOOR_FACT, textAlign: "center" }}>
+                {fact}
+              </Text>
+            ))}
+          </View>
+        </View>
+        <Animated.View style={[{ height: TICK, justifyContent: "center" }, tickStyle]}>
+          <Icons.CheckCircle size={TICK} weight="fill" color={DOOR_INK[scheme][source]} />
+        </Animated.View>
       </Animated.View>
     </View>
   );
@@ -547,10 +658,12 @@ function LanguageChip() {
 
 const styles = StyleSheet.create({
   curtain: { position: "absolute", top: 0, left: 0, right: 0, borderBottomLeftRadius: seam.edge, borderBottomRightRadius: seam.edge },
-  floor: { position: "absolute", left: 0, right: 0, bottom: 0, height: 6 },
+  face: { position: "absolute", top: 0, left: 0, right: 0, bottom: 2, borderBottomLeftRadius: seam.edge, borderBottomRightRadius: seam.edge },
+  strip: { position: "absolute", top: 0, left: 0, right: 0 },
+  light: { alignSelf: "center", width: 40, height: 4, borderRadius: 2, backgroundColor: DOOR_LIGHT },
   button: {
-    minHeight: BUTTON,
-    borderRadius: BUTTON / 2,
+    minHeight: BUTTON_HEIGHT,
+    borderRadius: BUTTON_HEIGHT / 2,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: space[4],
@@ -558,13 +671,8 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
   badge: {
-    position: "absolute",
-    width: BADGE,
-    height: BADGE,
-    borderRadius: BADGE / 2,
-    borderWidth: 2,
+    borderWidth: 3,
     borderColor: MARK_INK,
-    backgroundColor: MARK_COLOR,
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",

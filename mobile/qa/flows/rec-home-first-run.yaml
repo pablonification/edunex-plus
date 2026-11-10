@@ -1,4 +1,5 @@
-# Recording (qa-media/mobile-r2-home/): the first run, from the welcome to Beranda filling in and its summary card.
+# Recording (qa-media/mobile-r2-home/): the first run, from the welcome to Beranda filling in and the snackbar that opens
+# the summary.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - clearState
@@ -23,18 +24,9 @@ appId: io.github.pablonification.edunexplus.demo
       id: status.settling
     timeout: 180000
 - extendedWaitUntil:
-    notVisible:
-      id: status.firstRead
+    visible: "Lihat ringkasan"
     timeout: 120000
-- scrollUntilVisible:
-    element:
-      id: card.firstScan
-    direction: DOWN
-    timeout: 30000
-    centerElement: true
-- waitForAnimationToEnd
-- tapOn:
-    id: action.firstScan.open
+- tapOn: "Lihat ringkasan"
 - extendedWaitUntil:
     visible:
       id: screen.firstScan

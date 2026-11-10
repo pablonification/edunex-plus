@@ -137,13 +137,10 @@ export const mobileStrings = {
     id: "Tekan Tandai Hadir di SIX saat tombolnya muncul · kuliah sampai {time}",
     en: "Press Tandai Hadir in SIX when it shows · class until {time}",
   },
-  // The first minute (mobile/src/shell/first-minute): the one button under the desktop's headline. Once tapped it
-  // becomes the sign-in's status, in the desktop's words (welcome.waitingShort, signIn.finishing, welcome.bringingAlong).
-  // Once a system is in, the headline becomes the greeting, by first name; it leaves with the stage.
-  "mobile.first.hello.morning": { id: "Pagi, {name}", en: "Morning, {name}" },
-  "mobile.first.hello.midday": { id: "Siang, {name}", en: "Afternoon, {name}" },
-  "mobile.first.hello.afternoon": { id: "Sore, {name}", en: "Afternoon, {name}" },
-  "mobile.first.hello.evening": { id: "Malam, {name}", en: "Evening, {name}" },
+  // superapp: first minute (mobile/src/shell/first-minute). The one button under the desktop's headline; once tapped it
+  // becomes the sign-in's status, in the desktop's words (welcome.waitingShort, signIn.finishing, welcome.bringingAlong,
+  // welcome.sixLater). When the first read is in, the snackbar says the desktop's "Semua siap." once
+  // (welcome.readyTitlePlain), with the one action that opens the summary (mobile.home.scanOpen).
   "mobile.welcome.signIn": { id: "Masuk dengan akun ITB", en: "Sign in with your ITB account" },
   // home
   // The now card is one target: a tap opens its class's sheet. Said to TalkBack after the card's own words.
