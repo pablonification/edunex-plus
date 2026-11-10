@@ -51,10 +51,14 @@ export function useB() {
 /**
  * A service's mark: a rounded square in the service's own colour, its filled glyph in white. The big one (48 dp and
  * up) stands on a slightly darker lower edge; a row's small one (`size` 28 to 44) is the same colour and glyph, flat.
- * Two views and one Path: no gradient, no shadow.
+ * `grey` is the neutral tile (every service that isn't one of Beranda's seven, and "Lainnya"): a soft grey square, its
+ * glyph in grey ink, so the coloured ones stay the only colour. Two views and one Path: no gradient, no shadow.
  */
 export function ServiceCircle({ icon, tone, size = 56 }: { icon: ServiceGlyph; tone: ServiceTone; size?: number }) {
-  const { solid, edge } = useB().tone(tone);
+  const { solid, edge, tint, ink } = useB().tone(tone);
+  const neutral = tone === "grey";
+  const fill = neutral ? tint : solid;
+  const on = neutral ? ink : ON_SERVICE;
   const big = size >= 48;
   const radius = Math.round(size * 0.3);
   const glyph = big ? Math.round(size / 2) : Math.round(size * 0.58);
@@ -63,10 +67,10 @@ export function ServiceCircle({ icon, tone, size = 56 }: { icon: ServiceGlyph; t
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, borderRadius: radius, backgroundColor: big ? edge : solid, flexShrink: 0 }}
+      style={{ width: size, height: size, borderRadius: radius, backgroundColor: big ? edge : fill, flexShrink: 0 }}
     >
-      <View style={{ height: big ? size - 3 : size, borderRadius: radius, backgroundColor: solid, alignItems: "center", justifyContent: "center" }}>
-        {Named ? <Named size={glyph} color={ON_SERVICE} /> : <Fluent name={icon as FluentName} color={ON_SERVICE} size={glyph} />}
+      <View style={{ height: big ? size - 3 : size, borderRadius: radius, backgroundColor: fill, alignItems: "center", justifyContent: "center" }}>
+        {Named ? <Named size={glyph} color={on} /> : <Fluent name={icon as FluentName} color={on} size={glyph} />}
       </View>
     </View>
   );

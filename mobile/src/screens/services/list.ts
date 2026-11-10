@@ -1,7 +1,11 @@
 // Every service the phone app has, as data (mobile/qa/superapp-decisions.md): a name, one filled Fluent glyph that no
-// other service and no tab uses, a colour of its own within its group, and the screen it opens (a screen the app
-// already has, or a new view of data it already reads). Beranda's grid shows the first seven and "Lainnya"; Semua
-// layanan shows each service once, in three named groups. A service keeps its glyph and colour wherever it shows.
+// other service and no tab uses, a colour, and the screen it opens (a screen the app already has, or a new view of
+// data it already reads). Beranda's grid shows the first seven and "Lainnya"; Semua layanan shows each service once,
+// in three named groups. A service keeps its glyph and colour wherever it shows.
+//
+// Colour by one rule: Beranda's seven each have their own (none red or amber: those are states' colours), and every
+// other service is the neutral tile (`grey`) with its own glyph, so no colour ever stands for two services
+// (test/mobile/contrast.test.ts, "service colours by the rule").
 // The tabs (Jadwal, Tugas, Kuliah) aren't services: they're one tap away on every screen.
 import type { StringKey } from "../../../../src/core/strings";
 import type { Route } from "../../nav";
@@ -18,14 +22,14 @@ export interface Service {
 
 // Harian: what a Student opens in a normal week.
 const material: Service = { id: "material", label: "mobile.service.material", icon: "Materials", tone: "blue", open: { screen: "material" } };
-const exams: Service = { id: "exams", label: "mobile.service.exams", icon: "Exams", tone: "red", open: { screen: "exams" } };
-const presence: Service = { id: "presence", label: "nav.presence", icon: "Attendance", tone: "green", open: { screen: "presence" } };
-const month: Service = { id: "month", label: "mobile.service.month", icon: "Month", tone: "indigo", open: "/schedule-month" };
-const needs: Service = { id: "needs", label: "mobile.service.needs", icon: "Needs", tone: "amber", open: "/needs" };
+const exams: Service = { id: "exams", label: "mobile.service.exams", icon: "Exams", tone: "violet", open: { screen: "exams" } };
+const presence: Service = { id: "presence", label: "nav.presence", icon: "Attendance", tone: "grey", open: { screen: "presence" } };
+const month: Service = { id: "month", label: "mobile.service.month", icon: "Month", tone: "grey", open: "/schedule-month" };
+const needs: Service = { id: "needs", label: "mobile.service.needs", icon: "Needs", tone: "grey", open: "/needs" };
 
 // Akademik: the office.
-const grades: Service = { id: "grades", label: "nav.grades", icon: "Grades", tone: "amber", open: { screen: "grades" } };
-const krs: Service = { id: "krs", label: "plan.tab.krs", icon: "Krs", tone: "indigo", open: { screen: "plan", tab: "krs" } };
+const grades: Service = { id: "grades", label: "nav.grades", icon: "Grades", tone: "lime", open: { screen: "grades" } };
+const krs: Service = { id: "krs", label: "plan.tab.krs", icon: "Krs", tone: "magenta", open: { screen: "plan", tab: "krs" } };
 const bills: Service = { id: "bills", label: "plan.tab.bills", icon: "Bills", tone: "green", open: { screen: "plan", tab: "bills" } };
 const calendar: Service = {
   id: "calendar",
@@ -34,12 +38,13 @@ const calendar: Service = {
   tone: "teal",
   open: { screen: "plan", tab: "deadlines" },
 };
-const planner: Service = { id: "planner", label: "plan.tab.planner", icon: "StudyPlan", tone: "magenta", open: { screen: "plan", tab: "planner" } };
-const curriculum: Service = { id: "curriculum", label: "plan.tab.curriculum", icon: "Curriculum", tone: "blue", open: { screen: "plan", tab: "curriculum" } };
+const planner: Service = { id: "planner", label: "plan.tab.planner", icon: "StudyPlan", tone: "indigo", open: { screen: "plan", tab: "planner" } };
+const curriculum: Service = { id: "curriculum", label: "plan.tab.curriculum", icon: "Curriculum", tone: "grey", open: { screen: "plan", tab: "curriculum" } };
 
 /**
- * Beranda's grid, in order: Materi, Ujian, Nilai, Kalender on the top row (a normal week), KRS, UKT, Rencana on the
- * bottom (the office); "Lainnya" (`MORE`) follows them. No two the same colour.
+ * Beranda's grid, in order: Materi (blue), Ujian (violet), Nilai (lime), Kalender (teal) on the top row (a normal
+ * week), KRS (magenta), UKT (green), Rencana (indigo) on the bottom (the office); "Lainnya" (`MORE`, neutral) follows
+ * them. No two the same colour, none red or amber, and no neighbours of one lightness.
  */
 export const HOME_SERVICES: readonly Service[] = [material, exams, grades, calendar, krs, bills, planner];
 
@@ -53,10 +58,10 @@ export const SERVICE_GROUPS: readonly { id: string; title: StringKey; services: 
     id: "app",
     title: "mobile.services.group.app",
     services: [
-      { id: "alerts", label: "alerts.title", icon: "Notifications", tone: "blue", open: "/alerts" },
+      { id: "alerts", label: "alerts.title", icon: "Notifications", tone: "grey", open: "/alerts" },
       { id: "settings", label: "nav.settings", icon: "Settings", tone: "grey", open: "/settings" },
-      { id: "report", label: "mobile.service.report", icon: "Report", tone: "magenta", open: "/report" },
-      { id: "scan", label: "mobile.service.scan", icon: "FirstSummary", tone: "teal", open: "/first-scan" },
+      { id: "report", label: "mobile.service.report", icon: "Report", tone: "grey", open: "/report" },
+      { id: "scan", label: "mobile.service.scan", icon: "FirstSummary", tone: "grey", open: "/first-scan" },
     ],
   },
 ];

@@ -210,8 +210,13 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Sebulan | `ServiceIcons.Month` | `calendar-date` (a page with its date; not the Jadwal tab's grid of days) | 24, 28 (32: the 28) |
 | Laporkan masalah | `ServiceIcons.Report` | `person-feedback` | 24, 28, 32 |
 
-Colours within a group never repeat and never sit two look-alikes for a colour-blind eye side by side: Kurikulum is
-blue (it was lime beside Nilai's amber). A service's glyph and colour live in `src/screens/services/list.ts` only.
+**Service colours, one rule.** Colour belongs to Beranda's seven, one each: Materi blue, Ujian violet, Nilai lime,
+Kalender teal, KRS magenta, UKT green, Rencana indigo (`SERVICE_TONES`, `src/ui/palette.ts`). None is red or amber:
+those say a state (late, at risk), never a place to go. Each sits on its own step of lightness as well as its own
+hue, so a colour-blind eye tells them apart too. Every other service, and "Lainnya", is the **neutral tile** (`grey`):
+a soft grey square with its own glyph in grey ink, the same in both themes, on Semua layanan, in Profil's rows and
+in search. So no colour ever stands for two services. A service's glyph and colour live in
+`src/screens/services/list.ts` only; `test/mobile/contrast.test.ts` ("service colours by the rule") holds the rule.
 
 Glyphs the screens asked for, in `Icons` (regular; `weight="fill"` for the filled form):
 
