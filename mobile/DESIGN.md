@@ -36,7 +36,7 @@ notice. The decisions: `mobile/qa/superapp-decisions.md`.
 | Part | What | Where |
 | --- | --- | --- |
 | Surfaces | `theme.v4`: `page` and `card` are the same colour (#ffffff / #161618): nothing may rely on a card standing off the page by its fill. What must stand off takes `chip` or a tint (a course's, a state's). No shadow anywhere. `chip` (a neutral pill's, a neutral icon tile's and a disabled button's fill on a card: #f1f3f7 / #2a2f39, a step off the card in dark, never the page's black), `line`, `fg` / `fg2` / `muted`, the header's `head` (#1f63e0 / dark #1a3158, a deep desaturated blue; white on it 12.9:1) with `onHead`, the one filled button's `brand` / `onBrand` (#1f63e0 + white; dark #a9c4ff + #0a2a66: white on #4d86ff fails), tonal `okBg/okFg`, `redBg/redFg`, `ambBg/ambFg`, `live` (the now dot) | `src/ui/theme.ts` |
-| Course tiles | `theme.courseTile(tone)` → `{ ink, tint }` for each of the ten course colours (light and dark): ink ≥ 4.6:1 on its tint and on a card. `CourseTile` (44 dp, radius 32%, the course's glyph two-tone in its ink on its tint), `CourseGlyph`; the glyph picked from the course's name (`courseGlyph`) | `src/ui/tile.tsx` |
+| Course tiles | `theme.courseTile(tone)` → `{ ink, tint }` for each of the ten course colours (light and dark): ink ≥ 4.6:1 on its tint and on a card. `CourseTile` (44 dp: the course's glyph, filled and solid in its ink, nothing behind it), `CourseGlyph`; the glyph is Fluent's, one per subject family, picked from the course's name (`courseGlyph`, `CourseIcons`), the same wherever the course appears | `src/ui/tile.tsx` |
 | Type | Headings and numbers in Plus Jakarta Sans (`<Text face="display" weight="bold">`, also `semibold`, `extrabold`), bundled as Android font assets (`plugins/fonts.js`, OFL in the licences); everything else Roboto on the M3 scale | `src/ui/text.tsx`, `assets/fonts` |
 | Press | `PressScale`: gives to 96.5% and springs back (expressive), on the UI thread; one per card or row | `src/ui/press.tsx` |
 | Big button | `BigButton` (52 dp pill). One filled action per screen: `filled` on the page (the brand's blue, white words; dark: pale blue, navy words) or `course` on a block of a course's colour (white, the words in `ink`, the course's colour). `done` (tonal green, after it), `outline` (a second way; `ink` white for a white outline on a course's block) | `src/ui/big-button.tsx` |
@@ -217,6 +217,36 @@ hue, so a colour-blind eye tells them apart too. Every other service, and "Lainn
 a soft grey square with its own glyph in grey ink, the same in both themes, on Semua layanan, in Profil's rows and
 in search. So no colour ever stands for two services. A service's glyph and colour live in
 `src/screens/services/list.ts` only; `test/mobile/contrast.test.ts` ("service colours by the rule") holds the rule.
+
+- **Courses** (`CourseIcons`, picked by `courseGlyph` in `ui/tile.tsx` from words in the course's name): always the
+  filled form, solid in the course's colour, no outline pair and no container. One per subject family; none is a
+  tab's or a service's glyph. Nothing in `src/ui` draws another icon family (`test/mobile/icons.test.ts`).
+
+| Subject family | Export | Fluent icon |
+| --- | --- | --- |
+| Tugas akhir, skripsi, proposal | `CourseIcons.Thesis` | `certificate` |
+| Transportasi, infrastruktur | `CourseIcons.Transport` | `vehicle-subway` |
+| Komunikasi, pemasaran, media | `CourseIcons.Communication` | `megaphone-loud` |
+| Ekonomi, keuangan, bisnis | `CourseIcons.Economy` | `data-trending` |
+| Akuntansi, perbankan | `CourseIcons.Accounting` | `savings` |
+| Perencanaan, kota, wilayah | `CourseIcons.Planning` | `map` |
+| Arsitektur, bangunan | `CourseIcons.Architecture` | `building-multiple` |
+| Sipil, struktur, jembatan | `CourseIcons.Civil` | `wrench-screwdriver` |
+| Pemrograman, informatika, data | `CourseIcons.Code` | `braces` |
+| Elektro, listrik, daya | `CourseIcons.Electric` | `plug-connected` |
+| Komputer, sistem digital | `CourseIcons.Computer` | `developer-board` |
+| Kimia, biologi, lab | `CourseIcons.Lab` | `beaker` |
+| Fisika | `CourseIcons.Physics` | `molecule` |
+| Matematika, statistik | `CourseIcons.Math` | `math-formula` |
+| Lingkungan, kehutanan | `CourseIcons.Environment` | `leaf-two` |
+| Kesehatan, farmasi | `CourseIcons.Health` | `heart-pulse` |
+| Hukum, etika | `CourseIcons.Law` | `scales` |
+| Desain, seni rupa | `CourseIcons.Design` | `paint-brush` |
+| Gambar teknik, metode | `CourseIcons.Drawing` | `ruler` |
+| Manajemen, kewirausahaan | `CourseIcons.Management` | `briefcase` |
+| Sosial, masyarakat, psikologi | `CourseIcons.Society` | `people-community` |
+| Bahasa, global | `CourseIcons.Language` | `earth` |
+| Any other course | `CourseIcons.Course` | `book-open` |
 
 Glyphs the screens asked for, in `Icons` (regular; `weight="fill"` for the filled form):
 

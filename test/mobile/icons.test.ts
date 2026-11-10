@@ -14,7 +14,7 @@ const source = fs.readFileSync(path.join(UI, "icons.tsx"), "utf8");
 const imports = new Map([...source.matchAll(/^import (\w+) from "\.\/fluent\/([\w-]+)";$/gm)].map((m) => [m[1], m[2]]));
 
 /** Every entry of one exported set: its name and the drawings it names. */
-function entries(set: "Icons" | "ServiceIcons"): [name: string, files: string[]][] {
+function entries(set: "Icons" | "ServiceIcons" | "CourseIcons"): [name: string, files: string[]][] {
   const start = source.indexOf(`export const ${set} = {`);
   const block = source.slice(start, source.indexOf("\n};", start));
   return [...block.matchAll(/^ {2}(\w+): icon\((.*)\),?$/gm)].map((m) => [
@@ -31,7 +31,7 @@ async function drawn(file: string): Promise<Drawn> {
 }
 
 describe("the phone's icons", () => {
-  for (const set of ["Icons", "ServiceIcons"] as const) {
+  for (const set of ["Icons", "ServiceIcons", "CourseIcons"] as const) {
     it(`every one of ${set} has Fluent's path data, regular and filled`, async () => {
       const all = entries(set);
       expect(all.length).toBeGreaterThan(set === "Icons" ? 70 : 18);
@@ -49,6 +49,13 @@ describe("the phone's icons", () => {
       }
     });
   }
+
+  it("gives each subject family a glyph no other family has, and nothing in the kit draws another icon family", () => {
+    const glyphs = entries("CourseIcons").map(([, files]) => files.join());
+    expect(new Set(glyphs).size).toBe(glyphs.length);
+    for (const file of fs.readdirSync(UI).filter((f) => /\.tsx?$/.test(f)))
+      expect(fs.readFileSync(path.join(UI, file), "utf8"), file).not.toMatch(/from "phosphor-react-native/);
+  });
 
   it("carries only the icons it names", () => {
     const files = fs.readdirSync(path.join(UI, "fluent")).map((f) => f.replace(/\.ts$/, ""));
