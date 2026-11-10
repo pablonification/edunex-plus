@@ -3,6 +3,36 @@
 The memory of this build. Read it first when resuming; update it after every step.
 Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, dev build).
 
+## The super-app pass (night of 10–11 Nov 2026)
+
+- **2026-11-11: the phone app takes the layout Indonesian students know, and gets its release checks.** Arqila's verdict on
+  round 2's app was "decent, but it still looks AI-made, especially the icons", and that it didn't follow Gojek, Grab and
+  GoPay. Built overnight in the demo and judged blind, round by round, by a designer, a student and a prosecutor.
+  - **What the Student sees now.** Five tabs, ending in Profil: Beranda, Jadwal, Tugas, Kuliah, Profil (Akademik is Profil's
+    rows and the service tiles; no avatar in any top bar). Beranda opens on a search bar, the class on now as the one block of
+    colour, one strip of three things to tap (what's due, absences, days to the exam) and eight service tiles, each its own
+    colour with a white glyph, the last "Lainnya", which opens Semua layanan (every service in three named groups). Materi
+    and Ujian are new views of data the app already read. One white page and flat lists in both themes; a course is its own
+    glyph in its colour; a course's absences are dots and one short label. One icon family, Fluent's, filled where the Student
+    is. The first minute is "two doors, one room" (`src/shell/first-minute/`). Eight Android widgets, two iPhone widgets and a
+    Live Activity from one model. Touch and change answer in the frame they land (`src/ui/moves.tsx`).
+  - **Where the numbers and verdicts live.** `mobile/qa/superapp-board.md`: `main`'s baseline, every council with its scores
+    and what kept it from the top, the journeys, the widgets, the first minute's rounds. The binding choices:
+    `mobile/qa/superapp-decisions.md`. Motion: `mobile/qa/superapp-motion.md`. iPhone widgets: `mobile/qa/superapp-ios-widgets.md`.
+    The rules the screens follow: `mobile/DESIGN.md`, which now says what the app is.
+  - **The release checks that code can tick** (no phone needed): `node mobile/qa/touch-read.mjs <dump>` (taps under 48 dp,
+    taps TalkBack can't name), `node mobile/qa/layout-read.mjs <dump>` (Beranda's four blocks, 14 taps, 50 words),
+    `node mobile/qa/contrast-read.mjs` (914 pairs, both themes, 0 under; now with the class block and the tab bar's ink),
+    `test/mobile/no-english-left.test.ts` (every string in both languages, none left in English; the colour Plum is now
+    "Prem" in Indonesian). Each has a test of its own.
+  - **To check by hand.** The iPhone side: `mobile/IOS.md`, "What to check on an iPhone after the super-app pass".
+  - **Not done.** Nobody has run iOS since the layout changed: the tabs, Beranda's safe areas, the first minute, the
+    widgets and the Live Activity are checked by types and tests only. No screen reached 9 in every category for every
+    judge (see the board). `phosphor-react-native` is still in `package.json` though no screen draws it. The final numbers
+    on the release build are not in yet.
+    - TODO(conductor): cold start (median of 7), tab switch p50/p90/max and scroll janky frames for Tugas, Kuliah and Jadwal on the Galaxy A52, taken on the release build; and the touch-read, layout-read and contrast-read results over every screen's dump.
+    - TODO(conductor): the last council's verdict and scores, and the commit they were taken at.
+
 ## Round 2 (started 2026-10-31)
 
 Round 1 passed its checks but Arqila found it not releasable: the desktop squeezed onto a phone, slow to
