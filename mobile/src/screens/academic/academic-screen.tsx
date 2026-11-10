@@ -3,7 +3,7 @@
 //    programme, the IPK big, the SKS passed as a bar of those needed ("125 dari 144"). The whole card opens Nilai.
 //    While SIX's record is on its way the figures stand in their shape; without SIX the card says so once, with the
 //    way in, and the rows that are SIX's are gone (never six broken rows).
-// 2. "Akademik": Nilai and Rencana studi's parts as rows on the page, each with its service's mark (read from the
+// 2. "Akademikmu" (the Student's own record, so the tab's name is true): Nilai and Rencana studi's parts as rows on the page, each with its service's mark (read from the
 //    service list by id, so it's the same on Beranda and Semua layanan) and one line that says its state.
 // 3. "Akun": Edunex and SIX with their state and the way to sign back in, Notifikasi, Pengaturan, Laporkan masalah.
 //    Signing out lives in Pengaturan, never beside these.
@@ -38,7 +38,8 @@ import { shownIndex } from "../grades/transcript";
 import { HOME_SERVICES, SERVICE_GROUPS, type Service } from "../services/list";
 
 type MetaTone = "muted" | "red" | "amber" | "ok";
-type Meta = { text: string; tone?: MetaTone } | "pending" | null;
+/** A row's one line. `lead` is a plain fact said before the state ("14 SKS" before "1 bentrok"): only the state takes the tone. */
+type Meta = { text: string; tone?: MetaTone; lead?: string } | "pending" | null;
 
 /** Every service by its id: a row's mark is the one the service has on Beranda and Semua layanan. */
 const SERVICE: ReadonlyMap<string, Service> = new Map([...HOME_SERVICES, ...SERVICE_GROUPS.flatMap((group) => group.services)].map((s) => [s.id, s]));
@@ -89,8 +90,9 @@ export function AcademicContent() {
       </Rise>
       {/* The rows under the card: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
       <Part at={1}>
-        <Rise screen="academic" index={1} style={{ marginTop: space[6] }}>
-          <BHeading>{t("mobile.services.group.academic")}</BHeading>
+        {/* A tighter rhythm than the other tabs': the sixth row (Kalender akademik) stands whole over the tab bar at font 1.1. */}
+        <Rise screen="academic" index={1} style={{ marginTop: space[4] }}>
+          <BHeading style={{ marginBottom: space[2] }}>{t("mobile.profile.record")}</BHeading>
           <View testID="section.academic.screens">
             {/* Without SIX the card says so once: only the calendar (ITB's own) has something to show. */}
             {six !== "none" && (
@@ -116,13 +118,16 @@ export function AcademicContent() {
 
 // ------------------------------------------------------------ the card
 
-/** The card's colours: the brand's blue with white on it; in dark its deep tint, so the block stays calm. */
+/**
+ * The card's colours: the brand's blue with its own ink on it, in both themes. In dark that's the theme's bright blue
+ * with deep navy words, so the card stays the tab's one strong block, as strong as Beranda's and Ujian's (round 1's
+ * council: it "turns navy while Beranda's and Ujian's hero cards stay bright").
+ */
 function useCardInk() {
   const theme = useTheme();
   const v = theme.v4;
-  return theme.scheme === "dark"
-    ? { bg: v.brandTint, ink: v.fg, ink2: v.brandInk, chip: v.brandInk, onChip: v.brandTint, track: "rgba(255,255,255,0.16)", fill: v.brandInk }
-    : { bg: v.brand, ink: v.onBrand, ink2: v.onBrand, chip: v.onBrand, onChip: v.brand, track: "rgba(255,255,255,0.3)", fill: v.onBrand };
+  const track = theme.scheme === "dark" ? "rgba(10,42,102,0.22)" : "rgba(255,255,255,0.3)";
+  return { bg: v.brand, ink: v.onBrand, ink2: v.onBrand, chip: v.onBrand, onChip: v.brand, track, fill: v.onBrand };
 }
 type CardInk = ReturnType<typeof useCardInk>;
 
@@ -137,7 +142,7 @@ const StudentCard = memo(function StudentCard({ record, six }: { record: Student
   const name = account?.name ?? student?.name;
   const shown = name ? displayName(name) : null;
   const facts = factsLabel(account?.nim ?? student?.nim, student?.program);
-  const card = { borderRadius: 24, backgroundColor: c.bg, padding: space[5], gap: space[5], overflow: "hidden" } as const;
+  const card = { borderRadius: 24, backgroundColor: c.bg, paddingHorizontal: space[5], paddingVertical: space[4], gap: space[4], overflow: "hidden" } as const;
   const who = (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
       <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.chip, alignItems: "center", justifyContent: "center" }}>
@@ -339,12 +344,27 @@ function useMetaColor(tone: MetaTone | undefined): string | undefined {
 /** A screen's row on the page: its service's mark, its name, the one line that says its state (or that line's shape while SIX reads). */
 function ScreenRow({ title, meta, route, last = false, testID }: { title: string; meta: Meta; route: PlanTab | "grades"; last?: boolean; testID: string }) {
   const nav = useNav();
+  const b = useB();
   const color = useMetaColor(meta && meta !== "pending" ? meta.tone : undefined);
   return (
     <BRow
       leading={<Mark id={SERVICE_OF[route]} />}
       title={title}
-      meta={meta === "pending" ? <Skeleton width={128} height={12} style={{ marginTop: space[1] }} /> : (meta?.text ?? undefined)}
+      meta={
+        meta === "pending" ? (
+          <Skeleton width={128} height={12} style={{ marginTop: space[1] }} />
+        ) : meta?.lead ? (
+          // A plain fact, then the state: only the state is coloured ("14 SKS" quiet, "1 bentrok" amber).
+          <Text size="bodyMedium" numberOfLines={2} style={{ color: b.muted }}>
+            {`${meta.lead} · `}
+            <Text size="bodyMedium" weight="medium" style={{ color: color ?? b.muted }}>
+              {meta.text}
+            </Text>
+          </Text>
+        ) : (
+          (meta?.text ?? undefined)
+        )
+      }
       metaColor={color}
       trailing={<Chevron />}
       last={last}
@@ -443,8 +463,9 @@ function KrsRow() {
       now,
     ).filter((o) => o.upcoming).length;
     const sks = t("krs.sks", { sks: plan.sks ?? "-" });
-    if (clashes) return { text: factsLabel(sks, t("mobile.academic.pill.clash", { count: clashes })), tone: "amber" };
-    return { text: factsLabel(sks, t(`krs.stage.${stage}`)), tone: stage === "send" || stage === "ukt" ? "amber" : stage === "done" ? "ok" : "muted" };
+    // The SKS are a plain fact: only the clash, or a stage that waits on the Student, is a warning.
+    if (clashes) return { lead: sks, text: t("mobile.academic.pill.clash", { count: clashes }), tone: "amber" };
+    return { lead: sks, text: t(`krs.stage.${stage}`), tone: stage === "send" || stage === "ukt" ? "amber" : stage === "done" ? "ok" : "muted" };
   }, [plan, schedule, now, t]);
   return <PartRow part="krs" title={t("plan.tab.krs")} meta={plan ? meta : missing} />;
 }
@@ -557,7 +578,8 @@ function SourceRow({ source }: { source: Extract<SourceId, "edunex" | "six"> }) 
           ? { text: t("status.connecting"), tone: "muted" }
           : { text: t(`status.${status.state}`, { source: name }), tone: "amber" };
   const color = useMetaColor(meta.tone);
-  const Glyph = source === "six" ? Icons.GraduationCap : Icons.BookOpen;
+  // Not the Kuliah tab's cap (round 1's council: one glyph, one meaning): SIX is the web system, Edunex the course book.
+  const Glyph = source === "six" ? Icons.Globe : Icons.BookOpen;
   return (
     <BRow
       leading={
