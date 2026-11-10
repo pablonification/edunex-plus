@@ -10,13 +10,14 @@
 //      with it. A door's foot is empty until its system starts: then a ring is there, already turning, a bright half
 //      on a dim track (the one thing that moves). Once the system is in, the door lights and its name, never absent,
 //      turns from white to navy with it; the ring becomes a tick, the same size and colour on both doors; and what the
-//      system just said comes under the name (the name and NIM under Edunex, the programme under SIX once SIX has
+//      system just said comes under the name (the NIM under Edunex, the programme under SIX once SIX has
 //      said it; no word that only repeats the tick). A haptic each.
-//   3. The first system in with the name: the headline becomes the greeting in the same spot ("Pagi, Dimas.": Beranda
-//      has none, so it's said once), so it's read while the other system connects. Meanwhile the doors close onto
-//      the mark: they have met by the time the second tick lands, the mark answers with one beat, and the stage lifts
-//      that instant. There's no hold, and the lower half is never empty.
-//   4. The hand-over: the whole stage (doors, mark, greeting) lifts away like a curtain. Under it the real Beranda
+//   3. The first system in with the name: the headline goes (fast) and then the greeting comes into the same spot
+//      ("Pagi, Dimas.": Beranda has none, so it's said once), so it's read while the other system connects. Each door
+//      steps to the mark as its own system comes in: the doors meet as the second tick lands, the mark answers with
+//      one beat, and the stage lifts that instant. There's no hold, and the lower half is never empty.
+//   4. The hand-over: the whole stage lifts away like a curtain. The doors and the mark fade where they are as it
+//      starts, gone before they reach the status bar; the stage and the greeting lift on. Under it the real Beranda
 //      was there all along, filling as the first read brings it. A strip of the stage's blue holds the status bar
 //      until the curtain's edge has gone under it, then fades where it is: nothing slides across the clock. The scene
 //      leaves nothing on Beranda and knows nothing of its layout (./seam.ts).
@@ -25,7 +26,8 @@
 // thread (Reanimated), on transforms and opacity only, each a timing that ends; the whole hand-over is set going in
 // one go, so the first read's JavaScript can't hold a step of it up. Every colour is opaque (./colors.ts) and no shape
 // is clipped, so a frame is a few flat fills; everything on the sheet is still by the time it lifts, so it lifts as one
-// picture (a hardware texture). With Remove animations the same steps cross-fade and nothing moves.
+// picture (a hardware texture), but for the doors' own picture fading on it as it starts. With Remove animations the
+// same steps cross-fade and nothing moves.
 // Loaded only when nobody is signed in (./gate.tsx).
 import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
@@ -37,6 +39,7 @@ import Animated, {
   Extrapolation,
   FadeIn,
   FadeInDown,
+  FadeOut,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
@@ -49,7 +52,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, RadialGradient, Stop } from "react-native-svg";
 import { errorKey } from "../../../../src/app/bridge";
 import { useNow, useT } from "../../../../src/app/i18n";
-import { displayName, firstName } from "../../../../src/app/names";
+import { firstName } from "../../../../src/app/names";
 import { useBridge, useDataset, useSettings, useSignInStep, useSourceState } from "../../../../src/app/store";
 import { SourceLogo } from "../../ui/brand";
 import { haptic } from "../../ui/haptics";
@@ -70,6 +73,7 @@ import {
   DOOR_TICK,
   GLOW_ALPHA,
   HEM,
+  LOGO_EDGE,
   MARK_COLOR,
   MARK_EDGE,
   MARK_INK,
@@ -88,7 +92,7 @@ type DoorState = "rest" | "working" | "in";
 /** The doors on the stage; the doors closing onto the mark; the stage lifting off Beranda. */
 type Phase = "doors" | "joining" | "lifting";
 
-/** The gap between the doors, closed as they join. */
+/** The gap between the doors: each door steps half of it, to the mark, as its system comes in. */
 const GAP = 20;
 const SIDE = space[6];
 /** The mark between the doors: as large as the room under the doors' words lets it be, between these. */
@@ -106,16 +110,23 @@ const FACT_LINE = 20;
 const FACT_LINES = 2;
 /** A door lighting, start to end: it lights, its name and its ring turn into navy and a tick midway, its facts come. */
 const LIT_MS = 420;
+/** The status line's last words leaving once both systems are in: gone as the last ring has become its tick (midway
+ *  through its door's lighting). */
+const STATUS_OUT_MS = LIT_MS / 2;
 /** The last door's lighting, to the instant the stage moves. */
 const LEAD_MS = LIT_MS;
-/** The headline turning into the greeting, in place. */
-const HELLO_MS = 260;
+/** The headline turning into the greeting, in place: the headline goes first and fast, and only then the greeting
+ *  comes in, so two lines are never readable at once. */
+const HELLO_OUT_MS = 120;
+const HELLO_IN_MS = 260;
+const HELLO_MS = HELLO_OUT_MS + HELLO_IN_MS;
+/** Where in that turn the headline is gone and the greeting starts. */
+const HELLO_TURN = HELLO_OUT_MS / HELLO_MS;
 /** One in and the other still trying: this long for it to come along; then the hand-over goes without it. */
 const OTHER_WAIT_MS = 2_000;
 /** One in and the other stopped: this long to read why, before the hand-over (the line leaves with the stage). */
 const OTHER_STOPPED_MS = 1_200;
-/** The doors closing onto the mark, while the other system connects (or, with nothing to wait for, while the last
- *  door lights): always over before the stage lifts. */
+/** A door stepping to the mark as its system comes in: over before its lighting is, so before the stage lifts. */
 const JOIN_MS = 380;
 /** The mark's one beat as the doors have met: up, then back, done as the stage starts to lift. */
 const BEAT_UP_MS = 120;
@@ -179,7 +190,6 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   // the doors closing, the mark's beat, the stage lifting off Beranda; and, where the phone asks for less motion, the
   // scene fading off it.
   const hello = useSharedValue(0);
-  const join = useSharedValue(0);
   const beat = useSharedValue(0);
   const lift = useSharedValue(0);
   const out = useSharedValue(0);
@@ -221,9 +231,9 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   const handOver = useCallback(() => {
     setPhase("joining");
     // The whole hand-over is set going here, in one go, on the UI thread: the first read's JavaScript can't hold a
-    // step of it up. The last door lights; the instant it has (LEAD_MS), the stage lifts. The greeting is up already
-    // and the doors have met, or do both now. The timers after it only tell the screen reader, the touch layer, the
-    // phone's bars and the haptics where it is.
+    // step of it up. The last door lights (and steps to the mark, by itself); the instant it has (LEAD_MS), the
+    // stage lifts. The greeting is up already, or comes now. The timers after it only tell the screen reader, the
+    // touch layer, the phone's bars and the haptics where it is.
     if (still) {
       // The same beats as fades: the greeting, then the stage cross-fades to Beranda. Nothing moves, nothing cuts.
       const fade = LEAD_MS + STILL_HOLD_MS;
@@ -237,8 +247,6 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
       return;
     }
     lift.value = withDelay(LEAD_MS, withTiming(1, { duration: LIFT_MS, easing: LIFTING }));
-    // The doors that haven't met yet (the other system stopped, or both came at once) meet while the last one lights.
-    if (!meeting.current) join.value = withTiming(1, { duration: JOIN_MS, easing: EMPHASIZED });
     // The mark's beat, over as the stage starts to move: the sheet lifts with nothing on it still changing.
     beat.value = withDelay(
       LEAD_MS - BEAT_UP_MS - BEAT_DOWN_MS,
@@ -249,7 +257,7 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
     later(() => setPhase("lifting"), LEAD_MS);
     later(() => setUncovered(true), LEAD_MS + LIFT_MS * CLEARS_TOP);
     later(() => done.current(), LEAD_MS + LIFT_MS + 40);
-  }, [still, join, beat, lift, out, later]);
+  }, [still, beat, lift, out, later]);
 
   // The other system, with one in: still on its way (the same sign-in is trying it), or stopped (it asked for the
   // Student, or failed): then Beranda has its own way to connect it.
@@ -267,7 +275,7 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   useEffect(() => {
     if (greeted === wasGreeted.current) return;
     wasGreeted.current = greeted;
-    hello.value = withTiming(greeted ? 1 : 0, { duration: HELLO_MS });
+    hello.value = withTiming(greeted ? 1 : 0, { duration: HELLO_MS, easing: Easing.linear });
   }, [greeted, hello]);
 
   // The stage's one light grows with each system in: tight around the mark at rest, out to the first lit door, then
@@ -280,16 +288,11 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
     light.value = withTiming(systemsIn, { duration: LIT_MS, easing: EMPHASIZED });
   }, [systemsIn, still, light]);
 
-  // The doors close onto the mark while the other system connects (its ring turning as its door comes over), so
-  // they've met when its tick lands: two become one, in time that was passing anyway. A system that had stopped by then
-  // keeps its door where it is until the hand-over. With less motion asked for, the doors stay where they are.
-  const meet = !still && anyIn && (bothIn || !otherStopped);
-  const meeting = useRef(false);
-  useEffect(() => {
-    if (meet === meeting.current) return;
-    meeting.current = meet;
-    if (meet) join.value = withTiming(1, { duration: JOIN_MS, easing: EMPHASIZED });
-  }, [meet, join]);
+  // Each door steps to the mark as its own system comes in (useStepIn, below): Edunex's first, SIX's with the mark's
+  // beat when SIX connects, so the doors have met only once both are in. A system that never came keeps its door
+  // where it is. With less motion asked for, the doors stay where they are.
+  const edunexStepIn = useStepIn(edunexIn, still);
+  const sixStepIn = useStepIn(sixIn, still);
   // Both in: the hand-over starts at once (its first 0.4 s is the second door lighting). One in: once the other has
   // come along, or after a moment to read why it stopped, or soon without it (it joins on Beranda if it's only slow).
   useEffect(() => {
@@ -303,15 +306,14 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   useEffect(() => {
     if (phase === "doors" || anyIn) return;
     clearTimers();
-    for (const value of [hello, join, beat, lift, out]) {
+    for (const value of [hello, beat, lift, out]) {
       cancelAnimation(value);
       value.value = 0;
     }
-    meeting.current = false;
     wasGreeted.current = false;
     setUncovered(false);
     setPhase("doors");
-  }, [phase, anyIn, clearTimers, hello, join, beat, lift, out]);
+  }, [phase, anyIn, clearTimers, hello, beat, lift, out]);
 
   const signIn = async (source: Source) => {
     setFailed(null);
@@ -354,12 +356,23 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
     return { transform: [{ translateY: top > 0 && edge < top ? -curtain - top : -lift.value * curtain }] };
   });
   const stripStyle = useAnimatedStyle(() => ({ opacity: top > 0 ? Math.min(1, Math.max(0, (curtain * (1 - lift.value)) / top)) : 0 }));
-  const headlineStyle = useAnimatedStyle(() => ({ opacity: 1 - hello.value }));
-  // The greeting comes up into the headline's place (a fade alone where the phone asks for less motion).
+  // The headline is gone (fast) before the greeting starts in: never two lines readable at once.
+  const headlineStyle = useAnimatedStyle(() => ({ opacity: interpolate(hello.value, [0, HELLO_TURN], [1, 0], Extrapolation.CLAMP) }));
+  // Then the greeting comes up into the headline's place, slowing as it lands (a fade alone where the phone asks for
+  // less motion).
   const rise = still ? 0 : motion.nudge;
-  const helloStyle = useAnimatedStyle(() => ({ opacity: hello.value, transform: [{ translateY: (1 - hello.value) * rise }] }));
-  const leftDoor = useAnimatedStyle(() => ({ transform: [{ translateX: (join.value * GAP) / 2 }] }));
-  const rightDoor = useAnimatedStyle(() => ({ transform: [{ translateX: (-join.value * GAP) / 2 }] }));
+  const helloStyle = useAnimatedStyle(() => {
+    const left = 1 - interpolate(hello.value, [HELLO_TURN, 1], [0, 1], Extrapolation.CLAMP);
+    const landed = 1 - left * left;
+    return { opacity: landed, transform: [{ translateY: (1 - landed) * rise }] };
+  });
+  const leftDoor = useAnimatedStyle(() => ({ transform: [{ translateX: (edunexStepIn.value * GAP) / 2 }] }));
+  const rightDoor = useAnimatedStyle(() => ({ transform: [{ translateX: (-sixStepIn.value * GAP) / 2 }] }));
+  // The doors and the mark are gone, in place, before their tops reach the strip that holds the status bar (about the
+  // first third of the lift's time, as it starts gently): nothing is ever cut flat under the clock. What lifts on
+  // from there is the stage and the greeting.
+  const doorsGone = Math.max(0.05, (doorsTop - top) / curtain);
+  const doorsStyle = useAnimatedStyle(() => ({ opacity: interpolate(lift.value, [0, doorsGone], [1, 0], Extrapolation.CLAMP) }));
   const glowStyle = useAnimatedStyle(() => ({ transform: [{ scale: still ? 1 : interpolate(light.value, [0, 1, 2], GLOW_GROWS) }] }));
   const markStyle = useAnimatedStyle(() => ({ transform: [{ scale: 1 + beat.value * 0.14 }] }));
 
@@ -374,11 +387,9 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   const stepOf = (source: Source) => (source === "edunex" ? edunexStep : sixStep);
   const doorState = (source: Source): DoorState =>
     (source === "edunex" ? edunexIn : sixIn) ? "in" : stepOf(source) !== null || busy === source ? "working" : "rest";
-  // What each system just said, for its door, two lines' room each: Edunex the name and NIM; SIX the programme (the
-  // name is said already). Nothing until it has said it: the tick alone says it's connected.
-  const doorInner = doorWidth - space[2] * 2;
-  const learned = (source: Source): [string?, string?] =>
-    source === "edunex" ? (account ? [doorName(displayName(account.name), doorInner), account.nim] : []) : [student?.program ?? undefined];
+  // What each system just said, for its door, one thing each in two lines' room: Edunex the NIM (the name is in the
+  // greeting: said once); SIX the programme. Nothing until it has said it: the tick alone says it's connected.
+  const learned = (source: Source): [string?, string?] => (source === "edunex" ? [undefined, account?.nim] : [student?.program ?? undefined]);
 
   // What the button became: where the sign-in is, in words. Nothing once both are in: the doors say that.
   const sourceName = (source: Source) => t(`source.${source}`);
@@ -425,10 +436,11 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
       importantForAccessibility={lifting ? "no-hide-descendants" : "auto"}
       style={[StyleSheet.absoluteFill, { zIndex: 60 }, rootStyle]}
     >
-      {/* White icons on the stage, in both themes. The status bar's turn once the stage's edge is under its strip;
-          the three buttons' as the lift starts, when its lower edge leaves them. */}
+      {/* White icons on the stage, in both themes ("light" names the icons, for both bars: ../../../app/_layout.tsx).
+          The status bar's turn once the stage's edge is under its strip; the three buttons' as the lift starts, when
+          its lower edge leaves them. An iPhone has no such buttons: there the line is nothing. */}
       <StatusBar style={uncovered ? seam.statusBar(scheme) : "light"} />
-      <NavigationBar style={lifting ? (scheme === "dark" ? "dark" : "light") : "dark"} />
+      <NavigationBar style={lifting ? seam.statusBar(scheme) : "light"} />
 
       {/* The stage and everything on it, one sheet: it lifts as one at the hand-over (a transform on this one view). */}
       <Animated.View
@@ -479,9 +491,15 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
               // The button's place, now the status: words only, one line, swapped at once and at full strength. Its
               // height is fixed, so a new line of words moves nothing around it.
               <View testID="status.signIn" accessibilityLiveRegion="polite" style={{ height: BUTTON_HEIGHT, justifyContent: "center" }}>
-                <Text size="bodyLarge" weight="semibold" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: STAGE_INK }}>
-                  {status}
-                </Text>
+                {/* Once both are in there's nothing to say: the last words go as the last ring gives way to its tick,
+                    not a blink before it, in both themes. */}
+                {status !== "" && (
+                  <Animated.View exiting={FadeOut.duration(STATUS_OUT_MS)}>
+                    <Text size="bodyLarge" weight="semibold" numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: STAGE_INK }}>
+                      {status}
+                    </Text>
+                  </Animated.View>
+                )}
               </View>
             ) : (
               <Tap onPress={() => void signIn("edunex")} testID="action.signIn" style={[styles.button, { backgroundColor: BUTTON.bg[scheme] }]}>
@@ -522,7 +540,13 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
 
         {/* The doors and the mark between them: the screen's one picture. Nothing on them is a control. */}
         {area !== null && (
-          <View pointerEvents="none" style={{ position: "absolute", left: SIDE, top: doorsTop, width: rowWidth, height: doorHeight }}>
+          <Animated.View
+            pointerEvents="none"
+            // Faded as one picture (not each part through the next), from its own texture while the stage lifts.
+            needsOffscreenAlphaCompositing
+            renderToHardwareTextureAndroid={lifting && !still}
+            style={[{ position: "absolute", left: SIDE, top: doorsTop, width: rowWidth, height: doorHeight }, doorsStyle]}
+          >
             <View style={{ flex: 1, flexDirection: "row", gap: GAP }}>
               {(["edunex", "six"] as const).map((source, index) => {
                 const [first, second] = learned(source);
@@ -579,7 +603,7 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
                 </Animated.View>
               </Animated.View>
             )}
-          </View>
+          </Animated.View>
         )}
       </Animated.View>
 
@@ -590,6 +614,25 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
       )}
     </Animated.View>
   );
+}
+
+/**
+ * A door's step to the mark, 0 to 1, on the UI thread: taken once, when its system comes in, and taken back at once if
+ * the sign-in didn't hold. Never where the phone asks for less motion.
+ */
+function useStepIn(isIn: boolean, still: boolean) {
+  const step = useSharedValue(0);
+  const was = useRef(false);
+  useEffect(() => {
+    if (isIn === was.current) return;
+    was.current = isIn;
+    if (isIn && !still) step.value = withTiming(1, { duration: JOIN_MS, easing: EMPHASIZED });
+    else if (!isIn) {
+      cancelAnimation(step);
+      step.value = 0;
+    }
+  }, [isIn, still, step]);
+  return step;
 }
 
 /** The sign-in button's height, and the status line's that takes its place: nothing under it moves at the tap. */
@@ -628,24 +671,6 @@ function Headline({ size, children }: { size: number; children: string }) {
       {children}
     </Text>
   );
-}
-
-/**
- * A name for a door's one line (14 sp): every whole word that fits at no less than 0.8 of that size, so a long name
- * loses its last words before any letter shrinks further or is cut. At font size 1.3 a door's line is 155 dp on a
- * 411 dp screen and 130 dp on a 360 dp one: 20 and 17 letters, so "Muhammad Rizky Ramadhan Pratama" (30) reads
- * "Muhammad Rizky" on both; at font size 1 on 411 dp, 26 letters: "Muhammad Rizky Ramadhan".
- */
-function doorName(name: string, width: number): string {
-  const letter = 14 * PixelRatio.getFontScale() * LETTER * 0.8;
-  const most = Math.max(6, Math.floor(width / letter));
-  const [first = "", ...rest] = name.split(" ");
-  let kept = first;
-  for (const word of rest) {
-    if (kept.length + 1 + word.length > most) break;
-    kept += ` ${word}`;
-  }
-  return kept;
 }
 
 /**
@@ -816,7 +841,11 @@ const Door = memo(function Door({
       </View>
       {/* The logo, once, over both faces. */}
       <View style={[StyleSheet.absoluteFill, inside, { justifyContent: "flex-start" }]}>
-        <SourceLogo source={source} size={logo} />
+        <View>
+          <SourceLogo source={source} size={logo} />
+          {/* Edunex's logo is a white tile: a hairline keeps its shape on a lit, white door. */}
+          {source === "edunex" && <View style={[StyleSheet.absoluteFill, { borderRadius: logo * 0.24, borderWidth: 1, borderColor: LOGO_EDGE }]} />}
+        </View>
       </View>
     </View>
   );

@@ -26,6 +26,9 @@ export const DOOR_FACT = "#0f2f6b";
 export const DOOR_LIGHT = "#ffffff";
 /** The rest of that ring: a dim track, the door barely a step lighter (white at 15% over a resting door). */
 export const RING_TRACK = { light: "#5b8de8", dark: "#4e607e" } as const;
+/** A hairline around Edunex's logo, a white tile: it keeps its shape on a lit, white door (and is lost, harmlessly,
+ *  in the tile's own edge on a blue one). */
+export const LOGO_EDGE = "#b4c6ec";
 /** The sign-in button and its words. */
 export const BUTTON = { bg: { light: "#ffffff", dark: "#dbe6ff" }, ink: "#1450c4" } as const;
 /** The app's mark between the doors: Edunex Plus's blue, ringed in white so it reads on a lit door and on the stage alike. */

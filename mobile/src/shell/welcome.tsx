@@ -1,8 +1,9 @@
 // The first frame while nobody is signed in: the first minute's empty stage, Edunex Plus's blue over the whole screen
-// and over the tabs (../../app/_layout.tsx draws it with the app's first frame), the status bar's icons white on it.
+// and over the tabs (../../app/_layout.tsx draws it with the app's first frame), the bars' icons white on it.
 // The scene itself (./first-minute/scene.tsx: the two doors, the hand-over to Beranda) comes up on it a moment later,
 // from the sign-in host (./sign-in.tsx), which is there the whole time: the scene has to outlast this screen, which
 // goes the moment a system is in. Nothing here but a colour, so a first open costs the first frame nothing.
+import { NavigationBar } from "expo-navigation-bar";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
@@ -20,6 +21,8 @@ export function Welcome() {
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: STAGE[scheme], zIndex: 50 }]}>
       <StatusBar style="light" />
+      {/* The phone's three buttons, white on the stage too (Android; an iPhone has none). */}
+      <NavigationBar style="light" />
     </View>
   );
 }
