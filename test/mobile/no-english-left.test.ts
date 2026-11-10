@@ -36,6 +36,7 @@ const SAME_IN_BOTH = new Set(
     // loanwords and Latin
     "Video",
     "Audio",
+    "Data",
     "Take-home",
     "Total",
     "Summa",
