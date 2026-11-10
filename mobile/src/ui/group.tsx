@@ -209,12 +209,13 @@ export function Pill({ tone, children, icon }: { tone: PillTone; children: strin
  */
 export function IconTile({ icon, tone = "brand", size = 44 }: { icon: (color: string) => ReactNode; tone?: PillTone; size?: number }) {
   const v = useTheme().v4;
-  const { bg, fg } = pillColors(v, tone);
+  // Bare: the icon in its tone's ink, no pale circle behind it (the box keeps its size, so rows line up).
+  const { fg } = pillColors(v, tone);
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: "center", justifyContent: "center" }}
+      style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}
     >
       {icon(fg)}
     </View>

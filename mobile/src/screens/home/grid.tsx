@@ -6,35 +6,37 @@ import { View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
 import { ServiceRow, ServiceTile } from "../../ui/b";
 import { space } from "../../ui/theme";
-import { HOME_SERVICES } from "../services/list";
+import { HOME_SERVICES, MORE } from "../services/list";
 import { useOpenService } from "../services/open";
 
-/** At most eight tiles: the list's, then "Lainnya" unless the list brings its own (`more`). */
-const LISTED = HOME_SERVICES.some((service) => service.id === "more") ? HOME_SERVICES.slice(0, 8) : HOME_SERVICES.slice(0, 7);
-const OWN_MORE = LISTED.some((service) => service.id === "more");
-const ROWS = [LISTED.slice(0, 4), LISTED.slice(4, 8)].filter((row) => row.length > 0);
+/** At most eight tiles: the list's first seven, then "Lainnya". */
+const LISTED = HOME_SERVICES.slice(0, 7);
+const ROWS = [LISTED.slice(0, 4), LISTED.slice(4, 7)];
 
 export const HomeGrid = memo(function HomeGrid() {
   const t = useT();
   const open = useOpenService();
   return (
-    <View testID="home.grid" style={{ gap: space[3] }}>
+    // Not collapsed: the grid stays a view of its own that holds its tiles, so a reader of the screen (TalkBack's
+    // tree, qa/layout-read.mjs) finds the eight inside `home.grid`. A testID alone keeps the view but hands its
+    // children to the parent.
+    <View testID="home.grid" collapsable={false} style={{ gap: space[3] }}>
       {ROWS.map((row, i) => {
-        const more = !OWN_MORE && i === ROWS.length - 1;
+        const last = i === ROWS.length - 1;
         return (
-          <ServiceRow key={row[0]?.id} count={row.length + (more ? 1 : 0)}>
+          <ServiceRow key={row[0]?.id ?? i} count={4}>
             {row.map((service) => (
               <ServiceTile
                 key={service.id}
                 icon={service.icon}
                 tone={service.tone}
                 label={t(service.label)}
-                onPress={() => (service.id === "more" ? router.push("/services") : open(service))}
+                onPress={() => open(service)}
                 testID={`action.service.${service.id}`}
               />
             ))}
-            {more && (
-              <ServiceTile icon="Apps28Filled" tone="grey" label={t("mobile.tab.more")} onPress={() => router.push("/services")} testID="action.service.more" />
+            {last && (
+              <ServiceTile icon={MORE.icon} tone={MORE.tone} label={t(MORE.label)} onPress={() => router.push("/services")} testID="action.service.more" />
             )}
           </ServiceRow>
         );

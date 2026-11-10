@@ -265,6 +265,10 @@ export const ServiceIcons = {
   Files: icon(() => folder, { filled: true }),
   /** Profil */
   Profile: icon(() => person, { filled: true }),
+  /** Perlu diurus */
+  Needs: icon(() => warning, { filled: true }),
+  /** Ringkasan awal (what the first read found) */
+  FirstSummary: icon(() => history, { filled: true }),
 };
 
 export type ServiceIconName = keyof typeof ServiceIcons;

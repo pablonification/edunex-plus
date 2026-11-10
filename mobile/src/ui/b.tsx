@@ -1,38 +1,37 @@
-// Direction B's own parts ("Edunex Mobile LMS done right"): a white page with almost no chrome, round service circles
-// (a filled Fluent glyph, each service its own colour), counts the Student can tap (the official app's logbook
+// Direction B's own parts ("Edunex Mobile LMS done right"): a white page with almost no chrome, solid service tiles
+// (a white filled Fluent glyph on the service's own colour), counts the Student can tap (the official app's logbook
 // numbers), a plain heading between sections, rows on the page itself with a hairline between them (no card around a
 // list). Everything here is drawn with views and react-native-svg.
 import type { ReactNode } from "react";
 import { type AccessibilityProps, StyleSheet, View, type ViewStyle } from "react-native";
 import { Skeleton } from "./display";
 import { Fluent, type FluentName } from "./fluent";
+import { Icons, type ServiceIconName, ServiceIcons } from "./icons";
+import { ON_SERVICE, SERVICE_TONES } from "./palette";
 import { PressScale } from "./press";
 import { Text } from "./text";
 import { space, useTheme } from "./theme";
 
-/** A service's colour: its ink (the glyph) and its tint (the circle), light then dark. No two alike. */
-const TONES = {
-  green: ["#11692f", "#8fe0a8", "#dcf3e3", "#14301f"],
-  amber: ["#8f4c00", "#ffcf8a", "#ffe9c2", "#3a2a12"],
-  red: ["#b3261e", "#ffb4ab", "#fde0de", "#3d1b1a"],
-  indigo: ["#4a3fd0", "#c0b8ff", "#e6e3ff", "#2a2752"],
-  teal: ["#00697a", "#7fdbe8", "#d3f0f4", "#10353b"],
-  blue: ["#1450c4", "#b9ceff", "#dbe6ff", "#22355f"],
-  magenta: ["#a3157f", "#ffaede", "#fbdcf0", "#43203a"],
-  lime: ["#4a6200", "#c5e384", "#e6f2c4", "#2a3312"],
-  grey: ["#3f4652", "#c8cdd6", "#eceef2", "#2a2f39"],
-} as const;
-export type ServiceTone = keyof typeof TONES;
+export type ServiceTone = keyof typeof SERVICE_TONES;
 
-/** B's surfaces: the page (white; near black in dark), a soft fill a step off it (the search field), and the inks. */
+/** A service's glyph: one of the app's service icons (ui/icons.tsx) by name, or a prototype glyph by its Fluent name. */
+export type ServiceGlyph = FluentName | ServiceIconName;
+
+/**
+ * B's surfaces: the page (white; one dark surface in dark), a soft fill a step off it (the search field), and the inks.
+ * The same in both themes: a list is flat on `page`, with `line` between its rows.
+ */
+export { ON_SERVICE, SERVICE_TONES };
+
 export function useB() {
   const theme = useTheme();
   const v = theme.v4;
   const dark = theme.scheme === "dark";
+  const at = dark ? 1 : 0;
   return {
     dark,
-    page: dark ? v.page : v.card,
-    soft: dark ? v.card : v.page,
+    page: v.page,
+    soft: v.chip,
     line: v.line,
     fg: v.fg,
     fg2: v.fg2,
@@ -42,34 +41,66 @@ export function useB() {
     red: v.redFg,
     ok: v.okFg,
     amber: v.ambFg,
-    tone(name: ServiceTone): { ink: string; tint: string } {
-      const tone = TONES[name];
-      return { ink: tone[dark ? 1 : 0], tint: tone[dark ? 3 : 2] };
+    tone(name: ServiceTone): { ink: string; tint: string; solid: string; edge: string } {
+      const tone = SERVICE_TONES[name];
+      return { ink: tone.ink[at], tint: tone.tint[at], solid: tone.solid[at], edge: tone.edge[at] };
     },
   };
 }
 
-/** A filled glyph in a circle of its own colour: a service's mark, on a tile or at a row's start. */
-export function ServiceCircle({ icon, tone, size = 56 }: { icon: FluentName; tone: ServiceTone; size?: number }) {
-  const { ink, tint } = useB().tone(tone);
+/**
+ * A service's mark: a rounded square in the service's own colour, its filled glyph in white. The big one (48 dp and
+ * up) stands on a slightly darker lower edge; a row's small one (`size` 28 to 44) is the same colour and glyph, flat.
+ * Two views and one Path: no gradient, no shadow.
+ */
+export function ServiceCircle({ icon, tone, size = 56 }: { icon: ServiceGlyph; tone: ServiceTone; size?: number }) {
+  const { solid, edge } = useB().tone(tone);
+  const big = size >= 48;
+  const radius = Math.round(size * 0.3);
+  const glyph = big ? Math.round(size / 2) : Math.round(size * 0.58);
+  const Named = icon in ServiceIcons ? ServiceIcons[icon as ServiceIconName] : null;
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: tint, alignItems: "center", justifyContent: "center" }}
+      style={{ width: size, height: size, borderRadius: radius, backgroundColor: big ? edge : solid, flexShrink: 0 }}
     >
-      <Fluent name={icon} color={ink} />
+      <View style={{ height: big ? size - 3 : size, borderRadius: radius, backgroundColor: solid, alignItems: "center", justifyContent: "center" }}>
+        {Named ? <Named size={glyph} color={ON_SERVICE} /> : <Fluent name={icon as FluentName} color={ON_SERVICE} size={glyph} />}
+      </View>
     </View>
   );
 }
 
-/** One service on a grid, four across: its circle, one word under it. */
-export function ServiceTile({ icon, tone, label, onPress, testID }: { icon: FluentName; tone: ServiceTone; label: string; onPress(): void; testID?: string }) {
+/**
+ * One service on a grid, four across: its solid tile, its name under it (one word on Beranda; `lines` 2 where a name
+ * needs two, on Semua layanan). The whole column is the one target and gives on a press.
+ */
+export function ServiceTile({
+  icon,
+  tone,
+  label,
+  lines = 1,
+  onPress,
+  testID,
+}: {
+  icon: ServiceGlyph;
+  tone: ServiceTone;
+  label: string;
+  lines?: 1 | 2;
+  onPress(): void;
+  testID?: string;
+}) {
   const b = useB();
   return (
     <PressScale onPress={onPress} accessibilityLabel={label} testID={testID} style={styles.tile}>
       <ServiceCircle icon={icon} tone={tone} />
-      <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ color: b.fg, fontSize: 13, lineHeight: 18, letterSpacing: 0, textAlign: "center" }}>
+      <Text
+        size="bodyMedium"
+        weight="semibold"
+        numberOfLines={lines}
+        style={{ color: b.fg, fontSize: 13, lineHeight: 18, letterSpacing: 0, textAlign: "center" }}
+      >
         {label}
       </Text>
     </PressScale>
@@ -77,9 +108,10 @@ export function ServiceTile({ icon, tone, label, onPress, testID }: { icon: Flue
 }
 
 /** A row of service tiles, four across; a short row keeps the same columns. */
-export function ServiceRow({ children, count }: { children: ReactNode; count: number }) {
+export function ServiceRow({ children, count, top = false }: { children: ReactNode; count: number; top?: boolean }) {
   return (
-    <View style={{ flexDirection: "row" }}>
+    // `top`: tiles line up by their tops where a name may take two lines (Semua layanan).
+    <View style={{ flexDirection: "row", alignItems: top ? "flex-start" : undefined }}>
       {children}
       {Array.from({ length: Math.max(0, 4 - count) }, (_, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: empty columns, in order
@@ -144,9 +176,13 @@ export function CountCell({
           </Text>
         )}
       </View>
-      <Text size="bodyMedium" numberOfLines={1} style={{ color: b.fg2, fontSize: 13, lineHeight: 18, letterSpacing: 0 }}>
-        {label}
-      </Text>
+      {/* The label and a small chevron: the count opens something, and looks like it does. */}
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2, maxWidth: "100%" }}>
+        <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ color: b.fg2, fontSize: 13, lineHeight: 18, letterSpacing: 0, flexShrink: 1 }}>
+          {label}
+        </Text>
+        <Icons.ChevronRight size={12} color={b.muted} />
+      </View>
     </PressScale>
   );
 }
@@ -231,6 +267,6 @@ export function BRow({
 }
 
 const styles = StyleSheet.create({
-  tile: { flex: 1, alignItems: "center", gap: space[2], paddingVertical: space[1] },
-  count: { flex: 1, alignItems: "center", paddingVertical: space[2], gap: 2 },
+  tile: { flex: 1, minHeight: 48, alignItems: "center", gap: space[2], paddingVertical: space[1], paddingHorizontal: 2 },
+  count: { flex: 1, minHeight: 56, alignItems: "center", paddingVertical: space[2], paddingHorizontal: space[1], gap: 2 },
 });

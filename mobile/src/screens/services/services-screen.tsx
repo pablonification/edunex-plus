@@ -1,6 +1,6 @@
 // Semua layanan (direction B), behind Beranda's "Lainnya": a search field, then every service the app has in named
-// groups, four across, the same round marks as Beranda's. Typing narrows the groups to the services whose name holds
-// what was typed; a group with none left goes. A first, plain version.
+// groups (Harian, Akademik, Aplikasi), four across, the same solid tiles as Beranda's, each service once. Typing
+// narrows the groups to the services whose name holds what was typed; a group with none left goes.
 import { useState } from "react";
 import { TextInput, View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
@@ -64,13 +64,14 @@ export function ServicesScreen() {
           <BHeading>{t(group.title)}</BHeading>
           <View style={{ gap: space[3] }}>
             {rowsOf(group.services).map((row) => (
-              <ServiceRow key={row[0]!.id} count={row.length}>
+              <ServiceRow key={row[0]!.id} count={row.length} top>
                 {row.map((service) => (
                   <ServiceTile
                     key={service.id}
                     icon={service.icon}
                     tone={service.tone}
                     label={t(service.label)}
+                    lines={2}
                     onPress={() => open(service)}
                     testID={`action.service.${service.id}`}
                   />
@@ -80,6 +81,8 @@ export function ServicesScreen() {
           </View>
         </View>
       ))}
+      {/* The last row keeps clear of the phone's own bar, with room to spare under its labels. */}
+      <View style={{ height: space[8] }} />
       {groups.length === 0 && (
         <Text size="bodyLarge" style={{ color: b.muted, textAlign: "center", marginTop: space[8] }}>
           {t("mobile.services.none", { query: query.trim() })}
