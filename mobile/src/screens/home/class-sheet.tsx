@@ -337,7 +337,8 @@ function Actions({ card, courses, onLeave }: { card: NowCard; courses: readonly 
   const target: Route | null = examId
     ? { screen: "exam", examId }
     : course?.edunex
-      ? { screen: "course", code, tab: "meetings" }
+      ? // The course's Modul tab: this week's material is what the Student opens a course for from a class.
+        { screen: "course", code, tab: "modules" }
       : course
         ? { screen: "presence" }
         : null;

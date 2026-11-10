@@ -34,7 +34,7 @@ import { Fluent, type FluentName } from "../../ui/fluent";
 import { Group, GroupRow, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { iosPressed, PressScale } from "../../ui/press";
+import { iosPressed } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
@@ -44,8 +44,6 @@ import { type AbsenceProblem, type ClashProblem, firstRows, type Problems } from
 
 /** Rows Beranda shows; the rest are on the whole list. */
 export const URUS_ROWS = 5;
-/** Courses short on absences Beranda shows, before the first thing to do. */
-export const URUS_ABSENCES = 3;
 
 interface TodoRow {
   need: NeedDraft;
@@ -165,6 +163,13 @@ export type UrusRow =
   | { kind: "clash"; key: string; item: ClashProblem }
   | { kind: "todo"; key: string; item: TodoRow };
 
+/**
+ * What Beranda's strip already says (./strip.tsx): the courses out of absences (its count opens Kuliah), the Tasks due
+ * (Tugas) and the exams (the days to the next one). Said once, there: never again as rows on Beranda. The whole list
+ * (./needs-screen.tsx) keeps them.
+ */
+const onStrip = (row: UrusRow) => row.kind === "absence" || (row.kind === "todo" && (row.item.need.kind === "task" || row.item.need.kind === "exam"));
+
 /** Every row the list has, most serious first: absences (a row per course), clashes, then what to do, the soonest first. */
 export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due: readonly NeedDraft[], courses: readonly TermCourse[]): UrusRow[] {
   const t = useT();
@@ -211,45 +216,17 @@ export function Urus({
   const t = useT();
   const v = useTheme().v4;
   const all = useUrusRows(problems, needs, due, courses);
-  const rows = useMemo(() => {
-    let absences = 0;
-    return firstRows(
-      all.filter((row) => row.kind !== "absence" || ++absences <= URUS_ABSENCES),
-      URUS_ROWS,
-    );
-  }, [all]);
-  // What the whole list has that Beranda holds back, said by the chevron that opens it.
-  const more = all.length - rows.length;
+  // Beranda's rows: only what its strip doesn't already say.
+  const mine = useMemo(() => all.filter((row) => !onStrip(row)), [all]);
+  const rows = useMemo(() => firstRows(mine, URUS_ROWS), [mine]);
+  // What Beranda holds back, said by the chevron that opens the whole list.
+  const more = mine.length - rows.length;
   // The demo's first sync, or the Student's first read after a sign-in (the top bar's "Membaca …").
   const settling = useSettling();
   const firstReading = useFirstReadRunning();
   const reading = settling || firstReading;
-  // Nothing to handle: a single quiet line stays as the way to the whole list (what's put off, what changed).
-  if (!rows.length && !reading)
-    return (
-      <Rise screen="home" index={2}>
-        <PressScale
-          onPress={() => router.push("/needs")}
-          testID="action.needs.all"
-          style={{
-            marginTop: space[6],
-            backgroundColor: v.card,
-            borderRadius: 20,
-            minHeight: 56,
-            paddingHorizontal: space[4],
-            flexDirection: "row",
-            alignItems: "center",
-            gap: space[3],
-          }}
-        >
-          <Icons.CheckCircle size={22} weight="fill" color={v.okFg} />
-          <Text size="bodyLarge" weight="medium" style={{ color: v.fg, flex: 1 }}>
-            {t("mobile.home.toHandleNone")}
-          </Text>
-          <Icons.ChevronRight size={20} color={v.muted} />
-        </PressScale>
-      </Rise>
-    );
+  // Nothing the strip doesn't say: no section. The whole list stays in Semua layanan.
+  if (!rows.length) return null;
   return (
     <View testID="section.needs">
       <Rise screen="home" index={2}>

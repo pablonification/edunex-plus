@@ -5,7 +5,7 @@
 // urus's, said once there (./urus.tsx). A row opens the class's sheet. A class on SIX's timetable today that the app couldn't read
 // comes first, as the desktop's Hari ini puts it (it has no time to place it at), as SIX writes it; it opens Jadwal's
 // sheet for it, with SIX's timetable. Hidden when nothing's left.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
 import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18n";
@@ -13,7 +13,6 @@ import { wibDay } from "../../../../src/core/course-meetings";
 import type { UnreadSession } from "../../../../src/core/models";
 import type { ClassFacts, HomeContext, NowCard, TodayPlan } from "../../../../src/core/needs";
 import { Rise } from "../../ui/expressive";
-import { Fluent } from "../../ui/fluent";
 import { IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
@@ -33,6 +32,9 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
   const now = useNow();
   const [picked, setPicked] = useState<NowCard | null>(null);
   const [unreadOpen, setUnreadOpen] = useState(false);
+  // The sheets are drawn once one is asked for: not with the timeline.
+  const sheets = useRef(false);
+  if (picked !== null || unreadOpen) sheets.current = true;
   const day = wibDay(context.now);
   const unread = plan.unread.filter((one) => one.day === day);
   const items: Item[] = [
@@ -104,8 +106,12 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
           ))}
         </View>
       </Rise>
-      <ClassSheet card={picked} courses={courses} open={picked !== null} onClose={() => setPicked(null)} />
-      <DetailSheet picked={unreadOpen && unread.length ? { kind: "unread", day, unread } : null} onClose={() => setUnreadOpen(false)} />
+      {sheets.current && (
+        <>
+          <ClassSheet card={picked} courses={courses} open={picked !== null} onClose={() => setPicked(null)} />
+          <DetailSheet picked={unreadOpen && unread.length ? { kind: "unread", day, unread } : null} onClose={() => setUnreadOpen(false)} />
+        </>
+      )}
     </View>
   );
 }
@@ -145,8 +151,9 @@ function Row({ item, first, last, courses, onOpen }: { item: Item; first: boolea
         <View style={{ width: 2, flex: 1, backgroundColor: last ? "transparent" : v.line }} />
       </View>
       <View style={{ flex: 1, minWidth: 0, paddingVertical: space[3] }}>
+        {/* The course's whole name, on as many lines as it takes: never cut to a name it isn't. */}
         <Text size="bodyLarge" weight="medium" style={{ color: v.fg, lineHeight: 21 }}>
-          {shortName(name)}
+          {name}
         </Text>
         {place ? (
           <Text size="bodyMedium" tabular style={{ color: v.muted, marginTop: 2 }}>
@@ -155,8 +162,17 @@ function Row({ item, first, last, courses, onOpen }: { item: Item; first: boolea
         ) : null}
       </View>
       {overlap && (
-        <View style={{ alignSelf: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" testID={`clash.today.${item.key}`}>
-          <Fluent name="Warning20Filled" color={v.ambFg} />
+        // A clash: one icon and the word, the same pair Jadwal and Kuliah show.
+        <View
+          style={{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: space[1] }}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          testID={`clash.today.${item.key}`}
+        >
+          <Icons.Overlap size={16} weight="fill" color={v.ambFg} />
+          <Text size="labelMedium" weight="semibold" style={{ color: v.ambFg }}>
+            {t("mobile.home.chip.clash")}
+          </Text>
         </View>
       )}
       {/* Neutral: amber is for the Student's standing (absences), and a new room isn't. */}
