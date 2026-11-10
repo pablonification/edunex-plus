@@ -300,7 +300,8 @@ export function ExamView({ model, size, theme }: { model: ExamWidget; size: Widg
         borderColor: hex(block.edge),
         backgroundColor: hex(block.bg),
         flexDirection: "column",
-        justifyContent: "space-between",
+        // Alone on the block, the lockup sits in its middle: no gap gathers under it.
+        justifyContent: rows.length || problem ? "space-between" : "center",
       }}
     >
       {split ? (

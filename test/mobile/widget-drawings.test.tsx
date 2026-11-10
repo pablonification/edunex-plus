@@ -205,7 +205,7 @@ const RENDER: Record<string, { title: string; sizes: ReturnType<typeof phone>[];
   Due: { title: "Tenggat", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
   Attendance: { title: "Jatah absen", sizes: [phone(2, 2), phone(3, 2), phone(4, 2)], first: "3×2" },
   Next: { title: "Kelas berikutnya", sizes: [phone(1, 1), phone(2, 1)], first: "1×1" },
-  Course: { title: "Satu mata kuliah", sizes: [phone(2, 1), phone(3, 1), phone(3, 2)], first: "3×1" },
+  Course: { title: "Satu mata kuliah", sizes: [phone(3, 1), phone(3, 2)], first: "3×1" },
 };
 
 const emptied = (names: string[]) => (one: Shot) => ({ ...one, datasets: one.datasets.map((d) => (names.includes(d.name) ? { ...d, value: [] } : d)) }) as Shot;
@@ -236,6 +236,8 @@ const noPresence = (one: Shot) =>
     datasets: one.datasets.map((d) => (d.name === "edunex.presence" || d.name === "edunex.materials" ? { ...d, value: Array.isArray(d.value) ? [] : {} } : d)),
   }) as Shot;
 
+/** The picker's own grey behind a preview, so a white card's corners show (the script clears it before it cuts the asset). */
+const PICKER = "#e3e7ee";
 const WALLPAPER = { light: "linear-gradient(135deg,#bfeeee 0%,#9fd84a 48%,#6b3fe0 100%)", dark: "linear-gradient(135deg,#10222c 0%,#1d3a17 48%,#2a1a5e 100%)" };
 
 function renderPages(folder: string): void {
@@ -250,7 +252,7 @@ function renderPages(folder: string): void {
     } finally {
       fontScale = 1;
     }
-    return `<figure style="margin:0"><div data-shot="${name.toLowerCase()}-${state}-${size.label.replace("×", "x")}-${scheme}" style="display:inline-block;padding:18px;border-radius:12px;background:${state === "preview" ? "transparent" : WALLPAPER[scheme]}">${inner}</div></figure>`;
+    return `<figure style="margin:0"><div data-shot="${name.toLowerCase()}-${state}-${size.label.replace("×", "x")}-${scheme}" style="display:inline-block;padding:18px;border-radius:12px;background:${state === "preview" ? PICKER : WALLPAPER[scheme]}">${inner}</div></figure>`;
   };
   for (const [name, { title, sizes, first }] of Object.entries(RENDER)) {
     const rows: string[] = [];
@@ -276,12 +278,10 @@ function renderPages(folder: string): void {
         some.flatMap((size) => [tile(name, state, size, "light", from), tile(name, state, size, "dark", from)]),
       );
     }
-    // The picker's picture (scripts/make-widget-previews.mjs keeps it): the first size, light, an hour before the first
-    // class and with no read stamped, so it claims nothing live ("Sedang berlangsung", "Diperbarui pukul …").
-    const before = worldOf(
-      (one) => ({ ...one, statuses: one.statuses.map((status) => ({ ...status, updatedAt: null })) }) as Shot,
-      Date.parse("2026-10-08T07:00:00+07:00"),
-    );
+    // The picker's picture (scripts/make-widget-previews.mjs keeps it): the widget as it's first placed, light, at the
+    // same moment as the pictures above, so it shows what the widget is for (the class on now with its button, the
+    // same course in the same colour). No read stamped: a picture in the picker can't say when the data is from.
+    const before = worldOf((one) => ({ ...one, statuses: one.statuses.map((status) => ({ ...status, updatedAt: null })) }) as Shot);
     const firstSize = sizes.find((one) => one.label === first)!;
     rows.push(`<section><h2>In the picker · ${firstSize.label}</h2>${tile(name, "preview", firstSize, "light", before)}</section>`);
     fs.writeFileSync(

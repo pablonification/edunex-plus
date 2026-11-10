@@ -160,4 +160,33 @@ describe("the widget", () => {
       },
     });
   });
+
+  it("a week without classes keeps what needs the Student; the card alone only with nothing else to say", async () => {
+    const own = await startHome();
+    const snapshot = own.engine.snapshot();
+    const model = widgetModel(
+      {
+        ...snapshot,
+        datasets: snapshot.datasets.map((d) =>
+          d.name === "six.schedule" || d.name === "edunex.presence" || d.name === "edunex.materials" ? { ...d, value: Array.isArray(d.value) ? [] : {} } : d,
+        ),
+      } as typeof snapshot,
+      own.world.clock.now(),
+    );
+    expect(model.now).toMatchObject({ label: "Tidak ada kuliah dalam seminggu ke depan." });
+    expect(model.needs?.heading).toBe("Perlu perhatianmu");
+    expect(model.needs?.items.length).toBeGreaterThan(0);
+    expect(model.quiet.now).toBeNull();
+    // "Hari ini" has nothing of its own: the shared card, in SIX's own words (never "Libur": a week off isn't always one).
+    expect(model.quiet.today).toMatchObject({ state: "holiday", label: "Tidak ada kuliah dalam seminggu ke depan.", short: "Tidak ada kuliah" });
+  });
+
+  it("once today's last class is over, Hari ini says so in Kuliah's words, and a need names its course as the rows do", async () => {
+    const own = await startHome();
+    const evening = widgetModel(own.engine.snapshot(), Date.parse("2026-10-08T19:00:00+07:00"));
+    expect(evening.today?.done).toBe("Kelas hari ini sudah selesai");
+    const morning = widgetModel(own.engine.snapshot(), own.world.clock.now());
+    expect(morning.today?.done).toBeUndefined();
+    expect(morning.needs?.items.map((item) => item.named ?? item.label)).toContain("UTS Komunikasi Pemasaran");
+  });
 });

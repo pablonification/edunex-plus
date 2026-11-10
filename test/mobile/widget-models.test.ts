@@ -361,6 +361,20 @@ describe("Satu mata kuliah", () => {
     expect(courseWidget(facts, "XX0000").course?.code).toBe("PL3002");
   });
 
+  it("none chosen and no class ahead to choose by: says how to pick one, never somebody's first course", () => {
+    const noClass = factsOf(h, (shot) => ({ ...shot, datasets: shot.datasets.map((d) => (d.name === "six.schedule" ? { ...d, value: [] } : d)) }));
+    const model = courseWidget(noClass, null);
+    expect(model).toMatchObject({
+      state: "empty",
+      course: null,
+      quiet: { name: "Mata kuliah", label: "Tahan widget ini untuk memilih mata kuliah.", short: "Pilih mata kuliah", action: "Buka Kuliah" },
+    });
+    // A day turning over can bring a class within reach.
+    expect(model.changesAt).toBe(at("2026-10-09T00:00:00+07:00"));
+    // A course the Student did choose is shown, class or no class.
+    expect(courseWidget(noClass, "II4091").course?.code).toBe("II4091");
+  });
+
   it("never opened: where to start", async () => {
     const empty = await startEngine();
     expect(courseWidget(widgetFacts(empty.engine.snapshot(), empty.world.clock.now()), null)).toMatchObject({
