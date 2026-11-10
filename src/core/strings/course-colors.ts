@@ -47,7 +47,7 @@ export const courseColorStrings = {
   "courseColor.name.magenta": { id: "Magenta", en: "Magenta" },
   "courseColor.name.purple": { id: "Ungu", en: "Purple" },
   "courseColor.name.pink": { id: "Merah muda", en: "Pink" },
-  "courseColor.name.plum": { id: "Plum", en: "Plum" },
+  "courseColor.name.plum": { id: "Prem", en: "Plum" },
   "courseColor.name.lavender": { id: "Lavender", en: "Lavender" },
   // Settings
   "settings.courseColors": { id: "Warna mata kuliah", en: "Course colors" },
