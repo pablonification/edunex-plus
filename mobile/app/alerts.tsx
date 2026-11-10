@@ -14,6 +14,7 @@
 import { router } from "expo-router";
 import { type ComponentType, useMemo, useState } from "react";
 import { View } from "react-native";
+import { useTermCourses } from "../../src/app/courses";
 import { useHomeWorld } from "../../src/app/home-world";
 import { useOpenCheckIn } from "../../src/app/hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../../src/app/i18n";
@@ -38,6 +39,7 @@ import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel, Page } from "../src/ui/layout";
 import { Text } from "../src/ui/text";
 import { space } from "../src/ui/theme";
+import { courseGlyph, useCourseTile } from "../src/ui/tile";
 import { TopBar } from "../src/ui/top-bar";
 
 const KIND_ICON: Record<AlertKind, ComponentType<IconProps>> = {
@@ -152,6 +154,10 @@ export default function Alerts() {
     return [...byOffset].map(([offset, dayRows]): Day => ({ offset, at: dayRows[0]?.at ?? now, rows: dayRows })).sort((a, b) => b.offset - a.offset);
   }, [rows, f, now]);
 
+  // One state for the list: the rows' shapes only while nothing at all has come; rows the moment any have; the empty
+  // line once the history is read and there's nothing. Never placeholders beside real rows.
+  const view: "loading" | "rows" | "empty" = rows.length > 0 ? "rows" : history === undefined ? "loading" : "empty";
+
   const markAllRead = () => {
     setMarkedAt(now);
     void bridge.invoke("alerts.markRead", {}).catch(() => undefined);
@@ -176,7 +182,7 @@ export default function Alerts() {
       }
     >
       <NotificationsOff state={permission} />
-      {history === undefined && (
+      {view === "loading" && (
         // Still being read from the phone: the rows' shapes stand in, so nothing jumps when they come.
         <View testID="alerts.loading" style={{ gap: space[4], paddingTop: space[4] }}>
           {[0, 1, 2].map((at) => (
@@ -190,7 +196,7 @@ export default function Alerts() {
           ))}
         </View>
       )}
-      {history !== undefined && items.length === 0 && (
+      {view === "empty" && (
         // Calm: the bell, bare, and one line. Atur notifikasi under it is the next step.
         <Rise screen="alerts" index={0} style={{ alignItems: "center", gap: space[3], paddingTop: space[12], paddingBottom: space[6] }}>
           <Icons.Bell size={48} color={b.muted} />
@@ -199,94 +205,97 @@ export default function Alerts() {
           </Text>
         </Rise>
       )}
-      {days.map((day, index) => (
-        <Rise key={day.offset} screen="alerts" index={Math.min(index, RISE_STEPS)}>
-          <BHeading style={{ marginTop: index === 0 ? space[2] : space[6], marginBottom: space[1] }}>{dayTitle(day, t, f)}</BHeading>
-          <View>
-            {day.rows.map(({ key, item, happened, past, sitting, joined }, i) => {
-              const unread = isUnread(item) || (joined !== null && isUnread(joined.material));
-              const lines = changeLines(t, item, name);
-              const outcome = past ? outcomeOf(t, past.outcome) : null;
-              const title = past ? pastTitle(t, past, name(past.code)) : lines.title;
-              // One fact once: a part of the meta line the title already says (a date in a material's name) is left out.
-              const said = (text: string | null) =>
-                text
-                  ? text
-                      .split(" · ")
-                      .filter((part) => !title.includes(part))
-                      .join(" · ") || null
-                  : null;
-              const meta = past
-                ? (outcome?.text ?? null)
-                : sitting
-                  ? sittingsLine(f, [sitting], { room: false })
-                  : joined
-                    ? t(joined.extra === "link" ? "mobile.change.meeting.withLink" : "mobile.change.meeting.withMaterial", { when: said(lines.meta) ?? "" })
-                    : said(lines.meta);
-              // A sitting's room on its own line, so it's never cut.
-              const room = sitting?.room ?? null;
-              const spoken = past ? [title, outcome?.text ?? null] : sitting || joined ? [lines.title, meta, room] : lines.spoken;
-              // When the thing happened; none when only the time the app noticed it is known, or the words already say it.
-              const at = happened !== null ? f.time(happened) : null;
-              const time = at && !`${title} ${meta ?? ""}`.includes(at) ? at : null;
-              return (
-                <BRow
-                  key={key}
-                  testID={`row.alert.${key}`}
-                  last={i === day.rows.length - 1}
-                  // Unread first in what's read out, as the dot says it to the eye.
-                  accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken, time)}
-                  leading={<KindTile item={item} past={past !== null} />}
-                  title={title}
-                  // One meta line: what changed, old → new, or the action and its deadline (short where the desktop's runs
-                  // long or says how, ../src/parts/change-meta.ts).
-                  meta={
-                    outcome ? (
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
-                        <outcome.Icon size={14} weight="bold" color={outcomeInk(b, outcome.ink)} />
-                        <Text size="bodyMedium" numberOfLines={1} style={{ color: outcomeInk(b, outcome.ink), flexShrink: 1 }}>
-                          {outcome.text}
-                        </Text>
-                      </View>
-                    ) : meta ? (
-                      // Two lines at most, so a room is never cut: the whole of it is in the row's spoken name too.
-                      <View>
-                        <Text size="bodyMedium" tabular numberOfLines={room ? 1 : 2} style={{ color: b.muted }}>
-                          {meta}
-                        </Text>
-                        {room && (
-                          <Text size="bodyMedium" numberOfLines={1} style={{ color: b.muted }}>
-                            {room}
+      {view === "rows" &&
+        days.map((day, index) => (
+          <Rise key={day.offset} screen="alerts" index={Math.min(index, RISE_STEPS)}>
+            <BHeading style={{ marginTop: index === 0 ? space[2] : space[6], marginBottom: space[1] }}>{dayTitle(day, t, f)}</BHeading>
+            <View>
+              {day.rows.map(({ key, item, happened, past, sitting, joined }, i) => {
+                const unread = isUnread(item) || (joined !== null && isUnread(joined.material));
+                const lines = changeLines(t, item, name);
+                const outcome = past ? outcomeOf(t, past.outcome) : null;
+                const title = past ? pastTitle(t, past, name(past.code)) : lines.title;
+                // One fact once: a part of the meta line the title already says (a date in a material's name) is left out.
+                const said = (text: string | null) =>
+                  text
+                    ? text
+                        .split(" · ")
+                        .filter((part) => !title.includes(part))
+                        .join(" · ") || null
+                    : null;
+                const meta = past
+                  ? (outcome?.text ?? null)
+                  : sitting
+                    ? sittingsLine(f, [sitting], { room: false })
+                    : joined
+                      ? t(joined.extra === "link" ? "mobile.change.meeting.withLink" : "mobile.change.meeting.withMaterial", { when: said(lines.meta) ?? "" })
+                      : said(lines.meta);
+                // A sitting's room on its own line, so it's never cut.
+                const room = sitting?.room ?? null;
+                const spoken = past ? [title, outcome?.text ?? null] : sitting || joined ? [lines.title, meta, room] : lines.spoken;
+                // Every row its time, in one place and one form (the day is the heading's): when the thing happened, else
+                // when the app saw it.
+                const time = f.time(happened ?? item.at);
+                return (
+                  <BRow
+                    key={key}
+                    testID={`row.alert.${key}`}
+                    last={i === day.rows.length - 1}
+                    // Unread first in what's read out, as the dot says it to the eye.
+                    accessibilityLabel={factsLabel(unread ? t("alerts.unread") : null, ...spoken, time)}
+                    leading={<KindTile item={item} past={past !== null} />}
+                    title={title}
+                    // One meta line: what changed, old → new, or the action and its deadline (short where the desktop's runs
+                    // long or says how, ../src/parts/change-meta.ts).
+                    meta={
+                      outcome ? (
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+                          <outcome.Icon size={14} weight="bold" color={outcomeInk(b, outcome.ink)} />
+                          <Text size="bodyMedium" style={{ color: outcomeInk(b, outcome.ink), flexShrink: 1 }}>
+                            {outcome.text}
                           </Text>
-                        )}
+                        </View>
+                      ) : meta ? (
+                        // Wraps, never cut: a change shows old → new in full, a room on its own line.
+                        <View>
+                          <Text size="bodyMedium" tabular style={{ color: b.muted }}>
+                            {meta}
+                          </Text>
+                          {room && (
+                            <Text size="bodyMedium" style={{ color: b.muted }}>
+                              {room}
+                            </Text>
+                          )}
+                        </View>
+                      ) : undefined
+                    }
+                    // The time, under it a small calm dot while unread (its shape says it, never the colour alone), then the
+                    // chevron: every row opens something.
+                    trailing={
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: space[1] }}>
+                        <View style={{ alignItems: "flex-end", gap: space[1] }}>
+                          <Text size="labelMedium" tabular style={{ color: b.muted }}>
+                            {time}
+                          </Text>
+                          {unread && <View testID={`row.alert.${key}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: b.brand }} />}
+                        </View>
+                        <Icons.ChevronRight size={20} color={b.muted} />
                       </View>
-                    ) : undefined
-                  }
-                  // The time it happened, and under it a small calm dot while unread (its shape says it, never the colour alone).
-                  trailing={
-                    <View style={{ alignItems: "flex-end", gap: space[1] }}>
-                      {time && (
-                        <Text size="labelMedium" tabular style={{ color: b.muted }}>
-                          {time}
-                        </Text>
-                      )}
-                      {unread && <View testID={`row.alert.${key}.unread`} style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: b.brand }} />}
-                    </View>
-                  }
-                  onPress={() =>
-                    past
-                      ? nav.go(past.kind === "class" ? { screen: "course", code: past.code } : item.target)
-                      : item.checkIn
-                        ? openCheckIn(item.checkIn.meetingId, item.checkIn.url)
-                        : // A meeting with its link or material: where that is (the module), the one thing to open.
-                          nav.go(joined ? joined.material.target : item.target)
-                  }
-                />
-              );
-            })}
-          </View>
-        </Rise>
-      ))}
+                    }
+                    onPress={() =>
+                      past
+                        ? nav.go(past.kind === "class" ? { screen: "course", code: past.code } : item.target)
+                        : item.checkIn
+                          ? openCheckIn(item.checkIn.meetingId, item.checkIn.url)
+                          : // A meeting with its link or material: where that is (the module), the one thing to open.
+                            nav.go(joined ? joined.material.target : item.target)
+                    }
+                  />
+                );
+              })}
+            </View>
+          </Rise>
+        ))}
       <Rise screen="alerts" index={Math.min(days.length, RISE_STEPS + 1)} style={{ marginTop: items.length ? space[6] : 0 }}>
         <BRow
           last
@@ -309,13 +318,43 @@ export default function Alerts() {
 }
 
 /**
- * A notification's mark: its kind's bare glyph, amber while it presses (a deadline, presence, attendance at risk; `past`: no
- * longer), else on its course's colour, else the brand's.
+ * A notification's mark: its course's own glyph in the course's colour (the kind's glyph, neutral, when it has no course);
+ * one that presses (a deadline, presence, attendance at risk; `past`: no longer) carries a small amber dot on its corner,
+ * the same shape, so the course is still the one you know.
  */
 function KindTile({ item, past }: { item: Alert; past: boolean }) {
   const b = useB();
+  const tile = useCourseTile();
+  const courses = useTermCourses();
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
-  return <KindMark icon={KIND_ICON[item.kind]} code={code} color={PRESSING.has(item.kind) && !past ? b.amber : undefined} />;
+  const course = code ? courses?.find((one) => one.code === code) : undefined;
+  const pressing = PRESSING.has(item.kind) && !past;
+  if (!code) return <KindMark icon={KIND_ICON[item.kind]} code={null} color={pressing ? b.amber : undefined} />;
+  const Glyph = courseGlyph(course?.name);
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 40, height: 40, alignItems: "center", justifyContent: "center" }}
+    >
+      <Glyph size={24} color={tile(code).ink} weight="duotone" duotoneOpacity={0.35} />
+      {pressing && (
+        <View
+          style={{
+            position: "absolute",
+            top: 4,
+            right: 4,
+            width: 10,
+            height: 10,
+            borderRadius: 5,
+            backgroundColor: b.amber,
+            borderWidth: 2,
+            borderColor: b.page,
+          }}
+        />
+      )}
+    </View>
+  );
 }
 
 /** An outcome's ink on B's page. */
