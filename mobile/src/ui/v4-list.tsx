@@ -1,5 +1,5 @@
-// Round 2's v4 lists (DESIGN.md "v4"), as Beranda's "Nanti hari ini" draws them, for every screen: a white card on the
-// page's grey holding rows (CardGroup), each row one target that gives on a press (TileRow: a leading tile, a title, at
+// Lists (DESIGN.md, "Surfaces"), as Beranda's "Nanti hari ini" draws them, for every screen: rows flat on the page in
+// light and dark, no card around them (CardGroup), each row one target that gives on a press (TileRow: a leading tile, a title, at
 // most one meta line, at most one status), the status as a tonal pill (StatusChip), and a section's title in Plus
 // Jakarta Sans (SectionTitle). Dividers start after the tile, never across it.
 import type { ReactNode } from "react";
@@ -11,11 +11,10 @@ import { space, useTheme } from "./theme";
 /** Where a row's divider starts: the row's side padding, a 44 dp tile and the gap after it. */
 export const ROW_INSET = 14 + 44 + space[3];
 
-/** A white card holding rows (or anything), radius 20, on the page's grey. */
+/** Rows (or anything) that belong together, flat on the page: no fill, no corner, in light and dark. */
 export function CardGroup({ children, style, testID }: { children: ReactNode; style?: StyleProp<ViewStyle>; testID?: string }) {
-  const v = useTheme().v4;
   return (
-    <View testID={testID} style={[{ backgroundColor: v.card, borderRadius: 20, overflow: "hidden" }, style]}>
+    <View testID={testID} style={style}>
       {children}
     </View>
   );

@@ -35,7 +35,7 @@ import { Icons } from "./icons";
 import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
 import { iosPressed } from "./press";
 import { Text } from "./text";
-import { radius, shape, space, useTheme } from "./theme";
+import { radius, space, useTheme } from "./theme";
 
 /**
  * How far the page under a top bar has scrolled, followed on the UI thread (no JS work while scrolling): the bar takes
@@ -302,16 +302,17 @@ export function Section({
 }
 
 /**
- * Rows that belong together: one group of tonal tiles a hair apart, round at the group's ends (Android 16's
- * grouped lists). No borders: tone separates the group from the page.
+ * Rows that belong together: flat on the page, an inset hairline between them, the same in light and dark. No tile,
+ * no box around the list: a card is drawn only where one thing leads (mobile/DESIGN.md, "Surfaces").
  */
 export function List({ children, style, testID }: { children: ReactNode; style?: ViewStyle; testID?: string }) {
-  const theme = useTheme();
+  const line = useTheme().v4.line;
   const rows = Children.toArray(children).filter(Boolean);
   return (
-    <View testID={testID} style={[styles.list, style]}>
+    <View testID={testID} style={style}>
       {rows.map((row, i) => (
-        <View key={isValidElement(row) && row.key !== null ? row.key : i} style={[styles.tile, { backgroundColor: theme.color.surfaceContainerLow }]}>
+        <View key={isValidElement(row) && row.key !== null ? row.key : i}>
+          {i > 0 && <View style={[styles.hairline, { backgroundColor: line }]} />}
           {row}
         </View>
       ))}
@@ -640,25 +641,14 @@ export function Stat({
 }
 
 /**
- * One tile of a `List` drawn row by row, for a virtualized list (FlashList) that can't wrap its rows in a `List`: the
- * same tonal tile, round at the group's ends (`first`, `last`), 2 dp from the tile above it.
+ * One row of a `List` drawn row by row, for a virtualized list (FlashList) that can't wrap its rows in a `List`: flat
+ * on the page, an inset hairline over every row but the `first`. (`last` is kept for its callers; nothing rounds now.)
  */
-export function GroupTile({ first, last, children }: { first: boolean; last: boolean; children: ReactNode }) {
-  const theme = useTheme();
-  const end = shape.lgPlus;
-  const inner = shape.xs;
+export function GroupTile({ first, children }: { first: boolean; last: boolean; children: ReactNode }) {
+  const line = useTheme().v4.line;
   return (
-    <View
-      style={{
-        marginTop: first ? 0 : 2,
-        overflow: "hidden",
-        backgroundColor: theme.color.surfaceContainerLow,
-        borderTopLeftRadius: first ? end : inner,
-        borderTopRightRadius: first ? end : inner,
-        borderBottomLeftRadius: last ? end : inner,
-        borderBottomRightRadius: last ? end : inner,
-      }}
-    >
+    <View>
+      {!first && <View style={[styles.hairline, { backgroundColor: line }]} />}
       {children}
     </View>
   );
@@ -672,8 +662,7 @@ export function Gap({ size = 4 }: { size?: keyof typeof space }) {
 const styles = StyleSheet.create({
   page: { paddingHorizontal: space.page, paddingTop: space[4], paddingBottom: space[10] },
   sectionHead: { marginBottom: space[3], flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space[4] },
-  list: { borderRadius: shape.lgPlus, overflow: "hidden", gap: 2 },
-  tile: { borderRadius: shape.xs },
+  hairline: { height: 1, marginLeft: space[4] },
   row: { flexDirection: "row", alignItems: "center", gap: space[4], paddingLeft: space[4], paddingVertical: space[3], minHeight: 56 },
   notice: { flexDirection: "row", alignItems: "flex-start", gap: space[3], borderRadius: radius.xl, paddingHorizontal: space[4], paddingVertical: space[3] },
 });
