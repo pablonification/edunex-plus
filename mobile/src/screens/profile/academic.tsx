@@ -1,12 +1,13 @@
 // Profil's academic half (round 4; Akademik's tab before it): in three seconds, the IPK and what to do this term.
-// 1. The IPK card, the screen's one colour (v4's `head`): the IPK as its one big number, the SKS passed a smaller one
-//    over a thin bar of those needed, white on the blue. The whole card is one target that opens Nilai. Whose record it
-//    is sits once, over it, in the identity hero (./identity.tsx).
+// 1. The IPK card, the screen's one colour (v4's `head`), one row of two figures: the IPK big at the start, the SKS
+//    passed at the end over a thin bar of those needed, white on the blue. About 100 dp tall, so the list fits under
+//    it. The whole card is one target that opens Nilai. Whose record it is sits once, over it (./identity.tsx).
 // 2. To-do chips, only while something's due (send the KRS, pay UKT, fill in the questionnaire SIX hides grades
 //    behind), each opening its screen. Nothing due: nothing shown.
 // 3. Nilai and Rencana studi's parts (Rencana, Kurikulum, KRS, UKT, Kalender akademik) as rows in one card, each with
 //    the one line that answers it (none when the card above already says it) and at most one status pill, a chevron at
-//    the end of each: each opens its screen. The screens' content lives in their own files.
+//    the end of each: each opens its screen. Each row wears its service's own tile (colour and filled icon, from
+//    ../../parts/services.tsx), so Nilai here looks like Nilai on Beranda's grid. The screens live in their own files.
 // Before SIX's first read, the card and the rows' lines stand in their own shape; never a spinner.
 import { memo, useEffect, useMemo, useState } from "react";
 import { View } from "react-native";
@@ -20,6 +21,7 @@ import { billUrgency, type KrsStage, krsOverlaps, krsStage } from "../../../../s
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { together } from "../../parts/day-word";
+import { SERVICES, type Service, type ServiceId } from "../../parts/services";
 import { useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { Skeleton } from "../../ui/display";
@@ -36,13 +38,17 @@ import { shownIndex } from "../grades/transcript";
 type IconKind = (typeof Icons)[keyof typeof Icons];
 type MetaTone = "muted" | "red" | "amber" | "ok";
 
-const PART_ICON: Readonly<Record<PlanTab, IconKind>> = {
-  planner: Icons.Route,
-  curriculum: Icons.Layers,
-  krs: Icons.CalendarCheck,
-  bills: Icons.Wallet,
-  deadlines: Icons.CalendarClock,
+/** Each part's service: its tile's colour and icon, read from `SERVICES` when drawn (one place sets them). */
+const PART_SERVICE: Readonly<Record<PlanTab, ServiceId>> = {
+  planner: "planner",
+  curriculum: "curriculum",
+  krs: "krs",
+  bills: "bills",
+  deadlines: "calendar",
 };
+
+/** A row's tile (dp): smaller than Beranda's 52, the same colour and icon. */
+const ROW_TILE = 40;
 
 /** What a to-do chip says, for a part whose badge is a warning (something the Student has to do now). */
 const TODO: Partial<Record<PlanTab, { key: "mobile.academic.todo.krs" | "mobile.academic.todo.bills" | "mobile.academic.todo.deadlines"; icon: IconKind }>> = {
@@ -53,6 +59,22 @@ const TODO: Partial<Record<PlanTab, { key: "mobile.academic.todo.krs" | "mobile.
 
 /** The KRS row's pill for each stage: amber while the Student has something to do, green once it's official. */
 const KRS_TONE: Readonly<Record<KrsStage, PillTone>> = { send: "amber", advisor: "plain", ukt: "amber", official: "brand", done: "ok" };
+
+/**
+ * The IPK card, one row: the IPK at the start, the SKS at the end, the chevron after it. 14 dp over and under a column
+ * of about 70 dp at font size 1.1 (the label's 22, the IPK's 48): about 98 dp in all.
+ */
+const CARD = {
+  flexDirection: "row",
+  alignItems: "flex-end",
+  justifyContent: "space-between",
+  gap: space[4],
+  paddingHorizontal: space[5],
+  paddingVertical: space[3.5],
+} as const;
+
+/** The IPK's face: the card's one big number. */
+const IPK_FACE = { fontFamily: font.display.extrabold, fontSize: 38, lineHeight: 44, letterSpacing: -1 } as const;
 
 /** The track under the SKS bar and the skeleton's bones on the IPK card's blue: white, faint (the figure says the number). */
 const ON_HEAD_FAINT = "rgba(255,255,255,0.28)";
@@ -120,47 +142,37 @@ const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
         accessibilityLabel={factsLabel(`${t("grades.chart.ipk")} ${ipkText}`, `${t("grades.sksPassed")} ${sksText} ${of}`)}
         accessibilityHint={t("mobile.academic.openGrades")}
         testID="action.academic.grades"
-        style={{ padding: space[6], gap: space[5] }}
+        style={CARD}
       >
-        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: space[3] }}>
-          <View style={{ gap: space[1] }}>
-            <Text size="labelLarge" style={{ color: ink }}>
-              {t("grades.chart.ipk")}
-            </Text>
-            {ipk === null ? (
-              <Text style={{ fontFamily: font.display.extrabold, fontSize: 56, lineHeight: 64, color: ink }}>-</Text>
-            ) : (
-              <CountUp
-                id="profile.ipk"
-                value={ipk}
-                decimals={2}
-                comma={lang === "id"}
-                style={{ fontFamily: font.display.extrabold, fontSize: 56, lineHeight: 64, letterSpacing: -1.5, color: ink }}
-              />
-            )}
-          </View>
-          <Icons.ChevronRight size={22} color={ink} />
+        <View>
+          <Text size="labelLarge" style={{ color: ink }}>
+            {t("grades.chart.ipk")}
+          </Text>
+          {ipk === null ? (
+            <Text style={[IPK_FACE, { color: ink }]}>-</Text>
+          ) : (
+            <CountUp id="profile.ipk" value={ipk} decimals={2} comma={lang === "id"} style={[IPK_FACE, { color: ink }]} />
+          )}
         </View>
-        <View style={{ gap: space[2] }}>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", columnGap: space[3] }}>
-            <Text size="labelLarge" style={{ color: ink }}>
-              {t("grades.sksPassed")}
-            </Text>
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[1] }}>
-              {sks === null ? (
-                <Text size="titleMedium" style={{ color: ink }}>
-                  -
-                </Text>
-              ) : (
-                <CountUp id="profile.sks" value={sks} style={{ fontFamily: font.display.bold, fontSize: 22, lineHeight: 28, color: ink }} />
-              )}
-              <Text size="bodyMedium" style={{ color: ink }}>
-                {of}
+        <View style={{ flex: 1, minWidth: 0, maxWidth: 180, gap: space[1.5] }}>
+          <Text size="labelLarge" numberOfLines={1} style={{ color: ink }}>
+            {t("grades.sksPassed")}
+          </Text>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[1] }}>
+            {sks === null ? (
+              <Text size="titleMedium" style={{ color: ink }}>
+                -
               </Text>
-            </View>
+            ) : (
+              <CountUp id="profile.sks" value={sks} style={{ fontFamily: font.display.bold, fontSize: 22, lineHeight: 28, color: ink }} />
+            )}
+            <Text size="bodyMedium" numberOfLines={1} style={{ color: ink, flexShrink: 1 }}>
+              {of}
+            </Text>
           </View>
           {sks !== null && need > 0 && <Meter value={sks / need} color={ink} track={ON_HEAD_FAINT} label={`${t("grades.sksPassed")} ${sks} ${of}`} />}
         </View>
+        <Icons.ChevronRight size={20} color={ink} />
       </Panel>
     </View>
   );
@@ -171,18 +183,17 @@ function StandingSkeleton() {
   const v = useTheme().v4;
   const bone = { backgroundColor: ON_HEAD_FAINT };
   return (
-    <Panel tint={v.head} accessibilityState={{ busy: true }} testID="academic.loading" style={{ padding: space[6], gap: space[5] }}>
+    <Panel tint={v.head} accessibilityState={{ busy: true }} testID="academic.loading" style={CARD}>
       <View style={{ gap: space[2] }}>
         <Skeleton width={32} height={14} style={bone} />
-        <Skeleton width={128} height={56} style={bone} />
+        <Skeleton width={96} height={40} style={bone} />
       </View>
-      <View style={{ gap: space[2] }}>
-        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-          <Skeleton width={64} height={14} style={bone} />
-          <Skeleton width={88} height={18} style={bone} />
-        </View>
+      <View style={{ flex: 1, maxWidth: 180, gap: space[2] }}>
+        <Skeleton width={64} height={14} style={bone} />
+        <Skeleton width={88} height={22} style={bone} />
         <Skeleton width="100%" height={6} style={bone} />
       </View>
+      <View style={{ width: 20 }} />
     </Panel>
   );
 }
@@ -253,7 +264,7 @@ function Todos({ parts }: { parts: readonly PlanTab[] }) {
 
 /** A screen's row: its tile, its name, the one line that answers it (or that line's shape while SIX reads), one pill. */
 function ScreenRow({
-  icon: Icon,
+  service,
   title,
   meta,
   tone = "muted",
@@ -262,7 +273,7 @@ function ScreenRow({
   first = false,
   testID,
 }: {
-  icon: IconKind;
+  service: ServiceId;
   title: string;
   /** The line; `"pending"` while what it says is still on its way. */
   meta: string | null | "pending";
@@ -277,7 +288,7 @@ function ScreenRow({
   return (
     <GroupRow
       first={first}
-      leading={<IconTile icon={(color) => <Icon size={22} color={color} />} />}
+      leading={<ServiceIcon id={service} />}
       title={title}
       meta={meta === "pending" ? <Skeleton width={128} height={12} style={{ marginTop: space[1] }} /> : meta}
       metaTone={tone}
@@ -290,6 +301,31 @@ function ScreenRow({
       onPress={() => nav.go(route === "grades" ? { screen: "grades" } : { screen: "plan", tab: route })}
       testID={testID}
     />
+  );
+}
+
+/** A service's tile, row-sized: its colour and its white filled icon, as on Beranda's grid. */
+function ServiceIcon({ id }: { id: ServiceId }) {
+  const theme = useTheme();
+  const service: Service = SERVICES[id];
+  const Glyph = service.icon();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{
+        width: ROW_TILE,
+        height: ROW_TILE,
+        borderRadius: 13,
+        // The row's divider starts where a 44 dp tile's text did: the 4 dp keeps the title on that line.
+        marginRight: 4,
+        backgroundColor: service.color ? service.color[theme.scheme === "dark" ? "dark" : "light"] : theme.v4.chip,
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Glyph size={22} color={service.color ? "#ffffff" : theme.v4.fg2} weight="fill" />
+    </View>
   );
 }
 
@@ -313,16 +349,7 @@ function GradesRow({ record }: { record: StudentRecord | undefined }) {
     // Named as Nilai names it.
     return ip === null ? null : t("mobile.grades.lastIp", { ip: f.number(ip, 2) });
   }, [record, t, f]);
-  return (
-    <ScreenRow
-      icon={Icons.ClipboardCheck}
-      title={t("nav.grades")}
-      meta={record?.transcript ? text : missing}
-      route="grades"
-      first
-      testID="row.profile.grades"
-    />
-  );
+  return <ScreenRow service="grades" title={t("nav.grades")} meta={record?.transcript ? text : missing} route="grades" first testID="row.profile.grades" />;
 }
 
 /**
@@ -370,7 +397,7 @@ function PartRow({
   tone?: MetaTone;
   pill?: { tone: PillTone; text: string } | null;
 }) {
-  return <ScreenRow icon={PART_ICON[part]} title={title} meta={meta} tone={tone} pill={pill} route={part} testID={`row.profile.${part}`} />;
+  return <ScreenRow service={PART_SERVICE[part]} title={title} meta={meta} tone={tone} pill={pill} route={part} testID={`row.profile.${part}`} />;
 }
 
 function CurriculumRow({ record }: { record: StudentRecord | undefined }) {

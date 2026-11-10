@@ -1,6 +1,7 @@
-// Who the Student is, Profil's hero (round 4): straight on the page, centred, no card. A large circle with their
-// initials (as the top bars' avatar drew them before round 4), their name as the screen's one title, then the NIM and the
-// program as one quiet line. Edunex's account first, else SIX's (Settings' card read them the same way before).
+// Who the Student is, Profil's identity (round 4): one row straight on the page, no card. A 56 dp circle with their
+// initials at the start, then their name as the screen's one title over the NIM and the program as one quiet line,
+// start-aligned. 56 dp tall (with the page's 16 dp over it, 72): the avatar marks the tab as Profil without taking the
+// top third. Edunex's account first, else SIX's (Settings' card read them the same way before).
 import { View } from "react-native";
 import { displayName, initials } from "../../../../src/app/names";
 import { useDataset } from "../../../../src/app/store";
@@ -9,7 +10,7 @@ import { factsLabel } from "../../ui/layout";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 
-const AVATAR = 88;
+const AVATAR = 56;
 
 export function Identity() {
   const v = useTheme().v4;
@@ -19,34 +20,27 @@ export function Identity() {
   const facts = factsLabel(account?.nim ?? student?.nim, student?.program);
   const shown = name ? displayName(name) : null;
   return (
-    <View testID="profile.identity" style={{ alignItems: "center", paddingTop: space[4], paddingBottom: space[2], gap: space[3] }}>
+    <View testID="profile.identity" style={{ flexDirection: "row", alignItems: "center", gap: space[3.5], minHeight: AVATAR }}>
       <View
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         style={{ width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}
       >
         {name ? (
-          <Text face="display" weight="bold" style={{ fontSize: 34, lineHeight: 42, color: v.brandInk }}>
+          <Text face="display" weight="bold" style={{ fontSize: 22, lineHeight: 28, color: v.brandInk }}>
             {initials(name)}
           </Text>
         ) : (
-          <Icons.User size={40} color={v.brandInk} />
+          <Icons.User size={28} color={v.brandInk} />
         )}
       </View>
       {shown ? (
-        <View style={{ alignItems: "center", gap: space[1], paddingHorizontal: space[4] }} accessible accessibilityLabel={factsLabel(shown, facts)}>
-          <Text
-            size="headlineSmall"
-            face="display"
-            weight="bold"
-            accessibilityRole="header"
-            numberOfLines={2}
-            style={{ color: v.fg, textAlign: "center", letterSpacing: -0.3 }}
-          >
+        <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={factsLabel(shown, facts)}>
+          <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
             {shown}
           </Text>
           {facts ? (
-            <Text size="bodyMedium" style={{ color: v.muted, textAlign: "center" }}>
+            <Text size="bodyMedium" numberOfLines={1} style={{ color: v.muted }}>
               {facts}
             </Text>
           ) : null}
