@@ -30,7 +30,7 @@ How each number is taken:
 | "What's due today" | 0 taps | 0 taps (the strip's number, when something is due this week) | 0 taps (the strip's first tile, always there: today's count, else this week's, else 0) | 0 taps | 0 |
 | "Is my attendance safe" | 0 taps for a class at risk | 0 taps (the strip: a count at risk, or "Aman") | 0 taps (the strip's second tile) | 0 taps | 0 |
 | "Open this week's material" | 3–4 taps | 2 taps (Materi tile, the material's row) | 2 taps | 2 taps | 2 or fewer |
-| Cold start (ms, median of 7, both APKs as CI built them) | 599 | 623 (+4%) | not measured again as CI builds it (repacked: 772 against 725 for `main`, +6%) | COLDFINAL | within 10% of `main` |
+| Cold start (ms, median of 7, both APKs as CI built them) | 599 | 623 (+4%) | not measured again as CI builds it (repacked: 772 against 725 for `main`, +6%) | 630 against 608 for `main` measured back to back (+4%) | within 10% of `main` |
 | Tab switch p90 (ms) | 43 | 35 | 35 | 38 | within 10% of `main` |
 
 ## Hill 2: the council
@@ -47,6 +47,9 @@ round's picture of a tab against this round's, sides shuffled (round 1's "last r
 | 2 | 0956276c | designer | 1st | 2nd (Duolingo 1st) | yes (LMS 4th and 5th) | 5 of 5 (Beranda and Kuliah most alike) | 5–8; none | 4 of 17 (Beranda ×2, Kuliah ×2) | 8 of 10 that changed; prefers round 1's Tugas (no empty "Hari ini") and Kuliah (the list) | |
 | 2 | 0956276c | student | 1st | 1st | yes (LMS 5th) | 5 of 5 (Beranda and Kuliah most alike) | 4–9; Jadwal, Profil, Cari | 2 of 17 (Kuliah ×2) | 7 of 10 that changed; prefers round 1's Kuliah (the list), Beranda's lower half and Ujian's smaller hero | 8 · 8 · 7 (LMS: 3 · 3 · 3) |
 | 2 | 0956276c | prosecutor | 1st | 2nd (Duolingo 1st) | yes (LMS 5th) | 5 of 5 (Beranda and Kuliah most alike) | 3–8; none | 7 of 17 (Beranda ×3, Kuliah ×2, Nilai, the notification ask read as a promo) | 4 of 10 that changed (Profil ×2, Semua layanan, Materi); prefers round 1's Beranda (no "0" tile), Tugas, Kuliah, Beranda's lower half and Ujian | |
+| 3 | 9540d488 | designer | 1st | **3rd** (Duolingo 1st, Grab 2nd) | yes (LMS 5th) | 5 of 5 (Beranda and Kuliah most alike) | 5–9; Ujian | 5 of 17 (Beranda ×2, Kuliah ×2, Nilai) | Kuliah; prefers round 2's Tugas (the "Hari ini" heading) and Ujian (the tall hero) | |
+| 3 | 9540d488 | student | 1st | 2nd (Duolingo 1st) | yes (LMS 4th and 5th) | 5 of 5 (Beranda and Kuliah most alike) | 5–9; Ujian, Nilai | 4 of 17 (Beranda ×2, Kuliah ×2) | Tugas, Kuliah, Ujian | 9 · 7 · 8 (LMS: 3 · 3 · 3) |
+| 3 | 9540d488 | prosecutor | 1st | 2nd (Duolingo 1st) | yes (LMS 4th and 5th) | 5 of 5 (Beranda and Kuliah most alike) | 4–8; none | 12 of 17 (the same facts on several screens) | Kuliah, Ujian; prefers round 2's Tugas (the "Hari ini" heading) | |
 
 What two or more judges raised in round 1, and what was done:
 
@@ -79,3 +82,28 @@ What two or more judges raised in round 2, and what was done:
 - Beranda and Kuliah both open with the presence card (all three, as the two most alike) → not changed this round.
 - One exam, two names ("UTS Markom" on Tugas, "UTS Komunikasi Pemasaran" on Ujian) → Ujian uses the course's name;
   Tugas still shows the lecturer's title. Still open.
+
+After round 3: Tugas got its "Hari ini" heading back over the quiet line (two of three judges preferred round 2's), so
+the final build's Tugas is round 2's. Ujian stays compact (two of three) and Kuliah stays a list (all three).
+
+## Where it ends (17:00)
+
+- **Hill 1 (the layout, measured):** at the top on every row. Profil is last in the bar, no avatar is in a top bar,
+  Beranda's first screen holds the search bar, the now card, the strip and the grid with 53 dp to spare, 16 things to
+  tap (11 on `main`), 48 words (50), "what's due today" and "is my attendance safe" with no tap, this week's material
+  in 2 taps (3–4), cold start +4% and tab switches no slower than `main`.
+- **Hill 2 (judged):** not at the top.
+  - Ranking: every judge put ours first for "I know where everything is" in all three rounds, and above Edunex
+    Mobile LMS. Overall it was first or second for every judge in rounds 1 and 2 (two rounds in a row); in round 3 the
+    designer put it third, behind Duolingo and Grab.
+  - Squint test: 5 of 5 for every judge in all three rounds.
+  - Scores: 3–9 in round 1, 3–9 in round 2, 4–9 in round 3. No screen holds 9 in every category for any judge.
+  - Hard rules: 4 to 12 of 17 pictures still fail for a judge, almost all on "each fact once": the now card saying
+    when the window closes three ways, the presence card on both Beranda and Kuliah, "3,39" twice on Nilai, and (the
+    prosecutor) the same fact on different screens.
+  - The student's sureness: 6 · 8 · 8, then 8 · 8 · 7, then 9 · 7 · 8 (target: 8 on all three; the previous run's last council: 6 · 8 · 4).
+- **Still open, most serious first:** the presence card opens both Beranda and Kuliah; Kuliah's dots have no number
+  (round 2's "4/3" was called unreadable, round 3's judges asked for a number back); the now card's three ways of
+  saying the closing time, its wave and the header's dots (kept on purpose); one exam under two names on Tugas and
+  Ujian; the notification ask leading Beranda's lower half; Materi showing an old link under "Minggu ini" (the
+  demo's data: the module the course marks as this week's); unlabelled clash and history marks on Jadwal.
