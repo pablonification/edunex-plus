@@ -417,8 +417,8 @@ export const mobileStrings = {
   "mobile.widget.examNone": { id: "Belum ada ujian terjadwal", en: "No exams scheduled yet" },
   // "Satu mata kuliah": the page that asks which course the widget shows, as it's placed or from "Ubah widget".
   "mobile.widget.pickCourse": { id: "Pilih mata kuliah", en: "Pick a course" },
-  // The same widget with no course picked and no class ahead to pick by: how to pick one, from the home screen.
-  "mobile.widget.pickCourseHint": { id: "Tahan widget ini untuk memilih mata kuliah.", en: "Hold this widget to pick a course." },
+  // The same widget with no course picked and no class ahead to pick by: what's true, no how-to (the link under it says where the tap goes).
+  "mobile.widget.pickCourseHint": { id: "Belum ada mata kuliah yang dipilih.", en: "No course picked yet." },
   // superapp: widgets
   // "Kelas berikutnya" in one cell on a week without classes: two words, as the cell holds no more. A tap opens Jadwal.
   "mobile.widget.noClass": { id: "Tidak ada kuliah", en: "No classes" },

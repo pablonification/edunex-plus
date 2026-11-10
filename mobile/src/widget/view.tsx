@@ -823,7 +823,26 @@ export function StateCard({
         <Text text={short ? quiet.short : quiet.label} size={size.width >= 250 ? "body" : "small"} color={v.fg} bold lines={short ? 1 : 3} />
       </FlexWidget>
       <FlexWidget style={{ width: "match_parent", flexDirection: "column", flexGap: 2 }}>
-        <Text text={quiet.action} size="small" color={v.brandInk} weight="700" />
+        {quiet.state === "signedOut" && size.height >= 110 * scale ? (
+          // Signing in is the one thing to do here: a real button, as "Isi Presensi" is, sized for a thumb.
+          <FlexWidget style={{ flexDirection: "row" }}>
+            <FlexWidget
+              style={{
+                height: BUTTON * scale,
+                paddingHorizontal: 18,
+                borderRadius: (BUTTON * scale) / 2,
+                backgroundColor: hex(v.brandInk),
+                flexDirection: "row",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text text={quiet.action} size="small" color={v.card} weight="700" />
+            </FlexWidget>
+          </FlexWidget>
+        ) : (
+          <Text text={quiet.action} size="small" color={v.brandInk} weight="700" />
+        )}
         {foot ? <Foot status={status} theme={theme} width={size.width - 2 * PAD} scale={scale} /> : null}
       </FlexWidget>
     </FlexWidget>

@@ -205,6 +205,17 @@ they read down the list like a chart.
   keeps its class: a cell has no room to say more, and the time is still true).
 - Model: `nextWidget(facts)` (now with the course's `name`, and `empty.short`).
 
+### Round 4 (after the third council), in one place
+
+- **Dots**: a full dot is an absence still left, a ring one used, a red dot set apart one over the limit; the label has
+  its noun ("sisa 1 absen"). The same in the app (`screens/presence/absence-dots.tsx`).
+- **Tenggat**: one pattern on every row: the count in bold ("8 hari"; from two weeks out the date) over "Jum 16 Okt,
+  23:59" (the hour alone when the top line is the date or "Besok"). Three cells wide at most.
+- **Offline**: "Tidak terhubung · data 08:12", then "Tidak terhubung · 08:12" where that doesn't fit; "Data 08:12" in
+  one cell only. On Sekarang it sits on the block, where the button was.
+- **Kelas berikutnya** says the weekday ("Kam"), never "Hari ini". **Masuk** is a button on the signed-out card.
+- **Satu mata kuliah** with no course picked says "Belum ada mata kuliah yang dipilih." over "Buka Kuliah": no how-to.
+
 ### Pintasan (`Services`): removed in round 4
 
 Three blind judges, two rounds at 3–5: "a launcher folder already does this", "the app icon already does it". It is

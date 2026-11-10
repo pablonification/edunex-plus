@@ -319,7 +319,7 @@ describe("Satu mata kuliah", () => {
     expect(model).toMatchObject({
       state: "empty",
       course: null,
-      quiet: { name: "Mata kuliah", label: "Tahan widget ini untuk memilih mata kuliah.", short: "Pilih mata kuliah", action: "Buka Kuliah" },
+      quiet: { name: "Mata kuliah", label: "Belum ada mata kuliah yang dipilih.", short: "Pilih mata kuliah", action: "Buka Kuliah" },
     });
     // A day turning over can bring a class within reach.
     expect(model.changesAt).toBe(at("2026-10-09T00:00:00+07:00"));

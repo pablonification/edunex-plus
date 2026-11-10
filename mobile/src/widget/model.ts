@@ -983,7 +983,7 @@ export function courseWidget(facts: WidgetFacts, code: string | null): CourseWid
   const schedule = [...(context.schedule ?? [])].filter((s) => s.end > now).sort((a, b) => a.start - b.start);
   const picked = courses.find((c) => c.code === code) ?? courses.find((c) => c.code === schedule[0]?.courseCode);
   if (!picked) {
-    // None chosen and no class ahead to choose by: say how to pick one, never somebody's first course.
+    // None chosen and no class ahead to choose by: say so (the link says where the tap goes), never somebody's first course.
     const quiet = quietOf(t, t("mobile.widget.name.course"), "empty", null, {
       label: t("mobile.widget.pickCourseHint"),
       short: t("mobile.widget.pickCourse"),

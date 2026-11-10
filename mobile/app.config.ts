@@ -85,7 +85,7 @@ const WIDGETS = [
   {
     name: "Exam",
     label: { id: "Ujian", en: "Exams" },
-    description: { id: "Hari dan jam ujian berikutnya, lalu ujian sesudahnya", en: "Your next exam's day and time, then the ones after it" },
+    description: { id: "Berapa hari lagi ujian berikutnya, dengan hari, jam dan ruangnya", en: "Days left to your next exam, with its day, time and room" },
     minWidth: "110dp",
     minHeight: "40dp",
     targetCellWidth: 2,
