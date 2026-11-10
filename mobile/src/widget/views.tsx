@@ -251,7 +251,9 @@ export function AttendanceView({ model, size, theme, lang }: { model: Attendance
         <Text text={model.heading} size="micro" color={v.muted} bold open={model.all} />
         {rows.map((row) => {
           const danger = row.state === "out" || row.state === "missed";
-          const dots = <Dots row={row} ink={v.fg} ring={v.muted} overInk={theme === THEMES.light ? v.redFg : OVER_RED} />;
+          // The marks in their row's state colour, as its word: green while some are left, amber at none, red past it.
+          const mark = absenceColor(theme, row.state, v.okFg);
+          const dots = <Dots row={row} ink={mark} ring={mark} overInk={mark} />;
           const label = labelOf(row);
           const word = <Text text={row.short} size="micro" color={absenceColor(theme, row.state, v.fg)} weight={danger ? "700" : "500"} />;
           return (
