@@ -211,7 +211,7 @@ function Banner({
   // With SIX's Tandai Hadir on the button the bar is the class's: the bar and the button never speak of two things.
   const window = !settled && card.presence && action !== "checkIn" ? card.presence.session : null;
   const span = window ? { from: window.opensAt, to: window.closesAt } : live && slot ? { from: slot.start, to: slot.end } : null;
-  const time = window ? t("mobile.home.presenceCloses", { time: f.dayTime(window.closesAt) }) : span ? t("mobile.home.ends", { time: f.time(span.to) }) : null;
+  const time = window ? t("home.need.presence.closes", { time: f.dayTime(window.closesAt) }) : span ? t("mobile.home.ends", { time: f.time(span.to) }) : null;
   const ink = calm ? b.fg : on;
   const quiet = calm ? b.fg2 : on;
   const went = done !== null ? t("mobile.home.wentToSix", { time: f.time(done) }) : null;
