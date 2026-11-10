@@ -154,19 +154,20 @@ happening), tap to curtain 8%, Beranda filling 5%, Beranda settled 1%. What's le
 lifts; a muddy frame at 3 s; doors that stay blank for 4 s; and what Beranda shows while it still reads (a green "Absen aman" that
 turns into "3 Absen habis", the class block growing 100 px, two different task counts).
 
-## The journeys, walked on the phone (02:40, commit f1f50916, the demo app, Maestro flows in `mobile/flows/journeys/`)
+## The journeys, walked on the phone (05:35, commit 5198109f, the demo app, Maestro flows in `mobile/flows/journeys/`)
 
 | Journey | Top of the hill | On the phone | Steps |
 | --- | --- | --- | --- |
-| Morning: what's my day, what's due, am I safe | 0 taps | **0 taps, pass** (47 s to run) | Beranda's first screen: the class on now, the strip (next deadline, absences, days to the exam), the grid |
-| A class starts | 2 taps or fewer, landing somewhere useful | **1 tap** to Edunex's presence page; **the flow failed** on what it expected next (it looked for SIX's page), and after Back the block doesn't yet move on to what's next in the demo | Beranda → "Isi Presensi" |
-| A deadline | 3 taps or fewer to the brief; a clear finish | 2 by the flow's count; **not run on the phone** (the hand-in opens the phone's own file picker, which the lead keeps away from the owner's files) | Beranda → the strip's deadline (or Tugas → the Task) → the brief |
-| After class: this week's material, opened | 2 taps or fewer | 2 taps; **the flow failed**: the first item this week is a meeting link that opens outside the app, not a module's page | Beranda → Materi → an item |
+| Morning: what's my day, what's due, am I safe | 0 taps | **0 taps, pass** (38 s to run) | Beranda's first screen: the class on now, the strip (next deadline, absences, days to the exam), the grid |
+| A class starts | 2 taps or fewer, landing somewhere useful | **1 tap, pass**: "Isi Presensi" opens Edunex's presence page; Back lands on Beranda with its four blocks | Beranda → "Isi Presensi" |
+| A deadline | 3 taps or fewer to the brief; a clear finish | 2 by the flow's count; **not run on the phone** (the hand-in opens the phone's own file picker, which the lead keeps away from the owner's files); CI's emulator runs it | Beranda → the strip's deadline (or Tugas → the Task) → the brief |
+| After class: this week's material, opened | 2 taps or fewer | **3 taps, pass, one over the top**: the demo's only item this week is a meeting link that opens outside the app, so the flow opens an older module's page behind "materi lainnya" | Beranda → Materi → the rest → an item |
 | After an exam: my grade and my IPK | 2 taps or fewer | **2 taps, pass** | Beranda → Nilai → a course |
 | The office things: KRS, UKT, the calendar | 2 taps or fewer each | **2 taps from Profil, 1 from the grid, pass** | Profil → the row; or the tile |
 | Looking for something by name | result opened in 2 taps after typing | **2 taps, pass** | `home.search` → type → a result |
 
-Four of seven pass as flows; two fail on the flow's own expectation (to fix in the flow), one isn't run on this phone.
+Six of seven pass as flows on the phone; one isn't run on this phone. CI's own flows (`smoke`, the judge's walk without its file
+picker and calendar steps, the first run, Edunex alone) pass on the phone too.
 
 ## Widgets (so far)
 
@@ -215,6 +216,13 @@ Hari ini 8 · 6 · 7, Tenggat 7 · 7 · 7, Kehadiran 8 · 7 · 6, Ujian 5 · 5 �
 mata kuliah 5 · 4 · 5. **Not at the top (9).** Worst: Ujian leads with a date instead of the day count; Pintasan's bare numbers
 and a grade average on the home screen; Satu mata kuliah's dots that flip meaning; sizes that only add blank space; the update
 stamp reading as a debug line. Round 3 of the widgets works from that list.
+
+**The widget council, round 3 (05:33):** three new judges, this round's renders beside round 2's and today's two. Every judge
+prefers this round's set (designer and student on 6 of 8 widgets, prosecutor by serious charges, 8 against 20). "I'd keep this on
+my home screen" (designer · student · prosecutor): Sekarang 8 · 8 · 7, Hari ini 8 · 7 · 7, Tenggat 8 · 8 · 6, Kehadiran 7 · 6 · 4,
+Ujian 9 · 7 · 7, Kelas berikutnya 8 · 8 · 6, Pintasan 5 · 3 · 5, Satu mata kuliah 8 · 5 · 5. **Not at the top (9).** Decided from
+it: Pintasan leaves the set ("a launcher folder already does this": seven widgets ship), and the absence dots follow one rule in
+the app and the widgets, the one all three judges named: a full dot is an absence still left, a ring one used, red one over.
 
 ## Rounds
 
