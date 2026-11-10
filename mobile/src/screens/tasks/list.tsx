@@ -171,16 +171,13 @@ function tasksView(
       lines.push(...todoCard(others));
       if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
     };
-    // Today first, always, over an exam period going on: with nothing due today its heading and one quiet line, so the
-    // Student never has to guess.
+    // Today first, always, over an exam period going on: with nothing due today one quiet line says so, so the Student
+    // never has to guess.
     const todayGroup = groups.find((group) => group.group === "today");
     if (!nothingToDo) {
       if (todayGroup) groupLines(todayGroup);
-      else
-        lines.push(
-          { type: "heading", key: "tasks-today", title: t("time.today"), first: true },
-          { type: "quiet", key: "noneToday", text: t("mobile.tasks.noneToday") },
-        );
+      // One quiet line, no heading over it (round 4's council: an empty "Hari ini" block took the top of the list).
+      else lines.push({ type: "quiet", key: "noneToday", text: t("mobile.tasks.noneToday") }, { type: "gap", key: "gap-noneToday", size: 3 });
     }
     if (during.length) {
       if (lines.length) lines.push({ type: "gap", key: "gap-today", size: 3 });

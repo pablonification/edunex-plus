@@ -20,7 +20,7 @@ import { factsLabel, Page } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CourseTile, useCourseTile } from "../../ui/tile";
+import { useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { shortName } from "../home/parts";
 import { ExamPartRow, PastExamRow, PeriodRow } from "../tasks/exam-rows";
@@ -157,8 +157,8 @@ function nextWhenWhere(t: Translate, f: Format, item: NextExam): { when: string;
 }
 
 /**
- * The next exam: the screen's one big card, in its course's tint. The days left big in the display face, the course's
- * own tile beside them, the exam's name, then the day and time and the room, each after its icon. A tap opens it.
+ * The next exam: the screen's one card in colour, its course's tint. The days left big in the display face at its start,
+ * then the exam's name, the day and time and the room, each after its icon. A tap opens it.
  */
 function NextCard({ item }: { item: NextExam }) {
   const t = useT();
@@ -179,39 +179,39 @@ function NextCard({ item }: { item: NextExam }) {
       testID={`hero.exam.${exam.id}`}
       accessibilityLabel={factsLabel(`${kind} ${name}`, exam.courseCode, when, where, f.fromNow(item.part.at))}
       onPress={() => go({ screen: "exam", examId: exam.id })}
-      style={{ backgroundColor: tint, borderRadius: 24, padding: space[5], marginBottom: space[2] }}
+      style={{ backgroundColor: tint, borderRadius: 24, padding: space[4], marginBottom: space[2] }}
     >
-      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <View testID="exams.hero.days">
+      {/* One row (round 4's council preferred the compact card): the days left at the start, what and when beside them. */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[4] }}>
+        <View testID="exams.hero.days" style={{ alignItems: "center", minWidth: 56 }}>
           <CountUp
             id={`exams:${exam.id}`}
             value={away.value}
-            style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 52, lineHeight: 58, letterSpacing: -1.5, fontVariant: ["tabular-nums"] }}
+            style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, lineHeight: 46, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
           />
-          <Text size="titleMedium" face="display" weight="semibold" style={{ color, marginTop: -6 }}>
+          <Text size="labelLarge" face="display" weight="semibold" style={{ color, marginTop: -4 }}>
             {away.late ? `${t("mobile.home.late")} ${away.unit}` : away.unit}
           </Text>
         </View>
-        <CourseTile code={exam.courseCode} name={name} size={52} />
-      </View>
-      <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, marginTop: space[4], letterSpacing: -0.2 }}>
-        {`${kind} ${shortName(name)}`}
-      </Text>
-      <View style={{ gap: space[1.5], marginTop: space[2] }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-          <Icons.Calendar size={18} color={ink} />
-          <Text size="bodyLarge" tabular numberOfLines={2} style={{ flexShrink: 1, color: v.fg2 }}>
-            {when}
+        <View style={{ flex: 1, minWidth: 0, gap: space[1] }}>
+          <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, letterSpacing: -0.2 }}>
+            {`${kind} ${shortName(name)}`}
           </Text>
-        </View>
-        {where ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-            <Where size={18} color={ink} />
-            <Text size="bodyLarge" numberOfLines={1} style={{ flexShrink: 1, color: v.fg2 }}>
-              {where}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[1.5] }}>
+            <Icons.Calendar size={16} color={ink} />
+            <Text size="bodyMedium" tabular numberOfLines={1} style={{ flexShrink: 1, color: v.fg2 }}>
+              {when}
             </Text>
           </View>
-        ) : null}
+          {where ? (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space[1.5] }}>
+              <Where size={16} color={ink} />
+              <Text size="bodyMedium" numberOfLines={1} style={{ flexShrink: 1, color: v.fg2 }}>
+                {where}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
     </PressScale>
   );
@@ -220,7 +220,7 @@ function NextCard({ item }: { item: NextExam }) {
 function ExamsSkeleton() {
   return (
     <View testID="skeleton.exams">
-      <Skeleton height={200} style={{ borderRadius: 24 }} />
+      <Skeleton height={112} style={{ borderRadius: 24 }} />
       <View style={{ marginTop: space[6], gap: space[1] }}>
         {[0, 1, 2].map((i) => (
           <Skeleton key={i} height={68} style={{ borderRadius: i === 0 ? 20 : 4 }} />
