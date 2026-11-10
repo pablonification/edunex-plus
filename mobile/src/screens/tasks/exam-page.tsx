@@ -28,7 +28,7 @@ import { usePullToRefresh } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
 import { absenceName, absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
-import { CardList, Panel, SectionTitle } from "../../ui/card-list";
+import { CardList, SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Group, GroupRow, IconTile, Pill } from "../../ui/group";
@@ -44,6 +44,7 @@ import { TopBar } from "../../ui/top-bar";
 import { addToPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
 import { examCalendarItems } from "./exam-calendar";
 import { dayLabel, examWeekLabel, sourceDays } from "./exam-rows";
+import { Flat as Panel, pageOf, softOf } from "./flat";
 
 export function ExamScreen({ examId }: { examId: string }) {
   const t = useT();
@@ -54,7 +55,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   usePerfDrawn(exams !== undefined);
   if (!exams)
     return (
-      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={theme.v4.page}>
+      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={pageOf(theme)}>
         <Skeleton width={96} />
         <Skeleton width="80%" height={32} style={{ marginTop: space[3] }} />
         <Skeleton height={128} style={{ marginTop: space[8] }} />
@@ -63,7 +64,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   const exam = exams.find((e) => e.id === examId);
   if (!exam)
     return (
-      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={theme.v4.page}>
+      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={pageOf(theme)}>
         <EmptyState icon={<Icons.GraduationCap size={20} color={theme.color.muted} />} title={t("exam.notFound")} />
       </Page>
     );
@@ -138,7 +139,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
 
   return (
     // One title: the exam's own, on the page; the bar carries Back and ⋮.
-    <Page testID="screen.exam" header={<TopBar actions={<OverflowMenu choices={menu} testID="action.examMenu" />} />} background={v.page} {...pull}>
+    <Page testID="screen.exam" header={<TopBar actions={<OverflowMenu choices={menu} testID="action.examMenu" />} />} background={pageOf(theme)} {...pull}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
         <KindPill kind={t(`exam.kind.${exam.kind}`)} />
         <CourseTile code={exam.courseCode} name={course?.name} size={24} />
@@ -251,7 +252,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
                 testID={`row.exam.${other.id}`}
                 accessibilityRole="button"
                 onPress={() => go({ screen: "exam", examId: other.id })}
-                style={[styles.other, { backgroundColor: v.card }]}
+                style={[styles.other, { backgroundColor: softOf(theme) }]}
               >
                 <KindPill kind={t(`exam.kind.${other.kind}`)} />
                 <CourseTile code={other.courseCode} name={courseOf(other.courseCode)} size={24} />

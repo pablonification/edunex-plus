@@ -37,7 +37,7 @@ import { LecturerHtml } from "../../parts/lecturer-html";
 import { DoneButton } from "../../parts/snooze";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
-import { Panel, SectionTitle } from "../../ui/card-list";
+import { SectionTitle } from "../../ui/card-list";
 import { Celebration } from "../../ui/celebrate";
 import { Button } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
@@ -54,6 +54,7 @@ import { TopBar } from "../../ui/top-bar";
 import { shortName } from "../home/parts";
 import { AfterHandIn } from "./after-hand-in";
 import { takeHomeWhy } from "./exam-rows";
+import { Flat as Panel, pageOf, softOf } from "./flat";
 import { Folded } from "./folded";
 import { HandInBar, HandInCard, useHandIn } from "./hand-in";
 import { withoutTitleLine } from "./instructions";
@@ -77,7 +78,7 @@ export function TaskScreen({ taskId }: { taskId: number }) {
   usePerfDrawn(tasks !== undefined);
   if (task) return <TaskPage key={task.id} task={task} />;
   return (
-    <Page testID="screen.task" header={<TopBar title={t("nav.tasks")} />} background={theme.v4.page}>
+    <Page testID="screen.task" header={<TopBar title={t("nav.tasks")} />} background={pageOf(theme)}>
       {tasks ? (
         <EmptyState icon={<Icons.ListChecks size={20} color={theme.color.muted} />} title={t("task.notFound")}>
           <Button size="sm" onPress={() => go({ screen: "tasks" })}>
@@ -133,7 +134,7 @@ function TaskPage({ task }: { task: Task }) {
   }, [reveal]);
 
   return (
-    <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: v.page }}>
+    <KeyboardAvoidingView behavior="padding" style={{ flex: 1, backgroundColor: pageOf(theme) }}>
       {/* One title, the Task's own, in the bar from the start: nothing big on the page under it. */}
       <Page
         testID="screen.task"
@@ -152,7 +153,7 @@ function TaskPage({ task }: { task: Task }) {
           />
         }
         scrollRef={scroll}
-        background={v.page}
+        background={pageOf(theme)}
         {...pull}
       >
         {/* By when, and where the Student stands: the first thing to read after the name, the page's one big card. */}
@@ -163,7 +164,7 @@ function TaskPage({ task }: { task: Task }) {
           <PressScale
             accessibilityRole="link"
             onPress={() => go({ screen: "exam", examId: exam.id })}
-            style={[styles.examLink, { backgroundColor: v.card }]}
+            style={[styles.examLink, { backgroundColor: softOf(theme) }]}
             testID="action.exam"
           >
             <IconTile>
@@ -406,10 +407,10 @@ function Notes({ task, presence }: { task: Task; presence: Presence }) {
       }),
     });
   if (!notes.length) return null;
-  // v4's tonal states; a calm note is a white card on the page.
+  // v4's tonal states; a calm note is a soft fill a step off the page.
   const TONE = {
     warning: { bg: v.ambBg, fg: v.ambFg },
-    neutral: { bg: v.card, fg: v.fg2 },
+    neutral: { bg: softOf(theme), fg: v.fg2 },
     success: { bg: v.okBg, fg: v.okFg },
     danger: { bg: v.redBg, fg: v.redFg },
   } as const;
@@ -506,7 +507,7 @@ function EditNotice({ task, onSee }: { task: Task; onSee: (at: number) => void }
   }
   if (view.state === "none")
     return age < NONE_FOR ? (
-      <View style={[styles.note, { marginTop: space[3], backgroundColor: theme.v4.card }]}>
+      <View style={[styles.note, { marginTop: space[3], backgroundColor: softOf(theme) }]}>
         <Icons.Info size={16} color={theme.v4.muted} />
         <Text size="bodyMedium" style={{ flex: 1, color: theme.v4.fg2 }}>
           {t("task.change.none", { edited })}

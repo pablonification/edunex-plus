@@ -41,6 +41,7 @@ import { factsLabel, Meta } from "../../ui/layout";
 import { ActionSheet, Sheet } from "../../ui/sheet";
 import { Text, type TextTone, useFieldColors } from "../../ui/text";
 import { type Palette, shape, space, useTheme } from "../../ui/theme";
+import { pageOf, softOf } from "./flat";
 import { formatScore } from "./rows";
 
 /** A file the Student attached in this visit, before it's in Edunex's answer. */
@@ -364,7 +365,8 @@ export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus
   const glyph = c[GLYPH_TONE[status]];
 
   return (
-    <Panel flush testID="card.handIn">
+    // The answer is one thing to pick up: a soft card a step off the white page, the same in both themes.
+    <Panel flush testID="card.handIn" style={{ backgroundColor: softOf(theme) }}>
       <View style={{ padding: space[4], gap: space[4] }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
           {marked ? <Icons.CheckCircle size={24} weight="fill" color={c.successFg} /> : <StatusGlyph status={status} size={24} color={glyph} />}
@@ -424,7 +426,7 @@ export function HandInCard({ h, onAnswerFocus }: { h: HandInState; onAnswerFocus
                   <Text size="labelLarge" tone="muted">
                     {t("mobile.tasks.answerText")}
                   </Text>
-                  <View style={{ borderRadius: shape.md, backgroundColor: theme.v4.page, paddingHorizontal: space[3], paddingVertical: space[3] }}>
+                  <View style={{ borderRadius: shape.md, backgroundColor: pageOf(theme), paddingHorizontal: space[3], paddingVertical: space[3] }}>
                     <LecturerHtml html={h.answer.saved} pictureAlt={t("image.altYours")} />
                   </View>
                   {h.editable && h.textLocked && (
@@ -658,7 +660,7 @@ function AnswerField({
 function Quiet({ children }: { children: ReactNode }) {
   const theme = useTheme();
   return (
-    <View style={{ borderRadius: shape.md, backgroundColor: theme.v4.page, paddingHorizontal: space[3], paddingVertical: space[3] }}>
+    <View style={{ borderRadius: shape.md, backgroundColor: pageOf(theme), paddingHorizontal: space[3], paddingVertical: space[3] }}>
       <Text size="bodyMedium" tone="muted">
         {children}
       </Text>
@@ -989,7 +991,7 @@ function FileRowView({
     </>
   );
   return (
-    <View style={[styles.file, { backgroundColor: failed ? c.errorContainer : theme.v4.page }]}>
+    <View style={[styles.file, { backgroundColor: failed ? c.errorContainer : pageOf(theme) }]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2.5] }}>
         {onOpen && !failed ? (
           <Pressable
