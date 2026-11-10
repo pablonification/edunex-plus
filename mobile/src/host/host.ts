@@ -10,7 +10,7 @@ import { AppState, Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
 import { EDUNEX_WEB, SIX_WEB } from "../../../src/core/links";
-import type { Lang } from "../../../src/core/models";
+import { type Lang, UpdateNotice } from "../../../src/core/models";
 import type { FetchFile } from "../../../src/desktop/remote-files";
 import { type SignInWindows, signInToBoth } from "../../../src/desktop/signin-both";
 import type { PlannedAlert } from "../../../src/engine/alerts/detector";
@@ -22,6 +22,8 @@ import type { Storage, Vault } from "../../../src/engine/store/storage";
 import { clearOrigin, clearWebData, cookiesFor, setCookie } from "../../modules/web-cookies";
 import { perfDoing, perfSync } from "../perf";
 import { phoneSignInWindows } from "../shell/sign-in";
+import { phoneApkFiles } from "./apk-files";
+import { apkUpdater } from "./apk-update";
 import { checkInOpener, pageOpener } from "./check-in";
 import { phoneFileHandlers } from "./files";
 import { answer, type HostUi, phoneHandlers } from "./handlers";
@@ -226,9 +228,10 @@ async function makeHost(): Promise<Host> {
     log,
     // Release builds ask GitHub once a day whether a newer version is out (Settings says so, D5); never the demo.
     checkForUpdates: !DEMO && !__DEV__,
-    // A release is for the phone only once it carries an APK: the desktop's installers are no use here.
-    releaseAsset: /\.apk$/i,
-    os: () => `Android ${Platform.Version}`,
+    // A release is for this phone only once it carries its file: an APK on Android, an .ipa on an iPhone (the desktop's
+    // installers are no use here).
+    releaseAsset: Platform.OS === "ios" ? /\.ipa$/i : /\.apk$/i,
+    os: () => (Platform.OS === "ios" ? `iOS ${Platform.Version}` : `Android ${Platform.Version}`),
     // Opened many times a day: each start shows what's saved and reads only what's due (W2 in PROGRESS.md).
     startDueOnly: true,
     // A pull to refresh reads what's on Beranda, not SIX's records and Edunex's materials again within the hour.
@@ -305,6 +308,19 @@ async function makeHost(): Promise<Host> {
     };
   }
   ui.openPage = pageOpener();
+  // Android's release builds download and install a newer release themselves, when the Student asks (./apk-update.ts).
+  const updater =
+    Platform.OS === "android" && !DEMO && !__DEV__
+      ? apkUpdater({
+          notice: () => {
+            const found = engine.snapshot().datasets.find((dataset) => dataset.name === "app.update");
+            return found ? UpdateNotice.parse(found.value) : null;
+          },
+          send: (update) => send({ type: "update", update }),
+          log: log.for("update"),
+          files: phoneApkFiles(),
+        })
+      : null;
   const handlers = {
     ...phoneHandlers({
       engine,
@@ -313,6 +329,7 @@ async function makeHost(): Promise<Host> {
       ui: { openCheckIn: (meetingId) => ui.openCheckIn(meetingId), openPage: (url) => ui.openPage(url) },
       log,
       demo: DEMO,
+      updater,
       ready: () => start(true),
       forgetEverything: async () => {
         if (world.storage instanceof PhoneStorage) world.storage.clear();

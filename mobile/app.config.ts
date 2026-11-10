@@ -35,6 +35,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "android.permission.WRITE_CALENDAR",
       "android.permission.POST_NOTIFICATIONS",
       "android.permission.USE_EXACT_ALARM",
+      // Updating from inside the app: Android's installer opens on the downloaded APK (src/host/apk-update.ts).
+      "android.permission.REQUEST_INSTALL_PACKAGES",
     ],
     blockedPermissions: ["android.permission.RECORD_AUDIO", "android.permission.SYSTEM_ALERT_WINDOW"],
   },
@@ -55,6 +57,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     "./plugins/high-refresh-rate",
     // No GWP-ASan: its backtrace walk crashed the app at start, now and then, on Hermes's stack (./plugins/no-gwp-asan.js).
     "./plugins/no-gwp-asan",
+    // The release APK signed with Edunex Plus's own key, when the build has it (./plugins/release-signing.js).
+    "./plugins/release-signing",
     // Back (key and gesture) reaches the app on Android 13–15 as on 16 (W6).
     "./plugins/back-to-js",
     // The bottom tabs' icons as Android drawables (scripts/make-tab-icons.mjs).

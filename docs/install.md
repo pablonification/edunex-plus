@@ -128,6 +128,9 @@ the app still works but asks you to sign in again after each restart, and Settin
    warns because the app isn't from the Play Store, not because it found something.
 5. Open **Edunex Plus** and sign in.
 
+Had a test copy from before the first release? If Android says the app wasn't installed because
+it conflicts with one already there, uninstall the old copy first: it was signed with another key.
+
 ## iPhone
 
 Apple only lets an iPhone install apps from the App Store, unless the app is signed with your own
@@ -205,9 +208,15 @@ in your browser.
 - **Linux AppImage:** the new AppImage replaces the one you started.
 - **Linux `.deb`:** the release page opens; install the new `.deb` with apt as below.
 
-- **Android and iPhone:** the phone app doesn't install updates itself. Settings → **About** (Tentang)
-  checks for a newer version and opens its release page: install the new file the same way as the first
-  time, over the old one. Your sign-in and saved data stay.
+- **Android:** Settings → **About** (Tentang) shows the new version on its version row. Tap
+  **Download & install** (Unduh & pasang): it downloads with its progress on that row, then
+  Android's own install screen opens. Tap **Install**. The first time, Android asks whether
+  Edunex Plus may install apps: turn on **Allow from this source** and go back. Your sign-in and
+  saved data stay. Android installs it only if it's signed with the same key as the app you have
+  ([code signing policy](code-signing.md#android-and-iphone)).
+- **iPhone:** Settings → **About** (Tentang) shows the new version, and **Download** (Unduh) opens
+  its release page. Download the new `.ipa` on your computer and click **Start** in Sideloadly
+  again. Your sign-in and saved data stay.
 
 An alpha tells you about the newest release, whether that is the next alpha or the full release.
 A full release only ever offers full releases.

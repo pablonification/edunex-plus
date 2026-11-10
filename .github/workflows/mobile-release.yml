@@ -5,13 +5,22 @@
 #   as artifacts app-android and app-iphone (release.yml collects every app-*).
 # - By hand (Actions → Phone app for a release → Run workflow): builds both as a check, kept for a week on the run's page.
 #
-# The APK is signed with the Android project's own key from `expo prebuild`, the same on every build, so a new
-# version installs over the one before. The .ipa is unsigned: each student signs it with their own Apple ID when
+# The APK is signed with Edunex Plus's own key (the ANDROID_SIGNING_* secrets, mobile/plugins/release-signing.js;
+# docs/code-signing.md, "Android"), the same on every release, so a new version installs over the one before and a
+# file signed by anyone else can't. Without the key the build stops: a release is never signed with a public key.
+# The .ipa is unsigned: each student signs it with their own Apple ID when
 # they install it (Sideloadly), since a free Apple ID can't sign for anyone else.
 name: Phone app for a release
 
 on:
   workflow_call:
+    secrets:
+      ANDROID_SIGNING_KEYSTORE:
+        description: Edunex Plus's Android signing key (a PKCS12 keystore, base64).
+        required: true
+      ANDROID_SIGNING_PASSWORD:
+        description: The keystore's password.
+        required: true
   workflow_dispatch:
 
 permissions:
@@ -82,10 +91,31 @@ jobs:
             echo 'org.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8'
             echo 'org.gradle.parallel=true'
           } >> gradle.properties
+      - name: Get the signing key ready
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "::error::No ANDROID_SIGNING_KEYSTORE secret: a release APK is never signed with the template's public key (docs/code-signing.md, \"Android\")."
+            exit 1
+          fi
+          printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/android-release.jks"
+          echo "ANDROID_SIGNING_KEYSTORE_FILE=$RUNNER_TEMP/android-release.jks" >> "$GITHUB_ENV"
       - name: Build the APK
         # Phones only: 64-bit ARM (nearly every phone) and 32-bit ARM (older ones).
         working-directory: mobile/android
+        env:
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
         run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a,armeabi-v7a --no-daemon
+      - name: Check it carries Edunex Plus's key
+        env:
+          ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
+        run: |
+          apksigner=$(find "$ANDROID_HOME/build-tools" -name apksigner -type f | sort -V | tail -1)
+          ours=$(keytool -list -keystore "$ANDROID_SIGNING_KEYSTORE_FILE" -storepass "$ANDROID_SIGNING_PASSWORD" -alias edunex-plus | sed -n 's/.*SHA-256): //p' | tr -d ':' | tr 'A-F' 'a-f')
+          signed=$("$apksigner" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | sed -n 's/.*certificate SHA-256 digest: //p' | head -1)
+          [ -n "$ours" ] && [ "$ours" = "$signed" ] || { echo "::error::The APK isn't signed with Edunex Plus's key."; exit 1; }
+          echo "Signed with Edunex Plus's key ($signed)."
       - name: Name the APK
         run: |
           version=$(node -p 'require("../package.json").version')

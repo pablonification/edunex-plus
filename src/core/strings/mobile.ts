@@ -16,6 +16,9 @@ export const mobileStrings = {
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
   // search: the field's hint, short enough for a phone's field (the desktop's names modules too and ran past its end).
+  // Settings › Tentang, Android's update from inside the app: downloaded, Android's installer waiting for the Student.
+  "mobile.update.ready": { id: "Edunex Plus {version} siap dipasang.", en: "Edunex Plus {version} is ready to install." },
+  "mobile.update.install": { id: "Pasang", en: "Install" },
   "mobile.search.placeholder": { id: "Cari mata kuliah, tugas, materi", en: "Search courses, Tasks, materials" },
   // Akademik: the screens behind it, as a list.
   "mobile.academic.screens": { id: "Studimu", en: "Your studies" },
