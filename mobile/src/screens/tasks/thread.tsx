@@ -14,12 +14,13 @@ import { LecturerFile } from "../../parts/files";
 import { boxHtml } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { toast } from "../../swaps/overlays";
-import { Panel, SectionTitle } from "../../ui/card-list";
+import { SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { iosPressed } from "../../ui/press";
 import { Text, useFieldColors } from "../../ui/text";
 import { shape, space, useTheme } from "../../ui/theme";
+import { Flat as Panel } from "./flat";
 
 /** Any personal Task with an answer has a thread (a group's is on Edunex). */
 export function Thread({ task }: { task: Task }) {

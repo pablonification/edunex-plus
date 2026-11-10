@@ -57,4 +57,13 @@ export const mobileTasksStrings = {
   "mobile.tasks.handedIn": { id: "Terkumpul", en: "Handed in" },
   // An exam row's one status when SIX and Edunex give it different days (the days themselves on the exam's page).
   "mobile.tasks.chip.disagree": { id: "Tanggal beda", en: "Dates differ" },
+  // superapp: Tugas
+  // The first words under the counts when nothing runs out today (a group named "Hari ini" says it when something does).
+  "mobile.tasks.today": { id: "Hari ini", en: "Today" },
+  "mobile.tasks.todayNone": { id: "Tidak ada tenggat hari ini", en: "Nothing due today" },
+  // After a hand-in, where Kumpulkan was: what's next in one tap, or the way to see it under Selesai.
+  "mobile.tasks.movedToDone": { id: "Sudah masuk Selesai", en: "Now under Done" },
+  "mobile.tasks.see": { id: "Lihat", en: "See" },
+  "mobile.tasks.seeDone": { id: "Lihat di Selesai", en: "See it in Done" },
+  "mobile.tasks.next": { id: "Berikutnya", en: "Next" },
 } as const satisfies Record<string, Entry>;

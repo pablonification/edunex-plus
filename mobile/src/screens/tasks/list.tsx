@@ -10,24 +10,27 @@ import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useScrollToTop } from "expo-router";
 import { memo, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
 import { Pressable, RefreshControl, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { type Translate, useT } from "../../../../src/app/i18n";
 import { type Todo, useTodo } from "../../../../src/app/schedule-data";
 import { useBridge, useDataset, useSourceState, useStatus } from "../../../../src/app/store";
+import { wibDay } from "../../../../src/core/course-meetings";
 import type { Exam } from "../../../../src/core/exams";
 import type { Task } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
 import { taskStatus } from "../../../../src/core/tasks";
-import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoForCourse, todoGroup } from "../../../../src/core/todo";
+import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoCounted, todoForCourse, todoGroup } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
 import { BTabHeader } from "../../parts/b-header";
 import { usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
 import { useB } from "../../ui/b";
-import { CardSlice, SectionTitle } from "../../ui/card-list";
+import { SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { factsLabel, GroupTile } from "../../ui/layout";
+import { CrossFade, useSlidingMark } from "../../ui/moves";
 import { useDrawAhead, useLinesShown, usePart } from "../../ui/parts";
 import { iosPressed, PressScale } from "../../ui/press";
 import { ChoiceSheet } from "../../ui/settings-list";
@@ -38,7 +41,7 @@ import { CourseTile } from "../../ui/tile";
 import { shortName } from "../home/parts";
 import { PastExamRow } from "./exam-rows";
 import { lineType } from "./line-type";
-import { inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
+import { FlatSlice, inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
 import { PutOff, TaskRow, TodoRow } from "./rows";
 import { momentsOf, useClockMoments } from "./task-clock";
 
@@ -50,8 +53,12 @@ import { momentsOf, useClockMoments } from "./task-clock";
  */
 const FIRST_LINES = [0, 3, 6] as const;
 
-const GROUPS: { group: TodoGroup; title: StringKey }[] = [
+/** Tugas's groups: the week's, with what runs out today in a group of its own, first after what's late. */
+type ShownGroup = TodoGroup | "today";
+
+const GROUPS: { group: ShownGroup; title: StringKey }[] = [
   { group: "overdue", title: "tasks.group.overdue" },
+  { group: "today", title: "mobile.tasks.today" },
   { group: "thisWeek", title: "tasks.group.thisWeek" },
   { group: "nextWeek", title: "tasks.group.nextWeek" },
   { group: "later", title: "tasks.group.later" },
@@ -60,6 +67,15 @@ const GROUPS: { group: TodoGroup; title: StringKey }[] = [
 
 // The course filter the Student last chose, kept while the app runs (per bridge), as on the desktop.
 const lastCourse = new WeakMap<object, string | null>();
+
+/** A row's group on Tugas: this week's, but today's on its own. */
+function shownGroup(item: TodoItem, now: number): ShownGroup {
+  const group = todoGroup(item, now);
+  return group === "thisWeek" && item.kind !== "period" && item.at !== null && wibDay(item.at) === wibDay(now) ? "today" : group;
+}
+
+/** Inside a group: what has a day first (soonest first, as given), then what has none yet, then an exam period's line. */
+const undatedLast = (item: TodoItem) => (item.kind === "period" ? 2 : item.at === null || (item.kind === "exam" && item.part === null) ? 1 : 0);
 
 /** Where a row sits in its group: the group's round ends are drawn row by row. */
 interface Place {
@@ -76,6 +92,7 @@ export type Line =
   | ({ type: "past"; key: string; past: PastExam } & Place)
   | { type: "putOff"; key: string; putOff: Todo["putOff"] }
   | { type: "gap"; key: string; size?: 3 | 6 }
+  | { type: "today"; key: string; title: string }
   | { type: "empty"; key: string; title: string; description?: string; showAll: boolean; done: boolean }
   | { type: "loading"; key: string }
   | { type: "examsNoSix"; key: string };
@@ -129,9 +146,11 @@ function tasksView(
   const during = items.filter((item) => item.kind === "period" && item.state === "during");
   const rest = items.filter((item) => !during.includes(item));
   const putOff = (todo?.putOff ?? []).filter(({ item }) => mine(item.course ?? ""));
-  const groups = GROUPS.map(({ group, title }) => ({ group, title, items: rest.filter((item) => todoGroup(item, now) === group) })).filter(
-    (group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0),
-  );
+  const groups = GROUPS.map(({ group, title }) => ({
+    group,
+    title,
+    items: rest.filter((item) => shownGroup(item, now) === group).sort((a, b) => undatedLast(a) - undatedLast(b)),
+  })).filter((group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0));
   const nothingToDo = todoCount(items) === 0 && putOff.length === 0;
   const examsNoSix = sixOut && show === "open" && course === null;
   const codes = new Set([
@@ -143,16 +162,33 @@ function tasksView(
 
   const lines: Line[] = [];
   const todoCard = (list: readonly TodoItem[]) => card(list, (item, place): Line => ({ type: "todo", key: item.key, item, ...place }));
-  // The one big card (v4): the soonest thing, when it's a Task with a deadline, at the top of its group, out of the
-  // group's card. Never a Task over an exam that comes sooner: then no big card, and the group reads in date order.
+  // The one thing to pick up: the soonest thing ahead, a Task or an exam, in its course's colour at the top of its group,
+  // not listed again under it. The rest reads in date order.
   const heroGroup = show === "open" && !nothingToDo && groups[0] && groups[0].group !== "later" && groups[0].group !== "undated" ? groups[0] : undefined;
   const soonest = heroGroup?.items[0];
-  const hero = soonest?.kind === "task" && soonest.task.dueAt !== null ? soonest : undefined;
+  // A Task with a deadline, or an exam's part still ahead (one going on now is its row's "Sekarang", not a countdown).
+  const hero =
+    soonest?.kind === "task"
+      ? soonest.task.dueAt !== null
+        ? soonest
+        : undefined
+      : soonest?.kind === "exam" &&
+          soonest.part &&
+          soonest.part.kind !== "window" &&
+          soonest.part.at !== null &&
+          (soonest.late || soonest.part.at > now) &&
+          !soonest.sittings
+        ? soonest
+        : undefined;
   if (!todo) lines.push({ type: "loading", key: "loading" });
   else if (show === "done") {
     if (doneCount === 0) lines.push({ type: "empty", key: "empty", title: t("tasks.noneDone"), showAll: false, done: true });
     else lines.push(...doneLines(done, todo.exams, t));
   } else {
+    // The first words under the counts: nothing runs out today (when something does, its group "Hari ini" says so; with
+    // something late, "Terlambat" leads and good news would ring false).
+    const dueToday = groups.some((group) => group.group === "today" && group.items.some(todoCounted));
+    if (!nothingToDo && !dueToday && groups[0]?.group !== "overdue") lines.push({ type: "today", key: "today", title: t("mobile.tasks.todayNone") });
     if (during.length) lines.push(...todoCard(during), { type: "gap", key: "gap-during" });
     if (nothingToDo) {
       lines.push({
@@ -248,29 +284,32 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   return (
     <View testID="screen.tasks" style={{ flex: 1, backgroundColor: page }}>
       <BTabHeader title={t("nav.tasks")} />
+      {listed && <View style={{ paddingHorizontal: space[4] }}>{header}</View>}
       <TaskRowWorld>
         {listed && (
-          <FlashList
-            ref={list}
-            data={lines}
-            keyExtractor={(line) => line.key}
-            getItemType={lineType}
-            extraData={putOffOpen}
-            renderItem={renderItem}
-            {...ahead}
-            ListHeaderComponent={header}
-            contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
-            // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
-            refreshControl={
-              <RefreshControl
-                refreshing={pull.refreshing}
-                onRefresh={pull.onRefresh}
-                colors={[theme.color.primary]}
-                progressBackgroundColor={theme.color.surfaceContainerHigh}
-              />
-            }
-            keyboardShouldPersistTaps="handled"
-          />
+          // One filter's list becoming the other's: the old goes, the new fades in (the counts over it stay put).
+          <CrossFade id={show} style={{ flex: 1 }}>
+            <FlashList
+              ref={list}
+              data={lines}
+              keyExtractor={(line) => line.key}
+              getItemType={lineType}
+              extraData={putOffOpen}
+              renderItem={renderItem}
+              {...ahead}
+              contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
+              // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
+              refreshControl={
+                <RefreshControl
+                  refreshing={pull.refreshing}
+                  onRefresh={pull.onRefresh}
+                  colors={[theme.color.primary]}
+                  progressBackgroundColor={theme.color.surfaceContainerHigh}
+                />
+              }
+              keyboardShouldPersistTaps="handled"
+            />
+          </CrossFade>
         )}
       </TaskRowWorld>
     </View>
@@ -304,7 +343,7 @@ const Header = memo(function Header({
 }) {
   const t = useT();
   return (
-    <View style={{ paddingTop: space[2], paddingBottom: space[6] }}>
+    <View style={{ paddingTop: space[2], paddingBottom: space[4] }}>
       <RowProblemBanner />
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
         <View style={{ flex: 1, minWidth: 0 }} accessibilityRole="tablist" accessibilityLabel={t("tasks.show")} testID="segment.show">
@@ -333,6 +372,8 @@ function ShowCounts({
 }) {
   const t = useT();
   const b = useB();
+  // The bar under the picked count slides to the other one: the Student sees where they went.
+  const mark = useSlidingMark(show);
   const cells = [
     { value: "open" as const, label: t("tasks.filter.open"), count: openCount },
     { value: "done" as const, label: t("tasks.filter.done"), count: doneCount },
@@ -342,33 +383,34 @@ function ShowCounts({
       {cells.map((cell) => {
         const picked = cell.value === show;
         return (
-          <PressScale
-            key={cell.value}
-            onPress={() => onShow(cell.value)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: picked }}
-            accessibilityLabel={cell.count === undefined ? cell.label : `${cell.label}, ${cell.count}`}
-            testID={`segment.show.${cell.value}`}
-            style={{ minHeight: 56, justifyContent: "center" }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
-              <Text
-                size="headlineSmall"
-                face="display"
-                weight="extrabold"
-                tabular
-                style={{ color: picked ? b.brand : b.muted, fontSize: 26, lineHeight: 32, letterSpacing: -0.5 }}
-              >
-                {cell.count === undefined ? "–" : String(cell.count)}
-              </Text>
-              <Text size="bodyLarge" weight={picked ? "semibold" : undefined} style={{ color: picked ? b.fg : b.muted }}>
-                {cell.label}
-              </Text>
-            </View>
-            <View style={{ height: 3, borderRadius: 2, marginTop: space[1], backgroundColor: picked ? b.brand : "transparent" }} />
-          </PressScale>
+          <View key={cell.value} onLayout={mark.measure(cell.value)}>
+            <PressScale
+              onPress={() => onShow(cell.value)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: picked }}
+              accessibilityLabel={cell.count === undefined ? cell.label : `${cell.label}, ${cell.count}`}
+              testID={`segment.show.${cell.value}`}
+              style={{ minHeight: 56, justifyContent: "center", paddingBottom: 7 }}
+            >
+              <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[2] }}>
+                <Text
+                  size="headlineSmall"
+                  face="display"
+                  weight="extrabold"
+                  tabular
+                  style={{ color: picked ? b.brand : b.muted, fontSize: 26, lineHeight: 32, letterSpacing: -0.5 }}
+                >
+                  {cell.count === undefined ? "–" : String(cell.count)}
+                </Text>
+                <Text size="bodyLarge" weight={picked ? "semibold" : undefined} style={{ color: picked ? b.fg : b.muted }}>
+                  {cell.label}
+                </Text>
+              </View>
+            </PressScale>
+          </View>
         );
       })}
+      <Animated.View pointerEvents="none" style={[{ position: "absolute", bottom: 4, height: 3, borderRadius: 2, backgroundColor: b.brand }, mark.style]} />
     </View>
   );
 }
@@ -446,16 +488,14 @@ export function CardRow({ first, last, children }: Place & { children: ReactNode
   );
 }
 
-/** On Tugas a row is a slice of its group's white card (v4); on a course's page, a tile of its tonal list. */
+/** On Tugas a row is flat on the page, a hairline between two (both themes alike); on a course's page, a tile of its tonal list. */
 function Slice({ first, last, inCourse, children }: Place & { inCourse: boolean; children: ReactNode }) {
   return inCourse ? (
     <CardRow first={first} last={last}>
       {children}
     </CardRow>
   ) : (
-    <CardSlice first={first} last={last}>
-      {children}
-    </CardSlice>
+    <FlatSlice first={first}>{children}</FlatSlice>
   );
 }
 
@@ -478,6 +518,7 @@ export const LineView = memo(function LineView({
 }) {
   const t = useT();
   const theme = useTheme();
+  const b = useB();
   switch (line.type) {
     case "heading":
       return inCourse ? (
@@ -509,6 +550,16 @@ export const LineView = memo(function LineView({
       return <PutOff putOff={line.putOff} open={putOffOpen} onToggle={() => onPutOff?.()} inCourse={inCourse} />;
     case "gap":
       return <View style={{ height: space[line.size ?? 6] }} />;
+    case "today":
+      // Good news is a mark and a word: nothing runs out today.
+      return (
+        <View testID="tasks.today" style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginLeft: space[1], minHeight: 24 }}>
+          <Icons.CheckCircle size={20} weight="fill" color={b.ok} />
+          <Text size="bodyLarge" weight="medium" style={{ flexShrink: 1, color: b.fg }}>
+            {line.title}
+          </Text>
+        </View>
+      );
     case "empty":
       return (
         <EmptyState icon={<Icons.CheckCircle size={24} color={theme.color.onSecondaryContainer} />} title={line.title} description={line.description}>
@@ -572,22 +623,25 @@ export function NoTasksYet() {
   const { refresh, busy } = useRefresh();
   if (status.state === "connecting" || status.state === "live")
     return (
+      // The list's own shape while it's on its way: a title, the nearest deadline's card, three flat rows led by their day.
       <View accessibilityState={{ busy: true }} accessibilityLabel={t("mobile.tasks.loading")}>
         <View style={{ paddingHorizontal: space[1], marginBottom: space[3] }}>
           <Skeleton width={120} height={20} />
         </View>
-        <View style={{ height: 104, borderRadius: 20, backgroundColor: theme.v4.card, marginBottom: space[3] }} />
+        <View style={{ height: 88, borderRadius: 20, backgroundColor: theme.v4.chip, marginBottom: space[3] }} />
         {[0, 1, 2].map((i) => (
-          <CardSlice key={i} first={i === 0} last={i === 2}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
-              <Skeleton width={44} height={44} style={{ borderRadius: 22 }} />
+          <FlatSlice key={i} first={i === 0}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: space[1], paddingVertical: space[3], minHeight: 68 }}>
+              <View style={{ width: 40, alignItems: "center", gap: 4 }}>
+                <Skeleton width={26} height={22} />
+                <Skeleton width={22} height={10} />
+              </View>
               <View style={{ flex: 1, gap: space[2] }}>
                 <Skeleton width="70%" height={16} />
                 <Skeleton width="45%" height={12} />
               </View>
-              <Skeleton width={56} height={24} style={{ borderRadius: 12 }} />
             </View>
-          </CardSlice>
+          </FlatSlice>
         ))}
       </View>
     );
