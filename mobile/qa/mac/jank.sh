@@ -4,7 +4,7 @@
 #
 #   mobile/qa/mac/run.sh jank.sh [--list "tasks schedule modules grades"] [--swipes 12]
 #
-# tasks: Tugas; schedule: Jadwal; modules: Kuliah → the first course (its Modul tab); grades: Akademik → Nilai.
+# tasks: Tugas; schedule: Jadwal; modules: Kuliah → the first course (its Modul tab); grades: Profil → Nilai.
 set -euo pipefail
 here=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$here/env.sh"
@@ -44,7 +44,7 @@ walk() {
     tasks) tap_id 'tab\.tasks' ;;
     schedule) tap_id 'tab\.schedule' ;;
     modules) tap_id 'tab\.courses' && tap_id 'row\.course\..*' ;;
-    grades) tap_id 'tab\.academic' && tap_id 'row\.nav\.grades' ;;
+    grades) tap_id 'tab\.profile' && tap_id 'row\.nav\.grades' ;;
     *) echo "Unknown list $1" >&2; return 1 ;;
   esac
 }

@@ -14,6 +14,9 @@
 // A flow's id is a Maestro regex matched whole (`row\.module\..*`); a `${VAR}` or `{{n}}` in it stands for any text. It is found when
 // an id of the app is matched by it, or the other way (a templated id of the app matches the flow's literal id).
 //
+// A file whose first lines say `# history: <why>` is a snapshot of an older app (round 1's tabs, the baseline's pictures): read, listed
+// as history, never failed. A file that belongs to another child tonight is in OWNED below: its misses are listed under that child.
+//
 // A step that waits for a screen that isn't built yet carries `# pending: <who>` on its line or in the comment lines right above it
 // (YAML) or on its line (a script): it's reported on its own, and doesn't fail the check.
 import fs from "node:fs";
@@ -27,7 +30,7 @@ const walk = (dir, keep, out = []) => {
   for (const entry of fs.readdirSync(at(dir), { withFileTypes: true })) {
     const rel = path.posix.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name !== "node_modules" && entry.name !== "data" && entry.name !== "report") walk(rel, keep, out);
+      if (entry.name !== "node_modules") walk(rel, keep, out);
     } else if (keep(rel)) out.push(rel);
   }
   return out;
@@ -46,6 +49,13 @@ const ENUMS = [
     prefix: "action.service.",
   },
 ];
+
+/** Files another child edits tonight: their misses are that child's to fix, so they're reported with its name and don't fail. */
+const OWNED = {
+  "mobile/flows/round2/w15-onboarding.yaml": "the first minute",
+  "mobile/flows/judge/first-run.yaml": "the first minute",
+  "mobile/qa/flows/before-welcome.yaml": "the first minute",
+};
 
 const FILE_KINDS = /\.(?:tsx?|mjs)$/;
 const sourceFiles = [...walk("mobile/src", (f) => FILE_KINDS.test(f)), ...walk("mobile/app", (f) => FILE_KINDS.test(f))];
@@ -190,7 +200,7 @@ const closest = (id) => {
 // ------------------------------------------------------------------------------------------------- the flows' ids
 
 const FLOW_KINDS = [...new Set([...APP.keys()].map((s) => s.split(".")[0]))];
-const ID_TOKEN = new RegExp(`(?<![\\w.\\-/])((?:${FLOW_KINDS.join("|")})\\.[\\w.:\${}()|*+?\\\\-]+)`, "g");
+const ID_TOKEN = new RegExp(`(?<![\\w.\\-/])((?:${FLOW_KINDS.join("|")})\\\\?\\.[\\w.:\${}()|*+?\\\\-]+)`, "g");
 const PENDING = /#\s*pending:\s*(.+?)\s*$/;
 
 /** A YAML flow's `id:` values: each is `{ line, id, pending }`. */
@@ -266,8 +276,8 @@ function tokenIds(file) {
 /** Every file that taps or waits for an id: the flows, the QA scripts, the CI script and the tap plans. */
 function flowFiles() {
   const files = [
-    ...walk("mobile/flows", (f) => /\.(?:ya?ml|sh)$/.test(f) && !f.includes("/expected/")),
-    ...walk("mobile/qa", (f) => /\.(?:ya?ml|sh|mjs|txt)$/.test(f) && !/flows-check|superapp-flows|testids-now|words-now\.txt/.test(f)),
+    ...walk("mobile/flows", (f) => /\.(?:ya?ml|sh)$/.test(f) && !f.includes("/expected/") && !f.includes("/data/")),
+    ...walk("mobile/qa", (f) => /\.(?:ya?ml|sh|mjs|txt)$/.test(f) && !/flows-check|superapp-flows|testids-now|words-now\.txt|\/report\//.test(f)),
     "mobile/flows/screens.json",
     "scripts/ci/mobile-e2e.sh",
   ];
@@ -287,7 +297,15 @@ export function check() {
       rows.push({ ...f, found: exists(f.id) });
     }
     for (const row of rows) if (!row.found) row.closest = closest(row.id);
-    flows.push({ file, ids: rows });
+    const history = fs
+      .readFileSync(at(file), "utf8")
+      .split("\n")
+      .slice(0, 4)
+      .some((l) => /^\s*(?:#|\/\/)\s*history:/.test(l));
+    const owner = OWNED[file] ?? null;
+    for (const row of rows) if (!row.found && !row.pending && owner) row.pending = `${owner}'s file`;
+    if (history) for (const row of rows) if (!row.found) row.history = true;
+    flows.push({ file, ids: rows, history, owner });
   }
   return flows;
 }
@@ -302,19 +320,20 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     process.exit(0);
   }
   const flows = check();
-  const missing = flows.flatMap((f) => f.ids.filter((r) => !r.found && !r.pending).map((r) => ({ file: f.file, ...r })));
+  const missing = flows.flatMap((f) => f.ids.filter((r) => !r.found && !r.pending && !r.history).map((r) => ({ file: f.file, ...r })));
   const pending = flows.flatMap((f) => f.ids.filter((r) => !r.found && r.pending).map((r) => ({ file: f.file, ...r })));
   if (args.includes("--json")) {
     console.log(JSON.stringify({ flows, missing, pending }, null, 2));
   } else {
     for (const flow of flows) {
       if (!flow.ids.length) continue;
-      const miss = flow.ids.filter((r) => !r.found && !r.pending);
+      const miss = flow.ids.filter((r) => !r.found && !r.pending && !r.history);
       const wait = flow.ids.filter((r) => !r.found && r.pending);
-      if (args.includes("--missing") && !miss.length && !wait.length) continue;
-      const verdict = miss.length ? "MISSING" : wait.length ? "pending" : "ok";
+      const old = flow.ids.filter((r) => !r.found && r.history);
+      if (args.includes("--missing") && !miss.length && !wait.length && !old.length) continue;
+      const verdict = miss.length ? "MISSING" : wait.length ? "pending" : old.length ? "history" : "ok";
       console.log(
-        `${verdict.padEnd(7)} ${flow.file}  (${new Set(flow.ids.map((r) => r.id)).size} ids${miss.length ? `, ${miss.length} missing` : ""}${wait.length ? `, ${wait.length} pending` : ""})`,
+        `${verdict.padEnd(7)} ${flow.file}  (${new Set(flow.ids.map((r) => r.id)).size} ids${miss.length ? `, ${miss.length} missing` : ""}${wait.length ? `, ${wait.length} pending` : ""}${old.length ? `, ${old.length} gone, in a snapshot of an older app` : ""})`,
       );
       for (const r of miss) console.log(`        ${r.line}: ${r.id}  ->  closest: ${r.closest ?? "none"}`);
       for (const r of wait) console.log(`        ${r.line}: ${r.id}  (pending: ${r.pending})`);

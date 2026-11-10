@@ -158,7 +158,19 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 
 # A17: Settings in English and dark, then back as it was. Each choice waits to show as chosen: the whole app draws
-# again on a theme or language change, and a tap in the middle of that is lost.
+# again on a theme or language change, and a tap in the middle of that is lost. Settings is behind Profil's "Akun" rows (no
+# avatar in a top bar any more): Profil tab, then its Settings row.
+- tapOn:
+    id: tab.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: action.account
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: action.account
 - extendedWaitUntil:

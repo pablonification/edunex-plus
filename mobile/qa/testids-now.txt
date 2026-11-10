@@ -20,6 +20,7 @@ action.announcementJoin
 action.announcements
 action.attach
 action.back
+action.back.report
 action.bills.openSix
 action.calendarGroup.<group>
 action.calendarRetry
@@ -35,6 +36,7 @@ action.clearSearch
 action.comment
 action.commentCancel
 action.commentSend
+action.copyLineId
 action.copyQuestion
 action.course
 action.courseAbout
@@ -75,6 +77,8 @@ action.fix.done
 action.fix.mine
 action.fix.notMine
 action.fix.restore
+action.githubOpen
+action.githubOpenAgain
 action.grade.<code>
 action.grade.<grade>
 action.gradeAdd
@@ -143,6 +147,18 @@ action.removeCourse
 action.removeFile
 action.removeTerm.<term>
 action.report
+action.reportAskAsk
+action.reportAskAuto
+action.reportAskClose
+action.reportAskLook
+action.reportAskNever
+action.reportAskSee
+action.reportDetails
+action.reportDone
+action.reportGitHub
+action.reportLine
+action.reportRelay
+action.reportShare
 action.resetCourseColors
 action.resetPlan
 action.saveDraft
@@ -150,6 +166,7 @@ action.saveInstead
 action.scanHome
 action.scheduleMenu
 action.search
+action.seeIssue
 action.service.alerts
 action.service.bills
 action.service.calendar
@@ -180,6 +197,7 @@ action.signOutAll
 action.signOutAllConfirm
 action.snooze
 action.standIn.<code>
+action.storySend
 action.submit
 action.submitAnyway
 action.submitConfirm
@@ -235,6 +253,7 @@ card.planSummary
 card.presenceOpen.<code>
 card.presenceStep
 card.profile
+card.reportAsk
 card.rules
 card.signInSix
 card.sitting.<id>
@@ -277,6 +296,8 @@ input.gradeCutoff.<letter>
 input.gradeScore.<id>
 input.gradeWeight.<id>
 input.licences
+input.note
+input.story
 input.target
 label.place
 line.kuliahDay
@@ -406,6 +427,7 @@ screen.needs
 screen.page.<site>
 screen.plan.<current>
 screen.profile
+screen.report
 screen.schedule
 screen.search
 screen.services

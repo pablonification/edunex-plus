@@ -13,9 +13,16 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - assertVisible:
     id: screen.home
-# v4's Beranda: the greeting with the demo student's name, and the class on now from the demo's timetable.
-- assertVisible: "(Pagi|Siang|Sore|Malam), Dimas"
+# The super-app layout's Beranda (mobile/qa/superapp-decisions.md): the search bar, the class on now from the demo's
+# timetable, the strip about the Student and the service grid. There is no greeting any more (the search bar took its
+# place as the first thing), so it isn't asserted.
 - assertVisible:
-    id: card.now
+    id: home.search
+- assertVisible:
+    id: home.now
 - assertVisible: "Ekonomi dan Inovasi dalam Perencanaan"
+- assertVisible:
+    id: home.strip
+- assertVisible:
+    id: home.grid
 - takeScreenshot: smoke

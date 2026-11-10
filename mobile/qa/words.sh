@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # How many words a tab's first screen shows (the judge's measure: a tab's first screen ≤ ~45 words):
 #
-#   mobile/qa/words.sh <serial> <home|schedule|tasks|courses|academic> [--keep]
+#   mobile/qa/words.sh <serial> <home|schedule|tasks|courses|profile> [--keep]
 #
 # Starts the signed-in demo fresh (its data cleared, Android's light theme, the font at 1.0), waits for its first
 # read to settle, opens the tab, and dumps the screen as it first shows (no scrolling) with uiautomator. words.mjs
@@ -23,7 +23,7 @@ serial=${1:-}
 tab=${2:-}
 keep=0
 [ "${3:-}" = --keep ] && keep=1
-case "$tab" in home | schedule | tasks | courses | academic) ;; *)
+case "$tab" in home | schedule | tasks | courses | profile) ;; *)
   sed -n '2,10p' "$0"
   exit 2
   ;;
