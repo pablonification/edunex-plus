@@ -7,6 +7,10 @@
 //   while any is past its limit, else amber, else a check. It opens Kuliah, which leads with the same courses.
 // Round 3: the three are one family, a figure over two words with the noun ("16 Okt / tugas terdekat", "3 / absen
 // habis", "7 hari / ke UTS").
+// Round 4: each tile is read once. The date carries its Task and hour under it ("16 Okt / Tugas 02, 23:59"), and the
+// absences lead with the worst: the courses past their limit, in red, over "lewat batas" (Kuliah's own word for them);
+// only when none is past it, the ones with none left, in amber, over "absen habis". Never the two added into one
+// figure no row on Kuliah shows.
 // - The next exam: counted to the exam's own day with the function Tugas and Ujian use (`countdown`), so the three
 //   can't disagree. It opens Ujian.
 // While the first read runs (or the demo's first sync) no tile answers: each stands as a neutral shape of its final
@@ -55,6 +59,28 @@ export function soonestDue(items: readonly TodoItem[], now: number): Due {
   if (next?.at != null) return { kind: "next", at: next.at, title: next.task.title };
   return open.length > 0 ? { kind: "undated", count: open.length } : { kind: "none" };
 }
+
+/**
+ * A Task's name as short as a tile's one line holds, with its hour when both fit: "Tugas 02, 23:59". The name is the
+ * title up to its first ":" (or " - ", "("), and of that a kind and its number when it starts so ("Tugas 02" of
+ * "Tugas 02 Bab II"), else its whole words up to the line's length.
+ */
+export function tileName(title: string, time: string): string {
+  const head = (title.split(/:| - | – |\(/)[0] ?? title).trim();
+  const numbered = head.match(/^\p{L}+ \d+/u)?.[0];
+  let name = numbered ?? head;
+  if (name.length > LABEL) {
+    let short = "";
+    for (const word of name.split(/\s+/)) {
+      if (`${short} ${word}`.trim().length > LABEL) break;
+      short = `${short} ${word}`.trim();
+    }
+    name = short || name;
+  }
+  return name.length + time.length + 2 <= LABEL + 1 ? `${name}, ${time}` : name;
+}
+/** The letters a tile's label holds on one line at font size 1.3 (the kit shrinks it a little, then cuts it). */
+const LABEL = 14;
 
 /** The next exam with a day of its own (never the start of "Masa UTS": Tugas and Ujian count to the exam). */
 export function nextExam(items: readonly TodoItem[], now: number): { kind: ExamKind; at: number } | null {
@@ -152,7 +178,7 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
     <StatTile
       key="tasks"
       value={f.dayMonth(due.at)}
-      label={t("mobile.strip.next")}
+      label={tileName(due.title, f.time(due.at))}
       accessibilityLabel={t("mobile.strip.nextSpoken", { date: f.dayMonth(due.at), title: due.title })}
       onPress={openTasks}
       testID="action.strip.tasks"
@@ -169,17 +195,28 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
   ) : (
     <StatTile key="tasks" mark value="" label={t("mobile.strip.tasksNone")} onPress={openTasks} testID="action.strip.tasks" />
   );
-  // Every course with no absence left, at the limit or past it (the ones Kuliah leads with): one figure, one label
-  // that is true of each. Red when any is past its limit, amber otherwise.
-  const out = over + none;
+  // The worst first, and never two states in one figure: the courses past their limit in red; only when there is
+  // none, the courses with no absence left in amber. Each figure is a count Kuliah shows under the same word.
   const absences =
-    out > 0 ? (
+    over > 0 ? (
       <StatTile
         key="absences"
-        value={String(out)}
-        tone={over > 0 ? "danger" : "warn"}
+        value={String(over)}
+        tone="danger"
+        label={t("mobile.strip.over")}
+        accessibilityLabel={[t("mobile.strip.overSpoken", { count: over }), none > 0 ? t("mobile.strip.outSpoken", { count: none }) : null]
+          .filter(Boolean)
+          .join(", ")}
+        onPress={openCourses}
+        testID="action.strip.absences"
+      />
+    ) : none > 0 ? (
+      <StatTile
+        key="absences"
+        value={String(none)}
+        tone="warn"
         label={t("mobile.strip.out")}
-        accessibilityLabel={t("mobile.strip.outSpoken", { count: out })}
+        accessibilityLabel={t("mobile.strip.outSpoken", { count: none })}
         onPress={openCourses}
         testID="action.strip.absences"
       />
