@@ -110,15 +110,10 @@ export const WeekStrip = memo(function WeekStrip({
                     {String(Number(day.slice(8)))}
                   </Text>
                 </View>
-                <Text
-                  size="labelSmall"
-                  weight="semibold"
-                  tabular
-                  importantForAccessibility="no"
-                  style={{ color: on ? v.brandInk : v.muted, fontSize: 12, lineHeight: 16, minHeight: 16 }}
-                >
-                  {count ? String(count) : ""}
-                </Text>
+                {/* One small dot for "has classes", nothing more: a bare count under a date read as a mystery number. */}
+                <View importantForAccessibility="no" style={{ height: 16, alignItems: "center", justifyContent: "center" }}>
+                  {count > 0 && <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: on ? v.brandInk : v.muted }} />}
+                </View>
               </PressScale>
             </View>
           );
