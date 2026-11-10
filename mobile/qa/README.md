@@ -170,6 +170,11 @@ Release builds only (build.sh's), never a dev client. Each script prints a plain
 | f | `shots.sh <flow> [--theme dark] [--font 1.3] [--record x.mp4]` | a flow's `takeScreenshot` steps as webp (quality 80, ≤1080 px tall), and a recording of it (the emulator's own, from the host, 60 fps, made into MP4; `--recorder phone` uses Android's `screenrecord`). Light/dark is Android's (`cmd uimode night`), passed to the flow as `${THEME}`; `--font` is `font_scale`. |
 | | `perf-summary.mjs <logcat>...` | every script runs it on its logcat: the app's `[perf] first-data / screen / tab / js-block` lines (count, median, max per label), or a line saying the build has none. |
 
+### Reading a screen's dump (no emulator needed)
+
+`node mobile/qa/touch-read.mjs <dump>...` lists every tappable thing under 48 dp (420 dpi: 126 px) or with no name TalkBack reads, one line each (id or text, size in dp, where on screen); exit 1 when any. A dump can't see `hitSlop`, so check a small one's code before counting it a miss.
+`node mobile/qa/layout-read.mjs <dump>` judges Beranda's first screen; `node mobile/qa/contrast-read.mjs` checks the colour pairs in both themes. Dumps are Maestro's `hierarchy` JSON or `uiautomator dump` XML.
+
 ### How taps.sh measures (c)
 
 `taps/plan.txt` lists steps from Beranda: tap a testID, or press Back. A discovery pass walks it once and finds
