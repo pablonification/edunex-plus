@@ -1,17 +1,21 @@
 // Semua layanan (direction B), behind Beranda's "Lainnya": a search field, then every service the app has in named
 // groups (Harian, Akademik, Aplikasi), four across, the same solid tiles as Beranda's, each service once. Typing
-// narrows the groups to the services whose name holds what was typed; a group with none left goes.
+// narrows the groups to the services whose name holds what was typed; a group with none left goes. The tiles that
+// answer on Beranda (Nilai, UKT, KRS) answer here too, from the same hooks (./tags.ts). The field is quiet: a hairline
+// on the page, not a filled bar, so the tiles lead.
 import { useState } from "react";
 import { TextInput, View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
 import { BHeading, ServiceRow, ServiceTile, useB } from "../../ui/b";
 import { Fluent } from "../../ui/fluent";
+import { useBottomInset } from "../../ui/insets";
 import { Page } from "../../ui/layout";
 import { Text, useFieldColors } from "../../ui/text";
 import { space } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { SERVICE_GROUPS, type Service } from "./list";
 import { useOpenService } from "./open";
+import { useServiceTags } from "./tags";
 
 /** A group's services in rows of four. */
 function rowsOf(services: readonly Service[]): Service[][] {
@@ -25,6 +29,8 @@ export function ServicesScreen() {
   const b = useB();
   const open = useOpenService();
   const field = useFieldColors();
+  const tags = useServiceTags();
+  const bottom = useBottomInset();
   const [query, setQuery] = useState("");
   const asked = query.trim().toLowerCase();
   const groups = SERVICE_GROUPS.map((group) => ({
@@ -37,7 +43,9 @@ export function ServicesScreen() {
         style={{
           height: 48,
           borderRadius: 24,
-          backgroundColor: b.soft,
+          borderWidth: 1,
+          borderColor: b.line,
+          backgroundColor: b.page,
           flexDirection: "row",
           alignItems: "center",
           gap: space[3],
@@ -45,7 +53,7 @@ export function ServicesScreen() {
           marginTop: space[1],
         }}
       >
-        <Fluent name="Search20Regular" color={b.fg2} />
+        <Fluent name="Search20Regular" color={b.muted} />
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -71,6 +79,7 @@ export function ServicesScreen() {
                     icon={service.icon}
                     tone={service.tone}
                     label={t(service.label)}
+                    tag={tags[service.id] ?? undefined}
                     lines={2}
                     onPress={() => open(service)}
                     testID={`action.service.${service.id}`}
@@ -81,13 +90,14 @@ export function ServicesScreen() {
           </View>
         </View>
       ))}
-      {/* The page's own end keeps the last row clear of the phone's bar (Page: 40 dp and the bar's height). Every name is
+      {/* The last row's names clear of the phone's own bar: its height and a row's gap after the last group. Every name is
           one line at the usual font size; at a bigger one it may take two, both whole. */}
       {groups.length === 0 && (
         <Text size="bodyLarge" style={{ color: b.muted, textAlign: "center", marginTop: space[8] }}>
           {t("mobile.services.none", { query: query.trim() })}
         </Text>
       )}
+      <View style={{ height: space[6] + bottom }} />
     </Page>
   );
 }

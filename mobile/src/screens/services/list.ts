@@ -52,8 +52,10 @@ export const HOME_SERVICES: readonly Service[] = [material, exams, grades, calen
 export const MORE: Service = { id: "more", label: "mobile.tab.more", icon: "More", tone: "grey", open: "/services" };
 
 export const SERVICE_GROUPS: readonly { id: string; title: StringKey; services: readonly Service[] }[] = [
-  { id: "daily", title: "mobile.services.group.daily", services: [material, exams, presence, month, needs] },
-  { id: "academic", title: "mobile.services.group.academic", services: [grades, krs, bills, calendar, planner, curriculum] },
+  // Rows that fill (4, 4 + 3, 4): fifteen services leave one row short, never one tile alone. "Jadwal bulanan" sits by
+  // "Kalender" (both are a month to look at), so Harian is a week's four and Akademik the term's seven.
+  { id: "daily", title: "mobile.services.group.daily", services: [material, exams, presence, needs] },
+  { id: "academic", title: "mobile.services.group.academic", services: [grades, krs, bills, planner, curriculum, calendar, month] },
   {
     id: "app",
     title: "mobile.services.group.app",
