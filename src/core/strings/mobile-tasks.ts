@@ -60,7 +60,7 @@ export const mobileTasksStrings = {
   // superapp: Tugas
   // The first words under the counts when nothing runs out today (a group named "Hari ini" says it when something does).
   "mobile.tasks.today": { id: "Hari ini", en: "Today" },
-  "mobile.tasks.todayNone": { id: "Tidak ada tenggat hari ini", en: "Nothing due today" },
+  "mobile.tasks.todayNone": { id: "Hari ini kosong", en: "Nothing due today" },
   // After a hand-in, where Kumpulkan was: what's next in one tap, or the way to see it under Selesai.
   "mobile.tasks.movedToDone": { id: "Sudah masuk Selesai", en: "Now under Done" },
   "mobile.tasks.see": { id: "Lihat", en: "See" },
@@ -72,8 +72,11 @@ export const mobileTasksStrings = {
   // present, a Presensi that closed without it, a window that is short ("Hanya 2 jam").
   "mobile.tasks.handedInOn": { id: "Terkumpul {date}", en: "Handed in {date}" },
   "mobile.tasks.handedInLate": { id: "terlambat", en: "late" },
-  "mobile.tasks.present": { id: "Hadir", en: "Present" },
-  "mobile.tasks.notPresent": { id: "Tidak hadir", en: "Not present" },
+  // After "Terkumpul 18 Sep · ": a hand-in inside the Presensi window counts as attendance, said in the line itself.
+  "mobile.tasks.present": { id: "dihitung hadir", en: "counted present" },
+  "mobile.tasks.notPresent": { id: "tidak dihitung hadir", en: "not counted present" },
+  // The button on "Diubah dosen 22 Sep": it marks the change as checked, and the notice goes.
+  "mobile.tasks.markChecked": { id: "Tandai dicek", en: "Mark checked" },
   "mobile.tasks.presenceMissed": { id: "Presensi terlewat", en: "Presence missed" },
   "mobile.tasks.shortWindow": { id: "Hanya {duration}", en: "Only {duration}" },
   // A lecturer's edit as one row ("Diubah dosen 22 Sep") with "Sudah kucek"; its info button's name for TalkBack.

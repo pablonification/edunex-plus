@@ -6,7 +6,7 @@
 // A term's exams are a few dozen lines at most, so the page is a plain ScrollView: every line sits where the one before
 // it ends, with no measured or guessed heights (the virtualised list left a row-sized hole under a two-line row the
 // first time the page arrived).
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
 import { RefreshControl, ScrollView, View } from "react-native";
 import { useCourseColor, useTermCourses } from "../../../../src/app/courses";
 import { useExamMarkList } from "../../../../src/app/exam-marks";
@@ -159,8 +159,6 @@ function Lead({ item }: { item: ExamItem }) {
   const fill = THEMES.light.courseTile(tone).ink;
   const name = useExamName()(item.exam);
   const { day, time, place } = factsOf(t, f, item);
-  // What tells it from its course's other exam ("Take-home") sits in the title line, so it isn't said again as a place.
-  const note = examNote(t, item.part);
   const at = item.at ?? now;
   const left = countdown(t, now, at);
   // On now: the word, no figure. Ahead: how long is left, the number big.
@@ -171,7 +169,7 @@ function Lead({ item }: { item: ExamItem }) {
       feel="card"
       onPress={() => go({ screen: "exam", examId: item.exam.id })}
       testID="card.exam.next"
-      accessibilityLabel={factsLabel(name, note, figure, day, time, place !== note && place)}
+      accessibilityLabel={factsLabel(name, figure, day, time, place)}
       style={{ backgroundColor: fill, borderRadius: RADIUS, overflow: "hidden", padding: space[5], marginTop: space[2], gap: space[4] }}
     >
       {/* The name, and the chevron every row that opens ends in: the block opens the exam's page. */}
@@ -183,7 +181,7 @@ function Lead({ item }: { item: ExamItem }) {
           numberOfLines={2}
           style={{ flex: 1, color: on, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 }}
         >
-          {factsLabel(name, note)}
+          {name}
         </Text>
         <View style={{ height: 26, justifyContent: "center" }}>
           <Icons.ChevronRight size={20} color={on} />
@@ -207,7 +205,7 @@ function Lead({ item }: { item: ExamItem }) {
         <View style={{ flex: 1, minWidth: 0, gap: space[2] }}>
           <Fact icon="Calendar">{day}</Fact>
           {time && <Fact icon="Clock">{time}</Fact>}
-          {place && place !== note && <Fact icon="MapPin">{place}</Fact>}
+          {place && <Fact icon="MapPin">{place}</Fact>}
         </View>
       </View>
     </Tap>
@@ -242,20 +240,17 @@ function Heading({ line, onFold }: { line: Extract<ExamLine, { type: "heading" }
 
 /**
  * A row's start: the day of the month big over its month (red once its moment is behind), then the course's colour as
- * a bar. No day yet: no date column to fill, so the course's own glyph stands there and the names stay in one column.
+ * a bar. No day yet: the column stays empty (nothing there to read as a date) and the names stay in one column.
  */
 function DateMark({ at, code, quiet = false, late = false }: { at: number | null; code: string; quiet?: boolean; late?: boolean }) {
   const f = useFormat();
   const b = useB();
   const theme = useTheme();
   const tone = useCourseColor()(code);
-  const courses = useTermCourses();
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
       <View style={{ width: DATE_WIDTH, alignItems: "center" }}>
-        {at === null ? (
-          <CourseGlyph code={code} name={courses?.find((c) => c.code === code)?.name} size={24} />
-        ) : (
+        {at === null ? null : (
           <>
             <Text face="display" weight="bold" tabular style={{ color: late ? b.red : quiet ? b.fg2 : b.fg, fontSize: 20, lineHeight: 24 }}>
               {String(Number(wibDay(at).slice(8)))}
@@ -275,7 +270,6 @@ function Row({
   exam,
   at,
   meta,
-  note,
   last,
   quiet,
   late,
@@ -283,16 +277,14 @@ function Row({
 }: {
   exam: Exam;
   at: number | null;
-  meta: string | undefined;
-  /** What tells it from its course's other exam, beside its name. */
-  note?: string | null;
+  meta: ReactNode;
   last: boolean;
   quiet?: boolean;
   late?: boolean;
   label: string;
 }) {
   const { go } = useNav();
-  const name = factsLabel(useExamName()(exam), note);
+  const name = useExamName()(exam);
   return (
     <BRow
       testID={`row.exam.${exam.id}`}
@@ -322,16 +314,32 @@ function AheadRow({ item, last }: { item: ExamItem; last: boolean }) {
   const others = item.sittings && item.sittings.length > 1 ? [...new Set(item.sittings.map((s) => f.dayMonth(s.start)))].slice(1) : [];
   const also = others.length ? t("mobile.exams.alsoOn", { days: f.list(others) }) : null;
   const onNow = item.at !== null && item.at <= now && !item.late;
-  const meta = factsLabel(onNow && t("home.today.now"), item.at === null ? day : f.weekdayShort(item.at), also, time, place !== apart && place);
-  return <Row exam={item.exam} at={item.at} meta={meta} note={apart} last={last} late={item.late} label={factsLabel(day, time, place !== apart && place)} />;
+  // What tells it from its course's other exam ("Take-home") leads the line, as on Tugas: never trailing the name.
+  const meta = factsLabel(onNow && t("home.today.now"), apart, item.at === null ? day : f.weekdayShort(item.at), also, time, place !== apart && place);
+  return <Row exam={item.exam} at={item.at} meta={meta} last={last} late={item.late} label={factsLabel(apart, day, time, place !== apart && place)} />;
 }
 
-/** No day yet (the heading says so): its name, and its exam period when ITB's calendar gives one. Nothing else. */
+/**
+ * No day yet (the heading says so): its name, and under it the one thing that tells two of them apart, its exam period
+ * ("Masa UTS 12–16 Okt"), in the page's ink with the course's glyph, where every other row's line starts.
+ */
 function UndatedRow({ exam, last }: { exam: Exam; last: boolean }) {
   const t = useT();
   const f = useFormat();
+  const b = useB();
+  const courses = useTermCourses();
   const period = exam.week && (exam.kind === "UTS" || exam.kind === "UAS") ? examWeekLabel(t, f, exam.kind, exam.week) : undefined;
-  return <Row exam={exam} at={null} meta={period} last={last} label={factsLabel(t("exam.noDate"), period)} />;
+  const meta = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+      <CourseGlyph code={exam.courseCode} name={courses?.find((c) => c.code === exam.courseCode)?.name} size={16} />
+      {period ? (
+        <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ flexShrink: 1, color: b.fg2 }}>
+          {period}
+        </Text>
+      ) : null}
+    </View>
+  );
+  return <Row exam={exam} at={null} meta={meta} last={last} label={factsLabel(t("exam.noDate"), period)} />;
 }
 
 /** An exam behind the Student: when and where it was sat, as Tugas's Selesai says it. */

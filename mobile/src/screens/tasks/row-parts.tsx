@@ -395,26 +395,13 @@ const leafOf = (date: string): [string, string] => [date.match(/\d+/)?.[0] ?? da
 /**
  * The day a row is about, leading it as a calendar's leaf, and the only thing in that column: the weekday small over
  * "15" in the course's colour over "Okt". Tugas reads down this column as an agenda, which no other tab has. With no
- * day set the column holds the course's glyph (the row says "Belum ada tanggal" in words, or its group does) and the
- * row sorts last. `big`: the lead card's.
+ * day set the column is empty (the row says "Belum ada tanggal" in words, or its group does: nothing stands there to
+ * be read as a date) and the row sorts last. `big`: the lead card's.
  */
-function DateLeaf({
-  date,
-  weekday,
-  ink,
-  big = false,
-  empty,
-}: {
-  date: string | null;
-  weekday?: string | null;
-  ink: string;
-  big?: boolean;
-  /** What holds the column while no day is set: the course's glyph, so the row sits in the same columns as the others. */
-  empty?: ReactNode;
-}) {
+function DateLeaf({ date, weekday, ink, big = false }: { date: string | null; weekday?: string | null; ink: string; big?: boolean }) {
   const v = useTheme().v4;
   const width = useTextWidth(big ? 48 : 40);
-  if (date === null) return <View style={{ width, alignItems: "center" }}>{empty}</View>;
+  if (date === null) return <View style={{ width }} />;
   const [day, month] = leafOf(date);
   const small = { color: big ? v.fg2 : v.muted, fontSize: 12, lineHeight: 16, letterSpacing: 0 } as const;
   return (
@@ -511,19 +498,15 @@ export function TaskLine({
         minHeight: 68,
       }}
     >
-      {leaf ? (
-        <DateLeaf date={date} weekday={weekday} ink={ink} empty={code ? <CourseGlyph code={code} name={course} size={24} /> : null} />
-      ) : (
-        (leading ?? (code ? <CourseTile code={code} name={course} /> : null))
-      )}
+      {leaf ? <DateLeaf date={date} weekday={weekday} ink={ink} /> : (leading ?? (code ? <CourseTile code={code} name={course} /> : null))}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
           {title}
         </Text>
         {meta ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
-            {/* The course's own glyph, once per row: in the day's column when there's no day. */}
-            {code && date != null ? <CourseGlyph code={code} name={course} size={16} /> : null}
+            {/* The course's own glyph, once per row, beside its words: never in the day's column, which holds a day or nothing. */}
+            {code && leaf ? <CourseGlyph code={code} name={course} size={16} /> : null}
             <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted, flexShrink: 1 }}>
               {meta}
             </Text>
@@ -559,7 +542,7 @@ export function IconTile({ children }: { children: ReactNode }) {
 /**
  * The soonest thing ahead as Tugas's one big card, a Task or an exam: in the course's tint, its day in the same column
  * as every row under it, and beside it three short lines. What it is ("Tugas" / "Ujian", with the kind's glyph) and how
- * long is left, quiet, once; its name; then its time, right by its day, and whose it is. Nothing is cut: the name and
+ * long is left, quiet, once; its name; then its time, right by its day, and whose or where it is; the rows' chevron. Nothing is cut: the name and
  * the last line wrap (font size 1.3, the demo's longest course name). The same item, target and spoken name as its row
  * would have: it isn't listed again under it.
  */
@@ -595,7 +578,7 @@ export function HeroCard({
   kindLabel: string;
   /** "23:59", "11:00–13:00": it goes with the date, first on its line. */
   time: string;
-  /** Whose it is, after the time: the course's short name (an exam's name says it already). */
+  /** After the time: whose it is (a Task's course), or where and how (an exam's room, "Take-home"). */
   meta?: string | null;
   kind?: RowKind;
 }) {
@@ -624,10 +607,17 @@ export function HeroCard({
       <DateLeaf date={date} weekday={weekday} ink={ink} big />
       <View style={{ flex: 1, minWidth: 0 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <KindIcon kind={kind} color={ink} />
-          <Text size="labelLarge" weight="semibold" numberOfLines={1} style={{ flex: 1, color: ink }}>
-            {kindLabel}
-          </Text>
+          {/* What it is, before anything else: the kind as the card's one solid mark (the card's two colours, swapped). */}
+          <View style={{ flex: 1, flexDirection: "row" }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: ink, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}
+            >
+              <KindIcon kind={kind} color={tint} size={14} />
+              <Text size="labelLarge" weight="bold" numberOfLines={1} style={{ color: tint }}>
+                {kindLabel}
+              </Text>
+            </View>
+          </View>
           {/* How long is left, quiet, on the one card that says it while it's still calm. */}
           {away.late && <Icons.AlertTriangle size={14} weight="bold" color={v.redFg} />}
           <Text size="bodyMedium" weight="medium" tabular style={{ color: away.late ? v.redFg : v.fg2 }}>
@@ -641,6 +631,8 @@ export function HeroCard({
           {meta ? `${time} · ${meta}` : time}
         </Text>
       </View>
+      {/* It opens, as every row under it: the same chevron. */}
+      <Icons.ChevronRight size={16} color={v.fg2} />
     </PressScale>
   );
 }
