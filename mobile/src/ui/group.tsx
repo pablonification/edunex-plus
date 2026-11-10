@@ -1,8 +1,8 @@
-// v4's building blocks for a screen past Beranda (round 2; DESIGN.md "Round 2's look: v4"): a section's heading in Plus
-// Jakarta Sans, a white card on v4's grey page (`Panel`), a group of rows in one card with hairlines inset past the
-// leading tile (`Group`, `GroupRow`), a tonal pill for a row's one status (`Pill`), a tinted icon tile for what isn't a
+// Building blocks for a screen past Beranda (DESIGN.md, "Surfaces"): a section's heading in Plus Jakarta Sans, a
+// section's block flat on the page (`Panel`: the page's own colour in light and dark, a fill only with a `tint`), rows
+// flat on the page with hairlines inset past the leading tile (`Group`, `GroupRow`), a tonal pill for a row's one status (`Pill`), a tinted icon tile for what isn't a
 // course (`IconTile`), and a big number that counts up once (`Figure`; side by side in a `FigureRow`). Every target springs (press.tsx). A screen that
-// uses them sets its `Page`'s `background` to `theme.v4.page`, so its top bar sits on the same grey.
+// uses them sets its `Page`'s `background` to `theme.v4.page`, so its top bar sits on the same colour.
 import { createContext, type ReactNode, useContext } from "react";
 import { type AccessibilityProps, type StyleProp, View, type ViewStyle } from "react-native";
 import { CountUp } from "./expressive";
@@ -36,7 +36,10 @@ export function Heading({ children, first = false, trailing }: { children: strin
   );
 }
 
-/** A white card on the page; with `onPress` the whole card is one target that gives on a press. */
+/**
+ * A section's block, flat on the page in both themes (no box, no shadow); with a `tint` it is a card: the one thing
+ * that leads. With `onPress` the whole block is one target that gives on a press.
+ */
 export function Panel({
   children,
   onPress,
@@ -51,11 +54,12 @@ export function Panel({
   onLongPress?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
-  /** A tinted card instead of the white one (a course's tint, a state's background). */
+  /** A card: a course's tint, a state's background. Without it the block is flat. */
   tint?: string;
 } & AccessibilityProps) {
-  const v = useTheme().v4;
-  const surface: ViewStyle = { backgroundColor: tint ?? v.card, borderRadius: CARD_RADIUS, overflow: "hidden" };
+  // Flat: no fill at all unless tinted, so nothing can box it should page and card ever part again. The corner stays
+  // for a caller that fills it through `style`.
+  const surface: ViewStyle = { backgroundColor: tint, borderRadius: CARD_RADIUS, overflow: "hidden" };
   if (onPress || onLongPress)
     return (
       <PressScale onPress={onPress} onLongPress={onLongPress} testID={testID} style={[surface, style]} {...a11y}>
@@ -69,7 +73,7 @@ export function Panel({
   );
 }
 
-/** Rows in one white card. */
+/** Rows that belong together, flat on the page: an inset hairline between them, no card. */
 export function Group({ children, testID, style }: { children: ReactNode; testID?: string; style?: StyleProp<ViewStyle> }) {
   return (
     <Panel testID={testID} style={style}>

@@ -1,89 +1,98 @@
-// Fluent UI System Icons (Microsoft, MIT): the path data of the few glyphs direction B draws, copied by a script from
-// node_modules/@fluentui/react-icons/lib/atoms/headless-svg. A prototype's file: the app's final icon module replaces it.
-// Each key is Fluent's own name: the glyph, the size it was drawn for, filled or regular.
+// Fluent UI System Icons (Microsoft, MIT) by Fluent's own names (the glyph, the size it was drawn for, filled or
+// regular), for the service tiles and the few marks b.tsx draws. Each glyph's path is its own module
+// (./fluent-named/<name>.ts) named behind a function, so with Metro's inline requires (metro.config.js) a glyph's
+// module loads when it is first drawn, as ui/icons.tsx's do: Beranda's first frame loads the glyphs it draws, not all
+// of them. A new glyph: its path from node_modules/@fluentui/react-icons/lib/atoms/headless-svg, as one file there.
+import alert24Regular from "./fluent-named/alert-24-regular";
+import alert28Filled from "./fluent-named/alert-28-filled";
+import apps28Filled from "./fluent-named/apps-28-filled";
+import arrowRight20Regular from "./fluent-named/arrow-right-20-regular";
+import arrowUpRight20Regular from "./fluent-named/arrow-up-right-20-regular";
+import bookOpen28Filled from "./fluent-named/book-open-28-filled";
+import calendarAgenda28Filled from "./fluent-named/calendar-agenda-28-filled";
+import calendarCheckmark24Filled from "./fluent-named/calendar-checkmark-24-filled";
+import calendarCheckmark28Filled from "./fluent-named/calendar-checkmark-28-filled";
+import calendarLtr24Filled from "./fluent-named/calendar-ltr-24-filled";
+import calendarLtr28Filled from "./fluent-named/calendar-ltr-28-filled";
+import calendarMonth28Filled from "./fluent-named/calendar-month-28-filled";
+import checkmarkCircle20Filled from "./fluent-named/checkmark-circle-20-filled";
+import checkmarkCircle28Filled from "./fluent-named/checkmark-circle-28-filled";
+import chevronRight20Regular from "./fluent-named/chevron-right-20-regular";
+import clock20Regular from "./fluent-named/clock-20-regular";
+import dismiss20Regular from "./fluent-named/dismiss-20-regular";
+import form24Filled from "./fluent-named/form-24-filled";
+import form28Filled from "./fluent-named/form-28-filled";
+import handRight20Filled from "./fluent-named/hand-right-20-filled";
+import hatGraduation24Filled from "./fluent-named/hat-graduation-24-filled";
+import hatGraduation28Filled from "./fluent-named/hat-graduation-28-filled";
+import info20Regular from "./fluent-named/info-20-regular";
+import library24Filled from "./fluent-named/library-24-filled";
+import library28Filled from "./fluent-named/library-28-filled";
+import location20Regular from "./fluent-named/location-20-regular";
+import open20Regular from "./fluent-named/open-20-regular";
+import person24Filled from "./fluent-named/person-24-filled";
+import personFeedback24Filled from "./fluent-named/person-feedback-24-filled";
+import personFeedback28Filled from "./fluent-named/person-feedback-28-filled";
+import ribbon24Filled from "./fluent-named/ribbon-24-filled";
+import ribbon28Filled from "./fluent-named/ribbon-28-filled";
+import search20Regular from "./fluent-named/search-20-regular";
+import search24Regular from "./fluent-named/search-24-regular";
+import settings24Filled from "./fluent-named/settings-24-filled";
+import settings24Regular from "./fluent-named/settings-24-regular";
+import settings28Filled from "./fluent-named/settings-28-filled";
+import sparkle28Filled from "./fluent-named/sparkle-28-filled";
+import textBulletListSquare28Filled from "./fluent-named/text-bullet-list-square-28-filled";
+import video20Filled from "./fluent-named/video-20-filled";
+import wallet24Filled from "./fluent-named/wallet-24-filled";
+import wallet28Filled from "./fluent-named/wallet-28-filled";
+import warning20Filled from "./fluent-named/warning-20-filled";
+import warning28Filled from "./fluent-named/warning-28-filled";
+
 export const FLUENT = {
-  Alert24Regular:
-    "M12 2a7.5 7.5 0 0 1 7.5 7.25v4.35l1.38 3.15a1.25 1.25 0 0 1-1.15 1.75H15a3 3 0 0 1-6 .18v-.18H4.27a1.25 1.25 0 0 1-1.14-1.75L4.5 13.6V9.5C4.5 5.35 7.85 2 12 2m1.5 16.5h-3a1.5 1.5 0 0 0 3 .15zM12 3.5c-3.32 0-6 2.67-6 6v4.4L4.66 17h14.7L18 13.9V9.29a6 6 0 0 0-6-5.78",
-  Alert28Filled:
-    "M17.47 22a3.5 3.5 0 0 1-6.94 0zM14 3a8.5 8.5 0 0 1 8.5 8.25v4.36l1.41 3.65q.06.15.08.3l.01.16c0 .66-.5 1.2-1.15 1.27l-.13.01H5.27a1.28 1.28 0 0 1-1.23-1.62l.04-.12L5.5 15.6v-4.1C5.5 6.8 9.3 3 14 3",
-  Apps28Filled:
-    "M20.84 2.66a2.25 2.25 0 0 0-3.18 0L13.5 6.8v-.56c0-1.24-1-2.25-2.25-2.25h-7C3.01 4 2 5.01 2 6.25v18c0 .97.78 1.75 1.75 1.75h18c1.24 0 2.25-1 2.25-2.25v-7c0-1.24-1-2.25-2.25-2.25h-.56l4.16-4.15c.88-.88.88-2.3 0-3.19zm-7.34 8.03 3.8 3.81h-3.8zM12 14.5H3.5V6.25c0-.41.34-.75.75-.75h7c.41 0 .75.34.75.75zM3.5 16H12v8.5H4.25a.75.75 0 0 1-.75-.75zm10 8.5V16h8.25c.41 0 .75.34.75.75v7c0 .42-.34.75-.75.75z",
-  ArrowRight20Regular: "M10.84 3.13a.5.5 0 0 0-.68.74l6.17 5.63H2.5a.5.5 0 0 0 0 1h13.83l-6.17 5.63a.5.5 0 0 0 .68.74l6.91-6.32a.75.75 0 0 0 0-1.1z",
-  ArrowUpRight20Regular: "M8.5 4a.5.5 0 1 1 0-1h8c.28 0 .5.22.5.5v8a.5.5 0 0 1-1 0V4.7L3.85 16.86a.5.5 0 0 1-.7-.7L15.29 4z",
-  BookOpen28Filled:
-    "M11.5 4c.98 0 1.86.4 2.5 1.05A3.5 3.5 0 0 1 16.5 4H24a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2h-7.5c-.98 0-1.86-.4-2.5-1.05A3.5 3.5 0 0 1 11.5 24H4a2 2 0 0 1-2-2V6c0-1.1.9-2 2-2zM13 20.5v-13c0-.83-.67-1.5-1.5-1.5H4v16h7.5c.83 0 1.5-.67 1.5-1.5m2-13v13c0 .83.67 1.5 1.5 1.5H24V6h-7.5c-.83 0-1.5.67-1.5 1.5",
-  CalendarAgenda28Filled:
-    "M25 21.75c0 1.8-1.46 3.25-3.25 3.25H6.25A3.25 3.25 0 0 1 3 21.75V6.25C3 4.45 4.46 3 6.25 3h15.5C23.55 3 25 4.46 25 6.25zM19.75 14c0-.38-.28-.7-.65-.74l-.1-.01H8.9a.75.75 0 0 0 0 1.5h10.2a.75.75 0 0 0 .65-.75m0 5.25c0-.38-.28-.7-.65-.74l-.1-.01H8.9a.75.75 0 0 0 0 1.5h10.2a.75.75 0 0 0 .65-.75m0-10.5c0-.38-.28-.7-.65-.74L19 8H8.9a.75.75 0 0 0 0 1.5h10.2a.75.75 0 0 0 .65-.75",
-  CalendarCheckmark24Filled:
-    "M21 8.5v3.52A6.5 6.5 0 0 0 12.02 21H6.25A3.25 3.25 0 0 1 3 17.75V8.5zM17.75 3C19.55 3 21 4.46 21 6.25V7H3v-.75C3 4.45 4.46 3 6.25 3zM23 17.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0m-2.15-2.35a.5.5 0 0 0-.7 0l-3.65 3.64-1.65-1.64a.5.5 0 0 0-.7.7l2 2c.2.2.5.2.7 0l4-4a.5.5 0 0 0 0-.7",
-  CalendarCheckmark28Filled:
-    "M25 9.5v5A7.5 7.5 0 0 0 14.5 25H6.25A3.25 3.25 0 0 1 3 21.75V9.5zM21.75 3C23.55 3 25 4.46 25 6.25V8H3V6.25C3 4.45 4.46 3 6.25 3zM27 20.5a6.5 6.5 0 1 1-13 0 6.5 6.5 0 0 1 13 0m-2.65-2.85a.5.5 0 0 0-.7 0L19 22.29l-1.65-1.64a.5.5 0 0 0-.7.7l2 2c.2.2.5.2.7 0l5-5a.5.5 0 0 0 0-.7",
-  CalendarLtr24Filled:
-    "M21 8.5v9.25c0 1.8-1.46 3.25-3.25 3.25H6.25A3.25 3.25 0 0 1 3 17.75V8.5zM7.25 15a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5M12 15a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m-4.75-4.5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m4.75 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m4.75 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m1-7.5C19.55 3 21 4.46 21 6.25V7H3v-.75C3 4.45 4.46 3 6.25 3z",
-  CalendarLtr28Filled:
-    "M25 9.5v12.25c0 1.8-1.46 3.25-3.25 3.25H6.25A3.25 3.25 0 0 1 3 21.75V9.5zm-16.26 8a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m5.26 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m-5.26-5a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m5.26 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m5.25 0a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5m2.5-9.5C23.55 3 25 4.46 25 6.25V8H3V6.25C3 4.45 4.46 3 6.25 3z",
-  CalendarMonth28Filled:
-    "M21.75 3C23.55 3 25 4.46 25 6.25v15.5c0 1.8-1.46 3.25-3.25 3.25H6.25A3.25 3.25 0 0 1 3 21.75V6.25C3 4.45 4.46 3 6.25 3zM8.5 15.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m5.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m-5.5-6a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m5.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3m5.5 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3",
-  CheckmarkCircle20Filled:
-    "M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m3.36 5.65a.5.5 0 0 0-.64-.06l-.07.06L9 11.3 7.35 9.65l-.07-.06a.5.5 0 0 0-.7.7l.07.07 2 2 .07.06c.17.11.4.11.56 0l.07-.06 4-4 .07-.08a.5.5 0 0 0-.06-.63",
-  CheckmarkCircle28Filled:
-    "M14 2a12 12 0 1 1 0 24 12 12 0 0 1 0-24m5.53 8.22a.75.75 0 0 0-1.06 0l-5.97 5.97-2.97-2.97a.75.75 0 1 0-1.06 1.06l3.5 3.5c.3.3.77.3 1.06 0l6.5-6.5c.3-.3.3-.77 0-1.06",
-  ChevronRight20Regular: "M7.65 4.15c.2-.2.5-.2.7 0l5.49 5.46c.21.22.21.57 0 .78l-5.49 5.47a.5.5 0 0 1-.7-.71L12.8 10 7.65 4.85a.5.5 0 0 1 0-.7",
-  Clock20Regular:
-    "M10 2a8 8 0 1 1 0 16 8 8 0 0 1 0-16m0 1a7 7 0 1 0 0 14 7 7 0 0 0 0-14m-.5 2a.5.5 0 0 1 .5.41V10h2.5a.5.5 0 0 1 .09 1H9.5a.5.5 0 0 1-.5-.41V5.5c0-.28.22-.5.5-.5",
-  Dismiss20Regular:
-    "m4.09 4.22.06-.07a.5.5 0 0 1 .63-.06l.07.06L10 9.29l5.15-5.14a.5.5 0 0 1 .63-.06l.07.06c.18.17.2.44.06.63l-.06.07L10.71 10l5.14 5.15c.18.17.2.44.06.63l-.06.07a.5.5 0 0 1-.63.06l-.07-.06L10 10.71l-5.15 5.14a.5.5 0 0 1-.63.06l-.07-.06a.5.5 0 0 1-.06-.63l.06-.07L9.29 10 4.15 4.85a.5.5 0 0 1-.06-.63l.06-.07z",
-  Form24Filled:
-    "M8.25 10a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5m-.75 6.25a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0M3 6.25C3 4.45 4.46 3 6.25 3h11.5C19.55 3 21 4.46 21 6.25v11.5c0 1.8-1.46 3.25-3.25 3.25H6.25A3.25 3.25 0 0 1 3 17.75zm3 4.5a2.25 2.25 0 1 0 4.5 0 2.25 2.25 0 0 0-4.5 0M8.25 14a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5M12 10.75c0 .41.34.75.75.75h4.5a.75.75 0 0 0 0-1.5h-4.5a.75.75 0 0 0-.75.75m.75 4.75a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5zM6 6.25c0 .41.34.75.75.75h10.5a.75.75 0 0 0 0-1.5H6.75a.75.75 0 0 0-.75.75",
-  Form28Filled:
-    "M8.5 11.5a1 1 0 1 0 0 2 1 1 0 0 0 0-2m-1 8a1 1 0 1 1 2 0 1 1 0 0 1-2 0M3 6.75A3.75 3.75 0 0 1 6.75 3h14.5A3.75 3.75 0 0 1 25 6.75v14.5A3.75 3.75 0 0 1 21.25 25H6.75A3.75 3.75 0 0 1 3 21.25zm3 5.75a2.5 2.5 0 1 0 5 0 2.5 2.5 0 0 0-5 0M8.5 17a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5m4.5-4.75c0 .41.34.75.75.75h7.5a.75.75 0 0 0 0-1.5h-7.5a.75.75 0 0 0-.75.75m.75 6.25a.75.75 0 0 0 0 1.5h7.5a.75.75 0 0 0 0-1.5zM6 6.75c0 .41.34.75.75.75h14.5a.75.75 0 0 0 0-1.5H6.75a.75.75 0 0 0-.75.75",
-  HandRight20Filled:
-    "M9 8.5V2.75a.75.75 0 0 1 1.5 0V8.5a.5.5 0 0 0 1 0V3.75a.75.75 0 0 1 1.5 0v6.5c.66-.43 1.4-.75 2-.75.97 0 1.79.32 1.98 1.12q.02.07.02.14 0 .24-.2.38l-1.3.99c-1.07.8-2.07 1.86-2.76 2.99q-.56.9-1.06 1.86C11.32 17.66 11.1 18 10 18H6.95C6 18 5.64 17.47 5 16a12 12 0 0 1-1-3.5V5.25a.75.75 0 0 1 1.5 0V9a.5.5 0 0 0 1 0V3.75a.75.75 0 0 1 1.5 0V8.5a.5.5 0 0 0 1 0",
-  HatGraduation24Filled:
-    "M5 17.75v-3.77l4.06 2.66a5.4 5.4 0 0 0 5.88 0L19 13.98v3.77q0 .25-.15.45l-.01.02-.02.01v.02a3 3 0 0 1-.41.43q-.42.42-1.25.96A9.7 9.7 0 0 1 12 21a9.7 9.7 0 0 1-5.16-1.36 7 7 0 0 1-1.68-1.42v-.01a1 1 0 0 1-.16-.46m17.16-7.62-8.04 5.25a3.9 3.9 0 0 1-4.24 0L3 10.88v5.37a.75.75 0 0 1-1.5 0V10q0-.13.04-.25a.75.75 0 0 1 .3-.88L9.92 3.7a3.9 3.9 0 0 1 4.18 0l8.06 5.17a.75.75 0 0 1 .01 1.26",
-  HatGraduation28Filled:
-    "M11.77 3.5a4.3 4.3 0 0 1 4.46 0l9.91 6.11a.75.75 0 0 1 .02 1.27l-9.83 6.43a4.3 4.3 0 0 1-4.66 0L3 11.64v6.11a.75.75 0 0 1-1.5 0V10.5l.01-.13a.8.8 0 0 1 .35-.76zM6 15.4l4.85 3.16a5.8 5.8 0 0 0 6.3 0L22 15.4v4.86c0 .3-.16.48-.35.67l-.41.37A11.4 11.4 0 0 1 14 24a11 11 0 0 1-7.65-3.08c-.19-.2-.35-.37-.35-.67z",
-  Info20Regular:
-    "M10.5 8.91a.5.5 0 0 0-1 .09v4.6a.5.5 0 0 0 1-.1V8.91m.3-2.16a.75.75 0 1 0-1.5 0 .75.75 0 0 0 1.5 0M18 10a8 8 0 1 0-16 0 8 8 0 0 0 16 0M3 10a7 7 0 1 1 14 0 7 7 0 0 1-14 0",
-  Library24Filled:
-    "M5.5 3C6.33 3 7 3.67 7 4.5v15c0 .83-.67 1.5-1.5 1.5h-2A1.5 1.5 0 0 1 2 19.5v-15C2 3.67 2.67 3 3.5 3zm6 0c.83 0 1.5.67 1.5 1.5v15c0 .83-.67 1.5-1.5 1.5h-2A1.5 1.5 0 0 1 8 19.5v-15C8 3.67 8.67 3 9.5 3zm7.28 3.12L22 18.64c.2.8-.28 1.62-1.09 1.83l-1.87.48a1.5 1.5 0 0 1-1.83-1.08L14 7.35a1.5 1.5 0 0 1 1.08-1.82l1.87-.49c.8-.2 1.63.28 1.83 1.08",
-  Library28Filled:
-    "M5.99 3a2 2 0 0 1 2 2v18a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2zm7 0a2 2 0 0 1 2 2v18a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2V5c0-1.1.9-2 2-2zm9.08 3.54 3.86 15.49a2 2 0 0 1-1.46 2.42l-1.96.49a2 2 0 0 1-2.42-1.46L16.23 8a2 2 0 0 1 1.45-2.42l1.97-.5a2 2 0 0 1 2.42 1.46",
-  Location20Regular:
-    "M5.05 4.05a7 7 0 1 1 9.9 9.9l-1.13 1.12-2.43 2.37a2 2 0 0 1-2.64.12l-.14-.12-2.04-1.99-1.52-1.5a7 7 0 0 1 0-9.9m9.2.7a6 6 0 0 0-8.67 8.32l.17.18.58.57 2.98 2.9.09.08a1 1 0 0 0 1.2 0l.1-.08 2.22-2.17 1.32-1.3.18-.18a6 6 0 0 0-.18-8.31M10 6.26a2.75 2.75 0 1 1 0 5.5 2.75 2.75 0 0 1 0-5.5m0 1a1.75 1.75 0 1 0 0 3.5 1.75 1.75 0 0 0 0-3.5",
-  Open20Regular:
-    "M6 4a2 2 0 0 0-2 2v8c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2v-2.5a.5.5 0 0 1 1 0V14a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h2.5a.5.5 0 0 1 0 1zm5-.5c0-.28.22-.5.5-.5h5c.28 0 .5.22.5.5v5a.5.5 0 0 1-1 0V4.7l-4.15 4.15a.5.5 0 0 1-.7-.7L15.29 4H11.5a.5.5 0 0 1-.5-.5",
-  Person24Filled:
-    "M17.75 14C19 14 20 15 20 16.25v.92q-.01.88-.5 1.6Q17.13 22 12 22q-5.15 0-7.49-3.24a2.8 2.8 0 0 1-.5-1.6v-.91C4 15 5 14 6.24 14zM12 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10",
-  PersonFeedback24Filled:
-    "M14.77 12.4q.23.1.48.1.5 0 .88-.36L18.31 10h.94A2.75 2.75 0 0 0 22 7.25v-2.5A2.75 2.75 0 0 0 19.25 2h-4.5A2.75 2.75 0 0 0 12 4.75v2.5c0 1.26.85 2.32 2 2.65v1.35c0 .5.31.95.77 1.15M8 13.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7M8 22q-3.1 0-4.7-1.67C1.96 18.93 2 17.16 2 16.97v-.01A2 2 0 0 1 4 15h8a2 2 0 0 1 2 2c0 .13.05 1.92-1.3 3.33Q11.1 22 8 22",
-  PersonFeedback28Filled:
-    "M17.75 14q-.2 0-.4-.06a1.25 1.25 0 0 1-.85-1.19v-1.76A2.76 2.76 0 0 1 14 8.25v-3.5A2.75 2.75 0 0 1 16.75 2h6.5A2.75 2.75 0 0 1 26 4.75v3.5A2.75 2.75 0 0 1 23.25 11h-2.62l-1.88 2.5c-.24.32-.61.5-1 .5M9.5 16.5a4.26 4.26 0 0 1 0-8.5 4.26 4.26 0 0 1 0 8.5m-6.03 7.42Q5.45 25.99 9.5 26q4.06 0 6.03-2.08A5.4 5.4 0 0 0 17 20.24v-.01C17 19 16 18 14.77 18H4.23A2.2 2.2 0 0 0 2 20.2c0 .2-.04 2.12 1.47 3.72",
-  Ribbon24Filled: "M17 15.24v6c0 .61-.68.97-1.18.62L12 19.17l-3.82 2.69A.75.75 0 0 1 7 21.25v-6a8 8 0 0 0 10 0M12 2a7 7 0 1 1 0 14 7 7 0 0 1 0-14",
-  Ribbon28Filled:
-    "M20 25.25a.75.75 0 0 1-1.17.62L14 22.65l-4.83 3.22A.75.75 0 0 1 8 25.25v-7.39a9.46 9.46 0 0 0 12 0zM14 2a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17",
-  Search20Regular: "M13.73 14.44a6.5 6.5 0 1 1 .7-.7l3.42 3.4a.5.5 0 0 1-.63.77l-.07-.06zm-.71-.71A5.5 5.5 0 0 0 15 9.5a5.5 5.5 0 1 0-1.98 4.23",
-  Search24Regular: "M16.1 17.16a8 8 0 1 1 1.06-1.06l4.62 4.62a.75.75 0 1 1-1.06 1.06zM17.5 11a6.5 6.5 0 1 0-13 0 6.5 6.5 0 0 0 13 0",
-  Settings24Filled:
-    "M12.01 2.25q1.11.01 2.18.25c.32.07.55.33.59.65l.17 1.53a1.38 1.38 0 0 0 1.92 1.11l1.4-.61c.3-.13.64-.06.85.17a10 10 0 0 1 2.2 3.8c.1.3 0 .63-.26.82l-1.25.92a1.38 1.38 0 0 0 0 2.22l1.25.92c.26.19.36.52.27.82a10 10 0 0 1-2.2 3.8.75.75 0 0 1-.85.17l-1.4-.62a1.38 1.38 0 0 0-1.93 1.12l-.17 1.52a.75.75 0 0 1-.58.65 9.5 9.5 0 0 1-4.4 0 .75.75 0 0 1-.57-.65l-.17-1.52a1.38 1.38 0 0 0-1.93-1.11l-1.4.62a.75.75 0 0 1-.85-.18 10 10 0 0 1-2.2-3.8c-.1-.3 0-.63.26-.82l1.25-.92a1.38 1.38 0 0 0 0-2.22l-1.24-.92a.75.75 0 0 1-.28-.82 10 10 0 0 1 2.2-3.8c.23-.23.57-.3.86-.17l1.4.62c.4.17.86.15 1.25-.08.38-.22.63-.6.68-1.04l.17-1.53a.75.75 0 0 1 .58-.65q1.08-.24 2.2-.25M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6",
-  Settings24Regular:
-    "M12.01 2.25q1.11.01 2.18.25c.32.07.55.33.59.65l.17 1.53a1.38 1.38 0 0 0 1.92 1.11l1.4-.61c.3-.13.64-.06.85.17a10 10 0 0 1 2.2 3.8c.1.3 0 .63-.26.82l-1.25.92a1.38 1.38 0 0 0 0 2.22l1.25.92c.26.19.36.52.27.82a10 10 0 0 1-2.2 3.8.75.75 0 0 1-.85.17l-1.4-.62a1.38 1.38 0 0 0-1.93 1.12l-.17 1.52a.75.75 0 0 1-.58.65 9.5 9.5 0 0 1-4.4 0 .75.75 0 0 1-.57-.65l-.17-1.52a1.38 1.38 0 0 0-1.93-1.11l-1.4.62a.75.75 0 0 1-.85-.18 10 10 0 0 1-2.2-3.8c-.1-.3 0-.63.26-.82l1.25-.92a1.38 1.38 0 0 0 0-2.22l-1.24-.92a.75.75 0 0 1-.28-.82 10 10 0 0 1 2.2-3.8c.23-.23.57-.3.86-.17l1.4.62c.4.17.86.15 1.25-.08.38-.22.63-.6.68-1.04l.17-1.53a.75.75 0 0 1 .58-.65q1.08-.24 2.2-.25m0 1.5q-.67 0-1.35.12l-.11.97a2.9 2.9 0 0 1-4.03 2.33l-.9-.4A8 8 0 0 0 4.29 9.1l.8.59a2.88 2.88 0 0 1 0 4.64l-.8.59a8 8 0 0 0 1.35 2.32l.9-.4a2.88 2.88 0 0 1 4.02 2.32l.1.99q1.35.22 2.7 0l.1-.99a2.88 2.88 0 0 1 4.02-2.32l.9.4a8 8 0 0 0 1.35-2.32l-.8-.59a2.88 2.88 0 0 1 0-4.64l.8-.59a8 8 0 0 0-1.35-2.32l-.9.4q-.55.24-1.15.24c-1.47 0-2.7-1.1-2.86-2.57l-.11-.97q-.68-.11-1.34-.12M12 8.25a3.75 3.75 0 1 1 0 7.5 3.75 3.75 0 0 1 0-7.5m0 1.5a2.25 2.25 0 1 0 0 4.5 2.25 2.25 0 0 0 0-4.5",
-  Settings28Filled:
-    "M16.7 2.31Q15.35 2.01 14 2q-1.38.01-2.7.31a.9.9 0 0 0-.72.8l-.2 1.88A1.7 1.7 0 0 1 8 6.36L6.3 5.61a.9.9 0 0 0-1.04.21 12 12 0 0 0-2.7 4.67c-.12.37 0 .78.33 1.02l1.52 1.12a1.7 1.7 0 0 1 0 2.74L2.87 16.5a.9.9 0 0 0-.33 1.01 12 12 0 0 0 2.7 4.68c.27.28.7.37 1.05.21l1.73-.76a1.7 1.7 0 0 1 2.36 1.37l.21 1.88c.04.38.32.7.7.8 1.78.42 3.64.42 5.42 0 .37-.1.66-.42.7-.8l.2-1.88a1.7 1.7 0 0 1 2.37-1.37l1.73.75c.36.16.77.08 1.04-.21a12 12 0 0 0 2.7-4.67.9.9 0 0 0-.32-1.01l-1.53-1.13a1.7 1.7 0 0 1 0-2.74l1.52-1.13a.9.9 0 0 0 .34-1.01 12 12 0 0 0-2.71-4.67.9.9 0 0 0-1.05-.21l-1.72.75q-.32.15-.67.15a1.7 1.7 0 0 1-1.7-1.52l-.2-1.88a.9.9 0 0 0-.72-.8M14 18a4 4 0 1 1 0-8 4 4 0 0 1 0 8",
-  Sparkle28Filled:
-    "M10.06 18.7a1.63 1.63 0 0 0 2.43-.67l.77-2.34a3.8 3.8 0 0 1 2.42-2.42l2.23-.73a1.6 1.6 0 0 0 1.07-1.3 1.6 1.6 0 0 0-1.13-1.78l-2.21-.72a3.8 3.8 0 0 1-2.42-2.42l-.73-2.23a1.62 1.62 0 0 0-3.07.01l-.74 2.27a3.8 3.8 0 0 1-2.36 2.36l-2.24.73a1.63 1.63 0 0 0 .02 3.07l2.22.72a3.9 3.9 0 0 1 2.42 2.43l.73 2.23q.17.49.6.8m9.74 6.08a1.2 1.2 0 0 0 1.84-.6l.37-1.14a1.6 1.6 0 0 1 1.02-1.02l1.16-.38a1.2 1.2 0 0 0 .59-1.83 1.2 1.2 0 0 0-.62-.45L23 18.99A1.6 1.6 0 0 1 22 17.97l-.38-1.16a1.2 1.2 0 0 0-2.27.01l-.38 1.15a1.6 1.6 0 0 1-.99 1.02l-1.17.38a1.2 1.2 0 0 0-.58 1.83q.23.31.6.44l1.14.37A1.6 1.6 0 0 1 19 23.04l.37 1.16q.14.37.44.58",
-  TextBulletListSquare28Filled:
-    "M6.75 3A3.75 3.75 0 0 0 3 6.75v14.5A3.75 3.75 0 0 0 6.75 25h14.5A3.75 3.75 0 0 0 25 21.25V6.75A3.75 3.75 0 0 0 21.25 3zM12 9.25c0-.41.34-.75.75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75m.75 4.25h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1 0-1.5M12 19.25c0-.41.34-.75.75-.75h7.5a.75.75 0 0 1 0 1.5h-7.5a.75.75 0 0 1-.75-.75M8.75 10.5a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5M10 14.25a1.25 1.25 0 1 1-2.5 0 1.25 1.25 0 0 1 2.5 0M8.75 20.5a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5",
-  Video20Filled:
-    "M2 7a3 3 0 0 1 3-3h5a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3zm14.04 7.78L14 13.37V6.63l2.04-1.4c.83-.58 1.96.01 1.96 1.02v7.5c0 1-1.13 1.6-1.96 1.03",
-  Wallet24Filled:
-    "M3 5v12.75C3 19.55 4.46 21 6.25 21h12c1.8 0 3.25-1.46 3.25-3.25v-8.5A3.25 3.25 0 0 0 19 6.09v-.84C19 4.01 18 3 16.75 3H5.25c-1.16 0-2.11.88-2.24 2zm2.25 1a.75.75 0 0 1 0-1.5h11.5c.41 0 .75.34.75.75V6zm11 7h2a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5",
-  Wallet28Filled:
-    "M3 5.75A2.75 2.75 0 0 1 5.75 3h13.5A2.75 2.75 0 0 1 22 5.75v1.26a3.75 3.75 0 0 1 3.5 3.74v10.5A3.75 3.75 0 0 1 21.75 25h-15A3.75 3.75 0 0 1 3 21.25V6h.01zm17.5 0c0-.69-.56-1.25-1.25-1.25H5.75a1.25 1.25 0 1 0 0 2.5H20.5zM18.75 16a.75.75 0 0 0 0 1.5h2.5a.75.75 0 0 0 0-1.5z",
-  Warning20Filled:
-    "M7.37 3.56a3 3 0 0 1 5.26 0l5.5 10A3 3 0 0 1 15.5 18h-11a3 3 0 0 1-2.63-4.44zM10 12.75a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5m0-6.25a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 1 0V7a.5.5 0 0 0-.5-.5",
-  Warning28Filled:
-    "M10.74 4.9a3.75 3.75 0 0 1 6.52 0l8.24 14.5a3.75 3.75 0 0 1-3.25 5.6H5.76a3.75 3.75 0 0 1-3.26-5.6zM14 18a1 1 0 1 0 0 2 1 1 0 0 0 0-2m0-9a.75.75 0 0 0-.75.75v6a.75.75 0 0 0 1.5 0v-6A.75.75 0 0 0 14 9",
+  Alert24Regular: () => alert24Regular,
+  Alert28Filled: () => alert28Filled,
+  Apps28Filled: () => apps28Filled,
+  ArrowRight20Regular: () => arrowRight20Regular,
+  ArrowUpRight20Regular: () => arrowUpRight20Regular,
+  BookOpen28Filled: () => bookOpen28Filled,
+  CalendarAgenda28Filled: () => calendarAgenda28Filled,
+  CalendarCheckmark24Filled: () => calendarCheckmark24Filled,
+  CalendarCheckmark28Filled: () => calendarCheckmark28Filled,
+  CalendarLtr24Filled: () => calendarLtr24Filled,
+  CalendarLtr28Filled: () => calendarLtr28Filled,
+  CalendarMonth28Filled: () => calendarMonth28Filled,
+  CheckmarkCircle20Filled: () => checkmarkCircle20Filled,
+  CheckmarkCircle28Filled: () => checkmarkCircle28Filled,
+  ChevronRight20Regular: () => chevronRight20Regular,
+  Clock20Regular: () => clock20Regular,
+  Dismiss20Regular: () => dismiss20Regular,
+  Form24Filled: () => form24Filled,
+  Form28Filled: () => form28Filled,
+  HandRight20Filled: () => handRight20Filled,
+  HatGraduation24Filled: () => hatGraduation24Filled,
+  HatGraduation28Filled: () => hatGraduation28Filled,
+  Info20Regular: () => info20Regular,
+  Library24Filled: () => library24Filled,
+  Library28Filled: () => library28Filled,
+  Location20Regular: () => location20Regular,
+  Open20Regular: () => open20Regular,
+  Person24Filled: () => person24Filled,
+  PersonFeedback24Filled: () => personFeedback24Filled,
+  PersonFeedback28Filled: () => personFeedback28Filled,
+  Ribbon24Filled: () => ribbon24Filled,
+  Ribbon28Filled: () => ribbon28Filled,
+  Search20Regular: () => search20Regular,
+  Search24Regular: () => search24Regular,
+  Settings24Filled: () => settings24Filled,
+  Settings24Regular: () => settings24Regular,
+  Settings28Filled: () => settings28Filled,
+  Sparkle28Filled: () => sparkle28Filled,
+  TextBulletListSquare28Filled: () => textBulletListSquare28Filled,
+  Video20Filled: () => video20Filled,
+  Wallet24Filled: () => wallet24Filled,
+  Wallet28Filled: () => wallet28Filled,
+  Warning20Filled: () => warning20Filled,
+  Warning28Filled: () => warning28Filled,
 } as const;
 
 export type FluentName = keyof typeof FLUENT;

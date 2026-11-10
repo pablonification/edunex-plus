@@ -14,7 +14,7 @@ Sources: Material 3 (incl. Expressive) and Android's quality guidelines, through
 
 | Piece | What | Where |
 | --- | --- | --- |
-| Bottom tabs | Android's own navigation bar (expo-router `NativeTabs`, a Material `BottomNavigationView`): Beranda, Jadwal, Tugas, Kuliah, Profil. Labels always shown; icons are Fluent's 24 px drawings as drawables (`tab_home`, `tab_schedule`, `tab_tasks`, `tab_courses`, `tab_profile`, each with `_filled`: a house, a calendar, a clipboard of ticks, the graduation cap, a person), regular at rest, filled when picked; the native badge (error colour) only for what needs the Student today. All tabs mounted ahead: a switch is instant, each keeps its scroll, a second tap scrolls to the top. Each tab's route wraps its page in `TabClock` (a hidden tab ignores the minute's tick until shown) and calls `usePerfFocused(name)`. | `app/(tabs)/_layout.tsx`, `plugins/tab-icons.js`, `scripts/make-tab-icons.mjs` |
+| Bottom tabs | Android's own navigation bar (expo-router `NativeTabs`, a Material `BottomNavigationView`): Beranda, Jadwal, Tugas, Kuliah, Profil. Labels always shown; icons are Fluent's 24 px drawings as drawables (`tab_home`, `tab_schedule`, `tab_tasks`, `tab_courses`, `tab_profile`, each with `_filled`: a house, a calendar, a clipboard of ticks, the graduation cap, a person), regular at rest, filled when picked. **The picked tab** is its filled icon and its label (bold) in the brand's blue (`v4.brand`: #1f63e0, dark #a9c4ff), in light and dark; there is no Material pill behind it (the indicator takes the bar's own colour, `surfaceContainer`, so it never draws). At rest: `onSurfaceVariant`. iPhone: Apple's symbols (`house`, `calendar`, `checkmark.circle`, `book`, `person`, each `.fill` when picked where Apple has one), the accent as the tint. **Badges** (the error colour): a badge is a count the tab's page leads with, or it's gone. Tugas: its page's "Belum selesai" count, shown only while one is late or due within a day. Profil: the KRS to send and the bills due, which its rows say. Kuliah: none (presence open now is the page's first line and Beranda's first block, not a number the page leads with). Beranda, Jadwal: none. All tabs mounted ahead: a switch is instant, each keeps its scroll, a second tap scrolls to the top. Each tab's route wraps its page in `TabClock` (a hidden tab ignores the minute's tick until shown) and calls `usePerfFocused(name)`. | `app/(tabs)/_layout.tsx`, `plugins/tab-icons.js`, `scripts/make-tab-icons.mjs` |
 | Tab top bar | One pattern on all five tabs (round 3): `TabHeader title=… actions=…`: the tab's name (Title L, Plus Jakarta Sans) with the data's status as one quiet line under it only when it says something to act on (never "Diperbarui baru saja"; tap: the sources sheet), then the tab's own one or two actions (`actions`: Jadwal's month and ⋮, Kuliah's ⋮), then `TabActions`, the same three in the same places on every tab: Search, the bell (a small dot while something's unread), the avatar (account and Settings). Just the bar: no big title under it to collapse. Beranda's bar is its own blue (`HomeBar`: the greeting as its title, then `TabActions`), fixed as the page scrolls. A problem banner follows under it. | `src/shell/source-status.tsx`, `src/screens/home/header.tsx` |
 | Stack top bar | `TopBar title=… actions=…`: Android's back arrow, the title at the start (Title L), one or two actions at the end, more in ⋮ (`OverflowMenu`). `lines={2}`: a long subject's name whole on two lines, the bar growing to hold it (a course's page: its name is the bar's title, never a big name in the page under an empty bar). `titleFrom={dp}`: a page that shows its subject big at its top keeps the bar's title hidden until the page has scrolled that far, then fades it in (M3's collapsing top app bar, on the UI thread, no layout moves). | `src/ui/top-bar.tsx`, `src/ui/menu.tsx` |
 | Screens | Every drill-down is its own route on the native stack (`app/_layout.tsx`, `animation: "default"`: Android's own open/close, drawn natively), so Back and the back gesture work everywhere with no code. A course, a module (`/course/<code>/module/<id>`), a Task, an exam, Nilai, each part of Rencana studi (`/plan/<part>`), Settings, Search, Notifikasi, the in-app web page. | `app/` |
@@ -26,27 +26,43 @@ Sources: Material 3 (incl. Expressive) and Android's quality guidelines, through
 **BackHandler** only while a sheet or an unsaved edit is open (a sheet's Back is the native sheet's own).
 Anything else that wants Back is a screen: make it a route.
 
-## Round 2's look: v4 (chosen by Arqila, built on Beranda first)
+## The look: one page colour, flat lists, a few cards (the super-app layout, on round 2's v4 tokens)
 
-The direction is `mobile/design/r2-directions/v4/` on `origin/mobile-r2-mockups` (README, `build.mjs` for the exact
-values, `v4-live.html` to try it). Beranda and its class sheet are built from it (`src/screens/home`); the parts below
-are shared, for the next screens once Arqila has seen it in the app (Decision 23).
+The tokens are still `theme.v4` (the name stayed; the grey page did not). The page and a card are one colour in both
+themes, so a screen is never "flat in light, boxed in dark": a list lies flat on the page with inset hairlines, and a
+card (a fill, a corner) is drawn only where one thing leads: Beranda's class block, Profil's head, a course's block, a
+notice. The decisions: `mobile/qa/superapp-decisions.md`.
 
 | Part | What | Where |
 | --- | --- | --- |
-| Surfaces | `theme.v4`: `page` (#f1f3f7 / #0c0e12) under `card` (#fff / #171a20, radius 20–24, a soft shadow in light only), `chip` (a neutral pill's, a neutral icon tile's and a disabled button's fill on a card: #f1f3f7 / #2a2f39, a step off the card in dark, never the page's black), `line`, `fg` / `fg2` / `muted`, the header's `head` (#1f63e0 / dark #1a3158, a deep desaturated blue; white on it 12.9:1) with `onHead`, the one filled button's `brand` / `onBrand` (#1f63e0 + white; dark #a9c4ff + #0a2a66: white on #4d86ff fails), tonal `okBg/okFg`, `redBg/redFg`, `ambBg/ambFg`, `live` (the now dot) | `src/ui/theme.ts` |
+| Surfaces | `theme.v4`: `page` and `card` are the same colour (#ffffff / #161618): nothing may rely on a card standing off the page by its fill. What must stand off takes `chip` or a tint (a course's, a state's). No shadow anywhere. `chip` (a neutral pill's, a neutral icon tile's and a disabled button's fill on a card: #f1f3f7 / #2a2f39, a step off the card in dark, never the page's black), `line`, `fg` / `fg2` / `muted`, the header's `head` (#1f63e0 / dark #1a3158, a deep desaturated blue; white on it 12.9:1) with `onHead`, the one filled button's `brand` / `onBrand` (#1f63e0 + white; dark #a9c4ff + #0a2a66: white on #4d86ff fails), tonal `okBg/okFg`, `redBg/redFg`, `ambBg/ambFg`, `live` (the now dot) | `src/ui/theme.ts` |
 | Course tiles | `theme.courseTile(tone)` → `{ ink, tint }` for each of the ten course colours (light and dark): ink ≥ 4.6:1 on its tint and on a card. `CourseTile` (44 dp, radius 32%, the course's glyph two-tone in its ink on its tint), `CourseGlyph`; the glyph picked from the course's name (`courseGlyph`) | `src/ui/tile.tsx` |
 | Type | Headings and numbers in Plus Jakarta Sans (`<Text face="display" weight="bold">`, also `semibold`, `extrabold`), bundled as Android font assets (`plugins/fonts.js`, OFL in the licences); everything else Roboto on the M3 scale | `src/ui/text.tsx`, `assets/fonts` |
 | Press | `PressScale`: gives to 96.5% and springs back (expressive), on the UI thread; one per card or row | `src/ui/press.tsx` |
-| Big button | `BigButton` (52 dp pill): `filled` (the screen's one main action), `done` (tonal green, after it), `outline` | `src/ui/big-button.tsx` |
+| Big button | `BigButton` (52 dp pill). One filled action per screen: `filled` on the page (the brand's blue, white words; dark: pale blue, navy words) or `course` on a block of a course's colour (white, the words in `ink`, the course's colour). `done` (tonal green, after it), `outline` (a second way; `ink` white for a white outline on a course's block) | `src/ui/big-button.tsx` |
 | Absence scale | One colouring for a course's absences on every tab. `absenceTone(state)` → `red` once the target can't be reached or the course finished below it, `amber` with the absences used up but none over, `ok` (green) with absences left or the target met ("Sisa 2×"), null before SIX has a count. `absenceName(t, health)`: the one name each warning goes by on every chip and pill (Beranda, Perlu kamu urus, Kuliah, an exam): "Jatah habis", and "Lewat batas 1×" for the target out of reach (the desktop's "Tak bisa lagi capai 80%", said with the target on Kuliah's big number and the course's sheet). Never "Di bawah target": a course with none left can be under its target today too. `absenceInk(theme.v4, tone)` → its `{ bg, fg }` (`redBg/redFg`, `ambBg/ambFg`, `okBg/okFg`): `fg` for words and the pips' used absences, `bg` under a chip's `fg`. The tone names match Kuliah's `StatusChip`. Every pair through contrast.py: on its tint 5.95–6.79:1 light, 9.0–9.6:1 dark; on a card or the page ≥ 6.1:1; the pips at 80% on a card ≥ 4.3:1 (3:1 needed). Amber stays a clash's and a moved class's colour too | `src/ui/absence.ts` |
 | Living parts | `WavyProgress` (M3 Expressive's wave up to how far along, moving; track and stop dot after), `CookieCheck` (M3's cookie scaling in turning, its check drawing itself), `PulseDot`, `CountUp` (a number counting up once per run), `Rise` (a screen's cards rising in a stagger on its first showing only) | `src/ui/expressive.tsx` |
-| Lists | `CardGroup` (a white card of rows, radius 20), `TileRow` (one target: a leading tile, the title, at most one meta line, at most one status; its divider starts after the tile; `dim` for what isn't open yet), `StatusChip` (the row's one status as a tonal pill: red, amber, ok, brand, neutral), `SectionTitle` (a section's name in Plus Jakarta Sans, its one action at the end). Kuliah, the course page and the module are built from them | `src/ui/v4-list.tsx` |
+| Lists | Flat on the page in both themes, an inset hairline between rows, no card around them. `CardGroup`, `Group`, `CardList`/`CardSlice`, `List`/`GroupTile` keep their names and props and draw no fill and no corner; `Panel` (both of them) draws no fill unless given a `tint` or a fill in `style`. `TileRow` / `GroupRow` (one target: a leading tile, the title, at most one meta line, at most one status; the hairline starts after the tile; `dim` for what isn't open yet), `StatusChip` / `Pill` (the row's one status as a tonal pill), `SectionTitle` / `Heading` (a section's name in Plus Jakarta Sans, its one action at the end) | `src/ui/v4-list.tsx`, `src/ui/group.tsx`, `src/ui/card-list.tsx`, `src/ui/layout.tsx` |
 | Other tiles | `IconTile` (a TileRow's tile that isn't a course's: a file's kind, a module's number, a meeting's date) in a tone from `useToneTile()` (v4's red, amber, ok, brand and neutral pairs) | `src/ui/icon-tile.tsx` |
-| Bars | `TopBar v4` and `TabHeader v4`: the bar in the page's grey (the card's white once the page scrolls under it), for a screen on v4's grey page. Every `TopBar`'s title is in Plus Jakarta Sans bold, `v4` or not: one face for every screen's title | `src/ui/top-bar.tsx`, `src/shell/source-status.tsx` |
-| Screens past Beranda | `Heading` (a section's heading in Plus Jakarta Sans), `Panel` (a white card; with `onPress` the whole card is one springing target; `tint`), `Group` + `GroupRow` (rows in one card: a leading tile, the title, at most one meta line in a state's tone, one trailing status; hairlines inset past the tile), `Pill` (one tonal status: red, amber, ok, brand, plain), `IconTile` (a tinted square for what isn't a course), `Figure` + `FigureLabel` (a screen's key number counting up once; `decimals` and `comma` for an IPK, "3,42"), `FigureRow` + `FigureCell` (figures side by side: one size for all, so the labels sit on one line and the numbers on one baseline; `FigureDash` for one with nothing to count). A screen using them passes `background={theme.v4.page}` to its `Page`, and its `TopBar` sits on the same grey at rest (`usePageColor`) | `src/ui/group.tsx` (akademik) |
+| Bars | `TopBar v4` and `TabHeader v4`: the bar in the page's own colour. Every `TopBar`'s title is in Plus Jakarta Sans bold, `v4` or not: one face for every screen's title | `src/ui/top-bar.tsx`, `src/shell/source-status.tsx` |
+| Screens past Beranda | `Heading` (a section's heading in Plus Jakarta Sans), `Panel` (a section's block, flat on the page; a card only with a `tint`; with `onPress` the whole block is one springing target), `Group` + `GroupRow` (rows flat on the page: a leading tile, the title, at most one meta line in a state's tone, one trailing status; hairlines inset past the tile), `Pill` (one tonal status: red, amber, ok, brand, plain), `IconTile` (a tinted square for what isn't a course), `Figure` + `FigureLabel` (a screen's key number counting up once; `decimals` and `comma` for an IPK, "3,42"), `FigureRow` + `FigureCell` (figures side by side: one size for all, so the labels sit on one line and the numbers on one baseline; `FigureDash` for one with nothing to count). A screen using them passes `background={theme.v4.page}` to its `Page`, and its `TopBar` sits on the same grey at rest (`usePageColor`) | `src/ui/group.tsx` (akademik) |
 | Course icon tile | `CourseIconTile`: `IconTile`'s shape in a course's tint with a kind's icon in its ink, for a row that belongs to a course but isn't the course (a result, a notification) | `src/ui/course-icon-tile.tsx` (akademik) |
 | Meter | `Meter`: a thin bar under a figure, a share in one colour and an optional second stretch in a lighter tone (passed, then this term); the figure says the number | `src/ui/meter.tsx` (akademik) |
+
+### The kit: which part a screen uses for what (`src/ui/kit.tsx`, `src/ui/b.tsx`)
+
+| For | Use | Never |
+| --- | --- | --- |
+| Marking attendance, anywhere | `PresenceButton` (48 dp pill, the raised hand, testID `action.presence`). `tone="page"` on the page: the brand's blue, white words. `tone="course" ink={courseColour}` on a block of a course's colour: white, the words in the course's colour. Its child is the word when it isn't "Isi Presensi" ("Tandai Hadir" for SIX); `time` puts the one time on the same line; `quiet` outlines it when nobody can say it counts | a local button, a second filled button beside it |
+| A screen's one main action | `BigButton variant="filled"`, or `variant="course" ink=…` on a course's block; a second way is `outline` | two filled buttons on one screen |
+| How far along (a presence window, a term) | `PlainBar`: a track, a fill, at most one label at its end. On a course's block: `color` white, `track` white at about 30% | a wave, a dot, a second label saying the same time |
+| A clash | `ClashMark` (the overlap icon and "Bentrok" in amber; `detail` for when) | other words or another icon for a clash |
+| The strip's three | `StatTile` inside `CountStrip`: the figure in a fixed 32 dp line, the label always one line (it shrinks to 85%, then is cut: write two words), a small chevron after the label. Three cells share a baseline whatever their labels | a label that wraps; "0" (good news is `mark`) |
+| A service | `ServiceTile` in a `ServiceRow` (four across), glyph and colour from `screens/services/list.ts` | a service's glyph or colour chosen on the screen |
+| A section's name | `SectionHeading` (`BHeading`) | all-caps labels |
+| A row | `FlatRow` (`BRow`), or `TileRow` / `GroupRow` | a card per row |
+| Nothing to show | `EmptyState`: the icon bare (no circle, no tile), the reason, one next step | a container behind the icon |
+
 
 Rules that hold (the judge's): a row has a title and at most one short meta line, at most one status (a chip or an
 icon, never a sentence); no explanatory sentences on a tab's first screen (one tap deeper); a tab's first screen ≤ ~45
@@ -126,15 +142,15 @@ heading → headlineSmall, figure/display → headlineMedium.
 | `Chip` / `ChipRow` | Filter chip | 32 high, outlined; picked: secondaryContainer and a check |
 | `Segmented` | Segmented buttons | 40 high, outlined, picked with a check |
 | `Switch` | M3 switch | Android's own `MaterialSwitch` (`modules/material-switch`, W9): Material's track, thumb, check, ripple and TalkBack "switch, on"; colours from the roles; 52×48 to touch; the testID sits on the switch itself. A tap the screen doesn't keep goes back after 1.5 s. Without the native module (tests) the JS-drawn one stands in |
-| `List` + `Row` | List items in a group | tonal tiles 2 dp apart, round group ends; 56 dp min; no chevrons; one row, one target, one outcome; `quick` names a row's swipe actions for TalkBack |
-| `GroupTile` | One tile of a grouped list | the same tile as `List`'s, drawn row by row (`first`/`last` round the group's ends) for a FlashList (Tugas) |
-| `SettingsGroup`, `SettingRow`, `SwitchRow`, `ChoiceRow` + `ChoiceSheet` (`ui/settings-list.tsx`) | Settings lists | v4: a `Heading` over one white `Group`, each row a `GroupRow` (title, the value or state as its one meta line); a switch row toggles from anywhere on it with a haptic (Android's MaterialSwitch at its end, the row carrying role switch and the testID); a choice row shows its value and opens a native sheet of radio options (each option `<rowTestID>.<value>`) |
+| `List` + `Row` | List items in a group | flat on the page, an inset hairline between rows, no tile and no box (light and dark alike); 56 dp min; no chevrons; one row, one target, one outcome; `quick` names a row's swipe actions for TalkBack |
+| `GroupTile` | One row of a flat list | `List`'s row drawn one by one for a FlashList (Tugas): a hairline over every row but the `first`; `last` is kept for callers and rounds nothing |
+| `SettingsGroup`, `SettingRow`, `SwitchRow`, `ChoiceRow` + `ChoiceSheet` (`ui/settings-list.tsx`) | Settings lists | a `Heading` over a flat `Group`, each row a `GroupRow` (title, the value or state as its one meta line); a switch row toggles from anywhere on it with a haptic (Android's MaterialSwitch at its end, the row carrying role switch and the testID); a choice row shows its value and opens a native sheet of radio options (each option `<rowTestID>.<value>`) |
 | `ErrorBanner` (`ui/settings-list.tsx`) | Banner | a page's error under its top bar with a close button, until the next try works (never a snackbar) |
 | `DrawnCheck`, `Celebration` (`ui/celebrate.tsx`) | — | the earned moment: a success circle springs in and its check draws itself (Reanimated, UI thread) with the success haptic; Remove animations: a fade. `Celebration` shows it over the page without blocking taps, read by TalkBack, gone after ~1.7 s (the hand-in) |
 | `SwipeRow` | Swipe to act (Gmail) | see Patterns; on the UI thread (gesture handler 3 + Reanimated) |
 | `Card` | Filled card | plain (Low), raised (Container, the one card that leads), sunken (High) |
 | `Section`, `PageHeader`, `Notice`, `StatRow`, `Meta` | | as before, on the scale |
-| `EmptyState` | | icon in a secondaryContainer circle, Title M, a line why, the next step as a button |
+| `EmptyState` | | the icon bare on the page (no circle, no tile), Title M, a line why, the next step as a button |
 | `Skeleton` | | the shape of what's coming, breathing slowly (still with Remove animations) |
 | `Sheet`, `ActionSheet` | Modal bottom sheet | native; `footer` for the sheet's main action |
 | `OverflowMenu`, `Menu` | Menu | anchored, 48 dp items |
@@ -156,7 +172,11 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 - **Plain path data, loaded when drawn.** `scripts/make-ui-icons.mjs` copies each icon `icons.tsx` imports
   (`./fluent/<name>`) from `@fluentui/react-icons` into `src/ui/fluent/<name>.ts`: its paths as strings, drawn with
   `react-native-svg`. Never `@fluentui/react-icons`' components (they're DOM). Each icon's file loads when it's first
-  drawn (Metro's inline requires), so Beranda's first frame loads only the icons on it, not all 86 (about 300 KB in all).
+  drawn (Metro's inline requires), so Beranda's first frame loads only the icons on it, not all 95 (about 340 KB in all).
+- **By Fluent's own name** (`<Fluent name="Search20Regular">`, `ui/fluent.tsx`): a thin wrapper for the service tiles
+  and b.tsx's marks, loading the same way: each glyph is its own file (`src/ui/fluent-named/<name>.ts`) behind a
+  function in `ui/fluent-paths.ts`. It used to be one table of all 44 paths, loaded whole by the first glyph drawn
+  (Beranda's search icon). New icons go in `icons.tsx`, not here.
 - **A new icon:** find its name in `node_modules/@fluentui/react-icons/lib/atoms/headless-svg/` (the repository
   root's), import `./fluent/<name>` in `icons.tsx`, add it to `Icons`, run `node mobile/scripts/make-ui-icons.mjs`.
 - **The tabs** are the same family as Android drawables (24 px, regular and `_filled`): `scripts/make-tab-icons.mjs`
@@ -173,7 +193,7 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Nilai | `ServiceIcons.Grades` | `ribbon` | 24, 28, 32 |
 | Ujian | `ServiceIcons.Exams` | `document-edit` | 24 (28, 32: the 24) |
 | Materi | `ServiceIcons.Materials` | `book` | 24, 28, 32 |
-| KRS | `ServiceIcons.Krs` | `clipboard-checkmark` | 24 (28, 32: the 24) |
+| KRS | `ServiceIcons.Krs` | `form` (a form to send; not the Tugas tab's clipboard) | 24, 28, 32 |
 | UKT | `ServiceIcons.Bills` | `wallet` | 24, 28, 32 |
 | Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-star` | 24 (28, 32: the 24) |
 | Rencana studi | `ServiceIcons.StudyPlan` | `directions` | 24, 28, 32 |
@@ -185,6 +205,28 @@ One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icon
 | Kurikulum | `ServiceIcons.Curriculum` | `library` | 24, 28, 32 |
 | Berkas | `ServiceIcons.Files` | `folder` | 24, 28, 32 |
 | Profil | `ServiceIcons.Profile` | `person` | 24, 28, 32 |
+| Perlu kamu urus | `ServiceIcons.Needs` | `warning` | 24, 28, 32 |
+| Ringkasan awal | `ServiceIcons.FirstSummary` | `history` | 24, 28, 32 |
+| Sebulan | `ServiceIcons.Month` | `calendar-date` (a page with its date; not the Jadwal tab's grid of days) | 24, 28 (32: the 28) |
+| Laporkan masalah | `ServiceIcons.Report` | `person-feedback` | 24, 28, 32 |
+
+Colours within a group never repeat and never sit two look-alikes for a colour-blind eye side by side: Kurikulum is
+blue (it was lime beside Nilai's amber). A service's glyph and colour live in `src/screens/services/list.ts` only.
+
+Glyphs the screens asked for, in `Icons` (regular; `weight="fill"` for the filled form):
+
+| For | Export | Fluent icon | Sizes Fluent drew |
+| --- | --- | --- | --- |
+| Share a file or link | `Icons.Share` | `share-android` | 16, 20, 24, 32 |
+| A PDF | `Icons.FilePdf` | `document-pdf` | 16, 20, 24, 28, 32 |
+| Slides | `Icons.FileSlides` | `slide-text` | 16, 20, 24, 28, 32, 48 |
+| Sound | `Icons.FileAudio` | `music-note-2` | 16, 20, 24 |
+| SIX (the account, a source) | `Icons.Six` | `building-bank` | 16, 20, 24, 28, 48 |
+| Edunex (the account, a source) | `Icons.Edunex` | `learning-app` | 16, 20, 24 |
+
+Neither SIX nor Edunex takes the graduation cap (the Kuliah tab's) or the book (Materi's).
+
+Still Phosphor, to replace: the course glyphs in `src/ui/tile.tsx` and the file kinds in `src/parts/files.tsx`.
 
 ## Motion
 

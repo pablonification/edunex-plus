@@ -1,0 +1,2 @@
+// Fluent UI System Icons (Microsoft, MIT): Ribbon28Filled.
+export default "M20 25.25a.75.75 0 0 1-1.17.62L14 22.65l-4.83 3.22A.75.75 0 0 1 8 25.25v-7.39a9.46 9.46 0 0 0 12 0zM14 2a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17";

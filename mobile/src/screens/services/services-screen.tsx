@@ -81,8 +81,8 @@ export function ServicesScreen() {
           </View>
         </View>
       ))}
-      {/* The last row keeps clear of the phone's own bar, with room to spare under its labels. */}
-      <View style={{ height: space[8] }} />
+      {/* The page's own end keeps the last row clear of the phone's bar (Page: 40 dp and the bar's height). Every name is
+          one line at the usual font size; at a bigger one it may take two, both whole. */}
       {groups.length === 0 && (
         <Text size="bodyLarge" style={{ color: b.muted, textAlign: "center", marginTop: space[8] }}>
           {t("mobile.services.none", { query: query.trim() })}

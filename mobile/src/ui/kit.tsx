@@ -14,61 +14,77 @@ import { space, useTheme } from "./theme";
 const clamp = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
 
 /**
- * The one "Isi Presensi" (testID `action.presence`): the raised hand, the words, and when it matters the one time on
- * the same line ("tutup 09:30"). `tone`: "page" on the page (the brand's blue, white words), "course" on a block of a
- * course's colour (white, the words in `ink`, the course's colour). 48 dp high; `wide` fills its row.
+ * The one presence button (testID `action.presence`): the raised hand, the word ("Isi Presensi"; pass "Tandai Hadir"
+ * as its child for SIX), and when it matters the one time on the same line ("tutup 09:30"). A 48 dp pill, like
+ * `BigButton`. Two tones, final:
+ *  - "page": on the page. The brand's blue, white words (dark: the pale blue, navy words). The look to keep on Kuliah.
+ *  - "course": on a block of a course's colour. White, the hand and the words in `ink`, the course's colour.
+ * `quiet` is the same part outlined, for when nobody can say it counts (no SIX). `wide` fills its row.
  *
  *   <PresenceButton tone="course" ink={courseColor} time={t("…closes", { time })} onPress={fill} />
  */
 export function PresenceButton({
   onPress,
+  children,
+  label,
   tone = "page",
   ink,
   time,
+  quiet = false,
   wide = false,
   disabled = false,
   testID = "action.presence",
   ...a11y
 }: {
   onPress(): void;
+  /** The word, when it isn't "Isi Presensi" ("Tandai Hadir" in SIX). */
+  children?: string;
+  /** What a screen reader says (the course, and where it opens); the word and the time when left out. */
+  label?: string;
   tone?: "page" | "course";
   /** On a course's block: the course's colour, for the words and the hand (4.5:1 on white). */
   ink?: string;
   /** The one time that matters, already in words ("tutup 09:30"). */
   time?: string;
+  /** Outlined, not filled. */
+  quiet?: boolean;
   wide?: boolean;
   disabled?: boolean;
   testID?: string;
 } & AccessibilityProps) {
   const t = useT();
   const v = useTheme().v4;
-  const label = t("presence.open.fill");
-  const fill = tone === "course" ? "#ffffff" : v.brand;
-  const fg = tone === "course" ? (ink ?? "#14171c") : v.onBrand;
+  const word = children ?? t("presence.open.fill");
+  const onCourse = tone === "course";
+  const fill = quiet ? "transparent" : onCourse ? "#ffffff" : v.brand;
+  const fg = quiet ? (onCourse ? v.onCourse : v.fg) : onCourse ? (ink ?? "#14171c") : v.onBrand;
   return (
     <PressScale
       onPress={onPress}
       disabled={disabled}
       testID={testID}
-      accessibilityLabel={time ? `${label}, ${time}` : label}
+      accessibilityLabel={label ?? (time ? `${word}, ${time}` : word)}
       {...a11y}
       style={{
         minHeight: 48,
-        borderRadius: 14,
+        borderRadius: 24,
         backgroundColor: fill,
+        borderWidth: quiet ? 1.5 : 0,
+        borderColor: onCourse ? v.onCourse : v.line,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
         gap: space[2],
-        paddingHorizontal: space[4],
+        paddingHorizontal: space[5],
         paddingVertical: space[2],
         alignSelf: wide ? "stretch" : "flex-start",
+        flexShrink: 0,
         opacity: disabled ? 0.6 : 1,
       }}
     >
       <Icons.Hand size={20} color={fg} weight="fill" />
       <Text size="labelLarge" weight="bold" numberOfLines={1} style={{ color: fg, fontSize: 15, lineHeight: 20, letterSpacing: 0, flexShrink: 0 }}>
-        {label}
+        {word}
       </Text>
       {time ? (
         <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: fg, fontSize: 14, lineHeight: 20, letterSpacing: 0, flexShrink: 1 }}>
@@ -151,7 +167,8 @@ export function ClashMark({ detail, color }: { detail?: string; color?: string }
 
 /**
  * One of the strip's three: a figure (or a check for good news, never "0"), what it counts, and a small chevron that
- * says it opens something. The whole tile is one target. `tone`: "danger" (red) and "warn" (amber) colour the figure
+ * says it opens something. The figure sits in a fixed 32 dp line and the label is always one line (it shrinks a
+ * little, then is cut: give it two words), so three cells share a baseline whatever their labels' length. The whole tile is one target. `tone`: "danger" (red) and "warn" (amber) colour the figure
  * only; the label stays quiet. Side by side inside b.tsx's `CountStrip`.
  */
 export function StatTile({

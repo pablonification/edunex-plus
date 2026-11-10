@@ -35,14 +35,14 @@ export function Card({
   );
 }
 
-/** Nothing to show: why, and the next step as its `children` (a button). Never shown while data is still coming. */
+/**
+ * Nothing to show: why, and the next step as its `children` (a button). Never shown while data is still coming. The
+ * icon stands bare on the page: no circle or tile behind it.
+ */
 export function EmptyState({ icon, title, description, children }: { icon: ReactNode; title: string; description?: ReactNode; children?: ReactNode }) {
-  const theme = useTheme();
   return (
     <View style={{ alignItems: "center", paddingVertical: space[10], paddingHorizontal: space[6], gap: space[2] }}>
-      <View
-        style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.color.secondaryContainer, alignItems: "center", justifyContent: "center" }}
-      >
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {icon}
       </View>
       <Text size="titleMedium" style={{ textAlign: "center", marginTop: space[2] }}>

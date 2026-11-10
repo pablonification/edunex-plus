@@ -1,6 +1,7 @@
-// Round 2's one big button (v4): 52 dp, a pill, full width under a card or at a sheet's end. "filled" is the screen's
-// one main action (the brand's blue, #a9c4ff on dark with dark text); "done" its tonal green once done; "outline" a
-// second way. It gives on a press and springs back (./press.tsx). `busy`: the work it started is on its way (a spinner in
+// The one big button: 52 dp, a pill, full width under a card or at a sheet's end. "filled" is the screen's one main
+// action (the brand's blue, #a9c4ff on dark with dark text); "course" is that same one action on a block of a course's
+// colour (white, its words in `ink`, the course's colour); "done" its tonal green once done; "outline" a second way
+// (on a course's block: `ink` white for a white outline). One filled action per screen. It gives on a press and springs back (./press.tsx). `busy`: the work it started is on its way (a spinner in
 // place of its icon); `disabled`: it can't be used yet, a grey pill whose label still reads (4.5:1, never faded out).
 import type { ReactNode } from "react";
 import { ActivityIndicator, View } from "react-native";
@@ -10,6 +11,7 @@ import { space, useTheme } from "./theme";
 
 export function BigButton({
   variant = "filled",
+  ink,
   icon,
   onPress,
   label,
@@ -20,7 +22,9 @@ export function BigButton({
   flex,
   children,
 }: {
-  variant?: "filled" | "done" | "outline";
+  variant?: "filled" | "course" | "done" | "outline";
+  /** "course": the course's colour, for the words on white. "outline": the words and the line, when not the page's own (white on a course's block). */
+  ink?: string;
   icon?: ReactNode;
   onPress?: () => void;
   /** What a screen reader says, when the words alone don't say it all. */
@@ -36,8 +40,18 @@ export function BigButton({
 }) {
   const v = useTheme().v4;
   // Disabled: the chip colour, a step off the card or bar it sits on in dark too (the page's black read as a hole there).
-  const background = disabled ? (variant === "outline" ? "transparent" : v.chip) : variant === "filled" ? v.brand : variant === "done" ? v.okBg : "transparent";
-  const color = disabled ? v.muted : variant === "filled" ? v.onBrand : variant === "done" ? v.okFg : v.fg;
+  const background = disabled
+    ? variant === "outline"
+      ? "transparent"
+      : v.chip
+    : variant === "filled"
+      ? v.brand
+      : variant === "course"
+        ? "#ffffff"
+        : variant === "done"
+          ? v.okBg
+          : "transparent";
+  const color = disabled ? v.muted : variant === "filled" ? v.onBrand : variant === "course" ? (ink ?? "#14171c") : variant === "done" ? v.okFg : (ink ?? v.fg);
   return (
     <PressScale
       onPress={onPress}
@@ -52,7 +66,7 @@ export function BigButton({
         borderRadius: 26,
         backgroundColor: background,
         borderWidth: variant === "outline" ? 1 : 0,
-        borderColor: v.line,
+        borderColor: variant === "outline" && ink ? ink : v.line,
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
