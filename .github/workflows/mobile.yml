@@ -52,7 +52,7 @@ on:
       apks:
         description: Which APKs to build (the e2e job always gets the demo release APK).
         type: choice
-        options: [all, demo-release, qa, none]
+        options: [all, demo-release, qa, ios, none]
         default: all
       e2e:
         description: Run the Maestro flows on an emulator.
@@ -122,6 +122,8 @@ jobs:
               {"name": "edunex-plus-qa-dev-client", "demo": "", "guard": "1", "task": "assembleDebug", "out": "debug/app-debug.apk", "abis": "arm64-v8a"},
               {"name": "edunex-plus-demo-release", "demo": "1", "task": "assembleRelease", "out": "release/app-release.apk", "abis": "x86_64,arm64-v8a"}]'
               apks=$(jq -c . <<< "$apks") ;;
+            # The iPhone build is its own job (ios): no APK.
+            ios) apks='[]' ;;
             *) apks=$(jq -c 'map(select(.name == "edunex-plus-demo-release"))' <<< "$all") ;;
           esac
           if [ "$APKS" = none ] && [ "$E2E" != true ]; then apks='[]'; fi
@@ -355,6 +357,56 @@ jobs:
           printf '### Flows: %s\n\n%s Screenshots and logs: artifact `e2e-results-%s`.\n' "$GROUP" "$line" "$GROUP" >> "$GITHUB_STEP_SUMMARY"
 
   # The same-data score over every scenario that ran (check A in mobile/PROGRESS.md), in the run's summary.
+  # An unsigned iPhone build (read-only QA), by hand only: `gh workflow run mobile.yml -f apks=ios -f e2e=false
+  # -f scenarios=false -f desktop-shots=false`. The .ipa is signed on the developer's Mac (AltServer or Sideloadly with
+  # their Apple ID) to install over a cable: mobile/IOS.md.
+  ios:
+    name: ipa (edunex-plus-qa-ios)
+    if: github.event_name == 'workflow_dispatch' && inputs.apks == 'ios'
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      EXPO_PUBLIC_R3_GUARD: "1"
+      EXPO_NO_TELEMETRY: "1"
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install the phone app's packages
+        run: npm ci --no-audit --no-fund
+      - name: List the open-source licences
+        run: npm run licences
+      - name: Generate the iOS project
+        run: npx expo prebuild --platform ios --clean
+      - name: Build the app, unsigned
+        run: |
+          xcodebuild -workspace ios/*.xcworkspace -scheme "$(basename ios/*.xcworkspace .xcworkspace)" \
+            -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 200
+          test "${PIPESTATUS[0]}" -eq 0
+      - name: Pack the .ipa
+        run: |
+          mkdir -p "$RUNNER_TEMP/ipa/Payload"
+          cp -R build/Build/Products/Release-iphoneos/*.app "$RUNNER_TEMP/ipa/Payload/"
+          (cd "$RUNNER_TEMP/ipa" && zip -qry edunex-plus-qa-ios.ipa Payload)
+      - name: Upload the .ipa
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: edunex-plus-qa-ios-ipa
+          path: ${{ runner.temp }}/ipa/edunex-plus-qa-ios.ipa
+          if-no-files-found: error
+          retention-days: 7
+
   score:
     name: score
     needs: [plan, e2e]
