@@ -30,6 +30,31 @@ export const mobileStrings = {
   },
   "mobile.strip.examIn": { id: "hari ke {kind}", en: { one: "day to {kind}", other: "days to {kind}" } },
   "mobile.strip.examToday": { id: "{kind} hari ini", en: "{kind} today" },
+  // Round 2: the soonest thing due ("2 hari ini", else its date over the Task's name), the absence status Kuliah
+  // names, the exam's own day; and a tile's plain name while its source is still being read.
+  "mobile.strip.today": { id: "hari ini", en: "due today" },
+  "mobile.strip.todaySpoken": {
+    id: "{count} Tugas tenggat hari ini",
+    en: { one: "{count} Task due today", other: "{count} Tasks due today" },
+  },
+  "mobile.strip.late": { id: "terlambat", en: "late" },
+  "mobile.strip.lateSpoken": { id: "{count} Tugas terlambat", en: { one: "{count} late Task", other: "{count} late Tasks" } },
+  "mobile.strip.undated": { id: "tanpa tenggat", en: "no due date" },
+  "mobile.strip.undatedSpoken": {
+    id: "{count} Tugas tanpa tenggat",
+    en: { one: "{count} Task with no due date", other: "{count} Tasks with no due date" },
+  },
+  "mobile.strip.nextSpoken": { id: "Tugas berikutnya, {date}: {title}", en: "Next Task, {date}: {title}" },
+  "mobile.strip.over": { id: "Lewat batas", en: "Over the limit" },
+  "mobile.strip.overSpoken": {
+    id: "{count} mata kuliah lewat batas absen",
+    en: { one: "{count} course over its absence limit", other: "{count} courses over their absence limit" },
+  },
+  "mobile.strip.examAway": { id: "{unit} ke {kind}", en: "{unit} to {kind}" },
+  "mobile.strip.examSpoken": { id: "{away} lagi ke {kind}", en: "{away} to {kind}" },
+  "mobile.strip.wait.tasks": { id: "Tugas", en: "Tasks" },
+  "mobile.strip.wait.absences": { id: "Absen", en: "Absences" },
+  "mobile.strip.wait.exam": { id: "Ujian", en: "Exams" },
   // The block's one time while a class is on with no Presence open, and its calm line once nothing is left.
   "mobile.home.ends": { id: "selesai {time}", en: "ends {time}" },
   "mobile.home.noneLeft": { id: "Kuliah hari ini selesai", en: "No more classes today" },
