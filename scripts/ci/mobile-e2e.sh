@@ -6,7 +6,8 @@
 #   scripts/ci/mobile-e2e.sh <apk> <out-dir> [glob]
 #
 # glob: which flows, from mobile/flows (default: all of them, "**/*"). A folder named
-# `expected` (inventories, not flows), `judge` (the walk judge-light/-dark.yaml run with a theme)
+# `expected` (inventories, not flows), `judge` (the walk judge-light/-dark.yaml run with a theme),
+# `journeys` (the seven journeys, run by hand on the demo until the screens they name are built: mobile/flows/journeys/README.md)
 # and Maestro's config.yaml are never run on their own.
 set -uo pipefail
 
@@ -59,7 +60,7 @@ candidates=($pattern)
 for flow in "${candidates[@]}"; do
   [[ -f $flow && ($flow == *.yaml || $flow == *.yml) ]] || continue
   name=$(basename "$flow")
-  [[ /$flow == */expected/* || /$flow == */judge/* || $name == config.yaml || $name == config.yml ]] && continue
+  [[ /$flow == */expected/* || /$flow == */judge/* || /$flow == */journeys/* || $name == config.yaml || $name == config.yml ]] && continue
   flows+=("$PWD/$flow")
 done
 if [ ${#flows[@]} -eq 0 ]; then

@@ -351,12 +351,15 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
       const absent = flow.ids.filter((r) => !r.found && r.absentOk);
       const wait = flow.ids.filter((r) => !r.found && r.pending);
       const old = flow.ids.filter((r) => !r.found && r.history);
-      if (args.includes("--missing") && !miss.length && !wait.length && !old.length && !absent.length) continue;
+      if (args.includes("--missing") && !miss.length && !wait.length && !old.length && !absent.length && !built.length) continue;
+      const built = flow.ids.filter((r) => r.found && r.pending);
       const verdict = miss.length ? "MISSING" : wait.length ? "pending" : old.length ? "history" : "ok";
       console.log(
         `${verdict.padEnd(7)} ${flow.file}  (${new Set(flow.ids.map((r) => r.id)).size} ids${miss.length ? `, ${miss.length} missing` : ""}${wait.length ? `, ${wait.length} pending` : ""}${old.length ? `, ${old.length} gone, in a snapshot of an older app` : ""}${absent.length ? `, ${absent.length} checked absent` : ""})`,
       );
       for (const r of miss) console.log(`        ${r.line}: ${r.id}  ->  closest: ${r.closest ?? "none"}`);
+      for (const r of flow.ids.filter((r) => r.found && r.pending))
+        console.log(`        ${r.line}: ${r.id}  (marked pending: ${r.pending}, but the app draws it now: take the marker off)`);
       for (const r of absent) console.log(`        ${r.line}: ${r.id}  (checked absent, and it is)`);
       for (const r of wait) console.log(`        ${r.line}: ${r.id}  (pending: ${r.pending})`);
     }

@@ -1,4 +1,4 @@
-// Which of the phone's Maestro flows depend on the screens tonight's layout changes (Beranda, the Akademik tab, the top bar's
+// Which of the phone's Maestro flows depend on the screens tonight's layout changes (Beranda, Profil (once Akademik), the top bar's
 // avatar / search / bell, the tab bar), and on what: the testID or text, with file and line. It writes the "by flow" part of
 // mobile/qa/superapp-flows.md between its two markers, so the list can be made again once the layout has moved.
 //
@@ -32,8 +32,8 @@ const walkFiles = (dir, keep, out = []) => {
 const SURFACES = {
   "tab bar": {
     files: [],
-    extra: ["tab.home", "tab.schedule", "tab.tasks", "tab.courses", "tab.academic"],
-    note: "mobile/app/(tabs)/_layout.tsx draws `tab.<id>` for home, schedule, tasks, courses, academic",
+    extra: ["tab.home", "tab.schedule", "tab.tasks", "tab.courses", "tab.profile"],
+    note: "mobile/app/(tabs)/_layout.tsx draws `tab.<id>` for home, schedule, tasks, courses, profile",
   },
   "top bar": {
     files: [],
@@ -56,8 +56,8 @@ const SURFACES = {
     extra: [],
     note: "mobile/src/screens/home/*",
   },
-  Akademik: {
-    files: ["mobile/app/(tabs)/academic.tsx", ...walkFiles("mobile/src/screens/academic", (f) => /\.tsx?$/.test(f))],
+  Profil: {
+    files: ["mobile/app/(tabs)/profile.tsx", ...walkFiles("mobile/src/screens/academic", (f) => /\.tsx?$/.test(f))],
     extra: [],
     note: "mobile/src/screens/academic/*",
   },
@@ -172,7 +172,7 @@ const textSurfaces = (matcher) => {
 // Reads the flow's greeting and the tab labels by hand where the strings can't say (built from parts at run time).
 const TEXT_BY_HAND = [
   [/^\(Pagi\|Siang\|Sore\|Malam\), Dimas$/, "Beranda", "the greeting, header.tsx"],
-  [/^(Beranda|Jadwal|Tugas|Kuliah|Akademik)$/, "tab bar", "a tab's label"],
+  [/^(Beranda|Jadwal|Tugas|Kuliah|Profil)$/, "tab bar", "a tab's label"],
 ];
 
 // What each flow file is run by: every other file that names it.
@@ -239,7 +239,7 @@ function selectorsOf(file) {
 }
 
 /** What a tab bar id leads to, for the text that follows it. */
-const TAB_SURFACE = { "tab.home": "Beranda", "tab.academic": "Akademik" };
+const TAB_SURFACE = { "tab.home": "Beranda", "tab.profile": "Profil" };
 const dependencies = (file) => {
   const found = [];
   const seen = new Set();
@@ -262,7 +262,7 @@ const dependencies = (file) => {
         });
       }
       if (hits.some((h) => h.surface === "tab bar")) here = TAB_SURFACE[sel.value] ? { surface: TAB_SURFACE[sel.value], line: sel.line, via: sel.value } : null;
-      else if (hits.some((h) => h.surface === "Beranda" || h.surface === "Akademik"))
+      else if (hits.some((h) => h.surface === "Beranda" || h.surface === "Profil"))
         here = here ?? { surface: hits[0].surface, line: sel.line, via: sel.value };
       else if (!/^(?:screen|status)\./.test(sel.value)) here = null;
     } else {
@@ -326,7 +326,7 @@ for (const { file, deps } of flowsWith) {
     `Run by: ${by.length ? by.map((b) => (b.startsWith("CI") || b.startsWith("not run") ? b : `\`${b}\``)).join("; ") : "nothing in the repository names it (run by hand)"}`,
     "",
   );
-  const order = ["tab bar", "top bar", "Beranda", "Akademik"];
+  const order = ["tab bar", "top bar", "Beranda", "Profil"];
   const merged = new Map();
   for (const dep of deps.sort((a, b) => a.line - b.line || order.indexOf(a.surface.replace("?", "")) - order.indexOf(b.surface.replace("?", "")))) {
     const key = `${dep.line}|${dep.what}`;

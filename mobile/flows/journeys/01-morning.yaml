@@ -1,0 +1,37 @@
+# Journey 6, morning: "what's my day, what's due, am I safe", answered by Beranda's first screen. Budget: 0 taps.
+# The three blocks below the search bar are on screen at once, with no scrolling, on a 1080x2400 phone at font size 1.1.
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 1 morning: Beranda answers with 0 taps"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+# 0 taps: the first screen, in order (decisions: "Beranda, the first screen").
+- assertVisible:
+    id: home.search
+# What's my day: the class on now, in its course's colour.
+- assertVisible:
+    id: home.now
+- assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
+# What's due, and am I safe: the strip's three things.
+- assertVisible:
+    id: home.strip
+# The grid: the weekly things are already one tap away.
+- assertVisible:
+    id: home.grid
+# The tab bar is still there under it: nothing was pushed off the first screen.
+- assertVisible:
+    id: tab.home
+- assertVisible:
+    id: tab.profile
+# No avatar in the bar (it moved to Profil).
+- assertNotVisible:
+    id: action.account
+- takeScreenshot: journey-1-morning
