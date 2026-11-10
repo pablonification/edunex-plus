@@ -45,6 +45,10 @@ export const mobileStrings = {
   "mobile.update.ready": { id: "Edunex Plus {version} siap dipasang.", en: "Edunex Plus {version} is ready to install." },
   "mobile.update.install": { id: "Pasang", en: "Install" },
   "mobile.search.placeholder": { id: "Cari mata kuliah, tugas, materi", en: "Search courses, Tasks, materials" },
+  // superapp: search and notifications
+  // Search: the services found by name, and what's offered under a search that found nothing.
+  "mobile.search.group.services": { id: "Layanan", en: "Services" },
+  "mobile.search.close": { id: "Mungkin yang kamu cari ada di sini:", en: "Maybe what you need is here:" },
   // Akademik: the screens behind it, as a list.
   "mobile.academic.screens": { id: "Studimu", en: "Your studies" },
   // Android's notification channels, as Settings › Notifications lists them.
