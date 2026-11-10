@@ -42,7 +42,8 @@ export const CourseCard = memo(function CourseCard({ item, group, context }: { i
       onPress={() => go({ screen: "course", code: course.code })}
       onLongPress={() => openCourseColorPicker(course.code)}
       accessibilityLabel={factsLabel(course.code, title, model?.label ?? side, ...metaParts(t, f, item, context))}
-      style={{ minHeight: 64, paddingVertical: space[2], flexDirection: "row", alignItems: "center", gap: space[3] }}
+      // 60 dp for a one-line name, 84 for two at font size 1.1: five courses under "Hari ini" on the first screen.
+      style={{ minHeight: 60, paddingVertical: space[1.5], flexDirection: "row", alignItems: "center", gap: space[3] }}
     >
       <CourseTile code={course.code} name={course.name} size={40} />
       <View style={{ flex: 1, minWidth: 0 }}>
