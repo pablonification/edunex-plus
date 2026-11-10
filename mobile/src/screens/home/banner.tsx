@@ -34,7 +34,6 @@ import { OpenSixTimetable } from "../../parts/six-page-note";
 import { useFirstReadRunning } from "../../shell/source-status";
 import { useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
-import { PulseDot } from "../../ui/expressive";
 import { haptic } from "../../ui/haptics";
 import { type IconName, Icons } from "../../ui/icons";
 import { PlainBar, PresenceButton } from "../../ui/kit";
@@ -47,7 +46,7 @@ import { showOnSchedule } from "../schedule/schedule-screen";
 import { useCheckIn, useWentToCheckIn } from "./checked-in";
 import { type CardAction, ClassSheet, cardAction, cardSubject, useCheckInOpen } from "./class-sheet";
 import { nowHold } from "./now-hold";
-import { dayAndTime, nameOf } from "./parts";
+import { dayAndTime, LiveDot, nameOf } from "./parts";
 
 const RADIUS = 28;
 /** The block's inside edge, the name's line and the rows under it: tight, so more of the day shows above the fold. */
@@ -258,7 +257,7 @@ function Banner({
                 </View>
               ) : (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 20 * scale }}>
-                  {live && <PulseDot color={on} />}
+                  {live && <LiveDot color={on} />}
                   {calm && <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: fill }} />}
                   <Text size="labelLarge" weight="medium" numberOfLines={1} style={{ color: quiet, flex: 1 }}>
                     {kicker.filter(Boolean).join(" · ")}
@@ -317,7 +316,7 @@ function Banner({
           )}
         </PressScale>
         {showAction && action ? (
-          <BannerAction card={card} action={action} ink={fill} on={on} />
+          <BannerAction card={card} action={action} ink={fill} />
         ) : room?.rows ? (
           // The button's place, held: a quiet shape while the read runs, never a button that isn't there yet.
           <View style={{ height: BUTTON, marginTop: space[3], borderRadius: 14, backgroundColor: reading ? shape : "transparent" }} />
@@ -329,7 +328,7 @@ function Banner({
 }
 
 /** The block's one button, white on the course's colour: Tandai Hadir, the Presence, or joining the online class (./class-sheet.tsx's MainAction). */
-function BannerAction({ card, action, ink, on }: { card: NowCard; action: Exclude<CardAction, null>; ink: string; on: string }) {
+function BannerAction({ card, action, ink }: { card: NowCard; action: Exclude<CardAction, null>; ink: string }) {
   const t = useT();
   const now = useNow();
   const { go } = useNav();
@@ -374,8 +373,7 @@ function BannerAction({ card, action, ink, on }: { card: NowCard; action: Exclud
     };
   }
   if (!button) return null;
-  // "Isi Presensi" is the kit's one button. "Tandai Hadir" (SIX's own word), a Task and a class link are the same
-  // shape with their own words: the kit's button takes no label yet (asked of Foundations).
+  // "Isi Presensi" is the kit's one button, with its own word and the hand.
   if (action === "presence" && button.icon !== null) {
     return (
       <View style={{ marginTop: space[3] }}>
@@ -383,30 +381,20 @@ function BannerAction({ card, action, ink, on }: { card: NowCard; action: Exclud
       </View>
     );
   }
-  const Glyph = button.icon ? Icons[button.icon] : null;
+  // "Tandai Hadir" (SIX's own word), a Task and a class link: the same part with their own word and glyph.
   return (
-    <PressScale
-      onPress={button.onPress}
-      accessibilityLabel={button.label}
-      testID={button.testID}
-      style={{
-        marginTop: space[3],
-        minHeight: BUTTON,
-        borderRadius: 14,
-        backgroundColor: on,
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: space[2],
-        paddingHorizontal: space[4],
-        paddingVertical: space[2],
-      }}
-    >
-      {Glyph && <Glyph size={20} weight="fill" color={ink} />}
-      <Text size="labelLarge" weight="bold" numberOfLines={1} style={{ color: ink, fontSize: 15, lineHeight: 20, letterSpacing: 0 }}>
-        {button.text}
-      </Text>
-    </PressScale>
+    <View style={{ marginTop: space[3] }}>
+      <PresenceButton
+        tone="course"
+        ink={ink}
+        wide
+        label={button.text}
+        icon={button.icon ?? undefined}
+        onPress={button.onPress}
+        accessibilityLabel={button.label}
+        testID={button.testID}
+      />
+    </View>
   );
 }
 

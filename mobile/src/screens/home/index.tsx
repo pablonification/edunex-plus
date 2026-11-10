@@ -71,7 +71,7 @@ function Loading() {
       <View style={{ marginTop: space[1] }}>
         <StripShape />
       </View>
-      <View style={{ marginTop: space[2] }}>
+      <View style={{ marginTop: space[4] }}>
         <HomeGrid />
       </View>
     </View>
@@ -84,18 +84,18 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
   const card = useMemo(() => nowCard(context), [context]);
   const found = useMemo(() => problems(context), [context]);
   const hasClass = card?.class !== null && card?.class !== undefined;
-  // The strip's figure is the courses past their limit, or else those with none left: the status its label names.
+  // The strip counts every course with no absence left (past the limit, and at it): red when any is past.
   const over = found.absences.filter((one) => one.health.state === "out").length;
   return (
     <>
       <Rise screen="home" index={0}>
         <NowBanner card={card} courses={courses} schedule={context.schedule} unread={unreadAhead(context, card)} />
       </Rise>
-      {/* Tight on purpose: the tiles bring their own padding, and every dp here is one more of the day above the fold. */}
+      {/* The tiles bring their own padding: the strip sits close under the block it belongs with, the services apart. */}
       <Rise screen="home" index={1} style={{ marginTop: space[1] }}>
         <HomeStrip over={over} none={found.absences.length - over} />
       </Rise>
-      <Rise screen="home" index={2} style={{ marginTop: space[2] }}>
+      <Rise screen="home" index={2} style={{ marginTop: space[4] }}>
         <HomeGrid />
       </Rise>
       {/* Under the fold: drawn once the first frame is up, the timeline first, the rest when the thread is idle. */}
@@ -106,7 +106,7 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
   );
 }
 
-/** Nanti hari ini with its reminder prompt under it, then Perlu kamu urus: each worked out only once it's drawn. */
+/** Nanti hari ini, then Perlu kamu urus, and the reminder prompt last: each worked out only once it's drawn. */
 function Below({
   context,
   card,
@@ -124,12 +124,12 @@ function Below({
   return (
     <>
       <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
-      {/* The one ask, under the timeline it's about. */}
-      <Part at={2}>
-        <NotifyCard hasClass={hasClass} />
-      </Part>
       <Part at={2}>
         <Handle context={context} card={card} plan={plan} found={found} courses={courses} />
+      </Part>
+      {/* The one ask is a prompt, not information: last on the page, under everything that is. */}
+      <Part at={2}>
+        <NotifyCard hasClass={hasClass} />
       </Part>
     </>
   );

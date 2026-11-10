@@ -1,10 +1,12 @@
 // Beranda's strip about the Student (`home.strip`): the three things they check every day, each one target that opens
 // the page with its detail (the kit's StatTile, side by side in b.tsx's CountStrip). One number, one source (the
 // decisions, round 1):
-// - Tasks: the soonest thing due. "2 hari ini"; else how many are late; else the next date over the Task's short name;
+// - Tasks: the soonest thing due. "2 hari ini"; else how many are late; else the next date over "tugas terdekat";
 //   a check and "Tugas beres" only when nothing is open. It opens Tugas, whose list holds exactly those.
-// - Absences: the number of courses that carry the status the label names on Kuliah: "Lewat batas" (red) while any
-//   course is past its limit, else "Absen habis" (amber), else a check. Never two statuses under one label.
+// - Absences: every course with no absence left, at the limit or past it, over "absen habis" (true of each): red
+//   while any is past its limit, else amber, else a check. It opens Kuliah, which leads with the same courses.
+// Round 3: the three are one family, a figure over two words with the noun ("16 Okt / tugas terdekat", "3 / absen
+// habis", "7 hari / ke UTS").
 // - The next exam: counted to the exam's own day with the function Tugas and Ujian use (`countdown`), so the three
 //   can't disagree. It opens Ujian.
 // While the first read runs (or the demo's first sync) no tile answers: each stands as a neutral shape of its final
@@ -23,7 +25,6 @@ import { useFirstReadRunning } from "../../shell/source-status";
 import { CountStrip } from "../../ui/b";
 import { StatTile } from "../../ui/kit";
 import { countdown } from "../tasks/row-parts";
-import { shortName } from "./parts";
 
 const HOUR = 3_600_000;
 const DAY = 24 * HOUR;
@@ -122,7 +123,7 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
       key="tasks"
       value={String(due.count)}
       tone="danger"
-      label={t("mobile.strip.late")}
+      label={t("mobile.strip.lateTasks", { count: due.count })}
       accessibilityLabel={t("mobile.strip.lateSpoken", { count: due.count })}
       onPress={openTasks}
       testID="action.strip.tasks"
@@ -131,7 +132,7 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
     <StatTile
       key="tasks"
       value={f.dayMonth(due.at)}
-      label={shortName(due.title)}
+      label={t("mobile.strip.next")}
       accessibilityLabel={t("mobile.strip.nextSpoken", { date: f.dayMonth(due.at), title: due.title })}
       onPress={openTasks}
       testID="action.strip.tasks"
@@ -148,25 +149,17 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
   ) : (
     <StatTile key="tasks" mark value="" label={t("mobile.strip.tasksNone")} onPress={openTasks} testID="action.strip.tasks" />
   );
-  // The figure is the number of courses with the status the label names, as Kuliah's bars say it for each of them.
+  // Every course with no absence left, at the limit or past it (the ones Kuliah leads with): one figure, one label
+  // that is true of each. Red when any is past its limit, amber otherwise.
+  const out = over + none;
   const absences =
-    over > 0 ? (
+    out > 0 ? (
       <StatTile
         key="absences"
-        value={String(over)}
-        tone="danger"
-        label={t("mobile.strip.over")}
-        accessibilityLabel={t("mobile.strip.overSpoken", { count: over })}
-        onPress={openCourses}
-        testID="action.strip.absences"
-      />
-    ) : none > 0 ? (
-      <StatTile
-        key="absences"
-        value={String(none)}
-        tone="warn"
-        label={t("mobile.strip.absences")}
-        accessibilityLabel={t("mobile.strip.limitSpoken", { count: none })}
+        value={String(out)}
+        tone={over > 0 ? "danger" : "warn"}
+        label={t("mobile.strip.out")}
+        accessibilityLabel={t("mobile.strip.outSpoken", { count: out })}
         onPress={openCourses}
         testID="action.strip.absences"
       />
@@ -181,8 +174,8 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
         away ? (
           <StatTile
             key="exam"
-            value={String(away.value)}
-            label={t("mobile.strip.examAway", { unit: away.unit, kind })}
+            value={`${away.value} ${away.unit}`}
+            label={t("mobile.strip.examTo", { kind })}
             accessibilityLabel={t("mobile.strip.examSpoken", { away: away.text, kind })}
             onPress={openExams}
             testID="action.strip.exam"
