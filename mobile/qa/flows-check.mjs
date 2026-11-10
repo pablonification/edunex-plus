@@ -35,11 +35,11 @@ const walk = (dir, keep, out = []) => {
 
 // ---------------------------------------------------------------------------------------------------- the app's ids
 
-/** Ids built from a list at run time: the template as written, and where the list is (a regex whose first group is an id). */
+/** Ids built from a list at run time: the template as the checker writes it (`<x>` for a `${..}`), and where the list is (a regex whose first group is an id). */
 const ENUMS = [
-  { template: "tab.${tab.id}", file: "mobile/app/(tabs)/_layout.tsx", re: /\bid:\s*"(\w+)"/g, prefix: "tab." },
+  { template: "tab.<id>", file: "mobile/app/(tabs)/_layout.tsx", re: /\bid:\s*"(\w+)"/g, prefix: "tab." },
   {
-    template: "action.service.${service.id}",
+    template: "action.service.<id>",
     file: "mobile/src/screens/services/list.ts",
     // `id: "x", label:` (the group's `id:` is followed by `title:`, a service's by `label:`).
     re: /\bid:\s*"(\w+)",\s*label:/g,
@@ -119,7 +119,7 @@ function sourceIds() {
   for (const e of ENUMS) {
     if (!fs.existsSync(at(e.file))) continue;
     const members = [...fs.readFileSync(at(e.file), "utf8").matchAll(e.re)].map((m) => m[1]);
-    out.delete(readable(e.template));
+    out.delete(e.template);
     for (const member of members) out.set(`${e.prefix}${member}`, { templated: false, re: null });
   }
   return out;
