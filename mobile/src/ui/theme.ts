@@ -110,7 +110,21 @@ export const motion = {
   expressive: spring(0.6, 800),
   effectsFast: spring(1, 3800),
   effectsDefault: spring(1, 1600),
-  duration: { short: 150, medium: 250, long: 400 },
+  /** `extraShort`: a press going down; the rest for fades and the few moves on a duration. */
+  duration: { extraShort: 100, short: 150, medium: 250, long: 400 },
+  /** Material's cubic-bezier curves for the moves on a duration (Reanimated's or RN's `Easing.bezier(...curve)`). */
+  easing: {
+    /** Something moving or fading within the screen. */
+    standard: [0.2, 0, 0, 1],
+    /** Something arriving: fast out of the gate, settling softly (a snackbar rising). */
+    emphasizedDecelerate: [0.05, 0.7, 0.1, 1],
+  },
+  /** The step between items arriving in a stagger (ms). */
+  stagger: 40,
+  /** How far a thing arriving or leaving travels (dp): enough to say "from below", too little to read as a slide. */
+  nudge: 8,
+  /** How far a pressed thing gives (its scale under the finger). A full-width row doesn't: it tints. */
+  give: { card: 0.965, tile: 0.92, icon: 0.88, button: 0.97 },
 } as const;
 
 export interface Theme {
