@@ -14,8 +14,8 @@ appId: io.github.pablonification.edunexplus.demo
     notVisible:
       id: status.settling
     timeout: 180000
-- tapOn:
-    id: action.needs.all
+# Beranda shows Perlu kamu urus only when it has rows the strip doesn't count (round 4): opened by its link.
+- openLink: "edunexplusdemo://needs"
 - extendedWaitUntil:
     visible:
       id: screen.needs
