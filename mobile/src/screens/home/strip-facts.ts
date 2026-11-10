@@ -3,7 +3,7 @@
 // exam is `attention`'s (src/core/needs).
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { Need } from "../../../../src/core/needs";
-import type { UrusRow } from "./urus";
+import type { UrusRow } from "./urus-rows";
 
 const DAY = 86_400_000;
 

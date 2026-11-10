@@ -42,28 +42,12 @@ import { showOnSchedule } from "../schedule/schedule-screen";
 import { dayAndTime, nameOf, shortName } from "./parts";
 import { type AbsenceProblem, type ClashProblem, firstRows, type Problems } from "./problems";
 import { type StripFacts, stripSays } from "./strip-facts";
+import type { TodoRow, UrusRow } from "./urus-rows";
+
+export type { UrusRow } from "./urus-rows";
 
 /** Rows Beranda shows; the rest are on the whole list. */
 export const URUS_ROWS = 5;
-
-interface TodoRow {
-  need: NeedDraft;
-  code: string | null;
-  /** The thing's own name: the Task's title, "Isi Presensi …", "UTS …", "Kirim KRS". */
-  title: string;
-  /** Its deadline or window in one line, dates written as the app writes them ("Tenggat Jum, 13 Nov, 23:59"). */
-  when: string;
-  /** Past its deadline: the line in red, with a warning sign. */
-  late: boolean;
-  /** Doing it counts for attendance (an Edunex Presence): its window, said by TalkBack ("Jum, 13 Nov, 15:00–23:59"). */
-  presence: string | null;
-  /** A Task whose handing in counts for attendance: "Presensi" at the row's end (the title doesn't say it). */
-  presenceTag: boolean;
-  /** The course's whole name, for what TalkBack reads (the row shows its tile). */
-  course: string;
-  /** When it's due by (or starts), for the soonest first. */
-  at: number;
-}
 
 /** A need as a row: its name and its deadline. Attendance is a problem row above; today's classes are the now card's and Nanti hari ini's. */
 function todoOf(t: Translate, f: Format, now: number, need: NeedDraft, courses: readonly TermCourse[]): TodoRow | null {
@@ -158,11 +142,6 @@ function dueBy(need: NeedDraft): number {
       return Number.POSITIVE_INFINITY;
   }
 }
-
-export type UrusRow =
-  | { kind: "absence"; key: string; item: AbsenceProblem }
-  | { kind: "clash"; key: string; item: ClashProblem }
-  | { kind: "todo"; key: string; item: TodoRow };
 
 /** Every row the list has, most serious first: absences (a row per course), clashes, then what to do, the soonest first. */
 export function useUrusRows(problems: Problems, needs: readonly NeedDraft[], due: readonly NeedDraft[], courses: readonly TermCourse[]): UrusRow[] {

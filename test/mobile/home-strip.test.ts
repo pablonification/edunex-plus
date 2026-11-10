@@ -2,7 +2,7 @@
 // and Beranda's "Perlu kamu urus" leaves out what the strip counts (mobile/src/screens/home/strip-facts.ts).
 import { describe, expect, it } from "vitest";
 import { stripFacts, stripSays } from "../../mobile/src/screens/home/strip-facts";
-import type { UrusRow } from "../../mobile/src/screens/home/urus";
+import type { UrusRow } from "../../mobile/src/screens/home/urus-rows";
 import type { Need } from "../../src/core/needs";
 
 const wib = (iso: string) => Date.parse(`${iso}+07:00`);
