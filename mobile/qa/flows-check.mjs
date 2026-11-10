@@ -17,6 +17,9 @@
 // A file whose first lines say `# history: <why>` is a snapshot of an older app (round 1's tabs, the baseline's pictures): read, listed
 // as history, never failed. A file that belongs to another child tonight is in OWNED below: its misses are listed under that child.
 //
+// An id only an `assertNotVisible` / `notVisible:` names is a check that something is gone: if the app no longer draws it, the check
+// holds, so it's listed as "absent" and doesn't fail.
+//
 // A step that waits for a screen that isn't built yet carries `# pending: <who>` on its line or in the comment lines right above it
 // (YAML) or on its line (a script): it's reported on its own, and doesn't fail the check.
 import fs from "node:fs";
@@ -56,6 +59,9 @@ const OWNED = {
   "mobile/flows/judge/first-run.yaml": "the first minute",
   "mobile/qa/flows/before-welcome.yaml": "the first minute",
 };
+
+/** Ids a flow names so that nothing matches (a wait for "nothing" is Maestro's sleep). */
+const NEVER = new Set(["nothing.here"]);
 
 const FILE_KINDS = /\.(?:tsx?|mjs)$/;
 const sourceFiles = [...walk("mobile/src", (f) => FILE_KINDS.test(f)), ...walk("mobile/app", (f) => FILE_KINDS.test(f))];
@@ -222,7 +228,17 @@ function yamlIds(file) {
         if (pending) break;
         if (!/^\s*#/.test(above)) continue;
       }
-      out.push({ line: i + 1, id, pending });
+      // Under an `assertNotVisible:` or a `notVisible:` (a lower indent, within the step): a check that it is gone.
+      const indent = line.search(/\S/);
+      let negative = false;
+      for (let j = i - 1; j >= Math.max(0, i - 4); j -= 1) {
+        const above = lines[j];
+        if (!above.trim() || /^\s*#/.test(above)) continue;
+        if (above.search(/\S/) >= indent) continue;
+        negative = /\b(?:assertNotVisible|notVisible)\b/.test(above);
+        break;
+      }
+      out.push({ line: i + 1, id, pending, negative });
     }
     // `TAB: academic` handed to judge/tab.yaml, which taps `tab.${TAB}` and waits for `screen.${TAB}`.
     const tab = line.match(/^\s*TAB:\s*(\w+)\s*(?:#.*)?$/)?.[1];
@@ -294,9 +310,10 @@ export function check() {
       const key = `${f.line}|${f.id}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      rows.push({ ...f, found: exists(f.id) });
+      rows.push({ ...f, found: NEVER.has(f.id) || exists(f.id) });
     }
     for (const row of rows) if (!row.found) row.closest = closest(row.id);
+    for (const row of rows) if (!row.found && row.negative) row.absentOk = true;
     const history = fs
       .readFileSync(at(file), "utf8")
       .split("\n")
@@ -305,11 +322,14 @@ export function check() {
     const owner = OWNED[file] ?? null;
     for (const row of rows) if (!row.found && !row.pending && owner) row.pending = `${owner}'s file`;
     if (history) for (const row of rows) if (!row.found) row.history = true;
+    // What fails the check: an id that isn't there, not pending, not in a snapshot, not a check that it's gone.
+    for (const row of rows) row.failing = !row.found && !row.pending && !row.history && !row.absentOk;
     flows.push({ file, ids: rows, history, owner });
   }
   return flows;
 }
 
+export const idExists = exists;
 export const appIds = () => [...APP.keys()].sort();
 
 // ------------------------------------------------------------------------------------------------------------- the CLI
@@ -320,22 +340,24 @@ if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(im
     process.exit(0);
   }
   const flows = check();
-  const missing = flows.flatMap((f) => f.ids.filter((r) => !r.found && !r.pending && !r.history).map((r) => ({ file: f.file, ...r })));
+  const missing = flows.flatMap((f) => f.ids.filter((r) => r.failing).map((r) => ({ file: f.file, ...r })));
   const pending = flows.flatMap((f) => f.ids.filter((r) => !r.found && r.pending).map((r) => ({ file: f.file, ...r })));
   if (args.includes("--json")) {
     console.log(JSON.stringify({ flows, missing, pending }, null, 2));
   } else {
     for (const flow of flows) {
       if (!flow.ids.length) continue;
-      const miss = flow.ids.filter((r) => !r.found && !r.pending && !r.history);
+      const miss = flow.ids.filter((r) => r.failing);
+      const absent = flow.ids.filter((r) => !r.found && r.absentOk);
       const wait = flow.ids.filter((r) => !r.found && r.pending);
       const old = flow.ids.filter((r) => !r.found && r.history);
-      if (args.includes("--missing") && !miss.length && !wait.length && !old.length) continue;
+      if (args.includes("--missing") && !miss.length && !wait.length && !old.length && !absent.length) continue;
       const verdict = miss.length ? "MISSING" : wait.length ? "pending" : old.length ? "history" : "ok";
       console.log(
-        `${verdict.padEnd(7)} ${flow.file}  (${new Set(flow.ids.map((r) => r.id)).size} ids${miss.length ? `, ${miss.length} missing` : ""}${wait.length ? `, ${wait.length} pending` : ""}${old.length ? `, ${old.length} gone, in a snapshot of an older app` : ""})`,
+        `${verdict.padEnd(7)} ${flow.file}  (${new Set(flow.ids.map((r) => r.id)).size} ids${miss.length ? `, ${miss.length} missing` : ""}${wait.length ? `, ${wait.length} pending` : ""}${old.length ? `, ${old.length} gone, in a snapshot of an older app` : ""}${absent.length ? `, ${absent.length} checked absent` : ""})`,
       );
       for (const r of miss) console.log(`        ${r.line}: ${r.id}  ->  closest: ${r.closest ?? "none"}`);
+      for (const r of absent) console.log(`        ${r.line}: ${r.id}  (checked absent, and it is)`);
       for (const r of wait) console.log(`        ${r.line}: ${r.id}  (pending: ${r.pending})`);
     }
     const bad = new Set(missing.map((m) => m.file));

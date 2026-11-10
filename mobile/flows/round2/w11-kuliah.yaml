@@ -23,6 +23,7 @@ name: "w11 Kuliah one row one target"
 # At risk first, under its heading: the course out of reach heads the list, its words say how far; then no absences
 # left; then the rest, under a heading of its own.
 - assertVisible: "Perlu perhatian"
+# pending: Kuliah (the base's Kuliah has no "at risk first" group: if the new Kuliah keeps it, give it this id back or follow its new one)
 - assertVisible:
     id: group.presence.out
 - assertVisible:
