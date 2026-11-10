@@ -2,6 +2,13 @@
 // (≥ 18 sp, or 14 sp bold) and for icons, dots, meters and a control's only edge. The colours are read from
 // mobile/src/ui/palette.ts, so a token change that breaks one fails here. A pair a screen starts drawing goes in
 // the list below, with the place it's drawn.
+//
+// To add a pair, add one line to PAIRS: [what it is, foreground, background, least ratio, where it's drawn]. The two colours
+// are picked from `t`: `t.c` (theme.ts's roles), `t.v` (v4's look), `t.now` (today's red). Least: TEXT (4.5) for words, LARGE
+// (3) for words ≥ 18 sp or bold 14 sp, MARK (3) for icons, dots, meters and a control's only edge. A colour with an alpha goes
+// through `over(top, under, alpha)` first; `each(what, fg, SURFACES, least, where)` makes the line for every plain surface.
+// A pair every theme draws is checked in light and dark with no more to write. `node mobile/qa/contrast-read.mjs --top 5`
+// prints every pair here with its ratio, worst first, the new ones too.
 import { describe, expect, it } from "vitest";
 import { BUSY_OPACITY, COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, type Palette, V4, type V4Palette } from "../../mobile/src/ui/palette";
 
