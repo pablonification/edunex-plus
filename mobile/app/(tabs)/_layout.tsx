@@ -3,7 +3,7 @@
 // "The new shape of the app"): Beranda, Jadwal, Tugas, Kuliah (the courses with their absences left,
 // once Presensi) and Profil (the Student, their IPK, Nilai, the study plan, KRS, UKT, Settings and the account). Every tab is mounted ahead, so a
 // switch is instant and each keeps its scroll; a second tap on the open tab scrolls it to the top.
-// Labels always show. The icons are Fluent's 24 px drawings as Android drawables
+// Labels always show. The bar is the page's colour with a hairline along its top. The icons are Fluent's 24 px drawings as Android drawables
 // (plugins/tab-icons.js), regular at rest and filled when picked. The picked tab is said by the icon filling and
 // turning the brand's blue with its label, in light and dark: no Material pill behind it (the pill's colour is the
 // bar's own, so it never draws). On an iPhone it's iOS's own tab bar: Apple's
@@ -13,14 +13,14 @@
 // up for numbers on tabs the Student hasn't looked at yet.
 import { NativeTabs, type SFSymbolIcon } from "expo-router/native-tabs";
 import { type Dispatch, type SetStateAction, startTransition, useEffect, useState } from "react";
-import { Platform } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { useRememberCourseColors } from "../../../src/app/course-colors";
 import { useTermCourses } from "../../../src/app/courses";
 import { useT } from "../../../src/app/i18n";
 import { type Badge, usePlanBadge, useTasksBadge } from "../../../src/app/shell/badges";
 import { perfDoing } from "../../src/perf";
 import { useFirstFrameShown } from "../../src/shell/first-frame";
-import { InTabs } from "../../src/ui/insets";
+import { InTabs, useTabsBottom } from "../../src/ui/insets";
 import { useTheme } from "../../src/ui/theme";
 
 /**
@@ -62,9 +62,11 @@ export default function TabsLayout() {
           ? // iOS's own bar and colours (on iOS 26 it draws its glass itself); the picked tab in the app's accent.
             { tintColor: c.accent }
           : {
-              backgroundColor: c.surfaceContainer,
+              // The bar is the page's own colour in both themes (no grey band under a white page); a hairline marks
+              // its top (`BarHairline`). Material's ripple stays.
+              backgroundColor: v.page,
               // No pill: the indicator in the bar's own colour. The picked tab is its filled icon and its label in the brand's blue.
-              indicatorColor: c.surfaceContainer,
+              indicatorColor: v.page,
               rippleColor: c.selected,
               iconColor: { default: c.onSurfaceVariant, selected: v.brand },
               labelStyle: {
@@ -90,9 +92,22 @@ export default function TabsLayout() {
           </NativeTabs.Trigger>
         ))}
       </NativeTabs>
+      <BarHairline />
       <TabBadgesLater onChange={setBadges} />
     </InTabs.Provider>
   );
+}
+
+/**
+ * The hairline along the top of Android's bar: the bar is the page's colour, so this line is all that parts them. It
+ * sits where the tabs' pages end (each reports it: ui/insets.ts), takes no touch, and waits for the first frame. An
+ * iPhone's bar draws its own edge.
+ */
+function BarHairline() {
+  const line = useTheme().v4.line;
+  const top = useTabsBottom();
+  if (Platform.OS === "ios" || top <= 0) return null;
+  return <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top, height: StyleSheet.hairlineWidth * 2, backgroundColor: line }} />;
 }
 
 interface Badges {
