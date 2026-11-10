@@ -70,7 +70,7 @@ if [ $keep = 0 ]; then
   # The demo's first read (SIX's pages, the check-in look) still changes the screen for a few seconds.
   settle 40
 fi
-at=$(dump | centre "tab\.$tab")
+at=$(dump | centre "tab\.$tab" || true)
 [ -n "$at" ] || { echo "No tab.$tab on screen (is the app open on its tabs?)" >&2; exit 1; }
 adb shell input tap $at
 sleep 1.5

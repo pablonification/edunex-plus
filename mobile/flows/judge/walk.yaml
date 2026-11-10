@@ -16,9 +16,9 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-01-beranda
-# Perlu kamu urus, behind Beranda's chevron (round 2's v4): the desktop's Perlu perhatianmu, in full.
-- tapOn:
-    id: action.needs.all
+# Perlu kamu urus: the desktop's Perlu perhatianmu, in full. Beranda shows its section (and the chevron, action.needs.all)
+# only when it has rows the strip doesn't already count (round 4), so the page is opened by its link.
+- openLink: "edunexplusdemo://needs"
 - extendedWaitUntil:
     visible:
       id: screen.needs
@@ -191,17 +191,23 @@ appId: io.github.pablonification.edunexplus.demo
       TAB: courses
 - takeScreenshot: ${THEME}-13-kuliah
 
-# Akademik, then Nilai and Rencana studi's parts, each its own screen
+# Profil (round 4: Akademik's rows live here), then Nilai and Rencana studi's parts, each its own screen; the rows lower on
+# the page are scrolled to first
 - runFlow:
     file: tab.yaml
     env:
       TAB: profile
-# Profil's rows draw once its data is in: wait for the first, so the picture and the tap both find it.
+# Profil's IPK card draws once its data is in: waited for, so the picture and the taps below find their rows.
 - extendedWaitUntil:
     visible:
-      id: row.profile.grades
+      id: card.profile
     timeout: 15000
 - takeScreenshot: ${THEME}-13b-akademik
+- scrollUntilVisible:
+    element:
+      id: row.profile.grades
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: row.profile.grades
 - extendedWaitUntil:
@@ -212,6 +218,11 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-14-nilai
 - tapOn:
     id: action.back
+- scrollUntilVisible:
+    element:
+      id: row.profile.planner
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: row.profile.planner
 - extendedWaitUntil:
@@ -222,6 +233,11 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-15-rencana
 - tapOn:
     id: action.back
+- scrollUntilVisible:
+    element:
+      id: row.profile.curriculum
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: row.profile.curriculum
 - extendedWaitUntil:
@@ -232,6 +248,11 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-16-kurikulum
 - tapOn:
     id: action.back
+- scrollUntilVisible:
+    element:
+      id: row.profile.krs
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: row.profile.krs
 - extendedWaitUntil:
@@ -242,6 +263,11 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-17-krs
 - tapOn:
     id: action.back
+- scrollUntilVisible:
+    element:
+      id: row.profile.bills
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: row.profile.bills
 - extendedWaitUntil:
@@ -252,6 +278,11 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-18-ukt
 - tapOn:
     id: action.back
+- scrollUntilVisible:
+    element:
+      id: row.profile.deadlines
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: row.profile.deadlines
 - extendedWaitUntil:
@@ -311,10 +342,10 @@ appId: io.github.pablonification.edunexplus.demo
 # Beranda keeps where it was scrolled (down at 02's 16:00 row): back up to its header.
 - scrollUntilVisible:
     element:
-      id: action.search
+      id: home.search
     direction: UP
 - tapOn:
-    id: action.search
+    id: home.search
 # The desktop's own search, for the same results.
 - inputText: "bab 2"
 - hideKeyboard
@@ -351,7 +382,7 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.back
 
-# Settings, behind the avatar (on every tab's bar but Beranda's, round 2's v4): the top, notifications, about, the licences
+# Settings, from Profil's Pengaturan row (round 4): the top, notifications, about, the licences
 - runFlow:
     file: tab.yaml
     env:

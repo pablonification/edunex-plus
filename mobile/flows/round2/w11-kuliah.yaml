@@ -1,6 +1,6 @@
 # W4/W11 on Kuliah (round 3, after the blind review): in three seconds, which course is at risk and the way in. The
-# courses at risk come first under "Perlu perhatian", the rest under "Aman"; each one row with one target (its tile, its
-# name, its code, and at its end its absences in plain words: "Lewat batas 1×" and "Jatah habis" as pills, "Sisa 1×"
+# courses at risk come first (round 4: a grid of cards, no headings); each one card with one target (its tile, its
+# name, its code, and at its end its absences in plain words: "Lewat jatah absen 1×" and "Jatah absen habis", "Sisa 1×"
 # quiet; no meter, no tick, no links of its own); the row opens the course, where the meter, the count, the target and
 # the one exception are. No explanatory sentence and no big number on the first screen: the day's answer and how it's
 # counted are in ⋮, beside the targets.
@@ -20,17 +20,17 @@ name: "w11 Kuliah one row one target"
     visible:
       id: screen.courses
     timeout: 10000
-# At risk first, under its heading: the course out of reach heads the list, its words say how far; then no absences
-# left; then the rest, under a heading of its own.
-- assertVisible: "Perlu perhatian"
+# At risk first (round 4: a grid of course cards, no headings): the course out of reach heads the grid, its words say
+# how far; then no absences left; then the rest.
+- assertNotVisible: "Perlu perhatian"
 - assertVisible:
     id: group.presence.out
 - assertVisible:
     id: row.course.KU5014
 - assertVisible:
     id: status.course.KU5014
-- assertVisible: "Lewat batas 1×"
-- assertVisible: "Jatah habis"
+- assertVisible: "Lewat jatah absen 1×"
+- assertVisible: "Jatah absen habis"
 - assertNotVisible:
     id: "meter.course.*"
 - assertNotVisible:
@@ -38,16 +38,16 @@ name: "w11 Kuliah one row one target"
 - assertNotVisible: ".*tak bisa lagi capai 80%.*"
 - assertVisible:
     id: row.course.DK4073
-    below:
-      id: row.course.KU5014
-- assertVisible: "Aman"
-- assertVisible:
-    id: row.course.PL3002
-    below:
-      id: row.course.PL3032
-# Today's clash: the row says when and which to go to; the why is one tap deeper.
-- assertVisible: "Bentrok 16:00–16:30"
-- assertVisible: "Pilih PL3032"
+- scrollUntilVisible:
+    element:
+      id: row.course.PL3002
+    direction: DOWN
+- assertNotVisible: "Aman"
+# Today's clash: the row says when, and "Pilih kelas" opens the sheet that says which to go to.
+- scrollUntilVisible:
+    element: "Bentrok 16:00–16:30"
+    direction: UP
+- assertVisible: "Pilih kelas"
 # One target per row: no links of their own on Kuliah, and no explanatory sentence on its first screen.
 - assertNotVisible:
     id: action.checkSix
