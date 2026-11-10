@@ -34,11 +34,11 @@ export const mobileStrings = {
     id: "Tekan Tandai Hadir di SIX saat tombolnya muncul · kuliah sampai {time}",
     en: "Press Tandai Hadir in SIX when it shows · class until {time}",
   },
-  // welcome: one screen, what the app is in a line, three reasons, one button.
+  // The first minute (mobile/src/shell/first-minute): two doors, one per system, what the app is in a line, one button.
   "mobile.welcome.line": { id: "Edunex dan SIX, di satu aplikasi", en: "Edunex and SIX, in one app" },
-  "mobile.welcome.reason.class": { id: "Kuliah hari ini dan Tandai Hadir", en: "Today's classes and Tandai Hadir" },
-  "mobile.welcome.reason.tasks": { id: "Tugas dan tenggatnya", en: "Tasks and their deadlines" },
-  "mobile.welcome.reason.attendance": { id: "Jatah absen dan nilai", en: "Absences left and grades" },
+  // What each door holds, one word each, stacked on the door.
+  "mobile.first.holds.edunex": { id: "Tugas · Modul · Presensi", en: "Tasks · Modules · Presence" },
+  "mobile.first.holds.six": { id: "Jadwal · Nilai · KRS", en: "Schedule · Grades · KRS" },
   "mobile.welcome.signIn": { id: "Masuk dengan akun ITB", en: "Sign in with your ITB account" },
   // home
   // The now card is one target: a tap opens its class's sheet. Said to TalkBack after the card's own words.
