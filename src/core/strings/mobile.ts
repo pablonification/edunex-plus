@@ -44,8 +44,6 @@ export const mobileStrings = {
   "mobile.service.calendar": { id: "Kalender", en: "Calendar" },
   "mobile.service.material": { id: "Materi", en: "Materials" },
   "mobile.service.exams": { id: "Ujian", en: "Exams" },
-  "mobile.service.month": { id: "Jadwal sebulan", en: "Month schedule" },
-  "mobile.service.needs": { id: "Perlu diurus", en: "To handle" },
   "mobile.service.month": { id: "Sebulan", en: "Month" },
   "mobile.service.needs": { id: "Perlu kamu urus", en: "To handle" },
   "mobile.service.report": { id: "Lapor", en: "Report" },

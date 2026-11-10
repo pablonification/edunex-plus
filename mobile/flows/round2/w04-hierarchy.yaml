@@ -43,5 +43,5 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: tab.profile
 - assertVisible:
-    id: action.academic.grades
+    id: card.profile
 - assertVisible: "3,26"

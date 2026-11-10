@@ -29,10 +29,10 @@ name: "r3 5 grades"
 - runFlow:
     when:
       visible:
-        id: action.academic.grades
+        id: card.profile
     commands:
       - tapOn:
-          id: action.academic.grades
+          id: card.profile
           label: "tap: the IPK card"
       - extendedWaitUntil:
           visible:
