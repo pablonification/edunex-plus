@@ -69,6 +69,21 @@ export const mobileStrings = {
   "mobile.profile.requiredDone": { id: "Wajib tuntas", en: "Required courses done" },
   // Notifikasi's row.
   "mobile.profile.unread": { id: "{count} belum dibaca", en: "{count} unread" },
+  // Profil: the heading over Nilai, Rencana, Kurikulum, KRS, UKT and Kalender akademik: the Student's own record.
+  "mobile.profile.record": { id: "Akademikmu", en: "Your academics" },
+  // Settings › Notifikasi while the phone has notifications off for the app: where they're off (the heading over it
+  // says what), and the one button.
+  "mobile.settings.alertsOff": { id: "Mati di pengaturan HP", en: "Off in your phone's settings" },
+  "mobile.settings.alertsTurnOn": { id: "Nyalakan", en: "Turn on" },
+  // Settings › Tentang: the row that opens what the app found the first time it read Edunex and SIX ("Ringkasan awal"
+  // was a name no judge understood).
+  "mobile.settings.firstFound": { id: "Temuan saat pertama masuk", en: "Found at first sign-in" },
+  // Nilai: beside the IPK, what it becomes after this semester (the label beside "IPK", so it doesn't say IPK again).
+  "mobile.grades.afterTerm": { id: "Setelah semester ini", en: "After this semester" },
+  // Nilai: the heading over this term's courses whose grade isn't out, saying once that the letters are the Student's
+  // own estimates. The second is used under "Semester ini", when some grades are already out.
+  "mobile.grades.estimates": { id: "Perkiraanmu semester ini", en: "Your estimates this semester" },
+  "mobile.grades.estimatesRest": { id: "Perkiraanmu untuk yang belum keluar", en: "Your estimates for the rest" },
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },

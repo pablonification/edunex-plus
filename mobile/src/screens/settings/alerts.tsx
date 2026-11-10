@@ -2,23 +2,30 @@
 // its name; when it fires is its spoken hint, not a line under every switch. An alert that needs SIX says so while SIX
 // is signed out. Under Tenggat (while it's on), the reminder times as one row with its value, picked in a sheet. Then
 // Kuliah sebentar lagi, a test notification (the row sends it; what happened is its one line) and, while there are
-// some, the reminders put off or marked handled (the row opens the way to bring them all back). A notice leads the
-// card while Android's permission for notifications is off.
+// some, the reminders put off or marked handled (the row opens the way to bring them all back).
+// While Android's permission for notifications is off, no switch here can make one show: the group says so once
+// ("Mati di pengaturan HP") with its one button, and the switches are folded away until it's on, never half-on
+// (round 1's council: "on, off or disabled can't be told").
+import Constants from "expo-constants";
+import * as IntentLauncher from "expo-intent-launcher";
+import * as Notifications from "expo-notifications";
 import { useState } from "react";
-import { View } from "react-native";
+import { Linking, Platform, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useDone, useHeldBack, useSnoozes } from "../../../../src/app/snoozes";
 import { useBridge, useStatus } from "../../../../src/app/store";
 import { type AlertGroup, DEADLINE_REMINDERS, type DeadlineReminder, type Settings } from "../../../../src/core/models";
 import type { StringKey } from "../../../../src/core/strings";
-import { NotificationsOff, useNotificationPermission } from "../../parts/notifications-off";
+import { type NotificationPermission, useNotificationPermission } from "../../parts/notifications-off";
 import { toast } from "../../swaps/overlays";
+import { useB } from "../../ui/b";
 import { Icons } from "../../ui/icons";
+import { Tap } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import { Chevron, haptic, SettingRow, SettingsGroup, SheetTitle, SwitchRow } from "../../ui/settings-list";
 import { ActionSheet, Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { space, TOUCH, useTheme } from "../../ui/theme";
 import type { Report, Update } from "./save";
 
 // Presensi and Kehadiran read as one thing to a student: on the phone each is named by what it warns about (phoneWording).
@@ -49,12 +56,18 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
   const needsSix = sixOut ? t("mobile.settings.needsSix") : undefined;
   const setOn = (group: AlertGroup, on: boolean) =>
     update({ mutedAlerts: on ? settings.mutedAlerts.filter((g) => g !== group) : [...settings.mutedAlerts.filter((g) => g !== group), group] });
-  // While Android has notifications off, no switch here can make one show: they're greyed, their state kept, until the
-  // notice's button turns notifications on.
+  // While Android has notifications off, no switch here can make one show: they're folded away, their state kept,
+  // until the button turns notifications on. What doesn't need the permission (reminders put off) stays.
   const permission = useNotificationPermission();
   const off = permission.off;
+  if (off)
+    return (
+      <SettingsGroup title={t("settings.alerts")} lead={<AlertsOff state={permission} />} testID="section.settings.alerts">
+        <SnoozedReminders report={report} />
+      </SettingsGroup>
+    );
   return (
-    <SettingsGroup title={t("settings.alerts")} lead={<NotificationsOff state={permission} />} testID="section.settings.alerts">
+    <SettingsGroup title={t("settings.alerts")} testID="section.settings.alerts">
       {ALERT_ROWS.flatMap(({ group, label, hint, six }) => {
         const on = !settings.mutedAlerts.includes(group);
         const row = (
@@ -65,13 +78,12 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
             meta={six ? needsSix : undefined}
             metaTone="amber"
             value={on}
-            disabled={off}
             onChange={(next) => setOn(group, next)}
             testID={`switch.alert.${group}`}
           />
         );
         // Tenggat's reminder times, while it's on.
-        return group === "deadline" && on && !off ? [row, <DueTimes key="dueTimes" settings={settings} update={update} />] : [row];
+        return group === "deadline" && on ? [row, <DueTimes key="dueTimes" settings={settings} update={update} />] : [row];
       })}
       <SwitchRow
         title={t("settings.alerts.classSoon")}
@@ -79,13 +91,60 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
         meta={needsSix}
         metaTone="amber"
         value={settings.classSoonAlerts}
-        disabled={off}
         onChange={(classSoonAlerts) => update({ classSoonAlerts })}
         testID="switch.classSoon"
       />
       <TestAlert report={report} />
       <SnoozedReminders report={report} />
     </SettingsGroup>
+  );
+}
+
+/** Android's page of this app's notifications; the app's own settings page where that one won't open (and on iOS). */
+async function openNotificationSettings(): Promise<void> {
+  if (Platform.OS !== "android") return Linking.openSettings();
+  try {
+    await IntentLauncher.startActivityAsync(IntentLauncher.ActivityAction.APP_NOTIFICATION_SETTINGS, {
+      extra: { "android.provider.extra.APP_PACKAGE": Constants.expoConfig?.android?.package },
+    });
+  } catch {
+    await Linking.openSettings();
+  }
+}
+
+/**
+ * Notifications are off for the app: where ("Mati di pengaturan HP"; the heading over it already says what), and the
+ * one way out as a full 48 dp button. It asks for the permission while Android still lets the app ask, else opens the
+ * app's notification settings.
+ */
+function AlertsOff({ state }: { state: NotificationPermission }) {
+  const t = useT();
+  const b = useB();
+  const { permission, setPermission, check } = state;
+  if (!permission || permission.granted) return null;
+  const turnOn = async () => {
+    if (permission.canAskAgain) setPermission(await Notifications.requestPermissionsAsync());
+    else await openNotificationSettings();
+    await check();
+  };
+  return (
+    <View testID="note.notificationsOff" style={{ gap: space[3], marginHorizontal: space[1], marginBottom: space[2] }}>
+      <Text size="bodyLarge" weight="medium" style={{ color: b.amber }}>
+        {t("mobile.settings.alertsOff")}
+      </Text>
+      <Tap
+        feel="card"
+        onPress={() => void turnOn().catch(() => undefined)}
+        accessibilityRole="button"
+        accessibilityLabel={t("mobile.settings.notificationsTurnOn")}
+        testID="action.notificationsOn"
+        style={{ minHeight: TOUCH, borderRadius: TOUCH / 2, backgroundColor: b.brand, alignItems: "center", justifyContent: "center", overflow: "hidden" }}
+      >
+        <Text size="labelLarge" weight="semibold" style={{ color: b.onBrand }}>
+          {t("mobile.settings.alertsTurnOn")}
+        </Text>
+      </Tap>
+    </View>
   );
 }
 
