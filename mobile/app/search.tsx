@@ -16,7 +16,7 @@ import type { Exam } from "../../src/core/exams";
 import type { DatasetName } from "../../src/core/models";
 import { SCREENS, type ScreenId, type SearchItem, search, searchIndex } from "../../src/core/search";
 import { isOpenStatus, taskStatus } from "../../src/core/tasks";
-import { useNav } from "../src/nav";
+import { useNav, useParam } from "../src/nav";
 import { usePerfDrawn } from "../src/perf";
 import { refreshNow } from "../src/shell/source-status";
 import { IconButton } from "../src/ui/controls";
@@ -83,7 +83,8 @@ export default function Search() {
   const insets = useSafeAreaInsets();
   const saved = useSaved(SEARCHED);
   const bridge = useBridge();
-  const [query, setQuery] = useState("");
+  // "Semua layanan" hands over what was typed there when no service matches (`/search?q=…`).
+  const [query, setQuery] = useState(useParam("q") ?? "");
   const field = useRef<ComponentRef<typeof TextInput>>(null);
   const index = useMemo(() => searchIndex(saved, { lang, screens: BUILT, now }), [saved, lang, now]);
   const typed = query.trim();
