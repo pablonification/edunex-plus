@@ -353,7 +353,7 @@ export function useUnreadAlerts(): number {
 }
 
 /** The bell, with a small calm dot while something new is unread (how many is said to TalkBack and on the list). */
-function Bell({ color, dot }: { color: string; dot: string }) {
+export function Bell({ color, dot }: { color: string; dot: string }) {
   const t = useT();
   const unread = useUnreadAlerts();
   return (
