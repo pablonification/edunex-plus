@@ -14,7 +14,7 @@ Sources: Material 3 (incl. Expressive) and Android's quality guidelines, through
 
 | Piece | What | Where |
 | --- | --- | --- |
-| Bottom tabs | Android's own navigation bar (expo-router `NativeTabs`, a Material `BottomNavigationView`): Beranda, Jadwal, Tugas, Kuliah, Akademik. Labels always shown; icons are the app's Phosphor glyphs as drawables, outlined at rest, filled when picked; the native badge (error colour) only for what needs the Student today. All tabs mounted ahead: a switch is instant, each keeps its scroll, a second tap scrolls to the top. Each tab's route wraps its page in `TabClock` (a hidden tab ignores the minute's tick until shown) and calls `usePerfFocused(name)`. | `app/(tabs)/_layout.tsx`, `plugins/tab-icons.js`, `scripts/make-tab-icons.mjs` |
+| Bottom tabs | Android's own navigation bar (expo-router `NativeTabs`, a Material `BottomNavigationView`): Beranda, Jadwal, Tugas, Kuliah, Profil. Labels always shown; icons are Fluent's 24 px drawings as drawables (`tab_home`, `tab_schedule`, `tab_tasks`, `tab_courses`, `tab_profile`, each with `_filled`: a house, a calendar, a clipboard of ticks, the graduation cap, a person), regular at rest, filled when picked; the native badge (error colour) only for what needs the Student today. All tabs mounted ahead: a switch is instant, each keeps its scroll, a second tap scrolls to the top. Each tab's route wraps its page in `TabClock` (a hidden tab ignores the minute's tick until shown) and calls `usePerfFocused(name)`. | `app/(tabs)/_layout.tsx`, `plugins/tab-icons.js`, `scripts/make-tab-icons.mjs` |
 | Tab top bar | One pattern on all five tabs (round 3): `TabHeader title=… actions=…`: the tab's name (Title L, Plus Jakarta Sans) with the data's status as one quiet line under it only when it says something to act on (never "Diperbarui baru saja"; tap: the sources sheet), then the tab's own one or two actions (`actions`: Jadwal's month and ⋮, Kuliah's ⋮), then `TabActions`, the same three in the same places on every tab: Search, the bell (a small dot while something's unread), the avatar (account and Settings). Just the bar: no big title under it to collapse. Beranda's bar is its own blue (`HomeBar`: the greeting as its title, then `TabActions`), fixed as the page scrolls. A problem banner follows under it. | `src/shell/source-status.tsx`, `src/screens/home/header.tsx` |
 | Stack top bar | `TopBar title=… actions=…`: Android's back arrow, the title at the start (Title L), one or two actions at the end, more in ⋮ (`OverflowMenu`). `lines={2}`: a long subject's name whole on two lines, the bar growing to hold it (a course's page: its name is the bar's title, never a big name in the page under an empty bar). `titleFrom={dp}`: a page that shows its subject big at its top keeps the bar's title hidden until the page has scrolled that far, then fades it in (M3's collapsing top app bar, on the UI thread, no layout moves). | `src/ui/top-bar.tsx`, `src/ui/menu.tsx` |
 | Screens | Every drill-down is its own route on the native stack (`app/_layout.tsx`, `animation: "default"`: Android's own open/close, drawn natively), so Back and the back gesture work everywhere with no code. A course, a module (`/course/<code>/module/<id>`), a Task, an exam, Nilai, each part of Rencana studi (`/plan/<part>`), Settings, Search, Notifikasi, the in-app web page. | `app/` |
@@ -140,6 +140,51 @@ heading → headlineSmall, figure/display → headlineMedium.
 | `OverflowMenu`, `Menu` | Menu | anchored, 48 dp items |
 | `TopBar`, `TabHeader` | Small top app bar | surface at rest, surfaceContainer once the page scrolls under it (on the UI thread) |
 | `Toasts` | Snackbar | |
+
+## Icons
+
+One family for the whole app, the desktop's: Microsoft's **Fluent UI System Icons** (MIT; `docs/design-system.md`,
+"Icons"). `src/ui/icons.tsx` keeps the names the app always used (`Icons.Home`, `Icons.Check`, …) and their props
+(`size`, `color`, `weight`).
+
+- **Drawn at the size Fluent made it for.** Fluent draws each icon anew at 12, 16, 20, 24, 28, 32 and 48 px, its lines
+  as thick as that size wants; an icon draws the form nearest the size it shows at (between two, the bigger:
+  `src/ui/icon-size.ts`). 18 draws the 20 px form, 22 the 24, 28 the 28.
+- **Regular, or filled where the Student is.** Regular by default; `weight="fill"` or `"bold"` draws Fluent's filled
+  form: a picked tab, a service's tile, a status that has to read at a glance (a check, a warning). `"light"` is
+  regular. A filled shape has to mean the same: `Icons.Circle` ("not started") stays a ring whatever the weight.
+- **Plain path data, loaded when drawn.** `scripts/make-ui-icons.mjs` copies each icon `icons.tsx` imports
+  (`./fluent/<name>`) from `@fluentui/react-icons` into `src/ui/fluent/<name>.ts`: its paths as strings, drawn with
+  `react-native-svg`. Never `@fluentui/react-icons`' components (they're DOM). Each icon's file loads when it's first
+  drawn (Metro's inline requires), so Beranda's first frame loads only the icons on it, not all 86 (about 300 KB in all).
+- **A new icon:** find its name in `node_modules/@fluentui/react-icons/lib/atoms/headless-svg/` (the repository
+  root's), import `./fluent/<name>` in `icons.tsx`, add it to `Icons`, run `node mobile/scripts/make-ui-icons.mjs`.
+- **The tabs** are the same family as Android drawables (24 px, regular and `_filled`): `scripts/make-tab-icons.mjs`
+  writes `assets/tab-icons/`, `plugins/tab-icons.js` copies them in at prebuild (a native build to change).
+- **Services** (Beranda's grid, Semua layanan): `ServiceIcons.<Name>`, filled by default, each in its own colour on
+  its tile. Drawn at 24, 28 and 32 px; where Fluent drew no 28 or 32, the nearest it drew (in brackets).
+
+| Service | Export | Fluent icon | Sizes Fluent drew (of 24, 28, 32) |
+| --- | --- | --- | --- |
+| Jadwal | `ServiceIcons.Schedule` | `calendar-ltr` | 24, 28, 32 |
+| Tugas | `ServiceIcons.Tasks` | `clipboard-task-list-ltr` | 24 (28, 32: the 24) |
+| Kuliah | `ServiceIcons.Courses` | `hat-graduation` | 24, 28, 32 |
+| Presensi | `ServiceIcons.Attendance` | `hand-right` | 24, 28 (32: the 28) |
+| Nilai | `ServiceIcons.Grades` | `ribbon` | 24, 28, 32 |
+| Ujian | `ServiceIcons.Exams` | `document-edit` | 24 (28, 32: the 24) |
+| Materi | `ServiceIcons.Materials` | `book` | 24, 28, 32 |
+| KRS | `ServiceIcons.Krs` | `clipboard-checkmark` | 24 (28, 32: the 24) |
+| UKT | `ServiceIcons.Bills` | `wallet` | 24, 28, 32 |
+| Kalender akademik | `ServiceIcons.AcademicCalendar` | `calendar-star` | 24 (28, 32: the 24) |
+| Rencana studi | `ServiceIcons.StudyPlan` | `directions` | 24, 28, 32 |
+| Transkrip | `ServiceIcons.Transcript` | `document-ribbon` | 24, 28, 32 |
+| Notifikasi | `ServiceIcons.Notifications` | `alert` | 24, 28, 32 |
+| Pengaturan | `ServiceIcons.Settings` | `settings` | 24, 28, 32 |
+| Pencarian | `ServiceIcons.Search` | `search` | 24, 28, 32 |
+| Lainnya | `ServiceIcons.More` | `grid` | 24, 28 (32: the 28) |
+| Kurikulum | `ServiceIcons.Curriculum` | `library` | 24, 28, 32 |
+| Berkas | `ServiceIcons.Files` | `folder` | 24, 28, 32 |
+| Profil | `ServiceIcons.Profile` | `person` | 24, 28, 32 |
 
 ## Motion
 
