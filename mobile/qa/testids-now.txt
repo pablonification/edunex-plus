@@ -1,3 +1,4 @@
+<testID>.menu
 <testID>.problem
 <testID>.share
 academic.loading
@@ -365,6 +366,7 @@ row.material.<id>
 row.meeting.<key>
 row.meetingsEarlier
 row.minor.<key>
+row.module.<entry>
 row.nav.grades
 row.nav.plan.<part>
 row.need.<id>
@@ -378,6 +380,7 @@ row.snoozed.<id>
 row.target
 row.target.<code>
 row.task.<id>
+row.term.<entryTerm>
 row.term.<…>.open
 row.today.<key>
 row.today.unread
@@ -439,12 +442,17 @@ section.today
 section.transcript
 section.when
 segment.gradeTarget
+segment.gradeTarget.<value>
 segment.lang
+segment.lang.<value>
 segment.needsAhead
+segment.needsAhead.<value>
 segment.reportSending
+segment.reportSending.<value>
 segment.show
 segment.show.<value>
 segment.theme
+segment.theme.<value>
 services.search
 sheet.<testID>
 sheet.account.<source>
@@ -508,6 +516,7 @@ tabs.course
 task.<id>
 task.edited
 task.handedBack
+task.marked.<MarkedHow>
 task.new
 task.title
 web.<site>
