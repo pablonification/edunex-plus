@@ -30,6 +30,7 @@ import { Icons } from "../ui/icons";
 import { reduceMotion } from "../ui/motion";
 import { Text } from "../ui/text";
 import { motion, space, useTheme } from "../ui/theme";
+import { FirstMinuteGate } from "./first-minute/gate";
 
 type Source = "edunex" | "six";
 
@@ -132,11 +133,16 @@ export const phoneSignInWindows: SignInWindows = {
   async forget() {},
 };
 
-/** Draws every sign-in under way: quiet ones out of sight, the Student's over the whole screen. */
+/**
+ * Draws every sign-in under way: quiet ones out of sight, the Student's over the whole screen. Under them, the first
+ * minute (./first-minute/gate.tsx): the scene a sign-in happens in when nobody is signed in yet, which Microsoft's page
+ * covers while the Student types and which carries on through the first read.
+ */
 export function SignInHost() {
   const current = useSyncExternalStore(subscribe, () => runs);
   return (
     <>
+      <FirstMinuteGate />
       {current.map((run) => (
         <SignInPage key={run.id} run={run} />
       ))}
