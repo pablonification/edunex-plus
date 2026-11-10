@@ -12,7 +12,7 @@ the demo app (`io.github.pablonification.edunexplus.demo`, in Indonesian: `EDUNE
 | `01-morning.yaml` | morning: my day, what's due, am I safe | 0 |
 | `02-class-starts.yaml` | a class starts: Isi Presensi, then what's next | 2 |
 | `03-deadline.yaml` | a deadline: Beranda, the brief, handed in, the finish | 3 to the brief |
-| `04-after-class.yaml` | after class: this week's material, opened | 2 |
+| `04-after-class.yaml` | after class: the material, opened in its module | 3 (the demo's one item this week is a meeting link) |
 | `05-after-exam.yaml` | after an exam: my grade and the IPK | 2 |
 | `06-office.yaml` | KRS, UKT, Kalender (each from Profil, and from the grid) | 2 each |
 | `07-search.yaml` | looking for something by name | 2 after typing |
