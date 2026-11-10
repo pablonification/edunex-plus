@@ -25,9 +25,6 @@ export const mobileStrings = {
   "mobile.service.more": { id: "Lainnya", en: "More" },
   // r4 services: the rest of the app as tiles on "Semua layanan" (one word under a tile where one can say it), the
   // page's search and its groups.
-  "mobile.service.tasks": { id: "Tugas", en: "Tasks" },
-  "mobile.service.schedule": { id: "Jadwal", en: "Schedule" },
-  "mobile.service.month": { id: "Bulanan", en: "Month" },
   "mobile.service.planner": { id: "Rencana studi", en: "Study plan" },
   "mobile.service.curriculum": { id: "Kurikulum", en: "Kurikulum" },
   "mobile.service.alerts": { id: "Notifikasi", en: "Alerts" },

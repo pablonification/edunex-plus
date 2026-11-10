@@ -27,25 +27,29 @@ Budgets: 12 or more things to tap on the first screen (tab bar not counted), 60 
 
 ## Services (`mobile/src/parts/services.tsx`: one list, the only place a service's colour, icon and word are set)
 
-| id | Word (id / en) | Colour (light) | Icon (Phosphor, fill) | Opens |
-| --- | --- | --- | --- | --- |
-| `presence` | Presensi / Presence | `#15994f` green | HandPalm | `/presence` |
-| `grades` | Nilai / Grades | `#e07b00` orange | Exam | `/grades` |
-| `exams` | Ujian / Exams | `#7a4fe0` violet | NotePencil | `/exams` (new view of `edunex.exams`) |
-| `materials` | Materi / Materials | `#0b8fa8` teal | Books | `/materials` (new view: this week's material, every course) |
-| `krs` | KRS | `#d6336c` pink | ClipboardText | `/plan/krs` |
-| `calendar` | Kalender / Calendar | `#e04434` red | CalendarDots | `/plan/deadlines` |
-| `bills` | UKT | `#b8860b` gold | Wallet | `/plan/bills` |
-| `more` | Lainnya / More | neutral (`v4.chip`) | SquaresFour | `/services` |
+Colour means the group: every service in a group has its group's one colour (`GROUP_COLORS`), white filled icon at
+3:1 or more, light and dark. Inside a group, services differ by their icon's shape; no two services share one.
 
-testID `service.<id>`. "Semua layanan" (`/services`, `screen.services`): a search bar (`services.search`), "Sering kamu
-buka", then every service grouped (Kuliah, Akademik, Administrasi, Buka di web), the same tiles. New services for that
-page are added to `SERVICES` with their own colour.
+| Group | Colour (light / dark) | Services (Phosphor, fill) |
+| --- | --- | --- |
+| Kuliah | `#0f8a6c` / `#0d7a60` teal-green | Presensi (HandPalm, `/courses`), Materi (Books, `/materials`), Ujian (PencilLine, `/exams`) |
+| Akademik | `#7a4fe0` / `#6d45d0` violet | Nilai (Exam, `/grades`), KRS (ClipboardText), Rencana studi (Path), Kurikulum (TreeStructure) |
+| Administrasi | `#c2580c` / `#b04f0b` amber-orange | Kalender (CalendarDots, `/plan/deadlines`), UKT (Wallet), Notifikasi (Bell), Pengaturan (GearSix), Lapor masalah (Lifebuoy) |
+| Buka di web | `#5b6577` / `#525b6b` slate | Edunex (Student), SIX (Globe) |
+| (none) | neutral (`v4.chip`) | Lainnya (SquaresFour, `/services`), Beranda only |
+
+`HOME_GRID`, by group: Presensi, Materi, Ujian · Nilai, KRS · Kalender, UKT · Lainnya.
+
+testID `service.<id>`. "Semua layanan" (`/services`, `screen.services`): a search bar (`services.search`; nothing
+found offers `/search?q=…`), "Sering kamu buka" (`services.frequent`, only after 5 counted opens, at most 4 tiles,
+absent in the demo's pictures), then Kuliah, Akademik, Administrasi, Buka di web (`services.group.<group>`), each a
+heading over its tiles. Tugas and Jadwal aren't tiles: they're bottom tabs; Jadwal's month view opens from Jadwal. Each
+fact once. A new service joins a group and takes its colour.
 
 ## Three surfaces, each with one job
 
 - **Hero**: colour, one per screen at most (Beranda's blue header and now card; Profil's identity and IPK).
-- **Tile**: a service. A saturated colour, a white filled icon, 52 dp, one word under it. Never a pale tint with a
+- **Tile**: a service. Its group's colour, a white filled icon, 52 dp, one word under it. Never a pale tint with a
   line icon.
 - **Row**: only for a list of like things (tasks, courses, settings).
 
