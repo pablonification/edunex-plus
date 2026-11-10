@@ -30,6 +30,6 @@ How each number is taken:
 | "What's due today" | 0 taps | 0 taps (the strip's number, when something is due this week) | 0 |
 | "Is my attendance safe" | 0 taps for a class at risk | 0 taps (the strip: a count at risk, or "Aman") | 0 |
 | "Open this week's material" | 3–4 taps | 2 taps (Materi tile, the material's row) | 2 or fewer |
-| Cold start (ms, median of 5) | 586 | 744 | within 10% of `main` |
+| Cold start (ms, median of 5 to 7) | 725 built this round's way (586 as CI built it: the repacked APK itself starts about 140 ms slower) | 744–752 (+3%) | within 10% of `main` |
 | Tab switch p90 (ms) | 43 | 35 | within 10% of `main` |
 
