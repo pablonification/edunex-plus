@@ -9,10 +9,12 @@ import { Icons } from "./icons";
 import { useTheme } from "./theme";
 
 /**
- * A flat row's side padding, and a heading's: none. Rows sit on the page itself (no card), so a row's first thing (its
- * tile or its title) and the heading over it start on one edge, the page's own 16 dp margin, on every screen.
+ * A flat row's side padding, and a heading's left margin: 4 dp (theme's `space[1]`). Rows sit on the page itself (no
+ * card), so a row's first thing (its tile or its title) starts on the edge of the heading over it, 20 dp from the
+ * screen's side, where the screens' own lines under a heading already sit. (It was 14: a card's inner padding, kept
+ * after the cards went, which set every row about 10 dp right of its heading.)
  */
-export const ROW_SIDE = 0;
+export const ROW_SIDE = 4;
 
 /** The one chevron at a row's end: 20 dp, the muted ink, not read aloud (the row's role says it opens). */
 export function RowChevron() {

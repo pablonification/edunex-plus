@@ -107,7 +107,9 @@ function BarHairline() {
   const line = useTheme().v4.line;
   const top = useTabsBottom();
   if (Platform.OS === "ios" || top <= 0) return null;
-  return <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top, height: StyleSheet.hairlineWidth * 2, backgroundColor: line }} />;
+  // On the page's last pixels, just above the bar: seen whatever the bar itself draws over.
+  const height = StyleSheet.hairlineWidth * 2;
+  return <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: top - height, height, backgroundColor: line }} />;
 }
 
 interface Badges {

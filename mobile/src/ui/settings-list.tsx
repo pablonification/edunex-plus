@@ -57,7 +57,7 @@ export function SettingsGroup({
         ))}
       </Group>
       {note ? (
-        <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2] }}>
+        <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
           {note}
         </Text>
       ) : null}
