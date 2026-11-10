@@ -1,14 +1,14 @@
 // "Semua layanan" (round 4, mobile/qa/r4-decisions.md): every service the app has, behind Beranda's "Lainnya", as the
 // apps students use daily lay it out. A search bar on top that narrows the tiles by their word (Indonesian or English,
-// whichever the Student types), then "Sering kamu buka" (counted on this phone, ./opens.ts), then every service under
-// its heading. Tiles straight on the grey page, no row cards: the same tiles as Beranda's grid, their words on up to two
+// whichever the Student types), then "Sering kamu buka" (only once this phone has counted opens, ./frequent.ts), then
+// every service under its heading, each shown once. Tiles straight on the grey page, no row cards: the same tiles as Beranda's grid, their words on up to two
 // lines. Nothing matches: one line says so and offers the app's whole search.
 import { router } from "expo-router";
 import { type ReactNode, useMemo, useState } from "react";
 import { TextInput, View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
 import { mobileStrings } from "../../../../src/core/strings/mobile";
-import { HOME_GRID, SERVICE_GROUPS, SERVICES, ServiceGrid, type ServiceId } from "../../parts/services";
+import { SERVICE_GROUPS, SERVICES, ServiceGrid, type ServiceId } from "../../parts/services";
 import { usePerfDrawn } from "../../perf";
 import { BigButton } from "../../ui/big-button";
 import { IconButton } from "../../ui/controls";
@@ -44,7 +44,7 @@ export function ServicesScreen() {
   const v = useTheme().v4;
   const [query, setQuery] = useState("");
   // Read once: the row stays put while the Student is on the page, and shows the new counts next time.
-  const [often] = useState(() => frequent(openCounts(), LISTED, HOME_GRID));
+  const [often] = useState(() => frequent(openCounts(), LISTED));
   const typed = query.trim();
   const found = useMemo(() => (typed ? new Set(matching(typed)) : null), [typed]);
 
@@ -52,9 +52,9 @@ export function ServicesScreen() {
   if (!found) {
     body = (
       <>
-        <Section title={t("mobile.services.frequent")} testID="services.frequent" ids={often} first />
-        {SERVICE_GROUPS.map((group) => (
-          <Section key={group.group} title={t(group.title)} testID={`services.group.${group.group}`} ids={group.ids} />
+        {often.length > 0 && <Section title={t("mobile.services.frequent")} testID="services.frequent" ids={often} first />}
+        {SERVICE_GROUPS.map((group, at) => (
+          <Section key={group.group} title={t(group.title)} testID={`services.group.${group.group}`} ids={group.ids} first={at === 0 && !often.length} />
         ))}
       </>
     );

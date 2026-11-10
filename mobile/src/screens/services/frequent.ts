@@ -1,28 +1,24 @@
-// "Sering kamu buka" on "Semua layanan": the four services this Student opens most, from counts kept on the phone only
-// (./opens.ts). Before anything is counted (or with fewer than four counted), Beranda's first tiles fill the rest, so the
-// row is never empty or short. Pure, so it's tested without a phone (test/mobile/services.test.ts).
+// "Sering kamu buka" on "Semua layanan": the services this Student opens most, from counts kept on the phone only
+// (./opens.ts). It shows only once the phone has really counted (`FREQUENT_AFTER` opens in all), and then only counted
+// services, so the row never repeats Beranda's grid for a Student who hasn't used the page yet. Pure, so it's tested
+// without a phone (test/mobile/services.test.ts).
 
-/** How many services the row shows. */
+/** The most services the row shows. */
 export const FREQUENT_COUNT = 4;
+/** Opens counted in all before the row shows. */
+export const FREQUENT_AFTER = 5;
 
 /**
- * The ids to show: counted ones first, most opened first (a tie keeps `fallback`'s order, then `known`'s), then
- * `fallback`'s until there are `FREQUENT_COUNT`. An id that isn't `known` (a service since removed) is skipped.
+ * The ids to show: counted ones, most opened first (a tie keeps `known`'s order), at most `FREQUENT_COUNT`; none until
+ * `known`'s counts add up to `FREQUENT_AFTER`. An id that isn't `known` (a service since removed) is skipped.
  */
-export function frequent<Id extends string>(counts: Readonly<Record<string, number>>, known: readonly Id[], fallback: readonly Id[]): Id[] {
-  const order = (id: Id) => {
-    const at = fallback.indexOf(id);
-    return at >= 0 ? at : fallback.length + known.indexOf(id);
-  };
-  const counted = known
+export function frequent<Id extends string>(counts: Readonly<Record<string, number>>, known: readonly Id[]): Id[] {
+  const total = known.reduce((sum, id) => sum + (counts[id] ?? 0), 0);
+  if (total < FREQUENT_AFTER) return [];
+  return known
     .filter((id) => (counts[id] ?? 0) > 0)
-    .sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0) || order(a) - order(b))
+    .sort((a, b) => (counts[b] ?? 0) - (counts[a] ?? 0) || known.indexOf(a) - known.indexOf(b))
     .slice(0, FREQUENT_COUNT);
-  for (const id of fallback) {
-    if (counted.length >= FREQUENT_COUNT) break;
-    if (known.includes(id) && !counted.includes(id)) counted.push(id);
-  }
-  return counted;
 }
 
 /** `counts` with one more open of `id`. */

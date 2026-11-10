@@ -1,25 +1,24 @@
-// The app's services (round 4): what Beranda's grid and "Semua layanan" show, each one a saturated tile with a filled
+// The app's services (round 4): what Beranda's grid and "Semua layanan" show, each one a coloured tile with a filled
 // white icon and a short label, opening a screen the app already has. One list, so a service has the same colour, icon
 // and word wherever it shows. The grammar is the one students know from the apps they use daily (a grid of services,
-// the rest behind "Lainnya"); the colours and icons are the app's own (Phosphor, filled). Every colour carries its white
-// icon at 3:1 or more in both themes (test/mobile/services.test.ts), and no two services share an icon, so neighbours
-// differ by shape for a Student who can't tell their colours apart.
+// the rest behind "Lainnya"); the colours and icons are the app's own (Phosphor, filled). Colour means the group: every
+// service in Kuliah, Akademik, Administrasi or Buka di web shares its group's one colour, four hues told apart by
+// lightness as well as hue, so they hold for a Student who can't tell red from green. Inside a group, services differ
+// by their icon's shape: no two share one. Every colour carries its white icon at 3:1 or more in both themes
+// (test/mobile/services.test.ts). Tugas and Jadwal aren't here: they're bottom tabs, and Jadwal opens its month view.
 
 import { type Href, router } from "expo-router";
 import { BellIcon } from "phosphor-react-native/src/icons/Bell";
 import { BooksIcon } from "phosphor-react-native/src/icons/Books";
-import { CalendarBlankIcon } from "phosphor-react-native/src/icons/CalendarBlank";
 import { CalendarDotsIcon } from "phosphor-react-native/src/icons/CalendarDots";
-import { CheckSquareIcon } from "phosphor-react-native/src/icons/CheckSquare";
 import { ClipboardTextIcon } from "phosphor-react-native/src/icons/ClipboardText";
-import { ClockIcon } from "phosphor-react-native/src/icons/Clock";
 import { ExamIcon } from "phosphor-react-native/src/icons/Exam";
 import { GearSixIcon } from "phosphor-react-native/src/icons/GearSix";
 import { GlobeIcon } from "phosphor-react-native/src/icons/Globe";
 import { HandPalmIcon } from "phosphor-react-native/src/icons/HandPalm";
 import { LifebuoyIcon } from "phosphor-react-native/src/icons/Lifebuoy";
-import { NotePencilIcon } from "phosphor-react-native/src/icons/NotePencil";
 import { PathIcon } from "phosphor-react-native/src/icons/Path";
+import { PencilLineIcon } from "phosphor-react-native/src/icons/PencilLine";
 import { SquaresFourIcon } from "phosphor-react-native/src/icons/SquaresFour";
 import { StudentIcon } from "phosphor-react-native/src/icons/Student";
 import { TreeStructureIcon } from "phosphor-react-native/src/icons/TreeStructure";
@@ -39,156 +38,64 @@ type Glyph = ComponentType<{ size?: number; color?: string; weight?: "fill" | "r
 /** The four headings of "Semua layanan". */
 export type ServiceGroup = "courses" | "academic" | "admin" | "web";
 
+/**
+ * Each group's one colour on a light and a dark page; the icon on it is white. Picked to sit beside Edunex blue
+ * (`#1f63e0`) in the header without being it: Kuliah teal-green, Akademik violet, Administrasi amber-orange, Buka di web
+ * slate.
+ */
+export const GROUP_COLORS: Record<ServiceGroup, { light: string; dark: string }> = {
+  courses: { light: "#0f8a6c", dark: "#0d7a60" },
+  academic: { light: "#7a4fe0", dark: "#6d45d0" },
+  admin: { light: "#c2580c", dark: "#b04f0b" },
+  web: { light: "#5b6577", dark: "#525b6b" },
+};
+
 export interface Service {
   id: string;
   /** Its word under the tile: one word on Beranda; two where one can't say it ("Rencana studi"), on "Semua layanan" only. */
   label: StringKey;
-  /** The tile's colour on a light and a dark page; the icon on it is white. `null`: the quiet tile ("Lainnya"). */
-  color: { light: string; dark: string } | null;
   icon: () => Glyph;
   /** The screen it opens (typed routes are generated only when Expo runs, so a new screen's path is a plain string here). */
   href: string;
-  /** Its heading on "Semua layanan"; none for "Lainnya", which only Beranda shows. */
+  /** Its heading on "Semua layanan", and so its colour; none for "Lainnya", the quiet tile only Beranda shows. */
   group: ServiceGroup | null;
 }
 
 const web = (url: string) => `/web?url=${encodeURIComponent(url)}`;
 
-/** Every service, by id, in each group's order. Beranda's grid shows `HOME_GRID`; "Semua layanan" groups all of them. */
+/** Every service, by id, in each group's order. Beranda's grid shows `HOME_GRID`; "Semua layanan" groups the rest. */
 export const SERVICES = {
   // Kuliah: the week's classes and work.
-  tasks: {
-    id: "tasks",
-    label: "mobile.service.tasks",
-    color: { light: "#2563eb", dark: "#2257cc" },
-    icon: () => CheckSquareIcon,
-    href: "/tasks",
-    group: "courses",
-  },
-  schedule: {
-    id: "schedule",
-    label: "mobile.service.schedule",
-    color: { light: "#0f8a6c", dark: "#0d7a60" },
-    icon: () => ClockIcon,
-    href: "/schedule",
-    group: "courses",
-  },
-  month: {
-    id: "month",
-    label: "mobile.service.month",
-    color: { light: "#b8338f", dark: "#a32e7f" },
-    icon: () => CalendarBlankIcon,
-    href: "/schedule-month",
-    group: "courses",
-  },
-  presence: {
-    id: "presence",
-    label: "mobile.service.presence",
-    color: { light: "#15994f", dark: "#1c8a4c" },
-    icon: () => HandPalmIcon,
-    href: "/courses",
-    group: "courses",
-  },
-  materials: {
-    id: "materials",
-    label: "mobile.service.materials",
-    color: { light: "#0b8fa8", dark: "#0f8298" },
-    icon: () => BooksIcon,
-    href: "/materials",
-    group: "courses",
-  },
-  exams: {
-    id: "exams",
-    label: "mobile.service.exams",
-    color: { light: "#7a4fe0", dark: "#6f4ad0" },
-    icon: () => NotePencilIcon,
-    href: "/exams",
-    group: "courses",
-  },
+  presence: { id: "presence", label: "mobile.service.presence", icon: () => HandPalmIcon, href: "/courses", group: "courses" },
+  materials: { id: "materials", label: "mobile.service.materials", icon: () => BooksIcon, href: "/materials", group: "courses" },
+  exams: { id: "exams", label: "mobile.service.exams", icon: () => PencilLineIcon, href: "/exams", group: "courses" },
   // Akademik: grades and the study plan.
-  grades: {
-    id: "grades",
-    label: "mobile.service.grades",
-    color: { light: "#d47300", dark: "#c46a00" },
-    icon: () => ExamIcon,
-    href: "/grades",
-    group: "academic",
-  },
-  planner: {
-    id: "planner",
-    label: "mobile.service.planner",
-    color: { light: "#4f5bd5", dark: "#4650c0" },
-    icon: () => PathIcon,
-    href: "/plan/planner",
-    group: "academic",
-  },
+  grades: { id: "grades", label: "mobile.service.grades", icon: () => ExamIcon, href: "/grades", group: "academic" },
+  krs: { id: "krs", label: "mobile.service.krs", icon: () => ClipboardTextIcon, href: "/plan/krs", group: "academic" },
+  planner: { id: "planner", label: "mobile.service.planner", icon: () => PathIcon, href: "/plan/planner", group: "academic" },
   curriculum: {
     id: "curriculum",
     label: "mobile.service.curriculum",
-    color: { light: "#a0522d", dark: "#8f4a28" },
     icon: () => TreeStructureIcon,
     href: "/plan/curriculum",
     group: "academic",
   },
-  krs: {
-    id: "krs",
-    label: "mobile.service.krs",
-    color: { light: "#d6336c", dark: "#c0336a" },
-    icon: () => ClipboardTextIcon,
-    href: "/plan/krs",
-    group: "academic",
-  },
   // Administrasi: the term's dates, the fee, and the app itself.
-  calendar: {
-    id: "calendar",
-    label: "mobile.service.calendar",
-    color: { light: "#e04434", dark: "#cc4436" },
-    icon: () => CalendarDotsIcon,
-    href: "/plan/deadlines",
-    group: "admin",
-  },
-  bills: {
-    id: "bills",
-    label: "mobile.service.bills",
-    color: { light: "#b8860b", dark: "#a67c12" },
-    icon: () => WalletIcon,
-    href: "/plan/bills",
-    group: "admin",
-  },
-  alerts: { id: "alerts", label: "mobile.service.alerts", color: { light: "#8b45c9", dark: "#7c3eb5" }, icon: () => BellIcon, href: "/alerts", group: "admin" },
-  settings: {
-    id: "settings",
-    label: "mobile.service.settings",
-    color: { light: "#5b6577", dark: "#525b6b" },
-    icon: () => GearSixIcon,
-    href: "/settings",
-    group: "admin",
-  },
-  report: {
-    id: "report",
-    label: "mobile.service.report",
-    color: { light: "#c2410c", dark: "#b23c0b" },
-    icon: () => LifebuoyIcon,
-    href: "/report",
-    group: "admin",
-  },
+  calendar: { id: "calendar", label: "mobile.service.calendar", icon: () => CalendarDotsIcon, href: "/plan/deadlines", group: "admin" },
+  bills: { id: "bills", label: "mobile.service.bills", icon: () => WalletIcon, href: "/plan/bills", group: "admin" },
+  alerts: { id: "alerts", label: "mobile.service.alerts", icon: () => BellIcon, href: "/alerts", group: "admin" },
+  settings: { id: "settings", label: "mobile.service.settings", icon: () => GearSixIcon, href: "/settings", group: "admin" },
+  report: { id: "report", label: "mobile.service.report", icon: () => LifebuoyIcon, href: "/report", group: "admin" },
   // Buka di web: the sites themselves, signed in, in the app's own browser.
-  edunex: {
-    id: "edunex",
-    label: "mobile.service.edunex",
-    color: { light: "#1f63e0", dark: "#1b57c4" },
-    icon: () => StudentIcon,
-    href: web(`${EDUNEX_WEB}/`),
-    group: "web",
-  },
-  six: { id: "six", label: "mobile.service.six", color: { light: "#0f6f80", dark: "#0d6170" }, icon: () => GlobeIcon, href: web(`${SIX_WEB}/`), group: "web" },
-  more: { id: "more", label: "mobile.service.more", color: null, icon: () => SquaresFourIcon, href: "/services", group: null },
+  edunex: { id: "edunex", label: "mobile.service.edunex", icon: () => StudentIcon, href: web(`${EDUNEX_WEB}/`), group: "web" },
+  six: { id: "six", label: "mobile.service.six", icon: () => GlobeIcon, href: web(`${SIX_WEB}/`), group: "web" },
+  more: { id: "more", label: "mobile.service.more", icon: () => SquaresFourIcon, href: "/services", group: null },
 } as const satisfies Record<string, Service>;
 
 export type ServiceId = keyof typeof SERVICES;
 
-/** Beranda's grid, 4 across and 2 down, "Lainnya" last. */
-export const HOME_GRID: readonly ServiceId[] = ["presence", "grades", "exams", "materials", "krs", "calendar", "bills", "more"];
+/** Beranda's grid, 4 across and 2 down, read by group (Kuliah's, Akademik's, Administrasi's), "Lainnya" last. */
+export const HOME_GRID: readonly ServiceId[] = ["presence", "materials", "exams", "grades", "krs", "calendar", "bills", "more"];
 
 /** "Semua layanan"'s headings, in order, each with its services in `SERVICES`' order. */
 export const SERVICE_GROUPS: readonly { group: ServiceGroup; title: StringKey; ids: readonly ServiceId[] }[] = (
@@ -208,7 +115,7 @@ export const SERVICE_GROUPS: readonly { group: ServiceGroup; title: StringKey; i
 export const SERVICE_TILE = 52;
 
 /** The bottom tabs: opened from a screen over them, back down to them first, as `useNav().go` does (../nav.ts). */
-const TAB_HREFS = new Set(["/tasks", "/schedule", "/courses"]);
+const TAB_HREFS = new Set(["/courses"]);
 
 /** Opens a service, and counts the open toward "Sering kamu buka" after the tap is on its way. */
 export function openService(id: ServiceId): void {
@@ -230,7 +137,7 @@ export function ServiceTile({ id, onPress, lines = 1 }: { id: ServiceId; onPress
   const v = theme.v4;
   const service: Service = SERVICES[id];
   const Glyph = service.icon();
-  const fill = service.color ? service.color[theme.scheme === "dark" ? "dark" : "light"] : v.chip;
+  const fill = service.group ? GROUP_COLORS[service.group][theme.scheme === "dark" ? "dark" : "light"] : v.chip;
   return (
     <PressScale
       onPress={onPress ?? (() => openService(id))}
@@ -249,7 +156,7 @@ export function ServiceTile({ id, onPress, lines = 1 }: { id: ServiceId; onPress
           justifyContent: "center",
         }}
       >
-        <Glyph size={28} color={service.color ? "#ffffff" : v.fg2} weight="fill" />
+        <Glyph size={28} color={service.group ? "#ffffff" : v.fg2} weight="fill" />
       </View>
       <Text
         size="labelMedium"
