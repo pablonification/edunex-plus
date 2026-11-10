@@ -16,6 +16,7 @@ const SIGNING = `
             }
         }`;
 
+/** Adds the "release" signing config (from the environment) and has the release build type use it when it's given. */
 module.exports = function withReleaseSigning(config) {
   return withAppBuildGradle(config, (mod) => {
     let gradle = mod.modResults.contents;

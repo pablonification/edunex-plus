@@ -34,6 +34,10 @@ export interface ApkUpdater {
   install(): Promise<void>;
 }
 
+/**
+ * Android's update from inside the app: `download` finds the newer release's APK on GitHub, downloads it with its
+ * progress sent as "update" events, then opens the installer; `install` opens it again. One download at a time.
+ */
 export function apkUpdater(deps: {
   /** The newer release the update check found, or null. */
   notice(): UpdateNotice | null;
@@ -49,7 +53,7 @@ export function apkUpdater(deps: {
     deps.send(current);
   };
 
-  /** The release's APK link, from GitHub's own answer for that tag. */
+  /** The release's APK link, from GitHub's own answer for that tag; only a link to a file on that release counts. */
   async function apkUrl(version: string): Promise<string> {
     const response = await get(`https://api.github.com/repos/${RELEASES_REPO}/releases/tags/v${encodeURIComponent(version)}`, {
       headers: { accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28" },
@@ -62,6 +66,7 @@ export function apkUpdater(deps: {
     return url;
   }
 
+  /** Opens Android's installer on the downloaded APK; refused when there's none whole for the version. */
   async function install(): Promise<void> {
     if (current.step !== "ready" || !current.version || !deps.files.has(current.version)) throw new EngineError("Rejected", "No downloaded update to install");
     // Android asks once whether Edunex Plus may install apps, then shows its own install screen.

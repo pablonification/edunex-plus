@@ -5,6 +5,7 @@ import type { ApkFiles } from "./apk-update";
 
 const APK_TYPE = "application/vnd.android.package-archive";
 
+/** The APK in the app's cache folder "update" (only the newest kept), opened in Android's installer by its content URI. */
 export function phoneApkFiles(): ApkFiles {
   const folder = new Directory(Paths.cache, "update");
   const fileOf = (version: string) => new File(folder, `edunex-plus-${version}.apk`);
