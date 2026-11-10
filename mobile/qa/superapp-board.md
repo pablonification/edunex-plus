@@ -42,6 +42,23 @@ remember 8, never waited 6, nothing shows off 6. **Not at the top (9).** What al
 over to the real Beranda at about 6 s and let its cards fill in place); the doors must not look like a choice; the button becomes the
 status in words; names in the app's language; no late "Semua siap" bar; no dark-to-light flash; jank far under 24%.
 
+## The first minute: round 2 (01:35)
+
+The winner rebuilt (no stand-in list; the stage lifts away like a curtain about 5 s after the tap and Beranda fills in place), recorded
+on the phone in light and dark, judged blind beside today's welcome and last round's scene by three new judges.
+
+| | Designer | Student | Prosecutor |
+| --- | --- | --- | --- |
+| Against today's welcome | prefers the new one | prefers the new one | prefers the new one |
+| Against last round's | prefers the new one | prefers the new one | prefers the new one |
+| "Sets a mood" · "I'd remember it" · "it never made me wait" | 8 · 7 · 8 | 8 · 7 · 8 | 7 · 6 · 6 |
+| Would ship · nothing shows off or delays | 6 | (trust 7) | 6 · 4 serious charges |
+
+**Not at the top (9).** Janky frames, phase by phase on the phone: the stage at rest 51% (it redraws 59 times a second with nothing
+happening), tap to curtain 8%, Beranda filling 5%, Beranda settled 1%. What's left: frames; the sheet's words crossing the clock as it
+lifts; a muddy frame at 3 s; doors that stay blank for 4 s; and what Beranda shows while it still reads (a green "Absen aman" that
+turns into "3 Absen habis", the class block growing 100 px, two different task counts).
+
 ## The direction round (00:55)
 
 Three directions built in the demo as real screens (Beranda, Tugas, Kuliah, Profil, Semua layanan), each photographed on the phone in
