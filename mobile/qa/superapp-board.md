@@ -42,6 +42,27 @@ remember 8, never waited 6, nothing shows off 6. **Not at the top (9).** What al
 over to the real Beranda at about 6 s and let its cards fill in place); the doors must not look like a choice; the button becomes the
 status in words; names in the app's language; no late "Semua siap" bar; no dark-to-light flash; jank far under 24%.
 
+## Round 2's council (02:25)
+
+Commit 1eced93a beside today's app and round 1 (three versions by letter, shuffled per judge; round 1 in light only, which made
+the prosecutor count it as "dark unproven" and write its charge sheet for round 1: the lead's packing mistake).
+
+| | Designer | Student | Prosecutor |
+| --- | --- | --- | --- |
+| Rank of the three versions | round 2, round 1, today's | round 2, round 1, today's | serious charges on 11 screens: round 1 7, round 2 8, today's 18 |
+| Against today's app | ours on 9 of 11; today's on Beranda scrolled (close) and Jadwal | ours on 9; today's on Beranda scrolled and Jadwal | ours on 10; today's on Jadwal |
+| Against last round | **round 1 preferred on Beranda scrolled, Jadwal, Tugas (close), Kuliah, Materi (close), Search (close)** | **round 1 preferred on Beranda scrolled, Jadwal, Tugas, Kuliah, Semua layanan (barely), Materi** | round 2 on 7 of 11, round 1 on Beranda scrolled, Tugas, Kuliah |
+| "I know where everything is", five apps | 2nd (behind Gojek) | 2nd (behind Gojek) | 2nd (behind Gojek) |
+| Overall, five apps | 3rd (Duolingo, Gojek, ours) | 2nd (Duolingo, ours) | 3rd (Duolingo, Gojek, ours) |
+| Squint | 5 of 5 | 5 of 5 | 5 of 5 |
+| Scores per screen, lowest–highest (round 2) | 5–9; Beranda 9 8 8 8 7 7 8 8 9 8 | 5–9; Beranda 8 8 8 7 7 8 8 8 9 7 | (scored round 1) |
+| Sureness: due soonest · attendance · material | | 9 · 7 · 9 | |
+
+**Not at the top.** Judges preferred last round's version on five screens: those are rethought in round 3, not patched (a name
+broken one word per line beside "Bentrok" on Beranda; "08:00 → 08:00" and cut titles on Jadwal; 16 Okt above 15 Okt on Tugas;
+every absence said twice on Kuliah; 18 old items open under one new one on Materi). The strip's "1 · Lewat batas" undercounts
+(attendance sureness fell from 9 to 7).
+
 ## Round 1's council (01:40)
 
 Every screen of commit 0aa4379e, light and dark, beside today's app (`main`), unlabelled, sides flipped for one judge. Three judges
@@ -128,5 +149,6 @@ the charger the phone runs warm (thermal status up to 2, skin about 40 °C). Eac
 
 | Round | Commit | Cold start (ours · `main` back to back) | Tab p90 (ours · `main`) | Scroll (Tugas · Kuliah · Jadwal) | Hill 1 | Judges | What changed |
 | --- | --- | ---: | ---: | --- | --- | --- | --- |
+| 2 | 1eced93a (third wave: true numbers and tags on Beranda, one presence part, a Task page with one status line, Kuliah as counts, a course's page opening on its material, Ujian without the hole, Materi by calendar week, search by course name, Notifikasi without the stuck loader, Settings' switches folded away while off) | 1174 ms · 1167 ms (both compiled, thermal 0) | 82–110 ms · 90 ms (the first tour after a start is the slow one; a second run of ours: 82) | **2.1–2.7%** · 0.51% · 0.32% (`main`: 1.10% · 0.10% · 0.42%): **Tugas is twice as janky as `main`** | bar, avatar, four blocks, 17 things to tap, 8 tiles, no "0": ✓ · **words 58 (over 50)** | round 2's council: below | to fix before round 3: Tugas's scroll, Beranda's words, Beranda redrawing 87 times a second at rest (the "now" dot) |
 | 1 | 0aa4379e (every screen in the new look: Foundations' solid tiles and kit, Beranda, Tugas as an agenda, Kuliah in course colours, Profil's card, Jadwal, Materi and Ujian, Search, the first minute's curtain; flows moved) | fresh installs: 1234 ms · 1228 ms (thermal 0–1). Compiled: 984 ms (ours) | 100 ms · 108 ms | 0.94% · 0.31% · 0.20% (`main` in the same minutes: 1.02% · 0.20% · 0.42%) | all rows ✓: bar ends in `tab.profile`, no avatar, the four blocks in order and fully visible, 17 things to tap, 46 words, 8 tiles (4+4) ending in "Lainnya", no "0". The reader's guess that "Ujian" and "Nilai" may be cut is wrong on the picture | round 1's council: below | Beranda no longer says a fact twice; the wave is a plain bar; presence is "Isi Presensi" on Beranda and Kuliah; 0 flows name an id the app lacks |
 | 0, the base | 53c054cd (B merged over the Fluent icons, the first-minute scene, eight widgets) | 1197 ms · 1179 ms (warm, status 2) | 100 ms · 105 ms | 3.48% · 1.07% · 0.83% (warm; `main` cool: 0.38% · 0.27% · 0.29%; to be taken again back to back) | bar ends in `tab.profile` ✓ · no avatar ✓ · `home.search`, `home.now`, `home.strip`, `home.grid` in order and fully visible ✓ · 17 things to tap ✓ · 40 words ✓ · no "0" ✓ · the grid's tiles not yet countable by the reader | the direction round, above | step by step from `main`: icons 1190, first minute 1198, widgets 1161, iPhone widgets 1177, B 1197: no merge costs a start |

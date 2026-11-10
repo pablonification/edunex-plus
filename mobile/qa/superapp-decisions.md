@@ -81,6 +81,18 @@ These add to, and where they differ replace, what's above.
 | Placeholders | A loading shape is shown only where nothing has loaded yet, and is gone the moment its content is in. Never beside real content |
 | Names | "Sebulan" → the month view is **"Jadwal bulanan"**; the Kuliah tab's badge follows Foundations' rule (a count the page leads with, or none) |
 
+## Round 2: decided after the second full council (02:30)
+
+| What | Decision |
+| --- | --- |
+| Rethink, don't patch | Where a judge preferred last round's screen (Beranda's timeline row, Jadwal, Tugas's order, Kuliah's rows, Materi, search's rows), the screen takes what last round did right and what this round fixed: both, not one |
+| Absences, everywhere | One reading of a course's absences: **dots** (one per allowed absence; used ones filled in the state's colour, the rest outlined; an extra red one for each over the limit) and **one short label** ("sisa 1", "habis", "lewat 1"). Never the dots plus a count plus a sentence. Beranda's strip counts **every course with no absence left** (at the limit or past it), its label has the noun ("absen habis") and is true of each counted, red when any is past |
+| A changed class | Says what changed in words and times that agree with Notifikasi: "Selesai 10:00 (tadinya 09:30)". Never "08:00 → 08:00" |
+| Jadwal's blocks | A block's height is its class's time, always. Names whole: clashing classes overlap with an offset (the later one indented over the earlier) instead of splitting the width in half, so each keeps room for its name; the clash is marked once on the pair |
+| What leads | Tugas leads with the soonest thing of any kind; a course's page is titled by the course's **name** (the code quiet); a list row leads with the course's own glyph in its colour wherever a course is named |
+| Beranda's budget | 50 words or fewer on the first screen as `layout-read.mjs` counts them. The live dot pulses a few times when the screen is shown and then rests: nothing on any tab redraws at rest |
+| Wrapping | No word alone on a line, no name broken one word per line: a mark or a time that crowds a name goes under it. Checked at font 1.1 and 1.3 with the demo's longest names |
+
 ## Names
 
 One thing, one name, on every screen it passes (`superapp-journeys.md` lists 13 pairs that differ today). The presence
