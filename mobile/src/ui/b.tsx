@@ -178,7 +178,15 @@ export function CountCell({
       </View>
       {/* The label and a small chevron: the count opens something, and looks like it does. */}
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2, maxWidth: "100%" }}>
-        <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ color: b.fg2, fontSize: 13, lineHeight: 18, letterSpacing: 0, flexShrink: 1 }}>
+        {/* One line, always: it shrinks a little, then is cut, so the cells beside it keep one baseline. */}
+        <Text
+          size="bodyMedium"
+          weight="medium"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+          style={{ color: b.fg2, fontSize: 13, lineHeight: 18, letterSpacing: 0, flexShrink: 1 }}
+        >
           {label}
         </Text>
         <Icons.ChevronRight size={12} color={b.muted} />
