@@ -23,6 +23,27 @@ export const mobileStrings = {
   "mobile.service.calendar": { id: "Kalender", en: "Calendar" },
   "mobile.service.bills": { id: "UKT", en: "UKT" },
   "mobile.service.more": { id: "Lainnya", en: "More" },
+  // r4 services: the rest of the app as tiles on "Semua layanan" (one word under a tile where one can say it), the
+  // page's search and its groups.
+  "mobile.service.tasks": { id: "Tugas", en: "Tasks" },
+  "mobile.service.schedule": { id: "Jadwal", en: "Schedule" },
+  "mobile.service.month": { id: "Bulanan", en: "Month" },
+  "mobile.service.planner": { id: "Rencana studi", en: "Study plan" },
+  "mobile.service.curriculum": { id: "Kurikulum", en: "Kurikulum" },
+  "mobile.service.alerts": { id: "Notifikasi", en: "Alerts" },
+  "mobile.service.settings": { id: "Pengaturan", en: "Settings" },
+  "mobile.service.report": { id: "Lapor masalah", en: "Report a problem" },
+  "mobile.service.edunex": { id: "Edunex", en: "Edunex" },
+  "mobile.service.six": { id: "SIX", en: "SIX" },
+  "mobile.services.title": { id: "Semua layanan", en: "All services" },
+  "mobile.services.search": { id: "Cari layanan", en: "Search services" },
+  "mobile.services.frequent": { id: "Sering kamu buka", en: "You open often" },
+  "mobile.services.group.courses": { id: "Kuliah", en: "Courses" },
+  "mobile.services.group.academic": { id: "Akademik", en: "Academic" },
+  "mobile.services.group.admin": { id: "Administrasi", en: "Admin" },
+  "mobile.services.group.web": { id: "Buka di web", en: "Open on the web" },
+  "mobile.services.none": { id: "Tak ada layanan “{query}”", en: "No service called “{query}”" },
+  "mobile.services.searchAll": { id: "Cari “{query}” di semua data", en: "Search everything for “{query}”" },
   // A tab's top bar: ⋮ opens the screen's rarer actions.
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
   // search: the field's hint, short enough for a phone's field (the desktop's names modules too and ran past its end).

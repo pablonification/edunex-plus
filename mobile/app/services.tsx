@@ -1,11 +1,4 @@
-// Round 4 placeholder (mobile/qa/r4-decisions.md): the real screen replaces this file.
-import { View } from "react-native";
-import { TopBar } from "../src/ui/top-bar";
+// "Semua layanan" (round 4): every service, behind Beranda's "Lainnya" (src/screens/services).
+import { ServicesScreen } from "../src/screens/services/services-screen";
 
-export default function Screen() {
-  return (
-    <View testID="screen.services" style={{ flex: 1 }}>
-      <TopBar />
-    </View>
-  );
-}
+export default ServicesScreen;
