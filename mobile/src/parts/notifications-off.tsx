@@ -79,9 +79,10 @@ export function NotificationsOff({ state }: { state: NotificationPermission }) {
         accessibilityRole="button"
         accessibilityLabel={t("mobile.settings.notificationsTurnOn")}
         testID="action.notificationsOn"
-        style={{ minHeight: 48, paddingHorizontal: space[4], borderRadius: 24, justifyContent: "center", backgroundColor: v.ambFg }}
+        // The app's one button colour (the brand's blue), as every other main button: amber is the state's, not the action's.
+        style={{ minHeight: 48, paddingHorizontal: space[5], borderRadius: 24, justifyContent: "center", backgroundColor: v.brand }}
       >
-        <Text size="labelLarge" weight="semibold" style={{ color: v.ambBg }}>
+        <Text size="labelLarge" weight="bold" style={{ color: v.onBrand }}>
           {t("mobile.settings.alertsTurnOn")}
         </Text>
       </Tap>

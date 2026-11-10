@@ -22,10 +22,11 @@ export function Card({
   testID?: string;
 }) {
   const c = useTheme().color;
-  // M3's filled card on the page (surfaceContainerLow); raised, the one card that leads a screen, a step up
-  // (surfaceContainer); sunken, a quiet well (surfaceContainerHigh). Separated by tone, never a border or a shadow.
+  // Plain is flat: no fill, on the page itself like every list and block (a grey box around things is what the page
+  // left behind). Raised is the deliberate card, for the one thing that leads a screen (surfaceContainer); sunken, a
+  // quiet well (surfaceContainerHigh). Separated by tone, never a border or a shadow.
   const look: ViewStyle = {
-    backgroundColor: variant === "sunken" ? c.surfaceContainerHigh : variant === "raised" ? c.surfaceContainer : c.surfaceContainerLow,
+    backgroundColor: variant === "sunken" ? c.surfaceContainerHigh : variant === "raised" ? c.surfaceContainer : "transparent",
     borderRadius: variant === "raised" ? shape.lgPlus : shape.lg,
   };
   return (
@@ -56,7 +57,8 @@ export function EmptyState({ icon, title, description, children }: { icon: React
         ) : (
           description
         ))}
-      {children && <View style={{ marginTop: space[3] }}>{children}</View>}
+      {/* Its next step: 48 dp to touch, whatever button the screen puts there. */}
+      {children && <View style={{ marginTop: space[3], minHeight: 48, justifyContent: "center" }}>{children}</View>}
     </View>
   );
 }
