@@ -29,7 +29,7 @@ import { Text } from "../../ui/text";
 import { space, THEMES, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { FoldHeading } from "../material/fold";
-import { examWeekLabel } from "../tasks/exam-rows";
+import { dayLabel, examWeekLabel } from "../tasks/exam-rows";
 import { countdown } from "../tasks/row-parts";
 import { type ExamItem, type ExamLine, examLines, examLineType, examsView } from "./view";
 
@@ -47,7 +47,10 @@ function useExamName(): (exam: Exam) => string {
   );
 }
 
-/** An exam still ahead as facts: its day, its time and where it is, each once. */
+/**
+ * An exam still ahead as facts: its day with its date ("Kam 15 Okt", never "Besok" beside "1 hari lagi"), its time and
+ * where it is, each once.
+ */
 function factsOf(t: Translate, f: Format, item: ExamItem): { day: string; time: string | null; place: string | null } {
   const { part, sittings } = item;
   if (!part || part.at === null) return { day: t("task.noDeadline"), time: null, place: part?.kind === "takehome" ? t("exam.takeHome") : null };
@@ -55,11 +58,11 @@ function factsOf(t: Translate, f: Format, item: ExamItem): { day: string; time: 
   if (sittings && sittings.length > 1) return { day: sittingsLine(f, sittings, { time: false, room: false }), time: f.time(part.at), place: sittings[0]!.room };
   if (part.kind === "sitting")
     return {
-      day: f.relativeDay(part.at),
+      day: dayLabel(f, part.at),
       time: part.end !== null ? f.timeRange(part.at, part.end) : f.time(part.at),
       place: part.room ?? (part.source === "edunex" ? t("exam.onEdunex") : null),
     };
-  return { day: f.relativeDay(part.at), time: f.time(part.at), place: t(part.kind === "window" ? "exam.onEdunex" : "exam.takeHome") };
+  return { day: dayLabel(f, part.at), time: f.time(part.at), place: t(part.kind === "window" ? "exam.onEdunex" : "exam.takeHome") };
 }
 
 export function ExamsScreen() {
@@ -86,7 +89,8 @@ export function ExamsScreen() {
   const reading = (state: typeof six) => state === "connecting" || state === "live";
   const loading = view === null && (reading(six) || reading(edunex));
   return (
-    <View testID="screen.exams" style={{ flex: 1, backgroundColor: b.page }}>
+    // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
+    <View testID="screen.exams" style={{ flex: 1, backgroundColor: b.page, paddingBottom: bottom }}>
       <TopBar v4={b.dark} title={t("mobile.exams.title")} />
       <FlashList
         data={lines}
@@ -95,7 +99,7 @@ export function ExamsScreen() {
         renderItem={renderItem}
         ListHeaderComponent={<ProblemBanner belowBar />}
         ListEmptyComponent={loading ? <Loading /> : <Nothing signedOut={six === "signed-out" && view === null} />}
-        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] + bottom }}
+        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
         refreshControl={
           <RefreshControl
             refreshing={pull.refreshing}
@@ -162,7 +166,7 @@ function Lead({ item }: { item: ExamItem }) {
       onPress={() => go({ screen: "exam", examId: item.exam.id })}
       testID="card.exam.next"
       accessibilityLabel={factsLabel(name, figure, day, time, place)}
-      style={{ backgroundColor: fill, borderRadius: RADIUS, padding: space[5], marginTop: space[2], gap: space[4] }}
+      style={{ backgroundColor: fill, borderRadius: RADIUS, overflow: "hidden", padding: space[5], marginTop: space[2], gap: space[4] }}
     >
       <Text size="titleLarge" face="display" weight="bold" numberOfLines={2} style={{ color: on, fontSize: 20, lineHeight: 26, letterSpacing: -0.2 }}>
         {name}

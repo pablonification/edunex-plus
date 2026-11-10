@@ -84,7 +84,8 @@ export function MaterialScreen() {
   const renderItem = useCallback(({ item: line, index }: { item: FeedLine; index: number }) => <Line line={line} index={index} onFold={toggle} />, [toggle]);
   const loading = sections === null && (edunex === "connecting" || edunex === "live");
   return (
-    <View testID="screen.material" style={{ flex: 1, backgroundColor: b.page }}>
+    // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
+    <View testID="screen.material" style={{ flex: 1, backgroundColor: b.page, paddingBottom: bottom }}>
       {/* The bar in the page's own colour in both themes (v4's page is the dark page; the light one is the surface). */}
       <TopBar v4={b.dark} title={t("mobile.material.title")} />
       <FlashList
@@ -94,7 +95,7 @@ export function MaterialScreen() {
         renderItem={renderItem}
         ListHeaderComponent={<ProblemBanner belowBar />}
         ListEmptyComponent={loading ? <Loading /> : <Nothing signedOut={edunex === "signed-out"} />}
-        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] + bottom }}
+        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
         refreshControl={
           <RefreshControl
             refreshing={pull.refreshing}

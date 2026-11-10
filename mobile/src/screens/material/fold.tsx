@@ -62,7 +62,8 @@ export function FoldHeading({
 /** Down when folded, up when open, turning on the UI thread. */
 function Chevron({ open, color }: { open: boolean; color: string }) {
   const still = useReduceMotion();
-  const turn = useDerivedValue(() => withTiming(open ? 1 : 0, { duration: still ? 0 : motion.duration.short }), [open, still]);
+  const duration = still ? 0 : motion.duration.short;
+  const turn = useDerivedValue(() => withTiming(open ? 1 : 0, { duration }), [open, duration]);
   const style = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }));
   return (
     <Animated.View style={style}>
