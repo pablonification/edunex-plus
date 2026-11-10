@@ -67,9 +67,8 @@ function placesOf(items: readonly Item[]): Map<string, { level: number; coveredA
   const open: { item: Item; level: number }[] = [];
   for (const item of sorted) {
     const live = open.filter((o) => o.item.end > item.start);
-    const taken = new Set(live.map((o) => o.level));
-    let level = 0;
-    while (taken.has(level)) level++;
+    // Always above what it's laid over, so its start and name are never under an earlier block.
+    const level = live.length ? Math.max(...live.map((o) => o.level)) + 1 : 0;
     for (const o of live) {
       const at = placed.get(o.item.key)!;
       if (at.coveredAt === null || item.start < at.coveredAt) at.coveredAt = item.start;
@@ -426,7 +425,7 @@ const Block = memo(function Block({
   // into the next one. The name takes the lines the height holds (BlockBody); the sheet has the rest.
   const height = Math.max(TOUCH, ((entry.end - entry.start) / 3_600_000) * HOUR - 4);
   // The part of it in sight above a later class laid over it: its words stay there.
-  const open = coveredAt === null ? height : Math.min(height, yOf(minuteOfDay(coveredAt), from) - top - 2);
+  const open = coveredAt === null ? height : Math.min(height, yOf(minuteOfDay(coveredAt), from) - top);
   const left = level * INDENT;
   return (
     <View pointerEvents="box-none" style={{ position: "absolute", top, height, left, right: 0, zIndex: level }}>
@@ -436,6 +435,7 @@ const Block = memo(function Block({
         clashWith={clashWith}
         onPick={onPick}
         open={open}
+        covered={coveredAt !== null}
         laid={level > 0}
         lifted={level > 0}
         textWidth={width - BLOCK_LEFT - BLOCK_RIGHT - left - 24 - 32}
@@ -472,6 +472,7 @@ function BlockBody({
   clashWith,
   onPick,
   open,
+  covered,
   laid,
   lifted,
   textWidth,
@@ -482,6 +483,8 @@ function BlockBody({
   onPick: (picked: Picked) => void;
   /** The block's height in sight, in dp (less than its height when a later class is laid over it). */
   open: number;
+  /** A later class is laid over it: its words keep to the band above that one, close to its top edge. */
+  covered: boolean;
   /** Laid over an earlier class it clashes with: the pair's one clash mark is on this block. */
   laid: boolean;
   /** Drawn over another block: a thin edge in the page's colour parts the two. */
@@ -508,16 +511,18 @@ function BlockBody({
   const exam = entry.kind === "class" && entry.item.exam ? entry.item.session.activity : null;
   const title = exam ? `${exam} ${name}` : name;
   const time = timeRange(f, entry.start, entry.end);
-  const pad = short ? PAD.short : PAD.tall;
+  // Covered, the band above the later class (an hour: 56 dp) holds two lines of name at 1.3 (2 × 24.7) under 4 dp.
+  const pad = covered ? 4 : short ? PAD.short : PAD.tall;
+  const padBottom = covered ? 0 : pad;
   // What the part in sight truly holds at this font size, in dp: the whole name first (as many lines as it takes at
   // this width), then the status, then the room; what doesn't fit is left to the sheet. Only a class shorter than its
   // name needs ends its name in "…" after the last line its height holds.
   const nameLine = NAME_LINE * fontScale;
   const roomLine = ROOM_LINE * fontScale + 3;
-  const statusLine = STATUS_LINE * fontScale + 6;
-  const fits = Math.max(1, Math.floor((open - pad * 2 + 0.5) / nameLine));
+  const statusLine = STATUS_LINE * fontScale + 4;
+  const fits = Math.max(1, Math.floor((open - pad - padBottom + 0.5) / nameLine));
   const lines = Math.min(fits, linesFor(title, textWidth, 15 * fontScale));
-  let left_ = open - pad * 2 - lines * nameLine;
+  let left_ = open - pad - padBottom - lines * nameLine;
   const showStatus = shown !== null && left_ >= statusLine;
   if (showStatus) left_ -= statusLine;
   const showRoom = room !== null && left_ >= roomLine;
@@ -576,7 +581,7 @@ function BlockBody({
             }}
           />
         )}
-        <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 12, paddingVertical: pad }}>
+        <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 12, paddingTop: pad, paddingBottom: padBottom }}>
           <View style={{ paddingTop: 1 }}>
             <CourseGlyph code={entry.code} name={name} size={22} />
           </View>
@@ -588,13 +593,16 @@ function BlockBody({
               <View
                 accessibilityElementsHidden
                 importantForAccessibility="no-hide-descendants"
-                style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}
+                // The status's icon sits in the glyph's column, under it, so its words get the name's whole width.
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4, marginLeft: shown.icon === Icons.Overlap ? 0 : -32 }}
               >
                 {shown.icon === Icons.Overlap ? (
                   <ClashMark />
                 ) : (
                   <>
-                    <shown.icon size={16} color={tone} />
+                    <View style={{ width: 22, alignItems: "center" }}>
+                      <shown.icon size={16} color={tone} />
+                    </View>
                     <Text
                       size="labelMedium"
                       weight="semibold"
