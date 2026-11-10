@@ -23,6 +23,7 @@ import { PressScale } from "../../ui/press";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseGlyph, CourseTile, useCourseTile } from "../../ui/tile";
+import { soonness } from "./soon";
 
 const DAY = 86_400_000;
 
@@ -305,6 +306,17 @@ export function countdown(t: Translate, now: number, at: number): { value: numbe
   const unit = t(key, { count: value });
   const tone: PillTone = late ? "red" : gap < DAY ? "amber" : "neutral";
   return { value, unit, late, tone, text: late ? `${t("mobile.home.late")} ${value} ${unit}` : `${value} ${unit}` };
+}
+
+/**
+ * A row's time left once it's within a few calendar days, as its one pill: "Hari ini" (red), "Besok", "2 hari" (amber).
+ * Null when past (the late pill) or further off (its date alone, quiet). With it, the row's line says only the time.
+ */
+export function soonPill(t: Translate, now: number, at: number): { tone: PillTone; text: string } | null {
+  const soon = soonness(now, at);
+  if (!soon) return null;
+  const text = soon.days === 0 ? t("time.today") : soon.days === 1 ? t("time.tomorrow") : `${soon.days} ${t("mobile.home.unit.day", { count: soon.days })}`;
+  return { tone: soon.tone, text };
 }
 
 /**

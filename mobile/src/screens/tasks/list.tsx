@@ -1,6 +1,6 @@
 // Tugas on the phone (S2, round 2): src/app/screens/tasks.tsx's TasksScreen with the same data, the
 // same groups in the same order and the same words, read the phone's way. Everything still ahead in
-// one list, grouped by when it runs out (Terlambat, Minggu ini, Minggu depan, Nanti); an exam period
+// one list, grouped by when it runs out (Hari ini always first, Terlambat, Minggu ini, Minggu depan, Nanti); an exam period
 // going on sits on top; Selesai holds what's handed in, the exams behind the Student and what closed.
 // Belum selesai / Selesai at the top with the course filter beside it (its courses in a sheet), then the groups as tonal lists
 // (Android's grouped tiles), the whole list one FlashList drawn row by row. The rows read what they
@@ -38,6 +38,7 @@ import { PastExamRow } from "./exam-rows";
 import { lineType } from "./line-type";
 import { inWorld, RowProblemBanner, TaskRowWorld, useRowWorld } from "./row-parts";
 import { PutOff, TaskRow, TodoRow } from "./rows";
+import { dueToday } from "./soon";
 import { momentsOf, useClockMoments } from "./task-clock";
 
 /**
@@ -74,6 +75,7 @@ export type Line =
   | ({ type: "past"; key: string; past: PastExam } & Place)
   | { type: "putOff"; key: string; putOff: Todo["putOff"] }
   | { type: "gap"; key: string; size?: 3 | 6 }
+  | { type: "quiet"; key: string; text: string }
   | { type: "empty"; key: string; title: string; description?: string; showAll: boolean; done: boolean }
   | { type: "loading"; key: string }
   | { type: "examsNoSix"; key: string };
@@ -126,10 +128,13 @@ function tasksView(
   const doneCount = done.handedIn.length + done.pastExams.length + done.closed.length + done.notHandingIn.length;
   const during = items.filter((item) => item.kind === "period" && item.state === "during");
   const rest = items.filter((item) => !during.includes(item));
+  // "Hari ini" (round 4): what runs out later today, out of its week's group, always first on Belum selesai.
+  const today = rest.filter((item) => item.kind !== "period" && !item.late && dueToday(now, item.at));
   const putOff = (todo?.putOff ?? []).filter(({ item }) => mine(item.course ?? ""));
-  const groups = GROUPS.map(({ group, title }) => ({ group, title, items: rest.filter((item) => todoGroup(item, now) === group) })).filter(
-    (group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0),
-  );
+  const groups = [
+    { group: "today" as const, title: "time.today" as const, items: today },
+    ...GROUPS.map(({ group, title }) => ({ group, title, items: rest.filter((item) => !today.includes(item) && todoGroup(item, now) === group) })),
+  ].filter((group) => group.items.length > 0 || (group.group === "overdue" && putOff.length > 0));
   const nothingToDo = todoCount(items) === 0 && putOff.length === 0;
   const examsNoSix = sixOut && show === "open" && course === null;
   const codes = new Set([
@@ -151,7 +156,36 @@ function tasksView(
     if (doneCount === 0) lines.push({ type: "empty", key: "empty", title: t("tasks.noneDone"), showAll: false, done: true });
     else lines.push(...doneLines(done, todo.exams, t));
   } else {
-    if (during.length) lines.push(...todoCard(during), { type: "gap", key: "gap-during" });
+    const groupLines = (group: (typeof groups)[number]) => {
+      lines.push({
+        type: "heading",
+        key: `tasks-${group.group}`,
+        // No count beside a group: Belum selesai's says how many, and the rows are right under it.
+        title: t(group.title),
+        first: lines.length === 0,
+      });
+      const others = group.items.filter((item) => item !== hero);
+      // The gap under the big card only when its group goes on: the next group's title brings its own (one even gap).
+      if (hero && group === heroGroup)
+        lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, ...(others.length ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []));
+      lines.push(...todoCard(others));
+      if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
+    };
+    // Today first, always, over an exam period going on: with nothing due today its heading and one quiet line, so the
+    // Student never has to guess.
+    const todayGroup = groups.find((group) => group.group === "today");
+    if (!nothingToDo) {
+      if (todayGroup) groupLines(todayGroup);
+      else
+        lines.push(
+          { type: "heading", key: "tasks-today", title: t("time.today"), first: true },
+          { type: "quiet", key: "noneToday", text: t("mobile.tasks.noneToday") },
+        );
+    }
+    if (during.length) {
+      if (lines.length) lines.push({ type: "gap", key: "gap-today", size: 3 });
+      lines.push(...todoCard(during), { type: "gap", key: "gap-during" });
+    }
     if (nothingToDo) {
       lines.push({
         type: "empty",
@@ -163,22 +197,7 @@ function tasksView(
       });
       // What's still to know though nothing is to do: an exam period ahead, an exam with no date.
       if (rest.length) lines.push(...todoCard(rest));
-    } else
-      for (const group of groups) {
-        lines.push({
-          type: "heading",
-          key: `tasks-${group.group}`,
-          // No count beside a group: Belum selesai's says how many, and the rows are right under it.
-          title: t(group.title),
-          first: lines.length === 0,
-        });
-        const others = group.items.filter((item) => item !== hero);
-        // The gap under the big card only when its group goes on: the next group's title brings its own (one even gap).
-        if (hero && group === heroGroup)
-          lines.push({ type: "hero", key: `hero:${hero.key}`, item: hero }, ...(others.length ? [{ type: "gap", key: "gap-hero", size: 3 } as const] : []));
-        lines.push(...todoCard(others));
-        if (group.group === "overdue" && putOff.length) lines.push({ type: "putOff", key: "putOff", putOff });
-      }
+    } else for (const group of groups) if (group !== todayGroup) groupLines(group);
     if (examsNoSix) lines.push({ type: "examsNoSix", key: "examsNoSix" });
   }
   return { lines, openCount: todo ? todoCount(items) : undefined, doneCount: todo ? doneCount : undefined, withItems, hasPutOff: putOff.length > 0 };
@@ -459,6 +478,12 @@ export const LineView = memo(function LineView({
       return <PutOff putOff={line.putOff} open={putOffOpen} onToggle={() => onPutOff?.()} inCourse={inCourse} />;
     case "gap":
       return <View style={{ height: space[line.size ?? 6] }} />;
+    case "quiet":
+      return (
+        <Text testID="tasks.noneToday" size="bodyMedium" tone="muted" style={{ paddingHorizontal: space[1] }}>
+          {line.text}
+        </Text>
+      );
     case "empty":
       return (
         <EmptyState icon={<Icons.CheckCircle size={24} color={theme.color.onSecondaryContainer} />} title={line.title} description={line.description}>

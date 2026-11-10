@@ -4,6 +4,8 @@ import type { Entry } from "./entry";
 export const mobileTasksStrings = {
   // Tugas while the first list is on its way: what a screen reader hears over the placeholders.
   "mobile.tasks.loading": { id: "Memuat tugasmu", en: "Loading your Tasks" },
+  // r4 tasks: under "Hari ini" (time.today), always first on Belum selesai, when nothing runs out today.
+  "mobile.tasks.noneToday": { id: "Tidak ada tenggat hari ini", en: "Nothing due today" },
   // A Task's answer, as two labelled parts: the text box, and the files with it.
   "mobile.tasks.answerText": { id: "Teks jawaban", en: "Answer text" },
   "mobile.tasks.answerFiles": { id: "Berkas jawaban", en: "Answer files" },

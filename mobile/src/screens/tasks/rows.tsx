@@ -40,6 +40,7 @@ import {
   rowWhen,
   type SignalIcon,
   StatusPill,
+  soonPill,
   TaskLine,
   timeShown,
   useRowWorld,
@@ -152,6 +153,8 @@ export const TaskRow = inWorld(function TaskRow({
   const examKind = exam ? t(`exam.kind.${exam.kind}`) : null;
   const kind = examKind && !namesKind(task.title, examKind) ? examKind : null;
   const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
+  // Within a few days the pill says the day ("Hari ini", "Besok", "2 hari"), so the line says only the time.
+  const soon = away && !away.late && task.dueAt !== null ? soonPill(t, world.now, task.dueAt) : null;
   const when =
     sentAt !== null
       ? t("task.submittedOnDate", { date: world.f.dayMonth(sentAt) })
@@ -162,7 +165,7 @@ export const TaskRow = inWorld(function TaskRow({
   // On a course's page the module, the exam's kind for a take-home, then when: every row the same. Not the course's code
   // on Tugas: the row's tile is the course, named by the course chips over the list (the code is spoken).
   const lead = meta === "module" && task.module ? t("task.module", { n: task.module.index }) : null;
-  const line = [lead, kind, when].filter(Boolean).join(" · ");
+  const line = [lead, kind, soon && task.dueAt !== null ? world.f.time(task.dueAt) : when].filter(Boolean).join(" · ");
   const statusPill =
     sentAt !== null ? (
       task.score !== null ? (
@@ -170,7 +173,9 @@ export const TaskRow = inWorld(function TaskRow({
       ) : null
     ) : status === "closed" ? (
       <StatusPill tone="red" text={t("task.notHandedIn")} />
-    ) : away && away.tone !== "neutral" ? (
+    ) : soon ? (
+      <StatusPill tone={soon.tone} text={soon.text} />
+    ) : away?.late ? (
       <StatusPill tone={away.tone} text={away.text} />
     ) : null;
   // The row's title is the Task's own name, a take-home's too: a row never switches to its course's name.
