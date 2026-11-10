@@ -6,7 +6,8 @@ import type { PastExam, TodoItem } from "../../src/core/todo";
 
 const NOW = Date.UTC(2026, 9, 5, 3);
 const DAY = 24 * 3_600_000;
-const week = { id: "uts", start: NOW + 7 * DAY, end: NOW + 12 * DAY } as never;
+const WEEK_START = NOW + 7 * DAY;
+const week = { id: "uts", start: WEEK_START, end: NOW + 12 * DAY } as never;
 
 const exam = (id: string, kind: Exam["kind"], more: Partial<Exam> = {}) =>
   ({
@@ -49,7 +50,7 @@ describe("Ujian", () => {
     row(uts1, NOW + 8 * DAY),
     row(uts2, NOW + 9 * DAY),
     { kind: "task", key: "task:1", at: NOW + DAY, course: "PL3002" } as never,
-    { kind: "period", key: "period:uts", at: week.start, course: null, examKind: "UTS", week, exams: [waiting], state: "near" } as never,
+    { kind: "period", key: "period:uts", at: WEEK_START, course: null, examKind: "UTS", week, exams: [waiting], state: "near" } as never,
     row(unknown, null),
   ];
   const past: PastExam[] = [{ exam: exam("TI2001-KUIS", "KUIS"), at: NOW - 20 * DAY, marks: [] }];

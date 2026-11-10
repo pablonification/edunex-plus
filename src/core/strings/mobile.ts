@@ -439,7 +439,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "home.needs": { id: "Perlu kamu urus", en: "To handle" },
   "home.changes": { id: "Notifikasi", en: "Notifications" },
   "handIn.final": { id: "Sudah terkumpul. Hanya dosen yang bisa mengembalikannya.", en: "Submitted. Only your lecturer can hand it back." },
-  "course.tab.modules": { id: "Materi", en: "Materials" },
   // Settings › Notifikasi: the two attendance alerts, each named by what it warns about (Presensi and Kehadiran read as
   // one thing to a student): the moment to check in (a class SIX counts starts, an Edunex Presence opens or is about to
   // close), and a problem with SIX's count (a class it didn't record, no absences left).

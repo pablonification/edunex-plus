@@ -20,11 +20,6 @@
     "phone": "Di SIX tertulis {date}. Bayar paling lambat tanggal yang lebih awal."
   },
   {
-    "key": "course.tab.modules",
-    "desktop": "Modul",
-    "phone": "Materi"
-  },
-  {
     "key": "curriculum.unlistedNote",
     "desktop": "{count} mata kuliah tidak ada di catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, pilih “Ada di kurikulumku” di menu ⋯ barisnya.",
     "phone": "Ada {count} mata kuliah di luar catatan SIX-mu, jadi tidak dihitung sebagai sisa. Kalau prodimu bilang itu wajib untukmu, ketuk barisnya lalu pilih “Ada di kurikulumku”."

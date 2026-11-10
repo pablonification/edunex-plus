@@ -179,11 +179,11 @@ describe("the iPhone widgets, run as the extension runs them", () => {
   });
 
   it("the Live Activity draws each of its places while a class is on", () => {
-    const on = states.filter((state) => state.live);
+    const on = states.flatMap(({ name, live: doc, now }) => (doc ? [{ name, doc, now }] : []));
     expect(on.length).toBe(2);
     for (const state of on)
       for (const scheme of ["light", "dark"] as const) {
-        const regions = live(onPhoneClock(state.live, state.now), { colorScheme: scheme }) as Record<string, unknown>;
+        const regions = live(onPhoneClock(state.doc, state.now), { colorScheme: scheme }) as Record<string, unknown>;
         for (const region of ["banner", "compactLeading", "compactTrailing", "minimal", "expandedLeading", "expandedTrailing", "expandedBottom"])
           expect(tree(regions[region]).length, `${region} ${scheme}: ${state.name}`).toBeGreaterThan(0);
       }

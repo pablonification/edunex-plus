@@ -7,7 +7,7 @@ import { phoneWording } from "../../src/core/strings/mobile";
 
 /** What the phone says for a key, in each language (the plural's "other" for English). */
 function phone(key: StringKey): { id: string; en: string } {
-  const entry: Entry = phoneWording[key] ?? STRINGS[key];
+  const entry: Entry = phoneWording[key] ?? (STRINGS[key] as Entry);
   return { id: entry.id, en: typeof entry.en === "string" ? entry.en : entry.en.other };
 }
 
@@ -16,7 +16,7 @@ const SAME: Record<string, StringKey[]> = {
   "the Tugas tab and its page": ["mobile.tab.tasks", "nav.tasks", "mobile.course.tab.tasks"],
   "the list to handle": ["mobile.home.toHandle", "home.needs", "mobile.service.needs"],
   "the bell's history": ["alerts.title", "home.changes"],
-  "a course's material": ["search.group.material", "course.tab.modules"],
+  "a course's material": ["search.group.material", "mobile.course.tab.material"],
 };
 
 /** A name and the sentences that must use it, in both languages (case aside). */

@@ -113,8 +113,10 @@ function walk(node: Element, drawn: Drawn): string {
   if (name === "TextWidget") {
     const { text, maxLines = 1 } = element.props as { text: string; maxLines?: number };
     drawn.texts.push(text);
+    const { fontSize } = style;
+    if (fontSize === undefined) throw new Error("a TextWidget is drawn without a fontSize");
     const clamp = maxLines === 1 ? "white-space:nowrap;" : `display:-webkit-box;-webkit-line-clamp:${maxLines};-webkit-box-orient:vertical;`;
-    return `<div${tap} style="flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;${clamp}font-size:${style.fontSize * fontScale}px;line-height:${Math.round(style.fontSize * fontScale * 1.3)}px;color:${style.color};font-weight:${style.fontWeight === "700" ? 700 : style.fontWeight === "500" ? 500 : 400}">${text}</div>`;
+    return `<div${tap} style="flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;${clamp}font-size:${fontSize * fontScale}px;line-height:${Math.round(fontSize * fontScale * 1.3)}px;color:${style.color};font-weight:${style.fontWeight === "700" ? 700 : style.fontWeight === "500" ? 500 : 400}">${text}</div>`;
   }
   if (name === "SvgWidget") {
     const { svg } = element.props as { svg: string };
