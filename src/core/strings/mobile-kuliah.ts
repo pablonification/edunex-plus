@@ -24,8 +24,6 @@ export const mobileKuliahStrings = {
   // superapp: Kuliah
   // What the "Isi Presensi" button says to a screen reader: it opens Edunex, where the Presence is marked.
   "mobile.kuliah.presenceLabel": { id: "Isi Presensi {course} di Edunex", en: "Fill in Presence for {course} in Edunex" },
-  // A course's absences as a count, once, after its state ("Jatah absen habis", then "3 dari 3 absen"): used of allowed.
-  "mobile.kuliah.absences": { id: "{used} dari {allowed} absen", en: "{used} of {allowed} absences" },
   // Kuliah's two headings, read top to bottom: what's on today (a Presence open, a clash), then the term's courses.
   "mobile.kuliah.today": { id: "Hari ini", en: "Today" },
   "mobile.kuliah.term": { id: "Semester ini", en: "This semester" },
@@ -103,12 +101,24 @@ export const mobileCourseStrings = {
   "mobile.course.material.latest": { id: "Materi terbaru", en: "Latest material" },
   // Over the whole table of contents under it.
   "mobile.course.material.all": { id: "Semua modul", en: "All modules" },
-  // The way into the unfolded module's own page (its Tasks, who posted it).
-  "mobile.course.material.openModule": { id: "Buka {module}", en: "Open {module}" },
-  // The module the class is on has no files yet: said once, under its name.
-  "mobile.course.material.none": { id: "Belum ada materi untuk modul ini", en: "No material for this module yet" },
   // What a screen reader says for the module the course is on, in the list of all modules (the eye sees its number in a filled circle).
   "mobile.course.material.current": { id: "Modul sekarang", en: "Current module" },
+  // superapp: Kuliah, round 3
+  // A course's absences beside its dots, wherever the phone says them: one short label, lower case, no noun (the dots
+  // are the noun). Left, none left, or over the limit by how many.
+  "mobile.absence.dots.left": { id: "sisa {count}", en: "{count} left" },
+  "mobile.absence.dots.none": { id: "habis", en: "none left" },
+  "mobile.absence.dots.over": { id: "lewat {count}", en: "{count} over" },
+  // Kuliah's "Hari ini" while nothing is open: the next class today ("Berikutnya 13:00 · Komunikasi Pemasaran"), the
+  // class on now with no Presence open, that today's classes are over, or that there are none.
+  "mobile.kuliah.today.next": { id: "Berikutnya {time} · {course}", en: "Next {time} · {course}" },
+  "mobile.kuliah.today.live": { id: "{course} · selesai {time}", en: "{course} · ends {time}" },
+  "mobile.kuliah.today.over": { id: "Kelas hari ini sudah selesai", en: "Today's classes are over" },
+  "mobile.kuliah.today.none": { id: "Tidak ada kelas hari ini", en: "No classes today" },
+  // A course's fifth tab, short so five fit a phone's width: what the lecturer announced.
+  "mobile.course.tab.news": { id: "Info", en: "News" },
+  // Beside the module the course is on, in the list of all modules.
+  "mobile.course.material.now": { id: "sekarang", en: "now" },
 } as const satisfies Record<string, Entry>;
 
 export const mobileModuleStrings = {

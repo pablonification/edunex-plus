@@ -1,7 +1,7 @@
 # W4/W11 on Kuliah (the super-app round, after round 1's council): in three seconds, which course is at risk and the
 # way in. Read top to bottom: "Hari ini" (the class on now as a line in its colour with the one presence button, a
 # clash), then "Semester ini": the courses at risk first, each one card with one target (its name whole, its state in
-# words, its absences as a count, "4 dari 3 absen", its code, a chevron; no pips, no links of its own). The card opens
+# glyph, its absences as dots and one short label, "lewat 1", a chevron; no count, no links of its own). The card opens
 # the course, where the count, the target and the one exception are. No explanatory sentence on the first screen: the
 # day's answer and how it's counted are in ⋮, beside the targets.
 # Round 1 (9395cea): no Kuliah tab, Presensi's long cards.
@@ -33,9 +33,9 @@ name: "w11 Kuliah one row one target"
     id: row.course.KU5014
 - assertVisible:
     id: status.course.KU5014
-- assertVisible: "Lewat jatah absen 1×"
-- assertVisible: "4 dari 3 absen"
-- assertVisible: "Jatah absen habis"
+- assertVisible: "lewat 1"
+- assertVisible: "habis"
+- assertNotVisible: "4 dari 3 absen"
 - assertNotVisible:
     id: "meter.course.*"
 - assertNotVisible:

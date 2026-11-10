@@ -1,8 +1,9 @@
-// What needs the Student now, on Kuliah (the super-app round; src/app/screens/presence.tsx's NowZone), each said once
-// and only while there's something to do: a Presence open in Edunex or Tandai Hadir open in SIX as the class-on-now
-// part's line, in the course's colour (the course's name whole, "tutup 09:30", and the kit's one presence button, the
-// same part as Beranda's), SIX's count that didn't go up after a class, and a clash today
-// (the one clash sign, the time, the two courses; a tap says which class to go to and why). Signing in to SIX is
+// Kuliah's "Hari ini" (the super-app round; src/app/screens/presence.tsx's NowZone), always there, so Presensi has a
+// fixed place: while a Presence is open in Edunex or Tandai Hadir is open in SIX, the class-on-now block in the
+// course's colour (the name whole over the block's width, then "tutup 09:30" and the kit's one presence button on the
+// line under it: the same part as Beranda's); otherwise one quiet line that says what's true (the next class today
+// and its time, that today's classes are over, or that there are none). Under it SIX's count that didn't go up after
+// a class, and a clash today (the one clash sign, the time, the two courses; a tap says which class to go to and why). Signing in to SIX is
 // Kuliah's line instead (./lead.tsx). Why a window may not count is in ⋮ ("Cara menghitung"), not under the line.
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
@@ -12,7 +13,8 @@ import { useOpenCheckIn, useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
 import { useDataset } from "../../../../src/app/store";
-import { type AttendanceHealth, clashPick } from "../../../../src/core/attendance";
+import { type AttendanceHealth, clashPick, isExamActivity } from "../../../../src/core/attendance";
+import { wibDay } from "../../../../src/core/course-meetings";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import type { ClassSession } from "../../../../src/core/models";
 import { useNav } from "../../nav";
@@ -25,16 +27,19 @@ import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, THEMES, useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
-import { HandButton } from "./hand-button";
 import { clashAnswer, dayLabel, type Zone } from "./logic";
 
-/** Whether the zone has anything to show above the courses. */
+/** Whether the zone has anything to do above the courses (a Presence, Tandai Hadir, a count to check, a clash). */
 export const nowShown = (zone: Zone) => zone.checkIns.length + zone.windows.length + zone.results.length + zone.clashes.length > 0;
 
-export function NowZone({ zone, attendance }: { zone: Zone; attendance: Attendance }) {
-  if (!nowShown(zone)) return null;
+/** Whether "Hari ini" has something true to say: something to do, or a timetable to read today's classes from. */
+export const todayShown = (zone: Zone, attendance: Attendance) => nowShown(zone) || attendance.schedule.length > 0;
+
+export function NowZone({ zone, attendance, now }: { zone: Zone; attendance: Attendance; now: number }) {
+  if (!todayShown(zone, attendance)) return null;
   return (
     <View>
+      {zone.checkIns.length + zone.windows.length === 0 && attendance.schedule.length > 0 && <TodayLine sessions={attendance.schedule} now={now} />}
       {zone.checkIns.map((session) => (
         <OpenCheckIn key={session.id} session={session} />
       ))}
@@ -54,10 +59,51 @@ export function NowZone({ zone, attendance }: { zone: Zone; attendance: Attendan
 }
 
 /**
+ * "Hari ini" with nothing open, on one quiet line: the class on now ("… · selesai 10:00"), else the next class today
+ * and its time, else that today's classes are over, or that there are none. A class named opens its course.
+ */
+function TodayLine({ sessions, now }: { sessions: readonly ClassSession[]; now: number }) {
+  const t = useT();
+  const f = useFormat();
+  const v = useTheme().v4;
+  const { go } = useNav();
+  const names = useCourseNames();
+  const day = wibDay(now);
+  const todays = sessions.filter((s) => wibDay(s.start) === day && !isExamActivity(s.activity)).sort((a, b) => a.start - b.start);
+  const next = todays.find((s) => s.end > now);
+  const words = !next
+    ? t(todays.length ? "mobile.kuliah.today.over" : "mobile.kuliah.today.none")
+    : next.start <= now
+      ? t("mobile.kuliah.today.live", { course: names(next.courseCode, undefined), time: f.time(next.end) })
+      : t("mobile.kuliah.today.next", { course: names(next.courseCode, undefined), time: f.time(next.start) });
+  const line = (
+    <>
+      <Icons.Clock size={20} color={v.fg2} />
+      <Text size="bodyLarge" style={{ flex: 1, minWidth: 0, color: v.fg2 }}>
+        {words}
+      </Text>
+    </>
+  );
+  const style = { flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 48, paddingVertical: space[1] } as const;
+  if (!next)
+    return (
+      <View testID="line.coursesToday" accessible accessibilityLabel={words} style={style}>
+        {line}
+      </View>
+    );
+  return (
+    <Tap feel="row" testID="line.coursesToday" accessibilityLabel={words} onPress={() => go({ screen: "course", code: next.courseCode })} style={style}>
+      {line}
+      <Icons.ChevronRight size={18} color={v.muted} />
+    </Tap>
+  );
+}
+
+/**
  * The class on now as a line: the block's small size (Beranda's and a course's page), in the course's own colour, white
- * on it in both themes. The course's name whole, the one time that matters under it ("tutup 09:30"), and the one
- * presence button, white. On a narrow line (font size 1.3) the button drops under the name instead of cutting it. It
- * comes and goes with the window (Appear).
+ * on it in both themes. The course's name whole, over the block's width (two lines for a long one, never three beside
+ * the button); under it the one time that matters ("tutup 09:30") and, at the line's end, the one presence button,
+ * white. On a narrow line (font size 1.3) the button drops under the time. It comes and goes with the window (Appear).
  */
 function PresenceLine({ code, name, meta, button, testID }: { code: string; name: string; meta: string; button: (ink: string) => ReactNode; testID: string }) {
   const v = useTheme().v4;
@@ -68,11 +114,6 @@ function PresenceLine({ code, name, meta, button, testID }: { code: string; name
     <Appear
       testID={testID}
       style={{
-        flexDirection: "row",
-        flexWrap: "wrap",
-        alignItems: "center",
-        columnGap: space[3],
-        rowGap: space[3],
         backgroundColor: fill,
         borderRadius: 20,
         paddingVertical: space[3],
@@ -80,15 +121,15 @@ function PresenceLine({ code, name, meta, button, testID }: { code: string; name
         marginBottom: space[2],
       }}
     >
-      <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 }}>
-        <Text size="bodyLarge" face="display" weight="bold" style={{ color: on, lineHeight: 22 }}>
-          {name}
-        </Text>
-        <Text size="bodyMedium" weight="medium" tabular style={{ color: on, marginTop: 2 }}>
+      <Text size="bodyLarge" face="display" weight="bold" numberOfLines={2} style={{ color: on, lineHeight: 22 }}>
+        {name}
+      </Text>
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[3], rowGap: space[2], marginTop: space[2] }}>
+        <Text size="bodyMedium" weight="medium" tabular style={{ color: on, flexGrow: 1, flexShrink: 1, flexBasis: 96, minWidth: 0 }}>
           {meta}
         </Text>
+        {button(fill)}
       </View>
-      {button(fill)}
     </Appear>
   );
 }
@@ -108,12 +149,12 @@ function OpenCheckIn({ session }: { session: ClassSession }) {
       name={names(session.courseCode, undefined)}
       meta={t("mobile.home.ends", { time: f.time(session.end) })}
       button={(ink) => (
-        <HandButton
-          word={t("mobile.notification.checkIn")}
+        <PresenceButton
+          label={t("mobile.notification.checkIn")}
           tone="course"
           ink={ink}
           onPress={() => openCheckIn(session.id, sixTimetableUrl(student, session.start))}
-          label={t("home.now.openSixLabel", { course: session.courseCode })}
+          accessibilityLabel={t("home.now.openSixLabel", { course: session.courseCode })}
           testID="action.checkIn"
         />
       )}
@@ -145,8 +186,8 @@ function OpenPresence({ window }: { window: OpenWindow }) {
       meta={factsLabel(t("presence.open.closes", { time: f.time(session.closesAt) }), (noSix || notKnown) && t("presence.open.maybe"))}
       button={(ink) =>
         task ? (
-          <HandButton
-            word={t("presence.open.task")}
+          <PresenceButton
+            label={t("presence.open.task")}
             icon="ListChecks"
             tone="course"
             ink={ink}

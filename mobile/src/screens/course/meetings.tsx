@@ -26,6 +26,7 @@ import { SixEmptyState, useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { ROW_SIDE } from "../../ui/row-end";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -206,7 +207,7 @@ function PeriodLine({ period, first }: { period: CalendarEvent; first: boolean }
         flexDirection: "row",
         alignItems: "center",
         gap: space[2],
-        paddingHorizontal: 14,
+        paddingHorizontal: ROW_SIDE,
         paddingVertical: space[2],
         backgroundColor: v.ambBg,
         ...(first ? {} : { borderTopWidth: 1, borderTopColor: v.line }),
