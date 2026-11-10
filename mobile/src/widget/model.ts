@@ -26,7 +26,7 @@ import { type StringKey, translate, type Vars } from "../../../src/core/strings"
 import { isOpenStatus, taskStatus } from "../../../src/core/tasks";
 import { needAction, needLine, statusLine, type TrayAction } from "../../../src/desktop/tray-menu";
 // The phone's routes: the window's and the phone's own (Ujian's list), types only.
-import type { Route } from "../nav";
+import type { Route } from "../route";
 
 /** Where a tap goes: a screen of the app, an official page or a lecturer's link in the browser, SIX's check-in page, or the app as it was. */
 export type WidgetTarget =

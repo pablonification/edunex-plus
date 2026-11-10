@@ -5,16 +5,9 @@
 // studi a screen of its own (/plan/<part>), a course's module a screen over the course.
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
-import type { Route as WindowRoute } from "../../src/core/route";
+import type { Route } from "./route";
 
-/**
- * A place the phone has and the window doesn't: Materi (every course's material in one list) and Ujian (every exam).
- * Kept here, not in src/core/route.ts, which the desktop, alerts and links share.
- */
-export type PhoneRoute = { screen: "material" } | { screen: "exams" };
-
-/** Where the Student can go on the phone: the window's routes and the phone's own. */
-export type Route = WindowRoute | PhoneRoute;
+export type { PhoneRoute, Route } from "./route";
 
 /** The path that shows `route`. */
 export function hrefOf(route: Route): string {
