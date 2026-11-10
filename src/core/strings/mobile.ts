@@ -336,6 +336,14 @@ export const mobileStrings = {
   // settings: Tentang › Versi. The button beside the version says only the verb (its accessible name is update.check),
   // so "Diperiksa sendiri sekali sehari." keeps its room on a phone's width.
   "mobile.update.checkShort": { id: "Periksa", en: "Check" },
+  // r4 materials and exams: Materi (this week's material from every course) and Ujian (the term's exams).
+  "mobile.materials.which": { id: "Pilih minggu", en: "Pick a week" },
+  "mobile.materials.lastWeek": { id: "Minggu lalu", en: "Last week" },
+  "mobile.materials.noneThisWeek": { id: "Belum ada materi baru minggu ini", en: "No new material this week" },
+  "mobile.materials.noneLastWeek": { id: "Tidak ada materi baru minggu lalu", en: "No new material last week" },
+  "mobile.materials.toCourses": { id: "Buka Kuliah", en: "Open Courses" },
+  "mobile.materials.wholeCourse": { id: "Semua modul {course}", en: "All {course} modules" },
+  "mobile.exams.after": { id: "Setelah itu", en: "After that" },
 } as const satisfies Record<string, Entry>;
 
 // The desktop's words the phone says its own way: the same facts, numbers and {placeholders}, with

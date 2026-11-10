@@ -1,11 +1,6 @@
-// Round 4 placeholder (mobile/qa/r4-decisions.md): the real screen replaces this file.
-import { View } from "react-native";
-import { TopBar } from "../src/ui/top-bar";
+import { ExamsScreen } from "../src/screens/exams/exams-screen";
 
+// The screen times itself once its data is drawn (`usePerfDrawn` in exams-screen.tsx).
 export default function Screen() {
-  return (
-    <View testID="screen.exams" style={{ flex: 1 }}>
-      <TopBar />
-    </View>
-  );
+  return <ExamsScreen />;
 }

@@ -1,11 +1,6 @@
-// Round 4 placeholder (mobile/qa/r4-decisions.md): the real screen replaces this file.
-import { View } from "react-native";
-import { TopBar } from "../src/ui/top-bar";
+import { MaterialsScreen } from "../src/screens/materials/materials-screen";
 
+// The screen times itself once its data is drawn (`usePerfDrawn` in materials-screen.tsx).
 export default function Screen() {
-  return (
-    <View testID="screen.materials" style={{ flex: 1 }}>
-      <TopBar />
-    </View>
-  );
+  return <MaterialsScreen />;
 }

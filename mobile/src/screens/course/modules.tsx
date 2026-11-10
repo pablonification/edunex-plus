@@ -336,7 +336,7 @@ const attr = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quo
 
 const rowStyle = { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 } as const;
 
-function MaterialRow({ material, first }: { material: Material; first: boolean }) {
+export function MaterialRow({ material, first }: { material: Material; first: boolean }) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
