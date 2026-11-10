@@ -1,11 +1,11 @@
 // Beranda (round 4, the super-app layout students know from the apps they use daily): in three seconds, whether a
 // class is on and what to press, whether the week is fine, and where everything else is. The blue bar with the
 // greeting, the search bar and the bell (./header.tsx, the route's fixed header); the now card over the blue band's edge
-// (./now.tsx: the wave, the minutes left, Tandai Hadir); the strip, the week in two or three numbers (./strip.tsx: due
-// this week, courses out of absences, days to the next exam); the services, four across (../../parts/services.tsx,
+// (./now.tsx: the wave, the minutes left, Tandai Hadir); the strip, the three daily questions in numbers (./strip.tsx:
+// due today or this week, courses at their absence limit, days to the next exam); the services, four across (../../parts/services.tsx,
 // "Lainnya" last). All four fit the first screen without scrolling (app/(tabs)/index.tsx has the height budget). Under
-// the fold: "Nanti hari ini", the classes still to come (./later.tsx), then "Perlu kamu urus", what needs the Student,
-// most serious first (./urus.tsx), then the first read's and the notifications' cards. One fact, one place: the term's
+// the fold: "Nanti hari ini", the classes still to come (./later.tsx), then "Perlu kamu urus", what else needs the
+// Student, most serious first, without what the strip already counts, and gone with nothing left (./urus.tsx), then the first read's and the notifications' cards. One fact, one place: the term's
 // courses are Kuliah's, the now card's class is never a row under it. The whole list, the date and term, what changed,
 // are one tap deeper, on "Perlu kamu urus"'s screen (./needs-screen.tsx). The data and the reasoning are the desktop's
 // (src/core/needs). While the first read runs, each part stands in its own shape and fills in, the grid as it is.
@@ -15,6 +15,7 @@ import { useLayoutEffect, useMemo } from "react";
 import { View } from "react-native";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useHomeWorld } from "../../../../src/app/home-world";
+import { useNow } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import { attention, dueItems, type HomeContext, homeContext, nowCard, todayPlan, unreadAhead } from "../../../../src/core/needs";
 import { HOME_GRID, ServiceGrid } from "../../parts/services";
@@ -31,6 +32,7 @@ import { HeldShape, NowSection } from "./now";
 import { cardKey } from "./parts";
 import { problems } from "./problems";
 import { Strip, StripShape } from "./strip";
+import { stripFacts } from "./strip-facts";
 import { Urus, useUrusRows } from "./urus";
 
 /** The space between the first screen's parts. */
@@ -106,6 +108,9 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
   const due = useMemo(() => dueItems(context, plan), [context, plan]);
   const found = useMemo(() => problems(context), [context]);
   const rows = useUrusRows(found, needs, due, courses);
+  const now = useNow();
+  // What the strip counts: "Perlu kamu urus" leaves it out, so Beranda says each fact once.
+  const facts = useMemo(() => stripFacts(rows, needs, now), [rows, needs, now]);
   return (
     <>
       <View testID="home.now">
@@ -115,13 +120,13 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
       </View>
       <Rise screen="home" index={1}>
         <View style={{ marginTop: HOME_GAP }}>
-          <Strip context={context} problems={found} rows={rows} needs={needs} />
+          <Strip context={context} problems={found} facts={facts} />
         </View>
       </Rise>
       <Grid />
       <Part at={1}>
         <Later context={context} plan={plan} courses={courses} onCard={cardKey(card)} />
-        <Urus problems={found} needs={needs} due={due} courses={courses} />
+        <Urus all={rows} facts={facts} courses={courses} />
       </Part>
       {/* The asks, after what the Student came for: the first screen stays the now card, the strip and the services. */}
       <Part at={2}>
