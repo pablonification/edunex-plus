@@ -24,6 +24,7 @@ import {
   MARK_COLOR,
   MARK_EDGE,
   MARK_INK,
+  RING_TRACK,
   STAGE,
   STAGE_INK,
 } from "../../mobile/src/shell/first-minute/colors";
@@ -288,7 +289,8 @@ const PAIRS: Pair[] = [
   // its doors, its button, the mark and the lower edge it lifts by.
   ["the stage's headline, status and note", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
   ["a resting door's name", () => STAGE_INK, (t) => DOOR_REST[scheme(t)], LARGE, FIRST_MINUTE],
-  ["the ring at a door's foot (at rest, and its bright quarter turning)", () => DOOR_LIGHT, (t) => DOOR_REST[scheme(t)], MARK, FIRST_MINUTE],
+  ["the turning ring's bright half at a door's foot", () => DOOR_LIGHT, (t) => DOOR_REST[scheme(t)], MARK, FIRST_MINUTE],
+  ["the turning ring's bright half on its own track", () => DOOR_LIGHT, (t) => RING_TRACK[scheme(t)], MARK, FIRST_MINUTE],
   ["Edunex's name on its lit door", (t) => DOOR_INK[scheme(t)].edunex, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
   ["SIX's name on its lit door", (t) => DOOR_INK[scheme(t)].six, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
   ["the tick on a lit door", () => DOOR_TICK, (t) => DOOR_LIT[scheme(t)], MARK, FIRST_MINUTE],
