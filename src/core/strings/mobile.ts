@@ -350,6 +350,9 @@ export const mobileStrings = {
   "mobile.widget.examNone": { id: "Belum ada ujian terjadwal", en: "No exams scheduled yet" },
   // "Satu mata kuliah": the page that asks which course the widget shows, as it's placed or from "Ubah widget".
   "mobile.widget.pickCourse": { id: "Pilih mata kuliah", en: "Pick a course" },
+  // superapp: widgets
+  // "Kelas berikutnya" in one cell on a week without classes: two words, as the cell holds no more. A tap opens Jadwal.
+  "mobile.widget.noClass": { id: "Tidak ada kuliah", en: "No classes" },
   // presence
   // Kuliah's ⋮: the attendance targets, with the range in force under it ("80%", "75–80%").
   "mobile.courses.targets": { id: "Target kehadiran", en: "Attendance targets" },

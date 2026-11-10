@@ -84,6 +84,8 @@ export interface WidgetTodayClass {
   /** "08:00", where the range doesn't fit. */
   start: string;
   code: string;
+  /** The course's name, whole: what a row says first (the code only without one). */
+  name: string | null;
   room: string | null;
   /** On now: marked. */
   live: boolean;
@@ -140,11 +142,13 @@ function todayLines(snapshot: Pick<Snapshot, "datasets" | "statuses">, context: 
   if (context.schedule === null) return null;
   const { now } = context;
   const plan = todayPlan(context);
-  const codes = snapshotTermCourses(snapshot)?.map((c) => c.code) ?? [];
+  const courses = snapshotTermCourses(snapshot) ?? [];
+  const codes = courses.map((c) => c.code);
   const classes = plan.classes.map(({ session }) => ({
     time: f.timeRange(session.start, session.end),
     start: f.time(session.start),
     code: session.courseCode,
+    name: courses.find((c) => c.code === session.courseCode)?.name ?? session.courseName ?? null,
     room: session.room ?? null,
     live: session.start <= now && now < session.end,
     past: session.end <= now,
@@ -235,6 +239,8 @@ function actionLines(snapshot: Pick<Snapshot, "datasets">, card: NowCard | null,
   if (presence)
     lines.push({
       label: presence.noSix ? t("home.need.presenceNoSix", { course: presence.code }) : t("home.need.presence", { course: presence.code }),
+      // The button's word, as on every screen: the class it's for is named right above it.
+      short: t("presence.open.fill"),
       detail: capital(t("home.need.presence.closes", { time: f.dayTime(presence.session.closesAt) })),
       open:
         presence.activity === "assignment" && presence.task
@@ -436,6 +442,10 @@ export interface AttendanceRow {
   state: AttendanceState;
   /** Absences still allowed; negative past the limit; null without SIX's count. */
   left: number | null;
+  /** The marks a row draws: the absences this term allows and how many are used (both null without a count), and how many past it. */
+  allowed: number | null;
+  used: number | null;
+  over: number;
   /** "Sisa jatah absen 2×", "Jatah absen habis", "Lewat jatah absen 1×"; "-" without a count. What TalkBack says. */
   label: string;
   /** The same in a word or two, for the row: "Sisa 2×", "Habis", "Lewat 1×", "-". */
@@ -494,6 +504,9 @@ export function attendanceWidget(facts: WidgetFacts): AttendanceWidget {
           tone: toneOf(snapshot, facts.codes, course.code),
           state: health.state,
           left: health.absencesLeft,
+          allowed: budget?.allowed ?? null,
+          used: budget?.used ?? null,
+          over: budget?.over ?? 0,
           label,
           short,
           open: { kind: "route", route: { screen: "course", code: course.code } } as WidgetTarget,
@@ -512,7 +525,11 @@ export interface ExamWidget {
   next: {
     /** "UTS DK4073". */
     title: string;
+    /** "UTS": the exam's kind alone, said before the course's name. */
+    kind: string;
     code: string;
+    /** The course's name, whole; null when SIX doesn't list the course. */
+    name: string | null;
     tone: string | undefined;
     /** Whole days from today to it: 0 today, 1 tomorrow. */
     days: number;
@@ -564,7 +581,9 @@ export function examWidget(facts: WidgetFacts): ExamWidget {
     state: "ready",
     next: {
       title: `${t(`exam.kind.${exam.kind}`)} ${exam.courseCode}`,
+      kind: t(`exam.kind.${exam.kind}`),
       code: exam.courseCode,
+      name: (snapshotTermCourses(snapshot) ?? []).find((c) => c.code === exam.courseCode)?.name ?? null,
       tone: toneOf(snapshot, facts.codes, exam.courseCode),
       days,
       big: days <= 1 ? f.relativeDay(start) : String(days),
@@ -588,6 +607,8 @@ export interface NextWidget {
     /** The big word: the time, or "Tandai Hadir" while it's open. */
     big: string;
     code: string;
+    /** The course's name, whole, for a cell big enough to say it. */
+    name: string | null;
     room: string | null;
     tone: string | undefined;
     /** "Hari ini" / "Besok" / "Sen, 12 Okt": said under the time when it isn't today. */
@@ -617,7 +638,7 @@ export function nextWidget(facts: WidgetFacts): NextWidget {
       ...base,
       state: "holiday",
       next: null,
-      empty: { label: t("home.now.free"), open: { kind: "route", route: { screen: "schedule" } } },
+      empty: { label: t("home.now.free"), short: t("mobile.widget.noClass"), open: { kind: "route", route: { screen: "schedule" } } },
       changesAt: nextMidnight(now),
     };
   }
@@ -643,6 +664,7 @@ export function nextWidget(facts: WidgetFacts): NextWidget {
       time: f.time(start),
       big: slot.kind === "checkIn" ? t("mobile.notification.checkIn") : f.time(start),
       code,
+      name: (snapshotTermCourses(snapshot) ?? []).find((c) => c.code === code)?.name ?? null,
       room,
       tone: toneOf(snapshot, facts.codes, code),
       day: offset === 0 ? null : f.relativeDay(start),
@@ -713,6 +735,8 @@ export interface CourseWidget {
   next: (WidgetLine & { short: string }) | null;
   /** Its absences ("Sisa jatah absen 2×", or "Sisa 2×" narrow), in the state's ink. */
   absences: { label: string; short: string; state: AttendanceState } | null;
+  /** The same as marks: the absences the term allows, how many are used, how many past the limit. Null without SIX's count. */
+  marks: { allowed: number; used: number; over: number } | null;
   /** Its next open Task: the title, "Tenggat Besok, 23:59". */
   task: WidgetLine | null;
   empty: WidgetLine | null;
@@ -732,6 +756,7 @@ export function courseWidget(facts: WidgetFacts, code: string | null): CourseWid
       course: null,
       next: null,
       absences: null,
+      marks: null,
       task: null,
       empty: { label: t("welcome.continueHint"), open: HOME },
       changesAt: null,
@@ -761,6 +786,7 @@ export function courseWidget(facts: WidgetFacts, code: string | null): CourseWid
           open: { kind: "class", sessionId: session.id },
         }
       : null,
+    marks: budget ? { allowed: budget.allowed, used: budget.used, over: budget.over } : null,
     absences:
       health && health.state !== "unknown"
         ? {
