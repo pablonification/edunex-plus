@@ -1,5 +1,4 @@
-// Settings' top: who's signed in (a white card: the initials, the name in Plus Jakarta Sans a step under the page's
-// title, the NIM and the program as one quiet line), then Akun: each system's row (a line icon in a tile, as every
+// Akun's rows, shown on Profil (round 4; Settings' top before it): each system's row (a line icon in a tile, as every
 // row's) with its state as the one line under it: "Terhubung" in green, no dot (round 3's final review: the dot and the
 // word said it twice); when it was last checked only once that's stale. Signed out (or the session ended), the row signs
 // in; signed in, it opens a sheet whose one choice signs out of just that system. What the first read found is the
@@ -8,74 +7,35 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
-import { displayName, initials } from "../../../../src/app/names";
-import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
+import { useBridge, useStatus } from "../../../../src/app/store";
 import type { SourceId } from "../../../../src/core/models";
 import { useSignInNote } from "../../shell/source-status";
-import { IconTile, Panel, Pill } from "../../ui/group";
+import { IconTile, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { Chevron, haptic, type MetaTone, SettingRow, SettingsGroup } from "../../ui/settings-list";
+import { Chevron, haptic, type MetaTone, SettingRow } from "../../ui/settings-list";
 import { ActionSheet } from "../../ui/sheet";
-import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { useTheme } from "../../ui/theme";
 import type { Report } from "./save";
 
-/** Who's signed in: the initials, the name, the NIM and the program (Edunex's account, else SIX's). */
-export function Profile() {
-  const v = useTheme().v4;
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  const name = account?.name ?? student?.name;
-  if (!name) return null;
-  const facts = factsLabel(account?.nim ?? student?.nim, student?.program);
-  return (
-    <Panel testID="card.profile" style={{ flexDirection: "row", alignItems: "center", gap: space[4], padding: space[4], marginTop: space[2] }}>
-      <View
-        style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Text size="titleLarge" face="display" weight="bold" style={{ color: v.brandInk }}>
-          {initials(name)}
-        </Text>
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={factsLabel(displayName(name), facts)}>
-        <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, letterSpacing: -0.2 }}>
-          {displayName(name)}
-        </Text>
-        {facts ? (
-          <Text size="bodyMedium" style={{ color: v.muted, marginTop: 2 }}>
-            {facts}
-          </Text>
-        ) : null}
-      </View>
-    </Panel>
-  );
-}
-
-/** Akun: Edunex, SIX, and the first-connection summary. */
-export function Accounts({ report }: { report: Report }) {
+/** "Ringkasan awal": what the first read found. */
+export function FirstScanRow() {
   const t = useT();
   return (
-    <SettingsGroup title={t("settings.accounts")}>
-      <AccountRow source="edunex" report={report} />
-      <AccountRow source="six" report={report} />
-      <SettingRow
-        leading={<IconTile icon={(color) => <Icons.Zap size={22} color={color} />} />}
-        title={t("settings.firstScan")}
-        onPress={() => router.push("/first-scan")}
-        label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`}
-        hint={t("settings.firstScan.hint")}
-        trailing={<Chevron />}
-        testID="action.firstScan"
-      />
-    </SettingsGroup>
+    <SettingRow
+      leading={<IconTile icon={(color) => <Icons.Zap size={22} color={color} />} />}
+      title={t("settings.firstScan")}
+      onPress={() => router.push("/first-scan")}
+      label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`}
+      hint={t("settings.firstScan.hint")}
+      trailing={<Chevron />}
+      testID="action.firstScan"
+    />
   );
 }
 
 /** One system's account: its state and last check as the one line; the row signs in, or opens its sign-out. */
-function AccountRow({ source, report }: { source: SourceId; report: Report }) {
+export function AccountRow({ source, report, testID }: { source: SourceId; report: Report; testID?: string }) {
   const t = useT();
   const f = useFormat();
   const bridge = useBridge();
@@ -111,7 +71,7 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
               : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "amber" };
   const signInLabel = t(status.state === "expired" ? "settings.signInAgainTo" : "settings.signInTo", { source: name });
   return (
-    <View testID={`row.account.${source}`}>
+    <View testID={testID ?? `row.account.${source}`}>
       <SettingRow
         leading={
           <IconTile icon={(color) => (source === "six" ? <Icons.GraduationCap size={22} color={color} /> : <Icons.BookOpen size={22} color={color} />)} />
