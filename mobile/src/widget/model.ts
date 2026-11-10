@@ -38,6 +38,8 @@ export type WidgetTarget =
 
 export interface WidgetLine {
   label: string;
+  /** The same in a button's few words, where the label would be cut ("Tandai Hadir"). */
+  short?: string;
   /** The when and where, in smaller type under it. */
   detail?: string;
   /** What a screen reader says for it, when the line alone doesn't say what a tap does. */
@@ -224,6 +226,7 @@ function actionLines(snapshot: Pick<Snapshot, "datasets">, card: NowCard | null,
   for (const s of open)
     lines.push({
       label: t("home.now.checkInOpen"),
+      short: t("mobile.notification.checkIn"),
       detail: s.courseCode,
       a11y: t("home.now.openSixLabel", { course: s.courseCode }),
       open: { kind: "checkIn", meetingId: s.id },

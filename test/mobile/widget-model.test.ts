@@ -51,6 +51,7 @@ describe("the widget", () => {
     expect(modelOf(h).actions).toEqual([
       {
         label: "Tandai Hadir sudah dibuka di SIX",
+        short: "Tandai Hadir",
         detail: "PL3002",
         a11y: "Buka di SIX untuk Tandai Hadir di PL3002",
         open: { kind: "checkIn", meetingId: "2194342" },

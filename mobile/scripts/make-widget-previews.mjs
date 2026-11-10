@@ -58,11 +58,12 @@ const WIDGETS = {
     cells(4, 2),
     col(
       col(
-        text("Sedang berlangsung · 08:00–10:00 · R.SG PWK LT.6", 12, v.okFg, { bold: true }) +
-          row(dot(course.PL3002) + text("PL3002 Ekonomi dan Inovasi dalam Perencanaan", 16, v.fg, { bold: true }), 6),
+        text("Sedang berlangsung · 08:00–10:00", 12, v.okFg, { bold: true }) +
+          row(dot(course.PL3002) + text("PL3002 Ekonomi dan Inovasi dalam Perencanaan", 16, v.fg, { bold: true }), 6) +
+          text("R.SG PWK LT.6", 12, v.muted),
         0,
       ) +
-        `<div style="padding:7px 12px;border-radius:10px;background:${v.brand}">${text("Tandai Hadir sudah dibuka di SIX · PL3002", 14, v.onBrand, { bold: true })}</div>` +
+        `<div style="padding:7px 12px;border-radius:10px;background:${v.brand};display:flex;align-items:center;gap:8px">${text("Tandai Hadir", 14, v.onBrand, { bold: true, style: "flex:1" })}${text("PL3002", 12, v.onBrand)}</div>` +
         col(text("Perlu perhatianmu", 12, v.muted, { bold: true }) + text("UTS DK4073 · Kam, 15 Okt, 11:00", 14, v.fg, { bold: true }), 2),
       8,
     ) + text("Diperbarui pukul 08:40", 12, v.muted),
@@ -119,6 +120,8 @@ const WIDGETS = {
   next: frame({ width: 72, height: 72 }, col(text("11:00", 20, v.fg, { bold: true }) + text("DK4073", 12, course.DK4073, { bold: true }), 2), {
     pad: 10,
     justify: "center",
+    // The course's own tint (src/ui/palette.ts COURSE_TILE cyan).
+    background: "#e3f2f6",
   }),
   // Pintasan, 4×1: four places, one tap each.
   services: frame(

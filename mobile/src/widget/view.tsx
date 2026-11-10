@@ -205,7 +205,7 @@ function ActionPill({ line, primary, theme }: { line: WidgetLine; primary: boole
     >
       <FlexWidget style={{ width: "match_parent", flexDirection: "row", alignItems: "center", flexGap: 8 }}>
         <FlexWidget style={{ flex: 1 }}>
-          <Text text={line.label} size="small" color={primary ? c.onAccent : c.fg} bold />
+          <Text text={line.short ?? line.label} size="small" color={primary ? c.onAccent : c.fg} bold />
         </FlexWidget>
         {line.detail ? <Text text={line.detail} size="micro" color={primary ? c.onAccent : c.fg} /> : null}
       </FlexWidget>
