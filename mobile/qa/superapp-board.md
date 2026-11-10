@@ -42,6 +42,26 @@ remember 8, never waited 6, nothing shows off 6. **Not at the top (9).** What al
 over to the real Beranda at about 6 s and let its cards fill in place); the doors must not look like a choice; the button becomes the
 status in words; names in the app's language; no late "Semua siap" bar; no dark-to-light flash; jank far under 24%.
 
+## Round 1's council (01:40)
+
+Every screen of commit 0aa4379e, light and dark, beside today's app (`main`), unlabelled, sides flipped for one judge. Three judges
+(Claude Fable 5.2, one per account).
+
+| | Designer | Student | Prosecutor |
+| --- | --- | --- | --- |
+| Against today's app, 11 screens | ours on 9; today's Notifikasi preferred (three loading rows left above real content); the Task pair wasn't like for like (the lead's mistake: an exam page against a Task) | ours on 10; the Task pair as above | ours on 9, Settings a draw; serious charges 17 against today's 35 on the same screens (24 on all 15 of ours) |
+| "I know where everything is", five apps | 2nd (Grab, **ours**, Gojek, Edunex Mobile, Duolingo) | 2nd (Gojek, **ours**, Grab, Duolingo, Edunex Mobile) | 3rd (Gojek, Grab, **ours**, Duolingo, Edunex Mobile) |
+| Overall, five apps | 3rd (Duolingo, Gojek, **ours**) | **1st** ("happy to open every morning") | 4th (Duolingo, Gojek, Grab, **ours**) |
+| Squint, five tabs | 5 of 5; most alike Beranda and Profil | 5 of 5; the same pair | 5 of 5; the same pair |
+| Scores per screen, lowest–highest | 4–8 | 4–9 | 3–8 |
+| The student's sureness: due soonest · attendance · this week's material | | 8 · 9 · 8 (the direction round: 8 · 8 · 5) | |
+
+**Not at the top.** No screen holds 9 in every category for any judge. Lowest: a Task's page (3–7: three tinted boxes of sentences),
+Notifikasi (3–8: loading rows that stay), Ujian (4–9: a blank hole in light, one exam under two names), Materi (4–8: a wrong week
+label, mostly empty), a course's page (4–9: the old class card, two buttons, a countdown to the wrong thing). Across the app:
+numbers that disagree between screens (4 and 7 days to the same exam), one action under three names, colours reused with no rule,
+rows that don't look tappable, six controls under 48 dp. Above Edunex Mobile LMS for every judge; not first for "where" for any.
+
 ## The first minute: round 2 (01:35)
 
 The winner rebuilt (no stand-in list; the stage lifts away like a curtain about 5 s after the tap and Beranda fills in place), recorded
