@@ -1,11 +1,12 @@
 // One day of Jadwal on the white page: the hours down the left, each class a block in its course's tint at its time and
 // length, never taller (a block past its end time would lie about when the class ends): its glyph, its name on as many
 // lines as its height holds at the phone's font size, the room; the part of a class already gone a shade deeper, and
-// today's now-line in the brand's blue. Classes that overlap sit side by side, each at its own start and end, joined
-// under the pair by the app's one clash sign (kit's `ClashMark`), said once per clash. Above the hours, only when
+// today's now-line in the brand's blue. Classes that overlap keep nearly the whole width: the later one is laid over the
+// earlier from its own start, indented from the left (as calendar apps do), and carries the pair's one clash sign (kit's
+// `ClashMark`); the earlier one's name sits in the part above it. Above the hours, only when
 // there's something: ITB's period ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's
-// hand-ins and deadlines, a line each. A block shows at most one status, as an icon and its word (a clash, a new time,
-// not in SIX); the absences, the code and the rest are on its sheet (Beranda's class sheet). The minute's tick moves
+// hand-ins and deadlines, a line each. A block shows at most one status, as an icon and its words (a clash, what
+// changed: "Selesai 10:00 (tadinya 09:30)", not in SIX); the absences, the code and the rest are on its sheet (Beranda's class sheet). The minute's tick moves
 // only the now-line and the block on now (./clock.ts).
 import { memo, type ReactNode } from "react";
 import { useWindowDimensions, View } from "react-native";
@@ -54,30 +55,27 @@ type Item =
   | { kind: "class"; key: string; start: number; end: number; code: string; item: ScheduledClass }
   | { kind: "meeting"; key: string; start: number; end: number; code: string; meeting: OutsideMeeting | EdunexMeeting; notInSix: boolean };
 
-/** Each item's column and how many share its stretch of time: two classes that overlap sit side by side, each at its
- * own start and end (round 3's fourth review: stacked, a 16:00 class read as starting at 16:25). */
-function columns(items: readonly Item[]): Map<string, { column: number; of: number }> {
-  const placed = new Map<string, { column: number; of: number }>();
+/** How far a class laid over an earlier one it clashes with is indented from the left, in dp: the earlier one's glyph
+ * and edge stay in sight beside it, as calendar apps do. */
+const INDENT = 36;
+
+/** Each item's place: its indent level (0 full width; a class laid over an earlier one it clashes with, 1, and so on)
+ * and, for a class something later is laid over, where that later one starts (its own name must fit above it). */
+function placesOf(items: readonly Item[]): Map<string, { level: number; coveredAt: number | null }> {
+  const placed = new Map<string, { level: number; coveredAt: number | null }>();
   const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
-  let cluster: { item: Item; column: number }[] = [];
-  let clusterEnd = -Infinity;
-  const close = () => {
-    const of = Math.max(1, ...cluster.map((c) => c.column + 1));
-    for (const c of cluster) placed.set(c.item.key, { column: c.column, of });
-    cluster = [];
-  };
+  const open: { item: Item; level: number }[] = [];
   for (const item of sorted) {
-    if (item.start >= clusterEnd) {
-      close();
-      clusterEnd = -Infinity;
+    const live = open.filter((o) => o.item.end > item.start);
+    // Always above what it's laid over, so its start and name are never under an earlier block.
+    const level = live.length ? Math.max(...live.map((o) => o.level)) + 1 : 0;
+    for (const o of live) {
+      const at = placed.get(o.item.key)!;
+      if (at.coveredAt === null || item.start < at.coveredAt) at.coveredAt = item.start;
     }
-    const taken = new Set(cluster.filter((c) => c.item.end > item.start).map((c) => c.column));
-    let column = 0;
-    while (taken.has(column)) column++;
-    cluster.push({ item, column });
-    clusterEnd = Math.max(clusterEnd, item.end);
+    placed.set(item.key, { level, coveredAt: null });
+    open.push({ item, level });
   }
-  close();
   return placed;
 }
 
@@ -144,7 +142,7 @@ export const DayView = memo(function DayView({
       }),
     ),
   ];
-  const placed = columns(items);
+  const placed = placesOf(items);
   const nameOf = (code: string, fallback?: string) => courses.find((c) => c.code === code)?.name ?? fallback ?? code;
   const hours = Array.from({ length: to - from + 1 }, (_, i) => from + i);
   const empty = items.length === 0;
@@ -171,7 +169,7 @@ export const DayView = memo(function DayView({
         {/* The blocks' frame, beside the hours. */}
         <View pointerEvents="box-none" style={{ position: "absolute", top: 0, bottom: 0, left: BLOCK_LEFT, right: BLOCK_RIGHT }}>
           {items.map((entry) => {
-            const at = placed.get(entry.key) ?? { column: 0, of: 1 };
+            const at = placed.get(entry.key) ?? { level: 0, coveredAt: null };
             return (
               <Block
                 key={entry.key}
@@ -180,15 +178,12 @@ export const DayView = memo(function DayView({
                 // The class it shares time with by its short name, for TalkBack (on screen: the clash's icon).
                 clashWith={entry.kind === "class" ? entry.item.overlaps.map((o) => shortName(nameOf(o.code))).join(", ") : ""}
                 from={from}
-                column={at.column}
-                of={at.of}
+                level={at.level}
+                coveredAt={at.coveredAt}
                 onPick={onPick}
               />
             );
           })}
-          {clashes(items, placed, (code) => nameOf(code), from).map((clash) => (
-            <ClashJoin key={clash.key} clash={clash} from={from} onPick={onPick} />
-          ))}
         </View>
       </View>
     </View>
@@ -352,7 +347,7 @@ export const nowColour = (scheme: "light" | "dark") => NOW[scheme].now;
 /** What reads on today's circle. */
 export const onNowColour = (scheme: "light" | "dark") => NOW[scheme].on;
 
-/** `shown`: what the block shows in place of the words, when it says more ("09:00 → 08:00" for a new time). */
+/** `shown`: what the block shows in place of the words, when it says more ("Selesai 10:00 (tadinya 09:30)"). */
 type Status = { icon: (typeof Icons)[keyof typeof Icons]; tone: "amber" | "quiet"; words: string; shown?: string };
 
 /** Minutes after midnight as "09:00". */
@@ -362,21 +357,36 @@ const hhmm = (minute: number) => `${String(Math.floor(minute / 60)).padStart(2, 
  * A block's one status, the most pressing: a clash, a new time or room, extra, may not run, not in SIX. No absences: a
  * block stays calm, and the class's sheet has them in the app's absence colours.
  */
-function statusOf(t: ReturnType<typeof useT>, f: ReturnType<typeof useDayFormat>, entry: Item): Status | null {
+function statusOf(t: ReturnType<typeof useT>, entry: Item): Status | null {
   if (entry.kind === "meeting") return entry.notInSix ? { icon: Icons.Info, tone: "amber", words: t("home.today.notInSix") } : null;
   const { item } = entry;
   if (item.exam) return null;
   if (item.overlaps.length) return { icon: Icons.Overlap, tone: "amber", words: t("mobile.home.chip.clash") };
   if (item.moved) {
     const { kinds, usual } = item.moved;
-    // A new time says from what to what, on the same day: "09:00 → 08:00" (the history clock means only this).
-    if (kinds.includes("time") && !kinds.includes("day"))
-      return { icon: Icons.History, tone: "amber", words: t("mobile.home.timeMoved"), shown: `${hhmm(usual.start)} → ${f.time(entry.start)}` };
-    return {
-      icon: kinds.includes("room") && kinds.length === 1 ? Icons.MapPin : Icons.History,
-      tone: "amber",
-      words: t(kinds.includes("room") && kinds.length === 1 ? "mobile.home.roomMoved" : "mobile.home.timeMoved"),
-    };
+    const start = minuteOfDay(entry.start);
+    const end = start + Math.round((entry.end - entry.start) / 60_000);
+    // What changed, in words, with the times Notifikasi shows for the same change ("08:00–09:30 → 08:00–10:00" reads
+    // here "Selesai 10:00 (tadinya 09:30)"): the history clock means only this. A new day keeps the plain words.
+    if (kinds.includes("time") && !kinds.includes("day")) {
+      const shown =
+        usual.start === start && usual.end !== end
+          ? t("mobile.schedule.changed.end", { time: hhmm(end), old: hhmm(usual.end) })
+          : usual.end === end && usual.start !== start
+            ? t("mobile.schedule.changed.start", { time: hhmm(start), old: hhmm(usual.start) })
+            : t("mobile.schedule.changed.time", { time: `${hhmm(start)}–${hhmm(end)}`, old: `${hhmm(usual.start)}–${hhmm(usual.end)}` });
+      return { icon: Icons.History, tone: "amber", words: t("mobile.home.timeMoved"), shown };
+    }
+    if (kinds.length === 1 && kinds[0] === "room") {
+      const room = entry.item.session.room;
+      return {
+        icon: Icons.MapPin,
+        tone: "amber",
+        words: t("mobile.home.roomMoved"),
+        shown: room && usual.room ? t("mobile.schedule.changed.room", { room, old: usual.room }) : undefined,
+      };
+    }
+    return { icon: Icons.History, tone: "amber", words: t("mobile.home.timeMoved") };
   }
   if (item.extra) return { icon: Icons.Plus, tone: "amber", words: t("schedule.mark.extra") };
   if (item.uncertain) return { icon: Icons.Info, tone: "quiet", words: t("schedule.uncertain.short") };
@@ -389,69 +399,100 @@ const NAME_LINE = 19;
 const ROOM_LINE = 17;
 const STATUS_LINE = 18;
 
-/** A class at its time, as tall as it is long; beside a class it clashes with, in its share of the width. */
+/** A class at its time, as tall as it is long; laid over an earlier class it clashes with, indented from the left so
+ * the earlier one's glyph and edge stay in sight and each keeps nearly the whole width for its name. */
 const Block = memo(function Block({
   entry,
   name,
   clashWith,
   from,
-  column,
-  of,
+  level,
+  coveredAt,
   onPick,
 }: {
   entry: Item;
   name: string;
   clashWith: string;
   from: number;
-  column: number;
-  of: number;
+  level: number;
+  /** Where a later class laid over this one starts; null when none is. */
+  coveredAt: number | null;
   onPick: (picked: Picked) => void;
 }) {
+  const { width } = useWindowDimensions();
   const top = yOf(minuteOfDay(entry.start), from) + 2;
   // As tall as the class is long, never taller: a block grown past its end would lie about when the class ends and run
   // into the next one. The name takes the lines the height holds (BlockBody); the sheet has the rest.
   const height = Math.max(TOUCH, ((entry.end - entry.start) / 3_600_000) * HOUR - 4);
-  const gap = of > 1 ? 4 : 0;
+  // The part of it in sight above a later class laid over it: its words stay there.
+  const open = coveredAt === null ? height : Math.min(height, yOf(minuteOfDay(coveredAt), from) - top);
+  const left = level * INDENT;
   return (
-    <View
-      pointerEvents="box-none"
-      style={{
-        position: "absolute",
-        top,
-        height,
-        left: `${(column / of) * 100}%`,
-        width: `${100 / of}%`,
-        paddingLeft: column > 0 ? gap / 2 : 0,
-        paddingRight: column < of - 1 ? gap / 2 : 0,
-      }}
-    >
-      <BlockBody entry={entry} name={name} clashWith={clashWith} onPick={onPick} height={height} narrow={of > 1} />
+    <View pointerEvents="box-none" style={{ position: "absolute", top, height, left, right: 0, zIndex: level }}>
+      <BlockBody
+        entry={entry}
+        name={name}
+        clashWith={clashWith}
+        onPick={onPick}
+        open={open}
+        covered={coveredAt !== null}
+        laid={level > 0}
+        lifted={level > 0}
+        textWidth={width - BLOCK_LEFT - BLOCK_RIGHT - left - 24 - 32}
+      />
     </View>
   );
 });
 
+/** How many lines a name takes at a width, wrapped at words (an estimate: Roboto semibold's average letter is about
+ * 0.55 of its size; a little generous, so a name is never given fewer lines than it needs). */
+function linesFor(text: string, width: number, size: number): number {
+  const perLine = Math.max(8, Math.floor(width / (size * 0.56)));
+  let lines = 1;
+  let used = 0;
+  for (const word of text.split(/\s+/)) {
+    const need = used === 0 ? word.length : used + 1 + word.length;
+    if (need <= perLine) used = need;
+    else {
+      lines += 1;
+      used = word.length;
+    }
+  }
+  return lines;
+}
+
 /**
- * A block's card in its course's tint: the glyph, the whole name, the room, then its one status as an icon and its
- * word (a clash is the app's one clash sign, the icon and "Bentrok"). `narrow`: a column beside a class it clashes
- * with: no glyph and less padding, so the name keeps its width.
+ * A block's card in its course's tint: the glyph, the whole name, then its one status as an icon and its words (a
+ * clash is the app's one clash sign, the icon and "Bentrok", said once on the class laid over the other), then the room
+ * where the height still holds it. Every line is fitted in `open`, the part of the block in sight.
  */
 function BlockBody({
   entry,
   name,
   clashWith,
   onPick,
-  height,
-  narrow = false,
+  open,
+  covered,
+  laid,
+  lifted,
+  textWidth,
 }: {
   entry: Item;
   name: string;
   clashWith: string;
   onPick: (picked: Picked) => void;
-  height: number;
-  narrow?: boolean;
+  /** The block's height in sight, in dp (less than its height when a later class is laid over it). */
+  open: number;
+  /** A later class is laid over it: its words keep to the band above that one, close to its top edge. */
+  covered: boolean;
+  /** Laid over an earlier class it clashes with: the pair's one clash mark is on this block. */
+  laid: boolean;
+  /** Drawn over another block: a thin edge in the page's colour parts the two. */
+  lifted: boolean;
+  textWidth: number;
 }) {
   const { fontScale } = useWindowDimensions();
-  const short = height < 56;
+  const short = open < 64;
   const t = useT();
   const f = useDayFormat();
   const theme = useTheme();
@@ -462,26 +503,29 @@ function BlockBody({
   const gone = useClockSelect((now) =>
     now <= entry.start ? 0 : now >= entry.end ? 1 : Math.round(((now - entry.start) / (entry.end - entry.start)) * 100) / 100,
   );
-  const status = statusOf(t, f, entry);
-  // The clash is said once for the pair, under it (ClashJoin): not on each block.
-  const shown = status && status.icon !== Icons.Overlap ? status : null;
+  const status = statusOf(t, entry);
+  // The clash is said once for the pair, on the class laid over the other: not on the earlier one.
+  const shown = status && (status.icon !== Icons.Overlap || laid) ? status : null;
   const session = entry.kind === "class" ? entry.item.session : null;
   const room = session ? session.room : entry.kind === "meeting" && entry.meeting.online ? t("schedule.online") : null;
   const exam = entry.kind === "class" && entry.item.exam ? entry.item.session.activity : null;
   const title = exam ? `${exam} ${name}` : name;
   const time = timeRange(f, entry.start, entry.end);
-  const pad = short ? PAD.short : PAD.tall;
-  // What the block's height truly holds at this font size, in dp: the name's lines first, then the room, then the
-  // status; what doesn't fit is left to the sheet (the name ends in "…" after its last line, never past the block).
+  // Covered, the band above the later class (an hour: 56 dp) holds two lines of name at 1.3 (2 × 24.7) under 4 dp.
+  const pad = covered ? 4 : short ? PAD.short : PAD.tall;
+  const padBottom = covered ? 0 : pad;
+  // What the part in sight truly holds at this font size, in dp: the whole name first (as many lines as it takes at
+  // this width), then the status, then the room; what doesn't fit is left to the sheet. Only a class shorter than its
+  // name needs ends its name in "…" after the last line its height holds.
   const nameLine = NAME_LINE * fontScale;
   const roomLine = ROOM_LINE * fontScale + 3;
-  const statusLine = STATUS_LINE * fontScale + 6;
-  let room_ = height - pad * 2 - nameLine;
-  const showRoom = !short && room !== null && room_ >= roomLine;
-  if (showRoom) room_ -= roomLine;
-  const showStatus = shown !== null && room_ >= statusLine;
-  if (showStatus) room_ -= statusLine;
-  const lines = 1 + Math.max(0, Math.floor(room_ / nameLine));
+  const statusLine = STATUS_LINE * fontScale + 4;
+  const fits = Math.max(1, Math.floor((open - pad - padBottom + 0.5) / nameLine));
+  const lines = Math.min(fits, linesFor(title, textWidth, 15 * fontScale));
+  let left_ = open - pad - padBottom - lines * nameLine;
+  const showStatus = shown !== null && left_ >= statusLine;
+  if (showStatus) left_ -= statusLine;
+  const showRoom = room !== null && left_ >= roomLine;
   const second = showRoom ? (room ?? "") : "";
   const label = factsLabel(
     exam ? `${exam} ${entry.code}` : entry.code,
@@ -505,7 +549,15 @@ function BlockBody({
       }
       style={{ flexGrow: 1 }}
     >
-      <View style={{ flexGrow: 1, borderRadius: 14, overflow: "hidden", backgroundColor: tile.tint }}>
+      <View
+        style={{
+          flexGrow: 1,
+          borderRadius: 14,
+          overflow: "hidden",
+          backgroundColor: tile.tint,
+          ...(lifted ? { borderWidth: 1.5, borderColor: theme.color.surface } : {}),
+        }}
+      >
         {gone > 0 && (
           <View
             pointerEvents="none"
@@ -529,159 +581,50 @@ function BlockBody({
             }}
           />
         )}
-        <View style={{ flexDirection: "row", gap: narrow ? 4 : 10, paddingHorizontal: narrow ? 8 : 12, paddingVertical: pad }}>
-          {!narrow && (
-            <View style={{ paddingTop: 1 }}>
-              <CourseGlyph code={entry.code} name={name} size={22} />
-            </View>
-          )}
+        <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 12, paddingTop: pad, paddingBottom: padBottom }}>
+          <View style={{ paddingTop: 1 }}>
+            <CourseGlyph code={entry.code} name={name} size={22} />
+          </View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="bodyLarge" weight="semibold" numberOfLines={lines} style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
               {title}
             </Text>
+            {showStatus && shown && (
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                // The status's icon sits in the glyph's column, under it, so its words get the name's whole width.
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4, marginLeft: shown.icon === Icons.Overlap ? 0 : -32 }}
+              >
+                {shown.icon === Icons.Overlap ? (
+                  <ClashMark />
+                ) : (
+                  <>
+                    <View style={{ width: 22, alignItems: "center" }}>
+                      <shown.icon size={16} color={tone} />
+                    </View>
+                    <Text
+                      size="labelMedium"
+                      weight="semibold"
+                      tabular
+                      numberOfLines={1}
+                      style={{ color: tone, flexShrink: 1, fontSize: 13, lineHeight: STATUS_LINE }}
+                    >
+                      {shown.shown ?? shown.words}
+                    </Text>
+                  </>
+                )}
+              </View>
+            )}
             {second !== "" && (
               <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.fg2, fontSize: 13, lineHeight: ROOM_LINE, marginTop: 3 }}>
                 {second}
               </Text>
             )}
-            {showStatus && shown && (
-              <View
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}
-              >
-                <shown.icon size={16} color={tone} />
-                <Text
-                  size="labelMedium"
-                  weight="semibold"
-                  tabular
-                  numberOfLines={1}
-                  style={{ color: tone, flexShrink: 1, fontSize: 13, lineHeight: STATUS_LINE }}
-                >
-                  {shown.shown ?? shown.words}
-                </Text>
-              </View>
-            )}
           </View>
         </View>
       </View>
     </PressScale>
-  );
-}
-
-/** A clash: the classes that share a stretch of time, side by side, and where the pair's last block ends. */
-interface Clash {
-  key: string;
-  end: number;
-  members: { column: number; of: number; bottom: number }[];
-  of: number;
-  first: Item & { kind: "class" };
-  names: string;
-}
-
-/** The day's clashes: each run of side-by-side classes where one says it overlaps another, once. */
-function clashes(items: readonly Item[], placed: Map<string, { column: number; of: number }>, nameOf: (code: string) => string, from: number): Clash[] {
-  const sorted = [...items].sort((a, b) => a.start - b.start || b.end - a.end);
-  const out: Clash[] = [];
-  let run: Item[] = [];
-  let runEnd = -Infinity;
-  const close = () => {
-    const classes = run.filter((i): i is Item & { kind: "class" } => i.kind === "class");
-    if (run.length > 1 && classes.some((c) => c.item.overlaps.length)) {
-      const end = Math.max(...run.map((i) => i.end));
-      out.push({
-        key: `clash-${run[0]!.key}`,
-        end,
-        of: Math.max(...run.map((i) => placed.get(i.key)?.of ?? 1)),
-        members: run.map((i) => ({
-          ...(placed.get(i.key) ?? { column: 0, of: 1 }),
-          bottom: yOf(minuteOfDay(i.start), from) + 2 + Math.max(TOUCH, ((i.end - i.start) / 3_600_000) * HOUR - 4),
-        })),
-        first: classes[0]!,
-        names: run.map((i) => shortName(nameOf(i.code))).join(", "),
-      });
-    }
-    run = [];
-  };
-  for (const item of sorted) {
-    if (item.start >= runEnd) {
-      close();
-      runEnd = -Infinity;
-    }
-    run.push(item);
-    runEnd = Math.max(runEnd, item.end);
-  }
-  close();
-  return out;
-}
-
-/**
- * The clash said once, for the pair: a thin amber line drops from under each block and joins below the later one's
- * end, where kit's `ClashMark` (the overlap glyph and "Bentrok") sits on the join. A tap opens the first class's sheet,
- * which names the other one and where to choose.
- */
-function ClashJoin({ clash, from, onPick }: { clash: Clash; from: number; onPick: (picked: Picked) => void }) {
-  const t = useT();
-  const theme = useTheme();
-  const v = theme.v4;
-  const join = yOf(minuteOfDay(clash.end), from) + 2 + 12;
-  const centre = (column: number, of: number) => `${((column + 0.5) / of) * 100}%` as const;
-  const columnsUsed = clash.members.map((m) => m.column);
-  const leftmost = Math.min(...columnsUsed);
-  const rightmost = Math.max(...columnsUsed);
-  return (
-    <>
-      {clash.members.map((m) => (
-        <View
-          key={`${m.column}`}
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            top: m.bottom,
-            height: Math.max(0, join - m.bottom),
-            left: centre(m.column, m.of),
-            width: 2,
-            marginLeft: -1,
-            backgroundColor: v.ambFg,
-            opacity: 0.55,
-          }}
-        />
-      ))}
-      <View
-        pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: join - 1,
-          height: 2,
-          left: centre(leftmost, clash.of),
-          right: `${((clash.of - rightmost - 0.5) / clash.of) * 100}%`,
-          marginLeft: -1,
-          backgroundColor: v.ambFg,
-          opacity: 0.55,
-        }}
-      />
-      <View pointerEvents="box-none" style={{ position: "absolute", top: join - 16, left: 0, right: 0, alignItems: "center" }}>
-        <PressScale
-          testID="action.clash"
-          accessibilityLabel={factsLabel(t("mobile.home.chip.clash"), clash.names)}
-          hitSlop={{ top: 8, bottom: 8 }}
-          onPress={() => onPick({ kind: "class", item: clash.first.item })}
-          style={{
-            minHeight: 32,
-            justifyContent: "center",
-            paddingHorizontal: space[3],
-            borderRadius: 16,
-            borderWidth: 1,
-            borderColor: v.ambFg,
-            backgroundColor: theme.color.surface,
-          }}
-        >
-          <View importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-            <ClashMark />
-          </View>
-        </PressScale>
-      </View>
-    </>
   );
 }
 

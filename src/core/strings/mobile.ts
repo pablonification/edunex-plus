@@ -324,6 +324,11 @@ export const mobileStrings = {
   "mobile.schedule.remind.on": { id: "Pengingat menyala, 15 menit sebelum tiap kuliah.", en: "Reminders on, 15 minutes before each class." },
   "mobile.schedule.remind.off": { id: "Pengingat kuliah dimatikan.", en: "Class reminders are off." },
   // superapp: Jadwal
+  // superapp: Jadwal, round 3: a changed class says what changed, with the times Notifikasi shows for the same change.
+  "mobile.schedule.changed.end": { id: "Selesai {time} (tadinya {old})", en: "Ends {time} (was {old})" },
+  "mobile.schedule.changed.start": { id: "Mulai {time} (tadinya {old})", en: "Starts {time} (was {old})" },
+  "mobile.schedule.changed.time": { id: "{time} (tadinya {old})", en: "{time} (was {old})" },
+  "mobile.schedule.changed.room": { id: "Pindah ke {room} (tadinya {old})", en: "Moved to {room} (was {old})" },
   // Jadwal's top bar: the month view, by its name in the decisions.
   "mobile.schedule.monthly": { id: "Jadwal bulanan", en: "Monthly schedule" },
   // Jadwal's day strip, for TalkBack: how many classes a day holds (the number under its date).

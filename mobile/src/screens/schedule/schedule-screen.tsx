@@ -238,6 +238,7 @@ function DayScroll({
         ref={scroll}
         collapsable={false}
         style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
         contentOffset={{ x: 0, y }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: space[6] }}
         refreshControl={
@@ -342,9 +343,9 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
             <StatusLine />
           </Pressable>
         </View>
-        {/* A grid of days, not the tab's calendar (stand-in for Fluent's CalendarMonth until ui/icons.tsx has it). */}
+        {/* The month view: Fluent's month calendar, not the tab's calendar or the four squares ("Lainnya" on Beranda). */}
         <IconButton label={t("mobile.schedule.monthly")} onPress={() => router.push("/schedule-month")} testID="action.month">
-          <Icons.LayoutGrid size={24} color={theme.color.onSurfaceVariant} />
+          <Icons.Month size={24} color={theme.color.onSurfaceVariant} />
         </IconButton>
         <ScheduleMenu />
         <TabActions />
