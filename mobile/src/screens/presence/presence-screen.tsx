@@ -1,8 +1,8 @@
 // Kuliah on the phone (round 4; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds, which course
 // is at risk, and the way into each. On v4's grey page under the bar's "Kuliah": what needs the Student now
-// (./now.tsx), then every course as a card in a grid two across, filled with the course's own colour (./course-row.tsx):
-// its glyph, its short name and its absences as dots. The courses at risk (out of reach, none left, finished below)
-// come first, in the desktop's order. The card opens the course. The day's answer, the target and how it's counted are
+// (./now.tsx), then every course as a row in one white card (./course-row.tsx): its tile, its name, its absences as
+// dots at the row's end, and for a course at risk one short state under its name. The courses at risk (out of reach,
+// none left, finished below) come first, in the desktop's order, with no heading between. The row opens the course. The day's answer, the target and how it's counted are
 // in ⋮ (./footer.tsx's sheet), beside the targets. Same data and words as the desktop.
 import { useState } from "react";
 import { View } from "react-native";
@@ -15,12 +15,13 @@ import { usePerfDrawn } from "../../perf";
 import { TabHeader } from "../../shell/source-status";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
+import { Group } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
-import { Part } from "../../ui/parts";
+import { usePart } from "../../ui/parts";
 import { space, useTheme } from "../../ui/theme";
-import { CARD_HEIGHT, CourseCard } from "./course-row";
+import { CourseRow } from "./course-row";
 import { FactsSheet } from "./footer";
 import { SignInCard } from "./lead";
 import { groupsOf, nowZone, type RowContext, type Still, targetRange, type Zone } from "./logic";
@@ -58,8 +59,8 @@ export function useRowContext(onChangeTarget: (code: string) => void): { attenda
 }
 
 /**
- * Kuliah (round 4): what needs the Student now, then the courses as a grid of their own colours, at risk first, each a
- * card that opens its page. The targets, the day's answer and how it's counted are in ⋮.
+ * Kuliah (round 4): what needs the Student now, then the courses in one list, at risk first, each a row that opens its
+ * page. The targets, the day's answer and how it's counted are in ⋮.
  */
 export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
   const t = useT();
@@ -99,10 +100,9 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
       : []),
   ];
   const menu = choices.length ? <OverflowMenu testID="action.coursesMenu" choices={choices} /> : undefined;
-  // Every course in the groups' order (at risk first), two to a line; the first card of each group carries its name.
-  const cards = groups.flatMap(({ group, items }) => items.map((item, i) => ({ item, group, first: i === 0 })));
-  const lines = Array.from({ length: Math.ceil(cards.length / 2) }, (_, i) => cards.slice(i * 2, i * 2 + 2));
-  const parts = [lines.slice(0, FIRST_LINES), lines.slice(FIRST_LINES)].filter((part) => part.length > 0);
+  // The rows past the first screen come a frame later (../../ui/parts.tsx), in the same card.
+  const rest = usePart(1);
+  let shown = 0;
   return (
     <Page
       testID="screen.courses"
@@ -126,33 +126,32 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
               <NowZone zone={rows.zone} attendance={rows.attendance} />
             </Rise>
           )}
-          {courses.length === 0
-            ? !listChanged && (
-                <EmptyState
-                  icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />}
-                  title={t("presence.empty")}
-                  description={t("presence.emptyHint")}
-                />
-              )
-            : parts.map((part, i) => (
-                // The cards past the first screen: a part of their own on a first draw ahead (../../ui/parts.tsx).
-                <Part key={i === 0 ? "first" : "rest"} at={i === 0 ? 0 : 1}>
-                  <Rise screen="courses" index={2 + i}>
-                    <View style={{ gap: GAP }}>
-                      {part.map((line) => (
-                        <View key={line[0]!.item.course.code} style={{ flexDirection: "row", gap: GAP }}>
-                          {line.map(({ item, group, first }) => (
-                            <View key={item.course.code} testID={first ? `group.presence.${group}` : undefined} style={{ flex: 1, flexDirection: "row" }}>
-                              <CourseCard item={item} group={group} context={rows.context} />
-                            </View>
-                          ))}
-                          {line.length === 1 && <View style={{ flex: 1 }} />}
-                        </View>
+          {courses.length === 0 ? (
+            !listChanged && (
+              <EmptyState
+                icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />}
+                title={t("presence.empty")}
+                description={t("presence.emptyHint")}
+              />
+            )
+          ) : (
+            <Rise screen="courses" index={2}>
+              <Group>
+                {groups.map(({ group, items }) => {
+                  const from = shown;
+                  shown += items.length;
+                  const drawn = rest ? items : items.slice(0, Math.max(0, FIRST_ROWS - from));
+                  return drawn.length === 0 ? null : (
+                    <View key={group} testID={`group.presence.${group}`}>
+                      {drawn.map((item, r) => (
+                        <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={from + r === 0} />
                       ))}
                     </View>
-                  </Rise>
-                </Part>
-              ))}
+                  );
+                })}
+              </Group>
+            </Rise>
+          )}
         </View>
       )}
       {rows && courses.length > 0 && <FactsSheet attendance={rows.attendance} open={facts} onClose={() => setFacts(false)} />}
@@ -168,24 +167,25 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   );
 }
 
-/** The grid's gap, between cards and between lines. */
-const GAP = 12;
-/** The lines of two drawn with the screen; the rest a frame later. */
-const FIRST_LINES = 3;
+/** The rows drawn with the screen; the rest a frame later. */
+const FIRST_ROWS = 6;
 
-/** Kuliah's shape before its data: the grid of cards, two across. Never a spinner on a blank page. */
+/** Kuliah's shape before its data: a card of rows, each a tile beside a name. Never a spinner on a blank page. */
 function Loading() {
+  const v = useTheme().v4;
   return (
-    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: GAP }}>
-      {[0, 1, 2].map((line) => (
-        <View key={line} style={{ flexDirection: "row", gap: GAP }}>
-          {[0, 1].map((i) => (
-            <View key={i} style={{ flex: 1 }}>
-              <Skeleton height={CARD_HEIGHT} style={{ borderRadius: 20 }} />
+    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[4] }}>
+      <View style={{ backgroundColor: v.card, borderRadius: 20, overflow: "hidden" }}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 64 }}>
+            <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
+            <View style={{ flex: 1 }}>
+              <Skeleton height={16} width={i % 2 ? "60%" : "80%"} />
             </View>
-          ))}
-        </View>
-      ))}
+            <Skeleton height={8} width={44} />
+          </View>
+        ))}
+      </View>
     </View>
   );
 }

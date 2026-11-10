@@ -276,22 +276,3 @@ export function footerDates(t: Translate, f: Format, attendance: Attendance): st
 }
 
 // ---------------------------------------------------------------- a course card's fill
-
-const hex = (h: string) => [1, 3, 5].map((i) => Number.parseInt(h.slice(i, i + 2), 16));
-/**
- * The card's fill. Dark: the course's tint as it is (1.4–1.7:1 on the page). Light: the tint a step toward its ink
- * (12%), as the pale tint alone is lost on the grey page (1.03:1). On it the name 11.9:1 or more, red 4.8:1, amber
- * 5.0:1, the glyph and dots in ink 4.0:1 (3:1 needed); every course colour through the same sums.
- */
-export function cardFill(tile: { ink: string; tint: string }, scheme: "light" | "dark"): string {
-  if (scheme === "dark") return tile.tint;
-  const a = hex(tile.tint);
-  const b = hex(tile.ink);
-  return `#${a
-    .map((x, i) =>
-      Math.round(x * 0.88 + b[i]! * 0.12)
-        .toString(16)
-        .padStart(2, "0"),
-    )
-    .join("")}`;
-}
