@@ -35,12 +35,14 @@ import { LecturerFile } from "../../parts/files";
 import { plainText } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { useMarkDone } from "../../parts/snooze";
+import { Unfold } from "../../parts/unfold";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh } from "../../shell/source-status";
 import { SectionTitle } from "../../ui/card-list";
 import { Celebration } from "../../ui/celebrate";
 import { Button } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Page } from "../../ui/layout";
 import { Appear, Tap } from "../../ui/moves";
@@ -498,7 +500,11 @@ function EditRow({ task, onSee }: { task: Task; onSee: (at: number) => void }) {
           borderless
           accessibilityRole="button"
           accessibilityLabel={t("done.undoFor", { what: line })}
-          onPress={() => void unmark(checked.id).catch(() => undefined)}
+          onPress={() => {
+            // Taken back: a small commit, a small tick.
+            haptic.tick();
+            void unmark(checked.id).catch(() => undefined);
+          }}
           hitSlop={LINK_SLOP}
           testID="action.undo"
         >
@@ -655,14 +661,14 @@ function History({ task, reveal }: { task: Task; reveal: { at: number; asked: nu
                           </View>
                         </Tap>
                         {isOpen && (
-                          <View style={{ paddingTop: space[1.5], gap: space[2] }}>
+                          <Unfold style={{ paddingTop: space[1.5], gap: space[2] }}>
                             <ChangeList changes={known.changes} onCompare={(change) => setCompare({ change, at: step.at })} />
                             {afterSubmit && (
                               <Text size="small" tone="muted">
                                 {t("task.change.whatToDo")}
                               </Text>
                             )}
-                          </View>
+                          </Unfold>
                         )}
                       </>
                     ) : (

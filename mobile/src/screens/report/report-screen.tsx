@@ -21,9 +21,11 @@ import type { StringKey } from "../../../../src/core/strings";
 import { useNav } from "../../nav";
 import { BottomBar } from "../../parts/bottom-bar";
 import { type ReportAsk, useReportAsk } from "../../parts/report";
+import { Unfold } from "../../parts/unfold";
 import { toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
 import { Card, Skeleton } from "../../ui/display";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { Meta, Notice, Page } from "../../ui/layout";
 import { Tap } from "../../ui/moves";
@@ -92,8 +94,11 @@ export function ReportScreen() {
     setNotSent(null);
     try {
       const answer = await bridge.invoke("report.send", { id: preview.id, note });
-      if (answer.result === "filed" || answer.result === "stored") setSent(answer);
-      else setNotSent(NOT_SENT[answer.result]);
+      if (answer.result === "filed" || answer.result === "stored") {
+        // Sent: felt, as every commit is.
+        haptic.confirm();
+        setSent(answer);
+      } else setNotSent(NOT_SENT[answer.result]);
     } catch (error) {
       setNotSent(errorKey(error, "report.sendFailed"));
     } finally {
@@ -291,7 +296,7 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
               </Text>
             </Tap>
             {technical && (
-              <View style={{ gap: space[3], paddingHorizontal: space[2], paddingTop: space[1.5], paddingBottom: space[2] }}>
+              <Unfold style={{ gap: space[3], paddingHorizontal: space[2], paddingTop: space[1.5], paddingBottom: space[2] }}>
                 {report.problems.map((problem) => (
                   <View key={problem.feed} style={{ gap: space[2] }}>
                     {(problem.kind === "changed" ? [problem.check] : problem.rows.map((row) => row.why)).map((line) => (
@@ -331,7 +336,7 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
                     <Code>{log.map((entry) => `${f.time(entry.at)}  ${entry.level}  ${entry.area}  ${entry.message}`).join("\n")}</Code>
                   </View>
                 )}
-              </View>
+              </Unfold>
             )}
           </View>
         )}

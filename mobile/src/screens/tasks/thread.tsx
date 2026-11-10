@@ -16,6 +16,7 @@ import { LecturerHtml } from "../../parts/lecturer-html";
 import { toast } from "../../swaps/overlays";
 import { SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { iosPressed } from "../../ui/press";
 import { Text, useFieldColors } from "../../ui/text";
@@ -155,6 +156,8 @@ function CommentBox({ taskId }: { taskId: number }) {
     try {
       const result = await bridge.invoke("tasks.comment", { taskId, text: boxHtml(text) });
       if (result.outcome === "gone") return void toast(t("handIn.gone"), "danger");
+      // Sent: felt, as every commit is.
+      haptic.confirm();
       close();
       if (result.outcome === "unconfirmed") toast(t("task.thread.unconfirmed"));
     } catch (error) {

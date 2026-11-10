@@ -32,6 +32,7 @@ import { CardList, SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Group, GroupRow, IconTile, Pill } from "../../ui/group";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice, Page, Row } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
@@ -322,8 +323,10 @@ function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: Rea
     try {
       // Nothing else in the calendar is touched: no span to tidy, only these events put in or updated.
       const result = await addToPhoneCalendar(items, new Set(), { from: 0, until: 0 });
-      if (result.kind === "added") toast(t("mobile.calendar.added", { count: result.events }), "success");
-      else setProblem({ text: t("mobile.exam.calendarDenied"), fix: "settings" });
+      if (result.kind === "added") {
+        haptic.confirm();
+        toast(t("mobile.calendar.added", { count: result.events }), "success");
+      } else setProblem({ text: t("mobile.exam.calendarDenied"), fix: "settings" });
     } catch {
       setProblem({ text: t("mobile.calendar.failed"), fix: "share" });
     } finally {
@@ -384,6 +387,7 @@ function EdunexCard({ exam, edunex, lead }: { exam: Exam; edunex: Exam["edunex"]
     setFailed(null);
     try {
       await marks.mark(edunex);
+      haptic.confirm();
       toast(t("exam.marked"), "success", {
         label: t("action.undo"),
         onClick: () => void marks.unmark(edunex).catch((error: unknown) => setFailed(t(errorKey(error)))),
