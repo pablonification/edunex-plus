@@ -5,13 +5,44 @@
 import { requireNativeView, requireOptionalNativeModule } from "expo";
 import { type ComponentType, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Platform, Pressable, ScrollView, StyleSheet, Switch as SystemSwitch, View, type ViewStyle } from "react-native";
+import Reanimated, { interpolateColor, type SharedValue, useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
 import { Spinner } from "./display";
 import { Icons } from "./icons";
+import { useReduceMotion } from "./motion";
+import { useSlidingMark } from "./moves";
 import { BUSY_OPACITY } from "./palette";
 import { iosPressed } from "./press";
 import { BUTTON_HEIGHT, CHIP_HEIGHT, SEGMENT_HEIGHT, SWITCH, SWITCH_SLOP, slopY } from "./sizes";
 import { Text } from "./text";
-import { shape, space, TOUCH, useTheme } from "./theme";
+import { motion, shape, space, TOUCH, useTheme } from "./theme";
+
+const AnimatedPressable = Reanimated.createAnimatedComponent(Pressable);
+const ios = Platform.OS === "ios";
+
+/**
+ * A press held as a shared value (0 up, 1 down), for a control whose style also moves: an iPhone's dim (./press's
+ * `iosPressed`, as a value), and a filled button's give. Down on the fast spatial spring (as ./moves.tsx's `Tap`), back
+ * on the effects one; with Remove animations a dim only, at once. Free at rest.
+ */
+function usePressed() {
+  const still = useReduceMotion();
+  const down = useSharedValue(0);
+  return {
+    down,
+    onPressIn: () => {
+      down.value = still ? withTiming(1, { duration: 0 }) : withSpring(1, motion.spatialFast);
+    },
+    onPressOut: () => {
+      down.value = withSpring(0, motion.effectsFast);
+    },
+  };
+}
+
+/** An iPhone's dim while pressed (Android keeps its ripple), in a worklet. */
+function dimmed(down: SharedValue<number>): number {
+  "worklet";
+  return ios ? 1 - 0.45 * down.value : 1;
+}
 
 /**
  * primary: Filled, the screen's one main action. tonal: Filled tonal, a strong second. secondary: Outlined. ghost:
@@ -64,32 +95,40 @@ export function Button({
       }
     : look[variant];
   const height = BUTTON_HEIGHT[size];
+  const still = useReduceMotion();
+  const press = usePressed();
+  // A filled or tonal button gives a little under the finger (`motion.give.button`); the others only ripple or dim.
+  const give = !off && !still && (variant === "primary" || variant === "tonal") ? 1 - motion.give.button : 0;
+  const busyOpacity = busy ? BUSY_OPACITY : 1;
+  const pressed = useAnimatedStyle(() => ({
+    opacity: busyOpacity * dimmed(press.down),
+    transform: [{ scale: 1 - give * press.down.value }],
+  }));
   return (
-    <Pressable
+    <AnimatedPressable
       testID={testID}
       onPress={off ? undefined : onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: off, busy }}
       // 48 to touch however small it looks.
       hitSlop={slopY(height)}
       android_ripple={{ color: ripple, foreground: true }}
-      style={({ pressed }) => [
-        [
-          styles.button,
-          {
-            height,
-            paddingHorizontal: size === "sm" ? space[3] : size === "lg" ? space[6] : space[4],
-            paddingLeft: icon || busy ? (size === "sm" ? space[2] + 2 : space[4]) : undefined,
-            backgroundColor: bg,
-            borderColor: border ?? "transparent",
-            borderWidth: border ? 1 : 0,
-            // Busy keeps its colours beside its turning spinner: at work, not off (BUSY_OPACITY, checked for contrast).
-            opacity: busy ? BUSY_OPACITY : 1,
-          },
-          style,
-        ],
-        iosPressed(pressed),
+      style={[
+        styles.button,
+        {
+          height,
+          paddingHorizontal: size === "sm" ? space[3] : size === "lg" ? space[6] : space[4],
+          paddingLeft: icon || busy ? (size === "sm" ? space[2] + 2 : space[4]) : undefined,
+          backgroundColor: bg,
+          borderColor: border ?? "transparent",
+          borderWidth: border ? 1 : 0,
+        },
+        style,
+        // Busy keeps its colours beside its turning spinner: at work, not off (BUSY_OPACITY, checked for contrast).
+        pressed,
       ]}
     >
       {busy ? <Spinner size={size === "lg" ? 20 : 16} color={fg} /> : icon}
@@ -101,7 +140,7 @@ export function Button({
         ) : (
           children
         ))}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -136,7 +175,7 @@ export function IconButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled, ...(selected ? { selected } : {}) }}
-      android_ripple={{ color: theme.color.selected, borderless: true, radius: 20 }}
+      android_ripple={{ color: theme.color.selected, borderless: true, radius: TOUCH / 2 }}
       style={({ pressed }) => [
         [styles.icon, selected && { backgroundColor: theme.color.secondaryContainer }, disabled && { opacity: 0.38 }],
         iosPressed(pressed),
@@ -344,13 +383,22 @@ export function Segmented<T extends string>({
 }) {
   const theme = useTheme();
   const c = theme.color;
+  // The picked fill: on the picked segment itself until the Student picks another, then a mark sliding from the old to
+  // the new (./moves.tsx's `useSlidingMark`), so the first frame draws as before and only a pick moves.
+  const mark = useSlidingMark(value);
+  const first = useRef(value);
+  const moved = useRef(false);
+  if (value !== first.current) moved.current = true;
+  const sliding = moved.current;
   return (
     <View testID={testID} accessibilityRole="radiogroup" accessibilityLabel={label} style={[styles.segmented, { borderColor: c.outline }]}>
+      {sliding && <Reanimated.View pointerEvents="none" style={[styles.mark, { backgroundColor: c.secondaryContainer }, mark.style]} />}
       {options.map((option, i) => {
         const on = option.value === value;
         return (
           <Pressable
             key={option.value}
+            onLayout={mark.measure(option.value)}
             testID={testID ? `${testID}.${option.value}` : undefined}
             accessibilityRole="radio"
             accessibilityState={{ selected: on }}
@@ -359,7 +407,7 @@ export function Segmented<T extends string>({
             hitSlop={slopY(SEGMENT_HEIGHT)}
             android_ripple={{ color: c.selected }}
             style={({ pressed }) => [
-              [styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && { backgroundColor: c.secondaryContainer }],
+              [styles.segment, i > 0 && { borderLeftWidth: 1, borderLeftColor: c.outline }, on && !sliding && { backgroundColor: c.secondaryContainer }],
               iosPressed(pressed),
             ]}
           >
@@ -412,24 +460,31 @@ export function Chip({
 }) {
   const theme = useTheme();
   const c = theme.color;
+  const still = useReduceMotion();
+  const press = usePressed();
+  // The picked fill fades in and out on the effects spring (never overshooting); at once with Remove animations.
+  const picked = useSharedValue(selected ? 1 : 0);
+  useEffect(() => {
+    picked.value = still ? (selected ? 1 : 0) : withSpring(selected ? 1 : 0, motion.effectsFast);
+  }, [selected, still, picked]);
+  const { secondaryContainer, outline } = c;
+  const fill = useAnimatedStyle(() => ({
+    backgroundColor: interpolateColor(picked.value, [0, 1], [`${secondaryContainer}00`, secondaryContainer]),
+    borderColor: interpolateColor(picked.value, [0, 1], [outline, secondaryContainer]),
+    opacity: dimmed(press.down),
+  }));
   return (
-    <Pressable
+    <AnimatedPressable
       testID={testID}
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       hitSlop={slopY(CHIP_HEIGHT)}
       android_ripple={{ color: c.selected }}
-      style={({ pressed }) => [
-        [
-          styles.chip,
-          selected
-            ? { backgroundColor: c.secondaryContainer, borderColor: c.secondaryContainer, paddingLeft: check ? space[2] : space[4] }
-            : { borderColor: c.outline },
-        ],
-        iosPressed(pressed),
-      ]}
+      style={[styles.chip, selected && { paddingLeft: check ? space[2] : space[4] }, fill]}
     >
       {selected && check && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
       {typeof children === "string" ? (
@@ -440,7 +495,7 @@ export function Chip({
       ) : (
         children
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -448,6 +503,7 @@ const styles = StyleSheet.create({
   button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space[2], borderRadius: shape.full, overflow: "hidden" },
   icon: { width: TOUCH, height: TOUCH, borderRadius: TOUCH / 2, alignItems: "center", justifyContent: "center" },
   segmented: { flexDirection: "row", borderRadius: shape.full, borderWidth: 1, overflow: "hidden" },
+  mark: { position: "absolute", top: 0, bottom: 0 },
   segment: {
     flex: 1,
     minHeight: SEGMENT_HEIGHT,

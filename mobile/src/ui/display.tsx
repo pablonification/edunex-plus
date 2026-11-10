@@ -3,12 +3,13 @@
 // meanings, drawn in Material 3's tonal surfaces (DESIGN.md): no hairline boxes.
 import { type ReactNode, useEffect, useRef } from "react";
 import { ActivityIndicator, Animated, Easing, View, type ViewStyle } from "react-native";
+import Reanimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useT } from "../../../src/app/i18n";
 import { Icons } from "./icons";
-import { useLoopWhileShown } from "./motion";
+import { useLoopWhileShown, useReduceMotion } from "./motion";
 import { Text } from "./text";
-import { type Palette, radius, shape, space, useTheme } from "./theme";
+import { motion, type Palette, radius, shape, space, useTheme } from "./theme";
 
 export function Card({
   variant = "plain",
@@ -90,7 +91,17 @@ export function LiveDot({ color }: { color?: string }) {
 /** A thin bar for a share (a value 0–1), in a meaning's color. */
 export function Bar({ value, color, label, style }: { value: number; color: string; label: string; style?: ViewStyle }) {
   const theme = useTheme();
-  const clamped = Math.max(0, Math.min(1, value));
+  const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+  const still = useReduceMotion();
+  // Drawn at its value; a change while shown springs there (spatialDefault, on the UI thread), at once with Remove animations.
+  const at = useSharedValue(clamped);
+  const was = useRef(clamped);
+  useEffect(() => {
+    if (was.current === clamped) return;
+    was.current = clamped;
+    at.value = still ? clamped : withSpring(clamped, motion.spatialDefault);
+  }, [clamped, still, at]);
+  const fill = useAnimatedStyle(() => ({ width: `${Math.max(0, Math.min(1, at.value)) * 100}%` }));
   return (
     <View
       accessibilityRole="progressbar"
@@ -98,7 +109,7 @@ export function Bar({ value, color, label, style }: { value: number; color: stri
       accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100) }}
       style={[{ height: 6, borderRadius: 3, overflow: "hidden", backgroundColor: theme.color.meterTrack }, style]}
     >
-      <View style={{ height: "100%", width: `${clamped * 100}%`, borderRadius: 3, backgroundColor: color }} />
+      <Reanimated.View style={[{ height: "100%", borderRadius: 3, backgroundColor: color }, fill]} />
     </View>
   );
 }
