@@ -1,63 +1,64 @@
-// Profil (direction B; the tab that was Akademik): the Student, then everything Akademik held.
-// 1. Who: the initials big in a filled circle, the name, the NIM and the program, centred on the white page.
-// 2. Counts to tap, the official app's logbook numbers: the IPK (opens Nilai), the SKS passed (Kurikulum), the semester
-//    (Rencana). While SIX's record is on its way they stand in their shape; without SIX, the way to connect.
-// 3. To-do chips, only while something's due (send the KRS, pay UKT, fill in the questionnaire), each opening its screen.
-// 4. "Studi": Nilai and Rencana studi's parts as rows on the page, each with its round mark (the same glyph and colour
-//    as on Beranda's grid), the one line that answers it and at most one status pill.
-// 5. "Aplikasi": the account and Settings, and reporting a problem.
+// Profil (the tab that was Akademik): the Student's record, and the only way to the account and Settings.
+// 1. One card, the tab's one block of colour and its shape at a squint: the initials small, the name, the NIM and the
+//    programme, the IPK big, the SKS passed as a bar of those needed ("125 dari 144"). The whole card opens Nilai.
+//    While SIX's record is on its way the figures stand in their shape; without SIX the card says so once, with the
+//    way in, and the rows that are SIX's are gone (never six broken rows).
+// 2. "Akademik": Nilai and Rencana studi's parts as rows on the page, each with its service's mark (read from the
+//    service list by id, so it's the same on Beranda and Semua layanan) and one line that says its state.
+// 3. "Akun": Edunex and SIX with their state and the way to sign back in, Notifikasi, Pengaturan, Laporkan masalah.
+//    Signing out lives in Pengaturan, never beside these.
 
-import { router } from "expo-router";
-import { memo, useEffect, useMemo, useState } from "react";
+import { router, useIsFocused } from "expo-router";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
 import { displayName, initials } from "../../../../src/app/names";
-import { usePlanTabBadges } from "../../../../src/app/shell/badges";
 import { builtPlanTabs, type PlanTab } from "../../../../src/app/shell/built";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { usePlan, useStudentRecord } from "../../../../src/app/study-plan";
-import { billUrgency, type KrsStage, krsOverlaps, krsStage } from "../../../../src/core/academic";
+import { billUrgency, krsOverlaps, krsStage } from "../../../../src/core/academic";
+import type { SourceId } from "../../../../src/core/models";
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { together } from "../../parts/day-word";
-import { useSignIn } from "../../shell/source-status";
-import { BHeading, BRow, CountCell, CountStrip, ServiceCircle, type ServiceTone, useB } from "../../ui/b";
-import { BigButton } from "../../ui/big-button";
+import { useRefresh, useSignIn, useUnreadAlerts } from "../../shell/source-status";
+import { BHeading, BRow, ServiceCircle, useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
-import { Fluent, type FluentName } from "../../ui/fluent";
-import { IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { useReduceMotion } from "../../ui/motion";
+import { RollTo, Tap } from "../../ui/moves";
 import { Part } from "../../ui/parts";
-import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
-import { space, TOUCH, useTheme } from "../../ui/theme";
+import { font, motion, space, TOUCH, useTheme } from "../../ui/theme";
 import { shownIndex } from "../grades/transcript";
+import { HOME_SERVICES, SERVICE_GROUPS, type Service } from "../services/list";
 
-type IconKind = (typeof Icons)[keyof typeof Icons];
 type MetaTone = "muted" | "red" | "amber" | "ok";
+type Meta = { text: string; tone?: MetaTone } | "pending" | null;
 
-/** Each screen's round mark: the glyph and colour it has on Beranda's grid. */
-const MARK: Readonly<Record<PlanTab | "grades", { icon: FluentName; tone: ServiceTone }>> = {
-  grades: { icon: "Ribbon24Filled", tone: "amber" },
-  planner: { icon: "HatGraduation24Filled", tone: "magenta" },
-  curriculum: { icon: "Library24Filled", tone: "lime" },
-  krs: { icon: "Form24Filled", tone: "indigo" },
-  bills: { icon: "Wallet24Filled", tone: "teal" },
-  deadlines: { icon: "CalendarLtr24Filled", tone: "blue" },
+/** Every service by its id: a row's mark is the one the service has on Beranda and Semua layanan. */
+const SERVICE: ReadonlyMap<string, Service> = new Map([...HOME_SERVICES, ...SERVICE_GROUPS.flatMap((group) => group.services)].map((s) => [s.id, s]));
+/** Rencana studi's parts, by the id their service has in the list. */
+const SERVICE_OF: Readonly<Record<PlanTab | "grades", string>> = {
+  grades: "grades",
+  planner: "planner",
+  curriculum: "curriculum",
+  krs: "krs",
+  bills: "bills",
+  deadlines: "calendar",
 };
+const MARK = 44;
 
-/** What a to-do chip says, for a part whose badge is a warning (something the Student has to do now). */
-const TODO: Partial<Record<PlanTab, { key: "mobile.academic.todo.krs" | "mobile.academic.todo.bills" | "mobile.academic.todo.deadlines"; icon: IconKind }>> = {
-  krs: { key: "mobile.academic.todo.krs", icon: Icons.CalendarCheck },
-  bills: { key: "mobile.academic.todo.bills", icon: Icons.Wallet },
-  deadlines: { key: "mobile.academic.todo.deadlines", icon: Icons.PenLine },
-};
-
-/** The KRS row's pill for each stage: amber while the Student has something to do, green once it's official. */
-const KRS_TONE: Readonly<Record<KrsStage, PillTone>> = { send: "amber", advisor: "plain", ukt: "amber", official: "brand", done: "ok" };
+/** A service's mark at a row's start, from the service list. */
+function Mark({ id }: { id: string }) {
+  const service = SERVICE.get(id);
+  if (!service) return <View style={{ width: MARK, height: MARK }} />;
+  return <ServiceCircle icon={service.icon} tone={service.tone} size={MARK} />;
+}
 
 /** A source's first read is still running: what it brings stands in its shape until it's here. */
 function useFirstRead(source: "six" | "itb"): boolean {
@@ -65,247 +66,283 @@ function useFirstRead(source: "six" | "itb"): boolean {
   return status.state === "connecting" || (status.state === "live" && status.updatedAt === null);
 }
 
-export function AcademicContent() {
-  const t = useT();
-  const badges = usePlanTabBadges();
-  const record = useStudentRecord();
+/** What SIX's part of the tab can show: the record, its shape while it's read, or nothing to read it from. */
+function useSixState(record: StudentRecord | undefined): "here" | "reading" | "none" {
   const six = useStatus("six");
   const student = useDataset("six.student");
-  const todos = builtPlanTabs.filter((part) => TODO[part] && badges[part]?.tone === "warning");
+  if (record?.transcript) return "here";
+  return student || six.state === "connecting" || six.state === "live" ? "reading" : "none";
+}
+
+export function AcademicContent() {
+  const t = useT();
+  const record = useStudentRecord();
+  const six = useSixState(record);
   return (
     <View>
       <Rise screen="academic" index={0}>
-        <Who />
-        {record?.transcript ? (
-          <Standing record={record} />
-        ) : student || six.state === "connecting" || six.state === "live" ? (
-          <StandingPending />
-        ) : (
-          <ConnectSix />
-        )}
+        <StudentCard record={record} six={six} />
       </Rise>
-      {todos.length > 0 && (
-        <Rise screen="academic" index={1} style={{ marginTop: space[4] }}>
-          <Todos parts={todos} />
-        </Rise>
-      )}
-      {/* The screens under the counts: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
+      {/* The rows under the card: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
       <Part at={1}>
-        <Rise screen="academic" index={2} style={{ marginTop: space[6] }}>
-          <BHeading>{t("mobile.profile.studies")}</BHeading>
+        <Rise screen="academic" index={1} style={{ marginTop: space[6] }}>
+          <BHeading>{t("mobile.services.group.academic")}</BHeading>
           <View testID="section.academic.screens">
-            <GradesRow record={record} />
-            <PlannerRow record={record} />
-            <CurriculumRow record={record} />
-            <KrsRow />
-            <BillsRow />
+            {/* Without SIX the card says so once: only the calendar (ITB's own) has something to show. */}
+            {six !== "none" && builtPlanTabs.length > 0 && (
+              <>
+                <GradesRow record={record} />
+                <PlannerRow record={record} />
+                <CurriculumRow record={record} />
+                <KrsRow />
+                <BillsRow />
+              </>
+            )}
             <DeadlinesRow />
           </View>
         </Rise>
-        <Rise screen="academic" index={3} style={{ marginTop: space[6] }}>
-          <BHeading>{t("mobile.profile.app")}</BHeading>
-          <AppRows />
+        <Rise screen="academic" index={2} style={{ marginTop: space[6] }}>
+          <BHeading>{t("settings.accounts")}</BHeading>
+          <AccountRows />
         </Rise>
       </Part>
     </View>
   );
 }
 
-// ------------------------------------------------------------ who
+// ------------------------------------------------------------ the card
 
-/** The Student: their initials in a filled circle, the name, the NIM and the program. */
-function Who() {
-  const b = useB();
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  const name = account?.name ?? student?.name;
-  const facts = factsLabel(account?.nim ?? student?.nim, student?.program);
-  return (
-    <View
-      testID="card.profile"
-      accessible
-      accessibilityLabel={factsLabel(name ? displayName(name) : null, facts)}
-      style={{ alignItems: "center", paddingTop: space[2] }}
-    >
-      <View style={{ width: 88, height: 88, borderRadius: 44, backgroundColor: b.brand, alignItems: "center", justifyContent: "center" }}>
-        {name ? (
-          <Text size="headlineMedium" face="display" weight="bold" style={{ color: b.onBrand, letterSpacing: -0.5 }}>
-            {initials(name)}
-          </Text>
-        ) : (
-          <Fluent name="Person24Filled" color={b.onBrand} size={40} />
-        )}
-      </View>
-      {name ? (
-        <Text
-          size="titleLarge"
-          face="display"
-          weight="bold"
-          numberOfLines={2}
-          style={{ color: b.fg, letterSpacing: -0.3, textAlign: "center", marginTop: space[3] }}
-        >
-          {displayName(name)}
-        </Text>
-      ) : null}
-      {facts ? (
-        <Text size="bodyMedium" numberOfLines={2} style={{ color: b.muted, textAlign: "center", marginTop: 2 }}>
-          {facts}
-        </Text>
-      ) : null}
-    </View>
-  );
+/** The card's colours: the brand's blue with white on it; in dark its deep tint, so the block stays calm. */
+function useCardInk() {
+  const theme = useTheme();
+  const v = theme.v4;
+  return theme.scheme === "dark"
+    ? { bg: v.brandTint, ink: v.fg, ink2: v.brandInk, chip: v.brandInk, onChip: v.brandTint, track: "rgba(255,255,255,0.16)", fill: v.brandInk }
+    : { bg: v.brand, ink: v.onBrand, ink2: v.onBrand, chip: v.onBrand, onChip: v.brand, track: "rgba(255,255,255,0.3)", fill: v.onBrand };
 }
+type CardInk = ReturnType<typeof useCardInk>;
 
-// ------------------------------------------------------------ the counts
-
-/** The IPK, the SKS passed and the semester, as counts to tap: each opens the screen with its detail. */
-const Standing = memo(function Standing({ record }: { record: StudentRecord }) {
+/** The Student and where they stand: one card, one target (Nilai). */
+const StudentCard = memo(function StudentCard({ record, six }: { record: StudentRecord | undefined; six: "here" | "reading" | "none" }) {
   const t = useT();
   const f = useFormat();
   const nav = useNav();
-  const ipk = shownIndex(record.transcript!.ipk);
-  const sks = passedSks(record);
-  return (
-    <View style={{ marginTop: space[5] }}>
-      <CountStrip testID="profile.counts">
-        <CountCell
-          value={ipk === null ? "-" : f.number(ipk, 2)}
-          label={t("grades.chart.ipk")}
-          onPress={() => nav.go({ screen: "grades" })}
-          accessibilityHint={t("mobile.academic.openGrades")}
-          testID="action.academic.grades"
-        />
-        <CountCell
-          value={sks === null ? "-" : String(sks)}
-          label={t("grades.sksPassed")}
-          onPress={() => nav.go({ screen: "plan", tab: "curriculum" })}
-          testID="action.academic.sks"
-        />
-        {record.semesterNow !== null ? (
-          <CountCell
-            value={String(record.semesterNow)}
-            label={t("mobile.profile.semester")}
-            onPress={() => nav.go({ screen: "plan", tab: "planner" })}
-            testID="action.academic.semester"
-          />
+  const c = useCardInk();
+  const account = useDataset("edunex.account");
+  const student = useDataset("six.student");
+  const name = account?.name ?? student?.name;
+  const shown = name ? displayName(name) : null;
+  const facts = factsLabel(account?.nim ?? student?.nim, student?.program);
+  const card = { borderRadius: 24, backgroundColor: c.bg, padding: space[5], gap: space[5], overflow: "hidden" } as const;
+  const who = (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: c.chip, alignItems: "center", justifyContent: "center" }}>
+        {name ? (
+          <Text size="titleMedium" face="display" weight="bold" allowFontScaling={false} style={{ color: c.onChip, fontSize: 16, lineHeight: 22 }}>
+            {initials(name)}
+          </Text>
+        ) : (
+          <Icons.User size={24} color={c.onChip} weight="fill" />
+        )}
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        {shown ? (
+          <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: c.ink, fontSize: 18, lineHeight: 24, letterSpacing: -0.2 }}>
+            {shown}
+          </Text>
         ) : null}
-      </CountStrip>
+        {facts ? (
+          <Text size="bodyMedium" numberOfLines={2} style={{ color: c.ink2 }}>
+            {facts}
+          </Text>
+        ) : null}
+      </View>
+      {six !== "none" && <Icons.ChevronRight size={20} color={c.ink} />}
     </View>
+  );
+  if (six === "none") {
+    return (
+      <View testID="card.profile" style={card}>
+        {who}
+        <ConnectSix ink={c} />
+      </View>
+    );
+  }
+  const ipk = record?.transcript ? shownIndex(record.transcript.ipk) : null;
+  const sks = record ? passedSks(record) : null;
+  const need = record?.graduationSks ?? 0;
+  const said =
+    six === "here"
+      ? factsLabel(
+          ipk === null ? t("mobile.profile.noGrades") : `${t("grades.chart.ipk")} ${f.number(ipk, 2)}`,
+          sks === null ? null : `${t("grades.sksPassed")} ${sks} ${need > 0 ? t("mobile.academic.sksOf", { need }) : ""}`,
+        )
+      : null;
+  return (
+    <Tap
+      feel="card"
+      onPress={() => nav.go({ screen: "grades" })}
+      testID="card.profile"
+      accessibilityLabel={factsLabel(shown, facts, said)}
+      accessibilityHint={t("mobile.academic.openGrades")}
+      accessibilityState={{ busy: six === "reading" }}
+      style={card}
+    >
+      {who}
+      {six === "here" ? <Standing ipk={ipk} sks={sks} need={need} ink={c} /> : <StandingPending ink={c} />}
+    </Tap>
   );
 });
 
-/** The counts' shape while SIX's record is on its way. */
-function StandingPending() {
+/** The IPK big, the SKS passed as a bar of those needed. A first-term Student with no grades yet reads so in words, never "-". */
+function Standing({ ipk, sks, need, ink }: { ipk: number | null; sks: number | null; need: number; ink: CardInk }) {
   const t = useT();
-  const nav = useNav();
+  const lang = useLang();
   return (
-    <View accessibilityState={{ busy: true }} testID="academic.loading" style={{ marginTop: space[5] }}>
-      <CountStrip>
-        <CountCell pending value="" label={t("grades.chart.ipk")} onPress={() => nav.go({ screen: "grades" })} />
-        <CountCell pending value="" label={t("grades.sksPassed")} onPress={() => nav.go({ screen: "plan", tab: "curriculum" })} />
-      </CountStrip>
+    // The numbers are read-only fields (RollTo): they take no touch, the card is the one target.
+    <View
+      testID="profile.standing"
+      pointerEvents="none"
+      style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[5], rowGap: space[3] }}
+    >
+      <View>
+        <Text size="labelLarge" style={{ color: ink.ink2 }}>
+          {t("grades.chart.ipk")}
+        </Text>
+        {ipk === null ? (
+          <Text size="titleLarge" face="display" weight="bold" style={{ color: ink.ink, marginTop: space[1] }}>
+            {t("mobile.profile.noGrades")}
+          </Text>
+        ) : (
+          <RollTo
+            value={ipk}
+            decimals={2}
+            comma={lang === "id"}
+            testID="profile.ipk"
+            style={{ fontFamily: font.display.extrabold, fontSize: 40, lineHeight: 46, letterSpacing: -1, color: ink.ink }}
+          />
+        )}
+      </View>
+      {sks !== null && (
+        <View style={{ flexGrow: 1, flexBasis: 168, minWidth: 0, gap: space[2], paddingBottom: space[2] }}>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", columnGap: space[3] }}>
+            <Text size="labelLarge" style={{ color: ink.ink2, paddingBottom: 3 }}>
+              {t("grades.sksPassed")}
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "flex-end", gap: space[1] }}>
+              <RollTo value={sks} testID="profile.sks" style={{ fontFamily: font.display.bold, fontSize: 20, lineHeight: 26, color: ink.ink }} />
+              {need > 0 && (
+                <Text size="bodyMedium" style={{ color: ink.ink2, paddingBottom: 3 }}>
+                  {t("mobile.academic.sksOf", { need })}
+                </Text>
+              )}
+            </View>
+          </View>
+          {need > 0 && <GrowingBar share={Math.max(0, Math.min(1, sks / need))} fill={ink.fill} track={ink.track} />}
+        </View>
+      )}
     </View>
   );
 }
 
-/** No SIX to read the IPK from: whose record it is (from Edunex), where the IPK will show, and the way to connect while SIX isn't signed in. */
-function ConnectSix() {
+/** A plain bar that fills once, the first time the tab is looked at, then follows its value. Still with Remove animations. */
+function GrowingBar({ share, fill, track }: { share: number; fill: string; track: string }) {
+  const still = useReduceMotion();
+  const focused = useIsFocused();
+  const [width, setWidth] = useState(0);
+  const at = useSharedValue(still ? share : 0);
+  const grown = useRef(false);
+  useEffect(() => {
+    if (!focused && !grown.current) return;
+    const first = !grown.current;
+    grown.current = true;
+    if (still) at.value = share;
+    else if (first) at.value = withDelay(150, withTiming(share, { duration: motion.duration.long, easing: Easing.out(Easing.cubic) }));
+    else at.value = withTiming(share, { duration: motion.duration.medium, easing: Easing.out(Easing.cubic) });
+  }, [focused, share, still, at]);
+  // The fill is the track's full width, slid in from its start: a transform only, so nothing is laid out per frame.
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: (at.value - 1) * width }] }));
+  return (
+    <View onLayout={(event) => setWidth(event.nativeEvent.layout.width)} style={{ height: 8, borderRadius: 4, backgroundColor: track, overflow: "hidden" }}>
+      {width > 0 && <Animated.View style={[{ width: "100%", height: "100%", borderRadius: 4, backgroundColor: fill }, slide]} />}
+    </View>
+  );
+}
+
+/** The figures' shape while SIX's record is on its way. */
+function StandingPending({ ink }: { ink: CardInk }) {
+  const block = { borderRadius: 6, backgroundColor: ink.track } as const;
+  return (
+    <View testID="academic.loading" style={{ flexDirection: "row", alignItems: "flex-end", gap: space[5] }}>
+      <View style={[block, { width: 96, height: 44 }]} />
+      <View style={{ flex: 1, gap: space[3], paddingBottom: space[2] }}>
+        <View style={[block, { width: "60%", height: 14 }]} />
+        <View style={[block, { height: 8 }]} />
+      </View>
+    </View>
+  );
+}
+
+/** No SIX to read from: what's missing, once, and the one way to fix it (sign in, or read again when it's signed in but unread). */
+function ConnectSix({ ink }: { ink: CardInk }) {
   const t = useT();
-  const v = useTheme().v4;
   const status = useStatus("six");
   const { signIn, busy } = useSignIn();
+  const { refresh, busy: reading } = useRefresh();
+  const signedOut = status.state === "signed-out" || status.state === "expired";
+  const waiting = signedOut ? busy : reading;
   return (
-    <Panel style={{ padding: space[5], gap: space[4], marginTop: space[5] }} testID="academic.noSix">
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
-        <IconTile icon={(color) => <Icons.GraduationCap size={24} color={color} />} />
-        <Text size="bodyLarge" style={{ color: v.fg, flex: 1 }}>
-          {t("mobile.academic.noIpk")}
+    <View testID="academic.noSix" style={{ gap: space[4] }}>
+      <Text size="bodyLarge" style={{ color: ink.ink }}>
+        {t(signedOut ? "mobile.profile.connectSix" : "mobile.profile.sixUnread")}
+      </Text>
+      <Tap
+        feel="card"
+        disabled={waiting}
+        onPress={() => void (signedOut ? signIn("six") : refresh("six"))}
+        testID="action.academic.signIn"
+        style={{
+          minHeight: TOUCH,
+          borderRadius: TOUCH / 2,
+          paddingHorizontal: space[5],
+          backgroundColor: ink.chip,
+          alignItems: "center",
+          justifyContent: "center",
+          overflow: "hidden",
+          opacity: waiting ? 0.6 : 1,
+        }}
+      >
+        <Text size="labelLarge" weight="semibold" style={{ color: ink.onChip }}>
+          {signedOut ? t(status.state === "expired" ? "settings.signInAgainTo" : "action.signInTo", { source: "SIX" }) : t("action.tryAgain")}
         </Text>
-      </View>
-      {status.state === "signed-out" && (
-        // Quiet: the outline one, so the empty card doesn't shout. Disabled while the sign-in page is open.
-        <BigButton variant="outline" onPress={busy ? undefined : () => void signIn("six")} testID="action.academic.signIn">
-          {t("action.signInTo", { source: "SIX" })}
-        </BigButton>
-      )}
-    </Panel>
-  );
-}
-
-// ------------------------------------------------------------ to do
-
-/** What to take care of this term, as tonal chips: each opens its screen. */
-function Todos({ parts }: { parts: readonly PlanTab[] }) {
-  const t = useT();
-  const nav = useNav();
-  const v = useTheme().v4;
-  return (
-    <View accessibilityLabel={t("mobile.academic.todo")} style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2] }} testID="section.academic.todo">
-      {parts.map((part) => {
-        const { key, icon: Icon } = TODO[part]!;
-        return (
-          <PressScale
-            key={part}
-            onPress={() => nav.go({ screen: "plan", tab: part })}
-            testID={`action.todo.${part}`}
-            style={{
-              minHeight: TOUCH,
-              flexDirection: "row",
-              alignItems: "center",
-              gap: space[2],
-              paddingLeft: space[3.5],
-              paddingRight: space[4],
-              borderRadius: TOUCH / 2,
-              backgroundColor: v.ambBg,
-            }}
-          >
-            <Icon size={20} color={v.ambFg} />
-            <Text size="labelLarge" weight="semibold" style={{ color: v.ambFg }}>
-              {t(key)}
-            </Text>
-          </PressScale>
-        );
-      })}
+      </Tap>
     </View>
   );
 }
 
-// ------------------------------------------------------------ the screens
+// ------------------------------------------------------------ the rows
 
-/** A screen's row on the page: its round mark, its name, the one line that answers it (or that line's shape while SIX reads), one pill. */
-function ScreenRow({
-  title,
-  meta,
-  tone = "muted",
-  pill,
-  route,
-  last = false,
-  testID,
-}: {
-  title: string;
-  /** The line; `"pending"` while what it says is still on its way. */
-  meta: string | null | "pending";
-  tone?: MetaTone;
-  pill?: { tone: PillTone; text: string } | null;
-  route: PlanTab | "grades";
-  last?: boolean;
-  testID: string;
-}) {
-  const nav = useNav();
+function Chevron() {
   const b = useB();
-  const mark = MARK[route];
+  return <Icons.ChevronRight size={20} color={b.muted} />;
+}
+
+function useMetaColor(tone: MetaTone | undefined): string | undefined {
+  const b = useB();
+  return tone === "red" ? b.red : tone === "amber" ? b.amber : tone === "ok" ? b.ok : undefined;
+}
+
+/** A screen's row on the page: its service's mark, its name, the one line that says its state (or that line's shape while SIX reads). */
+function ScreenRow({ title, meta, route, last = false, testID }: { title: string; meta: Meta; route: PlanTab | "grades"; last?: boolean; testID: string }) {
+  const nav = useNav();
+  const color = useMetaColor(meta && meta !== "pending" ? meta.tone : undefined);
   return (
     <BRow
-      leading={<ServiceCircle icon={mark.icon} tone={mark.tone} size={44} />}
+      leading={<Mark id={SERVICE_OF[route]} />}
       title={title}
-      meta={meta === "pending" ? <Skeleton width={128} height={12} style={{ marginTop: space[1] }} /> : (meta ?? undefined)}
-      metaColor={tone === "red" ? b.red : tone === "amber" ? b.amber : tone === "ok" ? b.ok : undefined}
-      trailing={
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-          {pill ? <Pill tone={pill.tone}>{pill.text}</Pill> : null}
-          <Fluent name="ChevronRight20Regular" color={b.muted} />
-        </View>
-      }
+      meta={meta === "pending" ? <Skeleton width={128} height={12} style={{ marginTop: space[1] }} /> : (meta?.text ?? undefined)}
+      metaColor={color}
+      trailing={<Chevron />}
       last={last}
       onPress={() => nav.go(route === "grades" ? { screen: "grades" } : { screen: "plan", tab: route })}
       testID={testID}
@@ -313,35 +350,14 @@ function ScreenRow({
   );
 }
 
-/** The app's own rows: the account and Settings (once the avatar in every top bar), and reporting a problem. */
-function AppRows() {
-  const t = useT();
-  const b = useB();
-  const chevron = <Fluent name="ChevronRight20Regular" color={b.muted} />;
-  return (
-    <View testID="section.profile.app">
-      <BRow
-        leading={<ServiceCircle icon="Settings24Filled" tone="grey" size={44} />}
-        title={t("mobile.account.open")}
-        trailing={chevron}
-        onPress={() => router.push("/settings")}
-        testID="action.account"
-      />
-      <BRow
-        leading={<ServiceCircle icon="PersonFeedback24Filled" tone="green" size={44} />}
-        title={t("mobile.profile.report")}
-        trailing={chevron}
-        last
-        onPress={() => router.push("/report")}
-        testID="action.report"
-      />
-    </View>
-  );
+/** One of Rencana studi's parts as a row: it opens that part's screen. */
+function PartRow({ part, title, meta }: { part: PlanTab; title: string; meta: Meta }) {
+  return <ScreenRow title={title} meta={meta} route={part} last={part === "deadlines"} testID={`row.nav.plan.${part}`} />;
 }
 
 /**
- * What a row says while its data isn't here: its shape during SIX's first read, else nothing. Without SIX the leading
- * card says so once, with the way to connect (and the banner under the bar when the session ran out), not every row.
+ * What a row says while its data isn't here: its shape during SIX's first read, else nothing. Without SIX the card
+ * says so once, with the way to connect (and the banner under the bar when the session ran out), not every row.
  */
 function useMissingMeta(): null | "pending" {
   return useFirstRead("six") ? "pending" : null;
@@ -352,14 +368,14 @@ function GradesRow({ record }: { record: StudentRecord | undefined }) {
   const f = useFormat();
   const missing = useMissingMeta();
   // The card over it says the IPK: the row says what the card doesn't, the last term's IP.
-  const text = useMemo(() => {
+  const meta = useMemo<Meta>(() => {
     if (!record?.transcript) return null;
     const last = record.transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null).at(-1);
     const ip = last ? shownIndex(last.ip) : null;
     // Named as Nilai names it.
-    return ip === null ? null : t("mobile.grades.lastIp", { ip: f.number(ip, 2) });
+    return ip === null ? null : { text: t("mobile.grades.lastIp", { ip: f.number(ip, 2) }) };
   }, [record, t, f]);
-  return <ScreenRow title={t("nav.grades")} meta={record?.transcript ? text : missing} route="grades" testID="row.nav.grades" />;
+  return <ScreenRow title={t("nav.grades")} meta={record?.transcript ? meta : missing} route="grades" testID="row.nav.grades" />;
 }
 
 /**
@@ -389,41 +405,32 @@ const PlannerFinish = memo(function PlannerFinish({ record }: { record: StudentR
   );
   const title = t("plan.tab.planner");
   if (!finish) return <PartRow part="planner" meta={null} title={title} />;
-  if (finish.blocked) return <PartRow part="planner" meta={t("mobile.academic.meta.plannerShort")} tone="amber" title={title} />;
-  return <PartRow part="planner" meta={t("mobile.academic.meta.plannerSemester", { n: finish.semester })} title={title} />;
+  if (finish.blocked) return <PartRow part="planner" meta={{ text: t("mobile.academic.meta.plannerShort"), tone: "amber" }} title={title} />;
+  return <PartRow part="planner" meta={{ text: t("mobile.academic.meta.plannerSemester", { n: finish.semester }) }} title={title} />;
 });
 
-/** One of Rencana studi's parts as a row: it opens that part's screen. */
-function PartRow({
-  part,
-  title,
-  meta,
-  tone,
-  pill,
-}: {
-  part: PlanTab;
-  title: string;
-  meta: string | null | "pending";
-  tone?: MetaTone;
-  pill?: { tone: PillTone; text: string } | null;
-}) {
-  return <ScreenRow title={title} meta={meta} tone={tone} pill={pill} route={part} last={part === "deadlines"} testID={`row.nav.plan.${part}`} />;
-}
-
+/** Kurikulum: the required courses still to pass (the card's bar says the SKS; this says what's left of the list). */
 function CurriculumRow({ record }: { record: StudentRecord | undefined }) {
   const t = useT();
   const missing = useMissingMeta();
-  // The card over it says the SKS passed of those needed ("125 dari 144"): the row adds nothing to it.
-  return <PartRow part="curriculum" title={t("plan.tab.curriculum")} meta={record ? null : missing} />;
+  const left = record?.requiredLeft.length;
+  const meta: Meta =
+    left === undefined
+      ? missing
+      : left > 0
+        ? { text: t("mobile.profile.requiredLeft", { count: left }) }
+        : { text: t("mobile.profile.requiredDone"), tone: "ok" };
+  return <PartRow part="curriculum" title={t("plan.tab.curriculum")} meta={meta} />;
 }
 
+/** KRS: the SKS taken, then its one status: a clash still to come (worth a question to the lecturer) over the plan's stage. */
 function KrsRow() {
   const t = useT();
   const now = useNow();
   const plan = useDataset("six.krs");
   const schedule = useDataset("six.schedule");
   const missing = useMissingMeta();
-  const shown = useMemo(() => {
+  const meta = useMemo<Meta>(() => {
     if (!plan) return null;
     const stage = krsStage(plan);
     const clashes = krsOverlaps(
@@ -431,19 +438,14 @@ function KrsRow() {
       schedule ?? [],
       now,
     ).filter((o) => o.upcoming).length;
-    return {
-      // The SKS taken as the line, the plan's one status as the pill: a clash still to come (worth a question to the
-      // lecturer) over the plan's stage.
-      text: t("krs.sks", { sks: plan.sks ?? "-" }),
-      pill: clashes
-        ? { tone: "amber" as const, text: t("mobile.academic.pill.clash", { count: clashes }) }
-        : { tone: KRS_TONE[stage], text: t(`krs.stage.${stage}`) },
-    };
+    const sks = t("krs.sks", { sks: plan.sks ?? "-" });
+    if (clashes) return { text: factsLabel(sks, t("mobile.academic.pill.clash", { count: clashes })), tone: "amber" };
+    return { text: factsLabel(sks, t(`krs.stage.${stage}`)), tone: stage === "send" || stage === "ukt" ? "amber" : stage === "done" ? "ok" : "muted" };
   }, [plan, schedule, now, t]);
-  return <PartRow part="krs" title={t("plan.tab.krs")} meta={shown ? shown.text : missing} pill={shown?.pill} />;
+  return <PartRow part="krs" title={t("plan.tab.krs")} meta={plan ? meta : missing} />;
 }
 
-/** UKT: this term's bill (else the last billed) as the row's one pill: paid, the date it's due by, or overdue. */
+/** UKT: this term's bill (else the last billed) in one line: paid, the date it's due by, or overdue. */
 function BillsRow() {
   const t = useT();
   const f = useFormat();
@@ -457,13 +459,13 @@ function BillsRow() {
   const bill = (term && bills.find((b) => b.term === term)) || billed.at(-1);
   if (!bill) return <PartRow part="bills" title={title} meta={null} />;
   const urgency = billUrgency(bill, now);
-  const pill: { tone: PillTone; text: string } =
+  const meta: Meta =
     urgency === "overdue"
-      ? { tone: "red", text: t("bills.status.overdue") }
+      ? { text: t("bills.status.overdue"), tone: "red" }
       : (urgency === "soon" || urgency === "due") && bill.nextDueAt !== null
-        ? { tone: urgency === "soon" ? "amber" : "plain", text: t("mobile.academic.pill.billsDue", { date: f.dayMonth(bill.nextDueAt) }) }
-        : { tone: bill.status === "paid" ? "ok" : "plain", text: t(`bills.status.${bill.status}`) };
-  return <PartRow part="bills" title={title} meta={null} pill={pill} />;
+        ? { text: t("mobile.academic.pill.billsDue", { date: together(f.dayMonth(bill.nextDueAt)) }), tone: urgency === "soon" ? "amber" : "muted" }
+        : { text: t(`bills.status.${bill.status}`), tone: bill.status === "paid" ? "ok" : "muted" };
+  return <PartRow part="bills" title={title} meta={meta} />;
 }
 
 function DeadlinesRow() {
@@ -482,12 +484,98 @@ function DeadlinesRow() {
     <PartRow
       part="deadlines"
       title={title}
-      meta={
-        next.when === "now"
-          ? t("mobile.academic.meta.deadlineNow", { what })
-          : // The date held together ("30 Nov"), never broken across two lines.
-            t("mobile.academic.meta.deadlineNext", { what, date: together(f.dayMonth(next.event.start)) })
+      meta={{
+        text:
+          next.when === "now"
+            ? t("mobile.academic.meta.deadlineNow", { what })
+            : // The date held together ("30 Nov"), never broken across two lines.
+              t("mobile.academic.meta.deadlineNext", { what, date: together(f.dayMonth(next.event.start)) }),
+      }}
+    />
+  );
+}
+
+// ------------------------------------------------------------ the account
+
+/**
+ * Akun: the two systems the app reads (each with its state, and signing back in on the row itself when its session
+ * ended), then Notifikasi, Pengaturan and reporting a problem. The avatar left every top bar: this is the way to all of
+ * them. Signing out is in Pengaturan, away from these.
+ */
+function AccountRows() {
+  const t = useT();
+  const unread = useUnreadAlerts();
+  return (
+    <View testID="section.profile.app">
+      <SourceRow source="edunex" />
+      <SourceRow source="six" />
+      <BRow
+        leading={<Mark id="alerts" />}
+        title={t("alerts.title")}
+        meta={unread > 0 ? t("mobile.profile.unread", { count: unread }) : undefined}
+        trailing={<Chevron />}
+        onPress={() => router.push("/alerts")}
+        testID="row.nav.alerts"
+      />
+      <BRow
+        leading={<Mark id="settings" />}
+        title={t("nav.settings")}
+        trailing={<Chevron />}
+        onPress={() => router.push("/settings")}
+        testID="action.account"
+      />
+      <BRow
+        leading={<Mark id="report" />}
+        title={t("mobile.profile.report")}
+        trailing={<Chevron />}
+        last
+        onPress={() => router.push("/report")}
+        testID="action.report"
+      />
+    </View>
+  );
+}
+
+/** One system: connected (the word, in green), or what's wrong and "Masuk lagi" at the row's end; the row does it. */
+function SourceRow({ source }: { source: Extract<SourceId, "edunex" | "six"> }) {
+  const t = useT();
+  const b = useB();
+  const status = useStatus(source);
+  const { signIn, busy } = useSignIn();
+  const name = t(`source.${source}`);
+  const needsSignIn = status.state === "signed-out" || status.state === "expired";
+  const meta: { text: string; tone: MetaTone } =
+    status.state === "live"
+      ? { text: t("status.live"), tone: "ok" }
+      : status.state === "signed-out"
+        ? { text: t("settings.notConnected"), tone: "muted" }
+        : status.state === "connecting"
+          ? { text: t("status.connecting"), tone: "muted" }
+          : { text: t(`status.${status.state}`, { source: name }), tone: "amber" };
+  const color = useMetaColor(meta.tone);
+  const Glyph = source === "six" ? Icons.GraduationCap : Icons.BookOpen;
+  return (
+    <BRow
+      leading={
+        <View style={{ width: MARK, height: MARK, alignItems: "center", justifyContent: "center" }}>
+          <Glyph size={24} color={b.fg} />
+        </View>
       }
+      title={name}
+      meta={meta.text}
+      metaColor={color}
+      trailing={
+        needsSignIn ? (
+          <Text size="labelLarge" weight="semibold" style={{ color: b.brand }}>
+            {t(status.state === "expired" ? "action.signInAgain" : "action.signIn")}
+          </Text>
+        ) : (
+          <Chevron />
+        )
+      }
+      onPress={needsSignIn ? (busy ? undefined : () => void signIn(source)) : () => router.push("/settings")}
+      accessibilityHint={needsSignIn ? undefined : t("nav.settings")}
+      testID={needsSignIn ? `action.signIn.${source}` : `row.account.${source}`}
     />
   );
 }

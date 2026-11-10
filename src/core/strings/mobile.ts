@@ -37,6 +37,22 @@ export const mobileStrings = {
   "mobile.profile.app": { id: "Aplikasi", en: "App" },
   "mobile.profile.semester": { id: "Semester", en: "Semester" },
   "mobile.profile.report": { id: "Laporkan masalah", en: "Report a problem" },
+  // superapp: Profil
+  // The card: a first-term Student with no grades yet, and what it says when SIX can't be read.
+  "mobile.profile.noGrades": { id: "Belum ada nilai", en: "No grades yet" },
+  "mobile.profile.connectSix": { id: "IPK, KRS dan UKT muncul setelah kamu masuk ke SIX.", en: "Your IPK, KRS and UKT show once you sign in to SIX." },
+  "mobile.profile.sixUnread": {
+    id: "SIX belum terbaca. IPK, KRS dan UKT muncul setelah terbaca.",
+    en: "SIX hasn't been read yet. Your IPK, KRS and UKT show once it is.",
+  },
+  // Kurikulum's row: the required courses still to pass.
+  "mobile.profile.requiredLeft": {
+    id: "{count} mata kuliah wajib lagi",
+    en: { one: "{count} required course left", other: "{count} required courses left" },
+  },
+  "mobile.profile.requiredDone": { id: "Wajib tuntas", en: "Required courses done" },
+  // Notifikasi's row.
+  "mobile.profile.unread": { id: "{count} belum dibaca", en: "{count} unread" },
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
