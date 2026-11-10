@@ -3,6 +3,7 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 const demo = process.env.EXPO_PUBLIC_DEMO === "1";
+const iosBundle = demo ? "io.github.pablonification.edunexplus.demo" : "io.github.pablonification.edunexplus";
 const { version } = require("../package.json") as { version: string };
 const { shapesStamp } = require("./scripts/shapes-stamp.js") as { shapesStamp(): string };
 
@@ -210,7 +211,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // Edge to edge and opaque (scripts/make-icons.mjs): the tile with its margin came out framed in white.
     icon: "./assets/ios-icon.png",
     supportsTablet: false,
-    bundleIdentifier: demo ? "io.github.pablonification.edunexplus.demo" : "io.github.pablonification.edunexplus",
+    bundleIdentifier: iosBundle,
     buildNumber: "1",
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
   },
@@ -281,6 +282,39 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
           label: demoLabel(label).id,
           previewImage: `./assets/widget-preview-${widget.name.toLowerCase()}.png` as const,
         })),
+      },
+    ],
+    // The iPhone's widgets (qa/superapp-ios-widgets.md): a WidgetKit extension that expo-widgets makes at prebuild, its
+    // own bundle id, and an App Group the app and the widgets share (the app writes, the widgets read). iOS only: its
+    // Android side stays off (no `enableAndroid`; package.json's expo.autolinking leaves it out of the APK too).
+    [
+      "expo-widgets",
+      {
+        bundleIdentifier: `${iosBundle}.ExpoWidgetsTarget`,
+        groupIdentifier: `group.${iosBundle}`,
+        widgets: [
+          {
+            name: "EdunexNow",
+            displayName: demo ? "Edunex Plus Demo" : "Edunex Plus",
+            description: "Kuliah sekarang atau berikutnya, dan yang perlu perhatianmu",
+            ios: {
+              supportedFamilies: ["systemSmall", "systemMedium", "systemLarge", "accessoryRectangular", "accessoryCircular", "accessoryInline"],
+              // The gallery shows it before the app is first opened.
+              initialLayout: "./src/widget-ios/now.tsx",
+            },
+            android: null,
+          },
+          {
+            name: "EdunexToday",
+            displayName: demo ? "Hari ini (Demo)" : "Hari ini",
+            description: "Kuliah hari ini dan tenggat berikutnya",
+            ios: {
+              supportedFamilies: ["systemSmall", "systemMedium", "systemLarge", "accessoryRectangular", "accessoryInline"],
+              initialLayout: "./src/widget-ios/today.tsx",
+            },
+            android: null,
+          },
+        ],
       },
     ],
   ],
