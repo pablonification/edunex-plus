@@ -16,9 +16,17 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 180000
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-01-beranda
-# Perlu kamu urus, behind Beranda's chevron (round 2's v4): the desktop's Perlu perhatianmu, in full.
+# Perlu kamu urus in full: the desktop's Perlu perhatianmu. Beranda's own chevron (`action.needs.all`) is below the
+# fold and draws only when a row isn't on the strip already (src/screens/home/urus.tsx), so the walk takes the path that
+# is always there: Lainnya, then its tile in Semua layanan (src/screens/services/list.ts, "needs" in Harian).
 - tapOn:
-    id: action.needs.all
+    id: action.service.more
+- extendedWaitUntil:
+    visible:
+      id: screen.services
+    timeout: 20000
+- tapOn:
+    id: action.service.needs
 - extendedWaitUntil:
     visible:
       id: screen.needs
@@ -27,6 +35,16 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-02b-perlu-kamu-urus
 - tapOn:
     id: action.back
+- extendedWaitUntil:
+    visible:
+      id: screen.services
+    timeout: 10000
+- tapOn:
+    id: action.back
+- extendedWaitUntil:
+    visible:
+      id: home.search
+    timeout: 10000
 # Beranda's lower half as the desktop's picture shows it: today's rows down to the clash at 16:00 (v4's Nanti hari
 # ini, its last row the class at 16:00; the clash itself is in that class's sheet).
 - scrollUntilVisible:
@@ -100,7 +118,19 @@ appId: io.github.pablonification.edunexplus.demo
     file: tab.yaml
     env:
       TAB: tasks
-# The exam is near the top of the list (the tab's tap brought it back up): no scroll, which at the top would refresh.
+# The exam is one row of its own (src/screens/tasks/exam-rows.tsx, `row.exam.<id>`), where it falls in date order: looked
+# for below first, then above (the list may still be where 04 left it). A scroll finds a row already on screen without
+# moving, so it never pulls the list to refresh when the row is there.
+- scrollUntilVisible:
+    element:
+      id: row.exam.DK4073-UTS
+    direction: DOWN
+    timeout: 15000
+    optional: true
+- scrollUntilVisible:
+    element:
+      id: row.exam.DK4073-UTS
+    direction: UP
 - tapOn:
     id: row.exam.DK4073-UTS
 - waitForAnimationToEnd
@@ -137,7 +167,13 @@ appId: io.github.pablonification.edunexplus.demo
     optional: true
 - waitForAnimationToEnd
 - takeScreenshot: ${THEME}-08-jadwal-detail
-- pressKey: back
+# Back closes the sheet; with no sheet open it would leave Jadwal, so only then.
+- runFlow:
+    when:
+      visible:
+        id: sheet.nowClass
+    commands:
+      - pressKey: back
 - scrollUntilVisible:
     element:
       id: strip.week
@@ -150,7 +186,7 @@ appId: io.github.pablonification.edunexplus.demo
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-8"
+      text: ".*Minggu ke-8"
     timeout: 5000
     optional: true
 - waitForAnimationToEnd
@@ -331,8 +367,18 @@ appId: io.github.pablonification.edunexplus.demo
     notVisible:
       id: status.settling
     timeout: 180000
+# Beranda's top is the search bar and the bell only (src/screens/home/header.tsx): the data's status is on the other tabs'
+# name (Jadwal's `action.syncStatus`, src/screens/schedule/schedule-screen.tsx), which opens the sources' sheet.
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: schedule
 - tapOn:
     id: action.syncStatus
+- extendedWaitUntil:
+    visible:
+      id: sheet.sync
+    timeout: 10000
 - tapOn:
     id: action.refreshNow
     optional: true
@@ -343,6 +389,11 @@ appId: io.github.pablonification.edunexplus.demo
     optional: true
 - takeScreenshot: ${THEME}-24-status-data-memperbarui
 - pressKey: back
+# The bell, on Beranda's search bar (`action.alerts`, src/parts/b-header.tsx).
+- runFlow:
+    file: tab.yaml
+    env:
+      TAB: home
 - tapOn:
     id: action.alerts
 - waitForAnimationToEnd

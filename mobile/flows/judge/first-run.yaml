@@ -25,18 +25,37 @@ appId: io.github.pablonification.edunexplus.demo
     notVisible:
       id: screen.firstMinute
     timeout: 60000
+# The first read's line is on Beranda's class block while the read runs (src/screens/home/banner.tsx, `StatusLine`): on
+# a quick emulator the read can be in before the picture, so the wait is optional.
 - extendedWaitUntil:
     visible:
       id: status.firstRead
     timeout: 60000
-- waitForAnimationToEnd
+    optional: true
 - takeScreenshot: ${THEME}-33-pertama-beranda-mengisi
+# "Semua siap." is a snackbar with Lihat ringkasan, said once and up for 6 s (src/screens/first-scan/said.tsx,
+# src/swaps/overlays.ts): the picture at once, then the tap. Missed, the summary is in Semua layanan ("scan").
 - extendedWaitUntil:
     visible: "Lihat ringkasan"
     timeout: 600000
-- waitForAnimationToEnd
 - takeScreenshot: ${THEME}-34-pertama-siap
-- tapOn: "Lihat ringkasan"
+- tapOn:
+    text: "Lihat ringkasan"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: screen.firstScan
+    timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: screen.firstScan
+    commands:
+      - tapOn:
+          id: action.service.more
+      - tapOn:
+          id: action.service.scan
 - extendedWaitUntil:
     visible:
       id: screen.firstScan
