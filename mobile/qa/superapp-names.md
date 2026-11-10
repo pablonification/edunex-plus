@@ -20,6 +20,7 @@ so the desktop keeps its own where its name is right for it. `test/mobile/one-na
 | The window's end | **tutup {time}** / **closes {time}** for the Presence window | `home.need.presence.closes`; `presence.row.now` is the class's end, a different time | Nothing in the words: the card that shows both is Kuliah's (see below) |
 | Material | **Materi** / **Materials** | `mobile.course.tab.material`, `search.group.material`, `mobile.search.placeholder` | The course's tab said "Modul", the search hint and the new Materi tile "Materi". One module is still "Modul" (`mobile.course.newestModule`) |
 | Calendars | **Jadwal** (the week), **Jadwal bulanan** / **Monthly schedule** (the month view; search finds it by "bulan", "sebulan", "kalender", "month" too), **Kalender akademik** (its tile **Kalender**) | `nav.schedule`, `mobile.service.month`, `mobile.schedule.month` ("Lihat jadwal bulanan"), `plan.tab.deadlines`, `mobile.service.calendar` | The month view's tile said "Bulanan", its menu item "Lihat sebulan" |
+| A course's fifth tab | **Info** / **News** (its announcements) | `mobile.course.tab.news` (phone) | Said "Pengumuman" / "Announcements" (`course.tab.announcements`, the desktop keeps it): short, so the five tabs fit a phone's width with none cut |
 | A class | **kelas** for a class on Beranda's free line; **Kuliah** is the tab | `mobile.home.free` | Said "Tak ada kuliah", the tab's word |
 
 ## Left for a screen's owner
@@ -31,5 +32,5 @@ so the desktop keeps its own where its name is right for it. `test/mobile/one-na
   five tabs share the course page's width (`mobile/src/screens/course/course-screen.tsx:54`). Kuliah's owner decides.
 - **The window's end:** one class card says "tutup {time}" and "Sedang berlangsung sampai {time}": Kuliah's owner keeps
   the one that matters (the window's close while a Presence is open).
-- **Semua layanan** lists both "Kuliah" (`courses`, `/courses`) and "Presensi" (`presence`, the Kuliah tab): two tiles
-  to one place (`mobile/src/screens/services/list.ts`, Foundations).
+- **Semua layanan:** settled (11 Nov): it no longer lists "Kuliah"; "Presensi" (`presence`) is the one tile to the Kuliah
+  tab (`mobile/src/screens/services/list.ts`).
