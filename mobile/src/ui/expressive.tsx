@@ -94,17 +94,20 @@ export function CookieCheck({ color, check, size = 28 }: { color: string; check:
   );
 }
 
-/** "Now": a dot with a ring that breathes out from it every two seconds (still with Remove animations). */
-export function PulseDot({ color, size = 7 }: { color: string; size?: number }) {
+/**
+ * "Now": a dot with a ring that breathes out from it a few times (`times`, 3 by default, two seconds each), then rests as
+ * a plain dot: nothing redraws at rest (the decisions' "Beranda's budget"). Still with Remove animations.
+ */
+export function PulseDot({ color, size = 7, times = 3 }: { color: string; size?: number; times?: number }) {
   const still = useReduceMotion();
   const run = useLoopWhileShown();
   const ring = useSharedValue(0);
   useEffect(() => {
     if (!run) return;
     ring.value = 0;
-    ring.value = withRepeat(withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad) }), -1, false);
+    ring.value = withRepeat(withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad) }), Math.max(1, times), false);
     return () => cancelAnimation(ring);
-  }, [run, ring]);
+  }, [run, ring, times]);
   const halo = useAnimatedStyle(() => ({ opacity: 0.5 * (1 - ring.value), transform: [{ scale: 1 + ring.value * 1.7 }] }));
   return (
     <View style={{ width: size, height: size }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

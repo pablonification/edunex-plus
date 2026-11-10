@@ -2,10 +2,12 @@
 // One presence button, one plain progress bar, one clash sign, one tappable figure, one heading, one flat row. Each
 // is views and one-Path icons, moves only through PressScale (the UI thread; still with Remove animations), and does
 // no work until it's drawn.
+import type { ReactNode } from "react";
 import type { AccessibilityProps } from "react-native";
 import { View } from "react-native";
 import { useT } from "../../../src/app/i18n";
 import { BHeading, BRow, CountCell } from "./b";
+import { PulseDot } from "./expressive";
 import { type IconName, Icons } from "./icons";
 import { PressScale } from "./press";
 import { Text } from "./text";
@@ -211,3 +213,141 @@ export const SectionHeading = BHeading;
  * the `last`, the whole row one target (64 dp). b.tsx's `BRow` under the name the screens ask for; they are one part.
  */
 export const FlatRow = BRow;
+
+/** The class-on-now block's measures, Beranda's: one look on Beranda, a course's page and Kuliah. */
+export const NOW = { radius: 28, pad: space[4], nameLine: 26, barRow: 20, lineRadius: 20 } as const;
+
+/**
+ * The class on now, as one block (Beranda's look): the course's deep colour (`fill`, the light theme's course ink, the
+ * same by day and by night) with white on it. Top to bottom: the kicker line ("Sekarang · 9009", with a dot that pulses
+ * a few times then rests when `live`, and a chevron when `onPress`), the name on up to two lines, one plain bar whose
+ * end says what it measures ("tutup 09:30"), and `children` under it for the one button (a `PresenceButton tone="course"
+ * ink={fill}`). The block itself opens `onPress` (the class's sheet or page).
+ *
+ *   <NowBlock fill={fill} kicker={["Sekarang", room]} live title={name}
+ *     bar={{ value, end: t("…closes", { time }), label }} onPress={open}>
+ *     <PresenceButton tone="course" ink={fill} onPress={fillIn} />
+ *   </NowBlock>
+ */
+export function NowBlock({
+  fill,
+  kicker,
+  live = false,
+  title,
+  bar,
+  children,
+  onPress,
+  accessibilityHint,
+  testID,
+}: {
+  fill: string;
+  /** The line over the name; empty parts are left out and the rest joined with " · ". */
+  kicker: readonly (string | null | undefined | false)[];
+  live?: boolean;
+  title: string;
+  bar?: { value: number; end?: string; label: string } | null;
+  /** The button under the bar. */
+  children?: ReactNode;
+  onPress?: () => void;
+  accessibilityHint?: string;
+  testID?: string;
+}) {
+  const on = useTheme().v4.onHead;
+  const line = kicker.filter(Boolean).join(" · ");
+  const body = (
+    <>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 20 }}>
+        {live && <PulseDot color={on} />}
+        <Text size="labelLarge" weight="medium" numberOfLines={1} style={{ color: on, flex: 1 }}>
+          {line}
+        </Text>
+        {onPress && <Icons.ChevronRight size={20} color={on} />}
+      </View>
+      <Text
+        size="titleLarge"
+        face="display"
+        weight="bold"
+        numberOfLines={2}
+        style={{ color: on, fontSize: 20, lineHeight: NOW.nameLine, letterSpacing: -0.3, marginTop: space[1] }}
+      >
+        {title}
+      </Text>
+      {bar ? (
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: space[2.5], minHeight: NOW.barRow }}>
+          <PlainBar value={bar.value} color={on} track={`${on}59`} height={6} label={bar.label} end={bar.end} endColor={on} />
+        </View>
+      ) : null}
+    </>
+  );
+  return (
+    <View testID={testID} style={{ backgroundColor: fill, borderRadius: NOW.radius, padding: NOW.pad }}>
+      {onPress ? (
+        <PressScale onPress={onPress} accessibilityHint={accessibilityHint}>
+          {body}
+        </PressScale>
+      ) : (
+        body
+      )}
+      {children ? <View style={{ marginTop: space[3] }}>{children}</View> : null}
+    </View>
+  );
+}
+
+/**
+ * The same block at its small size, for a list of them (Kuliah): the name on up to two lines with one short line under
+ * it (`meta`: the time, tabular), and the button beside it when the width allows, under it when not (it wraps).
+ * `button` gets the course colour, for a `PresenceButton tone="course" ink={…}`.
+ */
+export function NowLine({
+  fill,
+  title,
+  meta,
+  live = false,
+  button,
+  onPress,
+  testID,
+}: {
+  fill: string;
+  title: string;
+  meta?: string;
+  live?: boolean;
+  button?: (ink: string) => ReactNode;
+  onPress?: () => void;
+  testID?: string;
+}) {
+  const on = useTheme().v4.onHead;
+  const words = (
+    <>
+      <Text size="bodyLarge" face="display" weight="bold" numberOfLines={2} style={{ color: on, lineHeight: 22 }}>
+        {title}
+      </Text>
+      {meta ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginTop: 2 }}>
+          {live && <PulseDot color={on} />}
+          <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: on, flexShrink: 1 }}>
+            {meta}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+  return (
+    <View
+      testID={testID}
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: space[3],
+        rowGap: space[3],
+        backgroundColor: fill,
+        borderRadius: NOW.lineRadius,
+        paddingVertical: space[3],
+        paddingHorizontal: space[4],
+      }}
+    >
+      <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 }}>{onPress ? <PressScale onPress={onPress}>{words}</PressScale> : words}</View>
+      {button ? button(fill) : null}
+    </View>
+  );
+}
