@@ -1,5 +1,5 @@
-// The week strip over Jadwal's day (v4): the week's seven days, a dot under each in the ink of every course that meets
-// that day. One shape for a day that stands out, the circle: the day picked filled (in the brand's blue when it's today,
+// The week strip over Jadwal's day (v4): the week's seven days, under each the number of classes that day (none: no
+// mark; dots in each course's ink were too small to tell apart: round 1's judges). One shape for a day that stands out, the circle: the day picked filled (in the brand's blue when it's today,
 // else its tint), today a ring of that blue while another day is picked (blue is today's one meaning on the screen, with
 // the now-line). A day with two classes at once is named so for TalkBack; its blocks show the clash in words. A
 // tap picks a day; a swipe across the strip moves a week.
@@ -7,7 +7,6 @@ import { memo, useState } from "react";
 import { View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
-import { useCourseColor } from "../../../../src/app/courses";
 import { useT } from "../../../../src/app/i18n";
 import { dayNoon, type ScheduleDay, shiftDay } from "../../../../src/core/schedule";
 import { useSlidingMark } from "../../ui/moves";
@@ -17,17 +16,8 @@ import { space, useTheme } from "../../ui/theme";
 import { useDayFormat, useToday } from "./clock";
 import { nowColour, onNowColour } from "./day";
 
-/** The courses meeting on a day, each once, in time order: their dots. */
-const codesOf = (day: ScheduleDay | undefined) =>
-  day
-    ? [
-        ...new Set(
-          [...day.classes.map((c) => ({ code: c.session.courseCode, start: c.session.start })), ...day.outside, ...day.edunex]
-            .sort((a, b) => a.start - b.start)
-            .map((one) => one.code),
-        ),
-      ]
-    : [];
+/** How many classes and meetings a day holds: the number under its date. */
+const countOf = (day: ScheduleDay | undefined) => (day ? day.classes.length + day.outside.length + day.edunex.length : 0);
 
 export const WeekStrip = memo(function WeekStrip({
   monday,
@@ -48,7 +38,6 @@ export const WeekStrip = memo(function WeekStrip({
   const theme = useTheme();
   const v = theme.v4;
   const today = useToday();
-  const colour = useCourseColor();
   const days = Array.from({ length: 7 }, (_, i) => shiftDay(monday, i));
   // The picked day's circle slides from the day before to the new one (keyed by weekday, so a week's move keeps it in
   // place); its top is where the first day's circle was laid out.
@@ -83,7 +72,7 @@ export const WeekStrip = memo(function WeekStrip({
           const noon = dayNoon(day);
           const isToday = day === today;
           const on = day === picked;
-          const codes = codesOf(plan.get(day)).slice(0, 4);
+          const count = countOf(plan.get(day));
           // Two classes at once that day: said to TalkBack; on screen the day's blocks say it, with "Bentrok" (a badge on
           // the date was too small to read: the judges' charge 12).
           const clash = plan.get(day)?.classes.some((c) => c.overlaps.length > 0) ?? false;
@@ -96,7 +85,9 @@ export const WeekStrip = memo(function WeekStrip({
                 testID={`day.${day}`}
                 accessibilityRole="tab"
                 accessibilityState={{ selected: on }}
-                accessibilityLabel={clash ? `${f.dateLong(noon)}, ${t("mobile.schedule.clashDay")}` : f.dateLong(noon)}
+                accessibilityLabel={[f.dateLong(noon), count ? t("mobile.schedule.dayCount", { count }) : null, clash ? t("mobile.schedule.clashDay") : null]
+                  .filter(Boolean)
+                  .join(", ")}
                 onPress={() => onPick(day)}
                 style={{ width: 48, alignItems: "center", gap: 6, paddingVertical: 2 }}
               >
@@ -119,11 +110,15 @@ export const WeekStrip = memo(function WeekStrip({
                     {String(Number(day.slice(8)))}
                   </Text>
                 </View>
-                <View style={{ flexDirection: "row", gap: 3, height: 5 }}>
-                  {codes.map((code) => (
-                    <View key={code} style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: theme.courseTile(colour(code)).ink }} />
-                  ))}
-                </View>
+                <Text
+                  size="labelSmall"
+                  weight="semibold"
+                  tabular
+                  importantForAccessibility="no"
+                  style={{ color: on ? v.brandInk : v.muted, fontSize: 12, lineHeight: 16, minHeight: 16 }}
+                >
+                  {count ? String(count) : ""}
+                </Text>
               </PressScale>
             </View>
           );

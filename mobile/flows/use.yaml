@@ -123,9 +123,7 @@ appId: io.github.pablonification.edunexplus.demo
       text: "Minggu ke-7"
     timeout: 5000
 
-# S6: the month (its own screen, the first choice in the bar's ⋮), a day picked in it lists that day.
-- tapOn:
-    id: action.scheduleMenu
+# S6: the month (its own screen, its own icon in the top bar), a day picked in it lists that day.
 - tapOn:
     id: action.month
 - extendedWaitUntil:
