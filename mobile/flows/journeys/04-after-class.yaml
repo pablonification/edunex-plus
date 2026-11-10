@@ -1,9 +1,13 @@
-# Journey 2, after class: this week's material for that course. Budget: 2 taps (the "Materi" tile, an item).
+# Journey 4, after class: this week's material for that course, opened.
+# limit: 2
+# Taps: Beranda's "Materi" tile (this week's material across courses), an item. A note opens its module; a file opens in the
+# phone's own viewer and a link in the browser: the walk takes the first item the demo lists and goes as far as the app's own screen.
+# unverified: which item is first in the demo's Materi, and so whether it opens screen.module (a note) or a viewer (a file).
 appId: io.github.pablonification.edunexplus.demo
 name: "journey 4 after class: Beranda, Materi, an item"
 ---
 - clearState: io.github.pablonification.edunexplus.demo
-- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id"
 - extendedWaitUntil:
     visible:
       id: tab.home
@@ -12,18 +16,25 @@ name: "journey 4 after class: Beranda, Materi, an item"
     notVisible:
       id: status.settling
     timeout: 180000
-# tap 1: the grid's first tile, this week's material across courses.
-# pending: Materi and Ujian: the tile and its screen (action.service.material, screen.material)
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 30000
+# tap 1: the grid's "Materi" tile.
 - tapOn:
     id: action.service.material
-# pending: Materi and Ujian
 - extendedWaitUntil:
     visible:
       id: screen.material
     timeout: 20000
+# The tile's word is the screen's word.
+- assertVisible: "Materi"
+- extendedWaitUntil:
+    visible:
+      id: 'row\.material\..*'
+    timeout: 30000
 - takeScreenshot: journey-4-materi
-# tap 2: an item; it opens the module (the files and notes), not a list again.
-# (row.material.<id> is a module's file row today: the Materi view's own rows may take another id; run flows-check.mjs after it lands)
+# tap 2: an item; its module (the files and notes) opens, not a list again.
 - tapOn:
     id: 'row\.material\..*'
     index: 0
@@ -31,10 +42,10 @@ name: "journey 4 after class: Beranda, Materi, an item"
     visible:
       id: screen.module
     timeout: 20000
+# goal
 - takeScreenshot: journey-4-module
 # Back goes item -> Materi -> Beranda, one step each.
 - back
-# pending: Materi and Ujian
 - extendedWaitUntil:
     visible:
       id: screen.material

@@ -1,10 +1,11 @@
-# Journey 7, looking for something by name. Budget: 2 taps after typing (the bar, a result).
-# Beranda's own bar is home.search; the other tabs keep action.search (not walked here).
+# Journey 7, looking for something by name: the bar on Beranda, type, a result.
+# limit: 2
+# Taps after typing: the bar (Search opens with the keyboard up), the result. A course result opens the course by the same name.
 appId: io.github.pablonification.edunexplus.demo
 name: "journey 7 search: the bar, type, a result"
 ---
 - clearState: io.github.pablonification.edunexplus.demo
-- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in"
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id"
 - extendedWaitUntil:
     visible:
       id: tab.home
@@ -13,32 +14,36 @@ name: "journey 7 search: the bar, type, a result"
     notVisible:
       id: status.settling
     timeout: 180000
-# tap 1: the search bar, the first thing on Beranda; Search opens with the keyboard up.
+- extendedWaitUntil:
+    visible:
+      id: home.search
+    timeout: 30000
+# tap 1: the search bar, the first thing on Beranda.
 - tapOn:
     id: home.search
 - extendedWaitUntil:
     visible:
       id: screen.search
     timeout: 10000
+# typing is not a tap.
 - inputText: "PL3002"
 - hideKeyboard
 - extendedWaitUntil:
     visible:
-      id: 'row\.search\..*'
+      id: 'row\.search\.course:PL3002'
     timeout: 10000
+# The result has the course's name.
+- assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
 - takeScreenshot: journey-7-results
-# tap 2: a result; the search closes and the result opens over Beranda.
+# tap 2: the course.
 - tapOn:
-    id: 'row\.search\..*'
-    index: 0
-- extendedWaitUntil:
-    notVisible:
-      id: screen.search
-    timeout: 10000
+    id: 'row\.search\.course:PL3002'
 - extendedWaitUntil:
     visible:
-      id: 'screen\.(course|task|exam|module|grades|plan.*)'
+      id: screen.course
     timeout: 10000
+- assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
+# goal
 - takeScreenshot: journey-7-opened
 # Back goes to Beranda, not into Search again.
 - back
@@ -46,3 +51,5 @@ name: "journey 7 search: the bar, type, a result"
     visible:
       id: home.search
     timeout: 10000
+- assertNotVisible:
+    id: screen.search
