@@ -115,6 +115,20 @@ happening), tap to curtain 8%, Beranda filling 5%, Beranda settled 1%. What's le
 lifts; a muddy frame at 3 s; doors that stay blank for 4 s; and what Beranda shows while it still reads (a green "Absen aman" that
 turns into "3 Absen habis", the class block growing 100 px, two different task counts).
 
+## The journeys, walked on the phone (02:40, commit f1f50916, the demo app, Maestro flows in `mobile/flows/journeys/`)
+
+| Journey | Top of the hill | On the phone | Steps |
+| --- | --- | --- | --- |
+| Morning: what's my day, what's due, am I safe | 0 taps | **0 taps, pass** (47 s to run) | Beranda's first screen: the class on now, the strip (next deadline, absences, days to the exam), the grid |
+| A class starts | 2 taps or fewer, landing somewhere useful | **1 tap** to Edunex's presence page; **the flow failed** on what it expected next (it looked for SIX's page), and after Back the block doesn't yet move on to what's next in the demo | Beranda → "Isi Presensi" |
+| A deadline | 3 taps or fewer to the brief; a clear finish | 2 by the flow's count; **not run on the phone** (the hand-in opens the phone's own file picker, which the lead keeps away from the owner's files) | Beranda → the strip's deadline (or Tugas → the Task) → the brief |
+| After class: this week's material, opened | 2 taps or fewer | 2 taps; **the flow failed**: the first item this week is a meeting link that opens outside the app, not a module's page | Beranda → Materi → an item |
+| After an exam: my grade and my IPK | 2 taps or fewer | **2 taps, pass** | Beranda → Nilai → a course |
+| The office things: KRS, UKT, the calendar | 2 taps or fewer each | **2 taps from Profil, 1 from the grid, pass** | Profil → the row; or the tile |
+| Looking for something by name | result opened in 2 taps after typing | **2 taps, pass** | `home.search` → type → a result |
+
+Four of seven pass as flows; two fail on the flow's own expectation (to fix in the flow), one isn't run on this phone.
+
 ## Widgets (so far)
 
 | What | `main` | Now |
