@@ -258,7 +258,7 @@ async function makeHost(): Promise<Host> {
   );
   if (world.prepare) {
     setSettling(true);
-    void world.prepare(engine).then(
+    const settled = world.prepare(engine).then(
       () => {
         console.info(`[startup] settled ${Date.now() - loaded}`);
         setSettling(false);
@@ -268,6 +268,10 @@ async function makeHost(): Promise<Host> {
         setSettling(false);
       },
     );
+    // The first-run demo signs nobody in: it has settled once its language is saved, a moment from now. Waited out
+    // (40 ms at most, a fresh demo start only), so its first frame is the welcome's stage, not an empty Beranda that
+    // "settling" drew for a moment before it.
+    await Promise.race([settled, new Promise((done) => setTimeout(done, FIRST_RUN_SETTLE_MS))]);
   }
 
   // One Microsoft sign-in covers both systems, exactly as on the desktop.
@@ -391,6 +395,8 @@ async function makeHost(): Promise<Host> {
   };
   return { engine, api, ui, reminders, clockOffset: world.clockOffset, running: () => started, start, stop };
 }
+/** The most a fresh demo's start waits to learn that it signs nobody in (the first-run demo), before the first frame. */
+const FIRST_RUN_SETTLE_MS = 40;
 
 /**
  * How long after app.ready each part of the engine's start that can wait does (ms): the feeds go at once (the network is
