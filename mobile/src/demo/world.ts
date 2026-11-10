@@ -6,11 +6,26 @@
 // Which scenario: the link that opened the app, with the desktop demo's settings as its query
 // (edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_QUIZ=1, what the flows open), else
 // EXPO_PUBLIC_DEMO_QUERY (that query) or EXPO_PUBLIC_DEMO_SCENARIO from Metro, else signed-in.
+//
+// The states for pictures (./states.ts; every screen's list: mobile/qa/superapp-states.md), each off when absent:
+//   EDUNEX_DEMO_OFFLINE=1       no network from the start, over saved data (resumes as EDUNEX_DEMO_RESUME=1 does; with
+//                               nothing saved, the first read plays online and the network drops right after it)
+//   EDUNEX_DEMO_OFFLINE=later   the network drops 5 seconds after the first read
+//   EDUNEX_DEMO_FAIL=edunex|six|both   that system answers a server error (500) from right after the first read;
+//                               with EDUNEX_DEMO_FAIL_AT=start, from the first read on (nothing saved: "couldn't load")
+//   EDUNEX_DEMO_ENDED=six|edunex       that session ends right after the first read and Microsoft asks again
+//                               (EDUNEX_DEMO_SIGN_IN=asks unless the link says otherwise): the "Masuk lagi" banner
+//   EDUNEX_DEMO_HOLD=1          the first read never begins: every screen's loading shape, for as long as it's open
+//   EDUNEX_DEMO_SLOW=<seconds>  the first read waits that long before it begins, then plays as usual
+//   EDUNEX_DEMO_EMPTY=tasks,exams,material,alerts,grades   Edunex has none of those (a Student with nothing yet);
+//                               a week with no classes is EDUNEX_DEMO_NOW instead (superapp-states.md says which)
+//   EDUNEX_DEMO_LONG=1          II4091 and Task 117001 carry very long names (a big font's worst case)
 import { Linking } from "react-native";
 import type { SignInWindows } from "../../../src/desktop/signin-both";
 import { fillablePdf } from "../../../test/kit/fillable-pdf";
 import { demoOptions, demoRun } from "../../../test/pretend/demo";
 import { BARE_PDF_URL, DOCX_URL, FILES_MODULE, PICTURE_URL, sampleDocx, samplePicture, streamed } from "./files";
+import { applyAfterFirstRead, applyBeforeFirstRead, demoStates, OFFLINE_LATER_MS } from "./states";
 
 async function settings(): Promise<Record<string, string | undefined>> {
   const link = await Linking.getInitialURL().catch(() => null);
@@ -24,14 +39,20 @@ async function settings(): Promise<Record<string, string | undefined>> {
 
 export async function createDemoWorld() {
   const asked = await settings();
+  const states = demoStates(asked);
+  // An ended session shows its banner only if Microsoft asks again (else the app signs back in by itself).
+  if (states.ended && !asked.EDUNEX_DEMO_SIGN_IN) asked.EDUNEX_DEMO_SIGN_IN = "asks";
   const run = demoRun(demoOptions(asked));
+  applyBeforeFirstRead(run.world, states);
+  // Offline from the start: the saved data's start has no first read to wait for; a fresh one goes online for it.
+  if (states.offline === "start") run.world.setOffline(true);
   // The phone's own: the theme and language to picture it in (EDUNEX_DEMO_THEME=dark, EDUNEX_DEMO_LANG=en), for the
   // flows that take its pictures beside the desktop's.
   const theme = asked.EDUNEX_DEMO_THEME === "dark" || asked.EDUNEX_DEMO_THEME === "light" ? asked.EDUNEX_DEMO_THEME : undefined;
   const lang = asked.EDUNEX_DEMO_LANG === "en" || asked.EDUNEX_DEMO_LANG === "id" ? asked.EDUNEX_DEMO_LANG : undefined;
   // EDUNEX_DEMO_RESUME=1: start from what the demo saved last time, as a real start does, instead of a fresh first
   // sync: what the cold-start measure (PROGRESS.md, the performance round) times.
-  const resume = asked.EDUNEX_DEMO_RESUME === "1";
+  const resume = asked.EDUNEX_DEMO_RESUME === "1" || states.offline === "start";
   // EDUNEX_DEMO_NOTIFY=1: its alerts go to Android as the real app's do, booked ahead too (with EDUNEX_DEMO_NOW a
   // few minutes before a class, the class-start reminder comes with the app closed).
   const notify = asked.EDUNEX_DEMO_NOTIFY === "1";
@@ -106,6 +127,10 @@ export async function createDemoWorld() {
     clockOffset: () => run.world.clock.now() - Date.now(),
     prepare: async (prepared: Parameters<typeof run.prepare>[0]) => {
       engine = prepared;
+      // EDUNEX_DEMO_HOLD=1: the first read never begins, so the screens keep their loading shapes.
+      if (states.hold) return new Promise<void>(() => undefined);
+      if (states.slowSeconds) await new Promise((done) => setTimeout(done, states.slowSeconds * 1_000));
+      if (states.offline === "start") run.world.setOffline(false);
       // Each step of the demo's start timed for the lab ("[startup] demo …"): where a fresh install's seconds go.
       const signIn = prepared.signIn.bind(prepared);
       let at = Date.now();
@@ -118,6 +143,14 @@ export async function createDemoWorld() {
       };
       await run.prepare(prepared);
       prepared.signIn = signIn;
+      const again = (source: "edunex" | "six") => void prepared.refresh(source).catch(() => undefined);
+      applyAfterFirstRead(run.world, states, again);
+      if (states.offline === "later")
+        setTimeout(() => {
+          run.world.setOffline(true);
+          again("edunex");
+          again("six");
+        }, OFFLINE_LATER_MS);
       console.info(`[startup] demo rest ${Date.now() - at} total ${Date.now() - began}`);
       if (theme || lang) await prepared.updateSettings({ ...(theme ? { theme } : {}), ...(lang ? { lang } : {}) });
     },
