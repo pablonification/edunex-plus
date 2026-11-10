@@ -302,10 +302,8 @@ function NowCard({
         <BigButton
           variant={variant}
           icon={<Icons.Hand size={20} weight="fill" color={variant === "filled" ? v.onBrand : v.fg} />}
-          onPress={() => {
-            haptic.confirm();
-            checkIn(sixSession.id, sixTimetableUrl(student, sixSession.start), now);
-          }}
+          // No haptic: the tap only opens SIX, where the Student presses Tandai Hadir (haptics are for commits).
+          onPress={() => checkIn(sixSession.id, sixTimetableUrl(student, sixSession.start), now)}
           label={t("home.now.openSixLabel", { course: code })}
           testID="action.checkIn"
         >
