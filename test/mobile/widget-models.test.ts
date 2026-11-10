@@ -55,6 +55,11 @@ describe("Tenggat", () => {
         code: "II4091",
         tone: expect.stringMatching(/^var\(--course-/),
         when: "Jum, 16 Okt, 23:59",
+        // The day leads the row; today and tomorrow are marked.
+        name: "Proposal Tugas Akhir",
+        day: "Jum, 16 Okt",
+        time: "23:59",
+        mark: null,
         soon: false,
         open: { kind: "route", route: { screen: "task", taskId: 117003 } },
       },
@@ -79,13 +84,26 @@ describe("Tenggat", () => {
 
   it("signed out of Edunex: says where to sign in, and opens the app", () => {
     const model = dueWidget(factsOf(h, without("edunex")));
-    expect(model).toMatchObject({ state: "signedOut", rows: [], empty: { label: "Masuk ke Edunex", open: { kind: "route", route: { screen: "home" } } } });
+    expect(model).toMatchObject({
+      state: "signedOut",
+      rows: [],
+      empty: { label: "Kamu belum masuk ke Edunex.", open: { kind: "route", route: { screen: "home" } } },
+    });
+    // The one layout every widget's quiet states share: its own name, one sentence, one thing to tap.
+    expect(model.quiet).toEqual({
+      state: "signedOut",
+      name: "Tenggat",
+      label: "Kamu belum masuk ke Edunex.",
+      short: "Belum masuk",
+      action: "Masuk",
+      open: { kind: "route", route: { screen: "home" } },
+    });
   });
 
   it("offline: the deadlines stay, the foot says since when", () => {
     const model = dueWidget(factsOf(h, offline));
     expect(model.rows.length).toBe(dueWidget(facts).rows.length);
-    expect(model.status).toMatchObject({ problem: true, text: expect.stringMatching(/^Tidak terhubung · data dari /) });
+    expect(model.status).toMatchObject({ problem: true, text: "Tidak terhubung · data 08:12", offline: true });
   });
 
   it("nothing due: one plain line opening Tugas, never a 0", () => {
@@ -93,7 +111,8 @@ describe("Tenggat", () => {
     expect(model).toMatchObject({
       state: "empty",
       rows: [],
-      empty: { label: "Tidak ada yang perlu dikerjakan", open: { kind: "route", route: { screen: "tasks" } } },
+      empty: { label: "Tidak ada tenggat", open: { kind: "route", route: { screen: "tasks" } } },
+      quiet: { state: "empty", name: "Tenggat", label: "Tidak ada tenggat", action: "Buka Tugas", open: { kind: "route", route: { screen: "tasks" } } },
     });
   });
 });
@@ -126,7 +145,12 @@ describe("Kehadiran", () => {
 
   it("signed out of SIX: where to sign in", () => {
     const model = attendanceWidget(factsOf(h, without("six")));
-    expect(model).toMatchObject({ state: "signedOut", rows: [], empty: { label: "Masuk ke SIX" } });
+    expect(model).toMatchObject({
+      state: "signedOut",
+      rows: [],
+      empty: { label: "Kamu belum masuk ke SIX." },
+      quiet: { state: "signedOut", name: "Jatah absen", label: "Kamu belum masuk ke SIX.", action: "Masuk" },
+    });
   });
 
   it("in English", async () => {
@@ -152,6 +176,11 @@ describe("Ujian", () => {
       big: "7",
       unit: "hari lagi",
       when: "Kam, 15 Okt, 11:00 · TVST C",
+      // What the widget leads with: true all day, where "7" is wrong after midnight. The count is the quiet second.
+      day: "Kam, 15 Okt",
+      time: "11:00",
+      room: "TVST C",
+      left: "7 hari lagi",
       open: { kind: "route", route: { screen: "exam", examId: "DK4073-UTS" } },
     });
     expect(model.changesAt).toBe(at("2026-10-09T00:00:00+07:00"));
@@ -160,14 +189,37 @@ describe("Ujian", () => {
   it("the day before and the day of: the word, no number", async () => {
     const own = await startHome();
     await own.until("2026-10-14T20:00:00+07:00");
-    expect(examWidget(factsOf(own)).next).toMatchObject({ days: 1, big: "Besok", unit: null });
+    expect(examWidget(factsOf(own)).next).toMatchObject({ days: 1, big: "Besok", unit: null, day: "Besok", time: "11:00", left: null });
+    // Midnight turns "Besok" into "Hari ini": drawn again then.
+    expect(examWidget(factsOf(own)).changesAt).toBe(at("2026-10-15T00:00:00+07:00"));
     await own.until("2026-10-15T07:00:00+07:00");
-    expect(examWidget(factsOf(own)).next).toMatchObject({ days: 0, big: "Hari ini", unit: null });
+    expect(examWidget(factsOf(own)).next).toMatchObject({ days: 0, big: "Hari ini", unit: null, day: "Hari ini", left: null });
+    // The exam starting: the next one takes over.
+    expect(examWidget(factsOf(own)).changesAt).toBe(at("2026-10-15T11:00:00+07:00"));
   }, 180_000);
 
   it("never opened: where to start", async () => {
     const empty = await startEngine();
-    expect(examWidget(widgetFacts(empty.engine.snapshot(), empty.world.clock.now()))).toMatchObject({ state: "signedOut", next: null });
+    expect(examWidget(widgetFacts(empty.engine.snapshot(), empty.world.clock.now()))).toMatchObject({
+      state: "signedOut",
+      next: null,
+      quiet: { state: "signedOut", name: "Ujian", label: "Kamu belum masuk.", action: "Masuk" },
+    });
+  });
+
+  it("no exam dated: says so, opening Tugas", () => {
+    const model = examWidget(
+      factsOf(h, (shot) => ({
+        ...shot,
+        datasets: shot.datasets.map((d) => (["edunex.exams", "six.schedule", "edunex.tasks"].includes(d.name) ? { ...d, value: [] } : d)),
+      })),
+    );
+    expect(model).toMatchObject({
+      state: "empty",
+      next: null,
+      more: [],
+      quiet: { state: "empty", name: "Ujian", label: "Belum ada ujian terjadwal", action: "Buka Tugas" },
+    });
   });
 });
 
@@ -207,8 +259,19 @@ describe("Kelas berikutnya", () => {
   it("a holiday (no class in the week ahead) says so; signed out of SIX says where to sign in", () => {
     const quiet = nextWidget(factsOf(h, (shot) => ({ ...shot, datasets: shot.datasets.map((d) => (d.name === "six.schedule" ? { ...d, value: [] } : d)) })));
     // One cell holds two words: the short form says the same.
-    expect(quiet).toMatchObject({ state: "holiday", next: null, empty: { label: "Tidak ada kuliah dalam seminggu ke depan.", short: "Tidak ada kuliah" } });
-    expect(nextWidget(factsOf(h, without("six")))).toMatchObject({ state: "signedOut", empty: { label: "Masuk ke SIX" } });
+    expect(quiet).toMatchObject({ state: "holiday", next: null, empty: { label: "Libur. Tidak ada kuliah seminggu ke depan.", short: "Libur" } });
+    expect(quiet.quiet).toMatchObject({
+      state: "holiday",
+      name: "Kelas berikutnya",
+      short: "Libur",
+      action: "Buka Jadwal",
+      open: { kind: "route", route: { screen: "schedule" } },
+    });
+    // Midnight may bring a class within the week.
+    expect(quiet.changesAt).toBe(at("2026-10-09T00:00:00+07:00"));
+    expect(nextWidget(factsOf(h, without("six")))).toMatchObject({ state: "signedOut", quiet: { label: "Kamu belum masuk ke SIX.", action: "Masuk" } });
+    // Offline: the class stays, the foot says from when, the same words as on every widget.
+    expect(nextWidget(factsOf(h, offline))).toMatchObject({ state: "ready", status: { text: "Tidak terhubung · data 08:12", problem: true, offline: true } });
   });
 
   it("a class on another day says the day", async () => {
@@ -236,6 +299,30 @@ describe("Pintasan", () => {
       ["Nilai", "grades", { kind: "route", route: { screen: "grades" } }],
     ]);
   });
+
+  it("tiles that answer: one live figure each, said whole to TalkBack; a class ending redraws it", () => {
+    const model = servicesWidget(facts);
+    // 08:12 on Thursday: four classes still to end, nothing due within a week (a mark, never "0"), three courses at
+    // or past their absence limit, and the IPK.
+    expect(model.items.map(({ figure, good, a11y }) => [figure, good, a11y])).toEqual([
+      ["4", false, "Jadwal, 4 kuliah lagi hari ini"],
+      [null, true, "Tugas, 0 tugas dalam seminggu"],
+      ["3", false, "Kuliah, 3 mata kuliah di batas absen"],
+      ["3,26", false, "Nilai, IPK 3,26"],
+    ]);
+    expect(model.changesAt).toBe(at("2026-10-08T10:00:00+07:00"));
+    for (const item of model.items) expect(item.figure).not.toBe("0");
+  });
+
+  it("signed out: no figure is known, each tile its glyph and word", () => {
+    const model = servicesWidget(factsOf(h, (shot) => without("six")(without("edunex")(shot))));
+    expect(model.items.map((item) => [item.figure, item.good, item.a11y])).toEqual([
+      [null, false, "Jadwal"],
+      [null, false, "Tugas"],
+      [null, false, "Kuliah"],
+      [null, false, "Nilai"],
+    ]);
+  });
 });
 
 describe("Satu mata kuliah", () => {
@@ -250,7 +337,11 @@ describe("Satu mata kuliah", () => {
     expect(model.absences).toEqual({ state: "risk", label: "Sisa jatah absen 1×", short: "Sisa 1×" });
     // The same as marks: one of the two absences the term allows is used.
     expect(model.marks).toEqual({ allowed: 2, used: 1, over: 0 });
-    expect(model.next).toEqual({ label: "Hari ini, 08:00–10:00 · R.SG PWK LT.6", short: "08:00", open: { kind: "class", sessionId: "2194342" } });
+    expect(model.next).toEqual({
+      label: "Sedang berlangsung · selesai 10:00 · R.SG PWK LT.6",
+      short: "Sedang berlangsung · selesai 10:00",
+      open: { kind: "class", sessionId: "2194342" },
+    });
     expect(model.task).toMatchObject({ detail: "Tenggat Kam, 26 Nov, 23:59", open: { kind: "route", route: { screen: "task" } } });
     // The class on now ends at 10:00.
     expect(model.changesAt).toBe(at("2026-10-08T10:00:00+07:00"));
@@ -263,6 +354,10 @@ describe("Satu mata kuliah", () => {
 
   it("never opened: where to start", async () => {
     const empty = await startEngine();
-    expect(courseWidget(widgetFacts(empty.engine.snapshot(), empty.world.clock.now()), null)).toMatchObject({ state: "signedOut", course: null });
+    expect(courseWidget(widgetFacts(empty.engine.snapshot(), empty.world.clock.now()), null)).toMatchObject({
+      state: "signedOut",
+      course: null,
+      quiet: { state: "signedOut", name: "Mata kuliah", label: "Kamu belum masuk.", action: "Masuk" },
+    });
   });
 });

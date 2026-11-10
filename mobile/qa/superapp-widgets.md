@@ -21,6 +21,65 @@ States every widget has:
 The foot line, "Diperbarui pukul 14:05", is shown where there's room (3 rows and up) and always when something is
 wrong.
 
+## Round 2 (after the judges' first verdict): what changed
+
+Where this section and the older ones below disagree, this one is right.
+
+**States that are true.** Signed out, empty and holiday are one layout on all eight (`StateCard` in `src/widget/view.tsx`,
+fed by each model's `quiet`): the widget's own name, one sentence, one thing to tap in the only blue ("Masuk", "Buka
+Jadwal"). One cell: the sentence's two words ("Libur", "Belum masuk"). A holiday says "Libur". Offline is one line on
+every widget and size, "Tidak terhubung · data 08:12" (amber; `status.offline`), and "Sekarang" then draws no button:
+the page may not open, the window may have closed. A Presence open with no class above it names its course on the
+button. The render's empty and holiday pictures kept an "Isi Presensi" button because it emptied the timetable and left
+the Presence: it now empties both (and the meetings Edunex announced), so the pictures are the real states.
+
+**The foot never says "Memperbarui…".** It came from the app's shared status line while a source was connecting, and a
+widget is a picture: the word stayed. `widgetStatus()` (model) now says when the data was last right, "Diperbarui pukul
+08:12", with the day when it isn't today ("Diperbarui kemarin, 20:16"), nothing at all before a first read, and what's
+wrong in amber. Drawn wherever there's room, always when something's wrong (Kelas berikutnya too).
+
+**Nothing stale as "now".** The block leads with `lead`: "Sedang berlangsung · selesai 10:00", "Mulai 11:00", "Besok
+08:00". The row on now in "Hari ini" says "selesai 10:00". Ujian leads with the day and time ("Kam, 15 Okt, 11:00"), the
+count quiet under it ("7 hari lagi"). `changesAt` now also covers midnight on Sekarang and Hari ini, and Pintasan's
+figures (a class ending, a deadline passing or coming within the week, midnight). Tested in `test/mobile/widget-model*.ts`.
+
+**Sizes** (this phone's launcher: a cell is about 97×134 dp; "Sekarang" at 4×2 is 387×268 dp). The render now uses these.
+
+| Widget | Smallest | First | Largest | What the bigger sizes add |
+| --- | --- | --- | --- | --- |
+| Sekarang | 2×1 | 4×2 | 4×3 | what needs you, then today's next classes |
+| Hari ini | 2×2 | 3×2 | 4×3 | rooms under every name, then the next day's classes |
+| Tenggat | 2×2 | 3×2 | 4×3 | more deadlines, titles whole |
+| Jatah absen (was "Kehadiran") | 2×2 | 3×2 | 4×3 | every course |
+| Ujian | 2×1 | 2×1 | 4×2 | the exams after the next |
+| Kelas berikutnya | 1×1 | 1×1 | 2×1 | the course's name and room |
+| Pintasan | 2×1 | 4×1 | 4×1 | (two tiles at 2×1) |
+| Satu mata kuliah | 3×1 | 3×1 | 4×2 | absences, then its next Task where the title fits whole |
+
+**Why the phone's "Hari ini" at 3×2 cut a name and showed one room.** The render drew 3×2 at 244 dp; the phone's is
+about 290. Past 250 dp a row put its room beside a one-line name without taking the room's width out of the name's, so
+the longest name was cut and only one-line rows got a room. Rooms now sit under the name on every row or on none.
+
+**Also:** the block is the widget's own top, edge to edge (no white rim); titles are neutral, only taps are blue; a list
+says names down every row or codes down every row; Kehadiran's marks are one colour by state, used ones outlines, the
+word always there; Tenggat leads with the day (today amber); the button's closing time sits beside the button, not in it.
+
+**Pintasan: tiles that answer.** Each tile carries one figure: classes left today, Tasks due within a week, courses at
+or past their absence limit, the IPK. Zero is a check mark, never "0"; a figure that isn't known leaves the glyph and
+the word. No tray behind the tiles, no red or amber tile.
+
+**Picker previews** are cut from the real drawing (`scripts/make-widget-previews.mjs` runs the render with `--previews`):
+first size, light, an hour before the first class and with no read stamped, so nothing claims to be live.
+
+**Native this round (one commit):** the size caps and first sizes above, the picker's label "Jatah absen", new
+descriptions, and the eight preview pictures. The drawings don't depend on them.
+
+**The iPhone must mirror** (the model stays compatible: fields were only added): `quiet` on every model and
+`WidgetModel.quiet.now/today` (the shared state layout); `status` (no "Memperbarui…", `offline`); `WidgetClass.lead` and
+`ends`; `WidgetTodayClass.end` and `WidgetToday.next`; `DueRow.day/time/mark/name`; `ExamWidget.next.day/time/room/left`
+and `more`; `ServicesWidget.items[].figure/good/a11y` with its `status` and `changesAt`; `CourseWidget.next` saying
+"Sedang berlangsung · selesai 10:00" while on.
+
 ## The look (the same app as Beranda)
 
 Two shapes, and every widget is one of them:

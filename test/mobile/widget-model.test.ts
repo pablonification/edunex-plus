@@ -126,6 +126,13 @@ describe("the widget", () => {
       classes: [],
       none: { label: "Tidak ada kuliah hari ini.", open: { kind: "route", route: { screen: "schedule" } } },
     });
+    // Nothing starts or ends today: midnight is when its words stop being true ("Hari ini · Sab 10 Okt", "Besok").
+    expect(modelOf(h).changesAt).toBe(Date.parse("2026-10-11T00:00:00+07:00"));
+    // The next day with classes fills a taller widget.
+    expect(modelOf(h).today?.next).toMatchObject({
+      heading: expect.any(String),
+      classes: expect.arrayContaining([expect.objectContaining({ live: false, past: false })]),
+    });
   });
 
   it("never signed in: where to start, and nothing else", async () => {
@@ -133,5 +140,24 @@ describe("the widget", () => {
     const model = modelOf(h);
     expect(model.status).toEqual({ text: "Hubungkan Edunex atau SIX dulu", problem: true });
     expect([model.now, model.actions, model.needs, model.today]).toEqual([null, [], null, null]);
+    // Both widgets draw the one shared layout: their own name, one sentence, one thing to tap.
+    expect(model.quiet).toEqual({
+      now: {
+        state: "signedOut",
+        name: "Sekarang",
+        label: "Kamu belum masuk.",
+        short: "Belum masuk",
+        action: "Masuk",
+        open: { kind: "route", route: { screen: "home" } },
+      },
+      today: {
+        state: "signedOut",
+        name: "Hari ini",
+        label: "Kamu belum masuk.",
+        short: "Belum masuk",
+        action: "Masuk",
+        open: { kind: "route", route: { screen: "home" } },
+      },
+    });
   });
 });

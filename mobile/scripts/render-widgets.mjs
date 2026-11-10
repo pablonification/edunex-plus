@@ -15,7 +15,10 @@ import path from "node:path";
 import { chromium } from "playwright-core";
 
 const root = path.resolve(import.meta.dirname, "..", "..");
-const out = path.resolve(process.argv[2] ?? path.join(os.tmpdir(), "edunex-plus-widget-render"));
+const args = process.argv.slice(2).filter((arg) => !arg.startsWith("--"));
+// --previews: also keep each widget's picker picture (assets/widget-preview-<name>.png), cut from the same drawing.
+const previews = process.argv.includes("--previews");
+const out = path.resolve(args[0] ?? path.join(os.tmpdir(), "edunex-plus-widget-render"));
 const pages = path.join(out, "pages");
 
 const test = spawnSync("npx", ["vitest", "run", "test/mobile/widget-drawings.test.tsx"], {
@@ -48,7 +51,7 @@ if (!executablePath) {
 }
 
 const browser = await chromium.launch({ executablePath });
-const context = await browser.newContext({ deviceScaleFactor: 3, viewport: { width: 900, height: 1200 } });
+const context = await browser.newContext({ deviceScaleFactor: 3, viewport: { width: 1800, height: 1200 } });
 const report = [];
 for (const file of fs
   .readdirSync(pages)
@@ -63,6 +66,8 @@ for (const file of fs
   for (const shot of shots) {
     const id = await shot.getAttribute("data-shot");
     await shot.screenshot({ path: path.join(out, name, `${id}.png`) });
+    if (previews && id.includes("-preview-"))
+      await shot.locator("[data-widget]").screenshot({ path: path.join(root, "mobile", "assets", `widget-preview-${name}.png`), omitBackground: true });
     // A line that was cut, or a widget whose parts run past its edge.
     const cut = await shot.evaluate((node) => {
       const lines = [...node.querySelectorAll("div")]
