@@ -14,6 +14,7 @@
 // said nowhere else on Beranda (./urus.tsx leaves those rows to it).
 import { router } from "expo-router";
 import { memo, useMemo } from "react";
+import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
 import type { ExamKind } from "../../../../src/core/exams";
@@ -23,7 +24,10 @@ import { useNav } from "../../nav";
 import { useFirstFrameShown } from "../../shell/first-frame";
 import { useFirstReadRunning } from "../../shell/source-status";
 import { CountStrip } from "../../ui/b";
+import { Skeleton } from "../../ui/display";
 import { StatTile } from "../../ui/kit";
+import { PressScale } from "../../ui/press";
+import { space } from "../../ui/theme";
 import { countdown } from "../tasks/row-parts";
 
 const HOUR = 3_600_000;
@@ -62,25 +66,41 @@ export function nextExam(items: readonly TodoItem[], now: number): { kind: ExamK
   return found;
 }
 
-/** The strip before its answers: three neutral shapes of the tiles' final size under their plain names, each already a way in. */
+/**
+ * The strip before its answers: three shapes of the tiles' final size, each already a way in. No words: a word that
+ * stands here ("Tugas") and then turns into another ("tugas terdekat") reads as the page changing its mind.
+ */
 export function StripShape() {
   const t = useT();
   const { go } = useNav();
   return (
     <CountStrip testID="home.strip">
       {[
-        <StatTile key="tasks" pending value="" label={t("mobile.strip.wait.tasks")} onPress={() => go({ screen: "tasks" })} testID="action.strip.tasks" />,
-        <StatTile
-          key="absences"
-          pending
-          value=""
-          label={t("mobile.strip.wait.absences")}
-          onPress={() => go({ screen: "presence" })}
-          testID="action.strip.absences"
-        />,
-        <StatTile key="exam" pending value="" label={t("mobile.strip.wait.exam")} onPress={() => router.push("/exams")} testID="action.strip.exam" />,
+        <ShapeTile key="tasks" name={t("mobile.strip.wait.tasks")} onPress={() => go({ screen: "tasks" })} testID="action.strip.tasks" />,
+        <ShapeTile key="absences" name={t("mobile.strip.wait.absences")} onPress={() => go({ screen: "presence" })} testID="action.strip.absences" />,
+        <ShapeTile key="exam" name={t("mobile.strip.wait.exam")} onPress={() => router.push("/exams")} testID="action.strip.exam" />,
       ]}
     </CountStrip>
+  );
+}
+
+/** One held tile: the figure's and the label's shapes in a StatTile's box (b.tsx's CountCell), named for TalkBack only. */
+function ShapeTile({ name, onPress, testID }: { name: string; onPress(): void; testID: string }) {
+  return (
+    <PressScale
+      onPress={onPress}
+      accessibilityLabel={name}
+      accessibilityState={{ busy: true }}
+      testID={testID}
+      style={{ flex: 1, minHeight: 56, alignItems: "center", paddingVertical: space[2], paddingHorizontal: space[1], gap: 2 }}
+    >
+      <View style={{ height: 32, justifyContent: "center" }}>
+        <Skeleton width={28} height={20} />
+      </View>
+      <View style={{ height: 18, justifyContent: "center" }}>
+        <Skeleton width={64} height={10} />
+      </View>
+    </PressScale>
   );
 }
 
@@ -108,7 +128,7 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
   const away = exam && todo ? countdown(t, todo.now, exam.at) : null;
   const kind = exam ? t(`exam.kind.${exam.kind}`) : "";
   const tasks = !due ? (
-    <StatTile key="tasks" pending value="" label={t("mobile.strip.wait.tasks")} onPress={openTasks} testID="action.strip.tasks" />
+    <ShapeTile key="tasks" name={t("mobile.strip.wait.tasks")} onPress={openTasks} testID="action.strip.tasks" />
   ) : due.kind === "today" ? (
     <StatTile
       key="tasks"

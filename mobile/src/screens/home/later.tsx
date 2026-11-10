@@ -24,6 +24,7 @@ import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18
 import { wibDay } from "../../../../src/core/course-meetings";
 import type { UnreadSession } from "../../../../src/core/models";
 import { type ClassFacts, classFacts, type HomeContext, type NowCard, type TodayPlan } from "../../../../src/core/needs";
+import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -226,6 +227,39 @@ export function Later({ context, plan, courses, onCard }: { context: HomeContext
           <DetailSheet picked={unreadOpen && unread.length ? { kind: "unread", day, unread } : null} onClose={() => setUnreadOpen(false)} />
         </>
       )}
+    </View>
+  );
+}
+
+/**
+ * "Nanti hari ini" before its classes are read (the first read): the heading where it will be and two rows' shapes
+ * under it, from the first frame, so the timeline fills in instead of popping into a blank third of the page.
+ */
+export function LaterShape() {
+  const t = useT();
+  const v = useTheme().v4;
+  const timeColumn = useTextWidth(44);
+  return (
+    <View testID="section.today.reading" accessibilityState={{ busy: true }}>
+      <SectionHeading style={{ marginTop: space[6], marginBottom: space[2], marginLeft: space[1] }}>{t("mobile.home.laterToday")}</SectionHeading>
+      {[0, 1].map((row) => (
+        <View key={row} style={{ flexDirection: "row", gap: space[3], paddingHorizontal: ROW_SIDE, minHeight: ROW }}>
+          <View style={{ width: timeColumn, paddingTop: space[2.5] + 4 }}>
+            <Skeleton width={36} height={14} />
+          </View>
+          <View style={{ width: 24, alignItems: "center" }}>
+            <View style={{ width: 2, height: space[2], backgroundColor: row === 0 ? "transparent" : v.line }} />
+            <View style={{ height: 26, justifyContent: "center" }}>
+              <Skeleton width={18} height={18} style={{ borderRadius: 9 }} />
+            </View>
+            <View style={{ width: 2, flex: 1, backgroundColor: row === 1 ? "transparent" : v.line }} />
+          </View>
+          <View style={{ flex: 1, paddingTop: space[2.5] + 4, gap: space[2.5] }}>
+            <Skeleton width={row === 0 ? "70%" : "85%"} height={14} />
+            <Skeleton width="30%" height={12} />
+          </View>
+        </View>
+      ))}
     </View>
   );
 }

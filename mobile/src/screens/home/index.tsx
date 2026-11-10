@@ -13,16 +13,17 @@ import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { useHomeWorld } from "../../../../src/app/home-world";
 import { useDataset } from "../../../../src/app/store";
 import { attention, dueItems, type HomeContext, homeContext, type NowCard, nowCard, type TodayPlan, todayPlan, unreadAhead } from "../../../../src/core/needs";
+import { useSettling } from "../../host/settling";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { perfFirstData, usePerfDrawn } from "../../perf";
-import { ProblemBanner } from "../../shell/source-status";
+import { ProblemBanner, useFirstReadRunning } from "../../shell/source-status";
 import { Rise } from "../../ui/expressive";
 import { Part } from "../../ui/parts";
 import { space } from "../../ui/theme";
 import { BannerShape, NowBanner } from "./banner";
 import { NotifyCard } from "./first-run";
 import { HomeGrid } from "./grid";
-import { Later } from "./later";
+import { Later, LaterShape } from "./later";
 import { cardKey } from "./parts";
 import { type Problems, problems } from "./problems";
 import { HomeStrip, StripShape } from "./strip";
@@ -74,6 +75,7 @@ function Loading() {
       <View style={{ marginTop: space[4] }}>
         <HomeGrid />
       </View>
+      <LaterShape />
     </View>
   );
 }
@@ -86,6 +88,9 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
   const hasClass = card?.class !== null && card?.class !== undefined;
   // The strip counts every course with no absence left (past the limit, and at it): red when any is past.
   const over = found.absences.filter((one) => one.health.state === "out").length;
+  const settling = useSettling();
+  const firstRead = useFirstReadRunning();
+  const held = settling || firstRead;
   return (
     <>
       <Rise screen="home" index={0}>
@@ -98,10 +103,15 @@ function Answers({ context, courses: list }: { context: HomeContext; courses: re
       <Rise screen="home" index={2} style={{ marginTop: space[4] }}>
         <HomeGrid />
       </Rise>
-      {/* Under the fold: drawn once the first frame is up, the timeline first, the rest when the thread is idle. */}
-      <Part at={1}>
-        <Below context={context} card={card} found={found} courses={courses} hasClass={hasClass} />
-      </Part>
+      {/* Under the fold: drawn once the first frame is up, the timeline first, the rest when the thread is idle.
+          While the first read runs the timeline stands in its shape from the first frame: nothing pops into a blank. */}
+      {held ? (
+        <LaterShape />
+      ) : (
+        <Part at={1}>
+          <Below context={context} card={card} found={found} courses={courses} hasClass={hasClass} />
+        </Part>
+      )}
     </>
   );
 }

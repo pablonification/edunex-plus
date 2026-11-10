@@ -31,7 +31,7 @@ import { dayNoon } from "../../../../src/core/schedule";
 import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
 import { OpenSixTimetable } from "../../parts/six-page-note";
-import { useFirstReadRunning } from "../../shell/source-status";
+import { StatusLine, useFirstReadRunning } from "../../shell/source-status";
 import { useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
 import { haptic } from "../../ui/haptics";
@@ -132,12 +132,12 @@ export function NowBanner({
 /** The block's shape while Beranda's data (or SIX's timetable) is on its way. */
 export function BannerShape({ testID = "home.now.reading" }: { testID?: string }) {
   const b = useB();
+  const firstReading = useFirstReadRunning();
   const scale = useTextWidth(1);
   return (
     <View testID={testID} accessibilityState={{ busy: true }} style={{ backgroundColor: b.soft, borderRadius: RADIUS, padding: PAD }}>
-      <View style={{ height: 20 * scale, justifyContent: "center" }}>
-        <Skeleton height={12} width="45%" />
-      </View>
+      {/* What is being read, in words, while the first read runs: never an unlabelled shape. */}
+      <View style={{ height: 20 * scale, justifyContent: "center" }}>{firstReading ? <StatusLine color={b.fg2} /> : <Skeleton height={12} width="45%" />}</View>
       <View style={{ height: 2 * NAME_LINE * scale, marginTop: space[1], justifyContent: "space-evenly" }}>
         <Skeleton height={18} width="85%" />
         <Skeleton height={18} width="55%" />
@@ -169,6 +169,7 @@ function Banner({
   const f = useFormat();
   const now = useNow();
   const b = useB();
+  const firstReading = useFirstReadRunning();
   const v = useTheme().v4;
   const tone = useCourseColor();
   const { go } = useNav();
@@ -251,9 +252,10 @@ function Banner({
           ) : (
             <>
               {reading ? (
-                // The line over the name, held: what half the data says about it changes when the rest is in.
+                // The line over the name, held: during the first read it says what is being read ("Membaca SIX ·
+                // Jadwal…"), live, and the class's own line takes its place when the rest is in. Else a shape.
                 <View style={{ height: 20 * scale, justifyContent: "center" }}>
-                  <View style={{ width: "45%", height: 12, borderRadius: 6, backgroundColor: shape }} />
+                  {firstReading ? <StatusLine color={quiet} /> : <View style={{ width: "45%", height: 12, borderRadius: 6, backgroundColor: shape }} />}
                 </View>
               ) : (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 20 * scale }}>
