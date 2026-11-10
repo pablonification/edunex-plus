@@ -6,11 +6,14 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import config from "../../mobile/app.config";
 import { WIDGET_NAMES } from "../../mobile/src/widget/names";
 
 const require = createRequire(import.meta.url);
 const mobile = path.resolve(import.meta.dirname, "../../mobile");
+// The config is loaded by its path, not imported: its types come from Expo, which only the phone's own packages
+// have (mobile/node_modules), and the repository's type check runs without them.
+const configFile: string = path.join(mobile, "app.config.ts");
+const config = ((await import(/* @vite-ignore */ configFile)) as { default: (context: never) => Record<string, unknown> }).default;
 const extras = require("../../mobile/plugins/widget-extras.js") as {
   patchProvider(xml: string, widget: object): string;
   stringsXml(widgets: object[], lang: "id" | "en"): string;

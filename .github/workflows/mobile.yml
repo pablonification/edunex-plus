@@ -424,7 +424,7 @@ jobs:
         # The widget extension rides in the app's PlugIns folder, with the layouts it draws before the app's first
         # run (expo-widgets' layout registry). Unsigned, so no entitlement is checked here: that's the phone's to prove.
         run: |
-          app=$(ls -d build/Build/Products/Release-iphoneos/*.app | head -n 1)
+          app=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n 1)
           appex="$app/PlugIns/ExpoWidgetsTarget.appex"
           test -d "$appex" || { echo "::error::The app has no widget extension."; ls "$app/PlugIns" || true; exit 1; }
           /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$appex/Info.plist"
