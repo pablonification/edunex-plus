@@ -1,12 +1,11 @@
-// Jadwal (round 2, v4: mobile/design/r2-directions/v4, "v4-jadwal"): where am I next, and what's this week like. The
-// month is the screen's one title, the term's week quietly under it; the week strip with each day's courses as dots,
-// today in the brand's blue; then the day picked (today first) as hours with each class a block in its course's tint,
-// the now-line in the same blue. A swipe across the day moves a day, across the strip a week. A class opens Beranda's
-// class sheet (one sheet for a class, wherever it's opened); a hand-in, a deadline or a meeting only Edunex announced
-// opens its own (./details.tsx).
-// The month is the top bar's calendar button; the reminder before class, the phone's calendar and the .ics are in ⋮.
-// Data and reasoning are the desktop's (scheduleDays over the same input); the minute's tick reaches only the now-line
-// and the block on now (./clock.ts).
+// Jadwal: where am I next, and what's this week like. On the white page with every tab's top bar (the tab's name, the
+// month and the term's week quietly under it, then the month's button, ⋮, Search and the bell); the week strip with each
+// day's courses as dots, today in the brand's blue; then the day picked (today first) as hours with each class a block
+// in its course's tint, the now-line in the same blue. A swipe across the day moves a day, across the strip a week. A
+// class opens Beranda's class sheet (one sheet for a class, wherever it's opened); a hand-in, a deadline or a meeting
+// only Edunex announced opens its own (./details.tsx). The reminder before class, the phone's calendar and the .ics are
+// in ⋮. Data and reasoning are the desktop's (scheduleDays over the same input); the minute's tick reaches only the
+// now-line and the block on now (./clock.ts).
 import * as Notifications from "expo-notifications";
 import { router, useIsFocused, useScrollToTop } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -24,7 +23,7 @@ import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
 import { StatusLine, SyncPanel, TabActions, useSignIn, useSyncText } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
-import { Button } from "../../ui/controls";
+import { Button, IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
@@ -64,7 +63,6 @@ const weekday = (day: string) => (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) 
 
 function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
   const theme = useTheme();
-  const v = theme.v4;
   const input = useAgendaInput();
   const six = useStatus("six");
   const today = useToday();
@@ -133,8 +131,8 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   }, [pick]);
 
   return (
-    // On the grey page every tab has (round 3: Jadwal alone was white), the day's blocks in their tints on it.
-    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: v.page }}>
+    // On the white page every tab has now (superapp-decisions.md), the day's blocks in their tints on it.
+    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: theme.color.surface }}>
       <ScheduleHeader monday={monday} picked={picked} onToday={() => pick(today, today > picked ? 1 : -1)} />
       {waiting || !input || !day ? (
         <Loading />
@@ -241,7 +239,7 @@ function DayScroll({
         collapsable={false}
         style={{ flex: 1 }}
         contentOffset={{ x: 0, y }}
-        contentContainerStyle={{ flexGrow: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: space[6] }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -278,18 +276,18 @@ function openAt(day: ScheduleDay, today: string, now: number): number {
 }
 
 /**
- * Jadwal's top bar: the month of the week on screen as its one title (Plus Jakarta Sans; another year's as "Jan 2027"),
- * the term's week quietly under it ("Minggu ke-7"; the week strip under the bar shows its days, so their range is said
- * only when the week has no number), with the data's status only when it says something. Away from today, "Hari ini"
- * as a small text button on the week's line (round 3's third review: it used to take ⋮'s place, and ⋮ went missing):
- * the bar keeps the title, ⋮ and every tab's three, so the month stays whole at a large font. A tap on the month or the
- * status opens the sources' sheet, as on every tab.
+ * Jadwal's top bar, as every tab's: the tab's name (Plus Jakarta Sans), the month and the term's week quietly under it
+ * ("Oktober · Minggu ke-7"), with the data's status only when it says something. Away from today, "Hari ini" as a small
+ * text button on that line. Then Jadwal's own two (the month, ⋮) and every tab's Search and bell. A tap on the name or
+ * the status opens the sources' sheet, as on every tab.
  */
 function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: string; onToday: () => void }) {
   const t = useT();
   const lang = useLang();
   const f = useDayFormat();
-  const v = useTheme().v4;
+  const theme = useTheme();
+  const v = theme.v4;
+  const page = theme.color.surface;
   const insets = useSafeAreaInsets();
   const input = useAgendaInput();
   const today = useToday();
@@ -307,24 +305,24 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const place = n ? t("schedule.weekOf", { n, range }) : range;
   const away = picked !== today;
   return (
-    <View style={{ backgroundColor: v.page, paddingTop: insets.top }}>
+    <View style={{ backgroundColor: page, paddingTop: insets.top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
         <View style={{ flex: 1, minWidth: 0, justifyContent: "center" }}>
           <Pressable
             onPress={() => setPanel(true)}
             accessibilityRole="button"
-            accessibilityLabel={`${month}, ${place}. ${t("sync.title")}: ${sync}`}
+            accessibilityLabel={`${t("nav.schedule")}, ${month}, ${place}. ${t("sync.title")}: ${sync}`}
             testID="action.syncStatus"
             hitSlop={{ top: 10, bottom: 8, right: 12 }}
             style={{ alignSelf: "flex-start", maxWidth: "100%" }}
           >
             <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
-              {month}
+              {t("nav.schedule")}
             </Text>
           </Pressable>
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], marginTop: -2 }}>
             <Text size="bodyMedium" tabular numberOfLines={1} importantForAccessibility="no" testID="label.place" style={{ color: v.muted, flexShrink: 1 }}>
-              {n ? t("mobile.schedule.week", { n }) : range}
+              {n ? `${month} · ${t("mobile.schedule.week", { n })}` : `${month} · ${range}`}
             </Text>
             {away && (
               <Pressable
@@ -344,6 +342,9 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
             <StatusLine />
           </Pressable>
         </View>
+        <IconButton label={t("mobile.schedule.month")} onPress={() => router.push("/schedule-month")} testID="action.month">
+          <Icons.Calendar size={24} color={theme.color.onSurfaceVariant} />
+        </IconButton>
         <ScheduleMenu />
         <TabActions />
       </View>
@@ -395,7 +396,7 @@ function CalendarProblem({ problem, onRetry }: { problem: "denied" | "failed"; o
   );
 }
 
-/** The top bar's own ⋮ (while today is on screen): the month, the reminder before class, the phone's calendar, the .ics. */
+/** The top bar's own ⋮: the reminder before class, the phone's calendar, the .ics (the month is its own button beside it). */
 function ScheduleMenu() {
   const t = useT();
   const v = useTheme().v4;
@@ -417,12 +418,6 @@ function ScheduleMenu() {
       testID="action.scheduleMenu"
       label={t("mobile.schedule.menu")}
       choices={[
-        {
-          label: t("mobile.schedule.month"),
-          icon: <Icons.Calendar size={20} color={v.muted} />,
-          onPress: () => router.push("/schedule-month"),
-          testID: "action.month",
-        },
         {
           label: t("mobile.schedule.remind"),
           hint: t("mobile.schedule.remind.hint"),

@@ -1,7 +1,7 @@
 // The week strip over Jadwal's day (v4): the week's seven days, a dot under each in the ink of every course that meets
 // that day. One shape for a day that stands out, the circle: the day picked filled (in the brand's blue when it's today,
 // else its tint), today a ring of that blue while another day is picked (blue is today's one meaning on the screen, with
-// the now-line). A day with two classes at once carries the clash's own icon (as its blocks do), named for TalkBack. A
+// the now-line). A day with two classes at once is named so for TalkBack; its blocks show the clash in words. A
 // tap picks a day; a swipe across the strip moves a week.
 import { memo } from "react";
 import { View } from "react-native";
@@ -9,7 +9,6 @@ import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import { useCourseColor } from "../../../../src/app/courses";
 import { useT } from "../../../../src/app/i18n";
 import { dayNoon, type ScheduleDay, shiftDay } from "../../../../src/core/schedule";
-import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -72,7 +71,8 @@ export const WeekStrip = memo(function WeekStrip({
           const isToday = day === today;
           const on = day === picked;
           const codes = codesOf(plan.get(day)).slice(0, 4);
-          // Two classes at once that day: the clash's icon on its date, as on the day's blocks.
+          // Two classes at once that day: said to TalkBack; on screen the day's blocks say it, with "Bentrok" (a badge on
+          // the date was too small to read: the judges' charge 12).
           const clash = plan.get(day)?.classes.some((c) => c.overlaps.length > 0) ?? false;
           const circle = isToday && on ? nowColour(theme.scheme) : on ? v.brandTint : "transparent";
           const number = isToday && on ? onNowColour(theme.scheme) : isToday ? nowColour(theme.scheme) : on ? v.brandInk : v.fg;
@@ -103,26 +103,6 @@ export const WeekStrip = memo(function WeekStrip({
                 <Text size="titleMedium" face="display" weight="semibold" tabular style={{ color: number, fontSize: 15 }}>
                   {String(Number(day.slice(8)))}
                 </Text>
-                {clash && (
-                  <View
-                    testID={`mark.clashDay.${day}`}
-                    style={{
-                      position: "absolute",
-                      top: -4,
-                      right: -6,
-                      width: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: v.ambBg,
-                      borderWidth: 1.5,
-                      borderColor: v.page,
-                    }}
-                  >
-                    <Icons.Overlap size={11} weight="bold" color={v.ambFg} />
-                  </View>
-                )}
               </View>
               <View style={{ flexDirection: "row", gap: 3, height: 5 }}>
                 {codes.map((code) => (

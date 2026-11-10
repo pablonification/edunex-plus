@@ -1,13 +1,11 @@
-// One day of Jadwal as v4 draws it (mobile/design/r2-directions/v4, "v4-jadwal"): the hours down the left, each class a
-// block in its course's tint at its time and length (its glyph, its name on as many lines as the block holds, up to two,
-// with an ellipsis past them: never a name silently cut short; the room), the part of a class already gone a shade
-// deeper, and today's now-line in the brand's blue. Classes that overlap sit side by side, each at its own start and end
-// (round 3's fourth review: stacked, a 16:00 class read as starting later), its name on up to three lines in its
-// column, and the clash's icon. Above the hours, only when there's something: ITB's period
-// ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's hand-ins and deadlines, a line
-// each. A block shows at most one status, as an icon (a clash, a new time, not in SIX); the absences, the words, the
-// code and the rest are on its sheet (Beranda's class sheet). The minute's tick moves only the now-line and the block
-// on now (./clock.ts).
+// One day of Jadwal on the white page: the hours down the left, each class a block in its course's tint at its time and
+// length (its glyph, its whole name, never cut to "…", the room), grown taller when its name needs it; the part of a
+// class already gone a shade deeper, and today's now-line in the brand's blue. Classes that overlap sit side by side,
+// each at its own start and end, each with the app's one clash sign (the icon and "Bentrok"). Above the hours, only when
+// there's something: ITB's period ("Masa UTS · 12–16 Okt"), a class SIX shows that the app couldn't read, and the day's
+// hand-ins and deadlines, a line each. A block shows at most one status, as an icon and its word (a clash, a new time,
+// not in SIX); the absences, the code and the rest are on its sheet (Beranda's class sheet). The minute's tick moves
+// only the now-line and the block on now (./clock.ts).
 import { memo, type ReactNode } from "react";
 import { useWindowDimensions, View } from "react-native";
 import type { TermCourse } from "../../../../src/app/courses";
@@ -35,8 +33,8 @@ import { useClockSelect, useDayFormat, usePhase, useToday } from "./clock";
 import type { Picked } from "./details";
 import { periodName, timeRange } from "./world";
 
-/** One hour's height (v4: 66). */
-export const HOUR = 66;
+/** One hour's height: 56, so a usual day (08:00 to 17:00 and a class after) fits the first screen whole above the tabs. */
+export const HOUR = 56;
 /** Where the hours' lines start (the labels sit left of it) and where blocks start. */
 const LINES_LEFT = 58;
 const BLOCK_LEFT = 66;
@@ -114,7 +112,7 @@ export const DayView = memo(function DayView({
   next: NextClass | null;
   onNext?: () => void;
 }) {
-  const v = useTheme().v4;
+  const page = useTheme().color.surface;
   const today = useToday();
   const { from, to } = hoursOf(day);
   const items: Item[] = [
@@ -146,16 +144,17 @@ export const DayView = memo(function DayView({
   const empty = items.length === 0;
   if (empty)
     return (
-      <View testID={`agenda.${day.day}`} style={{ backgroundColor: v.page, flexGrow: 1 }}>
+      <View testID={`agenda.${day.day}`} style={{ backgroundColor: page, flexGrow: 1 }}>
         <Lane day={day} onPick={onPick} />
         <EmptyDay free={free} next={next} name={next ? nameOf(next.code, next.name ?? undefined) : ""} onNext={onNext} />
       </View>
     );
   return (
-    <View testID={`agenda.${day.day}`} style={{ backgroundColor: v.page, flexGrow: 1 }}>
+    <View testID={`agenda.${day.day}`} style={{ backgroundColor: page, flexGrow: 1 }}>
       <Lane day={day} onPick={onPick} />
-      {/* Room under the last hour, as every page leaves above the tabs: the last block is never at the bar's edge. */}
-      <View style={{ height: TOP + (to - from) * HOUR + space[10] }}>
+      {/* Room under the last hour, as every page leaves above the tabs: the last block, grown to its whole name, is never at
+          the bar's edge. */}
+      <View style={{ minHeight: TOP + (to - from) * HOUR + space[12] * 2 }}>
         {hours.map((hour) => (
           <HourLine key={hour} hour={hour} from={from} hideLabel={day.day === today} />
         ))}
@@ -302,7 +301,7 @@ function NowLine({ from, to }: { from: number; to: number }) {
           left: 6,
           paddingHorizontal: 2,
           color: now,
-          backgroundColor: t.v4.page,
+          backgroundColor: t.color.surface,
           fontSize: 11,
           lineHeight: 16,
         }}
@@ -340,6 +339,28 @@ function statusOf(t: ReturnType<typeof useT>, entry: Item): Status | null {
   return null;
 }
 
+/**
+ * The app's one clash sign: the warning icon and "Bentrok", in amber. A local stand-in for `ClashMark` in
+ * ../../ui/kit.tsx (Foundations', not there yet when this was written): swap it in when it lands.
+ */
+function ClashMark({ style }: { style?: object }) {
+  const t = useT();
+  const v = useTheme().v4;
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      testID="mark.clash"
+      style={[{ flexDirection: "row", alignItems: "center", gap: 4, alignSelf: "flex-start" }, style]}
+    >
+      <Icons.AlertTriangle size={16} color={v.ambFg} />
+      <Text size="labelMedium" weight="semibold" style={{ color: v.ambFg }}>
+        {t("mobile.home.chip.clash")}
+      </Text>
+    </View>
+  );
+}
+
 /** A block's padding above and below its words, short and tall; the name's and the room's line heights (sp). */
 const PAD = { short: 6, tall: 10 };
 const NAME_LINE = 19;
@@ -364,13 +385,9 @@ const Block = memo(function Block({
   onPick: (picked: Picked) => void;
 }) {
   const top = yOf(minuteOfDay(entry.start), from) + 2;
+  // As tall as the class is long, and taller when its whole name and its status need it: a name is never cut to "…"
+  // (the judges' charge 12), at any font size.
   const height = Math.max(TOUCH, ((entry.end - entry.start) / 3_600_000) * HOUR - 4);
-  // As many lines of the name as the block holds beside its room (up to two alone, three in a clash's narrow column);
-  // past them an ellipsis. The lines grow with the phone's font size, so they're counted at it.
-  const { fontScale } = useWindowDimensions();
-  const pad = height < 56 ? PAD.short : PAD.tall;
-  const roomShown = height >= 56;
-  const fits = Math.floor((height - pad * 2 - (roomShown ? ROOM_LINE * fontScale + 3 : 0)) / (NAME_LINE * fontScale));
   const gap = of > 1 ? 4 : 0;
   return (
     <View
@@ -378,36 +395,28 @@ const Block = memo(function Block({
       style={{
         position: "absolute",
         top,
-        height,
+        minHeight: height,
         left: `${(column / of) * 100}%`,
         width: `${100 / of}%`,
         paddingLeft: column > 0 ? gap / 2 : 0,
         paddingRight: column < of - 1 ? gap / 2 : 0,
       }}
     >
-      <BlockBody
-        entry={entry}
-        name={name}
-        clashWith={clashWith}
-        onPick={onPick}
-        lines={Math.max(1, Math.min(of > 1 ? 3 : 2, fits))}
-        short={height < 56}
-        narrow={of > 1}
-      />
+      <BlockBody entry={entry} name={name} clashWith={clashWith} onPick={onPick} short={height < 56} narrow={of > 1} />
     </View>
   );
 });
 
 /**
- * A block's card in its course's tint: the glyph, the name on up to `lines` lines, the room, its one status as an
- * icon. `narrow`: a column beside a class it clashes with: no glyph and less padding, so the name keeps its width.
+ * A block's card in its course's tint: the glyph, the whole name, the room, then its one status as an icon and its
+ * word (a clash is the app's one clash sign, the icon and "Bentrok"). `narrow`: a column beside a class it clashes
+ * with: no glyph and less padding, so the name keeps its width.
  */
 function BlockBody({
   entry,
   name,
   clashWith,
   onPick,
-  lines,
   short = false,
   narrow = false,
 }: {
@@ -415,7 +424,6 @@ function BlockBody({
   name: string;
   clashWith: string;
   onPick: (picked: Picked) => void;
-  lines: number;
   short?: boolean;
   narrow?: boolean;
 }) {
@@ -486,7 +494,7 @@ function BlockBody({
             </View>
           )}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text size="bodyLarge" weight="semibold" numberOfLines={lines} ellipsizeMode="tail" style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
+            <Text size="bodyLarge" weight="semibold" style={{ color: v.fg, fontSize: 15, lineHeight: NAME_LINE }}>
               {title}
             </Text>
             {second !== "" && (
@@ -494,12 +502,22 @@ function BlockBody({
                 {second}
               </Text>
             )}
+            {status &&
+              (status.icon === Icons.Overlap ? (
+                <ClashMark style={{ marginTop: 6 }} />
+              ) : (
+                <View
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
+                  style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 }}
+                >
+                  <status.icon size={16} color={tone} />
+                  <Text size="labelMedium" weight="semibold" numberOfLines={1} style={{ color: tone, flexShrink: 1 }}>
+                    {status.words}
+                  </Text>
+                </View>
+              ))}
           </View>
-          {status && (
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ paddingTop: 1 }}>
-              <status.icon size={18} color={tone} weight="bold" />
-            </View>
-          )}
         </View>
       </View>
     </PressScale>
