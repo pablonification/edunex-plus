@@ -103,11 +103,18 @@ export const mobileCourseStrings = {
   // What a screen reader says for the module the course is on, in the list of all modules (the eye sees its number in a filled circle).
   "mobile.course.material.current": { id: "Modul sekarang", en: "Current module" },
   // superapp: Kuliah, round 3
-  // A course's absences beside its dots, wherever the phone says them: one short label, lower case, no noun (the dots
-  // are the noun). Left, none left, or over the limit by how many.
-  "mobile.absence.dots.left": { id: "sisa {count}", en: "{count} left" },
-  "mobile.absence.dots.none": { id: "habis", en: "none left" },
-  "mobile.absence.dots.over": { id: "lewat {count}", en: "{count} over" },
+  // Round 4, a course's Materi. Over the list when this week's module leads the tab by itself ("Minggu ini", then the rest).
+  "mobile.course.material.others": { id: "Modul lain", en: "Other modules" },
+  // A module's row, its open Tasks in its own words on the meta line (the chip "1 terbuka" didn't say what was open):
+  // all of them, or how many of how many.
+  "mobile.course.tasksOpen": { id: "{count} tugas terbuka", en: { one: "{count} open Task", other: "{count} open Tasks" } },
+  "mobile.course.tasksOpenOf": { id: "{count} tugas, {open} terbuka", en: "{count} Tasks, {open} open" },
+  // A course's absences beside its dots, wherever the phone says them: one short label, lower case, with the noun once
+  // (round 4: "sisa 1" alone had to be decoded), in the words of Beranda's strip ("absen habis", mobile.strip.out).
+  // Left, none left, or over the limit by how many.
+  "mobile.absence.dots.left": { id: "sisa {count} absen", en: { one: "{count} absence left", other: "{count} absences left" } },
+  "mobile.absence.dots.none": { id: "absen habis", en: "no absences left" },
+  "mobile.absence.dots.over": { id: "lewat {count} absen", en: { one: "{count} absence over", other: "{count} absences over" } },
   // Kuliah's "Hari ini" while nothing is open: the next class today ("Berikutnya 13:00 · Komunikasi Pemasaran"), the
   // class on now with no Presence open, that today's classes are over, or that there are none.
   "mobile.kuliah.today.next": { id: "Berikutnya {time} · {course}", en: "Next {time} · {course}" },

@@ -33,8 +33,8 @@ name: "w11 Kuliah one row one target"
     id: row.course.KU5014
 - assertVisible:
     id: status.course.KU5014
-- assertVisible: "lewat 1"
-- assertVisible: "habis"
+- assertVisible: "lewat 1 absen"
+- assertVisible: "absen habis"
 - assertNotVisible: "4 dari 3 absen"
 - assertNotVisible:
     id: "meter.course.*"
