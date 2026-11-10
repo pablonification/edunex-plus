@@ -10,7 +10,7 @@
 // A pair every theme draws is checked in light and dark with no more to write. `node mobile/qa/contrast-read.mjs --top 5`
 // prints every pair here with its ratio, worst first, the new ones too.
 import { describe, expect, it } from "vitest";
-import { BUSY_OPACITY, COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, type Palette, V4, type V4Palette } from "../../mobile/src/ui/palette";
+import { BUSY_OPACITY, COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, ON_SERVICE, type Palette, SERVICE_TONES, V4, type V4Palette } from "../../mobile/src/ui/palette";
 
 type Scheme = "light" | "dark";
 interface Tones {
@@ -243,8 +243,37 @@ const PAIRS: Pair[] = [
 describe("a neutral pill, tile or disabled button stands off its card", () => {
   it.each(["light", "dark"] as const)("%s", (scheme) => {
     const { v } = TONES[scheme];
-    expect(ratio(v.chip, v.card)).toBeGreaterThanOrEqual(ratio(V4.light.page, V4.light.card));
+    // 1.11: what light's old page grey was off its white card (the page and the card are one colour now).
+    expect(ratio(v.chip, v.card)).toBeGreaterThanOrEqual(1.11);
   });
+});
+
+// The super-app layout: the page and a card are one surface in both themes (a list is flat on it in both), and the
+// hairline between flat rows is as visible in dark as in light.
+describe("one surface, flat rows", () => {
+  it.each(["light", "dark"] as const)("%s", (scheme) => {
+    const { v } = TONES[scheme];
+    expect(v.page).toBe(v.card);
+    expect(ratio(v.line, v.page)).toBeGreaterThanOrEqual(1.2);
+  });
+});
+
+// A service's solid tile (ui/b.tsx): its white glyph reads on it, the tile reads on the page, and its colour as an ink
+// (a word, a bare icon) reads on the page and on its own tint.
+describe("service tiles", () => {
+  for (const scheme of ["light", "dark"] as const) {
+    const at = scheme === "dark" ? 1 : 0;
+    describe(scheme, () => {
+      it.each(Object.entries(SERVICE_TONES).map(([name, tone]) => ({ name, tone })))("$name", ({ name, tone }) => {
+        const { v } = TONES[scheme];
+        expect(ratio(ON_SERVICE, tone.solid[at])).toBeGreaterThanOrEqual(MARK);
+        // The neutral tile ("Lainnya") is meant to be the quietest; the rest stand 3:1 off the page.
+        expect(ratio(tone.solid[at], v.page)).toBeGreaterThanOrEqual(name === "grey" ? 2.5 : MARK);
+        expect(ratio(tone.ink[at], v.page)).toBeGreaterThanOrEqual(TEXT);
+        expect(ratio(tone.ink[at], tone.tint[at])).toBeGreaterThanOrEqual(TEXT);
+      });
+    });
+  }
 });
 
 describe("every colour pair on the phone's screens", () => {
