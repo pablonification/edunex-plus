@@ -7,8 +7,12 @@
 // writes a timeline, the document now and again at each moment it changes by itself (a class starts or ends, a
 // window closes, midnight), and the widget turns over on time with the app closed.
 //
+// The class on now also gets a Live Activity (../widget-ios/live.tsx): started while the app is open during a class
+// (iOS lets an app start one only from the foreground), kept up to date, and ended once the class is over.
+//
 // Metro takes this file on iOS only; ./widget-ios.ts is every other platform's (nothing to do).
 import { getLocales } from "expo-localization";
+import { AppState } from "react-native";
 import type { Snapshot } from "../../../src/core/snapshot";
 import { translate } from "../../../src/core/strings";
 import { hrefOf } from "../nav";
@@ -18,6 +22,7 @@ import type { WidgetTarget } from "../widget/model";
 import { widgetModel } from "../widget/model";
 import { readSaved } from "../widget/saved";
 import { type IosWidgetDoc, iosWidgetDoc, setupDoc } from "../widget-ios/doc";
+import { type LiveDoc, liveDoc } from "../widget-ios/live-doc";
 import { DEMO } from "./version";
 import type { updateIosWidgets as Contract } from "./widget-ios";
 
@@ -61,6 +66,20 @@ function loaded(): Widgets | null {
     widgets = null;
   }
   return widgets;
+}
+
+type Factory = import("expo-widgets").LiveActivityFactory<LiveDoc>;
+let factory: Factory | null | undefined;
+
+function liveFactory(): Factory | null {
+  if (factory !== undefined) return factory;
+  try {
+    factory = (require("../widget-ios/live") as typeof import("../widget-ios/live")).default;
+  } catch (error) {
+    console.warn("[widget-ios] no Live Activity in this build:", error);
+    factory = null;
+  }
+  return factory;
 }
 
 /** What was handed over last: the same timeline twice isn't asked for again (iOS counts the asks). */
@@ -108,6 +127,7 @@ export const updateIosWidgets: typeof Contract = async (source?: LiveSource) => 
           doc: setupDoc(TITLE, translate(getLocales()[0]?.languageCode === "id" ? "id" : "en", "welcome.continueHint"), `${SCHEME}://`),
         },
       ];
+  if (saved && entries[0]) await updateLive(liveDoc(saved.snapshot, saved.now, entries[0].doc), offset);
   const key = JSON.stringify(entries.map((entry) => entry.doc)) + entries.map((entry) => entry.at - entries[0]!.at).join();
   if (key === last) return null;
   last = key;
@@ -122,3 +142,46 @@ export const updateIosWidgets: typeof Contract = async (source?: LiveSource) => 
   // The timeline turns the widgets over by itself: the app needn't wake for it.
   return null;
 };
+
+/** The Live Activity running for a class: `key` is "" for one found running when the app started. */
+let running: { key: string; json: string; activity: import("expo-widgets").LiveActivity<LiveDoc> } | null = null;
+
+/** Starts, updates or ends the class's Live Activity so it matches `next` (null: no class on). */
+async function updateLive(next: LiveDoc | null, offset: number): Promise<void> {
+  const live = liveFactory();
+  if (!live) return;
+  try {
+    if (!running) {
+      // The app was closed with one running: take it over, and end any others.
+      const [first, ...rest] = live.getInstances();
+      for (const other of rest) await other.end("immediate");
+      if (first) running = { key: "", json: "", activity: first };
+    }
+    if (!next) {
+      await running?.activity.end("default");
+      running = null;
+      return;
+    }
+    // Its moments on the phone's clock: the demo's runs ahead of it.
+    const props: LiveDoc = {
+      ...next,
+      startsAt: next.startsAt - offset,
+      endsAt: next.endsAt - offset,
+      presence: next.presence ? { ...next.presence, closesAt: next.presence.closesAt - offset } : null,
+    };
+    const json = JSON.stringify(props);
+    if (running && (running.key === props.key || running.key === "")) {
+      if (running.json !== json) await running.activity.update(props, new Date(props.endsAt));
+      running = { ...running, key: props.key, json };
+      return;
+    }
+    // Another class: the last one's activity goes at once.
+    await running?.activity.end("immediate");
+    running = null;
+    if (AppState.currentState !== "active") return;
+    running = { key: props.key, json, activity: live.start(props, props.url, new Date(props.endsAt)) };
+  } catch (error) {
+    // Live Activities turned off in Settings, or iOS said no: the widgets don't depend on it.
+    console.warn("[widget-ios] Live Activity:", error);
+  }
+}

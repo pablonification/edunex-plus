@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import type { WidgetTarget } from "../../mobile/src/widget/model";
 import { widgetModel } from "../../mobile/src/widget/model";
 import { courseColor, type IosWidgetDoc, iosWidgetDoc, setupDoc } from "../../mobile/src/widget-ios/doc";
+import { liveDoc } from "../../mobile/src/widget-ios/live-doc";
 import { startEngine } from "../engine/harness";
 import { startHome } from "../engine/needs-harness";
 
@@ -80,5 +81,27 @@ describe("the iPhone widgets' document", () => {
   it("before anything is saved: the setup document, and a course without a colour is grey", () => {
     expect(setupDoc("Edunex Plus", "Hubungkan Edunex atau SIX dulu", "edunexplus://")).toMatchObject({ v: 1, state: "setup", now: null, today: null });
     expect(courseColor(undefined)).toEqual({ light: "#5f6673", dark: "#9aa1ae" });
+  });
+
+  it("the Live Activity: the class on now, its end, and its Presence window's close for iOS to count down", async () => {
+    const h = await startHome();
+    const live = liveDoc(h.engine.snapshot(), h.world.clock.now(), docOf(h));
+    expect(live).toMatchObject({
+      key: `PL3002@${Date.parse("2026-10-08T08:00:00+07:00")}`,
+      code: "PL3002",
+      detail: "08:00–10:00 · R.SG PWK LT.6",
+      startsAt: Date.parse("2026-10-08T08:00:00+07:00"),
+      endsAt: Date.parse("2026-10-08T10:00:00+07:00"),
+      // The window's close is the countdown: its words keep only what to do.
+      presence: { label: "Isi Presensi PL3002", closesAt: Date.parse("2026-10-08T09:30:00+07:00") },
+      checkIn: null,
+    });
+    expect(JSON.parse(JSON.stringify(live))).toStrictEqual(live);
+  });
+
+  it("no Live Activity between classes", async () => {
+    const h = await startHome();
+    await h.until("2026-10-08T10:30:00+07:00");
+    expect(liveDoc(h.engine.snapshot(), h.world.clock.now(), docOf(h))).toBeNull();
   });
 });

@@ -136,5 +136,6 @@ declare module "@expo/ui/swift-ui/modifiers" {
   export function accessibilityLabel(label: string): ModifierConfig;
   export function accessibilityElement(children?: "ignore" | "combine" | "contain"): ModifierConfig;
   export function layoutPriority(priority: number): ModifierConfig;
+  export function tint(style: ShapeStyle): ModifierConfig;
   export function activityBackgroundTint(color: string | null): ModifierConfig;
 }

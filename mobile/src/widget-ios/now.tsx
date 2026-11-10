@@ -61,10 +61,21 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
 
   // ---------------------------------------------------------------- before the app has anything
 
-  if (!ready || doc.state === "setup") {
+  // Nothing to show yet (never opened, nothing saved, or signed in nowhere): the app's name and the one thing to do.
+  const empty = !ready || doc.state === "setup" || (!doc.now && !doc.needs && !doc.actions.length);
+  if (empty) {
     const title = ready ? doc.title : "Edunex Plus";
-    const hint = ready ? doc.hint : null;
+    const hint = ready ? doc.hint || doc.status.text || null : null;
+    const warn = ready && doc.status.problem && !doc.hint;
     if (family === "accessoryInline") return <Text>{title}</Text>;
+    if (family === "accessoryCircular")
+      return root(
+        ready ? doc.url : undefined,
+        <ZStack modifiers={[frame({ maxWidth: 10_000, maxHeight: 10_000 })]}>
+          <AccessoryWidgetBackground />
+          {line("–", "headline", "primary", "bold")}
+        </ZStack>,
+      );
     if (lock)
       return root(
         ready ? doc.url : undefined,
@@ -79,7 +90,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
       <VStack alignment="leading" spacing={6}>
         {line(title, "headline", fg, "semibold")}
         {hint ? (
-          line(hint, "footnote", muted, "regular", 3)
+          line(hint, "footnote", warn ? (c?.warn ?? muted) : muted, warn ? "semibold" : "regular", 3)
         ) : (
           <VStack alignment="leading" spacing={4} modifiers={[redacted("placeholder")]}>
             {line("XXXXXXXXXXXX", "caption", muted)}
@@ -97,7 +108,13 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
   const plain = now && now.kind === "line" ? now : null;
   const primary = doc.actions.find((one) => one.primary) ?? null;
   const status = doc.status.text
-    ? line(doc.status.text, "caption2", doc.status.problem ? ink(c?.warn, "primary") : muted, doc.status.problem ? "semibold" : "regular")
+    ? line(
+        doc.status.text,
+        "caption2",
+        doc.status.problem ? ink(c?.warn, "primary") : muted,
+        doc.status.problem ? "semibold" : "regular",
+        doc.status.problem ? 2 : 1,
+      )
     : null;
 
   // ---------------------------------------------------------------- the Lock Screen
@@ -159,23 +176,28 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
         spacing={3}
         modifiers={[accessibilityLabel([klass.heading, klass.time, klass.code, klass.name, klass.where].filter(Boolean).join(", "))]}
       >
-        {line(klass.heading, "caption", klass.live ? (c?.live ?? fg) : muted, "semibold")}
-        <HStack spacing={6} alignment="center">
-          <RoundedRectangle cornerRadius={2} modifiers={[frame({ width: 4, height: small ? 34 : 20 }), foregroundStyle(color)]} />
-          {small ? (
+        {line(klass.heading, "caption", klass.live ? (c?.live ?? fg) : muted, "semibold", large ? 1 : 2)}
+        {large ? (
+          // Large: the code and name on one line, the time and room under it.
+          <HStack spacing={6} alignment="center">
+            <RoundedRectangle cornerRadius={2} modifiers={[frame({ width: 4, height: 20 }), foregroundStyle(color)]} />
+            {line(klass.name ? `${klass.code} ${klass.name}` : klass.code, "headline", fg, "semibold")}
+          </HStack>
+        ) : (
+          // Small and medium: the code big beside the course's colour, its name and when under it.
+          <HStack spacing={6} alignment="center">
+            <RoundedRectangle cornerRadius={2} modifiers={[frame({ width: 4, height: 34 }), foregroundStyle(color)]} />
             <VStack alignment="leading" spacing={0}>
               {line(klass.code, "headline", fg, "bold")}
-              {line(klass.time, "caption", muted)}
+              {line(small ? klass.time : [klass.time, klass.where].filter(Boolean).join(" · "), "caption", muted)}
             </VStack>
-          ) : (
-            line(klass.name ? `${klass.code} ${klass.name}` : klass.code, "headline", fg, "semibold")
-          )}
-        </HStack>
-        {small
-          ? klass.name
-            ? line(klass.name, "caption", fg, "regular", 2)
-            : null
-          : line([klass.time, klass.where].filter(Boolean).join(" · "), "caption", muted)}
+          </HStack>
+        )}
+        {large
+          ? line([klass.time, klass.where].filter(Boolean).join(" · "), "caption", muted)
+          : klass.name && !(small && primary)
+            ? line(klass.name, "caption", fg, "regular", small ? 2 : 1)
+            : null}
       </VStack>
     );
   };
@@ -192,7 +214,13 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
           clipShape("roundedRectangle", 10),
         ]}
       >
-        {line([one.label, one.detail].filter(Boolean).join(" · "), "caption", one.primary ? (c?.onAccent ?? "white") : fg, "semibold")}
+        {line(
+          large ? [one.label, one.detail].filter(Boolean).join(" · ") : one.label,
+          "caption",
+          one.primary ? (c?.onAccent ?? "white") : fg,
+          "semibold",
+          large ? 1 : 2,
+        )}
       </HStack>
     );
     return small ? (
@@ -274,7 +302,7 @@ export function NowWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
     <VStack alignment="leading" spacing={10} modifiers={[frame({ maxWidth: 10_000, maxHeight: 10_000, alignment: "topLeading" })]}>
       <Link destination={now ? now.url : doc.url}>{classBlock()}</Link>
       {doc.actions.slice(0, 2).map((one, index) => pill(one, `action-${index}`))}
-      {needsBlock(doc.actions.length ? 4 : 5, true)}
+      {needsBlock(6 - Math.min(2, doc.actions.length), true)}
       <Spacer minLength={0} />
       {status}
     </VStack>,
