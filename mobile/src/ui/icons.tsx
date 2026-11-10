@@ -29,11 +29,11 @@ import braces from "./fluent/braces";
 import briefcase from "./fluent/briefcase";
 import buildingBank from "./fluent/building-bank";
 import buildingMultiple from "./fluent/building-multiple";
-import calendarAgenda from "./fluent/calendar-agenda";
 import calendarCheckmark from "./fluent/calendar-checkmark";
 import calendarClock from "./fluent/calendar-clock";
 import calendarLtr from "./fluent/calendar-ltr";
 import calendarMonth from "./fluent/calendar-month";
+import calendarStar from "./fluent/calendar-star";
 import certificate from "./fluent/certificate";
 import chat from "./fluent/chat";
 import chatWarning from "./fluent/chat-warning";
@@ -295,8 +295,8 @@ export const ServiceIcons = {
   Krs: icon(() => taskListSquareLtr, { filled: true }),
   /** UKT */
   Bills: icon(() => wallet, { filled: true }),
-  /** Kalender akademik: a calendar page of dated lines (the term's dates as a list). */
-  AcademicCalendar: icon(() => calendarAgenda, { filled: true }),
+  /** Kalender akademik: a calendar with a star, the term's marked dates (round 4's page of dated lines read like a note). */
+  AcademicCalendar: icon(() => calendarStar, { filled: true }),
   /** Rencana studi, the plan to graduation: steps going up. Never a road sign (read as map directions). */
   StudyPlan: icon(() => steps, { filled: true }),
   /** Transkrip */
