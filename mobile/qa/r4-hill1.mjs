@@ -4,9 +4,8 @@
 // From Maestro's view of the screen (`maestro hierarchy`), which works while Beranda's wave keeps moving.
 //
 //   maestro --device "$ANDROID_SERIAL" hierarchy | node mobile/qa/r4-hill1.mjs
-import fs from "node:fs";
-
-const raw = fs.readFileSync(0, "utf8");
+let raw = "";
+for await (const chunk of process.stdin) raw += chunk;
 const root = JSON.parse(raw.slice(raw.indexOf("{")));
 const box = (b) => (b ?? "[0,0][0,0]").match(/-?\d+/g).map(Number);
 const nodes = [];
