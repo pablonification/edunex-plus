@@ -6,6 +6,171 @@ const demo = process.env.EXPO_PUBLIC_DEMO === "1";
 const { version } = require("../package.json") as { version: string };
 const { shapesStamp } = require("./scripts/shapes-stamp.js") as { shapesStamp(): string };
 
+/**
+ * The home-screen widgets (qa/superapp-widgets.md, src/widget/). `name` is the widget's class to Android: "Now" and
+ * "Today" are on Students' home screens already, so they keep theirs. Sizes: `minWidth`/`minHeight` the first size on
+ * Android 11 and older (70 × cells − 30 dp), `targetCell*` on 12 and newer, `minResize*` the smallest it can be made
+ * (plugins/widget-extras.js), `maxResize*` the largest. Picker words in Indonesian and English (a native string, so here
+ * rather than in src/core/strings). `widgetFeatures`: "Satu mata kuliah" asks which course, later, from the widget's menu.
+ */
+const HALF_HOUR = 30 * 60 * 1000;
+const WIDGETS = [
+  {
+    name: "Now",
+    label: { id: "Sekarang", en: "Now" },
+    description: {
+      id: "Kuliah sekarang atau berikutnya, Tandai Hadir, dan yang perlu kamu urus",
+      en: "Your class now or next, Tandai Hadir, and what needs you",
+    },
+    minWidth: "250dp",
+    minHeight: "110dp",
+    targetCellWidth: 4,
+    targetCellHeight: 2,
+    minResizeWidth: "110dp",
+    minResizeHeight: "40dp",
+    maxResizeWidth: "530dp",
+    maxResizeHeight: "450dp",
+    resizeMode: "horizontal|vertical",
+    updatePeriodMillis: HALF_HOUR,
+  },
+  {
+    name: "Today",
+    label: { id: "Hari ini", en: "Today" },
+    description: { id: "Kuliah hari ini dan tenggat berikutnya", en: "Today's classes and the next deadline" },
+    minWidth: "180dp",
+    minHeight: "110dp",
+    targetCellWidth: 3,
+    targetCellHeight: 2,
+    minResizeWidth: "110dp",
+    minResizeHeight: "110dp",
+    maxResizeWidth: "530dp",
+    maxResizeHeight: "450dp",
+    resizeMode: "horizontal|vertical",
+    updatePeriodMillis: HALF_HOUR,
+  },
+  {
+    name: "Due",
+    label: { id: "Tenggat", en: "Deadlines" },
+    description: { id: "Tugas yang belum dikumpulkan, yang paling dekat dulu", en: "Tasks not handed in yet, soonest first" },
+    minWidth: "180dp",
+    minHeight: "110dp",
+    targetCellWidth: 3,
+    targetCellHeight: 2,
+    minResizeWidth: "110dp",
+    minResizeHeight: "110dp",
+    maxResizeWidth: "530dp",
+    maxResizeHeight: "600dp",
+    resizeMode: "horizontal|vertical",
+    updatePeriodMillis: HALF_HOUR,
+  },
+  {
+    name: "Attendance",
+    label: { id: "Kehadiran", en: "Attendance" },
+    description: { id: "Sisa jatah absen tiap mata kuliah", en: "Absences left in each course" },
+    minWidth: "180dp",
+    minHeight: "110dp",
+    targetCellWidth: 3,
+    targetCellHeight: 2,
+    minResizeWidth: "110dp",
+    minResizeHeight: "110dp",
+    maxResizeWidth: "530dp",
+    maxResizeHeight: "450dp",
+    resizeMode: "horizontal|vertical",
+    // Changes only with what SIX and Edunex say: drawn again by the app and the background sync, never on a timer.
+    updatePeriodMillis: 0,
+  },
+  {
+    name: "Exam",
+    label: { id: "Ujian", en: "Exams" },
+    description: { id: "Berapa hari lagi ujian berikutnya", en: "Days until your next exam" },
+    minWidth: "110dp",
+    minHeight: "110dp",
+    targetCellWidth: 2,
+    targetCellHeight: 2,
+    minResizeWidth: "110dp",
+    minResizeHeight: "40dp",
+    maxResizeWidth: "250dp",
+    maxResizeHeight: "110dp",
+    resizeMode: "horizontal|vertical",
+    updatePeriodMillis: HALF_HOUR,
+  },
+  {
+    name: "Next",
+    label: { id: "Kelas berikutnya", en: "Next class" },
+    description: {
+      id: "Jam dan ruang kuliah berikutnya, hijau saat Tandai Hadir dibuka",
+      en: "Your next class's time and room, green when Tandai Hadir opens",
+    },
+    minWidth: "40dp",
+    minHeight: "40dp",
+    targetCellWidth: 1,
+    targetCellHeight: 1,
+    minResizeWidth: "40dp",
+    minResizeHeight: "40dp",
+    maxResizeWidth: "180dp",
+    maxResizeHeight: "110dp",
+    resizeMode: "horizontal|vertical",
+    updatePeriodMillis: HALF_HOUR,
+  },
+  {
+    name: "Services",
+    label: { id: "Pintasan", en: "Shortcuts" },
+    description: { id: "Jadwal, Tugas, Kuliah dan Nilai, sekali ketuk", en: "Schedule, Tasks, Courses and Grades in one tap" },
+    minWidth: "250dp",
+    minHeight: "40dp",
+    targetCellWidth: 4,
+    targetCellHeight: 1,
+    minResizeWidth: "110dp",
+    minResizeHeight: "40dp",
+    maxResizeWidth: "530dp",
+    maxResizeHeight: "110dp",
+    resizeMode: "horizontal|vertical",
+    // Says nothing that changes by the hour: drawn when it's added, resized, or the language or look changes.
+    updatePeriodMillis: 0,
+  },
+  {
+    name: "Course",
+    label: { id: "Satu mata kuliah", en: "One course" },
+    description: {
+      id: "Kuliah berikutnya, sisa absen dan tugas dari satu mata kuliah pilihanmu",
+      en: "One course you pick: its next class, absences left and Tasks",
+    },
+    minWidth: "180dp",
+    minHeight: "110dp",
+    targetCellWidth: 3,
+    targetCellHeight: 2,
+    minResizeWidth: "110dp",
+    minResizeHeight: "110dp",
+    maxResizeWidth: "530dp",
+    maxResizeHeight: "320dp",
+    resizeMode: "horizontal|vertical",
+    // Placed at once (Android 12+) on the course with the next class; "Ubah widget" on it picks another
+    // (src/widget/configure.tsx). Android 11 and older ask which course as it's placed.
+    widgetFeatures: "reconfigurable|configuration_optional",
+    updatePeriodMillis: HALF_HOUR,
+  },
+] as const satisfies readonly WidgetEntry[];
+
+interface WidgetEntry {
+  name: string;
+  label: { id: string; en: string };
+  description: { id: string; en: string };
+  minWidth: `${number}dp`;
+  minHeight: `${number}dp`;
+  targetCellWidth: number;
+  targetCellHeight: number;
+  minResizeWidth: `${number}dp`;
+  minResizeHeight: `${number}dp`;
+  maxResizeWidth: `${number}dp`;
+  maxResizeHeight: `${number}dp`;
+  resizeMode: "horizontal|vertical";
+  widgetFeatures?: "reconfigurable|configuration_optional";
+  updatePeriodMillis: number;
+}
+
+/** The demo is its own app on the phone: its widgets say so in the picker. */
+const demoLabel = (label: { id: string; en: string }) => (demo ? { id: `${label.id} (Demo)`, en: `${label.en} (Demo)` } : label);
+
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
   name: demo ? "Edunex Plus Demo" : "Edunex Plus",
@@ -92,37 +257,30 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         },
       },
     ],
-    // The home-screen widget (D1): 4×2 at first, bigger when the Student stretches it; Android draws it again every 30 minutes
-    // (the least it allows), the app and the background sync whenever what it shows changes.
+    // The home-screen widgets' smaller sizes and their picker words in both languages (plugins/widget-extras.js). Before the
+    // library's own entry on purpose: Expo runs a later plugin's steps first, so these follow the library's.
+    [
+      "./plugins/widget-extras",
+      {
+        widgets: WIDGETS.map(({ name, minResizeWidth, minResizeHeight, label, description }) => ({
+          name,
+          minResizeWidth,
+          minResizeHeight,
+          label: demoLabel(label),
+          description,
+        })),
+      },
+    ],
+    // The home-screen widgets (qa/superapp-widgets.md): each its own size, picture and question. Android draws a placed one
+    // again every 30 minutes at most (the least it allows), and the app and the background sync whenever what it shows changes.
     [
       "react-native-android-widget",
       {
-        widgets: [
-          {
-            name: "Now",
-            label: demo ? "Edunex Plus Demo" : "Edunex Plus",
-            minWidth: "250dp",
-            minHeight: "110dp",
-            targetCellWidth: 4,
-            targetCellHeight: 2,
-            resizeMode: "horizontal|vertical",
-            previewImage: "./assets/widget-preview.png",
-            updatePeriodMillis: 30 * 60 * 1000,
-          },
-          // "Hari ini" (W13): today's classes and the next deadline, 3×2 at first; a class opens its sheet on Jadwal.
-          {
-            name: "Today",
-            label: demo ? "Hari ini (Demo)" : "Hari ini",
-            description: "Kuliah hari ini dan tenggat berikutnya",
-            minWidth: "180dp",
-            minHeight: "110dp",
-            targetCellWidth: 3,
-            targetCellHeight: 2,
-            resizeMode: "horizontal|vertical",
-            previewImage: "./assets/widget-preview.png",
-            updatePeriodMillis: 30 * 60 * 1000,
-          },
-        ],
+        widgets: WIDGETS.map(({ minResizeWidth: _w, minResizeHeight: _h, label, description: _d, ...widget }) => ({
+          ...widget,
+          label: demoLabel(label).id,
+          previewImage: `./assets/widget-preview-${widget.name.toLowerCase()}.png` as const,
+        })),
       },
     ],
   ],
