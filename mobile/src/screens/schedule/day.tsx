@@ -146,7 +146,7 @@ export const DayView = memo(function DayView({
     return (
       <View testID={`agenda.${day.day}`} style={{ backgroundColor: page, flexGrow: 1 }}>
         <Lane day={day} onPick={onPick} />
-        <EmptyDay free={free} next={next} name={next ? nameOf(next.code, next.name ?? undefined) : ""} onNext={onNext} />
+        <EmptyDay six={six} free={free} next={next} name={next ? nameOf(next.code, next.name ?? undefined) : ""} onNext={onNext} />
       </View>
     );
   return (
@@ -198,7 +198,7 @@ export interface NextClass {
  * A day with no class (round 3): no empty hours, a calm sun and the one word, then the way on: the next class under
  * "Berikutnya", as its block in its course's tint (its name, day and time, room); a tap goes to that day.
  */
-function EmptyDay({ free, next, name, onNext }: { free: boolean; next: NextClass | null; name: string; onNext?: () => void }) {
+function EmptyDay({ six, free, next, name, onNext }: { six: boolean; free: boolean; next: NextClass | null; name: string; onNext?: () => void }) {
   const t = useT();
   const f = useDayFormat();
   const today = useToday();
@@ -214,12 +214,17 @@ function EmptyDay({ free, next, name, onNext }: { free: boolean; next: NextClass
   const when = next ? `${day}, ${timeRange(f, next.start, next.end)}` : "";
   return (
     <View testID="schedule.emptyDay" style={{ alignItems: "center", paddingTop: space[10], paddingHorizontal: space[4], gap: space[3] }}>
-      <View style={{ width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", backgroundColor: v.card }}>
-        <Icons.Sun size={30} color={v.muted} />
-      </View>
-      <Text size="titleMedium" face="display" weight="bold" style={{ color: v.fg }}>
-        {free ? t("schedule.free") : t("mobile.schedule.noClasses")}
-      </Text>
+      {/* Without SIX the app doesn't know the day is free: the note above says what SIX adds, with the way in. */}
+      {six && (
+        <>
+          <View style={{ width: 64, height: 64, borderRadius: 32, alignItems: "center", justifyContent: "center", backgroundColor: v.card }}>
+            <Icons.Sun size={30} color={v.muted} />
+          </View>
+          <Text size="titleMedium" face="display" weight="bold" style={{ color: v.fg }}>
+            {free ? t("schedule.free") : t("mobile.schedule.noClasses")}
+          </Text>
+        </>
+      )}
       {next && onNext && (
         <View style={{ alignSelf: "stretch", marginTop: space[6], gap: space[2] }}>
           <Text size="bodyMedium" weight="medium" style={{ color: v.muted, marginLeft: space[1] }}>

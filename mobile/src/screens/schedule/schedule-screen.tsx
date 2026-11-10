@@ -483,8 +483,9 @@ function NeedsSix() {
   );
 }
 
-/** While SIX's timetable is on its way: the strip's days, then two blocks on the hours. */
+/** While SIX's timetable is on its way: the strip's days, then the hours' rail with two blocks on it, as the day will be. */
 function Loading() {
+  const line = useTheme().v4.line;
   return (
     <View accessibilityState={{ busy: true }} style={{ paddingHorizontal: space[4], gap: space[3] }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: space[3] }}>
@@ -493,8 +494,20 @@ function Loading() {
           <Skeleton key={i} height={60} width={38} />
         ))}
       </View>
-      <Skeleton height={120} style={{ marginTop: space[6], marginLeft: 50, borderRadius: 14 }} />
-      <Skeleton height={120} style={{ marginTop: space[8], marginLeft: 50, borderRadius: 14 }} />
+      <View style={{ marginTop: space[3], height: HOUR * 6 }}>
+        {Array.from({ length: 7 }, (_, i) => (
+          <View
+            // biome-ignore lint/suspicious/noArrayIndexKey: placeholder hours have no identity and never move
+            key={i}
+            style={{ position: "absolute", top: i * HOUR, left: 0, right: 0, flexDirection: "row", alignItems: "center", gap: space[2] }}
+          >
+            <Skeleton height={10} width={34} />
+            <View style={{ flex: 1, height: 1, backgroundColor: line }} />
+          </View>
+        ))}
+        <Skeleton height={HOUR * 2 - 6} width="auto" style={{ position: "absolute", top: 4, left: 50, right: 0, borderRadius: 14 }} />
+        <Skeleton height={HOUR * 2 - 6} width="auto" style={{ position: "absolute", top: HOUR * 3 + 4, left: 50, right: 0, borderRadius: 14 }} />
+      </View>
     </View>
   );
 }
