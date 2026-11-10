@@ -1,0 +1,347 @@
+{
+  "about": "Every screen x every state of the demo, with the link that shows it. Read by states-shots.sh; pictured in superapp-states.md. handling: designed (its own words and shape), shared (a shared part: EmptyState, ProblemBanner, Skeleton), weak (drawn, but says less than it should), unhandled (release blocker), no-way (the demo can't show it yet; not shot), n/a (the screen has no such state; not shot).",
+  "package": "io.github.pablonification.edunexplus.demo",
+  "waits": { "start": 15, "screen": 3 },
+  "states": {
+    "normal": { "query": "EDUNEX_DEMO=signed-in" },
+    "loading": { "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_HOLD=1", "wait": 3 },
+    "empty": { "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_EMPTY=tasks,exams,material,alerts,grades" },
+    "offline": { "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_OFFLINE=1", "prime": true, "wait": 10 },
+    "error": { "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both" },
+    "error-first": { "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_FAIL=both&EDUNEX_DEMO_FAIL_AT=start" },
+    "six-ended": { "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_ENDED=six" },
+    "no-six": { "query": "EDUNEX_DEMO=edunex-only" }
+  },
+  "screens": [
+    {
+      "id": "beranda",
+      "name": "Beranda",
+      "path": "",
+      "file": "mobile/src/screens/home/index.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "Loading (home.loading), now.tsx HeldShape, urus.tsx UrusLoading" },
+        "empty": { "handling": "designed", "draws": "urus.tsx: Tak ada yang perlu diurus (mobile.home.toHandleNone)" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner (source-status.tsx)" },
+        "error": { "handling": "shared", "draws": "ProblemBanner" },
+        "error-first": { "handling": "shared", "draws": "ProblemBanner over an empty Beranda" },
+        "six-ended": { "handling": "shared", "draws": "ProblemBanner: Sesi SIX berakhir + Masuk lagi" },
+        "no-six": { "handling": "weak", "draws": "now.tsx returns null: no now card, nothing says SIX is missing" }
+      }
+    },
+    {
+      "id": "beranda-holiday",
+      "name": "Beranda, a day with no class",
+      "path": "",
+      "file": "mobile/src/screens/home/now.tsx",
+      "cells": {
+        "empty": {
+          "handling": "designed",
+          "draws": "now.tsx: Tak ada kuliah 7 hari ke depan (mobile.home.free)",
+          "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_NOW=2026-12-20T09:00:00%2B07:00"
+        }
+      }
+    },
+    {
+      "id": "jadwal",
+      "name": "Jadwal",
+      "path": "schedule",
+      "file": "mobile/src/screens/schedule/schedule-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "Loading: a week strip and two blocks" },
+        "empty": {
+          "handling": "designed",
+          "draws": "schedule/day.tsx: schedule.emptyDay",
+          "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_NOW=2026-10-10T09:00:00%2B07:00"
+        },
+        "offline": { "handling": "shared", "draws": "BTabHeader's ProblemBanner" },
+        "error": { "handling": "shared", "draws": "BTabHeader's ProblemBanner" },
+        "error-first": { "handling": "shared", "draws": "ProblemBanner over an empty week" },
+        "six-ended": { "handling": "shared", "draws": "ProblemBanner" },
+        "no-six": { "handling": "designed", "draws": "note.needsSix + action.signInSix" }
+      }
+    },
+    {
+      "id": "tugas",
+      "name": "Tugas",
+      "path": "tasks",
+      "file": "mobile/src/screens/tasks/list.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "skeleton rows (mobile.tasks.loading)" },
+        "empty": { "handling": "designed", "draws": "Tidak ada yang perlu dikerjakan + hint" },
+        "offline": { "handling": "shared", "draws": "BTabHeader's ProblemBanner; RowProblemBanner" },
+        "error": { "handling": "shared", "draws": "ProblemBanner" },
+        "error-first": { "handling": "designed", "draws": "tasks.unavailable + action.tryAgain" },
+        "six-ended": { "handling": "shared", "draws": "ProblemBanner" },
+        "no-six": { "handling": "designed", "draws": "tasks.examsNoSix + action.signInSix" }
+      }
+    },
+    {
+      "id": "kuliah",
+      "name": "Kuliah",
+      "path": "courses",
+      "file": "mobile/src/screens/presence/presence-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "courses.loading" },
+        "empty": {
+          "handling": "no-way",
+          "draws": "Belum ada mata kuliah semester ini: the demo always has courses (a course-less option would empty Edunex's /course/courses and SIX's status page)"
+        },
+        "offline": { "handling": "shared", "draws": "BTabHeader's ProblemBanner" },
+        "error": { "handling": "shared", "draws": "ProblemBanner only, nothing of its own" },
+        "error-first": { "handling": "designed", "draws": "the empty line under the banner" },
+        "six-ended": { "handling": "shared", "draws": "ProblemBanner" },
+        "no-six": { "handling": "designed", "draws": "no absence counts; card.signInSix" }
+      }
+    },
+    {
+      "id": "profil",
+      "name": "Profil",
+      "path": "profile",
+      "file": "mobile/src/screens/academic/academic-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "academic.loading (the IPK's shape), Skeleton metas" },
+        "empty": { "handling": "n/a", "draws": "a first-term Student's IPK comes from SIX's transcript: no option empties it yet" },
+        "offline": { "handling": "shared", "draws": "BTabHeader's ProblemBanner" },
+        "error": { "handling": "shared", "draws": "ProblemBanner" },
+        "error-first": { "handling": "designed", "draws": "academic.noSix: IPK muncul di sini setelah SIX terbaca" },
+        "six-ended": { "handling": "shared", "draws": "ProblemBanner" },
+        "no-six": { "handling": "designed", "draws": "ConnectSix + action.academic.signIn" }
+      }
+    },
+    {
+      "id": "layanan",
+      "name": "Semua layanan",
+      "path": "services",
+      "file": "mobile/src/screens/services/services-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "no-six": { "handling": "designed", "draws": "the same grid: it reads no data" }
+      }
+    },
+    {
+      "id": "materi",
+      "name": "Materi",
+      "path": "material",
+      "file": "mobile/src/screens/material/material-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "Loading: skeleton groups" },
+        "empty": { "handling": "shared", "draws": "EmptyState mobile.material.empty + hint" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error-first": { "handling": "shared", "draws": "ProblemBanner + EmptyState mobile.material.empty (says empty when it couldn't read)" },
+        "no-six": { "handling": "designed", "draws": "the same: Materi is Edunex's" }
+      }
+    },
+    {
+      "id": "ujian",
+      "name": "Ujian",
+      "path": "exams",
+      "file": "mobile/src/screens/exams/exams-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "Loading: date blocks" },
+        "empty": { "handling": "shared", "draws": "EmptyState mobile.exams.empty (SIX's exam weeks may still show: Edunex's exams only are emptied)" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error-first": { "handling": "shared", "draws": "ProblemBanner + EmptyState" },
+        "six-ended": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "no-six": { "handling": "shared", "draws": "EmptyState mobile.exams.noSix + sign in" }
+      }
+    },
+    {
+      "id": "course",
+      "name": "A course (II4091)",
+      "path": "course/II4091",
+      "file": "mobile/src/screens/course/course-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "Loading: skeleton page" },
+        "empty": { "handling": "designed", "draws": "modules.tsx: course.noMaterials" },
+        "offline": { "handling": "unhandled", "draws": "no banner on this page: saved data with nothing saying it's old" },
+        "error": { "handling": "unhandled", "draws": "no banner on this page: saved data, the error unsaid" },
+        "error-first": { "handling": "designed", "draws": "NotLoaded: skeleton + course.unavailable + action.courseRetry" },
+        "no-six": { "handling": "designed", "draws": "meetings.tsx: meeting.noSix" }
+      }
+    },
+    {
+      "id": "module",
+      "name": "A module",
+      "path": "course/II4091/module/450219",
+      "file": "mobile/src/screens/course/module-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "ModuleSkeleton" },
+        "empty": { "handling": "weak", "draws": "EmptyState course.unavailable: the same words as an error" },
+        "offline": { "handling": "unhandled", "draws": "no banner on this page" },
+        "error": { "handling": "unhandled", "draws": "no banner on this page" },
+        "error-first": { "handling": "shared", "draws": "EmptyState course.unavailable, no way to try again" }
+      }
+    },
+    {
+      "id": "task",
+      "name": "A Task (117001)",
+      "path": "task/117001",
+      "file": "mobile/src/screens/tasks/task-page.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "NoTasksYet" },
+        "empty": { "handling": "shared", "draws": "EmptyState task.notFound + task.backToTasks" },
+        "offline": { "handling": "unhandled", "draws": "no banner on the page; hand-in says it only when tried (hand-in.tsx HandInNotice)" },
+        "error": { "handling": "unhandled", "draws": "no banner on the page" },
+        "error-first": { "handling": "weak", "draws": "NoTasksYet or task.notFound: says gone when it couldn't read" }
+      }
+    },
+    {
+      "id": "exam",
+      "name": "An exam (DK4073-UTS)",
+      "path": "exam/DK4073-UTS",
+      "file": "mobile/src/screens/tasks/exam-page.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "3 skeletons" },
+        "offline": { "handling": "unhandled", "draws": "no banner on the page" },
+        "error": { "handling": "unhandled", "draws": "no banner on the page" },
+        "error-first": { "handling": "weak", "draws": "EmptyState exam.notFound: says gone when it couldn't read" },
+        "no-six": { "handling": "shared", "draws": "EmptyState exam.notFound (SIX's exam weeks aren't read)" }
+      }
+    },
+    {
+      "id": "nilai",
+      "name": "Nilai",
+      "path": "grades",
+      "file": "mobile/src/screens/grades/grades-screen.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "grades.loading" },
+        "empty": { "handling": "unhandled", "draws": "no empty state of its own (Edunex's gradebooks emptied; SIX's transcript still read)" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error-first": { "handling": "unhandled", "draws": "check the picture: no empty or couldn't-read state found in the code" },
+        "six-ended": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "no-six": { "handling": "designed", "draws": "WithoutSix: note.sixNeeded + section.edunexTerm" }
+      }
+    },
+    {
+      "id": "plan-planner",
+      "name": "Rencana studi: Rencana",
+      "path": "plan/planner",
+      "file": "mobile/src/screens/plan/planner.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "plan.loading in note.sixNeeded" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error": { "handling": "designed", "draws": "ProblemBanner + SixPageNote" },
+        "error-first": { "handling": "designed", "draws": "SixNeeded card" },
+        "six-ended": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "no-six": { "handling": "designed", "draws": "SixNeeded + action.signInSix" }
+      }
+    },
+    {
+      "id": "plan-curriculum",
+      "name": "Rencana studi: Kurikulum",
+      "path": "plan/curriculum",
+      "file": "mobile/src/screens/plan/curriculum.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "plan.loading" },
+        "empty": { "handling": "designed", "draws": "curriculum.pick.none", "query": "EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CURRICULUM=none" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error": { "handling": "designed", "draws": "SixPageNote" },
+        "no-six": { "handling": "designed", "draws": "SixNeeded" }
+      }
+    },
+    {
+      "id": "plan-krs",
+      "name": "Rencana studi: KRS",
+      "path": "plan/krs",
+      "file": "mobile/src/screens/plan/krs.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "plan.loading" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error": { "handling": "designed", "draws": "SixPageNote" },
+        "no-six": { "handling": "designed", "draws": "SixNeeded" }
+      }
+    },
+    {
+      "id": "plan-bills",
+      "name": "Rencana studi: UKT",
+      "path": "plan/bills",
+      "file": "mobile/src/screens/plan/bills.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "loading": { "handling": "designed", "draws": "plan.loading" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner belowBar" },
+        "error": { "handling": "designed", "draws": "SixPageNote" },
+        "no-six": { "handling": "designed", "draws": "SixNeeded" }
+      }
+    },
+    {
+      "id": "plan-deadlines",
+      "name": "Rencana studi: Kalender",
+      "path": "plan/deadlines",
+      "file": "mobile/src/screens/plan/deadlines.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "offline": { "handling": "shared", "draws": "ProblemBanner belowBar (ITB's calendar is saved)" },
+        "no-six": { "handling": "designed", "draws": "the same: ITB's public calendar" }
+      }
+    },
+    {
+      "id": "notifikasi",
+      "name": "Notifikasi",
+      "path": "alerts",
+      "file": "mobile/app/alerts.tsx",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "empty": { "handling": "designed", "draws": "Belum ada yang berubah + hint (alerts.empty*), if the first read makes no alerts" },
+        "offline": { "handling": "weak", "draws": "saved alerts; no banner found in app/alerts.tsx" },
+        "no-six": { "handling": "designed", "draws": "the empty hint names Edunex" }
+      }
+    },
+    {
+      "id": "search",
+      "name": "Search",
+      "path": "search",
+      "file": "mobile/app/search.tsx",
+      "cells": {
+        "normal": { "handling": "designed", "draws": "suggestions and recent before typing" },
+        "loading": { "handling": "weak", "draws": "an index of nothing yet: check the picture" },
+        "offline": { "handling": "designed", "draws": "works on saved data" },
+        "no-six": { "handling": "designed", "draws": "results from Edunex only" }
+      }
+    },
+    {
+      "id": "settings",
+      "name": "Settings",
+      "path": "settings",
+      "file": "mobile/src/screens/settings",
+      "cells": {
+        "normal": { "handling": "designed" },
+        "six-ended": { "handling": "designed", "draws": "Akun's SIX row" },
+        "no-six": { "handling": "designed", "draws": "settings.notConnected + action.signIn" }
+      }
+    },
+    {
+      "id": "first-minute",
+      "name": "The first minute",
+      "path": "",
+      "file": "mobile/app/_layout.tsx (the welcome), mobile/src/screens/home/first-run.tsx",
+      "cells": {
+        "normal": { "handling": "designed", "draws": "the welcome", "query": "EDUNEX_DEMO=first-run" },
+        "loading": {
+          "handling": "no-way",
+          "draws": "Membaca... after sign-in needs a tap on the welcome (flows/judge/first-run.yaml); EDUNEX_DEMO_SLOW=8 stretches it"
+        },
+        "offline": { "handling": "no-way", "draws": "signing in with no network: no option yet (OFFLINE=1 resumes saved data instead)" },
+        "error": { "handling": "no-way", "draws": "a sign-in page that fails: EDUNEX_DEMO_SIGN_IN=fails, after a tap" }
+      }
+    }
+  ]
+}

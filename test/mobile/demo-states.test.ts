@@ -1,5 +1,6 @@
 // The demo's states for pictures (mobile/src/demo/states.ts): each option on the demo's link puts the pretend world in
 // the state its row in mobile/qa/superapp-states.md pictures, and none changes the demo when it's absent.
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { applyAfterFirstRead, applyBeforeFirstRead, demoStates } from "../../mobile/src/demo/states";
 import { NetworkError } from "../../src/engine/http/transport";
@@ -8,7 +9,7 @@ import { PRETEND_TOKEN } from "../pretend/edunex";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
 
 const EDUNEX = "https://api-edunex.cognisia.id";
-const SIX = "https://six.itb.ac.id/app/mahasiswa:13521000/statusmhs";
+const SIX = "https://six.itb.ac.id/app/mahasiswa:18223901/statusmhs";
 
 function world(asked: Record<string, string> = {}) {
   const states = demoStates(asked);
@@ -91,5 +92,31 @@ describe("the demo's states", () => {
     expect(() => demoStates({ EDUNEX_DEMO_EMPTY: "homework" })).toThrow(/homework/);
     expect(() => demoStates({ EDUNEX_DEMO_OFFLINE: "yes" })).toThrow();
     expect(() => demoStates({ EDUNEX_DEMO_ENDED: "both" })).toThrow();
+  });
+});
+
+describe("the list of states (mobile/qa/superapp-states.md) and the capture script's data", () => {
+  const read = (file: string) => readFileSync(new URL(`../../mobile/qa/${file}`, import.meta.url), "utf8");
+  const data = JSON.parse(read("superapp-states.json")) as {
+    states: Record<string, { query: string }>;
+    screens: { id: string; name: string; path: string; cells: Record<string, { handling: string; query?: string }> }[];
+  };
+  const table = read("superapp-states.md");
+
+  it("has every row of the data in the table, with the same link, and every link is one the demo reads", () => {
+    for (const screen of data.screens)
+      for (const [state, cell] of Object.entries(screen.cells)) {
+        expect(data.states[state], `${screen.id}: no state ${state}`).toBeDefined();
+        const shot = cell.handling !== "no-way" && cell.handling !== "n/a";
+        const query = cell.query ?? data.states[state]!.query;
+        const link = shot ? `\`edunexplusdemo://demo?${query}\`` : "–";
+        expect(table, `${screen.id} ${state}`).toContain(`| ${screen.name} | `);
+        expect(table, `${screen.id} ${state}`).toContain(`| ${state} | ${link} |`);
+        if (shot) {
+          const asked = Object.fromEntries(new URLSearchParams(query).entries());
+          expect(() => demoStates(asked)).not.toThrow();
+          expect(() => demoOptions(asked)).not.toThrow();
+        }
+      }
   });
 });
