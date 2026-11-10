@@ -151,7 +151,7 @@ export function AddCourse({
               height: 44,
               borderRadius: radius.lg,
               paddingHorizontal: space[3],
-              backgroundColor: theme.v4.page,
+              backgroundColor: theme.v4.chip,
             }}
           >
             <Icons.Search size={18} color={theme.color.faint} />

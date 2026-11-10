@@ -12,8 +12,7 @@ import { reportSendingOf, type Settings, type UpdateCheckResult } from "../../..
 import { pageName } from "../../../../src/core/report";
 import { openReport } from "../../parts/report";
 import { Button } from "../../ui/controls";
-import { IconTile, Pill } from "../../ui/group";
-import { Icons } from "../../ui/icons";
+import { Pill } from "../../ui/group";
 import { factsLabel } from "../../ui/layout";
 import { Chevron, ChoiceRow, haptic, SettingRow, SettingsGroup, SheetTitle } from "../../ui/settings-list";
 import { Sheet } from "../../ui/sheet";
@@ -75,14 +74,23 @@ export function AboutSettings({ version, relay }: { version: string; relay: bool
   const t = useT();
   return (
     <SettingsGroup title={t("settings.about")} note={t("settings.unofficial")}>
+      {/* The app's own icon at the row's end: every row of Settings starts its words at the same edge. */}
       <SettingRow
-        leading={<Image source={require("../../../assets/icon.png")} style={{ width: 44, height: 44, borderRadius: 14 }} accessibilityIgnoresInvertColors />}
         title="Edunex Plus"
         meta={t("settings.openSource")}
+        trailing={<Image source={require("../../../assets/icon.png")} style={{ width: 40, height: 40, borderRadius: 12 }} accessibilityIgnoresInvertColors />}
       />
       <CheckForUpdates version={version} />
+      {/* What the app found the first time it read Edunex and SIX: about the app, not an account (round 1's council). */}
       <SettingRow
-        leading={<IconTile tone="plain" icon={(color) => <Icons.Flag size={22} color={color} />} />}
+        title={t("mobile.settings.firstFound")}
+        onPress={() => router.push("/first-scan")}
+        label={`${t("settings.firstScan.show")}: ${t("mobile.settings.firstFound")}`}
+        hint={t("settings.firstScan.hint")}
+        trailing={<Chevron />}
+        testID="action.firstScan"
+      />
+      <SettingRow
         title={t("report.title")}
         hint={t(relay ? "report.settingsHintRelay" : "report.settingsHint")}
         onPress={() => openReport({})}
@@ -90,7 +98,6 @@ export function AboutSettings({ version, relay }: { version: string; relay: bool
         testID="action.report"
       />
       <SettingRow
-        leading={<IconTile tone="plain" icon={(color) => <Icons.BookOpen size={22} color={color} />} />}
         title={t("licences.title")}
         label={t("licences.viewAll")}
         hint={t("licences.hint")}
@@ -130,7 +137,6 @@ function CheckForUpdates({ version }: { version: string }) {
     const answer = found && found !== "newer" ? t(`update.checked.${found}`) : null;
     return (
       <SettingRow
-        leading={<IconTile tone="plain" icon={(color) => <Icons.RefreshCw size={22} color={color} />} />}
         title={title}
         meta={<Line>{answer ?? t("update.checkHint")}</Line>}
         label={factsLabel(title, answer ?? t("update.checkHint"), t("update.check"))}
@@ -169,7 +175,6 @@ function CheckForUpdates({ version }: { version: string }) {
   };
   return (
     <SettingRow
-      leading={<IconTile tone="plain" icon={(color) => <Icons.RefreshCw size={22} color={color} />} />}
       title={title}
       meta={<Line>{meta}</Line>}
       label={factsLabel(title, meta, action ?? "")}
@@ -216,7 +221,6 @@ export function SignOutAll({ report }: { report: Report }) {
     <>
       <SettingsGroup>
         <SettingRow
-          leading={<IconTile tone="red" icon={(color) => <Icons.LogOut size={22} color={color} />} />}
           title={t("settings.signOutAll.label")}
           tone="danger"
           hint={t("settings.signOutAllHint")}

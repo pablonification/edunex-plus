@@ -1,16 +1,15 @@
-// Settings' top, Akun (who's signed in is Profil's card, the screen this one is opened from): each system's row (a line icon in a tile, as every
-// row's) with its state as the one line under it: "Terhubung" in green, no dot (round 3's final review: the dot and the
+// Settings' top, Akun (who's signed in is Profil's card, the screen this one is opened from): each system's row, its
+// name and its state as the one line under it: "Terhubung" in green, no dot (round 3's final review: the dot and the
 // word said it twice); when it was last checked only once that's stale. Signed out (or the session ended), the row signs
-// in; signed in, it opens a sheet whose one choice signs out of just that system. What the first read found is the
-// group's last row, "Ringkasan awal".
-import { router } from "expo-router";
+// in; signed in, it opens a sheet whose one choice signs out of just that system. No mark at a row's start: every row
+// of Settings starts its words at the same edge (round 1's council), and SIX is no longer the Kuliah tab's cap.
 import { useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useBridge, useStatus } from "../../../../src/app/store";
 import type { SourceId } from "../../../../src/core/models";
 import { useSignInNote } from "../../shell/source-status";
-import { IconTile, Pill } from "../../ui/group";
+import { Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Chevron, haptic, type MetaTone, SettingRow, SettingsGroup } from "../../ui/settings-list";
@@ -18,22 +17,13 @@ import { ActionSheet } from "../../ui/sheet";
 import { useTheme } from "../../ui/theme";
 import type { Report } from "./save";
 
-/** Akun: Edunex, SIX, and the first-connection summary. */
+/** Akun: Edunex and SIX. The page's first group, right under its title. */
 export function Accounts({ report }: { report: Report }) {
   const t = useT();
   return (
-    <SettingsGroup title={t("settings.accounts")}>
+    <SettingsGroup title={t("settings.accounts")} first>
       <AccountRow source="edunex" report={report} />
       <AccountRow source="six" report={report} />
-      <SettingRow
-        leading={<IconTile icon={(color) => <Icons.Zap size={22} color={color} />} />}
-        title={t("settings.firstScan")}
-        onPress={() => router.push("/first-scan")}
-        label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`}
-        hint={t("settings.firstScan.hint")}
-        trailing={<Chevron />}
-        testID="action.firstScan"
-      />
     </SettingsGroup>
   );
 }
@@ -77,9 +67,6 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   return (
     <View testID={`row.account.${source}`}>
       <SettingRow
-        leading={
-          <IconTile icon={(color) => (source === "six" ? <Icons.GraduationCap size={22} color={color} /> : <Icons.BookOpen size={22} color={color} />)} />
-        }
         title={name}
         // Connected: the word alone in green; a dot beside it said the same thing twice (round 3's final review).
         meta={state.text}
