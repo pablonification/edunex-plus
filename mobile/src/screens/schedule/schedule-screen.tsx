@@ -13,7 +13,6 @@ import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } 
 import { Linking, RefreshControl, ScrollView, useWindowDimensions, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useClock, useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useSettings, useStatus } from "../../../../src/app/store";
@@ -29,7 +28,7 @@ import { Button, IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
-import { usePageEnd } from "../../ui/insets";
+import { usePageEnd, useTopInset } from "../../ui/insets";
 import { Notice } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { useReduceMotion } from "../../ui/motion";
@@ -301,7 +300,7 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const v = theme.v4;
   const { fontScale } = useWindowDimensions();
   const page = theme.color.surface;
-  const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const input = useAgendaInput();
   const today = useToday();
   const sync = useSyncText();
@@ -319,7 +318,7 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const away = picked !== today;
   const titleSlop = Math.max(4, Math.ceil((TOUCH - 28 * fontScale) / 2));
   return (
-    <View style={{ backgroundColor: page, paddingTop: insets.top }}>
+    <View style={{ backgroundColor: page, paddingTop: top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
         <View style={{ flex: 1, minWidth: 0, justifyContent: "center" }}>
           <Tap

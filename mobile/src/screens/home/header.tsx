@@ -5,15 +5,16 @@
 // starts the page right under it (./index.tsx). The mark (`home.brand`) is where a home screen's brand goes, at the
 // row's start: the mark alone, drawn as vectors, said as "Edunex Plus" by a screen reader, and not a button (it has no
 // job).
+
 import { router } from "expo-router";
 import { memo } from "react";
 import { useWindowDimensions, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../../src/app/i18n";
 import { BellButton } from "../../parts/b-header";
 import { useB } from "../../ui/b";
 import { BrandMark } from "../../ui/brand";
 import { Icons } from "../../ui/icons";
+import { useTopInset } from "../../ui/insets";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space } from "../../ui/theme";
@@ -22,20 +23,21 @@ import { hintRoom, hintSize, ROW } from "./header-hint";
 /**
  * The row's one height: the mark, the search bar and the bell are three things of the same height on the same line,
  * with the same gap between them and the page's margin at both ends (the developer's iPhone, 11 Nov: a 32 dp mark, a
- * 48 dp bar and a bare 24 dp bell read as "uneven placement, inconsistent sizing"). Each is touched in 48 dp (hitSlop).
+ * 48 dp bar and a bare 24 dp bell read as "uneven placement, inconsistent sizing"; at 44 dp each the row then read as
+ * "too big", so it is 38). Each is touched in 48 dp (hitSlop).
  */
 export const BAR_ITEM = ROW.item;
 /** The search bar's height. */
 export const SEARCH_HEIGHT = BAR_ITEM;
 /** The mark's side. */
 export const MARK_SIZE = BAR_ITEM;
-/** What the 48 dp target adds round a 44 dp thing. */
-const REACH = { top: 2, bottom: 2, left: 2, right: 2 } as const;
+/** What the 48 dp target adds above and under a thing of the row's height. */
+const REACH = { top: (48 - BAR_ITEM) / 2, bottom: (48 - BAR_ITEM) / 2, left: 0, right: 0 } as const;
 
 export const HomeBar = memo(function HomeBar() {
   const t = useT();
   const b = useB();
-  const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const { width } = useWindowDimensions();
   const hint = t("mobile.home.searchHint");
   // What the row leaves the hint: the page's margins, the mark and the bell with their gaps, the bar's own sides,
@@ -47,12 +49,12 @@ export const HomeBar = memo(function HomeBar() {
       testID="home.header"
       style={{
         backgroundColor: b.page,
-        paddingTop: insets.top + space[2],
+        paddingTop: top + space[2],
         paddingBottom: space[2],
         paddingHorizontal: space[4],
         flexDirection: "row",
         alignItems: "center",
-        gap: space[3],
+        gap: ROW.gap,
       }}
     >
       <BrandMark size={MARK_SIZE} label={t("mobile.appName")} testID="home.brand" />

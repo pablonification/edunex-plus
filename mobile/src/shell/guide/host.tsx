@@ -21,7 +21,7 @@ export function GuideHost() {
 
 /** A Student the tour is still for, or one who asked for it: the tour while it runs, else the invitation on its turn. */
 function Due({ running }: { running: boolean }) {
-  const { guideDone, firstScanDone } = useSettings();
+  const { guideDone } = useSettings();
   const offers = useGuideOffers();
   const settling = useSettling();
   const covering = useFirstMinuteCovering();
@@ -32,6 +32,6 @@ function Due({ running }: { running: boolean }) {
   }, [running, nobody]);
   if (nobody) return null;
   if (running) return <GuideTour />;
-  if (!guideMayOffer({ guideDone, firstScanDone, offers, settling, covering, nobody })) return null;
+  if (!guideMayOffer({ guideDone, offers, settling, covering, nobody })) return null;
   return <GuideOffer />;
 }

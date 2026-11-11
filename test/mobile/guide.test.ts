@@ -59,18 +59,23 @@ describe("the tour's steps", () => {
 });
 
 describe("when the tour offers itself", () => {
-  const ready = { guideDone: false, firstScanDone: true, offers: true, settling: false, covering: false, nobody: false } as const;
+  const ready = { guideDone: false, offers: true, settling: false, covering: false, nobody: false } as const;
   const calm = { path: "/", toasts: 0, asking: false, sources: ["live", "live"] };
 
-  it("after the first read is in, to a Student who hasn't taken or skipped it", () => {
+  it("once a system is in and Beranda has something to show, to a Student who hasn't taken or skipped it", () => {
     expect(guideMayOffer(ready)).toBe(true);
     expect(guideTurn(calm)).toBe(true);
   });
 
-  it("never once it's done or skipped, and not before the first read is said", () => {
+  it("never once it's done or skipped", () => {
     expect(guideMayOffer({ ...ready, guideDone: true })).toBe(false);
     expect(guideMayOffer({ ...ready, guideDone: undefined })).toBe(false);
-    expect(guideMayOffer({ ...ready, firstScanDone: false })).toBe(false);
+  });
+
+  it("doesn't wait for the first read to end (minutes, on a real account): a system still reading is enough", () => {
+    expect(guideTurn({ ...calm, sources: ["live", "connecting"] })).toBe(true);
+    // Nothing in yet: Beranda has nothing to show.
+    expect(guideTurn({ ...calm, sources: ["connecting", "signed-out"] })).toBe(false);
   });
 
   it("not over the first minute's stage, the sign-in, or the demo signing itself in", () => {
@@ -83,7 +88,6 @@ describe("when the tour offers itself", () => {
   it("waits its turn: one thing at a time", () => {
     expect(guideTurn({ ...calm, toasts: 1 })).toBe(false); // "Semua siap"
     expect(guideTurn({ ...calm, asking: true })).toBe(false); // the report question
-    expect(guideTurn({ ...calm, sources: ["live", "connecting"] })).toBe(false); // a system still on its way
     expect(guideTurn({ ...calm, sources: ["live", "expired"] })).toBe(false); // one to sign in to again
     expect(guideTurn({ ...calm, path: "/first-scan" })).toBe(false);
     expect(guideTurn({ ...calm, sources: ["live", "signed-out"] })).toBe(true); // Edunex only is a Student too
@@ -97,9 +101,7 @@ describe("when the tour offers itself", () => {
     await h.engine.signOut();
     // The next Student on this phone gets their own first read and their own invitation.
     expect(h.engine.snapshot().settings).toMatchObject({ firstScanDone: false, guideDone: false });
-    expect(guideMayOffer({ ...ready, ...h.engine.snapshot().settings })).toBe(false);
-    await h.engine.updateSettings({ firstScanDone: true });
-    expect(guideMayOffer({ ...ready, ...h.engine.snapshot().settings })).toBe(true);
+    expect(guideMayOffer({ ...ready, guideDone: h.engine.snapshot().settings.guideDone })).toBe(true);
   });
 });
 
@@ -174,10 +176,21 @@ describe("a part and its caption", () => {
 
   it("a part hands its view over, and takes it back when it goes", () => {
     const view = { measureInWindow: () => undefined };
-    guidePart("home.grid")(view);
+    const gone = guidePart("home.grid")(view);
     expect(guidePartView("home.grid")).toBe(view);
     expect(guidePart("home.grid")).toBe(guidePart("home.grid"));
-    guidePart("home.grid")(null);
+    gone?.();
+    expect(guidePartView("home.grid")).toBeUndefined();
+    // Drawn twice for a moment (its shape while the data comes, cross-fading into the real one): the shape leaving
+    // takes only itself out, whichever of the two went in last. (It used to take the real part with it, and the tour
+    // found nothing to point at.)
+    const shape = { measureInWindow: () => undefined };
+    const real = { measureInWindow: () => undefined };
+    const shapeGone = guidePart("home.grid")(shape);
+    const realGone = guidePart("home.grid")(real);
+    shapeGone?.();
+    expect(guidePartView("home.grid")).toBe(real);
+    realGone?.();
     expect(guidePartView("home.grid")).toBeUndefined();
   });
 

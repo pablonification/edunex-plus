@@ -37,33 +37,28 @@ export type GuidePartId = (typeof GUIDE_STEPS)[number]["part"];
 
 /**
  * Whether the guide may offer itself at all (the host's cheap check, on every start): only to a Student who hasn't
- * taken or skipped it, once the first read is in and said, never under the first minute's stage, while the demo
- * signs itself in, or with nobody signed in. `offers` is the demo's switch (./state.ts).
+ * taken or skipped it, never under the first minute's stage, while the demo signs itself in, or with nobody signed
+ * in. `offers` is the demo's switch (./state.ts). It doesn't wait for the first read to end: on a real account that
+ * read takes minutes (SIX is read at human pace), and a Student who had just signed in saw no invitation at all.
  */
-export function guideMayOffer(facts: {
-  guideDone: boolean | undefined;
-  firstScanDone: boolean | undefined;
-  offers: boolean;
-  settling: boolean;
-  covering: boolean;
-  nobody: boolean;
-}): boolean {
-  return facts.guideDone === false && facts.firstScanDone === true && facts.offers && !facts.settling && !facts.covering && !facts.nobody;
+export function guideMayOffer(facts: { guideDone: boolean | undefined; offers: boolean; settling: boolean; covering: boolean; nobody: boolean }): boolean {
+  return facts.guideDone === false && facts.offers && !facts.settling && !facts.covering && !facts.nobody;
 }
 
 /**
- * Whether this is the invitation's turn: on Beranda, with nothing else of the first visit up (the "Semua siap"
- * snackbar or any other, the report question, a system signing in or asking to be signed in again).
+ * Whether this is the invitation's turn: on Beranda, a system in and reading (Beranda has something to show), and
+ * nothing else of the first visit up (the "Semua siap" snackbar or any other, the report question, a system asking to
+ * be signed in to again).
  */
 export function guideTurn(facts: { path: string; toasts: number; asking: boolean; sources: readonly string[] }): boolean {
-  return facts.path === "/" && facts.toasts === 0 && !facts.asking && facts.sources.every((state) => !BUSY.has(state));
+  return facts.path === "/" && facts.toasts === 0 && !facts.asking && facts.sources.includes("live") && facts.sources.every((state) => !BUSY.has(state));
 }
 
-/** A system on its way in, or one the Student has to sign in to again: the invitation waits for it. */
-const BUSY = new Set(["connecting", "expired", "action-needed"]);
+/** A system the Student has to sign in to again: the invitation waits for it. */
+const BUSY = new Set(["expired", "action-needed"]);
 
 /** How long the invitation's turn has to hold before it shows (ms): nothing flashes between two other things. */
-export const OFFER_AFTER_MS = 1_500;
+export const OFFER_AFTER_MS = 4_000;
 
 export type GuideMove = "next" | "back" | "skip";
 

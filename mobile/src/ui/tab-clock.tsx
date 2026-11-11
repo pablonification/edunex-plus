@@ -162,8 +162,8 @@ function gated(parent: UiClock, open: () => boolean): UiClock & { catchUp(): voi
 }
 
 /** A hidden tab hears of the data it missed this long after the last change, and at most this long after the first. */
-const CATCH_UP_MS = 1_200;
-const CATCH_UP_MOST_MS = 5_000;
+const CATCH_UP_MS = 800;
+const CATCH_UP_MOST_MS = 2_500;
 
 /** The hidden tabs' first draws, one at a time: the first after `FIRST_MS`, then one every `NEXT_MS`. */
 const FIRST_MS = 800;

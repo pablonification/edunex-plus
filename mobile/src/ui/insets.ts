@@ -87,3 +87,14 @@ export function useBarTop(): number {
     () => barTop,
   );
 }
+
+/**
+ * The room the status bar takes at a tab's top (the notch, the Dynamic Island). On an iPhone a tab learns its own safe
+ * area only once it has been shown: before that it reads 0, so the first frame of a tab opened for the first time drew
+ * its title over the clock and the next frame moved the whole page down. Never less than the window's own at launch
+ * (the app is portrait only, so that doesn't change).
+ */
+export function useTopInset(): number {
+  const { top } = useSafeAreaInsets();
+  return Platform.OS === "ios" ? Math.max(top, initialWindowMetrics?.insets.top ?? 0) : top;
+}

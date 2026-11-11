@@ -2,15 +2,16 @@
 // Courses", in Indonesian) with the data's status under it only when it says something, then Search and the bell,
 // regular Fluent glyphs, always in the same place. No avatar: the Student is the Profil tab. A tap on the name opens
 // the sources' sheet, as before.
+
 import { router } from "expo-router";
 import { type ReactNode, useState } from "react";
 import { View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../src/app/i18n";
 import { ProblemBanner, StatusLine, SyncPanel, useSyncText, useUnreadAlerts } from "../shell/source-status";
 import { useB } from "../ui/b";
 import { IconButton } from "../ui/controls";
 import { Fluent } from "../ui/fluent";
+import { useTopInset } from "../ui/insets";
 import { Tap } from "../ui/moves";
 import { PressScale } from "../ui/press";
 import { Text } from "../ui/text";
@@ -38,7 +39,8 @@ export function BellButton({ filled }: { filled?: number } = {}) {
           hitSlop={{ top: reach, bottom: reach, left: reach, right: reach }}
           style={{ width: filled, height: filled, borderRadius: filled / 2, backgroundColor: b.soft, alignItems: "center", justifyContent: "center" }}
         >
-          <Fluent name="Alert24Regular" color={b.fg} />
+          {/* The bell a little smaller in the smaller circle, so it sits in it as the magnifier sits in the bar. */}
+          <Fluent name="Alert24Regular" size={filled < 44 ? 22 : 24} color={b.fg} />
         </PressScale>
         {unread > 0 && (
           <View
@@ -46,8 +48,8 @@ export function BellButton({ filled }: { filled?: number } = {}) {
             testID="badge.alerts"
             style={{
               position: "absolute",
-              top: filled / 2 - 13,
-              right: filled / 2 - 12,
+              top: filled / 2 - (filled < 44 ? 11 : 13),
+              right: filled / 2 - (filled < 44 ? 10 : 12),
               width: 10,
               height: 10,
               borderRadius: 5,
@@ -89,12 +91,12 @@ export function BellButton({ filled }: { filled?: number } = {}) {
 export function BTabHeader({ title, actions, search = true }: { title: string; actions?: ReactNode; search?: boolean }) {
   const t = useT();
   const b = useB();
-  const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const sync = useSyncText();
   const [panel, setPanel] = useState(false);
   return (
     <View style={{ backgroundColor: b.page }}>
-      <View style={{ marginTop: insets.top, flexDirection: "row", alignItems: "center", paddingLeft: space[5], paddingRight: space[2], minHeight: 64 }}>
+      <View style={{ marginTop: top, flexDirection: "row", alignItems: "center", paddingLeft: space[5], paddingRight: space[2], minHeight: 64 }}>
         <Tap
           feel="row"
           testID="action.syncStatus"

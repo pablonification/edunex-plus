@@ -10,10 +10,10 @@
 // UI thread (Reanimated, the kit's standard curve; in place at once with Remove animations). The caption is a card
 // near the part: where it is in the tour and "Lewati panduan" first, the part's name and one line, then Kembali and
 // Lanjut (Selesai on the last). The screen under it waits; Android's Back is Kembali, and leaves on the first step.
-// A part its page doesn't show is passed over; one scrolled out of sight is said without a spotlight.
+// A part its page doesn't show, or one scrolled out of sight, is said without a spotlight: every step is shown.
 import { router, usePathname } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useRef, useState } from "react";
-import { AccessibilityInfo, BackHandler, Platform, StyleSheet, View } from "react-native";
+import { AccessibilityInfo, BackHandler, Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../../src/app/i18n";
@@ -31,7 +31,7 @@ import { type Box, GUIDE_STEPS, guideAfter, guideOnScreen, guidePlace, guideTurn
 
 const STANDARD = Easing.bezier(...motion.easing.standard);
 /** How long a step waits for its part after its tab opens (a tab draws for the first time on its turn), and between looks. */
-const PART_WAIT_MS = 1_500;
+const PART_WAIT_MS = 4_000;
 const PART_LOOK_MS = 80;
 /**
  * A part is measured again once its page has settled: a tab's parts rise in as it's first shown, and a screen closing
@@ -106,12 +106,24 @@ export function GuideOffer() {
   );
 }
 
-const measure = (view: Measurable) => new Promise<Box>((resolve) => view.measureInWindow((x, y, width, height) => resolve({ x, y, width, height })));
+/** Where a view is in the window, or null when it doesn't answer (a view that just went never does). */
+const measure = (view: Measurable) =>
+  new Promise<Box | null>((resolve) => {
+    const late = setTimeout(() => resolve(null), MEASURE_MS);
+    view.measureInWindow((x, y, width, height) => {
+      clearTimeout(late);
+      resolve({ x, y, width, height });
+    });
+  });
+const MEASURE_MS = 400;
 
-/** What's on screen for a step: which one, where its part is, and where the tour's own frame is (window coordinates). */
+/**
+ * What's on screen for a step: which one, where its part is (null until it's found, or when its page doesn't show it:
+ * the step's words are there either way), and where the tour's own frame is (window coordinates).
+ */
 interface Shown {
   at: number;
-  part: Box;
+  part: Box | null;
   root: Box;
 }
 
@@ -130,6 +142,9 @@ export function GuideTour() {
   // Each look for a step has a number: an older one that answers late (a step the Student already left) is dropped.
   const look = useRef(0);
   const at = useRef(0);
+  const window = useWindowDimensions();
+  const size = useRef(window);
+  size.current = window;
   const tab = useRef<string | null>(null);
 
   const finish = useCallback(
@@ -144,48 +159,44 @@ export function GuideTour() {
     [bridge, t],
   );
 
-  /** Opens the step at `from`, or the next one in the direction `by` whose part is on its page. */
+  /**
+   * Opens step `to`: its tab, its words at once, and its spotlight as soon as its part is found on its page. Every
+   * "Lanjut" moves exactly one step, at once, whatever the page under it is doing: a part that isn't there (its page
+   * doesn't show it now, or hasn't drawn it yet) is said without a spotlight, never waited for or passed over in
+   * silence (the tour once walked the tabs with nothing on screen, looking for parts).
+   */
   const seek = useCallback(
-    async (from: number | "end", by: 1 | -1) => {
+    async (to: number | "end") => {
       const mine = ++look.current;
-      const origin = at.current;
-      let i = from;
-      while (i !== "end") {
-        const step = GUIDE_STEPS[i]!;
-        // From a screen over the tabs (Settings): back to the tabs first.
-        if (router.canDismiss()) router.dismissAll();
-        router.navigate(step.tab);
-        const moved = tab.current !== step.tab;
-        tab.current = step.tab;
-        const view = await partSoon(step.part);
-        // Another tab: its page is laid out a moment after it's shown.
-        if (view && moved) await new Promise((done) => setTimeout(done, TAB_SHOWN_MS));
-        if (mine !== look.current) return;
-        if (view) {
-          const frame = root.current as unknown as Measurable | null;
-          const see = async () => {
-            const [part, rootBox] = await Promise.all([measure(view), frame ? measure(frame) : Promise.resolve({ x: 0, y: 0, width: 0, height: 0 })]);
-            if (mine !== look.current) return;
-            at.current = i as number;
-            setShown({ at: i as number, part, root: rootBox });
-          };
-          await see();
-          for (const later of SETTLED_MS) setTimeout(() => void see(), later);
-          return;
-        }
-        const next = guideAfter(i, by === 1 ? "next" : "back");
-        // Nothing before this one shows: stay on the step the Student was on.
-        if (next === i) return void seek(origin, 1);
-        i = next;
-      }
-      finish(false);
+      if (to === "end") return finish(false);
+      const step = GUIDE_STEPS[to]!;
+      // From a screen over the tabs (Settings): back to the tabs first.
+      if (router.canDismiss()) router.dismissAll();
+      router.navigate(step.tab);
+      const moved = tab.current !== step.tab;
+      tab.current = step.tab;
+      at.current = to;
+      const frame = root.current as unknown as Measurable | null;
+      const rootBox = (frame ? await measure(frame) : null) ?? { x: 0, y: 0, width: size.current.width, height: size.current.height };
+      if (mine !== look.current) return;
+      setShown({ at: to, part: null, root: rootBox });
+      const view = await partSoon(step.part);
+      if (!view || mine !== look.current) return;
+      // Another tab: its page is laid out a moment after it's shown.
+      if (moved) await new Promise((done) => setTimeout(done, TAB_SHOWN_MS));
+      const see = async () => {
+        const part = await measure(view);
+        if (part && mine === look.current) setShown({ at: to, part, root: rootBox });
+      };
+      await see();
+      for (const later of SETTLED_MS) setTimeout(() => void see(), later);
     },
     [finish],
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, as the tour opens
   useEffect(() => {
-    void seek(0, 1);
+    void seek(0);
     return () => {
       look.current += 1;
     };
@@ -195,7 +206,7 @@ export function GuideTour() {
   useEffect(() => {
     const back = BackHandler.addEventListener("hardwareBackPress", () => {
       if (at.current === 0) finish(true);
-      else void seek(guideAfter(at.current, "back"), -1);
+      else void seek(guideAfter(at.current, "back"));
       return true;
     });
     return () => back.remove();
@@ -225,9 +236,9 @@ export function GuideTour() {
     // The tabs' bar's top: where the tabs' pages end on Android (they report it), the floating bar's on an iPhone.
     const foot = (Platform.OS !== "ios" && tabsBottom > 0 ? tabsBottom - r.y : r.height - insets.bottom - tabBarHeight(Platform.OS)) - space[2];
     const frame = { x: 0, y: top, width: r.width, height: Math.max(0, foot - top) };
-    const part = { x: shown.part.x - r.x, y: shown.part.y - r.y, width: shown.part.width, height: shown.part.height };
-    const placed = guidePlace(part, frame, captionHeight);
-    if (guideOnScreen(part, frame)) {
+    const part = shown.part ? { x: shown.part.x - r.x, y: shown.part.y - r.y, width: shown.part.width, height: shown.part.height } : null;
+    if (part && guideOnScreen(part, frame)) {
+      const placed = guidePlace(part, frame, captionHeight);
       spot = placed.spot;
       captionTop = placed.captionTop;
     } else captionTop = Math.max(frame.y, frame.y + frame.height - captionHeight - space[3]);
@@ -319,11 +330,11 @@ export function GuideTour() {
             </View>
             <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: space[2], marginTop: space[3] }}>
               {guideAfter(shown.at, "back") !== shown.at && (
-                <Button variant="ghost" onPress={() => void seek(guideAfter(shown.at, "back"), -1)} testID="action.guideBack">
+                <Button variant="ghost" onPress={() => void seek(guideAfter(shown.at, "back"))} testID="action.guideBack">
                   {t("action.back")}
                 </Button>
               )}
-              <Button variant="primary" onPress={() => void seek(guideAfter(shown.at, "next"), 1)} testID="action.guideNext">
+              <Button variant="primary" onPress={() => void seek(guideAfter(shown.at, "next"))} testID="action.guideNext">
                 {t(last ? "guide.done" : "guide.next")}
               </Button>
             </View>

@@ -1,10 +1,10 @@
 // Where each system stands, on the phone: the desktop's src/app/shell/source-status.tsx, its hooks
 // copied as they are (that file draws DOM too), its status line and panel as the tab header's quiet
 // line and a sheet, its banner as a card under the header. Pull to refresh is "Perbarui sekarang".
+
 import { router } from "expo-router";
 import { type ReactNode, useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
 import { useFormat, useNow, useT } from "../../../src/app/i18n";
 import { useSaved } from "../../../src/app/saved";
@@ -21,6 +21,7 @@ import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
 import { EmptyState, LiveDot, Spinner } from "../ui/display";
 import { Icons } from "../ui/icons";
+import { useTopInset } from "../ui/insets";
 import { Meta } from "../ui/layout";
 import { Sheet } from "../ui/sheet";
 import { slop } from "../ui/sizes";
@@ -185,14 +186,12 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
  */
 export function TabHeader({ title, actions, v4 = false }: { title: string; actions?: ReactNode; v4?: boolean }) {
   const t = useT();
-  const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const line = useSyncLine();
   const [panel, setPanel] = useState(false);
   return (
     <BarSurface v4={v4}>
-      <View
-        style={{ marginTop: insets.top, flexDirection: "row", alignItems: "center", paddingLeft: space.page, paddingRight: space[1], minHeight: BAR_HEIGHT }}
-      >
+      <View style={{ marginTop: top, flexDirection: "row", alignItems: "center", paddingLeft: space.page, paddingRight: space[1], minHeight: BAR_HEIGHT }}>
         <Pressable
           testID="action.syncStatus"
           accessibilityRole="button"

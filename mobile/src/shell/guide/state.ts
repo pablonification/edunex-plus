@@ -11,18 +11,24 @@ export interface Measurable {
 }
 
 const parts = new Map<string, Measurable>();
-const refs = new Map<string, (view: Measurable | null) => void>();
+const refs = new Map<string, (view: Measurable | null) => (() => void) | undefined>();
 
 /**
  * The `ref` for the view the tour points at as `id` (the view's own testID): `<View ref={guidePart("home.grid")} />`.
- * The same function every time, so a redraw doesn't hand the view over again.
+ * The same function every time, so a redraw doesn't hand the view over again. A part can be drawn in two places for a
+ * moment (its shape while the data comes and the real one, cross-fading): each view takes itself out when it goes, and
+ * only itself. (Told only "a view went", the registry dropped the real part as its shape left, and the tour found
+ * nothing to point at: on a phone that had just signed in, "Lanjut" did nothing.)
  */
-export function guidePart(id: GuidePartId): (view: Measurable | null) => void {
+export function guidePart(id: GuidePartId): (view: Measurable | null) => (() => void) | undefined {
   let ref = refs.get(id);
   if (!ref) {
     ref = (view) => {
-      if (view) parts.set(id, view);
-      else parts.delete(id);
+      if (!view) return undefined;
+      parts.set(id, view);
+      return () => {
+        if (parts.get(id) === view) parts.delete(id);
+      };
     };
     refs.set(id, ref);
   }

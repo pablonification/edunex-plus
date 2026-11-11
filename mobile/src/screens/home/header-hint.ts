@@ -11,7 +11,7 @@ export function hintSize(letters: number, room: number): number {
 }
 
 /** The row's sizes the hint's room depends on (./header.tsx draws with the same ones). */
-export const ROW = { margin: 16, item: 44, gap: 12, magnifier: 20 } as const;
+export const ROW = { margin: 16, item: 38, gap: 10, magnifier: 18 } as const;
 
 /**
  * The search bar's own sides and the gap after its magnifier, and the room that leaves the hint, on a screen `width`
