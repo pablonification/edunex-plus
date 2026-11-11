@@ -15,14 +15,17 @@
 //   3. The first system in with the name: the headline goes (fast) and then the greeting comes into the same spot
 //      ("Pagi, Dimas.": Beranda has none, so it's said once), so it's read while the other system connects. Each door
 //      steps to the mark as its own system comes in: the doors meet as the second tick lands, the mark answers with
-//      one beat, and the stage lifts that instant. There's no hold, and the lower half is never empty.
+//      one beat, and both ticks stand for half a second (MOMENT_MS: "both are in" is seen, not passed through) before
+//      the stage lifts. A system still on its way is waited for (OTHER_WAIT_MS): the stage doesn't leave with its ring
+//      still turning unless it's really slow. The lower half is never empty.
 //   4. The hand-over: the whole stage lifts away like a curtain. The doors and the mark fade where they are as it
 //      starts, gone before they reach the status bar; the stage and the greeting lift on. Under it the real Beranda
 //      was there all along, filling as the first read brings it. A strip of the stage's blue holds the status bar
 //      until the curtain's edge has gone under it, then fades where it is: nothing slides across the clock. The scene
 //      leaves nothing on Beranda and knows nothing of its layout (./seam.ts).
 //
-// Nothing here waits for the read: the lift starts 0.4 s after the second system is in. Every move runs on the UI
+// Nothing here waits for the read: the lift starts about a second after the second system is in (its door lighting,
+// then the moment). Every move runs on the UI
 // thread (Reanimated), on transforms and opacity only, each a timing that ends; the whole hand-over is set going in
 // one go, so the first read's JavaScript can't hold a step of it up. Every colour is opaque (./colors.ts) and no shape
 // is clipped, so a frame is a few flat fills; everything on the sheet is still by the time it lifts, so it lifts as one
@@ -113,8 +116,15 @@ const LIT_MS = 420;
 /** The status line's last words leaving once both systems are in: gone as the last ring has become its tick (midway
  *  through its door's lighting). */
 const STATUS_OUT_MS = LIT_MS / 2;
-/** The last door's lighting, to the instant the stage moves. */
-const LEAD_MS = LIT_MS;
+/**
+ * Both in: the two ticks, the doors met and the mark at rest stand this long before the stage moves. Without it the
+ * second system's tick was never seen: its door lit as the stage was already leaving (the developer's iPhone, 11 Nov).
+ */
+const MOMENT_MS = 520;
+/** From the hand-over to the instant the stage moves: the last door's lighting, then the moment with both in. With
+ *  only one in there's no door to light and nothing to stand for: the lighting's length alone. */
+const LEAD_MS = LIT_MS + MOMENT_MS;
+const LEAD_ALONE_MS = LIT_MS;
 /** The headline turning into the greeting, in place: the headline goes first and fast, and only then the greeting
  *  comes in, so two lines are never readable at once. */
 const HELLO_OUT_MS = 120;
@@ -122,13 +132,18 @@ const HELLO_IN_MS = 260;
 const HELLO_MS = HELLO_OUT_MS + HELLO_IN_MS;
 /** Where in that turn the headline is gone and the greeting starts. */
 const HELLO_TURN = HELLO_OUT_MS / HELLO_MS;
-/** One in and the other still trying: this long for it to come along; then the hand-over goes without it. */
-const OTHER_WAIT_MS = 2_000;
+/**
+ * One in and the other still trying (its ring turning, "Membawa SIX…"): this long for it to come along, so its tick is
+ * seen; then the hand-over goes without it and it joins on Beranda. Two seconds wasn't enough on a real connection
+ * (SIX's sign-in follows Edunex's and takes a few seconds on 4G): the stage left with SIX's ring still turning.
+ */
+const OTHER_WAIT_MS = 8_000;
 /** One in and the other stopped: this long to read why, before the hand-over (the line leaves with the stage). */
 const OTHER_STOPPED_MS = 1_200;
 /** A door stepping to the mark as its system comes in: over before its lighting is, so before the stage lifts. */
 const JOIN_MS = 380;
-/** The mark's one beat as the doors have met: up, then back, done as the stage starts to lift. */
+/** The mark's one beat as the doors have met (its top as the last door has lit): up, then back, at rest through the
+ *  moment before the stage lifts. */
 const BEAT_UP_MS = 120;
 const BEAT_DOWN_MS = 200;
 /** The stage lifting off Beranda. */
@@ -228,36 +243,40 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
 
   const done = useRef(onDone);
   done.current = onDone;
-  const handOver = useCallback(() => {
-    setPhase("joining");
-    // The whole hand-over is set going here, in one go, on the UI thread: the first read's JavaScript can't hold a
-    // step of it up. The last door lights (and steps to the mark, by itself); the instant it has (LEAD_MS), the
-    // stage lifts. The greeting is up already, or comes now. The timers after it only tell the screen reader, the
-    // touch layer, the phone's bars and the haptics where it is.
-    if (still) {
-      // The same beats as fades: the greeting, then the stage cross-fades to Beranda. Nothing moves, nothing cuts.
-      const fade = LEAD_MS + STILL_HOLD_MS;
-      out.value = withDelay(fade, withTiming(1, { duration: motion.duration.long }));
-      later(() => {
-        setPhase("lifting");
-        haptic.confirm();
-      }, fade);
-      later(() => setUncovered(true), fade + motion.duration.long / 2);
-      later(() => done.current(), fade + motion.duration.long + 40);
-      return;
-    }
-    lift.value = withDelay(LEAD_MS, withTiming(1, { duration: LIFT_MS, easing: LIFTING }));
-    // The mark's beat, over as the stage starts to move: the sheet lifts with nothing on it still changing.
-    beat.value = withDelay(
-      LEAD_MS - BEAT_UP_MS - BEAT_DOWN_MS,
-      withSequence(withTiming(1, { duration: BEAT_UP_MS }), withTiming(0, { duration: BEAT_DOWN_MS })),
-    );
-    // One haptic, at the beat's top (each system in already gave its own).
-    later(() => haptic.tick(), LEAD_MS - BEAT_DOWN_MS);
-    later(() => setPhase("lifting"), LEAD_MS);
-    later(() => setUncovered(true), LEAD_MS + LIFT_MS * CLEARS_TOP);
-    later(() => done.current(), LEAD_MS + LIFT_MS + 40);
-  }, [still, beat, lift, out, later]);
+  const handOver = useCallback(
+    (met: boolean) => {
+      setPhase("joining");
+      // The whole hand-over is set going here, in one go, on the UI thread: the first read's JavaScript can't hold a
+      // step of it up. The last door lights (and steps to the mark, by itself), both ticks stand a moment, and the
+      // stage lifts (LEAD_MS); with one system only (`met` false) there's no door to light: it lifts sooner. The
+      // greeting is up already, or comes now. The timers after it only tell the screen reader, the touch layer, the
+      // phone's bars and the haptics where it is.
+      const lead = met ? LEAD_MS : LEAD_ALONE_MS;
+      if (still) {
+        // The same beats as fades: the greeting, then the stage cross-fades to Beranda. Nothing moves, nothing cuts.
+        const fade = LIT_MS + STILL_HOLD_MS;
+        out.value = withDelay(fade, withTiming(1, { duration: motion.duration.long }));
+        later(() => {
+          setPhase("lifting");
+          haptic.confirm();
+        }, fade);
+        later(() => setUncovered(true), fade + motion.duration.long / 2);
+        later(() => done.current(), fade + motion.duration.long + 40);
+        return;
+      }
+      lift.value = withDelay(lead, withTiming(1, { duration: LIFT_MS, easing: LIFTING }));
+      // The mark's beat, its top as the last door has lit and the doors have met; then everything on the sheet is at
+      // rest (through the moment, when both are in) and it lifts with nothing on it still changing.
+      const beatAt = Math.max(0, Math.min(LIT_MS, lead - BEAT_DOWN_MS) - BEAT_UP_MS);
+      beat.value = withDelay(beatAt, withSequence(withTiming(1, { duration: BEAT_UP_MS }), withTiming(0, { duration: BEAT_DOWN_MS })));
+      // One haptic, at the beat's top (each system in already gave its own).
+      later(() => haptic.tick(), beatAt + BEAT_UP_MS);
+      later(() => setPhase("lifting"), lead);
+      later(() => setUncovered(true), lead + LIFT_MS * CLEARS_TOP);
+      later(() => done.current(), lead + LIFT_MS + 40);
+    },
+    [still, beat, lift, out, later],
+  );
 
   // The other system, with one in: still on its way (the same sign-in is trying it), or stopped (it asked for the
   // Student, or failed): then Beranda has its own way to connect it.
@@ -293,12 +312,13 @@ export function FirstMinute({ onDone }: { onDone(): void }) {
   // where it is. With less motion asked for, the doors stay where they are.
   const edunexStepIn = useStepIn(edunexIn, still);
   const sixStepIn = useStepIn(sixIn, still);
-  // Both in: the hand-over starts at once (its first 0.4 s is the second door lighting). One in: once the other has
-  // come along, or after a moment to read why it stopped, or soon without it (it joins on Beranda if it's only slow).
+  // Both in: the hand-over starts at once (the second door lights, both ticks stand a moment, the stage lifts). One
+  // in: once the other has come along, or after a moment to read why it stopped, or without it if it's really slow
+  // (it joins on Beranda).
   useEffect(() => {
     if (phase !== "doors" || !anyIn) return;
-    if (bothIn) return handOver();
-    const timer = setTimeout(handOver, otherStopped ? OTHER_STOPPED_MS : OTHER_WAIT_MS);
+    if (bothIn) return handOver(true);
+    const timer = setTimeout(() => handOver(false), otherStopped ? OTHER_STOPPED_MS : OTHER_WAIT_MS);
     return () => clearTimeout(timer);
   }, [phase, anyIn, bothIn, otherStopped, handOver]);
 
