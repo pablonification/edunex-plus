@@ -16,6 +16,7 @@
 // drawn at its final height from the first paint: the line over the name, the name (until the official one is in),
 // the bar and the button each stand as a quiet shape in their own place, and the room they took is kept for that
 // class afterwards (`kept`), so nothing under the block moves once it's on screen.
+
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { View } from "react-native";
 import { type TermCourse, useCourseColor } from "../../../../src/app/courses";
@@ -31,6 +32,7 @@ import { dayNoon } from "../../../../src/core/schedule";
 import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
 import { OpenSixTimetable } from "../../parts/six-page-note";
+import { guidePart } from "../../shell/guide/state";
 import { StatusLine, useFirstReadRunning } from "../../shell/source-status";
 import { useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
@@ -117,7 +119,7 @@ export function NowBanner({
   // Without SIX there's no timetable: no block, and the strip leads. With one, a quiet week, unless a class on it can't be read.
   if (schedule === null) return null;
   return (
-    <View testID="home.now" style={{ backgroundColor: b.soft, borderRadius: RADIUS, padding: space[5], gap: space[3] }}>
+    <View testID="home.now" ref={guidePart("home.now")} style={{ backgroundColor: b.soft, borderRadius: RADIUS, padding: space[5], gap: space[3] }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
         <Icons.CalendarCheck size={24} weight="fill" color={b.muted} />
         <Text size="bodyLarge" style={{ color: b.fg2, flex: 1 }}>
@@ -235,7 +237,7 @@ function Banner({
     go({ screen: "schedule" });
   };
   return (
-    <View testID="home.now" accessibilityState={reading ? { busy: true } : undefined}>
+    <View testID="home.now" ref={guidePart("home.now")} accessibilityState={reading ? { busy: true } : undefined}>
       <CrossFade
         id={settled ? `after:${after?.code ?? "none"}` : `${card.state}:${code}`}
         style={{ backgroundColor: calm ? b.soft : fill, borderRadius: RADIUS, padding: PAD }}

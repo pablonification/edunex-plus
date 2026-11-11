@@ -14,6 +14,7 @@
 // While the first read runs (or the demo's first sync) no tile answers: each stands as a neutral shape of its final
 // size under its plain name, so a green tick can't turn into a red 3 under the Student's eyes. What the strip says is
 // said nowhere else on Beranda (./urus.tsx leaves those rows to it).
+
 import { router } from "expo-router";
 import { memo, useMemo } from "react";
 import { View } from "react-native";
@@ -24,6 +25,7 @@ import type { TodoItem } from "../../../../src/core/todo";
 import { useSettling } from "../../host/settling";
 import { useNav } from "../../nav";
 import { useFirstFrameShown } from "../../shell/first-frame";
+import { guidePart } from "../../shell/guide/state";
 import { useFirstReadRunning } from "../../shell/source-status";
 import { CountStrip } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
@@ -77,7 +79,7 @@ export function StripShape() {
   const t = useT();
   const { go } = useNav();
   return (
-    <CountStrip testID="home.strip">
+    <CountStrip testID="home.strip" ref={guidePart("home.strip")}>
       {[
         <ShapeTile key="tasks" name={t("mobile.strip.wait.tasks")} onPress={() => go({ screen: "tasks" })} testID="action.strip.tasks" />,
         <ShapeTile key="absences" name={t("mobile.strip.wait.absences")} onPress={() => go({ screen: "presence" })} testID="action.strip.absences" />,
@@ -191,7 +193,7 @@ function Counted({ over, none, openTasks, openCourses, openExams }: { over: numb
       <StatTile key="absences" mark value="" label={t("mobile.strip.absencesNone")} onPress={openCourses} testID="action.strip.absences" />
     );
   return (
-    <CountStrip testID="home.strip">
+    <CountStrip testID="home.strip" ref={guidePart("home.strip")}>
       {[
         tasks,
         absences,

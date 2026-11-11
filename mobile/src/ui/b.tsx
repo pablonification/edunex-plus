@@ -2,7 +2,7 @@
 // (a white filled Fluent glyph on the service's own colour), counts the Student can tap (the official app's logbook
 // numbers), a plain heading between sections, rows on the page itself with a hairline between them (no card around a
 // list). Everything here is drawn with views and react-native-svg.
-import type { ReactNode } from "react";
+import type { ComponentRef, ReactNode, Ref } from "react";
 import { type AccessibilityProps, StyleSheet, View, type ViewStyle } from "react-native";
 import { Skeleton } from "./display";
 import { Fluent, type FluentName } from "./fluent";
@@ -227,11 +227,11 @@ export function CountCell({
 }
 
 /** Counts side by side, a hairline between them: one strip, each count its own target. */
-export function CountStrip({ children, testID }: { children: ReactNode[]; testID?: string }) {
+export function CountStrip({ children, testID, ref }: { children: ReactNode[]; testID?: string; ref?: Ref<ComponentRef<typeof View>> }) {
   const b = useB();
   const cells = children.filter(Boolean);
   return (
-    <View testID={testID} style={{ flexDirection: "row", alignItems: "stretch" }}>
+    <View testID={testID} ref={ref} style={{ flexDirection: "row", alignItems: "stretch" }}>
       {cells.map((cell, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: the cells in the order given
         <View key={i} style={{ flex: 1, flexDirection: "row" }}>

@@ -133,6 +133,20 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
 - [ ] Tugas's badge shows only while something is late or due within a day. A second tap on the open tab scrolls it to
       the top. A switch between tabs is instant and each tab keeps where it was.
 
+**The guide** (`src/shell/guide/`; in the demo open `edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_GUIDE=1`,
+or Profil › the gear › Tentang › "Panduan aplikasi" on any build)
+
+- [ ] The invitation sits just above the floating tab bar, not under it and not far over it; Beranda scrolls and taps
+      under it. "Lewati panduan" closes it and it never comes back by itself.
+- [ ] Each of the seven steps: the ring is exactly around the real part (the class block, the strip, the services,
+      then the page on Jadwal and Tugas, the courses on Kuliah, the rows on Profil), not shifted up or down. The dim
+      covers the tab bar, the status bar and the Dynamic Island's row.
+- [ ] The caption never sits under the Dynamic Island, the tab bar or the home indicator, also at the largest text
+      size. On Jadwal and Tugas it stands at the page's foot, just above the tab bar.
+- [ ] Taken again from Settings: Settings closes, Beranda comes, and the ring settles on the class block within a second.
+- [ ] VoiceOver: each step is read as it shows, "Lewati panduan" is one swipe back from it, and nothing under the
+      tour can be reached. With Reduce Motion on, nothing slides.
+
 **Safe areas**
 
 - [ ] Beranda (`screens/home/header.tsx`): the app's mark, the search bar and the bell sit on one row below the notch

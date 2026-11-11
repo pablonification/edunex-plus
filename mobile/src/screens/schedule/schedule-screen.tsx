@@ -6,6 +6,7 @@
 // only Edunex announced opens its own (./details.tsx). The reminder before class, the phone's calendar and the .ics are
 // in ⋮. Data and reasoning are the desktop's (scheduleDays over the same input); the minute's tick reaches only the
 // now-line and the block on now (./clock.ts).
+
 import * as Notifications from "expo-notifications";
 import { router, useIsFocused, useScrollToTop } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -21,6 +22,7 @@ import { isEmptyDay, minuteOfDay, type ScheduleDay, scheduleDays, shiftDay, term
 import { useParam } from "../../nav";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
+import { guidePart } from "../../shell/guide/state";
 import { StatusLine, SyncPanel, TabActions, useSignIn, useSyncText } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
 import { Button, IconButton } from "../../ui/controls";
@@ -134,7 +136,7 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
 
   return (
     // On the white page every tab has now (superapp-decisions.md), the day's blocks in their tints on it.
-    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: theme.color.surface }}>
+    <View testID="screen.schedule" ref={guidePart("screen.schedule")} style={{ flex: 1, backgroundColor: theme.color.surface }}>
       <ScheduleHeader monday={monday} picked={picked} onToday={() => pick(today, today > picked ? 1 : -1)} />
       {waiting || !input || !day ? (
         <Loading />

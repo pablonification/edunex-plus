@@ -112,6 +112,44 @@ export const mobileStrings = {
   // Settings › Tentang: the row that opens what the app found the first time it read Edunex and SIX ("Ringkasan awal"
   // was a name no judge understood).
   "mobile.settings.firstFound": { id: "Temuan saat pertama masuk", en: "Found at first sign-in" },
+  // The phone's guide (mobile/src/shell/guide): the invitation, then one line for each part it points at. The
+  // rest of its words are the desktop guide's (./guide.ts).
+  "mobile.guide.intro.body": {
+    id: "Lihat yang tidak ada di Edunex dan SIX, kurang dari semenit. Bisa dilewati kapan saja.",
+    en: "See what Edunex and SIX don't have, in under a minute. Skip it any time.",
+  },
+  "mobile.guide.now.body": {
+    id: "Kuliah yang sedang berjalan atau berikutnya, dengan ruangnya. Saat presensinya dibuka, tombol Isi Presensi muncul di sini.",
+    en: "The class on now or next, with its room. When its Presence opens, Fill in Presence shows here.",
+  },
+  "mobile.guide.strip.title": { id: "Tugas, absen, ujian", en: "Tasks, absences, exams" },
+  "mobile.guide.strip.body": {
+    id: "Tugas yang menunggu, mata kuliah yang jatah absennya habis, dan ujian berikutnya. Ketuk salah satu untuk rinciannya.",
+    en: "Tasks waiting, courses out of absences and your next exam. Tap one for the detail.",
+  },
+  "mobile.guide.services.title": { id: "Layanan SIX dan Edunex", en: "SIX and Edunex services" },
+  "mobile.guide.services.body": {
+    id: "KRS, nilai, UKT, dan lainnya terbuka di aplikasi ini. Sisanya ada di Lainnya.",
+    en: "KRS, grades, UKT and more open in this app. The rest are under More.",
+  },
+  "mobile.guide.schedule.body": {
+    id: "Kuliah dari SIX dan pertemuan dari Edunex dalam satu jadwal, dengan ruangnya. Bisa ditambahkan ke kalender HP-mu.",
+    en: "Classes from SIX and meetings from Edunex in one schedule, with their rooms. You can add it to your phone's calendar.",
+  },
+  "mobile.guide.tasks.body": {
+    id: "Tugas semua mata kuliah dalam satu daftar. Buka satu untuk menulis jawaban, melampirkan berkas, lalu mengumpulkan dari HP.",
+    en: "Tasks from every course in one list. Open one to write your answer, attach files and submit from your phone.",
+  },
+  "mobile.guide.courses.body": {
+    id: "Tiap mata kuliah dengan sisa jatah absennya, dihitung dari kehadiranmu di SIX. Yang paling berisiko ada di atas.",
+    en: "Each course with the absences it has left, counted from your SIX attendance. The ones most at risk come first.",
+  },
+  "mobile.guide.profile.title": { id: "Nilai dan rencana studi", en: "Grades and study plan" },
+  "mobile.guide.profile.body": {
+    id: "Nilai, rencana studi, KRS, dan UKT-mu. Ikon mata di kartu IPK menyembunyikan nilai saat layarmu terlihat orang lain.",
+    en: "Your grades, study plan, KRS and UKT. The eye on the IPK card hides your grades when others can see your screen.",
+  },
+  "mobile.guide.offer": { id: "Tawaran panduan", en: "Tour invitation" },
   // Nilai: the heading over this term's courses whose grade isn't out, saying once that the letters are the Student's
   // own estimates. The second is used under "Semester ini", when some grades are already out.
   "mobile.grades.estimates": { id: "Perkiraanmu semester ini", en: "Your estimates this semester" },

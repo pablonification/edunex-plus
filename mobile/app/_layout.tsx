@@ -14,6 +14,7 @@ import { perfNavigating, perfShown, watchJsThread } from "../src/perf";
 import { ReportAskCard } from "../src/screens/report/ask";
 import { Boot } from "../src/shell/boot";
 import { useFirstFrameShown } from "../src/shell/first-frame";
+import { GuideHost } from "../src/shell/guide/host";
 import { useNobodyIn } from "../src/shell/nobody";
 import { NotificationTaps } from "../src/shell/notification-taps";
 import { SignInHost } from "../src/shell/sign-in";
@@ -83,6 +84,7 @@ function Frame() {
         <Toasts />
         <CourseColorPickerHost />
         <SignInHost />
+        <GuideHost />
       </AfterFirstFrame>
       <NotificationTaps />
     </>
