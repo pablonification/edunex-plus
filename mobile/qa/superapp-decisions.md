@@ -40,8 +40,8 @@ In order, nothing above or between them (no greeting line, no "Layanan" heading)
    | --- | --- | --- | --- |
    | **KRS** | **UKT** | **Rencana** | **Lainnya** |
 
-   The top row is what a student opens in a normal week, the bottom row the office. Materi (this week's material across
-   courses) and Ujian (every exam with its day, time and room) are new views of data the app already reads. No tile only
+   The top row is what a student opens in a normal week, the bottom row the office. Materi (a course's modules and
+   their files on one screen: see "Materi, after the developer's audit" below) and Ujian (every exam with its day, time and room) are new views of data the app already reads. No tile only
    switches to a tab. "Lainnya" is a neutral tile with a 2×2 grid glyph and opens Semua layanan.
 
 Below the fold: **"Nanti hari ini"** as a timeline (time, a dot in the course's colour, name, room; a clash is one icon and
@@ -138,6 +138,30 @@ These replace the "Service colours" row above where they differ.
 - **Semua layanan:** groups of 4, 8 and 3, so the one short row is the page's last and sits left as a grid ends
   ("Ringkasan" moved to Akademik). The search field stays a hairline, 48 dp tall. No line of help under a tile: with
   fifteen it would make the page a list.
+
+## Materi, after the developer's audit (11 Nov, on their iPhone)
+
+The night's Materi was a feed: what was posted, by the week it was posted ("Minggu ini", "Minggu lalu", "Sebelumnya"),
+newest first. The developer, an ITB student, used it and said: "materials is very unclear because we are so used to
+with old ui, so it's not grouped by week, navigating is weird because of that", and "it should be easier than the
+course tab i guess in order for it to make sense and justify to have it's own page". So the feed is gone:
+
+- **Course, module, file, as on Edunex, on one screen.** The term's courses are chips under the bar (the course's glyph
+  in its colour and its code, in the term's order so a chip never moves); the picked course's name is said once under
+  them; then every module that holds material, in Edunex's order, each a heading (its number and title) over its
+  material. Every module is open: a file is one tap from the list, no module page in between. The rows are the course
+  tab's own (`MaterialRow`), so both pages say a file the same way.
+- **Nothing is sorted by date.** The list opens at the module the course is on, marked as the course's tab marks it
+  ("Minggu ini", else "Terbaru"); earlier modules are a scroll up, later ones a scroll down.
+- **What's new stays small:** a dot on the chip of a course something came to this week, "Baru" first on that item's
+  quiet line, and the first time the page opens it is on the course something was posted to last.
+- **It remembers** the course last picked, for as long as the app is open.
+- **A long module** (more than seven items) shows its first five and one row for the rest; the module the course is on
+  is always whole. The demo's modules hold one to four items, so there every module shows whole.
+- **Left out:** a module that only holds a Task (it is on Tugas), an empty one, one the lecturer hasn't opened.
+- **Taps from Beranda to a named file:** Materi 2 (the tile, the file) when it is the course last opened, 3 otherwise
+  (the tile, the course's chip, the file). The course's own tab: 3 for a file of the module the course is on (Kuliah,
+  the course, the file), 4 for any other (Kuliah, the course, the module, the file).
 
 ## Who owns what tonight
 

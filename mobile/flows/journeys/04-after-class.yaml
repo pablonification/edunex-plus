@@ -1,14 +1,13 @@
 # Journey 4, after class: this week's material for that course, opened.
-# limit: 3
-# Taps: Beranda's "Materi" tile, the row that opens the rest of "Sebelumnya", an item that opens the module it's in. In
-# the demo (8 October) "Minggu ini" holds one item, the Teams link of TA's Pertemuan 03 (row.material.889385,
-# test/fixtures/edunex course contents, created 5 Oct): a meeting link that leaves the app (found on the real phone).
-# Nothing came last week, so the newest five of "Sebelumnya" follow it, open, and one row under them opens the rest
-# (src/screens/material/feed.ts, feedLines). The walk opens the note "Link Penawaran Topik TA" (row.material.880001,
-# II4091's module 450218, test/pretend/edunex-modules.ts, posted 28 Aug: the term's oldest, so in the rest): a note
-# opens its module's screen (src/screens/material/material-screen.tsx, Item), so the journey stays inside the app.
-# gap: the limit was 2 (an item of this week); in the demo's week the one new item is a meeting link and the five open
-# under it are files and links, so a module's page is a third tap away.
+# limit: 2
+# Taps: Beranda's "Materi" tile, then an item. Materi opens on a course (the one last picked; the first time, the one
+# something was posted to last) with every module of it open, in Edunex's order, at the module that course is on
+# (src/screens/material/courses.ts). In the demo (8 October) that is Proposal Tugas Akhir (II4091), at the module that
+# got the Teams link of Pertemuan 03 this week (row.material.889385, test/fixtures/edunex course contents, created
+# 5 Oct): a meeting link that leaves the app (found on the real phone). So the walk opens a note of the same course
+# instead, "Link Penawaran Topik TA" (row.material.880001, II4091's module 450218, test/pretend/edunex-modules.ts):
+# an earlier module, so above where the list opens. A note opens its module's screen (where it is read in full), so
+# the journey stays inside the app. Scrolling isn't a tap.
 appId: io.github.pablonification.edunexplus.demo
 name: "journey 4 after class: Beranda, Materi, an item"
 ---
@@ -37,23 +36,23 @@ name: "journey 4 after class: Beranda, Materi, an item"
 - assertVisible: "Materi"
 - extendedWaitUntil:
     visible:
-      id: row.material.889385
+      id: list.material
     timeout: 30000
-- takeScreenshot: journey-4-materi
-# tap 2: the row under the newest five of "Sebelumnya": it opens the rest, and says how many.
+# The list opens at the module the course is on: this week's item is there without a tap.
 - scrollUntilVisible:
     element:
-      id: action.material.earlier
+      id: row.material.889385
     direction: DOWN
-    centerElement: true
-- tapOn:
-    id: action.material.earlier
+- takeScreenshot: journey-4-materi
+# The course picked is said once, and its chip is there to change it.
+- assertVisible:
+    id: chip.material.II4091
 - scrollUntilVisible:
     element:
       id: row.material.880001
-    direction: DOWN
+    direction: UP
     centerElement: true
-# tap 3: the note; its module (the files and notes) opens, not a list again.
+# tap 2: the note; its module (the files and notes) opens, not a list again.
 - tapOn:
     id: row.material.880001
 - extendedWaitUntil:

@@ -1,5 +1,5 @@
 // The one rule for "Minggu ini" on material: calendar weeks, Monday to Sunday in WIB, the way Tugas groups its weeks
-// (weekStart, src/core/schedule.ts). Materi's feed and a course's "Materi minggu ini" both call this, so they agree.
+// (weekStart, src/core/schedule.ts). Materi's "Baru" and a course's "Materi minggu ini" both call this, so they agree.
 // No React and nothing from the course's screens here, so either side can import it.
 import { wibDay } from "../../../../src/core/course-meetings";
 import { weekOffset } from "../../../../src/core/schedule";

@@ -488,16 +488,13 @@ export const mobileStrings = {
   // so "Diperiksa sendiri sekali sehari." keeps its room on a phone's width.
   "mobile.update.checkShort": { id: "Periksa", en: "Check" },
   // superapp: material and exams
-  // Materi (/material): what the lecturers posted across the term's courses, by week. "Minggu ini" is course.thisWeek.
+  // Materi (/material): the term's courses to pick from, and the picked one's modules with their material. A module's
+  // mark is the course tab's own (course.thisWeek, course.latest); a new item says course.new.
   "mobile.material.title": { id: "Materi", en: "Materials" },
-  "mobile.material.lastWeek": { id: "Minggu lalu", en: "Last week" },
-  "mobile.material.earlier": { id: "Sebelumnya", en: "Earlier" },
-  // The row under the newest few of "Sebelumnya": it opens the rest, and says how many.
+  // The row under a long module's first few items: it opens the rest, and says how many.
   "mobile.material.more": { id: "{count} materi lainnya", en: { one: "{count} more item", other: "{count} more items" } },
-  // What TalkBack says after a folded week's name: how many it holds.
-  "mobile.material.count": { id: "{count} materi", en: { one: "{count} item", other: "{count} items" } },
-  // A course's name over its items is the way to the course.
-  "mobile.material.openCourse": { id: "Buka mata kuliah {course}", en: "Open the course {course}" },
+  // What a screen reader says after a course's name on its chip, for the dot: how many items came this week.
+  "mobile.material.newCount": { id: "{count} materi baru", en: { one: "{count} new item", other: "{count} new items" } },
   "mobile.material.empty": { id: "Belum ada materi semester ini", en: "No materials yet this term" },
   "mobile.material.emptyHint": { id: "Yang dosenmu unggah ke Edunex muncul di sini.", en: "What your lecturers post on Edunex shows up here." },
   "mobile.material.noEdunex": { id: "Materi dibaca dari Edunex", en: "Materials come from Edunex" },

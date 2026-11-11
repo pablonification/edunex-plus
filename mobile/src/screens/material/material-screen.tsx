@@ -1,67 +1,51 @@
-// Materi (/material), behind Beranda's "Materi" tile: what the lecturers posted across this term's courses, newest
-// first. The first screen is what's new and never near-blank: "Minggu ini" and "Minggu lalu" open; when they hold
-// fewer than five, the newest five of "Sebelumnya" follow, open, and one row opens the rest (./feed.ts). Within a
-// week the items sit under their course: a quiet line with the course's own glyph in its colour and its name (a
-// heading, not a row), then each item on one row: its kind's glyph (a PDF, slides, a class link, a note), its name as
-// the lecturer wrote it, the day it was posted (left out when the name carries a date), and the rows' chevron.
-// One tap opens it. Only material is here: a module that just holds a Task is on Tugas.
-// The same data and rules as a course's Modul tab (./feed.ts). No new request: it reads what the app already holds.
+// Materi (/material), behind Beranda's "Materi" tile: the way to a file, the way a student looks for one ("the slides
+// for <course>, <module>"), as on Edunex: a course, its modules in the lecturer's order, the file. All on one screen:
+// the term's courses are chips under the bar (the course's own glyph in its colour and its code; a dot when something
+// came this week), the picked course's name under them, then every module of it, open, each a heading (its number, its
+// title) over its material: the very rows a module's page has (../course/modules.tsx, MaterialRow), one tap to open.
+// Nothing is sorted by date. The page opens on the course last picked (the first time: the one something was posted to
+// last), at the module that course is on, marked "Minggu ini" or "Terbaru" as the course's own tab marks it; what's
+// new says "Baru" on its row. A long module shows its first five and one row for the rest (./courses.ts).
+// Only material is here: a module that just holds a Task is on Tugas. No new request: it reads what the app holds.
 import { FlashList } from "@shopify/flash-list";
-import { memo, type ReactNode, useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, RefreshControl, StyleSheet, View } from "react-native";
+import { type ComponentRef, memo, useCallback, useMemo, useRef, useState } from "react";
+import { RefreshControl, ScrollView, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
-import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
-import { useFormat, useNow, useT } from "../../../../src/app/i18n";
+import { useNow, useT } from "../../../../src/app/i18n";
 import { useDataset, useStatus } from "../../../../src/app/store";
-import { edunexMaterialUrl, type MaterialKind, materialAction, materialKind } from "../../../../src/core/course-materials";
-import type { Material } from "../../../../src/core/models";
 import { useNav } from "../../nav";
 import { useArrivalId } from "../../parts/arrival";
-import { FileProblemNote, useEdunexFile } from "../../parts/files";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh, useSignIn } from "../../shell/source-status";
-import { BRow, useB } from "../../ui/b";
-import { Button } from "../../ui/controls";
+import { BHeading, useB } from "../../ui/b";
+import { Button, Chip } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
-import { type IconName, Icons } from "../../ui/icons";
+import { Icons } from "../../ui/icons";
 import { useBottomInset } from "../../ui/insets";
 import { factsLabel } from "../../ui/layout";
 import { CrossFade } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CourseGlyph } from "../../ui/tile";
+import { CourseGlyph, CourseTile, useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
-import { type FeedItem, type FeedLine, feedLines, feedLineType, materialFeed } from "./feed";
-import { FoldHeading } from "./fold";
+import { SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
+import { MaterialRow, NumberTile } from "../course/modules";
+import {
+  courseLines,
+  lineType,
+  type MaterialCourse,
+  type MaterialItem,
+  type MaterialLine,
+  type MaterialModule,
+  materialCourses,
+  pickCourse,
+  startIndex,
+} from "./courses";
 
-/** A kind's glyph, the one family's (ui/icons.tsx). Slides are told from other files by their name (kindIcon). */
-const KIND_ICON: Record<MaterialKind, IconName> = {
-  pdf: "FilePdf",
-  file: "FileText",
-  vicon: "Video",
-  video: "Video",
-  audio: "FileAudio",
-  note: "StickyNote",
-  link: "Link",
-  page: "Globe",
-  image: "Image",
-  interactive: "Layers",
-  other: "FileText",
-};
+/** The course last picked, for as long as the app is open: the page comes back to it. */
+let lastPicked: string | null = null;
 
-const SLIDES = /\.(pptx?|ppsx?|key|odp)$/i;
-
-/** A file that is a deck gets the slides glyph, by its file's name or the name the lecturer gave it. */
-const kindIcon = (kind: MaterialKind, name: string): IconName => (kind === "file" && SLIDES.test(name) ? "FileSlides" : KIND_ICON[kind]);
-
-/** Where a row's text starts: the glyph's column and the gap after it (BRow's). */
-const TEXT_INSET = 28 + space[4];
-
-const WEEK_TITLE = {
-  thisWeek: "course.thisWeek",
-  lastWeek: "mobile.material.lastWeek",
-  earlier: "mobile.material.earlier",
-} as const;
+const NO_MODULES: ReadonlySet<string> = new Set();
 
 export function MaterialScreen() {
   const t = useT();
@@ -70,18 +54,16 @@ export function MaterialScreen() {
   const now = useNow();
   const bottom = useBottomInset();
   const pull = usePullToRefresh();
-  const courses = useTermCourses();
+  const termCourses = useTermCourses();
   const outline = useDataset("edunex.outline");
   const materials = useDataset("edunex.materials");
   const tasks = useDataset("edunex.tasks");
   const edunex = useStatus("edunex").state;
-  // "Sebelumnya" starts folded, so the first screen is what's new (feedLines); a tap opens it.
-  const [toggled, setToggled] = useState(false);
-  const sections = useMemo(() => {
-    if (!courses || !materials) return null;
+  const courses = useMemo(() => {
+    if (!termCourses || !materials) return null;
     const all = Array.isArray(tasks) ? tasks : [];
-    return materialFeed(
-      courses.map((course) => ({
+    return materialCourses(
+      termCourses.map((course) => ({
         course,
         outline: outline?.[course.code],
         materials: materials[course.code],
@@ -90,28 +72,55 @@ export function MaterialScreen() {
       t,
       now,
     );
-  }, [courses, outline, materials, tasks, t, now]);
-  const lines = useMemo(() => (sections ? feedLines(sections, toggled) : []), [sections, toggled]);
-  usePerfDrawn(sections !== null);
-  const toggle = useCallback(() => setToggled((on) => !on), []);
-  const renderItem = useCallback(({ item: line }: { item: FeedLine }) => <Line line={line} onFold={toggle} />, [toggle]);
-  const loading = sections === null && (edunex === "connecting" || edunex === "live");
+  }, [termCourses, outline, materials, tasks, t, now]);
+  // The course picked here, else the one the page opened on: a refresh while it's open never moves it to another.
+  const [chosen, setChosen] = useState(lastPicked);
+  const code = useMemo(() => (courses ? pickCourse(courses, chosen) : null), [courses, chosen]);
+  if (code !== null && chosen !== code) setChosen(code);
+  const course = courses?.find((item) => item.code === code);
+  // The long modules a tap opened whole.
+  const [opened, setOpened] = useState(NO_MODULES);
+  const lines = useMemo(() => (course ? courseLines(course, opened) : []), [course, opened]);
+  // Where the list opens: the module the course is on. Worked out once per course, so opening a long module above it
+  // doesn't move the list.
+  const start = useMemo(() => (course ? startIndex(courseLines(course, NO_MODULES)) : 0), [course]);
+  usePerfDrawn(courses !== null);
+  const pick = useCallback((next: string) => {
+    lastPicked = next;
+    setChosen(next);
+  }, []);
+  const openModule = useCallback((module: string) => setOpened((was) => new Set(was).add(module)), []);
+  const renderItem = useCallback(
+    ({ item: line }: { item: MaterialLine }) => <Line line={line} course={course?.name} onMore={openModule} />,
+    [openModule, course?.name],
+  );
+  const loading = courses === null && (edunex === "connecting" || edunex === "live");
   const arrival = useArrivalId(!loading);
+  // Courses to pick from only when one of them has something: a term with nothing posted says so once.
+  const any = courses?.some((item) => item.modules.length > 0) ?? false;
   return (
     // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
     <View testID="screen.material" style={{ flex: 1, backgroundColor: b.page, paddingBottom: bottom }}>
       {/* The bar in the page's own colour in both themes (v4's page is the dark page; the light one is the surface). */}
       <TopBar v4={b.dark} title={t("mobile.material.title")} />
-      {/* The skeleton becoming the list: it fades through, once, when the data comes while the Student looks. */}
+      {/* The skeleton becoming the page: it fades through, once, when the data comes while the Student looks. */}
       <CrossFade id={arrival} style={{ flex: 1 }}>
+        {/* What couldn't be read stays in sight wherever the list is scrolled to. */}
+        <View style={{ paddingHorizontal: space.page }}>
+          <ProblemBanner belowBar />
+        </View>
+        {any && courses && course && <CoursePicker courses={courses} picked={course} onPick={pick} />}
         <FlashList
-          data={lines}
+          // A course's list is its own: it opens at that course's module, not where the last one was scrolled to.
+          key={code ?? "none"}
+          testID="list.material"
+          data={any ? lines : []}
           keyExtractor={(line) => line.key}
-          getItemType={feedLineType}
+          getItemType={lineType}
           renderItem={renderItem}
-          ListHeaderComponent={<ProblemBanner belowBar />}
-          ListEmptyComponent={loading ? <Loading /> : <Nothing signedOut={edunex === "signed-out"} />}
-          contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
+          initialScrollIndex={any && start > 0 ? start : undefined}
+          ListEmptyComponent={loading ? <Loading /> : any ? <NothingHere /> : <Nothing signedOut={edunex === "signed-out"} />}
+          contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] }}
           refreshControl={
             <RefreshControl
               refreshing={pull.refreshing}
@@ -127,175 +136,153 @@ export function MaterialScreen() {
 }
 
 /**
- * One line of the feed. Plain cells, as Tugas's list has: Ujian's rows arrived in a stagger inside the virtualised list
- * and one was left a row too low the first time the page showed, so nothing here moves a cell while the list measures it.
+ * The term's courses, one tap each, in the term's order (a chip never moves): the course's glyph in its colour, its
+ * code, and a dot when something came this week. The picked one's name is said once, under the chips. The row opens
+ * with the picked chip in sight.
  */
-const Line = memo(function Line({ line, onFold }: { line: FeedLine; onFold: () => void }) {
+function CoursePicker({ courses, picked, onPick }: { courses: readonly MaterialCourse[]; picked: MaterialCourse; onPick: (code: string) => void }) {
   const t = useT();
-  if (line.type === "week")
-    return (
-      <FoldHeading
-        title={t(WEEK_TITLE[line.week])}
-        count={line.count}
-        countLabel={t("mobile.material.count", { count: line.count })}
-        first={line.first}
-        fold={line.fold}
-        onFold={onFold}
-        testID="action.material.earlier"
-      />
-    );
-  if (line.type === "course") return <CourseLine code={line.code} name={line.name} />;
-  // The rest of "Sebelumnya", one tap away: a row as the items are, its words where theirs start.
+  const v = useTheme().v4;
+  const row = useRef<ComponentRef<typeof ScrollView>>(null);
+  const placed = useRef(false);
+  return (
+    <View testID="material.courses">
+      <ScrollView
+        ref={row}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: space[2], paddingHorizontal: space.page, paddingVertical: space[2] }}
+      >
+        {courses.map((course) => {
+          const selected = course.code === picked.code;
+          return (
+            <View
+              key={course.code}
+              onLayout={
+                selected && !placed.current
+                  ? (event) => {
+                      placed.current = true;
+                      const { x } = event.nativeEvent.layout;
+                      if (x > space.page) row.current?.scrollTo({ x: x - space.page, animated: false });
+                    }
+                  : undefined
+              }
+            >
+              <Chip
+                selected={selected}
+                check={false}
+                onPress={() => onPick(course.code)}
+                testID={`chip.material.${course.code}`}
+                label={factsLabel(course.name, course.fresh > 0 ? t("mobile.material.newCount", { count: course.fresh }) : null)}
+              >
+                <CourseGlyph code={course.code} name={course.name} size={18} />
+                <Text size="labelLarge" tone={selected ? "onSecondaryContainer" : "muted"} style={{ flexShrink: 0 }}>
+                  {course.code}
+                </Text>
+                {course.fresh > 0 && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: v.brandInk }} />}
+              </Chip>
+            </View>
+          );
+        })}
+      </ScrollView>
+      <View style={{ paddingHorizontal: space.page, paddingTop: space[2], paddingBottom: space[1] }}>
+        <BHeading style={{ marginBottom: 0 }}>{picked.name}</BHeading>
+      </View>
+    </View>
+  );
+}
+
+/** One line of the list. Plain cells: nothing here moves a cell while the list measures it. */
+const Line = memo(function Line({ line, course, onMore }: { line: MaterialLine; course: string | undefined; onMore: (module: string) => void }) {
+  const t = useT();
+  const v = useTheme().v4;
+  if (line.type === "joint") return <SectionTitle>{t("course.jointClass")}</SectionTitle>;
+  if (line.type === "module") return <ModuleHeading module={line.module} course={course} first={line.first} />;
+  // The rest of a long module, one tap away: a row as the items are, its words where theirs start.
   if (line.type === "more")
     return (
-      <BRow
-        testID="action.material.earlier"
-        last
-        leading={<View style={{ width: 28 }} />}
+      <TileRow
+        testID={`action.material.more.${line.module}`}
+        leading={<View style={{ width: 44 }} />}
         title={t("mobile.material.more", { count: line.count })}
-        trailing={<MoreMark />}
-        onPress={onFold}
-        accessibilityState={{ expanded: false }}
+        status={<Icons.ChevronDown size={20} color={v.muted} />}
+        onPress={() => onMore(line.module)}
       />
     );
-  return <Item item={line.item} last={line.last} />;
+  // Keyed by the item: a recycled cell never keeps another file's download.
+  return <Item key={line.key} item={line.item} first={line.first} />;
 });
 
-/** Whose items follow: the course's own glyph in its colour and its name, quiet and not a row (nothing to tap). */
-function CourseLine({ code, name }: { code: string; name: string }) {
-  const b = useB();
+/**
+ * Whose material follows: the module's number as the course's tab draws it (in the course's ink; on a filled circle
+ * for the module the course is on) and its title, with that tab's own mark ("Minggu ini", "Terbaru"). A heading, not
+ * a row: its material is already under it, so there is nothing to tap.
+ */
+function ModuleHeading({ module, course, first }: { module: MaterialModule; course: string | undefined; first: boolean }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const code = module.items[0]?.code ?? "";
+  const ink = useCourseTile()(code).ink;
+  const number = module.label === null ? null : t("course.module", { no: module.label });
+  const whose = module.parent ? t("course.jointClass") : null;
+  const mark = module.current === "week" ? t("course.thisWeek") : module.current === "latest" ? t("course.latest") : null;
   return (
     <View
+      testID={`heading.material.${module.id}`}
+      accessible
       accessibilityRole="header"
-      accessibilityLabel={name}
-      style={{ flexDirection: "row", alignItems: "center", gap: space[4], minHeight: 32, marginTop: space[3] }}
+      accessibilityLabel={factsLabel(number, module.title, whose, mark)}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 48, marginTop: first ? space[1] : space[5] }}
     >
-      <View style={{ width: 28, alignItems: "center" }}>
-        <CourseGlyph code={code} name={name} size={20} />
+      {module.label === null ? <CourseTile code={code} name={course} bare /> : <NumberTile no={module.label} ink={ink} here={module.current !== null} />}
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text size="bodyLarge" weight="bold" numberOfLines={2} style={{ color: v.fg }}>
+          {module.title}
+        </Text>
       </View>
-      <Text size="labelLarge" weight="medium" numberOfLines={1} style={{ flex: 1, color: b.muted }}>
-        {name}
-      </Text>
+      {mark && <StatusChip tone="brand">{mark}</StatusChip>}
     </View>
   );
 }
 
-/** Down, not across: the rest opens here, under the row. */
-function MoreMark() {
-  const b = useB();
-  return <Icons.ChevronDown size={20} color={b.muted} />;
-}
-
-/** The lecturer's own title already says a day ("Jumat, 9 Oktober 2026", "11/9"): ours beside it would be a second, unlabelled date. */
-const HAS_DATE = /\b\d{1,2}\s+(jan|feb|mar|apr|mei|may|jun|jul|agu|aug|sep|okt|oct|nov|des|dec)|\b\d{1,2}[/-]\d{1,2}\b/i;
-
-/** An item's kind, in the page's quiet ink: the colour is its course's, on the line over it. */
-function Glyph({ name }: { name: IconName }) {
-  const theme = useTheme();
-  const Icon = Icons[name];
-  return (
-    <View style={{ width: 28, alignItems: "center" }}>
-      <Icon size={24} color={theme.v4.fg2} />
-    </View>
-  );
-}
-
-/** One thing to open. A file keeps its own state (downloading, here, what went wrong), so it's a part of its own. */
-function Item({ item, last }: { item: FeedItem; last: boolean }) {
+/** One thing to open, as its module's page lists it; a note or a picture opens that page, where it's read in full. */
+function Item({ item, first }: { item: MaterialItem; first: boolean }) {
   const t = useT();
-  const f = useFormat();
   const { go } = useNav();
-  const openExternal = useOpenExternal();
-  const openLink = useOpenLink();
-  // The quiet line is the day it was posted alone (its course is the line over the group): short, so it never wraps.
-  // A title that carries a date of its own keeps the row to that one.
-  const when = item.at !== null && !HAS_DATE.test(item.material.title) ? f.dayMonth(item.at) : undefined;
-  const testID = `row.material.${item.material.id}`;
-  const { material } = item;
-  const kind = materialKind(material.type);
-  const action = materialAction(material);
-  const glyph = <Glyph name={kindIcon(kind, action.kind === "download" ? action.name : material.title)} />;
-  const label = factsLabel(material.title, t(`material.${kind}`), item.course, when);
-  if (action.kind === "download")
-    return <FileItem material={material} file={{ url: action.url, name: action.name }} last={last} glyph={glyph} when={when} label={label} testID={testID} />;
-  // A note or a picture is read in full on its module's screen; a link opens as a lecturer's link does, a class is
-  // joined, anything else opens on Edunex. One mark ends every row, the rows' chevron: the glyph in front says the kind.
-  const open = () => {
-    if (action.kind === "note" || action.kind === "image") go({ screen: "course", code: item.code, module: item.module });
-    else if (action.kind === "open") openLink(action.url);
-    else openExternal(action.url || edunexMaterialUrl(material));
-  };
-  return <BRow testID={testID} last={last} leading={glyph} title={material.title} meta={when} onPress={open} accessibilityLabel={label} />;
-}
-
-function FileItem({
-  material,
-  file,
-  last,
-  glyph,
-  when,
-  label,
-  testID,
-}: {
-  material: Material;
-  file: { url: string; name: string };
-  last: boolean;
-  glyph: ReactNode;
-  when: string | undefined;
-  label: string;
-  testID: string;
-}) {
-  const b = useB();
-  const edunexUrl = edunexMaterialUrl(material);
-  const { busy, open, share, problem } = useEdunexFile(file, edunexUrl, { inline: true });
   return (
-    <View>
-      <BRow
-        testID={testID}
-        // The problem's note sits under the row, so the hairline goes under the note instead.
-        last={last || problem !== null}
-        leading={glyph}
-        title={material.title}
-        meta={when}
-        // A file opens on this phone, downloaded or not yet: the rows' chevron, a spinner while it comes.
-        trailing={busy ? <ActivityIndicator size="small" color={b.muted} /> : undefined}
-        onPress={() => void open()}
-        accessibilityLabel={label}
-        accessibilityState={{ busy }}
-      />
-      {problem && (
-        <FileProblemNote
-          problem={problem}
-          name={file.name}
-          edunexUrl={edunexUrl}
-          onRetry={() => void open()}
-          onShare={share}
-          testID={`${testID}.problem`}
-          style={[{ marginLeft: TEXT_INSET, paddingBottom: space[3] }, !last && { borderBottomWidth: StyleSheet.hairlineWidth * 2, borderBottomColor: b.line }]}
-        />
-      )}
-    </View>
+    <MaterialRow
+      material={item.material}
+      first={first}
+      fresh={item.fresh ? t("course.new") : undefined}
+      onRead={() => go({ screen: "course", code: item.code, module: item.module })}
+    />
   );
 }
 
-/** The feed's shape while Edunex's part is on its way: a week's heading, a course's line, then its items. */
+/** The page's shape while Edunex's part is on its way: the courses, the picked one's name, a module over its rows. */
 function Loading() {
   return (
     <View testID="skeleton.material" accessibilityState={{ busy: true }} style={{ paddingTop: space[2] }}>
+      <View style={{ flexDirection: "row", gap: space[2] }}>
+        {[104, 96, 104].map((width, chip) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: still placeholders
+          <Skeleton key={chip} height={32} width={width} />
+        ))}
+      </View>
+      <Skeleton height={20} width={190} style={{ marginTop: space[5] }} />
       {[3, 2].map((rows, group) => (
-        <View key={rows} style={{ marginTop: group ? space[6] : 0 }}>
-          <Skeleton height={22} width={group ? 130 : 110} />
-          <View style={{ flexDirection: "row", alignItems: "center", gap: space[4], height: 32, marginTop: space[3] }}>
-            <Skeleton height={20} width={20} style={{ marginHorizontal: 4 }} />
-            <Skeleton height={12} width={group ? 120 : 170} />
+        <View key={rows} style={{ marginTop: group ? space[5] : space[3] }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], height: 48 }}>
+            <Skeleton height={24} width={24} style={{ marginHorizontal: 10 }} />
+            <Skeleton height={16} width={group ? 150 : 200} />
           </View>
           {Array.from({ length: rows }, (_, row) => (
             // biome-ignore lint/suspicious/noArrayIndexKey: still placeholders
-            <View key={row} style={{ flexDirection: "row", alignItems: "center", gap: space[4], height: 64 }}>
-              <Skeleton height={24} width={24} style={{ marginHorizontal: 2 }} />
+            <View key={row} style={{ flexDirection: "row", alignItems: "center", gap: space[3], height: 68 }}>
+              <Skeleton height={24} width={24} style={{ marginHorizontal: 10 }} />
               <View style={{ flex: 1, gap: space[2] }}>
                 <Skeleton height={16} width={row === 1 ? "58%" : "80%"} />
-                <Skeleton height={12} width={48} />
+                <Skeleton height={12} width={130} />
               </View>
             </View>
           ))}
@@ -303,6 +290,13 @@ function Loading() {
       ))}
     </View>
   );
+}
+
+/** The picked course has nothing posted: the words its own tab says. */
+function NothingHere() {
+  const t = useT();
+  const theme = useTheme();
+  return <EmptyState icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />} title={t("course.noMaterials")} />;
 }
 
 /** Nothing to list: no Edunex (said once, with the way in), or a term nothing was posted in yet. */

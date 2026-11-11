@@ -289,7 +289,7 @@
         },
         "loading": {
           "handling": "designed",
-          "draws": "Loading: skeleton groups"
+          "draws": "Loading: skeleton of the course chips, a module and its rows"
         },
         "empty": {
           "handling": "shared",
@@ -297,11 +297,11 @@
         },
         "offline": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error-first": {
           "handling": "shared",
@@ -332,11 +332,11 @@
         },
         "offline": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error-first": {
           "handling": "shared",
@@ -344,7 +344,7 @@
         },
         "six-ended": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "no-six": {
           "handling": "shared",
@@ -507,11 +507,11 @@
         },
         "offline": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error-first": {
           "handling": "unhandled",
@@ -519,7 +519,7 @@
         },
         "six-ended": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "no-six": {
           "handling": "designed",
@@ -542,7 +542,7 @@
         },
         "offline": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error": {
           "handling": "designed",
@@ -554,7 +554,7 @@
         },
         "six-ended": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "no-six": {
           "handling": "designed",
@@ -582,7 +582,7 @@
         },
         "offline": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error": {
           "handling": "designed",
@@ -609,7 +609,7 @@
         },
         "offline": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error": {
           "handling": "designed",
@@ -636,7 +636,7 @@
         },
         "offline": {
           "handling": "shared",
-          "draws": "ProblemBanner belowBar"
+          "draws": "ProblemBanner belowBar, fixed over the course chips"
         },
         "error": {
           "handling": "designed",
