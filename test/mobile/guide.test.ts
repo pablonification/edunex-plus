@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { endGuide, guidePart, guidePartView, guideRunning, resetGuide, setGuideOffers, startGuide } from "../../mobile/src/shell/guide/state";
-import { GUIDE_STEPS, guideAfter, guideFirst, guideMayOffer, guideOnScreen, guidePlace, guideTurn } from "../../mobile/src/shell/guide/steps";
+import { GUIDE_STEPS, guideAfter, guideFirst, guideMayOffer, guideSpot, guideTurn } from "../../mobile/src/shell/guide/steps";
 import { DEFAULT_SETTINGS, guideDue } from "../../src/core/models";
 import { STRINGS } from "../../src/core/strings";
 import { startEngine } from "../engine/harness";
@@ -194,25 +194,29 @@ describe("a part and its caption", () => {
     expect(guidePartView("home.grid")).toBeUndefined();
   });
 
-  it("the caption sits under the part when it fits, else over it", () => {
-    const top = guidePlace({ x: 16, y: 120, width: 358, height: 140 }, frame, 180);
-    expect(top.side).toBe("below");
-    expect(top.captionTop).toBe(120 + 140 + 6 + 12);
-    const low = guidePlace({ x: 16, y: 520, width: 358, height: 180 }, frame, 180);
-    expect(low.side).toBe("above");
-    expect(low.captionTop + 180).toBeLessThanOrEqual(520 - 6);
+  it("the caption has one place, the frame's foot, whatever the part: it never jumps from step to step", () => {
+    const high = guideSpot({ x: 16, y: 120, width: 358, height: 140 }, frame, 180);
+    const low = guideSpot({ x: 16, y: 420, width: 358, height: 100 }, frame, 180);
+    expect(high.captionTop).toBe(frame.y + frame.height - 180);
+    expect(low.captionTop).toBe(high.captionTop);
   });
 
-  it("a part as tall as the page keeps the caption at the page's foot, clear of the tabs", () => {
-    const page = guidePlace({ x: 0, y: 0, width: 390, height: 844 }, frame, 180);
-    expect(page.side).toBe("over");
-    expect(page.spot).toEqual(frame);
-    expect(page.captionTop + 180).toBeLessThanOrEqual(frame.y + frame.height);
+  it("a part gets a ring with a little room around it", () => {
+    const { spot } = guideSpot({ x: 16, y: 120, width: 358, height: 140 }, frame, 180);
+    expect(spot).toEqual({ x: 10, y: 114, width: 370, height: 152 });
   });
 
-  it("a part scrolled away or not laid out isn't on screen", () => {
-    expect(guideOnScreen({ x: 16, y: 120, width: 358, height: 140 }, frame)).toBe(true);
-    expect(guideOnScreen({ x: 16, y: 900, width: 358, height: 140 }, frame)).toBe(false);
-    expect(guideOnScreen({ x: 0, y: 0, width: 0, height: 0 }, frame)).toBe(false);
+  it("a part as tall as its page is pointed at by its top: the ring ends above the caption, never under it", () => {
+    const { spot, captionTop } = guideSpot({ x: 0, y: 0, width: 390, height: 844 }, frame, 180);
+    expect(spot).not.toBeNull();
+    expect(spot?.y).toBe(frame.y);
+    expect((spot?.y ?? 0) + (spot?.height ?? 0)).toBe(captionTop - 12);
+  });
+
+  it("a part that isn't laid out, or sits where the caption is, gets no ring; the caption stays", () => {
+    expect(guideSpot(null, frame, 180).spot).toBeNull();
+    expect(guideSpot({ x: 0, y: 0, width: 0, height: 0 }, frame, 180).spot).toBeNull();
+    expect(guideSpot({ x: 16, y: 900, width: 358, height: 140 }, frame, 180).spot).toBeNull();
+    expect(guideSpot({ x: 16, y: 640, width: 358, height: 100 }, frame, 180)).toEqual({ spot: null, captionTop: frame.y + frame.height - 180 });
   });
 });

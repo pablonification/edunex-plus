@@ -5,12 +5,14 @@
 // with a snackbar up ("Semua siap"), the report's question, or a system still signing in. It's no wall: Beranda works
 // under it, and it goes when the Student goes elsewhere.
 //
-// The tour opens each step's tab, finds the real part (the view its screen handed over, ./state.ts), measures where it
-// is in the window, and dims the screen around it: four panes around the spotlight and a ring on it, all moved on the
-// UI thread (Reanimated, the kit's standard curve; in place at once with Remove animations). The caption is a card
-// near the part: where it is in the tour and "Lewati panduan" first, the part's name and one line, then Kembali and
-// Lanjut (Selesai on the last). The screen under it waits; Android's Back is Kembali, and leaves on the first step.
-// A part its page doesn't show, or one scrolled out of sight, is said without a spotlight: every step is shown.
+// The tour, step by step: its tab opens, that tab's page goes back to its top, the step's words are there at once,
+// and the real part (the view its screen handed over, ./state.ts) is measured once it has stopped moving. The screen
+// is dimmed around the part (four panes around the spotlight, and a ring on it), all moved on the UI thread
+// (Reanimated, the kit's standard curve; in place at once with Remove animations). The caption is one card with one
+// place for the whole tour, the foot of the screen above the tabs: where it is in the tour and "Lewati panduan" first,
+// the part's name and one line, then Kembali and Lanjut (Selesai on the last). A part as tall as its page is pointed
+// at by its top, above the caption, so every step has a ring. The screen under it waits; Android's Back is Kembali,
+// and leaves on the first step.
 import { router, usePathname } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useRef, useState } from "react";
 import { AccessibilityInfo, BackHandler, Platform, StyleSheet, useWindowDimensions, View } from "react-native";
@@ -20,26 +22,19 @@ import { useT } from "../../../../src/app/i18n";
 import { useBridge, useDataset, useStatus, useStore } from "../../../../src/app/store";
 import { toast, useToasts } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
-import { useTabsBottom } from "../../ui/insets";
 import { useReduceMotion } from "../../ui/motion";
 import { moves } from "../../ui/moves";
 import { tabBarHeight } from "../../ui/page-end";
+import { scrollPagesTo } from "../../ui/scroll-top";
 import { Text } from "../../ui/text";
 import { motion, radius, space, useTheme } from "../../ui/theme";
 import { endGuide, guidePartView, type Measurable, startGuide } from "./state";
-import { type Box, GUIDE_STEPS, guideAfter, guideOnScreen, guidePlace, guideTurn, OFFER_AFTER_MS } from "./steps";
+import { type Box, CAPTION_GAP, GUIDE_STEPS, guideAfter, guideSpot, guideTurn, OFFER_AFTER_MS, SPOT_PAD } from "./steps";
 
 const STANDARD = Easing.bezier(...motion.easing.standard);
 /** How long a step waits for its part after its tab opens (a tab draws for the first time on its turn), and between looks. */
 const PART_WAIT_MS = 4_000;
 const PART_LOOK_MS = 80;
-/**
- * A part is measured again once its page has settled: a tab's parts rise in as it's first shown, and a screen closing
- * over the tabs (Settings, where the tour is taken again) slides away over them.
- */
-const SETTLED_MS = [450, 1_000] as const;
-/** A tab just opened is measured after this long: its page is in place by then. */
-const TAB_SHOWN_MS = 150;
 
 /** The invitation, on its turn. */
 export function GuideOffer() {
@@ -116,6 +111,17 @@ const measure = (view: Measurable) =>
     });
   });
 const MEASURE_MS = 400;
+const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
+const same = (a: Box, b: Box) => Math.abs(a.x - b.x) < 1 && Math.abs(a.y - b.y) < 1 && Math.abs(a.width - b.width) < 1 && Math.abs(a.height - b.height) < 1;
+
+/** How often, and how many times, a part's place is looked at after its ring first shows: a page still drawing or
+ *  reading its data moves its parts, and the ring follows. */
+const FOLLOW_EVERY_MS = 140;
+const FOLLOW_LOOKS = 10;
+/** A page asked to go somewhere is there after this long. */
+const SCROLLED_MS = 60;
+/** A part that doesn't answer where it is (a busy phone) is asked again this many times before the step goes without a ring. */
+const FIRST_LOOKS = 8;
 
 /**
  * What's on screen for a step: which one, where its part is (null until it's found, or when its page doesn't show it:
@@ -127,14 +133,13 @@ interface Shown {
   root: Box;
 }
 
-/** The tour itself, from its first step that shows. */
+/** The tour itself, from its first step. */
 export function GuideTour() {
   const t = useT();
   const theme = useTheme();
   const bridge = useBridge();
   const insets = useSafeAreaInsets();
   const still = useReduceMotion();
-  const tabsBottom = useTabsBottom();
   const root = useRef<ComponentRef<typeof View>>(null);
   const said = useRef<ComponentRef<typeof View>>(null);
   const [shown, setShown] = useState<Shown | null>(null);
@@ -145,7 +150,8 @@ export function GuideTour() {
   const window = useWindowDimensions();
   const size = useRef(window);
   size.current = window;
-  const tab = useRef<string | null>(null);
+  // The room a part has, in window coordinates: from under a page's own bar to above the caption (once it's measured).
+  const rooms = useRef<{ ceiling: number; floor: number } | null>(null);
 
   const finish = useCallback(
     (skipped: boolean) => {
@@ -160,36 +166,71 @@ export function GuideTour() {
   );
 
   /**
-   * Opens step `to`: its tab, its words at once, and its spotlight as soon as its part is found on its page. Every
-   * "Lanjut" moves exactly one step, at once, whatever the page under it is doing: a part that isn't there (its page
-   * doesn't show it now, or hasn't drawn it yet) is said without a spotlight, never waited for or passed over in
-   * silence (the tour once walked the tabs with nothing on screen, looking for parts).
+   * Opens step `to`. In this order, every time: its tab; that tab's page back at its top (the parts the tour points
+   * at sit there, and a page the Student had scrolled left it pointing at nothing); the step's words, at once, so the
+   * tap is answered; then the part's place once it has stopped moving, and the ring goes there. Every "Lanjut" moves
+   * exactly one step, whatever the page under it is doing.
    */
   const seek = useCallback(
     async (to: number | "end") => {
       const mine = ++look.current;
+      const alive = () => mine === look.current;
       if (to === "end") return finish(false);
       const step = GUIDE_STEPS[to]!;
       // From a screen over the tabs (Settings): back to the tabs first.
       if (router.canDismiss()) router.dismissAll();
       router.navigate(step.tab);
-      const moved = tab.current !== step.tab;
-      tab.current = step.tab;
       at.current = to;
       const frame = root.current as unknown as Measurable | null;
       const rootBox = (frame ? await measure(frame) : null) ?? { x: 0, y: 0, width: size.current.width, height: size.current.height };
-      if (mine !== look.current) return;
+      if (!alive()) return;
+      // The words now, the ring away until the part's new place is known: it never points at the step before.
       setShown({ at: to, part: null, root: rootBox });
       const view = await partSoon(step.part);
-      if (!view || mine !== look.current) return;
-      // Another tab: its page is laid out a moment after it's shown.
-      if (moved) await new Promise((done) => setTimeout(done, TAB_SHOWN_MS));
-      const see = async () => {
-        const part = await measure(view);
-        if (part && mine === look.current) setShown({ at: to, part, root: rootBox });
+      if (!alive()) return;
+      scrollPagesTo(0);
+      if (!view) return;
+      // The page is at its top a frame or two after it's asked: the part is looked for then.
+      await pause(SCROLLED_MS);
+      if (!alive()) return;
+      // The part's place, as soon as it answers: the ring is there at once, not once the page has gone quiet.
+      const seen = async (): Promise<Box | null> => {
+        for (let tries = 0; tries < FIRST_LOOKS; tries += 1) {
+          const box = await measure(view);
+          if (!alive()) return null;
+          if (box && box.width > 0 && box.height > 0) return box;
+          await pause(FOLLOW_EVERY_MS);
+        }
+        return null;
       };
-      await see();
-      for (const later of SETTLED_MS) setTimeout(() => void see(), later);
+      let part = await seen();
+      if (!part || !alive()) return;
+      // A part that ends under the caption is brought up into the room above it, when the page can be scrolled that
+      // far without taking the part's own top out of sight (Beranda's services, Kuliah's list).
+      const room = rooms.current;
+      if (room) {
+        const over = part.y + part.height + SPOT_PAD - room.floor;
+        if (over > 0 && part.y - over >= room.ceiling) {
+          scrollPagesTo(over);
+          await pause(SCROLLED_MS);
+          if (!alive()) return;
+          part = await seen();
+          if (!part || !alive()) return;
+        }
+      }
+      setShown({ at: to, part, root: rootBox });
+      // Then it's followed for a moment: a page still drawing or reading its data moves its parts, and the ring goes
+      // with them.
+      for (let looks = 0; looks < FOLLOW_LOOKS; looks += 1) {
+        await pause(FOLLOW_EVERY_MS);
+        if (!alive()) return;
+        const now = await measure(view);
+        if (!alive()) return;
+        if (now && now.width > 0 && now.height > 0 && !same(now, part)) {
+          part = now;
+          setShown({ at: to, part, root: rootBox });
+        }
+      }
     },
     [finish],
   );
@@ -226,22 +267,22 @@ export function GuideTour() {
   const w = useSharedValue(0);
   const h = useSharedValue(0);
   const lit = useSharedValue(0);
-  const first = useRef(true);
+  const placed = useRef(false);
 
   let captionTop: number | null = null;
   let spot: Box | null = null;
   if (shown && step) {
     const { root: r } = shown;
     const top = insets.top;
-    // The tabs' bar's top: where the tabs' pages end on Android (they report it), the floating bar's on an iPhone.
-    const foot = (Platform.OS !== "ios" && tabsBottom > 0 ? tabsBottom - r.y : r.height - insets.bottom - tabBarHeight(Platform.OS)) - space[2];
+    // The tabs' bar's top: the phone's own bar (or the home indicator), then the tabs' bar's height. One figure for
+    // the whole tour, so the caption's place never changes while it runs.
+    const foot = r.height - insets.bottom - tabBarHeight(Platform.OS) - space[2];
     const frame = { x: 0, y: top, width: r.width, height: Math.max(0, foot - top) };
     const part = shown.part ? { x: shown.part.x - r.x, y: shown.part.y - r.y, width: shown.part.width, height: shown.part.height } : null;
-    if (part && guideOnScreen(part, frame)) {
-      const placed = guidePlace(part, frame, captionHeight);
-      spot = placed.spot;
-      captionTop = placed.captionTop;
-    } else captionTop = Math.max(frame.y, frame.y + frame.height - captionHeight - space[3]);
+    const place = guideSpot(part, frame, captionHeight);
+    spot = captionHeight > 0 ? place.spot : null;
+    captionTop = place.captionTop;
+    rooms.current = captionHeight > 0 ? { ceiling: r.y + top + PAGE_BAR, floor: r.y + place.captionTop - CAPTION_GAP } : null;
   }
   const sx = spot?.x ?? 0;
   const sy = spot?.y ?? 0;
@@ -251,19 +292,28 @@ export function GuideTour() {
   const ready = shown !== null;
   useEffect(() => {
     if (!ready) return;
-    const to = (value: number) => (still || first.current ? value : withTiming(value, { duration: motion.duration.medium, easing: STANDARD }));
+    const ease = (value: number) => (still ? value : withTiming(value, { duration: motion.duration.medium, easing: STANDARD }));
+    if (!has) {
+      // No ring: the screen is dimmed whole (the panes close over where the ring was).
+      lit.value = ease(0);
+      return;
+    }
+    // The first ring is simply there; after that it travels from the part before to this one.
+    const to = placed.current ? ease : (value: number) => value;
     x.value = to(sx);
     y.value = to(sy);
     w.value = to(sw);
     h.value = to(sh);
-    lit.value = to(has ? 1 : 0);
-    first.current = false;
+    lit.value = ease(1);
+    placed.current = true;
   }, [ready, sx, sy, sw, sh, has, still, x, y, w, h, lit]);
 
-  const above = useAnimatedStyle(() => ({ height: y.value }));
+  // Four panes around the spotlight. With no ring they meet (the hole closes as the ring fades), so the screen is
+  // dimmed whole and nothing un-dimmed is left where the last part was.
+  const above = useAnimatedStyle(() => ({ height: y.value + (1 - lit.value) * h.value }));
   const below = useAnimatedStyle(() => ({ top: y.value + h.value }));
-  const before = useAnimatedStyle(() => ({ top: y.value, height: h.value, width: x.value }));
-  const after = useAnimatedStyle(() => ({ top: y.value, height: h.value, left: x.value + w.value }));
+  const before = useAnimatedStyle(() => ({ top: y.value + (1 - lit.value) * h.value, height: lit.value * h.value, width: x.value }));
+  const after = useAnimatedStyle(() => ({ top: y.value + (1 - lit.value) * h.value, height: lit.value * h.value, left: x.value + w.value }));
   const ring = useAnimatedStyle(() => ({ left: x.value, top: y.value, width: w.value, height: h.value, opacity: lit.value }));
 
   const dim = { position: "absolute", backgroundColor: theme.color.scrim } as const;
@@ -292,58 +342,64 @@ export function GuideTour() {
         </>
       )}
       {shown && step && (
-        <View
-          // Measured first, shown once it's placed: the caption never jumps.
+        // One card in one place for the whole tour (the frame's foot): its words change, it doesn't move or come
+        // again. Measured first, shown once its height is known.
+        <Animated.View
+          testID={`card.guide.${step.id}`}
+          entering={still ? undefined : moves.arrive}
           onLayout={(event) => setCaptionHeight(Math.round(event.nativeEvent.layout.height))}
-          style={{ position: "absolute", left: space[4], right: space[4], top: captionTop ?? 0, opacity: captionHeight > 0 ? 1 : 0 }}
+          style={{
+            position: "absolute",
+            left: space[4],
+            right: space[4],
+            top: captionTop ?? 0,
+            opacity: captionHeight > 0 ? 1 : 0,
+            borderRadius: radius.xxl,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.color.edge,
+            backgroundColor: theme.color.raised,
+            paddingHorizontal: space[4],
+            paddingBottom: space[3],
+            elevation: 8,
+            shadowColor: "#101828",
+          }}
         >
-          <Animated.View
-            key={step.id}
-            testID={`card.guide.${step.id}`}
-            entering={still ? undefined : moves.arrive}
-            style={{
-              borderRadius: radius.xxl,
-              borderWidth: StyleSheet.hairlineWidth,
-              borderColor: theme.color.edge,
-              backgroundColor: theme.color.raised,
-              paddingHorizontal: space[4],
-              paddingBottom: space[3],
-              elevation: 8,
-              shadowColor: "#101828",
-            }}
-          >
-            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginRight: -space[2] }}>
-              <Text size="small" tone="muted" tabular testID="label.guideStep">
-                {count}
-              </Text>
-              <Button variant="ghost" onPress={() => finish(true)} testID="action.guideSkip">
-                {t("guide.skip")}
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginRight: -space[2] }}>
+            <Text size="small" tone="muted" tabular testID="label.guideStep">
+              {count}
+            </Text>
+            <Button variant="ghost" onPress={() => finish(true)} testID="action.guideSkip">
+              {t("guide.skip")}
+            </Button>
+          </View>
+          <View ref={said} accessible accessibilityLabel={`${t(step.title)}. ${t(step.body)} ${count}`}>
+            <Text size="body" weight="semibold" accessibilityRole="header">
+              {t(step.title)}
+            </Text>
+            {/* Room for three lines whatever the step says: the card keeps its height, so nothing under it moves. */}
+            <Text size="bodyMedium" tone="muted" style={{ marginTop: space[1], minHeight: BODY_LINES * 20 }}>
+              {t(step.body)}
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: space[2], marginTop: space[3] }}>
+            {guideAfter(shown.at, "back") !== shown.at && (
+              <Button variant="ghost" onPress={() => void seek(guideAfter(shown.at, "back"))} testID="action.guideBack">
+                {t("action.back")}
               </Button>
-            </View>
-            <View ref={said} accessible accessibilityLabel={`${t(step.title)}. ${t(step.body)} ${count}`}>
-              <Text size="body" weight="semibold" accessibilityRole="header">
-                {t(step.title)}
-              </Text>
-              <Text size="bodyMedium" tone="muted" style={{ marginTop: space[1] }}>
-                {t(step.body)}
-              </Text>
-            </View>
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: space[2], marginTop: space[3] }}>
-              {guideAfter(shown.at, "back") !== shown.at && (
-                <Button variant="ghost" onPress={() => void seek(guideAfter(shown.at, "back"))} testID="action.guideBack">
-                  {t("action.back")}
-                </Button>
-              )}
-              <Button variant="primary" onPress={() => void seek(guideAfter(shown.at, "next"))} testID="action.guideNext">
-                {t(last ? "guide.done" : "guide.next")}
-              </Button>
-            </View>
-          </Animated.View>
-        </View>
+            )}
+            <Button variant="primary" onPress={() => void seek(guideAfter(shown.at, "next"))} testID="action.guideNext">
+              {t(last ? "guide.done" : "guide.next")}
+            </Button>
+          </View>
+        </Animated.View>
       )}
     </View>
   );
 }
+/** A page's own bar under the status bar (a tab's title row, Beranda's search row): a part isn't scrolled up under it. */
+const PAGE_BAR = 64;
+/** The lines a step's words are given room for (the longest takes three at the usual font size). */
+const BODY_LINES = 3;
 
 /** The part's view once its page has drawn it, or undefined if it doesn't come (its page doesn't show it now). */
 function partSoon(id: string): Promise<Measurable | undefined> {

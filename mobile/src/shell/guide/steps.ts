@@ -89,26 +89,24 @@ export interface Box {
 /** The room around the part inside its spotlight, and between the spotlight and the caption (dp). */
 export const SPOT_PAD = 6;
 export const CAPTION_GAP = 12;
+/** The least of a part that must show for it to be pointed at (dp). */
+const SPOT_LEAST = 40;
 
 /**
- * The spotlight and the caption's top for a part measured at `part`, within `frame` (the screen between the status
- * bar and the tabs' bar; all in the overlay's own coordinates). The spotlight is the part with a little room, cut to
- * the frame (a long list ends at the tabs). The caption goes under it when it fits, else over it, else (a part as
- * tall as the page) at the frame's foot, over the part's own end.
+ * Where the tour's two things go, within `frame` (the screen between the status bar and the tabs' bar; all in the
+ * overlay's own coordinates). The caption has one place, the frame's foot, on every step: it never jumps from step to
+ * step, and never sits under the Dynamic Island or the tabs. The spotlight is the part with a little room, cut to
+ * what's left above the caption: a part as tall as its page (a list, a timetable) is pointed at by its top, so every
+ * step has a ring. Null when nothing of the part shows there (not laid out, or scrolled away under the caption).
  */
-export function guidePlace(part: Box, frame: Box, captionHeight: number): { spot: Box; captionTop: number; side: "below" | "above" | "over" } {
+export function guideSpot(part: Box | null, frame: Box, captionHeight: number): { spot: Box | null; captionTop: number } {
+  const captionTop = Math.max(frame.y, frame.y + frame.height - captionHeight);
+  if (!part || part.width <= 0 || part.height <= 0) return { spot: null, captionTop };
+  const floor = captionTop - CAPTION_GAP;
   const left = Math.max(frame.x, part.x - SPOT_PAD);
   const top = Math.max(frame.y, part.y - SPOT_PAD);
   const right = Math.min(frame.x + frame.width, part.x + part.width + SPOT_PAD);
-  const bottom = Math.min(frame.y + frame.height, part.y + part.height + SPOT_PAD);
-  const spot = { x: left, y: top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
-  const foot = frame.y + frame.height;
-  if (bottom + CAPTION_GAP + captionHeight <= foot) return { spot, captionTop: bottom + CAPTION_GAP, side: "below" };
-  if (top - CAPTION_GAP - captionHeight >= frame.y) return { spot, captionTop: top - CAPTION_GAP - captionHeight, side: "above" };
-  return { spot, captionTop: Math.max(frame.y, foot - CAPTION_GAP - captionHeight), side: "over" };
-}
-
-/** Whether a measured part is on screen at all (a part scrolled away, or not laid out, measures outside or empty). */
-export function guideOnScreen(part: Box, frame: Box): boolean {
-  return part.width > 0 && part.height > 0 && part.y + part.height > frame.y + 24 && part.y < frame.y + frame.height - 24;
+  const bottom = Math.min(floor, part.y + part.height + SPOT_PAD);
+  if (right - left < SPOT_LEAST || bottom - top < SPOT_LEAST) return { spot: null, captionTop };
+  return { spot: { x: left, y: top, width: right - left, height: bottom - top }, captionTop };
 }

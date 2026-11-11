@@ -34,6 +34,7 @@ import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Icons } from "./icons";
 import { reportTabsBottom, useInTabs, usePageEnd } from "./insets";
 import { iosPressed } from "./press";
+import { useScrollAsked } from "./scroll-top";
 import { Text } from "./text";
 import { radius, space, useTheme } from "./theme";
 
@@ -138,6 +139,8 @@ export function Page({
   // A tap on the tab already open scrolls its page back to the top, as Android apps do.
   const own = useRef<ComponentRef<typeof ScrollView>>(null);
   useScrollToTop(own as RefObject<ComponentRef<typeof ScrollView>>);
+  // And when the guide asks (./scroll-top.ts): at once, so what it points at can be measured next.
+  useScrollAsked((y) => own.current?.scrollTo({ y, animated: false }));
   const ref = useCallback(
     (view: ComponentRef<typeof ScrollView> | null) => {
       own.current = view;

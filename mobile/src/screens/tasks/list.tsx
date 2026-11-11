@@ -37,6 +37,7 @@ import { factsLabel, GroupTile } from "../../ui/layout";
 import { CrossFade, useSlidingMark } from "../../ui/moves";
 import { useDrawAhead, useLinesShown, usePart } from "../../ui/parts";
 import { iosPressed, PressScale } from "../../ui/press";
+import { useScrollAsked } from "../../ui/scroll-top";
 import { ChoiceSheet } from "../../ui/settings-list";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -323,6 +324,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   // A tap on Tugas while it's open scrolls back to the top, as every tab built on Page does.
   const list = useRef<FlashListRef<Line>>(null);
   useScrollToTop(list);
+  useScrollAsked((offset) => list.current?.scrollToOffset({ offset, animated: false }));
   const { replace } = useNav();
   const sixOut = useSourceState("six") === "signed-out";
   const show = shown ?? "open";
