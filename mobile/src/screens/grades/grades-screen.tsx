@@ -34,6 +34,7 @@ import {
 } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { useArrivalId } from "../../parts/arrival";
+import { GradesHiddenLine, HiddenFigure, HideGradesButton, useGradesHidden } from "../../parts/hide-grades";
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
@@ -127,6 +128,20 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
     best !== null &&
     state.projection.bestIpk !== null &&
     Math.abs(best - state.projection.bestIpk) < 0.005;
+  const hidden = useGradesHidden();
+  // Hidden: the big number's place and the SKS stay; every part made of grades (this term, the honors, the chart, the
+  // transcript) gives way to one quiet line with the way to show them. None of them is drawn, so nothing can leak.
+  if (hidden) {
+    return (
+      <>
+        <Standing record={record} state={state} after={after} />
+        <View style={{ gap: space[3], marginTop: space[3] }}>
+          <SixPageNote datasets={["six.transcript", "six.progress"]} />
+          <GradesHiddenLine />
+        </View>
+      </>
+    );
+  }
   return (
     <>
       <Rise screen="grades" index={0}>
@@ -170,15 +185,33 @@ const Standing = memo(function Standing({ record, state, after }: { record: Stud
   const sks = passedSks(record);
   const need = sksModel(record, state.plan).need;
   const of = t("mobile.academic.sksOf", { need });
+  const hidden = useGradesHidden();
+  const big = (px: number) => ({ fontFamily: font.display.extrabold, fontSize: px, lineHeight: Math.round(px * 1.15), letterSpacing: -1, color: v.fg });
   return (
     <View testID="card.standing" style={{ marginHorizontal: space[1], marginTop: space[2], gap: space[4] }}>
       {/* Two figures on one baseline, the second wrapping under the first at a big font size. */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[6], rowGap: space[3] }}>
         <View>
           <FigureLabel>{t("grades.chart.ipk")}</FigureLabel>
-          {ipk === null ? <FigureDash /> : <Figure id="grades.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
+          {/* The eye beside the biggest number: one tap hides or shows every grade, everywhere. */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+            {ipk === null ? (
+              <FigureDash />
+            ) : hidden ? (
+              <HiddenFigure name={t("grades.chart.ipk")} testID="grades.ipk" style={big(44)} />
+            ) : (
+              <Figure id="grades.ipk" value={ipk} decimals={2} comma={lang === "id"} />
+            )}
+            {ipk !== null && <HideGradesButton />}
+          </View>
         </View>
-        {after !== null && (
+        {after !== null && hidden && (
+          <View style={{ paddingBottom: 4 }}>
+            <FigureLabel>{t("grades.ipkAfter")}</FigureLabel>
+            <HiddenFigure name={t("grades.ipkAfter")} style={big(30)} />
+          </View>
+        )}
+        {after !== null && !hidden && (
           <View accessible accessibilityLabel={`${t("grades.ipkAfter")} ${f.number(after, 2)}`} style={{ paddingBottom: 4 }}>
             {/* Named whole ("IPK setelah semester ini": round 3's council, "doesn't say IP or IPK"), a live number in
                 the page's own ink: blue read as a link that wasn't one. */}

@@ -11,6 +11,7 @@
 // with its full date, time and room (../src/screens/alerts/past.ts, ../../src/core/exam-sittings.ts: two dates in one
 // row were hard to read); a meeting and its Teams link or material posted close by are one row
 // (../src/screens/alerts/same-meeting.ts).
+
 import { router } from "expo-router";
 import { type ComponentType, useMemo, useState } from "react";
 import { View } from "react-native";
@@ -24,6 +25,7 @@ import type { Alert, AlertKind, ClassSession } from "../../src/core/models";
 import { alertFeed } from "../../src/core/needs";
 import { useNav } from "../src/nav";
 import { changeLines, eventTime } from "../src/parts/change-meta";
+import { useGradesHidden } from "../src/parts/hide-grades";
 import { NotificationsOff, useNotificationPermission } from "../src/parts/notifications-off";
 import { usePerfDrawn } from "../src/perf";
 import { type Outcome, type PastAlert, pastAlert } from "../src/screens/alerts/past";
@@ -98,6 +100,7 @@ function dayTitle(day: Day, t: Translate, f: Format): string {
 export default function Alerts() {
   usePerfDrawn(true);
   const t = useT();
+  const gradesAreHidden = useGradesHidden();
   const f = useFormat();
   const now = useNow();
   const b = useB();
@@ -211,7 +214,7 @@ export default function Alerts() {
             <View>
               {day.rows.map(({ key, item, happened, past, sitting, joined }, i) => {
                 const unread = isUnread(item) || (joined !== null && isUnread(joined.material));
-                const lines = changeLines(t, item, name);
+                const lines = changeLines(t, item, name, gradesAreHidden);
                 const outcome = past ? outcomeOf(t, past.outcome) : null;
                 const title = past ? pastTitle(t, past, name(past.code)) : lines.title;
                 // One fact once: a part of the meta line the title already says (a date in a material's name) is left out.

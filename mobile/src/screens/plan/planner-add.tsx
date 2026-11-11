@@ -1,10 +1,12 @@
 // Adding a course to a semester (round 2, v4: the sheet on v4's white card): search by code or name, or pick from
 // what the plan needs (required courses left, a specialization's or a minor's, retakes that lift the IPK), the
 // program's electives, a minor's courses, or every ITB course in SIX's public catalog.
+
 import { useState } from "react";
 import { TextInput, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { PlanState } from "../../../../src/app/study-plan";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import { nearestLetter } from "../../../../src/core/honors";
 import type { PlannedCourse } from "../../../../src/core/models";
 import {
@@ -22,6 +24,7 @@ import {
   searchCourses,
   startingIpk,
 } from "../../../../src/core/planner";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { Button, Chip, ChipRow } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
@@ -79,6 +82,7 @@ export function AddCourse({
   const matches = (c: CourseInfo) => !q || c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
   const found = searchCourses(record, query);
 
+  const hidden = useGradesHidden();
   const row = (code: string, why?: string, retake?: { from: string; now: number | null; after: number | null }) => {
     const info = courseInfo(record, code);
     const st: CourseState = retake
@@ -106,14 +110,14 @@ export function AddCourse({
             {`${info.sks} SKS`}
             {owner}
             {why}
-            {retake && retake.now !== null && retake.after !== null
+            {!hidden && retake && retake.now !== null && retake.after !== null
               ? t("planner.retakeGain", { now: f.number(retake.now, 2), after: f.number(retake.after, 2) })
               : null}
           </Meta>
         </View>
         {!canAdd(st) && st ? (
           <Text size="caption" weight="semibold" tone="faint">
-            {st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : t(`planner.state.${st}`)}
+            {st === "passed" ? t("planner.state.passed", { grade: hidden ? HIDDEN_FIGURE : (record.graded.get(code)?.grade ?? "") }) : t(`planner.state.${st}`)}
           </Text>
         ) : (
           <Button
@@ -199,7 +203,9 @@ export function AddCourse({
               <Text size="caption" tone="faint" style={{ paddingBottom: space[1] }}>
                 {t("planner.retakeSumma")}
               </Text>
-              {retakes.map((r) => row(r.code, t("planner.why.grade", { grade: r.grade }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }))}
+              {retakes.map((r) =>
+                row(r.code, t("planner.why.grade", { grade: hidden ? HIDDEN_FIGURE : r.grade }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }),
+              )}
             </>
           )}
         </View>

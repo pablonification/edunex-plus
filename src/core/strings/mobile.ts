@@ -140,6 +140,17 @@ export const mobileStrings = {
   "mobile.channel.alerts": { id: "Tugas, tenggat dan perubahan", en: "Tasks, deadlines and changes" },
   // The button Android shows on a notification about a class to mark present in: SIX's own name for it.
   "mobile.notification.checkIn": { id: "Tandai Hadir", en: "Tandai Hadir" },
+  // Hiding grades (src/core/hide-grades.ts): one name on the eye button, Settings' switch and the quiet line.
+  "mobile.hideGrades": { id: "Sembunyikan nilai", en: "Hide grades" },
+  "mobile.hideGrades.hint": { id: "IPK, IP, dan nilai tiap mata kuliah", en: "IPK, IP and every course's grade" },
+  "mobile.hideGrades.show": { id: "Tampilkan nilai", en: "Show grades" },
+  "mobile.hideGrades.hidden": { id: "Nilai disembunyikan", en: "Grades hidden" },
+  // What a screen reader hears in a hidden figure's place ("IPK disembunyikan"), never the number.
+  "mobile.hideGrades.said": { id: "{name} disembunyikan", en: "{name} hidden" },
+  // A new grade's notification while grades are hidden: the course, never the grade or the IPK.
+  "mobile.alert.grade.new": { id: "Nilai baru · {course}", en: "New grade · {course}" },
+  "mobile.alert.grade.changed": { id: "Nilai berubah · {course}", en: "Grade changed · {course}" },
+
   // alerts
   // At the start of a class SIX counts: with the app closed nothing reads SIX for the button, so the Student hears the class began.
   "mobile.alert.classStarted": { id: "Kuliah sudah mulai · {course}", en: "Class has started · {course}" },

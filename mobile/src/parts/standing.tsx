@@ -11,6 +11,7 @@ import { Figure, FigureDash, FigureLabel } from "../ui/group";
 import { Meter } from "../ui/meter";
 import { Text } from "../ui/text";
 import { font, space, useTheme } from "../ui/theme";
+import { HiddenFigure, useGradesHidden } from "./hide-grades";
 
 export function StandingFigures({
   id,
@@ -31,16 +32,27 @@ export function StandingFigures({
   const t = useT();
   const lang = useLang();
   const v = useTheme().v4;
+  const hidden = useGradesHidden();
   const of = t("mobile.academic.sksOf", { need });
   return (
     <View style={{ gap: space[4] }}>
       <View style={{ gap: space[1] }}>
         <FigureLabel>{t("grades.chart.ipk")}</FigureLabel>
         <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", columnGap: space[3] }}>
-          {ipk === null ? <FigureDash /> : <Figure id={`${id}.ipk`} value={ipk} decimals={2} comma={lang === "id"} />}
-          {aside}
+          {ipk === null ? (
+            <FigureDash />
+          ) : hidden ? (
+            <HiddenFigure
+              name={t("grades.chart.ipk")}
+              style={{ fontFamily: font.display.extrabold, fontSize: 44, lineHeight: 51, letterSpacing: -1, color: v.fg }}
+            />
+          ) : (
+            <Figure id={`${id}.ipk`} value={ipk} decimals={2} comma={lang === "id"} />
+          )}
+          {/* Hidden grades: what sits beside and under the IPK is made of it (a predicate, the last IP). */}
+          {hidden ? null : aside}
         </View>
-        {children}
+        {hidden ? null : children}
       </View>
       <View style={{ gap: space[2] }}>
         {/* The label at the start, the figure at the end, wrapping under it at a big font size. */}

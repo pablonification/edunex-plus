@@ -13,7 +13,9 @@ import { useThisTerm } from "../../../../src/app/deadlines";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import { billUrgency } from "../../../../src/core/academic";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import { useSettling } from "../../host/settling";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { useFirstFrameShown } from "../../shell/first-frame";
 import { useFirstReadRunning } from "../../shell/source-status";
 import { ServiceRow, ServiceTile } from "../../ui/b";
@@ -68,7 +70,9 @@ function useGradesTag(): string | null {
   const f = useFormat();
   const transcript = useDataset("six.transcript");
   const ipk = transcript ? shownIndex(transcript.ipk) : null;
-  return ipk === null ? null : f.number(ipk, 2);
+  // Hidden grades: the tag keeps its place as dots, never the number.
+  const hidden = useGradesHidden();
+  return ipk === null ? null : hidden ? HIDDEN_FIGURE : f.number(ipk, 2);
 }
 
 /** UKT: "Lunas", or the date this term's bill is due by (Profil's row, the same bill). Anything else is the page's to say. */

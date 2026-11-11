@@ -36,13 +36,14 @@ export function prepareChannels(lang: Lang): Promise<void> {
 /** The channels, once made (made now if they never were). */
 export const channelsReady = (lang: Lang) => channelsMade ?? prepareChannels(lang);
 
-export function phoneNotifier(lang: () => Lang) {
+/** `hideGrades`: whether the Student hides grades now; a new grade's notification then never prints it. */
+export function phoneNotifier(lang: () => Lang, hideGrades: () => boolean = () => false) {
   return {
     async show(notice: Pick<AlertNotice, "id" | "kind" | "title" | "body" | "target" | "checkIn">): Promise<boolean> {
       const permission = await Notifications.getPermissionsAsync();
       if (!permission.granted) return false;
       await channelsReady(lang());
-      const { title, body, data, channelId, categoryId } = noticeContent(notice, lang());
+      const { title, body, data, channelId, categoryId } = noticeContent(notice, lang(), false, hideGrades());
       await Notifications.scheduleNotificationAsync({
         identifier: notice.id,
         content: { title, body, data: data as unknown as Record<string, unknown>, ...(categoryId ? { categoryIdentifier: categoryId } : {}) },

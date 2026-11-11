@@ -9,7 +9,9 @@
 // row didn't say which week. Two classes that clash are the desktop's "Kelas bentrok · TPMT dan Ekon. Infrastruktur"
 // with short names (round 3's third review read it at once, where "Bentrok · A × B" meant nothing). A row's time is
 // when the thing itself happened (`eventTime`), never when the app read it.
+
 import type { Translate } from "../../../src/app/i18n";
+import { withoutGrades } from "../../../src/core/hide-grades";
 import type { Alert, AlertText } from "../../../src/core/models/alerts";
 import type { HomeWorld } from "../../../src/core/needs";
 import type { StringKey } from "../../../src/core/strings";
@@ -50,7 +52,14 @@ function named(text: AlertText, name: ((code: string) => string) | undefined): A
 }
 
 /** What a change's row shows, and what it says in full. `name`: a course code to the name the row shows. */
-export function changeLines(t: Translate, item: { title: AlertText; body?: AlertText | null }, name?: (code: string) => string): ChangeLines {
+export function changeLines(
+  t: Translate,
+  shown: { title: AlertText; body?: AlertText | null },
+  name?: (code: string) => string,
+  /** The Student hides grades: a new grade's row names its course, never the grade or the IPK. */
+  hideGrades = false,
+): ChangeLines {
+  const item = hideGrades ? withoutGrades(shown) : shown;
   const asked = named(item.title, name);
   const bodyText = item.body ? named(item.body, name) : null;
   const title = t(asked.key, asked.vars);

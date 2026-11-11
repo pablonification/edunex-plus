@@ -12,6 +12,7 @@ import { useBridge, useDataset } from "../../../../src/app/store";
 import { percent } from "../../../../src/core/attendance";
 import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } from "../../../../src/core/course-contract";
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../../src/core/models";
+import { GradesHiddenLine, useGradesHidden } from "../../parts/hide-grades";
 import { hold } from "../../parts/hold";
 import { dismissToast, toast } from "../../swaps/overlays";
 import { Button, Segmented } from "../../ui/controls";
@@ -29,6 +30,8 @@ export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenMod
   const f = useFormat();
   const v = useTheme().v4;
   const grade = page.outline?.grade ?? null;
+  // Hidden grades: the scores, the calculator's answer and Edunex's grade give way to one line.
+  if (useGradesHidden()) return <GradesHiddenLine testID="course.grades.hidden" />;
   return (
     <View style={{ gap: space[4] }}>
       <Calculator page={page} onOpenModules={onOpenModules} />

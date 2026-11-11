@@ -6,11 +6,14 @@
 // by the heading.
 // A term's row is `row.term.smt-<n>` (a short semester: its code), and says it's open with a `row.term.<…>.open` mark
 // inside it, so a flow can open one without closing it.
+
 import { memo, useCallback, useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import type { CheckedIndex, TranscriptTerm } from "../../../../src/core/models";
 import { type StudentRecord, semesterOf, termKind } from "../../../../src/core/planner";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { Group, GroupRow, Heading, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
@@ -30,22 +33,25 @@ export function termTestId(term: string, entryTerm: string | null): string {
 /** A grade as a row's one status: a bold letter in the display face, a failing one (D, E) in red, a replaced one struck. */
 export function GradeLetter({ grade, struck = false, label }: { grade: string; struck?: boolean; label?: string }) {
   const v = useTheme().v4;
-  const failing = grade === "D" || grade === "E";
+  const t = useT();
+  // Hidden grades: dots, in the plain colour (red would say "failing"), and never the letter to a screen reader.
+  const hidden = useGradesHidden();
+  const failing = !hidden && (grade === "D" || grade === "E");
   return (
     <Text
       size="titleMedium"
       face="display"
       weight="bold"
-      accessibilityLabel={label ? `${label}: ${grade}` : undefined}
+      accessibilityLabel={hidden ? t("mobile.hideGrades.said", { name: label ?? t("grades.sixGrade") }) : label ? `${label}: ${grade}` : undefined}
       style={{
         minWidth: 32,
         textAlign: "right",
         fontSize: 17,
-        color: failing ? v.redFg : struck ? v.muted : v.fg,
-        textDecorationLine: struck ? "line-through" : "none",
+        color: failing ? v.redFg : struck && !hidden ? v.muted : v.fg,
+        textDecorationLine: struck && !hidden ? "line-through" : "none",
       }}
     >
-      {grade}
+      {hidden ? HIDDEN_FIGURE : grade}
     </Text>
   );
 }

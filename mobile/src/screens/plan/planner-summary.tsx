@@ -8,12 +8,13 @@ import { View } from "react-native";
 import { useFormat, useLang, useT } from "../../../../src/app/i18n";
 import type { StudyPlan } from "../../../../src/core/models";
 import { isHidden, type ProjectedStep, type Projection, passedSks, type Rule, type SksModel, type StudentRecord, sksModel } from "../../../../src/core/planner";
+import { HiddenFigure, useGradesHidden, useGradeWords } from "../../parts/hide-grades";
 import { Skeleton } from "../../ui/display";
 import { Figure, FigureCell, FigureDash, FigureRow, Group, GroupRow, IconTile, Panel, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Text } from "../../ui/text";
-import { type Palette, radius, space, useTheme } from "../../ui/theme";
+import { font, type Palette, radius, space, useTheme } from "../../ui/theme";
 import { usePlaceState } from "./place-state";
 import { useShortfallText } from "./planner-kit";
 import { useTermLabel } from "./projection";
@@ -42,6 +43,7 @@ export const PlanHero = memo(function PlanHero({
   const warnings = rules.filter((r) => r.level === "warn" && !isHidden(r, plan)).length;
   const ipk = projection.finalIpk;
   const late = finish && !finish.blocked && finish.semester > finish.normal;
+  const hidden = useGradesHidden();
   return (
     <View style={{ gap: space[3] }}>
       <Panel testID="card.planSummary" style={{ padding: space[5], gap: space[4] }}>
@@ -69,7 +71,16 @@ export const PlanHero = memo(function PlanHero({
             </FigureCell>
           )}
           <FigureCell label={t("grades.graduation")}>
-            {ipk === null ? <FigureDash /> : <Figure id="planner.ipk" value={ipk} decimals={2} comma={lang === "id"} />}
+            {ipk === null ? (
+              <FigureDash />
+            ) : hidden ? (
+              <HiddenFigure
+                name={t("grades.graduation")}
+                style={{ fontFamily: font.display.extrabold, fontSize: 44, lineHeight: 51, letterSpacing: -1, color: v.fg }}
+              />
+            ) : (
+              <Figure id="planner.ipk" value={ipk} decimals={2} comma={lang === "id"} />
+            )}
           </FigureCell>
         </FigureRow>
         {finish?.blocked ? (
@@ -161,6 +172,8 @@ export const PastTerms = memo(function PastTerms({ record, steps }: { record: St
   const v = useTheme().v4;
   const termLabel = useTermLabel();
   const [open, setOpen] = usePlaceState("planner.past", false);
+  // Hidden grades: dots where the IPK and each IP were.
+  const words = useGradeWords();
   if (!steps.length) return null;
   const ipk = record.transcript ? (record.transcript.ipk.six ?? record.transcript.ipk.computed) : null;
   const last = steps.at(-1)?.semester ?? steps.length;
@@ -170,7 +183,7 @@ export const PastTerms = memo(function PastTerms({ record, steps }: { record: St
         first
         leading={<IconTile tone="plain" icon={(color) => <Icons.History size={22} color={color} />} />}
         title={t("planner.past", { n: last })}
-        meta={t("planner.pastMeta", { sks: passedSks(record) ?? "-", ipk: ipk === null ? "-" : f.number(ipk, 2) })}
+        meta={t("planner.pastMeta", { sks: passedSks(record) ?? "-", ipk: ipk === null ? "-" : words(f.number(ipk, 2)) })}
         trailing={
           <View testID={open ? "action.planner.past.open" : undefined} style={{ transform: [{ rotate: open ? "90deg" : "0deg" }] }}>
             <Icons.ChevronRight size={18} color={v.muted} />
@@ -191,7 +204,7 @@ export const PastTerms = memo(function PastTerms({ record, steps }: { record: St
                 {termLabel(s.term, s.semester)}
               </Text>
             }
-            meta={factsLabel(`IP ${s.ip === null ? "-" : f.number(s.ip, 2)}`, `${s.sks ?? "-"} SKS`)}
+            meta={factsLabel(`IP ${s.ip === null ? "-" : words(f.number(s.ip, 2))}`, `${s.sks ?? "-"} SKS`)}
           />
         ))}
     </Group>

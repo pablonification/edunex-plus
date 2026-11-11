@@ -1,6 +1,7 @@
 // The minors the Student is closest to (round 2, v4): one row each (its name, the program that runs it and whether
 // it's registered or planned, the SKS so far of what it needs at the end), a tap opening the minor up close: SIX's
 // rules for it, each course with where it stands and a way to plan it, and planning (or stopping) the minor itself.
+
 import { useState } from "react";
 import { View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
@@ -26,6 +27,7 @@ import {
   startingIpk,
   termKind,
 } from "../../../../src/core/planner";
+import { useGradeWords } from "../../parts/hide-grades";
 import { Button } from "../../ui/controls";
 import { Group, GroupRow, IconTile, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -115,6 +117,7 @@ function MinorSheet({
   onClose: () => void;
 }) {
   const t = useT();
+  const gradeWords = useGradeWords();
   const theme = useTheme();
   const v = theme.v4;
   const termLabel = useTermLabel();
@@ -128,7 +131,7 @@ function MinorSheet({
   const grade = nearestLetter(startingIpk(record));
   const label = (term: string) => termLabel(term, semesterOf(term, record.entryTerm));
   const stateText = (code: string, st: CourseState) =>
-    st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : st ? t(`planner.state.${st}`) : null;
+    st === "passed" ? t("planner.state.passed", { grade: gradeWords(record.graded.get(code)?.grade ?? "") }) : st ? t(`planner.state.${st}`) : null;
   const termOf = (code: string) => (courseState(record, plan, code) ? null : termFor(plan, courseInfo(record, code).sks));
   // Toasts are drawn under a sheet: a decision about the minor closes it first, so its Undo is in view.
   // Adding its courses keeps the sheet open (each row turns into its new state, and the course's row removes it).

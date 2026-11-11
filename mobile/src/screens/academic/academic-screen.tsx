@@ -19,10 +19,12 @@ import type { PlanTab } from "../../../../src/app/shell/built";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import { billUrgency, krsOverlaps, krsStage } from "../../../../src/core/academic";
+import { HIDDEN_FIGURE, shownFigure } from "../../../../src/core/hide-grades";
 import type { SourceId } from "../../../../src/core/models";
 import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../../src/core/planner";
 import { useNav } from "../../nav";
 import { together } from "../../parts/day-word";
+import { HiddenFigure, HideGradesButton, useGradesHidden } from "../../parts/hide-grades";
 import { useRefresh, useSignIn, useUnreadAlerts } from "../../shell/source-status";
 import { BHeading, BRow, ServiceCircle, useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
@@ -141,6 +143,7 @@ type CardInk = typeof CARD_INK;
 /** The Student and where they stand: one card, one target (Nilai). */
 const StudentCard = memo(function StudentCard({ record, six }: { record: StudentRecord | undefined; six: "here" | "reading" | "none" }) {
   const t = useT();
+  const hidden = useGradesHidden();
   const f = useFormat();
   const nav = useNav();
   const c = useCardInk();
@@ -190,7 +193,9 @@ const StudentCard = memo(function StudentCard({ record, six }: { record: Student
   const said =
     six === "here"
       ? factsLabel(
-          ipk === null ? t("mobile.profile.noGrades") : `${t("grades.chart.ipk")} ${f.number(ipk, 2)}`,
+          ipk === null
+            ? t("mobile.profile.noGrades")
+            : shownFigure(f.number(ipk, 2), t("grades.chart.ipk"), hidden, (name) => t("mobile.hideGrades.said", { name })).label,
           sks === null ? null : `${t("grades.sksPassed")} ${sks} ${need > 0 ? t("mobile.academic.sksOf", { need }) : ""}`,
         )
       : null;
@@ -214,35 +219,39 @@ const StudentCard = memo(function StudentCard({ record, six }: { record: Student
 function Standing({ ipk, sks, need, ink }: { ipk: number | null; sks: number | null; need: number; ink: CardInk }) {
   const t = useT();
   const lang = useLang();
+  const hidden = useGradesHidden();
+  const figure = { fontFamily: font.display.extrabold, fontSize: 36, lineHeight: 40, letterSpacing: -1, color: ink.ink };
   return (
     // The numbers are read-only fields (RollTo): they take no touch, the card is the one target.
     // Two figures, each in its own place with its label over it and a hairline between (round 3's council: "IPK and
     // SKS squeezed into one line"): the IPK at the start, the SKS and its bar in the rest of the width.
     <View
       testID="profile.standing"
-      pointerEvents="none"
+      // Only the eye takes a touch here; everywhere else the card is the target.
+      pointerEvents="box-none"
       style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "stretch", columnGap: space[5], rowGap: space[3] }}
     >
-      <View>
-        <Text size="labelLarge" style={{ color: ink.ink2, lineHeight: 18 }}>
-          {t("grades.chart.ipk")}
-        </Text>
-        {ipk === null ? (
-          <Text size="titleLarge" face="display" weight="bold" style={{ color: ink.ink, paddingTop: space[1] }}>
-            {t("mobile.profile.noGrades")}
+      <View pointerEvents="box-none" style={{ flexDirection: "row", alignItems: "flex-end", gap: space[1] }}>
+        <View pointerEvents="none">
+          <Text size="labelLarge" style={{ color: ink.ink2, lineHeight: 18 }}>
+            {t("grades.chart.ipk")}
           </Text>
-        ) : (
-          <RollTo
-            value={ipk}
-            decimals={2}
-            comma={lang === "id"}
-            testID="profile.ipk"
-            style={{ fontFamily: font.display.extrabold, fontSize: 36, lineHeight: 40, letterSpacing: -1, color: ink.ink }}
-          />
-        )}
+          {ipk === null ? (
+            <Text size="titleLarge" face="display" weight="bold" style={{ color: ink.ink, paddingTop: space[1] }}>
+              {t("mobile.profile.noGrades")}
+            </Text>
+          ) : hidden ? (
+            // Dots in the number's own place; the number isn't in the tree, so nothing counts up to it.
+            <HiddenFigure name={t("grades.chart.ipk")} testID="profile.ipk" style={figure} />
+          ) : (
+            <RollTo value={ipk} decimals={2} comma={lang === "id"} testID="profile.ipk" style={figure} />
+          )}
+        </View>
+        {/* The eye beside the biggest number: one tap hides or shows every grade, everywhere. */}
+        {ipk !== null && <HideGradesButton color={ink.ink2} testID="action.hideGrades.profile" />}
       </View>
       {sks !== null && (
-        <View style={{ flexGrow: 1, flexBasis: 150, minWidth: 0, paddingLeft: space[5], borderLeftWidth: 1, borderLeftColor: ink.track }}>
+        <View pointerEvents="none" style={{ flexGrow: 1, flexBasis: 150, minWidth: 0, paddingLeft: space[5], borderLeftWidth: 1, borderLeftColor: ink.track }}>
           <Text size="labelLarge" style={{ color: ink.ink2, lineHeight: 18 }}>
             {t("grades.sksPassed")}
           </Text>
@@ -392,14 +401,15 @@ function GradesRow({ record }: { record: StudentRecord | undefined }) {
   const t = useT();
   const f = useFormat();
   const missing = useMissingMeta();
+  const hidden = useGradesHidden();
   // The card over it says the IPK: the row says what the card doesn't, the last term's IP.
   const meta = useMemo<Meta>(() => {
     if (!record?.transcript) return null;
     const last = record.transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null).at(-1);
     const ip = last ? shownIndex(last.ip) : null;
     // Named as Nilai names it.
-    return ip === null ? null : { text: t("mobile.grades.lastIp", { ip: f.number(ip, 2) }) };
-  }, [record, t, f]);
+    return ip === null ? null : { text: t("mobile.grades.lastIp", { ip: hidden ? HIDDEN_FIGURE : f.number(ip, 2) }) };
+  }, [record, t, f, hidden]);
   return <ScreenRow title={t("nav.grades")} meta={record?.transcript ? meta : missing} route="grades" testID="row.nav.grades" />;
 }
 

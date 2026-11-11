@@ -7,6 +7,7 @@ import { type ReactNode, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { PlanState } from "../../../../src/app/study-plan";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import { letterForAverage, type Predicate, predicateFor } from "../../../../src/core/honors";
 import { GRADE_POINTS, LETTER_GRADES, type LetterGrade } from "../../../../src/core/models";
 import {
@@ -21,6 +22,7 @@ import {
   targetOf,
   termKind,
 } from "../../../../src/core/planner";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { iosPressed } from "../../ui/press";
@@ -101,6 +103,9 @@ export function GradeSelect({
   const c = theme.color;
   const v = theme.v4;
   const [open, setOpen] = useState(false);
+  // Hidden grades: the letter is dots (an estimate not yet picked comes from the IPK); a tap still picks one.
+  const hidden = useGradesHidden();
+  const t = useT();
   // A control, 48 dp tall: a dashed outline with no fill, the letter in a medium weight, a chevron. Either way it's an
   // estimate, and looks like one (round 3's council: "bold 'AB' beside each course reads as a real grade"; a grade
   // that's out is a plain bold letter): one the Student picked is in the brand's ink, one the app still assumes in the
@@ -111,7 +116,7 @@ export function GradeSelect({
       <Pressable
         testID={testID}
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value}`}
+        accessibilityLabel={hidden ? `${label}: ${t("mobile.hideGrades.hidden")}` : `${label}: ${value}`}
         onPress={() => setOpen(true)}
         android_ripple={{ color: c.selected, borderless: false }}
         style={({ pressed }) => [
@@ -133,14 +138,14 @@ export function GradeSelect({
         ]}
       >
         <Text size="titleMedium" weight="medium" tabular style={{ color: ink, fontSize: 17 }}>
-          {value}
+          {hidden ? HIDDEN_FIGURE : value}
         </Text>
         <Icons.ChevronDown size={14} color={guess ? v.muted : ink} weight="bold" />
       </Pressable>
       <Sheet open={open} onClose={() => setOpen(false)} title={label} background={v.card} testID="sheet.grade">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2], paddingBottom: space[2] }}>
           {LETTER_GRADES.map((grade) => {
-            const on = grade === value;
+            const on = !hidden && grade === value;
             return (
               <Pressable
                 key={grade}
@@ -184,10 +189,13 @@ export function GradeSelect({
 /** A grade: neutral, and only a failing one (D, E) in red. */
 export function GradeBadge({ grade, struck = false, label }: { grade: string; struck?: boolean; label?: string }) {
   const theme = useTheme();
-  const failing = grade === "D" || grade === "E";
+  const t = useT();
+  // Hidden grades: dots, in the neutral colour (red would say "failing"), and never the letter to a screen reader.
+  const hidden = useGradesHidden();
+  const failing = !hidden && (grade === "D" || grade === "E");
   return (
     <View
-      accessibilityLabel={label ? `${label}: ${grade}` : undefined}
+      accessibilityLabel={hidden ? t("mobile.hideGrades.said", { name: label ?? t("grades.sixGrade") }) : label ? `${label}: ${grade}` : undefined}
       style={{
         minWidth: 32,
         height: 26,
@@ -202,9 +210,9 @@ export function GradeBadge({ grade, struck = false, label }: { grade: string; st
         size="small"
         weight="bold"
         tabular
-        style={{ color: failing ? theme.color.dangerFg : theme.color.neutralFg, textDecorationLine: struck ? "line-through" : "none" }}
+        style={{ color: failing ? theme.color.dangerFg : theme.color.neutralFg, textDecorationLine: struck && !hidden ? "line-through" : "none" }}
       >
-        {grade}
+        {hidden ? HIDDEN_FIGURE : grade}
       </Text>
     </View>
   );
