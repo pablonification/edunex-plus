@@ -77,4 +77,14 @@ export function ClassActivity(doc: LiveDoc, env: LiveActivityEnvironment) {
   };
 }
 
-export default createLiveActivity(LIVE_ACTIVITY, ClassActivity);
+/** The Live Activity's maker, or null when iOS wouldn't give one: caught here, as ./now.tsx's widget is. */
+function make() {
+  try {
+    return createLiveActivity(LIVE_ACTIVITY, ClassActivity);
+  } catch (error) {
+    console.warn("[widget-ios] the Live Activity wasn't made:", error);
+    return null;
+  }
+}
+
+export default make();

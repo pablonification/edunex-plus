@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import type { WidgetTarget } from "../../mobile/src/widget/model";
 import { widgetModel } from "../../mobile/src/widget/model";
-import { courseColor, type IosWidgetDoc, iosWidgetDoc, setupDoc } from "../../mobile/src/widget-ios/doc";
+import { courseColor, type IosWidgetDoc, iosWidgetDoc, setupDoc, storable } from "../../mobile/src/widget-ios/doc";
 import { liveDoc } from "../../mobile/src/widget-ios/live-doc";
 import { startEngine } from "../engine/harness";
 import { startHome } from "../engine/needs-harness";
@@ -81,6 +81,28 @@ describe("the iPhone widgets' document", () => {
   it("before anything is saved: the setup document, and a course without a colour is grey", () => {
     expect(setupDoc("Edunex Plus", "Hubungkan Edunex atau SIX dulu", "edunexplus://")).toMatchObject({ v: 1, state: "setup", now: null, today: null });
     expect(courseColor(undefined)).toEqual({ light: "#5f6673", dark: "#9aa1ae" });
+  });
+
+  it("what the iPhone's store is handed has no null anywhere: iOS refuses a document with one, and that closed the app", async () => {
+    const nulls = (value: unknown, path = "doc"): string[] =>
+      value === null || value === undefined
+        ? [path]
+        : typeof value === "object"
+          ? Object.entries(value).flatMap(([key, one]) => nulls(one, `${path}.${key}`))
+          : [];
+    const h = await startHome();
+    const signedOut = docOf(await startEngine());
+    const docs = [docOf(h), signedOut, setupDoc("Edunex Plus", null, ""), setupDoc("Edunex Plus", "Hubungkan Edunex atau SIX dulu", "edunexplus://")];
+    // The documents do have empty fields: the store's copy is what mustn't.
+    expect(docs.flatMap((doc) => nulls(doc)).length).toBeGreaterThan(0);
+    for (const doc of docs) expect(nulls(storable(doc))).toEqual([]);
+    // Nothing else is lost: what is there is kept as it was, lists in their order.
+    const kept = storable(docOf(h));
+    expect(kept).toMatchObject({ v: 1, state: "ready", status: docOf(h).status, colors: docOf(h).colors });
+    expect(kept.actions.map((one) => one.label)).toEqual(docOf(h).actions.map((one) => one.label));
+    expect(kept.today?.classes.map((one) => one.code)).toEqual(docOf(h).today?.classes.map((one) => one.code));
+    expect("hint" in kept).toBe(false);
+    expect(storable({ list: [1, null, { a: null, b: 0, c: false, d: "" }] })).toEqual({ list: [1, { b: 0, c: false, d: "" }] });
   });
 
   it("the Live Activity: the class on now, its end, and its Presence window's close for iOS to count down", async () => {

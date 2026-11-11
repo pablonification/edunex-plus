@@ -10,7 +10,7 @@ import { build, type Plugin } from "esbuild";
 import { beforeAll, describe, expect, it } from "vitest";
 import type { WidgetTarget } from "../../mobile/src/widget/model";
 import { widgetModel } from "../../mobile/src/widget/model";
-import { type IosWidgetDoc, iosWidgetDoc, setupDoc } from "../../mobile/src/widget-ios/doc";
+import { type IosWidgetDoc, iosWidgetDoc, setupDoc, storable } from "../../mobile/src/widget-ios/doc";
 import { type LiveDoc, liveDoc } from "../../mobile/src/widget-ios/live-doc";
 import { startEngine } from "../engine/harness";
 import { startHome } from "../engine/needs-harness";
@@ -50,7 +50,7 @@ const STUBS: Record<string, string> = {
   "@expo/ui/swift-ui/modifiers": `
     for (const name of ${JSON.stringify(MODIFIERS)}) exports[name] = (...args) => ({ $type: name, args });`,
   "expo-widgets": `
-    exports.createWidget = (name, layout) => ({ name, layout });
+    exports.createWidget = (name, layout, initialProps) => ({ name, layout, initialProps });
     exports.createLiveActivity = (name, layout) => ({ name, layout });`,
   "stub/jsx-runtime": `
     const make = (type, config) => {
@@ -69,6 +69,9 @@ const stubs: Plugin = {
   },
 };
 
+/** What each widget is made with before the app has written anything (the gallery's picture): kept by `load`. */
+const initial: Record<string, unknown> = {};
+
 async function load(file: string): Promise<Layout> {
   const out = await build({
     entryPoints: [resolve(__dirname, "../../mobile/src/widget-ios", file)],
@@ -82,8 +85,9 @@ async function load(file: string): Promise<Layout> {
     plugins: [stubs],
     logLevel: "silent",
   });
-  const module = { exports: {} as { default: { layout: Layout } } };
+  const module = { exports: {} as { default: { layout: Layout; initialProps?: unknown } } };
   new Function("module", "exports", "require", out.outputFiles[0]!.text)(module, module.exports, require);
+  initial[file] = module.exports.default.initialProps;
   return module.exports.default.layout;
 }
 
@@ -175,7 +179,16 @@ describe("the iPhone widgets, run as the extension runs them", () => {
             const drawn = tree(layout(state.doc, envOf(family, scheme)));
             expect(drawn.length, `${name} ${family} ${scheme}: ${state.name}`).toBeGreaterThan(0);
             expect(texts(drawn).length, `${name} ${family} ${scheme}: ${state.name}`).toBeGreaterThan(0);
+            // The widget is handed the store's copy, with every empty field left out: it draws the same from it.
+            expect(tree(layout(storable(state.doc), envOf(family, scheme))), `${name} ${family} ${scheme}, as stored: ${state.name}`).toEqual(drawn);
           }
+  });
+
+  it("each widget is made with a first document iOS's store will take: no null in it", () => {
+    for (const file of ["now.tsx", "today.tsx"]) {
+      expect(initial[file], file).toMatchObject({ v: 1, state: "setup" });
+      expect(JSON.stringify(initial[file]), file).not.toContain("null");
+    }
   });
 
   it("the Live Activity draws each of its places while a class is on", () => {

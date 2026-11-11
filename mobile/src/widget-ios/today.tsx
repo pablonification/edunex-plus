@@ -15,7 +15,7 @@ import {
   widgetURL,
 } from "@expo/ui/swift-ui/modifiers";
 import { createWidget, type WidgetEnvironment } from "expo-widgets";
-import { type IosWidgetDoc, setupDoc } from "./doc";
+import { type IosWidgetDoc, setupDoc, storable } from "./doc";
 
 /** The widget's name in app.config.ts (expo-widgets' `widgets[].name`) and to WidgetKit. */
 export const TODAY_WIDGET = "EdunexToday";
@@ -169,4 +169,18 @@ export function TodayWidget(doc: IosWidgetDoc, env: WidgetEnvironment) {
   );
 }
 
-export default createWidget(TODAY_WIDGET, TodayWidget, setupDoc(process.env.EXPO_PUBLIC_DEMO === "1" ? "Edunex Plus Demo" : "Edunex Plus", null, ""));
+/**
+ * The widget, or null when iOS wouldn't make it. Made here, as the file loads, because expo-widgets reads each widget's
+ * layout at build time by loading this file; and caught here, because an error thrown while a file loads closes the
+ * app whoever asked for the file (../host/widget-ios.ios.ts's own catch never sees it).
+ */
+function make() {
+  try {
+    return createWidget(TODAY_WIDGET, TodayWidget, storable(setupDoc(process.env.EXPO_PUBLIC_DEMO === "1" ? "Edunex Plus Demo" : "Edunex Plus", null, "")));
+  } catch (error) {
+    console.warn("[widget-ios] TodayWidget wasn't made:", error);
+    return null;
+  }
+}
+
+export default make();

@@ -11,6 +11,7 @@
 // (iOS lets an app start one only from the foreground), kept up to date, and ended once the class is over.
 //
 // Metro takes this file on iOS only; ./widget-ios.ts is every other platform's (nothing to do).
+import { requireOptionalNativeModule } from "expo";
 import { getLocales } from "expo-localization";
 import { AppState } from "react-native";
 import type { Snapshot } from "../../../src/core/snapshot";
@@ -21,7 +22,7 @@ import type { LiveSource } from "../widget/draw";
 import type { WidgetTarget } from "../widget/model";
 import { widgetModel } from "../widget/model";
 import { readSaved } from "../widget/saved";
-import { type IosWidgetDoc, iosWidgetDoc, setupDoc } from "../widget-ios/doc";
+import { type IosWidgetDoc, iosWidgetDoc, setupDoc, storable } from "../widget-ios/doc";
 import { type LiveDoc, liveDoc } from "../widget-ios/live-doc";
 import { DEMO } from "./version";
 import type { updateIosWidgets as Contract } from "./widget-ios";
@@ -53,17 +54,23 @@ export function linkOf(open: WidgetTarget): string {
 type Widgets = { now: import("expo-widgets").Widget<IosWidgetDoc>; today: import("expo-widgets").Widget<IosWidgetDoc> };
 let widgets: Widgets | null | undefined;
 
-/** The two widgets, loaded on first use; null when this build has no widget extension (built before expo-widgets). */
+/**
+ * Whether this build has expo-widgets' native half. Asked before its files are loaded: without it they throw as they
+ * load, and an error thrown while a file loads closes the app, whatever catch is around the `require`.
+ */
+const hasWidgets = (): boolean => requireOptionalNativeModule("ExpoWidgets") !== null;
+
+/** The two widgets, loaded on first use; null when this build has no widget extension, or iOS wouldn't make one. */
 function loaded(): Widgets | null {
   if (widgets !== undefined) return widgets;
+  widgets = null;
+  if (!hasWidgets()) return widgets;
   try {
-    widgets = {
-      now: (require("../widget-ios/now") as typeof import("../widget-ios/now")).default,
-      today: (require("../widget-ios/today") as typeof import("../widget-ios/today")).default,
-    };
+    const now = (require("../widget-ios/now") as typeof import("../widget-ios/now")).default;
+    const today = (require("../widget-ios/today") as typeof import("../widget-ios/today")).default;
+    if (now && today) widgets = { now, today };
   } catch (error) {
     console.warn("[widget-ios] no widgets in this build:", error);
-    widgets = null;
   }
   return widgets;
 }
@@ -73,11 +80,12 @@ let factory: Factory | null | undefined;
 
 function liveFactory(): Factory | null {
   if (factory !== undefined) return factory;
+  factory = null;
+  if (!hasWidgets()) return factory;
   try {
     factory = (require("../widget-ios/live") as typeof import("../widget-ios/live")).default;
   } catch (error) {
     console.warn("[widget-ios] no Live Activity in this build:", error);
-    factory = null;
   }
   return factory;
 }
@@ -131,7 +139,8 @@ export const updateIosWidgets: typeof Contract = async (source?: LiveSource) => 
   const key = JSON.stringify(entries.map((entry) => entry.doc)) + entries.map((entry) => entry.at - entries[0]!.at).join();
   if (key === last) return null;
   last = key;
-  const items = entries.map((entry) => ({ date: new Date(entry.at - offset), props: entry.doc }));
+  // Without its nulls: iOS's store refuses a document with one (../widget-ios/doc.ts's storable).
+  const items = entries.map((entry) => ({ date: new Date(entry.at - offset), props: storable(entry.doc) }));
   try {
     all.now.updateTimeline(items);
     all.today.updateTimeline(items);

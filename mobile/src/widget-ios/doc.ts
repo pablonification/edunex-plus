@@ -115,6 +115,19 @@ export function courseColor(tone: string | undefined): Pair {
   return { light: tile[0], dark: tile[1] };
 }
 
+/**
+ * The document as the shared store can keep it. On an iPhone that store is a property list, which has no null: handed
+ * a document with one anywhere, iOS refuses the whole of it, and that refusal closed the app as it opened. So an
+ * empty field is left out, and the widgets read a missing field as an empty one (they only ever ask "is it there?").
+ */
+export function storable<T>(value: T): T {
+  if (Array.isArray(value)) return value.filter((one) => one !== null && one !== undefined).map(storable) as T;
+  if (value === null || typeof value !== "object") return value;
+  const kept: Record<string, unknown> = {};
+  for (const [key, one] of Object.entries(value)) if (one !== null && one !== undefined) kept[key] = storable(one);
+  return kept as T;
+}
+
 /** Before anything is saved: the app's name and the one thing to do (`hint`, in the phone's language). */
 export function setupDoc(title: string, hint: string | null, home: string): IosWidgetDoc {
   return {
