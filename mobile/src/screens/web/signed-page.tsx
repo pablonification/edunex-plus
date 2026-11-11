@@ -21,6 +21,7 @@ import { DEMO, R3_GUARD } from "../../host/version";
 import { useNav } from "../../nav";
 import { currentHost } from "../../shell/boot";
 import { Web, type WebPage } from "../../shell/sign-in";
+import { toast } from "../../swaps/overlays";
 import { EmptyState } from "../../ui/display";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
@@ -113,9 +114,19 @@ export function SignedPage({ url, meeting, title, testID }: { url: string; meeti
               // Edunex's page needs a service worker to start (../../host/page-fixes.ts). A QA build's page reads only
               // (../../host/guard.ts): no form, fetch or XHR that writes, no signing out.
               injectedJavaScriptBeforeContentLoaded={`${R3_GUARD ? `${guardScript}\n` : ""}${noServiceWorkerScript}\n${edunexAuthScript(token)}`}
-              onMessage={R3_GUARD ? (event) => guardMessage(event.nativeEvent.data) : undefined}
+              // What the guard stopped is said as what it is, never left to look like a page that broke.
+              onMessage={
+                R3_GUARD
+                  ? (event) => {
+                      if (guardMessage(event.nativeEvent.data)) toast(t("error.readOnly"));
+                    }
+                  : undefined
+              }
               onShouldStartLoadWithRequest={(request) => {
-                if (R3_GUARD && !navigationAllowed(request.url)) return false;
+                if (R3_GUARD && !navigationAllowed(request.url)) {
+                  if (request.isTopFrame !== false) toast(t("error.readOnly"));
+                  return false;
+                }
                 // The site's frames stay where they are.
                 if (request.isTopFrame === false) return true;
                 if (staysInPage(request.url)) {

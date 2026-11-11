@@ -1,4 +1,5 @@
-// The engine's door to the network on the phone: expo/fetch on Android's own HTTP stack.
+// The engine's door to the network on the phone: expo/fetch on the phone's own HTTP stack (Android's OkHttp, the
+// iPhone's URLSession; the name `androidTransport` is from before the iPhone build).
 // It works like the desktop's (src/desktop/transport.ts): no cookie jar (`credentials:
 // "omit"`, so the only cookie sent is SIX's, as the explicit Cookie header), redirects
 // returned as they are when the engine asks ("manual": SIX's redirect to /login is how an
@@ -41,7 +42,8 @@ const androidTransport: Transport = {
     } catch (error) {
       if (timedOut) throw new NetworkError("timeout", `No answer within ${limit / 1000} s`);
       const message = error instanceof Error ? error.message : String(error);
-      // Android says UnknownHostException or "Unable to resolve host" without a connection.
+      // Android says UnknownHostException or "Unable to resolve host" without a connection. An iPhone says it in the
+      // phone's language, so it may read as "failed" here: the engine says both the same way (no answer came).
       const offline = /resolve host|UnknownHost|network|ENOTFOUND|Failed to connect|connection/i.test(message);
       throw new NetworkError(offline ? "offline" : "failed", `${hostOf(request.url)}: ${message}`);
     } finally {

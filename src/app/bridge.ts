@@ -40,6 +40,8 @@ export function errorKey(error: unknown, failed: StringKey = "error.failed"): St
   if (kind === "Unauthorized") return "error.expired";
   if (kind === "VendorChanged") return "error.changed";
   if (kind === "ActionNeeded") return "error.actionNeeded";
+  // A QA build stopped the write itself (mobile/src/host/guard.ts): never said as a lost connection.
+  if (kind === "ReadOnly") return "error.readOnly";
   return failed;
 }
 
