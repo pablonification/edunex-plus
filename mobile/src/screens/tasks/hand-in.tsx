@@ -55,8 +55,11 @@ interface Attached {
   problem?: StringKey;
 }
 
-/** A file Edunex wouldn't take (its kind or size): never sent, so there's nothing to try again, only to remove. */
-const refused = (item: Attached) => item.problem === "handIn.tooBig" || item.problem === "handIn.wrongType";
+/**
+ * A file Edunex wouldn't take (its kind or size), or one a QA build that only reads stopped: never sent, so there's
+ * nothing to try again, only to remove.
+ */
+const refused = (item: Attached) => item.problem === "handIn.tooBig" || item.problem === "handIn.wrongType" || item.problem === "error.readOnly";
 
 interface Notice {
   tone: "danger" | "warning" | "neutral";
@@ -113,6 +116,8 @@ function useAnswerText(task: Task) {
 }
 
 function uploadProblem(error: unknown): StringKey {
+  // A QA build stopped the upload itself (src/host/guard.ts): said as that, never as a lost connection.
+  if (error instanceof ActionError && error.kind === "ReadOnly") return "error.readOnly";
   if (error instanceof ActionError && error.kind === "Offline") return "handIn.uploadOffline";
   if (error instanceof ActionError && error.kind === "Unauthorized") return "handIn.uploadExpired";
   if (error instanceof ActionError && error.kind === "Rejected") return "handIn.unreadable";
@@ -130,6 +135,8 @@ function noticeFor(error: unknown): Notice {
       return { tone: "danger", text: "handIn.error.changed", action: "edunex" };
     case "Rejected":
       return { tone: "danger", text: "handIn.error.rejected", action: "edunex" };
+    case "ReadOnly":
+      return { tone: "neutral", text: "error.readOnly" };
     default:
       return { tone: "danger", text: "handIn.error.failed" };
   }
@@ -1043,7 +1050,6 @@ function FileRowView({
           </IconButton>
         )}
       </View>
-      {state === "uploading" && <ProgressBar value={0} indeterminate label={t("handIn.uploading")} />}
       {failed && (
         <View style={{ marginTop: space[1.5], paddingLeft: 42, gap: space[1.5] }}>
           <Text size="bodyMedium" tone="danger">

@@ -19,8 +19,11 @@ import { DatasetPayload } from "./snapshot";
 
 export { AppSnapshot, DatasetPayload, Snapshot } from "./snapshot";
 
-/** ActionNeeded: the service wants the Student to do something on its own site before it shows the page (SIX's Pengkinian Data Induk). */
-export const ErrorKind = z.enum(["Offline", "Unauthorized", "VendorChanged", "Rejected", "Failed", "ActionNeeded"]);
+/**
+ * ReadOnly: a QA build of the phone app stopped the write itself (mobile/src/host/guard.ts), nothing was sent.
+ * ActionNeeded: the service wants the Student to do something on its own site before it shows the page (SIX's Pengkinian Data Induk).
+ */
+export const ErrorKind = z.enum(["Offline", "Unauthorized", "VendorChanged", "Rejected", "Failed", "ActionNeeded", "ReadOnly"]);
 export type ErrorKind = z.infer<typeof ErrorKind>;
 
 export const BridgeError = z.object({ kind: ErrorKind, message: z.string() });

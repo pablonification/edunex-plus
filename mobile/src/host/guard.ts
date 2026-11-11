@@ -4,10 +4,13 @@
 // the questionnaire, a payment and signing out never do, whatever the method. The release Students
 // get has the flag unset and none of this runs.
 //
+// A stopped write is said on screen as what it is ("error.readOnly"), never as a lost connection.
+//
 // One rule, two places: `blockedLine` for the engine's network (./transport.ts) and `guardScript`, the
 // same rule as plain JavaScript for the pages the app opens in web views (form sends, fetch, XHR).
 // test/mobile/guard.test.ts checks both give the same answers.
-import { type HttpRequest, type HttpResponse, NetworkError, type Transport } from "../../../src/engine/http/transport";
+import { EngineError } from "../../../src/engine/errors";
+import type { HttpRequest, HttpResponse, Transport } from "../../../src/engine/http/transport";
 
 /** Microsoft's sign-in pages: writes allowed (signing in), signing out not. */
 const MICROSOFT_SIGN_IN = /(^|\.)microsoftonline\.com$|^login\.(live|microsoft|windows)\.(com|net)$/;
@@ -73,14 +76,18 @@ export function blockedLine(method: string, url: string): string | null {
   return line;
 }
 
-/** The engine's network with the guard in front: a stopped request fails as a NetworkError, and says so on the log. */
+/**
+ * The engine's network with the guard in front: a stopped request fails as an EngineError of its own kind, "ReadOnly"
+ * (never a NetworkError, which the screens would say as a lost connection), and says so on the log. The screens say
+ * that kind as what it is ("error.readOnly", src/app/bridge.ts's errorKey).
+ */
 export function guardedTransport(inner: Transport, log: (line: string) => void = console.warn): Transport {
   return {
     request(request: HttpRequest): Promise<HttpResponse> {
       const blocked = blockedLine(request.method, request.url);
       if (!blocked) return inner.request(request);
       log(`[guard] blocked ${blocked}`);
-      return Promise.reject(new NetworkError("failed", `[guard] blocked ${blocked}`));
+      return Promise.reject(new EngineError("ReadOnly", `[guard] blocked ${blocked}`));
     },
   };
 }
@@ -91,7 +98,9 @@ const js = (pattern: RegExp) => pattern.toString();
 /**
  * The guard inside a page the app opens, run before the page's own scripts: forms sent, fetch, XHR and beacons go
  * through `blockedLine`'s rule (the same expressions, as ES5). A stopped one fails as the network would, says
- * `[guard] blocked …` on the page's console, and posts `{ guard: "<METHOD> <host><path>" }` to the app.
+ * `[guard] blocked …` on the page's console, and posts `{ guard: "<METHOD> <host><path>", student }` to the app:
+ * `student` when it was the Student's own doing (a form sent, or a write within two seconds of a touch or a key on
+ * the page), so the app says the build only reads; a page's own background write is stopped without a word.
  * The page's navigations are the web view's to stop (`onShouldStartLoadWithRequest` with `blockedLine`).
  */
 export const guardScript = `(function(){
@@ -116,9 +125,15 @@ var blockedLine = function(method, url){
   return line;
 };
 window.__edunexPlusGuard = blockedLine;
-var say = function(line){
+var touched = 0;
+var touch = function(){ touched = Date.now(); };
+document.addEventListener("touchend", touch, true);
+document.addEventListener("click", touch, true);
+document.addEventListener("keydown", touch, true);
+var say = function(line, form){
+  var student = !!form || Date.now() - touched < 2000;
   try { console.warn("[guard] blocked " + line); } catch (e) {}
-  try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ guard: line })); } catch (e) {}
+  try { window.ReactNativeWebView && window.ReactNativeWebView.postMessage(JSON.stringify({ guard: line, student: student })); } catch (e) {}
 };
 var formLine = function(form, submitter){
   var method = (submitter && submitter.getAttribute && submitter.getAttribute("formmethod")) || form.getAttribute("method") || "GET";
@@ -127,12 +142,12 @@ var formLine = function(form, submitter){
 };
 document.addEventListener("submit", function(event){
   var line = formLine(event.target, event.submitter);
-  if (line) { event.preventDefault(); event.stopImmediatePropagation(); say(line); }
+  if (line) { event.preventDefault(); event.stopImmediatePropagation(); say(line, true); }
 }, true);
 var submit = HTMLFormElement.prototype.submit;
 HTMLFormElement.prototype.submit = function(){
   var line = formLine(this, null);
-  if (line) { say(line); return; }
+  if (line) { say(line, true); return; }
   return submit.apply(this, arguments);
 };
 if (window.fetch) {
@@ -175,10 +190,17 @@ export function navigationAllowed(url: string, log: (line: string) => void = con
   return !blocked;
 }
 
-/** What a web view's page posted, when it's the guard saying it stopped something: its line on the app's log. */
-export function guardMessage(data: string, log: (line: string) => void = console.warn): void {
+/**
+ * What a web view's page posted, when it's the guard saying it stopped something: its line on the app's log. True when
+ * what it stopped was the Student's own doing, so the screen says the build only reads ("error.readOnly").
+ */
+export function guardMessage(data: string, log: (line: string) => void = console.warn): boolean {
   try {
-    const said = JSON.parse(data) as { guard?: unknown };
-    if (typeof said.guard === "string") log(`[guard] blocked ${said.guard}`);
-  } catch {}
+    const said = JSON.parse(data) as { guard?: unknown; student?: unknown };
+    if (typeof said.guard !== "string") return false;
+    log(`[guard] blocked ${said.guard}`);
+    return said.student === true;
+  } catch {
+    return false;
+  }
 }

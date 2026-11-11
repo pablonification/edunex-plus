@@ -61,6 +61,8 @@ export const mobileStrings = {
     en: { one: "{count} course with no absences left", other: "{count} courses with no absences left" },
   },
   "mobile.strip.examTo": { id: "ke {kind}", en: "to {kind}" },
+  // The app's own name, for a screen reader on its mark (Beranda's header): a name, the same in both languages.
+  "mobile.appName": { id: "Edunex Plus", en: "Edunex Plus" },
   "mobile.home.searchHint": { id: "Cari kuliah, tugas, materi", en: "Search courses, Tasks, materials" },
   // The block's one time while a class is on with no Presence open, and its calm line once nothing is left.
   "mobile.home.ends": { id: "selesai {time}", en: "ends {time}" },

@@ -2,7 +2,10 @@
 // Student's account reads Edunex, SIX and Microsoft and changes nothing there. The paths are the engine's own
 // (src/engine/sources/edunex/hand-in.ts, src/core/links.ts) on the made-up Student of test/fixtures.
 import { describe, expect, it, vi } from "vitest";
-import { blockedLine, guardedTransport, guardScript } from "../../mobile/src/host/guard";
+import { blockedLine, guardedTransport, guardMessage, guardScript } from "../../mobile/src/host/guard";
+import { ActionError, errorKey } from "../../src/app/bridge";
+import { translate } from "../../src/core/strings";
+import { EngineError } from "../../src/engine/errors";
 import { type HttpRequest, NetworkError } from "../../src/engine/http/transport";
 import { EDUNEX_API } from "../../src/engine/sources/edunex/client";
 
@@ -70,23 +73,34 @@ describe("the read-only guard", () => {
     );
   });
 
-  it("fails the engine's request as a NetworkError, before it reaches the network", async () => {
+  it("fails the engine's request as its own kind, never a lost connection, before it reaches the network", async () => {
     const inner = { request: vi.fn(async (request: HttpRequest) => ({ status: 200, headers: {}, body: "{}", url: request.url })) };
     const lines: string[] = [];
     const transport = guardedTransport(inner, (line) => lines.push(line));
     const write = transport.request({ method: "POST", url: api("/course/comments"), body: '{"html":"hi"}' });
-    await expect(write).rejects.toBeInstanceOf(NetworkError);
-    await expect(write).rejects.toMatchObject({ reason: "failed" });
+    // Not a NetworkError: the engine would turn that into "Offline", and the screens into "No connection".
+    await expect(write).rejects.not.toBeInstanceOf(NetworkError);
+    await expect(write).rejects.toBeInstanceOf(EngineError);
+    await expect(write).rejects.toMatchObject({ kind: "ReadOnly" });
     expect(inner.request).not.toHaveBeenCalled();
     expect(lines).toEqual(["[guard] blocked POST api-edunex.cognisia.id/course/comments"]);
     await transport.request({ method: "GET", url: api("/login/me") });
     expect(inner.request).toHaveBeenCalledTimes(1);
+  });
+
+  it("is said on screen as a build that only reads, in both languages", () => {
+    const key = errorKey(new ActionError("ReadOnly", "[guard] blocked POST api-edunex.cognisia.id/course/comments"), "handIn.error.failed");
+    expect(key).toBe("error.readOnly");
+    expect(translate("id", key)).toBe("Build uji ini hanya membaca. Tidak ada yang dikirim.");
+    expect(translate("en", key)).toBe("This test build only reads. Nothing was sent.");
   });
 });
 
 /** The web views' copy of the rule, run on a stand-in page. */
 function page() {
   const posted: string[] = [];
+  /** Whether each stopped one was the Student's own doing, as the page tells the app. */
+  const student: boolean[] = [];
   const sent: string[] = [];
   const fetched: string[] = [];
   const listeners: Record<string, (event: unknown) => void> = {};
@@ -116,7 +130,12 @@ function page() {
   }
   const window: Record<string, unknown> = {
     fetch: async (url: string) => fetched.push(url),
-    ReactNativeWebView: { postMessage: (data: string) => posted.push(JSON.parse(data).guard) },
+    ReactNativeWebView: {
+      postMessage: (data: string) => {
+        posted.push(JSON.parse(data).guard);
+        student.push(guardMessage(data, () => {}));
+      },
+    },
   };
   const document = { addEventListener: (type: string, listener: (event: unknown) => void) => (listeners[type] = listener) };
   const location = { href: `${SIX_APP}/kelas/jadwal/mahasiswa/2021000001` };
@@ -131,7 +150,7 @@ function page() {
     quiet,
     class {},
   );
-  return { window, listeners, Form, XMLHttpRequest, posted, sent, fetched };
+  return { window, listeners, Form, XMLHttpRequest, posted, student, sent, fetched };
 }
 
 describe("the guard in the app's web views", () => {
@@ -164,5 +183,17 @@ describe("the guard in the app's web views", () => {
       "POST api-edunex.cognisia.id/course/comments",
       "PATCH api-edunex.cognisia.id/course/task/answers/77",
     ]);
+    // The forms were the Student's press, so the app says the build only reads; the page's own writes, with no touch
+    // before them, are stopped without a word.
+    expect(view.student).toEqual([true, true, false, false]);
+  });
+
+  it("says a write stopped right after the Student's touch is theirs", async () => {
+    const view = page();
+    view.listeners.click?.({});
+    const fetch = view.window.fetch as (url: string, init?: { method: string }) => Promise<unknown>;
+    await expect(fetch(api("/course/comments"), { method: "POST" })).rejects.toThrow("[guard] blocked");
+    expect(view.student).toEqual([true]);
+    expect(guardMessage('{"auth":"token"}', () => {})).toBe(false);
   });
 });

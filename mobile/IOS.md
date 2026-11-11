@@ -130,8 +130,12 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
 
 **Safe areas**
 
-- [ ] Beranda (`screens/home/header.tsx`): the search bar and the bell sit below the notch or the Dynamic Island, not
-      under it, with a clear gap (the bar adds the top inset plus 8 dp). On an iPhone SE, with no notch, the same gap.
+- [ ] Beranda (`screens/home/header.tsx`): the app's mark, the search bar and the bell sit on one row below the notch
+      or the Dynamic Island, not under it, with a clear gap (the bar adds the top inset plus 8 dp). On an iPhone SE,
+      with no notch, the same gap.
+- [ ] The mark (`BrandMark` in `ui/brand.tsx`, 32 pt, drawn as vectors) is the icon's white "e+" on its blue tile, at
+      the row's start, the same in light and dark, centred on the search bar's height. A tap on it does nothing.
+      VoiceOver says "Edunex Plus" on it.
 - [ ] The bar is a 48 pt pill, and a tap anywhere on it opens Search with the keyboard already up.
 - [ ] Beranda's first screen, at the default text size: the search bar, the class block, the strip and the grid of
       eight, with no scrolling. At a larger text size (Settings › Display & Brightness › Text Size): the grid may run
@@ -216,3 +220,20 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
 - [ ] Kalender akademik: tap a date, "Tambahkan ke kalender HP". It is in the Edunex Plus calendar; tap the date again and the
       row says "Di kalender HP" (a tap takes it out). With Jadwal's switch on, a date it carries says "Ikut Kalender HP di Jadwal".
       Turning the switch off takes the whole calendar off the iPhone, and the rows offer to add again.
+
+**Handing in a Task (nobody has uploaded a file from an iPhone yet)**
+
+The path is the same code as Android's: iOS's own file picker copies the pick into the app's cache
+(`expo-document-picker`, `host/tasks.ts`), its bytes are read when it's uploaded (`expo-file-system`), and they go out
+through `expo/fetch` on URLSession (`host/transport.ts`). Reading the native code found nothing Android-only in it.
+Needs a build **without** the read-only guard (a build made with `EXPO_PUBLIC_R3_GUARD=1` stops every write on
+purpose, and says so: "Build uji ini hanya membaca. Tidak ada yang dikirim.").
+
+- [ ] Attach a PDF from Files: its row shows **one** spinner, where the file's icon goes, and "Mengunggah… · 251 KB"
+      under its name. Then the PDF's red icon and "Belum disimpan".
+- [ ] Simpan draf: the snackbar says the draft is saved, and the Task on Edunex's site shows the file.
+- [ ] The picker: PDF, Word, Excel, PowerPoint, ZIP, JPG and PNG can be picked. Look at a **.rar** file: iOS may
+      grey it out (it has no type of its own for RAR). And a file picked from iCloud Drive that isn't downloaded yet.
+- [ ] A big file (20 MB and up) on mobile data: it uploads, and the app stays alive while it does.
+- [ ] Airplane mode, then attach: the row turns red with "Tidak ada koneksi, jadi belum terunggah." and Coba lagi works
+      once the connection is back.
