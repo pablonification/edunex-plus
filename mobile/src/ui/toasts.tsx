@@ -6,7 +6,7 @@
 // (DESIGN.md, "Patterns").
 import { useSegments } from "expo-router";
 import { type ComponentRef, type ReactNode, useRef, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Platform, Pressable, View } from "react-native";
 import Animated, { Easing, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dismissToast, useToasts } from "../swaps/overlays";
@@ -14,12 +14,13 @@ import { GLASS, GlassSurface } from "./glass";
 import { useBarTop, useTabsBottom } from "./insets";
 import { useReduceMotion } from "./motion";
 import { moves } from "./moves";
+import { tabBarHeight } from "./page-end";
 import { iosPressed } from "./press";
 import { Text } from "./text";
 import { motion, shape, space, TOUCH, useTheme } from "./theme";
 
-/** The tabs' bar: Material 3's navigation bar, labels always shown. */
-const TAB_BAR = 80;
+/** The tabs' bar: Material 3's navigation bar, labels always shown; on an iPhone, iOS's own. */
+const TAB_BAR = tabBarHeight(Platform.OS);
 
 export function Toasts() {
   const toasts = useToasts();
@@ -38,7 +39,7 @@ export function Toasts() {
   const item = toasts.at(-1);
   const still = useReduceMotion();
   const above = (edge: number) => (frameBottom > 0 && edge > 0 ? Math.max(insets.bottom, frameBottom - edge) : insets.bottom);
-  // On a tab, never lower than the tabs' bar (Material's 80 dp) over the phone's own: a page that didn't report its edge
+  // On a tab, never lower than the tabs' bar (Material's 80 dp, iOS's 49 pt) over the phone's own: a page that didn't report its edge
   // (Jadwal's own layout) left it on the tabs (judge, round 3).
   const bottom = (onTab ? Math.max(above(tabsBottom), insets.bottom + TAB_BAR) : above(barTop)) + space[3];
   return (

@@ -24,7 +24,7 @@ import { BRow, useB } from "../../ui/b";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { type IconName, Icons } from "../../ui/icons";
-import { useBottomInset } from "../../ui/insets";
+import { usePageEnd } from "../../ui/insets";
 import { factsLabel } from "../../ui/layout";
 import { CrossFade } from "../../ui/moves";
 import { Text } from "../../ui/text";
@@ -68,7 +68,7 @@ export function MaterialScreen() {
   const b = useB();
   const theme = useTheme();
   const now = useNow();
-  const bottom = useBottomInset();
+  const end = usePageEnd();
   const pull = usePullToRefresh();
   const courses = useTermCourses();
   const outline = useDataset("edunex.outline");
@@ -98,8 +98,9 @@ export function MaterialScreen() {
   const loading = sections === null && (edunex === "connecting" || edunex === "live");
   const arrival = useArrivalId(!loading);
   return (
-    // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
-    <View testID="screen.material" style={{ flex: 1, backgroundColor: b.page, paddingBottom: bottom }}>
+    // The list ends as Page's does (ui/page-end.ts): above Android's three buttons, scrolled or not; under an iPhone's
+    // home indicator to the screen's edge, its last row clear of it.
+    <View testID="screen.material" style={{ flex: 1, backgroundColor: b.page, paddingBottom: end.strip }}>
       {/* The bar in the page's own colour in both themes (v4's page is the dark page; the light one is the surface). */}
       <TopBar v4={b.dark} title={t("mobile.material.title")} />
       {/* The skeleton becoming the list: it fades through, once, when the data comes while the Student looks. */}
@@ -111,7 +112,7 @@ export function MaterialScreen() {
           renderItem={renderItem}
           ListHeaderComponent={<ProblemBanner belowBar />}
           ListEmptyComponent={loading ? <Loading /> : <Nothing signedOut={edunex === "signed-out"} />}
-          contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
+          contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] + end.room }}
           refreshControl={
             <RefreshControl
               refreshing={pull.refreshing}

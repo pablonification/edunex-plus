@@ -27,6 +27,7 @@ import { Button, IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
+import { usePageEnd } from "../../ui/insets";
 import { Notice } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { useReduceMotion } from "../../ui/motion";
@@ -200,6 +201,7 @@ function DayScroll({
   children: React.ReactNode;
 }) {
   const theme = useTheme();
+  const end = usePageEnd();
   const still = useReduceMotion();
   const clock = useClock();
   const focused = useIsFocused();
@@ -241,7 +243,8 @@ function DayScroll({
         style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
         contentOffset={{ x: 0, y }}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: space[6] }}
+        // The day's last class ends clear of an iPhone's tab bar, which floats over the page (ui/page-end.ts).
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: space[6] + end.room }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

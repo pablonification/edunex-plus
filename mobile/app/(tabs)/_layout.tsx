@@ -85,6 +85,11 @@ export default function TabsLayout() {
             testID={`tab.${tab.id}`}
             accessibilityLabel={tabLabel(t, tab.title, tab.badge)}
             contentStyle={{ backgroundColor: c.surface }}
+            // An iPhone's bar floats over the tab's page. Left alone, iOS insets the tab's first scroll view by itself,
+            // but only when that view is the first thing in the tab (Jadwal's, not a page under a header), so some
+            // tabs ended clear of the bar and others under it. Every tab's page leaves the bar's room itself
+            // (ui/page-end.ts), the same on all five. Android keeps its own: the page ends above the tabs.
+            disableAutomaticContentInsets={Platform.OS === "ios"}
           >
             <NativeTabs.Trigger.Icon sf={SF[tab.icon]} drawable={{ default: `tab_${tab.icon}`, selected: `tab_${tab.icon}_filled` }} />
             <NativeTabs.Trigger.Label>{tab.title}</NativeTabs.Trigger.Label>
