@@ -8,7 +8,6 @@ import { TextInput, View } from "react-native";
 import { useT } from "../../../../src/app/i18n";
 import { BHeading, ServiceRow, ServiceTile, useB } from "../../ui/b";
 import { Fluent } from "../../ui/fluent";
-import { useBottomInset } from "../../ui/insets";
 import { Page } from "../../ui/layout";
 import { Arrive } from "../../ui/moves";
 import { Text, useFieldColors } from "../../ui/text";
@@ -31,7 +30,6 @@ export function ServicesScreen() {
   const open = useOpenService();
   const field = useFieldColors();
   const tags = useServiceTags();
-  const bottom = useBottomInset();
   const [query, setQuery] = useState("");
   const asked = query.trim().toLowerCase();
   const groups = SERVICE_GROUPS.map((group) => ({
@@ -94,14 +92,14 @@ export function ServicesScreen() {
           </View>
         </Arrive>
       ))}
-      {/* The last row's names clear of the phone's own bar: its height and a row's gap after the last group. Every name is
-          one line at the usual font size; at a bigger one it may take two, both whole. */}
+      {/* A row's gap after the last group; the page's own end keeps it clear of the phone's bar (ui/page-end.ts). Every
+          name is one line at the usual font size; at a bigger one it may take two, both whole. */}
       {groups.length === 0 && (
         <Text size="bodyLarge" style={{ color: b.muted, textAlign: "center", marginTop: space[8] }}>
           {t("mobile.services.none", { query: query.trim() })}
         </Text>
       )}
-      <View style={{ height: space[6] + bottom }} />
+      <View style={{ height: space[6] }} />
     </Page>
   );
 }
