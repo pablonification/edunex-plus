@@ -32,7 +32,7 @@ import {
 } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Icons } from "./icons";
-import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
+import { reportTabsBottom, useInTabs, usePageEnd } from "./insets";
 import { iosPressed } from "./press";
 import { Text } from "./text";
 import { radius, space, useTheme } from "./theme";
@@ -90,11 +90,13 @@ export function usePageColor(): string | null {
 /**
  * A screen: scrolls, with the page's sides, and pulls to refresh when `onRefresh` is given ("Perbarui
  * sekarang"). Its `header` (a top bar) stays on top and takes a tone when the page scrolls under it. Its end keeps
- * clear of the tabs, or of the phone's own navigation bar: over the tabs, where the page runs to the screen's foot
- * (edge to edge), the scrolling stops at the top of the phone's bar and a strip of the page's colour lies under the
- * bar, so nothing ever sits under three-button navigation's Back, Home and Recents, scrolled or not (round 3, the
- * real phone: a toggle under Back, a chart's legend and the last row hidden). A page with a bar of its own under it
- * (Kumpulkan's, ../parts/bottom-bar.tsx) ends above that bar, and the bar keeps clear of the phone's.
+ * clear of what's drawn at the screen's foot, the same way on every screen (./page-end.ts): on an iPhone the page runs
+ * to the screen's edge under the tab bar or the home indicator, and its last row ends clear of it; on Android a tab
+ * ends above the tabs, and over the tabs the scrolling stops at the top of three-button navigation's bar with a strip
+ * of the page's colour under it, so nothing ever sits under Back, Home and Recents, scrolled or not (round 3, the real
+ * phone: a toggle under Back, a chart's legend and the last row hidden), while gesture navigation's handle is drawn
+ * over the page as the iPhone's is. A page with a bar of its own under it (Kumpulkan's, ../parts/bottom-bar.tsx) ends
+ * above that bar, and the bar keeps clear of the phone's.
  */
 export function Page({
   children,
@@ -120,14 +122,13 @@ export function Page({
   background?: string;
 } & Omit<ScrollViewProps, "children" | "refreshControl">) {
   const theme = useTheme();
-  const bottom = useBottomInset();
   const inTabs = useInTabs();
   const frame = useRef<ComponentRef<typeof View>>(null);
   // Whether the page reaches the screen's foot, under the phone's bar (as it does unless a bar of the screen's own
   // follows it, or the keyboard is up): measured, so it holds whatever sits under the page.
   const screen = useSafeAreaFrame();
   const [toFoot, setToFoot] = useState(true);
-  const strip = !inTabs && toFoot ? bottom : 0;
+  const end = usePageEnd(toFoot);
   const offset = useRef(new Animated.Value(0)).current;
   // The offset goes to the UI thread; a screen's own onScroll (if it has one) still hears each event.
   const scrolled = useMemo(
@@ -150,11 +151,12 @@ export function Page({
       ref={frame}
       style={{ flex: 1, backgroundColor: background ?? theme.color.surface }}
       testID={testID}
-      // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx). Over the tabs: does
-      // the page run under the phone's bar.
+      // A tab's page reports where the tabs' bar starts (its own foot on Android, the bar's room above it on an iPhone, where
+      // the page runs under the bar): the snackbar sits just above it (ui/toasts.tsx). Over the tabs: does the page run
+      // under the phone's bar.
       onLayout={() =>
         frame.current?.measureInWindow((_x, y, _width, height) => {
-          if (inTabs) reportTabsBottom(y + height);
+          if (inTabs) reportTabsBottom(y + height - end.room);
           else setToFoot(y + height >= screen.height - 1);
         })
       }
@@ -166,10 +168,10 @@ export function Page({
         ref={ref as never}
         onScroll={scrolled}
         scrollEventThrottle={16}
-        style={strip ? { marginBottom: strip } : undefined}
-        // Without the strip (a bar under the page, the keyboard up), the end still leaves the phone's bar's room, as
-        // before: a few dp to spare beside a bar of the screen's own, never a last row under the phone's buttons.
-        contentContainerStyle={[styles.page, strip ? null : { paddingBottom: space[10] + bottom }, contentStyle]}
+        style={end.strip ? { marginBottom: end.strip } : undefined}
+        // Without the strip, the end leaves the room of what's drawn over the page (the home indicator, an iPhone's tab
+        // bar); with a bar of the screen's own under it or the keyboard up, the phone's bar's room still, as before.
+        contentContainerStyle={[styles.page, { paddingBottom: space[10] + end.room }, contentStyle]}
         refreshControl={
           onRefresh ? (
             <RefreshControl

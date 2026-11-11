@@ -30,6 +30,7 @@ import { SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
+import { usePageEnd } from "../../ui/insets";
 import { factsLabel, GroupTile } from "../../ui/layout";
 import { CrossFade, useSlidingMark } from "../../ui/moves";
 import { useDrawAhead, useLinesShown, usePart } from "../../ui/parts";
@@ -316,6 +317,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   const courses = useTermCourses();
   const bridge = useBridge();
   const pull = usePullToRefresh();
+  const end = usePageEnd();
   // A tap on Tugas while it's open scrolls back to the top, as every tab built on Page does.
   const list = useRef<FlashListRef<Line>>(null);
   useScrollToTop(list);
@@ -379,7 +381,8 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
               extraData={putOffOpen}
               renderItem={renderItem}
               {...ahead}
-              contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
+              // The last row ends clear of an iPhone's tab bar, which floats over the list (ui/page-end.ts).
+              contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] + end.room }}
               // Page's own spinner: the app's blue on a raised disc, not Android's white one on a dark page.
               refreshControl={
                 <RefreshControl

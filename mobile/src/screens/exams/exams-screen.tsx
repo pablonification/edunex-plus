@@ -24,7 +24,7 @@ import { BRow, useB } from "../../ui/b";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { type IconName, Icons } from "../../ui/icons";
-import { useBottomInset } from "../../ui/insets";
+import { usePageEnd } from "../../ui/insets";
 import { factsLabel } from "../../ui/layout";
 import { Arrive, Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
@@ -70,7 +70,7 @@ export function ExamsScreen() {
   const b = useB();
   const theme = useTheme();
   const now = useNow();
-  const bottom = useBottomInset();
+  const end = usePageEnd();
   const pull = usePullToRefresh();
   const exams = useExams();
   const marks = useExamMarkList();
@@ -88,11 +88,12 @@ export function ExamsScreen() {
   const reading = (state: typeof six) => state === "connecting" || state === "live";
   const loading = view === null && (reading(six) || reading(edunex));
   return (
-    // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
-    <View testID="screen.exams" style={{ flex: 1, backgroundColor: b.page, paddingBottom: bottom }}>
+    // The list ends as Page's does (ui/page-end.ts): above Android's three buttons, scrolled or not; under an iPhone's
+    // home indicator to the screen's edge, its last row clear of it.
+    <View testID="screen.exams" style={{ flex: 1, backgroundColor: b.page, paddingBottom: end.strip }}>
       <TopBar v4={b.dark} title={t("mobile.exams.title")} />
       <ScrollView
-        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] }}
+        contentContainerStyle={{ paddingHorizontal: space[4], paddingBottom: space[10] + end.room }}
         refreshControl={
           <RefreshControl
             refreshing={pull.refreshing}

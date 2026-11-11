@@ -21,7 +21,7 @@ import { BHeading, useB } from "../../ui/b";
 import { Button, Chip } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
-import { useBottomInset } from "../../ui/insets";
+import { usePageEnd } from "../../ui/insets";
 import { factsLabel } from "../../ui/layout";
 import { CrossFade } from "../../ui/moves";
 import { Text } from "../../ui/text";
@@ -52,7 +52,7 @@ export function MaterialScreen() {
   const b = useB();
   const theme = useTheme();
   const now = useNow();
-  const bottom = useBottomInset();
+  const end = usePageEnd();
   const pull = usePullToRefresh();
   const termCourses = useTermCourses();
   const outline = useDataset("edunex.outline");
@@ -99,8 +99,9 @@ export function MaterialScreen() {
   // Courses to pick from only when one of them has something: a term with nothing posted says so once.
   const any = courses?.some((item) => item.modules.length > 0) ?? false;
   return (
-    // The list ends above the phone's own bar, scrolled or not (as Page does): no row under Back, Home and Recents.
-    <View testID="screen.material" style={{ flex: 1, backgroundColor: b.page, paddingBottom: bottom }}>
+    // The list ends as Page's does (ui/page-end.ts): above Android's three buttons, scrolled or not; under an iPhone's
+    // home indicator to the screen's edge, its last row clear of it.
+    <View testID="screen.material" style={{ flex: 1, backgroundColor: b.page, paddingBottom: end.strip }}>
       {/* The bar in the page's own colour in both themes (v4's page is the dark page; the light one is the surface). */}
       <TopBar v4={b.dark} title={t("mobile.material.title")} />
       {/* The skeleton becoming the page: it fades through, once, when the data comes while the Student looks. */}
@@ -120,7 +121,7 @@ export function MaterialScreen() {
           renderItem={renderItem}
           initialScrollIndex={any && start > 0 ? start : undefined}
           ListEmptyComponent={loading ? <Loading /> : any ? <NothingHere /> : <Nothing signedOut={edunex === "signed-out"} />}
-          contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] }}
+          contentContainerStyle={{ paddingHorizontal: space.page, paddingBottom: space[10] + end.room }}
           refreshControl={
             <RefreshControl
               refreshing={pull.refreshing}

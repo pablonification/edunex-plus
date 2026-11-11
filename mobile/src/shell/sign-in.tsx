@@ -28,11 +28,11 @@ import { guardMessage, guardScript, navigationAllowed } from "../host/guard";
 import { noServiceWorkerScript } from "../host/page-fixes";
 import { R3_GUARD } from "../host/version";
 import { FirstReadSaid } from "../screens/first-scan/said";
-import { IconButton } from "../ui/controls";
 import { Icons } from "../ui/icons";
 import { reduceMotion } from "../ui/motion";
 import { Text } from "../ui/text";
 import { motion, space, useTheme } from "../ui/theme";
+import { BarClose } from "../ui/top-bar";
 import { FirstMinuteGate, firstMinuteStageUp } from "./first-minute/gate";
 
 type Source = "edunex" | "six";
@@ -321,9 +321,8 @@ function SignInPage({ run }: { run: Run }) {
       {!quiet && (
         // Material's full-screen dialog bar: close at the start, what this is, and whose page it is (the lock, the host).
         <View style={[styles.bar, { backgroundColor: theme.color.surface }]}>
-          <IconButton label={t("action.close")} onPress={giveUp} testID="signin.close">
-            <Icons.X size={24} color={theme.color.onSurface} />
-          </IconButton>
+          {/* The app's one bar button (a glass circle on iOS 26), as Back is on every pushed screen. */}
+          <BarClose onPress={giveUp} testID="signin.close" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="titleLarge" numberOfLines={1}>
               {title}
@@ -342,6 +341,8 @@ function SignInPage({ run }: { run: Run }) {
           ref={view}
           testID={`signin.${run.source}`}
           source={{ uri: system.start }}
+          // iPhone: the page runs under the home indicator to the screen's edge and ends clear of it (ui/page-end.ts).
+          contentInsetAdjustmentBehavior="automatic"
           // Edunex's page needs a service worker to start (../host/page-fixes.ts). A QA build's sign-in signs in and
           // nothing else (../host/guard.ts): no other write, no signing out.
           injectedJavaScriptBeforeContentLoaded={R3_GUARD ? `${guardScript}\n${noServiceWorkerScript}` : noServiceWorkerScript}
