@@ -12,6 +12,7 @@
 //   cancelled and the live one shows instead;
 // - inside LEAD the app is running and its own timer raises it: nothing is booked that close.
 import { z } from "zod";
+import { withoutGrades } from "../../../src/core/hide-grades";
 import { ALERT_GROUP, type AlertGroup, type AlertKind, type Lang } from "../../../src/core/models";
 import { type StringKey, translate } from "../../../src/core/strings";
 import type { AlertNotice } from "../../../src/engine/alerts/center";
@@ -58,8 +59,12 @@ export interface NoticeContent {
 
 type Shown = Pick<AlertNotice, "kind" | "title" | "body" | "target" | "checkIn">;
 
-/** An alert as Android shows it, in the Student's language. `ahead`: booked before its time. */
-export function noticeContent(notice: Shown, lang: Lang, ahead = false): NoticeContent {
+/**
+ * An alert as Android shows it, in the Student's language. `ahead`: booked before its time. `hideGrades`: the Student
+ * hides grades (Settings.hideGrades), so a new grade names its course only, never the grade or the IPK.
+ */
+export function noticeContent(shown: Shown, lang: Lang, ahead = false, hideGrades = false): NoticeContent {
+  const notice = hideGrades ? withoutGrades(shown) : shown;
   const footnote = ahead ? FOOTNOTE[ALERT_GROUP[notice.kind]] : undefined;
   const lines = [notice.body ? translate(lang, notice.body.key, notice.body.vars) : null, footnote ? translate(lang, footnote) : null].filter(
     (line) => line !== null,

@@ -3,6 +3,7 @@
 // decides on (the title, the course, the day and time it's due); the rest of the desktop's facts
 // stay in its accessible name and on the Task's page. A late Task's "Ingatkan nanti" is an alarm on
 // the row, a swipe, and its long press. What rows share is in row-parts.tsx.
+
 import { useState } from "react";
 import { View } from "react-native";
 import { errorKey } from "../../../../src/app/bridge";
@@ -12,11 +13,13 @@ import { useSnoozes } from "../../../../src/app/snoozes";
 import { attendanceWindow } from "../../../../src/core/attendance";
 import { taskPutAway } from "../../../../src/core/done";
 import type { Exam } from "../../../../src/core/exams";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import type { DoneHow, Task, TaskStatus } from "../../../../src/core/models";
 import { editView } from "../../../../src/core/task-edits";
 import { isOpenStatus, notOpenYet, shortWindow, submittedAt } from "../../../../src/core/tasks";
 import { lateSnoozable, type TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { hold } from "../../parts/hold";
 import { canSnooze, useRowActions, useSnooze } from "../../parts/snooze";
 import { useB } from "../../ui/b";
@@ -54,12 +57,12 @@ export { CourseCodeMark, DateColumn, ExamTitle, formatScore, moduleLabel, useDue
 type MarkedHow = Extract<DoneHow, "handedElsewhere" | "notHandingIn" | "groupDone">;
 
 /** "Jum, 16 Okt / 23:59"; "Dikumpulkan 24 Sep" once handed in, with its score over it once graded. */
-function taskDate(t: Translate, f: Format, now: number, task: Task, status: TaskStatus): DueWhen {
+function taskDate(t: Translate, f: Format, now: number, task: Task, status: TaskStatus, hidden = false): DueWhen {
   const sentAt = submittedAt(task);
   if (sentAt !== null) {
     const sent = t("task.submittedOnDate", { date: f.dayMonth(sentAt) });
     return task.score !== null
-      ? { main: t("task.scoreValue", { score: formatScore(task.score, f) }), sub: sent, tone: "fg", late: false, rel: null }
+      ? { main: t("task.scoreValue", { score: hidden ? HIDDEN_FIGURE : formatScore(task.score, f) }), sub: sent, tone: "fg", late: false, rel: null }
       : { main: sent, sub: null, late: false, rel: null };
   }
   if (task.dueAt === null) return { main: t("task.noDeadline"), sub: null, tone: "muted", late: false, rel: null };
@@ -127,7 +130,9 @@ export const TaskRow = inWorld(function TaskRow({
   const world = useRowWorld();
   const course = world.courses?.find((c) => c.code === task.courseCode);
   const module = moduleLabel(t, task.module);
-  const date = taskDate(t, world.f, world.now, task, status);
+  // Hidden grades: a graded Task's score is dots.
+  const hidden = useGradesHidden();
+  const date = taskDate(t, world.f, world.now, task, status, hidden);
   const signal = signalOf(t, world, task, status);
   const where = module ?? course?.name ?? null;
   const facts = exam
@@ -178,7 +183,7 @@ export const TaskRow = inWorld(function TaskRow({
   const statusPill =
     sentAt !== null ? (
       task.score !== null ? (
-        <StatusPill tone="ok" text={t("task.scoreValue", { score: formatScore(task.score, world.f) })} />
+        <StatusPill tone="ok" text={t("task.scoreValue", { score: hidden ? HIDDEN_FIGURE : formatScore(task.score, world.f) })} />
       ) : null
     ) : status === "closed" ? (
       <StatusPill tone="red" text={t("task.notHandedIn")} />

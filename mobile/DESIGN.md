@@ -423,6 +423,27 @@ Rules it keeps:
   release build: cold start under 1.0 s, tab switch p90 under 100 ms, no JS block > 50 ms while moving. Draw the
   first screenful first: defer what's below it a frame, FlashList for long lists.
 - **testIDs**: `screen.<name>`, `tab.<name>`, `row.<kind>.<id>`, `action.<name>`, `sheet.<name>`.
+- **Sembunyikan nilai (hiding grades)**: one setting (`Settings.hideGrades`, the engine's own, on the phone's disk,
+  read before the first frame; off by default; no server hears of it; the desktop doesn't read it), turned by the eye
+  beside the IPK on Profil's card and Nilai's big number (`HideGradesButton`) and by Settings › Tampilan's switch.
+  While on, no grade is readable on the phone (`src/core/hide-grades.ts`, `src/parts/hide-grades.tsx`):
+  - a big figure (the IPK, "IPK setelah semester ini", the IPK at graduation) is dots in its own size and place
+    (`HiddenFigure`: the width of "0,00", so nothing moves); the counting number isn't mounted, so nothing counts up
+    to the value; a screen reader hears "IPK disembunyikan";
+  - a part made of grades (Nilai's this term, honors, chart and transcript; the plan's needs, chart and honors; a
+    course's Nilai tab) gives way to one quiet line, "Nilai disembunyikan · Tampilkan" (`GradesHiddenLine`): none of
+    it is drawn, so no sentence, predicate or colour derived from a grade is left. The plan's IPK target stays and
+    still changes: it's the Student's own choice, not a grade;
+  - a grade inside a line is dots (the Nilai tile's tag, a term's IP, a graded Task's score, "Lulus · •••", an
+    expected grade's control, which still opens its sheet); the first scan leaves out its IPK finding;
+  - a new grade's notification, and its row in Notifikasi and on Beranda, names the course only ("Nilai baru ·
+    IF2110"): no grade, no "IPK sekarang". The notifier hides until the settings are known. A notification already
+    shown by the system keeps the words it went out with. The home-screen widgets never show a grade.
+  A new place that prints a grade asks `useGradesHidden()` (or `useGradeWords()`), and joins the list in
+  `test/mobile/hide-grades.test.ts`.
+- **A number never breaks across lines**: `Segmented` keeps a one-word label (a number, "3,50") on one line
+  (`src/ui/segment-lines.ts`), a little smaller if its tick left it short; the chart keeps at its end only the room
+  its end figure takes (`screens/plan/chart-room.ts`), so its plot runs to the page's margin.
 
 ## Review checklist (before a screen is done)
 

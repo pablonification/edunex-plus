@@ -9,6 +9,7 @@ import * as Notifications from "expo-notifications";
 import { AppState, Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
+import { gradesHidden } from "../../../src/core/hide-grades";
 import { EDUNEX_WEB, SIX_WEB } from "../../../src/core/links";
 import { type Lang, UpdateNotice } from "../../../src/core/models";
 import type { FetchFile } from "../../../src/desktop/remote-files";
@@ -153,7 +154,12 @@ async function makeHost(): Promise<Host> {
   };
   const listeners = new Set<(event: unknown) => void>();
   let lang: Lang = "id";
-  const notifier = phoneNotifier(() => lang);
+  // Hidden wins until the settings are known: a grade never goes out in a notification by being early.
+  let hideGrades = true;
+  const notifier = phoneNotifier(
+    () => lang,
+    () => hideGrades,
+  );
   const reminders = phoneReminders({
     storage: world.storage,
     clock: world.clock,
@@ -212,6 +218,7 @@ async function makeHost(): Promise<Host> {
         void prepareChannels(lang);
       }
       if (event.type === "settings") {
+        hideGrades = gradesHidden(event.settings);
         const { mutedAlerts, deadlineReminders, classSoonAlerts } = event.settings;
         const next = JSON.stringify([lang, mutedAlerts, deadlineReminders, classSoonAlerts]);
         if (alertSettings && next !== alertSettings) queueMicrotask(() => engine.planAlerts());
@@ -248,6 +255,7 @@ async function makeHost(): Promise<Host> {
   sessions?.begin(engine.snapshot().statuses);
   if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
   lang = engine.snapshot().settings.lang;
+  hideGrades = gradesHidden(engine.snapshot().settings);
   void prepareChannels(lang);
   const loaded = Date.now();
   // The demo's sign-in and first sync run after the first frame, as the real app reads after a sign-in: Beranda draws

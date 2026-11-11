@@ -27,6 +27,7 @@ import {
 } from "../../../../src/core/tasks";
 import { dayAt, dayWord } from "../../parts/day-word";
 import { FileBadge, useEdunexFile } from "../../parts/files";
+import { useGradeWords } from "../../parts/hide-grades";
 import { boxEditable, boxHtml, boxText, editableInApp, plainText } from "../../parts/html";
 import { LecturerHtml } from "../../parts/lecturer-html";
 import { useRefresh, useSignIn } from "../../shell/source-status";
@@ -356,6 +357,8 @@ export function HandInCard({
   statusAbove?: boolean;
 }) {
   const fieldColors = useFieldColors();
+  // Hidden grades: a graded Task's score is dots.
+  const gradeWords = useGradeWords();
   const t = useT();
   const f = useFormat();
   const theme = useTheme();
@@ -427,7 +430,7 @@ export function HandInCard({
                   {t("task.score")}
                 </Text>
                 <Text size="titleLarge" face="display" weight="extrabold" tabular style={{ color: theme.v4.fg }}>
-                  {task.score !== null ? formatScore(task.score, f) : "-"}
+                  {task.score !== null ? gradeWords(formatScore(task.score, f)) : "-"}
                 </Text>
               </View>
             )}
