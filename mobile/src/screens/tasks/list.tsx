@@ -6,6 +6,7 @@
 // (Android's grouped tiles), the whole list one FlashList drawn row by row. The rows read what they
 // share once for the list (row-parts.tsx), and the lines are worked out only when the data, the
 // filter or the minute changes.
+
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useScrollToTop } from "expo-router";
 import { memo, type ReactNode, useCallback, useMemo, useRef, useState } from "react";
@@ -24,6 +25,7 @@ import { type PastExam, type TodoGroup, type TodoItem, todoCount, todoCounted, t
 import { useNav } from "../../nav";
 import { useArrivalId } from "../../parts/arrival";
 import { BTabHeader } from "../../parts/b-header";
+import { guidePart } from "../../shell/guide/state";
 import { usePullToRefresh, useRefresh, useSignIn } from "../../shell/source-status";
 import { useB } from "../../ui/b";
 import { SectionTitle } from "../../ui/card-list";
@@ -365,7 +367,7 @@ export function TasksScreen({ show: shown }: { show?: "done" }) {
   );
 
   return (
-    <View testID="screen.tasks" style={{ flex: 1, backgroundColor: page }}>
+    <View testID="screen.tasks" ref={guidePart("screen.tasks")} style={{ flex: 1, backgroundColor: page }}>
       <BTabHeader title={t("nav.tasks")} />
       {listed && <View style={{ paddingHorizontal: space[4] }}>{header}</View>}
       <TaskRowWorld>

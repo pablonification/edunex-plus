@@ -1,6 +1,7 @@
 // Settings' last groups. Laporan masalah (only while the app has the maintainer's relay): whether reports go by
 // themselves, picked in a sheet, then each report sent. Tentang: the app and its licence, the version (the row asks
-// GitHub now; a newer one turns the row into its download), Laporkan masalah, the open-source licences, and the line
+// GitHub now; a newer one turns the row into its download), the tour again ("Panduan aplikasi"), Laporkan masalah, the
+// open-source licences, and the line
 // saying this isn't ITB's app. Last, in its own card in the danger colour: signing out of everything, confirmed in a
 // sheet that says what goes.
 import { router } from "expo-router";
@@ -11,6 +12,7 @@ import { useBridge, useDataset, useUpdateInstall } from "../../../../src/app/sto
 import { reportSendingOf, type Settings, type UpdateCheckResult } from "../../../../src/core/models";
 import { pageName } from "../../../../src/core/report";
 import { openReport } from "../../parts/report";
+import { startGuide } from "../../shell/guide/state";
 import { Button } from "../../ui/controls";
 import { Pill } from "../../ui/group";
 import { factsLabel } from "../../ui/layout";
@@ -90,6 +92,8 @@ export function AboutSettings({ version, relay }: { version: string; relay: bool
         trailing={<Chevron />}
         testID="action.firstScan"
       />
+      {/* The tour again, whenever the Student wants it (the desktop's row, in the same place). */}
+      <SettingRow title={t("settings.guide")} hint={t("settings.guide.hint")} onPress={() => startGuide()} trailing={<Chevron />} testID="action.guide" />
       <SettingRow
         title={t("report.title")}
         hint={t(relay ? "report.settingsHintRelay" : "report.settingsHint")}

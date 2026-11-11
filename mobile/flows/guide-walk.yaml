@@ -1,0 +1,151 @@
+# The guide, walked once (src/shell/guide): the invitation comes by itself after the first read (the demo starts past
+# it unless its link says EDUNEX_DEMO_GUIDE=1), "Mulai panduan" starts the tour, and Lanjut goes through its seven
+# steps on the real screens, tab by tab, each with its place in the tour. Selesai ends it on Beranda and it doesn't
+# offer itself again. Then it's taken again from Settings › Tentang, and Kembali goes a step back.
+appId: io.github.pablonification.edunexplus.demo
+name: "the guide: invited, walked to its end, taken again from Settings"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id&EDUNEX_DEMO_GUIDE=1"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+# The invitation: a card over Beranda's foot, Beranda still there under it.
+- extendedWaitUntil:
+    visible:
+      id: card.guide
+    timeout: 30000
+- assertVisible: "Kenalan dulu dengan Edunex Plus"
+- assertVisible:
+    id: home.grid
+- waitForAnimationToEnd
+- takeScreenshot: guide-0-tawaran
+- tapOn:
+    id: action.guideStart
+# Beranda's three parts.
+- extendedWaitUntil:
+    visible:
+      id: card.guide.now
+    timeout: 15000
+- assertVisible: "1 dari 7"
+- assertVisible:
+    id: action.guideSkip
+- assertNotVisible:
+    id: action.guideBack
+- waitForAnimationToEnd
+- takeScreenshot: guide-1-kuliah-sekarang
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    visible:
+      id: card.guide.strip
+    timeout: 15000
+- assertVisible: "2 dari 7"
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    visible:
+      id: card.guide.services
+    timeout: 15000
+- assertVisible: "3 dari 7"
+- waitForAnimationToEnd
+- takeScreenshot: guide-3-layanan
+# Then a tab each: the tour opens it.
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    visible:
+      id: card.guide.schedule
+    timeout: 15000
+- assertVisible:
+    id: screen.schedule
+- assertVisible: "4 dari 7"
+- waitForAnimationToEnd
+- takeScreenshot: guide-4-jadwal
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    visible:
+      id: card.guide.tasks
+    timeout: 15000
+- assertVisible:
+    id: screen.tasks
+- assertVisible: "5 dari 7"
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    visible:
+      id: card.guide.courses
+    timeout: 15000
+- assertVisible: "6 dari 7"
+- waitForAnimationToEnd
+- takeScreenshot: guide-6-kuliah
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    visible:
+      id: card.guide.profile
+    timeout: 15000
+- assertVisible: "7 dari 7"
+- assertVisible: "Selesai"
+- waitForAnimationToEnd
+- takeScreenshot: guide-7-profil
+# The last step ends it, back on Beranda, and it doesn't come back by itself.
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    notVisible:
+      id: screen.guide
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: screen.home
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      id: card.guide
+    timeout: 5000
+    optional: true
+- assertNotVisible:
+    id: card.guide
+# Taken again from Settings › Tentang.
+- runFlow:
+    file: judge/tab.yaml
+    env:
+      TAB: profile
+- tapOn:
+    id: action.settings
+- scrollUntilVisible:
+    element:
+      id: action.guide
+    direction: DOWN
+- tapOn:
+    id: action.guide
+- extendedWaitUntil:
+    visible:
+      id: card.guide.now
+    timeout: 15000
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    visible:
+      id: card.guide.strip
+    timeout: 15000
+# Kembali goes a step back.
+- tapOn:
+    id: action.guideBack
+- extendedWaitUntil:
+    visible:
+      id: card.guide.now
+    timeout: 15000
+- tapOn:
+    id: action.guideSkip
+- extendedWaitUntil:
+    notVisible:
+      id: screen.guide
+    timeout: 15000

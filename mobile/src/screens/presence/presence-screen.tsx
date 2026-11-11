@@ -6,6 +6,7 @@
 // risk come first, the rest after them with no heading between (the state's colour says which is which; "Aman" as a
 // heading pushed the safe ones off the first screen). Without SIX the count is unknown: said once, on a line at the
 // top, never on each course. The targets and how it's counted are in ⋮ (./footer.tsx's sheet).
+
 import { useState } from "react";
 import { View } from "react-native";
 import { type Attendance, useAttendance } from "../../../../src/app/attendance";
@@ -15,6 +16,7 @@ import { useDataset, useSettings } from "../../../../src/app/store";
 import { BTabHeader } from "../../parts/b-header";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
+import { guidePart } from "../../shell/guide/state";
 import { BHeading, useB } from "../../ui/b";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
@@ -142,7 +144,7 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
             <Rise screen="courses" index={0}>
               {/* A heading only when something sits above the courses: alone under the bar's "Kuliah" they need none. */}
               {today && <BHeading style={{ marginTop: space[3], marginBottom: space[1] }}>{t("mobile.kuliah.term")}</BHeading>}
-              <View testID="list.courses" style={{ marginTop: !today && !connected ? space[2] : 0 }}>
+              <View testID="list.courses" ref={guidePart("list.courses")} style={{ marginTop: !today && !connected ? space[2] : 0 }}>
                 {list.slice(0, FIRST).map(({ group, item }) => (
                   <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
                 ))}

@@ -25,6 +25,7 @@ import { checkPlan, passedSks, type Rule, type StudentRecord } from "../../../..
 import { useNav } from "../../nav";
 import { together } from "../../parts/day-word";
 import { HiddenFigure, HideGradesButton, useGradesHidden } from "../../parts/hide-grades";
+import { guidePart } from "../../shell/guide/state";
 import { useRefresh, useSignIn, useUnreadAlerts } from "../../shell/source-status";
 import { BHeading, BRow, ServiceCircle, useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
@@ -95,7 +96,7 @@ export function AcademicContent() {
         {/* A tighter rhythm than the other tabs': the sixth row (Kalender akademik) stands whole over the tab bar at font 1.1. */}
         <Rise screen="academic" index={1} style={{ marginTop: space[3] }}>
           <BHeading style={{ marginBottom: space[1] }}>{t("mobile.profile.record")}</BHeading>
-          <View testID="section.academic.screens">
+          <View testID="section.academic.screens" ref={guidePart("section.academic.screens")}>
             {/* Without SIX the card says so once: only the calendar (ITB's own) has something to show. */}
             {six !== "none" && (
               <>

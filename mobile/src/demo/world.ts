@@ -19,11 +19,14 @@
 //   EDUNEX_DEMO_SLOW=<seconds>  the first read waits that long before it begins, then plays as usual
 //   EDUNEX_DEMO_EMPTY=tasks,exams,material,alerts,grades   Edunex has none of those (a Student with nothing yet);
 //                               a week with no classes is EDUNEX_DEMO_NOW instead (superapp-states.md says which)
+//   EDUNEX_DEMO_GUIDE=1         the guide's invitation shows after the first read (the demo starts past it otherwise);
+//                               while the demo runs, edunexplusdemo://demo?guide=start starts the tour at once
 //   EDUNEX_DEMO_LONG=1          II4091, Task 117001 and the Student carry very long names (a big font's worst case)
 import { Linking } from "react-native";
 import type { SignInWindows } from "../../../src/desktop/signin-both";
 import { fillablePdf } from "../../../test/kit/fillable-pdf";
 import { demoOptions, demoRun } from "../../../test/pretend/demo";
+import { setGuideOffers, startGuide } from "../shell/guide/state";
 import { BARE_PDF_URL, DOCX_URL, FILES_MODULE, PICTURE_URL, sampleDocx, samplePicture, streamed } from "./files";
 import { applyAfterFirstRead, applyBeforeFirstRead, demoStates, OFFLINE_LATER_MS } from "./states";
 
@@ -42,7 +45,11 @@ export async function createDemoWorld() {
   const states = demoStates(asked);
   // An ended session shows its banner only if Microsoft asks again (else the app signs back in by itself).
   if (states.ended && !asked.EDUNEX_DEMO_SIGN_IN) asked.EDUNEX_DEMO_SIGN_IN = "asks";
-  const run = demoRun(demoOptions(asked));
+  const options = demoOptions(asked);
+  const run = demoRun(options);
+  // The guide's invitation: the demo starts past it (its flows and pictures are of the app), unless the link says
+  // EDUNEX_DEMO_GUIDE=1. Then it offers itself after the first read, as on a new Student's phone.
+  setGuideOffers(options.guide === true);
   applyBeforeFirstRead(run.world, states);
   // Offline from the start: the saved data's start has no first read to wait for; a fresh one goes online for it.
   if (states.offline === "start") run.world.setOffline(true);
@@ -83,6 +90,10 @@ export async function createDemoWorld() {
     if (end !== "six" && end !== "edunex") return;
     run.world[end].expireSession();
     void engine?.refresh(end).catch(() => undefined);
+  });
+  // While the demo runs, its link with ?guide=start starts the tour at once, as Settings › Tentang's row does.
+  Linking.addEventListener("url", ({ url }) => {
+    if (url.startsWith("edunexplusdemo://demo") && new URL(url).searchParams.get("guide") === "start") startGuide();
   });
   // While the demo runs, its link with ?post=kuis puts a new Task on the pretend Edunex, as the desktop demo's pictures
   // do before the bell's (scripts/demo/capture.mjs): the next read finds it and the bell gets an unread alert.

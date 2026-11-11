@@ -6,6 +6,7 @@
 // Each is the figure its own page leads with, read the way Profil's rows read it, and none repeats the strip. A tag
 // is drawn only once its data is in and the first read is over (never a guess), after Beranda's first frame, and over
 // the tile (b.tsx's ServiceTile draws it from `tag`), so it takes no room and moves nothing.
+
 import { router } from "expo-router";
 import { memo } from "react";
 import { View } from "react-native";
@@ -17,6 +18,7 @@ import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import { useSettling } from "../../host/settling";
 import { useGradesHidden } from "../../parts/hide-grades";
 import { useFirstFrameShown } from "../../shell/first-frame";
+import { guidePart } from "../../shell/guide/state";
 import { useFirstReadRunning } from "../../shell/source-status";
 import { ServiceRow, ServiceTile } from "../../ui/b";
 import { space } from "../../ui/theme";
@@ -39,7 +41,7 @@ export const HomeGrid = memo(function HomeGrid() {
     // Not collapsed: the grid stays a view of its own that holds its tiles, so a reader of the screen (TalkBack's
     // tree, qa/layout-read.mjs) finds the eight inside `home.grid`. A testID alone keeps the view but hands its
     // children to the parent. The two rows stand apart: a row is a tile and its word, not a block of sixteen things.
-    <View testID="home.grid" collapsable={false} style={{ gap: space[4] }}>
+    <View testID="home.grid" ref={guidePart("home.grid")} collapsable={false} style={{ gap: space[4] }}>
       {ROWS.map((row, i) => {
         const last = i === ROWS.length - 1;
         return (

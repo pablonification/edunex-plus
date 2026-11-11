@@ -397,6 +397,37 @@ Rules it keeps:
   which leaves with the stage; the doors meet as it starts); with SIX only slow, the stage waits for it up to 8 s after Edunex is in (its ring turning, "Membawa SIX…"), so its tick is seen; past that it goes without it and SIX joins on Beranda. Signed out later, the
   stage is the first frame again.
 
+## The guide (`src/shell/guide/`)
+
+The phone's tour, after the desktop's (`src/app/shell/guide.tsx`): for a new Student, once, skippable at every point,
+taken again from Settings › Tentang ("Panduan aplikasi"). `guideDone` in the engine's settings holds it, per device;
+signing out of everything gives the next Student their own.
+
+- **The invitation** is a quiet card over Beranda's foot, above the tabs (the report question's place and surface):
+  "Kenalan dulu dengan Edunex Plus", one line, "Mulai panduan" and "Lewati panduan". It comes after the first minute
+  has handed over and the first read is in and said, and it waits its turn (`guideTurn`, `steps.ts`): never with a
+  snackbar up ("Semua siap"), the report question, a system signing in or asking to be signed in to again, or on
+  another screen than Beranda. It's no wall: Beranda works under it. Skipped, a snackbar says where it is later.
+- **The tour** is seven steps on the real screens, in the tabs' order (`GUIDE_STEPS`): on Beranda the class on now,
+  the strip and the services, then Jadwal, Tugas, Kuliah and Profil. Each step opens its tab, measures the real part
+  (the view hands itself over: `ref={guidePart("<its testID>")}`, `state.ts`) and dims the screen around it with the
+  scrim; a 2 dp accent ring marks the part. A part as tall as its page (Jadwal, Tugas) is lit whole, down to the
+  tabs. A part its page doesn't show is passed over; one scrolled out of sight is said without a spotlight.
+- **The caption** is a card on the raised surface beside the part (under it, else over it, else at the page's foot):
+  first "2 dari 7" and "Lewati panduan", then the part's name and one line, then Kembali and Lanjut ("Selesai" on the
+  last, which ends on Beranda). One line says what this app does that Edunex and SIX don't, never what a tab is.
+  No mascot, no illustration, no slides before the app.
+- The screen under the tour waits (touches stop at the tour). Android's Back is Kembali, and leaves on the first step.
+- **Motion:** the spotlight moves and the caption arrives on the UI thread (the standard curve, `motion.duration.medium`;
+  `moves.arrive`). With Remove animations everything is in place at once.
+- **A screen reader** lands on each step's words as it shows (name, line, place in the tour); "Lewati panduan" is the
+  first thing in the card. On an iPhone the tour is modal for VoiceOver.
+- **Speed:** a start where the tour won't show reads two facts (is it running, is it done) and loads nothing of it:
+  `tour.tsx` is loaded at its first use (`host.tsx`; `metro.config.js`). A screen's part costs one `ref`.
+- **The demo** starts past the invitation. `EDUNEX_DEMO_GUIDE=1` on its link shows it after the first read;
+  `edunexplusdemo://demo?guide=start` starts the tour at once while the demo runs (`flows/guide-walk.yaml`,
+  `flows/guide-skip.yaml`).
+
 ## Patterns
 
 - **One tap target per card or row, one outcome.** A card with an arrow that goes elsewhere is a bug (W12).
