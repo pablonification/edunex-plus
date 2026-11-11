@@ -1,10 +1,11 @@
 // Bottom sheets: what the desktop opens as a popover or a dialog (a class's detail, the snooze menu, a
 // course's color), rising from the bottom within reach of a thumb. Android's own Material bottom sheet
 // (react-native-screens' FormSheet, a BottomSheetDialog): the scrim fades in while the sheet slides up,
-// it follows a drag down to close, and Back (the gesture too) closes it. `Sheet` holds any content;
+// it follows a drag down to close, and Back (the gesture too) closes it. On an iPhone, iOS's own sheet. On both it is
+// as tall as what it holds, up to a strip under the status bar, and scrolls past that. `Sheet` holds any content;
 // `ActionSheet` is a menu of choices. A sheet's main action goes in `footer`: it stays in view under
 // the content however long that runs, as a dialog's buttons do on the desktop.
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { Platform, Pressable, ScrollView, StatusBar, StyleSheet, type TextStyle, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FormSheet } from "react-native-screens/experimental";
@@ -29,6 +30,18 @@ const GRABBER = 48;
  */
 const IOS = Platform.OS === "ios";
 const IOS_GRABBER = 28;
+
+/**
+ * Why an iPhone's sheet opens closed for one render, a point taller than it is. iOS takes the sheet's height from
+ * react-native-screens' wrapper round the content, which tells the sheet each time its height *changes* (4.30's
+ * RNSFormSheetContentWrapperComponentView). The first height never arrives: React Native lays a new view out before it
+ * puts it in its parent (RCTMountingManager's Insert), and the sheet starts listening to the wrapper only then. A sheet
+ * whose content never changed height (a title and one choice) had no height at all, and iOS gave it the whole screen;
+ * one that changed after opening (a list that came later) fitted. So the content is mounted first, with the sheet still
+ * closed, a point taller; the next render takes the point away and opens the sheet. That change is the one iOS hears:
+ * the sheet rises once, straight to its content's height. Android measures the content itself and needs none of this.
+ */
+const IOS_NUDGE = 1;
 
 /**
  * How wide a sheet is: the window's, up to Material's cap for a bottom sheet (material_bottom_sheet_max_width). The
@@ -66,11 +79,16 @@ export function Sheet({
   // The native sheet lives while it's open and while it slides away; then it's gone, and with it its content.
   const [shown, setShown] = useState(open);
   const [appeared, setAppeared] = useState(false);
+  // iOS: whether the sheet has heard its content's height (IOS_NUDGE). It opens once it has.
+  const [sized, setSized] = useState(!IOS);
+  useEffect(() => {
+    if (IOS) setSized(shown);
+  }, [shown]);
   if (open && !shown) setShown(true);
   if (!open && !shown) return null;
   return (
     <FormSheet
-      isOpen={open}
+      isOpen={open && sized}
       detents="fitToContents"
       prefersGrabberVisible
       // iOS rounds a sheet to match the phone's own corners (Liquid Glass's concentric shapes on iOS 26).
@@ -92,9 +110,11 @@ export function Sheet({
         // (three-button navigation, 48 dp), so padding by the bar hid it there and not with gesture navigation (24 dp).
         style={{
           width: Math.min(width, MAX_WIDTH),
+          // iOS counts a sheet's height within its safe area: it adds the home indicator's room under the content itself
+          // (UISheetPresentationController's detent values), so the content leaves only its own end.
           maxHeight: height - insets.top - TOP_GAP,
           paddingTop: IOS ? IOS_GRABBER : 0,
-          paddingBottom: IOS ? Math.max(insets.bottom, space[4]) + space[2] : space[4] + GRABBER,
+          paddingBottom: IOS ? space[4] + (sized ? 0 : IOS_NUDGE) : space[4] + GRABBER,
           backgroundColor: background ?? c.surfaceContainerLow,
         }}
       >
