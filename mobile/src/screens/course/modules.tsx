@@ -178,7 +178,7 @@ function CurrentModule({ entry, thisWeek }: { entry: Entry; thisWeek: boolean })
  * A module's number ("3"), bare in the course's ink (no pale square behind it). `here`: the module the course is on,
  * its number on a filled circle of that ink (a mark, not a colour alone). `tint` is kept for its callers.
  */
-function NumberTile({ no, ink, here = false }: { no: string; ink: string; tint?: string; here?: boolean }) {
+export function NumberTile({ no, ink, here = false }: { no: string; ink: string; tint?: string; here?: boolean }) {
   const v = useTheme().v4;
   return (
     <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
@@ -406,7 +406,12 @@ const attr = (value: string) => value.replace(/&/g, "&amp;").replace(/"/g, "&quo
 
 const rowStyle = { flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: ROW_SIDE, paddingVertical: space[3], minHeight: 68 } as const;
 
-function MaterialRow({ material, first }: { material: Material; first: boolean }) {
+/**
+ * One material, as a module's page lists it. Materi (../material) lists the same rows under each module: there a note
+ * or a picture is a row that opens its module's page (`onRead`) instead of being read in place, and an item that came
+ * this week says so first on its quiet line (`fresh`).
+ */
+export function MaterialRow({ material, first, onRead, fresh }: { material: Material; first: boolean; onRead?: () => void; fresh?: string }) {
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
@@ -419,6 +424,12 @@ function MaterialRow({ material, first }: { material: Material; first: boolean }
   const extension = extensionOf(material, action.kind === "download" ? action.name : null);
   const tile = <KindTile kind={kind} extension={extension} />;
 
+  if ((action.kind === "note" || action.kind === "image") && onRead) {
+    const meta = factsLabel(fresh, t(`material.${kind}`), when);
+    return (
+      <TileRow testID={testID} first={first} leading={tile} title={material.title} meta={meta} onPress={onRead} label={factsLabel(material.title, meta)} />
+    );
+  }
   // Notes and pictures are read right here, in full, as on Edunex: the title and when, then what the lecturer posted.
   if (action.kind === "note" || action.kind === "image")
     return (
@@ -447,7 +458,7 @@ function MaterialRow({ material, first }: { material: Material; first: boolean }
   else if (kind === "vicon") what = [t("material.vicon"), ...(VICON_PROVIDERS[material.type] ? [VICON_PROVIDERS[material.type]!] : [])];
   else if (extension && (kind === "file" || uploadExtension(material.type))) what = [extension.toUpperCase()];
   else what = [t(`material.${kind}`)];
-  const facts = [...what, kind !== "vicon" && where ? where : kind !== "vicon" && size ? size : null, when];
+  const facts = [fresh, ...what, kind !== "vicon" && where ? where : kind !== "vicon" && size ? size : null, when];
   const meta = factsLabel(...facts);
 
   if (action.kind === "download")

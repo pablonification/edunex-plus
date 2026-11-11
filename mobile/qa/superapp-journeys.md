@@ -85,11 +85,13 @@ Through search: `action.search` → "PL3002" or the module's title → a `module
 
 ---
 
-**Now (11 Nov, from the code; `mobile/flows/journeys/04-after-class.yaml`):** Beranda's Materi tile `action.service.material`
-opens Materi (`screen.material`), by week. On the demo's 8 October "Minggu ini" holds one item, the Teams link of TA's
-Pertemuan 03 (`row.material.889385`), which leaves the app; nothing came last week, so the rest is folded under
-"Sebelumnya" (`action.material.earlier`). A note there (`row.material.880001`, "Link Penawaran Topik TA") opens its
-module (`screen.module`): 3 taps to a module's page.
+**Now (11 Nov, after the developer's audit on the iPhone; `mobile/flows/journeys/04-after-class.yaml`):** Beranda's
+Materi tile `action.service.material` opens Materi (`screen.material`) on a course (the one last picked; the first
+time, the one something was posted to last), every module of it open in Edunex's order with its material under it, at
+the module that course is on. On the demo's 8 October that is Proposal Tugas Akhir, at the module that got the Teams
+link of Pertemuan 03 this week (`row.material.889385`), which leaves the app. A note of the same course
+(`row.material.880001`, "Link Penawaran Topik TA") opens its module (`screen.module`): **2 taps** to a file or a
+module's page of that course, 3 for another course (its chip, `chip.material.<code>`, is the extra one).
 
 ## 3. A class starts: presence marked, then back to "what's next"
 
