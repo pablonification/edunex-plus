@@ -43,7 +43,8 @@ import { Text } from "../../ui/text";
 import { radius, shape, space, useTheme } from "../../ui/theme";
 import { CourseTile, useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
-import { addToPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
+import { usePlacement } from "../schedule/calendar-sync";
+import { addToPhoneCalendar, removeFromPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
 import { examCalendarItems } from "./exam-calendar";
 import { dayLabel, examName, examWeekLabel, sourceDays } from "./exam-rows";
 import { Flat as Panel, pageOf, softOf } from "./flat";
@@ -290,8 +291,9 @@ function KindPill({ kind }: { kind: string }) {
 }
 
 /**
- * "Tambahkan ke kalender HP", as a ⋮ choice: this exam's sittings and take-home deadlines into the phone's "Edunex
- * Plus" calendar, as Jadwal's sheet puts them there (adding again updates them). Only while the exam has a date
+ * The phone's calendar, as a ⋮ choice: this exam's sittings and take-home deadlines in the phone's "Edunex Plus"
+ * calendar, the very events Jadwal's "Kalender HP" switch keeps there. The choice is their state: not there (add
+ * them), there (take them out), or there because Jadwal's switch keeps them. Only while the exam has a date
  * somewhere. What went wrong is said on the page under the dates, with its one fix.
  */
 function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: ReactNode } {
@@ -310,6 +312,10 @@ function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: Rea
         exam,
       ),
     [store, lang, now, exam],
+  );
+  const where = usePlacement(
+    useMemo(() => items.map((item) => item.uid), [items]),
+    true,
   );
   if (items.length === 0) return { choice: null, problem: null };
   const share = () => {
@@ -333,13 +339,45 @@ function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: Rea
       setBusy(false);
     }
   };
+  const remove = async () => {
+    if (busy) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      if ((await removeFromPhoneCalendar(items.map((item) => item.uid))) === "denied") setProblem({ text: t("mobile.exam.calendarDenied"), fix: "settings" });
+      else toast(t("mobile.calendar.removed"));
+    } catch {
+      setProblem({ text: t("mobile.calendar.failed"), fix: "share" });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const inCalendar = <Icons.CalendarCheck size={20} color={theme.color.onSurfaceVariant} />;
   return {
-    choice: {
-      label: t("schedule.export"),
-      icon: <Icons.Smartphone size={20} color={theme.color.onSurfaceVariant} />,
-      onPress: () => void add(),
-      testID: "action.examToCalendar",
-    },
+    choice:
+      where === "none"
+        ? {
+            label: t("schedule.export"),
+            icon: <Icons.Smartphone size={20} color={theme.color.onSurfaceVariant} />,
+            onPress: () => void add(),
+            testID: "action.examToCalendar",
+          }
+        : where === "added"
+          ? {
+              label: t("mobile.calendar.in"),
+              hint: t("mobile.calendar.in.remove"),
+              icon: inCalendar,
+              onPress: () => void remove(),
+              testID: "action.examFromCalendar",
+            }
+          : {
+              label: t("mobile.calendar.in"),
+              hint: t("mobile.calendar.in.kept"),
+              icon: inCalendar,
+              disabled: true,
+              onPress: () => undefined,
+              testID: "state.examInCalendar",
+            },
     problem: problem && (
       // Said where it happened, with its one fix (a snackbar is gone before it's read).
       <View style={{ marginTop: space[3] }}>

@@ -5,6 +5,12 @@
 // in the app's files ties each event's UID to the phone's event, so a class that moved is moved,
 // and one SIX no longer lists is taken out. Same events as the file, no alarms (the file has none).
 // The other way is the file itself, shared through the share sheet.
+//
+// Everything the app puts on the phone goes through here, into that one calendar: Jadwal's "Kalender HP" switch (the
+// whole term, kept in step: ./calendar-sync.tsx), one date from Kalender akademik and one exam's sittings (each added
+// or taken out on its own). The record says which is which, and every screen reads it (`placedNow`, `subscribePlaced`):
+// a date Jadwal's switch keeps shows as in the calendar on Kalender akademik too, and turning the switch off, which
+// takes the whole calendar off the phone, empties it for all of them.
 import * as Calendar from "expo-calendar";
 import { File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -27,7 +33,12 @@ interface Placed {
   id: string;
   start: number;
   end: number;
+  /** Jadwal's switch wrote it and keeps it in step; without, the Student added it on its own (a date, an exam). */
+  kept?: true;
 }
+
+/** How an event got into the phone's calendar: on its own ("added"), or with Jadwal's switch, which keeps it ("kept"). */
+export type PlacedHow = "added" | "kept";
 
 /** What the app put in the phone's calendar: its calendar, and each event by the item's UID. */
 interface Record {
@@ -50,6 +61,37 @@ function readRecord(calendarId: string): Record {
 
 function writeRecord(record: Record): void {
   new File(Paths.document, RECORD).writeSync(JSON.stringify(record));
+  publish(record);
+}
+
+// What's in the phone's calendar as the app last knew it, for the screens: read from the record once, then kept as it changes.
+let placed: ReadonlyMap<string, PlacedHow> | null = null;
+const listeners = new Set<() => void>();
+
+function savedRecord(): Record | null {
+  try {
+    const file = new File(Paths.document, RECORD);
+    const record = file.exists ? (JSON.parse(file.textSync()) as Record) : null;
+    return record?.calendarId && record.events ? record : null;
+  } catch {
+    return null;
+  }
+}
+
+function publish(record: Record | null): void {
+  placed = new Map(Object.entries(record?.events ?? {}).map(([uid, event]) => [uid, event.kept ? "kept" : "added"]));
+  for (const listener of listeners) listener();
+}
+
+/** Each event the app has in the phone's calendar, by its item's UID, and how it got there. */
+export function placedNow(): ReadonlyMap<string, PlacedHow> {
+  if (!placed) publish(savedRecord());
+  return placed as ReadonlyMap<string, PlacedHow>;
+}
+
+export function subscribePlaced(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => void listeners.delete(listener);
 }
 
 /** Calendar access, asked for once if it can still be asked (`ask`: the Student just asked for it; a sync in the background never asks). */
@@ -90,15 +132,30 @@ async function ownCalendar(): Promise<Calendar.ExpoCalendar> {
 /** UTC midnight of the WIB day `ms` falls on: Android keeps whole-day events in UTC. */
 const utcMidnight = (ms: number) => Date.parse(`${wibDay(ms)}T00:00:00Z`);
 
+/** Noon in WIB on a day: the same date wherever the iPhone's calendar reads it. */
+const wibNoon = (day: string) => Date.parse(`${day}T12:00:00+07:00`);
+
+/**
+ * A whole-day item's first and last moment as each phone wants them. Android: UTC midnights, the end the day after
+ * the last (exclusive). iOS: any moment on the first day and any on the last (its end day is part of the event, so
+ * Android's end would add a day), in the phone's own zone.
+ */
+function wholeDays(item: PhoneItem): { startDate: Date; endDate: Date; timeZone: string } {
+  const end = Math.max(item.end, item.start + DAY);
+  if (Platform.OS === "ios") return { startDate: new Date(wibNoon(wibDay(item.start))), endDate: new Date(wibNoon(wibDay(end - 1))), timeZone: ICS_ZONE };
+  return { startDate: new Date(utcMidnight(item.start)), endDate: new Date(utcMidnight(end)), timeZone: "UTC" };
+}
+
 /** An item as the phone's event: the .ics file's times (ics.ts), its link in the notes (Android events have no link field). */
 function eventOf(item: PhoneItem) {
   const allDay = item.allDay === true;
+  const days = allDay ? wholeDays(item) : null;
   return {
     title: item.summary,
-    startDate: new Date(allDay ? utcMidnight(item.start) : item.start),
-    endDate: new Date(allDay ? utcMidnight(Math.max(item.end, item.start + DAY)) : item.end > item.start ? item.end : item.start + SHORTEST),
+    startDate: days?.startDate ?? new Date(item.start),
+    endDate: days?.endDate ?? new Date(item.end > item.start ? item.end : item.start + SHORTEST),
     allDay,
-    timeZone: allDay ? "UTC" : ICS_ZONE,
+    timeZone: days?.timeZone ?? ICS_ZONE,
     location: item.location ?? "",
     notes: [item.description, item.url].filter(Boolean).join("\n"),
     availability: item.free ? Calendar.Availability.FREE : Calendar.Availability.BUSY,
@@ -156,7 +213,7 @@ export async function addToPhoneCalendar(
   items: readonly PhoneItem[],
   current: ReadonlySet<string>,
   span: { from: number; until: number },
-  { ask = true }: { ask?: boolean } = {},
+  { ask = true, kept = false }: { ask?: boolean /** Jadwal's switch is writing: it keeps these in step from now on. */; kept?: boolean } = {},
 ): Promise<AddResult> {
   if (!(await allowed(ask))) return { kind: "denied" };
   const calendar = await ownCalendar();
@@ -168,7 +225,8 @@ export async function addToPhoneCalendar(
       const event = (await existing(record.events[item.uid], calendar.id)) ?? claim(unknown, details);
       if (event) await event.update(details);
       const id = event?.id ?? (await calendar.createEvent(details)).id;
-      record.events[item.uid] = { id, start: item.start, end: item.end };
+      const keeps = kept || record.events[item.uid]?.kept === true;
+      record.events[item.uid] = { id, start: item.start, end: item.end, ...(keeps ? { kept: true as const } : {}) };
     }
     for (const [uid, placed] of Object.entries(record.events)) {
       if (current.has(uid) || placed.end <= span.from || placed.start >= span.until) continue;
@@ -182,7 +240,45 @@ export async function addToPhoneCalendar(
   return { kind: "added", events: items.length };
 }
 
-/** Takes the app's own calendar off the phone, with every event in it (the Student turned Jadwal's ⋮ "Kalender HP" off). */
+/**
+ * Takes these events out of the phone's calendar again (a date or an exam the Student added on its own). One already
+ * deleted on the phone is simply forgotten.
+ */
+export async function removeFromPhoneCalendar(uids: Iterable<string>): Promise<"removed" | "denied"> {
+  const record = savedRecord();
+  if (!record) return "removed";
+  if (!(await allowed(false))) return "denied";
+  try {
+    for (const uid of uids) {
+      await (await existing(record.events[uid], record.calendarId))?.delete();
+      delete record.events[uid];
+    }
+  } finally {
+    writeRecord(record);
+  }
+  return "removed";
+}
+
+/**
+ * Makes what the screens say true again: an event the Student deleted in the phone's own calendar app is no longer
+ * "in the calendar" here. Only looks (never asks for access; without it, what the record says stands).
+ */
+export async function checkPlaced(uids: Iterable<string>): Promise<void> {
+  const record = savedRecord();
+  if (!record || !(await Calendar.getCalendarPermissions().catch(() => null))?.granted) return;
+  let gone = false;
+  for (const uid of uids) {
+    if (!record.events[uid] || (await existing(record.events[uid], record.calendarId))) continue;
+    delete record.events[uid];
+    gone = true;
+  }
+  if (gone) writeRecord(record);
+}
+
+/**
+ * Takes the app's own calendar off the phone, with every event in it: Jadwal's, and each date or exam added on its
+ * own (the Student turned Jadwal's ⋮ "Kalender HP" off).
+ */
 export async function removePhoneCalendar(): Promise<void> {
   if (!(await Calendar.getCalendarPermissions()).granted) return;
   const calendars = await eventCalendars();
@@ -190,6 +286,7 @@ export async function removePhoneCalendar(): Promise<void> {
     await calendar.delete();
   const record = new File(Paths.document, RECORD);
   if (record.exists) record.delete();
+  publish(null);
 }
 
 /** The same events as an .ics file, through the share sheet (Drive, email, another calendar app). */

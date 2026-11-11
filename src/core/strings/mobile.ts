@@ -392,7 +392,15 @@ export const mobileStrings = {
     id: "Aplikasi kalender tidak bisa dibuka. Acaranya ada di kalender Edunex Plus.",
     en: "Couldn't open your calendar app. The events are in the Edunex Plus calendar.",
   },
-  // The exam page's "Tambahkan ke kalender HP": said in a toast, with Buka setelan as its button.
+  // A date (Kalender akademik) or an exam already in the phone's calendar: the row that added it is now its state.
+  // Added on its own, a tap takes it out; kept by Jadwal's "Kalender HP" switch, the row only says so.
+  "mobile.calendar.in": { id: "Di kalender HP", en: "In phone calendar" },
+  "mobile.calendar.in.remove": { id: "Ketuk untuk menghapusnya", en: "Tap to remove it" },
+  "mobile.calendar.in.kept": { id: "Ikut Kalender HP di Jadwal", en: "Kept by Phone calendar in Schedule" },
+  "mobile.calendar.removed": { id: "Dihapus dari kalender HP.", en: "Removed from your phone's calendar." },
+  // Kalender akademik: the phone refused the write (access is on). The date is still one tap away.
+  "mobile.calendar.addFailed": { id: "Belum masuk kalender HP. Coba lagi.", en: "Couldn't add it to your phone's calendar. Try again." },
+  // The exam page's and Kalender akademik's "Tambahkan ke kalender HP": said on the page, with Buka setelan as its button.
   "mobile.exam.calendarDenied": {
     id: "Kalender HP belum diizinkan. Izinkan Kalender untuk Edunex Plus di setelan HP.",
     en: "Calendar access is off. Allow Calendar for Edunex Plus in your phone's settings.",
@@ -454,14 +462,10 @@ export const mobileStrings = {
   // and the card above may go by ITB's earlier one). Each row's date with it, for TalkBack.
   "mobile.bills.historyDates": { id: "Tanggal: batas bayar di SIX", en: "Dates: last day to pay in SIX" },
   "mobile.bills.due": { id: "Batas bayar di SIX {date}", en: "Due {date} in SIX" },
-  // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
+  // Kalender akademik: a date goes into the phone's Edunex Plus calendar, the one Jadwal's "Kalender HP" keeps.
   "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
   // Kalender akademik, under the view switch: what a tap on a date does.
   "mobile.deadline.tapHint": { id: "Ketuk tanggal untuk menambahkannya ke kalender HP.", en: "Tap a date to add it to your phone's calendar." },
-  "mobile.deadline.calendarFailed": {
-    id: "Kalender HP tidak bisa dibuka. Pasang aplikasi kalender, lalu coba lagi.",
-    en: "The phone's calendar didn't open. Install a calendar app, then try again.",
-  },
   // report
   // "Laporkan masalah" on the phone (A9): the report file goes out through the share sheet, not a folder.
   "mobile.report.nothingKept": {
