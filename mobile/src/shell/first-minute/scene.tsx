@@ -134,10 +134,11 @@ const HELLO_MS = HELLO_OUT_MS + HELLO_IN_MS;
 const HELLO_TURN = HELLO_OUT_MS / HELLO_MS;
 /**
  * One in and the other still trying (its ring turning, "Membawa SIX…"): this long for it to come along, so its tick is
- * seen; then the hand-over goes without it and it joins on Beranda. Two seconds wasn't enough on a real connection
- * (SIX's sign-in follows Edunex's and takes a few seconds on 4G): the stage left with SIX's ring still turning.
+ * seen and the doors meet; then the hand-over goes without it and it joins on Beranda. Two seconds, then eight, weren't
+ * enough on the developer's iPhone on 4G (the stage left with SIX's ring still turning); how long SIX really takes there
+ * isn't known yet (../sign-in.tsx now writes it to the phone's log), so this is a guess that keeps the wait bearable.
  */
-const OTHER_WAIT_MS = 8_000;
+const OTHER_WAIT_MS = 15_000;
 /** One in and the other stopped: this long to read why, before the hand-over (the line leaves with the stage). */
 const OTHER_STOPPED_MS = 1_200;
 /** A door stepping to the mark as its system comes in: over before its lighting is, so before the stage lifts. */

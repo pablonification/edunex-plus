@@ -1,7 +1,7 @@
 // Materi (/material), behind Beranda's "Materi" tile: the way to a file, the way a student looks for one ("the slides
 // for <course>, <module>"), as on Edunex: a course, its modules in the lecturer's order, the file. All on one screen:
-// the term's courses are chips under the bar (the course's own glyph in its colour and its code; a dot when something
-// came this week), the picked course's name under them, then every module of it, open, each a heading (its number, its
+// the term's courses are chips under the bar (the course's own glyph in its colour and its name, the picked one's
+// whole; a dot when something came this week), then every module of the picked course, open, each a heading (its number, its
 // title) over its material: the very rows a module's page has (../course/modules.tsx, MaterialRow), one tap to open.
 // Nothing is sorted by date. The page opens on the course last picked (the first time: the one something was posted to
 // last), at the module that course is on, marked "Minggu ini" or "Terbaru" as the course's own tab marks it; what's
@@ -9,7 +9,7 @@
 // Only material is here: a module that just holds a Task is on Tugas. No new request: it reads what the app holds.
 import { FlashList } from "@shopify/flash-list";
 import { type ComponentRef, memo, useCallback, useMemo, useRef, useState } from "react";
-import { RefreshControl, ScrollView, View } from "react-native";
+import { RefreshControl, ScrollView, useWindowDimensions, View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useNow, useT } from "../../../../src/app/i18n";
 import { useDataset, useStatus } from "../../../../src/app/store";
@@ -17,7 +17,7 @@ import { useNav } from "../../nav";
 import { useArrivalId } from "../../parts/arrival";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh, useSignIn } from "../../shell/source-status";
-import { BHeading, useB } from "../../ui/b";
+import { useB } from "../../ui/b";
 import { Button, Chip } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Icons } from "../../ui/icons";
@@ -141,9 +141,13 @@ export function MaterialScreen() {
  * code, and a dot when something came this week. The picked one's name is said once, under the chips. The row opens
  * with the picked chip in sight.
  */
+/** How wide a chip's name runs when its course isn't the picked one: two or three words, then "…". */
+const OTHER_CHIP = 148;
+
 function CoursePicker({ courses, picked, onPick }: { courses: readonly MaterialCourse[]; picked: MaterialCourse; onPick: (code: string) => void }) {
   const t = useT();
   const v = useTheme().v4;
+  const { width } = useWindowDimensions();
   const row = useRef<ComponentRef<typeof ScrollView>>(null);
   const placed = useRef(false);
   return (
@@ -177,8 +181,15 @@ function CoursePicker({ courses, picked, onPick }: { courses: readonly MaterialC
                 label={factsLabel(course.name, course.fresh > 0 ? t("mobile.material.newCount", { count: course.fresh }) : null)}
               >
                 <CourseGlyph code={course.code} name={course.name} size={18} />
-                <Text size="labelLarge" tone={selected ? "onSecondaryContainer" : "muted"} style={{ flexShrink: 0 }}>
-                  {course.code}
+                {/* The course by its name, as a student says it (a code alone made the row a list to decode): the
+                    picked one whole, the others as much as a chip holds. */}
+                <Text
+                  size="labelLarge"
+                  tone={selected ? "onSecondaryContainer" : "muted"}
+                  numberOfLines={1}
+                  style={{ flexShrink: 1, maxWidth: selected ? width - space.page * 2 - 72 : OTHER_CHIP }}
+                >
+                  {course.name}
                 </Text>
                 {course.fresh > 0 && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: v.brandInk }} />}
               </Chip>
@@ -186,9 +197,6 @@ function CoursePicker({ courses, picked, onPick }: { courses: readonly MaterialC
           );
         })}
       </ScrollView>
-      <View style={{ paddingHorizontal: space.page, paddingTop: space[2], paddingBottom: space[1] }}>
-        <BHeading style={{ marginBottom: 0 }}>{picked.name}</BHeading>
-      </View>
     </View>
   );
 }

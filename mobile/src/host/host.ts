@@ -29,6 +29,7 @@ import { checkInOpener, pageOpener } from "./check-in";
 import { phoneFileHandlers } from "./files";
 import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
+import { osName } from "./os-name";
 import { type PhoneReminders, phoneReminders } from "./reminders";
 import { phoneReportHandlers } from "./report";
 import { quietResignIn } from "./resignin";
@@ -238,7 +239,7 @@ async function makeHost(): Promise<Host> {
     // A release is for this phone only once it carries its file: an APK on Android, an .ipa on an iPhone (the desktop's
     // installers are no use here).
     releaseAsset: Platform.OS === "ios" ? /\.ipa$/i : /\.apk$/i,
-    os: () => (Platform.OS === "ios" ? `iOS ${Platform.Version}` : `Android ${Platform.Version}`),
+    os: () => osName(Platform.OS, Platform.Version),
     // Opened many times a day: each start shows what's saved and reads only what's due (W2 in PROGRESS.md).
     startDueOnly: true,
     // A pull to refresh reads what's on Beranda, not SIX's records and Edunex's materials again within the hour.

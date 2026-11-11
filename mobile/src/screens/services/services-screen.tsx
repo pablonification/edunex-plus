@@ -11,7 +11,7 @@ import { Fluent } from "../../ui/fluent";
 import { Page } from "../../ui/layout";
 import { Arrive } from "../../ui/moves";
 import { Text, useFieldColors } from "../../ui/text";
-import { space } from "../../ui/theme";
+import { space, type } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { SERVICE_GROUPS, type Service } from "./list";
 import { useOpenService } from "./open";
@@ -62,7 +62,9 @@ export function ServicesScreen() {
           returnKeyType="search"
           autoCorrect={false}
           testID="services.search"
-          style={{ flex: 1, height: 48, color: b.fg, fontSize: 16, paddingVertical: 0 }}
+          // As every other one-line field (the academic calendar's, Lisensi's): its own line's height, centred by the
+          // row. A fixed height here set its words low in the pill on an iPhone.
+          style={{ flex: 1, color: b.fg, ...type.bodyLarge, paddingVertical: 0 }}
           {...field}
         />
       </View>

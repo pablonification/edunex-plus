@@ -394,7 +394,7 @@ Rules it keeps:
   door stays shut; the app reads by itself once the network is back, and the scene goes on from there). With SIX
   asking for the Student or failing, Edunex's door lights alone, the status says "SIX bisa dihubungkan nanti dari
   Pengaturan.", SIX's door keeps an empty foot, the greeting is up, and the hand-over goes 1.2 s later (time to read the line,
-  which leaves with the stage; the doors meet as it starts); with SIX only slow, the stage waits for it up to 8 s after Edunex is in (its ring turning, "Membawa SIX…"), so its tick is seen; past that it goes without it and SIX joins on Beranda. Signed out later, the
+  which leaves with the stage; the doors meet as it starts); with SIX only slow, the stage waits for it up to 15 s after Edunex is in (its ring turning, "Membawa SIX…"), so its tick is seen; past that it goes without it and SIX joins on Beranda. Signed out later, the
   stage is the first frame again.
 
 ## Patterns

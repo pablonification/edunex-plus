@@ -4,11 +4,13 @@
 // they keep still or fade.
 import { NavigationContext } from "expo-router/react-navigation";
 import { type ReactNode, useContext, useEffect, useState } from "react";
-import { type StyleProp, StyleSheet, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
+import { Platform, type StyleProp, StyleSheet, Text, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
+  runOnJS,
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -124,6 +126,7 @@ export function PulseDot({ color, size = 7, times = 3 }: { color: string; size?:
 }
 
 const AnimatedInput = Animated.createAnimatedComponent(TextInput);
+const IOS = Platform.OS === "ios";
 /** Numbers already counted in this run: a number counts up the first time it's shown, never on a redraw. */
 const counted = new Set<string>();
 
@@ -162,6 +165,23 @@ export function CountUp({
     const now = written(shown.value);
     return { text: now, defaultValue: now } as never;
   });
+  // An iPhone draws it as plain text, told each new figure as the count passes it: its read-only field kept the width
+  // of the figure it started with while the UI thread rewrote it, so "10", "12" and "13" lost their second digit on
+  // the way to 14 (only "11" fits where one wide digit did). The count still runs on the UI thread; a text is drawn
+  // again only when its figure changes.
+  const [said, setSaid] = useState(() => written(first ? 0 : value));
+  useAnimatedReaction(
+    () => written(shown.value),
+    (now, before) => {
+      if (IOS && now !== before) runOnJS(setSaid)(now);
+    },
+  );
+  if (IOS)
+    return (
+      <Text accessibilityLabel={written(value)} style={style}>
+        {said}
+      </Text>
+    );
   return (
     <AnimatedInput
       // A read-only field keeps the text it started with: a new format (the language arriving after a tab was drawn

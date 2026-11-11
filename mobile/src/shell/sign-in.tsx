@@ -170,11 +170,19 @@ function SignInPage({ run }: { run: Run }) {
     leftSystem: false,
     phase: "student" as "student" | "finishing" | "slow",
     url: system.start,
+    host: "",
     signedInAt: 0,
     asks: 0,
   });
   const timers = useRef<{ slow?: ReturnType<typeof setTimeout>; still?: ReturnType<typeof setTimeout>; limit?: ReturnType<typeof setTimeout> }>({});
   const quiet = run.quiet;
+  // Where a sign-in's time goes, in the phone's log (no names, no addresses beyond the host): how long each system took
+  // is the first thing asked when one is slow to come in.
+  const began = useRef(Date.now());
+  const said = useCallback(
+    (what: string) => console.info(`[sign-in] ${run.source}${run.quiet ? " quiet" : ""} +${Date.now() - began.current} ms: ${what}`),
+    [run],
+  );
 
   const step = useCallback((next: SignInStep | null) => !run.quiet && run.onStep(next), [run]);
   const finish = useCallback(
@@ -182,10 +190,11 @@ function SignInPage({ run }: { run: Run }) {
       if (state.current.done) return;
       state.current.done = true;
       for (const timer of Object.values(timers.current)) if (timer) clearTimeout(timer);
+      said(value ? "in" : error ? `stopped (${isEngineError(error) ? error.kind : "error"})` : "gave up");
       step(null);
       run.finish(value, error);
     },
-    [run, step],
+    [run, step, said],
   );
   const giveUp = useCallback(() => finish(null), [finish]);
 
@@ -221,13 +230,15 @@ function SignInPage({ run }: { run: Run }) {
         return;
       }
       setHost(host);
+      if (host !== state.current.host) said(`at ${host}`);
+      state.current.host = host;
       if (timers.current.still) clearTimeout(timers.current.still);
       if (!system.hosts.includes(host)) {
         state.current.leftSystem = true;
         backWithStudent();
       } else if (state.current.leftSystem) handedBack();
     },
-    [system, backWithStudent, handedBack],
+    [system, backWithStudent, handedBack, said],
   );
 
   // Reads the session every 400 ms, as the desktop does.
@@ -283,6 +294,7 @@ function SignInPage({ run }: { run: Run }) {
           const found = readSixSession(await cookiesFor("https://six.itb.ac.id/"));
           if (state.current.done) return;
           if (found) return finish(found);
+          if (!state.current.signedInAt) said("its page is signed in; no session cookie yet");
           state.current.signedInAt ||= Date.now();
           if (Date.now() - state.current.signedInAt > COOKIE_GRACE_MS)
             throw new EngineError("VendorChanged", "SIX's session cookie wasn't there after sign-in");
@@ -291,7 +303,7 @@ function SignInPage({ run }: { run: Run }) {
         if (isEngineError(error)) finish(null, run.quiet ? undefined : error);
       }
     },
-    [run, system, finish, giveUp],
+    [run, system, finish, giveUp, said],
   );
 
   const hidden = quiet || phase === "finishing";

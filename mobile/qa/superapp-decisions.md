@@ -147,8 +147,8 @@ with old ui, so it's not grouped by week, navigating is weird because of that", 
 course tab i guess in order for it to make sense and justify to have it's own page". So the feed is gone:
 
 - **Course, module, file, as on Edunex, on one screen.** The term's courses are chips under the bar (the course's glyph
-  in its colour and its code, in the term's order so a chip never moves); the picked course's name is said once under
-  them; then every module that holds material, in Edunex's order, each a heading (its number and title) over its
+  in its colour and its name, the picked one's whole and the others as much as a chip holds, in the term's order so a
+  chip never moves: a code alone made the row a list to decode); then every module that holds material, in Edunex's order, each a heading (its number and title) over its
   material. Every module is open: a file is one tap from the list, no module page in between. The rows are the course
   tab's own (`MaterialRow`), so both pages say a file the same way.
 - **Nothing is sorted by date.** The list opens at the module the course is on, marked as the course's tab marks it

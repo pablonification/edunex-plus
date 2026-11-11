@@ -12,17 +12,57 @@ import { useB } from "../ui/b";
 import { IconButton } from "../ui/controls";
 import { Fluent } from "../ui/fluent";
 import { Tap } from "../ui/moves";
+import { PressScale } from "../ui/press";
 import { Text } from "../ui/text";
 import { space, TOUCH } from "../ui/theme";
 
-/** The bell, with a dot while something new is unread: the way to Notifikasi from every tab. */
-export function BellButton() {
+/**
+ * The bell, with a dot while something new is unread: the way to Notifikasi from every tab. `filled`: on Beranda's
+ * row, a circle of that side on the search bar's own fill, so the row's three things are one height (48 dp to touch).
+ */
+export function BellButton({ filled }: { filled?: number } = {}) {
   const t = useT();
   const b = useB();
   const unread = useUnreadAlerts();
+  const label = unread > 0 ? t("alerts.open", { count: unread }) : t("alerts.title");
+  const open = () => router.push("/alerts");
+  if (filled !== undefined) {
+    const reach = Math.max(0, (TOUCH - filled) / 2);
+    return (
+      <View>
+        <PressScale
+          onPress={open}
+          accessibilityRole="button"
+          accessibilityLabel={label}
+          testID="action.alerts"
+          hitSlop={{ top: reach, bottom: reach, left: reach, right: reach }}
+          style={{ width: filled, height: filled, borderRadius: filled / 2, backgroundColor: b.soft, alignItems: "center", justifyContent: "center" }}
+        >
+          <Fluent name="Alert24Regular" color={b.fg} />
+        </PressScale>
+        {unread > 0 && (
+          <View
+            pointerEvents="none"
+            testID="badge.alerts"
+            style={{
+              position: "absolute",
+              top: filled / 2 - 13,
+              right: filled / 2 - 12,
+              width: 10,
+              height: 10,
+              borderRadius: 5,
+              backgroundColor: b.red,
+              borderWidth: 2,
+              borderColor: b.soft,
+            }}
+          />
+        )}
+      </View>
+    );
+  }
   return (
     <View>
-      <IconButton label={unread > 0 ? t("alerts.open", { count: unread }) : t("alerts.title")} onPress={() => router.push("/alerts")} testID="action.alerts">
+      <IconButton label={label} onPress={open} testID="action.alerts">
         <Fluent name="Alert24Regular" color={b.fg} />
       </IconButton>
       {unread > 0 && (

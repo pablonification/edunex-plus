@@ -141,7 +141,7 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
 - [ ] The mark (`BrandMark` in `ui/brand.tsx`, 32 pt, drawn as vectors) is the icon's white "e+" on its blue tile, at
       the row's start, the same in light and dark, centred on the search bar's height. A tap on it does nothing.
       VoiceOver says "Edunex Plus" on it.
-- [ ] The bar is a 48 pt pill, and a tap anywhere on it opens Search with the keyboard already up.
+- [ ] The mark, the search bar and the bell are one height (44 pt) on one line, with the same gap between them and the same margin at both ends; a tap anywhere on the bar opens Search with the keyboard already up.
 - [ ] Beranda's first screen, at the default text size: the search bar, the class block, the strip and the grid of
       eight, with no scrolling. At a larger text size (Settings › Display & Brightness › Text Size): the grid may run
       below the fold, but no tile is cut in half and no word breaks one letter per line.

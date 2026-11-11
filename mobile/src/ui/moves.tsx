@@ -24,7 +24,9 @@ import Animated, {
   type EntryAnimationsValues,
   type ExitAnimationsValues,
   LinearTransition,
+  runOnJS,
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -231,6 +233,7 @@ function fadeThrough() {
 // ─── RollTo ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
 const AnimatedInput = Animated.createAnimatedComponent(TextInput);
+const IOS = Platform.OS === "ios";
 
 /**
  * A number that changes while the Student watches (a count after a Task is done, IPK after a refresh, the minutes left
@@ -281,6 +284,21 @@ export function RollTo({
     return { text: now, defaultValue: now } as never;
   });
   const lift = useAnimatedStyle(() => ({ transform: [{ translateY: nod.value }] }));
+  // An iPhone draws it as plain text, told each new figure as the count passes it (as CountUp, ./expressive.tsx): its
+  // read-only field kept the first figure's width, and a figure wider than that lost its last digit on the way.
+  const [said, setSaid] = useState(() => written(value));
+  useAnimatedReaction(
+    () => written(shown.value),
+    (now, before) => {
+      if (IOS && now !== before) runOnJS(setSaid)(now);
+    },
+  );
+  if (IOS)
+    return (
+      <Animated.Text testID={testID} accessibilityLabel={written(value)} style={[style, lift]}>
+        {said}
+      </Animated.Text>
+    );
   return (
     <AnimatedInput
       key={`${decimals}:${comma}`}
