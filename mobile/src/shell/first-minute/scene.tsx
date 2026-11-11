@@ -139,7 +139,7 @@ const HELLO_TURN = HELLO_OUT_MS / HELLO_MS;
  * first system is in (src/desktop/signin-both.ts: it used to wait for the first one's whole first read, half a minute
  * on mobile data, which is why SIX's ring was still turning as the stage left). The rest is room for a slow network.
  */
-const OTHER_WAIT_MS = 15_000;
+const OTHER_WAIT_MS = 8_000;
 /** One in and the other stopped: this long to read why, before the hand-over (the line leaves with the stage). */
 const OTHER_STOPPED_MS = 1_200;
 /** A door stepping to the mark as its system comes in: over before its lighting is, so before the stage lifts. */
