@@ -129,6 +129,16 @@ const AnimatedInput = Animated.createAnimatedComponent(TextInput);
 const IOS = Platform.OS === "ios";
 /** Numbers already counted in this run: a number counts up the first time it's shown, never on a redraw. */
 const counted = new Set<string>();
+/** Until then, a number shown for the first time is simply there (`settleFigures`). */
+let settledUntil = 0;
+
+/**
+ * The numbers about to be shown are simply there, not counted up from zero: the Student asked to see what was hidden
+ * ("Tampilkan" on hidden grades), and a figure climbing from 0,00 isn't an answer to that.
+ */
+export function settleFigures(ms = 1_000): void {
+  settledUntil = Date.now() + ms;
+}
 
 /**
  * A number that counts up from zero once (700 ms, easing out), the first time `id` is shown in this run; after that,
@@ -149,7 +159,7 @@ export function CountUp({
   comma?: boolean;
 }) {
   const still = useReduceMotion();
-  const [first] = useState(() => !still && !counted.has(id));
+  const [first] = useState(() => !still && !counted.has(id) && Date.now() >= settledUntil);
   const shown = useSharedValue(first ? 0 : value);
   useEffect(() => {
     counted.add(id);

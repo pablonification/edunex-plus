@@ -31,8 +31,8 @@ import { Meta } from "../../ui/layout";
 import { Tap } from "../../ui/moves";
 import { Sheet, SheetTitle } from "../../ui/sheet";
 import { slopY } from "../../ui/sizes";
-import { Text, useFieldColors } from "../../ui/text";
-import { radius, space, type, useTheme } from "../../ui/theme";
+import { fieldType, Text, useFieldColors } from "../../ui/text";
+import { radius, space, useTheme } from "../../ui/theme";
 
 type AddTab = "needed" | "program" | "minors" | "all";
 
@@ -173,7 +173,7 @@ export function AddCourse({
               autoCorrect={false}
               autoCapitalize="none"
               returnKeyType="search"
-              style={{ flex: 1, color: theme.color.fg, ...type.small, paddingVertical: 0 }}
+              style={{ flex: 1, color: theme.color.fg, ...fieldType("small"), paddingVertical: 0 }}
               testID="input.courseSearch"
             />
           </View>

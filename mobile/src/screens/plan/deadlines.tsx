@@ -36,8 +36,8 @@ import { Tap } from "../../ui/moves";
 import { ROW_SIDE } from "../../ui/row-end";
 import { ActionSheet } from "../../ui/sheet";
 import { LINK_SLOP } from "../../ui/sizes";
-import { Text, useFieldColors } from "../../ui/text";
-import { font, space, type, useTheme } from "../../ui/theme";
+import { fieldType, Text, useFieldColors } from "../../ui/text";
+import { font, space, useTheme } from "../../ui/theme";
 import { itbItem, itbUid } from "../schedule/calendar-plan";
 import { usePlacement } from "../schedule/calendar-sync";
 import { addToPhoneCalendar, removeFromPhoneCalendar } from "../schedule/phone-calendar";
@@ -504,7 +504,7 @@ function EveryEvent({ onPick }: { onPick: (picked: Picked) => void }) {
           autoCorrect={false}
           autoCapitalize="none"
           returnKeyType="search"
-          style={{ flex: 1, color: v.fg, ...type.body, paddingVertical: 0 }}
+          style={{ flex: 1, color: v.fg, ...fieldType("body"), paddingVertical: 0 }}
           testID="input.calendarSearch"
         />
       </View>

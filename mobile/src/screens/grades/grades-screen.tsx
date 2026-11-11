@@ -12,7 +12,7 @@
 // (./transcript.tsx). Without SIX: this term's courses from Edunex, each opening its calculator. Before SIX's first
 // read, the card stands in its shape.
 // Nothing here names a minute (HourClock), and what's below the first screenful mounts a part a frame (Later).
-import { memo, type ReactNode, useMemo, useState } from "react";
+import { memo, type ReactNode, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -47,7 +47,7 @@ import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
 import { Meter } from "../../ui/meter";
-import { CrossFade } from "../../ui/moves";
+import { Appear, CrossFade } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import { ROW_SIDE } from "../../ui/row-end";
 import { Sheet } from "../../ui/sheet";
@@ -129,19 +129,18 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
     state.projection.bestIpk !== null &&
     Math.abs(best - state.projection.bestIpk) < 0.005;
   const hidden = useGradesHidden();
+  // Shown again while the Student looks at this page: the parts come back together, at once, as a fold opens (Appear).
+  // On the page's first draw they still come a part a frame after its push (Later); that wait, taken again on a tap
+  // of "Tampilkan", left the page with its figures alone for half a second and then dropped the rest in.
+  const [revealed, setRevealed] = useState(false);
+  const wasHidden = useRef(hidden);
+  if (wasHidden.current !== hidden) {
+    wasHidden.current = hidden;
+    if (!hidden && !revealed) setRevealed(true);
+  }
   // Hidden: the big number's place and the SKS stay; every part made of grades (this term, the honors, the chart, the
   // transcript) gives way to one quiet line with the way to show them. None of them is drawn, so nothing can leak.
-  if (hidden) {
-    return (
-      <>
-        <Standing record={record} state={state} after={after} />
-        <View style={{ gap: space[3], marginTop: space[3] }}>
-          <SixPageNote datasets={["six.transcript", "six.progress"]} />
-          <GradesHiddenLine />
-        </View>
-      </>
-    );
-  }
+  // The key card is the same part either way (it isn't made again when grades are hidden or shown).
   return (
     <>
       <Rise screen="grades" index={0}>
@@ -149,21 +148,38 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
       </Rise>
       <View style={{ gap: space[3], marginTop: space[3] }}>
         <SixPageNote datasets={["six.transcript", "six.progress"]} />
-        <UnreadNote record={record} />
-        <Disagreement record={record} />
+        {hidden ? (
+          <GradesHiddenLine />
+        ) : (
+          <>
+            <UnreadNote record={record} />
+            <Disagreement record={record} />
+          </>
+        )}
       </View>
-      {/* The newest grades next, with what they do to the IPK ("IPK setelah semester ini"): after an exam that's what
-          the Student came for, so it's the first thing under the big number, not a screen or two down. */}
-      <Later frame={1}>
-        <ThisTerm record={record} state={state} termOnly={termOnly} />
-      </Later>
-      <Later frame={2}>
-        <Graduation record={record} state={state} bestSaid={bestSaid} />
-        <Chart record={record} state={state} />
-      </Later>
-      <Later frame={3}>
-        <Transcript record={record} />
-      </Later>
+      {hidden ? null : revealed ? (
+        <Appear>
+          <ThisTerm record={record} state={state} termOnly={termOnly} />
+          <Graduation record={record} state={state} bestSaid={bestSaid} />
+          <Chart record={record} state={state} />
+          <Transcript record={record} />
+        </Appear>
+      ) : (
+        <>
+          {/* The newest grades next, with what they do to the IPK ("IPK setelah semester ini"): after an exam that's
+              what the Student came for, so it's the first thing under the big number, not a screen or two down. */}
+          <Later frame={1}>
+            <ThisTerm record={record} state={state} termOnly={termOnly} />
+          </Later>
+          <Later frame={2}>
+            <Graduation record={record} state={state} bestSaid={bestSaid} />
+            <Chart record={record} state={state} />
+          </Later>
+          <Later frame={3}>
+            <Transcript record={record} />
+          </Later>
+        </>
+      )}
     </>
   );
 }

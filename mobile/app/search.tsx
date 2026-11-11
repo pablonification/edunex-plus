@@ -35,8 +35,8 @@ import { GLASS } from "../src/ui/glass";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel } from "../src/ui/layout";
 import { CrossFade } from "../src/ui/moves";
-import { Text, useFieldColors } from "../src/ui/text";
-import { shape, space, TOUCH, type } from "../src/ui/theme";
+import { fieldType, Text, useFieldColors } from "../src/ui/text";
+import { shape, space, TOUCH } from "../src/ui/theme";
 import { CourseGlyph } from "../src/ui/tile";
 import { BarBack } from "../src/ui/top-bar";
 
@@ -380,7 +380,7 @@ export default function Search() {
               if (first?.kind === "item") open(first.item);
               else if (first?.kind === "service") openTheService(first.service);
             }}
-            style={{ flex: 1, color: b.fg, ...type.bodyLarge, paddingVertical: 0, paddingHorizontal: 0, minHeight: TOUCH }}
+            style={{ flex: 1, color: b.fg, ...fieldType("bodyLarge"), paddingVertical: 0, paddingHorizontal: 0, minHeight: TOUCH }}
           />
           {query !== "" && (
             <IconButton

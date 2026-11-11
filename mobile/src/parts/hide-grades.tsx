@@ -9,6 +9,7 @@ import { useT } from "../../../src/app/i18n";
 import { useBridge, useSettings } from "../../../src/app/store";
 import { gradesHidden, HIDDEN_FIGURE } from "../../../src/core/hide-grades";
 import { Button, IconButton } from "../ui/controls";
+import { settleFigures } from "../ui/expressive";
 import { haptic } from "../ui/haptics";
 import { Icons } from "../ui/icons";
 import { Text } from "../ui/text";
@@ -31,6 +32,8 @@ export function useToggleGrades(): () => void {
   const hidden = useGradesHidden();
   return () => {
     haptic.toggle(!hidden);
+    // Shown again: the figures are simply there (they don't count up from zero).
+    if (hidden) settleFigures();
     void bridge.invoke("settings.update", { hideGrades: !hidden }).catch(() => undefined);
   };
 }

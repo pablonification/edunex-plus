@@ -2,10 +2,12 @@
 // stack over the bottom tabs for everything a tab opens (a Task, a course, a module, Settings), with
 // Android's own screen transition and Back (the predictive gesture too). The crypto polyfill and the
 // background sync come first, from ../index.ts.
+
 import { NavigationBar } from "expo-navigation-bar";
-import { Stack, useNavigationContainerRef } from "expo-router";
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, useNavigationContainerRef } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { type ReactNode, useEffect } from "react";
+import * as SystemUI from "expo-system-ui";
+import { type ReactNode, useEffect, useMemo } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useWidgetUpdates } from "../src/host/widget";
@@ -55,6 +57,17 @@ function Frame() {
   const theme = useTheme();
   useWidgetUpdates();
   usePerfWatch();
+  // What's behind every screen is the page's colour, in both themes: the window's own and the stack's (the navigation's
+  // theme, which the native stack paints its container with; left at the library's light one, a fast back swipe on an
+  // iPhone showed a white strip down the left edge of the dark page as the screens sprang past their place).
+  const page = theme.color.surface;
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(page).catch(() => undefined);
+  }, [page]);
+  const navigation = useMemo(() => {
+    const base = theme.scheme === "dark" ? DarkTheme : DefaultTheme;
+    return { ...base, colors: { ...base.colors, background: page, card: page } };
+  }, [theme.scheme, page]);
   return (
     <>
       <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />
@@ -66,15 +79,17 @@ function Frame() {
           clear of it (ui/insets.ts). "default" is Android's own open and close (the system's slide and fade), drawn
           natively. The screens take new data and the minute's tick as transitions (src/ui/deferred.tsx). */}
       <DeferredScreens>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.color.surface },
-            animation: "default",
-          }}
-        >
-          <Stack.Screen name="(tabs)" />
-        </Stack>
+        <ThemeProvider value={navigation}>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.color.surface },
+              animation: "default",
+            }}
+          >
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+        </ThemeProvider>
       </DeferredScreens>
       {/* Until a system is in: then it fades, and Beranda fills in under it (the first read's summary is a card there). */}
       <WelcomeWhileNobody />

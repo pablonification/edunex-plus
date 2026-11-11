@@ -7,7 +7,7 @@
 // job).
 import { router } from "expo-router";
 import { memo } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useT } from "../../../../src/app/i18n";
 import { BellButton } from "../../parts/b-header";
@@ -17,13 +17,14 @@ import { Icons } from "../../ui/icons";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space } from "../../ui/theme";
+import { hintRoom, hintSize, ROW } from "./header-hint";
 
 /**
  * The row's one height: the mark, the search bar and the bell are three things of the same height on the same line,
  * with the same gap between them and the page's margin at both ends (the developer's iPhone, 11 Nov: a 32 dp mark, a
  * 48 dp bar and a bare 24 dp bell read as "uneven placement, inconsistent sizing"). Each is touched in 48 dp (hitSlop).
  */
-export const BAR_ITEM = 44;
+export const BAR_ITEM = ROW.item;
 /** The search bar's height. */
 export const SEARCH_HEIGHT = BAR_ITEM;
 /** The mark's side. */
@@ -35,6 +36,12 @@ export const HomeBar = memo(function HomeBar() {
   const t = useT();
   const b = useB();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const hint = t("mobile.home.searchHint");
+  // What the row leaves the hint: the page's margins, the mark and the bell with their gaps, the bar's own sides,
+  // its magnifier and the gap after it.
+  const bar = hintRoom(width);
+  const size = hintSize(hint.length, bar.room);
   return (
     <View
       testID="home.header"
@@ -62,15 +69,15 @@ export const HomeBar = memo(function HomeBar() {
           backgroundColor: b.soft,
           flexDirection: "row",
           alignItems: "center",
-          gap: space[3],
-          paddingHorizontal: space[4],
+          gap: bar.gap,
+          paddingHorizontal: bar.side,
         }}
       >
-        <Icons.Search size={20} color={b.fg2} />
-        {/* The hint whole on one line: beside the mark and the bell the bar is narrower, so the words give a little
-            (down to 80%) before they would be cut. */}
-        <Text size="bodyLarge" numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={{ color: b.muted, flex: 1 }}>
-          {t("mobile.home.searchHint")}
+        <Icons.Search size={ROW.magnifier} color={b.fg2} />
+        {/* The hint whole on one line, at the largest size the bar's room holds (hintSize): its own line box, so it
+            sits on the magnifier's centre. (Shrinking it to fit set it low in the pill on an iPhone.) */}
+        <Text size="bodyLarge" numberOfLines={1} style={{ color: b.muted, flex: 1, fontSize: size, lineHeight: Math.round(size * 1.4) }}>
+          {hint}
         </Text>
       </PressScale>
       <BellButton filled={BAR_ITEM} />
