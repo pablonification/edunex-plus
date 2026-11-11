@@ -44,7 +44,7 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Sign-in to SIX | Reads SIX's session cookie from iOS's web view store (`modules/web-cookies/ios`). |
 | Notifications | Local ones work, booked ahead too. No channels on iOS (that's Android's idea); iOS keeps only the next 64 booked. |
 | Background sync | iOS decides when, and much less often than Android. |
-| Phone calendar | Made inside the account your default calendar uses (often iCloud). |
+| Phone calendar | One calendar, "Edunex Plus", made inside the account your default calendar uses (often iCloud). Jadwal's "Kalender HP" switch, a date from Kalender akademik and an exam's sittings all go into it, written by the app itself (never iOS's "New Event" sheet), so it needs Calendars set to **Full Access**: "Add Events Only" reads as off, and the app says so with a button to Settings. Whole-day events are written from noon to noon in WIB (an iPhone counts the end day in). |
 | Switches | iOS's own switch instead of Android's Material one. |
 | Presses and haptics | Android's ripple is an iPhone's tint or dim: a card or tile (`PressScale`, `Tap`) tints and gives as on Android, a button or chip dims to 55% (`ui/controls.tsx`). Every haptic is in `ui/haptics.ts`, each the Taptic Engine's nearest: a long press that runs (`hold`) a medium tap, an earned moment (`success`) the success pattern. |
 | Bottom tabs | iOS's own tab bar with Apple's symbols; Liquid Glass on iOS 26, which iOS draws itself. |
@@ -211,4 +211,8 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
 - [ ] Switches are iOS's own (Settings, Notifikasi): green when on, with the haptics above.
 - [ ] A pressed row, tile or button dims (`iosPressed`, `Tap`'s tint): it answers in the frame the finger lands.
 - [ ] The "Turn on notifications" button opens the app's page in iOS Settings (`parts/notifications-off.tsx`).
-- [ ] Jadwal's "Tambahkan ke kalender HP" writes events into the calendar the iPhone uses by default (`phone-calendar.ts`).
+- [ ] Jadwal's ⋮ "Kalender HP" writes the term into an "Edunex Plus" calendar in the account the iPhone uses by default
+      (`phone-calendar.ts`). A date that runs over several days (the questionnaire, UAS) ends on its last day there, not the day after.
+- [ ] Kalender akademik: tap a date, "Tambahkan ke kalender HP". It is in the Edunex Plus calendar; tap the date again and the
+      row says "Di kalender HP" (a tap takes it out). With Jadwal's switch on, a date it carries says "Ikut Kalender HP di Jadwal".
+      Turning the switch off takes the whole calendar off the iPhone, and the rows offer to add again.

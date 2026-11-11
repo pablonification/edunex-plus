@@ -9,11 +9,11 @@
 //    picked stays while the app is open.
 // 3. ITB's calendar, named and linked, with when it was last checked, at the end.
 // A tap on a date opens its sheet: what it means for the Student, when the app has something to say, and the offer to
-// add it to the phone's calendar (the phone's own calendar app opens with it filled in, nothing is written without the
-// Student).
-import { createEventInCalendarAsync } from "expo-calendar/legacy";
+// add it to the phone's calendar: into the app's own "Edunex Plus" calendar there, the one Jadwal's "Kalender HP"
+// switch keeps (../schedule/phone-calendar.ts), so both screens know what's in it. A date already there says so, and
+// comes out again from the same row, unless Jadwal's switch is the one keeping it.
 import { useState } from "react";
-import { TextInput, View } from "react-native";
+import { Linking, TextInput, View } from "react-native";
 import { useDeadlines, useThisTerm } from "../../../../src/app/deadlines";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
@@ -23,11 +23,13 @@ import { CALENDAR_GROUPS, type CalendarEntry, type CalendarGroup, DEADLINE_KINDS
 import { relativeTime } from "../../../../src/core/intl";
 import { itbCalendar } from "../../../../src/core/links";
 import type { CalendarEvent } from "../../../../src/core/models";
-import type { StringKey } from "../../../../src/core/strings";
+import { type StringKey, translate } from "../../../../src/core/strings";
+import { toast } from "../../swaps/overlays";
 import { Button, Chip, ChipRow, Segmented } from "../../ui/controls";
 import { EmptyState } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Figure, Group, GroupRow, Heading, IconTile, Panel, Pill } from "../../ui/group";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice } from "../../ui/layout";
 import { Tap } from "../../ui/moves";
@@ -36,6 +38,9 @@ import { ActionSheet } from "../../ui/sheet";
 import { LINK_SLOP } from "../../ui/sizes";
 import { Text, useFieldColors } from "../../ui/text";
 import { font, space, type, useTheme } from "../../ui/theme";
+import { itbItem, itbUid } from "../schedule/calendar-plan";
+import { usePlacement } from "../schedule/calendar-sync";
+import { addToPhoneCalendar, removeFromPhoneCalendar } from "../schedule/phone-calendar";
 import { Later } from "./deferred";
 import { usePlaceState } from "./place-state";
 import { useTermYears } from "./projection";
@@ -59,7 +64,7 @@ function groupOf(deadline: Deadline, now: number, term: string | null, termEnd: 
   return term && deadline.event.term !== term ? "next" : "term";
 }
 
-/** A date the Student tapped: what the phone's calendar gets (the app's words for it, ITB's title in the notes). */
+/** A date the Student tapped: the sheet's words for it; the phone's calendar gets ITB's own title, as from Jadwal. */
 interface Picked {
   event: CalendarEvent;
   title: string;
@@ -99,14 +104,27 @@ export function Tab(_: { onCalendar?: () => void }) {
   const calendar = useDataset("itb.calendar");
   const [view, setView] = useViewChoice<"mine" | "all">("deadlines.view", "mine");
   const [picked, setPicked] = useState<Picked | null>(null);
-  // The phone's calendar didn't open: said on the page, at its top, until the next try (never a snackbar).
-  const [failed, setFailed] = useState(false);
+  // The date didn't go into the phone's calendar: why and its fix, on the page, at its top, until the next try (never a snackbar).
+  const [problem, setProblem] = useState<CalendarProblem>(null);
   if (!calendar) return <EmptyState icon={<Icons.CalendarClock size={20} color={theme.color.muted} />} title={t("deadlines.empty")} />;
   return (
     <View>
-      {failed && (
+      {problem && (
         <View accessibilityRole="alert" accessibilityLiveRegion="assertive" style={{ marginBottom: space[3] }}>
-          <Notice tone="danger" title={t("mobile.deadline.calendarFailed")} testID="note.calendarFailed" />
+          {problem === "denied" ? (
+            <Notice
+              tone="warning"
+              title={t("mobile.exam.calendarDenied")}
+              action={
+                <Button size="sm" onPress={() => void Linking.openSettings()} testID="action.calendarSettings">
+                  {t("mobile.calendar.settings")}
+                </Button>
+              }
+              testID="note.calendarDenied"
+            />
+          ) : (
+            <Notice tone="danger" title={t("mobile.calendar.addFailed")} testID="note.calendarFailed" />
+          )}
         </View>
       )}
       <Rise screen={RISE} index={0}>
@@ -130,7 +148,7 @@ export function Tab(_: { onCalendar?: () => void }) {
       <Later>
         <Source />
       </Later>
-      <AddToCalendar picked={picked} onClose={() => setPicked(null)} onFailed={setFailed} />
+      <AddToCalendar picked={picked} onClose={() => setPicked(null)} onProblem={setProblem} />
     </View>
   );
 }
@@ -640,28 +658,43 @@ function Source() {
   );
 }
 
-/** The sheet a date opens: what it means, then add it to the phone's calendar (its own app, filled in), or read it on ITB's calendar. */
-function AddToCalendar({ picked, onClose, onFailed }: { picked: Picked | null; onClose: () => void; onFailed: (failed: boolean) => void }) {
+/** Why a date didn't go into (or out of) the phone's calendar: calendar access is off, or the phone refused the write. */
+type CalendarProblem = "denied" | "failed" | null;
+
+/**
+ * The sheet a date opens: what it means, then the phone's calendar, or ITB's calendar to read. The calendar row is
+ * the date's state there: not in it (add it), in it (take it out), or in it because Jadwal's "Kalender HP" keeps it.
+ */
+function AddToCalendar({ picked, onClose, onProblem }: { picked: Picked | null; onClose: () => void; onProblem: (problem: CalendarProblem) => void }) {
   const t = useT();
+  const lang = useLang();
   const theme = useTheme();
   const open = useOpenExternal();
   const calendar = useDataset("itb.calendar");
   const { url, year } = itbCalendar(useThisTerm(), calendar);
+  const where = usePlacement(picked ? [itbUid(picked.event.id)] : [], picked !== null);
   const add = async (pick: Picked) => {
-    onFailed(false);
+    onProblem(null);
     try {
-      // A whole-day event on its days; noon in WIB is the same date wherever the calendar keeps it.
-      await createEventInCalendarAsync({
-        title: pick.title,
-        startDate: new Date(noon(pick.event.firstDay)),
-        endDate: new Date(noon(pick.event.lastDay)),
-        allDay: true,
-        notes: pick.event.title,
-      });
+      // Only this date: nothing else in the calendar is touched (no span to tidy).
+      const result = await addToPhoneCalendar([itbItem(pick.event, translate(lang, "ics.fromItb"))], new Set(), { from: 0, until: 0 });
+      if (result.kind === "denied") return onProblem("denied");
+      haptic.confirm();
+      toast(t("mobile.calendar.added", { count: result.events }), "success");
     } catch {
-      onFailed(true);
+      onProblem("failed");
     }
   };
+  const remove = async (pick: Picked) => {
+    onProblem(null);
+    try {
+      if ((await removeFromPhoneCalendar([itbUid(pick.event.id)])) === "denied") return onProblem("denied");
+      toast(t("mobile.calendar.removed"));
+    } catch {
+      onProblem("failed");
+    }
+  };
+  const inCalendar = <Icons.CalendarCheck size={20} color={theme.color.fg} />;
   return (
     <ActionSheet
       open={picked !== null}
@@ -672,12 +705,29 @@ function AddToCalendar({ picked, onClose, onFailed }: { picked: Picked | null; o
       choices={
         picked
           ? [
-              {
-                label: t("mobile.deadline.toCalendar"),
-                icon: <Icons.CalendarCheck size={20} color={theme.color.fg} />,
-                onPress: () => void add(picked),
-                testID: "action.addToCalendar",
-              },
+              where === "none"
+                ? {
+                    label: t("mobile.deadline.toCalendar"),
+                    icon: <Icons.Smartphone size={20} color={theme.color.fg} />,
+                    onPress: () => void add(picked),
+                    testID: "action.addToCalendar",
+                  }
+                : where === "added"
+                  ? {
+                      label: t("mobile.calendar.in"),
+                      hint: t("mobile.calendar.in.remove"),
+                      icon: inCalendar,
+                      onPress: () => void remove(picked),
+                      testID: "action.removeFromCalendar",
+                    }
+                  : {
+                      label: t("mobile.calendar.in"),
+                      hint: t("mobile.calendar.in.kept"),
+                      icon: inCalendar,
+                      disabled: true,
+                      onPress: () => undefined,
+                      testID: "state.inCalendar",
+                    },
               {
                 label: year ? t("deadlines.source", { years: `${year}/${year + 1}` }) : t("deadlines.sourcePlain"),
                 icon: <Icons.ArrowUpRight size={20} color={theme.color.fg} />,

@@ -2,7 +2,7 @@
 // holds, over which days, and when it's written again, from the real engine against the pretend Edunex and SIX on the
 // recorded Thursday (8 October 2026).
 import { describe, expect, it } from "vitest";
-import { calendarPlan, needsWrite } from "../../mobile/src/screens/schedule/calendar-plan";
+import { calendarPlan, itbItem, needsWrite } from "../../mobile/src/screens/schedule/calendar-plan";
 import { snapshotDataset } from "../../src/core/home-world";
 import { startHome } from "../engine/needs-harness";
 
@@ -10,6 +10,23 @@ type Home = Awaited<ReturnType<typeof startHome>>;
 const planOf = (h: Home) => calendarPlan((name) => snapshotDataset(h.engine.snapshot(), name) as never, "id", "2026-10-08");
 
 describe("the phone's calendar, kept current", () => {
+  it("a date from Kalender akademik is the very event Jadwal's calendar holds for it, and one it doesn't carry isn't tidied away", async () => {
+    const h = await startHome();
+    const plan = planOf(h);
+    const events = snapshotDataset(h.engine.snapshot(), "itb.calendar")?.events ?? [];
+    const carried = plan.items.filter((item) => item.kind === "itb");
+    expect(carried.length).toBeGreaterThan(0);
+    for (const item of carried) {
+      const event = events.find((e) => item.uid === itbItem(e, "").uid);
+      expect(event).toBeDefined();
+      expect(itbItem(event!, item.description ?? "")).toEqual(item);
+    }
+    // Every date ITB lists counts as still there, whether or not the calendar carries its kind.
+    expect(events.length).toBeGreaterThan(carried.length);
+    for (const event of events) expect(plan.current.has(itbItem(event, "").uid)).toBe(true);
+    for (const item of plan.items) expect(plan.current.has(item.uid)).toBe(true);
+  });
+
   it("holds the term's classes, exams, deadlines and ITB's days, from a week ago to the term's last UAS day", async () => {
     const h = await startHome();
     const plan = planOf(h);
