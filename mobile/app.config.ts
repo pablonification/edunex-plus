@@ -231,7 +231,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     // No scrim of Android's own under three-button navigation (a light one showed under the dark welcome): the app
     // sets the buttons' colour itself, from its theme (app/_layout.tsx).
     ["expo-navigation-bar", { enforceContrast: false }],
-    ["expo-calendar", { calendarPermission: "Edunex Plus adds your classes to your calendar." }],
+    ["expo-calendar", { calendarPermission: "Edunex Plus adds your classes, exams and academic dates to your calendar." }],
     [
       "expo-build-properties",
       {
