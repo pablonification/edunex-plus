@@ -47,8 +47,10 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Phone calendar | Made inside the account your default calendar uses (often iCloud). |
 | Switches | iOS's own switch instead of Android's Material one. |
 | Presses and haptics | Android's ripple is an iPhone's tint or dim: a card or tile (`PressScale`, `Tap`) tints and gives as on Android, a button or chip dims to 55% (`ui/controls.tsx`). Every haptic is in `ui/haptics.ts`, each the Taptic Engine's nearest: a long press that runs (`hold`) a medium tap, an earned moment (`success`) the success pattern. |
-| Bottom tabs | iOS's own tab bar with Apple's symbols; Liquid Glass on iOS 26, which iOS draws itself. |
-| Liquid Glass | On iOS 26: a top bar's back button and actions, and the snackbar (`src/ui/glass.tsx`). Older iPhones and Android keep the Material look. |
+| Bottom tabs | iOS's own tab bar with Apple's symbols; Liquid Glass on iOS 26, which iOS draws itself. It floats over the tab's page (Android's sits under it), so the page runs under it to the screen's edge. |
+| Where a page ends | One rule for every screen (`src/ui/page-end.ts`, tested): a tab's last row ends clear of the tab bar and the home indicator (the tab's own safe area, which iOS gives); a pushed page scrolls to the screen's edge under the home indicator and its last row ends clear of it. Android: a tab ends above the tabs; a pushed page stops above three-button navigation and runs under gesture navigation's handle. |
+| Sheets | UIKit's sheet, as tall as what it holds (`src/ui/sheet.tsx`). react-native-screens 4.30 hears a sheet's height only when it changes, never the first one, so a sheet is mounted closed and a point taller for one render, then opened (`IOS_NUDGE`). iOS adds the home indicator's room under the content itself. |
+| Liquid Glass | On iOS 26: every bar's Back, Close and actions (`BarBack`, `BarClose`, `BarActions` in `src/ui/top-bar.tsx`, on `src/ui/glass.tsx`), and the snackbar. Older iPhones and Android keep the Material look. |
 | App icon | Its own, edge to edge and opaque (`assets/ios-icon.png`, `scripts/make-icons.mjs`): iOS rounds it and fills see-through parts with white. |
 | Edunex's pages | Get a stand-in service worker (`src/host/page-fixes.ts`): an app's web view has none, and Edunex's site stopped on its spinner without one. |
 | "Turn on notifications" button | Opens the app's page in iOS Settings. |
@@ -123,8 +125,11 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
       calendar has no filled form: it only turns the accent colour) and takes the app's blue; the rest are grey.
 - [ ] The bar is iOS's own. On iOS 26 it floats as Liquid Glass; before that, a plain bar with its own hairline (the
       app draws none on an iPhone: `BarHairline`). Nothing doubled.
-- [ ] The last row of every tab (Tugas, Kuliah, Jadwal, Profil, Beranda scrolled to its foot) clears the bar and the
-      home indicator, and nothing sits under the bar.
+- [ ] The last row of every tab (Tugas, Kuliah, Jadwal, Profil, Beranda scrolled to its foot) ends clear of the bar
+      and the home indicator, with the same room under it a pushed page has. The page still shows through under the
+      bar while it scrolls, and the scroll indicator stops above the bar.
+- [ ] Beranda's first screen ends on the day's first class above the bar, not under it. A snackbar (mark a Task done)
+      sits just above the bar, not far over it.
 - [ ] Tugas's badge shows only while something is late or due within a day. A second tap on the open tab scrolls it to
       the top. A switch between tabs is instant and each tab keeps where it was.
 
@@ -137,6 +142,10 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
       eight, with no scrolling. At a larger text size (Settings › Display & Brightness › Text Size): the grid may run
       below the fold, but no tile is cut in half and no word breaks one letter per line.
 - [ ] Semua layanan (Lainnya): the last row of tiles clears the home indicator.
+- [ ] Every pushed page (a course, a module, Settings, Nilai, Materi, Ujian, Notifikasi, each part of Rencana): the
+      list runs to the screen's bottom edge under the home indicator while it scrolls, with no blank band above the
+      edge, and at its end the last row sits clear of the indicator.
+- [ ] A Task: "Simpan draf" and "Kumpulkan" sit above the home indicator, their bar's colour running to the edge.
 - [ ] The app stays portrait (`orientation` in `app.config.ts`): turn the phone and nothing rotates.
 
 **Back, on every pushed page** (the native stack: `app/_layout.tsx`)
@@ -145,7 +154,8 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
       layanan, each part of Rencana, Settings, Search, Notifikasi, the report form. It goes back, and the page under it
       slides in with it.
 - [ ] The back button is a chevron (`Icons.ArrowLeft` draws one on iOS), on a Liquid Glass circle on iOS 26
-      (`ui/glass.tsx`), with the actions beside it on one capsule.
+      (`ui/glass.tsx`), with the actions beside it on one capsule. The same circle on every one of them: a Task's
+      two-line bar, Search (Back stands before the field's pill, not in it), and the × of the sign-in page.
 - [ ] A row you can swipe (Tugas, Notifikasi): a sideways swipe on the row does its action, and a swipe that starts at
       the very edge of the screen still goes back instead.
 
@@ -162,6 +172,9 @@ fails: write down the screen, the iPhone's model and iOS version, and a screensh
       the content. Drag down closes it; a tap on the dimmed page closes it. The title is not under the grabber and the
       last button clears the home indicator.
 - [ ] A long press on a row: the action sheet. A choice sheet in Settings: its options are radios, the picked one marked.
+- [ ] A sheet is as tall as what it holds: a title and one choice (a course's ⋮ on Rencana) is a short sheet at the
+      screen's foot, not the whole screen. It rises once, straight to that height. A long one (a class's detail at a
+      large text size) stops under the status bar and scrolls inside.
 - [ ] A row pressed in a sheet or a menu dims (there is no ripple on an iPhone: `iosPressed`).
 - [ ] A sheet over Beranda, in dark: the status bar's icons stay legible.
 

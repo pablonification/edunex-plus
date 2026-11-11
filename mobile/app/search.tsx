@@ -31,12 +31,14 @@ import { useOpenService } from "../src/screens/services/open";
 import { refreshNow } from "../src/shell/source-status";
 import { useB } from "../src/ui/b";
 import { IconButton } from "../src/ui/controls";
+import { GLASS } from "../src/ui/glass";
 import { type IconProps, Icons } from "../src/ui/icons";
 import { factsLabel } from "../src/ui/layout";
 import { CrossFade } from "../src/ui/moves";
 import { Text, useFieldColors } from "../src/ui/text";
 import { shape, space, TOUCH, type } from "../src/ui/theme";
 import { CourseGlyph } from "../src/ui/tile";
+import { BarBack } from "../src/ui/top-bar";
 
 /** What the index reads: the desktop's list. */
 const SEARCHED: readonly DatasetName[] = [
@@ -344,14 +346,19 @@ export default function Search() {
   return (
     <View testID="screen.search" style={{ flex: 1, backgroundColor: b.page, paddingTop: insets.top }}>
       {/* The field is the page's title: Back, the field, and × once something's typed, in one soft pill on the white. */}
-      <View style={styles.bar}>
-        <View style={[styles.field, { backgroundColor: b.soft }]}>
-          <IconButton label={t("action.back")} onPress={() => router.back()} testID="action.back">
-            <Icons.ArrowLeft size={24} color={b.fg} />
-          </IconButton>
+      {/* On iOS 26 Back is the glass circle every pushed screen has, so it stands before the pill, not in it. */}
+      <View style={[styles.bar, GLASS && styles.glassBar]}>
+        {GLASS && <BarBack onPress={() => router.back()} color={b.fg} />}
+        <View style={[styles.field, GLASS && styles.glassField, { backgroundColor: b.soft }]}>
+          {!GLASS && <BarBack onPress={() => router.back()} color={b.fg} />}
           {/* The hint is ours, a step right of where the caret stands: Android's own sits under the caret's first letter. */}
           {query === "" && (
-            <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.hint}>
+            <View
+              pointerEvents="none"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              style={[styles.hint, GLASS && styles.glassHint]}
+            >
               <Text size="bodyLarge" numberOfLines={1} style={{ color: b.muted }}>
                 {t("mobile.search.placeholder")}
               </Text>
@@ -491,6 +498,10 @@ const styles = StyleSheet.create({
   field: { flexDirection: "row", alignItems: "center", gap: space[1], minHeight: 56, borderRadius: shape.full, paddingHorizontal: space[1] },
   // Over the field's text box (after Back, 48 wide, and the gap), 6 dp right of the caret; it ends before the pill's curve.
   hint: { position: "absolute", left: space[1] + TOUCH + space[1] + 6, right: space[5], top: 0, bottom: 0, justifyContent: "center" },
+  // iOS 26: Back on its glass circle where every bar has it (4 from the edge), then the pill with the field alone in it.
+  glassBar: { flexDirection: "row", alignItems: "center", gap: space[2], paddingLeft: space[1] },
+  glassField: { flex: 1, paddingLeft: space[4] },
+  glassHint: { left: space[4] + 6 },
   // The chips run to the screen's edges, so the one cut at the right is cut by the screen: more that way.
   chips: { marginHorizontal: -space.page },
   chipsInner: { gap: space[2], paddingHorizontal: space.page },
