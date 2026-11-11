@@ -341,6 +341,8 @@ function SignInPage({ run }: { run: Run }) {
           ref={view}
           testID={`signin.${run.source}`}
           source={{ uri: system.start }}
+          // iPhone: the page runs under the home indicator to the screen's edge and ends clear of it (ui/page-end.ts).
+          contentInsetAdjustmentBehavior="automatic"
           // Edunex's page needs a service worker to start (../host/page-fixes.ts). A QA build's sign-in signs in and
           // nothing else (../host/guard.ts): no other write, no signing out.
           injectedJavaScriptBeforeContentLoaded={R3_GUARD ? `${guardScript}\n${noServiceWorkerScript}` : noServiceWorkerScript}

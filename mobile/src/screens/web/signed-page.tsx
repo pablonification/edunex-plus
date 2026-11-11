@@ -110,6 +110,9 @@ export function SignedPage({ url, meeting, title, testID }: { url: string; meeti
               ref={view}
               testID={`web.${site}`}
               source={{ uri: ready }}
+              // iPhone: the site's page runs under the home indicator to the screen's edge and ends clear of it, as the
+              // app's own pages do (WebKit's own way with a safe area; ui/page-end.ts).
+              contentInsetAdjustmentBehavior="automatic"
               // Edunex's page needs a service worker to start (../../host/page-fixes.ts). A QA build's page reads only
               // (../../host/guard.ts): no form, fetch or XHR that writes, no signing out.
               injectedJavaScriptBeforeContentLoaded={`${R3_GUARD ? `${guardScript}\n` : ""}${noServiceWorkerScript}\n${edunexAuthScript(token)}`}
