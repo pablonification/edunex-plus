@@ -24,7 +24,7 @@ describe("the tour's steps", () => {
       ["schedule", "/schedule", "screen.schedule"],
       ["tasks", "/tasks", "screen.tasks"],
       ["courses", "/courses", "list.courses"],
-      ["profile", "/profile", "section.academic.screens"],
+      ["profile", "/profile", "card.profile"],
     ]);
   });
 

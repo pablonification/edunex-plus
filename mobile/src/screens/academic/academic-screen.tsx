@@ -89,14 +89,17 @@ export function AcademicContent() {
   return (
     <View>
       <Rise screen="academic" index={0}>
-        <StudentCard record={record} six={six} />
+        {/* The guide's last step points here: the card with the IPK and the eye that hides it (shell/guide/steps.ts). */}
+        <View ref={guidePart("card.profile")}>
+          <StudentCard record={record} six={six} />
+        </View>
       </Rise>
       {/* The rows under the card: a part of their own on a first draw ahead (../../ui/parts.tsx). */}
       <Part at={1}>
         {/* A tighter rhythm than the other tabs': the sixth row (Kalender akademik) stands whole over the tab bar at font 1.1. */}
         <Rise screen="academic" index={1} style={{ marginTop: space[3] }}>
           <BHeading style={{ marginBottom: space[1] }}>{t("mobile.profile.record")}</BHeading>
-          <View testID="section.academic.screens" ref={guidePart("section.academic.screens")}>
+          <View testID="section.academic.screens">
             {/* Without SIX the card says so once: only the calendar (ITB's own) has something to show. */}
             {six !== "none" && (
               <>

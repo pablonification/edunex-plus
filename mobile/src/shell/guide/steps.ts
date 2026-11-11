@@ -29,7 +29,7 @@ export const GUIDE_STEPS: readonly GuideStep[] = [
   { id: "schedule", tab: "/schedule", part: "screen.schedule", title: "guide.schedule.grid.title", body: "mobile.guide.schedule.body" },
   { id: "tasks", tab: "/tasks", part: "screen.tasks", title: "guide.tasks.row.title", body: "mobile.guide.tasks.body" },
   { id: "courses", tab: "/courses", part: "list.courses", title: "guide.presence.row.title", body: "mobile.guide.courses.body" },
-  { id: "profile", tab: "/profile", part: "section.academic.screens", title: "mobile.guide.profile.title", body: "mobile.guide.profile.body" },
+  { id: "profile", tab: "/profile", part: "card.profile", title: "mobile.guide.profile.title", body: "mobile.guide.profile.body" },
 ];
 
 /** Every part a step points at. */
