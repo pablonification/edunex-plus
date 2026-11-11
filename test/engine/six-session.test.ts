@@ -45,6 +45,36 @@ const COURSES = [
 ];
 
 describe("SIX sign-in → this term's courses", () => {
+  it("says SIX is in as soon as it has answered whose session this is, well before its first full read ends", async () => {
+    const h = await startEngine();
+    const began = h.world.clock.now();
+    let acceptedAt: number | null = null;
+    await until(
+      h,
+      h.engine.signIn("six", SIX, () => {
+        acceptedAt = h.world.clock.now();
+      }),
+    );
+    const done = h.world.clock.now();
+    expect(acceptedAt).not.toBeNull();
+    // SIX reads a page every two seconds: the rest of the read went on for a good while after it was in.
+    expect(done - (acceptedAt ?? done)).toBeGreaterThan(4_000);
+    expect((acceptedAt ?? done) - began).toBeLessThan(done - began);
+  });
+
+  it("never says a refused session is in", async () => {
+    const h = await startEngine();
+    let accepted = false;
+    await until(
+      h,
+      h.engine.signIn("six", { cookie: "khongguan=notasession" }, () => {
+        accepted = true;
+      }),
+    ).catch(() => undefined);
+    expect(accepted).toBe(false);
+    expect(h.engine.snapshot().statuses.find((status) => status.source === "six")?.state).not.toBe("live");
+  });
+
   it("first sign-in loads the Student, this term's courses with exact attendance, and the timetable", async () => {
     const h = await startEngine();
     expect(h.status("six").state).toBe("signed-out");

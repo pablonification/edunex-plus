@@ -115,8 +115,13 @@ export interface Engine {
   start(later?: StartLater): void;
   stop(): void;
   snapshot(): Snapshot;
-  /** Starts a session from what the source's sign-in captured (Edunex: { token }, SIX: { cookie }). */
-  signIn(source: SourceId, session: unknown): Promise<void>;
+  /**
+   * Starts a session from what the source's sign-in captured (Edunex: { token }, SIX: { cookie }). Done once its first
+   * full read is. `accepted` is called earlier, as soon as the source has answered whose session this is and it holds
+   * (never, when it doesn't): what only needs the system to be in (the other system's sign-in riding on this one,
+   * src/desktop/signin-both.ts) doesn't wait for the whole read.
+   */
+  signIn(source: SourceId, session: unknown, accepted?: () => void): Promise<void>;
   /** Without a source: sign out of everything. */
   signOut(source?: SourceId): Promise<void>;
   /** Reads again now ("Perbarui sekarang", waking from sleep): every feed but the background ones (FeedSpec.background). */
@@ -753,7 +758,7 @@ export function createEngine(deps: EngineDeps): Engine {
       return { version: deps.version, datasets: store.snapshot(), statuses: [...statuses.values()], settings, relay: outbox.on };
     },
 
-    async signIn(id, raw) {
+    async signIn(id, raw, accepted) {
       const source = sources.get(id);
       if (!source?.session) throw new EngineError("Rejected", `${id} has no sign-in`);
       const parsed = source.session.safeParse(raw);
@@ -763,8 +768,12 @@ export function createEngine(deps: EngineDeps): Engine {
       await vault.set(sessionKey(id), JSON.stringify({ ...parsed.data, savedAt: clock.now() }));
       setStatus(id, { state: "connecting", detail: null, changedPages: undefined });
       startSource(source, parsed.data, false);
+      const mine = generation(id);
       // Whose session this is comes first: a different Student's data must be gone before anything new lands.
       await checkLiveness(id);
+      // It answered, and this session held (a refused one is "expired" by now; signed out or signed in again
+      // meanwhile, it isn't this session any more).
+      if (generation(id) === mine && !["expired", "signed-out"].includes(statuses.get(id)?.state ?? "signed-out")) accepted?.();
       await scheduler.runNow((name) => sourceOf(name) === id && name !== source.liveness);
     },
 

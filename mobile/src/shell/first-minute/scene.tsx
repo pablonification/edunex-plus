@@ -134,9 +134,10 @@ const HELLO_MS = HELLO_OUT_MS + HELLO_IN_MS;
 const HELLO_TURN = HELLO_OUT_MS / HELLO_MS;
 /**
  * One in and the other still trying (its ring turning, "Membawa SIX…"): this long for it to come along, so its tick is
- * seen and the doors meet; then the hand-over goes without it and it joins on Beranda. Two seconds, then eight, weren't
- * enough on the developer's iPhone on 4G (the stage left with SIX's ring still turning); how long SIX really takes there
- * isn't known yet (../sign-in.tsx now writes it to the phone's log), so this is a guess that keeps the wait bearable.
+ * seen and the doors meet; then the hand-over goes without it and it joins on Beranda. The other system's own sign-in
+ * takes two or three seconds on a real phone (measured on an iPhone on 4G, 11 Nov), and its door lights as soon as the
+ * first system is in (src/desktop/signin-both.ts: it used to wait for the first one's whole first read, half a minute
+ * on mobile data, which is why SIX's ring was still turning as the stage left). The rest is room for a slow network.
  */
 const OTHER_WAIT_MS = 15_000;
 /** One in and the other stopped: this long to read why, before the hand-over (the line leaves with the stage). */

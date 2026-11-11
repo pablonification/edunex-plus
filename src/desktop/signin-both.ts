@@ -2,7 +2,10 @@
 // system runs at a time. As soon as Microsoft hands one system back, the
 // other is tried by itself in a hidden window on the same Microsoft session,
 // while the first is still being read: it says it's "joining" meanwhile, then
-// connects without a word from the Student once the first is in, or gives up
+// connects without a word from the Student once the first is in (it has
+// answered whose session this is: not once its whole first read is done, which
+// on a phone on mobile data kept SIX waiting half a minute after its own
+// sign-in had finished in two seconds), or gives up
 // and its own "Hubungkan" stays as it was. A system the Student signed out of on
 // purpose isn't tried. Microsoft's session goes once neither needs it.
 import type { Event, SignInStep } from "../core/contract";
@@ -55,7 +58,7 @@ export function signInToBoth(deps: {
     return snapshot.datasets.some((dataset) => dataset.name === SAVED[source]) || !snapshot.settings.firstScanDone;
   };
 
-  /** Right after Microsoft handed `source` back: the other system, by itself, kept only once `connecting` is done. */
+  /** Right after Microsoft handed `source` back: the other system, by itself, kept only once `source` is in (`connecting`). */
   const after = (source: SignInSource, quiet: boolean, connecting: Promise<void>) => {
     const other = OTHER[source];
     if (!needsSignIn(other)) return void deps.windows.forget();
@@ -65,7 +68,8 @@ export function signInToBoth(deps: {
   };
 
   /**
-   * `ridesOn`: the other system's sign-in this quiet one rides on. What it finds waits for that one to be in.
+   * `ridesOn`: the other system's sign-in this quiet one rides on, done once that one is in (accepted, not fully
+   * read). What it finds waits for that.
    * `silent`: a quiet try that says nothing while it runs (no "joining", no "joined"): a session that ended, brought back.
    */
   function signIn(source: SignInSource, quiet: boolean, ridesOn?: Promise<void>, silent = false): Promise<boolean> {
@@ -99,11 +103,17 @@ export function signInToBoth(deps: {
         // nothing the app's own try found is kept. One the Student took over is theirs to keep.
         const rodeIn = !ridesOn || ((await landed(ridesOn)) && !(attempt.quiet && needsSignIn(OTHER[source])));
         if (!rodeIn || attempt.stopped) return false;
-        const connecting = deps.engine.signIn(source, source === "edunex" ? { token: session } : { cookie: session });
+        // In, for what rides on it: the system answered whose session this is and it held. Its first full read goes on.
+        let accept = () => {};
+        const accepted = new Promise<void>((resolve) => {
+          accept = resolve;
+        });
+        const connecting = deps.engine.signIn(source, source === "edunex" ? { token: session } : { cookie: session }, accept);
         // The hidden window saw the system signed in: say so now, not after its first full read (SIX reads at human pace).
         if (attempt.quiet && !silent) deps.send({ type: "signIn.joined", source });
-        // The other one now, on the Microsoft session just used, alongside this one's first full read.
-        after(source, attempt.quiet, connecting);
+        // The other one now, on the Microsoft session just used, alongside this one's first full read: what it finds
+        // is kept as soon as this one is in (or, should the sign-in fail before that, never).
+        after(source, attempt.quiet, Promise.race([accepted, connecting]));
         await connecting;
         return true;
       } catch (error) {
