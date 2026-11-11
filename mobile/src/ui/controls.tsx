@@ -12,6 +12,7 @@ import { useReduceMotion } from "./motion";
 import { useSlidingMark } from "./moves";
 import { BUSY_OPACITY } from "./palette";
 import { iosPressed } from "./press";
+import { segmentLines } from "./segment-lines";
 import { BUTTON_HEIGHT, CHIP_HEIGHT, SEGMENT_HEIGHT, SWITCH, SWITCH_SLOP, slopY } from "./sizes";
 import { Text } from "./text";
 import { motion, shape, space, TOUCH, useTheme } from "./theme";
@@ -412,7 +413,15 @@ export function Segmented<T extends string>({
             ]}
           >
             {on && check && <Icons.Check size={16} color={c.onSecondaryContainer} weight="bold" />}
-            <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "fg"} numberOfLines={2} style={{ flexShrink: 1, textAlign: "center" }}>
+            {/* One word (a number: "3,50") never breaks: one line, a little smaller if the tick left it short. */}
+            <Text
+              size="labelLarge"
+              tone={on ? "onSecondaryContainer" : "fg"}
+              numberOfLines={segmentLines(option.label)}
+              adjustsFontSizeToFit={segmentLines(option.label) === 1}
+              minimumFontScale={0.8}
+              style={{ flexShrink: 1, textAlign: "center" }}
+            >
               {option.label}
               {option.count !== undefined && (
                 <Text size="labelLarge" tone={on ? "onSecondaryContainer" : "muted"} tabular>
@@ -511,10 +520,12 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: SEGMENT_HEIGHT,
     flexDirection: "row",
-    gap: space[2],
+    // The tick's gap and the sides are tight so a picked segment's label keeps its room ("✓ 3,50" in a third of the
+    // row); the label is centred, so a segment with room to spare looks as before.
+    gap: space[1.5],
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: space[3],
+    paddingHorizontal: space[2],
     paddingVertical: space[1],
   },
   chip: {
