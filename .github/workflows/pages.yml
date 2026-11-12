@@ -69,8 +69,9 @@ jobs:
         with:
           node-version-file: .nvmrc
           package-manager-cache: false
-      # With it the download buttons fetch each file straight away. Without it (GitHub didn't answer, or
-      # there is no release yet) they open the release page, and the site is published all the same.
+      # GitHub's "latest" release: the newest one published that isn't marked a pre-release. With it the
+      # download buttons fetch each file straight away. Without it (GitHub didn't answer, or there is no
+      # release yet) they open the release page, and the site is published all the same.
       - name: Ask GitHub for the newest release
         env:
           GH_TOKEN: ${{ github.token }}

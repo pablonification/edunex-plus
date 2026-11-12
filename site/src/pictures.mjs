@@ -117,7 +117,7 @@ const PICTURES = {
     win(
       p.mac.about,
       `<div class="m-about"><span class="m-mac"></span><b>MacBook Air</b>
-      <dl>${target(`<span class="m-about-row"><dt>${esc(p.mac.chip)}</dt><dd>${esc(p.mac.chipValue)}</dd></span>`)}<span class="m-about-row"><dt>${esc(p.mac.macos)}</dt><dd>Sequoia</dd></span></dl>
+      <div class="m-about-rows">${target(`<span class="m-about-row"><span>${esc(p.mac.chip)}</span><b>${esc(p.mac.chipValue)}</b></span>`)}<span class="m-about-row"><span>${esc(p.mac.macos)}</span><b>Sequoia</b></span></div>
       <small>${esc(p.mac.chipValue)} = ${esc(p.mac.silicon)}</small></div>`,
       "m-light",
     ),

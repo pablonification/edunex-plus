@@ -35,7 +35,7 @@ laptop may be set to either language.
 two pages the build makes with `--cards`:
 
 ```sh
-node site/build.mjs --cards && node site/serve.mjs
+node site/serve.mjs --cards
 # then photograph http://localhost:4321/social-card-id.html (and -en) at 1200 by 630, for example:
 # "Google Chrome" --headless --window-size=1200,630 --screenshot=card.png http://localhost:4321/social-card-id.html
 ```

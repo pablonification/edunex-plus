@@ -23,7 +23,7 @@ export const fileOf = (release, key) => release?.assets.find((asset) => new RegE
 const megabytes = (bytes) => `${Math.round(bytes / 1_000_000)} MB`;
 
 const crumbs = (words, lang, last) =>
-  `<nav class="crumbs" aria-label="Breadcrumb"><a href="${href(lang)}">Edunex Plus</a><span aria-hidden="true">›</span>${
+  `<nav class="crumbs" aria-label="${esc(words.nav.crumbs)}"><a href="${href(lang)}">Edunex Plus</a><span aria-hidden="true">›</span>${
     last
       ? `<a href="${href(lang, "/install/")}">${esc(words.install.crumb)}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(last)}</span>`
       : `<span aria-current="page">${esc(words.install.crumb)}</span>`
@@ -96,7 +96,7 @@ const command = (step, words, release) => {
   if (!step.command) return "";
   // The real file name once the release is known, so the line can be pasted as it is.
   const line = release ? step.command.replace(/<vers(i|ion)>/g, release.version) : step.command;
-  return `<div class="command"><code>${esc(line)}</code><button class="copy" type="button" data-copy="${esc(line)}" data-copied="${esc(words.install.guide.copied)}">${icon("copy", 16)}<span>${esc(words.install.guide.copy)}</span></button></div>`;
+  return `<div class="command"><code>${esc(line)}</code><button class="copy" type="button" hidden data-copy="${esc(line)}" data-copied="${esc(words.install.guide.copied)}">${icon("copy", 16)}<span aria-live="polite">${esc(words.install.guide.copy)}</span></button></div>`;
 };
 
 export function guide({ words, lang, device, assets, data }) {

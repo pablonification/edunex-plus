@@ -14,6 +14,7 @@ export default {
     menu: "Menu",
     skip: "Skip to content",
     language: "Language",
+    crumbs: "Breadcrumb",
   },
 
   devices: {
@@ -149,7 +150,10 @@ export default {
           title: "No ads, no tracking",
           body: "No analytics. The app only talks to Edunex, SIX, ITB's public pages, and GitHub for updates. Phone alerts and problem reports only run if you turn them on or send them.",
         },
-        { title: "Delete it any time", body: "“Sign out & remove data” in Settings deletes everything the app saved." },
+        {
+          title: "Delete it any time",
+          body: "“Sign out & remove data” in Settings signs you out and deletes your courses, grades, plans and notes from the device.",
+        },
       ],
       flow: [
         { who: "You", what: "type your password" },
@@ -209,7 +213,7 @@ export default {
         },
         {
           q: "What does “still an alpha” mean?",
-          a: "It's in early testing, so it can read something wrong. For anything important, like a hand-in or an attendance count, check Edunex or SIX too. If something breaks, report it with “Laporkan masalah” in the app or on GitHub.",
+          a: "It's in early testing, so it can read something wrong. For anything important, like a hand-in or an attendance count, check Edunex or SIX too. If something breaks, report it with “Report a problem” in the app or on GitHub.",
         },
         {
           q: "How do I update it?",
@@ -414,7 +418,7 @@ export default {
         {
           title: "Open the installer inside the zip",
           body: [
-            "Open the zip you downloaded, then double-click <strong>Edunex-Plus-Setup</strong> inside it.",
+            "Open the zip you downloaded, then double-click the installer (the <strong>.exe</strong>) inside it.",
             "The installer comes in a zip so browsers hold it back less often.",
           ],
           pic: "winZip",

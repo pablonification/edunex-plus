@@ -51,7 +51,8 @@ past it, and the app then opens normally.
 3. Open **Edunex Plus** from Applications, and eject the disk (⏏ beside
    **Edunex Plus \<version\>** in Finder's sidebar).
 
-From then on it opens like any other app. After each update, run the line again once.
+From then on it opens like any other app. After an update you install by hand, run the line again once
+(an update from inside the app doesn't need it).
 
 <details>
 <summary>Rather not use Terminal?</summary>

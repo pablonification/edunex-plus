@@ -17,6 +17,7 @@ export default {
     menu: "Menu",
     skip: "Langsung ke isi",
     language: "Bahasa",
+    crumbs: "Jejak halaman",
   },
 
   devices: {
@@ -152,7 +153,10 @@ export default {
           title: "Tanpa iklan, tanpa pelacakan",
           body: "Tidak ada analitik. Aplikasi hanya menghubungi Edunex, SIX, halaman publik ITB, dan GitHub untuk pembaruan. Notifikasi ke HP dan laporan masalah hanya jalan kalau kamu menyalakan atau mengirimnya.",
         },
-        { title: "Bisa dihapus kapan saja", body: "“Keluar & hapus data” di Pengaturan menghapus semua yang disimpan aplikasi." },
+        {
+          title: "Bisa dihapus kapan saja",
+          body: "“Keluar & hapus data” di Pengaturan mengeluarkanmu dan menghapus mata kuliah, nilai, rencana, dan catatanmu dari perangkat.",
+        },
       ],
       flow: [
         { who: "Kamu", what: "mengetik kata sandi" },
@@ -425,7 +429,7 @@ export default {
         {
           title: "Buka pemasang di dalam zip",
           body: [
-            "Buka berkas zip yang diunduh, lalu klik dua kali <strong>Edunex-Plus-Setup</strong> di dalamnya.",
+            "Buka berkas zip yang diunduh, lalu klik dua kali pemasangnya (berkas <strong>.exe</strong>) di dalamnya.",
             "Pemasangnya dibungkus zip supaya browser tidak terlalu sering menahannya.",
           ],
           pic: "winZip",

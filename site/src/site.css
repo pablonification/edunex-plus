@@ -1303,6 +1303,9 @@ details[open] > summary .icon {
   font: 600 0.88rem var(--font);
   cursor: pointer;
 }
+.copy[hidden] {
+  display: none;
+}
 .copy:hover {
   background: rgb(255 255 255 / 0.24);
 }
@@ -2080,7 +2083,7 @@ details[open] > summary .icon {
 .m-about > b {
   font-size: 16px;
 }
-.m-about dl {
+.m-about-rows {
   display: grid;
   gap: 4px;
   margin: 6px 0;
@@ -2091,12 +2094,11 @@ details[open] > summary .icon {
   gap: 12px;
   padding: 3px 8px;
 }
-.m-about dt {
+.m-about-row span {
   color: #6a6f80;
   text-align: right;
 }
-.m-about dd {
-  margin: 0;
+.m-about-row b {
   font-weight: 500;
 }
 .m-about small {

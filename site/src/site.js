@@ -59,13 +59,18 @@ if (other) {
 // The newest release, asked from GitHub only when the site was built without it.
 async function latest() {
   if (data.release) return data.release;
-  const saved = sessionStorage.getItem("latest-release");
-  if (saved) return JSON.parse(saved);
+  // Site data can be blocked, and then even reading it throws: ask GitHub instead.
+  try {
+    const saved = sessionStorage.getItem("latest-release");
+    if (saved) return JSON.parse(saved);
+  } catch {}
   const response = await fetch(`https://api.github.com/repos/${data.repo}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
   if (!response.ok) throw new Error(`GitHub said ${response.status}`);
   const { tag_name, assets } = await response.json();
   const release = { version: tag_name.replace(/^v/, ""), assets: assets.map(({ name, browser_download_url }) => ({ name, url: browser_download_url })) };
-  sessionStorage.setItem("latest-release", JSON.stringify(release));
+  try {
+    sessionStorage.setItem("latest-release", JSON.stringify(release));
+  } catch {}
   return release;
 }
 
@@ -81,7 +86,12 @@ if (fileLinks.length > 0 || metas.length > 0) {
       if (data.release) return;
       for (const link of fileLinks) {
         const file = release.assets.find((asset) => new RegExp(data.files[link.dataset.file]).test(asset.name));
-        if (file) link.href = file.url;
+        if (!file) continue;
+        // The file itself now, not the release page: it downloads here, without a new tab.
+        link.href = file.url;
+        link.removeAttribute("target");
+        link.removeAttribute("rel");
+        link.setAttribute("download", "");
       }
       for (const copy of document.querySelectorAll("[data-copy]")) {
         const line = copy.dataset.copy.replace(/<vers(i|ion)>/g, release.version);
@@ -96,6 +106,7 @@ if (fileLinks.length > 0 || metas.length > 0) {
 for (const copy of document.querySelectorAll("[data-copy]")) {
   const label = copy.querySelector("span");
   const idle = label.textContent;
+  copy.hidden = false;
   copy.addEventListener("click", async () => {
     try {
       await navigator.clipboard.writeText(copy.dataset.copy);
