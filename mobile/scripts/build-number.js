@@ -13,7 +13,7 @@ const STAGES = { alpha: 0, beta: 300, rc: 600 };
 const RELEASE = 999;
 const PER_STAGE = 300;
 // Android's own ceiling for a versionCode.
-const MOST = 2_100_000_000;
+const MOST = 2100000000;
 
 /** The build number for `version` (as package.json writes it). */
 function buildNumber(version) {
@@ -23,7 +23,7 @@ function buildNumber(version) {
   const [, , , , stage, n] = match;
   if (minor > 99 || patch > 99) throw new Error(`Can't make a build number from version "${version}": minor and patch go up to 99.`);
   if (stage && Number(n) >= PER_STAGE) throw new Error(`Can't make a build number from version "${version}": ${stage}.N goes up to ${PER_STAGE - 1}.`);
-  const number = major * 10_000_000 + minor * 100_000 + patch * 1_000 + (stage ? STAGES[stage] + Number(n) : RELEASE);
+  const number = major * 10000000 + minor * 100000 + patch * 1000 + (stage ? STAGES[stage] + Number(n) : RELEASE);
   if (number > MOST) throw new Error(`Can't make a build number from version "${version}": ${number} is past Android's ${MOST}.`);
   return number;
 }
