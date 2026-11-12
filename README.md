@@ -29,8 +29,8 @@ you what needs you now:
 - **Presensi:** how many more classes you can miss in each course, which ones have none left, and
   which class to go to when two clash. In class, it tells you the moment SIX's **Tandai Hadir**
   opens and takes you straight to it, and after class whether SIX counted it.
-- **Courses:** modules, materials (Word, Excel, PowerPoint and PDF open in the app, and work
-  offline), meetings and rooms.
+- **Courses:** modules, materials (Word, Excel, PowerPoint and PDF open in the app on a computer,
+  and in your phone's own apps on a phone; saved copies work offline), meetings and rooms.
 - **Rencana studi:** your KRS, UKT bills and ITB's academic deadlines.
 - **Alerts:** new Tasks, attendance opening, reminders you choose, on your phone and your
   computer.
@@ -82,14 +82,17 @@ the [code signing policy](docs/code-signing.md).
 ## Your data stays on your device
 
 - You sign in on ITB's real Microsoft page. Your password never reaches the app.
-- Your sign-in is locked by your system's own keychain. What the app reads is saved only on your
-  phone or computer.
+- Your sign-in is locked by your system's own keychain (the keystore on Android). On a phone, the
+  Edunex and SIX pages the app opens inside itself also keep their signed-in session in the app's
+  own storage, as a browser would. What the app reads is saved only on your phone or computer.
 - It talks only to Edunex, SIX, ITB's public pages, GitHub (to check for updates), ntfy if you
   turn on phone alerts, and the maintainer's report relay when a problem report goes: when you
   press **Kirim langsung**, or by itself if you said so when the app asked. A report has your
   name, NIM, contacts and links replaced and your grades and amounts made up first. The whole
   report stays private for the maintainer; the public GitHub issue gets only its summary.
   **Settings → Laporan masalah** stops it sending by itself. No analytics, no tracking.
+- On a phone, **Kalender HP** copies your classes and exams into the phone's own calendar, only if
+  you turn it on. If that calendar syncs to an account (Google, iCloud), your phone sends them there.
 - **Settings → Keluar & hapus data** signs you out and removes your courses, grades, plans and
   notes from the device.
 

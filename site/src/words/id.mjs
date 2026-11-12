@@ -112,7 +112,7 @@ export default {
       alt: "Tugas & Ujian di laptop: ujian di masa UTS dan tugas minggu depan, dengan mata kuliah dan tenggatnya",
       alsoTitle: "Juga ada",
       also: [
-        "Materi kuliah (Word, PowerPoint, PDF) terbuka di aplikasi dan bisa disimpan untuk offline",
+        "Materi kuliah (Word, PowerPoint, PDF) terbuka di aplikasi, di HP lewat aplikasi HP-mu, dan bisa disimpan untuk offline",
         "KRS, tagihan UKT, dan kalender akademik ITB",
         "Widget di layar utama HP",
         "Terang dan gelap, Indonesia dan Inggris",
