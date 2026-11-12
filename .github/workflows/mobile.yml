@@ -1,16 +1,19 @@
-# The Android app (mobile/): builds its APKs, runs its Maestro flows on an
-# emulator, and takes the desktop demo's pictures to compare the two. Every
-# native build of the phone app happens here, not on a laptop.
+# The phone app (mobile/), Android and iPhone: builds its APKs, runs its Maestro
+# flows on an Android emulator, builds the iPhone app, and takes the desktop
+# demo's pictures to compare the two. Every native build of the phone app
+# happens here, not on a laptop. (The APK and .ipa a release carries are built
+# by mobile-release.yml.)
 #
 # Two sizes of run:
 # - Quick (a pull request, or a push to main, that changes the app): the APKs,
 #   the desktop pictures and the "app" flows on one emulator, about 30 minutes.
 # - Full (every night, or by hand): the quick run plus every scenario's
 #   same-data flows, one emulator each. Each takes 1.5 to 3 hours, which is
-#   why pull requests don't wait for them.
+#   why pull requests don't wait for them. The nightly run also builds the
+#   iPhone app, so a break there shows the next morning, not on release day.
 #
 # By hand: `gh workflow run mobile.yml --ref <branch>` (add `-f scenarios=false`
-# for the quick run).
+# for the quick run; `-f apks=ios` for the iPhone build).
 #
 # Fetching the results: `gh run download <run id>` saves every APK, the flows'
 # results and the desktop pictures, one folder per artifact.
@@ -356,13 +359,12 @@ jobs:
           # shellcheck disable=SC2016 # the backticks are Markdown, written as they are
           printf '### Flows: %s\n\n%s Screenshots and logs: artifact `e2e-results-%s`.\n' "$GROUP" "$line" "$GROUP" >> "$GITHUB_STEP_SUMMARY"
 
-  # The same-data score over every scenario that ran (check A in mobile/PROGRESS.md), in the run's summary.
-  # An unsigned iPhone build (read-only QA), by hand only: `gh workflow run mobile.yml -f apks=ios -f e2e=false
+  # An unsigned iPhone build (read-only QA), every night and by hand: `gh workflow run mobile.yml -f apks=ios -f e2e=false
   # -f scenarios=false -f desktop-shots=false`. The .ipa is signed on the developer's Mac (AltServer or Sideloadly with
   # their Apple ID) to install over a cable: mobile/IOS.md.
   ios:
     name: ipa (edunex-plus-qa-ios)
-    if: github.event_name == 'workflow_dispatch' && inputs.apks == 'ios'
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.apks == 'ios')
     runs-on: macos-latest
     timeout-minutes: 90
     env:
@@ -460,6 +462,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # The same-data score over every scenario that ran (check A in mobile/PROGRESS.md), in the run's summary.
   score:
     name: score
     needs: [plan, e2e]

@@ -1,6 +1,7 @@
 # The checks every pull request and every push to main goes through. They run
 # side by side, and each writes its result in plain words on the run's summary
-# page. lint, typecheck, test and build must pass; knip only advises.
+# page. lint, typecheck, test, build and mobile must pass; knip only advises.
+# The phone app's builds and its flows on an emulator are their own workflow (mobile.yml).
 name: CI
 
 on:
@@ -32,6 +33,7 @@ jobs:
       pull-requests: read # list the pull request's changed files
     outputs:
       deps: ${{ steps.areas.outputs.deps }}
+      mobile: ${{ steps.areas.outputs.mobile }}
       workflows: ${{ steps.areas.outputs.workflows }}
     steps:
       - name: See which areas the change touches
@@ -55,6 +57,8 @@ jobs:
           }
           {
             area deps '^(relay/)?package(-lock)?\.json$'
+            # The phone app, and what it shares with the desktop (src/), and the tests its type check reads.
+            area mobile '^(mobile|src|test/mobile)/'
             area workflows '^\.github/'
           } | tee -a "$GITHUB_OUTPUT"
 
@@ -183,6 +187,43 @@ jobs:
       - name: Summarize a failed build
         if: ${{ failure() && steps.size.outcome == 'skipped' }}
         run: printf '### Build\n\n**The app did not build.** The log of this job says why.\n' >> "$GITHUB_STEP_SUMMARY"
+
+  # The phone app's type check (mobile/tsconfig.json, with its own packages), which the typecheck job above
+  # doesn't cover. Biome already checks mobile/, and test/mobile runs in the test jobs.
+  mobile:
+    name: mobile
+    needs: changes
+    if: needs.changes.outputs.mobile == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      # Both: the tests the phone's type check reads (test/mobile) take vitest from the root's packages. No install
+      # scripts: the root's fetch and sign Electron, and the phone's patches (mobile/patches) change native code, not types.
+      - name: Install the packages
+        run: |
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm ci --prefix mobile --ignore-scripts --no-audit --no-fund
+      - name: Check the phone app's types
+        id: check
+        working-directory: mobile
+        run: npm run typecheck 2>&1 | tee "$RUNNER_TEMP/check.log"
+      - name: Summarize
+        if: ${{ !cancelled() && steps.check.outcome != 'skipped' }}
+        env:
+          OUTCOME: ${{ steps.check.outcome }}
+        run: node scripts/ci/summary.mjs mobile "$OUTCOME" "$RUNNER_TEMP/check.log"
 
   knip:
     name: knip

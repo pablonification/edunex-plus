@@ -24,6 +24,21 @@
           - "scripts/adhoc-sign-electron.mjs"
           - "assets/**"
 
+# The phone app (Android and iPhone), its tests and the workflows that build it.
+"area:mobile":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "mobile/**"
+          - "test/mobile/**"
+          - "scripts/ci/mobile-e2e.sh"
+          - ".github/workflows/mobile.yml"
+          - ".github/workflows/mobile-release.yml"
+
+# The public website.
+"area:site":
+  - changed-files:
+      - any-glob-to-any-file: ["site/**", ".github/workflows/pages.yml"]
+
 "area:ci":
   - changed-files:
       - any-glob-to-any-file:
@@ -48,9 +63,11 @@ dependencies:
       - any-glob-to-any-file: ["package.json", "package-lock.json"]
 
 # Sessions, tokens, the window's locks and the bridge to it, packaging switches,
-# the Mac app's signature, the workflows that hold the repository's keys, and
-# the report relay, which holds Students' reports and a token for the issues:
-# worth a careful look.
+# the Mac app's signature, the workflows that hold the repository's keys, the
+# report relay, which holds Students' reports and a token for the issues, and on
+# the phone: its sessions and sign-in, the APK's signing key, the in-app update
+# that installs a downloaded APK, and the permissions the app asks for: worth a
+# careful look.
 security-sensitive:
   - changed-files:
       - any-glob-to-any-file:
@@ -62,3 +79,14 @@ security-sensitive:
           - "scripts/package-sign.*"
           - "scripts/make-signing-cert.*"
           - ".github/workflows/**"
+          - "mobile/app.config.ts"
+          - "mobile/plugins/release-signing.js"
+          - "mobile/src/host/apk-update.ts"
+          - "mobile/src/host/apk-files.ts"
+          - "mobile/src/host/vault.ts"
+          - "mobile/src/host/transport.ts"
+          - "mobile/src/host/signed-pages.ts"
+          - "mobile/src/host/resignin.ts"
+          - "mobile/src/host/guard.ts"
+          - "mobile/src/shell/sign-in.tsx"
+          - "mobile/modules/web-cookies/**"
