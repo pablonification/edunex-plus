@@ -32,6 +32,7 @@ copy. Electron downloads itself the first time the app starts.
 | `npm run format` | Fixes formatting and import order. |
 | `npm run check` | Lint, types and tests together: what a pull request must pass. |
 | `npm run knip` | Files, exports and packages nothing uses. |
+| `npm run site` | The website on this computer, rebuilt on every page load ([site/README.md](site/README.md)). |
 | `npm run package:mac` / `:win` / `:linux` | Installers, into `release/`. |
 
 To see every screen: `npm run demo:build`, then

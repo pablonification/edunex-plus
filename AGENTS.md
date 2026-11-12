@@ -10,7 +10,8 @@ app. Human docs: `README.md`; setup, privacy rules, CI and releases: `CONTRIBUTI
 - `src/app`: the window, React 19 + Tailwind v4; only reads what the engine publishes.
 - `mobile/`: the phone app (Android and iPhone; Expo), sharing `src/core`, `src/engine` and
   `src/app`'s hooks; its own notes in `mobile/AGENTS.md`. Native builds run in GitHub Actions only.
-- `site/`: the public website (plain HTML, published by `pages.yml`).
+- `site/`: the public website, in Indonesian and English, built by `site/build.mjs` and published by
+  `pages.yml`. Its own notes, and the look it keeps to: `site/README.md`.
 - `test/`: the real engine and screens against a pretend Edunex, SIX and ITB (`test/pretend`),
   fed by scrubbed recordings (`test/fixtures`); the phone's in `test/mobile`.
 
