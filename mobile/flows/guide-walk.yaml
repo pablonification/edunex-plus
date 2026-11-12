@@ -3,7 +3,7 @@
 # steps on the real screens, tab by tab, each with its place in the tour. Selesai ends it on Beranda and it doesn't
 # offer itself again. Then it's taken again from Settings › Tentang, and Kembali goes a step back.
 appId: io.github.pablonification.edunexplus.demo
-name: "the guide: invited, walked to its end, taken again from Settings"
+name: "the guide, invited, walked to its end and taken again from Settings"
 ---
 - clearState: io.github.pablonification.edunexplus.demo
 - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id&EDUNEX_DEMO_GUIDE=1"

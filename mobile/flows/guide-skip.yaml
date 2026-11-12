@@ -2,7 +2,7 @@
 # later, and the app is simply there; it never offers itself again. Skipped from inside too: the demo's link
 # ?guide=start starts the tour (as Settings › Tentang's row does), and "Lewati panduan" on its second step leaves it.
 appId: io.github.pablonification.edunexplus.demo
-name: "the guide: skipped on the invitation, and skipped at a step"
+name: "the guide, skipped on the invitation and at a step"
 ---
 - clearState: io.github.pablonification.edunexplus.demo
 - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id&EDUNEX_DEMO_GUIDE=1"
