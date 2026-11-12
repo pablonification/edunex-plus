@@ -1,0 +1,117 @@
+// The page works without this script. With it: the buttons name this visitor's device and lead to its
+// guide, the guide's download buttons put this computer's file first, and a line can be copied.
+const data = JSON.parse(document.getElementById("site-data").textContent);
+const ua = navigator.userAgent;
+
+// Android's own browser says "Linux" too, and an iPad says "Macintosh": the phones first.
+const os = /Android/.test(ua)
+  ? "android"
+  : /iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)
+    ? "iphone"
+    : /Windows/.test(ua)
+      ? "windows"
+      : /Linux|X11|CrOS/.test(ua)
+        ? "linux"
+        : "mac";
+
+// The buttons that start an install: this device's guide, said by name.
+const mine = data.install[os];
+if (mine) {
+  for (const link of document.querySelectorAll("[data-install], [data-install-link]")) link.href = mine.href;
+  for (const label of document.querySelectorAll("[data-install-label]")) label.textContent = mine.label;
+}
+for (const card of document.querySelectorAll(`.device[data-device="${os}"]`)) {
+  card.classList.add("is-yours");
+  card.querySelector(".device-yours").hidden = false;
+}
+
+// ARM or not: Apple silicon or Intel, a Snapdragon Windows PC or not. Chrome and Edge say it outright,
+// otherwise the graphics chip gives it away (an Intel Mac's isn't Apple's, an ARM PC's is Qualcomm's).
+// Unsure means the common case: Apple silicon, and Intel or AMD on Windows.
+async function arm() {
+  try {
+    const hints = await navigator.userAgentData?.getHighEntropyValues(["architecture"]);
+    if (hints?.architecture) return hints.architecture === "arm";
+  } catch {}
+  try {
+    const gl = document.createElement("canvas").getContext("webgl");
+    const info = gl?.getExtension("WEBGL_debug_renderer_info");
+    const gpu = info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : "";
+    return os === "windows" ? /Qualcomm|Adreno/i.test(gpu) : !/Intel|AMD|Radeon|NVIDIA/i.test(gpu);
+  } catch {
+    return os === "mac";
+  }
+}
+
+// A guide with two files for one system (Apple silicon and Intel, x64 and ARM): this computer's comes first.
+const second = { mac: "mac-intel", windows: "win-arm" }[os];
+const other = second && document.querySelector(`.files [data-file="${second}"]`);
+if (other) {
+  arm().then((isArm) => {
+    if ((os === "mac") === isArm) return;
+    const first = other.parentElement.firstElementChild;
+    first.classList.replace("btn-primary", "btn-outline");
+    other.classList.replace("btn-outline", "btn-primary");
+    other.parentElement.prepend(other);
+  });
+}
+
+// The newest release, asked from GitHub only when the site was built without it.
+async function latest() {
+  if (data.release) return data.release;
+  const saved = sessionStorage.getItem("latest-release");
+  if (saved) return JSON.parse(saved);
+  const response = await fetch(`https://api.github.com/repos/${data.repo}/releases/latest`, { headers: { Accept: "application/vnd.github+json" } });
+  if (!response.ok) throw new Error(`GitHub said ${response.status}`);
+  const { tag_name, assets } = await response.json();
+  const release = { version: tag_name.replace(/^v/, ""), assets: assets.map(({ name, browser_download_url }) => ({ name, url: browser_download_url })) };
+  sessionStorage.setItem("latest-release", JSON.stringify(release));
+  return release;
+}
+
+const fileLinks = document.querySelectorAll("[data-file]");
+const metas = document.querySelectorAll("[data-install-meta]");
+if (fileLinks.length > 0 || metas.length > 0) {
+  latest()
+    .then((release) => {
+      for (const meta of metas) {
+        const others = Object.assign(document.createElement("a"), { href: data.words.othersHref, textContent: data.words.others });
+        meta.replaceChildren(`${data.words.version.replace("{version}", release.version)} · `, others);
+      }
+      if (data.release) return;
+      for (const link of fileLinks) {
+        const file = release.assets.find((asset) => new RegExp(data.files[link.dataset.file]).test(asset.name));
+        if (file) link.href = file.url;
+      }
+      for (const copy of document.querySelectorAll("[data-copy]")) {
+        const line = copy.dataset.copy.replace(/<vers(i|ion)>/g, release.version);
+        copy.dataset.copy = line;
+        copy.previousElementSibling.textContent = line;
+      }
+    })
+    .catch(() => {});
+}
+
+// Copy buttons: the line goes to the clipboard, and the button says so for a moment.
+for (const copy of document.querySelectorAll("[data-copy]")) {
+  const label = copy.querySelector("span");
+  const idle = label.textContent;
+  copy.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(copy.dataset.copy);
+      label.textContent = copy.dataset.copied;
+    } catch {
+      getSelection().selectAllChildren(copy.previousElementSibling);
+      label.textContent = os === "mac" ? "⌘C" : "Ctrl+C";
+    }
+    setTimeout(() => {
+      label.textContent = idle;
+    }, 2000);
+  });
+}
+
+// The bar at the top takes a background once the page has scrolled under it.
+const nav = document.getElementById("nav");
+const onScroll = () => nav.classList.toggle("is-scrolled", window.scrollY > 8);
+addEventListener("scroll", onScroll, { passive: true });
+onScroll();

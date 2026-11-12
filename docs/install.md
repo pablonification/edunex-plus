@@ -2,6 +2,9 @@
 
 How to install, update and remove the app on each system, phones included. Back to the [README](../README.md).
 
+The website has the same steps with a picture for each, in Indonesian and English:
+[edunex-plus.arqilasp.com/install](https://edunex-plus.arqilasp.com/install/). This page is the long version, for every case.
+
 > **Alpha.** Edunex Plus is in early testing: expect rough edges, and check anything important
 > (a hand-in, an attendance count) on Edunex or SIX itself. Tell us what breaks in
 > [Issues](https://github.com/pablonification/edunex-plus/issues).
@@ -160,8 +163,8 @@ sign-in and saved data stay.
 <details>
 <summary>What's different on iPhone?</summary>
 
-No home-screen widget yet, and iOS decides when the app may update in the background, much less
-often than Android does (opening the app always updates it). Everything else is the same app.
+iOS decides when the app may update in the background, much less often than Android does (opening
+the app always updates it). Everything else is the same app, home-screen widgets included.
 
 </details>
 

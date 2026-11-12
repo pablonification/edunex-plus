@@ -57,8 +57,9 @@ under **Assets** (Windows or Linux on ARM: see the [install guide](docs/install.
 | iPhone | `Edunex-Plus-<version>-iphone.ipa` (you sign it with your own Apple ID: [steps](docs/install.md#iphone)) |
 
 Your browser and your system warn you the first time you open each new version: few people have
-downloaded it yet, and the Mac app isn't signed by Apple. The [install guide](docs/install.md)
-shows the steps to get past that, plus updating and uninstalling. How the installers are signed:
+downloaded it yet, and the Mac app isn't signed by Apple. The website's
+[picture guides](https://edunex-plus.arqilasp.com/install/) show which button to press on each
+device, and the [install guide](docs/install.md) has every case, plus updating and uninstalling. How the installers are signed:
 the [code signing policy](docs/code-signing.md).
 
 > **Alpha:** expect rough edges, and double-check anything important on Edunex or SIX itself.
