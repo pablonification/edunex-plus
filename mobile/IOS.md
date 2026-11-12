@@ -73,13 +73,14 @@ Nobody has seen these run. `qa/superapp-ios-widgets.md` says how they work; CI's
 each one from the demo's data (artifact `ios-widget-sketches`), to hold the phone against. In order, each
 step only worth doing if the one before it worked:
 
-1. **It installs with the widget inside.** Re-signing the `.ipa` (Sideloadly or AltServer) must keep the widget
-   extension (`ExpoWidgetsTarget`) and give both the app and it an App Group. CI's `.ipa` is unsigned, and unsigned
-   code carries no entitlements, so the build says the App Group inside the app first (`scripts/ios-app-group.sh`:
-   an ad-hoc signature with that one entitlement, which the re-signer replaces and asks Apple for). A re-signer
-   may grant the group under another name (the team's id added): the app and the widgets read the granted name
-   from the provisioning profile in the bundle (`patches/expo-widgets+*.patch`). Without either, the widgets and
-   the Live Activity stay empty: seen on the first sideloaded build (12 Nov).
+1. **It installs with the widget inside.** The app and its widgets share one store. Signed properly (Xcode, a
+   paid account, AltStore) that is the App Group: CI's `.ipa` is unsigned, and unsigned code carries no
+   entitlements, so the build says the App Group inside the app first (`scripts/ios-app-group.sh`), and a signer
+   that grants it under another name (the team's id added) is followed by reading the granted name from the
+   provisioning profile in the bundle. **Sideloadly on a free Apple ID grants no App Group** (seen 12 Nov: one App
+   ID and one profile for the app and the widgets, no group): there the store is the keychain, which the app and
+   the widget extension share because they are signed alike. Both are in `patches/expo-widgets+*.patch`; each
+   process says which store it uses in the phone's log (`[ExpoWidgets]`).
 2. **The gallery has them.** Long-press the Home Screen › Edit › Add Widget › "Edunex Plus": two widgets ("Edunex
    Plus" and "Hari ini"), each in small, medium and large, shown greyed like a widget still loading.
 3. **They fill in.** Open the app (the demo is easiest), sign in or let the demo load, go back to the Home Screen.
