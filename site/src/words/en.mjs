@@ -109,7 +109,7 @@ export default {
       alt: "Tasks & Exams on a laptop: exams in the UTS weeks and next week's tasks, each with its course and deadline",
       alsoTitle: "Also inside",
       also: [
-        "Course files (Word, PowerPoint, PDF) open in the app and can be saved for offline",
+        "Course files (Word, PowerPoint, PDF) open in the app, on a phone in your phone's own apps, and can be saved for offline",
         "KRS, UKT bills and ITB's academic calendar",
         "Widgets on your phone's home screen",
         "Light and dark, Indonesian and English",

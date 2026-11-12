@@ -13,6 +13,8 @@ stays one "Hubungkan" away.
 
 ## What the app keeps and sends
 
+This part describes the desktop app. What differs on a phone is under [On the phone](#on-the-phone).
+
 Everything stays on your computer:
 
 - **Your sessions** (Edunex token, SIX cookie) are encrypted with a key your system's keychain
@@ -94,3 +96,20 @@ No other servers, no analytics, no tracking: nothing about how you use the app i
 problem report goes only as described above. Every request says it comes from Edunex Plus
 (its User-Agent), and the app reads at a human pace. How it uses each system is written down in
 [API.md](../API.md) (Edunex) and [SIX.md](../SIX.md).
+
+## On the phone
+
+The phone app (Android and iPhone) keeps and sends the same things, with these differences:
+
+- **Your sessions** are locked by Android's keystore or the iPhone's keychain. The Edunex and SIX
+  pages the app opens inside itself also keep their own signed-in session, as a browser would:
+  Edunex's in its site's storage, SIX's and Microsoft's as cookies, all in the app's private
+  storage. Signing out of Edunex clears its site's storage; signing out of SIX clears its cookies.
+- **What the app has read**, and the files you save for offline, are kept in the app's own storage
+  on the phone.
+- **Course files open in your phone's own apps** (a PDF or Office reader), not inside Edunex Plus:
+  the app you choose gets the file you open.
+- **Kalender HP** (in Jadwal's menu), only if you turn it on: your classes and exams are copied
+  into a calendar of the app's own in the phone's calendar. If that calendar syncs to an account
+  (Google, iCloud), your phone sends those events there. The app itself doesn't.
+- **Updates on Android** download the new APK from GitHub when you press **Unduh & pasang**.
