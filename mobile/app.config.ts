@@ -6,6 +6,9 @@ const demo = process.env.EXPO_PUBLIC_DEMO === "1";
 const iosBundle = demo ? "io.github.pablonification.edunexplus.demo" : "io.github.pablonification.edunexplus";
 const { version } = require("../package.json") as { version: string };
 const { shapesStamp } = require("./scripts/shapes-stamp.js") as { shapesStamp(): string };
+// Android's versionCode and the iPhone's buildNumber, from the version: each release installs over the one before.
+const { buildNumber } = require("./scripts/build-number.js") as { buildNumber(version: string): number };
+const build = buildNumber(version);
 
 /**
  * The home-screen widgets (qa/superapp-widgets.md, src/widget/). `name` is the widget's class to Android: "Now" and
@@ -169,7 +172,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: "automatic",
   android: {
     package: demo ? "io.github.pablonification.edunexplus.demo" : "io.github.pablonification.edunexplus",
-    versionCode: 1,
+    versionCode: build,
     // Made from the desktop's drawing by scripts/make-icons.mjs.
     adaptiveIcon: {
       backgroundColor: "#2F6FEB",
@@ -198,7 +201,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     icon: "./assets/ios-icon.png",
     supportsTablet: false,
     bundleIdentifier: iosBundle,
-    buildNumber: "1",
+    buildNumber: String(build),
     infoPlist: { ITSAppUsesNonExemptEncryption: false },
   },
   // shapes: the datasets' schemas this build saves under (scripts/shapes-stamp.js); src/host/version.ts.
