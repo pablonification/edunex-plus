@@ -22,12 +22,9 @@ export const fileOf = (release, key) => release?.assets.find((asset) => new RegE
 
 const megabytes = (bytes) => `${Math.round(bytes / 1_000_000)} MB`;
 
+/** Where a guide sits: the home page, the install page, then the guide. */
 const crumbs = (words, lang, last) =>
-  `<nav class="crumbs" aria-label="${esc(words.nav.crumbs)}"><a href="${href(lang)}">Edunex Plus</a><span aria-hidden="true">›</span>${
-    last
-      ? `<a href="${href(lang, "/install/")}">${esc(words.install.crumb)}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(last)}</span>`
-      : `<span aria-current="page">${esc(words.install.crumb)}</span>`
-  }</nav>`;
+  `<nav class="crumbs" aria-label="${esc(words.nav.crumbs)}"><a href="${href(lang)}">Edunex Plus</a><span aria-hidden="true">›</span><a href="${href(lang, "/install/")}">${esc(words.install.crumb)}</a><span aria-hidden="true">›</span><span aria-current="page">${esc(last)}</span></nav>`;
 
 const breadcrumbLd = (words, lang, last, path) => ({
   "@context": "https://schema.org",
@@ -35,7 +32,7 @@ const breadcrumbLd = (words, lang, last, path) => ({
   itemListElement: [
     { "@type": "ListItem", position: 1, name: "Edunex Plus", item: ORIGIN + href(lang) },
     { "@type": "ListItem", position: 2, name: words.install.crumb, item: ORIGIN + href(lang, "/install/") },
-    ...(last ? [{ "@type": "ListItem", position: 3, name: last, item: ORIGIN + href(lang, path) }] : []),
+    { "@type": "ListItem", position: 3, name: last, item: ORIGIN + href(lang, path) },
   ],
 });
 
@@ -45,7 +42,7 @@ export function installHub({ words, lang, assets, data }) {
   <div class="container">
     <h1>${esc(w.h1)}</h1>
     ${deviceRows(words, lang)}
-    ${whyWarned(words)}
+    ${whyWarned(words, 2)}
   </div>
 </section>
 <section class="section">
@@ -60,7 +57,6 @@ export function installHub({ words, lang, assets, data }) {
     path: "/install/",
     title: `${w.title} · Edunex Plus`,
     description: w.description,
-    jsonLd: [breadcrumbLd(words, lang)],
     body,
     assets,
     data,
@@ -71,9 +67,10 @@ export function installHub({ words, lang, assets, data }) {
 const downloads = (keys, words, release, device) => {
   // The site knows the newest release and it has no such file (a release from before the phone app): no button
   // that leads nowhere, only where to look.
-  if (release && !fileOf(release, keys[0]))
+  if (release && !keys.some((key) => fileOf(release, key)))
     return `<p class="file-note">${esc(fill(words.install.guide.notYet, { device: words.devices[device] }))} <a class="link" href="${RELEASES}" target="_blank" rel="noopener noreferrer">${esc(words.install.guide.releasePage)}</a></p>`;
   const buttons = keys
+    .filter((key) => !release || fileOf(release, key))
     .map((key) => {
       const file = fileOf(release, key);
       const size = file?.size ? `<small>${megabytes(file.size)}</small>` : "";

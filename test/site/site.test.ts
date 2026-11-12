@@ -262,7 +262,7 @@ describe("the website's look", () => {
   const css = fs.readFileSync(path.resolve("site/src/site.css"), "utf8");
 
   // What makes a page look machine-made, each one removed once already (site/README.md, "How it looks").
-  it("stays flat: no gradients, blur, glow, looping motion or spaced-out capitals", () => {
+  it("stays flat: no gradients, blur, looping motion or spaced-out capitals", () => {
     const found = [
       [/gradient\(/, "a gradient"],
       [/backdrop-filter|filter:\s*blur/, "a blur"],

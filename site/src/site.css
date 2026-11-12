@@ -142,6 +142,10 @@ dd {
   outline: 3px solid var(--blue);
   outline-offset: 3px;
 }
+/* On the blue itself a blue ring can't be seen. */
+:is(.hero, .closing, .nav-on-hero:not(.is-scrolled)) :focus-visible {
+  outline-color: #fff;
+}
 
 .icon {
   flex: none;
@@ -316,7 +320,10 @@ dd {
   border-radius: 13.4cqw;
   background: #fff;
 }
-.iphone-screen > img {
+.iphone-screen > picture {
+  display: contents;
+}
+.iphone-screen img {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -748,8 +755,10 @@ dd {
   max-width: 68ch;
   margin-top: clamp(28px, 4vw, 44px);
 }
-.aside h3 {
+.aside :is(h2, h3) {
   margin-bottom: 8px;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
 }
 
 /* Questions */
@@ -1886,6 +1895,12 @@ details[open] > summary .icon {
     flex-wrap: nowrap;
     gap: 10px;
     zoom: 0.74;
+  }
+}
+
+@media (max-width: 400px) {
+  .duo {
+    zoom: 0.64;
   }
 }
 

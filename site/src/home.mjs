@@ -54,8 +54,9 @@ export const deviceRows = (words, lang) => {
   ).join("")}</div>`;
 };
 
-/** Why the phone or laptop warns: said once, under the devices. */
-export const whyWarned = (words) => `<div class="aside"><h3>${esc(words.home.install.warnTitle)}</h3><p>${esc(words.home.install.warnBody)}</p></div>`;
+/** Why the phone or laptop warns: said once, under the devices, at the heading level the page is at there. */
+export const whyWarned = (words, level = 3) =>
+  `<div class="aside"><h${level}>${esc(words.home.install.warnTitle)}</h${level}><p>${esc(words.home.install.warnBody)}</p></div>`;
 
 // The screens shown beside their questions, in the order of the words' `screens.items`.
 const SCREENS = ["phone-home", "phone-tasks", "phone-courses", "phone-schedule", "phone-grades"];
