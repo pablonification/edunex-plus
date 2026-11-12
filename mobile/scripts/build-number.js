@@ -12,8 +12,10 @@
 const STAGES = { alpha: 0, beta: 300, rc: 600 };
 const RELEASE = 999;
 const PER_STAGE = 300;
+// Sums are written from numbers under ten million: Codacy's checker misreads a longer one as a different value.
+const MILLION = 1000000;
 // Android's own ceiling for a versionCode.
-const MOST = 2100000000;
+const MOST = 2100 * MILLION;
 
 /** The build number for `version` (as package.json writes it). */
 function buildNumber(version) {
@@ -23,7 +25,7 @@ function buildNumber(version) {
   const [, , , , stage, n] = match;
   if (minor > 99 || patch > 99) throw new Error(`Can't make a build number from version "${version}": minor and patch go up to 99.`);
   if (stage && Number(n) >= PER_STAGE) throw new Error(`Can't make a build number from version "${version}": ${stage}.N goes up to ${PER_STAGE - 1}.`);
-  const number = major * 10000000 + minor * 100000 + patch * 1000 + (stage ? STAGES[stage] + Number(n) : RELEASE);
+  const number = major * 10 * MILLION + minor * 100000 + patch * 1000 + (stage ? STAGES[stage] + Number(n) : RELEASE);
   if (number > MOST) throw new Error(`Can't make a build number from version "${version}": ${number} is past Android's ${MOST}.`);
   return number;
 }
