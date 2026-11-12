@@ -83,10 +83,16 @@ appId: io.github.pablonification.edunexplus.demo
 # Presensi isn't open on the demo's day: handed in anyway, not counted as present (the sheet says so).
 - tapOn:
     id: action.submitAnyway
+# Handed in: the Task's status line, at the page's top, now says when Edunex recorded it (its spoken label starts
+# "Edunex mencatatnya hari ini, 08:11 · …"). Not the "Terkumpul" flash over the page: it stays two seconds, and the
+# emulator looked once after its title had gone and once after its line had (runs 43213292291 and 43224561172).
+- scrollUntilVisible:
+    element:
+      id: card.due
+    direction: UP
 - extendedWaitUntil:
-    visible: "Terkumpul"
+    visible: "Edunex mencatatnya hari ini, .*"
     timeout: 20000
-- assertVisible: "Edunex mencatatnya hari ini, .*"
 - takeScreenshot: use-04-submitted
 - tapOn:
     id: action.back
