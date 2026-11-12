@@ -10,7 +10,7 @@ export default {
     features: "Features",
     install: "How to install",
     faq: "Questions",
-    get: "Get it free",
+    get: "Install",
     menu: "Menu",
     skip: "Skip to content",
     language: "Language",
@@ -28,8 +28,6 @@ export default {
   cta: {
     install: "Install on {device}",
     installGeneric: "Get it free",
-    features: "See what's inside",
-    how: "See how to install",
     others: "other devices",
     free: "Free for Android, iPhone, Windows, Mac and Linux",
     version: "Version {version}",
@@ -41,27 +39,19 @@ export default {
       "A free app for ITB students. Your tasks, timetable, attendance and grades from Edunex and SIX in one place. For Android, iPhone, Windows, Mac and Linux.",
     ogTitle: "Edunex Plus: Edunex and SIX, finally in one place",
     ogDescription: "A free app made by ITB students. Your tasks, timetable, attendance and grades in one app, on your phone and laptop.",
-    ogAlt: "Edunex Plus: Edunex and SIX, finally in one place. The app's Home screen on a phone and a laptop.",
+    ogAlt: "Edunex Plus: Edunex and SIX, finally in one place. The app's Home and Schedule screens on an iPhone.",
     card: "Free for ITB students · phone and laptop",
 
     hero: {
-      badge: "Made by ITB students · not an official app",
       title: ["Edunex and SIX,", "finally in one place."],
-      sub: "Your tasks, timetable, attendance and grades in one app. Free, for your phone and laptop.",
+      sub: "Your tasks, timetable, attendance and grades in one app. Free, made by ITB students, not an official campus app.",
       laptopAlt: "Home on a laptop: the class on now with its room, today's classes, and what changed",
-      phoneHomeAlt: "Home on a phone: the class on now, the Isi Presensi button, the nearest deadline, and the SIX and Edunex services",
-      phoneScheduleAlt: "Schedule on a phone: this week's classes with their rooms, and two classes that clash",
+      phoneAlt: "Home on a phone: the class on now, the Isi Presensi button, the nearest deadline, and the SIX and Edunex services",
     },
 
     what: {
-      label: "What Edunex Plus is",
       title: "One app that reads Edunex and SIX for you.",
       body: "You usually go back and forth. Edunex for tasks and materials, SIX for your timetable, attendance and grades. Edunex Plus signs in with your own ITB account, reads both, and tells you what needs you today.",
-      points: [
-        { title: "Sign in once", body: "With your ITB account, on Microsoft's real page. Edunex and SIX both connect." },
-        { title: "Everything in one place", body: "Tasks, exams, timetable, rooms, attendance, grades, KRS and UKT." },
-        { title: "Free and open", body: "No ads. The code is open on GitHub, so anyone can check it." },
-      ],
       sourcesTitle: "What the app reads",
       sources: [
         { name: "Edunex", body: "Tasks, materials, exams and Presence" },
@@ -69,77 +59,65 @@ export default {
         { name: "Academic calendar", body: "UTS and UAS weeks, KRS dates, holidays" },
         { name: "Course catalog", body: "Your curriculum and the SKS you have left" },
       ],
-      into: "Edunex Plus",
     },
 
-    features: {
-      label: "Features",
-      title: "Open the app and know what to do.",
-      body: "Same names as Edunex and SIX, so there's nothing new to learn.",
-      items: {
-        home: {
-          name: "Home",
-          title: "Which class is on, and in which room.",
-          body: "The class on now, when its attendance closes, and your nearest deadline. All on the first screen.",
+    screens: {
+      title: "Each screen answers one question.",
+      items: [
+        {
+          q: "What do I do now?",
+          a: "The class on now, its room, and your nearest deadline.",
           alt: "Home: Ekonomi dan Inovasi dalam Perencanaan is on now in R.SG PWK LT.6, with the Isi Presensi button",
         },
-        tasks: {
-          name: "Tasks & Exams",
-          title: "Every deadline, with its real status.",
-          body: "Not started, draft or submitted, across all your courses. Hand in right from the app.",
+        {
+          q: "What's due?",
+          a: "Every task and exam with its real status. Hand in from the app.",
           alt: "Tasks: next week's UTS with its day and room, then Tugas 02 Bab II with its deadline",
         },
-        presence: {
-          name: "Presence",
-          title: "Know how many classes you can still miss.",
-          body: "SIX says “Hadir 4 dari 6”. Edunex Plus says how many more you can miss, before it's too late.",
+        {
+          q: "How many can I still miss?",
+          a: "The absences each course has left, before it's too late.",
           alt: "Courses: each course with the absences it has left, from none left to two left",
         },
-        schedule: {
-          name: "Schedule",
-          title: "Your whole week, rooms included.",
-          body: "With the make-up classes lecturers only announce on Edunex, and a warning when two classes clash.",
+        {
+          q: "Which room?",
+          a: "Your week with rooms, make-up classes and clashes.",
           alt: "This week's schedule: three classes on Thursday, two of them clashing",
         },
-        grades: {
-          name: "Grades",
-          title: "Your IPK now, and later.",
-          body: "Enter the grades you expect this semester and see where your IPK lands. Hide it when someone's looking.",
+        {
+          q: "Where will my IPK land?",
+          a: "Your IPK now, and what it'd be after this semester.",
           alt: "Grades: IPK 3.26, an expected 3.29 after this semester, and 125 of 144 SKS passed",
         },
-        alerts: {
-          name: "Alerts",
-          title: "Hear about it while there's still time.",
-          body: "A new Task, a deadline in 3 hours, attendance opening, a class that moved. What can wait holds until morning.",
-          notes: [
-            { title: "Presence open · II4091", body: "Hand in Tugas 02 Bab II · closes 23:59", time: "now" },
-            { title: "Due in 3 hours · PL3002", body: "Tugas 03 · still a draft, not submitted yet", time: "12:00" },
-            { title: "New Task · DK4073", body: "Kuis Kilat Bab 5", time: "09:12" },
-          ],
-        },
-      },
-      more: [
+      ],
+    },
+
+    alerts: {
+      title: "Hear about it while there's still time.",
+      body: "A new task, a deadline coming up, attendance opening, a class that moved. What can wait holds until morning.",
+      alt: "Three Edunex Plus alerts on an iPhone's lock screen: Presence open for II4091, PL3002 due in 3 hours, and a new task for DK4073",
+      day: "Thursday, 8 October",
+      notes: [
+        { title: "Presence open · II4091", body: "Hand in Tugas 02 Bab II · closes 23:59", time: "now" },
+        { title: "Due in 3 hours · PL3002", body: "Tugas 03 · still a draft, not submitted yet", time: "12:00" },
+        { title: "New Task · DK4073", body: "Kuis Kilat Bab 5", time: "09:12" },
+      ],
+    },
+
+    laptop: {
+      title: "On a laptop, it all fits in one window.",
+      alt: "Tasks & Exams on a laptop: exams in the UTS weeks and next week's tasks, each with its course and deadline",
+      alsoTitle: "Also inside",
+      also: [
         "Course files (Word, PowerPoint, PDF) open in the app and can be saved for offline",
         "KRS, UKT bills and ITB's academic calendar",
         "Widgets on your phone's home screen",
         "Light and dark, Indonesian and English",
       ],
-      never: "Edunex Plus never marks attendance for you and never changes your KRS.",
-    },
-
-    everywhere: {
-      label: "Phone and laptop",
-      title: "In your pocket on the way to class, on your desk for the work.",
-      body: "The same app on Android, iPhone, Windows, Mac and Linux. Sign in on each device, and it reads straight from Edunex and SIX.",
-      phone: "Phone",
-      laptop: "Laptop",
-      laptopAlt: "Tasks & Exams on a laptop: exams in the UTS weeks and next week's tasks, each with its course and deadline",
     },
 
     privacy: {
-      label: "Safety",
       title: "Your password never reaches the app.",
-      body: "It's fair to hesitate before typing your ITB account into an app made by students. Here is how it works.",
       points: [
         { title: "You sign in on Microsoft's real page", body: "ITB's usual sign-in page. Only Microsoft receives your password." },
         {
@@ -155,21 +133,13 @@ export default {
           body: "“Sign out & remove data” in Settings signs you out and deletes your courses, grades, plans and notes from the device.",
         },
       ],
-      flow: [
-        { who: "You", what: "type your password" },
-        { who: "ITB's Microsoft page", what: "checks your password" },
-        { who: "Edunex Plus", what: "only gets the sign-in" },
-      ],
-      flowAlt: "You type your password on ITB's Microsoft page. Edunex Plus only gets the sign-in, never your password.",
-      link: "Read the details: everything the app talks to",
+      never: "Edunex Plus never marks attendance for you and never changes your KRS.",
+      link: "Read the details",
     },
 
     install: {
-      label: "How to install",
       title: "Pick your device, follow the pictures.",
-      body: "Each guide shows the screen you'll see and which button to press.",
-      yours: "Your device",
-      open: "See the steps",
+      yours: "your device",
       cards: {
         android: { time: "About 2 minutes", body: "Download one file on your phone, tap it, install." },
         iphone: { time: "About 10 minutes", body: "Through a laptop and a cable, since it isn't on the App Store." },
@@ -183,18 +153,13 @@ export default {
     },
 
     faq: {
-      label: "Questions",
       title: "What people ask",
       items: [
         {
           q: "Is this ITB's official app?",
           a: "No. Edunex Plus is made by ITB students. It isn't made by, endorsed by or connected to ITB or Cognisia, the company behind Edunex. It uses your own Edunex and SIX account, so your account stays your responsibility.",
         },
-        { q: "Is it free?", a: "Free, with no ads. The code is open under the MIT licence." },
-        {
-          q: "Is my password safe?",
-          a: "You sign in on ITB's real Microsoft page, so only Microsoft receives your password. The app keeps only the sign-in that page hands back, locked on your device.",
-        },
+        { q: "Is it free?", a: "Free, with no ads. The code is open on GitHub under the MIT licence, so anyone can check it." },
         {
           q: "How is it different from opening Edunex and SIX?",
           a: "The data is the same. Edunex Plus puts it together, works out how many classes you can still miss, and reminds you before a deadline. You can still open Edunex and SIX as usual.",
@@ -202,10 +167,6 @@ export default {
         {
           q: "Does it mark attendance for me?",
           a: "No. The app tells you when attendance opens and takes you to the button. You press it.",
-        },
-        {
-          q: "Why is there a warning when I install it?",
-          a: "Because the app isn't registered with the Play Store, the App Store or Microsoft yet. That warning shows for every app that isn't. Each install guide shows which button to press.",
         },
         {
           q: "Does it work on iPhone?",
@@ -224,8 +185,6 @@ export default {
 
     closing: {
       title: "Stop checking two sites.",
-      body: "Install it, sign in once, and see what needs you today.",
-      backer: "Supported by",
     },
   },
 
@@ -244,16 +203,10 @@ export default {
       ],
     },
     guide: {
-      needs: "What you need",
-      time: "Time",
-      step: "Step {n}",
-      download: "Download",
       notYet: "The newest release has no file for {device} yet. Open the release page to see what's there.",
-      releasePage: "Release page",
       copy: "Copy",
       copied: "Copied",
       troubleTitle: "If something goes wrong",
-      afterTitle: "Once it's installed",
       updateTitle: "Updating",
       removeTitle: "Removing",
       othersTitle: "Other devices",
@@ -597,7 +550,7 @@ export default {
       device: "iDevice",
       phone: "Your iPhone",
       appleId: "Apple ID",
-      mail: "name@icloud.com",
+      mail: "name@example.com",
       drop: "Drag the .ipa file here",
       start: "Start",
     },
@@ -635,7 +588,7 @@ export default {
   },
 
   footer: {
-    made: "Made by ITB students · supported by",
+    made: "Made by ITB students, supported by",
     links: {
       install: "How to install",
       privacy: "Privacy",

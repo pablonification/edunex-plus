@@ -202,7 +202,7 @@ describe("the install guides", () => {
         steps.each((i, el) => {
           const step = $(el);
           expect(step.find("h2").text().trim().length, `${address} step ${i + 1}`).toBeGreaterThan(5);
-          expect(step.find(".step-text > p").length, `${address} step ${i + 1}`).toBeGreaterThanOrEqual(2);
+          expect(step.find(".step-text > p").length, `${address} step ${i + 1}`).toBeGreaterThanOrEqual(1);
           const shows = step.find(".pic").length + step.find(".command").length + step.find(".files").length;
           expect(shows, `${address} step ${i + 1} shows nothing`).toBeGreaterThan(0);
         });
@@ -247,6 +247,48 @@ describe("the install guides", () => {
   it("takes an answer from GitHub that isn't a release as no release", () => {
     expect(releaseFrom({ message: "Not Found" })).toBeNull();
     expect(releaseFrom(null)).toBeNull();
+  });
+});
+
+describe("the website's look", () => {
+  const css = fs.readFileSync(path.resolve("site/src/site.css"), "utf8");
+
+  // What makes a page look machine-made, each one removed once already (site/README.md, "How it looks").
+  it("stays flat: no gradients, blur, glow, looping motion or spaced-out capitals", () => {
+    const found = [
+      [/gradient\(/, "a gradient"],
+      [/backdrop-filter|filter:\s*blur/, "a blur"],
+      [/infinite/, "motion that loops"],
+      [/text-transform:\s*uppercase/, "capitals"],
+      [/letter-spacing:\s*0\.[1-9]/, "spaced-out letters"],
+      [/transition:\s*all/, "transition: all"],
+    ].flatMap(([pattern, what]) => ((pattern as RegExp).test(css) ? [what] : []));
+    expect(found).toEqual([]);
+  });
+
+  it("shows the app in an iPhone and a MacBook, and puts no icon in a tinted square", () => {
+    const $ = pageAt(site, "/");
+    expect($(".hero .macbook img").attr("alt")).toBeTruthy();
+    expect($(".hero .iphone .iphone-island")).toHaveLength(1);
+    // Each screen beside the question it answers.
+    expect($(".strip figure")).toHaveLength(id.home.screens.items.length);
+    expect($(".strip figure .iphone img")).toHaveLength(id.home.screens.items.length);
+    // An icon sits bare in a button, a row or a summary, never in a holder of its own.
+    $("svg.icon").each((_, el) => {
+      expect(["a", "button", "summary"], $.html(el)).toContain($(el).parent().prop("tagName")?.toLowerCase());
+    });
+  });
+
+  it("says each page's name once, and the home page's one thing to do once per place", () => {
+    for (const [file, html] of pages) {
+      const $ = load(html);
+      const headings = $("h1, h2, h3")
+        .map((_, el) => $(el).text().trim())
+        .get();
+      expect(new Set(headings).size, `${file}: a heading said twice`).toBe(headings.length);
+    }
+    // One button at the top, one at the bottom, and the small one in the bar.
+    expect(pageAt(site, "/")("main a.btn")).toHaveLength(2);
   });
 });
 

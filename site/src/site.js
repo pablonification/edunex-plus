@@ -20,9 +20,10 @@ if (mine) {
   for (const link of document.querySelectorAll("[data-install], [data-install-link]")) link.href = mine.href;
   for (const label of document.querySelectorAll("[data-install-label]")) label.textContent = mine.label;
 }
-for (const card of document.querySelectorAll(`.device[data-device="${os}"]`)) {
-  card.classList.add("is-yours");
-  card.querySelector(".device-yours").hidden = false;
+// This visitor's device comes first in the list, and says so.
+for (const row of document.querySelectorAll(`.row[data-device="${os}"]`)) {
+  row.classList.add("is-yours");
+  row.querySelector(".row-yours").hidden = false;
 }
 
 // ARM or not: Apple silicon or Intel, a Snapdragon Windows PC or not. Chrome and Edge say it outright,
@@ -49,9 +50,6 @@ const other = second && document.querySelector(`.files [data-file="${second}"]`)
 if (other) {
   arm().then((isArm) => {
     if ((os === "mac") === isArm) return;
-    const first = other.parentElement.firstElementChild;
-    first.classList.replace("btn-primary", "btn-outline");
-    other.classList.replace("btn-outline", "btn-primary");
     other.parentElement.prepend(other);
   });
 }

@@ -13,7 +13,7 @@ export default {
     features: "Fitur",
     install: "Cara pasang",
     faq: "Tanya jawab",
-    get: "Pasang gratis",
+    get: "Pasang",
     menu: "Menu",
     skip: "Langsung ke isi",
     language: "Bahasa",
@@ -31,8 +31,6 @@ export default {
   cta: {
     install: "Pasang di {device}",
     installGeneric: "Pasang gratis",
-    features: "Lihat fiturnya",
-    how: "Lihat cara pasang",
     others: "perangkat lain",
     free: "Gratis untuk Android, iPhone, Windows, Mac, dan Linux",
     version: "Versi {version}",
@@ -44,27 +42,19 @@ export default {
       "Aplikasi gratis untuk mahasiswa ITB. Tugas, jadwal, presensi, dan nilai dari Edunex dan SIX di satu tempat. Untuk Android, iPhone, Windows, Mac, dan Linux.",
     ogTitle: "Edunex Plus: Edunex dan SIX, akhirnya di satu tempat",
     ogDescription: "Aplikasi gratis buatan mahasiswa ITB. Tugas, jadwal, presensi, dan nilaimu di satu aplikasi, di HP dan laptop.",
-    ogAlt: "Edunex Plus: Edunex dan SIX, akhirnya di satu tempat. Layar Beranda aplikasi di HP dan laptop.",
+    ogAlt: "Edunex Plus: Edunex dan SIX, akhirnya di satu tempat. Layar Beranda dan Jadwal aplikasi di iPhone.",
     card: "Gratis untuk mahasiswa ITB · HP dan laptop",
 
     hero: {
-      badge: "Buatan mahasiswa ITB · bukan aplikasi resmi",
       title: ["Edunex dan SIX,", "akhirnya di satu tempat."],
-      sub: "Tugas, jadwal, presensi, dan nilaimu di satu aplikasi. Gratis, untuk HP dan laptop.",
+      sub: "Tugas, jadwal, presensi, dan nilaimu di satu aplikasi. Gratis, buatan mahasiswa ITB, bukan aplikasi resmi kampus.",
       laptopAlt: "Beranda di laptop: kuliah yang sedang berjalan dengan ruangannya, kuliah hari ini, dan yang berubah",
-      phoneHomeAlt: "Beranda di HP: kuliah yang sedang berjalan, tombol Isi Presensi, tenggat terdekat, dan layanan SIX dan Edunex",
-      phoneScheduleAlt: "Jadwal di HP: kuliah minggu ini dengan ruangannya, dan dua kuliah yang bentrok",
+      phoneAlt: "Beranda di HP: kuliah yang sedang berjalan, tombol Isi Presensi, tenggat terdekat, dan layanan SIX dan Edunex",
     },
 
     what: {
-      label: "Apa itu Edunex Plus",
       title: "Satu aplikasi yang membaca Edunex dan SIX untukmu.",
       body: "Biasanya kamu bolak-balik. Edunex untuk tugas dan materi, SIX untuk jadwal, kehadiran, dan nilai. Edunex Plus masuk dengan akun ITB-mu sendiri, membaca keduanya, lalu memberi tahu apa yang perlu kamu urus hari ini.",
-      points: [
-        { title: "Masuk sekali", body: "Pakai akun ITB-mu di halaman Microsoft yang asli. Edunex dan SIX langsung terhubung." },
-        { title: "Semua di satu tempat", body: "Tugas, ujian, jadwal, ruangan, presensi, nilai, KRS, dan UKT." },
-        { title: "Gratis dan terbuka", body: "Tanpa iklan. Kodenya terbuka di GitHub, siapa pun bisa memeriksanya." },
-      ],
       sourcesTitle: "Yang dibaca aplikasi",
       sources: [
         { name: "Edunex", body: "Tugas, materi, ujian, dan Presensi" },
@@ -72,77 +62,65 @@ export default {
         { name: "Kalender akademik", body: "Masa UTS dan UAS, jadwal KRS, hari libur" },
         { name: "Katalog mata kuliah", body: "Kurikulummu dan SKS yang tersisa" },
       ],
-      into: "Edunex Plus",
     },
 
-    features: {
-      label: "Fitur",
-      title: "Buka aplikasi, langsung tahu harus apa.",
-      body: "Namanya sama seperti di Edunex dan SIX, jadi tidak ada yang perlu dipelajari lagi.",
-      items: {
-        home: {
-          name: "Beranda",
-          title: "Kuliah apa sekarang, di ruang mana.",
-          body: "Kuliah yang sedang berjalan, kapan presensinya ditutup, dan tenggat terdekat. Semua di layar pertama.",
+    screens: {
+      title: "Tiap layar menjawab satu pertanyaan.",
+      items: [
+        {
+          q: "Harus apa sekarang?",
+          a: "Kuliah yang sedang berjalan, ruangannya, dan tenggat terdekat.",
           alt: "Beranda: kuliah Ekonomi dan Inovasi dalam Perencanaan sedang berjalan di R.SG PWK LT.6, dengan tombol Isi Presensi",
         },
-        tasks: {
-          name: "Tugas & Ujian",
-          title: "Semua tenggat, dengan status aslinya.",
-          body: "Belum dikerjakan, draf, atau sudah dikumpulkan, dari semua mata kuliah. Kumpulkan langsung dari aplikasi.",
+        {
+          q: "Apa yang harus dikumpulkan?",
+          a: "Semua tugas dan ujian dengan status aslinya. Bisa kumpulkan dari aplikasi.",
           alt: "Tugas: UTS minggu depan dengan hari dan ruangannya, lalu Tugas 02 Bab II dengan tenggatnya",
         },
-        presence: {
-          name: "Presensi",
-          title: "Tahu sisa jatah absenmu.",
-          body: "SIX bilang “Hadir 4 dari 6”. Edunex Plus bilang kamu masih boleh absen berapa kali lagi, sebelum terlambat.",
+        {
+          q: "Masih boleh absen berapa kali?",
+          a: "Sisa jatah absen tiap mata kuliah, sebelum terlambat.",
           alt: "Kuliah: tiap mata kuliah dengan sisa jatah absennya, dari absen habis sampai sisa 2 absen",
         },
-        schedule: {
-          name: "Jadwal",
-          title: "Seminggu penuh, lengkap dengan ruangan.",
-          body: "Termasuk kelas pengganti yang hanya diumumkan di Edunex, dan peringatan kalau dua kuliah bentrok.",
+        {
+          q: "Ke ruang mana?",
+          a: "Jadwal seminggu dengan ruangan, kelas pengganti, dan kuliah yang bentrok.",
           alt: "Jadwal minggu ini: tiga kuliah hari Kamis, dua di antaranya bentrok",
         },
-        grades: {
-          name: "Nilai",
-          title: "IPK-mu sekarang, dan nanti.",
-          body: "Isi perkiraan nilaimu semester ini, lalu lihat IPK-mu jadi berapa. Bisa disembunyikan kalau ada yang mengintip.",
+        {
+          q: "IPK-ku jadi berapa?",
+          a: "IPK sekarang, dan perkiraannya setelah semester ini.",
           alt: "Nilai: IPK 3,26, perkiraan 3,29 setelah semester ini, dan 125 dari 144 SKS lulus",
         },
-        alerts: {
-          name: "Notifikasi",
-          title: "Tahu selagi masih sempat.",
-          body: "Tugas baru, tenggat 3 jam lagi, presensi dibuka, jadwal berubah. Yang tidak mendesak menunggu sampai pagi.",
-          notes: [
-            { title: "Presensi dibuka · II4091", body: "Kumpulkan Tugas 02 Bab II · ditutup 23:59", time: "sekarang" },
-            { title: "Tenggat 3 jam lagi · PL3002", body: "Tugas 03 · masih draf, belum dikumpulkan", time: "12:00" },
-            { title: "Tugas baru · DK4073", body: "Kuis Kilat Bab 5", time: "09:12" },
-          ],
-        },
-      },
-      more: [
+      ],
+    },
+
+    alerts: {
+      title: "Tahu selagi masih sempat.",
+      body: "Tugas baru, tenggat yang mendekat, presensi dibuka, jadwal berubah. Yang tidak mendesak menunggu sampai pagi.",
+      alt: "Tiga notifikasi Edunex Plus di layar kunci iPhone: presensi II4091 dibuka, tenggat PL3002 3 jam lagi, dan tugas baru DK4073",
+      day: "Kamis, 8 Oktober",
+      notes: [
+        { title: "Presensi dibuka · II4091", body: "Kumpulkan Tugas 02 Bab II · ditutup 23:59", time: "sekarang" },
+        { title: "Tenggat 3 jam lagi · PL3002", body: "Tugas 03 · masih draf, belum dikumpulkan", time: "12:00" },
+        { title: "Tugas baru · DK4073", body: "Kuis Kilat Bab 5", time: "09:12" },
+      ],
+    },
+
+    laptop: {
+      title: "Di laptop, semuanya muat di satu jendela.",
+      alt: "Tugas & Ujian di laptop: ujian di masa UTS dan tugas minggu depan, dengan mata kuliah dan tenggatnya",
+      alsoTitle: "Juga ada",
+      also: [
         "Materi kuliah (Word, PowerPoint, PDF) terbuka di aplikasi dan bisa disimpan untuk offline",
         "KRS, tagihan UKT, dan kalender akademik ITB",
         "Widget di layar utama HP",
         "Terang dan gelap, Indonesia dan Inggris",
       ],
-      never: "Edunex Plus tidak pernah mengisi presensi untukmu dan tidak pernah mengubah KRS-mu.",
-    },
-
-    everywhere: {
-      label: "HP dan laptop",
-      title: "Di saku saat ke kelas, di meja saat mengerjakan tugas.",
-      body: "Aplikasi yang sama di Android, iPhone, Windows, Mac, dan Linux. Masuk di tiap perangkat, datanya dibaca langsung dari Edunex dan SIX.",
-      phone: "HP",
-      laptop: "Laptop",
-      laptopAlt: "Tugas & Ujian di laptop: ujian di masa UTS dan tugas minggu depan, dengan mata kuliah dan tenggatnya",
     },
 
     privacy: {
-      label: "Keamanan",
       title: "Kata sandimu tidak pernah sampai ke aplikasi.",
-      body: "Wajar kalau ragu memasukkan akun ITB ke aplikasi buatan mahasiswa. Begini cara kerjanya.",
       points: [
         { title: "Kamu masuk di halaman Microsoft yang asli", body: "Halaman masuk ITB yang biasa kamu lihat. Hanya Microsoft yang menerima kata sandimu." },
         {
@@ -158,21 +136,13 @@ export default {
           body: "“Keluar & hapus data” di Pengaturan mengeluarkanmu dan menghapus mata kuliah, nilai, rencana, dan catatanmu dari perangkat.",
         },
       ],
-      flow: [
-        { who: "Kamu", what: "mengetik kata sandi" },
-        { who: "Halaman Microsoft milik ITB", what: "memeriksa kata sandimu" },
-        { who: "Edunex Plus", what: "hanya menerima tanda masuk" },
-      ],
-      flowAlt: "Kamu mengetik kata sandi di halaman Microsoft milik ITB. Edunex Plus hanya menerima tanda masuk, bukan kata sandimu.",
-      link: "Baca rinciannya: apa saja yang dihubungi aplikasi",
+      never: "Edunex Plus tidak pernah mengisi presensi untukmu dan tidak pernah mengubah KRS-mu.",
+      link: "Baca rinciannya",
     },
 
     install: {
-      label: "Cara pasang",
       title: "Pilih perangkatmu, ikuti gambarnya.",
-      body: "Tiap panduan menunjukkan layar yang akan kamu lihat dan tombol mana yang ditekan.",
-      yours: "Perangkatmu",
-      open: "Lihat langkahnya",
+      yours: "perangkatmu",
       cards: {
         android: { time: "± 2 menit", body: "Unduh satu berkas di HP-mu, ketuk, lalu pasang." },
         iphone: { time: "± 10 menit", body: "Lewat laptop dan kabel, karena belum ada di App Store." },
@@ -186,18 +156,13 @@ export default {
     },
 
     faq: {
-      label: "Tanya jawab",
       title: "Yang sering ditanyakan",
       items: [
         {
           q: "Apakah ini aplikasi resmi ITB?",
           a: "Bukan. Edunex Plus dibuat mahasiswa ITB. Aplikasi ini tidak dibuat, didukung, atau terhubung dengan ITB maupun Cognisia, perusahaan di balik Edunex. Aplikasi memakai akun Edunex dan SIX-mu sendiri, jadi akunmu tetap tanggung jawabmu.",
         },
-        { q: "Apakah gratis?", a: "Gratis, tanpa iklan. Kodenya terbuka dengan lisensi MIT." },
-        {
-          q: "Apakah kata sandiku aman?",
-          a: "Kamu masuk di halaman Microsoft milik ITB yang asli, jadi hanya Microsoft yang menerima kata sandimu. Aplikasi hanya menyimpan tanda masuk yang diberikan halaman itu, terkunci di perangkatmu.",
-        },
+        { q: "Apakah gratis?", a: "Gratis, tanpa iklan. Kodenya terbuka di GitHub dengan lisensi MIT, jadi siapa pun bisa memeriksanya." },
         {
           q: "Apa bedanya dengan membuka Edunex dan SIX langsung?",
           a: "Datanya sama. Edunex Plus menggabungkannya, menghitung sisa jatah absenmu, dan mengingatkanmu sebelum tenggat. Edunex dan SIX tetap bisa kamu buka seperti biasa.",
@@ -205,10 +170,6 @@ export default {
         {
           q: "Apakah aplikasi ini mengisi presensi otomatis?",
           a: "Tidak. Aplikasi memberi tahu saat presensi dibuka dan mengantarmu ke tombolnya. Yang menekan tetap kamu.",
-        },
-        {
-          q: "Kenapa muncul peringatan saat memasang?",
-          a: "Karena aplikasinya belum terdaftar di Play Store, App Store, atau Microsoft. Peringatan itu muncul untuk semua aplikasi yang belum terdaftar. Tiap panduan pasang menunjukkan tombol mana yang ditekan.",
         },
         {
           q: "Bisa dipasang di iPhone?",
@@ -227,8 +188,6 @@ export default {
 
     closing: {
       title: "Berhenti bolak-balik dua situs.",
-      body: "Pasang, masuk sekali, lalu lihat apa yang perlu kamu urus hari ini.",
-      backer: "Didukung oleh",
     },
   },
 
@@ -247,16 +206,10 @@ export default {
       ],
     },
     guide: {
-      needs: "Yang kamu butuhkan",
-      time: "Waktu",
-      step: "Langkah {n}",
-      download: "Unduh",
       notYet: "Berkas untuk {device} belum ada di rilis terbaru. Buka halaman rilis untuk melihat yang tersedia.",
-      releasePage: "Halaman rilis",
       copy: "Salin",
       copied: "Tersalin",
       troubleTitle: "Kalau ada kendala",
-      afterTitle: "Setelah terpasang",
       updateTitle: "Memperbarui",
       removeTitle: "Menghapus",
       othersTitle: "Perangkat lain",
@@ -610,7 +563,7 @@ export default {
       device: "iDevice",
       phone: "iPhone milikmu",
       appleId: "Apple ID",
-      mail: "nama@icloud.com",
+      mail: "nama@example.com",
       drop: "Seret berkas .ipa ke sini",
       start: "Start",
     },
@@ -648,7 +601,7 @@ export default {
   },
 
   footer: {
-    made: "Buatan mahasiswa ITB · didukung",
+    made: "Buatan mahasiswa ITB, didukung",
     links: {
       install: "Cara pasang",
       privacy: "Privasi",

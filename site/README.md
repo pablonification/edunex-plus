@@ -20,6 +20,14 @@ It is plain HTML, CSS and a little JavaScript, built by `site/build.mjs` with no
 | `src/site.css`, `site.js` | The look, and the script that names the visitor's device. The pages work without the script. |
 | `public/` | Copied as it is: pictures, fonts, the icon. |
 
+**How it looks.** Flat pages in the app's own blue, its own heading face (Plus Jakarta Sans, as on the
+phone) and the system's font for reading. The pictures of the app do the showing, in an iPhone and a
+MacBook drawn in CSS (`iphone()`, `macbook()` in `src/home.mjs`). What is left out on purpose, and
+`test/site/site.test.ts` keeps out: boxes and tints around text, icons in tinted squares, labels above
+headings, pills and badges, gradients, blur, glow, shadows on anything that doesn't float, motion that
+loops, and a sentence under a heading that only repeats it. One button per place; everything else that
+leads somewhere is a link or a row.
+
 **Publishing.** `.github/workflows/pages.yml` builds and publishes the site when `site/` changes on `main`,
 and again whenever a release is published, so the download buttons point at the newest files.
 
@@ -29,7 +37,9 @@ name on a system's own screen comes with its English in brackets in the Indonesi
 laptop may be set to either language.
 
 **Pictures of the app** come from the demo's made-up student, never a real account: the desktop's from
-`node scripts/demo/capture.mjs`, the phone's from the Mobile workflow's `e2e-results-app` artifact.
+`node scripts/demo/capture.mjs`, the phone's from the Mobile workflow's `e2e-results-app` artifact (an
+Android emulator's, with Android's own status bar and gesture bar painted out in the screen's colour, since
+the frame draws an iPhone's).
 
 **The link-preview pictures** (`public/assets/social-card-id.jpg`, `-en.jpg`, 1200 by 630) are photographs of
 two pages the build makes with `--cards`:

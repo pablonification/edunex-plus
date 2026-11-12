@@ -1,171 +1,147 @@
-// The home page: what Edunex Plus is, what's in it, whether it's safe, and how to get it. Written for a
-// student who has never heard of it and doesn't study computing.
+// The home page: what Edunex Plus is, what it looks like, whether it's safe, and how to get it. Written
+// for a student who has never heard of it and doesn't study computing. The pictures of the app do the
+// showing, in the frames of the devices they're used on.
 import { DEVICES, esc, GITHUB, href, icon, ORIGIN, page, RELEASES } from "./layout.mjs";
 
-/** A phone around a picture of the app. */
-export const phone = (src, alt, extra = "") =>
-  `<div class="phone ${extra}"><img src="/assets/${src}.webp" width="600" height="1333" alt="${esc(alt)}" loading="lazy" decoding="async"></div>`;
+// What an iPhone draws over every app, beside the clock and the island: its signal, wifi and battery.
+const STATUS = `<svg viewBox="0 0 68 14" fill="currentColor" aria-hidden="true"><path d="M1 9.5h3v4H1zM6 7h3v6.5H6zM11 4.5h3v9h-3zM16 2h3v11.5h-3z"/><path d="M33 3.2c3 0 5.6 1.2 7.5 3.1l-1.7 1.7A8.2 8.2 0 0 0 33 5.6c-2.3 0-4.3.9-5.8 2.4l-1.7-1.7A10.6 10.6 0 0 1 33 3.2zm0 4.2c1.8 0 3.4.7 4.6 1.9l-1.7 1.7a4.1 4.1 0 0 0-5.8 0l-1.7-1.7A6.5 6.5 0 0 1 33 7.4zm0 3.9c.7 0 1.3.3 1.7.7L33 13.8 31.3 12c.4-.4 1-.7 1.7-.7z"/><rect x="46.5" y="1.5" width="18" height="11" rx="3.2" fill="none" stroke="currentColor" opacity=".45"/><rect x="48" y="3" width="15" height="8" rx="2"/><path d="M66 5v4c.8-.3 1.3-1.1 1.3-2S66.8 5.3 66 5z" opacity=".5"/></svg>`;
 
-/** A laptop around a picture of the app. */
-export const laptop = (src, alt, { eager = false, extra = "" } = {}) =>
-  `<div class="laptop ${extra}"><div class="laptop-screen"><img src="/assets/${src}-1000.webp" srcset="/assets/${src}-1000.webp 1000w, /assets/${src}.webp 2000w" sizes="(max-width: 900px) 90vw, 760px" width="2000" height="1250" alt="${esc(alt)}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async"></div><div class="laptop-base"></div></div>`;
+/** A phone around `screen`: an iPhone, with its island, clock and home bar drawn over what it shows. */
+export const phoneFrame = (screen, { extra = "", onDark = false, android = false, hidden = false } = {}) =>
+  `<div class="iphone${onDark ? " iphone-on-dark" : ""}${android ? " is-android" : ""}${extra ? ` ${extra}` : ""}"${hidden ? ' aria-hidden="true"' : ""}><div class="iphone-body"><div class="iphone-screen">${screen}<div class="iphone-status" aria-hidden="true"><span>9:41</span><span class="iphone-island"></span>${STATUS}</div><span class="iphone-home" aria-hidden="true"></span></div></div></div>`;
 
-const head = (part, center = false) => `<div class="section-head${center ? " center" : ""}">
-  <p class="label">${esc(part.label)}</p>
-  <h2>${esc(part.title)}</h2>
-  ${part.body ? `<p class="lead">${esc(part.body)}</p>` : ""}
-</div>`;
+/** An iPhone around a picture of the app (`onDark` when the picture's top is dark, `android` for an Android phone). */
+export const iphone = (src, alt, options = {}) =>
+  phoneFrame(
+    `<img src="/assets/${src}.webp" width="660" height="1467" alt="${esc(alt)}"${options.eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`,
+    options,
+  );
 
-/** The device cards: one per system, each leading to its picture guide. Used on the home page and the install page. */
-export const deviceCards = (words, lang) => {
+const screenshot = (src, alt, eager) =>
+  `<img src="/assets/${src}-1000.webp" srcset="/assets/${src}-1000.webp 1000w, /assets/${src}.webp 2000w" sizes="(max-width: 960px) 90vw, 860px" width="2000" height="1250" alt="${esc(alt)}"${eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`;
+
+/** A MacBook around a picture of the app. */
+export const macbook = (src, alt, { eager = false } = {}) =>
+  `<div class="macbook"><div class="macbook-lid">${screenshot(src, alt, eager)}<span class="macbook-notch"></span></div><div class="macbook-base"></div></div>`;
+
+/** The app's window on any other computer. */
+export const appWindow = (src, alt) => `<div class="window">${screenshot(src, alt, false)}</div>`;
+
+/** The devices, one row each, leading to their picture guides. On the home page and the install page. */
+export const deviceRows = (words, lang) => {
   const w = words.home.install;
-  return `<div class="devices">${DEVICES.map(
-    (device) => `<a class="device" href="${href(lang, `/install/${device}/`)}" data-device="${device}">
-    <span class="device-icon">${icon(device, 26)}</span>
-    <span class="device-name">${esc(words.devices[device])}<span class="device-yours" hidden>${esc(w.yours)}</span></span>
-    <span class="device-body">${esc(w.cards[device].body)}</span>
-    <span class="device-foot"><span class="device-time">${icon("clock", 14)}${esc(w.cards[device].time)}</span><span class="device-go">${esc(w.open)}${icon("arrow", 14)}</span></span>
+  return `<div class="rows">${DEVICES.map(
+    (device) => `<a class="row" href="${href(lang, `/install/${device}/`)}" data-device="${device}">
+    ${icon(device, 26)}
+    <span class="row-name">${esc(words.devices[device])}<span class="row-yours" hidden>${esc(w.yours)}</span></span>
+    <span class="row-body">${esc(w.cards[device].body)}</span>
+    <span class="row-time">${esc(w.cards[device].time)}</span>
+    ${icon("next", 18)}
   </a>`,
   ).join("")}</div>`;
 };
 
-const feature = (key, item, picture, extra = "") => `<article class="tile tile-${key} ${extra}">
-  <div class="tile-text">
-    <p class="tile-name">${esc(item.name)}</p>
-    <h3>${esc(item.title)}</h3>
-    <p>${esc(item.body)}</p>
-  </div>
-  ${picture}
-</article>`;
+/** Why the phone or laptop warns: said once, under the devices. */
+export const whyWarned = (words) => `<div class="aside"><h3>${esc(words.home.install.warnTitle)}</h3><p>${esc(words.home.install.warnBody)}</p></div>`;
+
+// The screens shown beside their questions, in the order of the words' `screens.items`.
+const SCREENS = ["phone-home", "phone-tasks", "phone-courses", "phone-schedule", "phone-grades"];
 
 export function home({ words, lang, assets, data }) {
   const w = words.home;
-  const f = w.features.items;
+
   const hero = `<section class="hero">
-  <div class="hero-art" aria-hidden="true"><i></i><i></i></div>
   <div class="container hero-inner">
-    <p class="hero-badge">${esc(w.hero.badge)}</p>
     <h1>${w.hero.title.map((line) => `<span>${esc(line)}</span>`).join(" ")}</h1>
     <p class="hero-sub">${esc(w.hero.sub)}</p>
     <div class="hero-actions">
-      <a class="btn btn-white btn-lg" href="${href(lang, "/install/")}" data-install>${icon("download", 18)}<span data-install-label>${esc(words.cta.installGeneric)}</span></a>
-      <a class="btn btn-clear btn-lg" href="#fitur">${esc(words.cta.features)}</a>
+      <a class="btn btn-white" href="${href(lang, "/install/")}" data-install>${icon("download", 18)}<span data-install-label>${esc(words.cta.installGeneric)}</span></a>
+      <p class="hero-meta" data-install-meta>${esc(words.cta.free)}</p>
     </div>
-    <p class="hero-meta" data-install-meta>${esc(words.cta.free)}</p>
-    <div class="stage">
-      ${phone("phone-home", w.hero.phoneHomeAlt, "stage-left")}
-      ${laptop("desktop-home", w.hero.laptopAlt, { eager: true })}
-      ${phone("phone-schedule", w.hero.phoneScheduleAlt, "stage-right")}
+    <div class="hero-devices">
+      ${macbook("desktop-home", w.hero.laptopAlt, { eager: true })}
+      ${iphone("phone-home", w.hero.phoneAlt, { eager: true })}
     </div>
   </div>
 </section>`;
 
-  const what = `<section class="section" id="apa">
+  const what = `<section class="section">
+  <div class="container what">
+    <div>
+      <h2>${esc(w.what.title)}</h2>
+      <p class="lead">${esc(w.what.body)}</p>
+    </div>
+    <div>
+      <p class="sources-title" id="dibaca">${esc(w.what.sourcesTitle)}</p>
+      <dl class="sources" aria-labelledby="dibaca">${w.what.sources.map((source) => `<div><dt>${esc(source.name)}</dt><dd>${esc(source.body)}</dd></div>`).join("")}</dl>
+    </div>
+  </div>
+</section>`;
+
+  const screens = `<section class="section" id="fitur">
   <div class="container">
-    ${head(w.what, true)}
-    <div class="points">${w.what.points
-      .map(
-        (point, i) => `<div class="point">
-      <span class="point-icon">${icon(["key", "stack", "code"][i], 22)}</span>
-      <h3>${esc(point.title)}</h3>
-      <p>${esc(point.body)}</p>
-    </div>`,
-      )
+    <h2>${esc(w.screens.title)}</h2>
+    <div class="strip">${w.screens.items
+      .map((item, i) => `<figure><figcaption><h3>${esc(item.q)}</h3><p>${esc(item.a)}</p></figcaption>${iphone(SCREENS[i], item.alt)}</figure>`)
       .join("")}</div>
-    <div class="reads" role="group" aria-label="${esc(w.what.sourcesTitle)}">
-      <p class="reads-title">${esc(w.what.sourcesTitle)}</p>
-      <ul class="sources">${w.what.sources.map((source) => `<li><strong>${esc(source.name)}</strong><span>${esc(source.body)}</span></li>`).join("")}</ul>
-    </div>
   </div>
 </section>`;
 
-  const notes = `<div class="notes" aria-hidden="true">${f.alerts.notes
+  const lock = `<div class="lock"><span class="lock-day">${esc(w.alerts.day)}</span><span class="lock-time">12:00</span>${w.alerts.notes
     .map(
       (note) =>
-        `<div class="note"><img src="/assets/icon-128.png" alt="" width="32" height="32"><span class="note-app">Edunex Plus</span><span class="note-time">${esc(note.time)}</span><span class="note-title">${esc(note.title)}</span><span class="note-body">${esc(note.body)}</span></div>`,
+        `<div class="note"><img src="/assets/icon-128.png" alt="" width="128" height="128"><b>${esc(note.title)}</b><time>${esc(note.time)}</time><span>${esc(note.body)}</span></div>`,
     )
     .join("")}</div>`;
+  const alerts = `<section class="section">
+  <div class="container pair">
+    <div>
+      <h2>${esc(w.alerts.title)}</h2>
+      <p class="lead">${esc(w.alerts.body)}</p>
+    </div>
+    <div role="img" aria-label="${esc(w.alerts.alt)}">${phoneFrame(lock, { onDark: true, hidden: true })}</div>
+  </div>
+</section>`;
 
-  const features = `<section class="section" id="fitur">
+  const laptop = `<section class="section">
   <div class="container">
-    ${head(w.features, true)}
-    <div class="bento">
-      ${feature("home", f.home, phone("phone-home", f.home.alt), "span-4")}
-      ${feature("tasks", f.tasks, phone("phone-tasks", f.tasks.alt), "span-2")}
-      ${feature("presence", f.presence, phone("phone-courses", f.presence.alt), "span-2")}
-      ${feature("schedule", f.schedule, phone("phone-schedule", f.schedule.alt), "span-2")}
-      ${feature("grades", f.grades, phone("phone-grades", f.grades.alt), "span-2")}
-      ${feature("alerts", f.alerts, notes, "span-3")}
-      <article class="tile tile-more span-3">
-        <ul class="checks">${w.features.more.map((line) => `<li>${icon("check", 16)}<span>${esc(line)}</span></li>`).join("")}</ul>
-        <p class="never">${icon("shield", 20)}<span>${esc(w.features.never)}</span></p>
-      </article>
+    <h2>${esc(w.laptop.title)}</h2>
+    <div class="laptop-view">${macbook("desktop-tasks", w.laptop.alt)}</div>
+    <div class="also">
+      <p class="sources-title" id="juga">${esc(w.laptop.alsoTitle)}</p>
+      <ul aria-labelledby="juga">${w.laptop.also.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
     </div>
   </div>
 </section>`;
 
-  const everywhere = `<section class="section">
-  <div class="container split">
-    ${head(w.everywhere)}
-    <div class="both">
-      ${laptop("desktop-tasks", w.everywhere.laptopAlt)}
-      ${phone("phone-tasks", "", "both-phone")}
-    </div>
-  </div>
-</section>`;
-
-  const flowIcons = ["key", "lock", "shield"];
-  const privacy = `<section class="section section-soft" id="aman">
+  const privacy = `<section class="section" id="aman">
   <div class="container">
-    ${head(w.privacy, true)}
-    <ol class="flow" aria-label="${esc(w.privacy.flowAlt)}">${w.privacy.flow
-      .map(
-        (step, i) =>
-          `<li class="flow-step${i === 2 ? " flow-app" : ""}"><span class="flow-icon">${i === 2 ? '<img src="/assets/icon-128.png" alt="" width="28" height="28">' : icon(flowIcons[i], 22)}</span><strong>${esc(step.who)}</strong><span>${esc(step.what)}</span></li>`,
-      )
-      .join(`<li class="flow-arrow" aria-hidden="true">${icon("arrow", 20)}</li>`)}</ol>
-    <div class="safe">${w.privacy.points
-      .map(
-        (point, i) => `<div class="safe-point">
-      <span class="point-icon">${icon(["lock", "stack", "eyeOff", "trash"][i], 22)}</span>
-      <div><h3>${esc(point.title)}</h3><p>${esc(point.body)}</p></div>
-    </div>`,
-      )
-      .join("")}</div>
-    <p class="center"><a class="text-link" href="${GITHUB}/blob/main/docs/privacy.md" target="_blank" rel="noopener noreferrer">${esc(w.privacy.link)}${icon("arrow", 14)}</a></p>
+    <h2>${esc(w.privacy.title)}</h2>
+    <div class="points">${w.privacy.points.map((point) => `<div><h3>${esc(point.title)}</h3><p>${esc(point.body)}</p></div>`).join("")}</div>
+    <p class="never">${esc(w.privacy.never)}</p>
+    <p><a class="link" href="${GITHUB}/blob/main/docs/privacy.md" target="_blank" rel="noopener noreferrer">${esc(w.privacy.link)}</a></p>
   </div>
 </section>`;
 
   const install = `<section class="section" id="pasang">
   <div class="container">
-    ${head(w.install, true)}
-    ${deviceCards(words, lang)}
-    <div class="why">
-      <span class="why-icon">${icon("warn", 22)}</span>
-      <div><h3>${esc(w.install.warnTitle)}</h3><p>${esc(w.install.warnBody)}</p></div>
-    </div>
+    <h2>${esc(w.install.title)}</h2>
+    ${deviceRows(words, lang)}
+    ${whyWarned(words)}
   </div>
 </section>`;
 
   const faq = `<section class="section" id="tanya">
-  <div class="container narrow">
-    ${head(w.faq, true)}
+  <div class="container">
+    <h2>${esc(w.faq.title)}</h2>
     <div class="faq">${w.faq.items.map((item) => `<details><summary>${esc(item.q)}${icon("chevron", 18)}</summary><p>${esc(item.a)}</p></details>`).join("")}</div>
   </div>
 </section>`;
 
-  const closing = `<section class="section closing-wrap">
+  const closing = `<section class="closing">
   <div class="container">
-    <div class="closing">
-      <h2>${esc(w.closing.title)}</h2>
-      <p>${esc(w.closing.body)}</p>
-      <div class="hero-actions">
-        <a class="btn btn-white btn-lg" href="${href(lang, "/install/")}" data-install>${icon("download", 18)}<span data-install-label>${esc(words.cta.installGeneric)}</span></a>
-        <a class="btn btn-clear btn-lg" href="${href(lang, "/install/")}">${esc(words.cta.how)}</a>
-      </div>
-      <p class="hero-meta" data-install-meta>${esc(words.cta.free)}</p>
-      <a class="backer" href="https://ganesaspace.com" target="_blank" rel="noopener noreferrer">${esc(w.closing.backer)} <img src="/assets/ganesa-space.png" alt="" width="18" height="18"><strong>Ganesa Space</strong></a>
-    </div>
+    <h2>${esc(w.closing.title)}</h2>
+    <a class="btn btn-white" href="${href(lang, "/install/")}" data-install>${icon("download", 18)}<span data-install-label>${esc(words.cta.installGeneric)}</span></a>
   </div>
 </section>`;
 
@@ -207,7 +183,7 @@ export function home({ words, lang, assets, data }) {
     og: { title: w.ogTitle, description: w.ogDescription },
     jsonLd,
     hero: true,
-    body: [hero, what, features, everywhere, privacy, install, faq, closing].join("\n"),
+    body: [hero, what, screens, alerts, laptop, privacy, install, faq, closing].join("\n"),
     assets,
     data,
   });
