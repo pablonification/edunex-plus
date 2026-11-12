@@ -34,9 +34,10 @@ accepts the project.
 - **`latest*.yml` gets the signed installers' sha512** (`scripts/update-info.mjs`): the app's own
   updater checks downloads against it. The updater never checks a publisher, so going from unsigned
   to signed, or later to another signer, needs no change there.
-- **Only version tags are signed, and only with the settings present.** Forks, local builds and
-  releases before SignPath are unsigned, as now. The release workflow's other builds (of `main`,
-  or started by hand) take both passes with a stand-in certificate made for the run, so all of the
+- **Only releases are signed, and only with the settings present.** (A release: the draft the
+  release workflow makes when `main` gets a new version, by hand from `main`, or for a version tag.)
+  Forks, local builds and releases before SignPath are unsigned, as now. The release workflow's
+  check builds (other pushes to `main`, or started by hand without "release") take both passes with a stand-in certificate made for the run, so all of the
   signed path but the trip to SignPath is tried before a release depends on it.
 - **No `elevate.exe`** (`nsis.packElevateHelper: false`): it serves only electron-updater's
   per-machine installs, and it would land unsigned in the signed app folder.

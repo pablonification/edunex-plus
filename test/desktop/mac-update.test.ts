@@ -69,7 +69,7 @@ describe("the Mac update", () => {
   it("is packed at level 9 for a release and quickly for every other build of the release workflow", () => {
     const workflow = fs.readFileSync(path.join(root, ".github/workflows/release.yml"), "utf8");
     expect(workflow).toMatch(
-      /if \[\[ "\$GITHUB_REF" == refs\/tags\/\* \]\]; then\s+node scripts\/package-mac-update\.mjs release\s+else\s+node scripts\/package-mac-update\.mjs release --quick/,
+      /if \[ "\$RELEASE" = true \]; then\s+node scripts\/package-mac-update\.mjs release\s+else\s+node scripts\/package-mac-update\.mjs release --quick/,
     );
   });
 
