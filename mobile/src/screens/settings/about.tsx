@@ -1,16 +1,17 @@
 // Settings' last groups. Laporan masalah (only while the app has the maintainer's relay): whether reports go by
 // themselves, picked in a sheet, then each report sent. Tentang: the app and its licence, the version (the row asks
-// GitHub now; a newer one turns the row into its download), the tour again ("Panduan aplikasi"), Laporkan masalah, the
-// open-source licences, and the line
+// GitHub now; a newer one turns the row into its download), the tour again ("Panduan aplikasi"), on an iPhone the Live
+// Activity's preview ("Coba Aktivitas Langsung"), Laporkan masalah, the open-source licences, and the line
 // saying this isn't ITB's app. Last, in its own card in the danger colour: signing out of everything, confirmed in a
 // sheet that says what goes.
 import { router } from "expo-router";
 import { useState } from "react";
-import { Image, View } from "react-native";
+import { Image, Platform, View } from "react-native";
 import { useFormat, useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useDataset, useUpdateInstall } from "../../../../src/app/store";
 import { reportSendingOf, type Settings, type UpdateCheckResult } from "../../../../src/core/models";
 import { pageName } from "../../../../src/core/report";
+import { previewIosLive } from "../../host/widget-ios";
 import { openReport } from "../../parts/report";
 import { startGuide } from "../../shell/guide/state";
 import { Button } from "../../ui/controls";
@@ -94,6 +95,7 @@ export function AboutSettings({ version, relay }: { version: string; relay: bool
       />
       {/* The tour again, whenever the Student wants it (the desktop's row, in the same place). */}
       <SettingRow title={t("settings.guide")} hint={t("settings.guide.hint")} onPress={() => startGuide()} trailing={<Chevron />} testID="action.guide" />
+      {Platform.OS === "ios" && <LivePreviewRow />}
       <SettingRow
         title={t("report.title")}
         hint={t(relay ? "report.settingsHintRelay" : "report.settingsHint")}
@@ -190,11 +192,46 @@ function CheckForUpdates({ version }: { version: string }) {
   );
 }
 
-/** A meta line read out when it changes (what the check found). */
-function Line({ children }: { children: string }) {
+/**
+ * "Coba Aktivitas Langsung" (iPhone only): starts the class's Live Activity with a made-up class, to look at on the
+ * Lock Screen and in the Dynamic Island. Its line says until when it runs, or that iOS has Live Activities off.
+ */
+function LivePreviewRow() {
+  const t = useT();
+  const f = useFormat();
+  const lang = useLang();
+  const [starting, setStarting] = useState(false);
+  const [said, setSaid] = useState<{ text: string; ok: boolean } | null>(null);
+  const start = async () => {
+    setStarting(true);
+    setSaid(null);
+    const result = await previewIosLive(lang);
+    if (result.started) haptic.confirm();
+    setSaid(
+      result.started
+        ? { text: t("mobile.livePreview.started", { time: f.time(result.until) }), ok: true }
+        : { text: t(result.why === "off" ? "mobile.livePreview.off" : "mobile.livePreview.failed"), ok: false },
+    );
+    setStarting(false);
+  };
+  return (
+    <SettingRow
+      title={t("mobile.livePreview.title")}
+      meta={said ? <Line tone={said.ok ? "ok" : "red"}>{said.text}</Line> : undefined}
+      label={`${t("settings.guide.start")}: ${t("mobile.livePreview.title")}`}
+      hint={t("mobile.livePreview.hint")}
+      busy={starting}
+      onPress={() => void start()}
+      testID="action.livePreview"
+    />
+  );
+}
+
+/** A meta line read out when it changes (what the check found, what a tried action did). */
+function Line({ children, tone = "muted" }: { children: string; tone?: "muted" | "ok" | "red" }) {
   const v = useTheme().v4;
   return (
-    <Text size="bodyMedium" accessibilityLiveRegion="polite" style={{ color: v.muted }}>
+    <Text size="bodyMedium" accessibilityLiveRegion="polite" style={{ color: tone === "ok" ? v.okFg : tone === "red" ? v.redFg : v.muted }}>
       {children}
     </Text>
   );

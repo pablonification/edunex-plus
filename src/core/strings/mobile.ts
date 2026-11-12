@@ -351,6 +351,25 @@ export const mobileStrings = {
   "mobile.settings.notificationsTurnOn": { id: "Nyalakan notifikasi", en: "Turn on notifications" },
   // Settings › Akun: the line under "Ringkasan awal", saying what it is.
   "mobile.settings.firstScanMeta": { id: "Yang ditemukan saat pertama terhubung", en: "What turned up when you first connected" },
+  // settings: Tentang › Coba Aktivitas Langsung (iPhone only). The class's Live Activity, started now with a made-up
+  // class, to see it on the Lock Screen and in the Dynamic Island. iOS's own name for it in each language.
+  "mobile.livePreview.title": { id: "Coba Aktivitas Langsung", en: "Test Live Activity" },
+  "mobile.livePreview.hint": { id: "Tampilkan contoh kuliah di Layar Terkunci selama 15 menit", en: "Show a sample class on the Lock Screen for 15 minutes" },
+  "mobile.livePreview.started": {
+    id: "Contoh berjalan sampai {time}. Kunci iPhone untuk melihatnya.",
+    en: "A sample runs until {time}. Lock your iPhone to see it.",
+  },
+  "mobile.livePreview.off": {
+    id: "Aktivitas Langsung untuk Edunex Plus mati. Nyalakan di Pengaturan iPhone.",
+    en: "Live Activities for Edunex Plus are off. Turn them on in iPhone Settings.",
+  },
+  "mobile.livePreview.failed": {
+    id: "iOS tidak memulainya. Tutup aplikasi, buka lagi, lalu ulangi.",
+    en: "iOS didn't start it. Close the app, open it again, then retry.",
+  },
+  // The made-up class the preview shows: its name and room say they're samples.
+  "mobile.livePreview.course": { id: "Contoh Kuliah", en: "Sample Class" },
+  "mobile.livePreview.room": { id: "Ruang Contoh", en: "Sample Room" },
   // course
   // "Simpan untuk offline" on the phone: the course's files go into the app, a few at a time. It keeps going off the page.
   "mobile.offline.saving": {

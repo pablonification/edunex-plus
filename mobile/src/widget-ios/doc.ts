@@ -106,7 +106,8 @@ function palette(scheme: "light" | "dark"): DocPalette {
   };
 }
 
-const COLORS = { light: palette("light"), dark: palette("dark") };
+/** Both looks' colours, as every document carries them. */
+export const DOC_COLORS = { light: palette("light"), dark: palette("dark") };
 
 /** A course's colour as its tile's ink (the app's course colours), light and dark; grey before it has one. */
 export function courseColor(tone: string | undefined): Pair {
@@ -142,7 +143,7 @@ export function setupDoc(title: string, hint: string | null, home: string): IosW
     actions: [],
     needs: null,
     today: null,
-    colors: COLORS,
+    colors: DOC_COLORS,
   };
 }
 
@@ -180,7 +181,7 @@ export function iosWidgetDoc(model: WidgetModel, title: string, link: LinkOf): I
           deadline: today.deadline ? line(today.deadline) : null,
         }
       : null,
-    colors: COLORS,
+    colors: DOC_COLORS,
   };
 }
 
