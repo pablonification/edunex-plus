@@ -625,7 +625,19 @@ jobs:
               echo "::error::$TAG was published while this run built it: its files stay as they are. Number a new version to release this commit."
               exit 1
             fi
-            # A re-run, or a draft made again: refresh its files, and point it at this commit.
+            # A re-run, or a draft made again: refresh its files, and point it at this commit. Never from a
+            # commit older than the one the draft is built from already: an old run, run again after a newer
+            # refresh, would put its older files back.
+            if [ "$tag_push" = false ]; then
+              built_from=$(gh release view "$TAG" --repo "$REPO" --json targetCommitish --jq .targetCommitish)
+              if [[ "$built_from" =~ ^[0-9a-f]{40}$ ]] && [ "$built_from" != "$GITHUB_SHA" ]; then
+                ahead=$(gh api "repos/$REPO/compare/$built_from...$GITHUB_SHA" --jq .status)
+                if [ "$ahead" != ahead ]; then
+                  echo "::error::The draft $TAG is built from ${built_from:0:7} already, and this run's commit (${GITHUB_SHA:0:7}) isn't newer: it would put older files back. To build the draft again, run the workflow by hand from main with \"release\" ticked."
+                  exit 1
+                fi
+              fi
+            fi
             gh release upload "$TAG" --repo "$REPO" --clobber installers/*
             if [ "$tag_push" = false ]; then gh release edit "$TAG" --repo "$REPO" --target "$GITHUB_SHA" > /dev/null; fi
             made="refreshed"

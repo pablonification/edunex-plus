@@ -48,7 +48,8 @@ brought over.
 
 **Running it.** Its native builds happen in GitHub Actions, never on a laptop. Take the dev client
 (the app without its JavaScript, which it loads from your computer) from the newest Mobile run on
-`main`, install it on an Android phone or emulator, and start the app's JavaScript:
+`main`, install it on an Android emulator (a run's dev clients are built for one: x86_64), and start
+the app's JavaScript:
 
 ```sh
 gh run list --workflow mobile.yml --branch main --limit 1     # the run's id
@@ -60,6 +61,12 @@ npm run start:demo   # the demo dev client, on made-up data; `npm run start` for
 
 Run `npm ci` at the root too: the phone's type check and its tests use the root's packages.
 Switching between the demo and the real app needs `-- --clear`.
+
+On a real phone (arm64), start the workflow by hand with `-f apks=qa`: its
+`edunex-plus-qa-dev-client-apk` runs on your own account and only reads from Edunex and SIX
+(`EXPO_PUBLIC_R3_GUARD=1 npm run start -- --clear`, as [mobile/AGENTS.md](mobile/AGENTS.md) says).
+The demo runs on a phone too, as `edunex-plus-demo-release-apk`: the whole app with its JavaScript
+inside, so it doesn't follow your edits.
 
 **Before a pull request:** `npm run typecheck` in `mobile/`, and the root `npm run check` (Biome
 checks `mobile/` too, and the phone's tests in `test/mobile` run with the rest). CI runs both.
@@ -75,7 +82,8 @@ pick which APKs to build (`-f apks=demo-release`, `qa`, `ios`, `none`) and which
 (`gh workflow run mobile.yml --ref <branch> -f apks=ios -f e2e=false -f scenarios=false -f desktop-shots=false`):
 an unsigned, read-only `.ipa` (artifact `edunex-plus-qa-ios-ipa`) you sign with your own Apple ID to
 install. Building it on a Mac with Xcode, and what to check on an iPhone: [mobile/IOS.md](mobile/IOS.md).
-The APK and `.ipa` a release carries are built by `mobile-release.yml`, signed with the project's key
+The APK and `.ipa` a release carries are built by `mobile-release.yml`: the APK signed with the
+project's key, the `.ipa` unsigned, for each student to sign with their own Apple ID
 (`gh workflow run mobile-release.yml --ref <branch>` builds both as a check).
 
 ## How the tests work
@@ -273,7 +281,9 @@ writes it), with its own licence and Electron's and Chromium's.
 release → Run workflow from `main` with "release" ticked, or `gh workflow run release.yml --ref main
 -f release=true`. It builds `main`'s newest commit into the draft for `package.json`'s version and
 points the draft there. It refuses a version that's already published: number a new one. The notes
-stay as they were first written; edit them on the draft if they should name the fix.
+stay as they were first written; edit them on the draft if they should name the fix. Press Publish
+only once that run has finished: a refresh replaces the draft's files one by one. A run of an older
+commit, run again after a refresh, stops rather than put its older files back.
 
 **Tagging first still works:** `git tag v<version> <commit>` and `git push origin v<version>` build the
 draft for that tag. The tag must match `package.json`'s version at that commit.
