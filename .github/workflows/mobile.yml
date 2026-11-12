@@ -435,6 +435,7 @@ jobs:
             for widget in EdunexNow EdunexToday; do
               grep -q "$widget" "$registry" || echo "::warning::$widget has no first layout: the gallery may show it blank until the app is opened."
             done
+            grep -q '"EdunexClass"' "$registry" || { echo "::error::The Live Activity's layout isn't in the extension: it comes up empty on an iPhone signed without an App Group."; exit 1; }
           fi
           {
             echo "### iPhone widgets"

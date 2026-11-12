@@ -270,6 +270,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
         })),
       },
     ],
+    // The Live Activity's layout goes inside the widget extension too (plugins/live-activity-layout.js says why).
+    // Before "expo-widgets": Expo runs a later plugin's mods first, and this one adds to what that one wrote.
+    ["./plugins/live-activity-layout", { activities: [{ name: "EdunexClass", layout: "./src/widget-ios/live.tsx" }] }],
     // The iPhone's widgets (qa/superapp-ios-widgets.md): a WidgetKit extension that expo-widgets makes at prebuild, its
     // own bundle id, and an App Group the app and the widgets share (the app writes, the widgets read). iOS only: its
     // Android side stays off (no `enableAndroid`; package.json's expo.autolinking leaves it out of the APK too).

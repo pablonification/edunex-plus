@@ -129,3 +129,32 @@ describe("plugins/widget-extras.js", () => {
     expect(receivers[1]!.$["android:label"]).toBe("x");
   });
 });
+
+// The iPhone's Live Activity carries its layout inside the widget extension (mobile/plugins/live-activity-layout.js):
+// on an iPhone signed without an App Group the store it would read it from is closed to it, and it came up empty.
+describe("the Live Activity's layout is bundled into the widget extension", () => {
+  const layout = require("../../mobile/plugins/live-activity-layout.js") as {
+    withActivities(config: object, activities: { name: string; layout: string }[]): { widgets?: unknown; liveActivities: { name: string; layout: string }[] };
+  };
+  const listed = (plugin("./plugins/live-activity-layout") as unknown as { activities: { name: string; layout: string }[] }).activities;
+
+  it("lists the Live Activity the app starts, by the name and file the code uses", () => {
+    expect(listed).toHaveLength(1);
+    const source = fs.readFileSync(path.join(mobile, listed[0]!.layout), "utf8");
+    expect(source).toContain(`export const LIVE_ACTIVITY = "${listed[0]!.name}"`);
+    expect(source).toContain("createLiveActivity(LIVE_ACTIVITY");
+  });
+
+  it("its step runs after expo-widgets has written the list (Expo runs a later plugin's steps first)", () => {
+    const names = (expo.plugins as unknown[]).map((entry) => (Array.isArray(entry) ? entry[0] : entry));
+    expect(names.indexOf("./plugins/live-activity-layout")).toBeGreaterThanOrEqual(0);
+    expect(names.indexOf("./plugins/live-activity-layout")).toBeLessThan(names.indexOf("expo-widgets"));
+  });
+
+  it("adds the Live Activities to the list and keeps the widgets", () => {
+    const before = { widgets: [{ name: "EdunexNow", initialLayout: "./src/widget-ios/now.tsx" }] };
+    const after = layout.withActivities(before, listed);
+    expect(after.widgets).toEqual(before.widgets);
+    expect(after.liveActivities).toEqual(listed);
+  });
+});

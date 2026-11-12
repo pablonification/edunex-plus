@@ -79,8 +79,10 @@ step only worth doing if the one before it worked:
    that grants it under another name (the team's id added) is followed by reading the granted name from the
    provisioning profile in the bundle. **Sideloadly on a free Apple ID grants no App Group** (seen 12 Nov: one App
    ID and one profile for the app and the widgets, no group): there the store is the keychain, which the app and
-   the widget extension share because they are signed alike. Both are in `patches/expo-widgets+*.patch`; each
-   process says which store it uses in the phone's log (`[ExpoWidgets]`).
+   the widget extension share because they are signed alike (seen working 12 Nov: the widgets fill in). A Live
+   Activity is drawn in a tighter sandbox the keychain is closed to, so its layout rides inside the extension's
+   bundle instead (`plugins/live-activity-layout.js`); its content comes from iOS itself. All of it is in
+   `patches/expo-widgets+*.patch`.
 2. **The gallery has them.** Long-press the Home Screen › Edit › Add Widget › "Edunex Plus": two widgets ("Edunex
    Plus" and "Hari ini"), each in small, medium and large, shown greyed like a widget still loading.
 3. **They fill in.** Open the app (the demo is easiest), sign in or let the demo load, go back to the Home Screen.
