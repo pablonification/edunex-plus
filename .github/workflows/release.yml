@@ -574,7 +574,8 @@ jobs:
     needs: [plan, package, phone]
     if: needs.plan.outputs.release == 'true'
     # One run at a time writes a version's draft: a by-hand refresh, or a tag pushed while the merge's run still
-    # builds, waits here instead of mixing its files and checksums with the other's.
+    # builds, waits here instead of mixing its files and checksums with the other's. (Only the newest waiting
+    # run goes ahead: one it bumps shows as cancelled on the Actions page.)
     concurrency:
       group: release-publish-${{ needs.plan.outputs.tag }}
       cancel-in-progress: false
