@@ -15,6 +15,7 @@
     { "includes": ["src/**"], "plugins": ["./biome-plugins/no-em-dash-copy.grit"] },
     { "includes": ["src/core/strings/**"], "plugins": ["./biome-plugins/no-semicolon-copy.grit"] },
     { "includes": ["scripts/demo/**"], "linter": { "rules": { "performance": { "useDomNodeTextContent": "off" } } } },
+    { "includes": ["site/src/site.css"], "linter": { "rules": { "style": { "noDescendingSpecificity": "off" } } } },
     {
       "includes": ["mobile/src/**"],
       "linter": {

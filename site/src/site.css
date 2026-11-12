@@ -1,0 +1,1958 @@
+/* The website's look. Flat pages in the app's own blue and its own heading face (Plus Jakarta Sans, as on
+   the phone), with the system's font for reading. The pictures of the app do the showing: nothing is boxed,
+   tinted or shadowed to fill space. Light by default, dark when the visitor's system is, the same layout in
+   both. */
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/fonts/plus-jakarta-sans-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/fonts/plus-jakarta-sans-latin-800-normal.woff2") format("woff2");
+  font-weight: 800;
+  font-display: swap;
+}
+
+:root {
+  --blue: #2f6feb;
+  --band: #2f6feb;
+  --blue-deep: #2258c4;
+  --link: #1d4fb8;
+  --bg: #ffffff;
+  --ink: #111318;
+  --body: #3b3f4c;
+  --muted: #646a7a;
+  --line: #e2e5ec;
+  --device: #0c0d11;
+  --device-edge: #2c2e36;
+  --metal: #d3d6dd;
+  --metal-edge: #aeb3be;
+  /* One scale for type, one for corners. */
+  --t-hero: clamp(2.5rem, 6.4vw, 4.6rem);
+  --t-title: clamp(1.75rem, 3.4vw, 2.6rem);
+  --t-step: clamp(1.35rem, 2.3vw, 1.7rem);
+  --t-lead: clamp(1.06rem, 1.6vw, 1.2rem);
+  --t-small: 0.92rem;
+  --r-control: 999px;
+  --r-picture: 12px;
+  --display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --text: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text", "Segoe UI", system-ui, Roboto, "Noto Sans", sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --link: #8fb2ff;
+    --band: #2152bd;
+    --bg: #0e0f13;
+    --ink: #f2f3f7;
+    --body: #c3c7d2;
+    --muted: #969cad;
+    --line: #272a33;
+    --device: #000000;
+    --device-edge: #3a3d48;
+    --metal: #4a4d58;
+    --metal-edge: #5f636f;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--text);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  color: var(--body);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+img {
+  height: auto;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  word-spacing: 0.06em;
+  text-wrap: balance;
+}
+h1 {
+  font-size: var(--t-hero);
+  font-weight: 800;
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+h2 {
+  font-size: var(--t-title);
+  letter-spacing: -0.025em;
+}
+h3 {
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+}
+p {
+  margin: 0;
+  text-wrap: pretty;
+}
+a {
+  color: inherit;
+}
+strong,
+b {
+  font-weight: 600;
+  color: var(--ink);
+}
+ul,
+ol,
+dl,
+dd {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 3px;
+}
+/* On the blue itself a blue ring can't be seen. */
+:is(.hero, .closing, .nav-on-hero:not(.is-scrolled)) :focus-visible {
+  outline-color: #fff;
+}
+
+.icon {
+  flex: none;
+}
+
+.container {
+  width: min(1080px, 100% - 40px);
+  margin-inline: auto;
+}
+
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -60px;
+  z-index: 30;
+  padding: 10px 16px;
+  border-radius: var(--r-control);
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 600;
+  text-decoration: none;
+}
+.skip:focus {
+  top: 12px;
+}
+
+/* Buttons: one filled shape, the app's own, in two colours. Everything else that leads somewhere is a link. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 24px;
+  border: 0;
+  border-radius: var(--r-control);
+  background: var(--blue);
+  color: #fff;
+  font: 600 1.03rem / 1.2 var(--text);
+  text-decoration: none;
+  cursor: pointer;
+}
+.btn:hover {
+  background: var(--blue-deep);
+}
+.btn:active {
+  transform: scale(0.97);
+}
+.btn-white {
+  background: #fff;
+  color: #1a4fc0;
+}
+.btn-white:hover {
+  background: #e9f0ff;
+}
+.btn-small {
+  min-height: 40px;
+  padding: 8px 18px;
+  font-size: 0.95rem;
+}
+.link {
+  color: var(--link);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* The bar at the top */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--bg);
+  border-bottom: 1px solid transparent;
+}
+.nav.is-scrolled {
+  border-bottom-color: var(--line);
+}
+.nav-inner {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  width: min(1080px, 100% - 40px);
+  height: 64px;
+  margin-inline: auto;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+  color: var(--ink);
+  font: 800 1.08rem var(--display);
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+.brand img {
+  border-radius: 7px;
+}
+.nav-links {
+  display: flex;
+  gap: 24px;
+}
+.nav-links a {
+  color: var(--body);
+  font-size: 0.97rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.nav-links a:hover,
+.nav-links a[aria-current] {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+/* Over the blue of the home page's top, until the page scrolls. */
+.nav-on-hero:not(.is-scrolled) {
+  background: var(--band);
+}
+.nav-on-hero:not(.is-scrolled) .brand,
+.nav-on-hero:not(.is-scrolled) .nav-links a {
+  color: #fff;
+}
+.nav-on-hero:not(.is-scrolled) .btn {
+  background: #fff;
+  color: #1a4fc0;
+}
+
+/* An iPhone around a picture of the app: its island, its clock and its home bar drawn over the picture. */
+.iphone {
+  flex: none;
+  container-type: inline-size;
+  color: #111318;
+}
+/* The frame's own sizes sit on its body: a size in cqw is measured against the container above an element. */
+.iphone-body {
+  position: relative;
+  aspect-ratio: 9 / 19.5;
+  padding: 3.2cqw;
+  border: 0.6cqw solid var(--device-edge);
+  border-radius: 16.5cqw;
+  background: var(--device);
+}
+/* Its buttons: volume on the left, power on the right. */
+.iphone-body::before,
+.iphone-body::after {
+  content: "";
+  position: absolute;
+  width: 1cqw;
+  border-radius: 0.5cqw;
+  background: var(--device-edge);
+}
+.iphone-body::before {
+  top: 33cqw;
+  left: -1.4cqw;
+  height: 13cqw;
+  box-shadow: 0 17cqw 0 var(--device-edge);
+}
+.iphone-body::after {
+  top: 43cqw;
+  right: -1.4cqw;
+  height: 21cqw;
+}
+.iphone-screen {
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  border-radius: 13.4cqw;
+  background: #fff;
+}
+.iphone-screen > picture {
+  display: contents;
+}
+.iphone-screen > img,
+.iphone-screen > picture > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+.iphone-status {
+  position: absolute;
+  inset: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 4.2cqw 8.5cqw 0;
+  font: 600 4.6cqw / 1 var(--text);
+}
+.iphone-island {
+  width: 30cqw;
+  height: 9cqw;
+  border-radius: 5cqw;
+  background: #000;
+}
+.iphone-status svg {
+  justify-self: end;
+  width: 19cqw;
+  height: auto;
+}
+.iphone-home {
+  position: absolute;
+  left: 32%;
+  right: 32%;
+  bottom: 2.2cqw;
+  height: 1.4cqw;
+  border-radius: 1cqw;
+  background: currentColor;
+}
+.iphone-on-dark {
+  color: #fff;
+}
+/* A picture with a dark twin: the clock and the home bar turn with it. */
+@media (prefers-color-scheme: dark) {
+  .iphone-follows {
+    color: #fff;
+  }
+  .iphone-follows .iphone-screen {
+    background: #161618;
+  }
+}
+/* The mark on the button to press, over a picture of the app's first screen (measured on the picture). */
+.shot {
+  position: relative;
+}
+.ring {
+  position: absolute;
+  border: 3px solid #f0452d;
+  border-radius: 999px;
+  outline: 2px solid #fff;
+}
+.ring-phone {
+  left: 4%;
+  top: 173cqw;
+  width: 92%;
+  height: 13cqw;
+}
+.ring-laptop {
+  left: 43%;
+  top: 82.6%;
+  width: 14%;
+  height: 7.4%;
+}
+/* An Android phone: the same glass, a camera dot instead of the island. */
+.iphone.is-android .iphone-island {
+  width: 5cqw;
+  height: 5cqw;
+  border-radius: 50%;
+}
+
+/* A MacBook around a picture of the app. */
+.macbook {
+  flex: none;
+  container-type: inline-size;
+}
+.macbook-lid {
+  position: relative;
+  margin-inline: 7cqw;
+  padding: 1.5cqw 1.5cqw 1.9cqw;
+  border: 0.25cqw solid var(--device-edge);
+  border-bottom: 0;
+  border-radius: 2.6cqw 2.6cqw 0 0;
+  background: var(--device);
+}
+.macbook-lid img {
+  width: 100%;
+  border-radius: 0.9cqw;
+}
+.macbook-notch {
+  position: absolute;
+  top: 1.5cqw;
+  left: 50%;
+  width: 11cqw;
+  height: 1.7cqw;
+  margin-left: -5.5cqw;
+  border-radius: 0 0 0.9cqw 0.9cqw;
+  background: var(--device);
+}
+.macbook-base {
+  position: relative;
+  height: 1.9cqw;
+  border-radius: 0.3cqw 0.3cqw 1.9cqw 1.9cqw / 0.3cqw 0.3cqw 1.9cqw 1.9cqw;
+  background: var(--metal);
+  border-bottom: 0.45cqw solid var(--metal-edge);
+}
+.macbook-base::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 14cqw;
+  height: 0.9cqw;
+  margin-left: -7cqw;
+  border-radius: 0 0 0.9cqw 0.9cqw;
+  background: var(--metal-edge);
+}
+/* A window of the app on any other computer. */
+.window {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-picture);
+}
+.window img {
+  width: 100%;
+}
+
+/* The top of the home page */
+.hero {
+  position: relative;
+  background: var(--band);
+  color: #fff;
+  text-align: center;
+}
+/* The page's own colour again behind the lower half of the devices. */
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: clamp(70px, 15vw, 190px);
+  background: var(--bg);
+}
+.hero-inner {
+  position: relative;
+  z-index: 1;
+  padding-top: clamp(40px, 6vw, 76px);
+}
+.hero h1 {
+  color: #fff;
+}
+.hero h1 span {
+  display: block;
+}
+.hero-sub {
+  max-width: 48ch;
+  margin: 24px auto 0;
+  font-size: var(--t-lead);
+  line-height: 1.5;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px 22px;
+  margin-top: 30px;
+}
+.hero-meta {
+  font-size: var(--t-small);
+}
+.hero-meta a {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.hero-devices {
+  position: relative;
+  width: min(100%, 860px);
+  margin: clamp(40px, 6vw, 72px) auto 0;
+}
+.hero-devices .iphone {
+  position: absolute;
+  right: 1%;
+  bottom: -2%;
+  width: 21%;
+}
+
+/* Sections: flat, one after another, a hairline between. */
+.section {
+  padding-block: clamp(56px, 8vw, 108px);
+}
+.section + .section {
+  border-top: 1px solid var(--line);
+}
+.section > .container > h2 {
+  max-width: 20ch;
+  margin-bottom: clamp(28px, 4vw, 48px);
+}
+.lead {
+  max-width: 62ch;
+  font-size: var(--t-lead);
+  line-height: 1.55;
+}
+
+/* What it is, and what it reads */
+.what {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: clamp(32px, 6vw, 88px);
+  align-items: start;
+}
+.what h2 {
+  margin-bottom: 22px;
+}
+.sources-title {
+  padding-bottom: 12px;
+  color: var(--muted);
+  font-size: var(--t-small);
+  font-weight: 600;
+}
+.sources > div {
+  display: grid;
+  grid-template-columns: 11rem 1fr;
+  gap: 16px;
+  padding-block: 14px;
+  border-top: 1px solid var(--line);
+}
+.sources dt {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Each screen and the question it answers */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(14px, 2vw, 26px);
+}
+.strip figure {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin: 0;
+}
+.strip figcaption {
+  flex: 1;
+}
+.strip h3 {
+  margin-bottom: 6px;
+}
+.strip p {
+  font-size: var(--t-small);
+  line-height: 1.45;
+}
+
+/* Text beside one picture */
+.pair {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: clamp(32px, 7vw, 110px);
+  align-items: center;
+}
+/* A section whose picture runs down to the line under it. */
+.section-flush {
+  padding-bottom: 0;
+}
+.section-flush .pair {
+  align-items: end;
+}
+.section-flush .pair > div:first-child {
+  align-self: center;
+  padding-bottom: clamp(40px, 6vw, 80px);
+}
+.pair h2 {
+  margin-bottom: 20px;
+}
+.pair .iphone {
+  width: clamp(230px, 24vw, 270px);
+}
+
+/* The lock screen with the app's alerts on it: the phone's top half, cut where the alerts end. */
+.lock-view {
+  overflow: hidden;
+  height: clamp(380px, 40vw, 440px);
+}
+.lock {
+  height: 100%;
+  padding: 21cqw 4.5cqw 0;
+  background: #16307a;
+  color: #fff;
+  text-align: center;
+}
+.lock-day {
+  display: block;
+  font-size: 5.6cqw;
+  font-weight: 500;
+}
+.lock-time {
+  display: block;
+  margin-bottom: 7cqw;
+  font: 600 25cqw / 1.05 var(--text);
+  letter-spacing: -0.02em;
+}
+.note {
+  display: grid;
+  grid-template-columns: 10cqw 1fr auto;
+  column-gap: 3cqw;
+  margin-bottom: 2.4cqw;
+  padding: 3.4cqw;
+  border-radius: 6cqw;
+  background: #33488c;
+  font-size: 3.7cqw;
+  line-height: 1.35;
+  text-align: left;
+}
+.note img {
+  grid-row: span 2;
+  width: 10cqw;
+  border-radius: 2.4cqw;
+}
+.note b {
+  color: #fff;
+}
+.note time {
+  color: #c3cbe6;
+  font-size: 3.2cqw;
+}
+.note span {
+  grid-column: 2 / -1;
+  color: #e3e7f5;
+}
+
+/* The laptop, and what else is inside */
+.laptop-view {
+  width: min(100%, 940px);
+  margin-inline: auto;
+}
+.also {
+  margin-top: clamp(36px, 5vw, 64px);
+}
+.also ul {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: clamp(24px, 5vw, 64px);
+}
+.also li {
+  padding-block: 14px;
+  border-top: 1px solid var(--line);
+}
+
+/* Is it safe */
+.points {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 clamp(24px, 5vw, 64px);
+}
+.points > div {
+  padding-block: 22px;
+  border-top: 1px solid var(--line);
+}
+.points h3 {
+  margin-bottom: 8px;
+}
+.never {
+  margin-top: 26px;
+  padding-top: 26px;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font: 700 clamp(1.15rem, 2vw, 1.4rem) / 1.35 var(--display);
+  letter-spacing: -0.015em;
+}
+.never + p {
+  margin-top: 18px;
+}
+
+/* The devices: one row each, this visitor's first */
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+.row {
+  display: grid;
+  grid-template-columns: 30px 13rem 1fr auto 20px;
+  align-items: center;
+  gap: 18px;
+  padding-block: 20px;
+  border-top: 1px solid var(--line);
+  text-decoration: none;
+}
+.row:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.row > .icon:first-child {
+  color: var(--ink);
+}
+.row > .icon:last-child {
+  color: var(--muted);
+}
+.row-name {
+  color: var(--ink);
+  font: 700 1.3rem var(--display);
+  letter-spacing: -0.02em;
+}
+.row-yours[hidden] {
+  display: none;
+}
+.row-yours {
+  margin-left: 6px;
+  color: var(--link);
+  font: 600 var(--t-small) var(--text);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.row-time {
+  color: var(--muted);
+  font-size: var(--t-small);
+  white-space: nowrap;
+}
+.row:hover .row-name {
+  color: var(--link);
+}
+.row.is-yours {
+  order: -1;
+}
+.aside {
+  max-width: 68ch;
+  margin-top: clamp(28px, 4vw, 44px);
+}
+.aside :is(h2, h3) {
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+}
+
+/* Questions */
+.faq {
+  max-width: 760px;
+}
+.faq details {
+  border-top: 1px solid var(--line);
+}
+.faq details:last-child {
+  border-bottom: 1px solid var(--line);
+}
+.faq summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 18px;
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+  list-style: none;
+}
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+.faq summary .icon {
+  color: var(--muted);
+}
+details[open] > summary .icon {
+  transform: rotate(180deg);
+}
+.faq details p {
+  max-width: 64ch;
+  padding-bottom: 20px;
+}
+
+/* The last word */
+.closing {
+  padding-block: clamp(56px, 8vw, 100px);
+  background: var(--band);
+  text-align: center;
+}
+.closing h2 {
+  margin-bottom: 28px;
+  color: #fff;
+  font-size: clamp(2rem, 4.6vw, 3.2rem);
+}
+
+/* The footer */
+.footer {
+  padding-block: 36px 52px;
+  font-size: var(--t-small);
+}
+.footer-inner {
+  display: grid;
+  gap: 16px;
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+}
+.footer a {
+  text-underline-offset: 4px;
+}
+.footer-links a {
+  text-decoration: none;
+}
+.footer-links a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+.disclaimer {
+  max-width: 88ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* The top of a page that isn't the home page */
+.top {
+  padding-block: clamp(22px, 3.5vw, 40px) clamp(28px, 4vw, 48px);
+}
+.top h1 {
+  margin-bottom: 18px;
+  font-size: clamp(2.2rem, 5vw, 3.5rem);
+}
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 26px;
+  color: var(--muted);
+  font-size: var(--t-small);
+}
+.crumbs a {
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.crumbs [aria-current] {
+  color: var(--ink);
+}
+/* What a guide takes: how long, then what to have at hand. */
+.needs {
+  margin-top: 20px;
+  color: var(--ink);
+  font-weight: 600;
+}
+.needs li + li {
+  font-weight: 400;
+}
+.needs li + li::before {
+  content: "\2013\00a0";
+  color: var(--muted);
+}
+.top .rows {
+  margin-top: 8px;
+}
+.heads-up {
+  max-width: 68ch;
+  margin-top: 26px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.heads-up h2 {
+  margin-bottom: 8px;
+  font-size: 1.1rem;
+  letter-spacing: -0.01em;
+}
+.plain-list {
+  max-width: 68ch;
+}
+.plain-list li {
+  padding-block: 12px;
+  border-top: 1px solid var(--line);
+}
+.not-found {
+  padding-block: 96px;
+  text-align: center;
+}
+.not-found .container {
+  display: grid;
+  justify-items: center;
+  gap: 20px;
+}
+.not-found img {
+  border-radius: 16px;
+}
+.not-found p[lang] {
+  color: var(--muted);
+  font-size: var(--t-small);
+}
+
+/* A guide: its steps one under another, the words on the left and the screen to expect on the right. */
+.steps {
+  counter-reset: step;
+}
+.step {
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 clamp(16px, 3vw, 40px);
+  align-items: start;
+  padding-block: clamp(32px, 5vw, 60px);
+  border-top: 1px solid var(--line);
+  scroll-margin-top: 84px;
+}
+/* A step with no picture (a line to paste is its picture) takes the width. */
+.step:not(:has(> .pic)) .step-text {
+  grid-column: 2 / -1;
+  max-width: 68ch;
+}
+.step-n {
+  color: var(--blue);
+  font: 800 clamp(2rem, 4vw, 2.9rem) / 1 var(--display);
+  letter-spacing: -0.04em;
+}
+.step h2 {
+  margin-bottom: 14px;
+  font-size: var(--t-step);
+  letter-spacing: -0.025em;
+}
+.step-text > p + p {
+  margin-top: 12px;
+}
+.step-text a:not(.btn) {
+  color: var(--link);
+  font-weight: 600;
+  text-underline-offset: 3px;
+}
+.files {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 22px;
+}
+.files .btn + .btn {
+  background: none;
+  color: var(--link);
+  min-height: 0;
+  padding: 6px 0;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.btn small {
+  font-weight: 500;
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+.file-note,
+.file-version {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: var(--t-small);
+}
+.file-note {
+  color: var(--ink);
+}
+.command {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 10px 10px 10px 16px;
+  border-radius: var(--r-picture);
+  background: #14161d;
+  color: #e8ebf5;
+}
+.command code {
+  flex: 1;
+  overflow-x: auto;
+  font: 500 0.88rem / 1.6 var(--mono);
+  white-space: nowrap;
+}
+.copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #2f3340;
+  color: #fff;
+  font: 600 0.88rem var(--text);
+  cursor: pointer;
+}
+.copy[hidden] {
+  display: none;
+}
+.copy:hover {
+  background: #434859;
+}
+.alt {
+  margin-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.alt summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-block: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.alt summary::-webkit-details-marker {
+  display: none;
+}
+.alt summary .icon {
+  color: var(--muted);
+}
+.alt .pic {
+  justify-items: start;
+  margin-top: 18px;
+}
+.pic-note {
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: var(--t-small);
+}
+.after {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: clamp(28px, 6vw, 80px);
+  align-items: start;
+}
+.after h2 {
+  margin-bottom: 18px;
+  font-size: var(--t-step);
+}
+.after-links {
+  display: grid;
+  gap: 10px;
+  margin-top: 24px;
+}
+.after-side > div {
+  padding-block: 18px;
+  border-top: 1px solid var(--line);
+}
+.after-side h3 {
+  margin-bottom: 6px;
+}
+.others {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+
+/* The drawings beside the steps. Each is a small copy of a system's own screen, so their colors are
+   those systems', the same in light and dark. */
+.pic {
+  display: grid;
+  place-items: center;
+}
+.pic-in {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  color: #1b1d26;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.pic-in b {
+  color: inherit;
+}
+.pic-app .iphone {
+  width: min(240px, 70%);
+}
+.pic-app .macbook,
+.pic-app .window {
+  width: 100%;
+}
+.target {
+  position: relative;
+  display: inline-flex;
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 6px #f0452d;
+}
+.mark {
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #f0452d;
+  color: #fff;
+  font: 700 12px / 1 var(--text);
+}
+.mark:empty {
+  top: -9px;
+  right: -9px;
+  min-width: 16px;
+  height: 16px;
+}
+.duo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+}
+
+.m-phone {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 228px;
+  min-height: 350px;
+  padding: 12px;
+  border: 6px solid var(--device);
+  outline: 1px solid var(--device-edge);
+  border-radius: 30px;
+  background: #f6f7fa;
+}
+.m-status {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 6px;
+  color: #5d6172;
+  font-size: 10px;
+  font-weight: 600;
+}
+.m-status i {
+  width: 22px;
+  height: 8px;
+  margin-top: 3px;
+  border-radius: 3px;
+  background: #b9bdcb;
+}
+.m-island {
+  width: 54px;
+  height: 14px;
+  margin: 0 auto 2px;
+  border-radius: 10px;
+  background: #14161d;
+}
+.m-lines {
+  display: grid;
+  gap: 8px;
+  padding: 6px;
+}
+.m-lines i {
+  height: 8px;
+  border-radius: 4px;
+  background: #e2e5ee;
+}
+.m-lines i:nth-child(3n) {
+  width: 60%;
+}
+.m-lines i:nth-child(3n + 1) {
+  width: 85%;
+}
+.m-sheet,
+.m-dialog,
+.m-toast {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 6px 20px -6px rgb(18 20 28 / 0.3);
+}
+.m-sheet {
+  margin: auto -4px -4px;
+}
+.m-dialog {
+  margin-top: auto;
+  margin-bottom: 20px;
+}
+.m-dialog p,
+.m-alert p {
+  color: #555a6b;
+  font-size: 11px;
+}
+.m-toast > span:nth-child(2) {
+  min-width: 0;
+}
+.m-toast b {
+  font-size: 11.5px;
+}
+.m-toast {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  margin-top: 4px;
+  padding: 10px;
+  border-radius: 14px;
+}
+.m-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.m-file small,
+.m-toast small {
+  display: block;
+  overflow: hidden;
+  max-width: 110px;
+  color: #6a6f80;
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-file > span:last-child {
+  min-width: 0;
+}
+.m-file b {
+  display: block;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+.m-apk,
+.m-ipa {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 40px;
+  border-radius: 8px;
+  background: #e3f4e8;
+  color: #1c7a43;
+  font-size: 9px;
+  font-weight: 700;
+}
+.m-ipa {
+  background: #e6eeff;
+  color: #2258c4;
+}
+.m-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+.m-btn {
+  display: inline-grid;
+  place-items: center;
+  min-height: 28px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  color: #2258c4;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.m-btn-fill {
+  background: #2f6feb;
+  color: #fff;
+}
+.m-btn-plain {
+  border: 1px solid #d0d4df;
+  border-radius: 7px;
+  background: #fff;
+  color: #1b1d26;
+}
+.m-title {
+  padding: 8px 6px 2px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.m-row-app {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  font-size: 13px;
+}
+.m-app {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.m-browser {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 8px solid #c3c8d6;
+  border-radius: 50%;
+  background: #8e95a8;
+}
+.m-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #fff;
+  font-size: 11.5px;
+  font-weight: 500;
+}
+.m-switch {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: #2f6feb;
+}
+.m-switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+}
+.m-switch-ios {
+  background: #34c759;
+}
+.m-shield {
+  width: 26px;
+  height: 30px;
+  border-radius: 6px 6px 13px 13px;
+  background: #e8453c;
+}
+.m-link {
+  color: #2258c4;
+  font-weight: 600;
+  padding: 3px 6px;
+}
+.m-dialog > .target {
+  justify-self: start;
+  margin-block: 3px;
+}
+
+.m-ios {
+  background: #f2f2f7;
+}
+.m-alert {
+  display: grid;
+  gap: 6px;
+  margin: auto 8px;
+  padding-top: 16px;
+  border-radius: 14px;
+  background: rgb(250 250 252 / 0.98);
+  box-shadow: 0 8px 28px -8px rgb(18 20 28 / 0.4);
+  text-align: center;
+}
+.m-alert b,
+.m-alert p {
+  padding-inline: 14px;
+}
+.m-alert-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 10px;
+  border-top: 1px solid #d5d6dc;
+}
+.m-alert-actions > * {
+  display: grid;
+  place-items: center;
+  min-height: 38px;
+  color: #007aff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.m-alert-actions > .target {
+  margin: 4px;
+  min-height: 30px;
+}
+.m-alert-actions > span:last-child {
+  border-left: 1px solid #d5d6dc;
+  font-weight: 400;
+}
+.m-ios-nav {
+  display: grid;
+  gap: 6px;
+  padding: 4px 6px 6px;
+}
+.m-ios-nav span {
+  color: #007aff;
+  font-size: 11px;
+}
+.m-ios-nav b {
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+.m-ios-head {
+  padding: 4px 12px 0;
+  color: #6d6d72;
+  font-size: 9.5px;
+}
+.m-ios-list {
+  border-radius: 12px;
+  background: #fff;
+}
+.m-ios-list > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.m-ios-list > div + div {
+  border-top: 1px solid #ececf0;
+}
+.m-ios-list i {
+  width: 70%;
+  height: 8px;
+  border-radius: 4px;
+  background: #e2e5ee;
+}
+.m-ios-list em {
+  color: #b5b6bd;
+  font-style: normal;
+}
+.m-ios-link {
+  color: #007aff;
+}
+.m-ios-list .target {
+  padding: 2px 6px;
+}
+
+.m-win {
+  overflow: hidden;
+  width: min(100%, 400px);
+  border: 1px solid #d0d4df;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 14px 34px -14px rgb(18 20 28 / 0.4);
+}
+.m-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  background: #eceef4;
+}
+.m-bar i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fe5f57;
+}
+.m-bar i:nth-child(2) {
+  background: #febc2e;
+}
+.m-bar i:nth-child(3) {
+  background: #28c840;
+}
+.m-bar span {
+  position: absolute;
+  inset-inline: 64px;
+  overflow: hidden;
+  color: #555a6b;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m-winos {
+  border-radius: 8px;
+}
+.m-winos .m-bar i {
+  display: none;
+}
+.m-winos .m-bar span {
+  position: static;
+  flex: 1;
+  text-align: left;
+}
+.m-winos .m-bar::after {
+  content: "\2013\00a0\00a0\00a0\25a1\00a0\00a0\00a0\00d7";
+  color: #555a6b;
+  font-size: 10px;
+  white-space: pre;
+}
+.m-dark {
+  border-color: #2b2e3a;
+  background: #1b1d26;
+  color: #e8ebf5;
+}
+.m-dark .m-bar {
+  background: #262935;
+}
+.m-dark .m-bar span {
+  color: #b9bdcb;
+}
+.m-side-body {
+  display: grid;
+  gap: 16px;
+  padding: 22px 20px 24px;
+}
+.m-field {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+.m-field label {
+  color: #b9bdcb;
+  font-size: 11px;
+}
+.m-field .target,
+.m-input {
+  display: block;
+}
+.m-input {
+  padding: 8px 10px;
+  border: 1px solid #3b3f4f;
+  border-radius: 8px;
+  background: #12141b;
+  color: #e8ebf5;
+  font-size: 11.5px;
+}
+.m-side-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 4px;
+}
+.m-drop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px dashed #555a6b;
+  border-radius: 10px;
+  color: #b9bdcb;
+}
+.m-drop small {
+  max-width: 96px;
+  font-size: 10.5px;
+}
+.m-start {
+  min-height: 34px;
+  padding-inline: 20px;
+  border-radius: 8px;
+}
+
+.m-flyout {
+  display: grid;
+  gap: 10px;
+  width: min(100%, 340px);
+  padding: 14px;
+  border: 1px solid #d0d4df;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 14px 34px -14px rgb(18 20 28 / 0.4);
+}
+.m-flyout-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.m-flyout-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fdf3e2;
+  font-size: 11px;
+}
+.m-flyout-item b {
+  word-break: break-all;
+}
+.m-warn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #d9822b;
+  color: #fff;
+  font-weight: 700;
+}
+.m-more {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 24px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.m-menu {
+  display: grid;
+  gap: 4px;
+  justify-self: end;
+  width: 180px;
+  padding: 6px;
+  border: 1px solid #d0d4df;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 20px -8px rgb(18 20 28 / 0.3);
+}
+.m-menu > span:first-child {
+  padding: 6px 10px;
+  color: #555a6b;
+}
+.m-menu .target {
+  display: block;
+}
+.m-menu-pick {
+  display: block;
+  padding: 6px 10px;
+  font-weight: 600;
+}
+.m-light .m-bar span {
+  color: #3d4150;
+}
+.m-explorer {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px 20px;
+}
+.m-explorer-head,
+.m-explorer-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 80px;
+  align-items: center;
+  gap: 10px;
+}
+.m-explorer-head {
+  grid-template-columns: 1fr 80px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e6e8ef;
+  color: #6a6f80;
+  font-size: 11px;
+}
+.m-explorer .target {
+  display: block;
+  margin-top: 6px;
+}
+.m-explorer-row {
+  padding: 8px 6px;
+  border-radius: 6px;
+  background: #e8f0ff;
+}
+.m-explorer-row small {
+  color: #555a6b;
+}
+.m-exe {
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  background: #2f6feb;
+}
+
+.m-ss-pair {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 380px);
+}
+.m-ss {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  background: #0f6fc6;
+  color: #fff;
+  box-shadow: 0 14px 34px -14px rgb(18 20 28 / 0.5);
+}
+.m-ss b {
+  font-size: 16px;
+  font-weight: 400;
+}
+.m-ss p {
+  font-size: 11px;
+}
+.m-ss .target {
+  justify-self: start;
+  border-radius: 2px;
+}
+.m-ss-link {
+  padding: 2px 4px;
+  text-decoration: underline;
+}
+.m-ss-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+.m-ss-btn {
+  padding: 5px 14px;
+  border: 1px solid #fff;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.m-about {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 22px 20px;
+}
+.m-mac {
+  width: 96px;
+  height: 60px;
+  border: 5px solid #1b1d26;
+  border-radius: 8px;
+  background: #2f6feb;
+}
+.m-about > b {
+  font-size: 16px;
+}
+.m-about-rows {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0;
+}
+.m-about-row {
+  display: grid;
+  grid-template-columns: 70px 110px;
+  gap: 12px;
+  padding: 3px 8px;
+}
+.m-about-row span {
+  color: #6a6f80;
+  text-align: right;
+}
+.m-about-row b {
+  font-weight: 500;
+}
+.m-about small {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #e8f0ff;
+  color: #2258c4;
+  font-weight: 600;
+}
+
+/* The disk image's window: its real background, with the three icons where Finder puts them
+   (electron-builder.config.mjs's dmg contents, in the window's own 640 by 480). */
+.m-dmg-win {
+  width: min(100%, 440px);
+}
+.m-dmg {
+  position: relative;
+  container-type: inline-size;
+}
+.m-dmg-bg {
+  width: 100%;
+}
+.m-dmg-icon {
+  position: absolute;
+  left: calc(var(--x) / 640 * 100%);
+  top: calc(var(--y) / 480 * 100%);
+  display: grid;
+  justify-items: center;
+  gap: 1cqw;
+  width: 20cqw;
+  transform: translate(-50%, -50%);
+  color: #1b1d26;
+  font-size: 2.3cqw;
+  font-weight: 500;
+}
+.m-dmg-icon .target {
+  border-radius: 3cqw;
+}
+.m-dmg-icon img,
+.m-dmg-icon svg,
+.m-term-icon {
+  width: 12.5cqw;
+  height: 12.5cqw;
+}
+.m-term-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 2.8cqw;
+  background: #1b1d26;
+  color: #fff;
+  font: 700 4cqw var(--mono);
+}
+.m-term {
+  padding: 16px 16px 40px;
+}
+.m-term code {
+  font: 500 11.5px / 1.6 var(--mono);
+  word-break: break-all;
+}
+.m-term span {
+  color: #7d8296;
+}
+.m-term i {
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  margin-left: 3px;
+  background: #e8ebf5;
+  vertical-align: -2px;
+}
+.m-settings {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+}
+.m-settings-side {
+  padding: 8px 4px;
+  background: #f1f2f6;
+}
+.m-settings-main {
+  display: grid;
+  gap: 8px;
+  padding: 8px 12px 16px;
+}
+.m-settings-card {
+  display: grid;
+  gap: 10px;
+  justify-items: end;
+  padding: 12px;
+  border-radius: 10px;
+  background: #f4f5f9;
+}
+.m-settings-card p {
+  justify-self: start;
+  font-size: 11.5px;
+}
+
+/* Narrower screens */
+@media (max-width: 900px) {
+  .what,
+  .after {
+    grid-template-columns: 1fr;
+  }
+  /* The screens in a row to swipe through, one and a bit showing. */
+  .strip {
+    display: flex;
+    overflow-x: auto;
+    margin-inline: -20px;
+    padding-inline: 20px;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: 20px;
+    scrollbar-width: none;
+  }
+  .strip figure {
+    flex: none;
+    width: min(64vw, 250px);
+    scroll-snap-align: start;
+  }
+  .step {
+    grid-template-columns: 2.6rem minmax(0, 1fr);
+  }
+  .step > .pic {
+    grid-column: 1 / -1;
+    margin-top: 28px;
+  }
+  .m-phone {
+    min-height: 0;
+  }
+  .m-phone .m-lines i:nth-child(n + 3) {
+    display: none;
+  }
+  .m-dialog {
+    margin-top: 12px;
+  }
+  .m-sheet {
+    margin-top: 12px;
+  }
+  .duo {
+    flex-wrap: nowrap;
+    gap: 10px;
+    zoom: 0.74;
+  }
+}
+
+@media (max-width: 400px) {
+  .duo {
+    zoom: 0.64;
+  }
+}
+
+@media (max-width: 720px) {
+  body {
+    font-size: 1rem;
+  }
+  .nav-links {
+    display: none;
+  }
+  .hero-devices .macbook {
+    display: none;
+  }
+  .hero-devices .iphone {
+    position: static;
+    width: min(64%, 250px);
+    margin-inline: auto;
+  }
+  .pair {
+    grid-template-columns: 1fr;
+  }
+  .pair .iphone {
+    justify-self: center;
+  }
+  .points,
+  .also ul {
+    grid-template-columns: 1fr;
+  }
+  .sources > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .row {
+    grid-template-columns: 26px 1fr 20px;
+    gap: 4px 14px;
+  }
+  .row-body,
+  .row-time {
+    grid-column: 2;
+  }
+  .row > .icon:last-child {
+    grid-column: 3;
+    grid-row: 1 / span 3;
+  }
+  .files .btn:first-child {
+    align-self: stretch;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}

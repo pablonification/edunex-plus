@@ -2,6 +2,9 @@
 
 How to install, update and remove the app on each system, phones included. Back to the [README](../README.md).
 
+The website has the same steps with a picture for each, in Indonesian and English:
+[edunex-plus.arqilasp.com/install](https://edunex-plus.arqilasp.com/install/). This page is the long version, for every case.
+
 > **Alpha.** Edunex Plus is in early testing: expect rough edges, and check anything important
 > (a hand-in, an attendance count) on Edunex or SIX itself. Tell us what breaks in
 > [Issues](https://github.com/pablonification/edunex-plus/issues).
@@ -48,7 +51,8 @@ past it, and the app then opens normally.
 3. Open **Edunex Plus** from Applications, and eject the disk (⏏ beside
    **Edunex Plus \<version\>** in Finder's sidebar).
 
-From then on it opens like any other app. After each update, run the line again once.
+From then on it opens like any other app. After an update you install by hand, run the line again once
+(an update from inside the app doesn't need it).
 
 <details>
 <summary>Rather not use Terminal?</summary>
@@ -160,8 +164,8 @@ sign-in and saved data stay.
 <details>
 <summary>What's different on iPhone?</summary>
 
-No home-screen widget yet, and iOS decides when the app may update in the background, much less
-often than Android does (opening the app always updates it). Everything else is the same app.
+iOS decides when the app may update in the background, much less often than Android does (opening
+the app always updates it). Everything else is the same app, home-screen widgets included.
 
 </details>
 

@@ -1,27 +1,58 @@
-# Publishes the website (site/) to GitHub Pages at edunex-plus.arqilasp.com
-# whenever it changes on main. The site is plain HTML and CSS: nothing to build.
+# Builds the website (site/, site/README.md) and publishes it to GitHub Pages at
+# edunex-plus.arqilasp.com:
+#
+# - whenever site/ changes on main;
+# - whenever a release is published, so the download buttons point at the newest
+#   files and say the newest version;
+# - by hand (Actions → Website → Run workflow), on main.
 name: Website
 
 on:
   push:
     branches: [main]
-    paths: ["site/**", ".github/workflows/pages.yml"]
+    paths: ["site/**", ".github/workflows/pages.yml", ".nvmrc"]
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions: {}
 
-# One publish at a time; a newer push waits rather than cutting one off halfway.
+# One publish at a time; a newer one waits rather than cutting one off halfway.
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name == 'release' && 'release' || 'publish' }}
   cancel-in-progress: false
 
+defaults:
+  run:
+    shell: bash
+
 jobs:
+  # A published release runs this workflow on the release's tag, and only main may publish the
+  # website (the github-pages environment). So it starts the workflow again on main and ends.
+  republish:
+    name: republish
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write # start this workflow on main
+    steps:
+      - name: Publish the website again, from main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          gh workflow run pages.yml --repo "$REPO" --ref "$BRANCH"
+          echo "Started the website's publish on $BRANCH, for the release just published." >> "$GITHUB_STEP_SUMMARY"
+
   publish:
     name: publish
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read # check out site/
+      contents: read # check out site/, and ask for the newest release
       pages: write # publish to GitHub Pages
       id-token: write # prove to Pages that this run is allowed to publish
     environment:
@@ -32,12 +63,33 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      # The build needs Node and nothing else: no packages.
+      - name: Set up Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          package-manager-cache: false
+      # GitHub's "latest" release: the newest one published that isn't marked a pre-release. With it the
+      # download buttons fetch each file straight away. Without it (GitHub didn't answer, or there is no
+      # release yet) they open the release page, and the site is published all the same.
+      - name: Ask GitHub for the newest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if ! gh api "repos/$REPO/releases/latest" > "$RUNNER_TEMP/release.json"; then
+            echo "::warning::Couldn't read the newest release: the download buttons open the release page."
+            echo "{}" > "$RUNNER_TEMP/release.json"
+          fi
+      - name: Build the site
+        run: |
+          node site/build.mjs --out "$RUNNER_TEMP/site" --release "$RUNNER_TEMP/release.json" | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Set up Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - name: Package the site
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          path: site
+          path: ${{ runner.temp }}/site
       - name: Publish
         id: deploy
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
