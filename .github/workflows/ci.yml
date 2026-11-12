@@ -57,8 +57,8 @@ jobs:
           }
           {
             area deps '^(relay/)?package(-lock)?\.json$'
-            # The phone app, and what it shares with the desktop (src/), and the tests its type check reads.
-            area mobile '^(mobile|src|test/mobile)/'
+            # The phone app, what it shares with the desktop (src/), the tests its type check reads, and the root's packages those tests take their types from.
+            area mobile '^((mobile|src|test/mobile)/|package(-lock)?\.json$)'
             area workflows '^\.github/'
           } | tee -a "$GITHUB_OUTPUT"
 
