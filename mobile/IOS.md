@@ -101,7 +101,18 @@ step only worth doing if the one before it worked:
    clock) and "Hari ini": readable in iOS's tint, and a tap opens the app at the class.
 9. **Signed out.** Sign out of SIX in the app: "Hari ini" says what's wrong in the warning colour; signed out of
    everything, both say "Hubungkan Edunex atau SIX dulu".
-10. **The Live Activity.** Open the app during a class (the demo's morning has one): a Live Activity appears on
+10. **The Live Activity.** Without waiting for a class: Pengaturan › Tentang › "Coba Aktivitas Langsung" ("Test
+    Live Activity", on an iPhone only) starts it now with a made-up class ("XX1234 Contoh Kuliah") that began 5
+    minutes ago, ends in 15, and has a Presence window closing in 10. The row's line says until when it runs
+    (or that Live Activities are off for the app in the iPhone's Settings). Lock the phone: the Lock Screen shows
+    the course, a bar moving through the class, and "Isi Presensi XX1234" with the time left counting down; the
+    Dynamic Island shows the code and the countdown, and the same three lines when held. It is the real one's
+    factory, layout and props (`widget-ios/live-preview.ts`, `host/widget-ios.ios.ts`'s `previewIosLive`), so
+    what it draws is what a class draws. Leaving the app doesn't end it (the widgets' update keeps a preview
+    until its end, `previewStep`); a real class starting meanwhile takes its place. After its end it stays,
+    greyed by iOS, until the app is opened or the background sync runs. A black box means the layout didn't
+    load in the extension, a red box is the layout's own error: screenshot either.
+    The real one: open the app during a class (the demo's morning has one): a Live Activity appears on
     the Lock Screen and in the Dynamic Island with the course, a bar through the class, and, while its Presence
     is open, "Isi Presensi …" with the time left counting down. It goes when the class is over and the app (or
     the background sync) runs. Check it can be turned off (Settings › Edunex Plus › Live Activities) and that
@@ -232,6 +243,8 @@ or Profil › the gear › Tentang › "Panduan aplikasi" on any build)
 - [ ] Light and dark follow the app's choice, not only the phone's. Nothing is cut at the largest text size.
 - [ ] The Live Activity during a class (`widget-ios/live.tsx`): the course, a bar through the class, and "Isi Presensi"
       with the time left while a Presence is open, on the Lock Screen and in the Dynamic Island; gone after the class.
+- [ ] Pengaturan › Tentang › "Coba Aktivitas Langsung" starts the same Live Activity with a made-up class for 15
+      minutes, and it is still there after the phone is locked.
 - [ ] Signed out of everything: both widgets say "Hubungkan Edunex atau SIX dulu".
 
 **Dark mode** (Settings › Display & Brightness, and the app's own Settings › Tampilan › Tema: they can differ)
