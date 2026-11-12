@@ -74,9 +74,12 @@ each one from the demo's data (artifact `ios-widget-sketches`), to hold the phon
 step only worth doing if the one before it worked:
 
 1. **It installs with the widget inside.** Re-signing the `.ipa` (Sideloadly or AltServer) must keep the widget
-   extension (`ExpoWidgetsTarget`) and give both the app and it the App Group `group.<the app's id>`. If you
-   changed the bundle id to your own, the group changes with it: prebuild again with that id rather than renaming
-   it in Xcode. A free Apple ID may refuse the App Group: say so, it decides what we do next.
+   extension (`ExpoWidgetsTarget`) and give both the app and it an App Group. CI's `.ipa` is unsigned, and unsigned
+   code carries no entitlements, so the build says the App Group inside the app first (`scripts/ios-app-group.sh`:
+   an ad-hoc signature with that one entitlement, which the re-signer replaces and asks Apple for). A re-signer
+   may grant the group under another name (the team's id added): the app and the widgets read the granted name
+   from the provisioning profile in the bundle (`patches/expo-widgets+*.patch`). Without either, the widgets and
+   the Live Activity stay empty: seen on the first sideloaded build (12 Nov).
 2. **The gallery has them.** Long-press the Home Screen › Edit › Add Widget › "Edunex Plus": two widgets ("Edunex
    Plus" and "Hari ini"), each in small, medium and large, shown greyed like a widget still loading.
 3. **They fill in.** Open the app (the demo is easiest), sign in or let the demo load, go back to the Home Screen.

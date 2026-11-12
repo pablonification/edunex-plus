@@ -1,0 +1,76 @@
+diff --git a/node_modules/expo-widgets/android/.gradle/9.8.1/checksums/checksums.lock b/node_modules/expo-widgets/android/.gradle/9.8.1/checksums/checksums.lock
+new file mode 100644
+index 0000000..4ac30da
+Binary files /dev/null and b/node_modules/expo-widgets/android/.gradle/9.8.1/checksums/checksums.lock differ
+diff --git a/node_modules/expo-widgets/android/.gradle/9.8.1/fileChanges/last-build.bin b/node_modules/expo-widgets/android/.gradle/9.8.1/fileChanges/last-build.bin
+new file mode 100644
+index 0000000..f76dd23
+Binary files /dev/null and b/node_modules/expo-widgets/android/.gradle/9.8.1/fileChanges/last-build.bin differ
+diff --git a/node_modules/expo-widgets/android/.gradle/9.8.1/fileHashes/fileHashes.bin b/node_modules/expo-widgets/android/.gradle/9.8.1/fileHashes/fileHashes.bin
+new file mode 100644
+index 0000000..f7a2570
+Binary files /dev/null and b/node_modules/expo-widgets/android/.gradle/9.8.1/fileHashes/fileHashes.bin differ
+diff --git a/node_modules/expo-widgets/android/.gradle/9.8.1/fileHashes/fileHashes.lock b/node_modules/expo-widgets/android/.gradle/9.8.1/fileHashes/fileHashes.lock
+new file mode 100644
+index 0000000..886b573
+Binary files /dev/null and b/node_modules/expo-widgets/android/.gradle/9.8.1/fileHashes/fileHashes.lock differ
+diff --git a/node_modules/expo-widgets/android/.gradle/9.8.1/gc.properties b/node_modules/expo-widgets/android/.gradle/9.8.1/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/expo-widgets/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock b/node_modules/expo-widgets/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+new file mode 100644
+index 0000000..5a8156d
+Binary files /dev/null and b/node_modules/expo-widgets/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock differ
+diff --git a/node_modules/expo-widgets/android/.gradle/buildOutputCleanup/cache.properties b/node_modules/expo-widgets/android/.gradle/buildOutputCleanup/cache.properties
+new file mode 100644
+index 0000000..eb54fae
+--- /dev/null
++++ b/node_modules/expo-widgets/android/.gradle/buildOutputCleanup/cache.properties
+@@ -0,0 +1,2 @@
++#Wed Nov 11 18:58:45 WIB 2026
++gradle.version=9.8.1
+diff --git a/node_modules/expo-widgets/android/.gradle/vcs-1/gc.properties b/node_modules/expo-widgets/android/.gradle/vcs-1/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/expo-widgets/ios/WidgetsStorage.swift b/node_modules/expo-widgets/ios/WidgetsStorage.swift
+index 86f9d6c..dec5447 100644
+--- a/node_modules/expo-widgets/ios/WidgetsStorage.swift
++++ b/node_modules/expo-widgets/ios/WidgetsStorage.swift
+@@ -1,5 +1,36 @@
+ public enum WidgetsStorage {
+-  public static var appGroupIdentifier: String? = Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String
++  // Edunex Plus: an app signed again on the student's own Apple ID (Sideloadly, AltStore) often gets its App Group
++  // under another name (the team's id added to it). The names the signer really granted are in the provisioning
++  // profile inside the bundle, so the one of those that is ours is used. Before this the app and the widgets each
++  // wrote to a store of their own, and every widget and the Live Activity stayed empty.
++  public static var appGroupIdentifier: String? = grantedAppGroup(
++    wanted: Bundle.main.object(forInfoDictionaryKey: "ExpoWidgetsAppGroupIdentifier") as? String,
++    profile: Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision").flatMap { try? Data(contentsOf: $0) }
++  )
++
++  /// The App Group to use: the built-in name when the profile grants it (or says nothing), else the granted one that
++  /// carries our name.
++  static func grantedAppGroup(wanted: String?, profile: Data?) -> String? {
++    guard let wanted else { return nil }
++    let granted = appGroups(inProfile: profile)
++    if granted.isEmpty || granted.contains(wanted) { return wanted }
++    let core = wanted.hasPrefix("group.") ? String(wanted.dropFirst("group.".count)) : wanted
++    return granted.filter { $0.contains(core) }.sorted().first ?? wanted
++  }
++
++  /// The App Groups a provisioning profile grants: the profile is a signed envelope around a property list.
++  static func appGroups(inProfile profile: Data?) -> [String] {
++    guard let profile,
++          let start = profile.range(of: Data("<?xml".utf8)),
++          let end = profile.range(of: Data("</plist>".utf8), in: start.lowerBound..<profile.endIndex),
++          let plist = try? PropertyListSerialization.propertyList(from: profile.subdata(in: start.lowerBound..<end.upperBound), format: nil),
++          let entitlements = (plist as? [String: Any])?["Entitlements"] as? [String: Any],
++          let groups = entitlements["com.apple.security.application-groups"] as? [String] else {
++      return []
++    }
++    return groups
++  }
++
+   static let defaults = UserDefaults(suiteName: appGroupIdentifier)
+ 
+   static func set(_ value: [String: Any], forKey key: String) {
