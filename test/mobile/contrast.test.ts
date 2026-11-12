@@ -2,8 +2,46 @@
 // (≥ 18 sp, or 14 sp bold) and for icons, dots, meters and a control's only edge. The colours are read from
 // mobile/src/ui/palette.ts, so a token change that breaks one fails here. A pair a screen starts drawing goes in
 // the list below, with the place it's drawn.
+//
+// To add a pair, add one line to PAIRS: [what it is, foreground, background, least ratio, where it's drawn]. The two colours
+// are picked from `t`: `t.c` (theme.ts's roles), `t.v` (v4's look), `t.now` (today's red). Least: TEXT (4.5) for words, LARGE
+// (3) for words ≥ 18 sp or bold 14 sp, MARK (3) for icons, dots, meters and a control's only edge. A colour with an alpha goes
+// through `over(top, under, alpha)` first; `each(what, fg, SURFACES, least, where)` makes the line for every plain surface.
+// A pair every theme draws is checked in light and dark with no more to write. `node mobile/qa/contrast-read.mjs --top 5`
+// prints every pair here with its ratio, worst first, the new ones too.
 import { describe, expect, it } from "vitest";
-import { BUSY_OPACITY, COURSE, COURSE_TILE, dark, GREY_TILE, light, NOW, type Palette, V4, type V4Palette } from "../../mobile/src/ui/palette";
+import { HOME_SERVICES, MORE, SERVICE_GROUPS } from "../../mobile/src/screens/services/list";
+import {
+  BUTTON,
+  CHIP_EDGE_ALPHA,
+  DOOR_FACT,
+  DOOR_INK,
+  DOOR_LIGHT,
+  DOOR_LIT,
+  DOOR_REST,
+  DOOR_TICK,
+  HEM,
+  MARK_COLOR,
+  MARK_EDGE,
+  MARK_INK,
+  RING_TRACK,
+  STAGE,
+  STAGE_INK,
+} from "../../mobile/src/shell/first-minute/colors";
+import {
+  BUSY_OPACITY,
+  COURSE,
+  COURSE_TILE,
+  dark,
+  GREY_TILE,
+  light,
+  NOW,
+  ON_SERVICE,
+  type Palette,
+  SERVICE_TONES,
+  V4,
+  type V4Palette,
+} from "../../mobile/src/ui/palette";
 
 type Scheme = "light" | "dark";
 interface Tones {
@@ -66,6 +104,9 @@ const tile = (id: keyof typeof COURSE_TILE | "grey", s: Scheme) => {
 /** [what, foreground, background, least ratio, where it's drawn]. */
 type Pair = [string, Pick, Pick, number, string];
 
+const FIRST_MINUTE = "shell/first-minute/scene.tsx";
+/** Which theme a pick is asked in: the first minute's own colours are per theme, not palette tokens. */
+const scheme = (t: Tones): Scheme => (t.v === V4.dark ? "dark" : "light");
 const card: Pick = (t) => t.v.card;
 const page: Pick = (t) => t.v.page;
 const BARS: [string, Pick][] = [
@@ -81,6 +122,7 @@ const each = (what: string, fg: Pick, on: [string, Pick][], min: number, where: 
 const PAIRS: Pair[] = [
   // The blue header (Beranda).
   ["v4.onHead on v4.head (status line, icons)", (t) => t.v.onHead, (t) => t.v.head, TEXT, "screens/home/header.tsx"],
+  ["v4.onStrong on v4.strong (Profil's card, a strong block)", (t) => t.v.onStrong, (t) => t.v.strong, TEXT, "screens/academic/academic-screen.tsx"],
   ["v4.bellDot on v4.head", (t) => t.v.bellDot, (t) => t.v.head, MARK, "screens/home/header.tsx"],
   // Over the texture sit only the greeting (large, bold) and the bar's icons: 3:1, as for large text and marks.
   ["v4.onHead on a dot of the header's texture", (t) => t.v.onHead, (t) => over(t.v.headDots, t.v.head, 1), LARGE, "screens/home/header.tsx"],
@@ -169,6 +211,7 @@ const PAIRS: Pair[] = [
   ["v4.onBrand on v4.brand", (t) => t.v.onBrand, (t) => t.v.brand, TEXT, "BigButton filled"],
   ["v4.brandInk on v4.brandTint", (t) => t.v.brandInk, (t) => t.v.brandTint, TEXT, "Pill brand, the picked day, Beranda's Semua siap"],
   ["v4.okFg on v4.okBg", (t) => t.v.okFg, (t) => t.v.okBg, TEXT, "Pill ok, BigButton done"],
+  ["onSecondaryContainer on picked", (t) => t.c.onSecondaryContainer, (t) => t.c.picked, TEXT, "Segmented's picked segment"],
   ["v4.redFg on v4.redBg", (t) => t.v.redFg, (t) => t.v.redBg, TEXT, "Pill red"],
   ["v4.ambFg on v4.ambBg", (t) => t.v.ambFg, (t) => t.v.ambBg, TEXT, "Pill amber"],
   ["v4.fg2 on v4.chip", (t) => t.v.fg2, (t) => t.v.chip, TEXT, "Pill plain, StatusChip neutral, tasks/row-parts.tsx StatusPill, IconTile plain"],
@@ -228,6 +271,41 @@ const PAIRS: Pair[] = [
       [`check on ${id} swatch`, (t) => t.v.onCourse, tone, MARK, "parts/course-color-picker.tsx"],
     ];
   }),
+  // The class on now (home/banner.tsx, the line on Kuliah): a block in the light theme's deep course colour in both themes,
+  // white words and a white bar on it, and a white button whose words and hand are the course colour. The bar's empty part
+  // is white at 35% over the block; the strong blue block (Profil's card) is checked above.
+  ...COURSES.flatMap((id): Pair[] => {
+    const fill: Pick = () => COURSE_TILE[id][0];
+    return [
+      [`v4.onHead on the ${id} block (the class on now: its words, the bar's fill)`, (t) => t.v.onHead, fill, TEXT, "home/banner.tsx"],
+      [`the ${id} block's colour on white (the presence button's words and hand)`, fill, () => "#ffffff", TEXT, "ui/kit.tsx PresenceButton tone=course"],
+      [`the bar's empty part on the ${id} block`, (t) => over(t.v.onHead, COURSE_TILE[id][0], 0x59 / 255), fill, 1.2, "home/banner.tsx PlainBar track"],
+    ];
+  }),
+  // The tabs' bar (app/(tabs)/_layout.tsx): the picked tab's icon and 12 sp label are the brand colour, the others
+  // onSurfaceVariant (checked on every surface above), on the page.
+  ["v4.brand on v4.page (the picked tab's label and icon)", (t) => t.v.brand, page, TEXT, "app/(tabs)/_layout.tsx"],
+  ["onSurfaceVariant on v4.page (an unpicked tab's label and icon)", (t) => t.c.onSurfaceVariant, page, TEXT, "app/(tabs)/_layout.tsx"],
+  // The first minute's stage (Edunex Plus's blue, full height; its own colours, not the palette's, every one opaque),
+  // its doors, its button, the mark and the lower edge it lifts by.
+  ["the stage's headline, status and note", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
+  ["a resting door's name", () => STAGE_INK, (t) => DOOR_REST[scheme(t)], LARGE, FIRST_MINUTE],
+  ["the turning ring's bright half at a door's foot", () => DOOR_LIGHT, (t) => DOOR_REST[scheme(t)], MARK, FIRST_MINUTE],
+  ["the turning ring's bright half on its own track", () => DOOR_LIGHT, (t) => RING_TRACK[scheme(t)], MARK, FIRST_MINUTE],
+  ["Edunex's name on its lit door", (t) => DOOR_INK[scheme(t)].edunex, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["SIX's name on its lit door", (t) => DOOR_INK[scheme(t)].six, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["the tick on a lit door", () => DOOR_TICK, (t) => DOOR_LIT[scheme(t)], MARK, FIRST_MINUTE],
+  ["the edge around the mark's ring, on a lit door", (t) => MARK_EDGE[scheme(t)], (t) => DOOR_LIT[scheme(t)], MARK, FIRST_MINUTE],
+  ["what a system learned, on its lit door", () => DOOR_FACT, (t) => DOOR_LIT[scheme(t)], TEXT, FIRST_MINUTE],
+  ["a lit door on the stage", (t) => DOOR_LIT[scheme(t)], (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
+  ["the sign-in button's words", () => BUTTON.ink, (t) => BUTTON.bg[scheme(t)], TEXT, FIRST_MINUTE],
+  ["the sign-in button on the stage", (t) => BUTTON.bg[scheme(t)], (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
+  ["the mark on its badge", () => MARK_INK, (t) => MARK_COLOR[scheme(t)], MARK, FIRST_MINUTE],
+  ["the mark's badge on a lit door", (t) => MARK_COLOR[scheme(t)], (t) => DOOR_LIT[scheme(t)], MARK, FIRST_MINUTE],
+  ["the mark's ring on the stage", () => MARK_INK, (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
+  ["the stage's lower edge over Beranda's page, lifting", (t) => HEM[scheme(t)], page, MARK, FIRST_MINUTE],
+  ["the language chip's edge on the stage", (t) => over("#ffffff", STAGE[scheme(t)], CHIP_EDGE_ALPHA), (t) => STAGE[scheme(t)], MARK, FIRST_MINUTE],
+  ["a sign-in that stopped, said under the button (words and mark)", () => STAGE_INK, (t) => STAGE[scheme(t)], TEXT, FIRST_MINUTE],
 ];
 
 // A neutral pill, a neutral icon tile and a disabled button on a card (or the Task's bottom bar, the card's colour) are a
@@ -236,7 +314,103 @@ const PAIRS: Pair[] = [
 describe("a neutral pill, tile or disabled button stands off its card", () => {
   it.each(["light", "dark"] as const)("%s", (scheme) => {
     const { v } = TONES[scheme];
-    expect(ratio(v.chip, v.card)).toBeGreaterThanOrEqual(ratio(V4.light.page, V4.light.card));
+    // 1.11: what light's old page grey was off its white card (the page and the card are one colour now).
+    expect(ratio(v.chip, v.card)).toBeGreaterThanOrEqual(1.11);
+  });
+});
+
+// The super-app layout: the page and a card are one surface in both themes (a list is flat on it in both), and the
+// hairline between flat rows is as visible in dark as in light.
+describe("one surface, flat rows", () => {
+  it.each(["light", "dark"] as const)("%s", (scheme) => {
+    const { v } = TONES[scheme];
+    expect(v.page).toBe(v.card);
+    expect(ratio(v.line, v.page)).toBeGreaterThanOrEqual(1.2);
+  });
+});
+
+// A service's solid tile (ui/b.tsx): its white glyph reads on it, the tile reads on the page, and its colour as an ink
+// (a word, a bare icon) reads on the page and on its own tint.
+describe("service tiles", () => {
+  for (const scheme of ["light", "dark"] as const) {
+    const at = scheme === "dark" ? 1 : 0;
+    describe(scheme, () => {
+      it.each(Object.entries(SERVICE_TONES).map(([name, tone]) => ({ name, tone })))("$name", ({ name, tone }) => {
+        const { v } = TONES[scheme];
+        if (name === "grey") {
+          // The quiet tile: the app's pale blue a step off the page, its glyph in blue (checked as ink on tint below).
+          expect(ratio(tone.tint[at], v.page)).toBeGreaterThanOrEqual(1.15);
+          expect(ratio(tone.edge[at], tone.tint[at])).toBeGreaterThanOrEqual(1.1);
+        } else {
+          expect(ratio(ON_SERVICE, tone.solid[at])).toBeGreaterThanOrEqual(MARK);
+          expect(ratio(tone.solid[at], v.page)).toBeGreaterThanOrEqual(MARK);
+        }
+        expect(ratio(tone.ink[at], v.page)).toBeGreaterThanOrEqual(TEXT);
+        expect(ratio(tone.ink[at], tone.tint[at])).toBeGreaterThanOrEqual(TEXT);
+      });
+    });
+  }
+});
+
+// Colour belongs to Beranda's seven (mobile/qa/superapp-decisions.md, "Service colours"): each its own, none red or
+// amber (states' colours), told apart by lightness as well as hue; every other service is the neutral tile with a
+// glyph no other service has.
+// Dark's states (round 3): over the limit is clearly red, used up clearly amber, a step apart at a glance; the picked
+// segment reads off the page.
+describe("dark's states read as what they are", () => {
+  const hue = (hex: string) => {
+    const n = Number.parseInt(hex.slice(1), 16);
+    const [r, g, b] = [n >> 16, (n >> 8) & 255, n & 255].map((c) => c / 255) as [number, number, number];
+    const max = Math.max(r, g, b);
+    const d = max - Math.min(r, g, b);
+    const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+    return (h * 60 + 360) % 360;
+  };
+  const { c, v } = TONES.dark;
+  it("red is red and amber is amber, 25 degrees of hue or more apart", () => {
+    for (const red of [c.error, v.redFg]) expect(hue(red)).toBeLessThanOrEqual(8);
+    for (const amber of [c.warningFg, v.ambFg]) {
+      expect(hue(amber)).toBeGreaterThanOrEqual(33);
+      expect(hue(amber)).toBeLessThanOrEqual(45);
+    }
+  });
+  it("the picked segment stands off the page", () => {
+    expect(ratio(c.picked, c.surface)).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("service colours by the rule", () => {
+  /** CIE lightness (L*) of a colour. */
+  const lightness = (hex: string) => {
+    const y = (ratio(hex, "#000000") * 0.05 - 0.05) / 1;
+    return y > 0.008856 ? 116 * Math.cbrt(y) - 16 : 903.3 * y;
+  };
+  const home = HOME_SERVICES.map((service) => service.tone);
+  const all = SERVICE_GROUPS.flatMap((group) => group.services);
+
+  it("gives Beranda's seven a colour each, none red, amber or neutral", () => {
+    expect(home).toHaveLength(7);
+    expect(new Set(home).size).toBe(7);
+    expect(home).not.toContain("grey");
+    expect(Object.keys(SERVICE_TONES)).not.toContain("red");
+    expect(Object.keys(SERVICE_TONES)).not.toContain("amber");
+    expect(MORE.tone).toBe("grey");
+  });
+
+  it.each(["light", "dark"] as const)("sets them on seven steps of lightness (%s)", (scheme) => {
+    const at = scheme === "dark" ? 1 : 0;
+    const steps = home.map((tone) => lightness(SERVICE_TONES[tone].solid[at])).sort((a, b) => a - b);
+    for (let i = 1; i < steps.length; i++) expect(steps[i] - steps[i - 1], `${steps[i - 1]} and ${steps[i]}`).toBeGreaterThanOrEqual(2);
+  });
+
+  it("makes every other service a neutral tile, so no colour stands for two services", () => {
+    const coloured = all.filter((service) => service.tone !== "grey");
+    expect(coloured.map((service) => service.id).sort()).toEqual(HOME_SERVICES.map((service) => service.id).sort());
+  });
+
+  it("gives every service a glyph of its own", () => {
+    const glyphs = [...all, MORE].map((service) => service.icon);
+    expect(new Set(glyphs).size).toBe(glyphs.length);
   });
 });
 

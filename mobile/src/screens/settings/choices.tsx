@@ -8,6 +8,7 @@ import { View } from "react-native";
 import { useCourseColorPicks } from "../../../../src/app/course-colors";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useFormat, useT } from "../../../../src/app/i18n";
+import { gradesHidden } from "../../../../src/core/hide-grades";
 import { NEEDS_AHEAD, type NeedsAhead, type Settings } from "../../../../src/core/models";
 import { TargetStepper } from "../../parts/attendance";
 import { colorName, openCourseColorPicker } from "../../parts/course-color-picker";
@@ -15,7 +16,7 @@ import { Button } from "../../ui/controls";
 import { IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
-import { Chevron, ChoiceRow, haptic, SettingRow, SettingsGroup, SheetTitle } from "../../ui/settings-list";
+import { Chevron, ChoiceRow, haptic, SettingRow, SettingsGroup, SheetTitle, SwitchRow } from "../../ui/settings-list";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -47,6 +48,14 @@ export function Appearance({ settings, update }: { settings: Settings; update: U
           { value: "id", label: "Indonesia" },
           { value: "en", label: "English" },
         ]}
+      />
+      {/* What the phone shows: the same switch as the eye beside the IPK (Profil, Nilai). */}
+      <SwitchRow
+        title={t("mobile.hideGrades")}
+        hint={t("mobile.hideGrades.hint")}
+        value={gradesHidden(settings)}
+        onChange={(hideGrades) => update({ hideGrades })}
+        testID="switch.hideGrades"
       />
     </SettingsGroup>
   );

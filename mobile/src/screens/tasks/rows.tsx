@@ -3,6 +3,7 @@
 // decides on (the title, the course, the day and time it's due); the rest of the desktop's facts
 // stay in its accessible name and on the Task's page. A late Task's "Ingatkan nanti" is an alarm on
 // the row, a swipe, and its long press. What rows share is in row-parts.tsx.
+
 import { useState } from "react";
 import { View } from "react-native";
 import { errorKey } from "../../../../src/app/bridge";
@@ -12,24 +13,30 @@ import { useSnoozes } from "../../../../src/app/snoozes";
 import { attendanceWindow } from "../../../../src/core/attendance";
 import { taskPutAway } from "../../../../src/core/done";
 import type { Exam } from "../../../../src/core/exams";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import type { DoneHow, Task, TaskStatus } from "../../../../src/core/models";
 import { editView } from "../../../../src/core/task-edits";
 import { isOpenStatus, notOpenYet, shortWindow, submittedAt } from "../../../../src/core/tasks";
 import { lateSnoozable, type TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
+import { useGradesHidden } from "../../parts/hide-grades";
+import { hold } from "../../parts/hold";
 import { canSnooze, useRowActions, useSnooze } from "../../parts/snooze";
-import { CardSlice } from "../../ui/card-list";
+import { useB } from "../../ui/b";
 import { Button } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { factsLabel, GroupTile, Meta, Row } from "../../ui/layout";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { ExamPartRow, namesKind, PeriodRow } from "./exam-rows";
+import { shortName } from "../home/parts";
+import { examName } from "./exam-name";
+import { ExamPartRow, PeriodRow } from "./exam-rows";
 import {
   countdown,
   type DueWhen,
   dueWhen,
+  FlatSlice,
   formatScore,
   HeroCard,
   inWorld,
@@ -50,12 +57,12 @@ export { CourseCodeMark, DateColumn, ExamTitle, formatScore, moduleLabel, useDue
 type MarkedHow = Extract<DoneHow, "handedElsewhere" | "notHandingIn" | "groupDone">;
 
 /** "Jum, 16 Okt / 23:59"; "Dikumpulkan 24 Sep" once handed in, with its score over it once graded. */
-function taskDate(t: Translate, f: Format, now: number, task: Task, status: TaskStatus): DueWhen {
+function taskDate(t: Translate, f: Format, now: number, task: Task, status: TaskStatus, hidden = false): DueWhen {
   const sentAt = submittedAt(task);
   if (sentAt !== null) {
     const sent = t("task.submittedOnDate", { date: f.dayMonth(sentAt) });
     return task.score !== null
-      ? { main: t("task.scoreValue", { score: formatScore(task.score, f) }), sub: sent, tone: "fg", late: false, rel: null }
+      ? { main: t("task.scoreValue", { score: hidden ? HIDDEN_FIGURE : formatScore(task.score, f) }), sub: sent, tone: "fg", late: false, rel: null }
       : { main: sent, sub: null, late: false, rel: null };
   }
   if (task.dueAt === null) return { main: t("task.noDeadline"), sub: null, tone: "muted", late: false, rel: null };
@@ -123,7 +130,9 @@ export const TaskRow = inWorld(function TaskRow({
   const world = useRowWorld();
   const course = world.courses?.find((c) => c.code === task.courseCode);
   const module = moduleLabel(t, task.module);
-  const date = taskDate(t, world.f, world.now, task, status);
+  // Hidden grades: a graded Task's score is dots.
+  const hidden = useGradesHidden();
+  const date = taskDate(t, world.f, world.now, task, status, hidden);
   const signal = signalOf(t, world, task, status);
   const where = module ?? course?.name ?? null;
   const facts = exam
@@ -149,8 +158,9 @@ export const TaskRow = inWorld(function TaskRow({
   // their own. Everything else is in the row's spoken name and on the Task's page.
   const sentAt = submittedAt(task);
   // A take-home's kind, unless its name says it already ("UTS Markom · Kam, 22 Okt", not "· UTS ·").
-  const examKind = exam ? t(`exam.kind.${exam.kind}`) : null;
-  const kind = examKind && !namesKind(task.title, examKind) ? examKind : null;
+  // A take-home goes by its exam's one name (./exam-rows.tsx examName); "Take-home" is the quiet word beside it.
+  // It leads the line under the name ("Take-home · 23:50"), once, the same on Tugas and Ujian: no title ends on a "·".
+  const kind = exam ? t("exam.takeHome") : null;
   const away = task.dueAt !== null && sentAt === null && status !== "closed" ? countdown(t, world.now, task.dueAt) : null;
   const when =
     sentAt !== null
@@ -159,14 +169,21 @@ export const TaskRow = inWorld(function TaskRow({
         ? t("task.noDeadline")
         : // The time only beside the countdown (a late or closed one's status is too wide for both), within a week.
           rowWhen(world.f, task.dueAt, away !== null && !away.late && timeShown(world.now, task.dueAt));
-  // On a course's page the module, the exam's kind for a take-home, then when: every row the same. Not the course's code
-  // on Tugas: the row's tile is the course, named by the course chips over the list (the code is spoken).
+  // On a course's page the module, the exam's kind for a take-home, then when: every row the same.
   const lead = meta === "module" && task.module ? t("task.module", { n: task.module.index }) : null;
   const line = [lead, kind, when].filter(Boolean).join(" · ");
+  // On Tugas the day leads the row (its leaf), so the line names the course, by the one name every screen calls it, then
+  // the weekday and, within a week, the time. Handed in: the leaf is the day it was, and the group's title says the rest.
+  const onTugas = meta === "course";
+  const courseName = course ? shortName(course.name) : task.courseCode;
+  const day = sentAt !== null || task.dueAt === null || status === "closed" ? null : timeShown(world.now, task.dueAt) ? world.f.time(task.dueAt) : null;
+  // With no deadline the group's title says so ("Belum ada tanggal"): the row doesn't say it again.
+  const tugasLine = [exam ? kind : courseName, day].filter(Boolean).join(" · ");
+  const leafAt = sentAt ?? task.dueAt;
   const statusPill =
     sentAt !== null ? (
       task.score !== null ? (
-        <StatusPill tone="ok" text={t("task.scoreValue", { score: formatScore(task.score, world.f) })} />
+        <StatusPill tone="ok" text={t("task.scoreValue", { score: hidden ? HIDDEN_FIGURE : formatScore(task.score, world.f) })} />
       ) : null
     ) : status === "closed" ? (
       <StatusPill tone="red" text={t("task.notHandedIn")} />
@@ -174,7 +191,7 @@ export const TaskRow = inWorld(function TaskRow({
       <StatusPill tone={away.tone} text={away.text} />
     ) : null;
   // The row's title is the Task's own name, a take-home's too: a row never switches to its course's name.
-  const name = task.title;
+  const name = exam ? examName(t, exam, course?.name) : task.title;
   const open = () => go({ screen: "task", taskId: task.id });
   if (hero && task.dueAt !== null)
     return (
@@ -185,11 +202,15 @@ export const TaskRow = inWorld(function TaskRow({
         onLongPress={onLongPress}
         quick={quick}
         code={task.courseCode}
-        course={course?.name}
         at={task.dueAt}
+        date={world.f.dayMonth(task.dueAt)}
+        weekday={world.f.weekdayShort(task.dueAt)}
         title={name}
-        // The course is the card's tint and glyph (its name spoken): the line says the exam's kind for a take-home, and when.
-        meta={[kind, when].filter(Boolean).join(" · ")}
+        // What it is, in a word with its glyph; the time by its day; then the course (an exam's name says it already).
+        kindLabel={t(exam ? "mobile.tasks.kindExam" : "mobile.tasks.kindTask")}
+        time={world.f.time(task.dueAt)}
+        meta={exam ? kind : courseName}
+        kind={exam ? "exam" : "task"}
       />
     );
   return (
@@ -199,11 +220,14 @@ export const TaskRow = inWorld(function TaskRow({
       onPress={open}
       onLongPress={onLongPress}
       quick={quick}
-      code={meta === "course" ? task.courseCode : null}
+      code={onTugas ? task.courseCode : null}
       course={course?.name}
       title={name}
-      meta={line}
+      meta={onTugas ? tugasLine : line}
       status={statusPill}
+      date={onTugas ? (leafAt === null ? null : world.f.dayMonth(leafAt)) : undefined}
+      weekday={onTugas && leafAt !== null ? world.f.weekdayShort(leafAt) : null}
+      kind={exam ? "exam" : "task"}
     />
   );
 });
@@ -220,18 +244,23 @@ export const lateTitle = (item: TodoItem) =>
 export const TodoRow = inWorld(function TodoRow({ item, inCourse = false, hero = false }: { item: TodoItem; inCourse?: boolean; hero?: boolean }) {
   const t = useT();
   const { now } = useRowWorld();
-  const v = useTheme().v4;
+  const { page } = useB();
   const late = lateSnoozable(item, now);
   const snoozable = late && canSnooze(late, now) ? late : null;
   const snooze = useSnooze(snoozable);
   const swipe = useRowActions({ snooze: snoozable ? snooze : null });
   if (item.kind === "period") return <PeriodRow item={item} inCourse={inCourse} />;
   const quick = snoozable ? [{ label: t("snooze.actionFor", { title: lateTitle(item) }), onPress: snooze.open }] : undefined;
-  const longPress = snoozable ? snooze.open : undefined;
+  const longPress = snoozable
+    ? () => {
+        hold();
+        snooze.open();
+      }
+    : undefined;
   return (
     <>
       {/* The big card isn't swiped: its long press and TalkBack's actions put it off. */}
-      <SwipeRow actions={hero ? [] : swipe} surface={inCourse ? undefined : v.card}>
+      <SwipeRow actions={hero ? [] : swipe} surface={inCourse ? undefined : page}>
         {item.kind === "task" ? (
           <TaskRow
             task={item.task}
@@ -243,7 +272,7 @@ export const TodoRow = inWorld(function TodoRow({ item, inCourse = false, hero =
             hero={hero}
           />
         ) : (
-          <ExamPartRow item={item} inCourse={inCourse} quick={quick} onLongPress={longPress} />
+          <ExamPartRow item={item} inCourse={inCourse} quick={quick} onLongPress={longPress} hero={hero} />
         )}
       </SwipeRow>
       {snooze.sheet}
@@ -275,9 +304,9 @@ export function PutOff({ putOff, open, onToggle, inCourse = true }: { putOff: To
                 <PutOffRow item={item} entry={entry} />
               </GroupTile>
             ) : (
-              <CardSlice key={item.key} first={i === 0} last={i === putOff.length - 1} inset={0}>
+              <FlatSlice key={item.key} first={i === 0}>
                 <PutOffRow item={item} entry={entry} />
-              </CardSlice>
+              </FlatSlice>
             ),
           )}
         </View>

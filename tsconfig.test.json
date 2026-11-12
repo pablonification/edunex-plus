@@ -11,5 +11,13 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["test", "src/engine", "src/core", "src/app"]
+  "include": ["test", "src/engine", "src/core", "src/app"],
+  // These read phone code whose types reach react-native, whose globals (setTimeout returning a number) clash with Node's
+  // in src/desktop. They are checked with the phone's own program (mobile/tsconfig.json).
+  "exclude": [
+    "test/mobile/widget-drawings.test.tsx",
+    "test/mobile/search-services.test.ts",
+    "test/mobile/contrast.test.ts",
+    "test/mobile/phone-calendar.test.ts"
+  ]
 }

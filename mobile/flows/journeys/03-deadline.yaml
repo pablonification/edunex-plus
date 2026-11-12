@@ -1,0 +1,122 @@
+# Journey 3, a deadline: Beranda to the brief, to handed in, to "done".
+# limit: 3
+# Taps to the brief: the strip's "what's due" (Tugas), the Task's row (its page opens on the brief). The hand-in (answer, a file
+# from Android's picker, Kumpulkan, "Tetap kumpulkan") comes after the goal and ends on the bar that leads on.
+# Needs jawaban.pdf in Android's Downloads (README.md). The Task is the demo's "Tugas 02 Bab II" (II4091, due 16 Okt).
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 3 a deadline: Beranda, Tugas, a Task, handed in"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: home.strip
+    timeout: 30000
+# tap 1: the strip's "what's due" opens Tugas.
+- tapOn:
+    id: action.strip.tasks
+- extendedWaitUntil:
+    visible:
+      id: screen.tasks
+    timeout: 20000
+# The Task by its name on the list...
+- scrollUntilVisible:
+    element:
+      id: row.task.117003
+    direction: DOWN
+- assertVisible: ".*Tugas 02 Bab II.*"
+# tap 2: the Task. Its first screen is the brief.
+- tapOn:
+    id: row.task.117003
+- extendedWaitUntil:
+    visible:
+      id: screen.task
+    timeout: 20000
+# ...and by the same name on its own page, with the deadline first.
+- assertVisible: ".*Tugas 02 Bab II.*"
+- assertVisible:
+    id: card.due
+# goal
+- takeScreenshot: journey-3-brief
+# then: the answer, typed, and a file from Android's picker.
+- scrollUntilVisible:
+    element:
+      id: input.answer
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: input.answer
+- inputText: "Jawaban sementara"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: action.attach
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: action.attach
+- extendedWaitUntil:
+    visible: "jawaban.pdf"
+    timeout: 20000
+- tapOn: "jawaban.pdf"
+- extendedWaitUntil:
+    visible: "Belum disimpan.*"
+    timeout: 20000
+# then: Kumpulkan, and "Tetap kumpulkan" (the demo's day has no open Presence, so it asks once).
+- tapOn:
+    id: action.submit
+- extendedWaitUntil:
+    visible:
+      id: action.submitAnyway
+    timeout: 10000
+- tapOn:
+    id: action.submitAnyway
+# The finish: a bar at the foot that says where it went ("Sudah masuk Selesai") and what's next, in one tap.
+- extendedWaitUntil:
+    visible:
+      id: bar.afterHandIn
+    timeout: 30000
+- assertVisible: "Sudah masuk Selesai"
+- assertVisible: ".*Tugas 02 Bab II.*"
+- takeScreenshot: journey-3-handed-in
+# Not left on a page whose job is done: the next Task is one tap, else the way to Selesai.
+- assertVisible:
+    id: 'action\.(next|seeDone)'
+# then: the next Task opens over this one, and Back comes back here, then to where the Student came from.
+- runFlow:
+    when:
+      visible:
+        id: action.next
+    commands:
+      - assertVisible: "Berikutnya"
+      - tapOn:
+          id: action.next
+      - extendedWaitUntil:
+          visible:
+            id: screen.task
+          timeout: 20000
+      - takeScreenshot: journey-3-next-task
+      - back
+      - extendedWaitUntil:
+          visible:
+            id: bar.afterHandIn
+          timeout: 10000
+# Back: the Task, then Tugas, then Beranda.
+- back
+- extendedWaitUntil:
+    visible:
+      id: screen.tasks
+    timeout: 20000
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.strip
+    timeout: 20000

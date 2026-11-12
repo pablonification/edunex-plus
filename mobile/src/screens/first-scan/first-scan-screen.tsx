@@ -10,6 +10,7 @@ import { useFormat, useT } from "../../../../src/app/i18n";
 import { isBuilt } from "../../../../src/app/shell/built";
 import { type Finding, notable, scanSummary } from "../../../../src/core/first-scan";
 import { useNav } from "../../nav";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { BigButton } from "../../ui/big-button";
 import { Group, GroupRow, IconTile, type PillTone } from "../../ui/group";
 import { type IconProps, Icons } from "../../ui/icons";
@@ -42,7 +43,11 @@ export function FirstScanScreen() {
   const theme = useTheme();
   const v = theme.v4;
   const bottom = useBottomInset();
-  const { saved, statuses, findings } = useScan(true);
+  const scan = useScan(true);
+  // Hidden grades: the finding about the IPK isn't listed.
+  const hidden = useGradesHidden();
+  const { saved, statuses } = scan;
+  const findings = hidden ? scan.findings.filter((finding) => finding.kind !== "ipk") : scan.findings;
   const [all, setAll] = useState(false);
   const [titleEnd, setTitleEnd] = useState(80);
   const summary = scanSummary(saved, statuses);

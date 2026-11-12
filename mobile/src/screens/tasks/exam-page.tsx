@@ -5,7 +5,7 @@
 // An Edunex window open now can be marked done here too, with Undo (Tandai selesai).
 import * as Clipboard from "expo-clipboard";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
-import { Linking, Text as NativeText, Pressable, StyleSheet, View } from "react-native";
+import { Linking, Text as NativeText, StyleSheet, View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
 import { budgetLabel } from "../../../../src/app/attendance-labels";
 import { errorKey } from "../../../../src/app/bridge";
@@ -28,22 +28,26 @@ import { usePullToRefresh } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
 import { absenceName, absenceTone } from "../../ui/absence";
 import { BigButton } from "../../ui/big-button";
-import { CardList, Panel, SectionTitle } from "../../ui/card-list";
+import { CardList, SectionTitle } from "../../ui/card-list";
 import { Button } from "../../ui/controls";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Group, GroupRow, IconTile, Pill } from "../../ui/group";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Notice, Page, Row } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
+import { Tap } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { radius, shape, space, useTheme } from "../../ui/theme";
 import { CourseTile, useCourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
-import { addToPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
+import { usePlacement } from "../schedule/calendar-sync";
+import { addToPhoneCalendar, removeFromPhoneCalendar, shareIcs } from "../schedule/phone-calendar";
 import { examCalendarItems } from "./exam-calendar";
-import { dayLabel, examWeekLabel, sourceDays } from "./exam-rows";
+import { dayLabel, examName, examWeekLabel, sourceDays } from "./exam-rows";
+import { Flat as Panel, pageOf, softOf } from "./flat";
 
 export function ExamScreen({ examId }: { examId: string }) {
   const t = useT();
@@ -54,7 +58,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   usePerfDrawn(exams !== undefined);
   if (!exams)
     return (
-      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={theme.v4.page}>
+      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={pageOf(theme)}>
         <Skeleton width={96} />
         <Skeleton width="80%" height={32} style={{ marginTop: space[3] }} />
         <Skeleton height={128} style={{ marginTop: space[8] }} />
@@ -63,7 +67,7 @@ export function ExamScreen({ examId }: { examId: string }) {
   const exam = exams.find((e) => e.id === examId);
   if (!exam)
     return (
-      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={theme.v4.page}>
+      <Page testID="screen.exam" header={<TopBar title={t("nav.tasks")} />} background={pageOf(theme)}>
         <EmptyState icon={<Icons.GraduationCap size={20} color={theme.color.muted} />} title={t("exam.notFound")} />
       </Page>
     );
@@ -138,16 +142,16 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
 
   return (
     // One title: the exam's own, on the page; the bar carries Back and ⋮.
-    <Page testID="screen.exam" header={<TopBar actions={<OverflowMenu choices={menu} testID="action.examMenu" />} />} background={v.page} {...pull}>
+    <Page testID="screen.exam" header={<TopBar actions={<OverflowMenu choices={menu} testID="action.examMenu" />} />} background={pageOf(theme)} {...pull}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        <KindPill kind={t(`exam.kind.${exam.kind}`)} />
         <CourseTile code={exam.courseCode} name={course?.name} size={24} />
         <Text size="labelLarge" tabular style={{ color: v.fg2 }}>
           {exam.courseCode}
         </Text>
       </View>
+      {/* The exam's one name, as Tugas, Ujian and a Task's page call it (./exam-rows.tsx examName): the kind is in it, once. */}
       <Text size="headlineSmall" face="display" weight="bold" accessibilityRole="header" style={{ marginTop: space[2], color: v.fg, letterSpacing: -0.3 }}>
-        {name}
+        {examName(t, exam, name)}
       </Text>
       {!card && (
         <Text size="bodyMedium" style={{ marginTop: space[1], color: v.muted }}>
@@ -251,7 +255,7 @@ function ExamPage({ exam, exams, course }: { exam: Exam; exams: Exam[]; course: 
                 testID={`row.exam.${other.id}`}
                 accessibilityRole="button"
                 onPress={() => go({ screen: "exam", examId: other.id })}
-                style={[styles.other, { backgroundColor: v.card }]}
+                style={[styles.other, { backgroundColor: softOf(theme) }]}
               >
                 <KindPill kind={t(`exam.kind.${other.kind}`)} />
                 <CourseTile code={other.courseCode} name={courseOf(other.courseCode)} size={24} />
@@ -287,8 +291,9 @@ function KindPill({ kind }: { kind: string }) {
 }
 
 /**
- * "Tambahkan ke kalender HP", as a ⋮ choice: this exam's sittings and take-home deadlines into the phone's "Edunex
- * Plus" calendar, as Jadwal's sheet puts them there (adding again updates them). Only while the exam has a date
+ * The phone's calendar, as a ⋮ choice: this exam's sittings and take-home deadlines in the phone's "Edunex Plus"
+ * calendar, the very events Jadwal's "Kalender HP" switch keeps there. The choice is their state: not there (add
+ * them), there (take them out), or there because Jadwal's switch keeps them. Only while the exam has a date
  * somewhere. What went wrong is said on the page under the dates, with its one fix.
  */
 function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: ReactNode } {
@@ -308,6 +313,10 @@ function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: Rea
       ),
     [store, lang, now, exam],
   );
+  const where = usePlacement(
+    useMemo(() => items.map((item) => item.uid), [items]),
+    true,
+  );
   if (items.length === 0) return { choice: null, problem: null };
   const share = () => {
     setProblem(null);
@@ -320,21 +329,55 @@ function useExamCalendar(exam: Exam): { choice: SheetChoice | null; problem: Rea
     try {
       // Nothing else in the calendar is touched: no span to tidy, only these events put in or updated.
       const result = await addToPhoneCalendar(items, new Set(), { from: 0, until: 0 });
-      if (result.kind === "added") toast(t("mobile.calendar.added", { count: result.events }), "success");
-      else setProblem({ text: t("mobile.exam.calendarDenied"), fix: "settings" });
+      if (result.kind === "added") {
+        haptic.confirm();
+        toast(t("mobile.calendar.added", { count: result.events }), "success");
+      } else setProblem({ text: t("mobile.exam.calendarDenied"), fix: "settings" });
     } catch {
       setProblem({ text: t("mobile.calendar.failed"), fix: "share" });
     } finally {
       setBusy(false);
     }
   };
+  const remove = async () => {
+    if (busy) return;
+    setBusy(true);
+    setProblem(null);
+    try {
+      if ((await removeFromPhoneCalendar(items.map((item) => item.uid))) === "denied") setProblem({ text: t("mobile.exam.calendarDenied"), fix: "settings" });
+      else toast(t("mobile.calendar.removed"));
+    } catch {
+      setProblem({ text: t("mobile.calendar.failed"), fix: "share" });
+    } finally {
+      setBusy(false);
+    }
+  };
+  const inCalendar = <Icons.CalendarCheck size={20} color={theme.color.onSurfaceVariant} />;
   return {
-    choice: {
-      label: t("schedule.export"),
-      icon: <Icons.Smartphone size={20} color={theme.color.onSurfaceVariant} />,
-      onPress: () => void add(),
-      testID: "action.examToCalendar",
-    },
+    choice:
+      where === "none"
+        ? {
+            label: t("schedule.export"),
+            icon: <Icons.Smartphone size={20} color={theme.color.onSurfaceVariant} />,
+            onPress: () => void add(),
+            testID: "action.examToCalendar",
+          }
+        : where === "added"
+          ? {
+              label: t("mobile.calendar.in"),
+              hint: t("mobile.calendar.in.remove"),
+              icon: inCalendar,
+              onPress: () => void remove(),
+              testID: "action.examFromCalendar",
+            }
+          : {
+              label: t("mobile.calendar.in"),
+              hint: t("mobile.calendar.in.kept"),
+              icon: inCalendar,
+              disabled: true,
+              onPress: () => undefined,
+              testID: "state.examInCalendar",
+            },
     problem: problem && (
       // Said where it happened, with its one fix (a snackbar is gone before it's read).
       <View style={{ marginTop: space[3] }}>
@@ -382,6 +425,7 @@ function EdunexCard({ exam, edunex, lead }: { exam: Exam; edunex: Exam["edunex"]
     setFailed(null);
     try {
       await marks.mark(edunex);
+      haptic.confirm();
       toast(t("exam.marked"), "success", {
         label: t("action.undo"),
         onClick: () => void marks.unmark(edunex).catch((error: unknown) => setFailed(t(errorKey(error)))),
@@ -492,8 +536,10 @@ function ExamRows({ exam, ahead }: { exam: Exam; ahead: boolean }) {
             accessibilityRole="button"
             onPress={() => go({ screen: "task", taskId: task.id })}
             leading={<IconTile icon={(color) => <Icons.FileText size={22} color={color} />} />}
-            title={task.title}
-            meta={factsLabel(t("exam.takeHome"), task.dueAt !== null ? f.dueLabel(task.dueAt) : t("exam.noDate"))}
+            // The exam has one name, the page's title: its take-home is "Take-home" here, never a second name ("UTS Markom").
+            accessibilityLabel={factsLabel(t("exam.takeHome"), task.title, task.dueAt !== null ? f.dueLabel(task.dueAt) : t("exam.noDate"))}
+            title={t("exam.takeHome")}
+            meta={task.dueAt !== null ? f.dueLabel(task.dueAt) : t("exam.noDate")}
             trailing={pill ? <Pill tone={pill}>{t(`taskStatus.${status}`)}</Pill> : undefined}
           />
         );
@@ -559,7 +605,9 @@ function Study({ exam }: { exam: Exam }) {
             <Text size="labelLarge" style={{ flex: 1, color: theme.v4.muted }}>
               {modulesTitle}
             </Text>
-            <Pressable
+            <Tap
+              feel="row"
+              borderless
               accessibilityRole="link"
               onPress={() => go({ screen: "course", code: exam.courseCode, tab: "modules" })}
               hitSlop={8}
@@ -569,7 +617,7 @@ function Study({ exam }: { exam: Exam }) {
                 {t("examPage.openModules")}
               </Text>
               <Icons.ChevronRight size={14} color={theme.color.accentFg} />
-            </Pressable>
+            </Tap>
           </View>
           <CardList inset={56}>
             {/* A module with something in it: its number, its title on up to two lines, how many items under it. */}

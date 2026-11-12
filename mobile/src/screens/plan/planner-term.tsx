@@ -3,11 +3,14 @@
 // quiet line (code · SKS · its tag), and its grade at the end, a tap on it a sheet of grades. A tap on the row opens
 // what else can be done with the course (move it, remove it, leave it out this semester); a long press too. The
 // semester's last row adds a course.
+
 import type { ReactNode } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import type { LetterGrade } from "../../../../src/core/models";
 import type { ProjectedStep } from "../../../../src/core/planner";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { Button, IconButton } from "../../ui/controls";
 import { Group, GroupRow, IconTile, Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -49,10 +52,12 @@ export function TermSection({
   const f = useFormat();
   const v = useTheme().v4;
   const over = limit !== null && sks > limit;
+  const hidden = useGradesHidden();
   const meta = factsLabel(
     `${sks}${limit !== null ? ` / ${limit}` : ""} SKS`,
-    step && `IP ${step.ip === null ? "-" : f.number(step.ip, 2)}`,
-    step && t("planner.ipkAfter", { ipk: step.ipk === null ? "-" : f.number(step.ipk, 2) }),
+    // Hidden grades: the term's IP and the IPK after it aren't said.
+    !hidden && step && `IP ${step.ip === null ? "-" : f.number(step.ip, 2)}`,
+    !hidden && step && t("planner.ipkAfter", { ipk: step.ipk === null ? "-" : f.number(step.ipk, 2) }),
   );
   return (
     <View testID={`card.term.${term}`}>
@@ -123,6 +128,7 @@ export function CourseRow({
   first?: boolean;
 }) {
   const t = useT();
+  const gradesAreHidden = useGradesHidden();
   const v = useTheme().v4;
   const line = factsLabel(code, `${sks} SKS`, tag);
   return (
@@ -141,11 +147,11 @@ export function CourseRow({
       trailing={
         posted ? (
           <View
-            accessibilityLabel={`${t("grades.sixGrade")}: ${grade}`}
-            style={{ minWidth: 52, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: v.page }}
+            accessibilityLabel={gradesAreHidden ? t("mobile.hideGrades.said", { name: t("grades.sixGrade") }) : `${t("grades.sixGrade")}: ${grade}`}
+            style={{ minWidth: 52, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: v.chip }}
           >
             <Text size="labelLarge" face="display" weight="bold" style={{ color: v.fg2 }}>
-              {grade}
+              {gradesAreHidden ? HIDDEN_FIGURE : grade}
             </Text>
           </View>
         ) : (

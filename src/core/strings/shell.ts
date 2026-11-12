@@ -247,6 +247,7 @@ export const shellStrings = {
     id: "SIX menunggumu. Selesaikan yang diminta di SIX, lalu coba lagi.",
     en: "SIX is waiting for you. Finish what it asks for there, then try again.",
   },
+  "error.readOnly": { id: "Build uji ini hanya membaca. Tidak ada yang dikirim.", en: "This test build only reads. Nothing was sent." },
   "error.failed": { id: "Belum berhasil. Coba lagi.", en: "That didn't go through. Try again." },
 
   // Task statuses (design system; used from the Tasks ticket on)

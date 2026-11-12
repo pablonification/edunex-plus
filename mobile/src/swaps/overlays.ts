@@ -8,6 +8,8 @@ export interface ToastItem {
   text: string;
   tone: "neutral" | "success" | "danger";
   action?: { label: string; onClick: () => void };
+  /** A name for the snackbar, for the flows that check it (`toast.<name>`); the desktop's toasts have none. */
+  testID?: string;
 }
 
 let toasts: ToastItem[] = [];
@@ -21,7 +23,7 @@ const publish = () => {
 /** How long a toast stays: longer with an action to take, an error until it's read. */
 const lifetime = (item: ToastItem) => (item.tone === "danger" ? 8_000 : item.action ? 6_000 : 3_500);
 
-export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"]): number {
+export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?: ToastItem["action"], testID?: string): number {
   const id = nextId++;
   // The same error said again takes the place of the one before it; two at most on a phone.
   let kept = toasts.filter((item) => !(tone === "danger" && item.tone === "danger" && item.text === text));
@@ -30,7 +32,7 @@ export function toast(text: string, tone: ToastItem["tone"] = "neutral", action?
     if (oldest === -1) break;
     kept = kept.filter((_, i) => i !== oldest);
   }
-  toasts = [...kept, { id, text, tone, ...(action ? { action } : {}) }];
+  toasts = [...kept, { id, text, tone, ...(action ? { action } : {}), ...(testID ? { testID } : {}) }];
   timers.set(
     id,
     setTimeout(() => dismissToast(id), lifetime(toasts.at(-1)!)),

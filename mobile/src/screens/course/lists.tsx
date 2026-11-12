@@ -4,7 +4,7 @@
 // card, who and when over its text, an online meeting's link as its one button and every other link opening in the
 // browser.
 import { Children, Fragment, type ReactNode, useState } from "react";
-import { Text as RNText, View } from "react-native";
+import { Text as RNText, StyleSheet, View } from "react-native";
 import { useOpenExternal, useOpenLink } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useTodo } from "../../../../src/app/schedule-data";
@@ -20,22 +20,22 @@ import { BigButton } from "../../ui/big-button";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CardGroup, SectionTitle } from "../../ui/v4-list";
-import { useCardStyle } from "../home/now";
+import { SectionTitle } from "../../ui/v4-list";
 import { PastExamRow } from "../tasks/exam-rows";
 import { doneLines, type Line } from "../tasks/list";
 import { PutOff, TaskRow, TodoRow } from "../tasks/rows";
+import { FlatRows } from "./flat";
 
-/** Rows in one white card, a line between them. */
+/** Rows flat on the page, a line between them. */
 function Rows({ children, testID }: { children: ReactNode[]; testID?: string }) {
   const v = useTheme().v4;
   return (
-    <CardGroup testID={testID}>
+    <FlatRows testID={testID} inset={space[4]}>
       {/* Children.map keys each wrapper by its row's own key. */}
       {Children.map(children, (child, i) => (
         <View style={i > 0 ? { borderTopWidth: 1, borderTopColor: v.line } : undefined}>{child}</View>
       ))}
-    </CardGroup>
+    </FlatRows>
   );
 }
 
@@ -139,7 +139,6 @@ export function AnnouncementsTab({
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
-  const surface = useCardStyle();
   const open = useOpenExternal();
   if (!announcements?.length)
     return (
@@ -149,8 +148,9 @@ export function AnnouncementsTab({
       </View>
     );
   return (
-    <View style={{ gap: space[3] }}>
-      {announcements.map((item) => {
+    // Flat on the page, a hairline between them (no box around each): the same in light and dark.
+    <View>
+      {announcements.map((item, i) => {
         const [link] = meetingLinks(item.text).filter(isOfficialUrl);
         // Who and when, then (for the joint class's) where it came from: one line.
         const meta = [
@@ -158,7 +158,11 @@ export function AnnouncementsTab({
           item.courseId !== mainCourseId ? t("course.fromJointClass", { code }) : "",
         ].filter(Boolean);
         return (
-          <View key={`${item.courseId}:${item.id}`} testID={`row.announcement.${item.courseId}-${item.id}`} style={[surface, { padding: space[4] }]}>
+          <View
+            key={`${item.courseId}:${item.id}`}
+            testID={`row.announcement.${item.courseId}-${item.id}`}
+            style={{ paddingVertical: space[4], borderTopWidth: i === 0 ? 0 : StyleSheet.hairlineWidth, borderTopColor: v.line }}
+          >
             {item.author && (
               <Text size="bodyLarge" weight="semibold" style={{ color: v.fg }}>
                 {item.author}

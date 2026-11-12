@@ -1,5 +1,6 @@
-# The first run (W15, round 2): the one welcome screen, the sign-in handing back, Beranda filling in with the first
-# read's progress in the top bar, the summary card once the read is in, and the summary it opens. Opened by
+# The first run (W15, round 2; the first minute): the stage with its two doors and one button, the button turned
+# status after the tap, the hand-over, Beranda filling in with the first read's progress in the top bar, the
+# snackbar "Semua siap" once the read is in, and the summary its Lihat ringkasan opens. Opened by
 # judge-light.yaml and judge-dark.yaml on the first-run scenario.
 appId: io.github.pablonification.edunexplus.demo
 ---
@@ -11,22 +12,59 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: ${THEME}-32-pertama-selamat-datang
 - tapOn:
     id: action.signIn
-# Beranda comes as soon as Edunex is in: its own shape while the semester is read, the first read's line under the
-# greeting. (The tabs sit under the welcome from the start, so tab.home alone caught the welcome still signing in.)
+# The button is the status now, in its place; the ring at a door's foot turns while its system signs in. The demo's
+# sign-in can be over, and the stage lifting, before the first look (src/shell/first-minute/scene.tsx): optional.
+- extendedWaitUntil:
+    visible:
+      id: status.signIn
+    timeout: 30000
+    optional: true
+- takeScreenshot: ${THEME}-32b-pertama-masuk
+# Beranda comes 0.4 s after the second system is in (the headline turns into the greeting, then the stage lifts): its own shape while the semester is read, the first read's
+# line under the greeting. (Beranda sits under the stage from the moment Edunex is in, so its ids alone caught the
+# stage still up: the scene has to be gone first.)
+- extendedWaitUntil:
+    notVisible:
+      id: screen.firstMinute
+    timeout: 60000
+# The first read's line is on Beranda's class block while the read runs (src/screens/home/banner.tsx, `StatusLine`;
+# src/shell/source-status.tsx, `status.firstRead`): on a quick emulator the read can be in before the picture, so the
+# look is optional and short.
 - extendedWaitUntil:
     visible:
       id: status.firstRead
-    timeout: 60000
-- waitForAnimationToEnd
+    timeout: 15000
+    optional: true
 - takeScreenshot: ${THEME}-33-pertama-beranda-mengisi
+# The line goes when the read is in; "Semua siap." comes then, a snackbar with Lihat ringkasan, said once and up for
+# 6 s (src/screens/first-scan/said.tsx, src/swaps/overlays.ts): the picture at once, then the tap. Missed, the summary
+# is in Semua layanan ("scan").
 - extendedWaitUntil:
-    visible:
-      id: card.firstScan
+    notVisible:
+      id: status.firstRead
     timeout: 600000
-- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible: "Lihat ringkasan"
+    timeout: 20000
+    optional: true
 - takeScreenshot: ${THEME}-34-pertama-siap
 - tapOn:
-    id: action.firstScan.open
+    text: "Lihat ringkasan"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: screen.firstScan
+    timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: screen.firstScan
+    commands:
+      - tapOn:
+          id: action.service.more
+      - tapOn:
+          id: action.service.scan
 - extendedWaitUntil:
     visible:
       id: screen.firstScan

@@ -5,11 +5,13 @@
 // column is a target that shows its figures, and carries them as its accessible name, the way
 // the desktop's table for screen readers does ("Smt 7 (Perkiraan) · IPK 3,29 · IP semester 3,50").
 import { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import Svg, { Circle, G, Line, Path, Text as SvgText } from "react-native-svg";
 import { factsLabel } from "../../ui/layout";
+import { Appear, Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { radius, space, useTheme } from "../../ui/theme";
+import { endRoomFor } from "./chart-room";
 
 export interface ChartSeries {
   name: string;
@@ -86,17 +88,19 @@ export function LineChart({
   // The labels at the end take what they need, up to 140 (the desktop's) and 40% of a narrow phone's chart.
   // Only the end figure takes room past the plot (the reference's label sits on its line inside it): the plot keeps the
   // card's width. A long end label gives way to its figure ("3,30"), its words in the tap card and the spoken table.
-  const endRoom = endLabel ? Math.min(width * 0.22, textWidth(endLabel, 12)) : 0;
+  // When the whole label doesn't fit, the room is its figure's, not a share of the width: no empty band at the end.
+  const line = series.find((s) => s.kind === "line");
+  const lastIndex = line ? lastValue(line.values) : -1;
+  const endFigure = line && lastIndex >= 0 ? format(line.values[lastIndex]!) : undefined;
+  const endRoom = endRoomFor(width, endLabel, endFigure, (text) => textWidth(text, 12));
   const plotW = Math.max(0, width - PAD.left - PAD.right - endRoom);
   const plotH = height - PAD.top - PAD.bottom;
   const step = n > 1 ? plotW / (n - 1) : 0;
   const x = (i: number) => PAD.left + (n > 1 ? i * step : plotW / 2);
   const y = (v: number) => PAD.top + ((max - Math.min(max, Math.max(min, v))) / (max - min)) * plotH;
   const estimate = (i: number) => estimateFrom !== undefined && i >= estimateFrom;
-  const line = series.find((s) => s.kind === "line");
-  const lastIndex = line ? lastValue(line.values) : -1;
   // Where a label doesn't fit, its figure alone ("3,30") says it.
-  const endText = endLabel && line && lastIndex >= 0 ? (textWidth(endLabel, 12) <= endRoom + 0.5 ? endLabel : format(line.values[lastIndex]!)) : undefined;
+  const endText = endLabel && endFigure ? (textWidth(endLabel, 12) <= endRoom + 0.5 ? endLabel : endFigure) : undefined;
   const refText = reference ? (textWidth(reference.label) <= plotW * 0.6 ? reference.label : format(reference.value)) : undefined;
   // The semester's number under each column ("1" … "8"): the axis reads at a glance, the full name is in the tap card.
   const widest = Math.max(...columns.map((col) => col.length)) * CHAR + 6;
@@ -198,20 +202,23 @@ export function LineChart({
         {/* A column each, wider than its marks: tap for its figures; a screen reader reads them as the desktop's table. */}
         {width > 0 &&
           columns.map((col, i) => (
-            <Pressable
+            <Tap
               // biome-ignore lint/suspicious/noArrayIndexKey: a column is its place on the axis; labels can repeat
               key={`hit-${col}-${i}`}
-              accessibilityRole="button"
+              feel="row"
+              borderless
               accessibilityLabel={facts(i)}
               accessibilityState={{ selected: picked === i }}
               onPress={() => setTapped(picked === i ? null : i)}
               style={{ position: "absolute", left: x(i) - hit / 2, top: PAD.top - 6, width: hit, height: plotH + 12 }}
-            />
+            >
+              {null}
+            </Tap>
           ))}
         {picked !== null && width > 0 && (
-          <View
-            pointerEvents="none"
+          <Appear
             style={{
+              pointerEvents: "none",
               position: "absolute",
               top: 0,
               left: Math.min(Math.max(x(picked) - 70, 0), width - 140),
@@ -248,7 +255,7 @@ export function LineChart({
                 </View>
               ),
             )}
-          </View>
+          </Appear>
         )}
       </View>
     </View>

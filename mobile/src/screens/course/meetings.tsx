@@ -25,14 +25,15 @@ import { dayStart } from "../../../../src/core/schedule";
 import { SixEmptyState, useSignIn } from "../../shell/source-status";
 import { BigButton } from "../../ui/big-button";
 import { EmptyState } from "../../ui/display";
-import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
+import { ROW_SIDE } from "../../ui/row-end";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { CardGroup, SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
+import { SectionTitle, StatusChip, TileRow } from "../../ui/v4-list";
 import { Fact } from "./course-sheet";
 import { type Earlier, earlierMeetings } from "./earlier";
+import { FlatRows } from "./flat";
 import { shownAbove } from "./now";
 
 type T = ReturnType<typeof useT>;
@@ -40,6 +41,9 @@ type T = ReturnType<typeof useT>;
 /** Each meeting's Edunex module, where one goes with it (see meetingModules). From src/app/screens/course/meetings.tsx. */
 export const pageModules = (page: CoursePage) =>
   meetingModules(page.meetings, page.outline && page.course.edunex ? outlineEntries(page.outline, page.course.edunex.courseId) : []);
+
+/** A row's leading slot with nothing behind it: the date (or an icon) bare on the page, no pale square. */
+const BARE = { width: 44, height: 44, alignItems: "center", justifyContent: "center" } as const;
 
 /** "Modul 7 · Inovasi Pelayanan Publik" for a meeting known only as a class. From src/app/screens/course/meetings.tsx. */
 export function meetingModuleTitle(t: T, modules: ReadonlyMap<string, OutlineEntry>, meeting: Meeting): string | null {
@@ -84,7 +88,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
   const earlier = countedIn === "six" || countedIn === "both" || countedIn === "unknown" ? earlierMeetings(meetings, now, health, results) : null;
   /** One card of rows, with an exam period's line before its first meeting (in the order shown). */
   const card = (list: readonly Meeting[], testID: string, after?: ReactNode) => (
-    <CardGroup testID={testID}>
+    <FlatRows testID={testID}>
       {list.map((meeting, index) => {
         const period = periodOf(meeting);
         const startsPeriod = period !== undefined && (index === 0 || periodOf(list[index - 1]!) !== period);
@@ -103,7 +107,7 @@ export function MeetingsTab({ page }: { page: CoursePage }) {
         );
       })}
       {after}
-    </CardGroup>
+    </FlatRows>
   );
 
   return (
@@ -154,9 +158,9 @@ function EarlierRow({ earlier, first }: { earlier: Earlier; first: boolean }) {
       testID="row.meetingsEarlier"
       first={first}
       leading={
-        <IconTile tint={v.chip}>
+        <View style={BARE}>
           <Icons.History size={20} color={v.muted} />
-        </IconTile>
+        </View>
       }
       title={
         <Text size="bodyLarge" weight="medium" tabular style={{ color: v.fg2, lineHeight: 21 }}>
@@ -203,7 +207,7 @@ function PeriodLine({ period, first }: { period: CalendarEvent; first: boolean }
         flexDirection: "row",
         alignItems: "center",
         gap: space[2],
-        paddingHorizontal: 14,
+        paddingHorizontal: ROW_SIDE,
         paddingVertical: space[2],
         backgroundColor: v.ambBg,
         ...(first ? {} : { borderTopWidth: 1, borderTopColor: v.line }),
@@ -230,14 +234,14 @@ function DateTile({ at, past }: { at: number; past: boolean }) {
   const [day, month] = f.dayMonth(at).split(/\s+/);
   const fg = past ? v.muted : v.fg;
   return (
-    <IconTile tint={v.chip}>
+    <View style={BARE}>
       <Text size="titleMedium" face="display" weight="bold" tabular style={{ color: fg, fontSize: 17, lineHeight: 19 }}>
         {day ?? ""}
       </Text>
       <Text size="labelSmall" weight="medium" style={{ color: fg, fontSize: 11, lineHeight: 13 }}>
         {month ?? ""}
       </Text>
-    </IconTile>
+    </View>
   );
 }
 

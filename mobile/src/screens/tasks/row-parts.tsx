@@ -16,8 +16,7 @@ import { moduleName } from "../../../../src/core/tasks";
 import { toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
 import { CourseDot, Tag } from "../../ui/display";
-import { CountUp } from "../../ui/expressive";
-import { Icons } from "../../ui/icons";
+import { Icons, ServiceIcons } from "../../ui/icons";
 import { factsLabel, Notice, TrailingInline } from "../../ui/layout";
 import { PressScale } from "../../ui/press";
 import { Text, type TextTone, useTextWidth } from "../../ui/text";
@@ -52,8 +51,43 @@ export function TaskRowWorld({ children }: { children: ReactNode }) {
   const presence = useDataset("edunex.presence");
   const { entries: handled } = useDone();
   const edits = useDataset("edunex.taskEdits");
-  const value = useMemo<RowWorldValue>(() => ({ now, f, courses, colorOf, presence, handled, edits }), [now, f, courses, colorOf, presence, handled, edits]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `now` empties what the formatter kept (its "dalam 2 jam" is as old as the minute)
+  const kept = useMemo(() => keepAnswers(f), [f, now]);
+  const value = useMemo<RowWorldValue>(
+    () => ({ now, f: kept, courses, colorOf, presence, handled, edits }),
+    [now, kept, courses, colorOf, presence, handled, edits],
+  );
   return <RowWorld.Provider value={value}>{children}</RowWorld.Provider>;
+}
+
+/**
+ * The list's formatter with each answer kept until the minute turns: a day, a time or "dalam 2 jam" is worked out once
+ * per moment, not each time a row is drawn. A row asks a dozen of these (each an Intl call, slow on the phone's engine),
+ * and FlashList draws a row again every time it hands its cell to another while the list is flung: that was Tugas's
+ * 59–86 ms blocks while scrolling (round 3).
+ */
+function keepAnswers(f: Format): Format {
+  const out: Record<string, unknown> = {};
+  for (const [name, fn] of Object.entries(f)) {
+    if (typeof fn !== "function") {
+      out[name] = fn;
+      continue;
+    }
+    const ask = fn as (...args: unknown[]) => unknown;
+    const seen = new Map<string, unknown>();
+    out[name] = (...args: unknown[]) => {
+      // A list or a date object isn't a key: asked afresh.
+      for (const arg of args) if (typeof arg === "object" && arg !== null) return ask(...args);
+      const key = args.join("|");
+      let answer = seen.get(key);
+      if (answer === undefined) {
+        answer = ask(...args);
+        seen.set(key, answer);
+      }
+      return answer;
+    };
+  }
+  return out as unknown as Format;
 }
 
 export function useRowWorld(): RowWorldValue {
@@ -346,10 +380,62 @@ export const quickActions = (quick: Quick | undefined) =>
       }
     : {};
 
+/** What a row is: a Task to hand in, or an exam to sit. Each has its own glyph, in its course's colour. */
+export type RowKind = "task" | "exam";
+
+/** The glyph of a row's kind, bare, in the course's colour: the clipboard of Tugas, the paper and pen of Ujian. */
+export function KindIcon({ kind, color, size = 16 }: { kind: RowKind; color: string; size?: number }) {
+  const Glyph = kind === "exam" ? ServiceIcons.Exams : ServiceIcons.Tasks;
+  return <Glyph size={size} color={color} />;
+}
+
+/** "15 Okt" (or "Oct 15") as the leaf's two lines. */
+const leafOf = (date: string): [string, string] => [date.match(/\d+/)?.[0] ?? date, date.match(/\p{L}+/u)?.[0] ?? ""];
+
 /**
- * A row of Tugas in v4: the course's tile, a title, one short meta line, and at most one status at the end. The whole
- * row is one target (the press spring); its quick actions are a swipe, a long press and TalkBack's actions, never icons
- * beside it (W11). Its spoken name says every fact (`label`), the ones the row leaves to the Task's page too.
+ * The day a row is about, leading it as a calendar's leaf, and the only thing in that column: the weekday small over
+ * "15" in the course's colour over "Okt". Tugas reads down this column as an agenda, which no other tab has. With no
+ * day set the column is empty (the row says "Belum ada tanggal" in words, or its group does: nothing stands there to
+ * be read as a date) and the row sorts last. `big`: the lead card's.
+ */
+function DateLeaf({ date, weekday, ink, big = false }: { date: string | null; weekday?: string | null; ink: string; big?: boolean }) {
+  const v = useTheme().v4;
+  const width = useTextWidth(big ? 48 : 40);
+  if (date === null) return <View style={{ width }} />;
+  const [day, month] = leafOf(date);
+  const small = { color: big ? v.fg2 : v.muted, fontSize: 12, lineHeight: 16, letterSpacing: 0 } as const;
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width, alignItems: "center" }}>
+      {weekday ? (
+        <Text size="labelMedium" weight="medium" numberOfLines={1} style={small}>
+          {weekday}
+        </Text>
+      ) : null}
+      <Text
+        size="titleLarge"
+        face="display"
+        weight="extrabold"
+        tabular
+        numberOfLines={1}
+        style={big ? { color: ink, fontSize: 30, lineHeight: 34, letterSpacing: -0.6 } : { color: ink, fontSize: 22, lineHeight: 26, letterSpacing: -0.4 }}
+      >
+        {day}
+      </Text>
+      {month ? (
+        <Text size="labelMedium" weight="medium" numberOfLines={1} style={small}>
+          {month}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * A row of Tugas: flat on the page, the day leading it (`date`), a title, then one line with the kind's glyph in the
+ * course's colour, the course's name and the time. At most one status at the end. The whole row is one target (the
+ * press spring); its quick actions are a swipe, a long press and TalkBack's actions, never icons beside it (W11). Its
+ * spoken name says every fact (`label`), the ones the row leaves to the Task's page too. Without `date` (a course's own
+ * page, an exam period) it leads with the course's mark or `leading`, as before.
  */
 export function TaskLine({
   testID,
@@ -364,24 +450,37 @@ export function TaskLine({
   meta,
   status,
   expanded,
+  date,
+  weekday,
+  flat = false,
 }: {
   testID: string;
   label: string;
   onPress: () => void;
   onLongPress?: () => void;
   quick?: Quick;
-  /** The course whose tile leads the row; none on a course's own page. */
+  /** The course: its colour for the day and the glyph; its mark leads the row when no day does. None on a course's own page. */
   code?: string | null;
   course?: string;
-  /** In place of a course's tile (an exam period's calendar). */
+  /** In place of a course's mark (an exam period's calendar). */
   leading?: ReactNode;
   title: string;
   meta?: string | null;
   status?: ReactNode;
   /** A row that folds a list open (an exam period). */
   expanded?: boolean;
+  /** Tugas's own shape: the day ("15 Okt") leading the row; null while no day is set. */
+  date?: string | null;
+  /** The day's weekday ("Jum"), with the date in its column: never after the course's name. */
+  weekday?: string | null;
+  /** A Task or an exam (the lead card says which; a row's line leads with its course's glyph). */
+  kind?: RowKind;
+  /** Flat on Tugas's page without a day (an exam period): the page's own inset, as the rows with one. */
+  flat?: boolean;
 }) {
   const v = useTheme().v4;
+  const { ink } = useCourseTile()(code);
+  const leaf = date !== undefined;
   return (
     <PressScale
       testID={testID}
@@ -390,37 +489,62 @@ export function TaskLine({
       onPress={onPress}
       onLongPress={onLongPress}
       {...quickActions(quick)}
-      style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: space[3],
+        paddingHorizontal: leaf || flat ? space[1] : 14,
+        paddingVertical: space[3],
+        minHeight: 68,
+      }}
     >
-      {leading ?? (code ? <CourseTile code={code} name={course} /> : null)}
+      {leaf ? <DateLeaf date={date} weekday={weekday} ink={ink} /> : (leading ?? (code ? <CourseTile code={code} name={course} /> : null))}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text size="bodyLarge" weight="medium" numberOfLines={2} style={{ color: v.fg, lineHeight: 21 }}>
           {title}
         </Text>
         {meta ? (
-          <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted, marginTop: 2 }}>
-            {meta}
-          </Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 2 }}>
+            {/* The course's own glyph, once per row, beside its words: never in the day's column, which holds a day or nothing. */}
+            {code && leaf ? <CourseGlyph code={code} name={course} size={16} /> : null}
+            <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: v.muted, flexShrink: 1 }}>
+              {meta}
+            </Text>
+          </View>
         ) : null}
       </View>
       {status}
+      {/* Every row that opens something ends in the same quiet chevron; one that folds a list has its own. */}
+      {expanded === undefined && <Icons.ChevronRight size={16} color={v.muted} />}
     </PressScale>
   );
 }
 
-/** A tile in the course tile's shape for what has no course (an exam period): an icon in the brand's ink on its tint. */
-export function IconTile({ children }: { children: ReactNode }) {
+/** Where the hairline between two flat rows starts: past the day (4 + 40 + 12 dp). */
+export const LEAF_INSET = 56;
+
+/** A flat row's place on the page: nothing around it, a hairline over every row but its group's first, from the text on. */
+export function FlatSlice({ first, children }: { first: boolean; children: ReactNode }) {
   const v = useTheme().v4;
   return (
-    <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}>{children}</View>
+    <View>
+      {children}
+      {!first && <View pointerEvents="none" style={{ position: "absolute", top: 0, left: LEAF_INSET, right: 0, height: 1, backgroundColor: v.line }} />}
+    </View>
   );
 }
 
+/** The place of a row's mark for what has no course (an exam period): the icon bare, nothing behind it. */
+export function IconTile({ children }: { children: ReactNode }) {
+  return <View style={{ width: 40, height: 44, alignItems: "center", justifyContent: "center" }}>{children}</View>;
+}
+
 /**
- * The nearest deadline as Tugas's one big card (v4, Beranda's "Perlu kamu urus"): in the course's tint, the countdown
- * big at its start ("8 hari"; red and "lewat" once past), what it is beside it, and under that the course's glyph and
- * when, as a row says them. The screen's focal point at about half its old height (round 3: it took ~40% of the first
- * screen for one Task). The same item, target and spoken name as its row would have: it isn't listed again under it.
+ * The soonest thing ahead as Tugas's one big card, a Task or an exam: in the course's tint, its day in the same column
+ * as every row under it, and beside it three short lines. What it is ("Tugas" / "Ujian", with the kind's glyph) and how
+ * long is left, quiet, once; its name; then its time, right by its day, and whose or where it is; the rows' chevron. Nothing is cut: the name and
+ * the last line wrap (font size 1.3, the demo's longest course name). The same item, target and spoken name as its row
+ * would have: it isn't listed again under it.
  */
 export function HeroCard({
   testID,
@@ -429,30 +553,40 @@ export function HeroCard({
   onLongPress,
   quick,
   code,
-  course,
   at,
+  date,
+  weekday,
   title,
+  kindLabel,
+  time,
   meta,
+  kind = "task",
 }: {
   testID: string;
   label: string;
   onPress: () => void;
   onLongPress?: () => void;
   quick?: Quick;
-  /** The course: the card's tint and its glyph. */
+  /** The course: the card's tint and its ink. */
   code: string;
-  course?: string;
   at: number;
+  /** The day as the rows' column says it: "16 Okt" and "Jum". */
+  date: string;
+  weekday: string;
   title: string;
-  /** "Jum, 13 Nov, 23:59": when (the course is its glyph beside it, and the tint). */
-  meta: string;
+  /** "Tugas" or "Ujian", beside the kind's glyph. */
+  kindLabel: string;
+  /** "23:59", "11:00–13:00": it goes with the date, first on its line. */
+  time: string;
+  /** After the time: whose it is (a Task's course), or where and how (an exam's room, "Take-home"). */
+  meta?: string | null;
+  kind?: RowKind;
 }) {
   const t = useT();
   const { now } = useRowWorld();
   const v = useTheme().v4;
   const { ink, tint } = useCourseTile()(code);
   const away = countdown(t, now, at);
-  const color = away.late ? v.redFg : ink;
   return (
     <PressScale
       testID={testID}
@@ -467,39 +601,38 @@ export function HeroCard({
         paddingVertical: space[3],
         flexDirection: "row",
         alignItems: "center",
-        gap: space[4],
+        gap: space[3],
       }}
     >
-      {/* The number, its unit under it ("lewat" over it once past): one column, as wide as it needs. */}
-      <View style={{ alignItems: "center", minWidth: 48 }}>
-        {away.late && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}>
-            <Icons.AlertTriangle size={12} weight="bold" color={color} />
-            <Text size="labelMedium" face="display" weight="semibold" style={{ color }}>
-              {t("mobile.home.late")}
-            </Text>
-          </View>
-        )}
-        <CountUp
-          id={`tasks:${testID}`}
-          value={away.value}
-          style={{ color, fontFamily: "PlusJakartaSans-ExtraBold", fontSize: 40, lineHeight: 46, letterSpacing: -1, fontVariant: ["tabular-nums"] }}
-        />
-        <Text size="labelLarge" face="display" weight="semibold" style={{ color, marginTop: -4 }}>
-          {away.unit}
-        </Text>
-      </View>
+      <DateLeaf date={date} weekday={weekday} ink={ink} big />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg }}>
-          {title}
-        </Text>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginTop: space[1] }}>
-          <CourseGlyph code={code} name={course} size={18} />
-          <Text size="bodyMedium" tabular numberOfLines={1} style={{ flexShrink: 1, color: v.fg2 }}>
-            {meta}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          {/* What it is, before anything else: the kind as the card's one solid mark (the card's two colours, swapped). */}
+          <View style={{ flex: 1, flexDirection: "row" }}>
+            <View
+              style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: ink, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}
+            >
+              <KindIcon kind={kind} color={tint} size={14} />
+              <Text size="labelLarge" weight="bold" numberOfLines={1} style={{ color: tint }}>
+                {kindLabel}
+              </Text>
+            </View>
+          </View>
+          {/* How long is left, quiet, on the one card that says it while it's still calm. */}
+          {away.late && <Icons.AlertTriangle size={14} weight="bold" color={v.redFg} />}
+          <Text size="bodyMedium" weight="medium" tabular style={{ color: away.late ? v.redFg : v.fg2 }}>
+            {away.text}
           </Text>
         </View>
+        <Text size="titleMedium" face="display" weight="bold" numberOfLines={3} style={{ color: v.fg, marginTop: 2 }}>
+          {title}
+        </Text>
+        <Text size="bodyMedium" tabular numberOfLines={2} style={{ color: v.fg2, marginTop: 2 }}>
+          {meta ? `${time} · ${meta}` : time}
+        </Text>
       </View>
+      {/* It opens, as every row under it: the same chevron. */}
+      <Icons.ChevronRight size={16} color={v.fg2} />
     </PressScale>
   );
 }

@@ -8,6 +8,7 @@
 // 3. The courses as rows in their colours: name, code and SKS, one short status (Bentrok, or not approved yet); the
 //    advisor and what every row shares in quiet lines under them.
 // 4. The plan's steps with their times (and the change round's), below the fold. View only.
+import { router } from "expo-router";
 import { useState } from "react";
 import { View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
@@ -224,13 +225,12 @@ function Clashes({ overlaps, plan, past = false }: { overlaps: Overlap[]; plan: 
 
 /**
  * A clash's sheet: the one thing to do about it once the KRS is approved (ask the lecturers, or change it
- * in the URS window), and Jadwal at it.
+ * in the URS window), and the month's schedule a step forward (Back returns here).
  */
 function ClashSheet({ plan, overlap, onClose }: { plan: KrsPlan; overlap: Overlap | null; onClose: () => void }) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
-  const nav = useNav();
   const theme = useTheme();
   const calendar = useDataset("itb.calendar");
   const stage = krsStage(plan);
@@ -254,7 +254,8 @@ function ClashSheet({ plan, overlap, onClose }: { plan: KrsPlan; overlap: Overla
         {
           label: t("krs.toSchedule"),
           icon: <Icons.Calendar size={20} color={theme.color.fg} />,
-          onPress: () => nav.go({ screen: "schedule" }),
+          // The month view, pushed over this screen, so Back returns here (a jump to the Jadwal tab made Back land on Beranda).
+          onPress: () => router.push("/schedule-month"),
           testID: "action.toSchedule",
         },
       ]}

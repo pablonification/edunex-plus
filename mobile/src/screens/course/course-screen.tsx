@@ -11,8 +11,9 @@
 // colour, its pages on Edunex and SIX. Pull to refresh.
 
 import { router } from "expo-router";
-import { type ComponentRef, type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { type ComponentRef, type ReactNode, useEffect, useRef, useState } from "react";
 import { type LayoutChangeEvent, ScrollView, View } from "react-native";
+import Animated from "react-native-reanimated";
 import type { CourseAttendance } from "../../../../src/app/attendance";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { type StringKey, useNow, useT } from "../../../../src/app/i18n";
@@ -25,6 +26,7 @@ import { hrefOf, useNav } from "../../nav";
 import { CourseColorSheet, colorName } from "../../parts/course-color-picker";
 import { usePerfDrawn } from "../../perf";
 import { usePullToRefresh, useRefresh } from "../../shell/source-status";
+import { useB } from "../../ui/b";
 import { BigButton } from "../../ui/big-button";
 import { CourseDot, EmptyState, Skeleton } from "../../ui/display";
 import { EdgeFade, useEdges } from "../../ui/edge-fade";
@@ -32,6 +34,7 @@ import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
 import { factsLabel, Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
+import { CrossFade, useSlidingMark } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
@@ -41,23 +44,24 @@ import { TopBar } from "../../ui/top-bar";
 import type { RowContext } from "../presence/logic";
 import { useRowContext } from "../presence/presence-screen";
 import { useAttendanceLine } from "./attendance-line";
-import { contentsOf, newestEntry } from "./contents";
 import { CourseSheet } from "./course-sheet";
 import { GradesTab } from "./grades";
 import { AnnouncementsTab, TasksTab } from "./lists";
-import { MeetingsTab } from "./meetings";
+import { MeetingsTab, pageModules } from "./meetings";
 import { ModulesTab } from "./modules";
-import { MeetingNow, useRecordInEdunexUrl } from "./now";
+import { MeetingNow, moduleSaidAbove, useRecordInEdunexUrl } from "./now";
 import { SaveOfflineProgress, useSaveOfflineChoice } from "./save-offline";
 import { TABS, type Tab, useVisitTabs } from "./tab-order";
 
 /** The tabs' names: the desktop's, but "Tugas" alone, so five fit a phone's width better. */
 const TAB_LABEL: Record<Tab, StringKey> = {
-  modules: "course.tab.modules",
+  // "Materi": the word a Student looks for after class (Edunex calls them modules; the list under it still does).
+  modules: "mobile.course.tab.material",
   meetings: "course.tab.meetings",
   tasks: "mobile.course.tab.tasks",
   grades: "course.tab.grades",
-  announcements: "course.tab.announcements",
+  // "Info": short, so the five fit a phone's width with none cut at the edge (round 2's judges saw no hint of more).
+  announcements: "mobile.course.tab.news",
 };
 
 /**
@@ -66,7 +70,8 @@ const TAB_LABEL: Record<Tab, StringKey> = {
  */
 export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const t = useT();
-  const theme = useTheme();
+  const b = useB();
+  const now = useNow();
   const page = useCoursePage(code);
   const edunexState = useStatus("edunex").state;
   const edunexReading = edunexState === "connecting" || edunexState === "live";
@@ -99,13 +104,13 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
     return edunexReading ? (
       <Loading />
     ) : (
-      <Page testID="screen.course" background={theme.v4.page} header={<TopBar v4 title={t("nav.courses")} />}>
+      <Page testID="screen.course" background={b.page} header={<TopBar v4 title={t("nav.courses")} />}>
         <NotLoaded />
       </Page>
     );
   if (page === null)
     return (
-      <Page testID="screen.course" background={theme.v4.page} header={<TopBar v4 title={t("nav.courses")} />}>
+      <Page testID="screen.course" background={b.page} header={<TopBar v4 title={t("nav.courses")} />}>
         <CourseMissing />
       </Page>
     );
@@ -116,9 +121,17 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   const rise = `course:${page.course.code}`;
 
   let panel: ReactNode;
+  // The module the course's latest class was on (Edunex numbers it by the meeting): Materi opens there.
+  const held = page.meetings.filter((m) => m.start <= now);
+  const onModules = pageModules(page);
+  const classModule =
+    held
+      .map((m) => onModules.get(m.key)?.module.id)
+      .filter((id): id is number => id !== undefined)
+      .pop() ?? null;
   if (current === "grades") panel = <GradesTab page={page} onOpenModules={() => pickTab("modules")} />;
   else if (!loaded) panel = <NotLoaded />;
-  else if (current === "modules") panel = <ModulesTab page={page} onPick={pickModule} />;
+  else if (current === "modules") panel = <ModulesTab page={page} onPick={pickModule} classModule={classModule} saidAbove={moduleSaidAbove(page, now)} />;
   else if (current === "meetings") panel = <MeetingsTab page={page} />;
   else if (current === "tasks") panel = <TasksTab code={page.course.code} exams={page.exams} />;
   else panel = <AnnouncementsTab announcements={page.announcements} mainCourseId={page.course.edunex?.courseId ?? null} code={page.course.code} />;
@@ -126,7 +139,8 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
   return (
     <Page
       testID="screen.course"
-      background={theme.v4.page}
+      background={b.page}
+      // The bar's title is the course's name: on one line where it fits, on two where it doesn't. The code is in the header.
       header={<TopBar v4 title={page.course.name} lines={2} actions={<MoreMenu page={page} />} />}
       scrollRef={scroll}
       // The tabs stay under the bar while a long tab scrolls.
@@ -140,7 +154,6 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
       <View>
         <Rise screen={rise} index={0}>
           <Header page={page} item={item} context={rows?.context} onOpen={() => setSheet(true)} />
-          <NewestModule page={page} onPick={pickModule} />
         </Rise>
         <MeetingNow page={page} rise={rise} />
         <SaveOfflineProgress code={page.course.code} />
@@ -155,7 +168,8 @@ export function CourseScreen({ code, tab }: { code: string; tab?: string }) {
         />
       </View>
       <View style={{ paddingTop: space[3], minHeight: 480 }} testID={`panel.course.${current}`}>
-        {panel}
+        {/* A tab's panel replaces the last one in place: the new one fades through (at once with Remove animations). */}
+        <CrossFade id={current}>{panel}</CrossFade>
       </View>
     </Page>
   );
@@ -168,9 +182,10 @@ function CourseMissing() {
 }
 
 /**
- * Under the bar (the course's name is the bar's title): the course's tile, its code and SKS, then its absences as one
- * meter with its one word and one ⓘ (from `item` and `context`). A tap opens the course's sheet (lecturer, SKS,
- * attendance in full, the advice).
+ * Under the bar (its title is the course's name, said once on the screen): the course's glyph in its colour, its code
+ * and SKS on one quiet line, then its absences as dots and one label (./attendance-line.tsx, as Kuliah's row says them).
+ * The whole header is one target, 48 dp and more, ending in the chevron every row that opens has: it opens the
+ * course's sheet (lecturer, SKS, attendance in full, the advice).
  */
 function Header({
   page,
@@ -185,53 +200,26 @@ function Header({
 }) {
   const t = useT();
   const v = useTheme().v4;
-  const attendance = useAttendanceLine(item, context);
   const { course, outline } = page;
   const sks = course.sks ?? outline?.credits ?? null;
-  const line = [course.code, sks !== null ? t("course.sks", { count: sks }) : null].filter(Boolean).join(" · ");
+  const line = factsLabel(course.code, sks !== null && t("course.sks", { count: sks }));
+  const attendance = useAttendanceLine(item, context, line);
   return (
     <PressScale
       onPress={onOpen}
-      accessibilityLabel={[`${course.name}, ${line}`, attendance?.label].filter(Boolean).join(". ")}
+      accessibilityLabel={[line, attendance?.label].filter(Boolean).join(". ")}
       accessibilityHint={t("mobile.course.aboutHint")}
       testID="action.courseAbout"
-      style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 56 }}
     >
       <CourseTile code={course.code} name={course.name} size={44} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: v.muted }}>
-          {line}
-        </Text>
-        {attendance?.node}
+        {attendance?.node ?? (
+          <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg2 }}>
+            {line}
+          </Text>
+        )}
       </View>
-    </PressScale>
-  );
-}
-
-/**
- * The way to this week's material, under the header: "Modul terbaru: {its title}" when something new came to a module in
- * the last 7 days, a tap away from it (a Student read Kuliah as attendance only and never found the materials).
- */
-function NewestModule({ page, onPick }: { page: CoursePage; onPick: (module: number) => void }) {
-  const t = useT();
-  const v = useTheme().v4;
-  const now = useNow();
-  const entry = useMemo(() => (page.materials ? newestEntry(contentsOf(page, t), now) : undefined), [page, t, now]);
-  if (!entry) return null;
-  const text = t("mobile.course.newestModule", { title: entry.title });
-  return (
-    <PressScale
-      onPress={() => onPick(Number(entry.id))}
-      accessibilityLabel={text}
-      testID="action.newestModule"
-      style={{ flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 48, marginTop: space[2] }}
-    >
-      <View style={{ width: 44, alignItems: "center" }}>
-        <Icons.FileText size={20} color={v.brandInk} />
-      </View>
-      <Text size="bodyMedium" weight="medium" numberOfLines={1} style={{ flex: 1, minWidth: 0, color: v.brandInk }}>
-        {text}
-      </Text>
       <Icons.ChevronRight size={18} color={v.muted} />
     </PressScale>
   );
@@ -293,8 +281,9 @@ function MoreMenu({ page }: { page: CoursePage }) {
 }
 
 /**
- * The tabs as pills on the page's grey, scrolling sideways; the picked one tonal in the brand's blue and brought into
- * view. Each pill gives on a press and is a full 48 dp to touch; Tugas carries how many are still open.
+ * The tabs as words on the white page, scrolling sideways; the picked one sits on a tonal pill in the brand's blue that
+ * slides from the old tab to the new one (useSlidingMark; at once with Remove animations), and is brought into view.
+ * Each gives on a press and is a full 48 dp to touch; Tugas carries how many are still open.
  */
 function TabBar<T extends string>({
   value,
@@ -308,16 +297,18 @@ function TabBar<T extends string>({
   tabs: readonly { value: T; label: string; count?: number }[];
 }) {
   const v = useTheme().v4;
+  const b = useB();
   const bar = useRef<ComponentRef<typeof ScrollView>>(null);
   const places = useRef(new Map<T, { x: number; width: number }>());
   const [width, setWidth] = useState(0);
   const fades = useEdges();
+  const mark = useSlidingMark(value);
   useEffect(() => {
     const place = places.current.get(value);
     if (place && width) bar.current?.scrollTo({ x: Math.max(0, place.x + place.width / 2 - width / 2), animated: true });
   }, [value, width]);
   return (
-    <View style={{ backgroundColor: v.page, marginHorizontal: -space.page }} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+    <View style={{ backgroundColor: b.page, marginHorizontal: -space.page }} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
       <ScrollView
         ref={bar}
         testID="tabs.course"
@@ -329,49 +320,62 @@ function TabBar<T extends string>({
         onContentSizeChange={fades.onContentSizeChange}
         onScroll={fades.onScroll}
         scrollEventThrottle={32}
-        contentContainerStyle={{ paddingHorizontal: space.page, gap: space[2] }}
+        // Five fit a 411 dp phone at font size 1.1 and spread over its width (Materi, Pertemuan, Tugas 3, Nilai, Info:
+        // about 330 dp of 411); at 1.3 they scroll under the faded edge.
+        contentContainerStyle={{ paddingHorizontal: space[3], minWidth: "100%", justifyContent: "space-between" }}
       >
+        {/* The picked tab's pill, inside the scrolled content so it moves with the tabs. */}
+        <Animated.View style={[{ position: "absolute", top: 6, height: 36, borderRadius: 18, backgroundColor: v.brandTint }, mark.style]} />
         {tabs.map((tab) => {
           const on = tab.value === value;
+          const measure = mark.measure(tab.value);
           return (
-            <PressScale
+            <View
               key={tab.value}
-              testID={`tab.course.${tab.value}`}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: on }}
-              accessibilityLabel={tab.count !== undefined ? `${tab.label}, ${tab.count}` : tab.label}
-              onPress={() => onChange(tab.value)}
-              style={{ minHeight: 48, justifyContent: "center" }}
+              onLayout={(event) => {
+                places.current.set(tab.value, { x: event.nativeEvent.layout.x, width: event.nativeEvent.layout.width });
+                measure(event);
+              }}
             >
-              <View
-                onLayout={(event) => places.current.set(tab.value, { x: event.nativeEvent.layout.x, width: event.nativeEvent.layout.width })}
+              <PressScale
+                testID={`tab.course.${tab.value}`}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={tab.count !== undefined ? `${tab.label}, ${tab.count}` : tab.label}
+                onPress={() => onChange(tab.value)}
+                // 48 dp to touch both ways, the short names too ("Nilai" and "Info" were 45 and 42 wide, round 3's touch read).
                 style={{
-                  minHeight: 36,
-                  flexShrink: 0,
-                  borderRadius: 18,
-                  paddingHorizontal: space[4],
+                  minHeight: 48,
+                  minWidth: 48,
+                  paddingHorizontal: space[2],
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 6,
-                  backgroundColor: on ? v.brandTint : v.card,
+                  justifyContent: "center",
+                  gap: 4,
                 }}
               >
-                {/* Never cut short: the row scrolls, so a pill keeps its whole name ("Pe…" read as a word cut, round 3). */}
-                <Text size="labelLarge" weight="semibold" style={{ color: on ? v.brandInk : v.fg2, flexShrink: 0 }}>
+                {/* Never cut short: the row scrolls, so a tab keeps its whole name ("Pe…" read as a word cut, round 3). */}
+                <Text
+                  size="labelLarge"
+                  weight="semibold"
+                  numberOfLines={1}
+                  style={{ color: on ? v.brandInk : v.fg2, fontSize: 13, letterSpacing: 0, flexShrink: 0 }}
+                >
                   {tab.label}
                 </Text>
                 {tab.count !== undefined && (
-                  <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: on ? v.brandInk : v.muted }}>
+                  // The count in the name's own face and weight ("the '1' in 'Tugas 1' is in another font", round 3).
+                  <Text size="labelLarge" weight="semibold" tabular style={{ color: on ? v.brandInk : v.fg2, fontSize: 13, letterSpacing: 0 }}>
                     {String(tab.count)}
                   </Text>
                 )}
-              </View>
-            </PressScale>
+              </PressScale>
+            </View>
           );
         })}
       </ScrollView>
-      {fades.edges.left && <EdgeFade side="left" color={v.page} />}
-      {fades.edges.right && <EdgeFade side="right" color={v.page} />}
+      {fades.edges.left && <EdgeFade side="left" color={b.page} />}
+      {fades.edges.right && <EdgeFade side="right" color={b.page} />}
     </View>
   );
 }
@@ -404,9 +408,9 @@ function NotLoaded() {
 
 function Loading() {
   const t = useT();
-  const theme = useTheme();
+  const b = useB();
   return (
-    <Page testID="screen.course" background={theme.v4.page} header={<TopBar v4 title={t("nav.courses")} />}>
+    <Page testID="screen.course" background={b.page} header={<TopBar v4 title={t("nav.courses")} />}>
       <View accessibilityState={{ busy: true }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
           <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />

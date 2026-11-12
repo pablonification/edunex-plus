@@ -41,7 +41,7 @@ appId: io.github.pablonification.edunexplus.demo
 - takeScreenshot: 05-ujian
 - back
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - waitForAnimationToEnd
 - takeScreenshot: 06-akademik
 - scrollUntilVisible:
@@ -98,6 +98,11 @@ appId: io.github.pablonification.edunexplus.demo
 - waitForAnimationToEnd
 - takeScreenshot: 13-kalender
 - back
+- scrollUntilVisible:
+    element:
+      id: action.account
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: action.account
 - waitForAnimationToEnd

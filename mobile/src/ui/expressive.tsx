@@ -1,15 +1,16 @@
 // Round 2's few living parts (v4, DESIGN.md "Motion"), all moving on the UI thread (Reanimated; react-native-svg draws):
-// Material 3 Expressive's wavy progress, its cookie shape holding a check that draws itself, a pulsing "now" dot, a
+// a class's progress bar (plain: the wave is gone), M3's cookie shape holding a check that draws itself, a pulsing "now" dot, a
 // number that counts up once, and the stagger a screen's cards rise in on its first showing. With Remove animations
 // they keep still or fade.
 import { NavigationContext } from "expo-router/react-navigation";
 import { type ReactNode, useContext, useEffect, useState } from "react";
-import { type LayoutChangeEvent, type StyleProp, StyleSheet, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
+import { Platform, type StyleProp, StyleSheet, Text, TextInput, type TextStyle, View, type ViewStyle } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
-  FadeInDown,
+  runOnJS,
   useAnimatedProps,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -17,66 +18,35 @@ import Animated, {
   withSpring,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { Circle, Path } from "react-native-svg";
+import Svg, { Path } from "react-native-svg";
 import { firstFrameShown } from "../shell/first-frame";
 import { useLoopWhileShown, useReduceMotion } from "./motion";
 import { motion } from "./theme";
 
-/** One wavelength of the wave (dp), its rise (about 4 dp either way, M3's), and the height it's drawn in. */
-const WAVE = 32;
-const RISE = 8;
+/** Material's standard easing (`motion.easing.standard`). */
+const STANDARD = Easing.bezier(...motion.easing.standard);
+
+/** The height the progress bar's row takes (the wave's old height, so the callers' rows keep theirs). */
 const WAVE_HEIGHT = 14;
-/** A wave long enough for any phone's card, drawn once: q (rise) t (fall) per wavelength. */
-const WAVE_PATH = (() => {
-  let d = `M0 ${WAVE_HEIGHT / 2}`;
-  for (let i = 0; i < 40; i++) d += ` q${WAVE / 4} -${RISE} ${WAVE / 2} 0 t${WAVE / 2} 0`;
-  return d;
-})();
 
 /**
- * M3 Expressive's wavy progress: the wave up to how far along (`progress`, 0–1), moving along itself; after it, the
- * flat track to the stop dot, drawn in full from the start. `ink` draws the wave and the dot, `track` the rest (give it
- * enough contrast to read as a track on its card).
+ * A class's progress as a plain bar: `track` filled with `ink` to how far along (`progress`, 0–1). It was a moving
+ * wave; the wave is gone ("reads as ornament": no wave anywhere), and the name stays until its callers move to
+ * kit.tsx's `PlainBar`, which is this bar with an end label. Nothing here moves or measures.
  */
 export function WavyProgress({ progress, ink, track, label }: { progress: number; ink: string; track: string; label: string }) {
-  const run = useLoopWhileShown();
-  const [width, setWidth] = useState(0);
-  const shift = useSharedValue(0);
-  useEffect(() => {
-    if (!run) return;
-    shift.value = 0;
-    shift.value = withRepeat(withTiming(-WAVE, { duration: 1100, easing: Easing.linear }), -1, false);
-    return () => cancelAnimation(shift);
-  }, [run, shift]);
-  const moving = useAnimatedStyle(() => ({ transform: [{ translateX: shift.value }] }));
-  const p = Math.max(0, Math.min(1, progress));
-  // At least a wavelength and a half drawn (48 dp), so a class just started reads as a wave starting, not a squiggle.
-  const done = Math.min(width - 12, Math.max(WAVE * 1.5, width * p - 2));
+  const p = Math.max(0, Math.min(1, Number.isFinite(progress) ? progress : 0));
   return (
     <View
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel={label}
       accessibilityValue={{ min: 0, max: 100, now: Math.round(p * 100) }}
-      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
       style={{ flex: 1, height: WAVE_HEIGHT, justifyContent: "center" }}
     >
-      {width > 0 && (
-        <>
-          <View style={{ position: "absolute", left: 0, top: 0, width: done, height: WAVE_HEIGHT, overflow: "hidden" }}>
-            {/* Drawn once into a texture that only slides: the path isn't drawn again every frame (Tugas scrolled 20% janky on `weak`). */}
-            <Animated.View renderToHardwareTextureAndroid style={[{ width: done + WAVE * 2, height: WAVE_HEIGHT }, moving]}>
-              <Svg width={done + WAVE * 2} height={WAVE_HEIGHT}>
-                <Path d={WAVE_PATH} stroke={ink} strokeWidth={4} strokeLinecap="round" fill="none" />
-              </Svg>
-            </Animated.View>
-          </View>
-          {done + 8 < width - 6 && <View style={{ position: "absolute", left: done + 8, right: 6, height: 4, borderRadius: 2, backgroundColor: track }} />}
-          <Svg style={{ position: "absolute", right: 0 }} width={4} height={4}>
-            <Circle cx={2} cy={2} r={2} fill={ink} />
-          </Svg>
-        </>
-      )}
+      <View style={{ height: 4, borderRadius: 2, backgroundColor: track, overflow: "hidden" }}>
+        <View style={{ width: `${p * 100}%`, height: 4, borderRadius: 2, backgroundColor: ink }} />
+      </View>
     </View>
   );
 }
@@ -105,7 +75,7 @@ export function CookieCheck({ color, check, size = 28 }: { color: string; check:
     seen.value = withTiming(1, { duration: motion.duration.short });
     if (still) return;
     grow.value = withSpring(1, motion.expressive);
-    drawn.value = withDelay(350, withTiming(1, { duration: 350, easing: Easing.bezier(0.2, 0, 0, 1) }));
+    drawn.value = withDelay(350, withTiming(1, { duration: 350, easing: STANDARD }));
   }, [still, grow, seen, drawn]);
   const badge = useAnimatedStyle(() => ({ opacity: seen.value, transform: [{ scale: grow.value }, { rotate: `${(1 - grow.value) * -129}deg` }] }));
   const stroke = useAnimatedProps(() => ({ strokeDashoffset: CHECK_LENGTH * (1 - drawn.value) }));
@@ -128,29 +98,47 @@ export function CookieCheck({ color, check, size = 28 }: { color: string; check:
   );
 }
 
-/** "Now": a dot with a ring that breathes out from it every two seconds (still with Remove animations). */
-export function PulseDot({ color, size = 7 }: { color: string; size?: number }) {
-  const still = useReduceMotion();
+/**
+ * "Now": a dot with a ring that breathes out from it a few times (`times`, 3 by default, two seconds each), then rests as
+ * a plain dot: nothing redraws at rest (the decisions' "Beranda's budget"). Still with Remove animations.
+ */
+export function PulseDot({ color, size = 7, times = 3 }: { color: string; size?: number; times?: number }) {
   const run = useLoopWhileShown();
-  const ring = useSharedValue(0);
+  // At rest the ring is fully out (1): nothing drawn, nothing running.
+  const ring = useSharedValue(1);
   useEffect(() => {
     if (!run) return;
     ring.value = 0;
-    ring.value = withRepeat(withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad) }), -1, false);
-    return () => cancelAnimation(ring);
-  }, [run, ring]);
+    // Each pass ends with the ring faded, so the last one leaves nothing drawn and nothing running.
+    ring.value = withRepeat(withTiming(1, { duration: 2000, easing: Easing.out(Easing.quad) }), Math.max(1, times), false);
+    return () => {
+      cancelAnimation(ring);
+      ring.value = 1;
+    };
+  }, [run, ring, times]);
   const halo = useAnimatedStyle(() => ({ opacity: 0.5 * (1 - ring.value), transform: [{ scale: 1 + ring.value * 1.7 }] }));
   return (
     <View style={{ width: size, height: size }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      {!still && <Animated.View style={[StyleSheet.absoluteFill, { borderRadius: size, backgroundColor: color }, halo]} />}
+      {run && <Animated.View style={[StyleSheet.absoluteFill, { borderRadius: size, backgroundColor: color }, halo]} />}
       <View style={{ width: size, height: size, borderRadius: size, backgroundColor: color }} />
     </View>
   );
 }
 
 const AnimatedInput = Animated.createAnimatedComponent(TextInput);
+const IOS = Platform.OS === "ios";
 /** Numbers already counted in this run: a number counts up the first time it's shown, never on a redraw. */
 const counted = new Set<string>();
+/** Until then, a number shown for the first time is simply there (`settleFigures`). */
+let settledUntil = 0;
+
+/**
+ * The numbers about to be shown are simply there, not counted up from zero: the Student asked to see what was hidden
+ * ("Tampilkan" on hidden grades), and a figure climbing from 0,00 isn't an answer to that.
+ */
+export function settleFigures(ms = 1_000): void {
+  settledUntil = Date.now() + ms;
+}
 
 /**
  * A number that counts up from zero once (700 ms, easing out), the first time `id` is shown in this run; after that,
@@ -171,7 +159,7 @@ export function CountUp({
   comma?: boolean;
 }) {
   const still = useReduceMotion();
-  const [first] = useState(() => !still && !counted.has(id));
+  const [first] = useState(() => !still && !counted.has(id) && Date.now() >= settledUntil);
   const shown = useSharedValue(first ? 0 : value);
   useEffect(() => {
     counted.add(id);
@@ -187,6 +175,23 @@ export function CountUp({
     const now = written(shown.value);
     return { text: now, defaultValue: now } as never;
   });
+  // An iPhone draws it as plain text, told each new figure as the count passes it: its read-only field kept the width
+  // of the figure it started with while the UI thread rewrote it, so "10", "12" and "13" lost their second digit on
+  // the way to 14 (only "11" fits where one wide digit did). The count still runs on the UI thread; a text is drawn
+  // again only when its figure changes.
+  const [said, setSaid] = useState(() => written(first ? 0 : value));
+  useAnimatedReaction(
+    () => written(shown.value),
+    (now, before) => {
+      if (IOS && now !== before) runOnJS(setSaid)(now);
+    },
+  );
+  if (IOS)
+    return (
+      <Text accessibilityLabel={written(value)} style={style}>
+        {said}
+      </Text>
+    );
   return (
     <AnimatedInput
       // A read-only field keeps the text it started with: a new format (the language arriving after a tab was drawn
@@ -230,8 +235,8 @@ function risingSince(screen: string, shown: boolean): number | null {
 }
 
 /**
- * A screen's part rising into place on its first showing, `index` steps after the first (55 ms apart, on M3
- * Expressive's spring); just there with Remove animations, and the next time `screen` is drawn in this run. (A fade in
+ * A screen's part rising into place on its first showing, `index` steps after the first (`motion.stagger` apart, a
+ * `motion.nudge` up, on the default spatial spring); just there with Remove animations, and the next time `screen` is drawn in this run. (A fade in
  * its place was now and then left at nothing on the emulator with animations off: Kuliah drawn blank.) A part drawn a
  * moment after the rest (./parts.tsx: a tab's lower parts) still rises in the same stagger, its delay counted from the
  * screen's first part. A cold start's Beranda is just there as the splash goes, with nothing rising.
@@ -248,12 +253,20 @@ export function Rise({ screen, index, style, children }: { screen: string; index
   // Animated.View and its layout animation, one per card, were work the splash waited for, for a rise mostly behind it.
   // Chosen once, at mount: a part that turned into another kind of view would be drawn again whole.
   if (since === null) return <View style={style}>{children}</View>;
+  const delay = Math.max(0, 80 + index * motion.stagger - since);
+  // Fades in (medium, standard) while rising a nudge on the default spatial spring: the tokens every arrival moves on.
   const entering = still
     ? undefined
-    : FadeInDown.delay(Math.max(0, 80 + index * 55 - since))
-        .springify()
-        .damping(16)
-        .stiffness(170);
+    : () => {
+        "worklet";
+        return {
+          initialValues: { opacity: 0, transform: [{ translateY: motion.nudge }] },
+          animations: {
+            opacity: withDelay(delay, withTiming(1, { duration: motion.duration.medium, easing: STANDARD })),
+            transform: [{ translateY: withDelay(delay, withSpring(0, motion.spatialDefault)) }],
+          },
+        };
+      };
   return (
     <Animated.View entering={entering} style={style}>
       {children}

@@ -5,13 +5,17 @@
 // studi a screen of its own (/plan/<part>), a course's module a screen over the course.
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
-import type { Route } from "../../src/core/route";
+import type { Route } from "./route";
 
-export type { Route } from "../../src/core/route";
+export type { PhoneRoute, Route } from "./route";
 
 /** The path that shows `route`. */
 export function hrefOf(route: Route): string {
   switch (route.screen) {
+    case "material":
+      return "/material";
+    case "exams":
+      return "/exams";
     case "home":
       return "/";
     case "tasks":

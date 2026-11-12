@@ -3,6 +3,43 @@
 The memory of this build. Read it first when resuming; update it after every step.
 Branch: `mobile`. App: `mobile/` (Expo SDK 58, React Native 0.88, Expo Router, dev build).
 
+## The super-app pass (night of 10–11 Nov 2026)
+
+- **2026-11-11: the phone app takes the layout Indonesian students know, and gets its release checks.** Arqila's verdict on
+  round 2's app was "decent, but it still looks AI-made, especially the icons", and that it didn't follow Gojek, Grab and
+  GoPay. Built overnight in the demo and judged blind, round by round, by a designer, a student and a prosecutor.
+  - **What the Student sees now.** Five tabs, ending in Profil: Beranda, Jadwal, Tugas, Kuliah, Profil (Akademik is Profil's
+    rows and the service tiles; no avatar in any top bar). Beranda opens on a search bar, the class on now as the one block of
+    colour, one strip of three things to tap (what's due, absences, days to the exam) and eight service tiles, each its own
+    colour with a white glyph, the last "Lainnya", which opens Semua layanan (every service in three named groups). Materi
+    and Ujian are new views of data the app already read. One white page and flat lists in both themes; a course is its own
+    glyph in its colour; a course's absences are dots and one short label. One icon family, Fluent's, filled where the Student
+    is. The first minute is "two doors, one room" (`src/shell/first-minute/`). Seven Android widgets, two iPhone widgets and a
+    Live Activity from one model. Touch and change answer in the frame they land (`src/ui/moves.tsx`).
+  - **Where the numbers and verdicts live.** `mobile/qa/superapp-board.md`: `main`'s baseline, every council with its scores
+    and what kept it from the top, the journeys, the widgets, the first minute's rounds. The binding choices:
+    `mobile/qa/superapp-decisions.md`. Motion: `mobile/qa/superapp-motion.md`. iPhone widgets: `mobile/qa/superapp-ios-widgets.md`.
+    The rules the screens follow: `mobile/DESIGN.md`, which now says what the app is.
+  - **The release checks that code can tick** (no phone needed): `node mobile/qa/touch-read.mjs <dump>` (taps under 48 dp,
+    taps TalkBack can't name), `node mobile/qa/layout-read.mjs <dump>` (Beranda's four blocks, 14 taps, 50 words),
+    `node mobile/qa/contrast-read.mjs` (914 checks, both themes, 0 under; now with the class block and the tab bar's ink),
+    `test/mobile/no-english-left.test.ts` (every string in both languages, none left in English; the colour Plum is now
+    "Prem" in Indonesian). Each has a test of its own.
+  - **To check by hand.** The iPhone side: `mobile/IOS.md`, "What to check on an iPhone after the super-app pass".
+  - **Not done.** Nobody has run iOS since the layout changed: the tabs, Beranda's safe areas, the first minute, the
+    widgets and the Live Activity are checked by types and tests only. No screen reached 9 in every category for every
+    judge (see the board). `phosphor-react-native` is still in `package.json` though no screen draws it. The final numbers
+    on the release build are not in yet.
+    - On the Galaxy A52, the demo's release build beside `main` in the same minutes (06:35, the phone cool): cold start 1107 ms
+      against 1078 ms (median of 7; +2.7%; both read about 990 ms at 04:50, before the phone had worked for hours), tab switch
+      p50 66 / p90 80 / max 85 ms against 62 / 86 / 86, janky frames while scrolling Tugas 0.9%, Kuliah 0.3%, Jadwal 0.2%
+      against 1.2%, 0.1%, 0.5%. `layout-read` over Beranda's dump: every row passes (16 things to tap, 49 words, 8 tiles).
+      `touch-read` over all 15 screens' dumps: nothing unnamed; what it lists as under 48 dp is drawn smaller and carries
+      `hitSlop` to 48 (the reader doesn't see slop) or is cut by the screen's edge. `contrast-read`: 0 pairs under their least.
+    - The last full council (round 4, commit 91a8088b): the student and the prosecutor rank it first, the designer preferred
+      round 3 on the five tabs; scores 5–9 per screen; the six parts two judges preferred from round 3 were put back after it
+      and not judged. Motion on film strips: "unfinished". The first minute: 8–10% janky frames from the tap to the lift.
+
 ## Round 2 (started 2026-10-31)
 
 Round 1 passed its checks but Arqila found it not releasable: the desktop squeezed onto a phone, slow to

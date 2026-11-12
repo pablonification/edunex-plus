@@ -163,6 +163,10 @@ jobs:
             -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 200
           test "${PIPESTATUS[0]}" -eq 0
+      - name: Say the App Group inside the app
+        # Unsigned code carries no entitlements, and Sideloadly or AltStore sign with what the app carries: without
+        # this the widgets got no App Group on a sideloaded iPhone and stayed empty (scripts/ios-app-group.sh).
+        run: scripts/ios-app-group.sh "$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n 1)"
       - name: Pack the .ipa
         run: |
           version=$(node -p 'require("../package.json").version')

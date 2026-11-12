@@ -9,7 +9,7 @@
 // up in LINE on this phone instead of a QR code scanned with it.
 import * as Clipboard from "expo-clipboard";
 import { type ReactNode, useEffect, useState } from "react";
-import { ActivityIndicator, BackHandler, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { ActivityIndicator, BackHandler, KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
 import { errorKey } from "../../../../src/app/bridge";
 import { useFormat, useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useSettings, useStore } from "../../../../src/app/store";
@@ -21,11 +21,14 @@ import type { StringKey } from "../../../../src/core/strings";
 import { useNav } from "../../nav";
 import { BottomBar } from "../../parts/bottom-bar";
 import { type ReportAsk, useReportAsk } from "../../parts/report";
+import { Unfold } from "../../parts/unfold";
 import { toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
 import { Card, Skeleton } from "../../ui/display";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { Meta, Notice, Page } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { font, radius, space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
@@ -91,8 +94,11 @@ export function ReportScreen() {
     setNotSent(null);
     try {
       const answer = await bridge.invoke("report.send", { id: preview.id, note });
-      if (answer.result === "filed" || answer.result === "stored") setSent(answer);
-      else setNotSent(NOT_SENT[answer.result]);
+      if (answer.result === "filed" || answer.result === "stored") {
+        // Sent: felt, as every commit is.
+        haptic.confirm();
+        setSent(answer);
+      } else setNotSent(NOT_SENT[answer.result]);
     } catch (error) {
       setNotSent(errorKey(error, "report.sendFailed"));
     } finally {
@@ -273,7 +279,8 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
         </Text>
         {(report.problems.length > 0 || log.length > 0) && (
           <View style={[{ paddingHorizontal: space[2], paddingVertical: space[1.5] }, rule]}>
-            <Pressable
+            <Tap
+              feel="row"
               accessibilityRole="button"
               accessibilityState={{ expanded: technical }}
               onPress={() => setTechnical(!technical)}
@@ -287,9 +294,9 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
               <Text size="small" weight="semibold" tone="muted">
                 {t("report.details")}
               </Text>
-            </Pressable>
+            </Tap>
             {technical && (
-              <View style={{ gap: space[3], paddingHorizontal: space[2], paddingTop: space[1.5], paddingBottom: space[2] }}>
+              <Unfold style={{ gap: space[3], paddingHorizontal: space[2], paddingTop: space[1.5], paddingBottom: space[2] }}>
                 {report.problems.map((problem) => (
                   <View key={problem.feed} style={{ gap: space[2] }}>
                     {(problem.kind === "changed" ? [problem.check] : problem.rows.map((row) => row.why)).map((line) => (
@@ -329,7 +336,7 @@ function WhatsSent({ preview }: { preview: ReportPreview }) {
                     <Code>{log.map((entry) => `${f.time(entry.at)}  ${entry.level}  ${entry.area}  ${entry.message}`).join("\n")}</Code>
                   </View>
                 )}
-              </View>
+              </Unfold>
             )}
           </View>
         )}
@@ -389,14 +396,13 @@ function Way({
   const theme = useTheme();
   const c = theme.color;
   return (
-    <Pressable
+    <Tap
       testID={testID}
-      accessibilityRole="button"
+      feel="card"
       accessibilityLabel={`${label}. ${hint}`}
       accessibilityState={{ disabled, busy }}
       onPress={disabled ? undefined : onPress}
-      android_ripple={{ color: c.selected, foreground: true }}
-      style={({ pressed }) => ({
+      style={{
         flexDirection: "row",
         alignItems: "flex-start",
         gap: space[3.5],
@@ -408,8 +414,7 @@ function Way({
         overflow: "hidden",
         opacity: disabled && !busy ? 0.6 : 1,
         elevation: theme.scheme === "dark" ? 0 : 1,
-        transform: [{ scale: pressed && !disabled ? 0.99 : 1 }],
-      })}
+      }}
     >
       {/* The marks keep their own room: nothing touches them. */}
       <View style={{ width: 36, height: 36, alignItems: "center", justifyContent: "center" }}>
@@ -426,7 +431,7 @@ function Way({
       <View style={{ width: 32, height: 32, borderRadius: 16, alignSelf: "center", alignItems: "center", justifyContent: "center", backgroundColor: c.fill }}>
         <Icons.ArrowRight size={16} color={c.fg} weight="bold" />
       </View>
-    </Pressable>
+    </Tap>
   );
 }
 

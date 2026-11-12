@@ -4,16 +4,14 @@
 // surface, Back and their behaviour are TopBar's (../../ui/top-bar.tsx); only the title block is the Task's own.
 // TopBar could take this as `subtitle` + `lines`: say so to the lead rather than change the shared part here.
 import { useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useT } from "../../../../src/app/i18n";
-import { useNav } from "../../nav";
-import { IconButton } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
+import { Tap } from "../../ui/moves";
 import { slopY } from "../../ui/sizes";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
-import { BAR_HEIGHT, BarSurface } from "../../ui/top-bar";
+import { BAR_HEIGHT, BarBack, BarSurface } from "../../ui/top-bar";
 
 export function TaskBar({
   title,
@@ -28,8 +26,6 @@ export function TaskBar({
   crumbLabel: string;
   onCrumb: () => void;
 }) {
-  const t = useT();
-  const nav = useNav();
   const theme = useTheme();
   const v = theme.v4;
   const insets = useSafeAreaInsets();
@@ -38,11 +34,11 @@ export function TaskBar({
   return (
     <BarSurface v4>
       <View style={[styles.bar, { marginTop: insets.top }]}>
-        <IconButton label={t("action.back")} onPress={nav.back} testID="action.back">
-          <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
-        </IconButton>
+        {/* The app's one Back (a glass circle on iOS 26), as every other pushed screen's. */}
+        <BarBack />
         <View style={{ flex: 1, minWidth: 0, marginLeft: space[1], paddingRight: space[3], paddingVertical: space[2] }}>
-          <Pressable onPress={() => setWhole((was) => !was)} accessible={false}>
+          {/* 48 dp to tap with its slop (the course's link under it keeps its own). */}
+          <Tap feel="row" onPress={() => setWhole((was) => !was)} accessible={false} hitSlop={slopY(12)}>
             <Text
               face="display"
               weight="bold"
@@ -53,13 +49,22 @@ export function TaskBar({
             >
               {title}
             </Text>
-          </Pressable>
-          <Pressable accessibilityRole="link" accessibilityLabel={crumbLabel} onPress={onCrumb} hitSlop={slopY(16)} style={styles.crumb} testID="action.course">
+          </Tap>
+          <Tap
+            feel="row"
+            borderless
+            accessibilityRole="link"
+            accessibilityLabel={crumbLabel}
+            onPress={onCrumb}
+            hitSlop={slopY(16)}
+            style={styles.crumb}
+            testID="action.course"
+          >
             <Text size="bodySmall" numberOfLines={1} tabular style={{ flexShrink: 1, color: v.fg2 }}>
               {crumb}
             </Text>
             <Icons.ChevronRight size={14} color={v.muted} />
-          </Pressable>
+          </Tap>
         </View>
       </View>
     </BarSurface>

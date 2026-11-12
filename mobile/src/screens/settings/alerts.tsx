@@ -2,8 +2,10 @@
 // its name; when it fires is its spoken hint, not a line under every switch. An alert that needs SIX says so while SIX
 // is signed out. Under Tenggat (while it's on), the reminder times as one row with its value, picked in a sheet. Then
 // Kuliah sebentar lagi, a test notification (the row sends it; what happened is its one line) and, while there are
-// some, the reminders put off or marked handled (the row opens the way to bring them all back). A notice leads the
-// card while Android's permission for notifications is off.
+// some, the reminders put off or marked handled (the row opens the way to bring them all back).
+// While Android's permission for notifications is off, no switch here can make one show: the group says so once with
+// the shared notice (parts/notifications-off.tsx: one line, its own small button, the same on Notifikasi) in place
+// of the group's heading, and the switches are folded away until it's on, never half-on (round 1's council: "on, off or disabled can't be told").
 import { useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
@@ -49,12 +51,19 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
   const needsSix = sixOut ? t("mobile.settings.needsSix") : undefined;
   const setOn = (group: AlertGroup, on: boolean) =>
     update({ mutedAlerts: on ? settings.mutedAlerts.filter((g) => g !== group) : [...settings.mutedAlerts.filter((g) => g !== group), group] });
-  // While Android has notifications off, no switch here can make one show: they're greyed, their state kept, until the
-  // notice's button turns notifications on.
+  // While Android has notifications off, no switch here can make one show: they're folded away, their state kept,
+  // until the button turns notifications on. What doesn't need the permission (reminders put off) stays.
   const permission = useNotificationPermission();
   const off = permission.off;
+  if (off)
+    return (
+      // The heading names the group; the notice under it says only what's wrong ("Mati di HP ini"), so the word is said once.
+      <SettingsGroup title={t("settings.alerts")} lead={<NotificationsOff state={permission} />} testID="section.settings.alerts">
+        <SnoozedReminders report={report} />
+      </SettingsGroup>
+    );
   return (
-    <SettingsGroup title={t("settings.alerts")} lead={<NotificationsOff state={permission} />} testID="section.settings.alerts">
+    <SettingsGroup title={t("settings.alerts")} testID="section.settings.alerts">
       {ALERT_ROWS.flatMap(({ group, label, hint, six }) => {
         const on = !settings.mutedAlerts.includes(group);
         const row = (
@@ -65,13 +74,12 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
             meta={six ? needsSix : undefined}
             metaTone="amber"
             value={on}
-            disabled={off}
             onChange={(next) => setOn(group, next)}
             testID={`switch.alert.${group}`}
           />
         );
         // Tenggat's reminder times, while it's on.
-        return group === "deadline" && on && !off ? [row, <DueTimes key="dueTimes" settings={settings} update={update} />] : [row];
+        return group === "deadline" && on ? [row, <DueTimes key="dueTimes" settings={settings} update={update} />] : [row];
       })}
       <SwitchRow
         title={t("settings.alerts.classSoon")}
@@ -79,7 +87,6 @@ export function AlertSettings({ settings, update, report }: { settings: Settings
         meta={needsSix}
         metaTone="amber"
         value={settings.classSoonAlerts}
-        disabled={off}
         onChange={(classSoonAlerts) => update({ classSoonAlerts })}
         testID="switch.classSoon"
       />

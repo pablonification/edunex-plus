@@ -1,66 +1,88 @@
-// Beranda's top bar (round 2, v4; round 3): Edunex's blue under the status bar, the greeting as the screen's one title
-// ("Malam, Dimas", Plus Jakarta Sans), and the same three actions every tab ends with (Search, the bell, the avatar),
-// with the data's status under the greeting only when it says something to act on. The bar stays put as the page
-// scrolls (app/(tabs)/index.tsx passes it as the page's header); a band of the same blue starts the page, and the now
-// card overlaps its lower edge. A tap on the greeting opens the sources' sheet, as a tab's title does elsewhere.
-// A halftone (ui/halftone.tsx) lifts the bar's right side: strongest in the top-right corner, gone by the greeting and
-// by the bar's lower edge, so the band under it starts plain and nothing slides past a seam as the page scrolls.
-import { memo, useState } from "react";
-import { Pressable, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useLang, useNow, useT } from "../../../../src/app/i18n";
-import { firstName } from "../../../../src/app/names";
-import { useDataset } from "../../../../src/app/store";
-import { StatusLine, SyncPanel, TabActions, useSyncText } from "../../shell/source-status";
-import { Halftone } from "../../ui/halftone";
-import { Text } from "../../ui/text";
-import { space, TOUCH, useTheme } from "../../ui/theme";
-import { BAR_HEIGHT } from "../../ui/top-bar";
-import { partOfDay } from "./greeting";
+// Beranda's top (`home.search`): a real search bar, the first thing to tap on the page, with the app's mark before it
+// and the bell after it, all on one row and all one height (BAR_ITEM): the mark's tile, the bar's pill and the bell's
+// circle, the same gap between them, the page's margin at both ends. It stays put as the page scrolls (app/(tabs)/index.tsx passes it as the page's
+// header). The bar opens the app's search; the Student themself is the Profil tab, so no avatar here. The class on now
+// starts the page right under it (./index.tsx). The mark (`home.brand`) is where a home screen's brand goes, at the
+// row's start: the mark alone, drawn as vectors, said as "Edunex Plus" by a screen reader, and not a button (it has no
+// job).
 
-/** How far the now card reaches up into the blue band. */
-export const OVERLAP = 60;
-/** How wide the halftone reaches in from the right edge: about half a phone, so the greeting's start stays plain. */
-const TEXTURE_WIDTH = 208;
+import { router } from "expo-router";
+import { memo } from "react";
+import { useWindowDimensions, View } from "react-native";
+import { useT } from "../../../../src/app/i18n";
+import { BellButton } from "../../parts/b-header";
+import { useB } from "../../ui/b";
+import { BrandMark } from "../../ui/brand";
+import { Icons } from "../../ui/icons";
+import { useTopInset } from "../../ui/insets";
+import { PressScale } from "../../ui/press";
+import { Text } from "../../ui/text";
+import { space } from "../../ui/theme";
+import { hintRoom, hintSize, ROW } from "./header-hint";
+
+/**
+ * The row's one height: the mark, the search bar and the bell are three things of the same height on the same line,
+ * with the same gap between them and the page's margin at both ends (the developer's iPhone, 11 Nov: a 32 dp mark, a
+ * 48 dp bar and a bare 24 dp bell read as "uneven placement, inconsistent sizing"; at 44 dp each the row then read as
+ * "too big", so it is 38). Each is touched in 48 dp (hitSlop).
+ */
+export const BAR_ITEM = ROW.item;
+/** The search bar's height. */
+export const SEARCH_HEIGHT = BAR_ITEM;
+/** The mark's side. */
+export const MARK_SIZE = BAR_ITEM;
+/** What the 48 dp target adds above and under a thing of the row's height. */
+const REACH = { top: (48 - BAR_ITEM) / 2, bottom: (48 - BAR_ITEM) / 2, left: 0, right: 0 } as const;
 
 export const HomeBar = memo(function HomeBar() {
   const t = useT();
-  const lang = useLang();
-  const now = useNow();
-  const v = useTheme().v4;
-  const insets = useSafeAreaInsets();
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  const sync = useSyncText();
-  const [panel, setPanel] = useState(false);
-  const name = account?.name ?? student?.name;
-  const part = partOfDay(new Date(now).getHours(), lang);
-  const hello = name ? t(`mobile.home.hello.${part}`, { name: firstName(name) }) : t(`time.greeting.${part}`);
+  const b = useB();
+  const top = useTopInset();
+  const { width } = useWindowDimensions();
+  const hint = t("mobile.home.searchHint");
+  // What the row leaves the hint: the page's margins, the mark and the bell with their gaps, the bar's own sides,
+  // its magnifier and the gap after it.
+  const bar = hintRoom(width);
+  const size = hintSize(hint.length, bar.room);
   return (
-    <View style={{ backgroundColor: v.head, paddingTop: insets.top }} testID="home.header">
-      <Halftone width={TEXTURE_WIDTH} height={insets.top + BAR_HEIGHT} color={v.headDots} />
-      <View style={{ flexDirection: "row", alignItems: "center", minHeight: BAR_HEIGHT, paddingLeft: space[4], paddingRight: space[1] }}>
-        <Pressable
-          onPress={() => setPanel(true)}
-          accessibilityRole="button"
-          accessibilityLabel={`${hello}. ${t("sync.title")}: ${sync}`}
-          testID="action.syncStatus"
-          style={{ flex: 1, minWidth: 0, minHeight: TOUCH, justifyContent: "center" }}
-        >
-          <Text size="titleLarge" face="display" weight="bold" numberOfLines={1} accessibilityRole="header" style={{ color: v.onHead, letterSpacing: -0.3 }}>
-            {hello}
-          </Text>
-          <StatusLine color={v.onHead} />
-        </Pressable>
-        <TabActions color={v.onHead} dot={v.bellDot} />
-      </View>
-      <SyncPanel open={panel} onClose={() => setPanel(false)} />
+    <View
+      testID="home.header"
+      style={{
+        backgroundColor: b.page,
+        paddingTop: top + space[2],
+        paddingBottom: space[2],
+        paddingHorizontal: space[4],
+        flexDirection: "row",
+        alignItems: "center",
+        gap: ROW.gap,
+      }}
+    >
+      <BrandMark size={MARK_SIZE} label={t("mobile.appName")} testID="home.brand" />
+      <PressScale
+        onPress={() => router.push("/search")}
+        accessibilityRole="search"
+        accessibilityLabel={t("search.open")}
+        testID="home.search"
+        hitSlop={REACH}
+        style={{
+          flex: 1,
+          height: SEARCH_HEIGHT,
+          borderRadius: SEARCH_HEIGHT / 2,
+          backgroundColor: b.soft,
+          flexDirection: "row",
+          alignItems: "center",
+          gap: bar.gap,
+          paddingHorizontal: bar.side,
+        }}
+      >
+        <Icons.Search size={ROW.magnifier} color={b.fg2} />
+        {/* The hint whole on one line, at the largest size the bar's room holds (hintSize): its own line box, so it
+            sits on the magnifier's centre. (Shrinking it to fit set it low in the pill on an iPhone.) */}
+        <Text size="bodyLarge" numberOfLines={1} style={{ color: b.muted, flex: 1, fontSize: size, lineHeight: Math.round(size * 1.4) }}>
+          {hint}
+        </Text>
+      </PressScale>
+      <BellButton filled={BAR_ITEM} />
     </View>
   );
 });
-
-/** The blue the page starts with, under the bar: the now card overlaps its lower edge. Scrolls away under the bar. */
-export function HomeBand() {
-  const v = useTheme().v4;
-  return <View style={{ backgroundColor: v.head, height: OVERLAP + space[6] }} />;
-}

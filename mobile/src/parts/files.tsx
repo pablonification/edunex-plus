@@ -5,7 +5,6 @@
 // forward (round 2, W1: round 1 said it in a snackbar, or, for a file no app opened, nowhere). Every way goes through the bridge
 // ("files.download", "files.local", "files.open", "files.reveal"), as the desktop's does. A link
 // Edunex no longer honours is said the desktop viewer's way, with "Buka di Edunex" to its page.
-import { ShareNetworkIcon } from "phosphor-react-native/src/icons/ShareNetwork";
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
 import { ActionError } from "../../../src/app/bridge";
@@ -15,7 +14,8 @@ import { useBridge } from "../../../src/app/store";
 import type { TaskFile } from "../../../src/core/models";
 import { toast } from "../swaps/overlays";
 import { Button, IconButton } from "../ui/controls";
-import { Icons } from "../ui/icons";
+import { type TileTone, useToneTile } from "../ui/icon-tile";
+import { type IconProps, Icons } from "../ui/icons";
 import { iosPressed } from "../ui/press";
 import { Text } from "../ui/text";
 import { radius, shape, space, useTheme } from "../ui/theme";
@@ -140,8 +140,7 @@ export function FileRow({
         {here && (
           <View style={{ paddingRight: space[1] }}>
             <IconButton label={t("mobile.file.shareFor", { name: file.name })} onPress={share} testID={testID ? `${testID}.share` : undefined}>
-              {/* Android's share glyph; src/ui/icons has no "Share" yet. */}
-              <ShareNetworkIcon size={20} color={theme.color.onSurfaceVariant} />
+              <Icons.Share size={20} color={theme.color.onSurfaceVariant} />
             </IconButton>
           </View>
         )}
@@ -231,28 +230,40 @@ function problemText(t: ReturnType<typeof useT>, problem: FileProblem, name: str
   }
 }
 
-/** "PDF", "DOCX": the kind, on a quiet square; red only for a file that failed. */
+type Glyph = (props: IconProps) => ReactNode;
+
+/**
+ * A file's look by its extension, as phones' file apps colour them: PDF red, Word blue, slides amber, sheets green.
+ * One list for every place a file is drawn (a module's material, a Task's file, a file being handed in).
+ */
+export const FILE_KINDS: readonly [RegExp, Glyph, TileTone][] = [
+  [/^pdf$/, Icons.FilePdf, "red"],
+  [/^(docx?|odt|rtf)$/, Icons.FileText, "brand"],
+  [/^(pptx?|odp|key)$/, Icons.FileSlides, "amber"],
+  [/^csv$/, Icons.LayoutGrid, "ok"],
+  [/^(xlsx?|ods)$/, Icons.LayoutGrid, "ok"],
+  [/^(zip|rar|7z|tar|gz)$/, Icons.FolderDown, "neutral"],
+  [/^(png|jpe?g|gif|webp|svg|bmp|heic)$/, Icons.Image, "neutral"],
+  [/^(mp4|mov|mkv|avi|webm)$/, Icons.Video, "neutral"],
+  [/^(mp3|wav|m4a|ogg|aac)$/, Icons.FileAudio, "neutral"],
+];
+
+/** A file's kind as a bare glyph in its kind's colour (no letters on a pale square); a warning in red for one that failed. */
 export function FileBadge({ name, state }: { name: string; state?: "waiting" | "uploading" | "uploaded" | "failed" }) {
   const theme = useTheme();
   const c = theme.color;
-  const ext = /\.([a-z0-9]{1,4})$/i.exec(name)?.[1]?.toUpperCase() ?? "";
-  const failed = state === "failed";
+  const tone = useToneTile();
+  const ext = /\.([a-z0-9]{1,5})$/i.exec(name)?.[1]?.toLowerCase() ?? "";
+  const kind = FILE_KINDS.find(([pattern]) => pattern.test(ext));
+  const Kind = kind?.[1] ?? Icons.FileText;
   return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={[styles.badge, { backgroundColor: failed ? c.dangerBg : c.neutralBg }]}
-    >
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={styles.badge}>
       {state === "uploading" || state === "waiting" ? (
         <ActivityIndicator size="small" color={c.neutralFg} />
-      ) : failed ? (
-        <Icons.AlertTriangle size={14} color={c.dangerFg} />
-      ) : ext ? (
-        <Text size="micro" weight="bold" style={{ color: c.neutralFg, fontSize: 10 }}>
-          {ext}
-        </Text>
+      ) : state === "failed" ? (
+        <Icons.AlertTriangle size={24} color={c.dangerFg} />
       ) : (
-        <Icons.FileText size={14} color={c.neutralFg} />
+        <Kind size={24} color={tone(kind?.[2] ?? "neutral").ink} />
       )}
     </View>
   );

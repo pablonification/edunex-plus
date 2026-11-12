@@ -13,6 +13,7 @@ import { planOfflineFiles } from "../../../../src/core/course-materials";
 import { type SaveProgress, saveProgress } from "../../host/save-offline";
 import { toast } from "../../swaps/overlays";
 import { ProgressBar } from "../../ui/display";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import type { SheetChoice } from "../../ui/sheet";
 import { Text } from "../../ui/text";
@@ -48,7 +49,11 @@ export function useSaveOfflineChoice(page: CoursePage): SheetChoice | null {
       const result = await bridge.invoke("course.saveOffline", { code: course.code, pick: false });
       if (result.saved + result.kept + result.failed === 0) toast(t("offline.nothing"));
       else if (result.failed > 0) toast(t("offline.failed", { count: result.failed, action: t("offline.save") }), "danger");
-      else toast(t("offline.done", { count: result.saved, saved: result.saved, kept: result.kept }), "success");
+      else {
+        // Every file is on the phone: felt, as every commit is.
+        haptic.confirm();
+        toast(t("offline.done", { count: result.saved, saved: result.saved, kept: result.kept }), "success");
+      }
     } catch (error) {
       toast(t(errorKey(error)), "danger");
     } finally {

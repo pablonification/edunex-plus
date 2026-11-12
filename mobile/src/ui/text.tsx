@@ -2,7 +2,7 @@
 // `size` is a Material 3 style ("titleMedium", "bodyLarge", …) or one of the older names mapped onto
 // one; a tone names what the color means, never the color itself.
 import type { ReactNode } from "react";
-import { Text as NativeText, type TextProps, type TextStyle, useWindowDimensions } from "react-native";
+import { Text as NativeText, Platform, type TextProps, type TextStyle, useWindowDimensions } from "react-native";
 import { font, m3type, m3weight, type Palette, type, useTheme, weight } from "./theme";
 
 export type TextSize = keyof typeof type;
@@ -89,6 +89,16 @@ export function Text({ size = "body", tone = "fg", weight: w, tabular = false, f
  */
 export function useTextWidth(dp: number): number {
   return dp * Math.max(1, useWindowDimensions().fontScale);
+}
+
+/**
+ * A one-line text field's type: the scale's, without its line height on an iPhone. iOS sets what is typed at the foot
+ * of a line box taller than the font's own (the placeholder stays centred), so "hi" sat low in Search's pill beside a
+ * centred hint. Without the line height the field's line is the font's own, and iOS centres both. Android keeps it.
+ */
+export function fieldType(size: keyof typeof type) {
+  const { lineHeight, ...rest } = type[size];
+  return Platform.OS === "ios" ? rest : { ...rest, lineHeight };
 }
 
 /** A text field's cursor, selection and handles in the app's blue (Android's default is its own teal): spread on every TextInput. */

@@ -24,4 +24,23 @@ function toggle(on: boolean): void {
   else void Haptics.performAndroidHapticsAsync(on ? Haptics.AndroidHaptics.Toggle_On : Haptics.AndroidHaptics.Toggle_Off).catch(quiet);
 }
 
-export const haptic = { tick, confirm, toggle };
+let heldAt = 0;
+
+/**
+ * A long press that runs (a menu, a pick-up). iOS: a medium tap. One long press buzzes once: the press part and the
+ * screen it sits on may both call this for the same hold, so a second call inside half a second stays still.
+ */
+function hold(): void {
+  const now = Date.now();
+  if (now - heldAt < 500) return;
+  heldAt = now;
+  if (ios) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(quiet);
+  else void Haptics.performAndroidHapticsAsync(Haptics.AndroidHaptics.Long_Press).catch(quiet);
+}
+
+/** An earned moment: a hand-in, presence marked (ui/celebrate.tsx). The phone's own success pattern on both. */
+function success(): void {
+  void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(quiet);
+}
+
+export const haptic = { tick, confirm, toggle, hold, success };

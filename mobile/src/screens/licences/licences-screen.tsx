@@ -17,8 +17,8 @@ import { Icons } from "../../ui/icons";
 import { useBottomInset } from "../../ui/insets";
 import { factsLabel, Notice } from "../../ui/layout";
 import { Sheet } from "../../ui/sheet";
-import { Text, useFieldColors } from "../../ui/text";
-import { space, type, useTheme } from "../../ui/theme";
+import { fieldType, Text, useFieldColors } from "../../ui/text";
+import { space, useTheme } from "../../ui/theme";
 import { TopBar } from "../../ui/top-bar";
 import { loadLicences } from "./load";
 
@@ -82,7 +82,7 @@ export function LicencesScreen() {
             autoCorrect={false}
             autoCapitalize="none"
             returnKeyType="search"
-            style={{ flex: 1, color: v.fg, ...type.body, paddingVertical: 0 }}
+            style={{ flex: 1, color: v.fg, ...fieldType("body"), paddingVertical: 0 }}
           />
           {searching && list && (
             <Text size="bodyMedium" tabular accessibilityLiveRegion="polite" style={{ color: v.muted }}>

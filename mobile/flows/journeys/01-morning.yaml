@@ -1,0 +1,52 @@
+# Journey 1, morning: "what's my day, what's due, am I safe", answered by Beranda's first screen.
+# limit: 0
+# The three blocks below the search bar are on screen at once, no scrolling, on a 1080x2400 phone at font size 1.1.
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 1 morning: Beranda answers with 0 taps"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 30000
+# 0 taps: the first screen, in order (decisions: "Beranda, the first screen").
+- assertVisible:
+    id: home.search
+# What's my day: the class on now, in its course's colour, by its course's name.
+- assertVisible:
+    id: home.now
+- assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
+# What's due, and am I safe: the strip. Tasks and the next exam are always there in the demo's October; the absences
+# tile is only drawn when it has something to say ("a tile with nothing to say is gone").
+- assertVisible:
+    id: home.strip
+- assertVisible:
+    id: action.strip.tasks
+- assertVisible:
+    id: action.strip.exam
+# The grid: the weekly things are one tap away.
+- assertVisible:
+    id: home.grid
+- assertVisible:
+    id: action.service.material
+- assertVisible:
+    id: action.service.grades
+# The tab bar is still there under it: nothing was pushed off the first screen.
+- assertVisible:
+    id: tab.home
+- assertVisible:
+    id: tab.profile
+# No avatar in the bar (it moved to Profil).
+- assertNotVisible:
+    id: action.account
+# goal
+- takeScreenshot: journey-1-morning

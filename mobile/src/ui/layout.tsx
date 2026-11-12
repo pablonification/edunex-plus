@@ -32,10 +32,11 @@ import {
 } from "react-native";
 import { useSafeAreaFrame } from "react-native-safe-area-context";
 import { Icons } from "./icons";
-import { reportTabsBottom, useBottomInset, useInTabs } from "./insets";
+import { reportTabsBottom, useInTabs, usePageEnd } from "./insets";
 import { iosPressed } from "./press";
+import { useScrollAsked } from "./scroll-top";
 import { Text } from "./text";
-import { radius, shape, space, useTheme } from "./theme";
+import { radius, space, useTheme } from "./theme";
 
 /**
  * How far the page under a top bar has scrolled, followed on the UI thread (no JS work while scrolling): the bar takes
@@ -90,11 +91,13 @@ export function usePageColor(): string | null {
 /**
  * A screen: scrolls, with the page's sides, and pulls to refresh when `onRefresh` is given ("Perbarui
  * sekarang"). Its `header` (a top bar) stays on top and takes a tone when the page scrolls under it. Its end keeps
- * clear of the tabs, or of the phone's own navigation bar: over the tabs, where the page runs to the screen's foot
- * (edge to edge), the scrolling stops at the top of the phone's bar and a strip of the page's colour lies under the
- * bar, so nothing ever sits under three-button navigation's Back, Home and Recents, scrolled or not (round 3, the
- * real phone: a toggle under Back, a chart's legend and the last row hidden). A page with a bar of its own under it
- * (Kumpulkan's, ../parts/bottom-bar.tsx) ends above that bar, and the bar keeps clear of the phone's.
+ * clear of what's drawn at the screen's foot, the same way on every screen (./page-end.ts): on an iPhone the page runs
+ * to the screen's edge under the tab bar or the home indicator, and its last row ends clear of it; on Android a tab
+ * ends above the tabs, and over the tabs the scrolling stops at the top of three-button navigation's bar with a strip
+ * of the page's colour under it, so nothing ever sits under Back, Home and Recents, scrolled or not (round 3, the real
+ * phone: a toggle under Back, a chart's legend and the last row hidden), while gesture navigation's handle is drawn
+ * over the page as the iPhone's is. A page with a bar of its own under it (Kumpulkan's, ../parts/bottom-bar.tsx) ends
+ * above that bar, and the bar keeps clear of the phone's.
  */
 export function Page({
   children,
@@ -120,14 +123,13 @@ export function Page({
   background?: string;
 } & Omit<ScrollViewProps, "children" | "refreshControl">) {
   const theme = useTheme();
-  const bottom = useBottomInset();
   const inTabs = useInTabs();
   const frame = useRef<ComponentRef<typeof View>>(null);
   // Whether the page reaches the screen's foot, under the phone's bar (as it does unless a bar of the screen's own
   // follows it, or the keyboard is up): measured, so it holds whatever sits under the page.
   const screen = useSafeAreaFrame();
   const [toFoot, setToFoot] = useState(true);
-  const strip = !inTabs && toFoot ? bottom : 0;
+  const end = usePageEnd(toFoot);
   const offset = useRef(new Animated.Value(0)).current;
   // The offset goes to the UI thread; a screen's own onScroll (if it has one) still hears each event.
   const scrolled = useMemo(
@@ -137,6 +139,8 @@ export function Page({
   // A tap on the tab already open scrolls its page back to the top, as Android apps do.
   const own = useRef<ComponentRef<typeof ScrollView>>(null);
   useScrollToTop(own as RefObject<ComponentRef<typeof ScrollView>>);
+  // And when the guide asks (./scroll-top.ts): at once, so what it points at can be measured next.
+  useScrollAsked((y) => own.current?.scrollTo({ y, animated: false }));
   const ref = useCallback(
     (view: ComponentRef<typeof ScrollView> | null) => {
       own.current = view;
@@ -150,11 +154,12 @@ export function Page({
       ref={frame}
       style={{ flex: 1, backgroundColor: background ?? theme.color.surface }}
       testID={testID}
-      // A tab's page ends where the tabs' bar starts: the snackbar sits just above it (ui/toasts.tsx). Over the tabs: does
-      // the page run under the phone's bar.
+      // A tab's page reports where the tabs' bar starts (its own foot on Android, the bar's room above it on an iPhone, where
+      // the page runs under the bar): the snackbar sits just above it (ui/toasts.tsx). Over the tabs: does the page run
+      // under the phone's bar.
       onLayout={() =>
         frame.current?.measureInWindow((_x, y, _width, height) => {
-          if (inTabs) reportTabsBottom(y + height);
+          if (inTabs) reportTabsBottom(y + height - end.room);
           else setToFoot(y + height >= screen.height - 1);
         })
       }
@@ -166,10 +171,10 @@ export function Page({
         ref={ref as never}
         onScroll={scrolled}
         scrollEventThrottle={16}
-        style={strip ? { marginBottom: strip } : undefined}
-        // Without the strip (a bar under the page, the keyboard up), the end still leaves the phone's bar's room, as
-        // before: a few dp to spare beside a bar of the screen's own, never a last row under the phone's buttons.
-        contentContainerStyle={[styles.page, strip ? null : { paddingBottom: space[10] + bottom }, contentStyle]}
+        style={end.strip ? { marginBottom: end.strip } : undefined}
+        // Without the strip, the end leaves the room of what's drawn over the page (the home indicator, an iPhone's tab
+        // bar); with a bar of the screen's own under it or the keyboard up, the phone's bar's room still, as before.
+        contentContainerStyle={[styles.page, { paddingBottom: space[10] + end.room }, contentStyle]}
         refreshControl={
           onRefresh ? (
             <RefreshControl
@@ -302,16 +307,17 @@ export function Section({
 }
 
 /**
- * Rows that belong together: one group of tonal tiles a hair apart, round at the group's ends (Android 16's
- * grouped lists). No borders: tone separates the group from the page.
+ * Rows that belong together: flat on the page, an inset hairline between them, the same in light and dark. No tile,
+ * no box around the list: a card is drawn only where one thing leads (mobile/DESIGN.md, "Surfaces").
  */
 export function List({ children, style, testID }: { children: ReactNode; style?: ViewStyle; testID?: string }) {
-  const theme = useTheme();
+  const line = useTheme().v4.line;
   const rows = Children.toArray(children).filter(Boolean);
   return (
-    <View testID={testID} style={[styles.list, style]}>
+    <View testID={testID} style={style}>
       {rows.map((row, i) => (
-        <View key={isValidElement(row) && row.key !== null ? row.key : i} style={[styles.tile, { backgroundColor: theme.color.surfaceContainerLow }]}>
+        <View key={isValidElement(row) && row.key !== null ? row.key : i}>
+          {i > 0 && <View style={[styles.hairline, { backgroundColor: line }]} />}
           {row}
         </View>
       ))}
@@ -640,25 +646,14 @@ export function Stat({
 }
 
 /**
- * One tile of a `List` drawn row by row, for a virtualized list (FlashList) that can't wrap its rows in a `List`: the
- * same tonal tile, round at the group's ends (`first`, `last`), 2 dp from the tile above it.
+ * One row of a `List` drawn row by row, for a virtualized list (FlashList) that can't wrap its rows in a `List`: flat
+ * on the page, an inset hairline over every row but the `first`. (`last` is kept for its callers; nothing rounds now.)
  */
-export function GroupTile({ first, last, children }: { first: boolean; last: boolean; children: ReactNode }) {
-  const theme = useTheme();
-  const end = shape.lgPlus;
-  const inner = shape.xs;
+export function GroupTile({ first, children }: { first: boolean; last: boolean; children: ReactNode }) {
+  const line = useTheme().v4.line;
   return (
-    <View
-      style={{
-        marginTop: first ? 0 : 2,
-        overflow: "hidden",
-        backgroundColor: theme.color.surfaceContainerLow,
-        borderTopLeftRadius: first ? end : inner,
-        borderTopRightRadius: first ? end : inner,
-        borderBottomLeftRadius: last ? end : inner,
-        borderBottomRightRadius: last ? end : inner,
-      }}
-    >
+    <View>
+      {!first && <View style={[styles.hairline, { backgroundColor: line }]} />}
       {children}
     </View>
   );
@@ -672,8 +667,7 @@ export function Gap({ size = 4 }: { size?: keyof typeof space }) {
 const styles = StyleSheet.create({
   page: { paddingHorizontal: space.page, paddingTop: space[4], paddingBottom: space[10] },
   sectionHead: { marginBottom: space[3], flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", gap: space[4] },
-  list: { borderRadius: shape.lgPlus, overflow: "hidden", gap: 2 },
-  tile: { borderRadius: shape.xs },
+  hairline: { height: 1, marginLeft: space[4] },
   row: { flexDirection: "row", alignItems: "center", gap: space[4], paddingLeft: space[4], paddingVertical: space[3], minHeight: 56 },
   notice: { flexDirection: "row", alignItems: "flex-start", gap: space[3], borderRadius: radius.xl, paddingHorizontal: space[4], paddingVertical: space[3] },
 });

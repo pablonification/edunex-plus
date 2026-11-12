@@ -13,7 +13,7 @@ import { type Translate, useFormat, useNow, useT } from "../../../../src/app/i18
 import { useExamIds } from "../../../../src/app/schedule-data";
 import { useDataset } from "../../../../src/app/store";
 import { type AttendanceHealth, percent } from "../../../../src/core/attendance";
-import { checkingIn } from "../../../../src/core/check-in";
+import { CHECK_IN_LATE, checkingIn } from "../../../../src/core/check-in";
 import { sixTimetableUrl } from "../../../../src/core/links";
 import type { NowCard } from "../../../../src/core/needs";
 import { type Route, useNav } from "../../nav";
@@ -26,6 +26,7 @@ import { Sheet } from "../../ui/sheet";
 import { Text, type TextTone } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
+import { clashAnswer } from "../presence/logic";
 import { useCheckIn } from "./checked-in";
 import { type MovedLine, movedLine } from "./moved-line";
 import { MINUTE, nameOf, STATE_TEXT, shortName } from "./parts";
@@ -79,6 +80,9 @@ function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly 
   const moved = facts?.moved ?? null;
   const usual = moved && moved.usualStart !== null && moved.usualEnd !== null ? f.timeRange(moved.usualStart, moved.usualEnd) : null;
   const overlap = facts?.overlap ?? null;
+  // A clash's answer, one tap from its row on Beranda: which of the two to go to, in Kuliah's words (its `clashAnswer`).
+  const otherHealth = useCourseHealth(overlap?.code ?? null);
+  const pick = overlap && facts?.health && otherHealth ? clashAnswer(t, facts.health, otherHealth, (c) => shortName(nameOf(courses, c))) : null;
   // A class that's over: what SIX's count did after it, when the app saw (the desktop's Hari ini says it on its row).
   const result = past && session ? attendance?.results[session.id]?.result : undefined;
   // Its one status, as a chip: SIX's verdict on a class that's over, else a clash, else moved, else on now, else not on
@@ -144,6 +148,11 @@ function Details({ card, courses, onLeave }: { card: NowCard; courses: readonly 
             {timeMeta && (
               <Text size="bodyMedium" tone="muted" tabular>
                 {timeMeta}
+              </Text>
+            )}
+            {pick && (
+              <Text size="bodyMedium" style={{ color: v.fg2, marginTop: 2 }} testID="sheet.class.clashPick">
+                {pick}
               </Text>
             )}
           </Fact>
@@ -306,7 +315,9 @@ export type CardAction = "checkIn" | "presence" | "join" | null;
 
 export function cardAction(card: NowCard, now: number, checkInOpen: boolean): CardAction {
   const { slot, link } = cardSubject(card);
-  if (checkInOpen) return "checkIn";
+  // Both open: the one that closes first leads, and the other follows once it's done (the decisions, "Presence").
+  const session = card.class?.session;
+  if (checkInOpen && !(card.presence && session && card.presence.session.closesAt < session.end + CHECK_IN_LATE)) return "checkIn";
   if (card.presence) return "presence";
   if (link && card.state !== "later" && (card.state === "live" || (slot !== null && slot.start - now < 15 * MINUTE))) return "join";
   return null;
@@ -337,7 +348,8 @@ function Actions({ card, courses, onLeave }: { card: NowCard; courses: readonly 
   const target: Route | null = examId
     ? { screen: "exam", examId }
     : course?.edunex
-      ? { screen: "course", code, tab: "meetings" }
+      ? // The course's Modul tab: this week's material is what the Student opens a course for from a class.
+        { screen: "course", code, tab: "modules" }
       : course
         ? { screen: "presence" }
         : null;

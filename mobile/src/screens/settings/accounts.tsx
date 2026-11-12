@@ -1,75 +1,30 @@
-// Settings' top: who's signed in (a white card: the initials, the name in Plus Jakarta Sans a step under the page's
-// title, the NIM and the program as one quiet line), then Akun: each system's row (a line icon in a tile, as every
-// row's) with its state as the one line under it: "Terhubung" in green, no dot (round 3's final review: the dot and the
+// Settings' top, Akun (who's signed in is Profil's card, the screen this one is opened from): each system's row, its
+// name and its state as the one line under it: "Terhubung" in green, no dot (round 3's final review: the dot and the
 // word said it twice); when it was last checked only once that's stale. Signed out (or the session ended), the row signs
-// in; signed in, it opens a sheet whose one choice signs out of just that system. What the first read found is the
-// group's last row, "Ringkasan awal".
-import { router } from "expo-router";
+// in; signed in, it opens a sheet whose one choice signs out of just that system. Each row's text starts at the page's
+// one edge, as every other row of Settings (round 3's council: "two left edges, icon rows and plain rows"); its
+// system's own mark (Icons.Edunex, Icons.Six: the same two as on Profil) sits quiet at the row's end, before the chevron.
 import { useState } from "react";
 import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
-import { displayName, initials } from "../../../../src/app/names";
-import { useBridge, useDataset, useStatus } from "../../../../src/app/store";
+import { useBridge, useStatus } from "../../../../src/app/store";
 import type { SourceId } from "../../../../src/core/models";
 import { useSignInNote } from "../../shell/source-status";
-import { IconTile, Panel, Pill } from "../../ui/group";
+import { Pill } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
 import { Chevron, haptic, type MetaTone, SettingRow, SettingsGroup } from "../../ui/settings-list";
 import { ActionSheet } from "../../ui/sheet";
-import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import type { Report } from "./save";
 
-/** Who's signed in: the initials, the name, the NIM and the program (Edunex's account, else SIX's). */
-export function Profile() {
-  const v = useTheme().v4;
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  const name = account?.name ?? student?.name;
-  if (!name) return null;
-  const facts = factsLabel(account?.nim ?? student?.nim, student?.program);
-  return (
-    <Panel testID="card.profile" style={{ flexDirection: "row", alignItems: "center", gap: space[4], padding: space[4], marginTop: space[2] }}>
-      <View
-        style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: v.brandTint, alignItems: "center", justifyContent: "center" }}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Text size="titleLarge" face="display" weight="bold" style={{ color: v.brandInk }}>
-          {initials(name)}
-        </Text>
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }} accessible accessibilityLabel={factsLabel(displayName(name), facts)}>
-        <Text size="titleMedium" face="display" weight="bold" numberOfLines={2} style={{ color: v.fg, letterSpacing: -0.2 }}>
-          {displayName(name)}
-        </Text>
-        {facts ? (
-          <Text size="bodyMedium" style={{ color: v.muted, marginTop: 2 }}>
-            {facts}
-          </Text>
-        ) : null}
-      </View>
-    </Panel>
-  );
-}
-
-/** Akun: Edunex, SIX, and the first-connection summary. */
+/** Akun: Edunex and SIX. The page's first group, right under its title. */
 export function Accounts({ report }: { report: Report }) {
   const t = useT();
   return (
-    <SettingsGroup title={t("settings.accounts")}>
+    <SettingsGroup title={t("settings.accounts")} first>
       <AccountRow source="edunex" report={report} />
       <AccountRow source="six" report={report} />
-      <SettingRow
-        leading={<IconTile icon={(color) => <Icons.Zap size={22} color={color} />} />}
-        title={t("settings.firstScan")}
-        onPress={() => router.push("/first-scan")}
-        label={`${t("settings.firstScan.show")}: ${t("settings.firstScan")}`}
-        hint={t("settings.firstScan.hint")}
-        trailing={<Chevron />}
-        testID="action.firstScan"
-      />
     </SettingsGroup>
   );
 }
@@ -113,9 +68,6 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
   return (
     <View testID={`row.account.${source}`}>
       <SettingRow
-        leading={
-          <IconTile icon={(color) => (source === "six" ? <Icons.GraduationCap size={22} color={color} /> : <Icons.BookOpen size={22} color={color} />)} />
-        }
         title={name}
         // Connected: the word alone in green; a dot beside it said the same thing twice (round 3's final review).
         meta={state.text}
@@ -126,7 +78,16 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
         // A session that ended: signing in again is all it takes, and the last data stays readable meanwhile.
         hint={needsSignIn ? (status.state === "expired" ? t("settings.accounts.note") : undefined) : t("settings.signOutOf", { source: name })}
         onPress={() => (needsSignIn ? void run("auth.signIn") : setMenu(true))}
-        trailing={needsSignIn ? <Pill tone="brand">{t(status.state === "expired" ? "action.signInAgain" : "action.signIn")}</Pill> : <Chevron />}
+        trailing={
+          needsSignIn ? (
+            <Pill tone="brand">{t(status.state === "expired" ? "action.signInAgain" : "action.signIn")}</Pill>
+          ) : (
+            <View style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
+              <SourceMark source={source} />
+              <Chevron />
+            </View>
+          )
+        }
         testID={needsSignIn ? `action.signIn.${source}` : `action.account.${source}`}
       />
       <ActionSheet
@@ -149,6 +110,13 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
       />
     </View>
   );
+}
+
+/** The system's mark at its row's end: the glyph alone in the page's quiet ink. */
+function SourceMark({ source }: { source: SourceId }) {
+  const v = useTheme().v4;
+  const Glyph = source === "six" ? Icons.Six : Icons.Edunex;
+  return <Glyph size={24} color={v.muted} />;
 }
 
 function SignOutIcon() {

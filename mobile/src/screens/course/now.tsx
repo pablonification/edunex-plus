@@ -1,13 +1,15 @@
-// What's on now or next in the course, above its tabs (round 2, v4; src/app/screens/course.tsx's MeetingNow). While a
-// class is on or an Edunex Presence window is open, a white card as Beranda's now card: "Sekarang · room" with the
-// breathing dot, what the class is, Material 3 Expressive's wave for the time gone by and the minutes left in big
-// figures, and one big button for the thing to do (Tandai Hadir while SIX shows it, then "Sudah ke SIX" in green;
-// Edunex's Presence where it counts; joining an online class). Whether the Presence counts is a chip, not a sentence.
-// Its kicker and its facts each one line (judge round 3). Otherwise, quiet rows in one white card: windows still open
-// from earlier classes, the next meeting, a class SIX shows that the app couldn't read.
+// What's on now or next in the course, above its tabs (src/app/screens/course.tsx's MeetingNow). While a class is on or
+// an Edunex Presence window is open: the same block as Beranda's (../home/banner.tsx), in the course's colour, said
+// once each: "Sekarang · room" with the breathing dot, what the class is, one plain bar with the one time that matters
+// at its end ("tutup 09:30" while the Presence is the thing to do, else "selesai 10:00"), and one white button (the
+// kit's presence button: "Isi Presensi" for Edunex, "Tandai Hadir" for SIX, the one closing first when both are open,
+// the other once that one is done; else joining an online class). No second countdown, no second button. Otherwise,
+// quiet rows flat on the page: windows still open from earlier classes, the next meeting, a class SIX shows that the
+// app couldn't read.
 import { type ReactNode, useEffect } from "react";
 import { View } from "react-native";
 import { useAttendance } from "../../../../src/app/attendance";
+import { useCourseColor } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
@@ -19,29 +21,17 @@ import { edunexCourseUrl, sixTimetableUrl } from "../../../../src/core/links";
 import type { PresenceSession } from "../../../../src/core/models";
 import { dayNoon } from "../../../../src/core/schedule";
 import { OpenSixTimetable } from "../../parts/six-page-note";
-import { BigButton } from "../../ui/big-button";
-import { CookieCheck, CountUp, PulseDot, Rise, WavyProgress } from "../../ui/expressive";
+import { PulseDot, Rise } from "../../ui/expressive";
 import { haptic } from "../../ui/haptics";
-import { IconTile } from "../../ui/icon-tile";
 import { Icons } from "../../ui/icons";
+import { PlainBar, PresenceButton } from "../../ui/kit";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
-import { useCourseTile } from "../../ui/tile";
-import { CardGroup, StatusChip, TileRow } from "../../ui/v4-list";
+import { space, THEMES, useTheme } from "../../ui/theme";
+import { StatusChip, TileRow } from "../../ui/v4-list";
 import { useCheckIn, useWentToCheckIn } from "../home/checked-in";
-import { useCardStyle } from "../home/now";
 import { shortName } from "../home/parts";
+import { FlatRows } from "./flat";
 import { meetingModuleTitle, meetingTitle, pageModules } from "./meetings";
-
-const MINUTE = 60_000;
-
-/** Minutes until `at`, and their unit: minutes up to two hours, then hours, then days (as Beranda's card counts). */
-function countdown(from: number, at: number): { value: number; unit: "minute" | "hour" | "day" } {
-  const minutes = Math.max(0, Math.ceil((at - from) / MINUTE));
-  if (minutes < 120) return { value: minutes, unit: "minute" };
-  if (minutes < 48 * 60) return { value: Math.floor(minutes / 60), unit: "hour" };
-  return { value: Math.floor(minutes / (24 * 60)), unit: "day" };
-}
 
 /**
  * What the part above the tabs shows: the class on now (or the window open, with its class), the next meeting, and the
@@ -57,6 +47,16 @@ function nowAndNext(page: CoursePage, now: number) {
   const meeting = current ?? (presence ? meetingOf(presence) : null);
   const next = pinned && !pinned.current && pinned.meeting !== meeting ? pinned.meeting : null;
   return { windows, current, presence, meeting, next, meetingOf };
+}
+
+/**
+ * The module the block above the tabs names as its title (the class on now, or the open window's class), when it shows
+ * one. Materi doesn't lead with that module again: one fact, one place.
+ */
+export function moduleSaidAbove(page: CoursePage, now: number): number | null {
+  const { current, presence, meeting } = nowAndNext(page, now);
+  if ((!current && !presence) || !meeting) return null;
+  return pageModules(page).get(meeting.key)?.module.id ?? null;
 }
 
 /** The keys of the meetings the part above the tabs shows (the class on now, the next one, a window still open). */
@@ -93,9 +93,9 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
           key={`p${p.id}`}
           first={first}
           leading={
-            <IconTile tint={v.chip}>
+            <Bare>
               <Icons.Hand size={20} color={v.muted} />
-            </IconTile>
+            </Bare>
           }
           title={t("course.presenceStillOpen")}
           meta={`${when} · ${t("mobile.course.presenceCloses", { time: f.dayTime(p.closesAt) })}`}
@@ -125,9 +125,9 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
         key="next"
         first={first}
         leading={
-          <IconTile tint={v.chip}>
+          <Bare>
             <Icons.CalendarClock size={20} color={v.muted} />
-          </IconTile>
+          </Bare>
         }
         title={t("course.next")}
         // The room reads as one with a pin before it ("9134" alone read as a number); the clash, when there is one, under.
@@ -186,15 +186,15 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
         key="unread"
         first={first}
         leading={
-          <IconTile tint={v.chip}>
+          <Bare>
             <Icons.Info size={20} color={v.muted} />
-          </IconTile>
+          </Bare>
         }
         title={t("home.now.unread", { day: f.relativeDay(dayNoon(unreadDay)) })}
         status={<OpenSixTimetable day={unreadDay} />}
       />
     ));
-  const quiet = rows.length ? <CardGroup style={{ marginTop: space[3] }}>{rows.map((row, i) => row(i === 0))}</CardGroup> : null;
+  const quiet = rows.length ? <FlatRows style={{ marginTop: space[3] }}>{rows.map((row, i) => row(i === 0))}</FlatRows> : null;
   const countedIn = mine?.health.countedIn;
   if (!current && !presence)
     return quiet ? (
@@ -204,10 +204,15 @@ export function MeetingNow({ page, rise }: { page: CoursePage; rise: string }) {
     ) : null;
   return (
     <Rise screen={rise} index={2}>
-      <NowCard page={page} meeting={meeting} presence={presence} current={current !== null} countedIn={countedIn} modules={modules} />
+      <NowBlock page={page} meeting={meeting} presence={presence} current={current !== null} countedIn={countedIn} modules={modules} />
       {quiet}
     </Rise>
   );
+}
+
+/** A quiet row's icon, bare on the page (no pale square behind it), in the row's leading slot. */
+function Bare({ children }: { children: ReactNode }) {
+  return <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>{children}</View>;
 }
 
 /** Edunex's open Presence for the course where nobody can say it counts (signed out of SIX): ⋮ offers it, the card may not. */
@@ -221,7 +226,11 @@ export function useRecordInEdunexUrl(page: CoursePage): string | null {
   return window.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
 }
 
-function NowCard({
+/**
+ * The class on now (or the window open), the block: Beranda's, in the course's colour, white on it in both themes.
+ * Keep it in step with ../home/banner.tsx (the same radius, padding, type, bar and button).
+ */
+function NowBlock({
   page,
   meeting,
   presence,
@@ -240,23 +249,24 @@ function NowCard({
   const f = useFormat();
   const now = useNow();
   const v = useTheme().v4;
-  const surface = useCardStyle();
+  const tone = useCourseColor();
   const open = useOpenExternal();
   const checkIn = useCheckIn();
   const live = useStatus("edunex").state === "live";
   const student = useDataset("six.student");
   const checkIns = useDataset("six.checkIn");
-  const { ink, tint } = useCourseTile()(page.course.code);
   const code = page.course.code;
+  // The course's deep colour in both themes, white on it: the block reads the same by day and by night.
+  const fill = THEMES.light.courseTile(tone(code)).ink;
+  const on = v.onHead;
   const start = meeting?.start ?? presence!.start;
   const end = meeting?.end ?? presence!.end;
   const link = meeting && meeting.end > now ? (meeting.announced?.link ?? null) : null;
   const upcoming = meeting !== null && meeting.start > now;
   const url = presence?.url ?? (page.course.edunex ? edunexCourseUrl(page.course.edunex.courseId) : null);
-  // Edunex's window is the thing to do, never "optional": no system says whether the lecturer uses it. Without SIX
-  // it's said calmly (nobody can say; it's worth doing just in case).
+  // Without SIX nobody can say Edunex's window counts: it's still there to fill in, said calmly on the block.
   const presenceCounts = countedIn !== "noSix";
-  // A class SIX counts, on now: SIX's Tandai Hadir is the thing to do, as on Beranda (the app never presses it).
+  // A class SIX counts, on now, with SIX showing Tandai Hadir (as the app last read it; the app never presses it).
   const sixSession = current && meeting && (countedIn === "six" || countedIn === "both") && meeting.six && student ? meeting.six : null;
   const sixState = sixSession ? (checkIns?.[sixSession.id]?.state ?? "waiting") : null;
   const went = useWentToCheckIn(sixSession?.id ?? null);
@@ -265,12 +275,16 @@ function NowCard({
     if (done !== null) haptic.confirm();
   }, [done]);
 
-  // What the card leads with: on now (and where), next (when), or a window alone (the class it's for).
+  // One main button: the presence that's open; with both open, the one closing first (SIX's goes with the class); when
+  // that one is done (Edunex records it, SIX's button goes), the other; with neither, joining the online class.
+  const sixOpen = sixSession !== null && sixState === "open";
+  const edunexOpen = presence !== null && url !== null;
+  const main: "six" | "presence" | "join" | null =
+    sixOpen && edunexOpen ? (presence.closesAt <= end ? "presence" : "six") : sixOpen ? "six" : edunexOpen ? "presence" : link ? "join" : null;
+
+  // What the block leads with: on now (and where), next (when), or a window alone (the class it's for).
   const place = meeting?.six?.room ?? (meeting?.announced?.online ? t("course.online") : null);
   const day = !current && f.dayOffset(start) !== 0 ? f.relativeDay(start) : null;
-  // One line beside the chip, whole (judge round 5: "R.SG P…"): on now, where (the wave and the minutes left say how
-  // long); next, when it starts and where; a window alone, when its class was. The class's whole time is in what
-  // TalkBack reads, and on Pertemuan.
   const range = f.timeRange(start, end);
   const kicker = current
     ? [t("home.today.now"), place ?? range]
@@ -284,156 +298,88 @@ function NowCard({
       : [t("course.presenceOpen"), day, range];
   const title = meeting ? meetingTitle(t, meeting, meetingModuleTitle(t, modules, meeting)) : (presence?.topic ?? t("meeting.untitled"));
   const facts = [
-    presence ? t("mobile.course.presenceCloses", { time: f.dayTime(presence.closesAt) }) : null,
+    presence && !presenceCounts ? t("mobile.course.mayNotCount") : null,
     meeting?.notInSix ? t("meeting.notInSix") : null,
     !presence && meeting?.presence?.note ? meeting.presence.note : null,
   ].filter(Boolean);
-  // The wave: the class's time while it's on, else the window's; the minutes left beside it.
-  const progress = current ? { from: start, to: end } : presence ? { from: presence.opensAt, to: presence.closesAt } : null;
-  const until = progress?.to ?? (upcoming ? start : null);
-  const left = until !== null ? countdown(now, until) : null;
-
-  // The one thing to do, then at most one more, quieter.
-  const actions: { key: string; node: (variant: "filled" | "outline") => ReactNode }[] = [];
-  if (sixSession && student && done === null && sixState !== "gone")
-    actions.push({
-      key: "six",
-      node: (variant) => (
-        <BigButton
-          variant={variant}
-          icon={<Icons.Hand size={20} weight="fill" color={variant === "filled" ? v.onBrand : v.fg} />}
-          onPress={() => {
-            haptic.confirm();
-            checkIn(sixSession.id, sixTimetableUrl(student, sixSession.start), now);
-          }}
-          label={t("home.now.openSixLabel", { course: code })}
-          testID="action.checkIn"
-        >
-          {t("mobile.notification.checkIn")}
-        </BigButton>
-      ),
-    });
-  if (presence && url && presenceCounts)
-    actions.push({
-      key: "presence",
-      node: (variant) => (
-        <BigButton
-          variant={variant}
-          icon={<Icons.ArrowUpRight size={20} color={variant === "filled" ? v.onBrand : v.fg} />}
-          onPress={() => open(url)}
-          label={t("home.now.recordLabel", { course: code })}
-          testID="action.recordInEdunex"
-        >
-          {t("course.recordInEdunex")}
-        </BigButton>
-      ),
-    });
-  if (link)
-    actions.push({
-      key: "join",
-      node: (variant) => (
-        <BigButton
-          variant={variant}
-          icon={<Icons.Video size={20} color={variant === "filled" ? v.onBrand : v.fg} />}
-          onPress={() => open(link)}
-          label={t("home.today.joinLabel", { course: code })}
-          testID="action.join"
-        >
-          {t("course.join")}
-        </BigButton>
-      ),
-    });
-  // Without SIX, Edunex's Presence is still there to fill in, just in case: the card's button when it has no other,
-  // else in ⋮ (the course's menu, useRecordInEdunexUrl).
-  if (presence && url && !presenceCounts && actions.length === 0)
-    actions.push({
-      key: "presence",
-      node: (variant) => (
-        <BigButton
-          variant={variant}
-          icon={<Icons.ArrowUpRight size={20} color={variant === "filled" ? v.onBrand : v.fg} />}
-          onPress={() => open(url)}
-          label={t("home.now.recordLabel", { course: code })}
-          testID="action.recordInEdunex"
-        >
-          {t("course.recordInEdunex")}
-        </BigButton>
-      ),
-    });
-  const shown = actions.slice(0, 2);
+  // One bar, one time, and the time says what the bar measures: the Presence's window while it's the thing to do
+  // ("tutup 09:30"), else the class itself while it's on ("selesai 10:00"). A class still to come has its time above.
+  const window = presence && main !== "six" ? presence : null;
+  const span = window ? { from: window.opensAt, to: window.closesAt } : current ? { from: start, to: end } : null;
+  const time = window ? t("home.need.presence.closes", { time: f.dayTime(window.closesAt) }) : span ? t("mobile.home.ends", { time: f.time(span.to) }) : null;
 
   return (
-    <View testID="card.courseNow" style={[surface, { padding: space[4], marginTop: space[3] }]}>
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: space[3] }}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            {current && live && <PulseDot color={v.live} />}
-            <Text
-              size="bodyMedium"
-              weight="medium"
-              tabular
-              numberOfLines={1}
-              accessibilityLabel={kickerFull.filter(Boolean).join(" · ")}
-              style={{ color: v.muted, flexShrink: 1 }}
-            >
-              {kicker.filter(Boolean).join(" · ")}
-            </Text>
-          </View>
-          <Text size="titleMedium" face="display" weight="bold" style={{ color: v.fg, fontSize: 18, lineHeight: 24, letterSpacing: -0.2, marginTop: 3 }}>
-            {title}
-          </Text>
-          {facts.length > 0 && (
-            <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: meeting?.notInSix ? v.ambFg : v.muted, marginTop: 2 }}>
-              {facts.join(" · ")}
-            </Text>
-          )}
-        </View>
-        {/* Without SIX nobody can say the open Presence counts. */}
-        {presence && !presenceCounts && <StatusChip tone="amber">{t("mobile.course.mayNotCount")}</StatusChip>}
+    <View testID="card.courseNow" style={{ backgroundColor: fill, borderRadius: 28, padding: space[5], marginTop: space[4] }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+        {current && live && <PulseDot color={on} />}
+        <Text
+          size="labelLarge"
+          weight="medium"
+          tabular
+          numberOfLines={1}
+          accessibilityLabel={kickerFull.filter(Boolean).join(" · ")}
+          style={{ color: on, flex: 1 }}
+        >
+          {kicker.filter(Boolean).join(" · ")}
+        </Text>
       </View>
-      {left && (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], marginTop: space[4] }}>
-          {progress ? (
-            <WavyProgress
-              progress={(now - progress.from) / Math.max(1, progress.to - progress.from)}
-              ink={ink}
-              track={tint}
-              label={
-                current
-                  ? t("presence.row.now", { time: f.time(progress.to) })
-                  : t("course.closesAt", { time: f.dayTime(progress.to), left: f.countdown(progress.to) })
-              }
-            />
-          ) : (
-            <View style={{ flex: 1 }} />
-          )}
-          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 3 }}>
-            <CountUp
-              id={`course:${code}:now:${until}`}
-              value={left.value}
-              style={{ color: v.fg, fontFamily: "PlusJakartaSans-Bold", fontSize: 15, fontVariant: ["tabular-nums"] }}
-            />
-            <Text size="bodyMedium" face="display" weight="bold" style={{ color: v.fg, fontSize: 15 }}>
-              {t(`mobile.home.unit.${left.unit}`, { count: left.value })}
-            </Text>
-            <Text size="bodyMedium" weight="medium" style={{ color: v.muted, fontSize: 13 }}>
-              {t("mobile.home.left")}
-            </Text>
-          </View>
+      <Text size="titleLarge" face="display" weight="bold" style={{ color: on, letterSpacing: -0.3, marginTop: 6 }}>
+        {title}
+      </Text>
+      {facts.length > 0 && (
+        <Text size="bodyMedium" style={{ color: on, marginTop: 2 }}>
+          {facts.join(" · ")}
+        </Text>
+      )}
+      {span && time && (
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: space[3], minHeight: 20 }}>
+          <PlainBar
+            value={(now - span.from) / Math.max(1, span.to - span.from)}
+            color={on}
+            track={`${on}59`}
+            height={6}
+            label={window ? t("course.presenceOpen") : t("presence.row.now", { time: f.time(span.to) })}
+            end={time}
+            endColor={on}
+          />
         </View>
       )}
-      {done !== null ? (
-        <View style={{ marginTop: space[4] }}>
-          <BigButton variant="done" icon={<CookieCheck color={v.okFg} check={v.okBg} />} testID="card.courseNow.checkedIn">
+      {/* The Student's own step, said once: never a claim that SIX counted it. */}
+      {done !== null && (
+        <View testID="card.courseNow.checkedIn" style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginTop: space[3] }}>
+          <Icons.CheckCircle size={16} weight="fill" color={on} />
+          <Text size="labelLarge" weight="medium" numberOfLines={1} style={{ color: on, flex: 1 }}>
             {t("mobile.home.wentToSix", { time: f.time(done) })}
-          </BigButton>
+          </Text>
         </View>
-      ) : null}
-      {shown.length > 0 && (
-        <View style={{ marginTop: space[4], gap: space[2] }}>
-          {shown.map((action, i) => (
-            <View key={action.key}>{action.node(i === 0 ? "filled" : "outline")}</View>
-          ))}
+      )}
+      {main !== null && (
+        <View style={{ marginTop: space[4] }}>
+          {main === "presence" && url ? (
+            <PresenceButton tone="course" ink={fill} wide onPress={() => open(url)} accessibilityLabel={t("home.now.recordLabel", { course: code })} />
+          ) : main === "six" && sixSession && student ? (
+            // No haptic: the tap only opens SIX, where the Student presses Tandai Hadir (haptics are for commits).
+            <PresenceButton
+              label={t("mobile.notification.checkIn")}
+              tone="course"
+              ink={fill}
+              wide
+              onPress={() => checkIn(sixSession.id, sixTimetableUrl(student, sixSession.start), now)}
+              accessibilityLabel={t("home.now.openSixLabel", { course: code })}
+              testID="action.checkIn"
+            />
+          ) : main === "join" && link ? (
+            <PresenceButton
+              label={t("course.join")}
+              icon="Video"
+              tone="course"
+              ink={fill}
+              wide
+              onPress={() => open(link)}
+              accessibilityLabel={t("home.today.joinLabel", { course: code })}
+              testID="action.join"
+            />
+          ) : null}
         </View>
       )}
     </View>

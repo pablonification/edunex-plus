@@ -1,12 +1,13 @@
-// v4's building blocks for a screen past Beranda (round 2; DESIGN.md "Round 2's look: v4"): a section's heading in Plus
-// Jakarta Sans, a white card on v4's grey page (`Panel`), a group of rows in one card with hairlines inset past the
-// leading tile (`Group`, `GroupRow`), a tonal pill for a row's one status (`Pill`), a tinted icon tile for what isn't a
+// Building blocks for a screen past Beranda (DESIGN.md, "Surfaces"): a section's heading in Plus Jakarta Sans, a
+// section's block flat on the page (`Panel`: the page's own colour in light and dark, a fill only with a `tint`), rows
+// flat on the page with hairlines inset past the leading tile (`Group`, `GroupRow`), a tonal pill for a row's one status (`Pill`), a tinted icon tile for what isn't a
 // course (`IconTile`), and a big number that counts up once (`Figure`; side by side in a `FigureRow`). Every target springs (press.tsx). A screen that
-// uses them sets its `Page`'s `background` to `theme.v4.page`, so its top bar sits on the same grey.
+// uses them sets its `Page`'s `background` to `theme.v4.page`, so its top bar sits on the same colour.
 import { createContext, type ReactNode, useContext } from "react";
 import { type AccessibilityProps, type StyleProp, View, type ViewStyle } from "react-native";
 import { CountUp } from "./expressive";
 import { PressScale } from "./press";
+import { ROW_SIDE, rowEnd } from "./row-end";
 import { Text } from "./text";
 import { font, space, useTheme, type V4Palette } from "./theme";
 
@@ -24,7 +25,7 @@ export function Heading({ children, first = false, trailing }: { children: strin
         alignItems: "center",
         marginTop: first ? space[2] : space[6],
         marginBottom: space[3],
-        marginLeft: space[1],
+        marginLeft: ROW_SIDE,
         gap: space[2],
       }}
     >
@@ -36,7 +37,10 @@ export function Heading({ children, first = false, trailing }: { children: strin
   );
 }
 
-/** A white card on the page; with `onPress` the whole card is one target that gives on a press. */
+/**
+ * A section's block, flat on the page in both themes (no box, no shadow); with a `tint` it is a card: the one thing
+ * that leads. With `onPress` the whole block is one target that gives on a press.
+ */
 export function Panel({
   children,
   onPress,
@@ -51,11 +55,12 @@ export function Panel({
   onLongPress?: () => void;
   style?: StyleProp<ViewStyle>;
   testID?: string;
-  /** A tinted card instead of the white one (a course's tint, a state's background). */
+  /** A card: a course's tint, a state's background. Without it the block is flat. */
   tint?: string;
 } & AccessibilityProps) {
-  const v = useTheme().v4;
-  const surface: ViewStyle = { backgroundColor: tint ?? v.card, borderRadius: CARD_RADIUS, overflow: "hidden" };
+  // Flat: no fill at all unless tinted, so nothing can box it should page and card ever part again. The corner stays
+  // for a caller that fills it through `style`.
+  const surface: ViewStyle = { backgroundColor: tint, borderRadius: CARD_RADIUS, overflow: "hidden" };
   if (onPress || onLongPress)
     return (
       <PressScale onPress={onPress} onLongPress={onLongPress} testID={testID} style={[surface, style]} {...a11y}>
@@ -69,7 +74,7 @@ export function Panel({
   );
 }
 
-/** Rows in one white card. */
+/** Rows that belong together, flat on the page: an inset hairline between them, no card. */
 export function Group({ children, testID, style }: { children: ReactNode; testID?: string; style?: StyleProp<ViewStyle> }) {
   return (
     <Panel testID={testID} style={style}>
@@ -89,6 +94,7 @@ export function GroupRow({
   meta,
   metaTone = "muted",
   trailing,
+  chevron,
   first = false,
   onPress,
   onLongPress,
@@ -102,6 +108,8 @@ export function GroupRow({
   /** The meta line's colour: muted, or a state's ink. */
   metaTone?: "muted" | "red" | "amber" | "ok";
   trailing?: ReactNode;
+  /** The chevron at the row's end (ui/row-end.tsx): by itself with `onPress` and no `trailing`; true adds it after a `trailing`, false leaves it out. */
+  chevron?: boolean;
   first?: boolean;
   onPress?: () => void;
   onLongPress?: () => void;
@@ -112,7 +120,9 @@ export function GroupRow({
   const metaColor = metaTone === "red" ? v.redFg : metaTone === "amber" ? v.ambFg : metaTone === "ok" ? v.okFg : v.muted;
   const body = (
     <>
-      {!first && <View style={{ position: "absolute", top: 0, left: leading ? 70 : space[4], right: 0, height: 1, backgroundColor: v.line }} />}
+      {!first && (
+        <View style={{ position: "absolute", top: 0, left: leading ? ROW_SIDE + 44 + space[3] : ROW_SIDE, right: 0, height: 1, backgroundColor: v.line }} />
+      )}
       {leading}
       <View style={{ flex: 1, minWidth: 0 }}>
         {typeof title === "string" ? (
@@ -135,14 +145,14 @@ export function GroupRow({
         )}
         {children}
       </View>
-      {trailing}
+      {rowEnd(trailing, Boolean(onPress), chevron)}
     </>
   );
   const style: ViewStyle = {
     flexDirection: "row",
     alignItems: "center",
     gap: space[3],
-    paddingHorizontal: 14,
+    paddingHorizontal: ROW_SIDE,
     paddingVertical: space[3],
     minHeight: ROW_MIN,
   };
@@ -209,12 +219,13 @@ export function Pill({ tone, children, icon }: { tone: PillTone; children: strin
  */
 export function IconTile({ icon, tone = "brand", size = 44 }: { icon: (color: string) => ReactNode; tone?: PillTone; size?: number }) {
   const v = useTheme().v4;
-  const { bg, fg } = pillColors(v, tone);
+  // Bare: the icon in its tone's ink, no pale circle behind it (the box keeps its size, so rows line up).
+  const { fg } = pillColors(v, tone);
   return (
     <View
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-      style={{ width: size, height: size, borderRadius: Math.round(size * 0.32), backgroundColor: bg, alignItems: "center", justifyContent: "center" }}
+      style={{ width: size, height: size, alignItems: "center", justifyContent: "center" }}
     >
       {icon(fg)}
     </View>

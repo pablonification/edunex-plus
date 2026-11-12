@@ -1,18 +1,21 @@
 // "Yang berubah": the last week's changes, as src/app/screens/home.tsx shows them, on "Perlu kamu urus"'s screen (round
 // 2, v4: one tap from Beranda). The bell keeps all of them, with the same words: "Lihat semua" opens its screen.
+
 import { router } from "expo-router";
 import { useMemo } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import { useDataset } from "../../../../src/app/store";
 import type { Alert, AlertKind } from "../../../../src/core/models";
 import { type HomeContext, recentChanges } from "../../../../src/core/needs";
 import { useNav } from "../../nav";
 import { changeLines } from "../../parts/change-meta";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { CourseIconTile } from "../../ui/course-icon-tile";
 import { Group, GroupRow, Heading, IconTile } from "../../ui/group";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { Text } from "../../ui/text";
 import { useTheme } from "../../ui/theme";
 import { useShortCourseName } from "./parts";
@@ -49,7 +52,9 @@ export function Changes({ context }: { context: HomeContext }) {
     <View testID="section.changes">
       <Heading
         trailing={
-          <Pressable
+          <Tap
+            feel="row"
+            borderless
             accessibilityRole="link"
             onPress={() => router.push("/alerts")}
             hitSlop={12}
@@ -59,7 +64,7 @@ export function Changes({ context }: { context: HomeContext }) {
             <Text size="labelLarge" weight="medium" style={{ color: v.brandInk }}>
               {t("home.changes.all")}
             </Text>
-          </Pressable>
+          </Tap>
         }
       >
         {t("home.changes")}
@@ -82,6 +87,7 @@ export function Changes({ context }: { context: HomeContext }) {
 /** A change as v4's row: its kind's tile (amber when it asks something of the Student), what changed, one meta line, the day. */
 function ChangeRow({ item, first, onOpen }: { item: Alert; first: boolean; onOpen: () => void }) {
   const t = useT();
+  const gradesAreHidden = useGradesHidden();
   const f = useFormat();
   const v = useTheme().v4;
   const Icon = CHANGE_ICON[item.kind] ?? Icons.Bell;
@@ -89,7 +95,7 @@ function ChangeRow({ item, first, onOpen }: { item: Alert; first: boolean; onOpe
   const important = IMPORTANT.has(item.title.key) || (item.body !== null && item.body !== undefined && IMPORTANT_BODY.has(item.body.key));
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
   const name = useShortCourseName();
-  const { title, meta, spoken } = changeLines(t, item, name);
+  const { title, meta, spoken } = changeLines(t, item, name, gradesAreHidden);
   // The day it was seen ("Hari ini", "Kemarin"), never the clock time of the read that saw it (a sync at 00:45 isn't
   // when anything happened): the event's own time is in the meta line.
   const when = f.relativeDay(item.at);

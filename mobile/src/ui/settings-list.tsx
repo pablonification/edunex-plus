@@ -12,6 +12,7 @@ import { Group, GroupRow, Heading } from "./group";
 import { haptic } from "./haptics";
 import { Icons } from "./icons";
 import { iosPressed, PressScale } from "./press";
+import { ROW_SIDE, RowChevron } from "./row-end";
 import { Sheet, SheetTitle } from "./sheet";
 import { Text } from "./text";
 import { space, TOUCH, useTheme } from "./theme";
@@ -56,7 +57,7 @@ export function SettingsGroup({
         ))}
       </Group>
       {note ? (
-        <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
+        <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: ROW_SIDE }}>
           {note}
         </Text>
       ) : null}
@@ -77,6 +78,7 @@ export function SettingRow({
   metaTone,
   leading,
   trailing,
+  chevron,
   onPress,
   label,
   hint,
@@ -94,6 +96,8 @@ export function SettingRow({
   metaTone?: MetaTone;
   leading?: ReactNode;
   trailing?: ReactNode;
+  /** The chevron at its end: by itself on a row that opens something (a button with nothing at its end, not a danger); true or false to say so. */
+  chevron?: boolean;
   onPress?: () => void;
   /** The accessible name, when the visible words alone don't say all of it. */
   label?: string;
@@ -135,6 +139,8 @@ export function SettingRow({
       meta={meta}
       metaTone={metaTone}
       trailing={busy ? <ActivityIndicator size="small" color={v.muted} /> : trailing}
+      // A switch's row and a danger (sign out) don't open a place: no chevron unless asked.
+      chevron={chevron ?? (role === "button" && tone !== "danger" ? undefined : false)}
       onPress={onPress && !busy && !disabled ? onPress : undefined}
       testID={testID}
       {...a11y}
@@ -144,15 +150,8 @@ export function SettingRow({
   );
 }
 
-/** A row that opens something (a screen, a sheet): the chevron at its end. */
-export function Chevron() {
-  const v = useTheme().v4;
-  return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Icons.ChevronRight size={20} color={v.muted} />
-    </View>
-  );
-}
+/** A row that opens something (a screen, a sheet): the chevron at its end. The shared one (ui/row-end.tsx). */
+export const Chevron = RowChevron;
 
 /**
  * A setting that's on or off: the whole row toggles it (Android's settings), Android's MaterialSwitch at its end shows

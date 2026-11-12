@@ -5,6 +5,7 @@ import type { Format, Translate } from "../../../../src/app/i18n";
 import type { CoursePage } from "../../../../src/app/screens/course/data";
 import { contentCounts, introModule, outlineEntries } from "../../../../src/core/course-materials";
 import type { Material, Task } from "../../../../src/core/models";
+import { postedThisWeek } from "../material/weeks";
 
 export const WEEK = 7 * 24 * 3_600_000;
 
@@ -28,12 +29,12 @@ export interface Entry {
 export const latest = (entry: Pick<Entry, "postedAt" | "materials">) =>
   Math.max(entry.postedAt ?? 0, ...entry.materials.map((m) => m.postedAt ?? m.updatedAt ?? 0)) || null;
 
-/** The module something new came to in the last 7 days, the newest of them; undefined when nothing did. */
+/** The module something new came to this calendar week (as Materi buckets it), the newest of them; undefined when nothing did. */
 export function newestEntry(entries: readonly Entry[], now: number): Entry | undefined {
   let best: { entry: Entry; at: number } | undefined;
   for (const entry of entries) {
     const at = entry.unopened ? null : latest(entry);
-    if (at !== null && at > now - WEEK && at <= now && (!best || at > best.at)) best = { entry, at };
+    if (at !== null && postedThisWeek(at, now) && (!best || at > best.at)) best = { entry, at };
   }
   return best?.entry;
 }

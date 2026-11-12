@@ -58,7 +58,7 @@ appId: io.github.pablonification.edunexplus.demo
 - waitForAnimationToEnd
 - takeScreenshot: 05-course-pertemuan
 - back
-# The course whose class is on now: the now card and its Tandai Hadir.
+# The course whose class is on now: the block in its colour and its one presence button.
 - tapOn:
     id: row.course.PL3002
 - extendedWaitUntil:

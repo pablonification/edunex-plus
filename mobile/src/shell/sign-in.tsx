@@ -2,7 +2,9 @@
 // windows (src/desktop/signin-flow.ts, signin.ts, six-signin.ts) done with WebViews and the same
 // rules and timings. The Student types their password and 2FA code only on Microsoft's page. Once
 // Microsoft hands back, the page is covered while the app reads the session (Edunex's token from
-// its website's storage, SIX's cookie from the web views' cookie store), then it closes. A quiet
+// its website's storage, SIX's cookie from the web views' cookie store), then it closes. During the
+// first minute (./first-minute) the page steps aside instead of covering itself: the stage under it
+// says the same thing, with its door breathing. A quiet
 // try (the other system, right after the Student signed in to one, on the same Microsoft session; or
 // a system whose session ended, brought back by ../host/resignin.ts) runs out of sight and gives up
 // on any page that waits for the Student, never typing or tapping anything. The desktop's
@@ -25,11 +27,13 @@ import { cookiesFor } from "../../modules/web-cookies";
 import { guardMessage, guardScript, navigationAllowed } from "../host/guard";
 import { noServiceWorkerScript } from "../host/page-fixes";
 import { R3_GUARD } from "../host/version";
-import { IconButton } from "../ui/controls";
+import { FirstReadSaid } from "../screens/first-scan/said";
 import { Icons } from "../ui/icons";
 import { reduceMotion } from "../ui/motion";
 import { Text } from "../ui/text";
 import { motion, space, useTheme } from "../ui/theme";
+import { BarClose } from "../ui/top-bar";
+import { FirstMinuteGate, firstMinuteStageUp } from "./first-minute/gate";
 
 type Source = "edunex" | "six";
 
@@ -132,11 +136,19 @@ export const phoneSignInWindows: SignInWindows = {
   async forget() {},
 };
 
-/** Draws every sign-in under way: quiet ones out of sight, the Student's over the whole screen. */
+/**
+ * Draws every sign-in under way: quiet ones out of sight, the Student's over the whole screen. Under them, the first
+ * minute (./first-minute/gate.tsx): the scene a sign-in happens in when nobody is signed in yet, which Microsoft's page
+ * covers while the Student types and which hands over to Beranda once a system is in; and what says the first read
+ * is done (../screens/first-scan/said.tsx).
+ */
 export function SignInHost() {
   const current = useSyncExternalStore(subscribe, () => runs);
   return (
     <>
+      <FirstMinuteGate />
+      {/* The first read is in: said once, as a snackbar (never under the stage). */}
+      <FirstReadSaid />
       {current.map((run) => (
         <SignInPage key={run.id} run={run} />
       ))}
@@ -158,11 +170,19 @@ function SignInPage({ run }: { run: Run }) {
     leftSystem: false,
     phase: "student" as "student" | "finishing" | "slow",
     url: system.start,
+    host: "",
     signedInAt: 0,
     asks: 0,
   });
   const timers = useRef<{ slow?: ReturnType<typeof setTimeout>; still?: ReturnType<typeof setTimeout>; limit?: ReturnType<typeof setTimeout> }>({});
   const quiet = run.quiet;
+  // Where a sign-in's time goes, in the phone's log (no names, no addresses beyond the host): how long each system took
+  // is the first thing asked when one is slow to come in.
+  const began = useRef(Date.now());
+  const said = useCallback(
+    (what: string) => console.info(`[sign-in] ${run.source}${run.quiet ? " quiet" : ""} +${Date.now() - began.current} ms: ${what}`),
+    [run],
+  );
 
   const step = useCallback((next: SignInStep | null) => !run.quiet && run.onStep(next), [run]);
   const finish = useCallback(
@@ -170,10 +190,11 @@ function SignInPage({ run }: { run: Run }) {
       if (state.current.done) return;
       state.current.done = true;
       for (const timer of Object.values(timers.current)) if (timer) clearTimeout(timer);
+      said(value ? "in" : error ? `stopped (${isEngineError(error) ? error.kind : "error"})` : "gave up");
       step(null);
       run.finish(value, error);
     },
-    [run, step],
+    [run, step, said],
   );
   const giveUp = useCallback(() => finish(null), [finish]);
 
@@ -209,13 +230,15 @@ function SignInPage({ run }: { run: Run }) {
         return;
       }
       setHost(host);
+      if (host !== state.current.host) said(`at ${host}`);
+      state.current.host = host;
       if (timers.current.still) clearTimeout(timers.current.still);
       if (!system.hosts.includes(host)) {
         state.current.leftSystem = true;
         backWithStudent();
       } else if (state.current.leftSystem) handedBack();
     },
-    [system, backWithStudent, handedBack],
+    [system, backWithStudent, handedBack, said],
   );
 
   // Reads the session every 400 ms, as the desktop does.
@@ -271,6 +294,7 @@ function SignInPage({ run }: { run: Run }) {
           const found = readSixSession(await cookiesFor("https://six.itb.ac.id/"));
           if (state.current.done) return;
           if (found) return finish(found);
+          if (!state.current.signedInAt) said("its page is signed in; no session cookie yet");
           state.current.signedInAt ||= Date.now();
           if (Date.now() - state.current.signedInAt > COOKIE_GRACE_MS)
             throw new EngineError("VendorChanged", "SIX's session cookie wasn't there after sign-in");
@@ -279,30 +303,38 @@ function SignInPage({ run }: { run: Run }) {
         if (isEngineError(error)) finish(null, run.quiet ? undefined : error);
       }
     },
-    [run, system, finish, giveUp],
+    [run, system, finish, giveUp, said],
   );
 
   const hidden = quiet || phase === "finishing";
+  // Nothing left for the Student to do, and the first minute's stage is up under this page: the page steps aside (still
+  // there, still read every 400 ms, only unseen and untouched) and the stage says what's happening, instead of a
+  // spinner over a blank page. It comes back the moment the page needs the Student again or turns slow.
+  const aside = !quiet && phase === "finishing" && firstMinuteStageUp();
   const title = t(run.source === "edunex" ? "signIn.edunexTitle" : "signIn.sixTitle");
   const sourceName = t(run.source === "edunex" ? "source.edunex" : "source.six");
 
   return (
     <Animated.View
       entering={quiet ? undefined : reduceMotion() ? FadeIn.duration(motion.duration.medium) : SlideInDown.duration(motion.duration.long).easing(EMPHASIZED)}
-      exiting={quiet ? undefined : FadeOut.duration(motion.duration.short)}
-      pointerEvents={quiet ? "none" : "auto"}
-      style={quiet ? styles.offscreen : [StyleSheet.absoluteFill, { backgroundColor: theme.color.canvas, paddingTop: insets.top, zIndex: 100 }]}
-      accessibilityViewIsModal={!quiet}
-      importantForAccessibility={quiet ? "no-hide-descendants" : "auto"}
+      // Stepped aside, it's already unseen: a fade out would draw it again for a moment first.
+      exiting={quiet || aside ? undefined : FadeOut.duration(motion.duration.short)}
+      pointerEvents={quiet || aside ? "none" : "auto"}
+      style={
+        quiet
+          ? styles.offscreen
+          : [StyleSheet.absoluteFill, { backgroundColor: theme.color.canvas, paddingTop: insets.top, zIndex: 100 }, aside && styles.aside]
+      }
+      accessibilityViewIsModal={!quiet && !aside}
+      importantForAccessibility={quiet || aside ? "no-hide-descendants" : "auto"}
     >
       {/* ITB's and Microsoft's pages are light: the status bar's icons stay readable over them. */}
-      {!quiet && <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />}
+      {!quiet && !aside && <StatusBar style={theme.scheme === "dark" ? "light" : "dark"} />}
       {!quiet && (
         // Material's full-screen dialog bar: close at the start, what this is, and whose page it is (the lock, the host).
         <View style={[styles.bar, { backgroundColor: theme.color.surface }]}>
-          <IconButton label={t("action.close")} onPress={giveUp} testID="signin.close">
-            <Icons.X size={24} color={theme.color.onSurface} />
-          </IconButton>
+          {/* The app's one bar button (a glass circle on iOS 26), as Back is on every pushed screen. */}
+          <BarClose onPress={giveUp} testID="signin.close" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Text size="titleLarge" numberOfLines={1}>
               {title}
@@ -321,6 +353,8 @@ function SignInPage({ run }: { run: Run }) {
           ref={view}
           testID={`signin.${run.source}`}
           source={{ uri: system.start }}
+          // iPhone: the page runs under the home indicator to the screen's edge and ends clear of it (ui/page-end.ts).
+          contentInsetAdjustmentBehavior="automatic"
           // Edunex's page needs a service worker to start (../host/page-fixes.ts). A QA build's sign-in signs in and
           // nothing else (../host/guard.ts): no other write, no signing out.
           injectedJavaScriptBeforeContentLoaded={R3_GUARD ? `${guardScript}\n${noServiceWorkerScript}` : noServiceWorkerScript}
@@ -376,6 +410,7 @@ const EMPHASIZED = Easing.bezier(0.05, 0.7, 0.1, 1);
 
 const styles = StyleSheet.create({
   offscreen: { position: "absolute", left: -2000, top: 0, width: 400, height: 800, opacity: 0 },
+  aside: { opacity: 0 },
   bar: { flexDirection: "row", alignItems: "center", gap: space[1], minHeight: 64, paddingLeft: space[1], paddingRight: space[4] },
   cover: { alignItems: "center", justifyContent: "center", padding: space[8] },
   slow: { position: "absolute", left: space[3], right: space[3], bottom: space[3], borderRadius: 12, padding: space[4], gap: 2 },

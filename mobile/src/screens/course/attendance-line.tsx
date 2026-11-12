@@ -1,5 +1,6 @@
-// A course's attendance on its page (round 3): in the header under the bar (beside the course's tile, under its code), the meter of its absences with one word
-// (parts/attendance-meter.tsx, as Kuliah's row draws it) and the one exception when it's a fact. The header is one
+// A course's attendance on its page: in the header under the bar (beside the course's glyph), its code and SKS, then
+// its absences as Kuliah's row says them (dots and one short label: "sisa 1 absen", "absen habis", "lewat 1 absen"; never a count
+// beside them) and the one exception when it's a fact. The header is one
 // target: the course's sheet (./course-sheet.tsx) says it all, the count, the target, the exception's whole sentence,
 // the advice and its way back too. Words and figures are the desktop's (src/app/screens/presence.tsx).
 import type { ReactNode } from "react";
@@ -11,11 +12,12 @@ import { useCourseNames } from "../../../../src/app/schedule-data";
 import { isExamActivity, onUsualSlot, percent } from "../../../../src/core/attendance";
 import { checkingIn } from "../../../../src/core/check-in";
 import { wibDay } from "../../../../src/core/course-meetings";
-import { AttendanceMeter, meterModel } from "../../parts/attendance-meter";
+import { meterModel } from "../../parts/attendance-meter";
 import { Icons } from "../../ui/icons";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { shortName } from "../home/parts";
+import { AbsenceDots, absenceShort } from "../presence/absence-dots";
 import { classOf, dayLabel, GONE_FOR, type RowContext, uncertainText, windowWhen } from "../presence/logic";
 
 /**
@@ -25,7 +27,12 @@ import { classOf, dayLabel, GONE_FOR, type RowContext, uncertainText, windowWhen
  * ada", "Presensi Edunex …"); a clash is on the next class's row, advice is in the sheet.
  * `label`: the whole of it for a screen reader, the share and the target too.
  */
-export function useAttendanceLine(item: CourseAttendance | undefined, context: RowContext | undefined): { node: ReactNode; label: string } | null {
+export function useAttendanceLine(
+  item: CourseAttendance | undefined,
+  context: RowContext | undefined,
+  /** What leads the line ("3 SKS"), before the absences. */
+  lead: string | null = null,
+): { node: ReactNode; label: string } | null {
   const t = useT();
   const v = useTheme().v4;
   const found = useCourseException(item, context);
@@ -43,14 +50,22 @@ export function useAttendanceLine(item: CourseAttendance | undefined, context: R
   const label = [meter?.label, count, share !== null && !over ? t("presence.row.ownTarget", { value: health.target }) : null, exception?.short ?? advice?.short]
     .filter(Boolean)
     .join(". ");
+  // As Kuliah's row says it (../presence/absence-dots.tsx): the dots and one short label, nothing else.
   const node = (
-    <View style={{ marginTop: space[1], gap: space[1] }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
-        {meter && <AttendanceMeter model={meter} size="header" hideLabel testID="meter.courseAttendance" />}
-        {/* The why is one step away: the header opens the sheet that says it. */}
-        <View testID={advice ? "mark.courseAdvice" : undefined}>
-          <Icons.Info size={18} weight={advice ? "fill" : "regular"} color={v.muted} />
-        </View>
+    <View style={{ gap: 2 }}>
+      {lead && (
+        <Text size="bodyMedium" weight="medium" tabular style={{ color: v.fg2 }}>
+          {lead}
+        </Text>
+      )}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space[2] }}>
+        {meter && <AbsenceDots model={meter} label={absenceShort(t, meter)} testID="meter.courseAttendance" />}
+        {/* Advice waits in the sheet the header opens: a filled mark says there is some. */}
+        {advice && (
+          <View testID="mark.courseAdvice">
+            <Icons.Info size={16} weight="fill" color={v.fg2} />
+          </View>
+        )}
       </View>
       {exception && (
         <View testID="note.courseException" style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>

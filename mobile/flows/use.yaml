@@ -83,10 +83,16 @@ appId: io.github.pablonification.edunexplus.demo
 # Presensi isn't open on the demo's day: handed in anyway, not counted as present (the sheet says so).
 - tapOn:
     id: action.submitAnyway
+# Handed in: the Task's status line, at the page's top, now says when Edunex recorded it (its spoken label starts
+# "Edunex mencatatnya hari ini, 08:11 · …"). Not the "Terkumpul" flash over the page: it stays two seconds, and the
+# emulator looked once after its title had gone and once after its line had (runs 43213292291 and 43224561172).
+- scrollUntilVisible:
+    element:
+      id: card.due
+    direction: UP
 - extendedWaitUntil:
-    visible: "Terkumpul"
+    visible: "Edunex mencatatnya hari ini, .*"
     timeout: 20000
-- assertVisible: "Edunex mencatatnya hari ini, .*"
 - takeScreenshot: use-04-submitted
 - tapOn:
     id: action.back
@@ -106,6 +112,10 @@ appId: io.github.pablonification.edunexplus.demo
     timeout: 10000
 - takeScreenshot: use-08-class-sheet
 - back
+# The bar's line under Jadwal is "<month> · Minggu ke-<n>" (src/screens/schedule/schedule-screen.tsx, `label.place`), and
+# a Maestro text is matched whole: the week is asked for at the end of the line. The demo's today is Thursday 8 October,
+# week 7, so the next is week 8 (still October). The strip moves a week on a swipe of 48 dp or more
+# (src/screens/schedule/strip.tsx); if it didn't take, the month's "Lihat minggunya" on the 15th shows the same week.
 - swipe:
     from:
       id: strip.week
@@ -113,19 +123,39 @@ appId: io.github.pablonification.edunexplus.demo
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-8"
+      text: ".*Minggu ke-8"
     timeout: 5000
+    optional: true
+- runFlow:
+    when:
+      notVisible:
+        id: label.place
+        text: ".*Minggu ke-8"
+    commands:
+      - tapOn:
+          id: action.month
+      - tapOn:
+          id: day.2026-10-15
+      - scrollUntilVisible:
+          element:
+            id: action.showWeek
+          direction: DOWN
+      - tapOn:
+          id: action.showWeek
+- extendedWaitUntil:
+    visible:
+      id: label.place
+      text: ".*Minggu ke-8"
+    timeout: 10000
 - tapOn:
     id: action.today
 - extendedWaitUntil:
     visible:
       id: label.place
-      text: "Minggu ke-7"
+      text: ".*Minggu ke-7"
     timeout: 5000
 
-# S6: the month (its own screen, the first choice in the bar's ⋮), a day picked in it lists that day.
-- tapOn:
-    id: action.scheduleMenu
+# S6: the month (its own screen, its own icon in the top bar), a day picked in it lists that day.
 - tapOn:
     id: action.month
 - extendedWaitUntil:
@@ -158,7 +188,19 @@ appId: io.github.pablonification.edunexplus.demo
     id: action.back
 
 # A17: Settings in English and dark, then back as it was. Each choice waits to show as chosen: the whole app draws
-# again on a theme or language change, and a tap in the middle of that is lost.
+# again on a theme or language change, and a tap in the middle of that is lost. Settings is behind Profil's "Akun" rows (no
+# avatar in a top bar any more): Profil tab, then its Settings row.
+- tapOn:
+    id: tab.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: action.account
+    direction: DOWN
+    centerElement: true
 - tapOn:
     id: action.account
 - extendedWaitUntil:

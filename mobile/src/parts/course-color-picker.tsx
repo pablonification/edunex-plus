@@ -13,6 +13,7 @@ import { useTermCourses } from "../../../src/app/courses";
 import { type Translate, useFormat, useT } from "../../../src/app/i18n";
 import { applyChoice, courseTone, type PaletteId, PICKER_ORDER, pickedColor, resolveCourseColors } from "../../../src/core/course-colors";
 import { Icons } from "../ui/icons";
+import { Tap } from "../ui/moves";
 import { iosPressed } from "../ui/press";
 import { Sheet, SheetTitle } from "../ui/sheet";
 import { Text } from "../ui/text";
@@ -140,7 +141,8 @@ function Choices({ code }: { code: string }) {
             const checked = choice === id;
             const held = holders(id);
             return (
-              <Pressable
+              <Tap
+                feel="tile"
                 key={id}
                 testID={`action.courseColor.${id}`}
                 accessibilityRole="radio"
@@ -170,7 +172,7 @@ function Choices({ code }: { code: string }) {
                 <Text size="micro" tone="faint" tabular numberOfLines={1} importantForAccessibility="no">
                   {held.length ? `${held[0]}${held.length > 1 ? ` +${held.length - 1}` : ""}` : " "}
                 </Text>
-              </Pressable>
+              </Tap>
             );
           })}
         </View>

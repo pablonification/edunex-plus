@@ -1,10 +1,12 @@
 // Adding a course to a semester (round 2, v4: the sheet on v4's white card): search by code or name, or pick from
 // what the plan needs (required courses left, a specialization's or a minor's, retakes that lift the IPK), the
 // program's electives, a minor's courses, or every ITB course in SIX's public catalog.
+
 import { useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { TextInput, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { PlanState } from "../../../../src/app/study-plan";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import { nearestLetter } from "../../../../src/core/honors";
 import type { PlannedCourse } from "../../../../src/core/models";
 import {
@@ -22,13 +24,15 @@ import {
   searchCourses,
   startingIpk,
 } from "../../../../src/core/planner";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { Button, Chip, ChipRow } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { Meta } from "../../ui/layout";
+import { Tap } from "../../ui/moves";
 import { Sheet, SheetTitle } from "../../ui/sheet";
 import { slopY } from "../../ui/sizes";
-import { Text, useFieldColors } from "../../ui/text";
-import { radius, space, type, useTheme } from "../../ui/theme";
+import { fieldType, Text, useFieldColors } from "../../ui/text";
+import { radius, space, useTheme } from "../../ui/theme";
 
 type AddTab = "needed" | "program" | "minors" | "all";
 
@@ -78,6 +82,7 @@ export function AddCourse({
   const matches = (c: CourseInfo) => !q || c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q);
   const found = searchCourses(record, query);
 
+  const hidden = useGradesHidden();
   const row = (code: string, why?: string, retake?: { from: string; now: number | null; after: number | null }) => {
     const info = courseInfo(record, code);
     const st: CourseState = retake
@@ -105,14 +110,14 @@ export function AddCourse({
             {`${info.sks} SKS`}
             {owner}
             {why}
-            {retake && retake.now !== null && retake.after !== null
+            {!hidden && retake && retake.now !== null && retake.after !== null
               ? t("planner.retakeGain", { now: f.number(retake.now, 2), after: f.number(retake.after, 2) })
               : null}
           </Meta>
         </View>
         {!canAdd(st) && st ? (
           <Text size="caption" weight="semibold" tone="faint">
-            {st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : t(`planner.state.${st}`)}
+            {st === "passed" ? t("planner.state.passed", { grade: hidden ? HIDDEN_FIGURE : (record.graded.get(code)?.grade ?? "") }) : t(`planner.state.${st}`)}
           </Text>
         ) : (
           <Button
@@ -151,7 +156,7 @@ export function AddCourse({
               height: 44,
               borderRadius: radius.lg,
               paddingHorizontal: space[3],
-              backgroundColor: theme.v4.page,
+              backgroundColor: theme.v4.chip,
             }}
           >
             <Icons.Search size={18} color={theme.color.faint} />
@@ -168,7 +173,7 @@ export function AddCourse({
               autoCorrect={false}
               autoCapitalize="none"
               returnKeyType="search"
-              style={{ flex: 1, color: theme.color.fg, ...type.small, paddingVertical: 0 }}
+              style={{ flex: 1, color: theme.color.fg, ...fieldType("small"), paddingVertical: 0 }}
               testID="input.courseSearch"
             />
           </View>
@@ -198,7 +203,9 @@ export function AddCourse({
               <Text size="caption" tone="faint" style={{ paddingBottom: space[1] }}>
                 {t("planner.retakeSumma")}
               </Text>
-              {retakes.map((r) => row(r.code, t("planner.why.grade", { grade: r.grade }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }))}
+              {retakes.map((r) =>
+                row(r.code, t("planner.why.grade", { grade: hidden ? HIDDEN_FIGURE : r.grade }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }),
+              )}
             </>
           )}
         </View>
@@ -233,7 +240,8 @@ export function AddCourse({
                   {m.courses.map((code) => {
                     const done = !canAdd(courseState(record, plan, code));
                     return (
-                      <Pressable
+                      <Tap
+                        feel="tile"
                         key={code}
                         disabled={done}
                         accessibilityRole="button"
@@ -258,7 +266,7 @@ export function AddCourse({
                           {code}
                         </Text>
                         {done ? <Icons.Check size={12} color={theme.color.successFg} weight="bold" /> : <Icons.Plus size={12} color={theme.color.muted} />}
-                      </Pressable>
+                      </Tap>
                     );
                   })}
                 </View>

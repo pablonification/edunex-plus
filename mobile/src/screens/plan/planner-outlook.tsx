@@ -9,6 +9,7 @@ import type { PlanState } from "../../../../src/app/study-plan";
 import { letterForAverage } from "../../../../src/core/honors";
 import { GRADE_POINTS } from "../../../../src/core/models";
 import { honorsOutlook, type Need, type Projection, type StudentRecord, targetOf } from "../../../../src/core/planner";
+import { GradesHiddenLine, useGradesHidden } from "../../parts/hide-grades";
 import { IconButton } from "../../ui/controls";
 import { Group, GroupRow, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { Icons } from "../../ui/icons";
@@ -23,6 +24,19 @@ export function Outlook({ record, state }: { record: StudentRecord; state: PlanS
   const { plan, projection } = state;
   const target = targetOf(record, plan);
   const charted = projection.steps.filter((s) => s.ip !== null || s.ipk !== null).length >= 2;
+  // Hidden grades: the target is the Student's own choice and still changes; what derives from grades (what the target
+  // needs, the chart, the honors) gives way to one quiet line with the way to show them.
+  if (useGradesHidden()) {
+    return (
+      <View testID="card.outlook">
+        <SectionHeading title={t("planner.outlook")} />
+        <Panel style={{ padding: space[4], gap: space[3] }}>
+          <TargetControl record={record} state={state} />
+          <GradesHiddenLine testID="planner.outlook.hidden" />
+        </Panel>
+      </View>
+    );
+  }
   return (
     <View testID="card.outlook">
       <SectionHeading title={t("planner.outlook")} />

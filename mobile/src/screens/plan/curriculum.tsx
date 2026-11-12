@@ -13,6 +13,7 @@
 //    grade once passed, a pill while it needs the Student).
 // 4. Specializations and minors, below the fold.
 // A course's syllabus and corrections are a tap (or a long press) away, in a sheet.
+
 import { type ReactNode, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -22,6 +23,7 @@ import { useViewChoice } from "../../../../src/app/view-choice";
 import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../../src/core/curriculum-map";
 import type { CurriculumFix } from "../../../../src/core/models";
 import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../../../src/core/planner";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
 import { toast } from "../../swaps/overlays";
 import { Button, Switch } from "../../ui/controls";
@@ -353,6 +355,7 @@ function Standing({ sks, onlyLeft, onToggle, children }: { sks: SksModel; onlyLe
 /** A course's one status at the end of its row: the grade once passed, a pill while it's under way or needs the Student. */
 function Status({ course }: { course: MapCourse }) {
   const t = useT();
+  const gradesAreHidden = useGradesHidden();
   const v = useTheme().v4;
   if (course.whatIf === "added") return <Pill tone="brand">{t("planner.whatIfTag")}</Pill>;
   if (course.whatIf === "left-out") return <Pill tone="plain">{t("planner.droppedTag")}</Pill>;
@@ -360,7 +363,8 @@ function Status({ course }: { course: MapCourse }) {
   switch (course.status) {
     case "passed":
       // Most rows: the check and the grade say it, quietly, so the rows that need the Student stand out.
-      if (course.grade)
+      // Hidden grades: "Lulus", without the letter.
+      if (course.grade && !gradesAreHidden)
         return (
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[1], minWidth: 40, justifyContent: "flex-end" }}>
             <Icons.Check size={14} color={v.okFg} weight="bold" />
@@ -390,6 +394,7 @@ function Status({ course }: { course: MapCourse }) {
 
 function CourseRow({ course, first, menuHint, onPress }: { course: MapCourse; first: boolean; menuHint: boolean; onPress?: () => void }) {
   const t = useT();
+  const gradesAreHidden = useGradesHidden();
   const v = useTheme().v4;
   const crossed = course.status === "not-mine";
   const sks = `${course.sks ?? "-"} SKS`;
@@ -398,7 +403,7 @@ function CourseRow({ course, first, menuHint, onPress }: { course: MapCourse; fi
       ? t("planner.whatIfTag")
       : course.whatIf === "left-out"
         ? t("planner.droppedTag")
-        : `${t(`curriculum.status.${course.status}`)}${course.grade ? ` ${course.grade}` : ""}`;
+        : `${t(`curriculum.status.${course.status}`)}${course.grade && !gradesAreHidden ? ` ${course.grade}` : ""}`;
   // The code, then how it's counted (under an older code) or its SKS, then what isn't a status but is still true.
   const meta = factsLabel(
     course.code,
@@ -434,6 +439,7 @@ function CourseRow({ course, first, menuHint, onPress }: { course: MapCourse; fi
 /** "Counted as…": the passed courses that could stand in for a required one, SIX's own suggestion first. */
 function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecord; course: MapCourse; onPick: (code: string) => void; onClose: () => void }) {
   const t = useT();
+  const gradesAreHidden = useGradesHidden();
   const theme = useTheme();
   const all = standIns(record, course.code);
   const semester = record.required.get(course.code)?.semester;
@@ -469,7 +475,7 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
               ) : null}
             </View>
             <Meta>
-              {c.grade}
+              {gradesAreHidden ? null : c.grade}
               {`${c.sks ?? "-"} SKS`}
             </Meta>
           </Pressable>
@@ -596,7 +602,6 @@ function Notes({ name, startedOn, year, unlisted }: { name: string; startedOn: n
       <GroupRow
         title={title}
         meta={meta}
-        trailing={<Icons.ChevronRight size={20} color={v.muted} />}
         onPress={() => setOpen(true)}
         accessibilityRole="button"
         accessibilityLabel={factsLabel(name, note)}

@@ -1,20 +1,23 @@
-// Kuliah on the phone (round 3; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds, which course
-// is at risk, and the way into each. On v4's grey page under the bar's "Kuliah": what needs the Student now
-// (./now.tsx), then every course as a row in a white card: its tile, its whole name, and under it the state of its
-// absences in plain words ("Absen lewat 1×", "Jatah absen habis" in the risk's ink, "Sisa 2×" quiet). The
-// courses at risk (out of reach, none left, finished below) come first under "Perlu perhatian", the rest under "Aman"
-// (or "Lainnya" while some have no count yet), in the desktop's order. The row opens the course. The day's answer, the
-// target and how it's counted are in ⋮ (./footer.tsx's sheet), beside the targets. Same data and words as the desktop.
+// Kuliah on the phone (the super-app round; the desktop's Presensi, src/app/screens/presence.tsx): in three seconds,
+// is my attendance safe in every course, and the way into each. On the white page under the bar's "Kuliah", read top
+// to bottom: "Hari ini", always there (./now.tsx: the class on now as a block in its colour with "Isi Presensi", else
+// one quiet line on today's classes; a clash), then "Semester ini", every course as a flat row (./course-card.tsx):
+// its glyph in its colour, its name whole, its absences as dots and one short label, a chevron. The courses at
+// risk come first, the rest after them with no heading between (the state's colour says which is which; "Aman" as a
+// heading pushed the safe ones off the first screen). Without SIX the count is unknown: said once, on a line at the
+// top, never on each course. The targets and how it's counted are in ⋮ (./footer.tsx's sheet).
+
 import { useState } from "react";
 import { View } from "react-native";
 import { type Attendance, useAttendance } from "../../../../src/app/attendance";
 import { useNow, useT } from "../../../../src/app/i18n";
 import { useCourseNames } from "../../../../src/app/schedule-data";
 import { useDataset, useSettings } from "../../../../src/app/store";
-import type { PresenceGroup } from "../../../../src/core/attendance";
+import { BTabHeader } from "../../parts/b-header";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
-import { TabHeader } from "../../shell/source-status";
+import { guidePart } from "../../shell/guide/state";
+import { BHeading, useB } from "../../ui/b";
 import { EmptyState, Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
@@ -22,12 +25,11 @@ import { Page } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { Part } from "../../ui/parts";
 import { space, useTheme } from "../../ui/theme";
-import { CardGroup, SectionTitle } from "../../ui/v4-list";
-import { CourseRow } from "./course-row";
+import { CourseCard } from "./course-card";
 import { FactsSheet } from "./footer";
 import { SignInCard } from "./lead";
 import { groupsOf, nowZone, type RowContext, type Still, targetRange, type Zone } from "./logic";
-import { NowZone, nowShown } from "./now";
+import { NowZone, todayShown } from "./now";
 import { TargetsSheet } from "./targets-sheet";
 
 /**
@@ -60,10 +62,8 @@ export function useRowContext(onChangeTarget: (code: string) => void): { attenda
   return { attendance, context, zone };
 }
 
-/** The groups that ask the most of the Student: their courses share the first card. */
-const AT_RISK: readonly PresenceGroup[] = ["out", "none", "missed"];
-/** The groups with absences to spare or the target met: their card is "Aman"; with any course still uncounted, "Lainnya". */
-const CALM: readonly PresenceGroup[] = ["spare", "met"];
+/** How many courses are drawn with the screen's first frame; the rest come a frame later (../../ui/parts.tsx). */
+const FIRST = 4;
 
 /**
  * Kuliah (round 3): what needs the Student now, then the courses, at risk first under their heading, each a row that
@@ -72,7 +72,7 @@ const CALM: readonly PresenceGroup[] = ["spare", "met"];
 export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
   const t = useT();
   const theme = useTheme();
-  const v = theme.v4;
+  const b = useB();
   const name = useCourseNames();
   const [targets, setTargets] = useState<{ open: boolean; focus: string | null }>({ open: false, focus: null });
   const [facts, setFacts] = useState(false);
@@ -107,62 +107,56 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
       : []),
   ];
   const menu = choices.length ? <OverflowMenu testID="action.coursesMenu" choices={choices} /> : undefined;
-  const bands = [groups.filter((g) => AT_RISK.includes(g.group)), groups.filter((g) => !AT_RISK.includes(g.group))].filter((band) => band.length > 0);
+  // At risk first (the desktop's order), one list: each course says its own state.
+  const list = groups.flatMap(({ group, items }) => items.map((item) => ({ group, item })));
+  // "Hari ini" is always there while there's a timetable to read (./now.tsx): Presensi's fixed place.
+  const today = rows ? courses.length > 0 && todayShown(rows.zone, rows.attendance) : false;
   return (
     <Page
       testID="screen.courses"
-      header={<TabHeader v4 title={t("mobile.tab.courses")} actions={menu} />}
-      background={v.page}
+      header={<BTabHeader title={t("mobile.tab.courses")} actions={menu} />}
+      background={b.page}
       onRefresh={onRefresh}
       refreshing={refreshing}
     >
       {!rows ? (
         <Loading />
       ) : (
-        <View style={{ gap: space[4] }}>
+        <View>
           <SixPageNote datasets={["six.courses", "six.schedule"]} />
-          {!connected && courses.length > 0 && (
+          {!connected && courses.length > 0 && <SignInCard quiet={rows.zone.windows.length > 0} />}
+          {/* Each line comes and goes with its window (Appear, in ./now.tsx): no second move around them. */}
+          {today && (
+            <View testID="section.coursesNow">
+              <BHeading style={{ marginBottom: space[1] }}>{t("mobile.kuliah.today")}</BHeading>
+              <NowZone zone={rows.zone} attendance={rows.attendance} now={rows.context.now} />
+            </View>
+          )}
+          {courses.length === 0 ? (
+            !listChanged && (
+              <EmptyState
+                icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />}
+                title={t("presence.empty")}
+                description={t("presence.emptyHint")}
+              />
+            )
+          ) : (
             <Rise screen="courses" index={0}>
-              <SignInCard quiet={rows.zone.windows.length > 0} />
-            </Rise>
-          )}
-          {nowShown(rows.zone) && (
-            <Rise screen="courses" index={1}>
-              <NowZone zone={rows.zone} attendance={rows.attendance} />
-            </Rise>
-          )}
-          {courses.length === 0
-            ? !listChanged && (
-                <EmptyState
-                  icon={<Icons.BookOpen size={24} color={theme.color.onSecondaryContainer} />}
-                  title={t("presence.empty")}
-                  description={t("presence.emptyHint")}
-                />
-              )
-            : bands.map((band, i) => (
-                // The courses past the first card: a part of their own on a first draw ahead (../../ui/parts.tsx).
-                <Part key={band[0]!.group} at={i === 0 ? 0 : 1}>
-                  <Rise screen="courses" index={2 + i}>
-                    {/* With both bands, each under its name (said once for all its courses): never the rest under "Perlu perhatian". */}
-                    {bands.length > 1 && (
-                      <View style={i > 0 ? { marginTop: space[2] } : undefined}>
-                        <SectionTitle first>
-                          {t(i === 0 ? "mobile.kuliah.attention" : band.every((g) => CALM.includes(g.group)) ? "mobile.kuliah.calm" : "mobile.kuliah.rest")}
-                        </SectionTitle>
-                      </View>
-                    )}
-                    <CardGroup>
-                      {band.map(({ group, items }, g) => (
-                        <View key={group} testID={`group.presence.${group}`}>
-                          {items.map((item, r) => (
-                            <CourseRow key={item.course.code} item={item} group={group} context={rows.context} first={g === 0 && r === 0} />
-                          ))}
-                        </View>
-                      ))}
-                    </CardGroup>
-                  </Rise>
+              {/* A heading only when something sits above the courses: alone under the bar's "Kuliah" they need none. */}
+              {today && <BHeading style={{ marginTop: space[3], marginBottom: space[1] }}>{t("mobile.kuliah.term")}</BHeading>}
+              <View testID="list.courses" ref={guidePart("list.courses")} style={{ marginTop: !today && !connected ? space[2] : 0 }}>
+                {list.slice(0, FIRST).map(({ group, item }) => (
+                  <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
+                ))}
+                {/* The courses past the first few: on the frame after the first (the tab's first frame stays light). */}
+                <Part at={1}>
+                  {list.slice(FIRST).map(({ group, item }) => (
+                    <CourseCard key={item.course.code} item={item} group={group} context={rows.context} />
+                  ))}
                 </Part>
-              ))}
+              </View>
+            </Rise>
+          )}
         </View>
       )}
       {rows && courses.length > 0 && <FactsSheet attendance={rows.attendance} open={facts} onClose={() => setFacts(false)} />}
@@ -178,22 +172,13 @@ export function CoursesScreen({ onRefresh, refreshing }: { onRefresh: () => void
   );
 }
 
-/** Kuliah's shape before its data: a card of rows, each a name over its meter. Never a spinner on a blank page. */
+/** Kuliah's shape before its data: the courses' blocks, a name over its status. Never a spinner on a blank page. */
 function Loading() {
-  const v = useTheme().v4;
   return (
-    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[4] }}>
-      <View style={{ backgroundColor: v.card, borderRadius: 20, overflow: "hidden" }}>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingHorizontal: 14, paddingVertical: space[3], minHeight: 68 }}>
-            <Skeleton height={44} width={44} style={{ borderRadius: 14 }} />
-            <View style={{ flex: 1, gap: space[2] }}>
-              <Skeleton height={16} width={i % 2 ? "60%" : "80%"} />
-              <Skeleton height={12} width={112} />
-            </View>
-          </View>
-        ))}
-      </View>
+    <View accessibilityState={{ busy: true }} testID="courses.loading" style={{ gap: space[2] }}>
+      {[0, 1, 2, 3, 4, 5].map((row) => (
+        <Skeleton key={row} height={68} style={{ borderRadius: 16 }} />
+      ))}
     </View>
   );
 }

@@ -1,0 +1,90 @@
+# Journey 5, after an exam: my grade, and what it does to my IPK.
+# limit: 2
+# Taps: Beranda's "Nilai" tile (opens on the IPK, big), a course of this term (its own page, with the lecturer's grade).
+# Then, not counted, Ujian: the exam by the same name on the list and on its page.
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 5 after an exam: Beranda, Nilai, a course"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 30000
+# tap 1: the "Nilai" tile.
+- tapOn:
+    id: action.service.grades
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 20000
+# The IPK, big, is the first thing.
+- assertVisible:
+    id: card.standing
+- takeScreenshot: journey-5-nilai
+# What the unfinished term does to the IPK sits under this term's courses.
+- scrollUntilVisible:
+    element:
+      id: row.course.DK4073
+    direction: DOWN
+# The course by its name on this list...
+- assertVisible: ".*Komunikasi Pemasaran.*"
+# tap 2: the course.
+- tapOn:
+    id: row.course.DK4073
+- extendedWaitUntil:
+    visible:
+      id: screen.course
+    timeout: 20000
+# ...and on its own page.
+- assertVisible: ".*Komunikasi Pemasaran.*"
+# goal
+- takeScreenshot: journey-5-course
+- back
+- extendedWaitUntil:
+    visible:
+      id: screen.grades
+    timeout: 10000
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+# Not counted: the exam's own page, from the "Ujian" tile, by the name Ujian gives it ("<kind> <course>").
+- tapOn:
+    id: action.service.exams
+- extendedWaitUntil:
+    visible:
+      id: screen.exams
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: row.exam.DK4073-UTS
+    direction: DOWN
+- assertVisible: ".*UTS Komunikasi Pemasaran.*"
+- tapOn:
+    id: row.exam.DK4073-UTS
+- extendedWaitUntil:
+    visible:
+      id: screen.exam
+    timeout: 20000
+- assertVisible: ".*UTS Komunikasi Pemasaran.*"
+- takeScreenshot: journey-5-exam
+- back
+- extendedWaitUntil:
+    visible:
+      id: screen.exams
+    timeout: 10000
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000

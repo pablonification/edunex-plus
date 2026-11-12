@@ -1,0 +1,74 @@
+# Journey 4, after class: this week's material for that course, opened.
+# limit: 2
+# Taps: Beranda's "Materi" tile, then an item. Materi opens on a course (the one last picked; the first time, the one
+# something was posted to last) with every module of it open, in Edunex's order, at the module that course is on
+# (src/screens/material/courses.ts). In the demo (8 October) that is Proposal Tugas Akhir (II4091), at the module that
+# got the Teams link of Pertemuan 03 this week (row.material.889385, test/fixtures/edunex course contents, created
+# 5 Oct): a meeting link that leaves the app (found on the real phone). So the walk opens a note of the same course
+# instead, "Link Penawaran Topik TA" (row.material.880001, II4091's module 450218, test/pretend/edunex-modules.ts):
+# an earlier module, so above where the list opens. A note opens its module's screen (where it is read in full), so
+# the journey stays inside the app. Scrolling isn't a tap.
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 4 after class: Beranda, Materi, an item"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 30000
+# tap 1: the grid's "Materi" tile.
+- tapOn:
+    id: action.service.material
+- extendedWaitUntil:
+    visible:
+      id: screen.material
+    timeout: 20000
+# The tile's word is the screen's word.
+- assertVisible: "Materi"
+- extendedWaitUntil:
+    visible:
+      id: list.material
+    timeout: 30000
+# The list opens at the module the course is on: this week's item is there without a tap.
+- scrollUntilVisible:
+    element:
+      id: row.material.889385
+    direction: DOWN
+- takeScreenshot: journey-4-materi
+# The course picked is said once, and its chip is there to change it.
+- assertVisible:
+    id: chip.material.II4091
+- scrollUntilVisible:
+    element:
+      id: row.material.880001
+    direction: UP
+    centerElement: true
+# tap 2: the note; its module (the files and notes) opens, not a list again.
+- tapOn:
+    id: row.material.880001
+- extendedWaitUntil:
+    visible:
+      id: screen.module
+    timeout: 20000
+# goal
+- takeScreenshot: journey-4-module
+# Back goes item -> Materi -> Beranda, one step each.
+- back
+- extendedWaitUntil:
+    visible:
+      id: screen.material
+    timeout: 10000
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000

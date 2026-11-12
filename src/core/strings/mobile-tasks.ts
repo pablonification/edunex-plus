@@ -57,4 +57,36 @@ export const mobileTasksStrings = {
   "mobile.tasks.handedIn": { id: "Terkumpul", en: "Handed in" },
   // An exam row's one status when SIX and Edunex give it different days (the days themselves on the exam's page).
   "mobile.tasks.chip.disagree": { id: "Tanggal beda", en: "Dates differ" },
+  // superapp: Tugas
+  // The first words under the counts when nothing runs out today (a group named "Hari ini" says it when something does).
+  "mobile.tasks.today": { id: "Hari ini", en: "Today" },
+  "mobile.tasks.todayNone": { id: "Hari ini kosong", en: "Nothing due today" },
+  // After a hand-in, where Kumpulkan was: what's next in one tap, or the way to see it under Selesai.
+  "mobile.tasks.movedToDone": { id: "Sudah masuk Selesai", en: "Now under Done" },
+  "mobile.tasks.see": { id: "Lihat", en: "See" },
+  "mobile.tasks.seeDone": { id: "Lihat di Selesai", en: "See it in Done" },
+  "mobile.tasks.next": { id: "Berikutnya", en: "Next" },
+  // superapp: Tugas, round 2
+  // A Task's page: where it stands in one line ("Terkumpul 18 Sep", with "terlambat" after it when it went in past the
+  // deadline), then marks, a glyph and a word each, their sentences a sheet away: whether the hand-in counted as
+  // present, a Presensi that closed without it, a window that is short ("Hanya 2 jam").
+  "mobile.tasks.handedInOn": { id: "Terkumpul {date}", en: "Handed in {date}" },
+  "mobile.tasks.handedInLate": { id: "terlambat", en: "late" },
+  // After "Terkumpul 18 Sep · ": a hand-in inside the Presensi window counts as attendance, said in the line itself.
+  "mobile.tasks.present": { id: "dihitung hadir", en: "counted present" },
+  "mobile.tasks.notPresent": { id: "tidak dihitung hadir", en: "not counted present" },
+  // The button on "Diubah dosen 22 Sep": it marks the change as checked, and the notice goes.
+  "mobile.tasks.markChecked": { id: "Tandai dicek", en: "Mark checked" },
+  "mobile.tasks.presenceMissed": { id: "Presensi terlewat", en: "Presence missed" },
+  "mobile.tasks.shortWindow": { id: "Hanya {duration}", en: "Only {duration}" },
+  // A lecturer's edit as one row ("Diubah dosen 22 Sep") with "Sudah kucek"; its info button's name for TalkBack.
+  "mobile.tasks.editedOn": { id: "Diubah dosen {date}", en: "Lecturer edited {date}" },
+  "mobile.tasks.editedWhy": { id: "Tentang perubahan ini", en: "About this change" },
+  // What a row or the lead card is when it's an exam, beside the exam glyph.
+  "mobile.tasks.kindExam": { id: "Ujian", en: "Exam" },
+  // superapp: Tugas, round 3. What the lead card is when it's a Task, beside the Task glyph.
+  "mobile.tasks.kindTask": { id: "Tugas", en: "Task" },
+  // The Task page's one info button beside "Terkumpul 18 Sep": its name, and what's behind it.
+  "mobile.tasks.statusWhy": { id: "Tentang status ini", en: "About this status" },
+  "mobile.tasks.onlyLecturer": { id: "Hanya dosen yang bisa mengembalikannya.", en: "Only your lecturer can hand it back." },
 } as const satisfies Record<string, Entry>;

@@ -1,0 +1,353 @@
+// The super-app layout's shared parts (mobile/DESIGN.md, "The kit"): the few things every screen says the same way.
+// One presence button, one plain progress bar, one clash sign, one tappable figure, one heading, one flat row. Each
+// is views and one-Path icons, moves only through PressScale (the UI thread; still with Remove animations), and does
+// no work until it's drawn.
+import type { ReactNode } from "react";
+import type { AccessibilityProps } from "react-native";
+import { View } from "react-native";
+import { useT } from "../../../src/app/i18n";
+import { BHeading, BRow, CountCell } from "./b";
+import { PulseDot } from "./expressive";
+import { type IconName, Icons } from "./icons";
+import { PressScale } from "./press";
+import { Text } from "./text";
+import { space, useTheme } from "./theme";
+
+const clamp = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
+
+/**
+ * The one presence button (testID `action.presence`): the raised hand, the word, and when it matters the one time on
+ * the same line ("tutup 09:30"). A 48 dp pill, like `BigButton`. The word is "Isi Presensi" (Edunex) unless `label`
+ * says another: "Tandai Hadir" (SIX's own word), with the same hand. `icon` is for the block's one other main action
+ * that isn't a presence (joining an online class: "Video"); a presence is always the hand, never an arrow.
+ * Two tones, final:
+ *  - "page": on the page. The brand's blue, white words (dark: the pale blue, navy words). The look to keep on Kuliah.
+ *  - "course": on a block of a course's colour. White, the hand and the words in `ink`, the course's colour.
+ * `quiet` is the same part outlined, for when nobody can say it counts (no SIX). `wide` fills its row. What a screen
+ * reader says is `accessibilityLabel` (the course, and where it opens); the word and the time when left out.
+ *
+ *   <PresenceButton tone="course" ink={courseColor} time={t("…closes", { time })} onPress={fill} />
+ *   <PresenceButton label={t("mobile.notification.checkIn")} testID="action.checkIn" onPress={markInSix} />
+ */
+export function PresenceButton({
+  onPress,
+  children,
+  label,
+  icon = "Hand",
+  tone = "page",
+  ink,
+  time,
+  quiet = false,
+  wide = false,
+  disabled = false,
+  testID = "action.presence",
+  accessibilityLabel,
+  ...a11y
+}: {
+  onPress(): void;
+  /** The word, when it isn't "Isi Presensi" ("Tandai Hadir" in SIX). */
+  label?: string;
+  /** The word as a child: the same as `label`, kept for the screens that pass it so. */
+  children?: string;
+  /** The glyph before the word: the raised hand for a presence, always. */
+  icon?: IconName;
+  tone?: "page" | "course";
+  /** On a course's block: the course's colour, for the words and the hand (4.5:1 on white). */
+  ink?: string;
+  /** The one time that matters, already in words ("tutup 09:30"). */
+  time?: string;
+  /** Outlined, not filled. */
+  quiet?: boolean;
+  wide?: boolean;
+  disabled?: boolean;
+  testID?: string;
+} & AccessibilityProps) {
+  const t = useT();
+  const v = useTheme().v4;
+  const Glyph = Icons[icon];
+  const word = label ?? children ?? t("presence.open.fill");
+  const onCourse = tone === "course";
+  const fill = quiet ? "transparent" : onCourse ? "#ffffff" : v.brand;
+  const fg = quiet ? (onCourse ? v.onCourse : v.fg) : onCourse ? (ink ?? "#14171c") : v.onBrand;
+  return (
+    <PressScale
+      onPress={onPress}
+      disabled={disabled}
+      testID={testID}
+      accessibilityLabel={accessibilityLabel ?? (time ? `${word}, ${time}` : word)}
+      {...a11y}
+      style={{
+        minHeight: 48,
+        borderRadius: 24,
+        backgroundColor: fill,
+        borderWidth: quiet ? 1.5 : 0,
+        borderColor: onCourse ? v.onCourse : v.line,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: space[2],
+        paddingHorizontal: space[5],
+        paddingVertical: space[2],
+        alignSelf: wide ? "stretch" : "flex-start",
+        flexShrink: 0,
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <Glyph size={20} color={fg} weight="fill" />
+      <Text size="labelLarge" weight="bold" numberOfLines={1} style={{ color: fg, fontSize: 15, lineHeight: 20, letterSpacing: 0, flexShrink: 0 }}>
+        {word}
+      </Text>
+      {time ? (
+        <Text size="bodyMedium" tabular numberOfLines={1} style={{ color: fg, fontSize: 14, lineHeight: 20, letterSpacing: 0, flexShrink: 1 }}>
+          {`· ${time}`}
+        </Text>
+      ) : null}
+    </PressScale>
+  );
+}
+
+/**
+ * A plain progress bar: a track, filled to `value` (0 to 1), and at most one short label at its end (the one time that
+ * matters). No wave, no dot, nothing that moves by itself. In a row it takes the room left (`flex: 1`).
+ * A screen reader hears `label`.
+ */
+export function PlainBar({
+  value,
+  color,
+  track,
+  label,
+  end,
+  endColor,
+  height = 4,
+}: {
+  value: number;
+  /** The fill; the brand's blue when left out. */
+  color?: string;
+  /** The empty part; the page's hairline grey when left out. On a course's block: the ink at about 30%. */
+  track?: string;
+  label: string;
+  /** Words after the bar ("tutup 09:30"). */
+  end?: string;
+  endColor?: string;
+  height?: number;
+}) {
+  const v = useTheme().v4;
+  const share = clamp(value);
+  return (
+    <View style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: space[3], minHeight: 20 }}>
+      <View
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={label}
+        accessibilityValue={{ min: 0, max: 100, now: Math.round(share * 100) }}
+        style={{ flex: 1, height, borderRadius: height / 2, backgroundColor: track ?? v.line, overflow: "hidden" }}
+      >
+        <View style={{ width: `${share * 100}%`, height, borderRadius: height / 2, backgroundColor: color ?? v.brand }} />
+      </View>
+      {end ? (
+        <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: endColor ?? v.fg2, fontSize: 13, lineHeight: 18, letterSpacing: 0 }}>
+          {end}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+/**
+ * The one clash sign: the overlap icon and the word "Bentrok", in amber, on one line. `detail` adds what it clashes
+ * with or when, after the word ("Bentrok 16:00"). The same on Beranda, Jadwal and Kuliah.
+ */
+export function ClashMark({ detail, color }: { detail?: string; color?: string }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const fg = color ?? v.ambFg;
+  const word = t("home.today.overlap");
+  return (
+    <View
+      accessible
+      accessibilityLabel={detail ? `${word} ${detail}` : word}
+      style={{ flexDirection: "row", alignItems: "center", gap: space[1], flexShrink: 1 }}
+    >
+      <Icons.Overlap size={16} color={fg} weight="fill" />
+      <Text size="bodyMedium" weight="semibold" numberOfLines={1} style={{ color: fg, fontSize: 13, lineHeight: 18, letterSpacing: 0, flexShrink: 1 }}>
+        {detail ? `${word} ${detail}` : word}
+      </Text>
+    </View>
+  );
+}
+
+/**
+ * One of the strip's three: a figure (or a check for good news, never "0"), what it counts, and a small chevron that
+ * says it opens something. The figure sits in a fixed 32 dp line and the label is always one line (it shrinks a
+ * little, then is cut: give it two words), so three cells share a baseline whatever their labels' length. The whole tile is one target. `tone`: "danger" (red) and "warn" (amber) colour the figure
+ * only; the label stays quiet. Side by side inside b.tsx's `CountStrip`.
+ */
+export function StatTile({
+  value,
+  label,
+  mark = false,
+  tone = "plain",
+  pending = false,
+  onPress,
+  testID,
+  ...a11y
+}: {
+  value: string;
+  label: string;
+  mark?: boolean;
+  tone?: "plain" | "warn" | "danger";
+  pending?: boolean;
+  onPress(): void;
+  testID?: string;
+} & AccessibilityProps) {
+  const v = useTheme().v4;
+  const ink = tone === "danger" ? v.redFg : tone === "warn" ? v.ambFg : undefined;
+  return <CountCell value={value} label={label} mark={mark} ink={ink} pending={pending} onPress={onPress} testID={testID} {...a11y} />;
+}
+
+/** A section's heading on the page: b.tsx's `BHeading` under the name the screens ask for. Use either; they are one part. */
+export const SectionHeading = BHeading;
+
+/**
+ * A flat row on the page: a leading slot, the title, one meta line, one trailing slot, an inset hairline under all but
+ * the `last`, the whole row one target (64 dp). b.tsx's `BRow` under the name the screens ask for; they are one part.
+ */
+export const FlatRow = BRow;
+
+/** The class-on-now block's measures, Beranda's: one look on Beranda, a course's page and Kuliah. */
+export const NOW = { radius: 28, pad: space[4], nameLine: 26, barRow: 20, lineRadius: 20 } as const;
+
+/**
+ * The class on now, as one block (Beranda's look): the course's deep colour (`fill`, the light theme's course ink, the
+ * same by day and by night) with white on it. Top to bottom: the kicker line ("Sekarang · 9009", with a dot that pulses
+ * a few times then rests when `live`, and a chevron when `onPress`), the name on up to two lines, one plain bar whose
+ * end says what it measures ("tutup 09:30"), and `children` under it for the one button (a `PresenceButton tone="course"
+ * ink={fill}`). The block itself opens `onPress` (the class's sheet or page).
+ *
+ *   <NowBlock fill={fill} kicker={["Sekarang", room]} live title={name}
+ *     bar={{ value, end: t("…closes", { time }), label }} onPress={open}>
+ *     <PresenceButton tone="course" ink={fill} onPress={fillIn} />
+ *   </NowBlock>
+ */
+export function NowBlock({
+  fill,
+  kicker,
+  live = false,
+  title,
+  bar,
+  children,
+  onPress,
+  accessibilityHint,
+  testID,
+}: {
+  fill: string;
+  /** The line over the name; empty parts are left out and the rest joined with " · ". */
+  kicker: readonly (string | null | undefined | false)[];
+  live?: boolean;
+  title: string;
+  bar?: { value: number; end?: string; label: string } | null;
+  /** The button under the bar. */
+  children?: ReactNode;
+  onPress?: () => void;
+  accessibilityHint?: string;
+  testID?: string;
+}) {
+  const on = useTheme().v4.onHead;
+  const line = kicker.filter(Boolean).join(" · ");
+  const body = (
+    <>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 20 }}>
+        {live && <PulseDot color={on} />}
+        <Text size="labelLarge" weight="medium" numberOfLines={1} style={{ color: on, flex: 1 }}>
+          {line}
+        </Text>
+        {onPress && <Icons.ChevronRight size={20} color={on} />}
+      </View>
+      <Text
+        size="titleLarge"
+        face="display"
+        weight="bold"
+        numberOfLines={2}
+        style={{ color: on, fontSize: 20, lineHeight: NOW.nameLine, letterSpacing: -0.3, marginTop: space[1] }}
+      >
+        {title}
+      </Text>
+      {bar ? (
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: space[2.5], minHeight: NOW.barRow }}>
+          <PlainBar value={bar.value} color={on} track={`${on}59`} height={6} label={bar.label} end={bar.end} endColor={on} />
+        </View>
+      ) : null}
+    </>
+  );
+  return (
+    <View testID={testID} style={{ backgroundColor: fill, borderRadius: NOW.radius, padding: NOW.pad }}>
+      {onPress ? (
+        <PressScale onPress={onPress} accessibilityHint={accessibilityHint}>
+          {body}
+        </PressScale>
+      ) : (
+        body
+      )}
+      {children ? <View style={{ marginTop: space[3] }}>{children}</View> : null}
+    </View>
+  );
+}
+
+/**
+ * The same block at its small size, for a list of them (Kuliah): the name on up to two lines with one short line under
+ * it (`meta`: the time, tabular), and the button beside it when the width allows, under it when not (it wraps).
+ * `button` gets the course colour, for a `PresenceButton tone="course" ink={…}`.
+ */
+export function NowLine({
+  fill,
+  title,
+  meta,
+  live = false,
+  button,
+  onPress,
+  testID,
+}: {
+  fill: string;
+  title: string;
+  meta?: string;
+  live?: boolean;
+  button?: (ink: string) => ReactNode;
+  onPress?: () => void;
+  testID?: string;
+}) {
+  const on = useTheme().v4.onHead;
+  const words = (
+    <>
+      <Text size="bodyLarge" face="display" weight="bold" numberOfLines={2} style={{ color: on, lineHeight: 22 }}>
+        {title}
+      </Text>
+      {meta ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: space[2], marginTop: 2 }}>
+          {live && <PulseDot color={on} />}
+          <Text size="bodyMedium" weight="medium" tabular numberOfLines={1} style={{ color: on, flexShrink: 1 }}>
+            {meta}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+  return (
+    <View
+      testID={testID}
+      style={{
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "center",
+        columnGap: space[3],
+        rowGap: space[3],
+        backgroundColor: fill,
+        borderRadius: NOW.lineRadius,
+        paddingVertical: space[3],
+        paddingHorizontal: space[4],
+      }}
+    >
+      <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 120, minWidth: 0 }}>{onPress ? <PressScale onPress={onPress}>{words}</PressScale> : words}</View>
+      {button ? button(fill) : null}
+    </View>
+  );
+}

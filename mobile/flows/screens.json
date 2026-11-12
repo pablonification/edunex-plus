@@ -26,7 +26,7 @@
     "plan (v4): Rencana is long (card, past semesters, this one, planned ones, rules, outlook, minors), and a check that ends at the rules can't scroll back to the top in time: the entries above this semester's courses (no context, or this semester's own) first scroll up to the card (card.planSummary). Kalender's Evaluasi kemajuan studi says the passed SKS in its sheet, so that entry opens it.",
     "home (after class): the day goes on to 16:05 (test/pretend/demo.ts), so PL3002 and DK4073 are over and the now card is PL3032 with KU5014 beside it. Hari ini's classes and the now card's two classes open their sheet from Jadwal's day (row.class.<code>-<hh-mm>), the same sheet Beranda opens, at any hour of the demo: it says Sekarang for a class on now and, for one that's over, SIX's verdict as its chip (Dihitung di SIX, Tercatat tidak hadir, Belum dihitung SIX).",
     "schedule (moved class): PL3002 on Kamis, 8 Oktober runs 08:00–10:00 instead of its usual 08:00–09:30, and the desktop's block is read as '10:00' (schedule.week.class-session.10-00). Jadwal's block says only 'Jam berubah', so that entry opens the class's sheet, where 'Biasanya 08:00–09:30' is.",
-    "presence: Kuliah's day answer ('Hari ini, PL3002 masih ada jatah absen.'), its target and the key to the absences ('Cara baca jatah absen') are in the big number's sheet (sheet.kuliahFacts), so those entries (presence.attendance.pl3002…, presence.note.80…) open it.",
+    "presence: Kuliah's day answer ('Hari ini, PL3002 masih ada jatah absen.'), its target and the key to the absences ('Cara baca jatah absen') are in the key's sheet (sheet.kuliahFacts, from the bar's ⋮ menu: action.coursesMenu, then action.howCounted), so those entries (presence.attendance.pl3002…, presence.note.80…) open it.",
     "settings: Warna mata kuliah's rows hold every course code (the desktop's light and dark preview bands, settings.setting.dk4073 and -2); a check run 41783358929 counted PL3032 on screen while it was still below the fold, so those entries first bring the last row into view.",
     "home (round 3): Beranda has no course list (one fact, one place: Kuliah lists the term's courses with their absences left), so the desktop Beranda's course rows (home.absence-budget.*) are checked on Kuliah."
   ],
@@ -148,13 +148,13 @@
           },
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
             "extendedWaitUntil": {
               "visible": {
-                "id": "screen.academic"
+                "id": "screen.profile"
               },
               "timeout": 5000,
               "optional": true
@@ -164,24 +164,26 @@
             "runFlow": {
               "when": {
                 "notVisible": {
-                  "id": "screen.academic"
+                  "id": "screen.profile"
                 }
               },
               "commands": [
                 {
                   "tapOn": {
-                    "id": "tab.academic"
+                    "id": "tab.profile"
                   }
                 }
               ]
             }
           },
           {
-            "extendedWaitUntil": {
-              "visible": {
+            "scrollUntilVisible": {
+              "element": {
                 "id": "action.account"
               },
-              "timeout": 10000
+              "direction": "DOWN",
+              "timeout": 20000,
+              "centerElement": true
             }
           },
           {
@@ -231,15 +233,15 @@
           },
           {
             "extendedWaitUntil": {
-              "visible": {
-                "id": "card.firstScan"
+              "notVisible": {
+                "id": "status.firstRead"
               },
               "timeout": 600000
             }
           }
         ]
       },
-      "$comment": "Round 2 (W15): the welcome is one screen; 'connected' is who's signed in, on Settings once SIX joined; 'ready' is Beranda's summary card once the first read is in.",
+      "$comment": "Round 2 (W15): the welcome is one screen; 'connected' is who's signed in, on Settings once SIX joined; 'ready' is Beranda once the first read is in (it draws no summary card now: the summary is the snackbar's \"Lihat ringkasan\" or Settings.",
       "relaunch": true
     },
     "first-scan": {
@@ -307,16 +309,22 @@
               },
               {
                 "extendedWaitUntil": {
-                  "visible": {
-                    "id": "card.firstScan"
+                  "notVisible": {
+                    "id": "status.firstRead"
                   },
                   "timeout": 600000
                 }
               },
               {
-                "tapOn": {
-                  "id": "action.firstScan.open",
-                  "optional": true
+                "runFlow": {
+                  "when": {
+                    "visible": "Lihat ringkasan"
+                  },
+                  "commands": [
+                    {
+                      "tapOn": "Lihat ringkasan"
+                    }
+                  ]
                 }
               },
               {
@@ -341,13 +349,13 @@
             "commands": [
               {
                 "tapOn": {
-                  "id": "tab.academic"
+                  "id": "tab.profile"
                 }
               },
               {
                 "extendedWaitUntil": {
                   "visible": {
-                    "id": "screen.academic"
+                    "id": "screen.profile"
                   },
                   "timeout": 5000,
                   "optional": true
@@ -357,24 +365,26 @@
                 "runFlow": {
                   "when": {
                     "notVisible": {
-                      "id": "screen.academic"
+                      "id": "screen.profile"
                     }
                   },
                   "commands": [
                     {
                       "tapOn": {
-                        "id": "tab.academic"
+                        "id": "tab.profile"
                       }
                     }
                   ]
                 }
               },
               {
-                "extendedWaitUntil": {
-                  "visible": {
+                "scrollUntilVisible": {
+                  "element": {
                     "id": "action.account"
                   },
-                  "timeout": 10000
+                  "direction": "DOWN",
+                  "timeout": 20000,
+                  "centerElement": true
                 }
               },
               {
@@ -1865,12 +1875,12 @@
         "^courses\\.account\\.": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
             "assertVisible": {
-              "id": "screen.academic"
+              "id": "screen.profile"
             }
           }
         ],
@@ -3742,18 +3752,13 @@
             }
           },
           {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "card.kuliahNumber"
-              },
-              "direction": "UP",
-              "timeout": 4000,
-              "optional": true
+            "tapOn": {
+              "id": "action.coursesMenu"
             }
           },
           {
             "tapOn": {
-              "id": "card.kuliahNumber"
+              "id": "action.howCounted"
             }
           },
           {
@@ -3813,18 +3818,13 @@
             }
           },
           {
-            "scrollUntilVisible": {
-              "element": {
-                "id": "card.kuliahNumber"
-              },
-              "direction": "UP",
-              "timeout": 4000,
-              "optional": true
+            "tapOn": {
+              "id": "action.coursesMenu"
             }
           },
           {
             "tapOn": {
-              "id": "card.kuliahNumber"
+              "id": "action.howCounted"
             }
           },
           {
@@ -4589,7 +4589,7 @@
             "commands": [
               {
                 "tapOn": {
-                  "id": "tab.academic"
+                  "id": "tab.profile"
                 }
               },
               {
@@ -4626,7 +4626,7 @@
               "commands": [
                 {
                   "tapOn": {
-                    "id": "tab.academic"
+                    "id": "tab.profile"
                   }
                 },
                 {
@@ -4701,7 +4701,7 @@
       "steps": [
         {
           "tapOn": {
-            "id": "tab.academic"
+            "id": "tab.profile"
           }
         },
         {
@@ -4730,7 +4730,7 @@
         "^rencana$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -4784,7 +4784,7 @@
         "^kurikulum$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -4812,7 +4812,7 @@
         "^krs$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -4840,7 +4840,7 @@
         "^ukt$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -4868,7 +4868,7 @@
         "^kalender-akademik$": [
           {
             "tapOn": {
-              "id": "tab.academic"
+              "id": "tab.profile"
             }
           },
           {
@@ -5380,13 +5380,13 @@
       "steps": [
         {
           "tapOn": {
-            "id": "tab.academic"
+            "id": "tab.profile"
           }
         },
         {
           "extendedWaitUntil": {
             "visible": {
-              "id": "screen.academic"
+              "id": "screen.profile"
             },
             "timeout": 5000,
             "optional": true
@@ -5396,24 +5396,26 @@
           "runFlow": {
             "when": {
               "notVisible": {
-                "id": "screen.academic"
+                "id": "screen.profile"
               }
             },
             "commands": [
               {
                 "tapOn": {
-                  "id": "tab.academic"
+                  "id": "tab.profile"
                 }
               }
             ]
           }
         },
         {
-          "extendedWaitUntil": {
-            "visible": {
+          "scrollUntilVisible": {
+            "element": {
               "id": "action.account"
             },
-            "timeout": 10000
+            "direction": "DOWN",
+            "timeout": 20000,
+            "centerElement": true
           }
         },
         {

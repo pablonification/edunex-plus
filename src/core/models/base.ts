@@ -124,6 +124,13 @@ export const Settings = z.object({
   /** How far ahead "Perlu perhatianmu" looks: what's due by the end of that day shows there (see `needsRange`). */
   needsAhead: NeedsAhead,
 
+  // Grades
+  /**
+   * On the phone only: "Sembunyikan nilai". While on, no grade is readable there (the IPK, each IP, every course's
+   * grade, a new grade's notification). The desktop doesn't read it. Saved from the phone's hide-grades on; off before.
+   */
+  hideGrades: z.boolean().optional(),
+
   // Files
   /** The app the Student last opened each kind of file in, by extension (".pdf"): its place on this computer. */
   openWith: z.record(z.string().max(16), z.string().max(1000)),
@@ -171,6 +178,9 @@ export const DEFAULT_SETTINGS: Settings = {
 
   // Beranda
   needsAhead: 7,
+
+  // Grades
+  hideGrades: false,
 
   // Files
   openWith: {},

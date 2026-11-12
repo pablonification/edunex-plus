@@ -41,7 +41,7 @@ appId: io.github.pablonification.edunexplus.demo
 - assertVisible: ".*TVST C.*"
 - back
 - tapOn:
-    id: tab.academic
+    id: tab.profile
 - assertVisible:
-    id: action.academic.grades
+    id: card.profile
 - assertVisible: "3,26"

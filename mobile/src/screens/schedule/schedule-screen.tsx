@@ -1,19 +1,18 @@
-// Jadwal (round 2, v4: mobile/design/r2-directions/v4, "v4-jadwal"): where am I next, and what's this week like. The
-// month is the screen's one title, the term's week quietly under it; the week strip with each day's courses as dots,
-// today in the brand's blue; then the day picked (today first) as hours with each class a block in its course's tint,
-// the now-line in the same blue. A swipe across the day moves a day, across the strip a week. A class opens Beranda's
-// class sheet (one sheet for a class, wherever it's opened); a hand-in, a deadline or a meeting only Edunex announced
-// opens its own (./details.tsx).
-// The month is the top bar's calendar button; the reminder before class, the phone's calendar and the .ics are in ⋮.
-// Data and reasoning are the desktop's (scheduleDays over the same input); the minute's tick reaches only the now-line
-// and the block on now (./clock.ts).
+// Jadwal: where am I next, and what's this week like. On the white page with every tab's top bar (the tab's name, the
+// month and the term's week quietly under it, then the month's button, ⋮, Search and the bell); the week strip with each
+// day's courses as dots, today in the brand's blue; then the day picked (today first) as hours with each class a block
+// in its course's tint, the now-line in the same blue. A swipe across the day moves a day, across the strip a week. A
+// class opens Beranda's class sheet (one sheet for a class, wherever it's opened); a hand-in, a deadline or a meeting
+// only Edunex announced opens its own (./details.tsx). The reminder before class, the phone's calendar and the .ics are
+// in ⋮. Data and reasoning are the desktop's (scheduleDays over the same input); the minute's tick reaches only the
+// now-line and the block on now (./clock.ts).
+
 import * as Notifications from "expo-notifications";
 import { router, useIsFocused, useScrollToTop } from "expo-router";
 import { type ComponentRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Linking, Pressable, RefreshControl, ScrollView, View } from "react-native";
+import { Linking, RefreshControl, ScrollView, useWindowDimensions, View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
 import Animated, { FadeInLeft, FadeInRight } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useClock, useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useSettings, useStatus } from "../../../../src/app/store";
@@ -22,18 +21,21 @@ import { isEmptyDay, minuteOfDay, type ScheduleDay, scheduleDays, shiftDay, term
 import { useParam } from "../../nav";
 import { SixPageNote, useChangedPage } from "../../parts/six-page-note";
 import { usePerfDrawn } from "../../perf";
+import { guidePart } from "../../shell/guide/state";
 import { StatusLine, SyncPanel, TabActions, useSignIn, useSyncText } from "../../shell/source-status";
 import { toast } from "../../swaps/overlays";
-import { Button } from "../../ui/controls";
+import { Button, IconButton } from "../../ui/controls";
 import { Skeleton } from "../../ui/display";
 import { Rise } from "../../ui/expressive";
 import { Icons } from "../../ui/icons";
+import { usePageEnd, useTopInset } from "../../ui/insets";
 import { Notice } from "../../ui/layout";
 import { OverflowMenu } from "../../ui/menu";
 import { useReduceMotion } from "../../ui/motion";
+import { Tap } from "../../ui/moves";
 import { Part } from "../../ui/parts";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { space, TOUCH, useTheme } from "../../ui/theme";
 import { PhoneCalendarSync, useCalendarSync, useShareIcs } from "./calendar-sync";
 import { useDayFormat, useToday } from "./clock";
 import { DayView, HOUR, hoursOf, type NextClass } from "./day";
@@ -64,7 +66,6 @@ const weekday = (day: string) => (new Date(`${day}T12:00:00Z`).getUTCDay() + 6) 
 
 function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing: boolean }) {
   const theme = useTheme();
-  const v = theme.v4;
   const input = useAgendaInput();
   const six = useStatus("six");
   const today = useToday();
@@ -133,8 +134,8 @@ function Schedule({ onRefresh, refreshing }: { onRefresh: () => void; refreshing
   }, [pick]);
 
   return (
-    // On the grey page every tab has (round 3: Jadwal alone was white), the day's blocks in their tints on it.
-    <View testID="screen.schedule" style={{ flex: 1, backgroundColor: v.page }}>
+    // On the white page every tab has now (superapp-decisions.md), the day's blocks in their tints on it.
+    <View testID="screen.schedule" ref={guidePart("screen.schedule")} style={{ flex: 1, backgroundColor: theme.color.surface }}>
       <ScheduleHeader monday={monday} picked={picked} onToday={() => pick(today, today > picked ? 1 : -1)} />
       {waiting || !input || !day ? (
         <Loading />
@@ -201,6 +202,7 @@ function DayScroll({
   children: React.ReactNode;
 }) {
   const theme = useTheme();
+  const end = usePageEnd();
   const still = useReduceMotion();
   const clock = useClock();
   const focused = useIsFocused();
@@ -240,8 +242,10 @@ function DayScroll({
         ref={scroll}
         collapsable={false}
         style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
         contentOffset={{ x: 0, y }}
-        contentContainerStyle={{ flexGrow: 1 }}
+        // The day's last class ends clear of an iPhone's tab bar, which floats over the page (ui/page-end.ts).
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: space[6] + end.room }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -269,7 +273,12 @@ function openAt(day: ScheduleDay, today: string, now: number): number {
     (s) => [minuteOfDay(s.start), minuteOfDay(s.start) + (s.end - s.start) / 60_000] as const,
   );
   const first = Math.min(...spans.map(([start]) => start));
-  let target = day.day === today ? minuteOfDay(now) - 60 : Number.isFinite(first) ? first - 20 : hoursOf(day).from * 60;
+  // Today opens at the class on now or next, or at the now-line when that comes first: never on empty hours before both
+  // (round 3's judge: "a dead 07:00 row"). Other days open at their first class.
+  const minute = minuteOfDay(now);
+  const ahead = spans.filter(([, end]) => end > minute).map(([start]) => start);
+  let target =
+    day.day === today ? Math.min(minute, ahead.length ? Math.min(...ahead) : minute) - 20 : Number.isFinite(first) ? first - 20 : hoursOf(day).from * 60;
   for (;;) {
     const cut = spans.filter(([start, end]) => start < target && target < end).map(([start]) => start);
     if (!cut.length) return target;
@@ -278,19 +287,20 @@ function openAt(day: ScheduleDay, today: string, now: number): number {
 }
 
 /**
- * Jadwal's top bar: the month of the week on screen as its one title (Plus Jakarta Sans; another year's as "Jan 2027"),
- * the term's week quietly under it ("Minggu ke-7"; the week strip under the bar shows its days, so their range is said
- * only when the week has no number), with the data's status only when it says something. Away from today, "Hari ini"
- * as a small text button on the week's line (round 3's third review: it used to take ⋮'s place, and ⋮ went missing):
- * the bar keeps the title, ⋮ and every tab's three, so the month stays whole at a large font. A tap on the month or the
- * status opens the sources' sheet, as on every tab.
+ * Jadwal's top bar, as every tab's: the tab's name (Plus Jakarta Sans), the month and the term's week quietly under it
+ * ("Oktober · Minggu ke-7"), with the data's status only when it says something. Away from today, "Hari ini" as a small
+ * text button on that line. Then Jadwal's own two (the month, ⋮) and every tab's Search and bell. A tap on the name or
+ * the status opens the sources' sheet, as on every tab.
  */
 function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: string; onToday: () => void }) {
   const t = useT();
   const lang = useLang();
   const f = useDayFormat();
-  const v = useTheme().v4;
-  const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  const v = theme.v4;
+  const { fontScale } = useWindowDimensions();
+  const page = theme.color.surface;
+  const top = useTopInset();
   const input = useAgendaInput();
   const today = useToday();
   const sync = useSyncText();
@@ -306,28 +316,34 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
   const range = f.dayRange(monday, shiftDay(monday, 6));
   const place = n ? t("schedule.weekOf", { n, range }) : range;
   const away = picked !== today;
+  const titleSlop = Math.max(4, Math.ceil((TOUCH - 28 * fontScale) / 2));
   return (
-    <View style={{ backgroundColor: v.page, paddingTop: insets.top }}>
+    <View style={{ backgroundColor: page, paddingTop: top }}>
       <View style={{ flexDirection: "row", alignItems: "center", minHeight: 64, paddingLeft: space[5], paddingRight: space[1] }}>
         <View style={{ flex: 1, minWidth: 0, justifyContent: "center" }}>
-          <Pressable
+          <Tap
+            feel="row"
+            borderless
             onPress={() => setPanel(true)}
             accessibilityRole="button"
-            accessibilityLabel={`${month}, ${place}. ${t("sync.title")}: ${sync}`}
+            accessibilityLabel={`${t("nav.schedule")}, ${month}, ${place}. ${t("sync.title")}: ${sync}`}
             testID="action.syncStatus"
-            hitSlop={{ top: 10, bottom: 8, right: 12 }}
+            // 48 dp tall to the thumb: the name's line (28 sp) and the slop above and below it, at any font size.
+            hitSlop={{ top: titleSlop, bottom: titleSlop, right: 12 }}
             style={{ alignSelf: "flex-start", maxWidth: "100%" }}
           >
             <Text size="titleLarge" face="display" weight="bold" accessibilityRole="header" numberOfLines={1} style={{ color: v.fg, letterSpacing: -0.3 }}>
-              {month}
+              {t("nav.schedule")}
             </Text>
-          </Pressable>
+          </Tap>
           <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], marginTop: -2 }}>
             <Text size="bodyMedium" tabular numberOfLines={1} importantForAccessibility="no" testID="label.place" style={{ color: v.muted, flexShrink: 1 }}>
-              {n ? t("mobile.schedule.week", { n }) : range}
+              {n ? `${month} · ${t("mobile.schedule.week", { n })}` : `${month} · ${range}`}
             </Text>
             {away && (
-              <Pressable
+              <Tap
+                feel="row"
+                borderless
                 onPress={onToday}
                 accessibilityRole="button"
                 accessibilityLabel={t("mobile.schedule.todayLabel")}
@@ -337,13 +353,17 @@ function ScheduleHeader({ monday, picked, onToday }: { monday: string; picked: s
                 <Text size="labelLarge" weight="semibold" style={{ color: v.brandInk }}>
                   {t("mobile.schedule.today")}
                 </Text>
-              </Pressable>
+              </Tap>
             )}
           </View>
-          <Pressable onPress={() => setPanel(true)} style={{ alignSelf: "flex-start" }} importantForAccessibility="no-hide-descendants">
+          <Tap feel="row" borderless onPress={() => setPanel(true)} style={{ alignSelf: "flex-start" }} importantForAccessibility="no-hide-descendants">
             <StatusLine />
-          </Pressable>
+          </Tap>
         </View>
+        {/* The month view: Fluent's month calendar, not the tab's calendar or the four squares ("Lainnya" on Beranda). */}
+        <IconButton label={t("mobile.schedule.monthly")} onPress={() => router.push("/schedule-month")} testID="action.month">
+          <Icons.Month size={24} color={theme.color.onSurfaceVariant} />
+        </IconButton>
         <ScheduleMenu />
         <TabActions />
       </View>
@@ -395,7 +415,7 @@ function CalendarProblem({ problem, onRetry }: { problem: "denied" | "failed"; o
   );
 }
 
-/** The top bar's own ⋮ (while today is on screen): the month, the reminder before class, the phone's calendar, the .ics. */
+/** The top bar's own ⋮: the reminder before class, the phone's calendar, the .ics (the month is its own button beside it). */
 function ScheduleMenu() {
   const t = useT();
   const v = useTheme().v4;
@@ -417,12 +437,6 @@ function ScheduleMenu() {
       testID="action.scheduleMenu"
       label={t("mobile.schedule.menu")}
       choices={[
-        {
-          label: t("mobile.schedule.month"),
-          icon: <Icons.Calendar size={20} color={v.muted} />,
-          onPress: () => router.push("/schedule-month"),
-          testID: "action.month",
-        },
         {
           label: t("mobile.schedule.remind"),
           hint: t("mobile.schedule.remind.hint"),
@@ -488,8 +502,9 @@ function NeedsSix() {
   );
 }
 
-/** While SIX's timetable is on its way: the strip's days, then two blocks on the hours. */
+/** While SIX's timetable is on its way: the strip's days, then the hours' rail with two blocks on it, as the day will be. */
 function Loading() {
+  const line = useTheme().v4.line;
   return (
     <View accessibilityState={{ busy: true }} style={{ paddingHorizontal: space[4], gap: space[3] }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", paddingTop: space[3] }}>
@@ -498,8 +513,20 @@ function Loading() {
           <Skeleton key={i} height={60} width={38} />
         ))}
       </View>
-      <Skeleton height={120} style={{ marginTop: space[6], marginLeft: 50, borderRadius: 14 }} />
-      <Skeleton height={120} style={{ marginTop: space[8], marginLeft: 50, borderRadius: 14 }} />
+      <View style={{ marginTop: space[3], height: HOUR * 6 }}>
+        {Array.from({ length: 7 }, (_, i) => (
+          <View
+            // biome-ignore lint/suspicious/noArrayIndexKey: placeholder hours have no identity and never move
+            key={i}
+            style={{ position: "absolute", top: i * HOUR, left: 0, right: 0, flexDirection: "row", alignItems: "center", gap: space[2] }}
+          >
+            <Skeleton height={10} width={34} />
+            <View style={{ flex: 1, height: 1, backgroundColor: line }} />
+          </View>
+        ))}
+        <Skeleton height={HOUR * 2 - 6} width="auto" style={{ position: "absolute", top: 4, left: 50, right: 0, borderRadius: 14 }} />
+        <Skeleton height={HOUR * 2 - 6} width="auto" style={{ position: "absolute", top: HOUR * 3 + 4, left: 50, right: 0, borderRadius: 14 }} />
+      </View>
     </View>
   );
 }

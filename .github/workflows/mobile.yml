@@ -388,12 +388,65 @@ jobs:
         run: npm run licences
       - name: Generate the iOS project
         run: npx expo prebuild --platform ios --clean
+      - name: Check the widget extension was made
+        # expo-widgets (app.config.ts) adds the WidgetKit target, its App Group and the two widgets at prebuild.
+        run: |
+          ls ios/ExpoWidgetsTarget
+          grep -q "ExpoWidgetsTarget" ios/*.xcodeproj/project.pbxproj || { echo "::error::No widget target in the Xcode project."; exit 1; }
+          grep -l "group.io.github.pablonification.edunexplus" ios/*/*.entitlements | grep -qv ExpoWidgetsTarget || { echo "::error::No App Group on the app."; exit 1; }
+          for widget in EdunexNow EdunexToday; do
+            test -f "ios/ExpoWidgetsTarget/$widget.swift" || { echo "::error::No $widget widget."; exit 1; }
+          done
+      - name: Install the root packages (for the widgets' checks)
+        working-directory: .
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Run the widgets' code on the demo's data, and sketch it
+        # The functions the widget extension runs, in every family, light and dark (test/mobile/widget-ios-preview.test.ts):
+        # each must draw. The sketch is flexbox, not iOS's drawing: a look before an iPhone can.
+        working-directory: .
+        env:
+          WIDGET_IOS_PREVIEW: ${{ runner.temp }}/ios-widget-sketches
+        run: npx vitest run test/mobile/widget-ios-doc.test.ts test/mobile/widget-ios-preview.test.ts
+      - name: Upload the widgets' sketch
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-widget-sketches
+          path: ${{ runner.temp }}/ios-widget-sketches
+          if-no-files-found: error
+          retention-days: 7
       - name: Build the app, unsigned
         run: |
           xcodebuild -workspace ios/*.xcworkspace -scheme "$(basename ios/*.xcworkspace .xcworkspace)" \
             -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" | tail -n 200
           test "${PIPESTATUS[0]}" -eq 0
+      - name: Check the widgets are inside the app
+        # The widget extension rides in the app's PlugIns folder, with the layouts it draws before the app's first
+        # run (expo-widgets' layout registry). The App Group is said in a later step; whether the signer grants it is the phone's to prove.
+        run: |
+          app=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n 1)
+          appex="$app/PlugIns/ExpoWidgetsTarget.appex"
+          test -d "$appex" || { echo "::error::The app has no widget extension."; ls "$app/PlugIns" || true; exit 1; }
+          /usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$appex/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :NSSupportsLiveActivities" "$app/Info.plist"
+          registry=$(find "$appex" "$app" -name ExpoWidgetsLayoutRegistry.json | head -n 1)
+          echo "Layout registry: ${registry:-none}"
+          if [ -n "$registry" ]; then
+            for widget in EdunexNow EdunexToday; do
+              grep -q "$widget" "$registry" || echo "::warning::$widget has no first layout: the gallery may show it blank until the app is opened."
+            done
+            grep -q '"EdunexClass"' "$registry" || { echo "::error::The Live Activity's layout isn't in the extension: it comes up empty on an iPhone signed without an App Group."; exit 1; }
+          fi
+          {
+            echo "### iPhone widgets"
+            echo
+            echo "- Extension: \`$(basename "$appex")\` ($(du -sh "$appex" | cut -f1))"
+            if [ -n "$registry" ]; then echo "- First layouts: found"; else echo "- First layouts: missing"; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Say the App Group inside the app
+        # Unsigned code carries no entitlements, and Sideloadly or AltStore sign with what the app carries: without
+        # this the widgets got no App Group on a sideloaded iPhone and stayed empty (scripts/ios-app-group.sh).
+        run: scripts/ios-app-group.sh "$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' | head -n 1)"
       - name: Pack the .ipa
         run: |
           mkdir -p "$RUNNER_TEMP/ipa/Payload"

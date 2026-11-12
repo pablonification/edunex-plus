@@ -12,6 +12,8 @@ import { useBridge, useDataset } from "../../../../src/app/store";
 import { percent } from "../../../../src/core/attendance";
 import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } from "../../../../src/core/course-contract";
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../../src/core/models";
+import { GradesHiddenLine, useGradesHidden } from "../../parts/hide-grades";
+import { hold } from "../../parts/hold";
 import { dismissToast, toast } from "../../swaps/overlays";
 import { Button, Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
@@ -19,7 +21,6 @@ import { iosPressed, PressScale } from "../../ui/press";
 import { ActionSheet } from "../../ui/sheet";
 import { Text, useFieldColors } from "../../ui/text";
 import { radius, space, TOUCH, useTheme } from "../../ui/theme";
-import { useCardStyle } from "../home/now";
 
 // The letter aimed for, per course, while the app runs (the desktop keeps it in the page's place in history).
 const aims = new Map<string, ContractLetter>();
@@ -28,13 +29,15 @@ export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenMod
   const t = useT();
   const f = useFormat();
   const v = useTheme().v4;
-  const surface = useCardStyle();
   const grade = page.outline?.grade ?? null;
+  // Hidden grades: the scores, the calculator's answer and Edunex's grade give way to one line.
+  if (useGradesHidden()) return <GradesHiddenLine testID="course.grades.hidden" />;
   return (
     <View style={{ gap: space[4] }}>
       <Calculator page={page} onOpenModules={onOpenModules} />
       {/* Edunex's own grade, once the lecturer publishes it: the number and the letter, big. */}
-      <View style={[surface, { paddingHorizontal: space[4], paddingVertical: space[4] }]}>
+      {/* Flat on the page under a hairline: no box (the page is white; a white card on it read as a frame). */}
+      <View style={{ paddingTop: space[4], borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: v.line }}>
         <Text size="bodyMedium" weight="medium" style={{ color: v.muted }}>
           {t("grade.edunex")}
         </Text>
@@ -186,7 +189,10 @@ function PartName({
   return (
     <Pressable
       testID={testID}
-      onLongPress={onMenu}
+      onLongPress={() => {
+        hold();
+        onMenu();
+      }}
       android_ripple={{ color: theme.color.selected, foreground: true }}
       accessibilityLabel={name}
       accessibilityActions={[
@@ -208,7 +214,6 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
   const f = useFormat();
   const theme = useTheme();
   const c = theme.color;
-  const surface = useCardStyle();
   const bridge = useBridge();
   const code = page.course.code;
   const saved = useDataset("local.courseWeights");
@@ -297,7 +302,7 @@ function Calculator({ page, onOpenModules }: { page: CoursePage; onOpenModules?:
     <View>
       {isExample && <ExampleBanner code={code} onOpen={contractFile ? onOpenModules : undefined} />}
 
-      <View style={[surface, { padding: space[4] }]}>
+      <View>
         <View accessibilityLiveRegion="polite">
           {weightsOk && result.final === null && (
             <View style={{ marginBottom: space[4], gap: space[2] }}>

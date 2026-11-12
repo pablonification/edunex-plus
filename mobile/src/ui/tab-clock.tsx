@@ -5,7 +5,10 @@
 // moment it's shown again, only if the minute changed while it was away. (Freezing hidden tabs with
 // react-freeze was tried and measured: each switch then drew the whole tab again, 100–270 ms.) The same for the
 // data: a dataset that changes (SIX's check-in read every 2 minutes in class, a feed's page) redrew every tab that reads
-// it, 200–560 ms on a small phone while the Student looked at one; a hidden tab now hears of it when it's shown.
+// it, 200–560 ms on a small phone while the Student looked at one; a hidden tab now hears of it later: once the data
+// has been quiet a moment and the JS thread is idle (CATCH_UP_MS, as a transition), or the moment it's shown,
+// whichever comes first. (Only "when it's shown" left a tab a frame behind what it had missed: after a first sign-in
+// every tab opened on its signed-out self, then jumped to the Student's data.)
 // A hidden tab also draws for the first time on its own turn: the four drawn at once with Beranda held Beranda's data
 // back about 400 ms on a start with saved data (Redroid, compared on one machine). Each now waits for the start to
 // settle, then one tab every 300 ms once the JS thread is idle; opened before its turn, it draws at once. That turn is a
@@ -33,7 +36,38 @@ export function TabClock({ name, children }: { name: string; children: ReactNode
   const shown = useRef(focused);
   shown.current = focused;
   const clock = useMemo(() => gated(parent, () => shown.current), [parent]);
-  const data = useMemo(() => gatedStore(store, () => shown.current), [store]);
+  // What a hidden tab missed, handed over once the data has been quiet a moment and nothing else needs the JS thread.
+  const later = useRef<{ timer: ReturnType<typeof setTimeout> | null; since: number }>({ timer: null, since: 0 });
+  const data = useMemo(
+    () =>
+      gatedStore(
+        store,
+        () => shown.current,
+        () => {
+          const wait = later.current;
+          const now = Date.now();
+          if (wait.timer) clearTimeout(wait.timer);
+          else wait.since = now;
+          // Each change puts it off a little, but never past CATCH_UP_MOST_MS after the first one missed.
+          const delay = Math.max(0, Math.min(CATCH_UP_MS, wait.since + CATCH_UP_MOST_MS - now));
+          wait.timer = setTimeout(() => {
+            wait.timer = null;
+            whenIdle(() => {
+              if (shown.current) return;
+              perfDoing(`${name} catching up`);
+              data.catchUp();
+            }, 1000);
+          }, delay);
+        },
+      ),
+    [store, name],
+  );
+  useEffect(
+    () => () => {
+      if (later.current.timer) clearTimeout(later.current.timer);
+    },
+    [],
+  );
   const [drawn, setDrawn] = useState(focused);
   useEffect(() => {
     if (drawn) return;
@@ -68,15 +102,18 @@ export function TabClock({ name, children }: { name: string; children: ReactNode
 
 /**
  * `store` as the tab reads it: the same data, its changes passed on only while `open()`; a listener that missed one
- * hears it once at `catchUp()`. Reads go to the store itself, so a tab drawn for any reason draws what's current.
+ * hears it once at `catchUp()` (`onMissed` says one was missed). Reads go to the store itself, so a tab drawn for any reason draws what's current.
  */
-function gatedStore(store: AppStore, open: () => boolean): AppStore & { catchUp(): void } {
+function gatedStore(store: AppStore, open: () => boolean, onMissed?: () => void): AppStore & { catchUp(): void } {
   const missed = new Set<() => void>();
   const data = Object.create(store) as AppStore & { catchUp(): void };
   data.subscribe = (topic, listener) => {
     const stop = store.subscribe(topic, () => {
       if (open()) listener();
-      else missed.add(listener);
+      else {
+        missed.add(listener);
+        onMissed?.();
+      }
     });
     return () => {
       missed.delete(listener);
@@ -123,6 +160,10 @@ function gated(parent: UiClock, open: () => boolean): UiClock & { catchUp(): voi
     },
   };
 }
+
+/** A hidden tab hears of the data it missed this long after the last change, and at most this long after the first. */
+const CATCH_UP_MS = 800;
+const CATCH_UP_MOST_MS = 2_500;
 
 /** The hidden tabs' first draws, one at a time: the first after `FIRST_MS`, then one every `NEXT_MS`. */
 const FIRST_MS = 800;

@@ -1,13 +1,11 @@
-// Round 2's press (v4, DESIGN.md "Motion"): what's pressed gives a little (to 96.5%, quickly) and comes back on M3
-// Expressive's spring, on the UI thread; Android's ripple is left to plain rows and buttons. With Remove animations it
-// doesn't move. One target, one outcome: wrap the whole card or row.
+// Round 2's press (v4, DESIGN.md "Motion"): what's pressed answers in the frame the finger lands, Android's ripple over
+// it (an iPhone's tint), and gives a little (`motion.give.card`) on M3's fast spatial spring, coming back on the
+// expressive one, on the UI thread: ./moves.tsx's `Tap` as a card. A long press that runs plays the hold haptic. With
+// Remove animations it doesn't move; the ripple or tint still answers. One target, one outcome: wrap the whole card or row.
 import type { ReactNode } from "react";
-import { type AccessibilityProps, type Insets, Platform, Pressable, type StyleProp, type ViewStyle } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
-import { useReduceMotion } from "./motion";
-import { motion } from "./theme";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { type AccessibilityProps, type Insets, Platform, type StyleProp, type ViewStyle } from "react-native";
+import { haptic } from "./haptics";
+import { Tap } from "./moves";
 
 export function PressScale({
   onPress,
@@ -28,28 +26,25 @@ export function PressScale({
   /** What a part smaller than 48 dp adds to be 48 to touch (ui/sizes). */
   hitSlop?: Insets | number;
 } & AccessibilityProps) {
-  const still = useReduceMotion();
-  const scale = useSharedValue(1);
-  const pressed = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <AnimatedPressable
+    <Tap
+      feel="card"
       testID={testID}
-      accessibilityRole="button"
       {...a11y}
       disabled={disabled}
       hitSlop={hitSlop}
       onPress={onPress}
-      onLongPress={onLongPress}
-      onPressIn={() => {
-        if (!still) scale.value = withTiming(0.965, { duration: 120 });
-      }}
-      onPressOut={() => {
-        if (!still) scale.value = withSpring(1, motion.expressive);
-      }}
-      style={[style, pressed]}
+      onLongPress={
+        onLongPress &&
+        (() => {
+          haptic.hold();
+          onLongPress();
+        })
+      }
+      style={style}
     >
       {children}
-    </AnimatedPressable>
+    </Tap>
   );
 }
 

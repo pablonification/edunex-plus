@@ -16,15 +16,33 @@ import { dueOn, type Exam, examMarkKey, isExamWindow, takeHomeOf } from "../../.
 import type { CalendarEvent, Task } from "../../../../src/core/models";
 import type { PastExam, TodoItem } from "../../../../src/core/todo";
 import { useNav } from "../../nav";
+import { hold } from "../../parts/hold";
 import { toast } from "../../swaps/overlays";
+import { useB } from "../../ui/b";
 import { LINE_INSET } from "../../ui/card-list";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
 import { factsLabel } from "../../ui/layout";
+import { PressScale } from "../../ui/press";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
-import { useTheme } from "../../ui/theme";
-import { shortName } from "../home/parts";
-import { countdown, IconTile, inWorld, type Quick, reportRowProblem, rowWhen, StatusPill, TaskLine, useRowWorld } from "./row-parts";
+import { Text } from "../../ui/text";
+import { space, useTheme } from "../../ui/theme";
+import { examName, examNote } from "./exam-name";
+import {
+  countdown,
+  FlatSlice,
+  HeroCard,
+  IconTile,
+  inWorld,
+  LEAF_INSET,
+  type Quick,
+  reportRowProblem,
+  rowWhen,
+  StatusPill,
+  TaskLine,
+  useRowWorld,
+} from "./row-parts";
 
 /** Why a Task is the exam's take-home, in a few quiet words: "Edunex menandainya UTS", "Namanya diawali “Midex”". */
 export function takeHomeWhy(t: Translate, task: Pick<Task, "kind" | "title">): string | null {
@@ -67,10 +85,10 @@ export const namesKind = (title: string, kind: string) =>
     .split(/[^\p{L}\p{N}]+/u)
     .includes(kind.toLowerCase());
 
-/** "Kuis Komunikasi Pemasaran": the exam's name for a control's label. */
-const examName = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
-/** "UTS Ekonomi Infrastruktur": an exam's row title, its course's name short (the whole name is in the row's spoken name). */
-const examTitle = (t: Translate, exam: Exam, name: string) => examName(t, exam, shortName(name));
+/** "Kuis Komunikasi Pemasaran": the exam's name, the course's whole, for a control's spoken label. */
+const examLabel = (t: Translate, exam: Exam, name: string) => `${t(`exam.kind.${exam.kind}`)} ${name}`;
+
+export { examName, examNote, examTitle } from "./exam-name";
 
 /** Moves an open Edunex window to Done, with Undo; a failure goes to the list's banner. */
 function useMarkDone() {
@@ -99,9 +117,12 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   inCourse = false,
   quick,
   onLongPress,
+  hero = false,
 }: {
   item: Extract<TodoItem, { kind: "exam" }>;
   inCourse?: boolean;
+  /** Tugas's one big card when this exam is the nearest thing ahead (row-parts.tsx HeroCard): the same target and name. */
+  hero?: boolean;
   /** A late take-home's "Ingatkan nanti", as for any late Task. */
   quick?: Quick;
   onLongPress?: () => void;
@@ -113,12 +134,23 @@ export const ExamPartRow = inWorld(function ExamPartRow({
   const { f, now } = world;
   const markDone = useMarkDone();
   const [menu, setMenu] = useState(false);
+  const openMenu = () => {
+    hold();
+    setMenu(true);
+  };
+  // Done from the sheet or TalkBack's action: the same commit as the swipe, felt the same (the swipe plays its own).
+  const doneFromMenu = (exam: Parameters<typeof markDone>[0]) => {
+    haptic.confirm();
+    void markDone(exam);
+  };
   const { exam, part } = item;
   const name = examCourse(world.courses, exam);
-  const days = sourceDays(f, exam);
   const code = inCourse ? "" : exam.courseCode;
-  const kind = t(`exam.kind.${exam.kind}`);
   const dayTime = (at: number) => f.dueLabel(at);
+  // On Tugas the day leads the row (its leaf): the line keeps the weekday and the time. On a course's page, the whole date.
+  // (The weekday is the leaf's too: it never trails the line.)
+  const short = (at: number, time: boolean) => (inCourse ? rowWhen(f, at, time) : time ? f.time(at) : null);
+  const { page } = useB();
   const moved = part?.kind === "window" && part.moved;
   const disagree = part?.kind === "sitting" && exam.disagree;
 
@@ -134,14 +166,16 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     facts = [code, t("exam.takeHome"), part.task.title, part.status === "draft" ? t("taskStatus.draft") : ""];
     when = part.at !== null ? dayTime(part.at) : t("task.noDeadline");
     // The day alone beside the kind (its page and spoken name keep the time); not the kind when the name says it ("UTS Markom").
-    shown = [namesKind(part.task.title, kind) ? null : kind, part.at === null ? t("task.noDeadline") : rowWhen(f, part.at, false)];
+    // A take-home goes by its own name ("UTS Markom"): the line names its course, as every row of a Task does.
+    // One name per exam: the title is the exam's, as its sitting's row; "Take-home" is the quiet word that tells them apart.
+    shown = [part.at === null ? t("task.noDeadline") : short(part.at, !inCourse)];
     moment = part.at;
   } else if (part?.kind === "window") {
     // With only its close, Edunex doesn't say when it opens: nothing is said about it.
     const opens = part.opensAt === null ? "" : part.open ? t("exam.window.open") : t("task.opens", { when: f.dayTimeWord(part.opensAt) });
     facts = [code, t("exam.onEdunex"), part.edunex.title ?? "", opens];
     when = f.dueLabel(part.at);
-    shown = [rowWhen(f, part.at, !moved)];
+    shown = [short(part.at, !moved)];
     moment = part.at;
   } else if (part?.kind === "sitting" && item.sittings) {
     // SIX lists it in both weeks of the exam period: one row, both days ("Kam, 10 Des dan 17 Des, 11:00").
@@ -154,7 +188,7 @@ export const ExamPartRow = inWorld(function ExamPartRow({
     const place = part.source === "six" ? (part.room ?? "") : (part.title ?? "");
     facts = [code, t(part.source === "six" ? "exam.inClass" : "exam.onEdunex"), place];
     when = part.end !== null ? f.dayTimeRange(part.at, part.end) : dayTime(part.at);
-    shown = [rowWhen(f, part.at, !disagree)];
+    shown = [short(part.at, !disagree)];
     if (part.at <= now && (part.end ?? part.at) > now) status = <StatusPill tone="ok" text={t("home.now")} />;
     else moment = part.at;
   } else {
@@ -177,38 +211,65 @@ export const ExamPartRow = inWorld(function ExamPartRow({
         text={t(moved ? "mobile.home.timeMoved" : "mobile.tasks.chip.disagree")}
       />
     );
-  const title = examName(t, exam, name);
+  const title = examLabel(t, exam, name);
   const label = factsLabel(
     title,
     ...facts,
     late ? t("home.need.task.overdue") : null,
     moved ? t("exam.markChanged") : null,
-    disagree ? t("exam.row.disagree", days) : null,
+    // The days each source gives: worked out only for the row that needs them.
+    disagree ? t("exam.row.disagree", sourceDays(f, exam)) : null,
     when,
     moment !== null ? f.fromNow(moment) : null,
   );
 
+  const testID = part?.kind === "takehome" ? `row.task.${part.task.id}` : `row.exam.${exam.id}`;
+  const open = () => go(part?.kind === "takehome" ? { screen: "task", taskId: part.task.id } : { screen: "exam", examId: exam.id });
+  if (hero && part && part.at !== null)
+    return (
+      <HeroCard
+        testID={testID}
+        label={label}
+        onPress={open}
+        onLongPress={onLongPress}
+        quick={quick}
+        code={exam.courseCode}
+        at={part.at}
+        date={f.dayMonth(part.at)}
+        weekday={f.weekdayShort(part.at)}
+        // What it is, in a word ("Ujian", with its glyph); its name with what tells it apart; its time by its day.
+        kindLabel={t("mobile.tasks.kindExam")}
+        title={examName(t, exam, name)}
+        // Where it's sat, where SIX gives a room; else what tells it from its course's other exam ("Take-home").
+        meta={(part.kind === "sitting" && part.room) || examNote(t, part)}
+        time={part.kind === "sitting" && part.end !== null ? f.timeRange(part.at, part.end) : f.time(part.at)}
+        kind="exam"
+      />
+    );
   const row = (
     <TaskLine
       // A take-home opens its Task, and is named as one: the exam's own row (its sitting) keeps the exam's id.
-      testID={part?.kind === "takehome" ? `row.task.${part.task.id}` : `row.exam.${exam.id}`}
+      testID={testID}
       label={label}
-      onPress={() => go(part?.kind === "takehome" ? { screen: "task", taskId: part.task.id } : { screen: "exam", examId: exam.id })}
-      onLongPress={window ? () => setMenu(true) : onLongPress}
-      quick={window ? [{ label: t("exam.markDoneFor", { title }), onPress: () => void markDone(window) }] : quick}
+      onPress={open}
+      onLongPress={window ? openMenu : onLongPress}
+      quick={window ? [{ label: t("exam.markDoneFor", { title }), onPress: () => doneFromMenu(window) }] : quick}
       code={code || null}
       course={name}
-      // What it is, every row the same: a take-home's own name, else the exam's ("UAS Komunikasi Pemasaran").
-      title={part?.kind === "takehome" ? part.task.title : examTitle(t, exam, name)}
-      meta={shown.filter(Boolean).join(" · ")}
+      // The exam's one name; what tells a course's two apart leads the line under it ("Take-home · 23:50").
+      title={examName(t, exam, name)}
+      meta={[examNote(t, part), ...shown].filter(Boolean).join(" · ") || t("mobile.tasks.kindExam")}
       status={status}
+      date={inCourse ? undefined : part && part.at !== null ? f.dayMonth(part.at) : null}
+      weekday={!inCourse && part && part.at !== null && !item.sittings ? f.weekdayShort(part.at) : null}
+      kind="exam"
     />
   );
   if (!window) return row;
   return (
     <>
       <SwipeRow
-        surface={inCourse ? undefined : theme.v4.card}
+        surface={inCourse ? undefined : page}
         actions={[
           {
             label: t("exam.markDone"),
@@ -225,19 +286,87 @@ export const ExamPartRow = inWorld(function ExamPartRow({
         open={menu}
         onClose={() => setMenu(false)}
         title={title}
-        choices={[{ label: t("exam.markDone"), icon: <Icons.CheckCircle size={20} />, onPress: () => void markDone(window), testID: "menu.markDone" }]}
+        choices={[{ label: t("exam.markDone"), icon: <Icons.CheckCircle size={20} />, onPress: () => doneFromMenu(window), testID: "menu.markDone" }]}
       />
     </>
   );
 });
 
 /**
- * An exam period whose exams have no day yet: one row where the period falls ("Masa UTS", 12–16 Okt), opening to list
- * them. Closed while it's far off; open within two weeks and while it's on.
+ * An exam period on Tugas, as a sub-heading where its first exam falls in date order: "Masa UTS" and its days. Its
+ * exams are the list's own rows under it (./list.tsx), never drawn inside one cell: a block holding five exam rows was
+ * built in one go each time it scrolled into view (round 3's scroll).
+ */
+export const PeriodHead = inWorld(function PeriodHead({ item }: { item: Extract<TodoItem, { kind: "period" }> }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const { f } = useRowWorld();
+  const { week } = item;
+  const title = t("exam.period", { kind: item.examKind });
+  const main = item.state === "during" ? t("exam.until", { time: f.dayMonth(week.end - 1) }) : f.dayRange(week.firstDay, week.lastDay);
+  return (
+    <View
+      testID={`row.period.${item.examKind}`}
+      accessible
+      accessibilityRole="header"
+      accessibilityLabel={factsLabel(title, main, f.fromNow(item.state === "during" ? week.end - 1 : week.start))}
+      style={{ flexDirection: "row", alignItems: "baseline", gap: space[2], paddingHorizontal: space[1], paddingTop: space[4], paddingBottom: space[1] }}
+    >
+      <Text size="titleSmall" face="display" weight="bold" style={{ color: v.fg }}>
+        {title}
+      </Text>
+      <Text size="bodyMedium" tabular style={{ flexShrink: 1, color: v.muted }}>
+        {main}
+      </Text>
+    </View>
+  );
+});
+
+/**
+ * A far-off period's exams with no day yet, behind one line that says how many (they aren't counted in "Belum selesai"
+ * until the period is near, so the count over the list matches its rows).
+ */
+export const PeriodFold = inWorld(function PeriodFold({ item }: { item: Extract<TodoItem, { kind: "period" }> }) {
+  const t = useT();
+  const v = useTheme().v4;
+  const { f } = useRowWorld();
+  const [open, setOpen] = useState(false);
+  const codes = item.exams.map((exam) => exam.courseCode);
+  const fact = codes.length <= 2 ? t("exam.period.noDayFor", { codes: f.list(codes) }) : t("exam.period.noDayCount", { count: codes.length });
+  return (
+    <View>
+      <PressScale
+        testID={`action.period.${item.examKind}`}
+        accessibilityLabel={fact}
+        accessibilityState={{ expanded: open }}
+        onPress={() => setOpen(!open)}
+        style={{ flexDirection: "row", alignItems: "center", gap: space[2], minHeight: 48, paddingHorizontal: space[1] }}
+      >
+        <Text size="bodyMedium" style={{ flex: 1, color: v.muted }}>
+          {fact}
+        </Text>
+        <View style={{ transform: [{ rotate: open ? "180deg" : "0deg" }] }}>
+          <Icons.ChevronDown size={20} color={v.muted} />
+        </View>
+      </PressScale>
+      {open &&
+        item.exams.map((exam, i) => (
+          <FlatSlice key={exam.id} first={i === 0}>
+            <PeriodExam exam={exam} inCourse={false} />
+          </FlatSlice>
+        ))}
+    </View>
+  );
+});
+
+/**
+ * An exam period whose exams have no day yet, on a course's page: one row where the period falls ("Masa UTS",
+ * 12–16 Okt), opening to list them. Closed while it's far off; open within two weeks and while it's on.
  */
 export const PeriodRow = inWorld(function PeriodRow({ item, inCourse = false }: { item: Extract<TodoItem, { kind: "period" }>; inCourse?: boolean }) {
   const t = useT();
-  const v = useTheme().v4;
+  const theme = useTheme();
+  const v = theme.v4;
   const { f } = useRowWorld();
   const [toggled, setToggled] = useState(false);
   const open = toggled !== (item.state !== "far");
@@ -255,6 +384,7 @@ export const PeriodRow = inWorld(function PeriodRow({ item, inCourse = false }: 
         label={factsLabel(title, line, main, sub)}
         onPress={() => setToggled(!toggled)}
         expanded={open}
+        flat={!inCourse}
         leading={
           <IconTile>
             <Icons.Calendar size={22} color={v.brandInk} />
@@ -271,15 +401,16 @@ export const PeriodRow = inWorld(function PeriodRow({ item, inCourse = false }: 
       {open &&
         item.exams.map((exam) => (
           <View key={exam.id}>
-            <View pointerEvents="none" style={{ height: 1, marginLeft: LINE_INSET, backgroundColor: v.line }} />
-            <PeriodExam exam={exam} />
+            <View pointerEvents="none" style={{ height: 1, marginLeft: inCourse ? LINE_INSET : LEAF_INSET, backgroundColor: v.line }} />
+            <PeriodExam exam={exam} inCourse={inCourse} />
           </View>
         ))}
     </View>
   );
 });
 
-function PeriodExam({ exam }: { exam: Exam }) {
+/** An exam of a period with no day yet: its row says so, in the same columns as the dated ones. */
+export const PeriodExam = inWorld(function PeriodExam({ exam, inCourse = false }: { exam: Exam; inCourse?: boolean }) {
   const t = useT();
   const { go } = useNav();
   const world = useRowWorld();
@@ -287,16 +418,18 @@ function PeriodExam({ exam }: { exam: Exam }) {
   return (
     <TaskLine
       testID={`row.exam.${exam.id}`}
-      label={factsLabel(examName(t, exam, name), exam.courseCode, t("exam.dayUnknown"))}
+      label={factsLabel(examLabel(t, exam, name), exam.courseCode, t("exam.dayUnknown"))}
       onPress={() => go({ screen: "exam", examId: exam.id })}
       code={exam.courseCode}
       course={name}
-      title={examTitle(t, exam, name)}
+      title={examName(t, exam, name)}
       // Every exam row says when, this one too: no day yet.
       meta={t("exam.noDate")}
+      date={inCourse ? undefined : null}
+      kind="exam"
     />
   );
-}
+});
 
 /**
  * An exam behind the Student, in Done: where it was sat, or that its day was never announced. A window the Student
@@ -309,6 +442,7 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
   const world = useRowWorld();
   const { f } = world;
   const marks = useExamMarks();
+  const { page } = useB();
   const [menu, setMenu] = useState(false);
   const { exam } = past;
   const name = examCourse(world.courses, exam);
@@ -354,13 +488,22 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
       testID={`row.exam.${exam.id}`}
       label={factsLabel(title, ...facts, main, sub)}
       onPress={() => go({ screen: "exam", examId: exam.id })}
-      onLongPress={mark ? () => setMenu(true) : undefined}
+      onLongPress={
+        mark
+          ? () => {
+              hold();
+              setMenu(true);
+            }
+          : undefined
+      }
       quick={mark ? [{ label: t("exam.unmarkFor", { title }), onPress: () => void unmark() }] : undefined}
       code={code || null}
       course={name}
-      title={examTitle(t, exam, name)}
+      title={title}
       // The title names the course: the line is when.
-      meta={at !== null ? rowWhen(f, at, false) : main || t("exam.neverAnnounced")}
+      meta={at !== null ? (code ? f.weekdayShort(at) : rowWhen(f, at, false)) : main || t("exam.neverAnnounced")}
+      date={code ? (at !== null ? f.dayMonth(at) : null) : undefined}
+      kind="exam"
       status={
         mark ? (
           <StatusPill tone="ok" icon={<Icons.Check size={13} weight="bold" color={theme.v4.okFg} />} text={t("exam.markedOn", { date: f.dayMonth(mark.at) })} />
@@ -372,7 +515,7 @@ export const PastExamRow = inWorld(function PastExamRow({ past, inCourse = false
   return (
     <>
       <SwipeRow
-        surface={inCourse ? undefined : theme.v4.card}
+        surface={inCourse ? undefined : page}
         actions={[{ label: t("exam.unmark"), tone: "neutral", icon: <Icons.Undo size={20} color={theme.color.neutralFg} />, onPress: () => void unmark() }]}
       >
         {row}

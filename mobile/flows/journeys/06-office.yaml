@@ -1,0 +1,169 @@
+# Journey 6, the office things: KRS, UKT, the academic calendar. Each from Profil (the tab, the row) and from Beranda's grid (the tile).
+# limit: 2
+# Every goal starts from Beranda, so the count is the Student's: 2 by Profil, 1 by the grid. Both ways reach the same panel, by the
+# same name (the tile's label, the row's title and the panel's own say the same word).
+# Profil's rows keep the ids the screen draws (row.nav.plan.<part>).
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 6 the office things: Profil, and the grid"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 30000
+# ---- KRS: from Profil (2 taps), then from Beranda's grid (1 tap).
+# tap 1: Profil.
+- tapOn:
+    id: tab.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.krs
+    direction: DOWN
+    centerElement: true
+# tap 2: the row.
+- tapOn:
+    id: row.nav.plan.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
+- assertVisible: ".*KRS.*"
+# goal
+- takeScreenshot: journey-6-krs
+- back
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+# return: to Beranda, so the next one starts where a Student starts.
+- tapOn:
+    id: tab.home
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+# tap 1: the tile.
+- tapOn:
+    id: action.service.krs
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.krs
+    timeout: 20000
+- assertVisible: ".*KRS.*"
+# goal
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+# ---- UKT: from Profil (2 taps), then from Beranda's grid (1 tap).
+# tap 1: Profil.
+- tapOn:
+    id: tab.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.bills
+    direction: DOWN
+    centerElement: true
+# tap 2: the row.
+- tapOn:
+    id: row.nav.plan.bills
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.bills
+    timeout: 20000
+- assertVisible: ".*UKT.*"
+# goal
+- takeScreenshot: journey-6-ukt
+- back
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+# return: to Beranda, so the next one starts where a Student starts.
+- tapOn:
+    id: tab.home
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+# tap 1: the tile.
+- tapOn:
+    id: action.service.bills
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.bills
+    timeout: 20000
+- assertVisible: ".*UKT.*"
+# goal
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+# ---- Kalender: from Profil (2 taps), then from Beranda's grid (1 tap).
+# tap 1: Profil.
+- tapOn:
+    id: tab.profile
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: row.nav.plan.deadlines
+    direction: DOWN
+    centerElement: true
+# tap 2: the row.
+- tapOn:
+    id: row.nav.plan.deadlines
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.deadlines
+    timeout: 20000
+- assertVisible: "Kalender.*"
+# goal
+- takeScreenshot: journey-6-kalender
+- back
+- extendedWaitUntil:
+    visible:
+      id: screen.profile
+    timeout: 10000
+# return: to Beranda, so the next one starts where a Student starts.
+- tapOn:
+    id: tab.home
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000
+# tap 1: the tile.
+- tapOn:
+    id: action.service.calendar
+- extendedWaitUntil:
+    visible:
+      id: panel.plan.deadlines
+    timeout: 20000
+- assertVisible: "Kalender.*"
+# goal
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.grid
+    timeout: 10000

@@ -1,7 +1,10 @@
-// Nilai on the phone (round 2, v4: mobile/qa/v4-rollout.md): src/app/screens/grades.tsx in one column on v4's grey
-// page, the same figures from the same hooks. The key number first: one card led by the IPK, big and counting up once,
-// the predicate it heads for as plain words beside it, last semester's IP a quiet line, the SKS passed a smaller figure
-// over a thin bar of those needed (parts/standing.tsx). Then a row each on the way to graduating (when; the next honor
+// Nilai on the phone: src/app/screens/grades.tsx in one column, flat on the page, the same figures from the same
+// hooks. The first view answers "after an exam: my grade and what it does to my IPK" (round 1's council): the IPK big,
+// and beside it what it becomes after this semester; the SKS passed over a thin bar of those needed; then this term's
+// courses, the grades that are out first as plain letters, the ones still to come under a heading that says once
+// they're the Student's estimates, each a dashed 48 dp picker, then the target and what it takes as a figure under
+// them (round 3's council). Then a row each on the
+// way to graduating (when; the next honor
 // as "Butuh rata-rata 3,66", over which SKS a sheet away, or "Tak terkejar"; the highest IPK possible "jika semua A";
 // the first opens the planner), IP and IPK per
 // semester with its legend and the target's line (the IPK at graduation at its end, when it differs from today's),
@@ -9,7 +12,7 @@
 // (./transcript.tsx). Without SIX: this term's courses from Edunex, each opening its calculator. Before SIX's first
 // read, the card stands in its shape.
 // Nothing here names a minute (HourClock), and what's below the first screenful mounts a part a frame (Later).
-import { memo, type ReactNode, useMemo, useState } from "react";
+import { memo, type ReactNode, useMemo, useRef, useState } from "react";
 import { View } from "react-native";
 import { useTermCourses } from "../../../../src/app/courses";
 import { useOpenExternal } from "../../../../src/app/hooks";
@@ -17,28 +20,44 @@ import { useFormat, useLang, useNow, useT } from "../../../../src/app/i18n";
 import { useDataset, useStatus } from "../../../../src/app/store";
 import { type PlanState, usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import type { CalendarEvent } from "../../../../src/core/models";
-import { checkPlan, expectedGrade, hasWhatIfs, honorsOutlook, passedSks, project, type StudentRecord, sksModel, targetOf } from "../../../../src/core/planner";
+import {
+  checkPlan,
+  expectedGrade,
+  hasWhatIfs,
+  honorsOutlook,
+  type Projection,
+  passedSks,
+  project,
+  type StudentRecord,
+  sksModel,
+  targetOf,
+} from "../../../../src/core/planner";
 import { useNav } from "../../nav";
+import { useArrivalId } from "../../parts/arrival";
+import { GradesHiddenLine, HiddenFigure, HideGradesButton, useGradesHidden } from "../../parts/hide-grades";
 import { SixPageNote, UnreadNote } from "../../parts/six-page-note";
-import { StandingFigures } from "../../parts/standing";
 import { usePerfDrawn } from "../../perf";
 import { ProblemBanner, usePullToRefresh } from "../../shell/source-status";
+import { useB } from "../../ui/b";
 import { Skeleton } from "../../ui/display";
-import { Rise } from "../../ui/expressive";
+import { CountUp, Rise } from "../../ui/expressive";
 import { Figure, FigureDash, FigureLabel, Group, GroupRow, Heading, IconTile, Panel, Pill, type PillTone } from "../../ui/group";
 import { haptic } from "../../ui/haptics";
 import { HourClock } from "../../ui/hour-clock";
 import { Icons } from "../../ui/icons";
 import { Notice, Page } from "../../ui/layout";
+import { Meter } from "../../ui/meter";
+import { Appear, CrossFade } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
+import { ROW_SIDE } from "../../ui/row-end";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
-import { space, useTheme } from "../../ui/theme";
+import { font, space, useTheme } from "../../ui/theme";
 import { CourseTile } from "../../ui/tile";
 import { TopBar } from "../../ui/top-bar";
 import { Later } from "../plan/deferred";
 import { useFreshPlan } from "../plan/fresh-plan";
-import { effortKey, GradeSelect, IpkChart, NeedText, predicateFor, TargetControl, usePredicate, useTermName } from "../plan/projection";
+import { effortKey, GradeSelect, IpkChart, NeedFigure, TargetControl, useTermName } from "../plan/projection";
 import { SixNeeded } from "../plan/six-needed";
 import { GradeLetter, shownIndex, Transcript } from "./transcript";
 
@@ -52,14 +71,14 @@ const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function GradesScreen() {
   const t = useT();
-  const v = useTheme().v4;
+  const b = useB();
   const pull = usePullToRefresh();
   // Back from the planner with a plan it changed: start again from what's saved.
   const fresh = useFreshPlan();
   return (
     <Page
       testID="screen.grades"
-      background={v.page}
+      background={b.page}
       header={
         <>
           {/* The screen's one title, in its bar (no second "Nilai" on the page). */}
@@ -85,37 +104,82 @@ function GradesOrWithoutSix() {
   const six = useStatus("six");
   // Drawn with its data: SIX's record, or what shows without it once there's nothing to wait for.
   usePerfDrawn(Boolean(record && state) || (six.state !== "connecting" && six.state !== "live"));
-  if (record && state) return <Grades record={record} state={state} />;
+  const here = Boolean(record && state);
   // SIX's first read still running: the page's shape, never a spinner.
   const firstRead = six.state === "connecting" || (six.state === "live" && six.updatedAt === null);
-  return firstRead ? <GradesSkeleton /> : <WithoutSix />;
+  const arrival = useArrivalId(here || !firstRead);
+  // The shape becoming the record: it fades through, once (the big number still rises on its own).
+  return <CrossFade id={arrival}>{record && state ? <Grades record={record} state={state} /> : firstRead ? <GradesSkeleton /> : <WithoutSix />}</CrossFade>;
 }
 
 function Grades({ record, state }: { record: StudentRecord; state: PlanState }) {
-  // The key card and the way to graduating fill the first screenful; the chart, this term and the transcript come
+  // The key figures are the first frame; this term, the way to graduating with the chart, and the transcript come
   // after, a frame each, each drawing only itself when it comes.
+  // This term alone: what the IPK becomes, and what the target needs from its courses. Worked out once, for both.
+  const { plan } = state;
+  const termOnly = useMemo(() => project(record, { ...plan, terms: [] }), [record, plan]);
+  const after = record.term && record.thisTerm.length ? (termOnly.steps.find((s) => s.term === record.term)?.ipk ?? null) : null;
+  // A target out of reach is answered under it by the highest IPK still possible this semester: when that's the same
+  // figure as the one on the way to graduating, it's said there once, and that row is left out.
+  const best = termOnly.bestIpk;
+  const bestSaid =
+    record.thisTerm.some((c) => c.grade === null) &&
+    termOnly.need(targetOf(record, plan)).kind === "out" &&
+    best !== null &&
+    state.projection.bestIpk !== null &&
+    Math.abs(best - state.projection.bestIpk) < 0.005;
+  const hidden = useGradesHidden();
+  // Shown again while the Student looks at this page: the parts come back together, at once, as a fold opens (Appear).
+  // On the page's first draw they still come a part a frame after its push (Later); that wait, taken again on a tap
+  // of "Tampilkan", left the page with its figures alone for half a second and then dropped the rest in.
+  const [revealed, setRevealed] = useState(false);
+  const wasHidden = useRef(hidden);
+  if (wasHidden.current !== hidden) {
+    wasHidden.current = hidden;
+    if (!hidden && !revealed) setRevealed(true);
+  }
+  // Hidden: the big number's place and the SKS stay; every part made of grades (this term, the honors, the chart, the
+  // transcript) gives way to one quiet line with the way to show them. None of them is drawn, so nothing can leak.
+  // The key card is the same part either way (it isn't made again when grades are hidden or shown).
   return (
     <>
       <Rise screen="grades" index={0}>
-        <Standing record={record} state={state} />
+        <Standing record={record} state={state} after={after} />
       </Rise>
       <View style={{ gap: space[3], marginTop: space[3] }}>
         <SixPageNote datasets={["six.transcript", "six.progress"]} />
-        <UnreadNote record={record} />
-        <Disagreement record={record} />
+        {hidden ? (
+          <GradesHiddenLine />
+        ) : (
+          <>
+            <UnreadNote record={record} />
+            <Disagreement record={record} />
+          </>
+        )}
       </View>
-      <Rise screen="grades" index={1}>
-        <Graduation record={record} state={state} />
-      </Rise>
-      <Later frame={1}>
-        <Chart record={record} state={state} />
-      </Later>
-      <Later frame={2}>
-        <ThisTerm record={record} state={state} />
-      </Later>
-      <Later frame={3}>
-        <Transcript record={record} />
-      </Later>
+      {hidden ? null : revealed ? (
+        <Appear>
+          <ThisTerm record={record} state={state} termOnly={termOnly} />
+          <Graduation record={record} state={state} bestSaid={bestSaid} />
+          <Chart record={record} state={state} />
+          <Transcript record={record} />
+        </Appear>
+      ) : (
+        <>
+          {/* The newest grades next, with what they do to the IPK ("IPK setelah semester ini"): after an exam that's
+              what the Student came for, so it's the first thing under the big number, not a screen or two down. */}
+          <Later frame={1}>
+            <ThisTerm record={record} state={state} termOnly={termOnly} />
+          </Later>
+          <Later frame={2}>
+            <Graduation record={record} state={state} bestSaid={bestSaid} />
+            <Chart record={record} state={state} />
+          </Later>
+          <Later frame={3}>
+            <Transcript record={record} />
+          </Later>
+        </>
+      )}
     </>
   );
 }
@@ -123,48 +187,75 @@ function Grades({ record, state }: { record: StudentRecord; state: PlanState }) 
 // ------------------------------------------------------------ the key card
 
 /**
- * The IPK, big, with the predicate it heads for as plain words beside it ("Sangat memuaskan"; "… saat lulus" when that
- * isn't today's), last semester's IP a quiet line, and the SKS passed over a thin bar of those needed.
+ * The IPK, big, and beside it what it becomes after this semester (from the grades that are out and the Student's
+ * estimates for the rest: the answer to "what does this grade do to my IPK"); under them the SKS passed over a thin
+ * bar of those needed. Flat on the page, starting at the headings' edge. No predicate in words beside the number
+ * (round 1's council: "words for what the number says"): the honors are rows of their own under "Menuju lulus".
  */
-const Standing = memo(function Standing({ record, state }: { record: StudentRecord; state: PlanState }) {
+const Standing = memo(function Standing({ record, state, after }: { record: StudentRecord; state: PlanState; after: number | null }) {
   const t = useT();
   const f = useFormat();
+  const lang = useLang();
   const v = useTheme().v4;
-  const predicate = usePredicate();
-  const transcript = record.transcript!;
-  const ipk = shownIndex(transcript.ipk);
+  const ipk = shownIndex(record.transcript!.ipk);
   const sks = passedSks(record);
   const need = sksModel(record, state.plan).need;
-  const { finalIpk, path, honor } = state.projection;
-  const word = predicate(predicateFor(finalIpk, path));
-  // Today's IPK heads for another predicate (grades still to come): the words say it's the one at graduation.
-  const later = word !== null && word !== predicate(predicateFor(ipk, path));
-  const graded = transcript.terms.filter((term) => term.term !== record.term && shownIndex(term.ip) !== null);
-  const last = graded.at(-1);
-  const lastIp = last ? shownIndex(last.ip) : null;
+  const of = t("mobile.academic.sksOf", { need });
+  const hidden = useGradesHidden();
+  const big = (px: number) => ({ fontFamily: font.display.extrabold, fontSize: px, lineHeight: Math.round(px * 1.15), letterSpacing: -1, color: v.fg });
   return (
-    <Panel testID="card.standing" style={{ padding: space[5] }}>
-      <StandingFigures
-        id="grades"
-        ipk={ipk}
-        sks={sks}
-        need={need}
-        // Plain words, not a chip: nothing here to press.
-        aside={
-          word ? (
-            <Text size="bodyLarge" weight="medium" style={{ color: honor ? v.okFg : v.fg2 }}>
-              {later ? t("mobile.grades.predicateAtEnd", { predicate: word }) : word}
-            </Text>
-          ) : null
-        }
-      >
-        {lastIp !== null && (
-          <Text size="bodyMedium" tabular style={{ color: v.muted }}>
-            {t("mobile.grades.lastIp", { ip: f.number(lastIp, 2) })}
-          </Text>
+    <View testID="card.standing" style={{ marginHorizontal: space[1], marginTop: space[2], gap: space[4] }}>
+      {/* Two figures on one baseline, the second wrapping under the first at a big font size. */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "flex-end", columnGap: space[6], rowGap: space[3] }}>
+        <View>
+          <FigureLabel>{t("grades.chart.ipk")}</FigureLabel>
+          {/* The eye beside the biggest number: one tap hides or shows every grade, everywhere. */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: space[2] }}>
+            {ipk === null ? (
+              <FigureDash />
+            ) : hidden ? (
+              <HiddenFigure name={t("grades.chart.ipk")} testID="grades.ipk" style={big(44)} />
+            ) : (
+              <Figure id="grades.ipk" value={ipk} decimals={2} comma={lang === "id"} />
+            )}
+            {ipk !== null && <HideGradesButton />}
+          </View>
+        </View>
+        {after !== null && hidden && (
+          <View style={{ paddingBottom: 4 }}>
+            <FigureLabel>{t("grades.ipkAfter")}</FigureLabel>
+            <HiddenFigure name={t("grades.ipkAfter")} style={big(30)} />
+          </View>
         )}
-      </StandingFigures>
-    </Panel>
+        {after !== null && !hidden && (
+          <View accessible accessibilityLabel={`${t("grades.ipkAfter")} ${f.number(after, 2)}`} style={{ paddingBottom: 4 }}>
+            {/* Named whole ("IPK setelah semester ini": round 3's council, "doesn't say IP or IPK"), a live number in
+                the page's own ink: blue read as a link that wasn't one. */}
+            <FigureLabel>{t("grades.ipkAfter")}</FigureLabel>
+            <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={30} color={v.fg} />
+          </View>
+        )}
+      </View>
+      <View style={{ gap: space[2] }}>
+        {/* The label at the start, the figure at the end, wrapping under it at a big font size. */}
+        <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", columnGap: space[3] }}>
+          <FigureLabel>{t("grades.sksPassed")}</FigureLabel>
+          <View style={{ flexDirection: "row", alignItems: "baseline", gap: space[1] }}>
+            {sks === null ? (
+              <Text size="titleMedium" style={{ color: v.fg }}>
+                -
+              </Text>
+            ) : (
+              <CountUp id="grades.sks" value={sks} style={{ fontFamily: font.display.bold, fontSize: 20, lineHeight: 26, color: v.fg }} />
+            )}
+            <Text size="bodyMedium" style={{ color: v.muted }}>
+              {of}
+            </Text>
+          </View>
+        </View>
+        {sks !== null && need > 0 && <Meter value={sks / need} track={v.track} label={`${t("grades.sksPassed")} ${sks} ${of}`} />}
+      </View>
+    </View>
   );
 });
 
@@ -172,7 +263,8 @@ const Standing = memo(function Standing({ record, state }: { record: StudentReco
 function GradesSkeleton() {
   return (
     <View accessibilityState={{ busy: true }} testID="grades.loading" style={{ gap: space[6] }}>
-      <Panel style={{ padding: space[5], gap: space[3] }}>
+      {/* At the figures' own edge (the headings'), so nothing shifts when they arrive. */}
+      <Panel style={{ paddingHorizontal: space[1], paddingTop: space[2], gap: space[3] }}>
         <View style={{ gap: space[2] }}>
           <Skeleton width={32} height={14} />
           <Skeleton width={104} height={44} />
@@ -186,7 +278,7 @@ function GradesSkeleton() {
           <Skeleton width="100%" height={6} />
         </View>
       </Panel>
-      <Panel style={{ padding: space[4], gap: space[5] }}>
+      <Panel style={{ paddingHorizontal: ROW_SIDE, gap: space[5] }}>
         {[0, 1, 2].map((i) => (
           <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: space[3] }}>
             <Skeleton width={44} height={44} style={{ borderRadius: 14 }} />
@@ -226,7 +318,7 @@ function Disagreement({ record }: { record: StudentRecord }) {
  * ("Jika semua A"). Over which SKS that average is (this term's and the plan's, which can be more than the card's SKS
  * left) is the honor row's sheet, never a count on screen beside "125 dari 144".
  */
-const Graduation = memo(function Graduation({ record, state }: { record: StudentRecord; state: PlanState }) {
+const Graduation = memo(function Graduation({ record, state, bestSaid }: { record: StudentRecord; state: PlanState; bestSaid: boolean }) {
   const t = useT();
   const f = useFormat();
   const nav = useNav();
@@ -264,7 +356,6 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
       title={blocked ? t("grades.graduationBlocked") : finish && lastTerm ? t("grades.graduationWhen", { term: termName(lastTerm) }) : t("grades.toPlanner")}
       meta={hasWhatIfs(plan, record) ? t("mobile.grades.fromSix") : undefined}
       metaTone="muted"
-      trailing={<Icons.ChevronRight size={18} color={v.muted} />}
       onPress={() => nav.go({ screen: "plan", tab: "planner" })}
       accessibilityHint={t("grades.toPlanner")}
       testID="action.toPlanner"
@@ -315,20 +406,21 @@ const Graduation = memo(function Graduation({ record, state }: { record: Student
         }
       />,
     );
-  rows.push(
-    <GroupRow
-      key="best"
-      leading={<IconTile tone="plain" icon={(color) => <Icons.Target size={22} color={color} />} />}
-      title={t("grades.best")}
-      // Which SKS: the honor's sheet says it, once.
-      meta={projection.variableSks ? t("mobile.grades.bestHint") : t("grades.bestNone")}
-      trailing={
-        <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
-          {best === null ? "-" : f.number(best, 2)}
-        </Text>
-      }
-    />,
-  );
+  if (!bestSaid)
+    rows.push(
+      <GroupRow
+        key="best"
+        leading={<IconTile tone="plain" icon={(color) => <Icons.Target size={22} color={color} />} />}
+        title={t("grades.best")}
+        // Which SKS: the honor's sheet says it, once.
+        meta={projection.variableSks ? t("mobile.grades.bestHint") : t("grades.bestNone")}
+        trailing={
+          <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
+            {best === null ? "-" : f.number(best, 2)}
+          </Text>
+        }
+      />,
+    );
   return (
     <>
       <Heading>{t("mobile.grades.toGraduation")}</Heading>
@@ -370,36 +462,53 @@ function Chart({ record, state }: { record: StudentRecord; state: PlanState }) {
 
 // ------------------------------------------------------------ this term
 
-function ThisTerm({ record, state }: { record: StudentRecord; state: PlanState }) {
+/**
+ * This term's courses. The grades that are out lead, as plain letters under "Semester ini"; the ones still to come sit
+ * under a heading that says once they're the Student's estimates ("Perkiraanmu semester ini": round 3's council,
+ * "'perkiraan' on all five rows"), each a dashed picker, never a letter that looks final. The list first, then the
+ * target it answers and what that takes as a figure (the average needed, or the highest IPK still possible when the
+ * target is out of reach), never a sentence.
+ */
+function ThisTerm({ record, state, termOnly }: { record: StudentRecord; state: PlanState; termOnly: Projection }) {
   const t = useT();
-  const lang = useLang();
   const v = useTheme().v4;
   const outline = useDataset("edunex.outline");
-  const { plan } = state;
-  // This term alone: what the IPK becomes and what the target needs from its courses.
-  const termOnly = useMemo(() => project(record, { ...plan, terms: [] }), [record, plan]);
-  const after = termOnly.steps.find((s) => s.term === record.term)?.ipk ?? null;
-  const goal = targetOf(record, plan);
-  const pending = record.thisTerm.some((c) => c.grade === null);
-  const hidden = record.thisTerm.some((c) => c.grade === null && !outline?.[c.code]?.grade);
+  const goal = targetOf(record, state.plan);
+  const out = record.thisTerm.filter((c) => c.grade !== null);
+  const coming = record.thisTerm.filter((c) => c.grade === null);
+  const hidden = coming.some((c) => !outline?.[c.code]?.grade);
   if (!record.term || !record.thisTerm.length) return null;
+  // The figure itself (the IPK after this semester) is at the top of the page, once.
+  const target = (
+    <View style={{ marginHorizontal: space[1], marginTop: space[5], gap: space[3] }} testID="card.ipkAfter">
+      <TargetControl record={record} state={state} />
+      <NeedFigure need={termOnly.need(goal)} target={goal} sks={record.inProgressSks} best={termOnly.bestIpk} />
+    </View>
+  );
   return (
     <View testID="section.thisTerm">
-      {/* Grades still to come: the ones shown are the Student's own estimates, said once by the heading. */}
-      <Heading trailing={pending ? <Pill tone="brand">{t("grades.estimate")}</Pill> : undefined}>{t("grades.thisTerm")}</Heading>
-      <Group>
-        {record.thisTerm.map((course, i) => (
-          <TermCourseRow key={course.code} record={record} state={state} course={course} first={i === 0} />
-        ))}
-      </Group>
-      <Panel style={{ marginTop: space[3], padding: space[5], gap: space[4] }} testID="card.ipkAfter">
-        <View>
-          <FigureLabel>{t("grades.ipkAfter")}</FigureLabel>
-          {after === null ? <FigureDash size={32} /> : <Figure id="grades.after" value={after} decimals={2} comma={lang === "id"} size={32} />}
+      {out.length > 0 && (
+        <>
+          <Heading>{t("grades.thisTerm")}</Heading>
+          <Group>
+            {out.map((course, i) => (
+              <TermCourseRow key={course.code} record={record} state={state} course={course} first={i === 0} />
+            ))}
+          </Group>
+        </>
+      )}
+      {coming.length > 0 && (
+        <View testID="section.estimates">
+          <Heading>{t(out.length > 0 ? "mobile.grades.estimatesRest" : "mobile.grades.estimates")}</Heading>
+          <Group>
+            {coming.map((course, i) => (
+              <TermCourseRow key={course.code} record={record} state={state} course={course} first={i === 0} />
+            ))}
+          </Group>
         </View>
-        <TargetControl record={record} state={state} />
-        <NeedText need={termOnly.need(goal)} target={goal} sks={record.inProgressSks} scope="term" />
-      </Panel>
+      )}
+      {/* The target under the list it's answered by (round 3's council: "the target control sits above the list it changes"). */}
+      {target}
       {hidden && (
         <Text size="bodySmall" style={{ color: v.muted, marginTop: space[2], marginHorizontal: space[1] }}>
           {t("grades.edunexNote")}
@@ -441,8 +550,8 @@ function TermCourseRow({
     .filter(Boolean)
     .join(" · ");
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", paddingRight: 14 }}>
-      {!first && <View style={{ position: "absolute", top: 0, left: 70, right: 0, height: 1, backgroundColor: v.line }} />}
+    <View style={{ flexDirection: "row", alignItems: "center", paddingRight: ROW_SIDE }}>
+      {!first && <View style={{ position: "absolute", top: 0, left: ROW_SIDE + 44 + space[3], right: 0, height: 1, backgroundColor: v.line }} />}
       <PressScale
         onPress={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}
         accessibilityHint={t("grades.whatNeed")}
@@ -453,7 +562,7 @@ function TermCourseRow({
           flexDirection: "row",
           alignItems: "center",
           gap: space[3],
-          paddingLeft: 14,
+          paddingLeft: ROW_SIDE,
           paddingRight: space[3],
           paddingVertical: space[3],
           minHeight: 64,

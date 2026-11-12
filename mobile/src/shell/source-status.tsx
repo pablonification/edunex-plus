@@ -1,13 +1,12 @@
 // Where each system stands, on the phone: the desktop's src/app/shell/source-status.tsx, its hooks
 // copied as they are (that file draws DOM too), its status line and panel as the tab header's quiet
 // line and a sheet, its banner as a card under the header. Pull to refresh is "Perbarui sekarang".
+
 import { router } from "expo-router";
 import { type ReactNode, useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
 import { useFormat, useNow, useT } from "../../../src/app/i18n";
-import { initials } from "../../../src/app/names";
 import { useSaved } from "../../../src/app/saved";
 import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "../../../src/app/store";
 import type { SignInStep } from "../../../src/core/contract";
@@ -22,8 +21,8 @@ import { SourceLogo } from "../ui/brand";
 import { Button, IconButton } from "../ui/controls";
 import { EmptyState, LiveDot, Spinner } from "../ui/display";
 import { Icons } from "../ui/icons";
+import { useTopInset } from "../ui/insets";
 import { Meta } from "../ui/layout";
-import { iosPressed } from "../ui/press";
 import { Sheet } from "../ui/sheet";
 import { slop } from "../ui/sizes";
 import { Text } from "../ui/text";
@@ -180,21 +179,19 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
 /**
  * A tab's top bar (Material 3's small top app bar), the same on all five tabs (round 3): the tab's name with the data's
  * status as one quiet line under it (tap: each source and "Perbarui sekarang"), then the tab's own one or two actions
- * (`actions`: an icon button, ⋮), then the three every tab ends with, in the same places (`TabActions`): Search, the
- * bell, the avatar (account and Settings). Just the bar: no big title under it to collapse. A banner follows when
+ * (`actions`: an icon button, ⋮), then the three every tab ends with, in the same places (`TabActions`): Search and the
+ * bell (the Student, the account and Settings are the Profil tab). Just the bar: no big title under it to collapse. A banner follows when
  * something needs the Student. `v4`: on round 2's v4 page (DESIGN.md "v4"): the bar in the page's grey, the tab's name
  * in Plus Jakarta Sans.
  */
 export function TabHeader({ title, actions, v4 = false }: { title: string; actions?: ReactNode; v4?: boolean }) {
   const t = useT();
-  const insets = useSafeAreaInsets();
+  const top = useTopInset();
   const line = useSyncLine();
   const [panel, setPanel] = useState(false);
   return (
     <BarSurface v4={v4}>
-      <View
-        style={{ marginTop: insets.top, flexDirection: "row", alignItems: "center", paddingLeft: space.page, paddingRight: space[1], minHeight: BAR_HEIGHT }}
-      >
+      <View style={{ marginTop: top, flexDirection: "row", alignItems: "center", paddingLeft: space.page, paddingRight: space[1], minHeight: BAR_HEIGHT }}>
         <Pressable
           testID="action.syncStatus"
           accessibilityRole="button"
@@ -223,8 +220,8 @@ export function TabHeader({ title, actions, v4 = false }: { title: string; actio
 }
 
 /**
- * What every tab's bar ends with, in this order: Search, the bell (a dot while something new is unread), the avatar
- * (account and Settings). `color`: on a coloured bar (Beranda's blue), the icons' colour and the dot's (`dot`).
+ * What every tab's bar ends with, in this order: Search, the bell (a dot while something new is unread). The account
+ * and Settings are the Profil tab's. `color`: on a coloured bar (Beranda's blue), the icons' colour and the dot's (`dot`).
  */
 export function TabActions({ color, dot }: { color?: string; dot?: string }) {
   const t = useT();
@@ -236,7 +233,6 @@ export function TabActions({ color, dot }: { color?: string; dot?: string }) {
         <Icons.Search size={24} color={ink} />
       </IconButton>
       <Bell color={ink} dot={dot ?? theme.color.error} />
-      <Avatar />
     </>
   );
 }
@@ -369,35 +365,6 @@ function Bell({ color, dot }: { color: string; dot: string }) {
         />
       )}
     </View>
-  );
-}
-
-/** The Student's initials in a circle: their account and Settings. */
-function Avatar() {
-  const t = useT();
-  const theme = useTheme();
-  const account = useDataset("edunex.account");
-  const student = useDataset("six.student");
-  const name = account?.name ?? student?.name;
-  return (
-    <Pressable
-      testID="action.account"
-      accessibilityRole="button"
-      accessibilityLabel={t("mobile.account.open")}
-      onPress={() => router.push("/settings")}
-      android_ripple={{ color: theme.color.selected, borderless: true, radius: 20 }}
-      style={({ pressed }) => [{ width: TOUCH, height: TOUCH, alignItems: "center", justifyContent: "center" }, iosPressed(pressed)]}
-    >
-      <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: theme.color.primaryContainer, alignItems: "center", justifyContent: "center" }}>
-        {name ? (
-          <Text size="labelLarge" tone="onPrimaryContainer">
-            {initials(name)}
-          </Text>
-        ) : (
-          <Icons.User size={18} color={theme.color.onPrimaryContainer} />
-        )}
-      </View>
-    </Pressable>
   );
 }
 

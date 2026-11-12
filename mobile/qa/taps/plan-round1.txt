@@ -1,3 +1,4 @@
+# history: a snapshot of round 1's app (a Presensi tab, a Lainnya tab, one Rencana row): its ids are gone on purpose, so mobile/qa/flows-check.mjs only lists them.
 # taps.sh's steps, from Beranda after a start from saved data: kind | name | testID regex, or BACK.
 # kind groups the steps in the table: tab (first visit after the start), tab-again, screen, back.
 # Round 1's tabs (Presensi, Lainnya), for the baseline build 9395cea: taps.sh --plan mobile/qa/taps/plan-round1.txt.

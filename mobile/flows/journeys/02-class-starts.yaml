@@ -1,0 +1,63 @@
+# Journey 2, a class starts: from Beranda to presence marked, then back to "what's next".
+# limit: 2
+# The class on now has its Edunex Presence open: the block's button is "Isi Presensi" (action.presence), which opens
+# Edunex's own presence page in the app, signed in (src/screens/home/banner.tsx, `external(presence.url)`; in the app
+# it is src/screens/web/signed-page.tsx, `screen.page.edunex`). The Student's press of Edunex's own button isn't ours, so
+# the walk goes as far as is real: the button, Edunex's page, Back to Beranda.
+# (On the real phone tonight it was Edunex's page, not SIX's Tandai Hadir the flow looked for: SIX's `action.checkIn`
+# is the button only when no Edunex Presence is open.)
+appId: io.github.pablonification.edunexplus.demo
+name: "journey 2 a class starts: Isi Presensi, then what's next"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id&EDUNEX_DEMO_CHECK_IN=open"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: home.now
+    timeout: 30000
+- assertVisible: ".*Ekonomi dan Inovasi dalam Perencanaan.*"
+# tap 1: the block's one white button. Its id is action.presence for an Edunex Presence and action.checkIn on the SIX
+# path the block still draws, so both are taken.
+- tapOn:
+    id: 'action\.(presence|checkIn)'
+# Edunex's own presence page (SIX's Tandai Hadir, `screen.checkIn`, if the block had SIX's button). Our part ends here.
+- extendedWaitUntil:
+    visible:
+      id: 'screen\.(page\.edunex|checkIn)'
+    timeout: 20000
+- takeScreenshot: journey-2-edunex-page
+# Back lands on Beranda, the block still there, no dead end.
+- back
+- extendedWaitUntil:
+    visible:
+      id: screen.home
+    timeout: 20000
+- assertVisible:
+    id: home.now
+- assertVisible:
+    id: home.strip
+- assertVisible:
+    id: home.grid
+# goal
+- takeScreenshot: journey-2-whats-next
+# Not a dead end: the rest of Beranda still works (the strip opens Tugas, Back returns).
+# return: the strip's Tugas, then Back to Beranda.
+- tapOn:
+    id: action.strip.tasks
+- extendedWaitUntil:
+    visible:
+      id: screen.tasks
+    timeout: 20000
+- back
+- extendedWaitUntil:
+    visible:
+      id: home.now
+    timeout: 10000

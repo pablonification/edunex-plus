@@ -14,6 +14,10 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.signIn
 - extendedWaitUntil:
+    notVisible:
+      id: screen.firstMinute
+    timeout: 60000
+- extendedWaitUntil:
     visible:
       id: status.firstRead
     timeout: 30000
@@ -23,12 +27,12 @@ appId: io.github.pablonification.edunexplus.demo
     notVisible:
       id: status.firstRead
     timeout: 600000
-- scrollUntilVisible:
-    element:
-      id: card.firstScan
-    direction: DOWN
-    timeout: 60000
-    visibilityPercentage: 80
+# Beranda draws no summary card any more: the first read ends in a snackbar, "Semua siap" with "Lihat ringkasan". Its picture
+# is the snackbar over Beranda; where it isn't up (the other child's part isn't in this build), Beranda settled.
+- extendedWaitUntil:
+    visible: "Lihat ringkasan"
+    timeout: 10000
+    optional: true
 - waitForAnimationToEnd
 - takeScreenshot: 03-summary-card
 # Signed in, Thursday 08:07, SIX's Tandai Hadir open in the morning's class.
@@ -36,7 +40,7 @@ appId: io.github.pablonification.edunexplus.demo
 - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_CHECK_IN=open&EDUNEX_DEMO_THEME=${THEME}"
 - extendedWaitUntil:
     visible:
-      id: card.now
+      id: home.now
     timeout: 120000
 - extendedWaitUntil:
     notVisible:

@@ -6,6 +6,7 @@
 // into the app's own cache, never a folder other apps read; "Bagikan" (the desktop's "reveal")
 // hands it to the phone's share sheet, where the Student picks LINE's chat, Drive or Files. The
 // file goes when another report is shown, and when the app starts again.
+
 import { randomUUID } from "expo-crypto";
 import { Directory, File, Paths } from "expo-file-system";
 import * as Sharing from "expo-sharing";
@@ -17,6 +18,7 @@ import type { AppLog } from "../../../src/engine/app-log";
 import type { Engine } from "../../../src/engine/engine";
 import { EngineError } from "../../../src/engine/errors";
 import type { Handlers } from "./handlers";
+import { osName } from "./os-name";
 
 type ReportAction =
   | "report.preview"
@@ -71,7 +73,7 @@ export function phoneReportHandlers(context: ReportContext): Pick<Handlers, Repo
 
   return {
     "report.preview": async (about) => {
-      shown = { id: randomUUID(), os: context.os?.() ?? `Android ${Platform.Version}`, report: await engine.report(about) };
+      shown = { id: randomUUID(), os: context.os?.() ?? osName(Platform.OS, Platform.Version), report: await engine.report(about) };
       saved = null;
       clearFiles();
       return shown;

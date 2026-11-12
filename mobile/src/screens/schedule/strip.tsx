@@ -1,32 +1,23 @@
-// The week strip over Jadwal's day (v4): the week's seven days, a dot under each in the ink of every course that meets
-// that day. One shape for a day that stands out, the circle: the day picked filled (in the brand's blue when it's today,
+// The week strip over Jadwal's day (v4): the week's seven days, under each the number of classes that day (none: no
+// mark; dots in each course's ink were too small to tell apart: round 1's judges). One shape for a day that stands out, the circle: the day picked filled (in the brand's blue when it's today,
 // else its tint), today a ring of that blue while another day is picked (blue is today's one meaning on the screen, with
-// the now-line). A day with two classes at once carries the clash's own icon (as its blocks do), named for TalkBack. A
+// the now-line). A day with two classes at once is named so for TalkBack; its blocks show the clash in words. A
 // tap picks a day; a swipe across the strip moves a week.
-import { memo } from "react";
+import { memo, useState } from "react";
 import { View } from "react-native";
 import { GestureDetector, usePanGesture } from "react-native-gesture-handler";
-import { useCourseColor } from "../../../../src/app/courses";
+import Animated from "react-native-reanimated";
 import { useT } from "../../../../src/app/i18n";
 import { dayNoon, type ScheduleDay, shiftDay } from "../../../../src/core/schedule";
-import { Icons } from "../../ui/icons";
+import { useSlidingMark } from "../../ui/moves";
 import { PressScale } from "../../ui/press";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
 import { useDayFormat, useToday } from "./clock";
 import { nowColour, onNowColour } from "./day";
 
-/** The courses meeting on a day, each once, in time order: their dots. */
-const codesOf = (day: ScheduleDay | undefined) =>
-  day
-    ? [
-        ...new Set(
-          [...day.classes.map((c) => ({ code: c.session.courseCode, start: c.session.start })), ...day.outside, ...day.edunex]
-            .sort((a, b) => a.start - b.start)
-            .map((one) => one.code),
-        ),
-      ]
-    : [];
+/** How many classes and meetings a day holds: the number under its date. */
+const countOf = (day: ScheduleDay | undefined) => (day ? day.classes.length + day.outside.length + day.edunex.length : 0);
 
 export const WeekStrip = memo(function WeekStrip({
   monday,
@@ -47,8 +38,13 @@ export const WeekStrip = memo(function WeekStrip({
   const theme = useTheme();
   const v = theme.v4;
   const today = useToday();
-  const colour = useCourseColor();
   const days = Array.from({ length: 7 }, (_, i) => shiftDay(monday, i));
+  // The picked day's circle slides from the day before to the new one (keyed by weekday, so a week's move keeps it in
+  // place); its top is where the first day's circle was laid out.
+  const index = days.indexOf(picked);
+  const mark = useSlidingMark(String(index));
+  const [circleTop, setCircleTop] = useState<number | null>(null);
+  const markColour = picked === today ? nowColour(theme.scheme) : v.brandTint;
   const swipe = usePanGesture({
     activeOffsetX: [-24, 24],
     failOffsetY: [-16, 16],
@@ -67,69 +63,60 @@ export const WeekStrip = memo(function WeekStrip({
         accessibilityRole="tablist"
         style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: space[2], paddingTop: space[3], paddingBottom: 10 }}
       >
-        {days.map((day) => {
+        {index >= 0 && circleTop !== null && (
+          <Animated.View pointerEvents="none" style={[{ position: "absolute", top: circleTop, height: 38, alignItems: "center" }, mark.style]}>
+            <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: markColour }} />
+          </Animated.View>
+        )}
+        {days.map((day, i) => {
           const noon = dayNoon(day);
           const isToday = day === today;
           const on = day === picked;
-          const codes = codesOf(plan.get(day)).slice(0, 4);
-          // Two classes at once that day: the clash's icon on its date, as on the day's blocks.
+          const count = countOf(plan.get(day));
+          // Two classes at once that day: said to TalkBack; on screen the day's blocks say it, with "Bentrok" (a badge on
+          // the date was too small to read: the judges' charge 12).
           const clash = plan.get(day)?.classes.some((c) => c.overlaps.length > 0) ?? false;
-          const circle = isToday && on ? nowColour(theme.scheme) : on ? v.brandTint : "transparent";
+          // The picked day's fill is the sliding mark under the row; until it's placed, the day draws its own.
+          const circle = on && circleTop === null ? (isToday ? nowColour(theme.scheme) : v.brandTint) : "transparent";
           const number = isToday && on ? onNowColour(theme.scheme) : isToday ? nowColour(theme.scheme) : on ? v.brandInk : v.fg;
           return (
-            <PressScale
-              key={day}
-              testID={`day.${day}`}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: on }}
-              accessibilityLabel={clash ? `${f.dateLong(noon)}, ${t("mobile.schedule.clashDay")}` : f.dateLong(noon)}
-              onPress={() => onPick(day)}
-              style={{ width: 48, alignItems: "center", gap: 6, paddingVertical: 2 }}
-            >
-              <Text size="labelMedium" weight={isToday ? "bold" : "regular"} style={{ color: isToday ? nowColour(theme.scheme) : v.muted, fontSize: 12 }}>
-                {f.weekdayShort(noon)}
-              </Text>
-              <View
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: circle,
-                  ...(isToday && !on ? { borderWidth: 1.5, borderColor: nowColour(theme.scheme) } : {}),
-                }}
+            <View key={day} onLayout={mark.measure(String(i))}>
+              <PressScale
+                testID={`day.${day}`}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={[f.dateLong(noon), count ? t("mobile.schedule.dayCount", { count }) : null, clash ? t("mobile.schedule.clashDay") : null]
+                  .filter(Boolean)
+                  .join(", ")}
+                onPress={() => onPick(day)}
+                style={{ width: 48, alignItems: "center", gap: 6, paddingVertical: 2 }}
               >
-                <Text size="titleMedium" face="display" weight="semibold" tabular style={{ color: number, fontSize: 15 }}>
-                  {String(Number(day.slice(8)))}
+                <Text size="labelMedium" weight={isToday ? "bold" : "regular"} style={{ color: isToday ? nowColour(theme.scheme) : v.muted, fontSize: 12 }}>
+                  {f.weekdayShort(noon)}
                 </Text>
-                {clash && (
-                  <View
-                    testID={`mark.clashDay.${day}`}
-                    style={{
-                      position: "absolute",
-                      top: -4,
-                      right: -6,
-                      width: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: v.ambBg,
-                      borderWidth: 1.5,
-                      borderColor: v.page,
-                    }}
-                  >
-                    <Icons.Overlap size={11} weight="bold" color={v.ambFg} />
-                  </View>
-                )}
-              </View>
-              <View style={{ flexDirection: "row", gap: 3, height: 5 }}>
-                {codes.map((code) => (
-                  <View key={code} style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: theme.courseTile(colour(code)).ink }} />
-                ))}
-              </View>
-            </PressScale>
+                <View
+                  onLayout={i === 0 ? (event) => setCircleTop(space[3] + event.nativeEvent.layout.y) : undefined}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 19,
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: circle,
+                    ...(isToday && !on ? { borderWidth: 1.5, borderColor: nowColour(theme.scheme) } : {}),
+                  }}
+                >
+                  <Text size="titleMedium" face="display" weight="semibold" tabular style={{ color: number, fontSize: 15 }}>
+                    {String(Number(day.slice(8)))}
+                  </Text>
+                </View>
+                {/* A dot: the day has class. Today's in the app's blue (its one meaning, as the now-line), the others in the
+                    text's own colour, a size a glance reads (round 3's judge: "the dots under 8 and 9 are unexplained"). */}
+                <View importantForAccessibility="no" style={{ height: 16, alignItems: "center", justifyContent: "center" }}>
+                  {count > 0 && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: isToday ? nowColour(theme.scheme) : v.fg2 }} />}
+                </View>
+              </PressScale>
+            </View>
           );
         })}
       </View>

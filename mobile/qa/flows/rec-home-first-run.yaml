@@ -11,6 +11,10 @@ appId: io.github.pablonification.edunexplus.demo
 - tapOn:
     id: action.signIn
 - extendedWaitUntil:
+    notVisible:
+      id: screen.firstMinute
+    timeout: 60000
+- extendedWaitUntil:
     visible:
       id: tab.home
     timeout: 30000
@@ -22,15 +26,38 @@ appId: io.github.pablonification.edunexplus.demo
     notVisible:
       id: status.firstRead
     timeout: 120000
-- scrollUntilVisible:
-    element:
-      id: card.firstScan
-    direction: DOWN
-    timeout: 30000
-    centerElement: true
-- waitForAnimationToEnd
-- tapOn:
-    id: action.firstScan.open
+# Beranda draws no summary card any more: the first read ends in a snackbar, "Semua siap" with "Lihat ringkasan". While it is
+# up, the recording opens the summary from it; else from Settings (Profil, the gear, "Ringkasan awal").
+- runFlow:
+    when:
+      visible: "Lihat ringkasan"
+    commands:
+      - tapOn: "Lihat ringkasan"
+- runFlow:
+    when:
+      notVisible:
+        id: screen.firstScan
+    commands:
+      - tapOn:
+          id: tab.profile
+      - extendedWaitUntil:
+          visible:
+            id: screen.profile
+          timeout: 10000
+      - tapOn:
+          id: action.settings
+      - extendedWaitUntil:
+          visible:
+            id: screen.settings
+          timeout: 10000
+      - scrollUntilVisible:
+          element:
+            id: action.firstScan
+          direction: DOWN
+          timeout: 20000
+          centerElement: true
+      - tapOn:
+          id: action.firstScan
 - extendedWaitUntil:
     visible:
       id: screen.firstScan

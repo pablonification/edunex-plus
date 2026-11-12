@@ -12,6 +12,154 @@ export const mobileStrings = {
   // Kuliah: the term's courses with each one's absences left (Presensi's page). Akademik: IPK, Nilai, the study plan, KRS, UKT.
   "mobile.tab.courses": { id: "Kuliah", en: "Courses" },
   "mobile.tab.academic": { id: "Akademik", en: "Academic" },
+  // The last tab: the Student, their IPK and SKS, everything Akademik held, and the way to Settings and the account.
+  "mobile.tab.profile": { id: "Profil", en: "Profile" },
+  // Beranda's strip: counts to tap. A count of none is a check and two words, never "0".
+  "mobile.strip.tasksNone": { id: "Tugas beres", en: "Tasks done" },
+  "mobile.strip.absencesNone": { id: "Absen aman", en: "Absences fine" },
+  "mobile.strip.classes": { id: "Kuliah lagi", en: "Classes left" },
+  // superapp: Beranda
+  // The strip's three tiles: Tasks due within 7 days (late ones too), courses with no absence left, days to the next exam.
+  "mobile.strip.due": { id: "Tugas minggu ini", en: "Tasks this week" },
+  "mobile.strip.dueNone": { id: "Tak ada tenggat", en: "Nothing due" },
+  "mobile.strip.limit": { id: "Jatah absen habis", en: "No absences left" },
+  "mobile.strip.limitSpoken": {
+    id: "{count} mata kuliah, jatah absen habis",
+    en: { one: "{count} course with no absences left", other: "{count} courses with no absences left" },
+  },
+  "mobile.strip.examIn": { id: "hari ke {kind}", en: { one: "day to {kind}", other: "days to {kind}" } },
+  "mobile.strip.examToday": { id: "{kind} hari ini", en: "{kind} today" },
+  // Round 2: the soonest thing due ("2 hari ini", else its date over the Task's name), the absence status Kuliah
+  // names, the exam's own day; and a tile's plain name while its source is still being read.
+  "mobile.strip.today": { id: "hari ini", en: "due today" },
+  "mobile.strip.todaySpoken": {
+    id: "{count} Tugas tenggat hari ini",
+    en: { one: "{count} Task due today", other: "{count} Tasks due today" },
+  },
+  "mobile.strip.lateSpoken": { id: "{count} Tugas terlambat", en: { one: "{count} late Task", other: "{count} late Tasks" } },
+  "mobile.strip.undated": { id: "tanpa tenggat", en: "no due date" },
+  "mobile.strip.undatedSpoken": {
+    id: "{count} Tugas tanpa tenggat",
+    en: { one: "{count} Task with no due date", other: "{count} Tasks with no due date" },
+  },
+  "mobile.strip.nextSpoken": { id: "Tugas berikutnya, {date}: {title}", en: "Next Task, {date}: {title}" },
+  "mobile.strip.overSpoken": {
+    id: "{count} mata kuliah lewat batas absen",
+    en: { one: "{count} course over its absence limit", other: "{count} courses over their absence limit" },
+  },
+  "mobile.strip.examSpoken": { id: "{away} lagi ke {kind}", en: "{away} to {kind}" },
+  "mobile.strip.wait.tasks": { id: "Tugas", en: "Tasks" },
+  "mobile.strip.wait.absences": { id: "Absen", en: "Absences" },
+  "mobile.strip.wait.exam": { id: "Ujian", en: "Exams" },
+  // superapp: Beranda, round 3. The strip's three as one family: a figure over two words with the noun. The absence
+  // tile counts every course with no absence left (at the limit or past it). The search bar's hint, kept short.
+  // Round 4: the date's tile carries the Task's own name and hour.
+  "mobile.strip.lateTasks": { id: "tugas terlambat", en: { one: "late Task", other: "late Tasks" } },
+  "mobile.strip.out": { id: "absen habis", en: "absences out" },
+  "mobile.strip.outSpoken": {
+    id: "{count} mata kuliah tanpa sisa absen",
+    en: { one: "{count} course with no absences left", other: "{count} courses with no absences left" },
+  },
+  "mobile.strip.examTo": { id: "ke {kind}", en: "to {kind}" },
+  // The app's own name, for a screen reader on its mark (Beranda's header): a name, the same in both languages.
+  "mobile.appName": { id: "Edunex Plus", en: "Edunex Plus" },
+  // Beside the mark and the bell the bar is short: the magnifier says "search", the words say what it finds.
+  "mobile.home.searchHint": { id: "Kuliah, tugas, materi", en: "Courses, Tasks, materials" },
+  // The block's one time while a class is on with no Presence open, and its calm line once nothing is left.
+  "mobile.home.ends": { id: "selesai {time}", en: "ends {time}" },
+  "mobile.home.noneLeft": { id: "Kuliah hari ini selesai", en: "No more classes today" },
+  // Beranda's services, round and four across, and Semua layanan behind "Lainnya": every service in named groups.
+  "mobile.home.services": { id: "Layanan", en: "Services" },
+  "mobile.services.title": { id: "Semua layanan", en: "All services" },
+  "mobile.services.search": { id: "Cari layanan", en: "Search services" },
+  "mobile.services.none": { id: "Tak ada layanan bernama “{query}”", en: "No service named “{query}”" },
+  "mobile.services.group.daily": { id: "Harian", en: "Daily" },
+  "mobile.services.group.academic": { id: "Akademik", en: "Academic" },
+  "mobile.services.group.app": { id: "Aplikasi", en: "App" },
+  "mobile.service.calendar": { id: "Kalender", en: "Calendar" },
+  "mobile.service.material": { id: "Materi", en: "Materials" },
+  "mobile.service.exams": { id: "Ujian", en: "Exams" },
+  "mobile.service.month": { id: "Jadwal bulanan", en: "Monthly schedule" },
+  "mobile.service.needs": { id: "Perlu kamu urus", en: "To handle" },
+  "mobile.service.report": { id: "Lapor", en: "Report" },
+  "mobile.service.scan": { id: "Ringkasan", en: "Summary" },
+  // Profil: the counts under the Student's name, and the two groups of rows.
+  "mobile.profile.studies": { id: "Studi", en: "Studies" },
+  "mobile.profile.app": { id: "Aplikasi", en: "App" },
+  "mobile.profile.semester": { id: "Semester", en: "Semester" },
+  "mobile.profile.report": { id: "Laporkan masalah", en: "Report a problem" },
+  // superapp: Profil
+  // The card: a first-term Student with no grades yet, and what it says when SIX can't be read.
+  "mobile.profile.noGrades": { id: "Belum ada nilai", en: "No grades yet" },
+  "mobile.profile.connectSix": { id: "IPK, KRS dan UKT muncul setelah kamu masuk ke SIX.", en: "Your IPK, KRS and UKT show once you sign in to SIX." },
+  "mobile.profile.sixUnread": {
+    id: "SIX belum terbaca. IPK, KRS dan UKT muncul setelah terbaca.",
+    en: "SIX hasn't been read yet. Your IPK, KRS and UKT show once it is.",
+  },
+  // Kurikulum's row: the required courses still to pass.
+  "mobile.profile.requiredLeft": {
+    id: "{count} mata kuliah wajib lagi",
+    en: { one: "{count} required course left", other: "{count} required courses left" },
+  },
+  "mobile.profile.requiredDone": { id: "Wajib tuntas", en: "Required courses done" },
+  // Notifikasi's row.
+  "mobile.profile.unread": { id: "{count} belum dibaca", en: "{count} unread" },
+  // Profil: the heading over Nilai, Rencana, Kurikulum, KRS, UKT and Kalender akademik: the Student's own record.
+  "mobile.profile.record": { id: "Akademikmu", en: "Your academics" },
+  // Settings › Notifikasi while the phone has notifications off for the app: where they're off (the heading over it
+  // says what), and the one button.
+  "mobile.settings.alertsOff": { id: "Mati di pengaturan HP", en: "Off in your phone's settings" },
+  "mobile.settings.alertsTurnOn": { id: "Nyalakan", en: "Turn on" },
+  // Settings › Tentang: the row that opens what the app found the first time it read Edunex and SIX ("Ringkasan awal"
+  // was a name no judge understood).
+  "mobile.settings.firstFound": { id: "Temuan saat pertama masuk", en: "Found at first sign-in" },
+  // The phone's guide (mobile/src/shell/guide): the invitation, then one line for each part it points at. The
+  // rest of its words are the desktop guide's (./guide.ts).
+  "mobile.guide.intro.body": {
+    id: "Lihat yang tidak ada di Edunex dan SIX, kurang dari semenit. Bisa dilewati kapan saja.",
+    en: "See what Edunex and SIX don't have, in under a minute. Skip it any time.",
+  },
+  "mobile.guide.now.body": {
+    id: "Kuliah yang sedang berjalan atau berikutnya, dengan ruangnya. Saat presensinya dibuka, tombol Isi Presensi muncul di sini.",
+    en: "The class on now or next, with its room. When its Presence opens, Fill in Presence shows here.",
+  },
+  "mobile.guide.strip.title": { id: "Tugas, absen, ujian", en: "Tasks, absences, exams" },
+  "mobile.guide.strip.body": {
+    id: "Tugas yang menunggu, mata kuliah yang jatah absennya habis, dan ujian berikutnya. Ketuk salah satu untuk rinciannya.",
+    en: "Tasks waiting, courses out of absences and your next exam. Tap one for the detail.",
+  },
+  "mobile.guide.services.title": { id: "Layanan SIX dan Edunex", en: "SIX and Edunex services" },
+  "mobile.guide.services.body": {
+    id: "KRS, nilai, UKT, dan lainnya terbuka di aplikasi ini. Sisanya ada di Lainnya.",
+    en: "KRS, grades, UKT and more open in this app. The rest are under More.",
+  },
+  "mobile.guide.schedule.body": {
+    id: "Kuliah dari SIX dan pertemuan dari Edunex dalam satu jadwal, dengan ruangnya. Bisa ditambahkan ke kalender HP-mu.",
+    en: "Classes from SIX and meetings from Edunex in one schedule, with their rooms. You can add it to your phone's calendar.",
+  },
+  "mobile.guide.tasks.body": {
+    id: "Tugas semua mata kuliah dalam satu daftar. Buka satu untuk menulis jawaban, melampirkan berkas, lalu mengumpulkan dari HP.",
+    en: "Tasks from every course in one list. Open one to write your answer, attach files and submit from your phone.",
+  },
+  "mobile.guide.courses.body": {
+    id: "Tiap mata kuliah dengan sisa jatah absennya, dihitung dari kehadiranmu di SIX. Yang paling berisiko ada di atas.",
+    en: "Each course with the absences it has left, counted from your SIX attendance. The ones most at risk come first.",
+  },
+  "mobile.guide.profile.title": { id: "Nilai dan rencana studi", en: "Grades and study plan" },
+  "mobile.guide.profile.body": {
+    id: "Nilai, rencana studi, KRS, dan UKT-mu. Ikon mata di kartu IPK menyembunyikan nilai saat layarmu terlihat orang lain.",
+    en: "Your grades, study plan, KRS and UKT. The eye on the IPK card hides your grades when others can see your screen.",
+  },
+  "mobile.guide.offer": { id: "Tawaran panduan", en: "Tour invitation" },
+  // Nilai: the heading over this term's courses whose grade isn't out, saying once that the letters are the Student's
+  // own estimates. The second is used under "Semester ini", when some grades are already out.
+  "mobile.grades.estimates": { id: "Perkiraanmu semester ini", en: "Your estimates this semester" },
+  "mobile.grades.estimatesRest": { id: "Perkiraanmu untuk yang belum keluar", en: "Your estimates for the rest" },
+  // Nilai, under the IPK target: what it takes from this semester as a figure at the line's end ("Butuh rata-rata di 11 SKS ·
+  // 3,66 · AB"), or the highest IPK still possible when even straight A's fall short ("Tertinggi semester ini · 3,33":
+  // this semester's courses alone, so it's named apart from "IPK tertinggi yang mungkin", which counts the plan's too).
+  "mobile.grades.needAverage": { id: "Butuh rata-rata di {sks} SKS", en: "Average needed over {sks} SKS" },
+  "mobile.grades.termBest": { id: "Tertinggi semester ini", en: "Highest this semester" },
   // The top bar of every tab: the avatar opens the account and Settings, ⋮ the screen's rarer actions.
   "mobile.account.open": { id: "Akun dan pengaturan", en: "Account and settings" },
   "mobile.menu.more": { id: "Opsi lainnya", en: "More options" },
@@ -20,6 +168,12 @@ export const mobileStrings = {
   "mobile.update.ready": { id: "Edunex Plus {version} siap dipasang.", en: "Edunex Plus {version} is ready to install." },
   "mobile.update.install": { id: "Pasang", en: "Install" },
   "mobile.search.placeholder": { id: "Cari mata kuliah, tugas, materi", en: "Search courses, Tasks, materials" },
+  // superapp: search and notifications
+  // Search: the services found by name, and what's offered under a search that found nothing.
+  "mobile.search.group.services": { id: "Layanan", en: "Services" },
+  "mobile.search.close": { id: "Mungkin yang kamu cari ada di sini:", en: "Maybe what you need is here:" },
+  // superapp: search, round 2. Before anything is typed: the next three Tasks due, by that name (the Tugas tab has all).
+  "mobile.search.group.nextDue": { id: "Tenggat terdekat", en: "Due next" },
   // Akademik: the screens behind it, as a list.
   "mobile.academic.screens": { id: "Studimu", en: "Your studies" },
   // Android's notification channels, as Settings › Notifications lists them.
@@ -27,6 +181,17 @@ export const mobileStrings = {
   "mobile.channel.alerts": { id: "Tugas, tenggat dan perubahan", en: "Tasks, deadlines and changes" },
   // The button Android shows on a notification about a class to mark present in: SIX's own name for it.
   "mobile.notification.checkIn": { id: "Tandai Hadir", en: "Tandai Hadir" },
+  // Hiding grades (src/core/hide-grades.ts): one name on the eye button, Settings' switch and the quiet line.
+  "mobile.hideGrades": { id: "Sembunyikan nilai", en: "Hide grades" },
+  "mobile.hideGrades.hint": { id: "IPK, IP, dan nilai tiap mata kuliah", en: "IPK, IP and every course's grade" },
+  "mobile.hideGrades.show": { id: "Tampilkan nilai", en: "Show grades" },
+  "mobile.hideGrades.hidden": { id: "Nilai disembunyikan", en: "Grades hidden" },
+  // What a screen reader hears in a hidden figure's place ("IPK disembunyikan"), never the number.
+  "mobile.hideGrades.said": { id: "{name} disembunyikan", en: "{name} hidden" },
+  // A new grade's notification while grades are hidden: the course, never the grade or the IPK.
+  "mobile.alert.grade.new": { id: "Nilai baru · {course}", en: "New grade · {course}" },
+  "mobile.alert.grade.changed": { id: "Nilai berubah · {course}", en: "Grade changed · {course}" },
+
   // alerts
   // At the start of a class SIX counts: with the app closed nothing reads SIX for the button, so the Student hears the class began.
   "mobile.alert.classStarted": { id: "Kuliah sudah mulai · {course}", en: "Class has started · {course}" },
@@ -34,12 +199,18 @@ export const mobileStrings = {
     id: "Tekan Tandai Hadir di SIX saat tombolnya muncul · kuliah sampai {time}",
     en: "Press Tandai Hadir in SIX when it shows · class until {time}",
   },
-  // welcome: one screen, what the app is in a line, three reasons, one button.
-  "mobile.welcome.line": { id: "Edunex dan SIX, di satu aplikasi", en: "Edunex and SIX, in one app" },
-  "mobile.welcome.reason.class": { id: "Kuliah hari ini dan Tandai Hadir", en: "Today's classes and Tandai Hadir" },
-  "mobile.welcome.reason.tasks": { id: "Tugas dan tenggatnya", en: "Tasks and their deadlines" },
-  "mobile.welcome.reason.attendance": { id: "Jatah absen dan nilai", en: "Absences left and grades" },
+  // superapp: first minute (mobile/src/shell/first-minute). The one button under the desktop's headline; once tapped it
+  // becomes the sign-in's status, in the desktop's words (welcome.waitingShort, signIn.finishing, welcome.bringingAlong,
+  // welcome.sixLater). When the first read is in, the snackbar says the desktop's "Semua siap." once
+  // (welcome.readyTitlePlain), with the one action that opens the summary (mobile.home.scanOpen).
   "mobile.welcome.signIn": { id: "Masuk dengan akun ITB", en: "Sign in with your ITB account" },
+  // The headline turns into this as the first door lights with the name: the greeting, said once (Beranda has none).
+  "mobile.welcome.hello.morning": { id: "Pagi, {name}.", en: "Morning, {name}." },
+  "mobile.welcome.hello.midday": { id: "Siang, {name}.", en: "Afternoon, {name}." },
+  "mobile.welcome.hello.afternoon": { id: "Sore, {name}.", en: "Afternoon, {name}." },
+  "mobile.welcome.hello.evening": { id: "Malam, {name}.", en: "Evening, {name}." },
+  // The sign-in stopped because nothing could be reached: said under the button, which tries again.
+  "mobile.welcome.offline": { id: "Tidak bisa terhubung. Cek internetmu, lalu coba lagi.", en: "Couldn't connect. Check your internet, then try again." },
   // home
   // The now card is one target: a tap opens its class's sheet. Said to TalkBack after the card's own words.
   "mobile.home.nowHint": { id: "Buka rincian kuliah", en: "Opens the class details" },
@@ -132,7 +303,7 @@ export const mobileStrings = {
   // The class sheet's facts as labels, never the how: the share against the target, Tandai Hadir's state, the Presence.
   "mobile.home.share": { id: "Kehadiran {percent}% · target {target}%", en: "Attendance {percent}% · target {target}%" },
   // The now card with no class in the week ahead.
-  "mobile.home.free": { id: "Tak ada kuliah 7 hari ke depan", en: "No classes in the next 7 days" },
+  "mobile.home.free": { id: "Tak ada kelas 7 hari ke depan", en: "No classes in the next 7 days" },
   // The first read's card on Beranda: the summary the welcome used to show.
   "mobile.home.scanOpen": { id: "Lihat ringkasan", en: "See summary" },
   // Notifications, asked on Beranda the first time there's a class.
@@ -176,7 +347,7 @@ export const mobileStrings = {
     en: "Notifications for Edunex Plus are off. Turn them on in your phone's settings.",
   },
   // At the top of Notifikasi while Android's permission is off; the button asks for it, or opens the app's notification settings.
-  "mobile.settings.notificationsOffTitle": { id: "Notifikasi mati", en: "Notifications are off" },
+  "mobile.settings.notificationsOffTitle": { id: "Mati di HP ini", en: "Off on this phone" },
   "mobile.settings.notificationsTurnOn": { id: "Nyalakan notifikasi", en: "Turn on notifications" },
   // Settings › Akun: the line under "Ringkasan awal", saying what it is.
   "mobile.settings.firstScanMeta": { id: "Yang ditemukan saat pertama terhubung", en: "What turned up when you first connected" },
@@ -214,13 +385,23 @@ export const mobileStrings = {
   // Jadwal's ⋮, named for what it holds.
   "mobile.schedule.menu": { id: "Opsi jadwal", en: "Schedule options" },
   // Jadwal's top bar: the month, a screen away.
-  "mobile.schedule.month": { id: "Lihat sebulan", en: "Month view" },
+  "mobile.schedule.month": { id: "Lihat jadwal bulanan", en: "See the monthly schedule" },
   // Jadwal's ⋮: the reminder before each class (the engine's "Kuliah sebentar lagi"), with how long before. The label fits
   // on one line beside its switch in the menu's 280 dp (the judge's round 2, pass 6).
   "mobile.schedule.remind": { id: "Pengingat kuliah", en: "Class reminders" },
   "mobile.schedule.remind.hint": { id: "15 menit sebelumnya", en: "15 minutes before" },
   "mobile.schedule.remind.on": { id: "Pengingat menyala, 15 menit sebelum tiap kuliah.", en: "Reminders on, 15 minutes before each class." },
   "mobile.schedule.remind.off": { id: "Pengingat kuliah dimatikan.", en: "Class reminders are off." },
+  // superapp: Jadwal
+  // superapp: Jadwal, round 3: a changed class says what changed, with the times Notifikasi shows for the same change.
+  "mobile.schedule.changed.end": { id: "Selesai {time} (tadinya {old})", en: "Ends {time} (was {old})" },
+  "mobile.schedule.changed.start": { id: "Mulai {time} (tadinya {old})", en: "Starts {time} (was {old})" },
+  "mobile.schedule.changed.time": { id: "{time} (tadinya {old})", en: "{time} (was {old})" },
+  "mobile.schedule.changed.room": { id: "Pindah ke {room} (tadinya {old})", en: "Moved to {room} (was {old})" },
+  // Jadwal's top bar: the month view, by its name in the decisions.
+  "mobile.schedule.monthly": { id: "Jadwal bulanan", en: "Monthly schedule" },
+  // Jadwal's day strip, for TalkBack: how many classes a day holds (the number under its date).
+  "mobile.schedule.dayCount": { id: "{count} kuliah", en: { one: "{count} class", other: "{count} classes" } },
   // Jadwal's ⋮: the phone's calendar kept the same as Jadwal, in a calendar of the app's own (W13). Label and hint each
   // on one line in the menu; the calendar's name is in the toast and the off toast.
   "mobile.calendar.sync": { id: "Kalender HP", en: "Phone calendar" },
@@ -263,7 +444,15 @@ export const mobileStrings = {
     id: "Aplikasi kalender tidak bisa dibuka. Acaranya ada di kalender Edunex Plus.",
     en: "Couldn't open your calendar app. The events are in the Edunex Plus calendar.",
   },
-  // The exam page's "Tambahkan ke kalender HP": said in a toast, with Buka setelan as its button.
+  // A date (Kalender akademik) or an exam already in the phone's calendar: the row that added it is now its state.
+  // Added on its own, a tap takes it out; kept by Jadwal's "Kalender HP" switch, the row only says so.
+  "mobile.calendar.in": { id: "Di kalender HP", en: "In phone calendar" },
+  "mobile.calendar.in.remove": { id: "Ketuk untuk menghapusnya", en: "Tap to remove it" },
+  "mobile.calendar.in.kept": { id: "Ikut Kalender HP di Jadwal", en: "Kept by Phone calendar in Schedule" },
+  "mobile.calendar.removed": { id: "Dihapus dari kalender HP.", en: "Removed from your phone's calendar." },
+  // Kalender akademik: the phone refused the write (access is on). The date is still one tap away.
+  "mobile.calendar.addFailed": { id: "Belum masuk kalender HP. Coba lagi.", en: "Couldn't add it to your phone's calendar. Try again." },
+  // The exam page's and Kalender akademik's "Tambahkan ke kalender HP": said on the page, with Buka setelan as its button.
   "mobile.exam.calendarDenied": {
     id: "Kalender HP belum diizinkan. Izinkan Kalender untuk Edunex Plus di setelan HP.",
     en: "Calendar access is off. Allow Calendar for Edunex Plus in your phone's settings.",
@@ -278,6 +467,39 @@ export const mobileStrings = {
   // widget
   // The "Hari ini" home-screen widget on a day without classes; a tap opens Jadwal.
   "mobile.widget.todayNone": { id: "Tidak ada kuliah hari ini.", en: "No classes today." },
+  // The "Ujian" widget with no exam dated in SIX or Edunex yet; a tap opens Tugas & Ujian.
+  "mobile.widget.examNone": { id: "Belum ada ujian terjadwal", en: "No exams scheduled yet" },
+  // "Satu mata kuliah": the page that asks which course the widget shows, as it's placed or from "Ubah widget".
+  "mobile.widget.pickCourse": { id: "Pilih mata kuliah", en: "Pick a course" },
+  // The same widget with no course picked and no class ahead to pick by: what's true, no how-to (the link under it says where the tap goes).
+  "mobile.widget.pickCourseHint": { id: "Belum ada mata kuliah yang dipilih.", en: "No course picked yet." },
+  // superapp: widgets
+  // "Kelas berikutnya" in one cell on a week without classes: two words, as the cell holds no more. A tap opens Jadwal.
+  "mobile.widget.noClass": { id: "Tidak ada kuliah", en: "No classes" },
+  // A widget with nothing of its own to show, the same on all seven: its name, one sentence, one thing to tap.
+  "mobile.widget.name.now": { id: "Sekarang", en: "Now" },
+  "mobile.widget.name.exam": { id: "Ujian", en: "Exams" },
+  "mobile.widget.name.next": { id: "Kelas berikutnya", en: "Next class" },
+  "mobile.widget.name.course": { id: "Mata kuliah", en: "Course" },
+  "mobile.widget.signedOutAny": { id: "Kamu belum masuk.", en: "You're not signed in." },
+  // The same in a one-cell widget.
+  "mobile.widget.signedOutShort": { id: "Belum masuk", en: "Signed out" },
+  "mobile.widget.dueNone": { id: "Tidak ada tenggat", en: "Nothing due" },
+  // The one thing to tap on such a widget: "Buka Jadwal".
+  "mobile.widget.open": { id: "Buka {place}", en: "Open {place}" },
+  // The class block's first words. A widget doesn't tick, so times of day: "Mulai 11:00", and beside "Sedang berlangsung", "selesai 10:00".
+  "mobile.widget.starts": { id: "Mulai {time}", en: "Starts {time}" },
+  "mobile.widget.ends": { id: "selesai {time}", en: "ends {time}" },
+  // The foot when the last read didn't get through: the data stays, from when ("08:12", "kemarin, 20:16").
+  "mobile.widget.offline": { id: "Tidak terhubung · data {when}", en: "Offline · data from {when}" },
+  // The same where that line doesn't fit (two cells wide): still says it's offline, then from when.
+  "mobile.widget.offlineMid": { id: "Tidak terhubung · {when}", en: "Offline · {when}" },
+  // The same in a one-cell widget.
+  "mobile.widget.offlineShort": { id: "Data {when}", en: "Data {when}" },
+  // The foot while all is well: when the data was last read, small and quiet.
+  "mobile.widget.updated": { id: "Diperbarui {time}", en: "Updated {time}" },
+  // "Tenggat": how close a deadline is, beside its Task, up to two weeks out ("Besok" and "Hari ini" say the nearer ones).
+  "mobile.widget.inDays": { id: "{count} hari", en: { one: "{count} day", other: "{count} days" } },
   // presence
   // Kuliah's ⋮: the attendance targets, with the range in force under it ("80%", "75–80%").
   "mobile.courses.targets": { id: "Target kehadiran", en: "Attendance targets" },
@@ -292,14 +514,10 @@ export const mobileStrings = {
   // and the card above may go by ITB's earlier one). Each row's date with it, for TalkBack.
   "mobile.bills.historyDates": { id: "Tanggal: batas bayar di SIX", en: "Dates: last day to pay in SIX" },
   "mobile.bills.due": { id: "Batas bayar di SIX {date}", en: "Due {date} in SIX" },
-  // Kalender akademik: a date opens in the phone's own calendar app, filled in, for the Student to save.
+  // Kalender akademik: a date goes into the phone's Edunex Plus calendar, the one Jadwal's "Kalender HP" keeps.
   "mobile.deadline.toCalendar": { id: "Tambahkan ke kalender HP", en: "Add to phone calendar" },
   // Kalender akademik, under the view switch: what a tap on a date does.
   "mobile.deadline.tapHint": { id: "Ketuk tanggal untuk menambahkannya ke kalender HP.", en: "Tap a date to add it to your phone's calendar." },
-  "mobile.deadline.calendarFailed": {
-    id: "Kalender HP tidak bisa dibuka. Pasang aplikasi kalender, lalu coba lagi.",
-    en: "The phone's calendar didn't open. Install a calendar app, then try again.",
-  },
   // report
   // "Laporkan masalah" on the phone (A9): the report file goes out through the share sheet, not a folder.
   "mobile.report.nothingKept": {
@@ -325,12 +543,44 @@ export const mobileStrings = {
   // settings: Tentang › Versi. The button beside the version says only the verb (its accessible name is update.check),
   // so "Diperiksa sendiri sekali sehari." keeps its room on a phone's width.
   "mobile.update.checkShort": { id: "Periksa", en: "Check" },
+  // superapp: material and exams
+  // Materi (/material): the term's courses to pick from, and the picked one's modules with their material. A module's
+  // mark is the course tab's own (course.thisWeek, course.latest); a new item says course.new.
+  "mobile.material.title": { id: "Materi", en: "Materials" },
+  // The row under a long module's first few items: it opens the rest, and says how many.
+  "mobile.material.more": { id: "{count} materi lainnya", en: { one: "{count} more item", other: "{count} more items" } },
+  // What a screen reader says after a course's name on its chip, for the dot: how many items came this week.
+  "mobile.material.newCount": { id: "{count} materi baru", en: { one: "{count} new item", other: "{count} new items" } },
+  "mobile.material.empty": { id: "Belum ada materi semester ini", en: "No materials yet this term" },
+  "mobile.material.emptyHint": { id: "Yang dosenmu unggah ke Edunex muncul di sini.", en: "What your lecturers post on Edunex shows up here." },
+  "mobile.material.noEdunex": { id: "Materi dibaca dari Edunex", en: "Materials come from Edunex" },
+  // Ujian (/exams): every exam of the term, the nearest one first with the time left as its big figure.
+  "mobile.exams.title": { id: "Ujian", en: "Exams" },
+  "mobile.exams.past": { id: "Sudah lewat", en: "Past" },
+  "mobile.exams.count": { id: "{count} ujian", en: { one: "{count} exam", other: "{count} exams" } },
+  // A row for an exam SIX lists on two days: its first day is the row's start, the line says the other ("Kam · dan 17 Des").
+  "mobile.exams.alsoOn": { id: "dan {days}", en: "and {days}" },
+  "mobile.exams.empty": { id: "Belum ada ujian diumumkan", en: "No exams announced yet" },
+  "mobile.exams.emptyHint": {
+    id: "Ujian muncul di sini begitu SIX atau dosenmu menjadwalkannya.",
+    en: "Exams show up here once SIX or a lecturer schedules them.",
+  },
+  "mobile.exams.noSix": { id: "Jadwal ujian dibaca dari SIX", en: "Exam times come from SIX" },
 } as const satisfies Record<string, Entry>;
 
 // The desktop's words the phone says its own way: the same facts, numbers and {placeholders}, with
 // "HP ini" for "komputer ini", a page for a window, a tap for a click. translate() takes them on the
 // phone only (./wording.native.ts), so the desktop's words stay as they are.
 export const phoneWording: Partial<Record<StringKey, Entry>> = {
+  // superapp: one name per thing (mobile/qa/superapp-names.md). The phone's tab is "Tugas" and holds the exams too; the
+  // list on Beranda and its screen are "Perlu kamu urus"; the bell's history is "Notifikasi" wherever it's named; a
+  // Task handed in is "Terkumpul"; a course's outline of material is "Materi", as the Materi tile and the search hint
+  // call it.
+  "nav.tasks": { id: "Tugas", en: "Tasks" },
+  "task.backToTasks": { id: "Ke Tugas", en: "Go to Tasks" },
+  "home.needs": { id: "Perlu kamu urus", en: "To handle" },
+  "home.changes": { id: "Notifikasi", en: "Notifications" },
+  "handIn.final": { id: "Sudah terkumpul. Hanya dosen yang bisa mengembalikannya.", en: "Submitted. Only your lecturer can hand it back." },
   // Settings › Notifikasi: the two attendance alerts, each named by what it warns about (Presensi and Kehadiran read as
   // one thing to a student): the moment to check in (a class SIX counts starts, an Edunex Presence opens or is about to
   // close), and a problem with SIX's count (a class it didn't record, no absences left).
@@ -339,7 +589,6 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   // Settings › Akun: the row that opens what the app found when Edunex and SIX were first read, on one line (round 3's
   // third review preferred a short name to "Yang tak disampaikan Edunex dan SIX" on two); when it was found is the row's
   // spoken hint.
-  "settings.firstScan": { id: "Ringkasan awal", en: "First summary" },
   // Settings › Notifikasi: the switch for a class moved, a Task edited or a meeting added, named by what changes ("Ada
   // perubahan" didn't say what).
   "settings.alerts.changes": { id: "Jadwal atau Tugas berubah", en: "Class or Task changes" },
@@ -369,7 +618,7 @@ export const phoneWording: Partial<Record<StringKey, Entry>> = {
   "scan.heading": { id: "Ringkasan awal", en: "First summary" },
   // settings: Beranda › how far ahead its list looks. The phone's Beranda calls that list "Perlu kamu urus", not the
   // desktop's "Perlu perhatianmu", and the group's title already says it's about Beranda.
-  "settings.needsAhead": { id: "Jangkauan Perlu kamu urus", en: "How far ahead to look" },
+  "settings.needsAhead": { id: "Tampilkan tenggat hingga", en: "Show what's due within" },
   // settings: the test notification's body, as Android shows it.
   "alert.test.body": { id: "Ketuk untuk membuka Tugas & Ujian", en: "Tap to open Tasks & Exams" },
   // settings: Notifikasi › Coba notifikasi, once sent.

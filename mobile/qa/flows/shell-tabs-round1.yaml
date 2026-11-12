@@ -1,3 +1,4 @@
+# history: a snapshot of round 1's app (a Presensi tab, a Lainnya tab, one Rencana row): its ids are gone on purpose, so mobile/qa/flows-check.mjs only lists them.
 appId: io.github.pablonification.edunexplus.demo
 ---
 - extendedWaitUntil:

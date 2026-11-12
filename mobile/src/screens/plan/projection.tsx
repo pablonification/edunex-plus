@@ -7,6 +7,7 @@ import { type ReactNode, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
 import type { PlanState } from "../../../../src/app/study-plan";
+import { HIDDEN_FIGURE } from "../../../../src/core/hide-grades";
 import { letterForAverage, type Predicate, predicateFor } from "../../../../src/core/honors";
 import { GRADE_POINTS, LETTER_GRADES, type LetterGrade } from "../../../../src/core/models";
 import {
@@ -21,10 +22,12 @@ import {
   targetOf,
   termKind,
 } from "../../../../src/core/planner";
+import { useGradesHidden } from "../../parts/hide-grades";
 import { Segmented } from "../../ui/controls";
 import { Icons } from "../../ui/icons";
 import { iosPressed } from "../../ui/press";
 import { Sheet } from "../../ui/sheet";
+import { SEGMENT_HEIGHT, slopY } from "../../ui/sizes";
 import { Text, type TextTone, useFieldColors, useTextWidth } from "../../ui/text";
 import { radius, space, TOUCH, type, useTheme } from "../../ui/theme";
 import { ChartLegend, LineChart } from "./chart";
@@ -100,45 +103,49 @@ export function GradeSelect({
   const c = theme.color;
   const v = theme.v4;
   const [open, setOpen] = useState(false);
-  // v4: a grade the Student picked is a tonal chip in the brand's tint; one still assumed is dashed and quiet.
-  const ink = guess ? v.muted : v.brandInk;
+  // Hidden grades: the letter is dots (an estimate not yet picked comes from the IPK); a tap still picks one.
+  const hidden = useGradesHidden();
+  const t = useT();
+  // A control, 48 dp tall: a dashed outline with no fill, the letter in a medium weight, a chevron. Either way it's an
+  // estimate, and looks like one (round 3's council: "bold 'AB' beside each course reads as a real grade"; a grade
+  // that's out is a plain bold letter): one the Student picked is in the brand's ink, one the app still assumes in the
+  // page's quiet ink. The group's heading says the word, once.
+  const ink = guess ? v.fg2 : v.brandInk;
   return (
     <>
       <Pressable
         testID={testID}
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value}`}
-        hitSlop={4}
+        accessibilityLabel={hidden ? `${label}: ${t("mobile.hideGrades.hidden")}` : `${label}: ${value}`}
         onPress={() => setOpen(true)}
         android_ripple={{ color: c.selected, borderless: false }}
         style={({ pressed }) => [
           {
-            minWidth: 60,
-            height: 40,
+            minWidth: 68,
+            height: TOUCH,
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center",
-            gap: 4,
-            paddingHorizontal: space[2],
-            borderRadius: 12,
-            borderWidth: guess ? 1 : 0,
+            gap: 6,
+            paddingHorizontal: space[3],
+            borderRadius: 14,
+            borderWidth: 1.5,
             borderStyle: "dashed",
-            borderColor: c.fieldEdge,
-            backgroundColor: guess ? "transparent" : v.brandTint,
+            borderColor: guess ? c.outline : v.brandInk,
             overflow: "hidden",
           },
           iosPressed(pressed),
         ]}
       >
-        <Text size="labelLarge" face="display" weight="bold" tabular style={{ color: ink }}>
-          {value}
+        <Text size="titleMedium" weight="medium" tabular style={{ color: ink, fontSize: 17 }}>
+          {hidden ? HIDDEN_FIGURE : value}
         </Text>
-        <Icons.ChevronDown size={12} color={ink} weight="bold" />
+        <Icons.ChevronDown size={14} color={guess ? v.muted : ink} weight="bold" />
       </Pressable>
       <Sheet open={open} onClose={() => setOpen(false)} title={label} background={v.card} testID="sheet.grade">
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space[2], paddingBottom: space[2] }}>
           {LETTER_GRADES.map((grade) => {
-            const on = grade === value;
+            const on = !hidden && grade === value;
             return (
               <Pressable
                 key={grade}
@@ -159,7 +166,7 @@ export function GradeSelect({
                     justifyContent: "center",
                     borderWidth: on ? 2 : 0,
                     borderColor: v.brandInk,
-                    backgroundColor: on ? v.brandTint : v.page,
+                    backgroundColor: on ? v.brandTint : v.chip,
                   },
                   iosPressed(pressed),
                 ]}
@@ -182,10 +189,13 @@ export function GradeSelect({
 /** A grade: neutral, and only a failing one (D, E) in red. */
 export function GradeBadge({ grade, struck = false, label }: { grade: string; struck?: boolean; label?: string }) {
   const theme = useTheme();
-  const failing = grade === "D" || grade === "E";
+  const t = useT();
+  // Hidden grades: dots, in the neutral colour (red would say "failing"), and never the letter to a screen reader.
+  const hidden = useGradesHidden();
+  const failing = !hidden && (grade === "D" || grade === "E");
   return (
     <View
-      accessibilityLabel={label ? `${label}: ${grade}` : undefined}
+      accessibilityLabel={hidden ? t("mobile.hideGrades.said", { name: label ?? t("grades.sixGrade") }) : label ? `${label}: ${grade}` : undefined}
       style={{
         minWidth: 32,
         height: 26,
@@ -200,9 +210,9 @@ export function GradeBadge({ grade, struck = false, label }: { grade: string; st
         size="small"
         weight="bold"
         tabular
-        style={{ color: failing ? theme.color.dangerFg : theme.color.neutralFg, textDecorationLine: struck ? "line-through" : "none" }}
+        style={{ color: failing ? theme.color.dangerFg : theme.color.neutralFg, textDecorationLine: struck && !hidden ? "line-through" : "none" }}
       >
-        {grade}
+        {hidden ? HIDDEN_FIGURE : grade}
       </Text>
     </View>
   );
@@ -248,6 +258,7 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
         <TextInput
           {...fieldColors}
           testID="input.target"
+          hitSlop={slopY(SEGMENT_HEIGHT)}
           inputMode="decimal"
           keyboardType="decimal-pad"
           accessibilityLabel={t("grades.targetOther")}
@@ -262,15 +273,17 @@ export function TargetControl({ record, state }: { record: StudentRecord; state:
           }}
           onBlur={() => setTyping(null)}
           style={{
-            width: 80,
-            height: TOUCH,
-            borderRadius: radius.lg,
+            // The fourth choice of the same control: the picks' own height, outline and round ends, no fill of its own
+            // (round 2's council: "boxed differently from the three beside it").
+            width: 88,
+            height: SEGMENT_HEIGHT,
+            borderRadius: SEGMENT_HEIGHT / 2,
             borderWidth: 1,
-            borderColor: invalid ? theme.color.dangerFg : theme.color.fieldEdge,
-            backgroundColor: theme.color.surfaceContainerLow,
-            paddingHorizontal: space[2],
+            borderColor: invalid ? theme.color.dangerFg : theme.color.outline,
+            backgroundColor: "transparent",
+            paddingHorizontal: space[3],
             paddingVertical: 0,
-            textAlign: "right",
+            textAlign: "center",
             textAlignVertical: "center",
             includeFontPadding: false,
             color: theme.color.fg,
@@ -313,6 +326,41 @@ export function NeedText({ need, target, sks, scope }: { need: Need; target: num
       sks,
       target: goal,
     }),
+  );
+}
+
+/**
+ * What a target takes from this semester, as a figure at the end of one line (Nilai): the average needed and its
+ * letter, or, when even straight A's fall short, the highest IPK still possible. A target already safe keeps its one
+ * positive line (`NeedText`).
+ */
+export function NeedFigure({ need, target, sks, best }: { need: Need; target: number; sks: number; best: number | null }) {
+  const t = useT();
+  const f = useFormat();
+  const v = useTheme().v4;
+  const out = need.kind === "out";
+  if (!(out && best !== null) && !(need.kind === "needs" && need.average > GRADE_POINTS.D + 1e-9)) {
+    return <NeedText need={need} target={target} sks={sks} scope="term" />;
+  }
+  const label = out ? t("mobile.grades.termBest") : t("mobile.grades.needAverage", { sks });
+  const figure = out
+    ? f.number(best ?? 0, 2)
+    : `${f.number(need.kind === "needs" ? need.average : 0, 2)} · ${letterForAverage(need.kind === "needs" ? need.average : 0)}`;
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label} ${figure}`}
+      accessibilityLiveRegion="polite"
+      testID="grades.need"
+      style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "baseline", justifyContent: "space-between", columnGap: space[3] }}
+    >
+      <Text size="bodyMedium" style={{ color: v.muted }}>
+        {label}
+      </Text>
+      <Text size="bodyLarge" face="display" weight="bold" tabular style={{ color: v.fg }}>
+        {figure}
+      </Text>
+    </View>
   );
 }
 

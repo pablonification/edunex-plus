@@ -9,6 +9,7 @@ import * as Notifications from "expo-notifications";
 import { AppState, Platform } from "react-native";
 import type { BridgeApi } from "../../../src/app/bridge";
 import type { Event } from "../../../src/core/contract";
+import { gradesHidden } from "../../../src/core/hide-grades";
 import { EDUNEX_WEB, SIX_WEB } from "../../../src/core/links";
 import { type Lang, UpdateNotice } from "../../../src/core/models";
 import type { FetchFile } from "../../../src/desktop/remote-files";
@@ -28,6 +29,7 @@ import { checkInOpener, pageOpener } from "./check-in";
 import { phoneFileHandlers } from "./files";
 import { answer, type HostUi, phoneHandlers } from "./handlers";
 import { phoneNotifier, prepareChannels } from "./notifier";
+import { osName } from "./os-name";
 import { type PhoneReminders, phoneReminders } from "./reminders";
 import { phoneReportHandlers } from "./report";
 import { quietResignIn } from "./resignin";
@@ -153,7 +155,12 @@ async function makeHost(): Promise<Host> {
   };
   const listeners = new Set<(event: unknown) => void>();
   let lang: Lang = "id";
-  const notifier = phoneNotifier(() => lang);
+  // Hidden wins until the settings are known: a grade never goes out in a notification by being early.
+  let hideGrades = true;
+  const notifier = phoneNotifier(
+    () => lang,
+    () => hideGrades,
+  );
   const reminders = phoneReminders({
     storage: world.storage,
     clock: world.clock,
@@ -212,6 +219,7 @@ async function makeHost(): Promise<Host> {
         void prepareChannels(lang);
       }
       if (event.type === "settings") {
+        hideGrades = gradesHidden(event.settings);
         const { mutedAlerts, deadlineReminders, classSoonAlerts } = event.settings;
         const next = JSON.stringify([lang, mutedAlerts, deadlineReminders, classSoonAlerts]);
         if (alertSettings && next !== alertSettings) queueMicrotask(() => engine.planAlerts());
@@ -231,7 +239,7 @@ async function makeHost(): Promise<Host> {
     // A release is for this phone only once it carries its file: an APK on Android, an .ipa on an iPhone (the desktop's
     // installers are no use here).
     releaseAsset: Platform.OS === "ios" ? /\.ipa$/i : /\.apk$/i,
-    os: () => (Platform.OS === "ios" ? `iOS ${Platform.Version}` : `Android ${Platform.Version}`),
+    os: () => osName(Platform.OS, Platform.Version),
     // Opened many times a day: each start shows what's saved and reads only what's due (W2 in PROGRESS.md).
     startDueOnly: true,
     // A pull to refresh reads what's on Beranda, not SIX's records and Edunex's materials again within the hour.
@@ -248,6 +256,7 @@ async function makeHost(): Promise<Host> {
   sessions?.begin(engine.snapshot().statuses);
   if (firstRun && !DEMO) await engine.updateSettings({ lang: getLocales()[0]?.languageCode === "id" ? "id" : "en" });
   lang = engine.snapshot().settings.lang;
+  hideGrades = gradesHidden(engine.snapshot().settings);
   void prepareChannels(lang);
   const loaded = Date.now();
   // The demo's sign-in and first sync run after the first frame, as the real app reads after a sign-in: Beranda draws
@@ -258,7 +267,7 @@ async function makeHost(): Promise<Host> {
   );
   if (world.prepare) {
     setSettling(true);
-    void world.prepare(engine).then(
+    const settled = world.prepare(engine).then(
       () => {
         console.info(`[startup] settled ${Date.now() - loaded}`);
         setSettling(false);
@@ -268,6 +277,10 @@ async function makeHost(): Promise<Host> {
         setSettling(false);
       },
     );
+    // The first-run demo signs nobody in: it has settled once its language is saved, a moment from now. Waited out
+    // (100 ms at most, a fresh demo start only), so its first frame is the welcome's stage, not an empty Beranda that
+    // "settling" drew for a moment before it.
+    await Promise.race([settled, new Promise((done) => setTimeout(done, FIRST_RUN_SETTLE_MS))]);
   }
 
   // One Microsoft sign-in covers both systems, exactly as on the desktop.
@@ -391,6 +404,8 @@ async function makeHost(): Promise<Host> {
   };
   return { engine, api, ui, reminders, clockOffset: world.clockOffset, running: () => started, start, stop };
 }
+/** The most a fresh demo's start waits to learn that it signs nobody in (the first-run demo), before the first frame. */
+const FIRST_RUN_SETTLE_MS = 100;
 
 /**
  * How long after app.ready each part of the engine's start that can wait does (ms): the feeds go at once (the network is

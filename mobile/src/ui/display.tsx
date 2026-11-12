@@ -3,12 +3,13 @@
 // meanings, drawn in Material 3's tonal surfaces (DESIGN.md): no hairline boxes.
 import { type ReactNode, useEffect, useRef } from "react";
 import { ActivityIndicator, Animated, Easing, View, type ViewStyle } from "react-native";
+import Reanimated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
 import Svg, { Circle, Path } from "react-native-svg";
 import { useT } from "../../../src/app/i18n";
 import { Icons } from "./icons";
-import { useLoopWhileShown } from "./motion";
+import { useLoopWhileShown, useReduceMotion } from "./motion";
 import { Text } from "./text";
-import { type Palette, radius, shape, space, useTheme } from "./theme";
+import { motion, type Palette, radius, shape, space, useTheme } from "./theme";
 
 export function Card({
   variant = "plain",
@@ -22,10 +23,11 @@ export function Card({
   testID?: string;
 }) {
   const c = useTheme().color;
-  // M3's filled card on the page (surfaceContainerLow); raised, the one card that leads a screen, a step up
-  // (surfaceContainer); sunken, a quiet well (surfaceContainerHigh). Separated by tone, never a border or a shadow.
+  // Plain is flat: no fill, on the page itself like every list and block (a grey box around things is what the page
+  // left behind). Raised is the deliberate card, for the one thing that leads a screen (surfaceContainer); sunken, a
+  // quiet well (surfaceContainerHigh). Separated by tone, never a border or a shadow.
   const look: ViewStyle = {
-    backgroundColor: variant === "sunken" ? c.surfaceContainerHigh : variant === "raised" ? c.surfaceContainer : c.surfaceContainerLow,
+    backgroundColor: variant === "sunken" ? c.surfaceContainerHigh : variant === "raised" ? c.surfaceContainer : "transparent",
     borderRadius: variant === "raised" ? shape.lgPlus : shape.lg,
   };
   return (
@@ -35,14 +37,14 @@ export function Card({
   );
 }
 
-/** Nothing to show: why, and the next step as its `children` (a button). Never shown while data is still coming. */
+/**
+ * Nothing to show: why, and the next step as its `children` (a button). Never shown while data is still coming. The
+ * icon stands bare on the page: no circle or tile behind it.
+ */
 export function EmptyState({ icon, title, description, children }: { icon: ReactNode; title: string; description?: ReactNode; children?: ReactNode }) {
-  const theme = useTheme();
   return (
     <View style={{ alignItems: "center", paddingVertical: space[10], paddingHorizontal: space[6], gap: space[2] }}>
-      <View
-        style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: theme.color.secondaryContainer, alignItems: "center", justifyContent: "center" }}
-      >
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {icon}
       </View>
       <Text size="titleMedium" style={{ textAlign: "center", marginTop: space[2] }}>
@@ -56,7 +58,8 @@ export function EmptyState({ icon, title, description, children }: { icon: React
         ) : (
           description
         ))}
-      {children && <View style={{ marginTop: space[3] }}>{children}</View>}
+      {/* Its next step: 48 dp to touch, whatever button the screen puts there. */}
+      {children && <View style={{ marginTop: space[3], minHeight: 48, justifyContent: "center" }}>{children}</View>}
     </View>
   );
 }
@@ -88,7 +91,17 @@ export function LiveDot({ color }: { color?: string }) {
 /** A thin bar for a share (a value 0–1), in a meaning's color. */
 export function Bar({ value, color, label, style }: { value: number; color: string; label: string; style?: ViewStyle }) {
   const theme = useTheme();
-  const clamped = Math.max(0, Math.min(1, value));
+  const clamped = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+  const still = useReduceMotion();
+  // Drawn at its value; a change while shown springs there (spatialDefault, on the UI thread), at once with Remove animations.
+  const at = useSharedValue(clamped);
+  const was = useRef(clamped);
+  useEffect(() => {
+    if (was.current === clamped) return;
+    was.current = clamped;
+    at.value = still ? clamped : withSpring(clamped, motion.spatialDefault);
+  }, [clamped, still, at]);
+  const fill = useAnimatedStyle(() => ({ width: `${Math.max(0, Math.min(1, at.value)) * 100}%` }));
   return (
     <View
       accessibilityRole="progressbar"
@@ -96,7 +109,7 @@ export function Bar({ value, color, label, style }: { value: number; color: stri
       accessibilityValue={{ min: 0, max: 100, now: Math.round(clamped * 100) }}
       style={[{ height: 6, borderRadius: 3, overflow: "hidden", backgroundColor: theme.color.meterTrack }, style]}
     >
-      <View style={{ height: "100%", width: `${clamped * 100}%`, borderRadius: 3, backgroundColor: color }} />
+      <Reanimated.View style={[{ height: "100%", borderRadius: 3, backgroundColor: color }, fill]} />
     </View>
   );
 }

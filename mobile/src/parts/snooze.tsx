@@ -11,6 +11,7 @@ import type { DoneHow } from "../../../src/core/models";
 import { type Snoozable, type SnoozeKey, snoozeChoices } from "../../../src/core/snooze";
 import { dismissToast, toast } from "../swaps/overlays";
 import { Button, IconButton } from "../ui/controls";
+import { haptic } from "../ui/haptics";
 import { Icons } from "../ui/icons";
 import { ActionSheet } from "../ui/sheet";
 import type { SwipeAction } from "../ui/swipe";
@@ -49,6 +50,8 @@ export function useSnooze(item: Snoozable | null, control?: { open: boolean; set
           const when = f.dayTimeWord(choice.until);
           snooze(item.key, choice.until, choice.kind).then(
             () => {
+              // A time picked: the Task is put off (a commit, so it's felt).
+              haptic.confirm();
               if (shown !== null) dismissToast(shown);
               shown = toast(choice.kind === "change" ? t("snooze.doneChange") : t("snooze.done", { when }), "neutral", {
                 label: t("action.undo"),

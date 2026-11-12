@@ -1,9 +1,9 @@
 # Round 3, job 5: grades.
 #
-# READ-ONLY: it taps the Akademik tab and the way to Nilai. Never a target, a grade's sheet, the
+# READ-ONLY: it taps the Profil tab and the way to Nilai. Never a target, a grade's sheet, the
 # planner, or "Buka SIX".
 #
-# Tap budget: 2 (Akademik, Nilai). Taps here: 2. Nilai is the IPK card when SIX gave a transcript,
+# Tap budget: 2 (Profil, Nilai). Taps here: 2. Nilai is the IPK card when SIX gave a transcript,
 # else the "Nilai" row under it.
 appId: io.github.pablonification.edunexplus
 name: "r3 5 grades"
@@ -16,11 +16,11 @@ name: "r3 5 grades"
       id: screen.home
     timeout: 60000
 - tapOn:
-    id: tab.academic
-    label: "tap: Akademik tab"
+    id: tab.profile
+    label: "tap: Profil tab"
 - extendedWaitUntil:
     visible:
-      id: screen.academic
+      id: screen.profile
     timeout: 20000
 - extendedWaitUntil:
     notVisible:
@@ -29,10 +29,10 @@ name: "r3 5 grades"
 - runFlow:
     when:
       visible:
-        id: action.academic.grades
+        id: card.profile
     commands:
       - tapOn:
-          id: action.academic.grades
+          id: card.profile
           label: "tap: the IPK card"
       - extendedWaitUntil:
           visible:

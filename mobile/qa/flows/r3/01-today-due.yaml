@@ -24,14 +24,14 @@ name: "r3 1 today and due"
     timeout: 60000
 - extendedWaitUntil:
     notVisible:
-      id: card.now.reading
+      id: home.now.reading
     timeout: 60000
 - extendedWaitUntil:
     notVisible:
       id: section.needs.reading
     timeout: 60000
 - assertVisible:
-    id: card.now
+    id: home.now
     label: "today: the now card"
 # A swipe at most (not a tap) if a big font pushes it under the fold.
 - scrollUntilVisible:

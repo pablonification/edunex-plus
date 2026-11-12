@@ -15,6 +15,7 @@
 // press), adding a course a sheet with search (planner-add.tsx), a minor up close a sheet. Every change commits with a
 // haptic, and one that loses something can be taken back from its toast. The plan stays on this phone; the app never
 // sends a KRS.
+
 import { type ComponentRef, useCallback, useMemo, useRef, useState } from "react";
 import { Alert, View } from "react-native";
 import { useFormat, useT } from "../../../../src/app/i18n";
@@ -52,6 +53,7 @@ import {
   untried,
   withWhatIf,
 } from "../../../../src/core/planner";
+import { useGradeWords } from "../../parts/hide-grades";
 import { SixPageNote, UnreadNote, useChangedPage } from "../../parts/six-page-note";
 import { dismissToast, toast } from "../../swaps/overlays";
 import { Button } from "../../ui/controls";
@@ -169,6 +171,7 @@ interface Acting {
 /** `real`: SIX's own record; `record`: with this term's what-ifs, which every figure here counts. */
 function Planner({ real, record, state }: { real: StudentRecord; record: StudentRecord; state: PlanState }) {
   const t = useT();
+  const gradeWords = useGradeWords();
   const f = useFormat();
   const theme = useTheme();
   const termLabel = useTermLabel();
@@ -363,7 +366,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                     code={course.code}
                     name={course.name}
                     sks={course.sks}
-                    tag={course.retake ? t("planner.role.retake", { grade: record.graded.get(course.code)?.grade ?? "-" }) : roleTag(course.code)}
+                    tag={course.retake ? t("planner.role.retake", { grade: gradeWords(record.graded.get(course.code)?.grade ?? "-") }) : roleTag(course.code)}
                     flag={flag && flagText(flag)}
                     grade={course.grade}
                     onGrade={(grade) => commit((p) => setGrade(p, term.term, course.code, grade))}

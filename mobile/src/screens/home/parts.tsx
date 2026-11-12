@@ -1,16 +1,20 @@
 // Small pieces Beranda's sections share: a row's quick actions three ways (the visible ✓ and alarm, a swipe, a long
 // press). The helpers marked "from src/app/screens/home.tsx" are the desktop's own, copied as
 // they are because that file draws DOM.
-import { type ReactNode, useCallback, useState } from "react";
-import { View } from "react-native";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
 import { type TermCourse, useTermCourses } from "../../../../src/app/courses";
 import { type Format, type Translate, useNow, useT } from "../../../../src/app/i18n";
 import type { AttendanceState } from "../../../../src/core/attendance";
 import { type DoneTerms, doneTerms } from "../../../../src/core/done";
 import type { ClassFacts, NeedDraft, NowCard } from "../../../../src/core/needs";
 import type { Snoozable, SnoozeKey } from "../../../../src/core/snooze";
+import { hold } from "../../parts/hold";
 import { canSnooze, type RowDone, useMarkDone, useRowActions, useSnooze } from "../../parts/snooze";
+import { haptic } from "../../ui/haptics";
 import { Icons } from "../../ui/icons";
+import { useLoopWhileShown } from "../../ui/motion";
 import { ActionSheet } from "../../ui/sheet";
 import { SwipeRow } from "../../ui/swipe";
 import { Text, type TextTone } from "../../ui/text";
@@ -154,14 +158,25 @@ export function QuickRow({
   const put = useMarkDone(done?.item ?? null, done?.how ?? null, done?.said ?? "");
   const swipe = useRowActions({ done: done ? { how: done.how, put } : null, snooze: later ? sheet : null });
   const [menu, setMenu] = useState(false);
+  // Done from the sheet or TalkBack's action: the same commit as the swipe, felt the same (the swipe plays its own).
+  const doneFromMenu = () => {
+    haptic.confirm();
+    put();
+  };
   const choices = [
     ...(done
-      ? [{ label: t(`done.${done.how}`), icon: <Icons.Check size={20} weight="bold" color={theme.color.muted} />, onPress: put, testID: "menu.done" }]
+      ? [{ label: t(`done.${done.how}`), icon: <Icons.Check size={20} weight="bold" color={theme.color.muted} />, onPress: doneFromMenu, testID: "menu.done" }]
       : []),
     ...(later ? [{ label: t("snooze.action"), icon: <Icons.Snooze size={20} color={theme.color.muted} />, onPress: sheet.open, testID: "menu.snooze" }] : []),
   ];
   // Only "Ingatkan nanti": straight to its times, as on Tugas (a menu of one would be a sheet too many).
-  const onLongPress = !choices.length ? undefined : !done && later ? sheet.open : () => setMenu(true);
+  const onLongPress = !choices.length
+    ? undefined
+    : () => {
+        hold();
+        if (!done && later) sheet.open();
+        else setMenu(true);
+      };
   const quick = choices.length ? choices.map((choice) => ({ label: choice.label, onPress: choice.onPress })) : undefined;
   return (
     <>
@@ -201,4 +216,30 @@ export function shortName(name: string): string {
   }
   while (kept.length > 1 && SMALL.test(kept[kept.length - 1]!)) kept.pop();
   return kept.join(" ");
+}
+
+/**
+ * "Sekarang": a dot whose ring breathes out three times when Beranda is shown, then rests (round 3: the endless pulse
+ * redrew the tab 87 times a second with nobody watching). Still with Remove animations. Nothing on Beranda loops.
+ */
+export function LiveDot({ color, size = 7 }: { color: string; size?: number }) {
+  const run = useLoopWhileShown();
+  const ring = useSharedValue(1);
+  useEffect(() => {
+    if (!run) return;
+    ring.value = 0;
+    // Each pass ends with the ring fully faded, so the last one leaves nothing drawn and nothing running.
+    ring.value = withRepeat(withTiming(1, { duration: 1600, easing: Easing.out(Easing.quad) }), 3, false);
+    return () => {
+      cancelAnimation(ring);
+      ring.value = 1;
+    };
+  }, [run, ring]);
+  const halo = useAnimatedStyle(() => ({ opacity: 0.5 * (1 - ring.value), transform: [{ scale: 1 + ring.value * 1.7 }] }));
+  return (
+    <View style={{ width: size, height: size }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      {run && <Animated.View style={[StyleSheet.absoluteFill, { borderRadius: size, backgroundColor: color }, halo]} />}
+      <View style={{ width: size, height: size, borderRadius: size, backgroundColor: color }} />
+    </View>
+  );
 }

@@ -3,6 +3,11 @@
 // page carries its own big title), the screen's actions at the end (one or two; more go in ⋮,
 // menu.tsx). It sits on the page's colour and takes a tone once the page scrolls under it. The tabs'
 // own pages use `TabHeader` (shell/source-status.tsx): the tab's name, search, the bell, the avatar.
+//
+// One Back for the whole app: `BarBack` (and `BarClose` on a page that came up over the app, `BarActions` round a
+// bar's actions). A screen whose bar isn't TopBar (a Task's two-line bar, Search's field, the sign-in page) draws
+// these, never an icon button of its own: a glass circle on iOS 26, the kit's plain icon button elsewhere, 48 dp, with
+// a name a screen reader says.
 import type { ReactNode } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -42,9 +47,6 @@ export function TopBar({
   v4?: boolean;
   lines?: number;
 }) {
-  const t = useT();
-  const nav = useNav();
-  const theme = useTheme();
   const insets = useSafeAreaInsets();
   const past = useScrolledPast(titleFrom ?? 0);
   const shown = titleFrom === undefined ? null : past;
@@ -52,12 +54,7 @@ export function TopBar({
   return (
     <BarSurface v4={v4}>
       <View style={[styles.bar, { marginTop: insets.top }]}>
-        {/* On iOS 26 the back button and the actions sit on Liquid Glass, as the iPhone's own bars have them (./glass.tsx). */}
-        <GlassButtons>
-          <IconButton label={t("action.back")} onPress={onBack ?? nav.back} testID="action.back">
-            <Icons.ArrowLeft size={24} color={theme.color.onSurface} />
-          </IconButton>
-        </GlassButtons>
+        <BarBack onPress={onBack} />
         <Animated.View style={{ flex: 1, minWidth: 0, marginLeft: space[1], opacity: shown ?? 1, paddingRight: wraps ? space[2] : 0 }}>
           {/* Every screen's title in the one face for headings (v4: Plus Jakarta Sans), whatever page it's on. */}
           <Text
@@ -72,13 +69,49 @@ export function TopBar({
             {title ?? ""}
           </Text>
         </Animated.View>
-        {actions && (
-          <GlassButtons>
-            <View style={{ flexDirection: "row", alignItems: "center" }}>{actions}</View>
-          </GlassButtons>
-        )}
+        {actions && <BarActions>{actions}</BarActions>}
       </View>
     </BarSurface>
+  );
+}
+
+/**
+ * Back, at the start of a bar: the one control every screen over the tabs goes back with. On iOS 26 it sits on a Liquid
+ * Glass circle, as the iPhone's own bars have it (./glass.tsx); elsewhere it's the kit's icon button. The arrow is the
+ * phone's own (a chevron on an iPhone, ./icons.tsx).
+ */
+export function BarBack({ onPress, color }: { onPress?: () => void; color?: string }) {
+  const t = useT();
+  const nav = useNav();
+  const theme = useTheme();
+  return (
+    <GlassButtons>
+      <IconButton label={t("action.back")} onPress={onPress ?? nav.back} testID="action.back">
+        <Icons.ArrowLeft size={24} color={color ?? theme.color.onSurface} />
+      </IconButton>
+    </GlassButtons>
+  );
+}
+
+/** Close, at the start of the bar of a page that came up over the app (signing in): Back's twin, with a ×. */
+export function BarClose({ onPress, testID = "action.close" }: { onPress: () => void; testID?: string }) {
+  const t = useT();
+  const theme = useTheme();
+  return (
+    <GlassButtons>
+      <IconButton label={t("action.close")} onPress={onPress} testID={testID}>
+        <Icons.X size={24} color={theme.color.onSurface} />
+      </IconButton>
+    </GlassButtons>
+  );
+}
+
+/** A bar's actions at its end (icon buttons, ⋮): on iOS 26 together on one glass capsule. */
+export function BarActions({ children }: { children: ReactNode }) {
+  return (
+    <GlassButtons>
+      <View style={{ flexDirection: "row", alignItems: "center" }}>{children}</View>
+    </GlassButtons>
   );
 }
 

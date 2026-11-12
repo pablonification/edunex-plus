@@ -28,14 +28,14 @@ name: "r3 2 task and its file"
       id: section.needs.reading
     timeout: 60000
 
-# The Student's way: a Task among Beranda's cards.
+# The Student's way: a Task among Beranda's "Perlu kamu urus" rows.
 - runFlow:
     when:
       visible:
-        id: 'card\.need\.task:.*'
+        id: 'row\.need\.task:.*'
     commands:
       - tapOn:
-          id: 'card\.need\.task:.*'
+          id: 'row\.need\.task:.*'
           index: 0
           label: "tap: Beranda's Task card"
       - extendedWaitUntil:

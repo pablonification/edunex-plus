@@ -1,0 +1,69 @@
+# The guide, skipped (src/shell/guide): "Lewati panduan" on the invitation ends it at once, says where to find it
+# later, and the app is simply there; it never offers itself again. Skipped from inside too: the demo's link
+# ?guide=start starts the tour (as Settings › Tentang's row does), and "Lewati panduan" on its second step leaves it.
+appId: io.github.pablonification.edunexplus.demo
+name: "the guide, skipped on the invitation and at a step"
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_LANG=id&EDUNEX_DEMO_GUIDE=1"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    notVisible:
+      id: status.settling
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: card.guide
+    timeout: 30000
+# No wall: Beranda's own parts are there to use under the invitation.
+- assertVisible:
+    id: home.now
+- tapOn:
+    id: action.guideSkip
+- extendedWaitUntil:
+    notVisible:
+      id: card.guide
+    timeout: 10000
+- extendedWaitUntil:
+    visible: "Panduan bisa dibuka nanti dari Pengaturan › Tentang"
+    timeout: 5000
+    optional: true
+# The app is simply there, and the invitation doesn't come back.
+- runFlow:
+    file: judge/tab.yaml
+    env:
+      TAB: tasks
+- runFlow:
+    file: judge/tab.yaml
+    env:
+      TAB: home
+- extendedWaitUntil:
+    visible:
+      id: card.guide
+    timeout: 8000
+    optional: true
+- assertNotVisible:
+    id: card.guide
+# Skipped at a step: started by the demo's link, left on the second step.
+- openLink: "edunexplusdemo://demo?guide=start"
+- extendedWaitUntil:
+    visible:
+      id: card.guide.now
+    timeout: 15000
+- tapOn:
+    id: action.guideNext
+- extendedWaitUntil:
+    visible:
+      id: card.guide.strip
+    timeout: 15000
+- tapOn:
+    id: action.guideSkip
+- extendedWaitUntil:
+    notVisible:
+      id: screen.guide
+    timeout: 15000
+- assertVisible:
+    id: screen.home
