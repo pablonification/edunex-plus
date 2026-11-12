@@ -32,10 +32,60 @@ copy. Electron downloads itself the first time the app starts.
 | `npm run format` | Fixes formatting and import order. |
 | `npm run check` | Lint, types and tests together: what a pull request must pass. |
 | `npm run knip` | Files, exports and packages nothing uses. |
+| `npm run site` | The website on this computer, rebuilt on every page load ([site/README.md](site/README.md)). |
 | `npm run package:mac` / `:win` / `:linux` | Installers, into `release/`. |
 
 To see every screen: `npm run demo:build`, then
 `node scripts/demo/capture.mjs /tmp/screens` saves a picture of each one.
+
+## The phone app
+
+`mobile/` is Edunex Plus for Android and iPhone: an Expo app (React Native) that runs the desktop's
+own engine (`src/engine`) and models (`src/core`) on the phone, and reads them through the same hooks
+the window uses (`src/app`'s store and words). Its screens are its own, built from the desktop's,
+and every word still lives in `src/core/strings` (phone-only ones in `src/core/strings/mobile.ts`).
+Read [mobile/AGENTS.md](mobile/AGENTS.md) first: how it's put together and how a desktop screen is
+brought over.
+
+**Running it.** Its native builds happen in GitHub Actions, never on a laptop. Take the dev client
+(the app without its JavaScript, which it loads from your computer) from the newest Mobile run on
+`main`, install it on an Android emulator (a run's dev clients are built for one: x86_64), and start
+the app's JavaScript:
+
+```sh
+gh run list --workflow mobile.yml --branch main --limit 1     # the run's id
+gh run download <run id> -n edunex-plus-demo-dev-client-apk   # or edunex-plus-dev-client-apk
+adb install edunex-plus-demo-dev-client.apk
+cd mobile && npm ci
+npm run start:demo   # the demo dev client, on made-up data; `npm run start` for the real one
+```
+
+Run `npm ci` at the root too: the phone's type check and its tests use the root's packages.
+Switching between the demo and the real app needs `-- --clear`.
+
+On a real phone (arm64), start the workflow by hand with `-f apks=qa`: its
+`edunex-plus-qa-dev-client-apk` runs on your own account and only reads from Edunex and SIX
+(`EXPO_PUBLIC_R3_GUARD=1 npm run start -- --clear`, as [mobile/AGENTS.md](mobile/AGENTS.md) says).
+The demo runs on a phone too, as `edunex-plus-demo-release-apk`: the whole app with its JavaScript
+inside, so it doesn't follow your edits.
+
+**Before a pull request:** `npm run typecheck` in `mobile/`, and the root `npm run check` (Biome
+checks `mobile/` too, and the phone's tests in `test/mobile` run with the rest). CI runs both.
+
+**The Mobile workflow** builds and tries it (see "How CI works"). Start it by hand on your branch
+with `gh workflow run mobile.yml --ref <branch> -f scenarios=false` for the quick run (about 35
+minutes: the APKs, the "app" flows on an emulator, the desktop's pictures), or without
+`-f scenarios=false` for the full one (every scenario's flows too, 1.5 to 3 hours). Its other inputs
+pick which APKs to build (`-f apks=demo-release`, `qa`, `ios`, `none`) and which flows to run
+(`-f flows="smoke.yaml"`).
+
+**The iPhone app** builds in the Mobile workflow's `ios` job, every night and by hand
+(`gh workflow run mobile.yml --ref <branch> -f apks=ios -f e2e=false -f scenarios=false -f desktop-shots=false`):
+an unsigned, read-only `.ipa` (artifact `edunex-plus-qa-ios-ipa`) you sign with your own Apple ID to
+install. Building it on a Mac with Xcode, and what to check on an iPhone: [mobile/IOS.md](mobile/IOS.md).
+The APK and `.ipa` a release carries are built by `mobile-release.yml`: the APK signed with the
+project's key, the `.ipa` unsigned, for each student to sign with their own Apple ID
+(`gh workflow run mobile-release.yml --ref <branch>` builds both as a check).
 
 ## How the tests work
 
@@ -109,6 +159,7 @@ installs afresh:
 | **typecheck** | The types of all three parts. | must pass |
 | **test** | All the tests, a third on each of three runners at once (**test (part 1 of 3)** and so on); **test** puts their results together. | must pass |
 | **build** | The app builds, and the JavaScript the window loads at start stays under its size budget. | must pass |
+| **mobile** | The phone app's types (`mobile/`), when a change touches `mobile/`, `src/` or `test/mobile/`. | must pass |
 | **knip** | Code and packages nothing uses. | advisory |
 | **workflows** | Mistakes and security slips in `.github/` (actionlint, zizmor), when it changes. | must pass |
 | **dependency-review** | New or updated packages: no known serious security hole, only permissive licences. | must pass |
@@ -128,10 +179,21 @@ line in the pull request's **Files changed** tab.
   it only when needed (a dynamic `import()`), or raise the budget in
   `scripts/check-bundle-size.mjs` on purpose and say why.
 - **knip**: delete what's truly unused, or tell knip why it stays in `knip.json`.
+- **mobile**: run `npm run typecheck` in `mobile/`.
 
-Labels are added for you: `area:app`, `area:engine`, `area:desktop`,
-`area:ci`, `tests`, `documentation`, `dependencies`, and `security-sensitive`
-for changes to sessions, the window's protections, packaging or workflows.
+**The Mobile workflow** (`mobile.yml`) runs beside CI when a pull request changes the phone app or
+what it shares with the desktop (`mobile/`, `src/`, the pretend world and its test data): it builds
+the APKs, runs the "app" flows (`mobile/flows`) on an Android emulator against the demo, and takes
+the desktop demo's pictures to hold the phone's against, in about 35 minutes. Every night at 02:00 WIB
+it runs in full on `main`: every scenario's same-data flows, one emulator each, their score, and the
+iPhone build. Each job writes its result on the run's summary page; `gh run download <run id>` saves
+the APKs (`<name>-apk`), the flows' pictures and logs (`e2e-results-app`, one per scenario on a full
+run), the desktop's pictures (`desktop-shots-light`, `desktop-shots-dark`) and the `.ipa`.
+
+Labels are added for you: `area:app`, `area:engine`, `area:desktop`, `area:mobile`
+(the phone app), `area:site` (the website), `area:ci`, `tests`, `documentation`, `dependencies`,
+and `security-sensitive` for changes to sessions, the window's protections, packaging, the phone's
+signing key and self-update, or workflows.
 
 ## Packaged builds
 
@@ -175,8 +237,8 @@ uninstaller), SignPath signs them, `--signed <folder>` makes the installers agai
 signs the installers, and `scripts/update-info.mjs` writes their new sha512 into `latest*.yml` so
 the app's updater accepts them. Electron's own DLLs are shipped as Electron makes them: SignPath signs
 only a project's own files. Without the settings (forks, your builds, releases before then) nothing
-is signed, as before; the release workflow's other builds (of `main`, or started by hand) take both
-passes with a stand-in certificate, so all of the signed path but the trip to SignPath is tried
+is signed, as before; the release workflow's check builds (of `main` without a new version, or
+started by hand) take both passes with a stand-in certificate, so all of the signed path but the trip to SignPath is tried
 before a release depends on it. Check a signed build with `Get-AuthenticodeSignature` on the
 installer: `Valid`, signed by `CN=SignPath Foundation`. Why browsers and Windows warn about unsigned
 installers, and the other options: [docs/research/windows-download-warnings.md](docs/research/windows-download-warnings.md).
@@ -202,17 +264,36 @@ writes it), with its own licence and Electron's and Chromium's.
 
 ## Releases (maintainers)
 
-1. `npm version patch` (or `minor`), then `git push --follow-tags`. For a test
-   build, use a pre-release version: `npm version 0.1.0-alpha.2`. Its release is
-   marked "Pre-release", and only copies that are pre-releases themselves are
-   told about it.
-2. The **Package and release** workflow checks that the tag matches the
-   version, builds for macOS, Windows and Linux, and makes a draft release with
-   notes grouped by label. Once SignPath is set up, it emails you twice while
-   the Windows build waits: approve each signing request in SignPath (the job
-   gives up after 45 minutes each).
-3. Try the draft's installers on real accounts, then publish it. Installed
-   apps offer the update only once it's published.
+1. **Number the version in a pull request.** `npm version 0.1.0-alpha.34 --no-git-tag-version` (or
+   `patch`, `minor`) changes `package.json` and `package-lock.json`; title it as the ones before:
+   `chore(release): number the thirty-fourth alpha 0.1.0-alpha.34, so <what Students get>`. A
+   pre-release version (with a `-`) makes a release marked "Pre-release", and only copies that are
+   pre-releases themselves are told about it.
+2. **Merge it.** The **Package and release** workflow sees `main`'s version change and builds macOS,
+   Windows and Linux, the Android APK and the iPhone `.ipa` into a draft release for that commit,
+   with notes grouped by label: about 30 minutes. Its summary says what it made and why. Once
+   SignPath is set up, it emails you twice while the Windows build waits: approve each signing
+   request in SignPath (the job gives up after 45 minutes each).
+3. **Try the draft's files** on real accounts, then press **Publish release**. GitHub makes the tag
+   (`v0.1.0-alpha.34`) at that commit then; the tag's own run sees the release is published and
+   stops at once. Installed apps offer the update only once it's published.
+
+**Refreshing a draft** (a job failed, or a fix merged after the numbering): Actions → Package and
+release → Run workflow from `main` with "release" ticked, or `gh workflow run release.yml --ref main
+-f release=true`. It builds `main`'s newest commit into the draft for `package.json`'s version and
+points the draft there. It refuses a version that's already published: number a new one. The notes
+stay as they were first written; edit them on the draft if they should name the fix. Press Publish
+only once that run has finished: a refresh replaces the draft's files one by one. A run of an older
+commit, run again after a refresh, stops rather than put its older files back.
+
+**Tagging first still works:** `git tag v<version> <commit>` and `git push origin v<version>` build the
+draft for that tag. The tag must match `package.json`'s version at that commit.
+
+**A release needs these repository secrets:** `MAC_SIGNING_P12` and `MAC_SIGNING_PASSWORD` (the Mac
+app's signature; without them it's signed ad-hoc and the run warns), `ANDROID_SIGNING_KEYSTORE` and
+`ANDROID_SIGNING_PASSWORD` (the APK; without them the phone build stops), and once SignPath has
+accepted the project, `SIGNPATH_API_TOKEN` with the `SIGNPATH_ORGANIZATION_ID` variable. What each
+signs and how it's made: [docs/code-signing.md](docs/code-signing.md) and "Packaged builds" above.
 
 ## Conduct and security
 

@@ -1,24 +1,28 @@
-# The installable app for macOS, Windows and Linux, and on a version tag the phone app too (mobile-release.yml).
+# The installable app for macOS, Windows and Linux, and for a release the phone app too (mobile-release.yml).
 #
-# - On a version tag (v1.2.3): checks that the tag matches package.json's
-#   version, builds all three (each kind of Mac on a Mac of its own), and puts
-#   them in a DRAFT release with notes
-#   written from the merged pull requests (.github/release.yml groups them).
-#   You publish the draft by hand after trying it on real accounts; only then
-#   does the app's once-a-day update check see the new version. Once SignPath
-#   is set up (docs/code-signing.md), the Windows installers are signed on the
-#   way, and the job waits for you to approve each signing in SignPath.
-# - On pushes to main that touch packaging, and by hand from a branch (Actions →
-#   Package and release → Run workflow): builds all three as a check, keeps
-#   them for a week on the run's page, and publishes nothing.
+# The plan job decides what a run makes (scripts/ci/release-plan.mjs), and says why on the run's summary:
+# - A release, when main gets a new version: merging the pull request that numbers it (`chore(release)`,
+#   `npm version <v> --no-git-tag-version`) builds all three (each kind of Mac on a Mac of its own), the
+#   Android APK and the iPhone .ipa, and puts them in a DRAFT release for that commit, with notes written
+#   from the merged pull requests (.github/release.yml groups them). You try the draft, then publish it by
+#   hand: GitHub creates the tag then, and only then does the app's once-a-day update check see the new
+#   version. That tag's own run sees the release is published and ends at once. Once SignPath is set up
+#   (docs/code-signing.md), the Windows installers are signed on the way, and the job waits for you to
+#   approve each signing in SignPath.
+# - A version tag pushed by hand (v1.2.3) still works as it always did: it must match package.json's
+#   version, and makes the draft for the tagged commit.
+# - By hand (Actions → Package and release → Run workflow), with "release" ticked, from main: makes, or
+#   refreshes, the draft for package.json's version from main's newest commit. Never over a published one.
+# - Any other push to main that touches packaging, and by hand without "release" from any branch: builds
+#   all three as a check, keeps them for a week on the run's page, and publishes nothing.
 name: Package and release
 
 on:
   push:
     tags: ["v*.*.*"]
     branches: [main]
-    # Pushes to main only build when packaging could have changed. (GitHub
-    # doesn't apply this list to tags: every version tag builds.)
+    # Pushes to main only build when packaging could have changed, or the version (package.json). (GitHub
+    # doesn't apply this list to tags: every version tag runs.)
     paths:
       - "electron-builder.config.mjs"
       - "scripts/package-fuses.mjs"
@@ -40,12 +44,19 @@ on:
       - ".github/workflows/release.yml"
       - ".github/actions/setup/**"
   workflow_dispatch:
+    inputs:
+      release:
+        description: Make, or refresh, the draft release for package.json's version from this commit (main only).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
+# One run per commit at a time. Each push to main queues on its own: GitHub keeps only the newest waiting
+# run of a group, so sharing one would let the pushes around a version's numbering drop its release run.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 defaults:
@@ -53,32 +64,37 @@ defaults:
     shell: bash
 
 jobs:
-  verify:
-    name: verify
-    if: startsWith(github.ref, 'refs/tags/v')
+  # What this run makes: a check build, every app for a draft release, or nothing (scripts/ci/release-plan.mjs).
+  plan:
+    name: plan
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      release: ${{ steps.plan.outputs.release }}
+      tag: ${{ steps.plan.outputs.tag }}
+      version: ${{ steps.plan.outputs.version }}
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Check the tag matches package.json's version
+          # package.json (at the top, always there) and the script: nothing else is needed.
+          sparse-checkout: scripts/ci
+      # The runner's own Node: the script needs no packages. It asks GitHub, with this run's read-only token,
+      # for package.json's version before the push, and whether that version is published or tagged.
+      - name: Decide what this run makes
+        id: plan
         env:
-          TAG: ${{ github.ref_name }}
-        run: |
-          version=$(node -p 'require("./package.json").version')
-          if [ "$TAG" != "v$version" ]; then
-            echo "::error::The tag $TAG doesn't match package.json's version ($version). The app compares the two to offer updates: run \`npm version <new-version>\` and push that commit and its tag instead."
-            exit 1
-          fi
-          echo "Tag $TAG matches package.json."
+          GH_TOKEN: ${{ github.token }}
+          BEFORE: ${{ github.event.before }}
+          RELEASE: ${{ inputs.release }}
+        run: node scripts/ci/release-plan.mjs
 
   package:
     name: package (${{ matrix.name }})
-    needs: verify
-    # verify only runs for tags; elsewhere it's skipped and packaging goes ahead.
-    if: ${{ !failure() && !cancelled() }}
+    needs: plan
+    if: needs.plan.outputs.build == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -130,10 +146,11 @@ jobs:
         env:
           MAC_SIGNING_P12: ${{ secrets.MAC_SIGNING_P12 }}
           MAC_SIGNING_PASSWORD: ${{ secrets.MAC_SIGNING_PASSWORD }}
+          RELEASE: ${{ needs.plan.outputs.release }}
         run: |
           if [ -z "$MAC_SIGNING_P12" ] || [ -z "$MAC_SIGNING_PASSWORD" ]; then
             echo "No MAC_SIGNING_P12 and MAC_SIGNING_PASSWORD secrets: the Mac app is signed ad-hoc."
-            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            if [ "$RELEASE" = true ]; then
               echo "::warning::This release's Mac app is signed ad-hoc: after updating to it, macOS asks Students for their password again. Set the signing secrets (CONTRIBUTING.md, Packaged builds)."
             fi
             exit 0
@@ -158,7 +175,7 @@ jobs:
       # (scripts/package-win.mjs, scripts/package-sign-win.mjs): the app's own programs and the
       # uninstallers are signed first, then the installers made from them. Releases are signed
       # once the SignPath settings exist; without them a release is unsigned, as before. This
-      # workflow's other builds (main, or started by hand) take the same two passes, folders and
+      # workflow's check builds (main, or started by hand) take the same two passes, folders and
       # checks with a stand-in signature; only the trip to SignPath and back is left for releases.
       - name: Choose how the Windows installers are signed (Windows)
         id: windows-signing
@@ -166,6 +183,7 @@ jobs:
         env:
           SIGNPATH_API_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
           SIGNPATH_ORGANIZATION_ID: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          RELEASE: ${{ needs.plan.outputs.release }}
         run: |
           version=$(node -p 'require("./package.json").version')
           {
@@ -173,7 +191,7 @@ jobs:
             # As Windows numbers it in the app's own program: electron-builder writes major.minor.patch.0.
             echo "windows-version=${version%%[-+]*}.0"
           } >> "$GITHUB_OUTPUT"
-          if [[ "$GITHUB_REF" != refs/tags/* ]]; then
+          if [ "$RELEASE" != true ]; then
             echo "way=stand-in" >> "$GITHUB_OUTPUT"
             echo "Not a release: the Windows installers get a stand-in signature, to try the way a signed release is built."
           elif [ -n "$SIGNPATH_API_TOKEN" ] && [ -n "$SIGNPATH_ORGANIZATION_ID" ]; then
@@ -215,8 +233,10 @@ jobs:
         run: command -v xz || brew install xz
       - name: Pack the Mac update smaller (macOS)
         if: matrix.target == 'mac'
+        env:
+          RELEASE: ${{ needs.plan.outputs.release }}
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          if [ "$RELEASE" = true ]; then
             node scripts/package-mac-update.mjs release
           else
             node scripts/package-mac-update.mjs release --quick
@@ -464,7 +484,7 @@ jobs:
             release/*.chunks.pack
             release/latest*.yml
           if-no-files-found: error
-          retention-days: ${{ startsWith(github.ref, 'refs/tags/') && 30 || 7 }}
+          retention-days: ${{ needs.plan.outputs.release == 'true' && 30 || 7 }}
           compression-level: 0
       # Nobody on the team runs Windows, so this runner installs the new
       # installer the way Students will: over the first alpha's step-by-step
@@ -539,8 +559,8 @@ jobs:
   # The Android APK and the iPhone .ipa, for the same draft release (artifacts app-android and app-iphone).
   phone:
     name: phone
-    needs: verify
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: plan
+    if: needs.plan.outputs.release == 'true'
     permissions:
       contents: read
     uses: ./.github/workflows/mobile-release.yml
@@ -548,10 +568,17 @@ jobs:
       ANDROID_SIGNING_KEYSTORE: ${{ secrets.ANDROID_SIGNING_KEYSTORE }}
       ANDROID_SIGNING_PASSWORD: ${{ secrets.ANDROID_SIGNING_PASSWORD }}
 
+  # Only once every app built: a failed or cancelled package or phone job skips this.
   publish:
     name: publish
-    needs: [package, phone]
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [plan, package, phone]
+    if: needs.plan.outputs.release == 'true'
+    # One run at a time writes a version's draft: a by-hand refresh, or a tag pushed while the merge's run still
+    # builds, waits here instead of mixing its files and checksums with the other's. (Only the newest waiting
+    # run goes ahead: one it bumps shows as cancelled on the Actions page.)
+    concurrency:
+      group: release-publish-${{ needs.plan.outputs.tag }}
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -584,22 +611,53 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ needs.plan.outputs.tag }}
+          EVENT: ${{ github.event_name }}
         run: |
-          if gh release view "$TAG" --repo "$REPO" > /dev/null 2>&1; then
-            # A re-run: refresh the files on the release that already exists.
+          # A version tag pushed by hand: the release is for that tag, which must exist. Otherwise the draft
+          # points at this commit, and GitHub makes the tag there when the draft is published.
+          tag_push=false
+          if [ "$EVENT" = push ] && [ "$GITHUB_REF" = "refs/tags/$TAG" ]; then tag_push=true; fi
+          # Checked again right before writing: the draft may have been published while the apps built. A
+          # request that fails stops here, rather than be taken for "no release" and make a second draft.
+          if draft=$(gh release view "$TAG" --repo "$REPO" --json isDraft --jq .isDraft 2> "$RUNNER_TEMP/view.txt"); then
+            if [ "$draft" != true ]; then
+              echo "::error::$TAG was published while this run built it: its files stay as they are. Number a new version to release this commit."
+              exit 1
+            fi
+            # A re-run, or a draft made again: refresh its files, and point it at this commit. Never from a
+            # commit older than the one the draft is built from already: an old run, run again after a newer
+            # refresh, would put its older files back.
+            if [ "$tag_push" = false ]; then
+              built_from=$(gh release view "$TAG" --repo "$REPO" --json targetCommitish --jq .targetCommitish)
+              if [[ "$built_from" =~ ^[0-9a-f]{40}$ ]] && [ "$built_from" != "$GITHUB_SHA" ]; then
+                ahead=$(gh api "repos/$REPO/compare/$built_from...$GITHUB_SHA" --jq .status)
+                if [ "$ahead" != ahead ]; then
+                  echo "::error::The draft $TAG is built from ${built_from:0:7} already, and this run's commit (${GITHUB_SHA:0:7}) isn't newer: it would put older files back. To build the draft again, run the workflow by hand from main with \"release\" ticked."
+                  exit 1
+                fi
+              fi
+            fi
             gh release upload "$TAG" --repo "$REPO" --clobber installers/*
+            if [ "$tag_push" = false ]; then gh release edit "$TAG" --repo "$REPO" --target "$GITHUB_SHA" > /dev/null; fi
+            made="refreshed"
+          elif ! grep -q "release not found" "$RUNNER_TEMP/view.txt"; then
+            cat "$RUNNER_TEMP/view.txt"
+            echo "::error::Couldn't tell whether $TAG has a release already. Run the job again."
+            exit 1
           else
             # Above the notes GitHub writes: how to install, and how the installers are signed.
             intro="How to install: [install guide](https://github.com/$REPO/blob/main/docs/install.md). How the installers are signed: [code signing policy](https://github.com/$REPO/blob/main/docs/code-signing.md)."
-            flags=(--draft --generate-notes --notes "$intro" --verify-tag --title "Edunex Plus ${TAG#v}")
+            flags=(--draft --generate-notes --notes "$intro" --title "Edunex Plus ${TAG#v}")
+            if [ "$tag_push" = true ]; then flags+=(--verify-tag); else flags+=(--target "$GITHUB_SHA"); fi
             # v0.1.0-alpha.1 and the like are pre-releases: only copies that are
             # pre-releases themselves offer them (src/engine/updates.ts).
             if [[ "$TAG" == *-* ]]; then flags+=(--prerelease); fi
             gh release create "$TAG" --repo "$REPO" "${flags[@]}" installers/*
+            made="ready"
           fi
           {
-            echo "### Draft release ready"
+            echo "### Draft release $made"
             echo
-            echo "**$TAG** is a draft with the installers for macOS, Windows and Linux, the Android APK and the iPhone .ipa. Try it on real accounts, then publish it from the Releases page; installed apps see it only once it's published."
+            echo "**$TAG** is a draft with the installers for macOS, Windows and Linux, the Android APK and the iPhone .ipa, built from ${GITHUB_SHA:0:7}. Try it on real accounts, then publish it from the Releases page: GitHub makes the tag $TAG then, and installed apps see the new version only once it's published."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -11,8 +11,8 @@ versioned docs, `https://docs.expo.dev/versions/v58.0.0/`, or the package's own 
 
 ## How the app is put together
 
-- `app/`: routes only (Expo Router). `(tabs)/` is the bottom tabs: Beranda (`index`), Tugas
-  (`tasks`), Jadwal (`schedule`), Presensi (`presence`), Lainnya (`more`). Everything else is a
+- `app/`: routes only (Expo Router). `(tabs)/` is the bottom tabs: Beranda (`index`), Jadwal
+  (`schedule`), Tugas (`tasks`), Kuliah (`courses`), Profil (`profile`). Everything else is a
   stack screen over them (`task/[taskId]`, `course/[code]`, `settings`, …).
 - `src/host/`: the desktop's engine (`../src/engine`) on the phone (network, files, keystore,
   notifications, background sync) and the bridge the screens talk through, answered in-process

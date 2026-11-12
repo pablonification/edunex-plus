@@ -20,6 +20,7 @@ body:
     id: where
     attributes:
       label: Where in the app?
+      description: On the phone, Tugas is the Tugas tab and a course page is under Kuliah.
       multiple: true
       options:
         - Beranda
@@ -29,6 +30,10 @@ body:
         - Nilai
         - Rencana studi
         - A course page
+        - Kuliah (phone)
+        - Profil (phone)
+        - Semua layanan (phone)
+        - Home screen or Lock Screen widgets (phone)
         - Notifications or alerts
         - Search
         - Settings
@@ -59,16 +64,18 @@ body:
     id: version
     attributes:
       label: App version
-      description: Settings shows it ("Versi …").
+      description: Settings shows it ("Versi …"). On the phone, Settings is the gear on Profil.
 
   - type: dropdown
     id: os
     attributes:
-      label: Computer
+      label: Computer or phone
       options:
         - macOS
         - Windows
         - Linux
+        - Android
+        - iPhone
 
   - type: textarea
     id: screenshots

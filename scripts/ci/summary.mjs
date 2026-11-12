@@ -1,9 +1,9 @@
 // Writes a CI job's result in plain words to the run's summary page, so the
 // maintainer reads one line instead of a log. Locally it prints to the terminal.
 //
-//   node scripts/ci/summary.mjs <lint|typecheck|test|knip> <success|failure> <output-file...>
+//   node scripts/ci/summary.mjs <lint|typecheck|mobile|test|knip> <success|failure> <output-file...>
 //
-// The output file is what the check printed (lint, typecheck), Vitest's JSON
+// The output file is what the check printed (lint, typecheck, mobile: the phone app's type check), Vitest's JSON
 // report (test; one per part when the tests ran in parts) or knip's markdown
 // report (knip).
 import fs from "node:fs";
@@ -30,13 +30,13 @@ const writers = {
 
   typecheck() {
     if (passed) return "All clear: the types check out in all three parts (the window, the desktop side and engine, the tests).";
-    const errors = [...output.matchAll(/^(.+?)\(\d+,\d+\): error TS\d+/gm)].map((match) => match[1]);
-    if (errors.length === 0) return "**The type check failed before it could list errors.** The log of this job says why.";
-    const files = [...new Set(errors)];
-    return [
-      `**${plural(errors.length, "type error")} in ${plural(files.length, "file")}.** Each is marked on its line in the pull request's Files tab.`,
-      files.map((name) => `- \`${name}\``).join("\n"),
-    ].join("\n\n");
+    return typeErrors("Each is marked on its line in the pull request's Files tab.");
+  },
+
+  // Run in mobile/, so tsc names files from there.
+  mobile() {
+    if (passed) return "All clear: the phone app's types check out (`mobile/`, and the tests that read its parts).";
+    return typeErrors("Run `npm run typecheck` in `mobile/` to see each one.", (name) => path.posix.normalize(`mobile/${name}`));
   },
 
   test() {
@@ -83,6 +83,15 @@ const writers = {
   },
 };
 
+/** tsc's errors, counted and listed by file (`where` names a file as the repository does). */
+function typeErrors(next, where = (name) => name) {
+  const errors = [...output.matchAll(/^(.+?)\(\d+,\d+\): error TS\d+/gm)].map((match) => where(match[1]));
+  if (errors.length === 0) return "**The type check failed before it could list errors.** The log of this job says why.";
+  const files = [...new Set(errors)];
+  const list = files.map((name) => `- \`${name}\``).join("\n");
+  return `**${plural(errors.length, "type error")} in ${plural(files.length, "file")}.** ${next}\n\n${list}`;
+}
+
 /** Vitest's JSON reports from the parts of one test run, as one report. */
 function combined(reports) {
   return {
@@ -94,7 +103,7 @@ function combined(reports) {
   };
 }
 
-const titles = { lint: "Lint and format", typecheck: "Type check", test: "Tests", knip: "Unused code (knip)" };
+const titles = { lint: "Lint and format", typecheck: "Type check", mobile: "Phone app type check", test: "Tests", knip: "Unused code (knip)" };
 if (!writers[kind]) throw new Error(`Unknown summary kind: ${kind}`);
 const text = `### ${titles[kind]}\n\n${writers[kind]()}\n`;
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, text);

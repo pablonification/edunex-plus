@@ -163,8 +163,10 @@ describe("signing a release with SignPath", () => {
   const installer = (artifactName: string) => artifactName.replace("${ext}", "exe");
   const names = [config.nsis?.artifactName as string, WINDOWS_ARM_INSTALLER];
 
-  it("happens only for a version tag, once SignPath's settings exist; a release without them is unsigned, as before", () => {
-    expect(workflow).toContain('if [[ "$GITHUB_REF" != refs/tags/* ]]; then');
+  it("happens only for a release, once SignPath's settings exist; a release without them is unsigned, as before", () => {
+    // biome-ignore lint/suspicious/noTemplateCurlyInString: the workflow's own ${{ … }}
+    expect(workflow).toContain("RELEASE: ${{ needs.plan.outputs.release }}");
+    expect(workflow).toContain('if [ "$RELEASE" != true ]; then\n            echo "way=stand-in"');
     expect(workflow).toContain('elif [ -n "$SIGNPATH_API_TOKEN" ] && [ -n "$SIGNPATH_ORGANIZATION_ID" ]; then');
     expect(workflow).toContain('elif [ "$WINDOWS_SIGNING" = none ]; then\n            npm run package:win\n');
   });

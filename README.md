@@ -91,7 +91,8 @@ npm run demo    # the app on made-up data, no account needed
 npm run check   # lint, types and tests: what every pull request must pass
 ```
 
-Installers: `npm run package:mac`, `package:win` or `package:linux` (into `release/`).
+Installers: `npm run package:mac`, `package:win` or `package:linux` (into `release/`). The phone
+app (`mobile/`) is built in GitHub Actions: [CONTRIBUTING.md, "The phone app"](CONTRIBUTING.md#the-phone-app).
 
 ## Contributing
 

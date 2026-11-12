@@ -289,8 +289,8 @@ set_secret SIGNPATH_API_TOKEN "$SIGNPATH_API_TOKEN"
 unset SIGNPATH_API_TOKEN
 
 stage "The first signed release"
-say "From now on every version tag's Windows build is signed. To release:"
-step "npm version <next version>, then git push --follow-tags (CONTRIBUTING.md, Releases)."
+say "From now on every release's Windows build is signed. To release:"
+step "Merge a pull request that numbers the next version: npm version <v> --no-git-tag-version (CONTRIBUTING.md, Releases)."
 step "SignPath emails you twice while the Windows build waits: approve each request (45 minutes each)."
 step "In the run's summary, 'Windows signatures (signpath)' lists each file signed by CN=SignPath Foundation."
 step "Install it on a Windows PC, ideally one with Smart App Control on, and check the app opens."

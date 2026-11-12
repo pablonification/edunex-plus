@@ -64,6 +64,23 @@ updates:
       relay:
         patterns: ["*"]
 
+  # The phone app (mobile/): its packages follow the Expo SDK, whose `npx expo install` picks the versions
+  # that work together, so an update of one package alone would break the app. No version updates here:
+  # only security updates, which Dependabot opens whatever the limit, titled "chore(deps)" like the
+  # app's own (without this entry they came as "ci(deps)").
+  - package-ecosystem: npm
+    directory: /mobile
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Asia/Jakarta
+    open-pull-requests-limit: 0
+    labels: [dependencies, "area:mobile"]
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+
   - package-ecosystem: github-actions
     # The workflows, and this repository's own shared steps.
     directories: ["/", "/.github/actions/*"]

@@ -1,9 +1,10 @@
 # The phone app for a release: the Android APK and the iPhone .ipa students install (docs/install.md, "Android" and
 # "iPhone"). The real app, not a QA build: no read-only guard (EXPO_PUBLIC_R3_GUARD) and no demo.
 #
-# - Called by release.yml on a version tag: both files go on the draft release beside the desktop installers,
-#   as artifacts app-android and app-iphone (release.yml collects every app-*).
-# - By hand (Actions → Phone app for a release → Run workflow): builds both as a check, kept for a week on the run's page.
+# - Called by release.yml for a release (main got a new version, a version tag, or by hand with "release"): both files
+#   go on the draft release beside the desktop installers, as artifacts app-android and app-iphone (release.yml
+#   collects every app-*).
+# - By hand (Actions → Phone app for a release → Run workflow): builds both as a check, kept for a month on the run's page.
 #
 # The APK is signed with Edunex Plus's own key (the ANDROID_SIGNING_* secrets, mobile/plugins/release-signing.js;
 # docs/code-signing.md, "Android"), the same on every release, so a new version installs over the one before and a
@@ -127,7 +128,8 @@ jobs:
           name: app-android
           path: ${{ runner.temp }}/out/*.apk
           if-no-files-found: error
-          retention-days: 7
+          # As long as release.yml keeps a release's desktop installers: a publish job run again finds them all.
+          retention-days: 30
 
   iphone:
     name: iphone
@@ -179,4 +181,5 @@ jobs:
           name: app-iphone
           path: ${{ runner.temp }}/out/*.ipa
           if-no-files-found: error
-          retention-days: 7
+          # As long as release.yml keeps a release's desktop installers: a publish job run again finds them all.
+          retention-days: 30

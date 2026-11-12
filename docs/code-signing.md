@@ -38,9 +38,9 @@ later ([why](research/windows-download-warnings.md)).
 - Each release is signed only after an approver has approved it in SignPath, twice: once for the
   app's programs, once for the installers made from them
   ([scripts/package-sign-win.mjs](../scripts/package-sign-win.mjs)).
-- The release workflow's other builds (of `main`, or started by hand) take the same steps with a
-  stand-in signature that only that build's machine trusts, all but the trip to SignPath. They're
-  for testing and are never published.
+- The release workflow's check builds (of `main` without a new version, or started by hand) take
+  the same steps with a stand-in signature that only that build's machine trusts, all but the trip
+  to SignPath. They're for testing and are never published.
 
 ## Android and iPhone
 
