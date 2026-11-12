@@ -1,17 +1,18 @@
 # Edunex Plus
 
-**Edunex and SIX in one calm window.** A free app for ITB students, on macOS, Windows, Linux,
-Android and iPhone.
+**Edunex and SIX, finally in one place.** A free app for ITB students, on Android, iPhone,
+Windows, macOS and Linux.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/home-dark.png">
-  <img alt="Beranda: the class happening now, whether attendance counts in SIX or Edunex, today's classes, and what changed" src="docs/screenshots/home-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/hero-dark.png">
+  <img alt="Edunex Plus on a laptop and a phone. Beranda on both: the class happening now with its room, today's classes, and what's due" src="docs/screenshots/hero-light.png">
 </picture>
 
 <sub>Pictures come from the demo's made-up student, never a real account.</sub>
 
-[Download](#download) · [Install guide](docs/install.md) · [Privacy](docs/privacy.md) ·
-[Code signing policy](docs/code-signing.md) · [Contributing](CONTRIBUTING.md)
+[Website](https://edunex-plus.arqilasp.com) · [Install with pictures](https://edunex-plus.arqilasp.com/en/install/) ·
+[Download](#download) · [Privacy](docs/privacy.md) · [Code signing policy](docs/code-signing.md) ·
+[Contributing](CONTRIBUTING.md)
 
 > **Unofficial.** Built by students. Not made by, endorsed by or connected to ITB or Cognisia
 > (the company behind Edunex). It uses your own Edunex and SIX sign-in, so your account stays
@@ -31,15 +32,28 @@ you what needs you now:
 - **Courses:** modules, materials (Word, Excel, PowerPoint and PDF open in the app, and work
   offline), meetings and rooms.
 - **Rencana studi:** your KRS, UKT bills and ITB's academic deadlines.
-- **Alerts:** new Tasks, attendance opening, reminders you choose. On your computer, and on your
-  phone too if you want.
-
-| Tugas & Ujian | Presensi |
-| --- | --- |
-| ![Tugas & Ujian: exams in the midterm week and Tasks due next week, each with its course and deadline](docs/screenshots/tasks-light.png) | ![Presensi: today's classes and which can still be missed, a clash with which class to go to, and each course's absences as a short bar, grouped by what it asks](docs/screenshots/presence-light.png) |
+- **Alerts:** new Tasks, attendance opening, reminders you choose, on your phone and your
+  computer.
 
 It never marks attendance for you and never changes your KRS. Bahasa Indonesia and English,
 light and dark.
+
+### On your phone
+
+The same app for Android and iPhone, laid out for one hand: Beranda, Jadwal, Tugas, Kuliah and
+Profil along the bottom, the class on now with its **Isi Presensi** button on top, and widgets
+for your home screen.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phones-dark.png">
+  <img alt="Five phone screens: Beranda with the class on now, Jadwal for the week with a clash, Tugas with next week's exams, Kuliah with the absences each course has left, and Nilai with the IPK now and after this semester" src="docs/screenshots/phones-light.png">
+</picture>
+
+### On your computer
+
+| Tugas & Ujian | Presensi |
+| --- | --- |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/tasks-dark.png"><img alt="Tugas & Ujian: exams in the midterm week and Tasks due next week, each with its course and deadline" src="docs/screenshots/tasks-light.png"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/presence-dark.png"><img alt="Presensi: today's classes and which can still be missed, a clash with which class to go to, and each course's absences as a short bar, grouped by what it asks" src="docs/screenshots/presence-light.png"></picture> |
 
 ## Download
 
@@ -65,18 +79,19 @@ the [code signing policy](docs/code-signing.md).
 > **Alpha:** expect rough edges, and double-check anything important on Edunex or SIX itself.
 > Something broke? [Open an issue](https://github.com/pablonification/edunex-plus/issues).
 
-## Your data stays on your computer
+## Your data stays on your device
 
 - You sign in on ITB's real Microsoft page. Your password never reaches the app.
-- Your sign-in is locked in your system's keychain. What the app reads is saved only on your
-  computer.
+- Your sign-in is locked by your system's own keychain. What the app reads is saved only on your
+  phone or computer.
 - It talks only to Edunex, SIX, ITB's public pages, GitHub (to check for updates), ntfy if you
   turn on phone alerts, and the maintainer's report relay when a problem report goes: when you
   press **Kirim langsung**, or by itself if you said so when the app asked. A report has your
   name, NIM, contacts and links replaced and your grades and amounts made up first. The whole
   report stays private for the maintainer; the public GitHub issue gets only its summary.
   **Settings → Laporan masalah** stops it sending by itself. No analytics, no tracking.
-- **Settings → Keluar** removes everything it saved.
+- **Settings → Keluar & hapus data** signs you out and removes your courses, grades, plans and
+  notes from the device.
 
 Full details: [docs/privacy.md](docs/privacy.md).
 
@@ -88,6 +103,7 @@ You need Node.js 22.
 npm ci
 npm run dev     # the app, with live reload
 npm run demo    # the app on made-up data, no account needed
+npm run site    # the website, on this computer
 npm run check   # lint, types and tests: what every pull request must pass
 ```
 
@@ -109,6 +125,8 @@ student data** anywhere: use the demo. Security problems go through a
 | [API.md](API.md), [SIX.md](SIX.md) | How the app reads Edunex and SIX |
 | [docs/fix-bot.md](docs/fix-bot.md) | The bot that drafts a fix when the app can't read a page a Student reported |
 | [docs/design-system.md](docs/design-system.md) | The look |
+| [mobile/AGENTS.md](mobile/AGENTS.md), [mobile/IOS.md](mobile/IOS.md) | The phone app: how it's put together, and the iPhone build |
+| [site/README.md](site/README.md) | The website |
 | [docs/test-data.md](docs/test-data.md), [docs/scenarios.md](docs/scenarios.md) | How tests work |
 | [docs/platform-notifications.md](docs/platform-notifications.md) | Notifications on each system and the phone |
 | [docs/code-signing.md](docs/code-signing.md), [docs/research/](docs/research/) | How the installers are signed, and why browsers warn about them |
