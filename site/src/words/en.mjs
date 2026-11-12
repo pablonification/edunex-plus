@@ -28,8 +28,8 @@ export default {
   cta: {
     install: "Install on {device}",
     installGeneric: "Get it free",
-    others: "other devices",
-    free: "Free for Android, iPhone, Windows, Mac and Linux",
+    others: "Android, iPhone, Windows, Mac, Linux",
+    free: "Free",
     version: "Version {version}",
   },
 
@@ -46,12 +46,12 @@ export default {
       title: ["Edunex and SIX,", "finally in one place."],
       sub: "Your tasks, timetable, attendance and grades in one app. Free, made by ITB students, not an official campus app.",
       laptopAlt: "Home on a laptop: the class on now with its room, today's classes, and what changed",
-      phoneAlt: "Home on a phone: the class on now, the Isi Presensi button, the nearest deadline, and the SIX and Edunex services",
+      phoneAlt: "Schedule on a phone: this week's classes with their rooms, and two classes that clash",
     },
 
     what: {
       title: "One app that reads Edunex and SIX for you.",
-      body: "You usually go back and forth. Edunex for tasks and materials, SIX for your timetable, attendance and grades. Edunex Plus signs in with your own ITB account, reads both, and tells you what needs you today.",
+      body: "Sign in once with your ITB account. The app reads both and tells you what needs you today.",
       sourcesTitle: "What the app reads",
       sources: [
         { name: "Edunex", body: "Tasks, materials, exams and Presence" },
@@ -142,7 +142,7 @@ export default {
       yours: "your device",
       cards: {
         android: { time: "About 2 minutes", body: "Download one file on your phone, tap it, install." },
-        iphone: { time: "About 10 minutes", body: "Through a laptop and a cable, since it isn't on the App Store." },
+        iphone: { time: "About 10 minutes", body: "Through a laptop and a cable, repeated every 7 days." },
         windows: { time: "About 2 minutes", body: "Download, open, then click “Run anyway”." },
         mac: { time: "About 3 minutes", body: "Drag it to Applications, then paste one line in Terminal." },
         linux: { time: "About 2 minutes", body: "One command on Ubuntu and Debian, or an AppImage." },
@@ -156,21 +156,12 @@ export default {
       title: "What people ask",
       items: [
         {
-          q: "Is this ITB's official app?",
-          a: "No. Edunex Plus is made by ITB students. It isn't made by, endorsed by or connected to ITB or Cognisia, the company behind Edunex. It uses your own Edunex and SIX account, so your account stays your responsibility.",
+          q: "Who makes Edunex Plus?",
+          a: "ITB students. The code is open on GitHub under the MIT licence, so anyone can check it.",
         },
-        { q: "Is it free?", a: "Free, with no ads. The code is open on GitHub under the MIT licence, so anyone can check it." },
         {
           q: "How is it different from opening Edunex and SIX?",
           a: "The data is the same. Edunex Plus puts it together, works out how many classes you can still miss, and reminds you before a deadline. You can still open Edunex and SIX as usual.",
-        },
-        {
-          q: "Does it mark attendance for me?",
-          a: "No. The app tells you when attendance opens and takes you to the button. You press it.",
-        },
-        {
-          q: "Does it work on iPhone?",
-          a: "Yes, but through a laptop since it isn't on the App Store, and it has to be repeated every 7 days. The iPhone guide has the steps.",
         },
         {
           q: "What does “still an alpha” mean?",
@@ -192,18 +183,14 @@ export default {
     title: "How to install Edunex Plus on your phone and laptop",
     description: "Picture guides for installing Edunex Plus on Android, iPhone, Windows, Mac and Linux. Pick your device and follow the steps.",
     h1: "How to install Edunex Plus",
-    lead: "Pick your device. Each guide shows the screen you'll see and which button to press.",
     crumb: "How to install",
     before: {
       title: "Before you start",
-      items: [
-        "You need the ITB account you use for Edunex and SIX.",
-        "Your phone or laptop will warn you, because the app isn't registered with an app store yet. That's expected, and the guide shows how to get past it.",
-        "The app is still an alpha. For anything important, check Edunex or SIX too.",
-      ],
+      items: ["You need the ITB account you use for Edunex and SIX.", "The app is still an alpha. For anything important, check Edunex or SIX too."],
     },
     guide: {
-      notYet: "The newest release has no file for {device} yet. Open the release page to see what's there.",
+      notYet: "The newest release has no file for {device} yet.",
+      releasePage: "Open the release page",
       copy: "Copy",
       copied: "Copied",
       troubleTitle: "If something goes wrong",
@@ -301,7 +288,7 @@ export default {
             "On Windows, also install <strong>iTunes</strong> and <strong>iCloud</strong> from Apple's website, not the Microsoft Store versions, so Sideloadly can see your iPhone.",
           ],
           download: ["iphone"],
-          pic: "ipaAndSideloadly",
+          pic: null,
         },
         {
           title: "Plug the iPhone into the laptop",

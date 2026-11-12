@@ -61,14 +61,13 @@ export function render({ release = null, cards = false } = {}) {
       install: Object.fromEntries(
         DEVICES.map((device) => [device, { label: fill(words.cta.install, { device: words.devices[device] }), href: href(lang, `/install/${device}/`) }]),
       ),
-      words: { version: words.cta.version, others: words.cta.others, othersHref: href(lang, "/install/") },
     };
     for (const route of ROUTES) {
       files.set(`${href(lang, route.path).slice(1)}index.html`, route.render({ words, lang, assets, data }));
     }
     if (cards) files.set(`social-card-${lang}.html`, card({ words, assets }));
   }
-  files.set("404.html", notFound({ id, en, assets, data: { lang: "id", repo: REPO, release, files: FILES, install: {}, words: {} } }));
+  files.set("404.html", notFound({ id, en, assets, data: { lang: "id", repo: REPO, release, files: FILES, install: {} } }));
 
   const urls = ROUTES.map((route) => {
     const alternates = LANGS.map((lang) => `    <xhtml:link rel="alternate" hreflang="${lang}" href="${ORIGIN}${href(lang, route.path)}"/>`).join("\n");

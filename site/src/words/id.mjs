@@ -31,8 +31,8 @@ export default {
   cta: {
     install: "Pasang di {device}",
     installGeneric: "Pasang gratis",
-    others: "perangkat lain",
-    free: "Gratis untuk Android, iPhone, Windows, Mac, dan Linux",
+    others: "Android, iPhone, Windows, Mac, Linux",
+    free: "Gratis",
     version: "Versi {version}",
   },
 
@@ -49,15 +49,15 @@ export default {
       title: ["Edunex dan SIX,", "akhirnya di satu tempat."],
       sub: "Tugas, jadwal, presensi, dan nilaimu di satu aplikasi. Gratis, buatan mahasiswa ITB, bukan aplikasi resmi kampus.",
       laptopAlt: "Beranda di laptop: kuliah yang sedang berjalan dengan ruangannya, kuliah hari ini, dan yang berubah",
-      phoneAlt: "Beranda di HP: kuliah yang sedang berjalan, tombol Isi Presensi, tenggat terdekat, dan layanan SIX dan Edunex",
+      phoneAlt: "Jadwal di HP: kuliah minggu ini dengan ruangannya, dan dua kuliah yang bentrok",
     },
 
     what: {
       title: "Satu aplikasi yang membaca Edunex dan SIX untukmu.",
-      body: "Biasanya kamu bolak-balik. Edunex untuk tugas dan materi, SIX untuk jadwal, kehadiran, dan nilai. Edunex Plus masuk dengan akun ITB-mu sendiri, membaca keduanya, lalu memberi tahu apa yang perlu kamu urus hari ini.",
+      body: "Masuk sekali dengan akun ITB-mu. Aplikasi membaca keduanya, lalu memberi tahu apa yang perlu kamu urus hari ini.",
       sourcesTitle: "Yang dibaca aplikasi",
       sources: [
-        { name: "Edunex", body: "Tugas, materi, ujian, dan Presensi" },
+        { name: "Edunex", body: "Tugas, materi, ujian, dan presensi" },
         { name: "SIX", body: "Jadwal dan ruangan, kehadiran, nilai, KRS, dan UKT" },
         { name: "Kalender akademik", body: "Masa UTS dan UAS, jadwal KRS, hari libur" },
         { name: "Katalog mata kuliah", body: "Kurikulummu dan SKS yang tersisa" },
@@ -145,7 +145,7 @@ export default {
       yours: "perangkatmu",
       cards: {
         android: { time: "± 2 menit", body: "Unduh satu berkas di HP-mu, ketuk, lalu pasang." },
-        iphone: { time: "± 10 menit", body: "Lewat laptop dan kabel, karena belum ada di App Store." },
+        iphone: { time: "± 10 menit", body: "Lewat laptop dan kabel, diulang tiap 7 hari." },
         windows: { time: "± 2 menit", body: "Unduh, buka, lalu klik “Tetap jalankan”." },
         mac: { time: "± 3 menit", body: "Seret ke Applications, lalu tempel satu baris di Terminal." },
         linux: { time: "± 2 menit", body: "Satu perintah untuk Ubuntu dan Debian, atau AppImage." },
@@ -159,21 +159,12 @@ export default {
       title: "Yang sering ditanyakan",
       items: [
         {
-          q: "Apakah ini aplikasi resmi ITB?",
-          a: "Bukan. Edunex Plus dibuat mahasiswa ITB. Aplikasi ini tidak dibuat, didukung, atau terhubung dengan ITB maupun Cognisia, perusahaan di balik Edunex. Aplikasi memakai akun Edunex dan SIX-mu sendiri, jadi akunmu tetap tanggung jawabmu.",
+          q: "Siapa yang membuat Edunex Plus?",
+          a: "Mahasiswa ITB. Kodenya terbuka di GitHub dengan lisensi MIT, jadi siapa pun bisa memeriksanya.",
         },
-        { q: "Apakah gratis?", a: "Gratis, tanpa iklan. Kodenya terbuka di GitHub dengan lisensi MIT, jadi siapa pun bisa memeriksanya." },
         {
           q: "Apa bedanya dengan membuka Edunex dan SIX langsung?",
           a: "Datanya sama. Edunex Plus menggabungkannya, menghitung sisa jatah absenmu, dan mengingatkanmu sebelum tenggat. Edunex dan SIX tetap bisa kamu buka seperti biasa.",
-        },
-        {
-          q: "Apakah aplikasi ini mengisi presensi otomatis?",
-          a: "Tidak. Aplikasi memberi tahu saat presensi dibuka dan mengantarmu ke tombolnya. Yang menekan tetap kamu.",
-        },
-        {
-          q: "Bisa dipasang di iPhone?",
-          a: "Bisa, tapi lewat laptop karena belum ada di App Store, dan perlu diulang tiap 7 hari. Panduan iPhone menjelaskan langkahnya.",
         },
         {
           q: "“Masih alpha” itu maksudnya apa?",
@@ -187,7 +178,7 @@ export default {
     },
 
     closing: {
-      title: "Berhenti bolak-balik dua situs.",
+      title: "Berhenti bolak\u2011balik dua situs.",
     },
   },
 
@@ -195,18 +186,14 @@ export default {
     title: "Cara pasang Edunex Plus di HP dan laptop",
     description: "Panduan bergambar memasang Edunex Plus di Android, iPhone, Windows, Mac, dan Linux. Pilih perangkatmu dan ikuti langkahnya.",
     h1: "Cara pasang Edunex Plus",
-    lead: "Pilih perangkatmu. Tiap panduan menunjukkan layar yang akan kamu lihat dan tombol mana yang ditekan.",
     crumb: "Cara pasang",
     before: {
       title: "Sebelum mulai",
-      items: [
-        "Kamu butuh akun ITB yang biasa dipakai masuk Edunex dan SIX.",
-        "HP atau laptopmu akan memberi peringatan, karena aplikasinya belum terdaftar di toko aplikasi. Itu wajar, dan panduannya menunjukkan cara melewatinya.",
-        "Aplikasi ini masih alpha. Untuk hal penting, cek juga di Edunex atau SIX.",
-      ],
+      items: ["Kamu butuh akun ITB yang biasa dipakai masuk Edunex dan SIX.", "Aplikasi ini masih alpha. Untuk hal penting, cek juga di Edunex atau SIX."],
     },
     guide: {
-      notYet: "Berkas untuk {device} belum ada di rilis terbaru. Buka halaman rilis untuk melihat yang tersedia.",
+      notYet: "Berkas untuk {device} belum ada di rilis terbaru.",
+      releasePage: "Buka halaman rilis",
       copy: "Salin",
       copied: "Tersalin",
       troubleTitle: "Kalau ada kendala",
@@ -309,7 +296,7 @@ export default {
             "Di Windows, pasang juga <strong>iTunes</strong> dan <strong>iCloud</strong> dari situs Apple, bukan versi Microsoft Store, supaya Sideloadly bisa melihat iPhone-mu.",
           ],
           download: ["iphone"],
-          pic: "ipaAndSideloadly",
+          pic: null,
         },
         {
           title: "Sambungkan iPhone ke laptop",

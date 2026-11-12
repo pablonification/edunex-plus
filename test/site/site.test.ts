@@ -192,6 +192,12 @@ describe("what search engines and link previews read", () => {
 describe("the install guides", () => {
   const devices = ["android", "iphone", "windows", "mac", "linux"] as const;
 
+  it("rings the button to press on the app's first screen, the last step of every guide", () => {
+    for (const device of devices) {
+      expect(pageAt(site, `/install/${device}/`)(".steps > .step").last().find(".ring"), device).toHaveLength(1);
+    }
+  });
+
   it("has a guide for each device, each step with what to do and a picture, a line to copy or a file to fetch", () => {
     for (const lang of ["id", "en"] as const) {
       for (const device of devices) {
@@ -239,8 +245,10 @@ describe("the install guides", () => {
   it("says so when the newest release has no file for a device yet", () => {
     const release = releaseFrom(githubRelease(EVERY_FILE.filter((name) => !name.endsWith(".apk"))));
     const $ = pageAt(render({ release }), "/install/android/");
-    expect($(".file-note").text()).toBe("Berkas untuk Android belum ada di rilis terbaru. Buka halaman rilis untuk melihat yang tersedia.");
-    expect($('[data-file="android"]').attr("href")).toBe("https://github.com/pablonification/edunex-plus/releases/latest");
+    // No button that leads nowhere: the note, and where to look.
+    expect($(".file-note").text()).toBe("Berkas untuk Android belum ada di rilis terbaru. Buka halaman rilis");
+    expect($(".file-note a").attr("href")).toBe("https://github.com/pablonification/edunex-plus/releases/latest");
+    expect($('[data-file="android"]')).toHaveLength(0);
     expect(pageAt(render({ release }), "/install/mac/")(".file-note")).toHaveLength(0);
   });
 
@@ -270,6 +278,9 @@ describe("the website's look", () => {
     const $ = pageAt(site, "/");
     expect($(".hero .macbook img").attr("alt")).toBeTruthy();
     expect($(".hero .iphone .iphone-island")).toHaveLength(1);
+    // Dark pictures for a dark page.
+    expect($('.hero .macbook source[media="(prefers-color-scheme: dark)"]').attr("srcset")).toContain("desktop-home-dark");
+    expect($(".strip figure .iphone source")).toHaveLength(id.home.screens.items.length);
     // Each screen beside the question it answers.
     expect($(".strip figure")).toHaveLength(id.home.screens.items.length);
     expect($(".strip figure .iphone img")).toHaveLength(id.home.screens.items.length);

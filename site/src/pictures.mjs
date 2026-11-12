@@ -55,13 +55,6 @@ const PICTURES = {
       <div class="m-actions"><span class="m-btn m-btn-fill">${esc(p.android.ok)}</span></div>
     </div>`)}</div>`,
 
-  ipaAndSideloadly: () =>
-    `<div class="m-pair">
-      <div class="m-tile"><span class="m-ipa">IPA</span><b>Edunex-Plus-iphone.ipa</b></div>
-      <span class="m-plus">+</span>
-      <div class="m-tile"><span class="m-side">S</span><b>Sideloadly</b><small>sideloadly.io</small></div>
-    </div>`,
-
   iosTrust: (p) =>
     iphone(`${lines(4)}<div class="m-alert">
       <b>${esc(p.ios.trustTitle)}</b>
@@ -127,8 +120,8 @@ const PICTURES = {
       "Edunex Plus",
       `<div class="m-dmg">
       <img class="m-dmg-bg" src="/assets/mac-installer.png" width="1280" height="960" alt="" loading="lazy" decoding="async">
-      <span class="m-dmg-icon" style="--x:170;--y:150"><img src="/assets/icon-128.png" alt="" width="128" height="128"><span>Edunex Plus</span></span>
-      <span class="m-dmg-icon" style="--x:470;--y:150"><svg viewBox="0 0 52 52"><path d="M5 13a4 4 0 0 1 4-4h11l4 5h19a4 4 0 0 1 4 4v23a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z" fill="#3d9bf5"/><path d="M5 19h42v22a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z" fill="#62b2ff"/></svg><span>${esc(p.mac.applications)}</span></span>
+      <span class="m-dmg-icon" style="--x:170;--y:150">${target('<img src="/assets/icon-128.png" alt="" width="128" height="128">', 1)}<span>Edunex Plus</span></span>
+      <span class="m-dmg-icon" style="--x:470;--y:150">${target(`<svg viewBox="0 0 52 52"><path d="M5 13a4 4 0 0 1 4-4h11l4 5h19a4 4 0 0 1 4 4v23a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z" fill="#3d9bf5"/><path d="M5 19h42v22a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4z" fill="#62b2ff"/></svg>`, 2)}<span>${esc(p.mac.applications)}</span></span>
       <span class="m-dmg-icon" style="--x:118;--y:350"><span class="m-term-icon">&gt;_</span><span>${esc(p.mac.terminal)}</span></span>
     </div>`,
       "m-light m-dmg-win",

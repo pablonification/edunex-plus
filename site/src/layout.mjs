@@ -93,7 +93,7 @@ export function page({ words, lang, path, title, description, og, jsonLd = [], b
     <a class="brand" href="${href(lang)}" aria-label="${esc(words.nav.home)}"><img src="/assets/icon-128.png" alt="" width="28" height="28">Edunex Plus</a>
     <nav class="nav-links" aria-label="${esc(words.nav.menu)}">
       <a href="${href(lang)}#fitur">${esc(words.nav.features)}</a>
-      <a href="${href(lang, "/install/")}">${esc(words.nav.install)}</a>
+      <a href="${href(lang, "/install/")}"${path.startsWith("/install/") ? ' aria-current="page"' : ""}>${esc(words.nav.install)}</a>
       <a href="${href(lang)}#tanya">${esc(words.nav.faq)}</a>
       <a class="lang" href="${href(other, path)}" lang="${other}" hreflang="${other}" aria-label="${esc(words.nav.language)}: ${esc(words.switchTo)}">${esc(words.switchTo)}</a>
     </nav>

@@ -43,13 +43,7 @@ export function installHub({ words, lang, assets, data }) {
   const w = words.install;
   const body = `<section class="top">
   <div class="container">
-    ${crumbs(words, lang)}
     <h1>${esc(w.h1)}</h1>
-    <p class="lead">${esc(w.lead)}</p>
-  </div>
-</section>
-<section class="section">
-  <div class="container">
     ${deviceRows(words, lang)}
     ${whyWarned(words)}
   </div>
@@ -75,6 +69,10 @@ export function installHub({ words, lang, assets, data }) {
 
 /** The files a step fetches: this computer's as the button, the other as a link under it. */
 const downloads = (keys, words, release, device) => {
+  // The site knows the newest release and it has no such file (a release from before the phone app): no button
+  // that leads nowhere, only where to look.
+  if (release && !fileOf(release, keys[0]))
+    return `<p class="file-note">${esc(fill(words.install.guide.notYet, { device: words.devices[device] }))} <a class="link" href="${RELEASES}" target="_blank" rel="noopener noreferrer">${esc(words.install.guide.releasePage)}</a></p>`;
   const buttons = keys
     .map((key) => {
       const file = fileOf(release, key);
@@ -82,11 +80,8 @@ const downloads = (keys, words, release, device) => {
       return `<a class="btn" href="${file?.url ?? RELEASES}" data-file="${key}"${file ? " download" : ' target="_blank" rel="noopener noreferrer"'}>${icon("download", 18)}<span>${esc(words.downloads[key])}</span>${size}</a>`;
     })
     .join("");
-  // Said only when the site knows the newest release and it has no such file (a release from before the phone app).
-  const missing = release && !fileOf(release, keys[0]);
-  const note = missing ? `<p class="file-note">${esc(fill(words.install.guide.notYet, { device: words.devices[device] }))}</p>` : "";
   const version = release ? `<p class="file-version">${esc(fill(words.cta.version, { version: release.version }))}</p>` : "";
-  return `<div class="files">${buttons}</div>${note}${version}`;
+  return `<div class="files">${buttons}</div>${version}`;
 };
 
 const command = (step, words, release) => {
@@ -96,12 +91,12 @@ const command = (step, words, release) => {
   return `<div class="command"><code>${esc(line)}</code><button class="copy" type="button" hidden data-copy="${esc(line)}" data-copied="${esc(words.install.guide.copied)}">${icon("copy", 16)}<span aria-live="polite">${esc(words.install.guide.copy)}</span></button></div>`;
 };
 
-/** The app's first screen, on the device the guide is for. */
+/** The app's first screen, on the device the guide is for, with the button to press ringed. */
 const firstScreen = (device, w) => {
-  if (device === "iphone") return iphone("phone-welcome", w.signIn.phoneAlt, { onDark: true });
-  if (device === "android") return iphone("phone-welcome", w.signIn.phoneAlt, { onDark: true, android: true });
-  if (device === "mac") return macbook("desktop-welcome", w.signIn.computerAlt);
-  return appWindow("desktop-welcome", w.signIn.computerAlt);
+  if (device === "iphone") return iphone("phone-welcome", w.signIn.phoneAlt, { onDark: true, press: true });
+  if (device === "android") return iphone("phone-welcome", w.signIn.phoneAlt, { onDark: true, android: true, press: true });
+  if (device === "mac") return macbook("desktop-welcome", w.signIn.computerAlt, { press: true });
+  return appWindow("desktop-welcome", w.signIn.computerAlt, { press: true });
 };
 
 export function guide({ words, lang, device, assets, data }) {
@@ -141,7 +136,7 @@ export function guide({ words, lang, device, assets, data }) {
     ${crumbs(words, lang, words.devices[device])}
     <h1>${esc(g.h1)}</h1>
     <p class="lead">${esc(g.lead)}</p>
-    <p class="meta">${[g.time, ...g.needs].map(esc).join(" · ")}</p>
+    <ul class="needs"><li>${esc(g.time)}</li>${g.needs.map((need) => `<li>${esc(need)}</li>`).join("")}</ul>
     ${g.callout ? `<div class="heads-up"><h2>${esc(g.callout.title)}</h2><p>${esc(g.callout.body)}</p></div>` : ""}
   </div>
 </section>

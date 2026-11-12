@@ -18,6 +18,7 @@
 
 :root {
   --blue: #2f6feb;
+  --band: #2f6feb;
   --blue-deep: #2258c4;
   --link: #1d4fb8;
   --bg: #ffffff;
@@ -46,6 +47,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --link: #8fb2ff;
+    --band: #2152bd;
     --bg: #0e0f13;
     --ink: #f2f3f7;
     --body: #c3c7d2;
@@ -253,14 +255,15 @@ dd {
   font-weight: 500;
   text-decoration: none;
 }
-.nav-links a:hover {
+.nav-links a:hover,
+.nav-links a[aria-current] {
   color: var(--ink);
   text-decoration: underline;
   text-underline-offset: 6px;
 }
 /* Over the blue of the home page's top, until the page scrolls. */
 .nav-on-hero:not(.is-scrolled) {
-  background: var(--blue);
+  background: var(--band);
 }
 .nav-on-hero:not(.is-scrolled) .brand,
 .nav-on-hero:not(.is-scrolled) .nav-links a {
@@ -279,11 +282,32 @@ dd {
 }
 /* The frame's own sizes sit on its body: a size in cqw is measured against the container above an element. */
 .iphone-body {
+  position: relative;
   aspect-ratio: 9 / 19.5;
   padding: 3.2cqw;
   border: 0.6cqw solid var(--device-edge);
   border-radius: 16.5cqw;
   background: var(--device);
+}
+/* Its buttons: volume on the left, power on the right. */
+.iphone-body::before,
+.iphone-body::after {
+  content: "";
+  position: absolute;
+  width: 1cqw;
+  border-radius: 0.5cqw;
+  background: var(--device-edge);
+}
+.iphone-body::before {
+  top: 33cqw;
+  left: -1.4cqw;
+  height: 13cqw;
+  box-shadow: 0 17cqw 0 var(--device-edge);
+}
+.iphone-body::after {
+  top: 43cqw;
+  right: -1.4cqw;
+  height: 21cqw;
 }
 .iphone-screen {
   position: relative;
@@ -330,6 +354,37 @@ dd {
 .iphone-on-dark {
   color: #fff;
 }
+/* A picture with a dark twin: the clock and the home bar turn with it. */
+@media (prefers-color-scheme: dark) {
+  .iphone-follows {
+    color: #fff;
+  }
+  .iphone-follows .iphone-screen {
+    background: #161618;
+  }
+}
+/* The mark on the button to press, over a picture of the app's first screen (measured on the picture). */
+.shot {
+  position: relative;
+}
+.ring {
+  position: absolute;
+  border: 3px solid #f0452d;
+  border-radius: 999px;
+  outline: 2px solid #fff;
+}
+.ring-phone {
+  left: 4%;
+  top: 173cqw;
+  width: 92%;
+  height: 13cqw;
+}
+.ring-laptop {
+  left: 43%;
+  top: 82.6%;
+  width: 14%;
+  height: 7.4%;
+}
 /* An Android phone: the same glass, a camera dot instead of the island. */
 .iphone.is-android .iphone-island {
   width: 5cqw;
@@ -367,10 +422,10 @@ dd {
 }
 .macbook-base {
   position: relative;
-  height: 2.2cqw;
-  border-radius: 0.4cqw 0.4cqw 2.4cqw 2.4cqw;
+  height: 1.9cqw;
+  border-radius: 0.3cqw 0.3cqw 1.9cqw 1.9cqw / 0.3cqw 0.3cqw 1.9cqw 1.9cqw;
   background: var(--metal);
-  border-bottom: 0.5cqw solid var(--metal-edge);
+  border-bottom: 0.45cqw solid var(--metal-edge);
 }
 .macbook-base::before {
   content: "";
@@ -396,7 +451,7 @@ dd {
 /* The top of the home page */
 .hero {
   position: relative;
-  background: var(--blue);
+  background: var(--band);
   color: #fff;
   text-align: center;
 }
@@ -437,7 +492,8 @@ dd {
   font-size: var(--t-small);
 }
 .hero-meta a {
-  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 .hero-devices {
   position: relative;
@@ -526,6 +582,17 @@ dd {
   gap: clamp(32px, 7vw, 110px);
   align-items: center;
 }
+/* A section whose picture runs down to the line under it. */
+.section-flush {
+  padding-bottom: 0;
+}
+.section-flush .pair {
+  align-items: end;
+}
+.section-flush .pair > div:first-child {
+  align-self: center;
+  padding-bottom: clamp(40px, 6vw, 80px);
+}
 .pair h2 {
   margin-bottom: 20px;
 }
@@ -533,24 +600,28 @@ dd {
   width: clamp(230px, 24vw, 270px);
 }
 
-/* The lock screen with the app's alerts on it */
+/* The lock screen with the app's alerts on it: the phone's top half, cut where the alerts end. */
+.lock-view {
+  overflow: hidden;
+  height: clamp(380px, 40vw, 440px);
+}
 .lock {
-  display: flex;
-  flex-direction: column;
   height: 100%;
-  padding: 19cqw 4.5cqw 9cqw;
-  background: #0b1026;
+  padding: 21cqw 4.5cqw 0;
+  background: #16307a;
   color: #fff;
   text-align: center;
 }
 .lock-day {
-  font-size: 5.4cqw;
+  display: block;
+  font-size: 5.6cqw;
   font-weight: 500;
 }
 .lock-time {
-  margin-bottom: auto;
-  font: 700 24cqw / 1.1 var(--display);
-  letter-spacing: -0.03em;
+  display: block;
+  margin-bottom: 7cqw;
+  font: 600 25cqw / 1.05 var(--text);
+  letter-spacing: -0.02em;
 }
 .note {
   display: grid;
@@ -559,7 +630,7 @@ dd {
   margin-bottom: 2.4cqw;
   padding: 3.4cqw;
   border-radius: 6cqw;
-  background: #262b45;
+  background: #33488c;
   font-size: 3.7cqw;
   line-height: 1.35;
   text-align: left;
@@ -573,12 +644,12 @@ dd {
   color: #fff;
 }
 .note time {
-  color: #a9aec4;
+  color: #c3cbe6;
   font-size: 3.2cqw;
 }
 .note span {
   grid-column: 2 / -1;
-  color: #d5d8e6;
+  color: #e3e7f5;
 }
 
 /* The laptop, and what else is inside */
@@ -631,7 +702,7 @@ dd {
 }
 .row {
   display: grid;
-  grid-template-columns: 30px 9.5rem 1fr auto 20px;
+  grid-template-columns: 30px 13rem 1fr auto 20px;
   align-items: center;
   gap: 18px;
   padding-block: 20px;
@@ -656,10 +727,11 @@ dd {
   display: none;
 }
 .row-yours {
-  display: block;
+  margin-left: 6px;
   color: var(--link);
   font: 600 var(--t-small) var(--text);
   letter-spacing: 0;
+  white-space: nowrap;
 }
 .row-time {
   color: var(--muted);
@@ -719,7 +791,7 @@ details[open] > summary .icon {
 /* The last word */
 .closing {
   padding-block: clamp(56px, 8vw, 100px);
-  background: var(--blue);
+  background: var(--band);
   text-align: center;
 }
 .closing h2 {
@@ -785,10 +857,21 @@ details[open] > summary .icon {
 .crumbs [aria-current] {
   color: var(--ink);
 }
-.meta {
-  margin-top: 18px;
+/* What a guide takes: how long, then what to have at hand. */
+.needs {
+  margin-top: 20px;
   color: var(--ink);
   font-weight: 600;
+}
+.needs li + li {
+  font-weight: 400;
+}
+.needs li + li::before {
+  content: "\2013\00a0";
+  color: var(--muted);
+}
+.top .rows {
+  margin-top: 8px;
 }
 .heads-up {
   max-width: 68ch;
@@ -1480,48 +1563,6 @@ details[open] > summary .icon {
   padding-inline: 20px;
   border-radius: 8px;
 }
-.m-pair {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-.m-tile {
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-  width: 148px;
-  padding: 20px 12px;
-  border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 8px 24px -10px rgb(18 20 28 / 0.3);
-  text-align: center;
-  word-break: break-word;
-}
-.m-tile small {
-  color: #6a6f80;
-}
-.m-tile .m-ipa,
-.m-side {
-  width: 48px;
-  height: 56px;
-  font-size: 12px;
-}
-.m-side {
-  display: grid;
-  place-items: center;
-  height: 48px;
-  border-radius: 13px;
-  background: #1b1d26;
-  color: #7aa2ff;
-  font-size: 22px;
-  font-weight: 700;
-}
-.m-plus {
-  color: #6a6f80;
-  font-size: 26px;
-  font-weight: 500;
-}
 
 .m-flyout {
   display: grid;
@@ -1740,8 +1781,11 @@ details[open] > summary .icon {
   font-size: 2.3cqw;
   font-weight: 500;
 }
-.m-dmg-icon > img,
-.m-dmg-icon > svg,
+.m-dmg-icon .target {
+  border-radius: 3cqw;
+}
+.m-dmg-icon img,
+.m-dmg-icon svg,
 .m-term-icon {
   width: 12.5cqw;
   height: 12.5cqw;
@@ -1823,9 +1867,25 @@ details[open] > summary .icon {
     grid-template-columns: 2.6rem minmax(0, 1fr);
   }
   .step > .pic {
-    grid-column: 2;
-    justify-items: start;
+    grid-column: 1 / -1;
     margin-top: 28px;
+  }
+  .m-phone {
+    min-height: 0;
+  }
+  .m-phone .m-lines i:nth-child(n + 3) {
+    display: none;
+  }
+  .m-dialog {
+    margin-top: 12px;
+  }
+  .m-sheet {
+    margin-top: 12px;
+  }
+  .duo {
+    flex-wrap: nowrap;
+    gap: 10px;
+    zoom: 0.74;
   }
 }
 

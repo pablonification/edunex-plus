@@ -54,9 +54,8 @@ if (other) {
   });
 }
 
-// The newest release, asked from GitHub only when the site was built without it.
+// The newest release, from GitHub.
 async function latest() {
-  if (data.release) return data.release;
   // Site data can be blocked, and then even reading it throws: ask GitHub instead.
   try {
     const saved = sessionStorage.getItem("latest-release");
@@ -72,16 +71,11 @@ async function latest() {
   return release;
 }
 
+// A site built without the newest release asks GitHub for it, to fill in each file's address and name.
 const fileLinks = document.querySelectorAll("[data-file]");
-const metas = document.querySelectorAll("[data-install-meta]");
-if (fileLinks.length > 0 || metas.length > 0) {
+if (fileLinks.length > 0 && !data.release) {
   latest()
     .then((release) => {
-      for (const meta of metas) {
-        const others = Object.assign(document.createElement("a"), { href: data.words.othersHref, textContent: data.words.others });
-        meta.replaceChildren(`${data.words.version.replace("{version}", release.version)} · `, others);
-      }
-      if (data.release) return;
       for (const link of fileLinks) {
         const file = release.assets.find((asset) => new RegExp(data.files[link.dataset.file]).test(asset.name));
         if (!file) continue;
