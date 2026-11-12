@@ -1,18 +1,22 @@
 ## Project map
 
-Electron + TypeScript desktop app for ITB students (Edunex and SIX in one window). Human docs:
-`README.md`; setup, privacy rules and CI: `CONTRIBUTING.md`.
+Electron + TypeScript desktop app for ITB students (Edunex and SIX in one window), and its phone
+app. Human docs: `README.md`; setup, privacy rules, CI and releases: `CONTRIBUTING.md`.
 
 - `src/core`: pure code shared by both sides (models, the bridge contract, `strings/` for every
   word on screen in Indonesian and English, written with the `copywriting` skill).
 - `src/engine`: sign-in sessions, syncing, alerts (Node only, behind `Transport` and `Clock`).
 - `src/desktop`: Electron main and preload (windows, session vault, IPC, `app://`).
 - `src/app`: the window, React 19 + Tailwind v4; only reads what the engine publishes.
+- `mobile/`: the phone app (Android and iPhone; Expo), sharing `src/core`, `src/engine` and
+  `src/app`'s hooks; its own notes in `mobile/AGENTS.md`. Native builds run in GitHub Actions only.
+- `site/`: the public website (plain HTML, published by `pages.yml`).
 - `test/`: the real engine and screens against a pretend Edunex, SIX and ITB (`test/pretend`),
-  fed by scrubbed recordings (`test/fixtures`).
+  fed by scrubbed recordings (`test/fixtures`); the phone's in `test/mobile`.
 
 Commands: `npm run check` (lint, types, tests; must pass), `npx vitest run <file>`, `npm run
-format`, `npm run demo` (made-up data). The repository is public: never commit real student data
+format`, `npm run demo` (made-up data). Phone, in `mobile/`: `npm run typecheck` (must pass),
+`npm run start:demo` (on the demo dev-client APK from a Mobile run). The repository is public: never commit real student data
 (`test/kit/repo-privacy.test.ts` guards it). Background: `CONTEXT.md` (words), `docs/adr/`
 (decisions), `API.md` and `SIX.md` (how each system is read).
 

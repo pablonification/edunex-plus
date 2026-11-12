@@ -1,8 +1,9 @@
 # The phone app for a release: the Android APK and the iPhone .ipa students install (docs/install.md, "Android" and
 # "iPhone"). The real app, not a QA build: no read-only guard (EXPO_PUBLIC_R3_GUARD) and no demo.
 #
-# - Called by release.yml on a version tag: both files go on the draft release beside the desktop installers,
-#   as artifacts app-android and app-iphone (release.yml collects every app-*).
+# - Called by release.yml for a release (main got a new version, a version tag, or by hand with "release"): both files
+#   go on the draft release beside the desktop installers, as artifacts app-android and app-iphone (release.yml
+#   collects every app-*).
 # - By hand (Actions → Phone app for a release → Run workflow): builds both as a check, kept for a week on the run's page.
 #
 # The APK is signed with Edunex Plus's own key (the ANDROID_SIGNING_* secrets, mobile/plugins/release-signing.js;
