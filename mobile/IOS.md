@@ -55,7 +55,7 @@ then `npm run start:demo` and `EXPO_PUBLIC_DEMO=1 npx expo run:ios --device`. It
 | Edunex's pages | Get a stand-in service worker (`src/host/page-fixes.ts`): an app's web view has none, and Edunex's site stopped on its spinner without one. |
 | "Turn on notifications" button | Opens the app's page in iOS Settings. |
 | Typeface | Plus Jakarta Sans is in the iOS bundle too. |
-| Widgets | Their own, through Expo's `expo-widgets` (WidgetKit, SwiftUI): "Edunex Plus" and "Hari ini" on the Home Screen (small, medium, large) and the Lock Screen, fed by the same model as Android's (`qa/superapp-ios-widgets.md`). A Live Activity for the class on now. Never seen running yet. |
+| Widgets | Their own, through Expo's `expo-widgets` (WidgetKit, SwiftUI): "Edunex Plus" and "Hari ini" on the Home Screen (small, medium, large) and the Lock Screen, fed by the same model as Android's (`qa/superapp-ios-widgets.md`). A Live Activity for the class on now is built but off for now. |
 | Back gesture, navigation bar colour, 120 Hz plugin | Android-only, skipped on iOS (iOS does these itself). |
 | The first minute (`src/shell/first-minute/`) | Same code: the stage, the doors, the ring at each door's foot (a bordered view turning, no native part), the greeting, the curtain. Its haptics are the Taptic Engine's nearest (`ui/haptics.ts`: a medium tap per system in and as the lift starts, the selection tick as the doors meet the mark). The curtain is no longer rasterised while it lifts (the doors move on it), on either platform. The button dims under the finger (no ripple on iOS). |
 | Exact alarms | Android-only permission; iOS fires a booked notification on time anyway. |
@@ -101,18 +101,10 @@ step only worth doing if the one before it worked:
    clock) and "Hari ini": readable in iOS's tint, and a tap opens the app at the class.
 9. **Signed out.** Sign out of SIX in the app: "Hari ini" says what's wrong in the warning colour; signed out of
    everything, both say "Hubungkan Edunex atau SIX dulu".
-10. **The Live Activity.** Without waiting for a class: Pengaturan › Tentang › "Coba Aktivitas Langsung" ("Test
-    Live Activity", on an iPhone only) starts it now with a made-up class ("XX1234 Contoh Kuliah") that began 5
-    minutes ago, ends in 15, and has a Presence window closing in 10. The row's line says until when it runs
-    (or that Live Activities are off for the app in the iPhone's Settings). Lock the phone: the Lock Screen shows
-    the course, a bar moving through the class, and "Isi Presensi XX1234" with the time left counting down; the
-    Dynamic Island shows the code and the countdown, and the same three lines when held. It is the real one's
-    factory, layout and props (`widget-ios/live-preview.ts`, `host/widget-ios.ios.ts`'s `previewIosLive`), so
-    what it draws is what a class draws. Leaving the app doesn't end it (the widgets' update keeps a preview
-    until its end, `previewStep`); a real class starting meanwhile takes its place. After its end it stays,
-    greyed by iOS, until the app is opened or the background sync runs. A black box means the layout didn't
-    load in the extension, a red box is the layout's own error: screenshot either.
-    The real one: open the app during a class (the demo's morning has one): a Live Activity appears on
+10. **The Live Activity.** Off for now (`LIVE_ACTIVITY_ON` in `src/host/widget-ios.ios.ts`): it has never been
+    seen working on an iPhone. Its layout is still built into the widget extension, the app starts none, and one
+    left running by an earlier version is ended the next time the app runs. The iPhone's Settings still lists
+    "Live Activities" for the app (expo-widgets always declares it). Once it is turned back on: open the app during a class (the demo's morning has one): a Live Activity appears on
     the Lock Screen and in the Dynamic Island with the course, a bar through the class, and, while its Presence
     is open, "Isi Presensi …" with the time left counting down. It goes when the class is over and the app (or
     the background sync) runs. Check it can be turned off (Settings › Edunex Plus › Live Activities) and that
@@ -241,10 +233,8 @@ or Profil › the gear › Tentang › "Panduan aplikasi" on any build)
 - [ ] A tap opens the class (SIX's "Tandai Hadir" while it is open), a need opens its screen, a class opens its sheet on
       Jadwal.
 - [ ] Light and dark follow the app's choice, not only the phone's. Nothing is cut at the largest text size.
-- [ ] The Live Activity during a class (`widget-ios/live.tsx`): the course, a bar through the class, and "Isi Presensi"
+- [ ] (Off for now, skip.) The Live Activity during a class (`widget-ios/live.tsx`): the course, a bar through the class, and "Isi Presensi"
       with the time left while a Presence is open, on the Lock Screen and in the Dynamic Island; gone after the class.
-- [ ] Pengaturan › Tentang › "Coba Aktivitas Langsung" starts the same Live Activity with a made-up class for 15
-      minutes, and it is still there after the phone is locked.
 - [ ] Signed out of everything: both widgets say "Hubungkan Edunex atau SIX dulu".
 
 **Dark mode** (Settings › Display & Brightness, and the app's own Settings › Tampilan › Tema: they can differ)

@@ -7,18 +7,17 @@
 // writes a timeline, the document now and again at each moment it changes by itself (a class starts or ends, a
 // window closes, midnight), and the widget turns over on time with the app closed.
 //
-// The class on now also gets a Live Activity (../widget-ios/live.tsx): started while the app is open during a class
-// (iOS lets an app start one only from the foreground), kept up to date, and ended once the class is over. Settings'
-// "Coba Aktivitas Langsung" starts the same one with a made-up class (../widget-ios/live-preview.ts), kept until its
-// own end though no class is on.
+// The class on now can also get a Live Activity (../widget-ios/live.tsx): started while the app is open during a class
+// (iOS lets an app start one only from the foreground), kept up to date, and ended once the class is over. It is off
+// for now (LIVE_ACTIVITY_ON): never seen working on an iPhone yet. Its layout stays in the build, nothing starts it,
+// and one left running by an earlier version is ended.
 //
 // Metro takes this file on iOS only; ./widget-ios.ts is every other platform's (nothing to do).
 import { requireOptionalNativeModule } from "expo";
-import { File, Paths } from "expo-file-system";
 import { getLocales } from "expo-localization";
 import { AppState } from "react-native";
 import type { Snapshot } from "../../../src/core/snapshot";
-import { type Lang, translate } from "../../../src/core/strings";
+import { translate } from "../../../src/core/strings";
 import { hrefOf } from "../nav";
 import { perfDoing } from "../perf";
 import type { LiveSource } from "../widget/draw";
@@ -27,7 +26,6 @@ import { widgetModel } from "../widget/model";
 import { readSaved } from "../widget/saved";
 import { type IosWidgetDoc, iosWidgetDoc, setupDoc, storable } from "../widget-ios/doc";
 import { type LiveDoc, liveDoc } from "../widget-ios/live-doc";
-import { type LivePreview, type PreviewMark, parseMark, previewLiveDoc, previewProblem, previewStep } from "../widget-ios/live-preview";
 import { DEMO } from "./version";
 import type { updateIosWidgets as Contract } from "./widget-ios";
 
@@ -94,6 +92,9 @@ function liveFactory(): Factory | null {
   return factory;
 }
 
+/** Whether a class gets its Live Activity. Off for now (IOS.md, step 10): turn it on here once it draws on an iPhone. */
+const LIVE_ACTIVITY_ON: boolean = false;
+
 /** What was handed over last: the same timeline twice isn't asked for again (iOS counts the asks). */
 let last = "";
 
@@ -139,7 +140,7 @@ export const updateIosWidgets: typeof Contract = async (source?: LiveSource) => 
           doc: setupDoc(TITLE, translate(getLocales()[0]?.languageCode === "id" ? "id" : "en", "welcome.continueHint"), `${SCHEME}://`),
         },
       ];
-  if (saved && entries[0]) await updateLive(liveDoc(saved.snapshot, saved.now, entries[0].doc), offset);
+  if (saved && entries[0]) await updateLive(LIVE_ACTIVITY_ON ? liveDoc(saved.snapshot, saved.now, entries[0].doc) : null, offset);
   const key = JSON.stringify(entries.map((entry) => entry.doc)) + entries.map((entry) => entry.at - entries[0]!.at).join();
   if (key === last) return null;
   last = key;
@@ -159,67 +160,6 @@ export const updateIosWidgets: typeof Contract = async (source?: LiveSource) => 
 /** The Live Activity running for a class: `key` is "" for one found running when the app started. */
 let running: { key: string; json: string; activity: import("expo-widgets").LiveActivity<LiveDoc> } | null = null;
 
-/** The preview that was started (../widget-ios/live-preview.ts), on disk so it's known again after the app was closed. */
-const markFile = () => new File(Paths.document, "live-preview.json");
-let mark: PreviewMark | null | undefined;
-
-function readMark(): PreviewMark | null {
-  if (mark !== undefined) return mark;
-  try {
-    const file = markFile();
-    mark = parseMark(file.exists ? file.textSync() : null);
-  } catch {
-    mark = null;
-  }
-  return mark;
-}
-
-function writeMark(next: PreviewMark | null): void {
-  if (!next && !readMark()) return;
-  mark = next;
-  try {
-    const file = markFile();
-    if (next) file.writeSync(JSON.stringify(next));
-    else if (file.exists) file.delete();
-  } catch (error) {
-    // Kept in memory still: enough while the app isn't closed.
-    console.warn("[widget-ios] the preview's mark wasn't saved:", error);
-  }
-}
-
-/** An activity's id; null when iOS no longer knows it. */
-function idOf(activity: import("expo-widgets").LiveActivity<LiveDoc>): string | null {
-  try {
-    return activity.getId();
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Settings' "Coba Aktivitas Langsung": starts the class's Live Activity now with a made-up class, through the same
- * factory and layout as a real one. Called from a tap, so the app is in front, as iOS asks.
- */
-export async function previewIosLive(lang: Lang): Promise<LivePreview> {
-  const live = liveFactory();
-  if (!live) return { started: false, why: "failed" };
-  try {
-    // One activity at a time: whatever runs now goes (a real class's comes back at the next update, in this one's place).
-    for (const other of live.getInstances()) await other.end("immediate").catch(() => undefined);
-    running = null;
-    writeMark(null);
-    const props = previewLiveDoc(lang, Date.now(), `${SCHEME}://`);
-    const activity = live.start(props, props.url, new Date(props.endsAt));
-    running = { key: props.key, json: JSON.stringify(props), activity };
-    const id = idOf(activity);
-    if (id) writeMark({ id, endsAt: props.endsAt });
-    return { started: true, until: props.endsAt };
-  } catch (error) {
-    console.warn("[widget-ios] the Live Activity's preview:", error);
-    return { started: false, why: previewProblem(error) };
-  }
-}
-
 /** Starts, updates or ends the class's Live Activity so it matches `next` (null: no class on). */
 async function updateLive(next: LiveDoc | null, offset: number): Promise<void> {
   const live = liveFactory();
@@ -231,10 +171,6 @@ async function updateLive(next: LiveDoc | null, offset: number): Promise<void> {
       for (const other of rest) await other.end("immediate");
       if (first) running = { key: "", json: "", activity: first };
     }
-    // Settings' preview is kept until its own end, though no class is on; a class starting meanwhile takes it over.
-    const step = running ? previewStep(readMark(), idOf(running.activity), next !== null, Date.now()) : "usual";
-    if (step === "keep") return;
-    writeMark(null);
     if (!next) {
       await running?.activity.end("default");
       running = null;
@@ -248,7 +184,7 @@ async function updateLive(next: LiveDoc | null, offset: number): Promise<void> {
       presence: next.presence ? { ...next.presence, closesAt: next.presence.closesAt - offset } : null,
     };
     const json = JSON.stringify(props);
-    if (running && (running.key === props.key || running.key === "" || step === "handOver")) {
+    if (running && (running.key === props.key || running.key === "")) {
       if (running.json !== json) await running.activity.update(props, new Date(props.endsAt));
       running = { ...running, key: props.key, json };
       return;
