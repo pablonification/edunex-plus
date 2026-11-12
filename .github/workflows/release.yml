@@ -53,8 +53,10 @@ on:
 permissions:
   contents: read
 
+# One run per commit at a time. Each push to main queues on its own: GitHub keeps only the newest waiting
+# run of a group, so sharing one would let the pushes around a version's numbering drop its release run.
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 defaults:
