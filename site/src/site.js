@@ -1,5 +1,6 @@
 // The page works without this script. With it: the buttons name this visitor's device and lead to its
-// guide, the guide's download buttons put this computer's file first, and a line can be copied.
+// guide, the guide's download buttons put this computer's file first, a line can be copied, and the parts
+// of a page arrive as they are scrolled to.
 const data = JSON.parse(document.getElementById("site-data").textContent);
 const ua = navigator.userAgent;
 
@@ -118,3 +119,48 @@ const nav = document.getElementById("nav");
 const onScroll = () => nav.classList.toggle("is-scrolled", window.scrollY > 8);
 addEventListener("scroll", onScroll, { passive: true });
 onScroll();
+
+// The parts of a page arrive as they are scrolled to, once each (the look is site.css's, under "Motion").
+// Only the parts still below the screen when the page opens are held back, so nothing a visitor is already
+// reading goes away, and nothing is held back for a visitor whose device asks for less motion.
+const parts = document.querySelectorAll("[data-reveal]");
+// "each" brings a part's children in one after another: the screens, the rows, the alerts.
+const pieces = (part) => (part.dataset.reveal === "each" ? [...part.children] : [part]);
+const arrive = (part) => {
+  part.classList.add("is-in");
+  const held = pieces(part).filter((piece) => piece.classList.contains("reveal"));
+  for (const piece of held) piece.classList.add("is-in");
+  // Once they have arrived they are ordinary parts of the page again, with their own transitions.
+  setTimeout(() => {
+    for (const piece of held) {
+      piece.classList.remove("reveal");
+      if (piece !== part) piece.classList.remove("is-in");
+      piece.style.removeProperty("--i");
+    }
+  }, 2600);
+};
+if (matchMedia("(prefers-reduced-motion: reduce)").matches || !("IntersectionObserver" in window)) {
+  for (const part of parts) part.classList.add("is-in");
+} else {
+  const seen = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        seen.unobserve(entry.target);
+        arrive(entry.target);
+      }
+    },
+    { rootMargin: "0px 0px -8% 0px" },
+  );
+  for (const part of parts) {
+    if (part.getBoundingClientRect().top < innerHeight) {
+      part.classList.add("is-in");
+      continue;
+    }
+    pieces(part).forEach((piece, i) => {
+      piece.style.setProperty("--i", String(i));
+      piece.classList.add("reveal");
+    });
+    seen.observe(part);
+  }
+}

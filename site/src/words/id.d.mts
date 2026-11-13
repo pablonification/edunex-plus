@@ -6,7 +6,7 @@ interface Guide {
 
 /** The website's words in one language (the shape the tests read). */
 declare const words: {
-  home: { faq: { items: { q: string; a: string }[] }; screens: { items: { q: string; a: string; alt: string }[] } };
+  home: { hero: { title: string[] }; faq: { items: { q: string; a: string }[] }; screens: { items: { q: string; a: string; alt: string }[] } };
   install: { guide: { signIn: { title: string } } };
   guides: Record<"android" | "iphone" | "windows" | "mac" | "linux", Guide>;
 };

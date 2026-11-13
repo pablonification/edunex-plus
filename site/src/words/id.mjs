@@ -1,12 +1,11 @@
-// Every word on the website, in Indonesian (the default: the readers are ITB students). en.mjs has the
-// same keys in English. Written the way the app's own words are (.agents/skills/copywriting): kamu, everyday
+// Every word on the website, in Indonesian (under /id; most readers are ITB students). en.mjs has the
+// same keys in English, the default. Written the way the app's own words are (.agents/skills/copywriting): kamu, everyday
 // words, the shortest true sentence. A name on a system's own screen comes with its English in brackets,
 // since a phone or laptop may be set to either language.
 export default {
   code: "id",
   locale: "id_ID",
   name: "Indonesia",
-  switchTo: "English",
 
   nav: {
     home: "Beranda Edunex Plus",

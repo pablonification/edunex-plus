@@ -43,7 +43,7 @@ export const appWindow = (src, alt, options = {}) => `<div class="window">${scre
 /** The devices, one row each, leading to their picture guides. On the home page and the install page. */
 export const deviceRows = (words, lang) => {
   const w = words.home.install;
-  return `<div class="rows">${DEVICES.map(
+  return `<div class="rows" data-reveal="each">${DEVICES.map(
     (device) => `<a class="row" href="${href(lang, `/install/${device}/`)}" data-device="${device}">
     ${icon(device, 26)}
     <span class="row-name">${esc(words.devices[device])} <span class="row-yours" hidden>${esc(w.yours)}</span></span>
@@ -56,7 +56,7 @@ export const deviceRows = (words, lang) => {
 
 /** Why the phone or laptop warns: said once, under the devices, at the heading level the page is at there. */
 export const whyWarned = (words, level = 3) =>
-  `<div class="aside"><h${level}>${esc(words.home.install.warnTitle)}</h${level}><p>${esc(words.home.install.warnBody)}</p></div>`;
+  `<div class="aside" data-reveal><h${level}>${esc(words.home.install.warnTitle)}</h${level}><p>${esc(words.home.install.warnBody)}</p></div>`;
 
 // The screens shown beside their questions, in the order of the words' `screens.items`.
 const SCREENS = ["phone-home", "phone-tasks", "phone-courses", "phone-schedule", "phone-grades"];
@@ -81,27 +81,27 @@ export function home({ words, lang, assets, data }) {
 
   const what = `<section class="section">
   <div class="container what">
-    <div>
+    <div data-reveal>
       <h2>${esc(w.what.title)}</h2>
       <p class="lead">${esc(w.what.body)}</p>
     </div>
-    <div>
-      <p class="sources-title" id="dibaca">${esc(w.what.sourcesTitle)}</p>
-      <dl class="sources" aria-labelledby="dibaca">${w.what.sources.map((source) => `<div><dt>${esc(source.name)}</dt><dd>${esc(source.body)}</dd></div>`).join("")}</dl>
+    <div data-reveal>
+      <p class="sources-title" id="reads">${esc(w.what.sourcesTitle)}</p>
+      <dl class="sources" aria-labelledby="reads">${w.what.sources.map((source) => `<div><dt>${esc(source.name)}</dt><dd>${esc(source.body)}</dd></div>`).join("")}</dl>
     </div>
   </div>
 </section>`;
 
-  const screens = `<section class="section" id="fitur">
+  const screens = `<section class="section" id="features">
   <div class="container">
-    <h2>${esc(w.screens.title)}</h2>
-    <div class="strip">${w.screens.items
+    <h2 data-reveal>${esc(w.screens.title)}</h2>
+    <div class="strip" data-reveal="each">${w.screens.items
       .map((item, i) => `<figure><figcaption><h3>${esc(item.q)}</h3><p>${esc(item.a)}</p></figcaption>${iphone(SCREENS[i], item.alt, { dark: true })}</figure>`)
       .join("")}</div>
   </div>
 </section>`;
 
-  const lock = `<div class="lock"><span class="lock-day">${esc(w.alerts.day)}</span><span class="lock-time">12.00</span>${w.alerts.notes
+  const lock = `<div class="lock" data-reveal="each"><span class="lock-day">${esc(w.alerts.day)}</span><span class="lock-time">12.00</span>${w.alerts.notes
     .map(
       (note) =>
         `<div class="note"><img src="/assets/icon-128.png" alt="" width="128" height="128"><b>${esc(note.title)}</b><time>${esc(note.time)}</time><span>${esc(note.body)}</span></div>`,
@@ -109,7 +109,7 @@ export function home({ words, lang, assets, data }) {
     .join("")}</div>`;
   const alerts = `<section class="section section-flush">
   <div class="container pair">
-    <div>
+    <div data-reveal>
       <h2>${esc(w.alerts.title)}</h2>
       <p class="lead">${esc(w.alerts.body)}</p>
     </div>
@@ -119,43 +119,46 @@ export function home({ words, lang, assets, data }) {
 
   const laptop = `<section class="section">
   <div class="container">
-    <h2>${esc(w.laptop.title)}</h2>
-    <div class="laptop-view">${macbook("desktop-tasks", w.laptop.alt, { dark: true })}</div>
-    <div class="also">
-      <p class="sources-title" id="juga">${esc(w.laptop.alsoTitle)}</p>
-      <ul aria-labelledby="juga">${w.laptop.also.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
+    <h2 data-reveal>${esc(w.laptop.title)}</h2>
+    <div class="laptop-view" data-reveal="far">${macbook("desktop-tasks", w.laptop.alt, { dark: true })}</div>
+    <div class="also" data-reveal>
+      <p class="sources-title" id="also">${esc(w.laptop.alsoTitle)}</p>
+      <ul aria-labelledby="also">${w.laptop.also.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
     </div>
   </div>
 </section>`;
 
-  const privacy = `<section class="section" id="aman">
+  const privacy = `<section class="section" id="safe">
   <div class="container">
-    <h2>${esc(w.privacy.title)}</h2>
-    <div class="points">${w.privacy.points.map((point) => `<div><h3>${esc(point.title)}</h3><p>${esc(point.body)}</p></div>`).join("")}</div>
-    <p class="never">${esc(w.privacy.never)}</p>
+    <h2 data-reveal>${esc(w.privacy.title)}</h2>
+    <div class="points" data-reveal="each">${w.privacy.points.map((point) => `<div><h3>${esc(point.title)}</h3><p>${esc(point.body)}</p></div>`).join("")}</div>
+    <p class="never" data-reveal>${esc(w.privacy.never)}</p>
     <p><a class="link" href="${GITHUB}/blob/main/docs/privacy.md" target="_blank" rel="noopener noreferrer">${esc(w.privacy.link)}</a></p>
   </div>
 </section>`;
 
-  const install = `<section class="section" id="pasang">
+  const install = `<section class="section" id="install">
   <div class="container">
-    <h2>${esc(w.install.title)}</h2>
+    <h2 data-reveal>${esc(w.install.title)}</h2>
     ${deviceRows(words, lang)}
     ${whyWarned(words)}
   </div>
 </section>`;
 
-  const faq = `<section class="section" id="tanya">
+  const faq = `<section class="section" id="questions">
   <div class="container">
-    <h2>${esc(w.faq.title)}</h2>
-    <div class="faq">${w.faq.items.map((item) => `<details><summary>${esc(item.q)}${icon("chevron", 18)}</summary><p>${esc(item.a)}</p></details>`).join("")}</div>
+    <h2 data-reveal>${esc(w.faq.title)}</h2>
+    <div class="faq" data-reveal>${w.faq.items.map((item) => `<details><summary>${esc(item.q)}${icon("chevron", 18)}</summary><p>${esc(item.a)}</p></details>`).join("")}</div>
   </div>
 </section>`;
 
-  const closing = `<section class="closing">
-  <div class="container">
+  // The last word: the app's own icon, as it sits on a home screen, and the one thing to do.
+  const closing = `<section class="section closing">
+  <div class="container" data-reveal="each">
+    <img class="closing-icon" src="/assets/icon-312.png" alt="" width="104" height="104" loading="lazy">
     <h2>${esc(w.closing.title)}</h2>
-    <a class="btn btn-white" href="${href(lang, "/install/")}" data-install>${icon("download", 18)}<span data-install-label>${esc(words.cta.installGeneric)}</span></a>
+    <a class="btn" href="${href(lang, "/install/")}" data-install>${icon("download", 18)}<span data-install-label>${esc(words.cta.installGeneric)}</span></a>
+    <p class="closing-meta">${esc(words.cta.free)} · <a href="${href(lang, "/install/")}">${esc(words.cta.others)}</a></p>
   </div>
 </section>`;
 

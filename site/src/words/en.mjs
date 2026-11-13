@@ -1,9 +1,8 @@
-// Every word on the website, in English. id.mjs is the default and has the same keys.
+// Every word on the website, in English (the default, at the root). id.mjs has the same keys in Indonesian.
 export default {
   code: "en",
   locale: "en_US",
   name: "English",
-  switchTo: "Indonesia",
 
   nav: {
     home: "Edunex Plus home",

@@ -10,7 +10,7 @@ Windows, macOS and Linux.
 
 <sub>Pictures come from the demo's made-up student, never a real account.</sub>
 
-[Website](https://edunex-plus.arqilasp.com) · [Install with pictures](https://edunex-plus.arqilasp.com/en/install/) ·
+[Website](https://edunex-plus.arqilasp.com) · [Install with pictures](https://edunex-plus.arqilasp.com/install/) ·
 [Download](#download) · [Privacy](docs/privacy.md) · [Code signing policy](docs/code-signing.md) ·
 [Contributing](CONTRIBUTING.md)
 
