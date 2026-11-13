@@ -46,7 +46,7 @@ export function installHub({ words, lang, assets, data }) {
   </div>
 </section>
 <section class="section">
-  <div class="container">
+  <div class="container" data-reveal>
     <h2>${esc(w.before.title)}</h2>
     <ul class="plain-list">${w.before.items.map((line) => `<li>${esc(line)}</li>`).join("")}</ul>
   </div>
@@ -114,7 +114,7 @@ export function guide({ words, lang, device, assets, data }) {
       const alt = step.alt
         ? `<details class="alt"><summary>${esc(step.alt.title)}${icon("chevron", 16)}</summary><p>${step.alt.body}</p>${picture(step.alt.pic, words, step.alt.title)}</details>`
         : "";
-      return `<li class="step" id="langkah-${i + 1}">
+      return `<li class="step" id="step-${i + 1}" data-reveal>
       <span class="step-n" aria-hidden="true">${i + 1}</span>
       <div class="step-text">
         <h2>${esc(step.title)}</h2>
@@ -177,7 +177,7 @@ ${stepHtml}
         position: i + 1,
         name: step.title,
         text: step.body.map(strip).join(" "),
-        url: `${ORIGIN}${href(lang, path)}#langkah-${i + 1}`,
+        url: `${ORIGIN}${href(lang, path)}#step-${i + 1}`,
       })),
     },
   ];

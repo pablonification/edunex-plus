@@ -34,13 +34,15 @@ const EVERY_FILE = [
 ];
 
 const site = render();
-const pages = [...site].filter(([file]) => file.endsWith("index.html"));
+/** Where English used to live: those addresses only send a visitor on (the last test of the pages). */
+const isOldAddress = (file: string) => file.startsWith("en/");
+const pages = [...site].filter(([file]) => file.endsWith("index.html") && !isOldAddress(file));
 const pageAt = (files: Map<string, string>, address: string) => {
   const html = files.get(`${address.slice(1)}index.html`);
   if (!html) throw new Error(`No page at ${address}`);
   return load(html);
 };
-/** A page's address from its file: "en/install/index.html" is "/en/install/". */
+/** A page's address from its file: "id/install/index.html" is "/id/install/". */
 const addressOf = (file: string) => `/${file.replace(/index\.html$/, "")}`;
 /** Whether the site has something at `address`: a page, a built file, or a file in public/. */
 const exists = (address: string) => {
@@ -50,13 +52,26 @@ const exists = (address: string) => {
 };
 
 describe("the website's pages", () => {
-  it("has every page in Indonesian at the root and in English under /en", () => {
+  it("has every page in English at the root and in Indonesian under /id", () => {
     const addresses = pages.map(([file]) => addressOf(file)).sort();
-    const expected = ROUTES.flatMap((route) => [route.path, `/en${route.path}`]).sort();
+    const expected = ROUTES.flatMap((route) => [route.path, `/id${route.path}`]).sort();
     expect(addresses).toEqual(expected);
-    expect(LANGS).toEqual(["id", "en"]);
+    expect(LANGS).toEqual(["en", "id"]);
     expect(expected).toContain("/install/android/");
-    expect(expected).toContain("/en/install/iphone/");
+    expect(expected).toContain("/id/install/iphone/");
+    expect(pageAt(site, "/")("h1").text()).toBe(en.home.hero.title.join(" "));
+    expect(pageAt(site, "/id/")("h1").text()).toBe(id.home.hero.title.join(" "));
+  });
+
+  it("sends an address from when English lived under /en on to the page it is now", () => {
+    for (const route of ROUTES) {
+      const $ = load(site.get(`en${route.path}index.html`) ?? "");
+      expect($('meta[http-equiv="refresh"]').attr("content"), route.path).toBe(`0; url=${route.path}`);
+      expect($('link[rel="canonical"]').attr("href"), route.path).toBe(ORIGIN + route.path);
+      // A move, said one way: nothing here tells a search engine to drop the page it is being sent on from.
+      expect($('meta[name="robots"]'), route.path).toHaveLength(0);
+      expect($("script").text(), route.path).toContain(`location.replace("${route.path}" + location.search + location.hash)`);
+    }
   });
 
   it("links only to pages and files that exist, and to parts of a page that are there", () => {
@@ -116,7 +131,7 @@ describe("what search engines and link previews read", () => {
     for (const [file, html] of pages) {
       const $ = load(html);
       const address = addressOf(file);
-      const lang = address.startsWith("/en/") ? "en" : "id";
+      const lang = address.startsWith("/id/") ? "id" : "en";
       const title = $("title").text();
       const description = $('meta[name="description"]').attr("content") ?? "";
       expect($("html").attr("lang"), file).toBe(lang);
@@ -134,14 +149,26 @@ describe("what search engines and link previews read", () => {
 
   it("points each page at the same page in the other language", () => {
     for (const route of ROUTES) {
-      for (const address of [route.path, `/en${route.path}`]) {
+      for (const address of [route.path, `/id${route.path}`]) {
         const $ = pageAt(site, address);
-        expect($('link[hreflang="id"]').attr("href"), address).toBe(ORIGIN + route.path);
-        expect($('link[hreflang="en"]').attr("href"), address).toBe(`${ORIGIN}/en${route.path}`);
+        expect($('link[hreflang="en"]').attr("href"), address).toBe(ORIGIN + route.path);
+        expect($('link[hreflang="id"]').attr("href"), address).toBe(`${ORIGIN}/id${route.path}`);
+        // English is the one to show a visitor whose language isn't known.
         expect($('link[hreflang="x-default"]').attr("href"), address).toBe(ORIGIN + route.path);
-        // The visitor's own way across: the language link in the top bar.
-        const other = address.startsWith("/en/") ? route.path : `/en${route.path}`;
-        expect($(".nav .lang").attr("href"), address).toBe(other);
+        // The visitor's own way across: the switch in the top bar, which says both languages, marks the
+        // page's own and links only to the other.
+        const here = address.startsWith("/id/") ? "id" : "en";
+        const other = here === "id" ? route.path : `/id${route.path}`;
+        for (const place of [".nav", ".footer"]) {
+          expect($(`${place} .lang > *`), address).toHaveLength(2);
+          expect($(`${place} .lang a`).attr("href"), address).toBe(other);
+          expect($(`${place} .lang a`).attr("hreflang"), address).toBe(here === "id" ? "en" : "id");
+          expect($(`${place} .lang [aria-current]`).text(), address).toContain(here === "id" ? "Bahasa Indonesia" : "English");
+          // The letters on screen are in each side's name, nothing hidden from a screen reader.
+          expect($(`${place} .lang [aria-hidden]`), address).toHaveLength(0);
+        }
+        // Not one more page among the bar's links.
+        expect($(".nav-links .lang, .nav-links [hreflang]"), address).toHaveLength(0);
       }
     }
   });
@@ -170,12 +197,12 @@ describe("what search engines and link previews read", () => {
         .get();
     const home = things("/");
     expect(home.map((thing) => thing["@type"])).toEqual(["SoftwareApplication", "FAQPage", "WebSite"]);
-    expect(home[1].mainEntity).toHaveLength(id.home.faq.items.length);
+    expect(home[1].mainEntity).toHaveLength(en.home.faq.items.length);
     const android = things("/install/android/");
     expect(android.map((thing) => thing["@type"])).toEqual(["BreadcrumbList", "HowTo"]);
     // Every step of the guide, and signing in last.
-    expect(android[1].step).toHaveLength(id.guides.android.steps.length + 1);
-    expect(android[1].step.at(-1).name).toBe(id.install.guide.signIn.title);
+    expect(android[1].step).toHaveLength(en.guides.android.steps.length + 1);
+    expect(android[1].step.at(-1).name).toBe(en.install.guide.signIn.title);
   });
 
   it("lists every page in the sitemap, which robots.txt names", () => {
@@ -201,7 +228,7 @@ describe("the install guides", () => {
   it("has a guide for each device, each step with what to do and a picture, a line to copy or a file to fetch", () => {
     for (const lang of ["id", "en"] as const) {
       for (const device of devices) {
-        const address = `${lang === "id" ? "" : "/en"}/install/${device}/`;
+        const address = `${lang === "en" ? "" : "/id"}/install/${device}/`;
         const $ = pageAt(site, address);
         const steps = $(".steps > .step");
         expect(steps.length, address).toBeGreaterThanOrEqual(4);
@@ -235,16 +262,17 @@ describe("the install guides", () => {
     expect(file("/install/windows/", "win-arm")).toBe("Edunex-Plus-1.2.3-windows-arm64.zip");
     expect(file("/install/mac/", "mac-arm")).toBe("Edunex-Plus-1.2.3-arm64.dmg");
     expect(file("/install/mac/", "mac-intel")).toBe("Edunex-Plus-1.2.3-x64.dmg");
-    expect(file("/en/install/linux/", "linux-deb")).toBe("edunex-plus_1.2.3_amd64.deb");
-    expect(file("/en/install/linux/", "linux-appimage")).toBe("Edunex-Plus-1.2.3-x86_64.AppImage");
-    expect(pageAt(built, "/install/android/")(".file-version").text()).toBe("Versi 1.2.3");
+    expect(file("/id/install/linux/", "linux-deb")).toBe("edunex-plus_1.2.3_amd64.deb");
+    expect(file("/id/install/linux/", "linux-appimage")).toBe("Edunex-Plus-1.2.3-x86_64.AppImage");
+    expect(pageAt(built, "/id/install/android/")(".file-version").text()).toBe("Versi 1.2.3");
+    expect(pageAt(built, "/install/android/")(".file-version").text()).toBe("Version 1.2.3");
     // The line to paste names the real file.
-    expect(pageAt(built, "/en/install/linux/")(".command code").first().text()).toBe("sudo apt install ./edunex-plus_1.2.3_amd64.deb");
+    expect(pageAt(built, "/install/linux/")(".command code").first().text()).toBe("sudo apt install ./edunex-plus_1.2.3_amd64.deb");
   });
 
   it("says so when the newest release has no file for a device yet", () => {
     const release = releaseFrom(githubRelease(EVERY_FILE.filter((name) => !name.endsWith(".apk"))));
-    const $ = pageAt(render({ release }), "/install/android/");
+    const $ = pageAt(render({ release }), "/id/install/android/");
     // No button that leads nowhere: the note, and where to look.
     expect($(".file-note").text()).toBe("Berkas untuk Android belum ada di rilis terbaru. Buka halaman rilis");
     expect($(".file-note a").attr("href")).toBe("https://github.com/pablonification/edunex-plus/releases/latest");
@@ -272,6 +300,37 @@ describe("the website's look", () => {
       [/transition:\s*all/, "transition: all"],
     ].flatMap(([pattern, what]) => ((pattern as RegExp).test(css) ? [what] : []));
     expect(found).toEqual([]);
+  });
+
+  it("moves only as things arrive, only for a visitor who hasn't asked for less motion, and reads the same without it", () => {
+    // Everything that moves is under one roof, which a device asking for less motion never enters.
+    // Paper never enters it either: a printed guide has every step.
+    const [still, moving = ""] = css.split("@media screen and (prefers-reduced-motion: no-preference)");
+    expect(css).not.toMatch(/@media \(prefers-reduced-motion: no-preference\)/);
+    expect(still).not.toMatch(/\.reveal\b/);
+    expect(still).not.toMatch(/animation|@keyframes|transition|@view-transition/);
+    expect(moving).toMatch(/@keyframes rise\b/);
+    // A part that arrives on scroll is held back by the page's script alone (the `reveal` class), so a page
+    // whose script didn't run shows everything.
+    for (const [file, html] of pages) expect(html, file).not.toMatch(/class="[^"]*\breveal\b/);
+    const $ = pageAt(site, "/");
+    expect($("[data-reveal]").length).toBeGreaterThan(8);
+    // The top of the page is never held back: it is what a visitor sees first.
+    expect($(".hero [data-reveal], .nav [data-reveal]")).toHaveLength(0);
+    expect(fs.readFileSync(path.resolve("site/src/site.js"), "utf8")).toContain("prefers-reduced-motion: reduce");
+  });
+
+  it("ends on the app's icon and its one button, on the page's own colour, and names Ganesa Space by its mark", () => {
+    const $ = pageAt(site, "/");
+    expect($(".closing img").attr("src")).toBe("/assets/icon-312.png");
+    expect($(".closing a.btn")).toHaveLength(1);
+    expect(css).not.toMatch(/\.closing\s*\{[^}]*background/);
+    for (const [file, html] of pages) {
+      const maker = load(html)(".footer .maker");
+      expect(maker.attr("href"), file).toBe("https://ganesaspace.com");
+      expect(maker.find("img").attr("src"), file).toBe("/assets/ganesa-space.png");
+      expect(maker.text(), file).toBe("Ganesa Space");
+    }
   });
 
   it("shows the app in an iPhone and a MacBook, and puts no icon in a tinted square", () => {

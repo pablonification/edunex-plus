@@ -15,8 +15,26 @@ export const esc = (text) => String(text).replace(/[&<>"']/g, (c) => ({ "&": "&a
 /** A sentence with its `{name}` holes filled in. */
 export const fill = (text, values) => text.replace(/\{(\w+)\}/g, (_, key) => values[key] ?? "");
 
-/** A page's address in a language: Indonesian at the root, English under /en. */
-export const href = (lang, path = "/") => (lang === "id" ? path : `/en${path}`);
+/** A page's address in a language: English at the root, Indonesian under /id. */
+export const href = (lang, path = "/") => (lang === "en" ? path : `/id${path}`);
+
+// Each language by its own name, which is the same whichever language the page is in.
+const LANGUAGES = { en: "English", id: "Bahasa Indonesia" };
+
+/**
+ * The switch between the two languages: both said, the page's own marked, the other one a link to this same
+ * page. Short codes in the top bar, the full names in the footer.
+ */
+const languages = (lang, path, label, { full = false } = {}) =>
+  `<div class="lang${full ? " lang-full" : ""}" role="group" aria-label="${esc(label)}">${Object.entries(LANGUAGES)
+    .map(([code, name]) => {
+      // The letters on screen are part of the name, so asking a phone or laptop to "click ID" finds it.
+      const said = full ? esc(name) : `${code.toUpperCase()}<span class="sr">, ${esc(name)}</span>`;
+      return code === lang
+        ? `<span class="lang-on" aria-current="true">${said}</span>`
+        : `<a href="${href(code, path)}" lang="${code}" hreflang="${code}">${said}</a>`;
+    })
+    .join("")}</div>`;
 
 export const icon = (name, size = 20) => `<svg class="icon" width="${size}" height="${size}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 
@@ -45,7 +63,6 @@ const sprite = () =>
 /** The page as a whole document. `page` says what the head needs; `body` is everything inside <main>. */
 export function page({ words, lang, path, title, description, og, jsonLd = [], body, hero = false, noindex = false, assets, data }) {
   const url = ORIGIN + href(lang, path);
-  const other = lang === "id" ? "en" : "id";
   const image = `${ORIGIN}/assets/social-card-${lang}.jpg`;
   const head = [
     '<meta charset="utf-8">',
@@ -55,13 +72,13 @@ export function page({ words, lang, path, title, description, og, jsonLd = [], b
     '<meta name="color-scheme" content="light dark">',
     '<meta name="theme-color" content="#2f6feb">',
     noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${url}">`,
-    // The same page in the other language, for search engines. Indonesian is the one to show when unsure.
+    // The same page in the other language, for search engines. English is the one to show when unsure.
     ...(noindex
       ? []
       : [
-          `<link rel="alternate" hreflang="id" href="${ORIGIN}${href("id", path)}">`,
           `<link rel="alternate" hreflang="en" href="${ORIGIN}${href("en", path)}">`,
-          `<link rel="alternate" hreflang="x-default" href="${ORIGIN}${href("id", path)}">`,
+          `<link rel="alternate" hreflang="id" href="${ORIGIN}${href("id", path)}">`,
+          `<link rel="alternate" hreflang="x-default" href="${ORIGIN}${href("en", path)}">`,
         ]),
     // How the link looks when shared (WhatsApp, LINE, X, Discord).
     '<meta property="og:type" content="website">',
@@ -90,28 +107,30 @@ export function page({ words, lang, path, title, description, og, jsonLd = [], b
   ];
   const nav = `<header class="nav${hero ? " nav-on-hero" : ""}" id="nav">
   <div class="nav-inner">
-    <a class="brand" href="${href(lang)}" aria-label="${esc(words.nav.home)}"><img src="/assets/icon-128.png" alt="" width="28" height="28">Edunex Plus</a>
+    <a class="brand" href="${href(lang)}" aria-label="${esc(words.nav.home)}"><img src="/assets/icon-128.png" alt="" width="28" height="28"><span>Edunex Plus</span></a>
     <nav class="nav-links" aria-label="${esc(words.nav.menu)}">
-      <a href="${href(lang)}#fitur">${esc(words.nav.features)}</a>
+      <a href="${href(lang)}#features">${esc(words.nav.features)}</a>
       <a href="${href(lang, "/install/")}"${path === "/install/" ? ' aria-current="page"' : path.startsWith("/install/") ? ' aria-current="true"' : ""}>${esc(words.nav.install)}</a>
-      <a href="${href(lang)}#tanya">${esc(words.nav.faq)}</a>
-      <a class="lang" href="${href(other, path)}" lang="${other}" hreflang="${other}" aria-label="${esc(words.nav.language)}: ${esc(words.switchTo)}">${esc(words.switchTo)}</a>
+      <a href="${href(lang)}#questions">${esc(words.nav.faq)}</a>
     </nav>
+    ${languages(lang, path, words.nav.language)}
     <a class="btn btn-small" href="${href(lang, "/install/")}" data-install-link>${esc(words.nav.get)}</a>
   </div>
 </header>`;
   const links = words.footer.links;
   const footer = `<footer class="footer">
   <div class="container footer-inner">
+    <div class="footer-top">
     <nav class="footer-links" aria-label="Edunex Plus">
       <a href="${href(lang, "/install/")}">${esc(links.install)}</a>
       <a href="${GITHUB}/blob/main/docs/privacy.md" target="_blank" rel="noopener noreferrer">${esc(links.privacy)}</a>
       <a href="${GITHUB}/blob/main/docs/code-signing.md" target="_blank" rel="noopener noreferrer">${esc(links.signing)}</a>
       <a href="${GITHUB}/issues" target="_blank" rel="noopener noreferrer">${esc(links.report)}</a>
       <a href="${GITHUB}" target="_blank" rel="noopener noreferrer">${esc(links.github)}</a>
-      <a href="${href(other, path)}" lang="${other}" hreflang="${other}">${esc(words.switchTo)}</a>
     </nav>
-    <p>${esc(words.footer.made)} <a href="https://ganesaspace.com" target="_blank" rel="noopener noreferrer">Ganesa Space</a>.</p>
+    ${languages(lang, path, words.nav.language, { full: true })}
+    </div>
+    <p class="made">${esc(words.footer.made)} <a class="maker" href="https://ganesaspace.com" target="_blank" rel="noopener noreferrer"><img src="/assets/ganesa-space.png" alt="" width="32" height="32" loading="lazy">Ganesa Space</a></p>
     <p class="disclaimer">${esc(words.footer.disclaimer)}</p>
   </div>
 </footer>`;
@@ -122,9 +141,9 @@ ${head.map((line) => `  ${line}`).join("\n")}
 </head>
 <body>
 ${sprite()}
-<a class="skip" href="#isi">${esc(words.nav.skip)}</a>
+<a class="skip" href="#main">${esc(words.nav.skip)}</a>
 ${nav}
-<main id="isi">
+<main id="main">
 ${body}
 </main>
 ${footer}
@@ -140,11 +159,31 @@ export function notFound({ id, en, assets, data }) {
   const body = `<section class="not-found">
   <div class="container">
     <img src="/assets/icon-128.png" alt="" width="64" height="64">
-    <h1>${esc(id.notFound.h1)}</h1>
-    <p>${esc(id.notFound.body)}</p>
-    <a class="btn" href="/">${esc(id.notFound.home)}</a>
-    <p lang="en">${esc(en.notFound.h1)} <a class="link" href="/en/">${esc(en.notFound.home)}</a></p>
+    <h1>${esc(en.notFound.h1)}</h1>
+    <p>${esc(en.notFound.body)}</p>
+    <a class="btn" href="/">${esc(en.notFound.home)}</a>
+    <p lang="id">${esc(id.notFound.h1)} <a class="link" href="/id/">${esc(id.notFound.home)}</a></p>
   </div>
 </section>`;
-  return page({ words: id, lang: "id", path: "/", title: id.notFound.title, description: id.notFound.body, body, noindex: true, assets, data });
+  return page({ words: en, lang: "en", path: "/", title: en.notFound.title, description: en.notFound.body, body, noindex: true, assets, data });
 }
+
+/**
+ * Where a page used to be: English lived under /en while Indonesian had the root. A link from then lands on
+ * a page that sends it on to today's address, with whatever followed it (a "?" or a "#"), and tells search
+ * engines the page has moved: an immediate refresh is read as a move, so nothing here says "don't index".
+ */
+export const moved = (to) => `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Edunex Plus</title>
+  <link rel="canonical" href="${ORIGIN}${to}">
+  <script>location.replace("${to}" + location.search + location.hash)</script>
+  <meta http-equiv="refresh" content="0; url=${to}">
+</head>
+<body>
+  <p><a href="${to}">Edunex Plus</a></p>
+</body>
+</html>
+`;

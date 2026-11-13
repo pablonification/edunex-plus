@@ -65,4 +65,4 @@ http
     fs.createReadStream(served).pipe(response);
   })
   // This computer only: nobody else on the network needs it.
-  .listen(Number(values.port), "127.0.0.1", () => console.log(`The website is at http://localhost:${values.port}/ (English: /en/)`));
+  .listen(Number(values.port), "127.0.0.1", () => console.log(`The website is at http://localhost:${values.port}/ (Indonesian: /id/)`));

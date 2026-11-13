@@ -1,4 +1,4 @@
-// Builds the website (edunex-plus.arqilasp.com) into site/dist: every page in Indonesian and English from
+// Builds the website (edunex-plus.arqilasp.com) into site/dist: every page in English and Indonesian from
 // one set of templates (src/) and words (src/words/), plus the sitemap. No packages: plain Node.
 //
 //   node site/build.mjs [--out <folder>] [--release <release.json>] [--cards]
@@ -16,12 +16,13 @@ import { parseArgs } from "node:util";
 import { card } from "./src/card.mjs";
 import { home } from "./src/home.mjs";
 import { FILES, guide, installHub } from "./src/install.mjs";
-import { DEVICES, fill, href, notFound, ORIGIN, REPO } from "./src/layout.mjs";
+import { DEVICES, fill, href, moved, notFound, ORIGIN, REPO } from "./src/layout.mjs";
 import en from "./src/words/en.mjs";
 import id from "./src/words/id.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const WORDS = { id, en };
+// English first: it is the one at the root, and the one shown when a visitor's language isn't known.
+const WORDS = { en, id };
 export const LANGS = Object.keys(WORDS);
 
 /** Every page, by its address without the language: the same list in both languages. */
@@ -67,7 +68,9 @@ export function render({ release = null, cards = false } = {}) {
     }
     if (cards) files.set(`social-card-${lang}.html`, card({ words, assets }));
   }
-  files.set("404.html", notFound({ id, en, assets, data: { lang: "id", repo: REPO, release, files: FILES, install: {} } }));
+  files.set("404.html", notFound({ id, en, assets, data: { lang: "en", repo: REPO, release, files: FILES, install: {} } }));
+  // English used to live under /en: those addresses send their visitors on to where the pages are now.
+  for (const route of ROUTES) files.set(`en${route.path}index.html`, moved(route.path));
 
   const urls = ROUTES.map((route) => {
     const alternates = LANGS.map((lang) => `    <xhtml:link rel="alternate" hreflang="${lang}" href="${ORIGIN}${href(lang, route.path)}"/>`).join("\n");

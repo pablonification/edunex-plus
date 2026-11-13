@@ -4,7 +4,7 @@ export interface Release {
   assets: { name: string; url: string; size?: number }[];
 }
 
-/** The site's languages: Indonesian at the root, English under /en. */
+/** The site's languages: English at the root, Indonesian under /id. */
 export const LANGS: string[];
 /** Every page, by its address without the language. */
 export const ROUTES: { path: string }[];
