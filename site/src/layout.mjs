@@ -28,7 +28,8 @@ const LANGUAGES = { en: "English", id: "Bahasa Indonesia" };
 const languages = (lang, path, label, { full = false } = {}) =>
   `<div class="lang${full ? " lang-full" : ""}" role="group" aria-label="${esc(label)}">${Object.entries(LANGUAGES)
     .map(([code, name]) => {
-      const said = full ? esc(name) : `<span aria-hidden="true">${code.toUpperCase()}</span><span class="sr">${esc(name)}</span>`;
+      // The letters on screen are part of the name, so asking a phone or laptop to "click ID" finds it.
+      const said = full ? esc(name) : `${code.toUpperCase()}<span class="sr">, ${esc(name)}</span>`;
       return code === lang
         ? `<span class="lang-on" aria-current="true">${said}</span>`
         : `<a href="${href(code, path)}" lang="${code}" hreflang="${code}">${said}</a>`;
@@ -169,15 +170,16 @@ export function notFound({ id, en, assets, data }) {
 
 /**
  * Where a page used to be: English lived under /en while Indonesian had the root. A link from then lands on
- * a page that sends it on to today's address, and tells search engines the page has moved.
+ * a page that sends it on to today's address, with whatever followed it (a "?" or a "#"), and tells search
+ * engines the page has moved: an immediate refresh is read as a move, so nothing here says "don't index".
  */
 export const moved = (to) => `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Edunex Plus</title>
-  <meta name="robots" content="noindex">
   <link rel="canonical" href="${ORIGIN}${to}">
+  <script>location.replace("${to}" + location.search + location.hash)</script>
   <meta http-equiv="refresh" content="0; url=${to}">
 </head>
 <body>

@@ -177,7 +177,7 @@ export function home({ words, lang, assets, data }) {
       downloadUrl: RELEASES,
       installUrl: ORIGIN + href(lang, "/install/"),
       softwareVersion: data.release?.version,
-      inLanguage: ["id", "en"],
+      inLanguage: ["en", "id"],
       isAccessibleForFree: true,
       license: "https://opensource.org/licenses/MIT",
       offers: { "@type": "Offer", price: "0", priceCurrency: "IDR" },
@@ -188,7 +188,7 @@ export function home({ words, lang, assets, data }) {
       "@type": "FAQPage",
       mainEntity: w.faq.items.map((item) => ({ "@type": "Question", name: item.q, acceptedAnswer: { "@type": "Answer", text: item.a } })),
     },
-    { "@context": "https://schema.org", "@type": "WebSite", name: "Edunex Plus", url: `${ORIGIN}/`, inLanguage: ["id", "en"] },
+    { "@context": "https://schema.org", "@type": "WebSite", name: "Edunex Plus", url: `${ORIGIN}/`, inLanguage: ["en", "id"] },
   ];
 
   return page({

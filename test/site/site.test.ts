@@ -68,7 +68,9 @@ describe("the website's pages", () => {
       const $ = load(site.get(`en${route.path}index.html`) ?? "");
       expect($('meta[http-equiv="refresh"]').attr("content"), route.path).toBe(`0; url=${route.path}`);
       expect($('link[rel="canonical"]').attr("href"), route.path).toBe(ORIGIN + route.path);
-      expect($('meta[name="robots"]').attr("content"), route.path).toBe("noindex");
+      // A move, said one way: nothing here tells a search engine to drop the page it is being sent on from.
+      expect($('meta[name="robots"]'), route.path).toHaveLength(0);
+      expect($("script").text(), route.path).toContain(`location.replace("${route.path}" + location.search + location.hash)`);
     }
   });
 
@@ -162,6 +164,8 @@ describe("what search engines and link previews read", () => {
           expect($(`${place} .lang a`).attr("href"), address).toBe(other);
           expect($(`${place} .lang a`).attr("hreflang"), address).toBe(here === "id" ? "en" : "id");
           expect($(`${place} .lang [aria-current]`).text(), address).toContain(here === "id" ? "Bahasa Indonesia" : "English");
+          // The letters on screen are in each side's name, nothing hidden from a screen reader.
+          expect($(`${place} .lang [aria-hidden]`), address).toHaveLength(0);
         }
         // Not one more page among the bar's links.
         expect($(".nav-links .lang, .nav-links [hreflang]"), address).toHaveLength(0);
@@ -300,7 +304,10 @@ describe("the website's look", () => {
 
   it("moves only as things arrive, only for a visitor who hasn't asked for less motion, and reads the same without it", () => {
     // Everything that moves is under one roof, which a device asking for less motion never enters.
-    const [still, moving = ""] = css.split("@media (prefers-reduced-motion: no-preference)");
+    // Paper never enters it either: a printed guide has every step.
+    const [still, moving = ""] = css.split("@media screen and (prefers-reduced-motion: no-preference)");
+    expect(css).not.toMatch(/@media \(prefers-reduced-motion: no-preference\)/);
+    expect(still).not.toMatch(/\.reveal\b/);
     expect(still).not.toMatch(/animation|@keyframes|transition|@view-transition/);
     expect(moving).toMatch(/@keyframes rise\b/);
     // A part that arrives on scroll is held back by the page's script alone (the `reveal` class), so a page

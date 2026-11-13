@@ -303,18 +303,19 @@ dd {
   background: var(--line);
   color: var(--ink);
 }
+/* On the blue: white words (4.5 to 1 on the blue itself), the page's own on a darker cell. */
 .nav-on-hero:not(.is-scrolled) .lang {
-  border-color: rgb(255 255 255 / 0.36);
+  border-color: rgb(255 255 255 / 0.5);
 }
 .nav-on-hero:not(.is-scrolled) .lang > * {
-  color: rgb(255 255 255 / 0.82);
+  color: #fff;
 }
 .nav-on-hero:not(.is-scrolled) .lang a:hover {
-  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .nav-on-hero:not(.is-scrolled) .lang .lang-on {
-  background: rgb(255 255 255 / 0.2);
-  color: #fff;
+  background: rgb(0 0 0 / 0.24);
 }
 /* Over the blue of the home page's top, until the page scrolls. */
 .nav-on-hero:not(.is-scrolled) {
@@ -2078,8 +2079,8 @@ details[open] > summary .icon {
 /* Motion. Things move once, as they arrive: the top of a page when it opens, each part as it is scrolled to
    (site.js marks those still below the screen), the alerts landing on the lock screen one by one, and a pulse
    on the button to press. Only position and opacity move. Nothing loops, and nothing moves for a visitor
-   whose device asks for less motion. */
-@media (prefers-reduced-motion: no-preference) {
+   whose device asks for less motion, or on paper: a printed guide has every step. */
+@media screen and (prefers-reduced-motion: no-preference) {
   :root {
     --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
   }
@@ -2239,12 +2240,5 @@ details[open] > summary .icon {
     .faq details[open]::details-content {
       block-size: auto;
     }
-  }
-}
-
-@media print {
-  .reveal {
-    opacity: 1;
-    transform: none;
   }
 }

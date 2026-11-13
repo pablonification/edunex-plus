@@ -114,6 +114,12 @@ for (const copy of document.querySelectorAll("[data-copy]")) {
   });
 }
 
+// A link to a part of a page from when the parts had Indonesian names (#tanya, #langkah-3) still opens there.
+const renamed = { fitur: "features", tanya: "questions", pasang: "install", aman: "safe" };
+const part = location.hash.slice(1);
+const today = renamed[part] ?? part.replace(/^langkah-(\d+)$/, "step-$1");
+if (today !== part && document.getElementById(today)) location.replace(`#${today}`);
+
 // The bar at the top takes a background once the page has scrolled under it.
 const nav = document.getElementById("nav");
 const onScroll = () => nav.classList.toggle("is-scrolled", window.scrollY > 8);
