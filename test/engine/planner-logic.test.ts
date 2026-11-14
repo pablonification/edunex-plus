@@ -517,7 +517,25 @@ describe("this semester's what-ifs, only in the plan", () => {
     // The starting plan takes it again, as a retake: its SKS are in SIX's count already, so the total doesn't grow.
     expect(statusIn(defaultPlan(dFails))).toBe("planned");
     expect(sksModel(dFails, defaultPlan(dFails)).total).toBe(sksModel(dPasses, defaultPlan(dPasses)).total);
-    expect(livePlan(defaultPlan(dFails), dFails).terms.flatMap((t) => t.courses).find((c) => c.code === "II2100")?.retake).toBe(true);
+    expect(
+      livePlan(defaultPlan(dFails), dFails)
+        .terms.flatMap((t) => t.courses)
+        .find((c) => c.code === "II2100")?.retake,
+    ).toBe(true);
+  });
+
+  it("an elective with a D the program doesn't pass leaves the electives, and planning it again puts it back", () => {
+    const transcript = structuredClone(data.transcript);
+    transcript.terms.flatMap((t) => t.courses).find((c) => c.code === "FI1201")!.grade = "D";
+    const progress = structuredClone(data.progress);
+    progress.stages.flatMap((st) => st.semesters.flatMap((sem) => sem.courses)).find((c) => c.code === "FI1201")!.grade = "D";
+    const dFails = studentRecord({ ...data, transcript, progress, term: "2026-1", dFails: true });
+    const before = sksModel(dFails, plan({}));
+    const fi = courseInfo(dFails, "FI1201");
+    const after = sksModel(dFails, plan({ "2027-1": [course("FI1201", "B")] }));
+    expect(after.electives.have).toBe(before.electives.have + fi.sks);
+    // Its SKS are in SIX's count already.
+    expect(after.total).toBe(before.total);
   });
 
   /** SIX's record with a course retaken this term (and, for a failed one, SIX's progress showing the E). */

@@ -311,7 +311,8 @@ export function studentRecord(input: RecordInput): StudentRecord {
     thisTerm,
     thisTermDropped: [],
     thisTermAdded: [],
-    passedSks: progress?.sksPassed ?? [...graded.values()].filter((g) => passedGrade(g.grade, dFails)).reduce((sum, g) => sum + g.sks, 0),
+    // Without SIX's figure, what SIX would count: a D too, as a retake of it adds none (livePlan, newSks).
+    passedSks: progress?.sksPassed ?? [...graded.values()].filter((g) => passedGrade(g.grade, false)).reduce((sum, g) => sum + g.sks, 0),
     inProgressSks: newSks(thisTerm, graded),
     graded,
     exempt,
@@ -493,7 +494,9 @@ export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecor
   const isRequired = (code: string) => slotOf(code) !== undefined || record.requiredLeft.some((r) => r.code === code);
   const sum = (list: { sks: number }[]) => list.reduce((total, c) => total + c.sks, 0);
   const electiveInProgress =
-    record.electiveInProgress - sum(dropped.filter((c) => sixNow.has(c.code))) + sum(added.filter((c) => !isRequired(c.code) && !passedGrade(record.graded.get(c.code)?.grade ?? null, record.dFails)));
+    record.electiveInProgress -
+    sum(dropped.filter((c) => sixNow.has(c.code))) +
+    sum(added.filter((c) => !isRequired(c.code) && !passedGrade(record.graded.get(c.code)?.grade ?? null, record.dFails)));
 
   const courses = new Map(record.courses);
   for (const c of added) if (!courses.has(c.code)) courses.set(c.code, { code: c.code, name: c.name, sks: c.sks, owner: null });
@@ -977,14 +980,16 @@ export function planMinor(plan: StudyPlan, minor: MinorOption): StudyPlan {
 
 /**
  * Courses of a specialization or minor planned for later that only it asks
- * for: not required, not a retake, not in the package the plan still follows
+ * for: not required, not a retake the Student planned, not in the package the plan still follows
  * (`keep`). What "not continuing, and take its courses out" removes.
  */
 export function onlyFor(record: StudentRecord, plan: StudyPlan, codes: readonly string[], keep: readonly string[] = []): PlannedCourse[] {
   const required = (code: string) => record.requiredLeft.some((c) => c.code === code) || [...record.required.keys()].some((slot) => fillsSlot(slot, code));
+  // A D taken again is a retake only in the plan every figure reads (livePlan): the package planned it, so it goes with it.
+  const retakes = new Set(plan.terms.flatMap((t) => t.courses.filter((c) => c.retake).map((c) => c.code)));
   return livePlan(plan, record)
     .terms.flatMap((t) => t.courses)
-    .filter((c) => codes.includes(c.code) && !c.retake && !required(c.code) && !keep.includes(c.code));
+    .filter((c) => codes.includes(c.code) && !retakes.has(c.code) && !required(c.code) && !keep.includes(c.code));
 }
 
 /** Not continuing a registered specialization or minor, kept through a reset; with `drop`, those courses leave the plan too (a retake stays). */
@@ -1137,7 +1142,9 @@ export function sksModel(record: StudentRecord, rawPlan: StudyPlan): SksModel {
   const byProgram = sum(record.byProgram.filter((c) => !planned.has(c.code) && !record.thisTerm.some((t) => t.code === c.code)));
   const total = record.passedSks + record.inProgressSks + plannedSks + byProgram;
   const left = new Set(record.requiredLeft.map((c) => c.code));
-  const electivePlanned = sum(fresh.filter((c) => !left.has(c.code) && !record.required.has(c.code)));
+  // A D taken again adds no SKS to the total (SIX counts it already), but does to the electives, which don't count the D.
+  const again = plan.terms.flatMap((t) => t.courses.filter((c) => c.retake && record.dFails && record.graded.get(c.code)?.grade === "D"));
+  const electivePlanned = sum([...fresh, ...again].filter((c) => !left.has(c.code) && !record.required.has(c.code)));
   const electiveHave = record.electiveHave + electivePlanned;
   const unplanned = record.requiredLeft.filter((c) => !planned.has(c.code));
   const need = record.electiveNeed ?? 0;
