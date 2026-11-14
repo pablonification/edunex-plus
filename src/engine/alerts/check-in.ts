@@ -83,7 +83,7 @@ export const sixClassStart: Detector = {
       return where === "six" || where === "both";
     };
     return schedule
-      .filter((session) => !isExamActivity(session.activity) && !handIn.has(session.id))
+      .filter((session) => !session.noMeeting && !isExamActivity(session.activity) && !handIn.has(session.id))
       .filter((session) => (checks[session.id]?.state ?? "waiting") === "waiting" && countsInSix(session.courseCode))
       .map(
         (session): PlannedAlert => ({

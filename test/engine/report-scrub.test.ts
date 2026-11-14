@@ -12,7 +12,7 @@ import type { DatasetName, DatasetValue, ProblemReport, SixStudent } from "../..
 import { isEngineError } from "../../src/engine/errors";
 import type { Kept } from "../../src/engine/report/kept-pages";
 import { buildReport } from "../../src/engine/report/report";
-import { Replacements, scrubEdunexFields, scrubRecordText, scrubSixRecords } from "../../src/engine/report/scrub";
+import { Replacements, Shapes, scrubEdunexFields, scrubPatterns, scrubRecordText, scrubSixRecords } from "../../src/engine/report/scrub";
 import { LoginMe } from "../../src/engine/sources/edunex/schemas";
 import { readBills } from "../../src/engine/sources/six/readers/bills";
 import { readKrs } from "../../src/engine/sources/six/readers/krs";
@@ -245,6 +245,22 @@ describe("SIX's role menu", () => {
   it("left in a report, the privacy rules find it, so the relay refuses it", () => {
     expect(personalHits("/home?context=calonmhs:25120345")).toEqual([expect.stringContaining("role number")]);
     expect(personalHits("/home?context=mahasiswa:18223901")).toEqual([]);
+  });
+});
+
+// #363: SIX's timetable links the Student's calendar subscription, whose key reads their timetable for anyone.
+describe("SIX's calendar subscription link", () => {
+  const key = "0123abcd".repeat(8);
+  const link = `<a href="https://six.itb.ac.id/pub/calm/id/2021000001/2026/1/${key}/calendar.ics">`;
+
+  it("loses its key in a report, and the privacy rules find one left in", () => {
+    const scrubbed = scrubPatterns(link, new Shapes());
+    expect(scrubbed).toBe('<a href="https://six.itb.ac.id/pub/calm/id/2021000001/2026/1/fixture/calendar.ics">');
+    expect(personalHits(scrubbed)).toEqual([]);
+    expect(personalHits(link)).toEqual([expect.stringContaining("calendar link")]);
+    // As a report's JSON writes it, "/" as "\/".
+    expect(personalHits(link.replaceAll("/", "\\/"))).toEqual([expect.stringContaining("calendar link")]);
+    expect(scrubPatterns(link.replaceAll("/", "\\/"), new Shapes())).not.toContain(key);
   });
 });
 

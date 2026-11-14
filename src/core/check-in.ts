@@ -12,5 +12,5 @@ export const CHECK_IN_LATE = 10 * MINUTE;
 export const CHECK_IN_EVERY = 2 * MINUTE;
 
 /** While the app reads the class's popup for its button. */
-export const checkingIn = (session: Pick<ClassSession, "start" | "end">, now: number) =>
-  session.start - CHECK_IN_EARLY <= now && now <= session.end + CHECK_IN_LATE;
+export const checkingIn = (session: Pick<ClassSession, "start" | "end" | "noMeeting">, now: number) =>
+  !session.noMeeting && session.start - CHECK_IN_EARLY <= now && now <= session.end + CHECK_IN_LATE;

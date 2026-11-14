@@ -32,7 +32,7 @@ export type SixCourse = z.infer<typeof SixCourse>;
 
 /** One class meeting on SIX's timetable: the official time and room. */
 export const ClassSession = z.object({
-  /** SIX's meeting id. */
+  /** SIX's meeting id; the app's own ("nolink:OS2002:<start>") for a class SIX shows without a link (`noMeeting`). */
   id: z.string(),
   courseCode: z.string(),
   courseName: z.string(),
@@ -42,6 +42,11 @@ export const ClassSession = z.object({
   /** "Kuliah", "Praktikum", "Tutorial", "UTS", "UAS", … as SIX writes it. */
   activity: z.string(),
   room: z.string().nullable(),
+  /**
+   * SIX shows the class greyed out, without a link to its meeting (one run by another program, #360): it's a class all
+   * the same, but its meeting can't be opened, so there's no "Tandai Hadir" to read or press. Optional: older saved data has none.
+   */
+  noMeeting: z.literal(true).optional(),
 });
 export type ClassSession = z.infer<typeof ClassSession>;
 
