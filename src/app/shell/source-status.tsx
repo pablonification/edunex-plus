@@ -58,24 +58,24 @@ function askedHint(asks: SourceAsks | undefined, source: string, t: ReturnType<t
   return asks === "datainduk" ? t("status.dataIndukHint") : t("status.actionNeededHint", { source });
 }
 
-/** Signs out of one system: what an account that isn't a student's does first, before signing in with theirs. */
+/**
+ * Signs out of everything, for an account that isn't a student's: a sign-out of one system keeps Microsoft's sign-in, so
+ * signing in again would come straight back as the same account. Nothing of a Student's is lost: none was read.
+ */
 function useSignOut() {
   const bridge = useBridge();
   const t = useT();
   const [busy, setBusy] = useState(false);
-  const signOut = useCallback(
-    async (source: SourceId) => {
-      setBusy(true);
-      try {
-        await bridge.invoke("auth.signOut", { source });
-      } catch (error) {
-        toast(t(errorKey(error)), "danger");
-      } finally {
-        setBusy(false);
-      }
-    },
-    [bridge, t],
-  );
+  const signOut = useCallback(async () => {
+    setBusy(true);
+    try {
+      await bridge.invoke("auth.signOut", {});
+    } catch (error) {
+      toast(t(errorKey(error)), "danger");
+    } finally {
+      setBusy(false);
+    }
+  }, [bridge, t]);
   return { signOut, busy };
 }
 
@@ -315,7 +315,7 @@ function SourceRow({ source }: { source: SourceId }) {
           {status.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
         </Button>
       ) : status.state === "action-needed" && status.asks === "student" ? (
-        <Button size="sm" variant="primary" busy={signingOut} onClick={() => void signOut(source)}>
+        <Button size="sm" variant="primary" busy={signingOut} onClick={() => void signOut()}>
           {t("action.signOut")}
         </Button>
       ) : status.state === "action-needed" ? (
@@ -432,8 +432,8 @@ export function ProblemBanner() {
           {problem.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
         </Button>
       ) : asked && problem.asks === "student" ? (
-        <Button size="sm" variant="primary" busy={signingOut} onClick={() => void signOut(problem.source)}>
-          {t("settings.signOutOf", { source: name })}
+        <Button size="sm" variant="primary" busy={signingOut} onClick={() => void signOut()}>
+          {t("action.signOut")}
         </Button>
       ) : asked ? (
         <>

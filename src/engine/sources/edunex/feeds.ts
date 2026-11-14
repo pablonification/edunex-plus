@@ -37,8 +37,8 @@ function notAStudent(error: unknown): unknown {
     return error;
   }
   const level = me?.level;
-  if (typeof level !== "string" || level === "STUDENT" || me?.code !== undefined) return error;
-  return new ActionNeeded("student", `Edunex signed in a ${level.toLowerCase()} account, not a student's`);
+  if (level !== "LECTURER" || me?.code !== undefined) return error;
+  return new ActionNeeded("student", "Edunex signed in a lecturer account, not a student's");
 }
 
 export function registerCoreFeeds(context: SourceContext, client: EdunexClient, user: EdunexUser = { id: null }): void {
