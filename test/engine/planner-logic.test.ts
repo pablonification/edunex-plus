@@ -514,8 +514,10 @@ describe("this semester's what-ifs, only in the plan", () => {
         .semesters.flatMap((s) => s.required)
         .find((c) => c.code === "II2100")?.status;
     expect(statusIn(plan({}))).toBe("failed");
-    // The starting plan takes it again.
+    // The starting plan takes it again, as a retake: its SKS are in SIX's count already, so the total doesn't grow.
     expect(statusIn(defaultPlan(dFails))).toBe("planned");
+    expect(sksModel(dFails, defaultPlan(dFails)).total).toBe(sksModel(dPasses, defaultPlan(dPasses)).total);
+    expect(livePlan(defaultPlan(dFails), dFails).terms.flatMap((t) => t.courses).find((c) => c.code === "II2100")?.retake).toBe(true);
   });
 
   /** SIX's record with a course retaken this term (and, for a failed one, SIX's progress showing the E). */

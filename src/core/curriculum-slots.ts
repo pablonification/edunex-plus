@@ -45,7 +45,7 @@ export interface SlotInput {
   thisTerm: readonly { code: string; name: string }[];
   fixes: Readonly<Record<string, CurriculumFix>>;
   /** A D fails a course in the Student's program. */
-  dFails?: boolean;
+  dFails: boolean;
 }
 
 const STOP = new Set(["dan", "di", "untuk", "the", "and", "of", "pengantar", "pengenalan", "dasar", "i", "ii", "iii", "ia", "iia", "ib", "a", "b"]);
@@ -67,9 +67,9 @@ export const fillsSlot = (slot: string, code: string) =>
   slot.endsWith("X") ? code.length === slot.length && code.startsWith(slot.slice(0, -1)) && /\d$/.test(code) : slot === code;
 
 /** A grade that fails the course: E, and D too in a program where a D isn't a pass (`dFails`, the Student said so). */
-export const failingGrade = (grade: string | null, dFails = false) => grade === "E" || (dFails && grade === "D");
+export const failingGrade = (grade: string | null, dFails: boolean) => grade === "E" || (dFails && grade === "D");
 
-export function rowStatus(row: ProgressCourse, dFails = false): StandingStatus {
+export function rowStatus(row: ProgressCourse, dFails: boolean): StandingStatus {
   if (row.status === "exempt") return "exempt";
   if (row.status === "in-progress") return "in-progress";
   if (row.status === "not-taken") return "left";
@@ -77,7 +77,7 @@ export function rowStatus(row: ProgressCourse, dFails = false): StandingStatus {
 }
 
 /** Every slot's standing, by the slot's code. */
-export function slotStandings({ slots, rows, graded, thisTerm, fixes, dFails = false }: SlotInput): Map<string, SlotStanding> {
+export function slotStandings({ slots, rows, graded, thisTerm, fixes, dFails }: SlotInput): Map<string, SlotStanding> {
   const list = rows ?? [];
   const isSlotCode = (code: string) => slots.some((s) => fillsSlot(s.code, code));
   // Required-kind rows under codes the curriculum doesn't have: older-curriculum courses standing in for a slot.

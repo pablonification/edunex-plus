@@ -165,9 +165,12 @@ export interface RecordInput {
 }
 
 const passedGrade = (grade: string | null, dFails: boolean): grade is LetterGrade => isLetterGrade(grade) && !failingGrade(grade, dFails);
-/** This term's SKS still without a grade; retaking a course passed before adds none (as for a planned retake). */
-const newSks = (thisTerm: readonly TermCourseRecord[], graded: StudentRecord["graded"], dFails: boolean) =>
-  thisTerm.filter((c) => c.grade === null && !passedGrade(graded.get(c.code)?.grade ?? null, dFails)).reduce((sum, c) => sum + c.sks, 0);
+/**
+ * This term's SKS still without a grade; retaking a course passed before adds none (as for a planned retake). A D the
+ * Student's program doesn't pass is in SIX's count already: taking it again adds none either.
+ */
+const newSks = (thisTerm: readonly TermCourseRecord[], graded: StudentRecord["graded"]) =>
+  thisTerm.filter((c) => c.grade === null && !passedGrade(graded.get(c.code)?.grade ?? null, false)).reduce((sum, c) => sum + c.sks, 0);
 const ELECTIVE = new Set(["program-elective", "outside-elective"]);
 
 export function studentRecord(input: RecordInput): StudentRecord {
@@ -309,7 +312,7 @@ export function studentRecord(input: RecordInput): StudentRecord {
     thisTermDropped: [],
     thisTermAdded: [],
     passedSks: progress?.sksPassed ?? [...graded.values()].filter((g) => passedGrade(g.grade, dFails)).reduce((sum, g) => sum + g.sks, 0),
-    inProgressSks: newSks(thisTerm, graded, dFails),
+    inProgressSks: newSks(thisTerm, graded),
     graded,
     exempt,
     retookBefore: rows.some((c) => c.attempt > 1 || c.standing === "replaced"),
@@ -392,13 +395,21 @@ export function aheadPlan(plan: StudyPlan, record: StudentRecord): StudyPlan {
  * taken already. A course is taken once: one in this term (SIX's KRS, or a
  * what-if a plan saved before `from` still holds later too), passed or
  * credited isn't planned again, so a later copy (planned, then taken for
- * real) neither shows nor counts its SKS twice. A retake planned for later stays.
+ * real) neither shows nor counts its SKS twice. A retake planned for later stays. A course with a D the Student's
+ * program doesn't pass is a retake, however it was planned: its SKS are in SIX's count already, and the new grade replaces the D.
  */
 export function livePlan(plan: StudyPlan, record: StudentRecord): StudyPlan {
   const ahead = aheadPlan(plan, record);
   const now = new Set(record.thisTerm.map((c) => c.code));
   const taken = (code: string) => now.has(code) || passedGrade(record.graded.get(code)?.grade ?? null, record.dFails) || record.exempt.has(code);
-  return { ...ahead, terms: ahead.terms.map((t) => ({ ...t, courses: t.courses.filter((c) => c.retake || !taken(c.code)) })) };
+  const again = (code: string) => record.dFails && record.graded.get(code)?.grade === "D";
+  return {
+    ...ahead,
+    terms: ahead.terms.map((t) => ({
+      ...t,
+      courses: t.courses.filter((c) => c.retake || !taken(c.code)).map((c) => (!c.retake && again(c.code) ? { ...c, retake: true } : c)),
+    })),
+  };
 }
 
 // ------------------------------------------------------------ this term's what-ifs
@@ -482,7 +493,7 @@ export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecor
   const isRequired = (code: string) => slotOf(code) !== undefined || record.requiredLeft.some((r) => r.code === code);
   const sum = (list: { sks: number }[]) => list.reduce((total, c) => total + c.sks, 0);
   const electiveInProgress =
-    record.electiveInProgress - sum(dropped.filter((c) => sixNow.has(c.code))) + sum(added.filter((c) => !isRequired(c.code) && !record.graded.has(c.code)));
+    record.electiveInProgress - sum(dropped.filter((c) => sixNow.has(c.code))) + sum(added.filter((c) => !isRequired(c.code) && !passedGrade(record.graded.get(c.code)?.grade ?? null, record.dFails)));
 
   const courses = new Map(record.courses);
   for (const c of added) if (!courses.has(c.code)) courses.set(c.code, { code: c.code, name: c.name, sks: c.sks, owner: null });
@@ -491,7 +502,7 @@ export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecor
     thisTerm,
     thisTermDropped: dropped,
     thisTermAdded: added.map((c) => c.code),
-    inProgressSks: newSks(thisTerm, record.graded, record.dFails),
+    inProgressSks: newSks(thisTerm, record.graded),
     // Taking a graded course again this term is a retake: summa cum laude closes, as for a planned one.
     retookBefore: record.retookBefore || added.some((c) => record.graded.has(c.code)),
     slots,
