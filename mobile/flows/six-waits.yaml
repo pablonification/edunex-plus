@@ -1,0 +1,21 @@
+# #359: SIX sends a new Student to its Pengkinian Data Induk form before anything else. The phone said only "Menunggumu";
+# now its banner says what SIX wants and opens SIX, as the desktop's does. The demo with EDUNEX_DEMO_DATAINDUK=1.
+appId: io.github.pablonification.edunexplus.demo
+---
+- clearState: io.github.pablonification.edunexplus.demo
+- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_DATAINDUK=1"
+- extendedWaitUntil:
+    visible:
+      id: tab.home
+    timeout: 180000
+- extendedWaitUntil:
+    visible:
+      id: banner.problem
+    timeout: 180000
+- assertVisible: ".*SIX minta kamu memperbarui data diri dulu\\..*Isi Pengkinian Data Induk di SIX.*"
+- assertVisible:
+    id: action.openAsked
+- assertVisible:
+    id: action.tryAgain
+- assertNotVisible: ".*SIX berubah.*"
+- takeScreenshot: six-waits-banner
