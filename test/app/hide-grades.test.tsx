@@ -111,10 +111,13 @@ describe("hiding grades on the desktop", () => {
     expect(summary()).toContain(`IPK saat lulus${HIDDEN_FIGURE}`);
     expect(summary()).not.toContain("Sangat memuaskan");
     expect(block(/^Semester 7 · sekarang/)?.textContent).not.toMatch(/IP \d|IPK jadi/);
-    // A grade not picked yet is the app's guess from the IPK: dots too, as on the phone.
-    const guesses = [...(block(/^Semester 7 · sekarang/)?.querySelectorAll("select") ?? [])];
-    expect(guesses.length).toBeGreaterThan(0);
-    for (const select of guesses) expect(select.selectedOptions[0]?.textContent).toBe(HIDDEN_FIGURE);
+    // Every grade in the plan is dots too, as on the phone: one not picked yet is the app's guess from the IPK.
+    const selects = [...document.querySelectorAll<HTMLSelectElement>("main select")];
+    expect(selects.length).toBeGreaterThan(5);
+    for (const select of selects) {
+      expect(select.selectedOptions[0]?.textContent).toBe(HIDDEN_FIGURE);
+      expect(select.getAttribute("aria-label")).toMatch(/disembunyikan$/);
+    }
     const past = s.button(/^Semester 1–6/);
     await s.click(past);
     const panel = document.getElementById(past.getAttribute("aria-controls")!)?.textContent ?? "";

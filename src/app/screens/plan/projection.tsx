@@ -91,12 +91,13 @@ export function GradeSelect({
   guess?: boolean;
   className?: string;
 }) {
-  // Hidden grades: an estimate not yet picked comes from the IPK, so it's dots, as on the phone. Picking one still works.
-  const masked = useGradesHidden() && guess;
+  const t = useT();
+  // Hidden grades: every letter is dots, as on the phone (one not picked yet comes from the IPK). Picking one still works.
+  const masked = useGradesHidden();
   return (
     <select
       value={masked ? "" : value}
-      aria-label={label}
+      aria-label={masked ? t("mobile.hideGrades.said", { name: label }) : label}
       onChange={(event) => onChange(event.target.value as LetterGrade)}
       className={cx(
         "focus-ring h-7 w-[62px] rounded-item px-1.5 text-small font-semibold transition-colors duration-quick hover:bg-hover",
