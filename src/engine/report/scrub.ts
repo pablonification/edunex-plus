@@ -338,7 +338,8 @@ export function scrubPatterns(text: string, shapes: Shapes): string {
       .replace(/eyJ[\w-]{8,}\.eyJ[\w-]{8,}(?:\.[\w-]*)?/g, "fixture-token")
       .replace(/([?&](?:sig|signature|token|access_token)=)[^&"'\s<>\\]+/gi, "$1fixture")
       // SIX's calendar subscription link carries the Student's own key: ".../pub/calm/id/{sid}/2026/1/{64 hex}/calendar.ics".
-      .replace(/(\/pub\\*\/calm\\*\/(?:[^"'\s<>\\/]+\\*\/)*?)[0-9a-f]{32,}(?=\\*\/calendar\.ics)/gi, "$1fixture")
+      // The same links the privacy rule looks at (test/kit/privacy-rules.ts), every long hex run in them gone.
+      .replace(/\/pub\\*\/calm\\*\/[^"'\s<]+/gi, (link) => link.replace(/[0-9a-f]{32,}/gi, "fixture"))
       .replace(/(<meta\b[^>]*\bname=["']csrf-token["'][^>]*\bcontent=["'])[^"']*/gi, "$1fixture")
       .replace(/<input\b[^>]*>/gi, (tag) => (/\btype=["']?hidden\b/i.test(tag) ? tag.replace(/(\bvalue=["'])[^"']*/i, "$1fixture") : tag))
       .replace(/(?<!\d)(?:\+62|62|0)8\d{7,11}(?!\d)/g, "080000000000")

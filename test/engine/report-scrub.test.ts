@@ -250,7 +250,7 @@ describe("SIX's role menu", () => {
 
 // #363: SIX's timetable links the Student's calendar subscription, whose key reads their timetable for anyone.
 describe("SIX's calendar subscription link", () => {
-  const key = "89b71c0d".repeat(8);
+  const key = "0123abcd".repeat(8);
   const link = `<a href="https://six.itb.ac.id/pub/calm/id/2021000001/2026/1/${key}/calendar.ics">`;
 
   it("loses its key in a report, and the privacy rules find one left in", () => {
@@ -260,6 +260,7 @@ describe("SIX's calendar subscription link", () => {
     expect(personalHits(link)).toEqual([expect.stringContaining("calendar link")]);
     // As a report's JSON writes it, "/" as "\/".
     expect(personalHits(link.replaceAll("/", "\\/"))).toEqual([expect.stringContaining("calendar link")]);
+    expect(scrubPatterns(link.replaceAll("/", "\\/"), new Shapes())).not.toContain(key);
   });
 });
 

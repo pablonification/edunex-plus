@@ -38,7 +38,7 @@ const RULES: { what: string; pattern: RegExp; allowed: (match: string) => boolea
   // SIX's calendar subscription link: its key lets anyone read the Student's timetable.
   {
     what: "calendar link",
-    pattern: /\/pub\\*\/calm\\*\/[^"'\s<]+/g,
+    pattern: /\/pub\\*\/calm\\*\/[^"'\s<]+/gi,
     allowed: (m) => !/[0-9a-f]{32,}/i.test(m),
   },
   { what: "named photo", pattern: /cdn-edunex\.itb\.ac\.id\\*\/avatar\\*\/[^"'\s<]+/g, allowed: (m) => plain(m).endsWith("/avatar/fixture-avatar.jpg") },
