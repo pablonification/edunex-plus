@@ -100,6 +100,17 @@ export function readMonth(html: string, requested: string, list: SkipList): Time
         // A meeting it can't read is left out, its day marked: a day with one is never shown as free.
         const leftOut = (text: string, code: string | null) => unread.push({ day: shown.toISOString().slice(0, 10), row: rowText(text), code });
         const meetings = $(td).find("a[data-url*='/pertemuan/']").toArray();
+        // A class SIX greys out without a link (one run by another program): read from its text, with no meeting to open.
+        const plain = $(td)
+          .find("div[title] > span.text-muted")
+          .toArray()
+          .filter((el) => TIME.test(clean($(el).text())));
+        for (const span of plain) {
+          const text = clean($(span).text());
+          const session = list.item(`${day} · ${text}`, () => readPlainClass($(span), date));
+          if (session) sessions.push(session);
+          else leftOut(text, codeIn(text));
+        }
         for (const link of meetings) {
           const text = clean($(link).text());
           const session = list.item(`${day} · ${text}`, () => readMeeting($(link), date));
@@ -109,7 +120,7 @@ export function readMonth(html: string, requested: string, list: SkipList): Time
         // Every time shown in a day is a meeting: one without a meeting the app can open is left out too,
         // as the piece of the day's text from its time on.
         const said = clean($(td).children("div").slice(1).text());
-        const linked = meetings.map((link) => timeOf(clean($(link).text())));
+        const linked = [...meetings, ...plain].map((el) => timeOf(clean($(el).text())));
         const loose = said
           .split(BEFORE_TIME)
           .map((piece) => piece.trim())
@@ -122,7 +133,7 @@ export function readMonth(html: string, requested: string, list: SkipList): Time
             return false;
           });
         const times = said.match(TIME_RANGE) ?? [];
-        for (let extra = times.length - meetings.length, i = 0; extra > 0; extra--, i++) {
+        for (let extra = times.length - meetings.length - plain.length, i = 0; extra > 0; extra--, i++) {
           const piece = loose[i] ?? said;
           list.item(`${day} · ${piece}`, () => {
             throw changed(PAGE, "a time without its meeting");
@@ -141,6 +152,16 @@ function codeIn(text: string): string | null {
   return code && COURSE_CODE.test(code) ? code : null;
 }
 
+/** A class SIX shows without a link: its course and activity from its title ("Ekowisata Bahari (Kuliah)"), its code shown bold. */
+function readPlainClass(span: Nodes, day: number): ClassSession {
+  const title = /^(.+?)\s*\(([^()]+)\)$/.exec(clean(span.parent().attr("title") ?? ""));
+  const code = clean(span.find("strong").first().text());
+  if (!title || !COURSE_CODE.test(code)) throw changed(PAGE, "a class without its course, code or activity");
+  const [, name, activity] = title;
+  const { start, end, room } = timeAndRoom(clean(span.find("small").first().text() || span.text()), activity!.trim(), day);
+  return { id: `nolink:${code}:${start}`, courseCode: code, courseName: name!, start, end, activity: activity!.trim(), room, noMeeting: true };
+}
+
 function readMeeting(link: Nodes, day: number): ClassSession {
   const id = /\/pertemuan\/(\d+)\//.exec(link.attr("data-url") ?? "")?.[1];
   const course = /^([A-Z]{2}\d{4})\s+(\S.*)$/.exec(clean(link.attr("data-kuliah") ?? ""));
@@ -152,6 +173,13 @@ function readMeeting(link: Nodes, day: number): ClassSession {
   const shownCode = clean(link.find("strong").first().text());
   if (shownCode && shownCode !== course[1]) throw changed(PAGE, "a meeting's course codes disagree");
 
+  return { id, courseCode: course[1], courseName: course[2], activity, ...timeAndRoom(text, activity, day) };
+}
+
+/** A meeting's time and room from its line: "08:00-10:00 KL2103 Geoteknik Ke... (Kuliah KL -2)". */
+function timeAndRoom(text: string, activity: string, day: number): { start: number; end: number; room: string | null } {
+  const time = /(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/.exec(text);
+  if (!time) throw changed(PAGE, "a meeting without its time");
   // The room follows the activity at the end of the line: "(Kuliah R.SG PWK LT.6)", or "(Kuliah)" without one.
   const opens = text.lastIndexOf(`(${activity}`);
   const after = text.slice(opens + activity.length + 1);
@@ -164,5 +192,5 @@ function readMeeting(link: Nodes, day: number): ClassSession {
   const start = day + (hourStart * 60 + minuteStart) * 60_000 - WIB;
   let end = day + (hourEnd * 60 + minuteEnd) * 60_000 - WIB;
   if (end < start) end += DAY;
-  return { id, courseCode: course[1], courseName: course[2], start, end, activity, room };
+  return { start, end, room };
 }

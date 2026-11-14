@@ -324,31 +324,35 @@ const NOT_PERSONAL_NUMBER = /^(?:0+\d{0,3}|080000000000|20210000\d\d|1[5-9]\d{11
  * numbers, bank accounts), by their shape wherever they are.
  */
 export function scrubPatterns(text: string, shapes: Shapes): string {
-  return text
-    .replace(/https:\/\/teams\.(?:microsoft|live)\.com\/[^"'\s<>\\)]+/g, "https://teams.microsoft.com/meet/000000000000?p=fixture")
-    .replace(/https:\/\/[\w.-]*zoom\.us\/[^"'\s<>\\)]+/g, "https://zoom.us/j/0000000000")
-    .replace(/https:\/\/[a-z0-9]+\.blob\.core\.windows\.net\/[^"'\s<>\\)]+/g, (url) => {
-      if (!shapes.fileLinks.has(url)) shapes.fileLinks.set(url, shapes.fileLinks.size + 1);
-      return `https://edunexfixture.blob.core.windows.net/edunex/fixture-${shapes.fileLinks.get(url)}`;
-    })
-    .replace(/(Course Tokens?\s*:\s*)[A-Z0-9]{4,}/gi, "$1FIXTUR")
-    .replace(/((?:Meeting|Rapat) ID\s*:?\s*)[\d ]{6,}\d/gi, "$1000 000 000")
-    .replace(/((?:Passcode|Kode sandi|Password)\s*:?\s*)[^\s<"\\]+/gi, "$1fixture")
-    .replace(/eyJ[\w-]{8,}\.eyJ[\w-]{8,}(?:\.[\w-]*)?/g, "fixture-token")
-    .replace(/([?&](?:sig|signature|token|access_token)=)[^&"'\s<>\\]+/gi, "$1fixture")
-    .replace(/(<meta\b[^>]*\bname=["']csrf-token["'][^>]*\bcontent=["'])[^"']*/gi, "$1fixture")
-    .replace(/<input\b[^>]*>/gi, (tag) => (/\btype=["']?hidden\b/i.test(tag) ? tag.replace(/(\bvalue=["'])[^"']*/i, "$1fixture") : tag))
-    .replace(/(?<!\d)(?:\+62|62|0)8\d{7,11}(?!\d)/g, "080000000000")
-    .replace(/[\w.+-]+@(?!example\.com)[\w-]+(?:\.[\w-]+)+/g, (email) => (email === FAKE_STUDENT.email ? email : "someone@example.com"))
-    .replace(/(?<![A-Za-z0-9.,])\d{9,}(?![A-Za-z0-9])/g, (digits) => {
-      if (NOT_PERSONAL_NUMBER.test(digits)) return digits;
-      let fake = shapes.longNumbers.get(digits);
-      if (!fake) {
-        fake = `${"0".repeat(digits.length - 3)}${String(shapes.longNumbers.size + 1).padStart(3, "0")}`;
-        shapes.longNumbers.set(digits, fake);
-      }
-      return fake;
-    });
+  return (
+    text
+      .replace(/https:\/\/teams\.(?:microsoft|live)\.com\/[^"'\s<>\\)]+/g, "https://teams.microsoft.com/meet/000000000000?p=fixture")
+      .replace(/https:\/\/[\w.-]*zoom\.us\/[^"'\s<>\\)]+/g, "https://zoom.us/j/0000000000")
+      .replace(/https:\/\/[a-z0-9]+\.blob\.core\.windows\.net\/[^"'\s<>\\)]+/g, (url) => {
+        if (!shapes.fileLinks.has(url)) shapes.fileLinks.set(url, shapes.fileLinks.size + 1);
+        return `https://edunexfixture.blob.core.windows.net/edunex/fixture-${shapes.fileLinks.get(url)}`;
+      })
+      .replace(/(Course Tokens?\s*:\s*)[A-Z0-9]{4,}/gi, "$1FIXTUR")
+      .replace(/((?:Meeting|Rapat) ID\s*:?\s*)[\d ]{6,}\d/gi, "$1000 000 000")
+      .replace(/((?:Passcode|Kode sandi|Password)\s*:?\s*)[^\s<"\\]+/gi, "$1fixture")
+      .replace(/eyJ[\w-]{8,}\.eyJ[\w-]{8,}(?:\.[\w-]*)?/g, "fixture-token")
+      .replace(/([?&](?:sig|signature|token|access_token)=)[^&"'\s<>\\]+/gi, "$1fixture")
+      // SIX's calendar subscription link carries the Student's own key: ".../pub/calm/id/{sid}/2026/1/{64 hex}/calendar.ics".
+      .replace(/(\/pub\\*\/calm\\*\/(?:[^"'\s<>\\/]+\\*\/)*?)[0-9a-f]{32,}(?=\\*\/calendar\.ics)/gi, "$1fixture")
+      .replace(/(<meta\b[^>]*\bname=["']csrf-token["'][^>]*\bcontent=["'])[^"']*/gi, "$1fixture")
+      .replace(/<input\b[^>]*>/gi, (tag) => (/\btype=["']?hidden\b/i.test(tag) ? tag.replace(/(\bvalue=["'])[^"']*/i, "$1fixture") : tag))
+      .replace(/(?<!\d)(?:\+62|62|0)8\d{7,11}(?!\d)/g, "080000000000")
+      .replace(/[\w.+-]+@(?!example\.com)[\w-]+(?:\.[\w-]+)+/g, (email) => (email === FAKE_STUDENT.email ? email : "someone@example.com"))
+      .replace(/(?<![A-Za-z0-9.,])\d{9,}(?![A-Za-z0-9])/g, (digits) => {
+        if (NOT_PERSONAL_NUMBER.test(digits)) return digits;
+        let fake = shapes.longNumbers.get(digits);
+        if (!fake) {
+          fake = `${"0".repeat(digits.length - 3)}${String(shapes.longNumbers.size + 1).padStart(3, "0")}`;
+          shapes.longNumbers.set(digits, fake);
+        }
+        return fake;
+      })
+  );
 }
 
 // ---------------------------------------------------------------- Edunex

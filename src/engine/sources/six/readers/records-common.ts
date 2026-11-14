@@ -373,8 +373,11 @@ export function curriculumMark(page: Page, cell: Elem, what: string): number | n
   return suffix ? 2000 + Number(suffix.slice(1)) : null;
 }
 
-/** ITB course codes: two letters and four digits; a slot several courses can fill ends in X ("WI201X"). */
-export const COURSE_CODE = /^[A-Z]{2}\d{3}[\dX]$/;
+/**
+ * ITB course codes: two letters and four digits; a slot several courses can fill ends in X ("WI201X"), and one whose
+ * code isn't set yet is XYZ after the year digit ("KL4XYZ Capstone Design", #361).
+ */
+export const COURSE_CODE = /^[A-Z]{2}\d(?:\d{2}[\dX]|XYZ)$/;
 
 /** A course link's id: "/pub/matakuliah/47837" → "47837". */
 export function courseIdOf(cell: Elem): string | null {
