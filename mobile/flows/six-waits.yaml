@@ -3,11 +3,16 @@
 appId: io.github.pablonification.edunexplus.demo
 ---
 - clearState: io.github.pablonification.edunexplus.demo
-- openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_DATAINDUK=1"
-- extendedWaitUntil:
-    visible:
-      id: tab.home
-    timeout: 180000
+# Android can still be closing the cleared app's task when the link opens it, and kill the new start with it ("remove
+# task", #370's run): the app then never leaves its splash. Opened once more if Beranda doesn't come.
+- retry:
+    maxRetries: 2
+    commands:
+      - openLink: "edunexplusdemo://demo?EDUNEX_DEMO=signed-in&EDUNEX_DEMO_DATAINDUK=1"
+      - extendedWaitUntil:
+          visible:
+            id: tab.home
+          timeout: 60000
 - extendedWaitUntil:
     visible:
       id: banner.problem
