@@ -32,7 +32,7 @@ const COLUMNS = {
   program: { labels: ["Prodi Penyelenggara", "Organizing Program", "Host Program"] },
   status: { labels: ["Status"] },
 } satisfies Record<string, Column>;
-/** A panel's kind: from its "register" link (…&tab=minor), else its title. Outbound Mobility is another layout and isn't read. */
+/** A panel's kind: from its "register" link (…&tab=minor), else its title. The panels not read are in UNREAD. */
 const BY_TAB: Record<string, SchemeRegistration["kind"]> = {
   minor: "minor",
   spesialisasi: "specialization",

@@ -58,7 +58,6 @@ export function readCurriculumList(html: string, skipped?: Skipped): CurriculumL
   const page = openPage(html, "curriculum list", skipped);
   const tables = page.$("table").filter((_, table) => page.$(table).find('a[href*="/struktur"]').length > 0);
   if (
-    tables.length === 0 &&
     page.$("table").length === 0 &&
     page
       .$(".panel-footer")

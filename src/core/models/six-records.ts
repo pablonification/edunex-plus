@@ -467,7 +467,7 @@ export const sixRecordsDatasets = {
   "six.progress": Progress,
   /**
    * Null when SIX lists no curriculum in force for the Student's program, as for a first-year program before the Student
-   * chooses a major: every curriculum it lists marked ✗.
+   * chooses a major: every curriculum it lists marked ✗, or none listed at all.
    */
   "six.curriculum": Curriculum.nullable(),
   "six.krs": KrsPlan,
