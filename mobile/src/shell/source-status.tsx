@@ -65,6 +65,8 @@ function useSignOut() {
     setBusy(true);
     try {
       await bridge.invoke("auth.signOut", {});
+      // Back to the start, as Settings' sign-out does: no screen of the account stays under it.
+      router.replace("/");
     } catch (error) {
       toast(t(errorKey(error)), "danger");
     } finally {
@@ -476,7 +478,15 @@ function SourceRow({ source, onClose }: { source: SourceId; onClose(): void }) {
           {status.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
         </Button>
       ) : notStudent ? (
-        <Button size="sm" variant="primary" busy={signingOut} onPress={() => void signOut()}>
+        <Button
+          size="sm"
+          variant="primary"
+          busy={signingOut}
+          onPress={() => {
+            onClose();
+            void signOut();
+          }}
+        >
           {t("action.signOut")}
         </Button>
       ) : status.state === "changed" || status.state === "offline" ? (
