@@ -792,6 +792,24 @@ describe("curriculum", () => {
   });
 });
 
+describe("pages with nothing for this Student", () => {
+  it("a program with no curriculum yet lists none; a page with no list and no such note is still a change", () => {
+    const none = bodyText("six", "report-tpb-no-curriculum-kurikulum-kurikulum-list.html");
+    expect(readCurriculumList(none)).toEqual([]);
+    expect(verdict(() => readCurriculumList(none.replace("Belum ada kurikulum yang dibuat.", "")))).toBe(
+      "VendorChanged: SIX curriculum list page: no list of curricula",
+    );
+  });
+
+  it("a scheme page with only Outbound Mobility and an integrated program is no registration; an unknown panel is still a change", () => {
+    const masters = bodyText("six", "report-masters-schemes-statusmhs-program-integrasi-riwayat-2021000001.html");
+    expect(readSchemes(masters)).toEqual([]);
+    expect(verdict(() => readSchemes(masters.replace(">Outbound Mobility<", ">Mobilitas<")))).toBe(
+      "VendorChanged: SIX education scheme page: no scheme panels",
+    );
+  });
+});
+
 describe("syllabus", () => {
   it("reads a course's syllabus, with empty parts as nothing", () => {
     expect(readSyllabus(sixPage(SYLLABUS), "47837")).toEqual({

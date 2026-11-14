@@ -2,7 +2,9 @@
 // (/kurikulum/kurikulum/list): each curriculum's year, SKS to graduate,
 // normal length, whether it is the one in force, and where its structure is.
 // A curriculum whose name, link or year it can't read is left out (skipped);
-// another detail it can't read is left blank and the row noted.
+// another detail it can't read is left blank and the row noted. A program
+// with no curriculum made yet (a first-year program's, "Belum ada kurikulum
+// yang dibuat.") has no list: none.
 import type { Skipped } from "../../skipped";
 import {
   type Column,
@@ -21,6 +23,8 @@ import {
   widthOf,
 } from "./records-common";
 
+/** SIX's note under the filter, where the list would be, for a program with no curriculum yet. */
+const NONE_YET = /^(belum ada kurikulum|no curricul)/i;
 const HEADER = ["", "", "No Prodi", "Program Studi", "Fakultas", "Nama Kurikulum", "Tahun", "SKS Lulus", "Masa Studi (Semester)", "Aktif"];
 const COLUMNS = {
   code: { labels: ["No Prodi", "Program No"] },
@@ -53,6 +57,14 @@ export interface CurriculumListEntry {
 export function readCurriculumList(html: string, skipped?: Skipped): CurriculumListEntry[] {
   const page = openPage(html, "curriculum list", skipped);
   const tables = page.$("table").filter((_, table) => page.$(table).find('a[href*="/struktur"]').length > 0);
+  if (
+    page.$("table").length === 0 &&
+    page
+      .$(".panel-footer")
+      .toArray()
+      .some((el) => NONE_YET.test(textOf(page.$(el))))
+  )
+    return [];
   if (tables.length !== 1) changed(page, "no list of curricula");
   const [header, ...rows] = rowsOf(page, tables.first()).map((row) => cellsOf(page, row));
   if (!header) changed(page, "the list is empty");

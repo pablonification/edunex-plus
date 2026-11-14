@@ -11,6 +11,7 @@ import { EngineError, isEngineError } from "../../src/engine/errors";
 import type { SixPages } from "../../src/engine/sources/six/pages";
 import { fetchSyllabus, registerSixRecordFeeds } from "../../src/engine/sources/six/records";
 import type { Source } from "../../src/engine/sources/source";
+import { bodyText } from "../kit/fixtures";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
 import { PRETEND_SIX_COOKIE, SIX_ORIGIN } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
@@ -19,6 +20,7 @@ const HOUR = 3_600_000;
 const IDENTITY = { nim: "18223901", studentId: "2021000001", term: "2026-1" };
 const TRANSCRIPT = /\/transkrip\/historis\/\d+$/;
 const LIST = /\/kurikulum\/kurikulum\/list$/;
+const SCHEMES = /\/program-integrasi\/riwayat\/\d+$/;
 const wib = (iso: string) => Date.parse(`${iso}+07:00`);
 
 /** Reads pretend SIX pages the way the SIX client does: a redirect to /login ends the session, 429 and 5xx are SIX being away. */
@@ -238,6 +240,23 @@ describe("SIX records: curriculum (#79)", () => {
     expect(h.status().changedPages).toBeUndefined();
     expect(h.dataset("six.curriculum")).toBeNull();
     expect(h.dataset("six.transcript")).toBeDefined();
+  });
+
+  it("a program with no curriculum made yet (a first-year program's, #342) is none in force yet, not a change", async () => {
+    const world = new PretendWorld({ now: "2026-10-11T09:00:00+07:00" });
+    world.six.editPage(LIST, () => bodyText("six", "report-tpb-no-curriculum-kurikulum-kurikulum-list.html"));
+    const h = await signedIn({ world });
+    expect(h.status().state).toBe("live");
+    expect(h.status().changedPages).toBeUndefined();
+    expect(h.dataset("six.curriculum")).toBeNull();
+  });
+
+  it("a scheme page with none of the schemes the app reads (a master's program, #343) is no registration, not a change", async () => {
+    const world = new PretendWorld({ now: "2026-10-11T09:00:00+07:00" });
+    world.six.editPage(SCHEMES, () => bodyText("six", "report-masters-schemes-statusmhs-program-integrasi-riwayat-2021000001.html"));
+    const h = await signedIn({ world });
+    expect(h.status().changedPages).toBeUndefined();
+    expect(h.dataset("six.curriculum")).toMatchObject({ year: 2024, registrations: [] });
   });
 
   it("a mark it can't read might be the ✓: with no other in force, that's still a change on SIX's side", async () => {
