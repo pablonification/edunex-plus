@@ -59,8 +59,16 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
         ? { text: t("settings.notConnected"), tone: "muted" }
         : status.state === "expired"
           ? { text: t("settings.account.expired"), tone: "amber" }
-          : status.state === "action-needed" && status.asks === "student"
-            ? { text: t("settings.account.notStudent"), tone: "amber" }
+          : status.state === "action-needed"
+            ? {
+                text:
+                  status.asks === "student"
+                    ? t("settings.account.notStudent")
+                    : status.asks === "datainduk"
+                      ? t("settings.account.dataInduk")
+                      : t("settings.account.actionNeeded", { source: name }),
+                tone: "amber",
+              }
             : status.state === "connecting"
               ? { text: t("status.connecting"), tone: "muted" }
               : status.state === "live"

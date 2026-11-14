@@ -6,12 +6,14 @@ import { router } from "expo-router";
 import { type ReactNode, useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Pressable, View } from "react-native";
 import { type Bridge, errorKey } from "../../../src/app/bridge";
+import { useOpenExternal } from "../../../src/app/hooks";
 import { useFormat, useNow, useT } from "../../../src/app/i18n";
 import { useSaved } from "../../../src/app/saved";
 import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "../../../src/app/store";
 import type { SignInStep } from "../../../src/core/contract";
 import { firstRead } from "../../../src/core/first-scan";
-import type { DatasetName, SourceId, SourceState, SourceStatus } from "../../../src/core/models";
+import { EDUNEX_WEB, SIX_WEB, sixStatusUrl } from "../../../src/core/links";
+import type { DatasetName, SourceAsks, SourceId, SourceState, SourceStatus } from "../../../src/core/models";
 import { handInDays, isHandInMove } from "../../../src/core/schedule";
 import { useSettling } from "../host/settling";
 import { ReportButton } from "../parts/report";
@@ -74,6 +76,25 @@ function useSignOut() {
     }
   }, [bridge, t]);
   return { signOut, busy };
+}
+
+/**
+ * Opens the system's own page where the Student does what it asks of them first (SIX's Pengkinian Data Induk), in the
+ * app and signed in: for SIX its status page, which SIX sends on to that form (the desktop's too), or SIX's home without the NIM.
+ */
+function useOpenAsked(): (source: SourceId) => void {
+  const open = useOpenExternal();
+  const student = useDataset("six.student");
+  const account = useDataset("edunex.account");
+  // A new Student's SIX was never read: Edunex knows the same NIM.
+  const nim = student?.nim ?? account?.nim;
+  return useCallback((source: SourceId) => open(source === "edunex" ? EDUNEX_WEB : nim ? sixStatusUrl(nim) : SIX_WEB), [open, nim]);
+}
+
+/** What a system waiting for the Student asks of them, in a sentence (`source` its name): the desktop's words. */
+function askedHint(asks: SourceAsks | undefined, source: string, t: ReturnType<typeof useT>): string {
+  if (asks === "student") return t("status.notStudentHint");
+  return asks === "datainduk" ? t("status.dataIndukHint") : t("status.actionNeededHint", { source });
 }
 
 /** What a sign-in says while the Student has nothing to do in it: joining, finishing out of sight, or slow. */
@@ -196,6 +217,7 @@ function StateMark({ state, busy }: { state: SourceState; busy: boolean }) {
   if (state === "changed") return <Icons.AlertTriangle size={14} color={theme.color.dangerFg} weight="bold" />;
   if (state === "expired") return <Icons.Lock size={14} color={theme.color.warningFg} weight="bold" />;
   if (state === "offline") return <Icons.WifiOff size={14} color={theme.color.muted} />;
+  if (state === "action-needed") return <Icons.ClipboardCheck size={14} color={theme.color.warningFg} weight="bold" />;
   return <View style={{ width: 8, height: 8, borderRadius: 4, borderWidth: 1, borderColor: theme.color.faint }} />;
 }
 
@@ -415,7 +437,7 @@ export function SyncPanel({ open, onClose }: { open: boolean; onClose(): void })
 }
 
 function hintFor({ state, asks }: SourceStatus, source: string, t: ReturnType<typeof useT>): string | null {
-  if (state === "action-needed" && asks === "student") return t("status.notStudentHint");
+  if (state === "action-needed") return askedHint(asks, source, t);
   if (state === "expired") return t("status.expiredHint", { source });
   if (state === "changed") return t("status.changedHint", { source });
   if (state === "offline") return t("status.offlineHint", { source });
@@ -430,6 +452,7 @@ function SourceRow({ source, onClose }: { source: SourceId; onClose(): void }) {
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh } = useRefresh();
   const { signOut, busy: signingOut } = useSignOut();
+  const openAsked = useOpenAsked();
   const refreshing = useReading().includes(source);
   const name = t(`source.${source}`);
   const needsSignIn = source !== "itb" && (status.state === "expired" || status.state === "signed-out");
@@ -489,6 +512,18 @@ function SourceRow({ source, onClose }: { source: SourceId; onClose(): void }) {
         >
           {t("action.signOut")}
         </Button>
+      ) : status.state === "action-needed" ? (
+        // SIX's page opens over the sheet: the sheet closes first.
+        <Button
+          size="sm"
+          variant="primary"
+          onPress={() => {
+            onClose();
+            openAsked(source);
+          }}
+        >
+          {t("action.openSource", { source: name })}
+        </Button>
       ) : status.state === "changed" || status.state === "offline" ? (
         <Button size="sm" busy={refreshing} onPress={() => void refresh(source)}>
           {t("action.tryAgain")}
@@ -514,6 +549,7 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
   const { signOut, busy: signingOut } = useSignOut();
+  const openAsked = useOpenAsked();
   const [dismissed, setDismissed] = useState<string | null>(null);
   const edunexNote = useSignInNote("edunex");
   const sixNote = useSignInNote("six");
@@ -521,7 +557,8 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
   const problem =
     [edunex, six].find((status) => status.state === "changed") ??
     [edunex, six].find((status) => status.state === "expired" || (status.state === "signed-out" && has[status.source as "edunex" | "six"])) ??
-    [edunex, six].find((status) => status.state === "action-needed" && status.asks === "student") ??
+    // Waiting for the Student on its own site (SIX's Pengkinian Data Induk, #359) or not a student's account: what to do.
+    [edunex, six].find((status) => status.state === "action-needed") ??
     ([edunex, six].filter((status) => status.state !== "signed-out").every((status) => status.state === "offline") &&
     [edunex, six].some((status) => status.state === "offline")
       ? [edunex, six].find((status) => status.state === "offline")
@@ -532,7 +569,8 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
   const name = t(`source.${problem.source}`);
   const offline = problem.state === "offline";
   const needsSignIn = problem.state === "expired" || problem.state === "signed-out";
-  const notStudent = problem.state === "action-needed";
+  const asked = problem.state === "action-needed";
+  const notStudent = asked && problem.asks === "student";
   const lastUpdate = Math.max(0, ...[edunex, six].map((status) => status.updatedAt ?? 0));
   const title = offline
     ? t("banner.offline")
@@ -542,7 +580,11 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
         ? t("banner.signedOut", { source: name })
         : notStudent
           ? t("banner.notStudent", { source: name })
-          : t("banner.changed", { source: name });
+          : asked
+            ? problem.asks === "datainduk"
+              ? t("banner.dataInduk")
+              : t("banner.actionNeeded", { source: name })
+            : t("banner.changed", { source: name });
   const note = needsSignIn ? (problem.source === "six" ? sixNote : edunexNote) : null;
   const detail = note
     ? note.text
@@ -552,8 +594,8 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
         : null
       : problem.state === "changed"
         ? t("status.changedHint", { source: name })
-        : notStudent
-          ? t("status.notStudentHint")
+        : asked
+          ? askedHint(problem.asks, name, t)
           : t("banner.keptHint");
   const [bg, fg] =
     problem.state === "changed"
@@ -561,7 +603,7 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
       : offline
         ? [theme.color.fill, theme.color.fg]
         : [theme.color.warningBg, theme.color.warningFg];
-  const Glyph = offline ? Icons.WifiOff : needsSignIn ? Icons.Lock : Icons.AlertTriangle;
+  const Glyph = offline ? Icons.WifiOff : needsSignIn ? Icons.Lock : asked ? Icons.ClipboardCheck : Icons.AlertTriangle;
   return (
     <View
       testID="banner.problem"
@@ -601,6 +643,16 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
           <Button size="sm" variant="primary" busy={signingOut} onPress={() => void signOut()} testID="action.signOut">
             {t("action.signOut")}
           </Button>
+        ) : asked ? (
+          <>
+            <Button size="sm" variant="primary" onPress={() => openAsked(problem.source)} testID="action.openAsked">
+              {t("action.openSource", { source: name })}
+            </Button>
+            {/* Done on the site: read it now instead of waiting for the next read. */}
+            <Button size="sm" busy={refreshing} onPress={() => void refresh(problem.source)} testID="action.tryAgain">
+              {t("action.tryAgain")}
+            </Button>
+          </>
         ) : (
           <Button size="sm" busy={refreshing} onPress={() => void refresh(offline ? undefined : problem.source)} testID="action.tryAgain">
             {t("action.tryAgain")}
