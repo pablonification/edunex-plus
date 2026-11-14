@@ -553,5 +553,10 @@ describe("text from a page is only ever text to find, never a pattern", () => {
     expect(scrubSixRecords(row('<span title="A">A</span>'), rules)).toBe(row('<span title="A">BC</span>'));
     expect(scrubRecordText("II2230 · Algoritma · 3 · A+ · 5", rules)).toBe("II2230 · Algoritma · 3 · A+ · 5");
     expect(scrubRecordText("II2230 · Algoritma · 3 · A · 5", rules)).toBe("II2230 · Algoritma · 3 · BC · 5");
+    // Codes not set in full (#361, #367): their grades go too.
+    for (const code of ["WI201X", "AE40X0", "KL4XYZ"]) {
+      expect(scrubSixRecords(`<tr><td>${code}</td><td>A</td></tr>`, rules)).toBe(`<tr><td>${code}</td><td>BC</td></tr>`);
+      expect(scrubRecordText(`${code} · Capstone · 3 · A · 5`, rules)).toBe(`${code} · Capstone · 3 · BC · 5`);
+    }
   });
 });
