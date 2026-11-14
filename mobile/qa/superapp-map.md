@@ -189,7 +189,7 @@ links to the open app. A link to a route (`edunexplusdemo://grades`) works any t
 | `EDUNEX_DEMO_EDIT=1` | the lecturer edited Task 117001 (new brief, later deadline) |
 | `EDUNEX_DEMO_HANDED_BACK=1` | the lecturer wrote under Task 117001 and handed it back |
 | `EDUNEX_DEMO_SICK=1` | SIX counts "izin dan sakit" as a second figure |
-| `EDUNEX_DEMO_DATAINDUK=1` | SIX asks for the personal-details form first (a changed page) |
+| `EDUNEX_DEMO_DATAINDUK=1` | SIX asks for the personal-details form first: SIX waits for the Student ("SIX minta kamu memperbarui data diri dulu." with Buka SIX, flow `six-waits`, #359) |
 | `EDUNEX_DEMO_CURRICULUM=none` | SIX marks every curriculum ✗ (first-year program) |
 | `EDUNEX_DEMO_GUIDE=1` | the desktop's first-run guide (no phone screen) |
 | `EDUNEX_DEMO_ODD=1` | a paid UKT shown unpaid; a remedial grade "A (remedial)" |
@@ -215,7 +215,7 @@ Not an option, but in the pretend world: `world.setOffline(true)` (`test/pretend
 | Empty: no SIX (no timetable) | **–** no now card, no "Nanti hari ini" (the part returns `null`); only "Perlu kamu urus" shows | `now.tsx:77` ("if (!hasSchedule) return null") | **proven**: `EDUNEX_DEMO=edunex-only` (flows `judge/edunex-only.yaml`). Beranda is thinner but says nothing about SIX; the banner stays absent (`banner.problem` appears only if SIX *had* data) |
 | Offline | **✓** `banner.problem` "Tidak ada koneksi." + hint with the last time; status line under the greeting | `src/shell/source-status.tsx:~505` (`ProblemBanner`), `StatusLine` | **no way in the demo**. One option would add it: `EDUNEX_DEMO_OFFLINE=1` (or a link `?offline=1`, like `end=`) calling `run.world.setOffline(true)` then `engine.refresh()` in `mobile/src/demo/world.ts`. The desktop's picture 27 "needs a phone without a network" (`flows/judge/walk.yaml` header) |
 | Error: SIX session ended | **✓** `banner.problem` "Sesi SIX berakhir." + "Masuk lagi" | same | launch `EDUNEX_DEMO=signed-in&EDUNEX_DEMO_SIGN_IN=asks`, then open `edunexplusdemo://demo?end=six` (not run as a pair; each half is in the code) |
-| Error: page changed | **✓** `banner.problem` "SIX berubah." and `SixPageNote` on the card | `home/index.tsx` (`useChangedPage`) | **proven** `EDUNEX_DEMO_COURSE_TABLE=lost\|blank` (flows `course-table-lost/-blank`), `EDUNEX_DEMO_DATAINDUK=1` |
+| Error: page changed | **✓** `banner.problem` "SIX berubah." and `SixPageNote` on the card | `home/index.tsx` (`useChangedPage`) | **proven** `EDUNEX_DEMO_COURSE_TABLE=lost\|blank` (flows `course-table-lost/-blank`) |
 | Signed out of SIX only | **✓** (see "no SIX") | | `EDUNEX_DEMO=edunex-only` |
 | First run | **✓** the snackbar "Semua siap." once, with "Lihat ringkasan" (no `card.firstScan` any more); `card.notify` (notifications) only from the second open | `first-scan/said.tsx`, `home/first-run.tsx` | `EDUNEX_DEMO=first-run` after sign-in (**proven**, `flows/judge/first-run.yaml`) |
 | Check-in open | **✓** the class block's one button: "Isi Presensi" (`action.presence`) when the class's Edunex Presence is open, which opens Edunex's page in the app (`screen.page.edunex`); "Tandai Hadir" (`action.checkIn`, `screen.checkIn`) only on the SIX path; after SIX's, the block reads "Sudah ke SIX · HH:MM" (`card.now.checkedIn`) | `home/banner.tsx` (`BannerAction`), `home/checked-in.ts` | **proven** `EDUNEX_DEMO_CHECK_IN=open` |
@@ -260,7 +260,7 @@ Not an option, but in the pretend world: `world.setOffline(true)` (`test/pretend
 | Loading | **✓** `academic.loading` (the IPK card's shape) and rows with a skeleton meta | `academic-screen.tsx:150` (`StandingSkeleton`), `useMissingMeta` | tap `tab.academic` during the first read |
 | Empty / signed out of SIX | **✓** `academic.noSix` "IPK muncul di sini setelah SIX terbaca." + `action.academic.signIn` (only when signed out) | `academic-screen.tsx:176` (`ConnectSix`) | **proven** `EDUNEX_DEMO=edunex-only` |
 | Offline | **✓** `banner.problem` | `TabHeader` | no way in the demo |
-| Error: page changed | **✓** banner + rows' notes | | `EDUNEX_DEMO_CURRICULUM=none`, `EDUNEX_DEMO_DATAINDUK=1` |
+| Error: page changed | **✓** banner + rows' notes | | `EDUNEX_DEMO_CURRICULUM=none` |
 | To-do chips | **✓** `section.academic.todo` only when KRS/UKT are due | `Todos` | **proven** `EDUNEX_DEMO_ODD=1` (UKT shown unpaid) |
 
 ### 3.6 A course
