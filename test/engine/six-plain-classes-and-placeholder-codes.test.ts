@@ -62,3 +62,18 @@ describe("the same course in the Student's curriculum position (#362)", () => {
     expect(course).toMatchObject({ name: "Capstone Design", status: "not-taken" });
   });
 });
+
+describe("a code with its X within (#367)", () => {
+  it("reads AE40X0 Metode Komputasi Dirgantara as a course, nothing left out", () => {
+    const skipped = new Skipped();
+    const structure = readCurriculumStructure(bodyText("six", "report-placeholder-x-kurikulum-kurikulum-1027-struktur.html"), skipped);
+    expect(skipped.rows).toEqual([]);
+    const all = [
+      ...structure.required,
+      ...structure.catalog,
+      ...structure.specializations.flatMap((p) => p.courses),
+      ...structure.minors.flatMap((p) => p.courses),
+    ];
+    expect(all.find((c) => c.code === "AE40X0")).toMatchObject({ name: "Metode Komputasi Dirgantara", sks: 3 });
+  });
+});

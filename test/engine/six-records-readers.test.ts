@@ -1240,7 +1240,7 @@ describe("every reader, given a row it doesn't recognise among the ones it does"
     ["a KRS course", KRS, readKrs, "DK4073", "<tr><td>XX-01</td><td>Mata kuliah baru</td><td>01</td><td>3</td><td></td></tr>"],
     ["a curriculum", LIST, readCurriculumList, "Lihat Struktur Kurikulum", "<tr><td>Kurikulum lama</td><td>2013</td></tr>"],
     ["a scheme registration", SCHEMES, readSchemes, "Sistem Informasi Cerdas &#183;", "<tr><td>2</td><td>Minor baru</td><td>-</td></tr>"],
-    ["a specialization's course", STRUCTURE, readCurriculumStructure, "II4021", "<tr><td>II4X99</td><td>Topik Khusus</td><td>3</td></tr>"],
+    ["a specialization's course", STRUCTURE, readCurriculumStructure, "II4021", "<tr><td>II4-99</td><td>Topik Khusus</td><td>3</td></tr>"],
     ["a catalog course", STRUCTURE, readCurriculumStructure, "<td", "<tr><td>Kategori baru</td><td>3</td></tr>", 'id="katalog"'],
   ];
 

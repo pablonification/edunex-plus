@@ -451,7 +451,8 @@ function gradeAt(inner: string, grade: string): number {
 /** In a row with a course code, any cell that holds just a letter grade gets that course's made-up one. */
 function gradesInRows(html: string, grade: RecordRules["grade"]): string {
   return html.replace(/<tr\b[^>]*>[\s\S]*?<\/tr>/gi, (row) => {
-    const code = /<td\b[^>]*>\s*([A-Z]{2}\d{3}[\dX])(?![\dA-Za-z])/.exec(row)?.[1];
+    // The codes SIX's readers read (records-common.ts COURSE_CODE): "WI201X", "AE40X0" and "KL4XYZ" too.
+    const code = /<td\b[^>]*>\s*([A-Z]{2}\d(?:[\dX]{3}|XYZ))(?![\dA-Za-z])/.exec(row)?.[1];
     if (!code) return row;
     return row.replace(/(<td\b[^>]*>)([\s\S]*?)(<\/td>)/gi, (cell, open: string, inner: string, close: string) => {
       const text = stripTags(inner);
@@ -513,7 +514,7 @@ export function scrubSixRecords(html: string, rules: RecordRules): string {
  */
 export function scrubRecordText(text: string, rules: RecordRules): string {
   const parts = text.split(" · ");
-  const code = parts.find((part) => /^[A-Z]{2}\d{3}[\dX](?![\dA-Za-z])/.test(part))?.slice(0, 6);
+  const code = parts.find((part) => /^[A-Z]{2}\d(?:[\dX]{3}|XYZ)(?![\dA-Za-z])/.test(part))?.slice(0, 6);
   let out = code ? parts.map((part) => (LETTER_GRADE.test(part) ? rules.grade(code, part) : part)).join(" · ") : text;
   out = amounts(out, rules.amountFactor);
   return rules.index ? indexes(out, rules.index) : out;
