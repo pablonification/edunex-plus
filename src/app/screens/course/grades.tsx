@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { percent } from "../../../core/attendance";
 import { EXAMPLE_CONTRACT, EXAMPLE_PART_IDS, letterFor, partScore, standing } from "../../../core/course-contract";
 import { CONTRACT_LETTERS, type ContractLetter, type ContractPart, type CourseContract } from "../../../core/models";
+import { GradesHiddenLine, useGradesHidden } from "../../hide-grades";
 import { useFormat, useT } from "../../i18n";
 import { usePlaceState } from "../../nav";
 import { useBridge, useDataset } from "../../store";
@@ -23,6 +24,8 @@ export function GradesTab({ page, onOpenModules }: { page: CoursePage; onOpenMod
   const t = useT();
   const f = useFormat();
   const grade = page.outline?.grade ?? null;
+  // Hidden grades: the scores, the calculator's answer and Edunex's grade give way to one line.
+  if (useGradesHidden()) return <GradesHiddenLine />;
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_260px] items-start gap-8 max-[1180px]:grid-cols-1">
       <Calculator page={page} onOpenModules={onOpenModules} />

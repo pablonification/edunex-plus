@@ -38,6 +38,7 @@ import { lateSnoozable, type TodoGroup, type TodoItem, todoCount, todoForCourse,
 import { answerShape, editableInApp } from "../answer-html";
 import { ActionError, errorKey } from "../bridge";
 import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
+import { useGradeWords } from "../hide-grades";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { LecturerHtml } from "../lecturer-html";
@@ -541,12 +542,15 @@ export function TaskDate({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
   const now = useNow();
+  const gradeWords = useGradeWords();
   const sentAt = submittedAt(task);
   if (sentAt !== null)
     return (
       <span className="w-[136px] text-right text-small whitespace-nowrap tabular-nums">
         <span className="block font-medium">
-          {task.score !== null ? t("task.scoreValue", { score: formatScore(task.score, f) }) : t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}
+          {task.score !== null
+            ? t("task.scoreValue", { score: gradeWords(formatScore(task.score, f)) })
+            : t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}
         </span>
         {task.score !== null && <span className="block text-faint">{t("task.submittedOnDate", { date: f.dayMonth(sentAt) })}</span>}
       </span>
@@ -1214,6 +1218,7 @@ function useAnswerText(task: Task) {
 function HandIn({ task, status }: Row) {
   const t = useT();
   const f = useFormat();
+  const gradeWords = useGradeWords();
   const now = useNow();
   const bridge = useBridge();
   const open = useOpenExternal();
@@ -1506,7 +1511,7 @@ function HandIn({ task, status }: Row) {
           {(task.score !== null || status === "in_review") && (
             <span className="ml-auto text-right text-caption text-muted">
               {t("task.score")}
-              <span className="block text-title font-semibold text-fg tabular-nums">{task.score !== null ? formatScore(task.score, f) : "-"}</span>
+              <span className="block text-title font-semibold text-fg tabular-nums">{task.score !== null ? gradeWords(formatScore(task.score, f)) : "-"}</span>
             </span>
           )}
         </div>

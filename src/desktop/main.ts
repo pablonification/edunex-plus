@@ -7,6 +7,7 @@ import path from "node:path";
 import { app, BrowserWindow, dialog, powerMonitor, session, shell } from "electron";
 import { CHANNEL_EVENT } from "../core/channels";
 import type { Event } from "../core/contract";
+import { gradesHidden } from "../core/hide-grades";
 import { isOfficialUrl, isWebLink } from "../core/links";
 import type { Settings } from "../core/models";
 import { DEFAULT_SETTINGS, UpdateNotice } from "../core/models";
@@ -94,6 +95,8 @@ process.on("unhandledRejection", (reason) => {
 });
 const notifier = createNotifier({
   lang: () => engine?.snapshot().settings.lang ?? DEFAULT_SETTINGS.lang,
+  // Unknown until the engine is loaded: hidden wins, as on the phone.
+  hideGrades: () => gradesHidden(engine?.snapshot().settings),
   open: openRoute,
   openCheckIn: checkIn,
   log: log.for("notifications"),

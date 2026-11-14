@@ -77,6 +77,7 @@ import {
   untried,
   withWhatIf,
 } from "../../../core/planner";
+import { GradesHiddenLine, HiddenFigure, useGradesHidden, useGradeWords } from "../../hide-grades";
 import { useFocusNext } from "../../hooks";
 import { useFormat, useLang, useT } from "../../i18n";
 import { usePlaceState } from "../../nav";
@@ -191,6 +192,7 @@ function resetLoss(record: StudentRecord, plan: StudyPlan): { grades: number; ad
 /** `real`: SIX's own record; `record`: with this term's what-ifs, which every figure here counts. */
 function Planner({ real, record, state }: { real: StudentRecord; record: StudentRecord; state: PlanState }) {
   const t = useT();
+  const gradeWords = useGradeWords();
   const lang = useLang();
   const termLabel = useTermLabel();
   const { plan, projection, update } = state;
@@ -326,7 +328,7 @@ function Planner({ real, record, state }: { real: StudentRecord; record: Student
                     sks={course.sks}
                     tag={
                       course.retake ? (
-                        <Tag>{t("planner.role.retake", { grade: record.graded.get(course.code)?.grade ?? "-" })}</Tag>
+                        <Tag>{t("planner.role.retake", { grade: gradeWords(record.graded.get(course.code)?.grade ?? "-") })}</Tag>
                       ) : (
                         <RoleTag record={record} code={course.code} minor={minor} spec={spec} />
                       )
@@ -429,6 +431,7 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
   const finish = rules.find((r): r is Extract<Rule, { id: "finish" }> => r.id === "finish");
   const warnings = rules.filter((r) => r.level === "warn" && !isHidden(r, plan)).length;
   const word = predicate(predicateFor(projection.finalIpk, projection.path));
+  const hidden = useGradesHidden();
   return (
     // The plan's headline, on the page with no box: the semesters below are the cards.
     <div>
@@ -471,9 +474,16 @@ function Summary({ record, state, rules }: { record: StudentRecord; state: PlanS
           <div>
             <dt className="text-caption font-medium text-muted">{t("grades.graduation")}</dt>
             <dd className="text-title font-semibold tabular-nums">
-              {projection.finalIpk === null ? "-" : <AnimatedNumber value={projection.finalIpk} format={(value) => f.number(value, 2)} />}
+              {projection.finalIpk === null ? (
+                "-"
+              ) : hidden ? (
+                <HiddenFigure name={t("grades.graduation")} />
+              ) : (
+                <AnimatedNumber value={projection.finalIpk} format={(value) => f.number(value, 2)} />
+              )}
             </dd>
-            <dd className={cx("text-caption", projection.honor ? "font-semibold text-success-fg" : "text-muted")}>{word}</dd>
+            {/* The honors word says where the IPK is: hidden with it. */}
+            {!hidden && <dd className={cx("text-caption", projection.honor ? "font-semibold text-success-fg" : "text-muted")}>{word}</dd>}
           </div>
         </dl>
       </div>
@@ -531,6 +541,8 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
   const termLabel = useTermLabel();
   const [open, setOpen] = usePlaceState("planner.past", false);
   const id = useId();
+  // Hidden grades: dots where the IPK and each IP were.
+  const words = useGradeWords();
   if (!steps.length) return null;
   const ipk = record.transcript ? (record.transcript.ipk.six ?? record.transcript.ipk.computed) : null;
   const last = steps.at(-1)?.semester ?? steps.length;
@@ -545,7 +557,9 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
         <Icons.ChevronRight className={cx("size-4 text-faint transition-transform duration-quick", open && "rotate-90")} />
         <Meta className="flex-1 text-body font-semibold">
           {t("planner.past", { n: last })}
-          <span className="font-normal text-muted">{t("planner.pastMeta", { sks: passedSks(record) ?? "-", ipk: ipk === null ? "-" : f.number(ipk, 2) })}</span>
+          <span className="font-normal text-muted">
+            {t("planner.pastMeta", { sks: passedSks(record) ?? "-", ipk: ipk === null ? "-" : words(f.number(ipk, 2)) })}
+          </span>
         </Meta>
       </button>
       <DisclosurePanel open={open} id={id}>
@@ -554,7 +568,7 @@ function Past({ record, steps }: { record: StudentRecord; steps: ProjectedStep[]
             <li key={s.term} className="text-small">
               <span className="font-medium">{termLabel(s.term, s.semester)}</span>
               <Meta className="text-muted tabular-nums">
-                {`IP ${s.ip === null ? "-" : f.number(s.ip, 2)}`}
+                {`IP ${s.ip === null ? "-" : words(f.number(s.ip, 2))}`}
                 {`${s.sks ?? "-"} SKS`}
               </Meta>
             </li>
@@ -598,6 +612,7 @@ function TermBlock({
   const t = useT();
   const f = useFormat();
   const over = limit !== null && sks > limit;
+  const hidden = useGradesHidden();
   return (
     <section aria-label={title}>
       <Card className="overflow-hidden">
@@ -615,7 +630,8 @@ function TermBlock({
             {sks}
             {limit !== null && ` / ${limit}`} SKS
           </span>
-          {step && (
+          {/* Hidden grades: the semester's IP and the IPK after it aren't said. */}
+          {step && !hidden && (
             <span className="border-l border-line pl-3 text-right leading-tight">
               {/* That the IP comes from the grades the Student expects is said once, a hover or focus away. */}
               <Explained
@@ -750,6 +766,7 @@ function CourseLine({
   removeKey?: string;
 }) {
   const t = useT();
+  const hidden = useGradesHidden();
   return (
     <li className={LINE}>
       <span className="text-small font-semibold tabular-nums">{code}</span>
@@ -775,9 +792,9 @@ function CourseLine({
       {posted ? (
         <span
           className="inline-flex h-7 items-center justify-center rounded-item bg-neutral-bg text-small font-bold text-neutral-fg"
-          title={t("grades.sixGrade")}
+          title={hidden ? undefined : t("grades.sixGrade")}
         >
-          {grade}
+          {hidden ? <HiddenFigure name={t("grades.sixGrade")} /> : grade}
         </span>
       ) : (
         <GradeSelect label={t("grades.expectedOf", { code })} value={grade} guess={guess} onChange={onGrade} />
@@ -1216,6 +1233,18 @@ function Outlook({ record, state }: { record: StudentRecord; state: PlanState })
   const allOut = honors.every((h) => h.kind === "out");
   const cum = honors.find((h) => h.level === "cum");
   const honorsWhy = [allOut && cum ? t("grades.honorsOut", { min: f.number(cum.min, 2) }) : null, t("honors.rule")].filter(Boolean).join(" ");
+  // Hidden grades: the target is the Student's own choice and still changes. What comes from grades (what the target
+  // needs, the chart, the honors) gives way to one quiet line with the way to show them.
+  if (useGradesHidden())
+    return (
+      <section>
+        <h3 className="text-body font-semibold">{t("planner.outlook")}</h3>
+        <div className="space-y-2 pt-2.5">
+          <TargetControl record={record} state={state} />
+          <GradesHiddenLine />
+        </div>
+      </section>
+    );
   return (
     <section>
       <h3 className="text-body font-semibold">{t("planner.outlook")}</h3>
@@ -1341,9 +1370,10 @@ function MinorPanel({
   const progress = minorProgress(record, plan, minor);
   const have = progress.passed + progress.now + progress.planned;
   const grade = nearestLetter(startingIpk(record));
+  const gradeWords = useGradeWords();
   const label = (term: string) => termLabel(term, semesterOf(term, record.entryTerm));
   const stateText = (code: string, st: CourseState) =>
-    st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : st ? t(`planner.state.${st}`) : null;
+    st === "passed" ? t("planner.state.passed", { grade: gradeWords(record.graded.get(code)?.grade ?? "") }) : st ? t(`planner.state.${st}`) : null;
   const termOf = (code: string) => (courseState(record, plan, code) ? null : termFor(plan, courseInfo(record, code).sks));
   // The courses with an Add button, in order: once one is added, focus moves to the next (the button turns into its status).
   const addable = minor.courses.filter((code) => termOf(code) !== null);
@@ -1487,6 +1517,8 @@ function AddCourse({
   const minor = activeMinor(record, plan);
   const spec = activeSpecialization(record, plan);
   const grade = nearestLetter(startingIpk(record));
+  const hidden = useGradesHidden();
+  const gradeWords = useGradeWords();
   const add = (code: string, retake: boolean) => {
     const info = courseInfo(record, code);
     onAdd({ code, name: info.name, sks: info.sks, grade, retake });
@@ -1527,14 +1559,14 @@ function AddCourse({
             {`${info.sks} SKS`}
             {owner}
             {why}
-            {retake && retake.now !== null && retake.after !== null
+            {!hidden && retake && retake.now !== null && retake.after !== null
               ? t("planner.retakeGain", { now: f.number(retake.now, 2), after: f.number(retake.after, 2) })
               : null}
           </Meta>
         </span>
         {!canAdd(st) && st ? (
           <span className="text-caption font-semibold whitespace-nowrap text-faint">
-            {st === "passed" ? t("planner.state.passed", { grade: record.graded.get(code)?.grade ?? "" }) : t(`planner.state.${st}`)}
+            {st === "passed" ? t("planner.state.passed", { grade: gradeWords(record.graded.get(code)?.grade ?? "") }) : t(`planner.state.${st}`)}
           </span>
         ) : (
           <Button size="sm" aria-label={t(retake ? "planner.retakeCode" : "planner.addCode", { code })} onClick={() => add(code, Boolean(retake))}>
@@ -1581,7 +1613,9 @@ function AddCourse({
               <>
                 <p className="px-5 pt-4 pb-1 text-small font-semibold text-muted">{t("planner.retakes")}</p>
                 <p className="px-5 pb-1 text-caption text-faint">{t("planner.retakeSumma")}</p>
-                <ul>{retakes.map((r) => row(r.code, t("planner.why.grade", { grade: r.grade }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }))}</ul>
+                <ul>
+                  {retakes.map((r) => row(r.code, t("planner.why.grade", { grade: gradeWords(r.grade) }), { from: r.grade, now: r.ipkNow, after: r.ipkWithA }))}
+                </ul>
               </>
             )}
           </Tabs.Content>

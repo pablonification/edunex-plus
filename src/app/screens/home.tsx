@@ -21,6 +21,7 @@ import { wibDay } from "../../core/course-meetings";
 import { type DoneTerms, doneTerms, taskPutAway } from "../../core/done";
 import { PERIOD_NEAR } from "../../core/exams";
 import { heldBack } from "../../core/held-back";
+import { withoutGrades } from "../../core/hide-grades";
 import { edunexCourseUrl, sixStatusUrl, sixTimetableUrl } from "../../core/links";
 import type { Alert, AlertKind, ClassSession, DoneEntry, SixCheckIn, SnoozeEntry, UnreadSession } from "../../core/models";
 import {
@@ -45,6 +46,7 @@ import { dateMove, type EditView, editView, titleOnly } from "../../core/task-ed
 import { useActionLabel } from "../attendance-labels";
 import { AbsenceBudget } from "../attendance-parts";
 import { type TermCourse, useCourseColor, useTermCourses } from "../courses";
+import { useGradesHidden } from "../hide-grades";
 import { useHomeWorld } from "../home-world";
 import { useOpenCheckIn, useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
@@ -1524,10 +1526,12 @@ function ChangeRow({ item, f, onOpen }: { item: Alert; f: Format; onOpen: () => 
   const important = IMPORTANT.has(item.title.key) || (item.body !== null && item.body !== undefined && IMPORTANT_BODY.has(item.body.key));
   const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
   const colorOf = useCourseColor();
-  const title = t(item.title.key, item.title.vars);
+  // Hidden grades: a new grade names its course only, never the grade or the IPK.
+  const words = useGradesHidden() ? withoutGrades(item) : item;
+  const title = t(words.title.key, words.title.vars);
   const when = f.dayOffset(item.at) === 0 ? f.time(item.at) : f.relativeDay(item.at);
   // The details, on hover and in its name; whole where it opens.
-  const whole = factsLabel(title, item.body && t(item.body.key, item.body.vars));
+  const whole = factsLabel(title, words.body && t(words.body.key, words.body.vars));
   return (
     <Row
       className="py-2.5"
@@ -1543,7 +1547,7 @@ function ChangeRow({ item, f, onOpen }: { item: Alert; f: Format; onOpen: () => 
           <Meta>{title}</Meta>
         </span>
       }
-      label={item.body ? factsLabel(whole, when) : undefined}
+      label={words.body ? factsLabel(whole, when) : undefined}
       trailing={<span className="text-caption whitespace-nowrap text-faint tabular-nums">{when}</span>}
       onClick={onOpen}
     />

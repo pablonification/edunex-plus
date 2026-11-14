@@ -7,6 +7,7 @@
 // Linux depends on the desktop's notification daemon.
 // Platform notes (signing on macOS, the AppUserModelID on Windows): docs/platform-notifications.md.
 import { Notification } from "electron";
+import { withoutGrades } from "../core/hide-grades";
 import type { AlertText, Lang } from "../core/models";
 import type { Route } from "../core/route";
 import { translate } from "../core/strings";
@@ -20,6 +21,8 @@ export interface Notifier {
 
 export function createNotifier(options: {
   lang: () => Lang;
+  /** Whether the Student hides grades now (Settings.hideGrades): a new grade's notification then names its course only. */
+  hideGrades?: () => boolean;
   open: (route: Route) => void;
   openCheckIn: (meetingId: string) => void;
   /** Which alerts showed and which didn't, for the app's own log (src/engine/app-log.ts): their kind, never their words. */
@@ -33,9 +36,10 @@ export function createNotifier(options: {
         options.log?.("warn", `${notice.kind} not shown: this system shows no notifications`);
         return false;
       }
+      const words = options.hideGrades?.() ? withoutGrades(notice) : notice;
       const notification = new Notification({
-        title: text(notice.title),
-        body: notice.body ? text(notice.body) : undefined,
+        title: text(words.title),
+        body: words.body ? text(words.body) : undefined,
         // Presence opening or about to close is time-critical; everything else is a normal notification.
         urgency: notice.kind === "presenceOpen" || notice.kind === "presenceClosing" ? "critical" : "normal",
       });

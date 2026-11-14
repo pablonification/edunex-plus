@@ -11,6 +11,7 @@ import { type ReactNode, type Ref, useEffect, useId, useRef, useState } from "re
 import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../core/curriculum-map";
 import type { CurriculumFix } from "../../../core/models";
 import { hasWhatIfs, type SksModel, type StudentRecord, sksModel } from "../../../core/planner";
+import { useGradesHidden } from "../../hide-grades";
 import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
 import { SixPageNote, UnreadNote } from "../../six-page-note";
@@ -351,10 +352,12 @@ function LeftBar({
 function Status({ status, grade }: { status: SlotStatus; grade: string | null }) {
   const t = useT();
   const label = t(`curriculum.status.${status}`);
+  const hidden = useGradesHidden();
   switch (status) {
     case "passed":
       // Most rows: the check and the grade say it, so the rows that need the Student stand out. The word stays for screen readers.
-      if (grade)
+      // Hidden grades: the check and the word, as a course passed without a grade.
+      if (grade && !hidden)
         return (
           <span className="inline-flex items-center gap-1 text-small whitespace-nowrap">
             <Icons.Check className="size-3.5 text-success-fg" weight="bold" />
@@ -491,6 +494,7 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
   const semester = record.required.get(course.code)?.semester;
   const suggested = all.filter((c) => c.suggested);
   const rest = all.filter((c) => !c.suggested);
+  const hidden = useGradesHidden();
   const group = (title: string, list: StandIn[]) =>
     list.length > 0 && (
       <section className="mt-4 first:mt-0">
@@ -509,7 +513,7 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
                   {c.fills && <span className="block text-caption text-muted">{t("curriculum.pick.fills", { code: c.fills })}</span>}
                 </span>
                 <Meta align="end" className="text-small text-muted tabular-nums">
-                  {c.grade}
+                  {hidden ? null : c.grade}
                   {`${c.sks ?? "-"} SKS`}
                 </Meta>
               </button>

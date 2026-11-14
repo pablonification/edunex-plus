@@ -182,6 +182,7 @@ export const mobileStrings = {
   // The button Android shows on a notification about a class to mark present in: SIX's own name for it.
   "mobile.notification.checkIn": { id: "Tandai Hadir", en: "Tandai Hadir" },
   // Hiding grades (src/core/hide-grades.ts): one name on the eye button, Settings' switch and the quiet line.
+  // Shown on the desktop too (src/app/hide-grades.tsx), as are the two grade notifications below.
   "mobile.hideGrades": { id: "Sembunyikan nilai", en: "Hide grades" },
   "mobile.hideGrades.hint": { id: "IPK, IP, dan nilai tiap mata kuliah", en: "IPK, IP and every course's grade" },
   "mobile.hideGrades.show": { id: "Tampilkan nilai", en: "Show grades" },

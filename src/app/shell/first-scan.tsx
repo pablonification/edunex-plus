@@ -9,6 +9,7 @@ import { takeHomeOnly } from "../../core/exam-sources";
 import { type Finding, firstScan, notable, scanReady, scanSummary } from "../../core/first-scan";
 import type { DatasetName } from "../../core/models";
 import type { Route } from "../../core/route";
+import { useGradesHidden } from "../hide-grades";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav } from "../nav";
 import { useSaved } from "../saved";
@@ -108,10 +109,13 @@ function useScan(computing: boolean) {
   const itb = useStatus("itb");
   const statuses = useMemo(() => [edunex, six, itb], [edunex, six, itb]);
   const ready = scanReady(saved, statuses);
-  const findings = useMemo(
-    () => (computing || ready ? firstScan({ saved, statuses, targets: { attendanceTarget, attendanceTargets }, now }) : []),
-    [computing, ready, saved, statuses, attendanceTarget, attendanceTargets, now],
-  );
+  // Hidden grades: the IPK finding isn't said (it names the IPK).
+  const hidden = useGradesHidden();
+  const findings = useMemo(() => {
+    if (!computing && !ready) return [];
+    const all = firstScan({ saved, statuses, targets: { attendanceTarget, attendanceTargets }, now });
+    return hidden ? all.filter((finding) => finding.kind !== "ipk") : all;
+  }, [computing, ready, saved, statuses, attendanceTarget, attendanceTargets, now, hidden]);
   return { saved, statuses, ready, findings };
 }
 

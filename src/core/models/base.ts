@@ -127,8 +127,8 @@ export const Settings = z.object({
 
   // Grades
   /**
-   * On the phone only: "Sembunyikan nilai". While on, no grade is readable there (the IPK, each IP, every course's
-   * grade, a new grade's notification). The desktop doesn't read it. Saved from the phone's hide-grades on; off before.
+   * "Sembunyikan nilai", on the phone and the desktop. While on, no grade is readable (the IPK, each IP, every course's
+   * grade, a new grade's notification). Saved from the phone's hide-grades on; off before.
    */
   hideGrades: z.boolean().optional(),
 

@@ -3,6 +3,7 @@
 // badges, the one IPK target (quick picks plus any value), what a target
 // needs, the honors outlook, and the IP/IPK chart.
 import { useState } from "react";
+import { HIDDEN_FIGURE } from "../../../core/hide-grades";
 import { letterForAverage, type Predicate, predicateFor } from "../../../core/honors";
 import { GRADE_POINTS, LETTER_GRADES, type LetterGrade } from "../../../core/models";
 import {
@@ -17,6 +18,7 @@ import {
   targetOf,
   termKind,
 } from "../../../core/planner";
+import { useGradesHidden } from "../../hide-grades";
 import { useFormat, useT } from "../../i18n";
 import type { PlanState } from "../../study-plan";
 import { ChartLegend, LineChart } from "../../ui/chart";
@@ -76,6 +78,9 @@ export { predicateFor };
  * An expected grade. Until the Student picks one (`guess`), it's drawn as a
  * dashed, quiet control: an assumption, not a fact.
  */
+/** Keys that change a closed select's value on Windows and Linux. */
+const NAV_KEYS = new Set(["ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);
+
 export function GradeSelect({
   value,
   onChange,
@@ -89,17 +94,36 @@ export function GradeSelect({
   guess?: boolean;
   className?: string;
 }) {
+  const t = useT();
+  // Hidden grades: every letter is dots, as on the phone (one not picked yet comes from the IPK). Picking one still works.
+  const masked = useGradesHidden();
   return (
     <select
-      value={value}
-      aria-label={label}
+      value={masked ? "" : value}
+      aria-label={masked ? t("mobile.hideGrades.said", { name: label }) : label}
       onChange={(event) => onChange(event.target.value as LetterGrade)}
+      // On Windows and Linux an arrow key on a closed select picks the next letter at once; from the dots, that is always
+      // the first one, out of sight. While hidden, those keys open the list instead, as on a Mac.
+      onKeyDown={(event) => {
+        if (!masked || !NAV_KEYS.has(event.key)) return;
+        event.preventDefault();
+        try {
+          event.currentTarget.showPicker();
+        } catch {
+          // A browser without showPicker, or one that refuses it here: the list opens by click or Alt+Down as before.
+        }
+      }}
       className={cx(
         "focus-ring h-7 w-[62px] rounded-item px-1.5 text-small font-semibold transition-colors duration-quick hover:bg-hover",
         guess ? "border border-dashed border-field-edge bg-transparent text-muted" : "border border-field-edge bg-surface text-fg",
         className,
       )}
     >
+      {masked && (
+        <option value="" disabled hidden>
+          {HIDDEN_FIGURE}
+        </option>
+      )}
       {LETTER_GRADES.map((grade) => (
         <option key={grade} value={grade}>
           {grade}
