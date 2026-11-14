@@ -2,7 +2,8 @@
 // "Skema Program Pendidikan"): specialization, minor, multidisciplinary
 // program or double major, with the advisor's and the program's approval. A
 // row whose scheme it can't read is left out (skipped); an approval day it
-// can't read is left blank and the row noted.
+// can't read is left blank and the row noted. A program that offers none of
+// these (a master's) shows only the panels the app doesn't read: none.
 import type { SchemeRegistration } from "../../../../core/models";
 import type { Skipped } from "../../skipped";
 import {
@@ -47,11 +48,15 @@ const BY_TITLE: Record<string, SchemeRegistration["kind"]> = {
   "double major": "double-major",
 };
 
+/** Panels the app doesn't read: Outbound Mobility, and the integrated programs (PISM, PIMD), by their titles. */
+const UNREAD = /^(outbound mobility|program integrasi|integrated)/i;
+
 export function readSchemes(html: string, skipped?: Skipped): SchemeRegistration[] {
   const page = openPage(html, "education scheme", skipped);
   const out: SchemeRegistration[] = [];
   const seen = new Set<SchemeRegistration["kind"]>();
-  for (const element of page.$(".panel").toArray()) {
+  const panels = page.$(".panel").toArray();
+  for (const element of panels) {
     const panel = page.$(element);
     const tab = /[?&]tab=([a-z]+)/.exec(panel.find(".panel-footer a").attr("href") ?? "")?.[1];
     const kind = (tab && BY_TAB[tab]) || BY_TITLE[textOf(panel.find(".panel-title").first()).toLowerCase()];
@@ -92,7 +97,9 @@ export function readSchemes(html: string, skipped?: Skipped): SchemeRegistration
       }),
     );
   }
-  if (seen.size === 0) changed(page, "no scheme panels");
+  // Every panel one the app knows and doesn't read: SIX offers this Student no scheme.
+  const unread = (element: (typeof panels)[number]) => UNREAD.test(textOf(page.$(element).find(".panel-heading").first()));
+  if (seen.size === 0 && !(panels.length > 0 && panels.every(unread))) changed(page, "no scheme panels");
   return out;
 }
 
