@@ -78,6 +78,9 @@ export { predicateFor };
  * An expected grade. Until the Student picks one (`guess`), it's drawn as a
  * dashed, quiet control: an assumption, not a fact.
  */
+/** Keys that change a closed select's value on Windows and Linux. */
+const NAV_KEYS = new Set(["ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);
+
 export function GradeSelect({
   value,
   onChange,
@@ -99,6 +102,17 @@ export function GradeSelect({
       value={masked ? "" : value}
       aria-label={masked ? t("mobile.hideGrades.said", { name: label }) : label}
       onChange={(event) => onChange(event.target.value as LetterGrade)}
+      // On Windows and Linux an arrow key on a closed select picks the next letter at once; from the dots, that is always
+      // the first one, out of sight. While hidden, those keys open the list instead, as on a Mac.
+      onKeyDown={(event) => {
+        if (!masked || !NAV_KEYS.has(event.key)) return;
+        event.preventDefault();
+        try {
+          event.currentTarget.showPicker();
+        } catch {
+          // A browser without showPicker, or one that refuses it here: the list opens by click or Alt+Down as before.
+        }
+      }}
       className={cx(
         "focus-ring h-7 w-[62px] rounded-item px-1.5 text-small font-semibold transition-colors duration-quick hover:bg-hover",
         guess ? "border border-dashed border-field-edge bg-transparent text-muted" : "border border-field-edge bg-surface text-fg",

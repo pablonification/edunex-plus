@@ -4,7 +4,7 @@
 // off, every figure is back. The eye beside the IPK and Settings' switch flip the one setting. The real window code on
 // the real engine, with SIX's records read from the recorded pages.
 import { act } from "react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { HIDDEN_FIGURE } from "../../src/core/hide-grades";
 import { records } from "../engine/grades-records";
 import { PretendWorld } from "../pretend/world";
@@ -118,6 +118,13 @@ describe("hiding grades on the desktop", () => {
       expect(select.selectedOptions[0]?.textContent).toBe(HIDDEN_FIGURE);
       expect(select.getAttribute("aria-label")).toMatch(/disembunyikan$/);
     }
+    // An arrow key opens the list instead of picking the first letter out of sight (Windows, Linux).
+    const showPicker = vi.fn();
+    Object.defineProperty(HTMLSelectElement.prototype, "showPicker", { value: showPicker, configurable: true });
+    const down = new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true });
+    await act(async () => selects[0]!.dispatchEvent(down));
+    expect(showPicker).toHaveBeenCalledTimes(1);
+    expect(down.defaultPrevented).toBe(true);
     const past = s.button(/^Semester 1–6/);
     await s.click(past);
     const panel = document.getElementById(past.getAttribute("aria-controls")!)?.textContent ?? "";
