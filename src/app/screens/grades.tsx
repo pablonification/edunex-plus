@@ -496,7 +496,13 @@ function WithoutSix() {
       />
       {courses && courses.length > 0 && (
         // With no grade published anywhere, that's said once above the list, not on every row.
-        <Section id="edunex-term" title={t("grades.edunexTerm")} description={t(anyGrade ? "grades.edunexTermHint" : "grades.edunexTermNoneHint")}>
+        // Without SIX's IPK, the eye sits here: the grades it hides are these.
+        <Section
+          id="edunex-term"
+          title={t("grades.edunexTerm")}
+          description={t(anyGrade ? "grades.edunexTermHint" : "grades.edunexTermNoneHint")}
+          action={anyGrade ? <HideGradesButton /> : undefined}
+        >
           <List label={t("grades.edunexTerm")} className={PLAIN_LIST}>
             {courses.map((course) => {
               const grade = outline?.[course.code]?.grade ?? null;

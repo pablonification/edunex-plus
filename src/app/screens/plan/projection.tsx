@@ -3,6 +3,7 @@
 // badges, the one IPK target (quick picks plus any value), what a target
 // needs, the honors outlook, and the IP/IPK chart.
 import { useState } from "react";
+import { HIDDEN_FIGURE } from "../../../core/hide-grades";
 import { letterForAverage, type Predicate, predicateFor } from "../../../core/honors";
 import { GRADE_POINTS, LETTER_GRADES, type LetterGrade } from "../../../core/models";
 import {
@@ -17,6 +18,7 @@ import {
   targetOf,
   termKind,
 } from "../../../core/planner";
+import { useGradesHidden } from "../../hide-grades";
 import { useFormat, useT } from "../../i18n";
 import type { PlanState } from "../../study-plan";
 import { ChartLegend, LineChart } from "../../ui/chart";
@@ -89,9 +91,11 @@ export function GradeSelect({
   guess?: boolean;
   className?: string;
 }) {
+  // Hidden grades: an estimate not yet picked comes from the IPK, so it's dots, as on the phone. Picking one still works.
+  const masked = useGradesHidden() && guess;
   return (
     <select
-      value={value}
+      value={masked ? "" : value}
       aria-label={label}
       onChange={(event) => onChange(event.target.value as LetterGrade)}
       className={cx(
@@ -100,6 +104,11 @@ export function GradeSelect({
         className,
       )}
     >
+      {masked && (
+        <option value="" disabled hidden>
+          {HIDDEN_FIGURE}
+        </option>
+      )}
       {LETTER_GRADES.map((grade) => (
         <option key={grade} value={grade}>
           {grade}
