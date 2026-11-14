@@ -44,6 +44,8 @@ export interface SlotInput {
   graded: ReadonlyMap<string, { name: string; grade: string }>;
   thisTerm: readonly { code: string; name: string }[];
   fixes: Readonly<Record<string, CurriculumFix>>;
+  /** A D fails a course in the Student's program. */
+  dFails: boolean;
 }
 
 const STOP = new Set(["dan", "di", "untuk", "the", "and", "of", "pengantar", "pengenalan", "dasar", "i", "ii", "iii", "ia", "iia", "ib", "a", "b"]);
@@ -64,15 +66,18 @@ export function nameMatch(a: string, b: string): number {
 export const fillsSlot = (slot: string, code: string) =>
   slot.endsWith("X") ? code.length === slot.length && code.startsWith(slot.slice(0, -1)) && /\d$/.test(code) : slot === code;
 
-export function rowStatus(row: ProgressCourse): StandingStatus {
+/** A grade that fails the course: E, and D too in a program where a D isn't a pass (`dFails`, the Student said so). */
+export const failingGrade = (grade: string | null, dFails: boolean) => grade === "E" || (dFails && grade === "D");
+
+export function rowStatus(row: ProgressCourse, dFails: boolean): StandingStatus {
   if (row.status === "exempt") return "exempt";
   if (row.status === "in-progress") return "in-progress";
   if (row.status === "not-taken") return "left";
-  return row.grade === "E" ? "failed" : isLetterGrade(row.grade) ? "passed" : "in-progress";
+  return failingGrade(row.grade, dFails) ? "failed" : isLetterGrade(row.grade) ? "passed" : "in-progress";
 }
 
 /** Every slot's standing, by the slot's code. */
-export function slotStandings({ slots, rows, graded, thisTerm, fixes }: SlotInput): Map<string, SlotStanding> {
+export function slotStandings({ slots, rows, graded, thisTerm, fixes, dFails }: SlotInput): Map<string, SlotStanding> {
   const list = rows ?? [];
   const isSlotCode = (code: string) => slots.some((s) => fillsSlot(s.code, code));
   // Required-kind rows under codes the curriculum doesn't have: older-curriculum courses standing in for a slot.
@@ -87,9 +92,9 @@ export function slotStandings({ slots, rows, graded, thisTerm, fixes }: SlotInpu
     const now = thisTerm.find((c) => c.code === code);
     if (now) return { status: "in-progress", grade: null, name: now.name };
     const row = list.find((r) => r.code === code);
-    if (row) return { status: rowStatus(row), grade: row.grade, name: row.name };
+    if (row) return { status: rowStatus(row, dFails), grade: row.grade, name: row.name };
     const g = graded.get(code);
-    return g ? { status: g.grade === "E" ? "failed" : "passed", grade: g.grade, name: g.name } : null;
+    return g ? { status: failingGrade(g.grade, dFails) ? "failed" : "passed", grade: g.grade, name: g.name } : null;
   };
 
   const settled = (slot: SlotInput["slots"][number]): SlotStanding | null => {
@@ -97,7 +102,7 @@ export function slotStandings({ slots, rows, graded, thisTerm, fixes }: SlotInpu
     const fix = fixes[slot.code];
     // "mine" and "program-adds" wait for the slot's own standing (see the end).
     if (fix && fix.kind !== "mine" && fix.kind !== "program-adds") {
-      const sixLeft = own !== undefined && (rowStatus(own) === "left" || rowStatus(own) === "failed");
+      const sixLeft = own !== undefined && (rowStatus(own, dFails) === "left" || rowStatus(own, dFails) === "failed");
       if (fix.kind !== "counted-as") return { status: fix.kind, grade: null, via: null, fix, sixLeft, guessed: false };
       claimed.add(fix.code);
       const course = taken(fix.code);
@@ -110,7 +115,7 @@ export function slotStandings({ slots, rows, graded, thisTerm, fixes }: SlotInpu
         guessed: false,
       };
     }
-    if (own) return { ...plain, status: rowStatus(own), grade: own.grade, via: own.code === slot.code ? null : { code: own.code, name: own.name } };
+    if (own) return { ...plain, status: rowStatus(own, dFails), grade: own.grade, via: own.code === slot.code ? null : { code: own.code, name: own.name } };
     const mine = [...thisTerm.map((c) => c.code), ...graded.keys()].find((code) => fillsSlot(slot.code, code));
     const course = mine === undefined ? null : taken(mine);
     if (mine && course) return { ...plain, status: course.status, grade: course.grade, via: mine === slot.code ? null : { code: mine, name: course.name } };
@@ -132,7 +137,7 @@ export function slotStandings({ slots, rows, graded, thisTerm, fixes }: SlotInpu
       .sort((a, b) => b.score - a.score)[0];
     if (best) {
       guessed.add(best.r.code);
-      return { ...plain, status: rowStatus(best.r), grade: best.r.grade, via: { code: best.r.code, name: best.r.name }, guessed: true };
+      return { ...plain, status: rowStatus(best.r, dFails), grade: best.r.grade, via: { code: best.r.code, name: best.r.name }, guessed: true };
     }
     return { ...plain, status: rows ? "unlisted" : "left", grade: null, via: null };
   };

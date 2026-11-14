@@ -3,7 +3,7 @@
 // (src/core/curriculum-slots.ts, so Rencana and Kurikulum never disagree),
 // the Student's plan on top, the other courses SIX counts, and the
 // specializations and minors with progress.
-import { fillsSlot, type ProgressRow, rowStatus, type StandingStatus } from "./curriculum-slots";
+import { failingGrade, fillsSlot, type ProgressRow, rowStatus, type StandingStatus } from "./curriculum-slots";
 import type { CurriculumFix, StudyPlan } from "./models";
 import {
   activeMinor,
@@ -87,7 +87,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   const fromTranscript = (code: string): { status: SlotStatus; grade: string | null } | null => {
     if (record.thisTerm.some((c) => fillsSlot(code, c.code))) return { status: "in-progress", grade: null };
     const graded = [...record.graded.entries()].find(([c]) => fillsSlot(code, c))?.[1];
-    return graded ? { status: graded.grade === "E" ? "failed" : "passed", grade: graded.grade } : null;
+    return graded ? { status: failingGrade(graded.grade, record.dFails) ? "failed" : "passed", grade: graded.grade } : null;
   };
 
   const slotCourse = (slot: (typeof slots)[number]): MapCourse & { sks: number } => {
@@ -122,7 +122,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
       name: row.name,
       sks: knownSks(record, row),
       courseId: null,
-      status: withPlan(rowStatus(row), row.code),
+      status: withPlan(rowStatus(row, record.dFails), row.code),
       grade: row.grade,
       via: null,
       fix: null,
@@ -157,7 +157,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   const packageWhatIf = (code: string): MapCourse["whatIf"] => (tried.has(code) ? "added" : leftOut.has(code) ? "left-out" : null);
   const packageStatus = (code: string): SlotStatus => {
     const seen = fromTranscript(code);
-    return seen ? seen.status : planned.has(code) ? "planned" : record.exempt.has(code) ? "exempt" : "left";
+    return seen ? withPlan(seen.status, code) : planned.has(code) ? "planned" : record.exempt.has(code) ? "exempt" : "left";
   };
   const spec = record.curriculum?.specializations ?? [];
   const specializations: PackageProgress[] = spec.map((p) => {
@@ -246,7 +246,7 @@ export function standIns(record: StudentRecord, slotCode: string): StandIn[] {
   const slotCodes = [...record.required.keys()];
   const rank = (c: StandIn) => (c.suggested ? 0 : c.fills ? 2 : 1);
   return [...record.graded.entries()]
-    .filter(([code, g]) => g.grade !== "E" && !taken.has(code) && !slotCodes.some((s) => fillsSlot(s, code)))
+    .filter(([code, g]) => !failingGrade(g.grade, record.dFails) && !taken.has(code) && !slotCodes.some((s) => fillsSlot(s, code)))
     .map(([code, g]) => ({
       code,
       name: g.name,

@@ -18,7 +18,7 @@ import { type ReactNode, useMemo, useState } from "react";
 import { Pressable, View } from "react-native";
 import { useOpenExternal } from "../../../../src/app/hooks";
 import { useT } from "../../../../src/app/i18n";
-import { useCurriculumFix, usePlan, useStudentRecord } from "../../../../src/app/study-plan";
+import { useCurriculumFix, useDFails, usePlan, useStudentRecord } from "../../../../src/app/study-plan";
 import { useViewChoice } from "../../../../src/app/view-choice";
 import { curriculumMap, type MapCourse, type PackageProgress, type SlotStatus, type StandIn, standIns } from "../../../../src/core/curriculum-map";
 import type { CurriculumFix } from "../../../../src/core/models";
@@ -239,6 +239,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
         </Text>
       )}
       <Later frame={Math.max(1, semesters.length - FIRST_SEMESTERS + 1)}>
+        <DRule />
         {map.specializations.length > 0 && <Packages title={t("curriculum.specializations")} packages={map.specializations} id="specializations" />}
         {map.minors.length > 0 && <Packages title={t("curriculum.minors")} packages={map.minors} id="minors" />}
       </Later>
@@ -347,6 +348,22 @@ function Standing({ sks, onlyLeft, onToggle, children }: { sks: SksModel; onlyLe
       <GroupRow
         title={t("curriculum.onlyLeft")}
         trailing={<Switch value={onlyLeft} onChange={onToggle} label={t("curriculum.onlyLeft")} testID="action.onlyLeft" />}
+      />
+    </Group>
+  );
+}
+
+/** Whether a D passes a course in the Student's program: on, as ITB's rules have it, unless their program asks for a C. */
+function DRule() {
+  const t = useT();
+  const [dFails, setDFails] = useDFails();
+  return (
+    <Group style={{ marginTop: space[5] }}>
+      <GroupRow
+        first
+        title={t("curriculum.dPasses")}
+        meta={t("curriculum.dPassesHint")}
+        trailing={<Switch value={!dFails} onChange={(on) => setDFails(!on)} label={t("curriculum.dPasses")} testID="action.dPasses" />}
       />
     </Group>
   );

@@ -3,7 +3,7 @@
 // planner share, the rules a plan is checked against (Peraturan Akademik ITB
 // and the program's curriculum) and the warnings the Student hid, and the
 // plan edits. Pure: the screens and the tests call the same functions.
-import { fillsSlot, type ProgressRow, type SlotStanding, slotStandings } from "./curriculum-slots";
+import { failingGrade, fillsSlot, type ProgressRow, type SlotStanding, slotStandings } from "./curriculum-slots";
 import { blockedBy, HONORS, type HonorLevel, honorFor, nearestLetter, type Path } from "./honors";
 import {
   type CourseCatalog,
@@ -93,6 +93,8 @@ export interface MinorOption {
 }
 
 export interface StudentRecord {
+  /** A D fails a course in the Student's program (they said so): it counts as to take again, not passed. */
+  dFails: boolean;
   transcript: Transcript | undefined;
   progress: Progress | undefined;
   curriculum: Curriculum | undefined;
@@ -158,16 +160,22 @@ export interface RecordInput {
   termCourses?: readonly { code: string; name: string; sks: number }[];
   /** The Student's corrections to the curriculum, by course code ("local.curriculum"). */
   fixes?: Readonly<Record<string, CurriculumFix>>;
+  /** A D fails a course in the Student's program ("local.curriculum"). */
+  dFails?: boolean;
 }
 
-const passedGrade = (grade: string | null): grade is LetterGrade => isLetterGrade(grade) && grade !== "E";
-/** This term's SKS still without a grade; retaking a course passed before adds none (as for a planned retake). */
+const passedGrade = (grade: string | null, dFails: boolean): grade is LetterGrade => isLetterGrade(grade) && !failingGrade(grade, dFails);
+/**
+ * This term's SKS still without a grade; retaking a course passed before adds none (as for a planned retake). A D the
+ * Student's program doesn't pass is in SIX's count already: taking it again adds none either.
+ */
 const newSks = (thisTerm: readonly TermCourseRecord[], graded: StudentRecord["graded"]) =>
-  thisTerm.filter((c) => c.grade === null && !passedGrade(graded.get(c.code)?.grade ?? null)).reduce((sum, c) => sum + c.sks, 0);
+  thisTerm.filter((c) => c.grade === null && !passedGrade(graded.get(c.code)?.grade ?? null, false)).reduce((sum, c) => sum + c.sks, 0);
 const ELECTIVE = new Set(["program-elective", "outside-elective"]);
 
 export function studentRecord(input: RecordInput): StudentRecord {
   const { transcript, progress, curriculum, catalog } = input;
+  const dFails = input.dFails ?? false;
   const terms = transcript?.terms ?? [];
   // Without SIX's own word, the transcript's latest term is this one (until the next starts, the finished one).
   const term = input.term ?? terms.at(-1)?.term ?? null;
@@ -228,7 +236,7 @@ export function studentRecord(input: RecordInput): StudentRecord {
       return sks === null ? [] : [[c.code, { code: c.code, name: c.name, sks, semester: c.semester }] as const];
     }),
   );
-  const slots = slotStandings({ slots: [...required.values()], rows: progress ? progressRows : null, graded, thisTerm, fixes: input.fixes ?? {} });
+  const slots = slotStandings({ slots: [...required.values()], rows: progress ? progressRows : null, graded, thisTerm, fixes: input.fixes ?? {}, dFails });
   // Courses filling a slot under another code count there, never also as electives.
   const filling = new Set([...slots.values()].flatMap((s) => (s.via ? [s.via.code] : [])));
   const thisTermCodes = new Set(thisTerm.map((c) => c.code));
@@ -242,7 +250,7 @@ export function studentRecord(input: RecordInput): StudentRecord {
     };
     for (const row of progressRows) {
       if (row.kind !== "required" || requiredLeft.some((c) => c.code === row.code) || corrected(row.code)) continue;
-      const failed = row.status === "graded" && row.grade === "E" && !thisTermCodes.has(row.code);
+      const failed = row.status === "graded" && failingGrade(row.grade, dFails) && !thisTermCodes.has(row.code);
       if (row.status !== "not-taken" && !failed) continue;
       const sks = sksToCount(row);
       if (sks !== null) requiredLeft.push({ code: row.code, name: row.name, sks, semester: row.semester });
@@ -263,9 +271,11 @@ export function studentRecord(input: RecordInput): StudentRecord {
   const sumOf = (list: { code: string; name: string; sks: number | null }[]) => list.reduce((sum, c) => sum + (sksToCount(c) ?? 0), 0);
   // A graded elective without a letter yet is this term's, as SIX lists it.
   const electivePassed = progress
-    ? sumOf(electiveRows.filter((c) => c.status === "exempt" || (c.status === "graded" && passedGrade(c.grade))))
+    ? sumOf(electiveRows.filter((c) => c.status === "exempt" || (c.status === "graded" && passedGrade(c.grade, dFails))))
     : sumOf(
-        [...graded.entries()].filter(([code, g]) => !required.has(code) && !filling.has(code) && passedGrade(g.grade)).map(([code, g]) => ({ code, ...g })),
+        [...graded.entries()]
+          .filter(([code, g]) => !required.has(code) && !filling.has(code) && passedGrade(g.grade, dFails))
+          .map(([code, g]) => ({ code, ...g })),
       );
   const electiveInProgress = progress ? sumOf(electiveRows.filter((c) => c.status === "in-progress" || (c.status === "graded" && !isLetterGrade(c.grade)))) : 0;
   const electiveHave = electivePassed + electiveInProgress;
@@ -288,6 +298,7 @@ export function studentRecord(input: RecordInput): StudentRecord {
   const programId = curriculum?.program.code ?? null;
 
   return {
+    dFails,
     transcript,
     progress,
     curriculum,
@@ -300,7 +311,8 @@ export function studentRecord(input: RecordInput): StudentRecord {
     thisTerm,
     thisTermDropped: [],
     thisTermAdded: [],
-    passedSks: progress?.sksPassed ?? [...graded.values()].filter((g) => passedGrade(g.grade)).reduce((sum, g) => sum + g.sks, 0),
+    // Without SIX's figure, what SIX would count: a D too, as a retake of it adds none (livePlan, newSks).
+    passedSks: progress?.sksPassed ?? [...graded.values()].filter((g) => passedGrade(g.grade, false)).reduce((sum, g) => sum + g.sks, 0),
     inProgressSks: newSks(thisTerm, graded),
     graded,
     exempt,
@@ -346,7 +358,7 @@ export type CourseState = "passed" | "this-term" | "exempt" | "planned" | null;
 export function courseState(record: StudentRecord, plan: StudyPlan, code: string): CourseState {
   if (record.thisTerm.some((c) => c.code === code)) return "this-term";
   if (plan.terms.some((t) => t.courses.some((c) => c.code === code))) return "planned";
-  if (passedGrade(record.graded.get(code)?.grade ?? null)) return "passed";
+  if (passedGrade(record.graded.get(code)?.grade ?? null, record.dFails)) return "passed";
   if (record.exempt.has(code)) return "exempt";
   return null;
 }
@@ -384,13 +396,21 @@ export function aheadPlan(plan: StudyPlan, record: StudentRecord): StudyPlan {
  * taken already. A course is taken once: one in this term (SIX's KRS, or a
  * what-if a plan saved before `from` still holds later too), passed or
  * credited isn't planned again, so a later copy (planned, then taken for
- * real) neither shows nor counts its SKS twice. A retake planned for later stays.
+ * real) neither shows nor counts its SKS twice. A retake planned for later stays. A course with a D the Student's
+ * program doesn't pass is a retake, however it was planned: its SKS are in SIX's count already, and the new grade replaces the D.
  */
 export function livePlan(plan: StudyPlan, record: StudentRecord): StudyPlan {
   const ahead = aheadPlan(plan, record);
   const now = new Set(record.thisTerm.map((c) => c.code));
-  const taken = (code: string) => now.has(code) || passedGrade(record.graded.get(code)?.grade ?? null) || record.exempt.has(code);
-  return { ...ahead, terms: ahead.terms.map((t) => ({ ...t, courses: t.courses.filter((c) => c.retake || !taken(c.code)) })) };
+  const taken = (code: string) => now.has(code) || passedGrade(record.graded.get(code)?.grade ?? null, record.dFails) || record.exempt.has(code);
+  const again = (code: string) => record.dFails && record.graded.get(code)?.grade === "D";
+  return {
+    ...ahead,
+    terms: ahead.terms.map((t) => ({
+      ...t,
+      courses: t.courses.filter((c) => c.retake || !taken(c.code)).map((c) => (!c.retake && again(c.code) ? { ...c, retake: true } : c)),
+    })),
+  };
 }
 
 // ------------------------------------------------------------ this term's what-ifs
@@ -444,7 +464,7 @@ export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecor
     if (slot === undefined || !standing || (standing.status !== "in-progress" && standing.status !== "failed")) continue;
     // Not retaking after all: a grade from before stands; without one, or with an E, it's left again.
     const before = record.graded.get(c.code);
-    if (before && passedGrade(before.grade)) {
+    if (before && passedGrade(before.grade, record.dFails)) {
       slots.set(slot, { ...standing, status: "passed", grade: before.grade, whatIf: "left-out" });
       continue;
     }
@@ -474,7 +494,9 @@ export function withWhatIf(record: StudentRecord, plan: StudyPlan): StudentRecor
   const isRequired = (code: string) => slotOf(code) !== undefined || record.requiredLeft.some((r) => r.code === code);
   const sum = (list: { sks: number }[]) => list.reduce((total, c) => total + c.sks, 0);
   const electiveInProgress =
-    record.electiveInProgress - sum(dropped.filter((c) => sixNow.has(c.code))) + sum(added.filter((c) => !isRequired(c.code) && !record.graded.has(c.code)));
+    record.electiveInProgress -
+    sum(dropped.filter((c) => sixNow.has(c.code))) +
+    sum(added.filter((c) => !isRequired(c.code) && !passedGrade(record.graded.get(c.code)?.grade ?? null, record.dFails)));
 
   const courses = new Map(record.courses);
   for (const c of added) if (!courses.has(c.code)) courses.set(c.code, { code: c.code, name: c.name, sks: c.sks, owner: null });
@@ -596,7 +618,7 @@ export function defaultPlan(record: StudentRecord, hidden?: StudyPlan["hidden"])
     place(course.code, at.term);
   }
   const taken = (code: string) =>
-    passedGrade(record.graded.get(code)?.grade ?? null) ||
+    passedGrade(record.graded.get(code)?.grade ?? null, record.dFails) ||
     record.thisTerm.some((c) => c.code === code) ||
     [...items.values()].some((list) => list.some((c) => c.code === code));
   for (const course of activeSpecialization(record, empty)?.courses ?? []) {
@@ -1001,7 +1023,8 @@ export function checkPlan(record: StudentRecord, rawPlan: StudyPlan, projection:
 
   if (record.specialization) {
     const spec = record.specialization;
-    const covered = (code: string) => passedGrade(record.graded.get(code)?.grade ?? null) || record.thisTerm.some((c) => c.code === code) || planned.has(code);
+    const covered = (code: string) =>
+      passedGrade(record.graded.get(code)?.grade ?? null, record.dFails) || record.thisTerm.some((c) => c.code === code) || planned.has(code);
     const gaps = spec.courses.filter((c) => !covered(c.code));
     const coveredSks = spec.courses.filter((c) => covered(c.code)).reduce((sum, c) => sum + (knownSks(record, c) ?? 0), 0);
     const done = !gaps.length || (spec.sks !== null && coveredSks >= spec.sks);
@@ -1117,7 +1140,9 @@ export function sksModel(record: StudentRecord, rawPlan: StudyPlan): SksModel {
   const byProgram = sum(record.byProgram.filter((c) => !planned.has(c.code) && !record.thisTerm.some((t) => t.code === c.code)));
   const total = record.passedSks + record.inProgressSks + plannedSks + byProgram;
   const left = new Set(record.requiredLeft.map((c) => c.code));
-  const electivePlanned = sum(fresh.filter((c) => !left.has(c.code) && !record.required.has(c.code)));
+  // A D taken again adds no SKS to the total (SIX counts it already), but does to the electives, which don't count the D.
+  const again = plan.terms.flatMap((t) => t.courses.filter((c) => c.retake && record.dFails && record.graded.get(c.code)?.grade === "D"));
+  const electivePlanned = sum([...fresh, ...again].filter((c) => !left.has(c.code) && !record.required.has(c.code)));
   const electiveHave = record.electiveHave + electivePlanned;
   const unplanned = record.requiredLeft.filter((c) => !planned.has(c.code));
   const need = record.electiveNeed ?? 0;

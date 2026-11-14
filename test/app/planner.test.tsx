@@ -680,6 +680,21 @@ describe("the curriculum map", () => {
     expect(row("II4090")).toBe("II4090Kerja PraktikDirencanakan2");
   });
 
+  // #344: some programs ask for at least a C.
+  it("'A D counts as a pass' is on; turned off it's kept with the curriculum's corrections, and a correction after keeps it", async () => {
+    const s = await openPlan();
+    await tab("Kurikulum");
+    expect(s.text()).toContain("Nilai D dihitung lulusMatikan jika prodimu meminta minimal C. Mata kuliah bernilai D jadi perlu diulang.");
+    const dSwitch = () => document.querySelector<HTMLButtonElement>("main [role=switch][aria-label='Nilai D dihitung lulus']")!;
+    expect(dSwitch().getAttribute("aria-checked")).toBe("true");
+    await s.click(dSwitch());
+    expect(screen!.store.dataset("local.curriculum")?.value).toEqual({ slots: {}, dFails: true });
+    expect(dSwitch().getAttribute("aria-checked")).toBe("false");
+    await s.click("Koreksi WI1111");
+    await s.click(/^Tidak ada di kurikulumku/);
+    expect(screen!.store.dataset("local.curriculum")?.value).toMatchObject({ slots: { WI1111: { kind: "not-mine" } }, dFails: true });
+  });
+
   it("Tata Tulis Karya Ilmiah counts as Bahasa Indonesia; courses SIX doesn't ask of the Student are said quietly, not counted as left", async () => {
     const s = await openPlan();
     await tab("Kurikulum");

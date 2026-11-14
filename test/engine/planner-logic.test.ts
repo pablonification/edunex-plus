@@ -495,6 +495,49 @@ describe("this semester's what-ifs, only in the plan", () => {
     expect(sksModel(record, p).planned).toBe(4);
   });
 
+  // #344: in some programs a D doesn't pass a course. The Student says so, and it's to take again.
+  it("a D passes a required course, unless the Student says their program asks for a C: then it's to take again", () => {
+    const transcript = structuredClone(data.transcript);
+    transcript.terms.flatMap((t) => t.courses).find((c) => c.code === "II2100")!.grade = "D";
+    const progress = structuredClone(data.progress);
+    progress.stages.flatMap((st) => st.semesters.flatMap((sem) => sem.courses)).find((c) => c.code === "II2100")!.grade = "D";
+
+    const dPasses = studentRecord({ ...data, transcript, progress, term: "2026-1" });
+    expect(dPasses.slots.get("II2100")).toMatchObject({ status: "passed", grade: "D" });
+    expect(dPasses.requiredLeft.map((c) => c.code)).not.toContain("II2100");
+
+    const dFails = studentRecord({ ...data, transcript, progress, term: "2026-1", dFails: true });
+    expect(dFails.slots.get("II2100")).toMatchObject({ status: "failed", grade: "D" });
+    expect(dFails.requiredLeft.map((c) => c.code)).toContain("II2100");
+    const statusIn = (p: StudyPlan) =>
+      curriculumMap(dFails, p)
+        .semesters.flatMap((s) => s.required)
+        .find((c) => c.code === "II2100")?.status;
+    expect(statusIn(plan({}))).toBe("failed");
+    // The starting plan takes it again, as a retake: its SKS are in SIX's count already, so the total doesn't grow.
+    expect(statusIn(defaultPlan(dFails))).toBe("planned");
+    expect(sksModel(dFails, defaultPlan(dFails)).total).toBe(sksModel(dPasses, defaultPlan(dPasses)).total);
+    expect(
+      livePlan(defaultPlan(dFails), dFails)
+        .terms.flatMap((t) => t.courses)
+        .find((c) => c.code === "II2100")?.retake,
+    ).toBe(true);
+  });
+
+  it("an elective with a D the program doesn't pass leaves the electives, and planning it again puts it back", () => {
+    const transcript = structuredClone(data.transcript);
+    transcript.terms.flatMap((t) => t.courses).find((c) => c.code === "FI1201")!.grade = "D";
+    const progress = structuredClone(data.progress);
+    progress.stages.flatMap((st) => st.semesters.flatMap((sem) => sem.courses)).find((c) => c.code === "FI1201")!.grade = "D";
+    const dFails = studentRecord({ ...data, transcript, progress, term: "2026-1", dFails: true });
+    const before = sksModel(dFails, plan({}));
+    const fi = courseInfo(dFails, "FI1201");
+    const after = sksModel(dFails, plan({ "2027-1": [course("FI1201", "B")] }));
+    expect(after.electives.have).toBe(before.electives.have + fi.sks);
+    // Its SKS are in SIX's count already.
+    expect(after.total).toBe(before.total);
+  });
+
   /** SIX's record with a course retaken this term (and, for a failed one, SIX's progress showing the E). */
   const retaking = (code: string, before: "C" | "E") => {
     const transcript = structuredClone(data.transcript);

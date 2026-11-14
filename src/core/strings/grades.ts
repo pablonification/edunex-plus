@@ -466,6 +466,12 @@ export const gradesStrings = {
   "curriculum.notContinuing": { id: "Terdaftar · tidak dilanjutkan", en: "Registered · not continuing" },
   "curriculum.packageSks": { id: "{have} dari {need} SKS", en: "{have} of {need} SKS" },
   "curriculum.onlyLeft": { id: "Sisa saja", en: "What's left only" },
+  // Some programs ask for at least a C: the Student turns this off, and courses with a D are to take again.
+  "curriculum.dPasses": { id: "Nilai D dihitung lulus", en: "A D counts as a pass" },
+  "curriculum.dPassesHint": {
+    id: "Matikan jika prodimu meminta minimal C. Mata kuliah bernilai D jadi perlu diulang.",
+    en: "Turn off if your program asks for at least a C. Courses with a D then need retaking.",
+  },
   "curriculum.left": { id: "Sisa", en: "Left" },
   "curriculum.left.requiredPlanned": { id: "{count} wajib ({sks} SKS), sudah direncanakan", en: "{count} required ({sks} SKS), all planned" },
   "curriculum.left.required": { id: "{count} wajib ({sks} SKS)", en: "{count} required ({sks} SKS)" },
