@@ -142,7 +142,8 @@ or mistyped field the app relies on is a vendor change (see [Errors](#errors)).
 
 Notes:
 
-- **`/login/me`** is the liveness check and the Student's identity (`code` holds the NIM).
+- **`/login/me`** is the liveness check and the Student's identity (`code` holds the NIM). A lecturer's answer says
+  `level: "LECTURER"` and has no `code`: Edunex waits with "this account isn't a student's", not a change (#345).
 - **`/notifications/{userId}`** is the new-item signal. Only `ASSIGNMENT` (new Task) and
   `CONTENT` (new material) are kept; other types are skipped. The course name is taken from the
   message ("… has been added new … in {course}"). The bare `/notifications` path is not used.

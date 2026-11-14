@@ -1,6 +1,9 @@
 // Edunex's core feeds (#71): who is signed in (also the liveness check) and
 // this term's courses.
+
+import type { z } from "zod";
 import type { Account, Course } from "../../../core/models";
+import { ActionNeeded, AnswerError } from "../../errors";
 import type { FeedRead } from "../../report/kept-pages";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
@@ -11,6 +14,31 @@ const MINUTE = 60_000;
 /** The signed-in user's Edunex id, from the account feed's /login/me: the notification feed's address. One per session. */
 export interface EdunexUser {
   id: number | null;
+}
+
+/**
+ * GET /login/me: who is signed in. An account that isn't a student's (a lecturer's says `level: "LECTURER"` and has no
+ * `code`, the NIM) is asked to sign in with a Student's: the app reads only theirs, and that isn't a change to report.
+ */
+export async function fetchMe(client: EdunexClient): Promise<z.infer<typeof LoginMe>> {
+  try {
+    return await client.get("/login/me", {}, LoginMe);
+  } catch (error) {
+    throw notAStudent(error);
+  }
+}
+
+function notAStudent(error: unknown): unknown {
+  if (!(error instanceof AnswerError) || !error.message.startsWith("/login/me: code ")) return error;
+  let me: { level?: unknown; code?: unknown } | null;
+  try {
+    me = JSON.parse(error.answer.body);
+  } catch {
+    return error;
+  }
+  const level = me?.level;
+  if (level !== "LECTURER" || me?.code !== undefined) return error;
+  return new ActionNeeded("student", "Edunex signed in a lecturer account, not a student's");
 }
 
 export function registerCoreFeeds(context: SourceContext, client: EdunexClient, user: EdunexUser = { id: null }): void {
@@ -24,7 +52,7 @@ export function registerCoreFeeds(context: SourceContext, client: EdunexClient, 
     jitter: MINUTE,
     async run(current, read) {
       const { context, client } = noted(read);
-      const me = await client.get("/login/me", {}, LoginMe);
+      const me = await fetchMe(client);
       const account: Account = { name: me.name.trim(), nim: me.code };
       if (!current()) return;
       user.id = me.id;

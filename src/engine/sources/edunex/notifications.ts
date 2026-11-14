@@ -9,8 +9,8 @@ import { EngineError } from "../../errors";
 import type { FeedRead } from "../../report/kept-pages";
 import type { SourceContext } from "../source";
 import type { EdunexClient } from "./client";
-import type { EdunexUser } from "./feeds";
-import { LoginMe, NotificationFeed } from "./schemas";
+import { type EdunexUser, fetchMe } from "./feeds";
+import { NotificationFeed } from "./schemas";
 
 const MINUTE = 60_000;
 const TYPES = { ASSIGNMENT: "task", CONTENT: "material" } as const;
@@ -29,7 +29,7 @@ export function registerNotificationFeed(context: SourceContext, client: EdunexC
       const { context, client } = noted(read);
       // The feed is per user id, which only /login/me gives: the account feed's read of it, once per session.
       if (user.id === null) await context.runNow((feed) => feed === "edunex.account");
-      user.id ??= (await client.get("/login/me", {}, LoginMe)).id;
+      user.id ??= (await fetchMe(client)).id;
       const feed = await client.get(`/notifications/${user.id}`, {}, NotificationFeed);
       if (!current()) return;
       const items = feed.data.notifications.flatMap(toNotification).sort((a, b) => b.at - a.at);

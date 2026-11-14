@@ -21,7 +21,8 @@ export type SourceState = z.infer<typeof SourceState>;
  * What a service in "action-needed" wants the Student to do on its own site first: fill in SIX's
  * Pengkinian Data Induk ("datainduk"), or something on another page of SIX's the app never reads.
  */
-export const SourceAsks = z.enum(["datainduk", "other"]);
+/** "student": the account signed in isn't a student's (a lecturer's), and the app reads only a Student's. */
+export const SourceAsks = z.enum(["datainduk", "student", "other"]);
 export type SourceAsks = z.infer<typeof SourceAsks>;
 
 /**

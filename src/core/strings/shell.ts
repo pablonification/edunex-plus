@@ -63,6 +63,7 @@ export const shellStrings = {
   "banner.expired": { id: "Sesi {source} berakhir.", en: "Your {source} session ended." },
   "banner.changed": { id: "{source} berubah.", en: "{source} changed something." },
   "banner.dataInduk": { id: "SIX minta kamu memperbarui data diri dulu.", en: "SIX wants you to update your personal details first." },
+  "banner.notStudent": { id: "Akun {source} ini bukan akun mahasiswa.", en: "This {source} account isn't a student's." },
   "banner.actionNeeded": { id: "{source} minta kamu menyelesaikan sesuatu di sana dulu.", en: "{source} wants you to finish something there first." },
   "banner.signedOut": { id: "Kamu belum masuk ke {source}.", en: "You're not signed in to {source}." },
   "banner.keptHint": { id: "Data terakhir tetap bisa dibaca.", en: "Your last data stays readable." },
@@ -77,6 +78,10 @@ export const shellStrings = {
   "status.dataIndukHint": {
     id: "Isi Pengkinian Data Induk di SIX, lalu kembali ke sini. Aplikasi membaca SIX lagi sendiri.",
     en: "Fill in Pengkinian Data Induk on SIX, then come back. The app reads SIX again on its own.",
+  },
+  "status.notStudentHint": {
+    id: "Edunex Plus hanya untuk mahasiswa. Keluar, lalu masuk dengan akun mahasiswamu.",
+    en: "Edunex Plus is for students only. Sign out, then sign in with your student account.",
   },
   "status.actionNeededHint": {
     id: "Selesaikan yang diminta di {source}, lalu kembali ke sini. Aplikasi membaca {source} lagi sendiri.",
@@ -187,6 +192,10 @@ export const shellStrings = {
   "settings.account.stale": { id: "Tidak bisa diperiksa · data dari {when}", en: "Couldn't check · data from {when}" },
   "settings.account.expired": { id: "Sesi berakhir · masuk lagi untuk memperbarui", en: "Session ended · sign in again to update" },
   "settings.account.dataInduk": { id: "Menunggumu · isi Pengkinian Data Induk di SIX", en: "Waiting for you · fill in Pengkinian Data Induk on SIX" },
+  "settings.account.notStudent": {
+    id: "Bukan akun mahasiswa · masuk dengan akun mahasiswamu",
+    en: "Not a student account · sign in with your student account",
+  },
   "settings.account.actionNeeded": { id: "Menunggumu · selesaikan yang diminta {source}", en: "Waiting for you · finish what {source} asks for" },
   "settings.signOutOf": { id: "Keluar dari {source}", en: "Sign out of {source}" },
   "settings.signInTo": { id: "Masuk ke {source}", en: "Sign in to {source}" },

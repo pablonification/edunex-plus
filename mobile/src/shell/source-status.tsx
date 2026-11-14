@@ -11,7 +11,7 @@ import { useSaved } from "../../../src/app/saved";
 import { useBridge, useDataset, useSettings, useSignInStep, useStatus } from "../../../src/app/store";
 import type { SignInStep } from "../../../src/core/contract";
 import { firstRead } from "../../../src/core/first-scan";
-import type { DatasetName, SourceId, SourceState } from "../../../src/core/models";
+import type { DatasetName, SourceId, SourceState, SourceStatus } from "../../../src/core/models";
 import { handInDays, isHandInMove } from "../../../src/core/schedule";
 import { useSettling } from "../host/settling";
 import { ReportButton } from "../parts/report";
@@ -51,6 +51,29 @@ export function useSignIn() {
     [bridge, t],
   );
   return { signIn, busy };
+}
+
+/**
+ * Signs out of everything, for an account that isn't a student's: a sign-out of one system keeps Microsoft's sign-in, so
+ * signing in again would come straight back as the same account. Nothing of a Student's is lost: none was read.
+ */
+function useSignOut() {
+  const bridge = useBridge();
+  const t = useT();
+  const [busy, setBusy] = useState(false);
+  const signOut = useCallback(async () => {
+    setBusy(true);
+    try {
+      await bridge.invoke("auth.signOut", {});
+      // Back to the start, as Settings' sign-out does: no screen of the account stays under it.
+      router.replace("/");
+    } catch (error) {
+      toast(t(errorKey(error)), "danger");
+    } finally {
+      setBusy(false);
+    }
+  }, [bridge, t]);
+  return { signOut, busy };
 }
 
 /** What a sign-in says while the Student has nothing to do in it: joining, finishing out of sight, or slow. */
@@ -391,7 +414,8 @@ export function SyncPanel({ open, onClose }: { open: boolean; onClose(): void })
   );
 }
 
-function hintFor(state: SourceState, source: string, t: ReturnType<typeof useT>): string | null {
+function hintFor({ state, asks }: SourceStatus, source: string, t: ReturnType<typeof useT>): string | null {
+  if (state === "action-needed" && asks === "student") return t("status.notStudentHint");
   if (state === "expired") return t("status.expiredHint", { source });
   if (state === "changed") return t("status.changedHint", { source });
   if (state === "offline") return t("status.offlineHint", { source });
@@ -405,11 +429,13 @@ function SourceRow({ source, onClose }: { source: SourceId; onClose(): void }) {
   const status = useStatus(source);
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh } = useRefresh();
+  const { signOut, busy: signingOut } = useSignOut();
   const refreshing = useReading().includes(source);
   const name = t(`source.${source}`);
   const needsSignIn = source !== "itb" && (status.state === "expired" || status.state === "signed-out");
+  const notStudent = status.state === "action-needed" && status.asks === "student";
   const note = useSignInNote(source);
-  const hint = needsSignIn && note ? note.text : refreshing ? t("sync.checking") : hintFor(status.state, name, t);
+  const hint = needsSignIn && note ? note.text : refreshing ? t("sync.checking") : hintFor(status, name, t);
   const word = status.state === "changed" ? t("status.changedShort") : t(`status.${status.state}`);
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: space[3], paddingVertical: space[3] }}>
@@ -451,6 +477,18 @@ function SourceRow({ source, onClose }: { source: SourceId; onClose(): void }) {
         <Button size="sm" variant={status.state === "expired" ? "primary" : "secondary"} busy={signingIn} onPress={() => void signIn(source)}>
           {status.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
         </Button>
+      ) : notStudent ? (
+        <Button
+          size="sm"
+          variant="primary"
+          busy={signingOut}
+          onPress={() => {
+            onClose();
+            void signOut();
+          }}
+        >
+          {t("action.signOut")}
+        </Button>
       ) : status.state === "changed" || status.state === "offline" ? (
         <Button size="sm" busy={refreshing} onPress={() => void refresh(source)}>
           {t("action.tryAgain")}
@@ -475,6 +513,7 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
   const student = useDataset("six.student");
   const { signIn, busy: signingIn } = useSignIn();
   const { refresh, busy: refreshing } = useRefresh();
+  const { signOut, busy: signingOut } = useSignOut();
   const [dismissed, setDismissed] = useState<string | null>(null);
   const edunexNote = useSignInNote("edunex");
   const sixNote = useSignInNote("six");
@@ -482,6 +521,7 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
   const problem =
     [edunex, six].find((status) => status.state === "changed") ??
     [edunex, six].find((status) => status.state === "expired" || (status.state === "signed-out" && has[status.source as "edunex" | "six"])) ??
+    [edunex, six].find((status) => status.state === "action-needed" && status.asks === "student") ??
     ([edunex, six].filter((status) => status.state !== "signed-out").every((status) => status.state === "offline") &&
     [edunex, six].some((status) => status.state === "offline")
       ? [edunex, six].find((status) => status.state === "offline")
@@ -492,6 +532,7 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
   const name = t(`source.${problem.source}`);
   const offline = problem.state === "offline";
   const needsSignIn = problem.state === "expired" || problem.state === "signed-out";
+  const notStudent = problem.state === "action-needed";
   const lastUpdate = Math.max(0, ...[edunex, six].map((status) => status.updatedAt ?? 0));
   const title = offline
     ? t("banner.offline")
@@ -499,7 +540,9 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
       ? t("banner.expired", { source: name })
       : problem.state === "signed-out"
         ? t("banner.signedOut", { source: name })
-        : t("banner.changed", { source: name });
+        : notStudent
+          ? t("banner.notStudent", { source: name })
+          : t("banner.changed", { source: name });
   const note = needsSignIn ? (problem.source === "six" ? sixNote : edunexNote) : null;
   const detail = note
     ? note.text
@@ -509,7 +552,9 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
         : null
       : problem.state === "changed"
         ? t("status.changedHint", { source: name })
-        : t("banner.keptHint");
+        : notStudent
+          ? t("status.notStudentHint")
+          : t("banner.keptHint");
   const [bg, fg] =
     problem.state === "changed"
       ? [theme.color.dangerBg, theme.color.dangerFg]
@@ -551,6 +596,10 @@ export function ProblemBanner({ belowBar = false }: { belowBar?: boolean }) {
         {needsSignIn ? (
           <Button size="sm" variant="primary" busy={signingIn} onPress={() => void signIn(problem.source)} testID="action.signInAgain">
             {problem.state === "expired" ? t("action.signInAgain") : t("action.signInTo", { source: name })}
+          </Button>
+        ) : notStudent ? (
+          <Button size="sm" variant="primary" busy={signingOut} onPress={() => void signOut()} testID="action.signOut">
+            {t("action.signOut")}
           </Button>
         ) : (
           <Button size="sm" busy={refreshing} onPress={() => void refresh(offline ? undefined : problem.source)} testID="action.tryAgain">
