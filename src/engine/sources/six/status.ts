@@ -6,7 +6,7 @@
 // their labels. A course row it doesn't understand is left out (skipped); one
 // with a detail it can't read is kept with that detail blank.
 import type { SixCourse, SixStudent, SkippedRow } from "../../../core/models";
-import { type EngineError, isEngineError } from "../../errors";
+import { ActionNeeded, type EngineError, isEngineError } from "../../errors";
 import { Skipped } from "../skipped";
 import { COURSE_CODE, changed, clean, links, type Nodes, type Page, parse } from "./html";
 
@@ -51,7 +51,12 @@ export function readNim(html: string): string {
     links($)
       .map((href) => /(?:\/app\/|[?&]context=)mahasiswa:(\d+)/.exec(href)?.[1])
       .find(Boolean);
-  if (!nim) throw changed("home", "no student pages are linked");
+  if (!nim) {
+    // A lecturer's SIX links /app/dosen:… pages, none a student's: the app reads only a Student's, and that isn't a change.
+    if (links($).some((href) => /(?:\/app\/|[?&]context=)dosen:/.test(href)))
+      throw new ActionNeeded("student", "SIX signed in a lecturer account, not a student's");
+    throw changed("home", "no student pages are linked");
+  }
   return nim;
 }
 

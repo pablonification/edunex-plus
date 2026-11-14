@@ -28,6 +28,8 @@ export interface DemoOptions {
   sick?: boolean;
   /** EDUNEX_DEMO_DATAINDUK: SIX sends every page of the Student's to its personal-details form first (#278, #279). */
   dataInduk?: boolean;
+  /** EDUNEX_DEMO_LECTURER: a lecturer signed in, not a student: Edunex says level "LECTURER" without a NIM, SIX links only dosen pages (#345). */
+  lecturer?: boolean;
   /** EDUNEX_DEMO_CURRICULUM: SIX marks every curriculum of the Student's program ✗, as a first-year program's (#292). */
   curriculum?: "none";
   /** EDUNEX_DEMO_GUIDE: the first-run guide offers itself here too (for its pictures). */
@@ -58,6 +60,7 @@ export function demoOptions(env: Record<string, string | undefined>): DemoOption
     handedBack: flag(env.EDUNEX_DEMO_HANDED_BACK),
     sick: flag(env.EDUNEX_DEMO_SICK),
     dataInduk: flag(env.EDUNEX_DEMO_DATAINDUK),
+    lecturer: flag(env.EDUNEX_DEMO_LECTURER),
     curriculum: oneOf("EDUNEX_DEMO_CURRICULUM", env.EDUNEX_DEMO_CURRICULUM, ["none"] as const),
     guide: flag(env.EDUNEX_DEMO_GUIDE),
     odd: flag(env.EDUNEX_DEMO_ODD),
@@ -97,6 +100,11 @@ export function demoWorld(options: DemoOptions): PretendWorld {
       ),
     );
   if (options.dataInduk) world.six.requireDataInduk();
+  if (options.lecturer) {
+    const { code: _nim, ...me } = world.edunex.me as Record<string, unknown>;
+    world.edunex.me = { ...me, level: "LECTURER" };
+    world.six.editPage(/^\/home$/, (html) => html.replace(/mahasiswa:\d+/g, "dosen:000000000000000001"));
+  }
   if (options.curriculum === "none")
     world.six.editPage(/\/kurikulum\/kurikulum\/list$/, (html) =>
       html.replace('<span class="text-success"><i class="fa fa-fw fa-check"></i></span>', '<span class="text-danger"><i class="fa fa-fw fa-times"></i></span>'),

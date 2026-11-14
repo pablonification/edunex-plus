@@ -778,7 +778,12 @@ function AccountRow({ source, who }: { source: SourceId; who: readonly string[] 
           ? { text: t("settings.account.expired"), tone: "text-warning-fg" }
           : status.state === "action-needed"
             ? {
-                text: status.asks === "datainduk" ? t("settings.account.dataInduk") : t("settings.account.actionNeeded", { source: name }),
+                text:
+                  status.asks === "datainduk"
+                    ? t("settings.account.dataInduk")
+                    : status.asks === "student"
+                      ? t("settings.account.notStudent")
+                      : t("settings.account.actionNeeded", { source: name }),
                 tone: "text-warning-fg",
               }
             : status.state === "connecting"

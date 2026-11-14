@@ -12,7 +12,7 @@ import { type HttpResponse, NetworkError, type Transport } from "../../http/tran
 import type { SourceAction, SourceContext } from "../source";
 import { answerWords, cleanAnswer } from "./answer-html";
 import { EDUNEX_API, EdunexClient, edunexLine, TIMEOUT_MS } from "./client";
-import { LoginMe } from "./schemas";
+import { fetchMe } from "./feeds";
 import type { EdunexSession } from "./session";
 import { type AnswerFile, readTaskRecord, remember, type TaskRecord } from "./task-records";
 import { answerSeen, fetchThread, keepThread, readThreadNow } from "./task-threads";
@@ -109,7 +109,7 @@ export const taskActions: Record<string, SourceAction<EdunexSession>> = {
       a.taskable_type === "modules" && a.taskable_id !== null
         ? { id: a.taskable_id, name: (await client.get(`/course/modules/${a.taskable_id}`, { include: "" }, ModuleRecord)).data.attributes.name }
         : null;
-    const me = await client.get("/login/me", {}, LoginMe);
+    const me = await fetchMe(client);
     const path = storagePath({ at: context.clock.now(), courseId: fresh.task.courseId, courseName, module, userId: me.id, fileName: name });
     const reply = UploadLinks.safeParse(
       await write(context, session, "POST", "/blob-storage/sas", answerBodies.uploadLink(path, contentType, bytes.byteLength)),

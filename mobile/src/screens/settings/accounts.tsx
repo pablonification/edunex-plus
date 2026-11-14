@@ -59,11 +59,13 @@ function AccountRow({ source, report }: { source: SourceId; report: Report }) {
         ? { text: t("settings.notConnected"), tone: "muted" }
         : status.state === "expired"
           ? { text: t("settings.account.expired"), tone: "amber" }
-          : status.state === "connecting"
-            ? { text: t("status.connecting"), tone: "muted" }
-            : status.state === "live"
-              ? { text: t("status.live"), tone: "ok" }
-              : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "amber" };
+          : status.state === "action-needed" && status.asks === "student"
+            ? { text: t("settings.account.notStudent"), tone: "amber" }
+            : status.state === "connecting"
+              ? { text: t("status.connecting"), tone: "muted" }
+              : status.state === "live"
+                ? { text: t("status.live"), tone: "ok" }
+                : { text: checked ? t("settings.account.stale", { when: checked }) : t(`status.${status.state}`, { source: name }), tone: "amber" };
   const signInLabel = t(status.state === "expired" ? "settings.signInAgainTo" : "settings.signInTo", { source: name });
   return (
     <View testID={`row.account.${source}`}>
