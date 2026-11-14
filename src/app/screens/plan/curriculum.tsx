@@ -15,7 +15,7 @@ import { useOpenExternal } from "../../hooks";
 import { useT } from "../../i18n";
 import { SixPageNote, UnreadNote } from "../../six-page-note";
 import { useDataset } from "../../store";
-import { useCurriculumFix, usePlan, useStudentRecord } from "../../study-plan";
+import { useCurriculumFix, useDFails, usePlan, useStudentRecord } from "../../study-plan";
 import { IconButton, Switch } from "../../ui/controls";
 import { cx } from "../../ui/cx";
 import { Bar, EmptyState } from "../../ui/display";
@@ -215,6 +215,7 @@ export function Tab({ onCalendar }: { onCalendar?: () => void }) {
           {onlyLeft && hidden > 0 && semesters.length > 0 && <p className="text-caption text-faint">{t("curriculum.hiddenDone", { count: hidden })}</p>}
         </div>
         <aside className="space-y-6">
+          <DRule />
           {map.specializations.length > 0 && (
             <Packages id="curriculum-specializations" title={t("curriculum.specializations")} packages={map.specializations} />
           )}
@@ -524,6 +525,21 @@ function PickStandIn({ record, course, onPick, onClose }: { record: StudentRecor
       {semester !== undefined && group(t("curriculum.pick.suggested", { n: semester }), suggested)}
       {group(t("curriculum.pick.others"), rest)}
     </Dialog>
+  );
+}
+
+/** Whether a D passes a course in the Student's program: on, as ITB's rules have it, unless their program asks for a C. */
+function DRule() {
+  const t = useT();
+  const [dFails, setDFails] = useDFails();
+  return (
+    <div className="space-y-1">
+      <label className="flex items-center justify-between gap-3 text-small font-medium">
+        {t("curriculum.dPasses")}
+        <Switch checked={!dFails} onCheckedChange={(on) => setDFails(!on)} label={t("curriculum.dPasses")} />
+      </label>
+      <p className="text-caption text-muted">{t("curriculum.dPassesHint")}</p>
+    </div>
   );
 }
 

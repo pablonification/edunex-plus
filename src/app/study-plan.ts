@@ -5,7 +5,7 @@
 // term's what-ifs. Both screens project with the same functions, so they
 // never disagree; Nilai keeps to SIX's own record for this term.
 import { useMemo, useState } from "react";
-import type { CurriculumFix, StudyPlan } from "../core/models";
+import type { CurriculumFix, CurriculumFixes, StudyPlan } from "../core/models";
 import {
   aheadPlan,
   defaultPlan,
@@ -40,7 +40,7 @@ export function useStudentRecord(): StudentRecord | undefined {
       const sks = c.sks ?? sksOf(c.code);
       return sks === null ? [] : [{ ...c, sks }];
     });
-    return studentRecord({ transcript, progress, curriculum: curriculum ?? undefined, catalog, term, termCourses, fixes: fixes?.slots });
+    return studentRecord({ transcript, progress, curriculum: curriculum ?? undefined, catalog, term, termCourses, fixes: fixes?.slots, dFails: fixes?.dFails });
   }, [transcript, progress, curriculum, catalog, krs, student, courses, fixes]);
 }
 
@@ -50,10 +50,24 @@ export function useCurriculumFix(): (slot: string, fix: CurriculumFix | null) =>
   const store = useStore();
   return (slot, fix) => {
     // Read at the moment of the change, so an undo from a toast never puts back an older set.
-    const { [slot]: before, ...rest } = (store.dataset("local.curriculum")?.value as { slots: Record<string, CurriculumFix> } | undefined)?.slots ?? {};
-    void bridge.invoke("local.set", { name: "local.curriculum", value: { slots: fix ? { ...rest, [slot]: fix } : rest } }).catch(() => undefined);
+    const saved = store.dataset("local.curriculum")?.value as CurriculumFixes | undefined;
+    const { [slot]: before, ...rest } = saved?.slots ?? {};
+    // The other facts the Student told it (a D fails) stay as they are.
+    void bridge.invoke("local.set", { name: "local.curriculum", value: { ...saved, slots: fix ? { ...rest, [slot]: fix } : rest } }).catch(() => undefined);
     return before ?? null;
   };
+}
+
+/** Whether a D fails a course in the Student's program, and a way to say so; kept with their other curriculum facts. */
+export function useDFails(): [boolean, (dFails: boolean) => void] {
+  const bridge = useBridge();
+  const store = useStore();
+  const fixes = useDataset("local.curriculum");
+  const set = (dFails: boolean) => {
+    const saved = store.dataset("local.curriculum")?.value as CurriculumFixes | undefined;
+    void bridge.invoke("local.set", { name: "local.curriculum", value: { slots: saved?.slots ?? {}, dFails } }).catch(() => undefined);
+  };
+  return [fixes?.dFails ?? false, set];
 }
 
 export interface PlanState {

@@ -98,6 +98,8 @@ export type CurriculumFix = z.infer<typeof CurriculumFix>;
 export const CurriculumFixes = z.object({
   /** By the curriculum's course code ("WI1111", "WI201X"). */
   slots: z.record(z.string().min(1).max(20), CurriculumFix),
+  /** A D doesn't pass a course in the Student's program (some programs ask for C or better): it's to take again. Not before. */
+  dFails: z.boolean().optional(),
 });
 export type CurriculumFixes = z.infer<typeof CurriculumFixes>;
 
