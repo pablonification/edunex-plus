@@ -1,6 +1,6 @@
-// "Sembunyikan nilai" on the phone (Settings.hideGrades): what a grade prints, and what a screen reader hears, while
-// grades are hidden; and a grade alert's words without its grade. Pure, so the phone's screens, its notifications and
-// the tests say the same thing. Like a banking app hiding a balance: the figure keeps its place, as dots.
+// "Sembunyikan nilai" on the phone and the desktop (Settings.hideGrades): what a grade prints, and what a screen reader
+// hears, while grades are hidden; and a grade alert's words without its grade. Pure, so both apps' screens, their
+// notifications and the tests say the same thing. Like a banking app hiding a balance: the figure keeps its place, as dots.
 import type { StringKey } from "./strings";
 
 /** What stands where a hidden figure was: three dots, in the figure's own size and weight. */

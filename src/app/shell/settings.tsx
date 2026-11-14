@@ -11,6 +11,7 @@
 // app is (licence, the open-source software it uses, opened as a page of its
 // own), and "Laporkan masalah" to its maintainer.
 import { lazy, type ReactNode, Suspense, useEffect, useRef, useState } from "react";
+import { gradesHidden } from "../../core/hide-grades";
 import {
   type AlertGroup,
   type CourseColors,
@@ -208,6 +209,10 @@ function SettingsBody({
               { value: "en", label: "English" },
             ]}
           />
+        </Row>
+        {/* The same switch as the eye beside the IPK on Nilai. */}
+        <Row label={t("mobile.hideGrades")} hint={t("mobile.hideGrades.hint")}>
+          <Switch checked={gradesHidden(settings)} onCheckedChange={(hideGrades) => update({ hideGrades })} label={t("mobile.hideGrades")} />
         </Row>
       </Group>
 

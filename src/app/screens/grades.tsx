@@ -22,6 +22,7 @@ import {
   targetOf,
 } from "../../core/planner";
 import { useTermCourses } from "../courses";
+import { GradesHiddenLine, HiddenFigure, HideGradesButton, useGradesHidden, useGradeWords } from "../hide-grades";
 import { useOpenExternal } from "../hooks";
 import { type Format, type Translate, useFormat, useNow, useT } from "../i18n";
 import { useNav, usePlaceState } from "../nav";
@@ -59,20 +60,32 @@ const shownIndex = (index: CheckedIndex) => index.six ?? index.computed;
 
 export function GradesScreen() {
   const t = useT();
-  const nav = useNav();
   const record = useStudentRecord();
   // SIX's own record: the planner's what-ifs for this term stay in the planner.
   const state = usePlan(record, false);
+  const hidden = useGradesHidden();
   if (!record || !state) return <WithoutSix />;
   return (
     <Page className="@container">
       <PageHeader title={t("nav.grades")} className="mb-6" />
       <div className="mb-6 space-y-2 empty:hidden">
         <SixPageNote datasets={["six.transcript", "six.progress"]} />
-        <UnreadNote record={record} />
+        {!hidden && <UnreadNote record={record} />}
       </div>
-      <Disagreement record={record} />
+      {!hidden && <Disagreement record={record} />}
       <Standing record={record} state={state} />
+      {/* Hidden: every part made of grades (the chart, this term, the transcript) gives way to one quiet line. */}
+      {hidden ? <GradesHiddenLine className="mt-12" /> : <Grades record={record} state={state} />}
+    </Page>
+  );
+}
+
+/** The chart, this term's grades and the transcript: the parts of Nilai made of grades. */
+function Grades({ record, state }: { record: StudentRecord; state: PlanState }) {
+  const t = useT();
+  const nav = useNav();
+  return (
+    <>
       {/* The guide points here (shell/guide.tsx). */}
       <section aria-labelledby="grades-chart" data-guide="grades-outlook" className="mt-12">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
@@ -92,7 +105,7 @@ export function GradesScreen() {
       </section>
       <ThisTerm record={record} state={state} />
       <Transcript record={record} />
-    </Page>
+    </>
   );
 }
 
@@ -167,22 +180,34 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
   const lastTerm = [...plan.terms].reverse().find((term) => term.courses.length)?.term ?? record.term;
   const blocked = finish?.level === "error";
   const honors = honorsWhy(t, f, projection);
+  const hidden = useGradesHidden();
+  /** A figure, or the dots in its place while grades are hidden. */
+  const figure = (value: ReactNode, name: string) => (hidden ? <HiddenFigure name={name} /> : value);
   return (
     <section aria-label={t("grades.standing")} className="grid grid-cols-1 items-start gap-x-14 gap-y-5 @2xl:grid-cols-[auto_minmax(0,1fr)]">
       <div>
         <p className="text-small font-medium text-muted">{t("grades.ipkNow")}</p>
-        <p className="text-hero font-semibold tracking-[-0.02em] tabular-nums">{num(ipk)}</p>
+        {/* The eye beside the biggest number: one click hides or shows every grade, everywhere. */}
+        <div className="flex items-center gap-2">
+          {ipk !== null && hidden ? (
+            <HiddenFigure name={t("grades.chart.ipk")} className="text-hero font-semibold tracking-[-0.02em]" />
+          ) : (
+            <p className="text-hero font-semibold tracking-[-0.02em] tabular-nums">{num(ipk)}</p>
+          )}
+          {ipk !== null && <HideGradesButton />}
+        </div>
       </div>
       <dl className="grid grid-cols-[auto_auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-small @2xl:pt-0.5">
         {finalIpk !== null && (
           <Fact
             label={t("grades.graduationLabel")}
             // With no predicate to hang it on, the honors outlook goes behind the label.
-            why={word ? undefined : honors}
-            value={<AnimatedNumber value={finalIpk} format={(value) => f.number(value, 2)} />}
+            why={word || hidden ? undefined : honors}
+            value={figure(<AnimatedNumber value={finalIpk} format={(value) => f.number(value, 2)} />, t("grades.graduationLabel"))}
             hint={
               <Meta>
-                {word ? <Explained text={word} why={honors} className={cx(projection.honor && "text-success-fg")} /> : null}
+                {/* The honors word says where the IPK is: hidden with it. */}
+                {word && !hidden ? <Explained text={word} why={honors} className={cx(projection.honor && "text-success-fg")} /> : null}
                 {blocked ? (
                   <span className="inline-flex items-center gap-1 text-warning-fg">
                     <Icons.AlertTriangle className="size-3.5 shrink-0" />
@@ -198,10 +223,10 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
         <Fact label={t("grades.sksPassed")} value={String(passedSks(record) ?? "-")} hint={t("grades.sksPassedHint", { need: sks.need })} />
         <Fact
           label={t("grades.lastIp")}
-          value={num(lastIp)}
+          value={figure(num(lastIp), t("grades.lastIp"))}
           hint={
             last ? (
-              delta === null || !before ? (
+              delta === null || !before || hidden ? (
                 short(last.term)
               ) : (
                 <Explained
@@ -213,7 +238,11 @@ function Standing({ record, state }: { record: StudentRecord; state: PlanState }
             ) : undefined
           }
         />
-        <Fact label={t("grades.best")} why={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")} value={num(bestIpk)} />
+        <Fact
+          label={t("grades.best")}
+          why={variableSks ? t("grades.bestHint", { sks: variableSks }) : t("grades.bestNone")}
+          value={figure(num(bestIpk), t("grades.best"))}
+        />
       </dl>
     </section>
   );
@@ -455,6 +484,7 @@ function WithoutSix() {
   const courses = useTermCourses();
   const outline = useDataset("edunex.outline");
   const anyGrade = courses?.some((c) => outline?.[c.code]?.grade) ?? false;
+  const gradeWords = useGradeWords();
   return (
     <Page>
       <PageHeader title={t("nav.grades")} />
@@ -476,7 +506,11 @@ function WithoutSix() {
                   leading={<CourseCode code={course.code} color={course.color} className="w-[76px] text-small" />}
                   title={course.name}
                   meta={
-                    grade ? t("grades.edunexGrade", { total: f.number(grade.total, 1), letter: grade.letter }) : anyGrade ? t("grades.edunexNone") : undefined
+                    grade
+                      ? t("grades.edunexGrade", { total: gradeWords(f.number(grade.total, 1)), letter: gradeWords(grade.letter) })
+                      : anyGrade
+                        ? t("grades.edunexNone")
+                        : undefined
                   }
                   trailing={<span className="text-small font-medium text-muted">{t("grades.whatNeed")}</span>}
                   onClick={() => nav.go({ screen: "course", code: course.code, tab: "grades" })}

@@ -6,9 +6,11 @@
 // clears the badge; the dots stay until "Tandai semua dibaca". Nothing is
 // ever marked in Edunex.
 import { type ComponentType, useMemo, useState, useSyncExternalStore } from "react";
+import { withoutGrades } from "../../core/hide-grades";
 import type { Alert, AlertKind } from "../../core/models";
 import { alertFeed } from "../../core/needs";
 import { useCourseColor } from "../courses";
+import { useGradesHidden } from "../hide-grades";
 import { useHomeWorld } from "../home-world";
 import { useOpenCheckIn } from "../hooks";
 import { type Format, useFormat, useNow, useT } from "../i18n";
@@ -128,6 +130,7 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
   const bridge = useBridge();
   const { go } = useNav();
   const openCheckIn = useOpenCheckIn();
+  const gradesAreHidden = useGradesHidden();
   const history = useDataset("app.alerts");
   // Signed out of SIX, nothing here came from SIX: the footnote doesn't say it did.
   const sixOut = useStatus("six").state === "signed-out";
@@ -181,6 +184,8 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                 const Icon = KIND_ICON[item.kind];
                 const unread = isUnread(item);
                 const code = typeof item.title.vars?.course === "string" ? item.title.vars.course : null;
+                // Hidden grades: a new grade names its course only, never the grade or the IPK.
+                const words = gradesAreHidden ? withoutGrades(item) : item;
                 return (
                   <li key={item.id}>
                     <button
@@ -197,8 +202,8 @@ function AlertsPanel({ readAt, onRead, onClose }: { readAt: number; onRead: (at:
                         {code && <CourseDot color={colorOf(code)} className="absolute -right-1 -bottom-1 size-2 ring-2 ring-raised" />}
                       </span>
                       <span className="min-w-0 flex-1">
-                        <Meta className={cx("text-small", unread ? "font-semibold" : "font-medium")}>{t(item.title.key, item.title.vars)}</Meta>
-                        {item.body && <Meta className="mt-0.5 text-caption text-muted">{t(item.body.key, item.body.vars)}</Meta>}
+                        <Meta className={cx("text-small", unread ? "font-semibold" : "font-medium")}>{t(words.title.key, words.title.vars)}</Meta>
+                        {words.body && <Meta className="mt-0.5 text-caption text-muted">{t(words.body.key, words.body.vars)}</Meta>}
                       </span>
                       <span className="flex shrink-0 items-center gap-2 pt-0.5">
                         <span className="text-caption text-faint tabular-nums">
