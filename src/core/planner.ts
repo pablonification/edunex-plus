@@ -980,16 +980,14 @@ export function planMinor(plan: StudyPlan, minor: MinorOption): StudyPlan {
 
 /**
  * Courses of a specialization or minor planned for later that only it asks
- * for: not required, not a retake the Student planned, not in the package the plan still follows
+ * for: not required, not a retake, not in the package the plan still follows
  * (`keep`). What "not continuing, and take its courses out" removes.
  */
 export function onlyFor(record: StudentRecord, plan: StudyPlan, codes: readonly string[], keep: readonly string[] = []): PlannedCourse[] {
   const required = (code: string) => record.requiredLeft.some((c) => c.code === code) || [...record.required.keys()].some((slot) => fillsSlot(slot, code));
-  // A D taken again is a retake only in the plan every figure reads (livePlan): the package planned it, so it goes with it.
-  const retakes = new Set(plan.terms.flatMap((t) => t.courses.filter((c) => c.retake).map((c) => c.code)));
   return livePlan(plan, record)
     .terms.flatMap((t) => t.courses)
-    .filter((c) => codes.includes(c.code) && !retakes.has(c.code) && !required(c.code) && !keep.includes(c.code));
+    .filter((c) => codes.includes(c.code) && !c.retake && !required(c.code) && !keep.includes(c.code));
 }
 
 /** Not continuing a registered specialization or minor, kept through a reset; with `drop`, those courses leave the plan too (a retake stays). */
