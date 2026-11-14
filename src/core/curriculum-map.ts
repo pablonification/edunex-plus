@@ -157,7 +157,7 @@ export function curriculumMap(record: StudentRecord, plan: StudyPlan): Curriculu
   const packageWhatIf = (code: string): MapCourse["whatIf"] => (tried.has(code) ? "added" : leftOut.has(code) ? "left-out" : null);
   const packageStatus = (code: string): SlotStatus => {
     const seen = fromTranscript(code);
-    return seen ? seen.status : planned.has(code) ? "planned" : record.exempt.has(code) ? "exempt" : "left";
+    return seen ? withPlan(seen.status, code) : planned.has(code) ? "planned" : record.exempt.has(code) ? "exempt" : "left";
   };
   const spec = record.curriculum?.specializations ?? [];
   const specializations: PackageProgress[] = spec.map((p) => {
