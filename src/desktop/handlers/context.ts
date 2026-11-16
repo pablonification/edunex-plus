@@ -35,6 +35,7 @@ export interface DesktopContext {
   send(event: Event): void;
   /** Applies settings that live outside the page: theme, menu language. */
   applySettings(settings: Settings): void;
+  /** The page has drawn: the window shows, unless an update restarted the app in the tray (then it stays there). */
   reveal(): void;
   startSyncing(): void;
   /** OS notifications (alerts, the test notification). */

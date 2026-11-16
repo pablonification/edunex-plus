@@ -17,12 +17,12 @@ export const updatesStrings = {
   "update.retry": { id: "Coba lagi", en: "Try again" },
   "update.auto": { id: "Perbarui otomatis", en: "Update automatically" },
   "update.autoHint": {
-    id: "Versi baru terunduh sendiri dan terpasang saat kamu menutup aplikasi.",
-    en: "New versions download by themselves and install when you quit the app.",
+    id: "Versi baru terunduh dan terpasang sendiri saat kamu tidak memakai aplikasi.",
+    en: "New versions download and install by themselves when you're not using the app.",
   },
   "update.readyAuto": {
-    id: "Edunex Plus {version} siap. Terpasang saat kamu menutup aplikasi, atau mulai ulang sekarang.",
-    en: "Edunex Plus {version} is ready. It installs when you quit the app, or restart now.",
+    id: "Edunex Plus {version} siap. Terpasang sendiri saat kamu tidak memakai aplikasi, atau mulai ulang sekarang.",
+    en: "Edunex Plus {version} is ready. It installs by itself when you're not using the app, or restart now.",
   },
   "update.check": { id: "Periksa pembaruan", en: "Check for updates" },
   "update.checkHint": { id: "Diperiksa sendiri sekali sehari.", en: "Checked by itself once a day." },

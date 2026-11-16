@@ -29,12 +29,28 @@ export type HandInAction =
   | "tasks.upload"
   | "tasks.saveDraft"
   | "tasks.submit"
+  | "tasks.unsaved"
   | "tasks.comment"
   | "tasks.readThread";
 type HandInHandlers = { [N in HandInAction]: (input: z.infer<(typeof Actions)[N]["input"]>) => Promise<ActionOutput<N>> };
 
 /** Picked files stay known this long a list (the latest ones). */
 const KEEP = 50;
+
+/** Hand-ins on their way (files being picked, uploaded, saved or sent). */
+let handingIn = 0;
+/** The window holds an answer or attached files the Student hasn't saved ("tasks.unsaved"). */
+let unsaved = false;
+/** A hand-in on its way, or one not saved yet: an update doesn't restart the app under it (main.ts). */
+export const handingInNow = () => handingIn > 0 || unsaved;
+async function counted<T>(work: () => Promise<T>): Promise<T> {
+  handingIn++;
+  try {
+    return await work();
+  } finally {
+    handingIn--;
+  }
+}
 
 export function handInHandlers(engine: Engine, pick: () => Promise<LocalFile[]>): HandInHandlers {
   const picked = new Map<string, LocalFile>();
@@ -49,7 +65,7 @@ export function handInHandlers(engine: Engine, pick: () => Promise<LocalFile[]>)
   };
 
   return {
-    "tasks.pickFiles": async () => ({ files: (await pick()).map(keep) }),
+    "tasks.pickFiles": () => counted(async () => ({ files: (await pick()).map(keep) })),
     "tasks.dropFiles": async ({ files }) => ({
       files: files.map((file) => {
         const bytes = file.bytes;
@@ -65,24 +81,29 @@ export function handInHandlers(engine: Engine, pick: () => Promise<LocalFile[]>)
       const bytes = await file.read().catch(() => null);
       return bytes && sniff(bytes, "pdf") ? { bytes } : { problem: "unreadable" };
     },
-    "tasks.upload": async ({ fileId, taskId }) => {
-      const file = picked.get(fileId);
-      if (!file) throw new EngineError("Rejected", "That file isn't attached any more");
-      const problem = answerFileProblem(file.name, file.size);
-      if (problem) throw new EngineError("Rejected", problem === "size" ? `${file.name} is over 100 MB` : `Edunex doesn't take ${file.name} in an answer`);
-      let bytes: Uint8Array;
-      try {
-        bytes = await file.read();
-      } catch (error) {
-        if (isEngineError(error)) throw error;
-        throw new EngineError("Rejected", `${file.name} can't be read any more`);
-      }
-      const uploaded = await engine.act("edunex", "uploadFile", { taskId, name: file.name, contentType: file.type || contentType(file.name), bytes });
-      return Actions["tasks.upload"].output.parse(uploaded);
+    "tasks.upload": ({ fileId, taskId }) =>
+      counted(async () => {
+        const file = picked.get(fileId);
+        if (!file) throw new EngineError("Rejected", "That file isn't attached any more");
+        const problem = answerFileProblem(file.name, file.size);
+        if (problem) throw new EngineError("Rejected", problem === "size" ? `${file.name} is over 100 MB` : `Edunex doesn't take ${file.name} in an answer`);
+        let bytes: Uint8Array;
+        try {
+          bytes = await file.read();
+        } catch (error) {
+          if (isEngineError(error)) throw error;
+          throw new EngineError("Rejected", `${file.name} can't be read any more`);
+        }
+        const uploaded = await engine.act("edunex", "uploadFile", { taskId, name: file.name, contentType: file.type || contentType(file.name), bytes });
+        return Actions["tasks.upload"].output.parse(uploaded);
+      }),
+    "tasks.saveDraft": (input) => counted(async () => Actions["tasks.saveDraft"].output.parse(await engine.act("edunex", "saveDraft", input))),
+    "tasks.submit": (input) => counted(async () => Actions["tasks.submit"].output.parse(await engine.act("edunex", "submit", input))),
+    "tasks.comment": (input) => counted(async () => Actions["tasks.comment"].output.parse(await engine.act("edunex", "comment", input))),
+    "tasks.unsaved": async (input) => {
+      unsaved = input.unsaved;
+      return {};
     },
-    "tasks.saveDraft": async (input) => Actions["tasks.saveDraft"].output.parse(await engine.act("edunex", "saveDraft", input)),
-    "tasks.submit": async (input) => Actions["tasks.submit"].output.parse(await engine.act("edunex", "submit", input)),
-    "tasks.comment": async (input) => Actions["tasks.comment"].output.parse(await engine.act("edunex", "comment", input)),
     "tasks.readThread": async (input) => Actions["tasks.readThread"].output.parse(await engine.act("edunex", "readThread", input)),
   };
 }

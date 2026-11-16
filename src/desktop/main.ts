@@ -2,6 +2,7 @@
 // window hidden and shows it once the page has drawn that data, starts
 // syncing only then, and answers the window through the typed bridge.
 
+import { promises as fsp } from "node:fs";
 import module from "node:module";
 import path from "node:path";
 import { app, BrowserWindow, dialog, powerMonitor, session, shell } from "electron";
@@ -20,6 +21,7 @@ import { type Away, awayFromApp } from "./away";
 import { demo, demoPhone } from "./demo";
 import { createDownloadedFiles, DOWNLOADED_FILES_FOLDER } from "./downloaded-files";
 import { createFileCache, FILE_CACHE_FOLDER } from "./file-cache";
+import { handingInNow } from "./hand-in";
 import { alertsHandlers } from "./handlers/alerts";
 import { authHandlers } from "./handlers/auth";
 import type { DesktopContext } from "./handlers/context";
@@ -40,7 +42,7 @@ import { ntfyClient } from "./ntfy";
 import { openOfficialPage } from "./open-page";
 import { registerAppScheme, serveApp } from "./protocol";
 import { APP_HOST, APP_ORIGIN, APP_SCHEME, contentSecurityPolicy, denyPermissions, guardAppWindow, hardenAllContents } from "./security";
-import { followAutoUpdates } from "./self-update";
+import { followAutoUpdates, IDLE_ENOUGH, type Moment, QUIET_START_FILE, type QuietStart, quietStart } from "./self-update";
 import { FileStorage } from "./storage";
 import { electronTransport } from "./transport";
 import { type AppTray, createTray } from "./tray";
@@ -81,6 +83,12 @@ let theme: ReturnType<typeof followTheme> | null = null;
 let autoUpdates: ReturnType<typeof followAutoUpdates> | null = null;
 /** Quitting for good: a ready update has been put in place, or there was none. */
 let readyToQuit = false;
+/** An update restarted the app by itself: it starts as it was, in the tray or its window shown without focus (./self-update.ts). */
+let startQuietly: QuietStart | null = null;
+/** The first-time tray question is on screen. */
+let explaining = false;
+/** Shows the window if the page never says it's ready. */
+let startFallback: ReturnType<typeof setTimeout> | null = null;
 /** macOS: the key the saved sign-ins are locked with, from the keychain helper (src/desktop/keychain-helper.ts); null elsewhere. */
 let vaultKey: Buffer | null = null;
 /** The engine's clock: the demo's runs at its own made-up moment. */
@@ -129,6 +137,9 @@ function vaultFolder(userData: string): string {
 
 async function start(): Promise<void> {
   const userData = app.getPath("userData");
+  const quietNote = path.join(userData, QUIET_START_FILE);
+  startQuietly = quietStart(await fsp.readFile(quietNote, "utf8").catch(() => null), Date.now());
+  await fsp.rm(quietNote, { force: true }).catch(() => undefined);
   const root = path.join(userData, "v2");
   const storage = new FileStorage(path.join(root, "data"));
   void storage.sweep();
@@ -184,6 +195,10 @@ async function start(): Promise<void> {
   });
   autoUpdates = followAutoUpdates(updater, () => current.snapshot().settings.autoUpdate);
   autoUpdates.resume();
+  // Each minute: a ready update goes in place when the Student isn't using the app.
+  setInterval(() => {
+    if (!quitting) void autoUpdates?.whenAway(moment());
+  }, 60_000);
   if (demo && (await demo.prepare(current))) syncing = true;
 
   const csp = contentSecurityPolicy(devServer);
@@ -222,7 +237,7 @@ async function start(): Promise<void> {
     lang: () => current.snapshot().settings.lang,
     send,
     applySettings,
-    reveal,
+    reveal: showAtStart,
     startSyncing,
     notifier,
     updater,
@@ -257,10 +272,17 @@ async function start(): Promise<void> {
   const shown = window;
   // If the page never says it's ready (it failed to load), show the window anyway so it can be closed or reloaded.
   const fallback = setTimeout(() => {
-    reveal();
+    if (!startQuietly) reveal();
+    else if (startQuietly === "behind") showBehind();
     startSyncing();
   }, 6_000);
+  startFallback = fallback;
   shown.once("show", () => clearTimeout(fallback));
+  if (startQuietly === "hidden") {
+    // Back in the tray, as it was before the update: on a Mac, out of the Dock too.
+    closedToBackground = true;
+    leaveDock();
+  }
   shown.on("show", () => {
     closedToBackground = false;
   });
@@ -309,6 +331,35 @@ function applySettings(settings: Settings): void {
 
 function send(event: Event): void {
   if (window && !window.isDestroyed()) window.webContents.send(CHANNEL_EVENT, event);
+}
+
+/** The page has drawn: the window shows, unless an update restarted the app by itself (then as it was: in the tray, or without focus). */
+function showAtStart(): void {
+  if (startFallback) clearTimeout(startFallback);
+  startFallback = null;
+  if (startQuietly === "behind") showBehind();
+  else if (!startQuietly) reveal();
+  startQuietly = null;
+}
+
+/** The window on screen without taking focus from what the Student has there (a class on Zoom, a video). */
+function showBehind(): void {
+  if (window && !window.isDestroyed() && !window.isVisible()) window.showInactive();
+}
+
+/** What "Perbarui otomatis" looks at each minute: whether the Student is using the app (./self-update.ts, goodMomentToInstall). */
+function moment(): Moment {
+  const main = window && !window.isDestroyed() ? window : null;
+  // A sign-in, Edunex or SIX window: whatever the Student is doing in it would be cut off.
+  const pageOpen = BrowserWindow.getAllWindows().some((open) => open !== main && !open.isDestroyed() && (open.isVisible() || open.isMinimized()));
+  return {
+    // Closed into the tray; a minimized window (and a Mac app hidden) isn't "visible" either, but it's still open.
+    shown: main !== null && !closedToBackground,
+    focused: BrowserWindow.getFocusedWindow() !== null,
+    idle: powerMonitor.getSystemIdleTime(),
+    locked: powerMonitor.getSystemIdleState(IDLE_ENOUGH) === "locked",
+    busy: pageOpen || explaining || handingInNow(),
+  };
 }
 
 function reveal(): void {
@@ -388,14 +439,19 @@ function trayAction(action: TrayAction): void {
 /** The first time the window closes into the tray: say so once, and offer to quit instead. */
 async function explainTray(current: Engine): Promise<void> {
   const t = (key: Parameters<typeof translate>[1]) => translate(current.snapshot().settings.lang, key);
-  const { response } = await dialog.showMessageBox({
-    type: "info",
-    message: t("tray.explainer.title"),
-    detail: t("tray.explainer.body"),
-    buttons: [t("tray.explainer.keep"), t("tray.explainer.quit")],
-    defaultId: 0,
-    cancelId: 0,
-  });
+  explaining = true;
+  const { response } = await dialog
+    .showMessageBox({
+      type: "info",
+      message: t("tray.explainer.title"),
+      detail: t("tray.explainer.body"),
+      buttons: [t("tray.explainer.keep"), t("tray.explainer.quit")],
+      defaultId: 0,
+      cancelId: 0,
+    })
+    .finally(() => {
+      explaining = false;
+    });
   const quit = response === 1;
   await current.updateSettings(quit ? { trayExplained: true, closeToTray: false } : { trayExplained: true });
   if (quit) app.quit();

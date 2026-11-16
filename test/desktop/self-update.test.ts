@@ -2,7 +2,8 @@
 // a Mac, the smaller .tar.xz when the release lists it), the sha512 the
 // release's latest*.yml gives for it, the only hosts a download may come from
 // or be sent on to, where a Mac app can be replaced, and the plan main follows
-// (download, check, wait for the Student, install).
+// (download, check, wait for the Student, install), and when "Perbarui
+// otomatis" may restart the app by itself (the Student isn't using it).
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { UpdateInstall, UpdateNotice } from "../../src/core/models";
@@ -11,15 +12,20 @@ import {
   downloadOf,
   filesListedIn,
   followAutoUpdates,
+  goodMomentToInstall,
+  IDLE_ENOUGH,
   isDownloadUrl,
   isPlainFileName,
   isReleaseFileUrl,
   MAC_SWAP_SCRIPT,
   MismatchError,
+  type Moment,
   macBundleOf,
   macPlaceProblem,
   type Patch,
   pickReleaseFile,
+  quietStart,
+  quietStartNote,
   type ReleaseFile,
   releaseApiUrl,
   sha512From,
@@ -220,7 +226,8 @@ describe("where a Mac app can be replaced", () => {
     expect(MAC_SWAP_SCRIPT).toContain('while kill -0 "$pid"');
     expect(MAC_SWAP_SCRIPT).toContain('if mv "$new" "$app"; then rm -rf "$old"; else mv "$old" "$app"; fi');
     // Opened again only when restarting for it; as the app quits ("Perbarui otomatis") it stays closed.
-    expect(MAC_SWAP_SCRIPT).toContain('if [ "$reopen" = "1" ]; then open "$app"; fi');
+    // Restarted by itself, it opens in the background (-g), not brought to the front.
+    expect(MAC_SWAP_SCRIPT).toContain('if [ "$reopen" = "1" ]; then open "$app"; elif [ "$reopen" = "quiet" ]; then open -g "$app"; fi');
   });
 });
 
@@ -235,6 +242,7 @@ describe("the update plan", () => {
     const opened: string[] = [];
     const installed: string[] = [];
     const reopened: boolean[] = [];
+    const quietly: (string | undefined)[] = [];
     const unpacked: string[] = [];
     const updater = createUpdater({
       way: async () => ({ kind: "mac", arch: "arm64" }),
@@ -250,9 +258,10 @@ describe("the update plan", () => {
         unpacked.push(kind);
         return "/tmp/app/Edunex Plus.app";
       },
-      install: async (_kind, staged, reopen) => {
+      install: async (_kind, staged, reopen, quiet) => {
         installed.push(staged);
         reopened.push(reopen);
+        quietly.push(quiet);
       },
       openPage: async (url) => void opened.push(url),
       send: (state) => void sent.push(state),
@@ -261,7 +270,7 @@ describe("the update plan", () => {
     const settled = async () => {
       for (let i = 0; i < 20; i++) await new Promise((resolve) => setImmediate(resolve));
     };
-    return { updater, sent, opened, installed, reopened, unpacked, settled };
+    return { updater, sent, opened, installed, reopened, quietly, unpacked, settled };
   }
 
   it("downloads, checks the file, and waits for the Student before installing", async () => {
@@ -460,6 +469,27 @@ describe("the update plan", () => {
     expect(reopened).toEqual([true]);
   });
 
+  it("with the Student away, puts a ready download in place once and opens again, hidden in the tray when it was", async () => {
+    const { updater, installed, reopened, quietly, settled } = setUp();
+    expect(await updater.installAway("hidden")).toBe(false);
+    await updater.fetch();
+    await settled();
+    expect(await updater.installAway("hidden")).toBe(true);
+    expect([installed, reopened, quietly]).toEqual([["/tmp/app/Edunex Plus.app"], [true], ["hidden"]]);
+    // Once only: not again the next minute, nor as the app then quits.
+    expect(await updater.installAway("behind")).toBe(false);
+    expect(await updater.installOnQuit()).toBe(false);
+    expect(installed).toHaveLength(1);
+  });
+
+  it("with the Student away, opens again with its window, without taking focus, when it was on screen", async () => {
+    const { updater, quietly, settled } = setUp();
+    await updater.fetch();
+    await settled();
+    expect(await updater.installAway("behind")).toBe(true);
+    expect(quietly).toEqual(["behind"]);
+  });
+
   it("never installs before a download is ready", async () => {
     const { updater, installed } = setUp();
     await expect(updater.install()).rejects.toThrow("No update is ready");
@@ -629,6 +659,10 @@ describe('"Perbarui otomatis"', () => {
           done.push("installOnQuit");
           return true;
         },
+        installAway: async (quiet: string) => {
+          done.push(`installAway ${quiet}`);
+          return true;
+        },
       },
     };
   };
@@ -657,6 +691,25 @@ describe('"Perbarui otomatis"', () => {
     expect(done).toEqual(["fetch"]);
   });
 
+  const inTray: Moment = { shown: false, focused: false, idle: 0, locked: false, busy: false };
+
+  it("restarts into a ready update when the Student isn't using the app, as it was: in the tray, or with its window", async () => {
+    const { updater, done } = fake();
+    const auto = followAutoUpdates(updater, () => true);
+    expect(await auto.whenAway(inTray)).toBe(true);
+    expect(await auto.whenAway({ ...inTray, shown: true, idle: IDLE_ENOUGH })).toBe(true);
+    // In use: nothing happens.
+    expect(await auto.whenAway({ ...inTray, shown: true, focused: true })).toBe(false);
+    expect(done).toEqual(["installAway hidden", "installAway behind"]);
+  });
+
+  it("turned off, never restarts by itself, however long the Student is away", async () => {
+    const { updater, done } = fake();
+    const auto = followAutoUpdates(updater, () => false);
+    expect(await auto.whenAway({ ...inTray, idle: 24 * 60 * 60, locked: true })).toBe(false);
+    expect(done).toEqual([]);
+  });
+
   it("tries a failed download again when the connection comes back, once each time", () => {
     const { updater, done } = fake();
     const auto = followAutoUpdates(updater, () => true);
@@ -667,6 +720,52 @@ describe('"Perbarui otomatis"', () => {
     auto.onEvent(status("live"));
     auto.onEvent(status("live"));
     expect(done).toEqual(["fetch again"]);
+  });
+});
+
+describe("a good moment to restart into a ready update", () => {
+  const away: Moment = { shown: false, focused: false, idle: 0, locked: false, busy: false };
+
+  it("is when the window is closed into the tray", () => {
+    expect(goodMomentToInstall(away)).toBe(true);
+  });
+
+  it("with the window on screen, is once the computer has sat untouched for ten minutes, or is locked", () => {
+    const shown = { ...away, shown: true };
+    expect(goodMomentToInstall(shown)).toBe(false);
+    expect(goodMomentToInstall({ ...shown, idle: IDLE_ENOUGH - 1 })).toBe(false);
+    expect(goodMomentToInstall({ ...shown, idle: IDLE_ENOUGH })).toBe(true);
+    expect(goodMomentToInstall({ ...shown, locked: true })).toBe(true);
+    expect(IDLE_ENOUGH).toBe(10 * 60);
+  });
+
+  it("is never while the window is in front of an unlocked screen, however long it's untouched", () => {
+    expect(goodMomentToInstall({ ...away, shown: true, focused: true })).toBe(false);
+    expect(goodMomentToInstall({ ...away, shown: true, focused: true, idle: 60 * 60 })).toBe(false);
+    expect(goodMomentToInstall({ ...away, shown: true, focused: true, locked: true })).toBe(true);
+  });
+
+  it("is never while something the Student started still runs: a hand-in, a sign-in window, a question", () => {
+    expect(goodMomentToInstall({ ...away, busy: true })).toBe(false);
+    expect(goodMomentToInstall({ ...away, busy: true, locked: true, idle: 60 * 60 })).toBe(false);
+  });
+});
+
+describe("starting after an update restarted the app by itself", () => {
+  const now = 1_700_000_000_000;
+
+  it("is as the app was moments ago: in the tray, or its window shown without taking focus", () => {
+    expect(quietStart(quietStartNote("hidden", now - 20_000), now)).toBe("hidden");
+    expect(quietStart(`${quietStartNote("behind", now)}\n`, now)).toBe("behind");
+  });
+
+  it("is as usual without a note, with an old one (the restart never came, the Student opened the app later), or an unreadable one", () => {
+    expect(quietStart(null, now)).toBeNull();
+    expect(quietStart(quietStartNote("hidden", now - 6 * 60_000), now)).toBeNull();
+    expect(quietStart(quietStartNote("hidden", now + 60_000), now)).toBeNull();
+    expect(quietStart(`${now} somewhere`, now)).toBeNull();
+    expect(quietStart(`soon hidden`, now)).toBeNull();
+    expect(quietStart("", now)).toBeNull();
   });
 });
 
