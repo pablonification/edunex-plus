@@ -105,7 +105,7 @@ async function main() {
       const runs = await get(`repos/${repo}/actions/workflows/ci.yml/runs?head_sha=${newest.sha}&event=push&per_page=1`);
       ci = runs.workflow_runs[0] ?? null;
     }
-    const day = dailyRelease({ event: env.GITHUB_EVENT_NAME, paused: env.PAUSED === "off", latest, version, commits, ci });
+    const day = dailyRelease({ event: env.GITHUB_EVENT_NAME, paused: env.PAUSED?.trim().toLowerCase() === "off", latest, version, commits, ci });
     if (day.go && day.bump && env.COMMIT_MESSAGE) fs.writeFileSync(env.COMMIT_MESSAGE, commitMessage({ latest, version: day.version, commits }));
     const outputs = `go=${day.go}\nbump=${day.bump}\nversion=${day.version}\ntag=${day.tag}\n`;
     if (env.GITHUB_OUTPUT) fs.appendFileSync(env.GITHUB_OUTPUT, outputs);

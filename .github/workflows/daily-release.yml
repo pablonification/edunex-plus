@@ -32,8 +32,8 @@ defaults:
 jobs:
   release:
     name: release
-    # Run by hand from another branch: there's nothing to release there.
-    if: github.ref == 'refs/heads/main'
+    # Run by hand from another branch, or in a fork: there's nothing to release there.
+    if: github.ref == 'refs/heads/main' && github.repository == 'pablonification/edunex-plus'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -77,5 +77,11 @@ jobs:
           REPO: ${{ github.repository }}
           TAG: ${{ steps.day.outputs.tag }}
         run: |
+          # Package and release builds main's head as it is when started: only the commit checked above.
+          head=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [ "$head" != "$(git rev-parse HEAD)" ]; then
+            echo "::error::main moved to ${head:0:7} while this run checked it, so its CI wasn't looked at. Nothing is released: run Daily release again."
+            exit 1
+          fi
           gh workflow run release.yml --repo "$REPO" --ref main -f release=true -f publish=true
           printf '\n%s\n' "Package and release builds and publishes $TAG now, in about 30 minutes: https://github.com/$REPO/actions/workflows/release.yml" | tee -a "$GITHUB_STEP_SUMMARY"

@@ -594,6 +594,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write # create the draft release and attach the installers
+      actions: write # start the website's publish after publishing the daily release
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -676,7 +677,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
       # The daily release: published once every app is in it, as the newest full release. Not a pre-release, even
       # for an alpha: installed copies that aren't pre-releases skip pre-releases (src/engine/updates.ts). GitHub
-      # makes the tag at the draft's commit; a tag made with this run's token starts no run of its own.
+      # makes the tag at the draft's commit. A tag or release made with this run's token starts no run of its own,
+      # so the website (pages.yml), which republishes on a published release, is started here instead.
       - name: Publish it (the daily release)
         if: needs.plan.outputs.publish == 'true'
         env:
@@ -692,8 +694,9 @@ jobs:
             echo "::error::$TAG didn't publish as the newest full release (draft: $draft, pre-release: $prerelease, latest: $latest). Fix it on the Releases page."
             exit 1
           fi
+          gh workflow run pages.yml --repo "$REPO" --ref main
           {
             echo "### Published"
             echo
-            echo "**$TAG** is published as the newest release, with the installers for macOS, Windows and Linux, the Android APK and the iPhone .ipa, built from ${GITHUB_SHA:0:7}. GitHub made the tag $TAG there, and installed apps offer it at their next update check: $url"
+            echo "**$TAG** is published as the newest release, with the installers for macOS, Windows and Linux, the Android APK and the iPhone .ipa, built from ${GITHUB_SHA:0:7}. GitHub made the tag $TAG there, and installed apps offer it at their next update check: $url. The website's download buttons follow once its own run publishes it."
           } >> "$GITHUB_STEP_SUMMARY"
