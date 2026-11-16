@@ -9,6 +9,7 @@ import type { Bill, ClassSession, DatasetName, KrsPlan, Progress } from "../../s
 import { readBills } from "../../src/engine/sources/six/readers/bills";
 import { readKrs } from "../../src/engine/sources/six/readers/krs";
 import { Skipped } from "../../src/engine/sources/skipped";
+import { bodyText } from "../kit/fixtures";
 import { PretendSix } from "../pretend/six";
 import { PretendWorld } from "../pretend/world";
 import { openApp } from "./harness";
@@ -108,6 +109,15 @@ describe("the KRS tab", () => {
     // Only the row that differs gets a chip.
     expect(text).toContain("KU5014Teknik Penyelesaian Masalah TerstrukturBelum disetujui3");
     expect(text).not.toContain("semua disetujui dosen wali");
+  });
+
+  it("no course picked yet (#371): KRS not sent, 0 of the maximum SKS, never 'SIX changed'", async () => {
+    const s = await openPlan("2026-08-15T09:00:00+07:00");
+    await inject("six.krs", readKrs(bodyText("six", "report-krs-tables-registrasi-rencanastudi-2021000001.html")));
+    await s.click(/^Rencana studi/);
+    await tab("KRS");
+    expect(panel()).toContain("KRS belum dikirim");
+    expect(panel()).toContain("0 dari maks. 12 SKS");
   });
 
   it("the official plan with its change round; nothing sent during DRS is a step to do", async () => {

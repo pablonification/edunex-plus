@@ -77,3 +77,22 @@ describe("a code with its X within (#367)", () => {
     expect(all.find((c) => c.code === "AE40X0")).toMatchObject({ name: "Metode Komputasi Dirgantara", sks: 3 });
   });
 });
+
+describe("a code with a Y in place of a digit (#368)", () => {
+  it("reads MB210Y Pemasaran Global as a course, nothing left out", () => {
+    // The Student's row, as SIX wrote it, in place of AE40X0's on a recorded curriculum page.
+    const html = bodyText("six", "report-placeholder-x-kurikulum-kurikulum-1027-struktur.html")
+      .replaceAll("AE40X0", "MB210Y")
+      .replaceAll("Metode Komputasi Dirgantara", "Pemasaran Global");
+    const skipped = new Skipped();
+    const structure = readCurriculumStructure(html, skipped);
+    expect(skipped.rows).toEqual([]);
+    const all = [
+      ...structure.required,
+      ...structure.catalog,
+      ...structure.specializations.flatMap((p) => p.courses),
+      ...structure.minors.flatMap((p) => p.courses),
+    ];
+    expect(all.find((c) => c.code === "MB210Y")).toMatchObject({ name: "Pemasaran Global", sks: 3 });
+  });
+});
