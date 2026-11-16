@@ -49,6 +49,7 @@ const CHANGE_STEPS: [string, Step][] = [
   ["Pengesahan KSM Pengganti", "legalizedAt"],
 ];
 const CHANGE_HEADING = "Penggantian Rencana Studi (URS)";
+const NO_COURSES = "Belum ada mata kuliah yang diambil";
 
 export function readKrs(html: string, skipped?: Skipped): KrsPlan {
   const page = openPage(html, "KRS", skipped);
@@ -97,7 +98,10 @@ export function readKrs(html: string, skipped?: Skipped): KrsPlan {
 function noCoursesYet(page: Page): boolean {
   const panel = page.$('form[action*="/registrasi/rencanastudi/"] .panel').first();
   const body = panel.children(".panel-body");
-  return panel.length === 1 && panel.find("table").length === 0 && body.children().length === 1 && body.children(".alert").length === 1;
+  const note = body.children(".alert");
+  if (panel.length !== 1 || body.children().length !== 1 || note.length !== 1) return false;
+  // SIX's English page was never recorded: there, the note alone in its place is enough.
+  return page.lang !== "id" || textOf(note) === NO_COURSES;
 }
 
 function readStatus(page: Page, table: Elem): { plan: KrsSteps; change: KrsSteps | null; ukt: KrsPlan["ukt"] } {

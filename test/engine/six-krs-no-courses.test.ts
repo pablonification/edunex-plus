@@ -28,4 +28,9 @@ describe("a study plan with no course yet (#371)", () => {
       .replace(/(Daftar Mata Kuliah<\/h3><\/div><div class="panel-body">)<div class="alert alert-warning">/, "$1<div>");
     expect(() => readKrs(odd)).toThrow(/its tables moved/);
   });
+
+  it("still says SIX changed when the note in the course panel says something else", () => {
+    const failed = html.replace("Belum ada mata kuliah yang diambil", "Daftar mata kuliah gagal dimuat");
+    expect(() => readKrs(failed)).toThrow(/its tables moved/);
+  });
 });
