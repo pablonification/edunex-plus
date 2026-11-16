@@ -694,7 +694,8 @@ jobs:
             echo "::error::$TAG didn't publish as the newest full release (draft: $draft, pre-release: $prerelease, latest: $latest). Fix it on the Releases page."
             exit 1
           fi
-          gh workflow run pages.yml --repo "$REPO" --ref main
+          gh workflow run pages.yml --repo "$REPO" --ref main ||
+            echo "::warning::Couldn't start the website's publish: run it by hand (Actions → Website → Run workflow)."
           {
             echo "### Published"
             echo
