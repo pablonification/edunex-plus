@@ -21,8 +21,8 @@ const ALPHA = /^(\d+)\.(\d+)\.(\d+)(?:-alpha\.(\d+))?$/;
 
 /** A commit students get something from: a Conventional Commit feat, fix or perf. */
 export const forStudents = (subject) => /^(feat|fix|perf)(\([^)]*\))?!?:/.test(subject);
-/** A commit that only numbers a version, which this workflow (or a person) makes. */
-export const numbering = (subject) => /^chore\(release\)(!)?:/.test(subject);
+/** A commit this workflow made to number a version: pushed with its own token, so CI never runs on it. */
+export const numberedHere = (commit) => commit.author === "github-actions[bot]" && /^chore\(release\):/.test(commit.subject);
 
 /** -1, 0 or 1 as `a` comes before, is, or comes after `b`; a version without an alpha comes after its alphas. */
 function compare(a, b) {
@@ -36,8 +36,8 @@ function compare(a, b) {
  * Whether today's release goes out.
  * - `latest`: the newest published release's version (its tag without the v).
  * - `version`: package.json's version on main.
- * - `commits`: the commits since that release's tag, newest first, as `{ sha, subject }`.
- * - `ci`: CI's run on push for the newest commit that isn't a numbering one, as GitHub lists it, or null.
+ * - `commits`: the commits since that release's tag, newest first, as `{ sha, author, subject }`.
+ * - `ci`: CI's run on push for the newest commit this workflow didn't make, as GitHub lists it, or null.
  */
 export function dailyRelease({ event, paused = false, latest, version, commits, ci = null }) {
   const stop = (reason) => ({ go: false, bump: false, version, tag: `v${version}`, reason });
@@ -50,7 +50,7 @@ export function dailyRelease({ event, paused = false, latest, version, commits, 
       `Nothing new for students since ${latest}: ${commits.length === 0 ? "main hasn't changed" : `${commits.length} commit${commits.length === 1 ? "" : "s"}, none a feat, fix or perf`}. No release today.`,
     );
 
-  const newest = commits.find((commit) => !numbering(commit.subject));
+  const newest = commits.find((commit) => !numberedHere(commit));
   const at = `main's newest commit (${short(newest.sha)})`;
   if (!ci) return stop(`CI hasn't run on ${at}, so no release today.`);
   if (ci.status !== "completed") return stop(`CI is still running on ${at}, so no release today. Tomorrow's run looks again: ${ci.html_url}`);
@@ -94,12 +94,15 @@ async function main() {
     // Only a published release that's marked latest answers here: drafts and pre-releases don't.
     const latestTag = (await get(`repos/${repo}/releases/latest`)).tag_name;
     const latest = latestTag.replace(/^v/, "");
-    const log = execFileSync("git", ["log", "--format=%H%x09%s", `${latestTag}..HEAD`], { encoding: "utf8" });
+    const log = execFileSync("git", ["log", "--format=%H%x09%an%x09%s", `${latestTag}..HEAD`], { encoding: "utf8" });
     const commits = log
       .split("\n")
       .filter(Boolean)
-      .map((line) => ({ sha: line.slice(0, 40), subject: line.slice(41) }));
-    const newest = commits.find((commit) => !numbering(commit.subject));
+      .map((line) => {
+        const [sha, author, ...subject] = line.split("\t");
+        return { sha, author, subject: subject.join("\t") };
+      });
+    const newest = commits.find((commit) => !numberedHere(commit));
     let ci = null;
     if (newest && commits.some((commit) => forStudents(commit.subject))) {
       const runs = await get(`repos/${repo}/actions/workflows/ci.yml/runs?head_sha=${newest.sha}&event=push&per_page=1`);

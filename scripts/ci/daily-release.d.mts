@@ -1,6 +1,7 @@
 // Types for scripts/ci/daily-release.mjs, so the tests can import it.
 export interface Commit {
   sha: string;
+  author: string;
   subject: string;
 }
 
@@ -23,6 +24,6 @@ export interface DailyRelease {
 
 export declare class DailyRefused extends Error {}
 export declare function forStudents(subject: string): boolean;
-export declare function numbering(subject: string): boolean;
+export declare function numberedHere(commit: Commit): boolean;
 export declare function dailyRelease(facts: DailyFacts): DailyRelease;
 export declare function commitMessage(facts: { latest: string; version: string; commits: Commit[] }): string;

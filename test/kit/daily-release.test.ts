@@ -3,9 +3,9 @@
 import { describe, expect, it } from "vitest";
 import { commitMessage, DailyRefused, dailyRelease, forStudents } from "../../scripts/ci/daily-release.mjs";
 
-const fix = { sha: "a".repeat(40), subject: "fix(six): read course codes like MB210Y (#378)" };
-const docs = { sha: "b".repeat(40), subject: "docs: say how to install on Linux (#379)" };
-const numbered = { sha: "c".repeat(40), subject: "chore(release): number 0.1.0-alpha.36, with what main got since alpha.35" };
+const fix = { sha: "a".repeat(40), author: "Maintainer", subject: "fix(six): read course codes like MB210Y (#378)" };
+const docs = { sha: "b".repeat(40), author: "Maintainer", subject: "docs: say how to install on Linux (#379)" };
+const numbered = { sha: "c".repeat(40), author: "github-actions[bot]", subject: "chore(release): number 0.1.0-alpha.36, with what main got since alpha.35" };
 const passed = { status: "completed", conclusion: "success", html_url: "https://github.com/o/r/actions/runs/1" };
 const day = { event: "schedule", latest: "0.1.0-alpha.35", version: "0.1.0-alpha.35", commits: [fix], ci: passed };
 
@@ -42,8 +42,11 @@ describe("a day's release", () => {
     expect(failed.reason).toContain("CI didn't pass on main's newest commit (aaaaaaa) (failure)");
   });
 
-  it("checks CI on the newest commit that isn't a numbering one, which CI never runs on", () => {
+  it("checks CI on the newest commit this workflow didn't number itself, which CI never runs on", () => {
     expect(dailyRelease({ ...day, commits: [numbered, docs, fix], ci: null }).reason).toContain("(bbbbbbb)");
+    // A maintainer's numbering pull request runs CI like any other, so it's the one checked.
+    const byHand = { ...numbered, author: "Maintainer" };
+    expect(dailyRelease({ ...day, commits: [byHand, docs, fix], ci: null }).reason).toContain("(ccccccc)");
   });
 
   it("releases package.json's version as it is when it's ahead: numbered by hand, or yesterday's run didn't finish", () => {
