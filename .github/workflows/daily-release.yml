@@ -1,0 +1,81 @@
+# The daily release: once a day, at 02:17 in Jakarta, main goes out to students by itself when it has something new
+# for them, so nobody numbers a version or presses Publish.
+#
+# scripts/ci/daily-release.mjs decides, and says why on the run's summary. Main is released when, since the newest
+# published release, it got a feat, fix or perf commit and CI passed on its newest commit. It's numbered as the next
+# alpha (0.1.0-alpha.35 → 0.1.0-alpha.36) in a commit to main, unless package.json numbers a newer version already.
+# Then Package and release (release.yml) runs with "release" and "publish": it builds every app into the release and
+# publishes it as the newest release once they're all in it, about 30 minutes later. (A push made with this run's
+# token starts no workflow, so that one is started by hand, which does.)
+#
+# To pause it, set the repository variable DAILY_RELEASE to off (Settings → Secrets and variables → Actions →
+# Variables); delete it to start again. Run it by hand (Actions → Daily release → Run workflow, from main) to release
+# today without waiting, paused or not. A version numbered by hand still releases as CONTRIBUTING.md says.
+name: Daily release
+
+on:
+  schedule:
+    # 19:17 UTC is 02:17 in Jakarta (WIB): after the day's merges, off the hour most schedules start on.
+    - cron: "17 19 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: daily-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release:
+    name: release
+    # Run by hand from another branch: there's nothing to release there.
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push the commit that numbers the version to main
+      actions: write # read CI's run on main, and start Package and release
+    steps:
+      - name: Check out main, with its history and tags
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      # The runner's own Node: the script needs no packages.
+      - name: Decide whether main goes out today
+        id: day
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAUSED: ${{ vars.DAILY_RELEASE }}
+          COMMIT_MESSAGE: ${{ runner.temp }}/numbering.txt
+        run: node scripts/ci/daily-release.mjs
+      # If main moved since the check out, the push fails and nothing is released: tomorrow's run tries again.
+      - name: Number the next alpha on main
+        if: steps.day.outputs.go == 'true' && steps.day.outputs.bump == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.day.outputs.version }}
+          COMMIT_MESSAGE: ${{ runner.temp }}/numbering.txt
+        run: |
+          npm version "$VERSION" --no-git-tag-version --ignore-scripts
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --quiet --file "$COMMIT_MESSAGE" -- package.json package-lock.json
+          # git asks gh for this run's token as it pushes; it's written nowhere.
+          gh auth setup-git
+          git push origin HEAD:main
+          printf '\n%s\n' "Numbered $VERSION on main: $(git rev-parse --short HEAD)." | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Build and publish it (Package and release)
+        if: steps.day.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ steps.day.outputs.tag }}
+        run: |
+          gh workflow run release.yml --repo "$REPO" --ref main -f release=true -f publish=true
+          printf '\n%s\n' "Package and release builds and publishes $TAG now, in about 30 minutes: https://github.com/$REPO/actions/workflows/release.yml" | tee -a "$GITHUB_STEP_SUMMARY"

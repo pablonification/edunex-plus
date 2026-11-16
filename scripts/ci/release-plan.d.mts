@@ -6,6 +6,7 @@ export interface ReleaseFacts {
   version: string;
   versionBefore?: string | null;
   releaseInput?: boolean;
+  publishInput?: boolean;
   published?: boolean;
   tagCommit?: string | null;
 }
@@ -13,6 +14,7 @@ export interface ReleaseFacts {
 export interface ReleasePlan {
   build: boolean;
   release: boolean;
+  publish: boolean;
   tag: string;
   version: string;
   reason: string;
@@ -21,6 +23,6 @@ export interface ReleasePlan {
 export declare class PlanRefused extends Error {}
 export declare function releasePlan(facts: ReleaseFacts): ReleasePlan;
 export declare function releaseFacts(
-  run: { event: string; ref: string; sha: string; before?: string; releaseInput: boolean; version: string; repo: string },
+  run: { event: string; ref: string; sha: string; before?: string; releaseInput: boolean; publishInput?: boolean; version: string; repo: string },
   get: (path: string) => Promise<{ status: number; body: unknown }>,
 ): Promise<Required<ReleaseFacts>>;

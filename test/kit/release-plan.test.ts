@@ -76,6 +76,23 @@ describe("a run by hand", () => {
     expect(() => releasePlan({ ...byHand, releaseInput: true, published: true })).toThrow("v0.1.0-alpha.34 is already published");
     expect(() => releasePlan({ ...byHand, releaseInput: true, tagCommit: OTHER })).toThrow("already tagged at another commit (bbbbbbb)");
   });
+
+  it("with release and publish (the daily release), publishes the release once every app is in it", () => {
+    const plan = releasePlan({ ...byHand, releaseInput: true, publishInput: true });
+    expect(plan).toMatchObject({ build: true, release: true, publish: true, tag: "v0.1.0-alpha.34" });
+    expect(plan.reason).toContain("published as the newest release");
+    expect(releasePlan({ ...byHand, releaseInput: true }).publish).toBe(false);
+  });
+
+  it("with publish, still never touches a published release, and needs release ticked", () => {
+    expect(() => releasePlan({ ...byHand, releaseInput: true, publishInput: true, published: true })).toThrow("already published");
+    expect(() => releasePlan({ ...byHand, publishInput: true })).toThrow('tick "release" too');
+  });
+
+  it("publishes nothing on a push, whatever it builds", () => {
+    expect(releasePlan({ ...pushToMain, versionBefore: "0.1.0-alpha.33" }).publish).toBe(false);
+    expect(releasePlan({ ...pushToMain, ref: "refs/tags/v0.1.0-alpha.34" }).publish).toBe(false);
+  });
 });
 
 /** GitHub's REST API, answering `routes` by path and 404 for anything else; every path asked is kept. */

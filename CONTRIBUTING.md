@@ -264,11 +264,33 @@ writes it), with its own licence and Electron's and Chromium's.
 
 ## Releases (maintainers)
 
+**Releases go out by themselves, once a day.** At 02:17 in Jakarta the **Daily release** workflow
+(`.github/workflows/daily-release.yml`) looks at `main`. If it got a `feat`, `fix` or `perf` pull
+request since the newest published release, and CI passed on its newest commit, it numbers the next
+alpha in a commit to `main` (`chore(release): number 0.1.0-alpha.36, with what main got since
+alpha.35`). Then it runs **Package and release** with "release" and "publish", which builds macOS,
+Windows and Linux, the Android APK and the iPhone `.ipa` into the release and publishes it once every
+app is in it, as the newest release (not a pre-release), about 30 minutes later. GitHub makes the tag
+then, and installed apps offer the update at their next check. A day with nothing new for students,
+or with CI failing or still running on `main`, releases nothing, and the run's summary says why.
+
+- **To pause it,** set the repository variable `DAILY_RELEASE` to `off` (Settings → Secrets and
+  variables → Actions → Variables). Delete it to start again.
+- **To release today without waiting,** paused or not: Actions → Daily release → Run workflow from
+  `main`, or `gh workflow run daily-release.yml --ref main`.
+- **If a release run fails,** its release stays a draft and `package.json` keeps its new number.
+  The next daily run, or one by hand, builds that version again and publishes it.
+- **Once SignPath is set up,** each daily release waits for you to approve its two Windows signings
+  in SignPath, as any release does, and isn't published until you have.
+
+**Releasing by hand still works,** for a version you want to try before students get it:
+
 1. **Number the version in a pull request.** `npm version 0.1.0-alpha.34 --no-git-tag-version` (or
    `patch`, `minor`) changes `package.json` and `package-lock.json`; title it as the ones before:
    `chore(release): number the thirty-fourth alpha 0.1.0-alpha.34, so <what Students get>`. A
-   pre-release version (with a `-`) makes a release marked "Pre-release", and only copies that are
-   pre-releases themselves are told about it.
+   pre-release version (with a `-`) makes a draft marked "Pre-release", and only copies that are
+   pre-releases themselves are told about it: untick it when you publish, as every alpha so far was.
+   Pause the daily release first, or it publishes this version at 02:17 without waiting for you.
 2. **Merge it.** The **Package and release** workflow sees `main`'s version change and builds macOS,
    Windows and Linux, the Android APK and the iPhone `.ipa` into a draft release for that commit,
    with notes grouped by label: about 30 minutes. Its summary says what it made and why. Once
