@@ -84,7 +84,7 @@ describe("updating automatically", () => {
     expect(screen.has("Unduh & pasang")).toBe(false);
 
     await screen.finishUpdateDownload();
-    expect(screen.text()).toContain("Edunex Plus 2.1.0 siap. Terpasang saat kamu menutup aplikasi, atau mulai ulang sekarang.");
+    expect(screen.text()).toContain("Edunex Plus 2.1.0 siap. Terpasang sendiri saat kamu tidak memakai aplikasi, atau mulai ulang sekarang.");
     expect(screen.installed).toEqual([]);
     await screen.quit();
     expect(screen.installed).toEqual([{ kind: "mac", staged: "/tmp/update/Edunex Plus.app", reopen: false }]);

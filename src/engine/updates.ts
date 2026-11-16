@@ -3,9 +3,11 @@
 // pembaruan"), and publishes it when it is newer than the running version. A pre-release copy (an alpha) looks at every published release, so
 // it hears about the next alpha too; a full release only ever offers a full
 // release. Quiet by design: offline, a refusal or an odd answer just means
-// no notice. Never downloads or installs anything itself: the window links to
-// the release page, and main downloads and installs only when the Student
-// asks (src/desktop/self-update.ts).
+// no notice. Never downloads or installs anything itself: main does
+// (src/desktop/self-update.ts), when the Student asks, or with "Perbarui
+// otomatis" on (the default) by itself: it downloads the new version as soon
+// as this finds it, and installs it once the Student isn't using the app (its
+// window closed into the tray, the computer idle or locked) or quits it.
 
 import { z } from "zod";
 import type { UpdateCheckResult, UpdateNotice } from "../core/models";

@@ -91,6 +91,8 @@ export const tasksActions = {
   "tasks.saveDraft": { input: HandIn, output: HandInResult },
   /** Hands the answer in; "submitted" only once Edunex confirms it when the Task is read back. */
   "tasks.submit": { input: HandIn, output: HandInResult },
+  /** The window holds an answer or attached files the Student hasn't saved: an update doesn't restart the app under them. */
+  "tasks.unsaved": { input: z.object({ unsaved: z.boolean() }), output: z.object({}) },
   /** Writes in the thread under the Student's answer, as the website's comment box does; "sent" once the thread, read back, holds it. */
   "tasks.comment": { input: TaskComment, output: TaskCommentResult },
   /** Reads the thread under the Student's answer now, as the website does each time its page opens. */

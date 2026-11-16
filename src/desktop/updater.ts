@@ -24,6 +24,8 @@ import {
   MismatchError,
   macBundleOf,
   macPlaceProblem,
+  QUIET_START_FILE,
+  quietStartNote,
   type ReleaseFile,
   START_AFTER_QUIT_SCRIPT,
   type UpdateKind,
@@ -263,13 +265,13 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
       return { path: target, sha512: hash.digest("base64"), size };
     },
     unpack: unpackMacUpdate,
-    install: async (kind: UpdateKind, staged, reopen) => {
+    install: async (kind: UpdateKind, staged, reopen, quiet) => {
       if (kind === "mac") {
         const bundle = macBundleOf(app.getPath("exe"));
         if (!bundle) throw new Error("Not in an app bundle");
         const script = path.join(folder, "swap.sh");
         await fsp.writeFile(script, MAC_SWAP_SCRIPT, { mode: 0o700 });
-        startDetached("/bin/sh", [script, String(process.pid), staged, bundle, reopen ? "1" : "0"]);
+        startDetached("/bin/sh", [script, String(process.pid), staged, bundle, reopen ? (quiet ? "quiet" : "1") : "0"]);
       } else if (kind === "windows") {
         // As electron-updater runs it: an update (keeps the shortcuts), silent, then opens the app (only with --force-run).
         startDetached(staged, reopen ? ["--updated", "/S", "--force-run"] : ["--updated", "/S"]);
@@ -287,6 +289,10 @@ export function electronUpdater(options: ElectronUpdaterOptions): Updater {
           startDetached("/bin/sh", [script, String(process.pid), appImage]);
         }
       }
+      // The next start reads it and opens as this copy was (main.ts). Windows' installer starts the app
+      // with no way to pass it a word, so it's a file, for every system alike; written last, once nothing can fail.
+      // Without it the app only opens as usual: the restart goes ahead either way.
+      if (reopen && quiet) await fsp.writeFile(path.join(app.getPath("userData"), QUIET_START_FILE), quietStartNote(quiet, Date.now())).catch(() => undefined);
       // Quitting already, it's put in place once this copy has.
       if (reopen) app.quit();
     },

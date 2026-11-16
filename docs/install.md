@@ -192,8 +192,11 @@ appears on the settings button and the new version shows at the top of Settings.
 
 **Update automatically** (Perbarui otomatis) is on unless you turn it off, in the same place.
 Then the app downloads the new version from GitHub by itself, shows how far it got, and checks
-the file against the list the release publishes. When it's ready, it's put in place the next time
-you quit the app, and the next start is the new version. To have it now, press **Restart to
+the file against the list the release publishes. When it's ready, it's put in place once you
+aren't using the app: its window closed into the tray, or the computer left alone for ten minutes
+or locked, never while you're handing something in, have an answer not saved yet, or are signing
+in. The app restarts on the new version as it was: in the tray, or with its window shown without
+taking focus from what you're doing. Quitting the app puts it in place too. To have it now, press **Restart to
 update** (Mulai ulang untuk memperbarui): the app closes, puts the new version in place and opens
 again.
 

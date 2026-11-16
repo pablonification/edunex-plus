@@ -3,10 +3,14 @@
 // file from GitHub's answer (never an address from the window), downloads it
 // only from GitHub, checks it against the sha512 the release's latest*.yml
 // lists, and waits. Nothing is installed until the Student presses "Mulai ulang
-// untuk memperbarui", or, with "Perbarui otomatis" on (the default), until they
-// quit the app: then the new version is put in place without opening again,
-// and it downloads by itself as soon as the update check finds it
-// (followAutoUpdates). This file is the plan and its rules; the Electron side
+// untuk memperbarui", or, with "Perbarui otomatis" on (the default), until
+// they aren't using the app: it downloads by itself as soon as the update
+// check finds it, and is put in place as the app quits, or before that the
+// moment the window is closed into the tray or the computer sits idle or
+// locked, with nothing the Student started still running (goodMomentToInstall).
+// Then the app opens again as it was: hidden in the tray, or with its window,
+// shown without taking focus from whatever the Student has there.
+// This file is the plan and its rules (followAutoUpdates); the Electron side
 // (downloading, unpacking, starting the new version) is ./updater.ts.
 //
 // When the release maps its files in chunks, only the parts this computer
@@ -233,7 +237,7 @@ if mv "$app" "$old"; then
   if mv "$new" "$app"; then rm -rf "$old"; else mv "$old" "$app"; fi
 fi
 xattr -dr com.apple.quarantine "$app" 2>/dev/null
-if [ "$reopen" = "1" ]; then open "$app"; fi
+if [ "$reopen" = "1" ]; then open "$app"; elif [ "$reopen" = "quiet" ]; then open -g "$app"; fi
 `;
 
 /** Starts a program once this process has quit (a second copy started earlier would close itself: one copy at a time). */
@@ -259,6 +263,9 @@ export interface Patch {
   sha512: string;
 }
 
+/** How the app comes back after restarting by itself: in the tray, or its window shown without taking focus. */
+export type QuietStart = "hidden" | "behind";
+
 /** What the Electron side does; tests stand in for it. */
 export interface UpdaterDeps {
   /** How this copy updates, or why it can't (worked out once, at start). */
@@ -280,8 +287,11 @@ export interface UpdaterDeps {
   download(file: ReleaseFile, progress: (share: number) => void): Promise<{ path: string; sha512: string; size: number }>;
   /** Mac: unpacks the downloaded file, packed as `kind` says, and checks the app in it is this app at `version`; the new app's path. */
   unpack(archive: string, kind: MacArchive, version: string): Promise<string>;
-  /** Puts the downloaded version in place once this copy quits, and opens it then (`reopen`) and quits now, or not (already quitting). */
-  install(kind: UpdateKind, staged: string, reopen: boolean): Promise<void>;
+  /**
+   * Puts the downloaded version in place once this copy quits, and opens it then (`reopen`) and quits now, or not (already
+   * quitting). `quiet`: restarting by itself, it opens as `quiet` says, as this copy was (QUIET_START_FILE).
+   */
+  install(kind: UpdateKind, staged: string, reopen: boolean, quiet?: QuietStart): Promise<void>;
   openPage(url: string): Promise<void>;
   send(state: UpdateInstall): void;
   /** Each step and what went wrong, for the app's own log (src/engine/app-log.ts). */
@@ -301,6 +311,8 @@ export interface Updater {
   install(): Promise<void>;
   /** The app is quitting: puts a download that's ready in place once it has, without opening it. False when there's none. */
   installOnQuit(): Promise<boolean>;
+  /** The Student isn't using the app: puts a download that's ready in place and restarts, opening as `quiet` says. False when there's none. */
+  installAway(quiet: QuietStart): Promise<boolean>;
 }
 
 /** No connection (Chromium's net errors for it), as opposed to anything else going wrong. */
@@ -489,15 +501,79 @@ export function createUpdater(deps: UpdaterDeps): Updater {
       await deps.install(way.kind, staged, false);
       return true;
     },
+    async installAway(quiet) {
+      const now = await current();
+      // Tried once: one that fails isn't tried again each minute, nor as the app quits. "Mulai ulang untuk memperbarui" still tries.
+      if (installing || now.step !== "ready" || !staged || !way || "blocked" in way) return false;
+      installing = true;
+      deps.log?.("info", `installing while the Student is away, then restarting ${quiet === "hidden" ? "in the tray" : "without taking focus"}`);
+      try {
+        await deps.install(way.kind, staged, true, quiet);
+      } catch (error) {
+        deps.log?.("error", `installing while the Student is away failed: ${errorLine(error)}`);
+        throw error;
+      }
+      return true;
+    },
   };
+}
+
+/** How long nobody has touched the computer before a ready update may restart the app with its window on screen. */
+export const IDLE_ENOUGH = 10 * 60;
+
+/** What main sees, now and then, of the Student and the app. */
+export interface Moment {
+  /** The app's window isn't closed into the tray (minimized, or a Mac app hidden, counts as shown). */
+  shown: boolean;
+  /** One of the app's windows is in front. */
+  focused: boolean;
+  /** Seconds since the keyboard or mouse was last touched (0 where the system doesn't say). */
+  idle: number;
+  locked: boolean;
+  /**
+   * Something the Student started would be cut off: a hand-in on its way or not saved yet, a sign-in or
+   * Edunex or SIX window open, a question asked.
+   */
+  busy: boolean;
+}
+
+/**
+ * Whether a ready update may restart the app by itself now: the Student isn't using it. Its window
+ * is closed into the tray, or the computer has sat idle for IDLE_ENOUGH or is locked. Never while
+ * its window is in front of an unlocked screen, nor while something they started is still running.
+ */
+export function goodMomentToInstall(moment: Moment): boolean {
+  if (moment.busy) return false;
+  if (moment.locked) return true;
+  if (moment.focused) return false;
+  return !moment.shown || moment.idle >= IDLE_ENOUGH;
+}
+
+/**
+ * The note that tells the next start how to open after an update restarted the app by itself
+ * ("<when> hidden" or "<when> behind"): written as it quits, read and removed at start.
+ */
+export const QUIET_START_FILE = "start-quietly";
+/** A note older than this is from a restart that never happened (the Student opened the app themselves since): it opens as usual. */
+const QUIET_START_FOR = 5 * 60_000;
+
+export const quietStartNote = (quiet: QuietStart, now: number) => `${now} ${quiet}`;
+
+/** At start: how the app opens, from QUIET_START_FILE's text (null when there's none), or null to open as usual. */
+export function quietStart(note: string | null, now: number): QuietStart | null {
+  const [when, quiet] = (note ?? "").trim().split(" ");
+  const at = Number(when);
+  if (!when || !Number.isFinite(at) || at > now || now - at > QUIET_START_FOR) return null;
+  return quiet === "hidden" || quiet === "behind" ? quiet : null;
 }
 
 /**
  * "Perbarui otomatis" (on unless the Student turns it off): a newer release the update check
- * finds downloads by itself, and one that's ready is put in place once the Student quits the app.
- * Main passes it the engine's events and asks it before quitting.
+ * finds downloads by itself, and one that's ready is put in place once the Student isn't using the
+ * app (goodMomentToInstall), or quits it. Main passes it the engine's events, the moment each
+ * minute, and asks it before quitting.
  */
-export function followAutoUpdates(updater: Pick<Updater, "fetch" | "installOnQuit">, autoUpdate: () => boolean) {
+export function followAutoUpdates(updater: Pick<Updater, "fetch" | "installOnQuit" | "installAway">, autoUpdate: () => boolean) {
   const fetch = (again = false) => void updater.fetch(again).catch(() => undefined);
   /** A system went without a connection since the last try, so the next one that answers means it's back. */
   let wasOffline = false;
@@ -514,6 +590,11 @@ export function followAutoUpdates(updater: Pick<Updater, "fetch" | "installOnQui
     /** At start: a release found before the app last quit. */
     resume(): void {
       if (autoUpdate()) fetch();
+    },
+    /** Each minute: a ready update is put in place and the app restarts as it was, when the Student isn't using it. */
+    async whenAway(moment: Moment): Promise<boolean> {
+      if (!autoUpdate() || !goodMomentToInstall(moment)) return false;
+      return updater.installAway(moment.shown ? "behind" : "hidden").catch(() => false);
     },
     /** The app is quitting: whether a ready update is put in place (the caller quits once it has). */
     async beforeQuit(): Promise<boolean> {

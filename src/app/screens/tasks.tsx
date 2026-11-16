@@ -1169,6 +1169,17 @@ const RichEditor = lazy(() => import("../ui/rich-editor"));
 
 /** Answers the Student changed and hasn't saved, by Student and Task: kept while the app runs, so leaving the page loses nothing. */
 const unsavedText = new Map<string, string>();
+/** Hand-in cards holding files the Student attached and hasn't saved yet. */
+const unsavedFiles = new Set<string>();
+let toldUnsaved = false;
+
+/** Tells main whether the window holds work the Student hasn't saved, so an update doesn't restart the app under it. */
+function tellUnsaved(bridge: ReturnType<typeof useBridge>): void {
+  const unsaved = unsavedText.size > 0 || unsavedFiles.size > 0;
+  if (unsaved === toldUnsaved) return;
+  toldUnsaved = unsaved;
+  void bridge.invoke("tasks.unsaved", { unsaved }).catch(() => undefined);
+}
 
 /**
  * The Student's written answer: what Edunex has (`base`), what's in the box
@@ -1177,6 +1188,7 @@ const unsavedText = new Map<string, string>();
  * (across leaving the page too) until they save it or discard it.
  */
 function useAnswerText(task: Task) {
+  const bridge = useBridge();
   const account = useDataset("edunex.account");
   const key = `${account?.nim ?? ""}:${task.id}`;
   const saved = task.answer?.text ?? "";
@@ -1202,7 +1214,8 @@ function useAnswerText(task: Task) {
   useEffect(() => {
     if (dirty) unsavedText.set(key, text);
     else unsavedText.delete(key);
-  }, [dirty, key, text]);
+    tellUnsaved(bridge);
+  }, [dirty, key, text, bridge]);
 
   /** Back to Edunex's text: through the box when it's open, so the cursor stays in it and Undo brings the text back. */
   const discard = (box: RichEditorHandle | null) => {
@@ -1237,6 +1250,17 @@ function HandIn({ task, status }: Row) {
   /** Saved or handed in during this visit: the header says so with a little check. */
   const [justDone, setJustDone] = useState(false);
   const uploads = useRef<Promise<void>>(Promise.resolve());
+  const card = useId();
+  const holdsFiles = attached.length > 0;
+  useEffect(() => {
+    if (!holdsFiles) return;
+    unsavedFiles.add(card);
+    tellUnsaved(bridge);
+    return () => {
+      unsavedFiles.delete(card);
+      tellUnsaved(bridge);
+    };
+  }, [holdsFiles, card, bridge]);
 
   // Signed in again after the session ended: the way is clear.
   useEffect(() => {

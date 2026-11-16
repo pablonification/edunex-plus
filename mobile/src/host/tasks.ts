@@ -30,6 +30,7 @@ type HandInAction =
   | "tasks.upload"
   | "tasks.saveDraft"
   | "tasks.submit"
+  | "tasks.unsaved"
   | "tasks.comment"
   | "tasks.readThread";
 
@@ -89,6 +90,8 @@ export function phoneTaskHandlers(engine: Engine, pick: () => Promise<LocalFile[
     // The comments under the answer (../screens/tasks/thread.tsx), as the desktop's: written back, and read on each visit.
     "tasks.comment": async (input) => Actions["tasks.comment"].output.parse(await engine.act("edunex", "comment", input)),
     "tasks.readThread": async (input) => Actions["tasks.readThread"].output.parse(await engine.act("edunex", "readThread", input)),
+    // The phone never restarts itself for an update, so there's nothing to hold off.
+    "tasks.unsaved": async () => ({}),
   };
 }
 
