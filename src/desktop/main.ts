@@ -106,6 +106,11 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on("second-instance", reveal);
+  // No passkeys in any of the app's windows on macOS and Linux: Electron has no prompt for them
+  // there, so Microsoft's "Face, fingerprint, PIN or security key" page waited forever. Without the
+  // API, Microsoft sees passkeys aren't supported and asks for the Authenticator or password instead.
+  // Windows has its own system prompt for them, so it keeps them.
+  if (process.platform !== "win32") app.commandLine.appendSwitch("disable-blink-features", "WebAuth");
   if (packaged && process.platform === "darwin") {
     vaultKey = readVaultKey(helperPath(process.resourcesPath));
     // Before Chromium starts: with the helper's key, Chromium is told to leave the real keychain
