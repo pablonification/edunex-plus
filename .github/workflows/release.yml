@@ -1,7 +1,11 @@
 # The installable app for macOS, Windows and Linux, and for a release the phone app too (mobile-release.yml).
 #
 # The plan job decides what a run makes (scripts/ci/release-plan.mjs), and says why on the run's summary:
-# - A release, when main gets a new version: merging the pull request that numbers it (`chore(release)`,
+# - The daily release (daily-release.yml): once a day, when main has something new for students, it numbers the
+#   next alpha on main and runs this by hand with "release" and "publish": every app is built into the release,
+#   which is published once they're all in it, as the newest release (not a pre-release), so installed apps
+#   offer it at their next update check. Nobody needs to press Publish.
+# - A release, when main gets a new version by a pull request: merging the pull request that numbers it (`chore(release)`,
 #   `npm version <v> --no-git-tag-version`) builds all three (each kind of Mac on a Mac of its own), the
 #   Android APK and the iPhone .ipa, and puts them in a DRAFT release for that commit, with notes written
 #   from the merged pull requests (.github/release.yml groups them). You try the draft, then publish it by
@@ -13,6 +17,7 @@
 #   version, and makes the draft for the tagged commit.
 # - By hand (Actions → Package and release → Run workflow), with "release" ticked, from main: makes, or
 #   refreshes, the draft for package.json's version from main's newest commit. Never over a published one.
+#   With "publish" too, it publishes that release once every app is in it, as the daily release does.
 # - Any other push to main that touches packaging, and by hand without "release" from any branch: builds
 #   all three as a check, keeps them for a week on the run's page, and publishes nothing.
 name: Package and release
@@ -49,6 +54,10 @@ on:
         description: Make, or refresh, the draft release for package.json's version from this commit (main only).
         type: boolean
         default: false
+      publish:
+        description: With release, publish it once every app is in it, as the newest release (the daily release does this).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -72,6 +81,7 @@ jobs:
     outputs:
       build: ${{ steps.plan.outputs.build }}
       release: ${{ steps.plan.outputs.release }}
+      publish: ${{ steps.plan.outputs.publish }}
       tag: ${{ steps.plan.outputs.tag }}
       version: ${{ steps.plan.outputs.version }}
     steps:
@@ -89,6 +99,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           BEFORE: ${{ github.event.before }}
           RELEASE: ${{ inputs.release }}
+          PUBLISH: ${{ inputs.publish }}
         run: node scripts/ci/release-plan.mjs
 
   package:
@@ -583,6 +594,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write # create the draft release and attach the installers
+      actions: write # start the website's publish after publishing the daily release
     steps:
       - name: Check out
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -613,6 +625,7 @@ jobs:
           REPO: ${{ github.repository }}
           TAG: ${{ needs.plan.outputs.tag }}
           EVENT: ${{ github.event_name }}
+          PUBLISH: ${{ needs.plan.outputs.publish }}
         run: |
           # A version tag pushed by hand: the release is for that tag, which must exist. Otherwise the draft
           # points at this commit, and GitHub makes the tag there when the draft is published.
@@ -656,8 +669,35 @@ jobs:
             gh release create "$TAG" --repo "$REPO" "${flags[@]}" installers/*
             made="ready"
           fi
+          if [ "$PUBLISH" = true ]; then exit 0; fi
           {
             echo "### Draft release $made"
             echo
             echo "**$TAG** is a draft with the installers for macOS, Windows and Linux, the Android APK and the iPhone .ipa, built from ${GITHUB_SHA:0:7}. Try it on real accounts, then publish it from the Releases page: GitHub makes the tag $TAG then, and installed apps see the new version only once it's published."
+          } >> "$GITHUB_STEP_SUMMARY"
+      # The daily release: published once every app is in it, as the newest full release. Not a pre-release, even
+      # for an alpha: installed copies that aren't pre-releases skip pre-releases (src/engine/updates.ts). GitHub
+      # makes the tag at the draft's commit. A tag or release made with this run's token starts no run of its own,
+      # so the website (pages.yml), which republishes on a published release, is started here instead.
+      - name: Publish it (the daily release)
+        if: needs.plan.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          gh release edit "$TAG" --repo "$REPO" --draft=false --prerelease=false --latest > /dev/null
+          gh workflow run pages.yml --repo "$REPO" --ref main ||
+            echo "::warning::Couldn't start the website's publish: run it by hand (Actions → Website → Run workflow)."
+          shown=$(gh release view "$TAG" --repo "$REPO" --json isDraft,isPrerelease,url --jq '"\(.isDraft) \(.isPrerelease) \(.url)"')
+          read -r draft prerelease url <<< "$shown"
+          latest=$(gh api "repos/$REPO/releases/latest" --jq .tag_name)
+          if [ "$draft" != false ] || [ "$prerelease" != false ] || [ "$latest" != "$TAG" ]; then
+            echo "::error::$TAG didn't publish as the newest full release (draft: $draft, pre-release: $prerelease, latest: $latest). Fix it on the Releases page."
+            exit 1
+          fi
+          {
+            echo "### Published"
+            echo
+            echo "**$TAG** is published as the newest release, with the installers for macOS, Windows and Linux, the Android APK and the iPhone .ipa, built from ${GITHUB_SHA:0:7}. GitHub made the tag $TAG there, and installed apps offer it at their next update check: $url. The website's download buttons follow once its own run publishes it."
           } >> "$GITHUB_STEP_SUMMARY"

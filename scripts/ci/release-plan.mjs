@@ -6,12 +6,14 @@
 //   again over a published release's files.
 // - A push to main that numbers a new version (a merged `chore(release)` pull request): the draft release for it,
 //   unless it's already published or tagged (a tag's own run makes that one). Any other push to main: a check.
-// - By hand: a check build of any branch, or with `release`, the draft for package.json's version from main.
+// - By hand: a check build of any branch, or with `release`, the draft for package.json's version from main. With
+//   `publish` too (the daily release, .github/workflows/daily-release.yml), that draft is published once it's ready.
 //
 //   node scripts/ci/release-plan.mjs
 //
 // Reads GITHUB_EVENT_NAME, GITHUB_REF, GITHUB_SHA, GITHUB_REPOSITORY, BEFORE (the commit main was at before the
-// push), RELEASE (the by-hand input) and GH_TOKEN; writes build, release, tag and version to GITHUB_OUTPUT and the
+// push), RELEASE and PUBLISH (the by-hand inputs) and GH_TOKEN; writes build, release, publish, tag and version to
+// GITHUB_OUTPUT and the
 // reason, in plain words, to the run's summary. A refusal is an error on the run and exits 1.
 import fs from "node:fs";
 import { pathToFileURL } from "node:url";
@@ -29,10 +31,20 @@ const short = (sha) => (sha ?? "").slice(0, 7);
  * - `published`: a published (not draft) release exists for `v<version>`.
  * - `tagCommit`: the commit `v<version>` is tagged at on GitHub, or null when there's no such tag.
  */
-export function releasePlan({ event, ref, sha, version, versionBefore = null, releaseInput = false, published = false, tagCommit = null }) {
+export function releasePlan({
+  event,
+  ref,
+  sha,
+  version,
+  versionBefore = null,
+  releaseInput = false,
+  publishInput = false,
+  published = false,
+  tagCommit = null,
+}) {
   const tag = `v${version}`;
-  const check = (reason) => ({ build: true, release: false, tag, version, reason });
-  const draft = (reason) => ({ build: true, release: true, tag, version, reason });
+  const check = (reason) => ({ build: true, release: false, publish: false, tag, version, reason });
+  const draft = (reason) => ({ build: true, release: true, publish: false, tag, version, reason });
 
   if (event === "push" && ref.startsWith(TAGS)) {
     const pushed = ref.slice(TAGS.length);
@@ -44,6 +56,7 @@ export function releasePlan({ event, ref, sha, version, versionBefore = null, re
       return {
         build: false,
         release: false,
+        publish: false,
         tag,
         version,
         reason: `${tag} is already published: nothing to build, and its files stay as they are. (Publishing a draft makes its tag, which starts this run.)`,
@@ -78,8 +91,16 @@ export function releasePlan({ event, ref, sha, version, versionBefore = null, re
       throw new PlanRefused(
         `${tag} is already tagged at another commit (${short(tagCommit)}), so a draft from this one (${short(sha)}) would carry files the tag doesn't. Re-run that tag's run, or number a new version.`,
       );
+    if (publishInput)
+      return {
+        ...draft(`Run by hand: the release ${tag} is made from this commit (${short(sha)}), and published as the newest release once every app is in it.`),
+        publish: true,
+      };
     return draft(`Run by hand: the draft release ${tag} is made, or refreshed, from this commit (${short(sha)}).`);
   }
+
+  if (event === "workflow_dispatch" && publishInput)
+    throw new PlanRefused(`"publish" publishes the release this run makes: tick "release" too, or untick "publish" for a check build.`);
 
   if (event === "workflow_dispatch")
     return check(`Run by hand: a check build of ${ref.replace(/^refs\/(heads|tags)\//, "")} (${version}). Nothing is published.`);
@@ -90,9 +111,9 @@ export function releasePlan({ event, ref, sha, version, versionBefore = null, re
  * What releasePlan needs to know, asked of GitHub only as far as this run needs it. `get(path)` answers a GET of
  * the REST API as `{ status, body }`, `body` parsed when the status is 200; a failed request throws.
  */
-export async function releaseFacts({ event, ref, sha, before, releaseInput, version, repo }, get) {
+export async function releaseFacts({ event, ref, sha, before, releaseInput, publishInput = false, version, repo }, get) {
   const tag = `v${version}`;
-  const facts = { event, ref, sha, version, releaseInput, versionBefore: null, published: false, tagCommit: null };
+  const facts = { event, ref, sha, version, releaseInput, publishInput, versionBefore: null, published: false, tagCommit: null };
   const tagPush = event === "push" && ref.startsWith(TAGS);
   const mainPush = event === "push" && ref === MAIN;
   const handRelease = event === "workflow_dispatch" && releaseInput && ref === MAIN;
@@ -150,13 +171,14 @@ async function main() {
         sha: env.GITHUB_SHA,
         before: env.BEFORE,
         releaseInput: env.RELEASE === "true",
+        publishInput: env.PUBLISH === "true",
         version,
         repo: env.GITHUB_REPOSITORY,
       },
       get,
     );
     const plan = releasePlan(facts);
-    const outputs = `build=${plan.build}\nrelease=${plan.release}\ntag=${plan.tag}\nversion=${plan.version}\n`;
+    const outputs = `build=${plan.build}\nrelease=${plan.release}\npublish=${plan.publish}\ntag=${plan.tag}\nversion=${plan.version}\n`;
     if (env.GITHUB_OUTPUT) fs.appendFileSync(env.GITHUB_OUTPUT, outputs);
     console.log(outputs + plan.reason);
     summary(`### What this run makes\n\n${plan.reason}\n`);
