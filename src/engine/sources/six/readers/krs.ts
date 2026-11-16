@@ -49,6 +49,7 @@ const CHANGE_STEPS: [string, Step][] = [
   ["Pengesahan KSM Pengganti", "legalizedAt"],
 ];
 const CHANGE_HEADING = "Penggantian Rencana Studi (URS)";
+const NO_COURSES = "Belum ada mata kuliah yang diambil";
 
 export function readKrs(html: string, skipped?: Skipped): KrsPlan {
   const page = openPage(html, "KRS", skipped);
@@ -60,7 +61,7 @@ export function readKrs(html: string, skipped?: Skipped): KrsPlan {
     .map((table) => page.$(table));
   // Student data, the registration status, then the courses.
   const [data, status, courses] = tables as [Elem | undefined, Elem | undefined, Elem | undefined];
-  if (!data || !status || !courses) changed(page, "its tables moved");
+  if (!data || !status || (!courses && !noCoursesYet(page))) changed(page, "its tables moved");
   const advisor = field(page, data, ["Dosen Wali", "Academic Advisor", "Advisor"], 6);
   const maxSks = field(page, data, ["Maksimal Beban", "Maximum Load", "Max Load"], 10);
   const detail = details(page);
@@ -68,7 +69,7 @@ export function readKrs(html: string, skipped?: Skipped): KrsPlan {
   detail.note(maxSks ? rowText(cellsOf(page, maxSks.parent())) : "");
 
   const { plan, change, ukt } = readStatus(page, status);
-  const { list, sks } = readCourses(page, courses);
+  const { list, sks } = courses ? readCourses(page, courses) : { list: [], sks: 0 };
   const latest = change && stepDone(change, "sentAt") ? change : plan;
   const state: KrsState = stepDone(latest, "legalizedAt")
     ? "official"
@@ -88,6 +89,19 @@ export function readKrs(html: string, skipped?: Skipped): KrsPlan {
     courses: list,
     sks,
   };
+}
+
+/**
+ * A Student who hasn't picked a course yet (#371): the plan's form holds its course panel with only a note in it
+ * ("Belum ada mata kuliah yang diambil") where the course table goes.
+ */
+function noCoursesYet(page: Page): boolean {
+  const panel = page.$('form[action*="/registrasi/rencanastudi/"] .panel').first();
+  const body = panel.children(".panel-body");
+  const note = body.children(".alert");
+  if (panel.length !== 1 || body.children().length !== 1 || note.length !== 1) return false;
+  // SIX's English page was never recorded: there, the note alone in its place is enough.
+  return page.lang !== "id" || textOf(note) === NO_COURSES;
 }
 
 function readStatus(page: Page, table: Elem): { plan: KrsSteps; change: KrsSteps | null; ukt: KrsPlan["ukt"] } {

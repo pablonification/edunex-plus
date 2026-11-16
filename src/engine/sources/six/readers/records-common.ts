@@ -374,10 +374,11 @@ export function curriculumMark(page: Page, cell: Elem, what: string): number | n
 }
 
 /**
- * ITB course codes: two letters and four digits. A code not set in full yet has an X for a digit after the year one,
- * at the end ("WI201X", a slot several courses can fill) or within ("AE40X0", #367), or XYZ ("KL4XYZ Capstone Design", #361).
+ * ITB course codes: two letters and four digits. A code not set in full yet has X, Y or Z for a digit after the year
+ * one, as the ITB catalog's do (catalog-pages.ts CODE): at the end ("WI201X", a slot several courses can fill; "MB210Y",
+ * #368), within ("AE40X0", #367), or all three ("KL4XYZ Capstone Design", #361).
  */
-export const COURSE_CODE = /^[A-Z]{2}\d(?:[\dX]{3}|XYZ)$/;
+export const COURSE_CODE = /^[A-Z]{2}\d[\dXYZ]{3}$/;
 
 /** A course link's id: "/pub/matakuliah/47837" → "47837". */
 export function courseIdOf(cell: Elem): string | null {
