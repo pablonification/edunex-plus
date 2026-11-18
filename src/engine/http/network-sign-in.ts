@@ -19,17 +19,21 @@ const attribute = (tag: string, name: keyof typeof ATTRIBUTES): string | null =>
 /** Where a refresh's `content` ("0; url=https://…", "0;URL='…'") sends the browser. */
 const REFRESH_TO = /^\s*[\d.]*\s*[;,]?\s*(?:url\s*=\s*)?["']?([^"'\s]+)/i;
 
-/** How sure a caller must be. `naming`: the address must carry the site asked for, as the network's sign-in does (it sends the browser back there after). */
+/**
+ * How sure a caller must be. `naming`: the address must carry the page asked for (its site and path), as the network's
+ * sign-in does to send the browser back there after; another sign-in service carries only its own callback.
+ */
 export interface Away {
   naming: boolean;
 }
 
 /**
  * The site (its host) that `address`, read from `from`, leads to when that's off `from`'s own site and isn't
- * Microsoft's sign-in: a network's sign-in. With `naming`, only when the address also carries `from`'s site (the
- * campus gate's "?destination_url=https://six.itb.ac.id/…", #381), so a site's own move elsewhere (a new address, a
- * page it sends the Student to) still reads as that site changing, never as no connection. Null for the same site
- * (by http too), an address with no site (javascript:, data:), Microsoft's sign-in, or no address at all.
+ * Microsoft's sign-in: a network's sign-in. With `naming`, only when the address also carries the page asked for (the
+ * campus gate's "?destination_url=https://six.itb.ac.id/app/…/statusmhs", #381), so a site's own move elsewhere (a new
+ * address, a page it sends the Student to, another sign-in service with the site's callback) still reads as that site
+ * changing or ending the session, never as no connection. Null for the same site (by http too), an address with no
+ * site (javascript:, data:), Microsoft's sign-in, or no address at all.
  */
 export function awayTo(address: string | undefined, from: string, { naming }: Away = { naming: true }): string | null {
   if (!address) return null;
@@ -37,21 +41,22 @@ export function awayTo(address: string | undefined, from: string, { naming }: Aw
     const url = new URL(address.replace(/&amp;/g, "&"), from);
     const home = new URL(from).hostname;
     if (!url.hostname || url.hostname === home || MICROSOFT_SIGN_IN.test(url.hostname)) return null;
-    return !naming || carries(`${url.pathname}${url.search}${url.hash}`, home) ? url.host : null;
+    return !naming || carries(`${url.pathname}${url.search}${url.hash}`, new URL(from)) ? url.host : null;
   } catch {
     return null;
   }
 }
 
-/** Whether `text` (an address's path and query, encoded or not) names `host`. */
-function carries(text: string, host: string): boolean {
+/** Whether `text` (an address's path and query, encoded or not) names the page `asked`: its site and its path. */
+function carries(text: string, asked: URL): boolean {
   let decoded = text;
   try {
     decoded = decodeURIComponent(text);
   } catch {
     // Not encoded the usual way: read as it is.
   }
-  return decoded.toLowerCase().includes(host.toLowerCase());
+  const lower = decoded.toLowerCase();
+  return lower.includes(asked.hostname.toLowerCase()) && (asked.pathname === "/" || lower.includes(decodeURI(asked.pathname).toLowerCase()));
 }
 
 /** The site a page asked for at `from` sends the browser off to with a `<meta http-equiv="refresh">` (its host), or null. */

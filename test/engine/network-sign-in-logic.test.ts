@@ -10,9 +10,9 @@ describe("a network's own sign-in", () => {
   it("is off the site, and carries the page asked for, plain or encoded", () => {
     expect(awayTo(GATE, SIX)).toBe("gate-dev2.itb.ac.id");
     expect(awayTo(`https://gate.example.net/portal?u=${encodeURIComponent(SIX)}`, SIX)).toBe("gate.example.net");
-    expect(awayTo("https://gate.example.net:8443/login?from=SIX.ITB.AC.ID", SIX)).toBe("gate.example.net:8443");
-    expect(awayTo("//gate.example.net/portal?to=six.itb.ac.id", SIX)).toBe("gate.example.net");
-    expect(awayTo("https://gate.example.net/p?u=%E0%A4%A six.itb.ac.id", SIX)).toBe("gate.example.net");
+    expect(awayTo("https://gate.example.net:8443/login?from=SIX.ITB.AC.ID/app/mahasiswa:18223901/statusmhs", SIX)).toBe("gate.example.net:8443");
+    expect(awayTo("//gate.example.net/portal?to=six.itb.ac.id/app/mahasiswa:18223901/statusmhs", SIX)).toBe("gate.example.net");
+    expect(awayTo("https://gate.example.net/p?u=%E0%A4%A six.itb.ac.id/app/mahasiswa:18223901/statusmhs", SIX)).toBe("gate.example.net");
   });
 
   it("isn't the site itself (by http too), an address with no site, or no address", () => {
@@ -23,6 +23,17 @@ describe("a network's own sign-in", () => {
   it("isn't Microsoft's sign-in, by any of its addresses, though it carries the site to come back to", () => {
     for (const host of ["login.microsoftonline.com", "login.live.com", "login.windows.net", "sts.windows.net", "account.microsoft.com"])
       expect(awayTo(`https://${host}/common/oauth2/authorize?redirect_uri=https://six.itb.ac.id/login/MS365/callback`, SIX), host).toBeNull();
+  });
+
+  it("isn't another sign-in service, which carries only the site's callback, not the page asked for", () => {
+    for (const address of [
+      "https://login.itb.ac.id/cas/login?service=https%3A%2F%2Fsix.itb.ac.id%2Flogin%2Fcallback",
+      "https://sso.itb.ac.id/realms/itb/auth?redirect_uri=https://six.itb.ac.id/callback",
+      "https://accounts.google.com/o/oauth2/auth?redirect_uri=https://six.itb.ac.id/login/google/callback",
+      "https://login.microsoftonline.us/common/oauth2/authorize?redirect_uri=https://six.itb.ac.id/login/MS365/callback",
+      "https://gate.example.net/portal?from=six.itb.ac.id",
+    ])
+      expect(awayTo(address, SIX), address).toBeNull();
   });
 
   it("isn't the site moving elsewhere, which doesn't carry the page asked for", () => {

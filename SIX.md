@@ -59,7 +59,7 @@ adds or changes a SIX or ITB request must update this file and keep the guardrai
 **How an ended session shows** (`src/engine/sources/six/client.ts`):
 
 - a redirect to `/login`, or off `six.itb.ac.id` (to Microsoft's sign-in, or anywhere that doesn't
-  carry SIX's address back: a network's own sign-in does, below) → Unauthorized;
+  carry the page asked for back: a network's own sign-in does, below) → Unauthorized;
 - a `401` → Unauthorized;
 - a `200` page with a link to `/login` and no link to `/logout` (SIX's sign-in page) →
   Unauthorized.
@@ -71,12 +71,13 @@ A redirect that stays on SIX is followed, at most 3 times (then Failed).
 a `<meta http-equiv="refresh">` off SIX. A page with no link to `/logout` that refreshes to another
 site (not Microsoft's sign-in) is Offline, "unreachable" like no answer at all: no connection yet, not
 SIX changing, so nothing is reported. It's checked before SIX's sign-in page, so a network's page with a
-`/login` link of its own doesn't end the session. A redirect off SIX to anywhere but Microsoft's sign-in
-that carries the page asked for (the gate's `?destination_url=https://six.itb.ac.id/…`) is the same
-network answering (#387): Offline, still signed in. A redirect off SIX that doesn't carry it still
-ends the session, as before, so a real sign-out never hides as "No connection". The check is shared with Edunex and
-ITB's public pages (`src/engine/http/network-sign-in.ts`). The network's page itself counts as an answer to the
-engine (`transportFor`), so the status stays offline only while each new read meets it (#387).
+`/login` link of its own doesn't end the session. A redirect off SIX (not to Microsoft's sign-in) whose
+address carries the page asked for, its site and path (the gate's
+`?destination_url=https://six.itb.ac.id/app/…/statusmhs`), is the same network answering (#387):
+Offline, still signed in. A redirect off SIX that doesn't carry it, such as another sign-in service
+with only SIX's callback, still ends the session, as before. The check is shared with Edunex and ITB's
+public pages (`src/engine/http/network-sign-in.ts`). The network's page itself counts as an answer to
+the engine (`transportFor`), so the status stays offline only while each new read meets it.
 
 **A redirect to a page the app never reads** (a path with `datainduk`, `controlpanel`, `ktm` or
 `pddikti`, `PRIVATE_PAGES` in `six/client.ts`) is not followed: that page is never fetched, since it
@@ -270,7 +271,7 @@ columns by their labels too, so a column added or moved still reads.
 | Redirect to `/login` or off SIX (but a network's own sign-in, below), `401`, or SIX's sign-in page | Unauthorized | Expired if on the liveness feed, otherwise a liveness check |
 | `429` | Offline | Offline; SIX paused as above |
 | `5xx` from SIX | Offline | Offline |
-| A `200` page without a link to `/logout` that refreshes off SIX, or a redirect off SIX that carries SIX's address back, not to Microsoft (a network's own sign-in) | Offline | Offline; still signed in, no report |
+| A `200` page without a link to `/logout` that refreshes off SIX, or a redirect off SIX that carries the page asked for back, not to Microsoft (a network's own sign-in) | Offline | Offline; still signed in, no report |
 | Other `4xx`, or more than 3 redirects | Failed | Changed, with the detail |
 | Redirect to a page the app never reads (Pengkinian Data Induk, control panel, student ID card, PDDikti) | ActionNeeded | Waiting for the Student, with what to do on SIX; still signed in, no report |
 | No answer, unreachable, or timeout | Offline | Offline |
