@@ -333,7 +333,7 @@ describe("the app's own log", () => {
     const h = await startEngine();
     h.world.edunex.me = { ...h.world.edunex.me, id: 4_242_424 };
     await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
-    h.world.edunex.mangle(/^\/notifications\/\d+$/, { kind: "empty-body" });
+    h.world.edunex.mangle(/^\/notifications\/\d+$/, { kind: "html" });
     await h.engine.refresh("edunex");
     const report = await h.engine.report({});
     expect(report.log!.some((entry) => entry.area === "edunex.notifications" && entry.level === "error")).toBe(true);

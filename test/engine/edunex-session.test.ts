@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { MemoryVault } from "../pretend/memory";
+import { PRETEND_RELAY } from "../pretend/relay";
 import { startEngine } from "./harness";
 
 const signedIn = async () => {
@@ -110,15 +111,33 @@ describe("Edunex sign-in → your courses", () => {
     expect(h.dataset("edunex.courses")).toHaveLength(5);
   });
 
-  it.each([
-    ["a field with the wrong type", { kind: "wrong-type", field: "course_id" }],
-    ["an empty answer", { kind: "empty-body" }],
-  ] as const)("%s is a vendor change, with the last good data kept", async (_name, breakage) => {
+  it("a field with the wrong type is a vendor change, with the last good data kept", async () => {
     const h = await signedIn();
-    h.world.edunex.mangle(/^\/course\/presences\/list$/, breakage);
+    h.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "wrong-type", field: "course_id" });
     await h.engine.refresh("edunex");
     expect(h.status("edunex").state).toBe("changed");
     expect(h.dataset("edunex.courses")).toHaveLength(5);
+  });
+
+  // #384: on a phone whose connection kept dropping, a course's answer came cut to nothing. That's the connection, not
+  // Edunex changing: like no answer at all, Edunex's other answers end it, the data stays and nothing is reported.
+  it("an empty answer is a dropped connection, not a change: the data stays and nothing is reported", async () => {
+    const h = await startEngine({ relay: PRETEND_RELAY });
+    await h.engine.updateSettings({ reportSending: "auto", reportAsked: true });
+    await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
+    h.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "empty-body" }, 1);
+    await h.engine.refresh("edunex");
+    expect(h.status("edunex").state).not.toBe("changed");
+    expect(h.log.entries()).toContainEqual(
+      expect.objectContaining({ area: "edunex.courses", message: "Offline: Edunex's answer for /course/presences/list came empty" }),
+    );
+    expect(h.log.entries().some((entry) => entry.message.startsWith("VendorChanged"))).toBe(false);
+    expect(h.dataset("edunex.courses")).toHaveLength(5);
+    await h.engine.reports.idle();
+    expect((await h.engine.report({})).problems).toEqual([]);
+    expect(h.world.relay.reports).toEqual([]);
+    await h.wait(60_000);
+    expect(h.status("edunex").state).toBe("live");
   });
 
   it.each([403, 404])("Edunex refusing the course list (%i) says it changed something, without signing out", async (status) => {
