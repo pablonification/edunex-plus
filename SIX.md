@@ -75,7 +75,10 @@ SIX changing, so nothing is reported. It's checked before SIX's sign-in page, so
 address carries the page asked for, its site and path (the gate's
 `?destination_url=https://six.itb.ac.id/app/…/statusmhs`), is the same network answering (#387):
 Offline, still signed in. A redirect off SIX that doesn't carry it, such as another sign-in service
-with only SIX's callback, still ends the session, as before. The check is shared with Edunex and ITB's
+with only SIX's callback, still ends the session, as before. What an address alone can't tell apart:
+a sign-in service that isn't Microsoft's and carries the whole page back (a CAS `?service=` with
+SIX's exact page) reads as the network's too, and stays offline while SIX answers that way. SIX sends
+an ended session to its own `/login` first, so this doesn't happen today. The check is shared with Edunex and ITB's
 public pages (`src/engine/http/network-sign-in.ts`). The network's page itself counts as an answer to
 the engine (`transportFor`), so the status stays offline only while each new read meets it.
 

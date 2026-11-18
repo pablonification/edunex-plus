@@ -20,9 +20,34 @@ describe("a network's own sign-in", () => {
       expect(awayTo(address, SIX), String(address)).toBeNull();
   });
 
-  it("isn't Microsoft's sign-in, by any of its addresses, though it carries the site to come back to", () => {
-    for (const host of ["login.microsoftonline.com", "login.live.com", "login.windows.net", "sts.windows.net", "account.microsoft.com"])
-      expect(awayTo(`https://${host}/common/oauth2/authorize?redirect_uri=https://six.itb.ac.id/login/MS365/callback`, SIX), host).toBeNull();
+  it("isn't Microsoft's sign-in, by any of its addresses, though it carries the very page to come back to", () => {
+    for (const host of [
+      "login.microsoftonline.com",
+      "login.microsoftonline.us",
+      "login.partner.microsoftonline.cn",
+      "login.live.com",
+      "login.windows.net",
+      "sts.windows.net",
+      "account.microsoft.com",
+      "itb.b2clogin.com",
+      "itb.ciamlogin.com",
+    ]) {
+      expect(awayTo(`https://${host}/common/oauth2/authorize?state=${encodeURIComponent(SIX)}`, SIX), host).toBeNull();
+      expect(awayTo(`https://gate.example.net/portal?state=${encodeURIComponent(SIX)}`, SIX), host).toBe("gate.example.net");
+    }
+  });
+
+  it("finds the page in one value of the address, encoded once or twice, beside a stray %", () => {
+    expect(awayTo(`https://gate.example.net/portal?d=${encodeURIComponent(encodeURIComponent(SIX))}`, SIX)).toBe("gate.example.net");
+    expect(awayTo(`https://gate.example.net/portal?m=100%&d=${encodeURIComponent(SIX)}`, SIX)).toBe("gate.example.net");
+    expect(awayTo(`https://gate.example.net/portal#d=${encodeURIComponent(SIX)}`, SIX)).toBe("gate.example.net");
+  });
+
+  it("needs the site and its path together, in the address's query, not apart or in its own path", () => {
+    const HOME = "https://six.itb.ac.id/home";
+    expect(awayTo("https://sso.example.com/home/login?service=https://six.itb.ac.id/login", HOME)).toBeNull();
+    expect(awayTo("https://gate.example.net/cp?d=six.itb.ac.id&p=/home", HOME)).toBeNull();
+    expect(awayTo("https://gate.example.net/cp?d=https%3A%2F%2Fsix.itb.ac.id%2Fhome", HOME)).toBe("gate.example.net");
   });
 
   it("isn't another sign-in service, which carries only the site's callback, not the page asked for", () => {
