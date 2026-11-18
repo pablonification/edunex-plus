@@ -28,6 +28,8 @@ const MAX_REDIRECTS = 3;
 export const PRIVATE_PAGES = /controlpanel|datainduk|ktm|pddikti/i;
 const SIGNED_IN = /href=["']\/logout\b/i;
 const SIGN_IN_LINK = /href=["'](?:https:\/\/six\.itb\.ac\.id)?\/login\b/i;
+/** A `<meta http-equiv="refresh" content="0; url=…">` tag, its attributes in any order. */
+const REFRESH = /<meta\b(?=[^>]*\bhttp-equiv=["']?refresh\b)[^>]*\bcontent=["'][^"']*?\burl=([^"'>\s]+)/gi;
 
 /** "/app/mahasiswa:18223901+2026-1/kelas/jadwal/…?bulan=…" → "/kelas/jadwal/…", for status details. */
 const label = (path: string) => path.replace(/^\/app\/mahasiswa:[^/]+/, "").replace(/\?.*$/, "") || "/";
@@ -148,6 +150,10 @@ export class SixClient implements SixPages {
     if (status >= 500) throw new EngineError("Offline", `SIX answered ${status}`);
     if (status >= 400) throw new EngineError("Failed", `SIX answered ${status} for ${label(path)}`);
     if (!SIGNED_IN.test(response.body) && SIGN_IN_LINK.test(response.body)) throw new EngineError("Unauthorized", "SIX showed its sign-in page");
+    // Campus Wi-Fi that wants its own sign-in first answers for SIX with a page that sends the browser there (#381):
+    // SIX itself is out of reach until the Student signs in to the network.
+    const away = networkSignIn(response.body);
+    if (away) throw new EngineError("Offline", `The network's sign-in (${away}) answered for SIX`, true);
     return response.body;
   }
 
@@ -163,6 +169,20 @@ export class SixClient implements SixPages {
     if (url.origin !== SIX_ORIGIN || /^\/login\b/i.test(url.pathname)) return null;
     return `${url.pathname}${url.search}`;
   }
+}
+
+/** Where a page that only sends the browser off SIX sends it (its host), or null for any page of SIX's own. */
+function networkSignIn(html: string): string | null {
+  if (SIGNED_IN.test(html)) return null;
+  for (const [, target] of html.matchAll(REFRESH)) {
+    try {
+      const url = new URL(target!.replace(/&amp;/g, "&"), SIX_ORIGIN);
+      if (url.origin !== SIX_ORIGIN) return url.host;
+    } catch {
+      // Not an address: not a page that sends the browser anywhere.
+    }
+  }
+  return null;
 }
 
 function pauseFor(retryAfter: string | undefined): number {
