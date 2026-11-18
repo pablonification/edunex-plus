@@ -6,6 +6,7 @@
 import type { Clock } from "../../clock";
 import { ActionNeeded, EngineError } from "../../errors";
 import { parseAhead } from "../../html-slices";
+import { awayTo, refreshesAway } from "../../http/network-sign-in";
 import { Pace, type Place } from "../../http/pace";
 import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import { type FeedRead, noting } from "../../report/kept-pages";
@@ -13,7 +14,6 @@ import type { SixIdentity, SixPages } from "./pages";
 import { readNim, readStatusPage, type StatusPage } from "./status";
 
 export const SIX_ORIGIN = "https://six.itb.ac.id";
-const SIX_SITE = new URL(SIX_ORIGIN).hostname;
 /** Human pace: at most one page every two seconds. */
 const PAGE_GAP_MS = 2_000;
 /** How long SIX is left alone after it says "too many requests" (longer if it asks). */
@@ -29,22 +29,6 @@ const MAX_REDIRECTS = 3;
 export const PRIVATE_PAGES = /controlpanel|datainduk|ktm|pddikti/i;
 const SIGNED_IN = /href=["']\/logout\b/i;
 const SIGN_IN_LINK = /href=["'](?:https:\/\/six\.itb\.ac\.id)?\/login\b/i;
-/** A page's `<meta>` tags. */
-const META = /<meta\b[^<>]*>/gi;
-/** One attribute's value, by its whole name: after a space, a quote or a slash, never "data-http-equiv"'s tail. */
-const ATTRIBUTES = {
-  "http-equiv": /[\s"'/]http-equiv\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i,
-  content: /[\s"'/]content\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i,
-};
-const attribute = (tag: string, name: keyof typeof ATTRIBUTES): string | null => {
-  const found = ATTRIBUTES[name].exec(tag);
-  return found ? (found[1] ?? found[2] ?? found[3] ?? "") : null;
-};
-/** Where a refresh's `content` ("0; url=https://…", "0;URL='…'") sends the browser. */
-const REFRESH_TO = /^\s*[\d.]*\s*[;,]?\s*(?:url\s*=\s*)?["']?([^"'\s]+)/i;
-/** Microsoft's sign-in, where an ended session goes: never taken for a network's own sign-in. */
-const MICROSOFT_SIGN_IN = /(^|\.)(microsoftonline\.com|live\.com|microsoft\.com)$/i;
-
 /** "/app/mahasiswa:18223901+2026-1/kelas/jadwal/…?bulan=…" → "/kelas/jadwal/…", for status details. */
 const label = (path: string) => path.replace(/^\/app\/mahasiswa:[^/]+/, "").replace(/\?.*$/, "") || "/";
 
@@ -145,6 +129,9 @@ export class SixClient implements SixPages {
 
     const { status } = response;
     if (status >= 300 && status < 400) {
+      // Off SIX to anywhere but Microsoft's sign-in: the network's own sign-in answered for SIX (#387), not SIX.
+      const gate = awayTo(response.headers.location, `${SIX_ORIGIN}${path}`);
+      if (gate) throw new EngineError("Offline", `The network's sign-in (${gate}) answered for SIX`, true);
       const next = this.sameSite(response.headers.location, path);
       // To /login, or off SIX to Microsoft's sign-in: the session is over.
       if (!next) throw new EngineError("Unauthorized", "SIX ended the session");
@@ -166,7 +153,8 @@ export class SixClient implements SixPages {
     // Campus Wi-Fi that wants its own sign-in first answers for SIX with a page that sends the browser there (#381):
     // SIX itself is out of reach until the Student signs in to the network. Before SIX's own sign-in page, so a
     // network's page with a "/login" link of its own never signs the Student out.
-    const away = networkSignIn(response.body);
+    // A signed-in page (it links to /logout) is SIX's, whatever it refreshes to.
+    const away = SIGNED_IN.test(response.body) ? null : refreshesAway(response.body, `${SIX_ORIGIN}${path}`);
     if (away) throw new EngineError("Offline", `The network's sign-in (${away}) answered for SIX`, true);
     if (!SIGNED_IN.test(response.body) && SIGN_IN_LINK.test(response.body)) throw new EngineError("Unauthorized", "SIX showed its sign-in page");
     return response.body;
@@ -184,24 +172,6 @@ export class SixClient implements SixPages {
     if (url.origin !== SIX_ORIGIN || /^\/login\b/i.test(url.pathname)) return null;
     return `${url.pathname}${url.search}`;
   }
-}
-
-/** Where a page that only sends the browser off SIX sends it (its host), or null for any page of SIX's own. */
-function networkSignIn(html: string): string | null {
-  if (SIGNED_IN.test(html)) return null;
-  for (const [tag] of html.matchAll(META)) {
-    if (attribute(tag, "http-equiv")?.trim().toLowerCase() !== "refresh") continue;
-    const target = REFRESH_TO.exec(attribute(tag, "content") ?? "")?.[1];
-    if (!target) continue;
-    try {
-      const url = new URL(target.replace(/&amp;/g, "&"), SIX_ORIGIN);
-      // SIX itself (by http too), an address with no site (javascript:, data:) or Microsoft's sign-in: not a network's.
-      if (url.hostname && url.hostname !== SIX_SITE && !MICROSOFT_SIGN_IN.test(url.hostname)) return url.host;
-    } catch {
-      // Not an address: not a page that sends the browser anywhere.
-    }
-  }
-  return null;
 }
 
 function pauseFor(retryAfter: string | undefined): number {

@@ -3,6 +3,7 @@
 // something", never an empty screen.
 import type { z } from "zod";
 import { AnswerError, EngineError, isEngineError } from "../../errors";
+import { awayTo, refreshesAway } from "../../http/network-sign-in";
 import type { Pace, Place } from "../../http/pace";
 import { type Answer, type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 import { type FeedRead, noting } from "../../report/kept-pages";
@@ -62,6 +63,12 @@ export class EdunexClient {
     try {
       return check({ path, status: response.status, body: response.body });
     } catch (error) {
+      // Not data, because the network's own sign-in answered for Edunex (#387): a page that sends the browser there, or
+      // a redirect there the network stack followed. No connection yet, not Edunex changing. Only for an answer that
+      // isn't JSON at all: a lecturer's text inside Edunex's data is never taken for one.
+      const page = isEngineError(error, "VendorChanged") && !/^\s*[[{]/.test(response.body);
+      const gate = page ? (refreshesAway(response.body, url.toString()) ?? awayTo(response.url, url.toString())) : null;
+      if (gate) throw new EngineError("Offline", `The network's sign-in (${gate}) answered for Edunex`, true);
       // The answer goes with its error: the message names the path, not which course's list it was.
       throw isEngineError(error) ? new AnswerError(error, { url: url.toString(), status: response.status, body: response.body, check }) : error;
     }

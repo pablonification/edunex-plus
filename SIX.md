@@ -58,7 +58,8 @@ adds or changes a SIX or ITB request must update this file and keep the guardrai
 
 **How an ended session shows** (`src/engine/sources/six/client.ts`):
 
-- a redirect to `/login`, or off `six.itb.ac.id` (for example to Microsoft) → Unauthorized;
+- a redirect to `/login`, or off `six.itb.ac.id` to Microsoft's sign-in → Unauthorized (off SIX
+  anywhere else is a network's own sign-in, below);
 - a `401` → Unauthorized;
 - a `200` page with a link to `/login` and no link to `/logout` (SIX's sign-in page) →
   Unauthorized.
@@ -70,7 +71,9 @@ A redirect that stays on SIX is followed, at most 3 times (then Failed).
 a `<meta http-equiv="refresh">` off SIX. A page with no link to `/logout` that refreshes to another
 site (not Microsoft's sign-in) is Offline, "unreachable" like no answer at all: no connection yet, not
 SIX changing, so nothing is reported. It's checked before SIX's sign-in page, so a network's page with a
-`/login` link of its own doesn't end the session. The network's page itself counts as an answer to the
+`/login` link of its own doesn't end the session. A redirect off SIX to anywhere but Microsoft's sign-in
+is the same network answering (#387): Offline, still signed in. The check is shared with Edunex and
+ITB's public pages (`src/engine/http/network-sign-in.ts`). The network's page itself counts as an answer to the
 engine (`transportFor`), so the status stays offline only while each new read meets it (#387).
 
 **A redirect to a page the app never reads** (a path with `datainduk`, `controlpanel`, `ktm` or
@@ -184,6 +187,9 @@ SIX**. That opens `src/desktop/six-window.ts`:
 - **500s on catalog pages.** A few campus program pages answer 500. That program is marked
   "missing" and retried after a day; a program read before keeps its copy. Other programs are
   unaffected and the feed does not fail. Which programs answer 500 is not recorded in code.
+- **A network's own sign-in.** A catalog page or the calendar answered by a page that refreshes
+  off its site (not to Microsoft) is Offline, as for SIX's pages (#387): no connection yet, not
+  the page changing. A followed redirect to the network's sign-in form isn't told apart.
 
 ## English pages
 
@@ -258,10 +264,10 @@ columns by their labels too, so a column added or moved still reads.
 
 | What happened | Error | The app shows |
 | --- | --- | --- |
-| Redirect to `/login` or off SIX, `401`, or SIX's sign-in page | Unauthorized | Expired if on the liveness feed, otherwise a liveness check |
+| Redirect to `/login` or off SIX to Microsoft's sign-in, `401`, or SIX's sign-in page | Unauthorized | Expired if on the liveness feed, otherwise a liveness check |
 | `429` | Offline | Offline; SIX paused as above |
 | `5xx` from SIX | Offline | Offline |
-| A `200` page without a link to `/logout` that refreshes off SIX, not to Microsoft (a network's own sign-in) | Offline | Offline; no report |
+| A `200` page without a link to `/logout` that refreshes off SIX, or a redirect off SIX, not to Microsoft (a network's own sign-in) | Offline | Offline; still signed in, no report |
 | Other `4xx`, or more than 3 redirects | Failed | Changed, with the detail |
 | Redirect to a page the app never reads (Pengkinian Data Induk, control panel, student ID card, PDDikti) | ActionNeeded | Waiting for the Student, with what to do on SIX; still signed in, no report |
 | No answer, unreachable, or timeout | Offline | Offline |

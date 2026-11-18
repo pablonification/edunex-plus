@@ -8,6 +8,7 @@ import { PretendEdunex } from "./edunex";
 import { PretendGithub } from "./github";
 import { PretendItb } from "./itb";
 import type { NetworkProfile } from "./network";
+import { type NetworkSignIn, networkSignIn } from "./network-sign-in";
 import { PRETEND_RELAY, PretendRelay } from "./relay";
 import { PretendSix } from "./six";
 
@@ -26,6 +27,8 @@ export class PretendWorld implements Transport {
   readonly blobStatus = new Map<string, number>();
   /** Every request that reached the world, for assertions about politeness. */
   readonly log: { at: number; method: string; url: string; status: number | "network-error" }[] = [];
+  /** Wi-Fi that wants its own sign-in first answering for Edunex, SIX and ITB's pages (./network-sign-in.ts); null: through to them. */
+  signInFirst: NetworkSignIn | null = null;
   private offline = false;
   private latencyMs = 0;
   /** Per-request times played back from a timing file ("real network" mode), instead of `latencyMs`. */
@@ -116,6 +119,8 @@ export class PretendWorld implements Transport {
   }
 
   private route(request: HttpRequest, url: URL): HttpResponse | Promise<HttpResponse> {
+    if (this.signInFirst && (this.itb.serves(url) || url.host === "api-edunex.cognisia.id" || url.host === "six.itb.ac.id"))
+      return networkSignIn(this.signInFirst, request, url);
     if (this.itb.serves(url)) return this.itb.handle(request, url);
     if (url.host === "api-edunex.cognisia.id") return this.edunex.handle(request, url);
     if (url.host === "six.itb.ac.id") return this.six.handle(request, url);
