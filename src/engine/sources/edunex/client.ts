@@ -69,8 +69,8 @@ export function read<S extends z.ZodType>({ path, status, body }: Answer, schema
   if (status === 429 || status >= 500) throw new EngineError("Offline", `Edunex answered ${status}`);
   if (status >= 400) throw new EngineError("Failed", `Edunex answered ${status} for ${path}`);
   // Nothing at all: a connection that dropped cut the answer short (#384), not Edunex changing its data. No connection
-  // for now, which the next answer from Edunex ends.
-  if (!body.trim()) throw new EngineError("Offline", `Edunex's answer for ${path} came empty`, true);
+  // until this call is answered whole again, so an address that keeps answering with nothing stays in sight.
+  if (!body.trim()) throw new EngineError("Offline", `Edunex's answer for ${path} came empty`);
   let data: unknown;
   try {
     data = JSON.parse(body);
