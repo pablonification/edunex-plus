@@ -29,10 +29,15 @@ const MAX_REDIRECTS = 3;
 export const PRIVATE_PAGES = /controlpanel|datainduk|ktm|pddikti/i;
 const SIGNED_IN = /href=["']\/logout\b/i;
 const SIGN_IN_LINK = /href=["'](?:https:\/\/six\.itb\.ac\.id)?\/login\b/i;
-/** A page's `<meta>` tags, and one of a tag's attributes by its whole name ("http-equiv", never "data-http-equiv"). */
+/** A page's `<meta>` tags. */
 const META = /<meta\b[^<>]*>/gi;
-const attribute = (tag: string, name: string): string | null => {
-  const found = new RegExp(`[\\s"'/]${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))`, "i").exec(tag);
+/** One attribute's value, by its whole name: after a space, a quote or a slash, never "data-http-equiv"'s tail. */
+const ATTRIBUTES = {
+  "http-equiv": /[\s"'/]http-equiv\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i,
+  content: /[\s"'/]content\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/i,
+};
+const attribute = (tag: string, name: keyof typeof ATTRIBUTES): string | null => {
+  const found = ATTRIBUTES[name].exec(tag);
   return found ? (found[1] ?? found[2] ?? found[3] ?? "") : null;
 };
 /** Where a refresh's `content` ("0; url=https://…", "0;URL='…'") sends the browser. */
