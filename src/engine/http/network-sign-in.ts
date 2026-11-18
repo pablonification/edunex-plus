@@ -48,21 +48,31 @@ export function awayTo(address: string | undefined, from: string, { naming }: Aw
 }
 
 /**
- * Whether `address` carries the page `asked` back: its site and path together ("six.itb.ac.id/home"), in the address's
- * query or fragment (never its own path), as it is, decoded, or in one of its values decoded once more.
+ * Whether `address` carries the page `asked` back: one value of its query or fragment, as it is or decoded once more,
+ * is that very page (its site and its whole path, so never a callback under it: "six.itb.ac.id/home/callback").
  */
 function carries(address: URL, asked: URL): boolean {
-  const page = `${asked.hostname}${asked.pathname === "/" ? "" : decodeURI(asked.pathname)}`.toLowerCase();
-  const raw = `${address.search}${address.hash}`;
-  const texts = [raw, ...address.searchParams.values(), ...new URLSearchParams(address.hash.slice(1)).values()];
-  for (const value of [...texts]) {
+  const values = [...address.searchParams.values(), ...new URLSearchParams(address.hash.slice(1)).values()];
+  for (const value of [...values]) {
     try {
-      texts.push(decodeURIComponent(value));
+      values.push(decodeURIComponent(value));
     } catch {
       // Not encoded the usual way: read as it is.
     }
   }
-  return texts.some((text) => text.toLowerCase().includes(page));
+  return values.some((value) => isPage(value, asked));
+}
+
+/** Whether `value` ("https://six.itb.ac.id/home?x=1", or "six.itb.ac.id/home" without its scheme) is the page `asked`. */
+function isPage(value: string, asked: URL): boolean {
+  const text = value.trim();
+  try {
+    const url = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(text) ? text : `https://${text}`);
+    const path = (u: URL) => decodeURI(u.pathname).replace(/\/+$/, "");
+    return url.hostname === asked.hostname && path(url) === path(asked);
+  } catch {
+    return false;
+  }
 }
 
 /** The site a page asked for at `from` sends the browser off to with a `<meta http-equiv="refresh">` (its host), or null. */

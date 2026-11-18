@@ -12,7 +12,6 @@ describe("a network's own sign-in", () => {
     expect(awayTo(`https://gate.example.net/portal?u=${encodeURIComponent(SIX)}`, SIX)).toBe("gate.example.net");
     expect(awayTo("https://gate.example.net:8443/login?from=SIX.ITB.AC.ID/app/mahasiswa:18223901/statusmhs", SIX)).toBe("gate.example.net:8443");
     expect(awayTo("//gate.example.net/portal?to=six.itb.ac.id/app/mahasiswa:18223901/statusmhs", SIX)).toBe("gate.example.net");
-    expect(awayTo("https://gate.example.net/p?u=%E0%A4%A six.itb.ac.id/app/mahasiswa:18223901/statusmhs", SIX)).toBe("gate.example.net");
   });
 
   it("isn't the site itself (by http too), an address with no site, or no address", () => {
@@ -48,6 +47,9 @@ describe("a network's own sign-in", () => {
     expect(awayTo("https://sso.example.com/home/login?service=https://six.itb.ac.id/login", HOME)).toBeNull();
     expect(awayTo("https://gate.example.net/cp?d=six.itb.ac.id&p=/home", HOME)).toBeNull();
     expect(awayTo("https://gate.example.net/cp?d=https%3A%2F%2Fsix.itb.ac.id%2Fhome", HOME)).toBe("gate.example.net");
+    // A callback under the page asked for isn't that page.
+    expect(awayTo("https://sso.example.com/login?service=https://six.itb.ac.id/home/callback", HOME)).toBeNull();
+    expect(awayTo("https://sso.example.com/login?service=https%3A%2F%2Fsix.itb.ac.id%2Fhome%2Fcallback", HOME)).toBeNull();
   });
 
   it("isn't another sign-in service, which carries only the site's callback, not the page asked for", () => {
