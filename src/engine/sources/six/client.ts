@@ -13,6 +13,7 @@ import type { SixIdentity, SixPages } from "./pages";
 import { readNim, readStatusPage, type StatusPage } from "./status";
 
 export const SIX_ORIGIN = "https://six.itb.ac.id";
+const SIX_SITE = new URL(SIX_ORIGIN).hostname;
 /** Human pace: at most one page every two seconds. */
 const PAGE_GAP_MS = 2_000;
 /** How long SIX is left alone after it says "too many requests" (longer if it asks). */
@@ -29,7 +30,7 @@ export const PRIVATE_PAGES = /controlpanel|datainduk|ktm|pddikti/i;
 const SIGNED_IN = /href=["']\/logout\b/i;
 const SIGN_IN_LINK = /href=["'](?:https:\/\/six\.itb\.ac\.id)?\/login\b/i;
 /** A page's `<meta>` tags, and one of a tag's attributes by its whole name ("http-equiv", never "data-http-equiv"). */
-const META = /<meta\b[^>]*>/gi;
+const META = /<meta\b[^<>]*>/gi;
 const attribute = (tag: string, name: string): string | null => {
   const found = new RegExp(`[\\s"'/]${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))`, "i").exec(tag);
   return found ? (found[1] ?? found[2] ?? found[3] ?? "") : null;
@@ -157,11 +158,12 @@ export class SixClient implements SixPages {
     if (status === 401) throw new EngineError("Unauthorized", "SIX ended the session");
     if (status >= 500) throw new EngineError("Offline", `SIX answered ${status}`);
     if (status >= 400) throw new EngineError("Failed", `SIX answered ${status} for ${label(path)}`);
-    if (!SIGNED_IN.test(response.body) && SIGN_IN_LINK.test(response.body)) throw new EngineError("Unauthorized", "SIX showed its sign-in page");
     // Campus Wi-Fi that wants its own sign-in first answers for SIX with a page that sends the browser there (#381):
-    // SIX itself is out of reach until the Student signs in to the network.
+    // SIX itself is out of reach until the Student signs in to the network. Before SIX's own sign-in page, so a
+    // network's page with a "/login" link of its own never signs the Student out.
     const away = networkSignIn(response.body);
     if (away) throw new EngineError("Offline", `The network's sign-in (${away}) answered for SIX`, true);
+    if (!SIGNED_IN.test(response.body) && SIGN_IN_LINK.test(response.body)) throw new EngineError("Unauthorized", "SIX showed its sign-in page");
     return response.body;
   }
 
@@ -188,7 +190,8 @@ function networkSignIn(html: string): string | null {
     if (!target) continue;
     try {
       const url = new URL(target.replace(/&amp;/g, "&"), SIX_ORIGIN);
-      if (url.origin !== SIX_ORIGIN && !MICROSOFT_SIGN_IN.test(url.hostname)) return url.host;
+      // SIX itself (by http too), an address with no site (javascript:, data:) or Microsoft's sign-in: not a network's.
+      if (url.hostname && url.hostname !== SIX_SITE && !MICROSOFT_SIGN_IN.test(url.hostname)) return url.host;
     } catch {
       // Not an address: not a page that sends the browser anywhere.
     }

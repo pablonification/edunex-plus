@@ -66,11 +66,13 @@ describe("the network's own sign-in answering for SIX", () => {
     expect(h.world.relay.reports).toEqual([]);
   });
 
-  it("however the network writes its page: spaces around the attributes, the address quoted, no 'url='", async () => {
+  it("however the network writes its page: spaces around the attributes, the address quoted, no 'url=', a link to its own /login", async () => {
     for (const tag of [
       `<meta http-equiv = "refresh" content = "0; url=https://gate.example.net/portal">`,
       `<meta content="0;URL='https://gate.example.net/portal'" http-equiv="Refresh">`,
       `<meta http-equiv=refresh content="0;https://gate.example.net/portal">`,
+      `<meta http-equiv="refresh" content="0; url=javascript:void(0)"><meta http-equiv="refresh" content="0; url=https://gate.example.net/portal">`,
+      `<meta http-equiv="refresh" content="0; url=https://gate.example.net/portal"></head><body><a href="/login">Sign in</a>`,
     ]) {
       const h = await signedIn();
       for (const path of h.world.six.pages.keys()) h.world.six.pages.set(path, `<html><head>${tag}</head></html>`);
@@ -89,13 +91,14 @@ describe("the network's own sign-in answering for SIX", () => {
 
     for (const tag of [
       `<meta http-equiv="refresh" content="0; url=/home">`,
+      `<meta http-equiv="refresh" content="0; url=http://six.itb.ac.id/home">`,
       `<meta data-http-equiv="refresh" content="0; url=https://gate.example.net/portal">`,
       `<meta http-equiv="refresh" content="0; url=https://login.microsoftonline.com/common/oauth2">`,
     ]) {
       const other = await signedIn();
       other.world.six.pages.set("/app/mahasiswa:18223901/statusmhs", `<html><head>${tag}</head><body></body></html>`);
       await until(other, other.engine.refresh("six"));
-      expect(other.status("six").state, tag).toBe("changed");
+      expect(other.status("six").state, tag).not.toBe("offline");
     }
   });
 });

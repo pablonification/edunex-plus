@@ -69,7 +69,9 @@ A redirect that stays on SIX is followed, at most 3 times (then Failed).
 `gate-dev2.itb.ac.id/captive-portal`, #381), every SIX page comes back `200` as a page whose only job is
 a `<meta http-equiv="refresh">` off SIX. A page with no link to `/logout` that refreshes to another
 site (not Microsoft's sign-in) is Offline, "unreachable" like no answer at all: no connection yet, not
-SIX changing, so nothing is reported and SIX's next real answer ends it.
+SIX changing, so nothing is reported. It's checked before SIX's sign-in page, so a network's page with a
+`/login` link of its own doesn't end the session. The network's page itself counts as an answer to the
+engine (`transportFor`), so the status stays offline only while each new read meets it (#387).
 
 **A redirect to a page the app never reads** (a path with `datainduk`, `controlpanel`, `ktm` or
 `pddikti`, `PRIVATE_PAGES` in `six/client.ts`) is not followed: that page is never fetched, since it
@@ -259,7 +261,7 @@ columns by their labels too, so a column added or moved still reads.
 | Redirect to `/login` or off SIX, `401`, or SIX's sign-in page | Unauthorized | Expired if on the liveness feed, otherwise a liveness check |
 | `429` | Offline | Offline; SIX paused as above |
 | `5xx` from SIX | Offline | Offline |
-| A `200` page that only refreshes off SIX (a network's own sign-in) | Offline | Offline; no report |
+| A `200` page without a link to `/logout` that refreshes off SIX, not to Microsoft (a network's own sign-in) | Offline | Offline; no report |
 | Other `4xx`, or more than 3 redirects | Failed | Changed, with the detail |
 | Redirect to a page the app never reads (Pengkinian Data Induk, control panel, student ID card, PDDikti) | ActionNeeded | Waiting for the Student, with what to do on SIX; still signed in, no report |
 | No answer, unreachable, or timeout | Offline | Offline |
