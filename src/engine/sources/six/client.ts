@@ -129,7 +129,8 @@ export class SixClient implements SixPages {
 
     const { status } = response;
     if (status >= 300 && status < 400) {
-      // Off SIX to anywhere but Microsoft's sign-in: the network's own sign-in answered for SIX (#387), not SIX.
+      // Off SIX to anywhere but Microsoft's sign-in, carrying the page asked for: the network's own sign-in answered for
+      // SIX (#387), not SIX. Off SIX without it stays an ended session, as before.
       const gate = awayTo(response.headers.location, `${SIX_ORIGIN}${path}`);
       if (gate) throw new EngineError("Offline", `The network's sign-in (${gate}) answered for SIX`, true);
       const next = this.sameSite(response.headers.location, path);
@@ -154,7 +155,7 @@ export class SixClient implements SixPages {
     // SIX itself is out of reach until the Student signs in to the network. Before SIX's own sign-in page, so a
     // network's page with a "/login" link of its own never signs the Student out.
     // A signed-in page (it links to /logout) is SIX's, whatever it refreshes to.
-    const away = SIGNED_IN.test(response.body) ? null : refreshesAway(response.body, `${SIX_ORIGIN}${path}`);
+    const away = SIGNED_IN.test(response.body) ? null : refreshesAway(response.body, `${SIX_ORIGIN}${path}`, { naming: false });
     if (away) throw new EngineError("Offline", `The network's sign-in (${away}) answered for SIX`, true);
     if (!SIGNED_IN.test(response.body) && SIGN_IN_LINK.test(response.body)) throw new EngineError("Unauthorized", "SIX showed its sign-in page");
     return response.body;

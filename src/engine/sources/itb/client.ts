@@ -5,7 +5,7 @@
 // the caller decides about.
 import type { Clock } from "../../clock";
 import { EngineError } from "../../errors";
-import { refreshesAway } from "../../http/network-sign-in";
+import { awayTo, refreshesAway } from "../../http/network-sign-in";
 import { Pace } from "../../http/pace";
 import { type HttpResponse, NetworkError, type Transport } from "../../http/transport";
 
@@ -58,9 +58,9 @@ export class PublicClient {
     }
     if (response.status === 429) this.pace.pause(this.clock.now() + RATE_LIMIT_PAUSE_MS);
     if (response.status >= 400) throw new PageError(response.status, `${this.site} answered ${response.status} for ${new URL(url).pathname}`);
-    // The network's own sign-in answering for the site with a page that sends the browser there (#387): no connection
-    // yet, not the page changing.
-    const gate = refreshesAway(response.body, response.url || url);
+    // The network's own sign-in answering for the site (#387), with a page that sends the browser there or a redirect
+    // there the network stack followed: no connection yet, not the page changing.
+    const gate = refreshesAway(response.body, url) ?? awayTo(response.url, url);
     if (gate) throw new EngineError("Offline", `The network's sign-in (${gate}) answered for ${this.site}`, true);
     return response.body;
   }
