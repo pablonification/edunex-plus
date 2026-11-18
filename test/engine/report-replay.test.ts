@@ -70,6 +70,17 @@ describe("a report read again with today's readers", () => {
     expect(same!.verdict).toBe("same");
   });
 
+  it("an Edunex answer that came empty (#384) isn't a page change any more: it can't be read again, never 'the same'", async () => {
+    const [result] = await replayReport(
+      reportOf({
+        feed: "edunex.tasks",
+        check: "Edunex sent something other than data for /course/tasks",
+        pages: [{ system: "edunex", path: TASKS, status: 200, body: "" }],
+      }),
+    );
+    expect(result).toMatchObject({ verdict: "unknown", now: null });
+  });
+
   it("an Edunex address with no check listed, or a SIX page that isn't in the report, can't be read again: unknown, never fixed", async () => {
     const results = await replayReport(
       reportOf(

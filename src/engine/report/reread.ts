@@ -10,7 +10,6 @@
 // needed a page that wasn't kept, or what the app knew then has changed) says "unknown", not "no".
 import type { DatasetName, DatasetValue, Reproduces, SixStudent, SkippedRow } from "../../core/models";
 import type { Clock } from "../clock";
-import { isEngineError } from "../errors";
 import { Pace } from "../http/pace";
 import type { AnswerCheck, Transport } from "../http/transport";
 import { registerSixCheckInFeed } from "../sources/six/check-in";
@@ -97,8 +96,8 @@ function checkAgain(reading: Reading): Outcome | null {
     try {
       page.check({ path: new URL(page.path, "https://edunex.invalid").pathname, status: page.status, body: page.body });
     } catch (error) {
-      if (isEngineError(error)) return { check: error.message, rows: [] };
-      return null;
+      // A page change, as the engine counts one; anything else (an answer that came empty) isn't the page's.
+      return isChange(error) ? { check: error.message, rows: [] } : null;
     }
     return { check: null, rows: [] };
   }

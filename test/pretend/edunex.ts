@@ -20,6 +20,8 @@ export type Breakage =
   | { kind: "wrong-type"; field: string }
   | { kind: "unknown-field"; field: string }
   | { kind: "empty-body" }
+  /** The answer stops halfway, as a dropped connection leaves it. */
+  | { kind: "cut-short" }
   | { kind: "html" };
 
 interface Fault {
@@ -738,6 +740,10 @@ function completeSessions(recorded: Json[], total: number): Json[] {
 function breakResponse(body: Json, breakage: Breakage, url: URL): HttpResponse {
   if (breakage.kind === "empty-body") return { status: 200, headers: { "content-type": "application/json" }, body: "", url: url.toString() };
   if (breakage.kind === "html") return html(200, MAINTENANCE_HTML, url);
+  if (breakage.kind === "cut-short") {
+    const whole = JSON.stringify(body);
+    return { status: 200, headers: { "content-type": "application/json" }, body: whole.slice(0, Math.floor(whole.length / 2)), url: url.toString() };
+  }
   const copy = structuredClone(body);
   const targets: Json[] = Array.isArray(copy?.data) ? copy.data : copy?.data ? [copy.data] : Array.isArray(copy) ? copy : [copy];
   for (const item of targets) {

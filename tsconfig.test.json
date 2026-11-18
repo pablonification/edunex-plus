@@ -18,6 +18,7 @@
     "test/mobile/widget-drawings.test.tsx",
     "test/mobile/search-services.test.ts",
     "test/mobile/contrast.test.ts",
-    "test/mobile/phone-calendar.test.ts"
+    "test/mobile/phone-calendar.test.ts",
+    "test/mobile/transport-cut-short.test.ts"
   ]
 }

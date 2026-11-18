@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { PRETEND_TOKEN } from "../pretend/edunex";
 import { MemoryVault } from "../pretend/memory";
+import { PRETEND_RELAY } from "../pretend/relay";
 import { startEngine } from "./harness";
 
 const signedIn = async () => {
@@ -110,15 +111,45 @@ describe("Edunex sign-in → your courses", () => {
     expect(h.dataset("edunex.courses")).toHaveLength(5);
   });
 
-  it.each([
-    ["a field with the wrong type", { kind: "wrong-type", field: "course_id" }],
-    ["an empty answer", { kind: "empty-body" }],
-  ] as const)("%s is a vendor change, with the last good data kept", async (_name, breakage) => {
+  it("a field with the wrong type is a vendor change, with the last good data kept", async () => {
     const h = await signedIn();
-    h.world.edunex.mangle(/^\/course\/presences\/list$/, breakage);
+    h.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "wrong-type", field: "course_id" });
     await h.engine.refresh("edunex");
     expect(h.status("edunex").state).toBe("changed");
     expect(h.dataset("edunex.courses")).toHaveLength(5);
+  });
+
+  // #384: on a phone whose connection kept dropping, a course's answer came cut to nothing. That's the connection, not
+  // Edunex changing: taken as a timeout is, the data stays, nothing is reported, and Edunex's next whole answer ends it.
+  it.each([
+    ["empty", { kind: "empty-body" }],
+    ["cut short", { kind: "cut-short" }],
+  ] as const)("an answer that came %s is a dropped connection, not a change: the data stays and nothing is reported", async (how, breakage) => {
+    const h = await startEngine({ relay: PRETEND_RELAY });
+    await h.engine.updateSettings({ reportSending: "auto", reportAsked: true });
+    await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
+    h.world.edunex.mangle(/^\/course\/presences\/list$/, breakage, 1);
+    await h.engine.refresh("edunex");
+    expect(h.log.entries()).toContainEqual(
+      expect.objectContaining({ area: "edunex.courses", message: `Offline: Edunex's answer for /course/presences/list came ${how}` }),
+    );
+    expect(h.log.entries().some((entry) => entry.message.startsWith("VendorChanged"))).toBe(false);
+    // Edunex's other answers came after it: as after a timeout, they end it.
+    expect(h.status("edunex").state).toBe("live");
+    expect(h.dataset("edunex.courses")).toHaveLength(5);
+    await h.engine.reports.idle();
+    expect((await h.engine.report({})).problems).toEqual([]);
+    expect(h.world.relay.reports).toEqual([]);
+  });
+
+  it("an answer cut short only when nothing else of Edunex answers says there's no connection", async () => {
+    const h = await signedIn();
+    h.world.edunex.mangle(/.*/, { kind: "empty-body" });
+    await h.engine.refresh("edunex");
+    expect(h.status("edunex").state).toBe("offline");
+    h.world.edunex.clearFaults();
+    await h.wait(2 * 60_000);
+    expect(h.status("edunex").state).toBe("live");
   });
 
   it.each([403, 404])("Edunex refusing the course list (%i) says it changed something, without signing out", async (status) => {

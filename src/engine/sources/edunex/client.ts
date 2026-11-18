@@ -10,6 +10,11 @@ import type { SourceContext } from "../source";
 
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const TIMEOUT_MS = 15_000;
+/**
+ * An answer that came empty, or stopped partway (#384): a connection that dropped, not Edunex changing its data. Taken as
+ * a timeout is ("unreachable"): Edunex's next whole answer ends it, and a background feed's tries again quietly.
+ */
+const cutShort = (path: string, empty: boolean) => new EngineError("Offline", `Edunex's answer for ${path} came ${empty ? "empty" : "cut short"}`, true);
 
 /** Edunex's line: every request to its API, the feeds' and the Student's, two at a time (../../http/pace.ts). */
 export const edunexLine = (context: Pick<SourceContext, "pace">) => context.pace(new URL(EDUNEX_API).host);
@@ -68,10 +73,14 @@ export function read<S extends z.ZodType>({ path, status, body }: Answer, schema
   if (status === 401) throw new EngineError("Unauthorized", `Edunex refused ${path}`);
   if (status === 429 || status >= 500) throw new EngineError("Offline", `Edunex answered ${status}`);
   if (status >= 400) throw new EngineError("Failed", `Edunex answered ${status} for ${path}`);
+  // Nothing at all, or data that stops partway: a connection that dropped cut the answer short (#384), not Edunex
+  // changing its data.
+  if (!body.trim()) throw cutShort(path, true);
   let data: unknown;
   try {
     data = JSON.parse(body);
   } catch {
+    if (stopsPartway(body)) throw cutShort(path, false);
     throw new EngineError("VendorChanged", `Edunex sent something other than data for ${path}`);
   }
   const parsed = schema.safeParse(data);
@@ -80,4 +89,23 @@ export function read<S extends z.ZodType>({ path, status, body }: Answer, schema
     throw new EngineError("VendorChanged", `${path}: ${issue?.path.join(".") || "(root)"} ${issue?.message ?? "unexpected"}`);
   }
   return parsed.data;
+}
+
+/** JSON that opens an object or a list and stops before closing it (or inside a string): the rest never came. */
+function stopsPartway(body: string): boolean {
+  const text = body.trim();
+  if (text[0] !== "{" && text[0] !== "[") return false;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (const char of text) {
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+    } else if (char === '"') inString = true;
+    else if (char === "{" || char === "[") depth += 1;
+    else if (char === "}" || char === "]") depth -= 1;
+  }
+  return inString || depth > 0;
 }
