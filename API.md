@@ -371,6 +371,7 @@ Every Edunex reply maps to one error kind (`client.ts` for reads, `write` in `ha
 | Other `4xx` on a read | `Failed` | Source shows "changed" with the detail |
 | Other `4xx` on a write | `Rejected` | The click fails; if the Task closed meanwhile, the app says so instead |
 | Not JSON, or a shape the schema rejects | `VendorChanged` | Source shows "Edunex changed something"; never an empty screen |
+| Not JSON, from a network's own sign-in: a page that refreshes off Edunex, or a followed redirect that ended off it, to an address that carries the call asked for back (not Microsoft's) | `Offline` | Source shows offline; no report; Edunex's next answer ends it (#387) |
 | Storage `PUT` not `2xx` | `Failed` | The upload fails |
 
 A source's status is the worst of its feeds' latest outcomes. Back-off is per feed

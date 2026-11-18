@@ -4,6 +4,7 @@
 // the network lets it through.
 import { describe, expect, it } from "vitest";
 import { bodyText } from "../kit/fixtures";
+import { PRETEND_TOKEN } from "../pretend/edunex";
 import { PRETEND_RELAY } from "../pretend/relay";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
 import { until } from "./first-sync";
@@ -100,5 +101,127 @@ describe("the network's own sign-in answering for SIX", () => {
       await until(other, other.engine.refresh("six"));
       expect(other.status("six").state, tag).not.toBe("offline");
     }
+  });
+});
+
+// #387: the same network, answering in the other ways #385 didn't cover: SIX's pages with a redirect to its sign-in, and
+// Edunex's and ITB's with its page (or, where the network stack follows redirects, its sign-in form).
+describe("the network's own sign-in answering for SIX, Edunex and ITB", () => {
+  /** Nothing read since `since` was taken for a site changing, and no problem was kept to report. */
+  async function nothingChanged(h: Harness, since: number) {
+    expect(
+      h.log
+        .entries()
+        .slice(since)
+        .filter((entry) => entry.message.startsWith("VendorChanged")),
+    ).toEqual([]);
+    await until(h, h.engine.reports.idle());
+    expect((await h.engine.report({})).problems).toEqual([]);
+    expect(h.world.relay.reports).toEqual([]);
+  }
+
+  it("SIX's pages redirected to it: no connection, still signed in, and SIX reads again once it's through", async () => {
+    const h = await signedIn();
+    const courses = h.dataset("six.courses");
+    const since = h.log.entries().length;
+    h.world.signInFirst = "redirect";
+
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").state).toBe("offline");
+    expect(h.dataset("six.courses")).toEqual(courses);
+    await nothingChanged(h, since);
+
+    h.world.signInFirst = null;
+    await h.wait(2 * 60_000);
+    expect(h.status("six").state).toBe("live");
+  });
+
+  for (const kind of ["page", "redirect"] as const)
+    it(`Edunex answered with it (${kind === "page" ? "its page" : "a redirect to its sign-in form"}): no connection, not Edunex changing`, async () => {
+      const h = await startEngine({ relay: PRETEND_RELAY });
+      await h.engine.updateSettings({ reportSending: "auto", reportAsked: true });
+      await until(h, h.engine.signIn("edunex", { token: PRETEND_TOKEN }));
+      const courses = h.dataset("edunex.courses");
+      const since = h.log.entries().length;
+      h.world.signInFirst = kind;
+
+      await until(h, h.engine.refresh("edunex"));
+      expect(h.status("edunex").state).toBe("offline");
+      expect(h.dataset("edunex.courses")).toEqual(courses);
+      await nothingChanged(h, since);
+
+      h.world.signInFirst = null;
+      await h.wait(2 * 60_000);
+      expect(h.status("edunex").state).toBe("live");
+    });
+
+  it("ITB's calendar answered with its page: no connection, and the calendar reads once it's through", async () => {
+    const h = await startEngine({ relay: PRETEND_RELAY, start: false });
+    await h.engine.updateSettings({ reportSending: "auto", reportAsked: true });
+    h.world.signInFirst = "page";
+    h.engine.start();
+
+    await h.wait();
+    expect(h.status("itb").state).toBe("offline");
+    expect(h.dataset("itb.calendar")).toBeUndefined();
+    await nothingChanged(h, 0);
+
+    h.world.signInFirst = null;
+    await h.wait(60 * 60_000);
+    expect(h.status("itb").state).toBe("live");
+    expect(h.dataset("itb.calendar")?.events.length).toBeGreaterThan(0);
+  });
+
+  it("ITB's calendar redirected to its sign-in form: no connection, not the calendar changing", async () => {
+    const h = await startEngine({ relay: PRETEND_RELAY, start: false });
+    await h.engine.updateSettings({ reportSending: "auto", reportAsked: true });
+    h.world.signInFirst = "redirect";
+    h.engine.start();
+    await h.wait();
+    expect(h.status("itb").state).toBe("offline");
+    await nothingChanged(h, 0);
+  });
+});
+
+// What #387 must not swallow: the sites' own answers off their site still read as before.
+describe("a site's own answer off its site, which isn't the network's", () => {
+  /** SIX's pages, for a signed-in Student, redirected to `location` instead. */
+  function sixRedirects(h: Harness, location: string) {
+    const real = h.world.six.handle.bind(h.world.six);
+    h.world.six.handle = (request, url) =>
+      request.redirect === "manual" ? { status: 302, headers: { location }, body: "", url: url.toString() } : real(request, url);
+  }
+
+  it("SIX sending an ended session to Microsoft's sign-in, which carries SIX's address back, signs out of SIX", async () => {
+    for (const host of ["login.microsoftonline.com", "login.windows.net"]) {
+      const h = await signedIn();
+      sixRedirects(h, `https://${host}/common/oauth2/authorize?redirect_uri=https%3A%2F%2Fsix.itb.ac.id%2Flogin%2FMS365%2Fcallback`);
+      await until(h, h.engine.refresh("six"));
+      expect(h.status("six").state, host).toBe("expired");
+    }
+  });
+
+  it("SIX sending its pages to another site that doesn't carry them back still signs out of SIX, as before", async () => {
+    const h = await signedIn();
+    sixRedirects(h, "https://akademik.itb.ac.id/kuesioner");
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").state).toBe("expired");
+  });
+
+  it("Edunex's answer, moved to a page elsewhere that isn't data, is still Edunex changing", async () => {
+    const h = await startEngine();
+    await until(h, h.engine.signIn("edunex", { token: PRETEND_TOKEN }));
+    const real = h.world.edunex.handle.bind(h.world.edunex);
+    h.world.edunex.handle = (request, url) =>
+      url.pathname === "/course/presences/list"
+        ? {
+            status: 200,
+            headers: { "content-type": "text/html" },
+            body: '<html><head><meta http-equiv="refresh" content="0; url=https://edunex.itb.ac.id/"></head></html>',
+            url: "https://edunex.itb.ac.id/moved",
+          }
+        : real(request, url);
+    await until(h, h.engine.refresh("edunex"));
+    expect(h.status("edunex").state).toBe("changed");
   });
 });
