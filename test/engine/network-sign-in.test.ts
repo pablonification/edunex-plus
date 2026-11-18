@@ -6,21 +6,8 @@ import { describe, expect, it } from "vitest";
 import { bodyText } from "../kit/fixtures";
 import { PRETEND_RELAY } from "../pretend/relay";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
+import { until } from "./first-sync";
 import { type Harness, startEngine } from "./harness";
-
-/** Lets the fake clock run until `work` is done. */
-async function until<T>(h: Harness, work: Promise<T>): Promise<T> {
-  let outcome: { value: T } | { error: unknown } | null = null;
-  void work.then(
-    (value) => (outcome = { value }),
-    (error: unknown) => (outcome = { error }),
-  );
-  for (let second = 0; second < 600 && !outcome; second++) await h.world.clock.advance(1_000);
-  if (!outcome) throw new Error("still waiting after ten minutes");
-  const done = outcome as { value: T } | { error: unknown };
-  if ("error" in done) throw done.error;
-  return done.value;
-}
 
 /** Signed in to SIX, with every report sent by itself, so one that isn't sent was never made. */
 async function signedIn() {
@@ -65,11 +52,50 @@ describe("the network's own sign-in answering for SIX", () => {
     // Only the records' pages: the status page still answers, so it's their read that meets the sign-in.
     for (const [path, html] of pages) if (/statusmhs$|\/home$|kelas\/jadwal/.test(path)) h.world.six.pages.set(path, html);
 
+    const since = h.log.entries().length;
     await h.wait(24 * 3_600_000);
-    expect(h.log.entries().some((entry) => entry.message.startsWith("VendorChanged"))).toBe(false);
-    expect(h.log.entries().some((entry) => /^six\.(krs|transcript)$/.test(entry.area) && entry.message.startsWith("Offline"))).toBe(true);
+    const read = h.log.entries().slice(since);
+    expect(read.some((entry) => entry.message.startsWith("VendorChanged"))).toBe(false);
+    for (const feed of ["six.krs", "six.transcript"])
+      expect(
+        read.some((entry) => entry.area === feed && entry.message.startsWith("Offline")),
+        feed,
+      ).toBe(true);
     expect(h.status("six").changedPages).toBeUndefined();
     await until(h, h.engine.reports.idle());
     expect(h.world.relay.reports).toEqual([]);
+  });
+
+  it("however the network writes its page: spaces around the attributes, the address quoted, no 'url='", async () => {
+    for (const tag of [
+      `<meta http-equiv = "refresh" content = "0; url=https://gate.example.net/portal">`,
+      `<meta content="0;URL='https://gate.example.net/portal'" http-equiv="Refresh">`,
+      `<meta http-equiv=refresh content="0;https://gate.example.net/portal">`,
+    ]) {
+      const h = await signedIn();
+      for (const path of h.world.six.pages.keys()) h.world.six.pages.set(path, `<html><head>${tag}</head></html>`);
+      await until(h, h.engine.refresh("six"));
+      expect(h.status("six").state, tag).toBe("offline");
+    }
+  });
+
+  it("isn't SIX's own page that refreshes itself, nor one that only looks like a refresh, nor Microsoft's sign-in", async () => {
+    const away = (tag: string) => (html: string) => html.replace(/<head>/i, `<head>${tag}`);
+    // A signed-in SIX page (it links to /logout) that refreshes off SIX is still SIX's page, and reads.
+    const h = await signedIn();
+    h.world.six.editPage(/\/statusmhs$/, away(`<meta http-equiv="refresh" content="600; url=https://gate.example.net/portal">`));
+    await until(h, h.engine.refresh("six"));
+    expect(h.status("six").state).toBe("live");
+
+    for (const tag of [
+      `<meta http-equiv="refresh" content="0; url=/home">`,
+      `<meta data-http-equiv="refresh" content="0; url=https://gate.example.net/portal">`,
+      `<meta http-equiv="refresh" content="0; url=https://login.microsoftonline.com/common/oauth2">`,
+    ]) {
+      const other = await signedIn();
+      other.world.six.pages.set("/app/mahasiswa:18223901/statusmhs", `<html><head>${tag}</head><body></body></html>`);
+      await until(other, other.engine.refresh("six"));
+      expect(other.status("six").state, tag).toBe("changed");
+    }
   });
 });

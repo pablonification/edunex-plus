@@ -28,8 +28,16 @@ const MAX_REDIRECTS = 3;
 export const PRIVATE_PAGES = /controlpanel|datainduk|ktm|pddikti/i;
 const SIGNED_IN = /href=["']\/logout\b/i;
 const SIGN_IN_LINK = /href=["'](?:https:\/\/six\.itb\.ac\.id)?\/login\b/i;
-/** A `<meta http-equiv="refresh" content="0; url=…">` tag, its attributes in any order. */
-const REFRESH = /<meta\b(?=[^>]*\bhttp-equiv=["']?refresh\b)[^>]*\bcontent=["'][^"']*?\burl=([^"'>\s]+)/gi;
+/** A page's `<meta>` tags, and one of a tag's attributes by its whole name ("http-equiv", never "data-http-equiv"). */
+const META = /<meta\b[^>]*>/gi;
+const attribute = (tag: string, name: string): string | null => {
+  const found = new RegExp(`[\\s"'/]${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'>]+))`, "i").exec(tag);
+  return found ? (found[1] ?? found[2] ?? found[3] ?? "") : null;
+};
+/** Where a refresh's `content` ("0; url=https://…", "0;URL='…'") sends the browser. */
+const REFRESH_TO = /^\s*[\d.]*\s*[;,]?\s*(?:url\s*=\s*)?["']?([^"'\s]+)/i;
+/** Microsoft's sign-in, where an ended session goes: never taken for a network's own sign-in. */
+const MICROSOFT_SIGN_IN = /(^|\.)(microsoftonline\.com|live\.com|microsoft\.com)$/i;
 
 /** "/app/mahasiswa:18223901+2026-1/kelas/jadwal/…?bulan=…" → "/kelas/jadwal/…", for status details. */
 const label = (path: string) => path.replace(/^\/app\/mahasiswa:[^/]+/, "").replace(/\?.*$/, "") || "/";
@@ -174,10 +182,13 @@ export class SixClient implements SixPages {
 /** Where a page that only sends the browser off SIX sends it (its host), or null for any page of SIX's own. */
 function networkSignIn(html: string): string | null {
   if (SIGNED_IN.test(html)) return null;
-  for (const [, target] of html.matchAll(REFRESH)) {
+  for (const [tag] of html.matchAll(META)) {
+    if (attribute(tag, "http-equiv")?.trim().toLowerCase() !== "refresh") continue;
+    const target = REFRESH_TO.exec(attribute(tag, "content") ?? "")?.[1];
+    if (!target) continue;
     try {
-      const url = new URL(target!.replace(/&amp;/g, "&"), SIX_ORIGIN);
-      if (url.origin !== SIX_ORIGIN) return url.host;
+      const url = new URL(target.replace(/&amp;/g, "&"), SIX_ORIGIN);
+      if (url.origin !== SIX_ORIGIN && !MICROSOFT_SIGN_IN.test(url.hostname)) return url.host;
     } catch {
       // Not an address: not a page that sends the browser anywhere.
     }
