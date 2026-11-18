@@ -39,7 +39,7 @@ const androidTransport: Transport = {
       }
       const body = await response.text();
       // Android's text() resolves with what had arrived when the time limit cancels the request, rather than failing
-      // (#384): a body cut short is no answer in time, never a page to read.
+      // (#384): an answer past the limit may be cut short, so it's no answer in time, never a page to read.
       if (timedOut) throw new NetworkError("timeout", `No answer within ${limit / 1000} s`);
       return { status: response.status, headers, body, url: response.url || request.url };
     } catch (error) {

@@ -137,13 +137,26 @@ describe("Edunex sign-in → your courses", () => {
     expect(h.status("edunex").state).toBe("live");
   });
 
-  it("an address that keeps answering with nothing stays in sight as no connection, while Edunex's other answers come", async () => {
+  it("an answer that stops partway is a dropped connection too, not a change", async () => {
     const h = await signedIn();
+    h.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "cut-short" }, 1);
+    await h.engine.refresh("edunex");
+    expect(h.status("edunex")).toMatchObject({ state: "offline", detail: "Edunex's answer for /course/presences/list came cut short" });
+    await h.wait(60_000);
+    expect(h.status("edunex").state).toBe("live");
+  });
+
+  it("an address that answers with nothing three times in a row is Edunex's doing: a change, reported", async () => {
+    const h = await startEngine({ relay: PRETEND_RELAY });
+    await h.engine.updateSettings({ reportSending: "auto", reportAsked: true });
+    await h.engine.signIn("edunex", { token: PRETEND_TOKEN });
     h.world.edunex.mangle(/^\/course\/presences\/list$/, { kind: "empty-body" });
     await h.engine.refresh("edunex");
-    await h.wait(10 * 60_000);
     expect(h.status("edunex").state).toBe("offline");
-    expect(h.dataset("edunex.courses")).toHaveLength(5);
+    await h.wait(60 * 60_000);
+    expect(h.status("edunex")).toMatchObject({ state: "changed", detail: "Edunex's answer for /course/presences/list came empty, every time it was asked" });
+    await h.engine.reports.idle();
+    expect(h.world.relay.reports).toHaveLength(1);
   });
 
   it.each([403, 404])("Edunex refusing the course list (%i) says it changed something, without signing out", async (status) => {

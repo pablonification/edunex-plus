@@ -10,6 +10,19 @@ import type { SourceContext } from "../source";
 
 export const EDUNEX_API = "https://api-edunex.cognisia.id";
 export const TIMEOUT_MS = 15_000;
+/**
+ * An address whose answer came empty or cut short this many times in a row is no longer a dropped connection but
+ * Edunex answering it that way: a change, reported. Counted per Edunex line, so across a session's reads.
+ */
+const CUT_SHORT_TO_CHANGE = 3;
+const cutShortRuns = new WeakMap<Pace, Map<string, number>>();
+
+/** An answer that came empty, or stopped partway (#384): a connection that dropped, not Edunex changing its data. */
+class CutShort extends EngineError {
+  constructor(path: string, empty: boolean) {
+    super("Offline", `Edunex's answer for ${path} came ${empty ? "empty" : "cut short"}`);
+  }
+}
 
 /** Edunex's line: every request to its API, the feeds' and the Student's, two at a time (../../http/pace.ts). */
 export const edunexLine = (context: Pick<SourceContext, "pace">) => context.pace(new URL(EDUNEX_API).host);
@@ -54,11 +67,22 @@ export class EdunexClient {
       }
       throw error;
     }
+    const runs = this.pace && (cutShortRuns.get(this.pace) ?? cutShortRuns.set(this.pace, new Map()).get(this.pace)!);
+    const address = url.toString();
     try {
-      return check({ path, status: response.status, body: response.body });
+      const data = check({ path, status: response.status, body: response.body });
+      runs?.delete(address);
+      return data;
     } catch (error) {
+      if (!isEngineError(error)) throw error;
+      let failure: EngineError = error;
+      if (error instanceof CutShort && runs) {
+        const times = (runs.get(address) ?? 0) + 1;
+        runs.set(address, times);
+        if (times >= CUT_SHORT_TO_CHANGE) failure = new EngineError("VendorChanged", `${error.message}, every time it was asked`);
+      }
       // The answer goes with its error: the message names the path, not which course's list it was.
-      throw isEngineError(error) ? new AnswerError(error, { url: url.toString(), status: response.status, body: response.body, check }) : error;
+      throw new AnswerError(failure, { url: address, status: response.status, body: response.body, check });
     }
   }
 }
@@ -68,13 +92,14 @@ export function read<S extends z.ZodType>({ path, status, body }: Answer, schema
   if (status === 401) throw new EngineError("Unauthorized", `Edunex refused ${path}`);
   if (status === 429 || status >= 500) throw new EngineError("Offline", `Edunex answered ${status}`);
   if (status >= 400) throw new EngineError("Failed", `Edunex answered ${status} for ${path}`);
-  // Nothing at all: a connection that dropped cut the answer short (#384), not Edunex changing its data. No connection
-  // until this call is answered whole again, so an address that keeps answering with nothing stays in sight.
-  if (!body.trim()) throw new EngineError("Offline", `Edunex's answer for ${path} came empty`);
+  // Nothing at all, or data that stops partway: a connection that dropped cut the answer short (#384), not Edunex
+  // changing its data. No connection until this call is answered whole again (EdunexClient.get counts repeats).
+  if (!body.trim()) throw new CutShort(path, true);
   let data: unknown;
   try {
     data = JSON.parse(body);
   } catch {
+    if (stopsPartway(body)) throw new CutShort(path, false);
     throw new EngineError("VendorChanged", `Edunex sent something other than data for ${path}`);
   }
   const parsed = schema.safeParse(data);
@@ -83,4 +108,23 @@ export function read<S extends z.ZodType>({ path, status, body }: Answer, schema
     throw new EngineError("VendorChanged", `${path}: ${issue?.path.join(".") || "(root)"} ${issue?.message ?? "unexpected"}`);
   }
   return parsed.data;
+}
+
+/** JSON that opens an object or a list and stops before closing it (or inside a string): the rest never came. */
+function stopsPartway(body: string): boolean {
+  const text = body.trim();
+  if (text[0] !== "{" && text[0] !== "[") return false;
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (const char of text) {
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (char === "\\") escaped = true;
+      else if (char === '"') inString = false;
+    } else if (char === '"') inString = true;
+    else if (char === "{" || char === "[") depth += 1;
+    else if (char === "}" || char === "]") depth -= 1;
+  }
+  return inString || depth > 0;
 }
