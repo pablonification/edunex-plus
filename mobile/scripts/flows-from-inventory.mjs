@@ -99,7 +99,10 @@ export function pattern(token) {
   return phone ? `.*(?:${one(token)}|${one(phone)}).*` : `.*${one(token)}.*`;
 }
 
-/** Fills {{name}} in every string of `value`; a string that is exactly "{{name}}" takes the value as it is (an object). */
+/**
+ * Fills {{name}} in every string of `value`; a string that is exactly "{{name}}" takes the value as it is (an object).
+ * A "$comment" is a note for whoever reads screens.json, left out: Maestro stops the whole run at a command it doesn't know.
+ */
 function fill(value, vars) {
   if (typeof value === "string") {
     const whole = /^\{\{(\w+)\}\}$/.exec(value);
@@ -107,7 +110,12 @@ function fill(value, vars) {
     return value.replace(/\{\{(\w+)\}\}/g, (all, name) => (name in vars ? String(vars[name]) : all));
   }
   if (Array.isArray(value)) return value.map((v) => fill(v, vars));
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, fill(v, vars)]));
+  if (value && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([k]) => k !== "$comment")
+        .map(([k, v]) => [k, fill(v, vars)]),
+    );
   return value;
 }
 
@@ -215,6 +223,28 @@ function flow(inventory, screen, states, config, appId) {
   return `${out.join("\n")}\n`;
 }
 
+/** One scenario's flows, as each screen's YAML, for the screens it has entries on. */
+export function flowsFor(inventory, config) {
+  // States in the order the desktop walk read them, each with its entries.
+  const screens = new Map();
+  for (const { screen, state, ...about } of inventory.states) {
+    if (!screens.has(screen)) screens.set(screen, new Map());
+    const key = state ?? "";
+    if (!screens.get(screen).has(key)) screens.get(screen).set(key, { state, about, entries: [] });
+  }
+  for (const entry of inventory.entries)
+    screens
+      .get(entry.screen)
+      ?.get(entry.state ?? "")
+      ?.entries.push(entry);
+  const flows = new Map();
+  for (const [screen, states] of screens) {
+    const withEntries = [...states.values()].filter((s) => s.entries.length);
+    if (withEntries.length) flows.set(screen, flow(inventory, screen, withEntries, config, config.appId));
+  }
+  return flows;
+}
+
 function main() {
   const names = process.argv.slice(2);
   const config = JSON.parse(fs.readFileSync(SCREENS, "utf8"));
@@ -225,29 +255,12 @@ function main() {
   if (names.length && files.length !== names.length) throw new Error(`No inventory for some of ${names.join(", ")} (run mobile/scripts/inventory.mjs)`);
   for (const file of files) {
     const inventory = JSON.parse(fs.readFileSync(path.join(EXPECTED, file), "utf8"));
-    // States in the order the desktop walk read them, each with its entries.
-    const screens = new Map();
-    for (const { screen, state, ...about } of inventory.states) {
-      if (!screens.has(screen)) screens.set(screen, new Map());
-      const key = state ?? "";
-      if (!screens.get(screen).has(key)) screens.get(screen).set(key, { state, about, entries: [] });
-    }
-    for (const entry of inventory.entries)
-      screens
-        .get(entry.screen)
-        ?.get(entry.state ?? "")
-        ?.entries.push(entry);
     const dir = path.join(DATA, inventory.scenario);
     fs.rmSync(dir, { recursive: true, force: true });
     fs.mkdirSync(dir, { recursive: true });
-    let written = 0;
-    for (const [screen, states] of screens) {
-      const withEntries = [...states.values()].filter((s) => s.entries.length);
-      if (!withEntries.length) continue;
-      fs.writeFileSync(path.join(dir, `${screen}.yaml`), flow(inventory, screen, withEntries, config, config.appId));
-      written++;
-    }
-    console.log(`${inventory.scenario}: ${written} flows, ${inventory.entries.length} entries`);
+    const flows = flowsFor(inventory, config);
+    for (const [screen, yaml] of flows) fs.writeFileSync(path.join(dir, `${screen}.yaml`), yaml);
+    console.log(`${inventory.scenario}: ${flows.size} flows, ${inventory.entries.length} entries`);
   }
 }
 
