@@ -259,7 +259,8 @@ function main() {
     fs.rmSync(dir, { recursive: true, force: true });
     fs.mkdirSync(dir, { recursive: true });
     const flows = flowsFor(inventory, config);
-    for (const [screen, yaml] of flows) fs.writeFileSync(path.join(dir, `${screen}.yaml`), yaml);
+    // A screen's name is a file name in the scenario's folder, never a path out of it.
+    for (const [screen, yaml] of flows) fs.writeFileSync(path.join(dir, `${path.basename(screen)}.yaml`), yaml);
     console.log(`${inventory.scenario}: ${flows.size} flows, ${inventory.entries.length} entries`);
   }
 }
