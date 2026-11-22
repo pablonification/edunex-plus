@@ -36,8 +36,9 @@ one Student at a time and with their say-so. They don't answer "how many".
 - **Sent once the day is over**, one post a day, to the relay we already run (`POST /v1/usage`), in
   a Durable Object of its own (`relay/src/usage.ts`) so it never waits on the reports. A day waits
   on the device while it's offline, a week at most. The relay keeps days for 400 days and answers
-  only the maintainer's token, and only with totals per day (`GET /v1/usage`): apps active, new,
-  how many came back the next day and a week on, platforms, versions, and each count.
+  only the maintainer's token, and only with totals per day (`GET /v1/usage`): apps opened, apps
+  running (a sync in the background counts here only), new, how many were opened again the next day
+  and a week on, platforms, versions, and each count.
 - **On by default, off in Settings.** The switch is "Kirim data pemakaian" at the end of Tentang,
   on the desktop and the phone. Turning it off forgets what was counted and not sent, and nothing is
   counted after. The README and privacy.md say what's sent and where to turn it off.
@@ -63,8 +64,9 @@ one Student at a time and with their say-so. They don't answer "how many".
   for many Students at once, by version and platform.
 - The promise changes. "No analytics, no tracking" is gone from the README, and privacy.md lists
   usage data among the requests the app makes. A Student who wants none of it turns it off.
-- One post a day per app. With 2,000 apps that's 2,000 writes and a few thousand reads a day, well
-  inside the free plan's 100,000 writes and 5 million reads. A summary of a month reads every app's
+- One post a day per app, about four writes each. With 2,000 apps that's 8,000 writes and a few
+  thousand reads a day, inside the free plan's 100,000 writes and 5 million reads, which the reports
+  share: the relay takes 15,000 days a day at most (60,000 writes), and 500 from one address. A summary of a month reads every app's
   every day in it: fine at this size, and the reason a summary covers 62 days at most.
 - Apps on versions before this one send nothing. The daily stats snapshot (`.github/workflows/stats.yml`)
   keeps the download counts and GitHub's traffic for the time before, and alongside.

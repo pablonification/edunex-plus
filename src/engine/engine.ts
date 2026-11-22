@@ -153,6 +153,8 @@ export interface Engine {
   markAlertsRead(): Promise<void>;
   /** One more of `name` today in usage data (a screen, an action): nothing when it's off or this build doesn't count. */
   countUsage(kind: UsageKind, name: string): void;
+  /** Saves usage data's counts now: the phone app, as it leaves the front (the system may close it before they're saved). */
+  saveUsage(): Promise<void>;
   /** Works the timed alerts out again now, not at the next 5-minute check: the phone app, once an alert setting changed. */
   planAlerts(): void;
   /** Asks GitHub for a newer release now ("Periksa pembaruan"); "off" where the app never asks (development, the demo). */
@@ -916,6 +918,9 @@ export function createEngine(deps: EngineDeps): Engine {
     updateSettings,
     countUsage(kind, name) {
       usage?.count(kind, name);
+    },
+    async saveUsage() {
+      await usage?.save();
     },
 
     markAlertsRead() {

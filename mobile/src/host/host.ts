@@ -292,6 +292,8 @@ async function makeHost(): Promise<Host> {
   resign.wake();
   AppState.addEventListener("change", (state) => {
     if (state === "active") resign.wake();
+    // Usage data's counts to disk as the app leaves the front: the system may close it before the timer saves them.
+    else void engine.saveUsage().catch(() => undefined);
   });
 
   let started = false;

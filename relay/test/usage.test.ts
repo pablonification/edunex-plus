@@ -51,10 +51,11 @@ describe("a day the app sends", () => {
   it("is refused when it isn't one: a name that isn't the app's, a value, a day not over or too old", async () => {
     const { send } = start();
     expect((await send(day(A, "2026-11-19", { screens: { "Tugas Besar IF2211": 1 } }))).status).toBe(400);
-    expect((await send({ ...day(A, "2026-11-19"), nim: "13522001" })).status).toBe(202); // unknown fields are dropped, not kept
+    expect((await send({ ...day(A, "2026-11-19"), nim: "18223901" })).status).toBe(202); // unknown fields are dropped, not kept
     expect((await send(day(A, "2026-11-21"))).status).toBe(400);
     expect((await send(day(A, "2026-11-01"))).status).toBe(400);
     expect((await send(day("not-a-uuid", "2026-11-19"))).status).toBe(400);
+    expect((await send({ ...day(A, "2026-11-19"), pad: "x".repeat(70_000) })).status).toBe(413);
   });
 
   it("is capped per address each day, so one sender can't fill the storage", async () => {
@@ -70,21 +71,26 @@ describe("a day the app sends", () => {
 describe("the maintainer's totals", () => {
   it("add up each day: apps, new ones, who came back, platforms, screens and how many apps used each", async () => {
     const { send, summary } = start();
+    const C = "3c9d2e1f-4a5b-4c6d-8e7f-a0b1c2d3e4f5";
     await send(day(A, "2026-11-12"), "1");
+    await send(day(C, "2026-11-12"), "5");
     await send(day(A, "2026-11-13"), "2");
+    // A phone's sync in the background, nobody opening it: running, not active, and not back.
+    await send(day(C, "2026-11-13", { screens: {}, actions: {} }), "6");
     await send(day(B, "2026-11-13", { platform: "windows", os: "Windows 11 (x64)", signedIn: { edunex: true, six: true }, screens: { home: 1 } }), "3");
     await send(day(A, "2026-11-19"), "4");
 
     const { status, body } = await summary("from=2026-11-12&to=2026-11-13");
     expect(status).toBe(200);
-    expect(body.days[0]).toMatchObject({ day: "2026-11-12", active: 1, new: 1, returned: { nextDay: 1, week: 1 } });
+    expect(body.days[0]).toMatchObject({ day: "2026-11-12", active: 2, running: 2, new: 2, returned: { nextDay: 1, week: 1 } });
     expect(body.days[1]).toMatchObject({
       day: "2026-11-13",
       active: 2,
+      running: 3,
       new: 1,
-      platforms: { android: 1, windows: 1 },
-      os: { "Android 15": 1, "Windows 11": 1 },
-      signedIn: { edunex: 2, six: 1, both: 1, neither: 0 },
+      platforms: { android: 2, windows: 1 },
+      os: { "Android 15": 2, "Windows 11": 1 },
+      signedIn: { edunex: 3, six: 1, both: 1, neither: 0 },
       screens: { home: 5, tasks: 1 },
       reach: { screens: { home: 2, tasks: 1 }, actions: { "tasks.submit": 2 } },
       // Seven days on is today, not over yet.
@@ -100,11 +106,12 @@ describe("the maintainer's totals", () => {
   });
 });
 
-it("forgets days past the ones it keeps, and yesterday's caps", async () => {
+it("forgets days past the ones it keeps, and the caps of days before today", async () => {
   const { store, relay } = start();
   await store.put(`usage:day:2025-01-01:${A}`, {});
   await store.put(`usage:day:2026-11-19:${A}`, {});
   await store.put("usage:count:2026-11-18:all", 5);
+  await store.put("usage:count:2026-11-19:all", 5);
   await store.put("usage:count:2026-11-20:all", 5);
   await relay.cron();
   expect([...store.data.keys()].sort()).toEqual(["usage:count:2026-11-20:all", `usage:day:2026-11-19:${A}`]);

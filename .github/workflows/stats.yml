@@ -6,7 +6,7 @@ name: Stats
 
 on:
   schedule:
-    - cron: "40 23 * * *" # 06:40 WIB, after GitHub has counted the day before
+    - cron: "17 18 * * *" # 01:17 WIB, far from midnight UTC, so a late start doesn't take tomorrow's file name
   workflow_dispatch:
 
 permissions: {}

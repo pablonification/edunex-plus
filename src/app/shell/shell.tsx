@@ -128,6 +128,14 @@ function Layout({ arriving }: { arriving: boolean }) {
   useEffect(() => {
     if (!arriving) void bridge.invoke("usage.screen", { screen: route.screen }).catch(() => undefined);
   }, [place, route.screen, arriving, bridge]);
+  // The window back from the tray, on the page it was left on: shown again, so it counts again.
+  useEffect(() => {
+    const shown = () => {
+      if (document.visibilityState === "visible" && !arriving) void bridge.invoke("usage.screen", { screen: route.screen }).catch(() => undefined);
+    };
+    document.addEventListener("visibilitychange", shown);
+    return () => document.removeEventListener("visibilitychange", shown);
+  }, [route.screen, arriving, bridge]);
   useEffect(() => {
     if (settingsOpen) void bridge.invoke("usage.screen", { screen: "settings" }).catch(() => undefined);
   }, [settingsOpen, bridge]);

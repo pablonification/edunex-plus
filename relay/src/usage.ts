@@ -7,13 +7,17 @@
 // The app's id is random, made on the Student's computer; the address a day came from is never
 // kept, only counted (hashed with the day and a secret) for the cap, and forgotten the next day.
 import { USAGE_LIMITS, UsageDay } from "../../src/core/usage";
+import { readLimited } from "./relay";
 import type { Store } from "./store";
 import { sha256 } from "./tokens";
 
 export interface UsageLimits {
   /** Bytes one day can be. */
   maxBody: number;
-  /** Days a day from one address, and from everyone. A campus network puts many Students behind one address. */
+  /**
+   * Days a day from one address, and from everyone. A campus network puts many Students behind one address. Each day
+   * is about four writes, and the free plan's 100,000 writes a day are shared with the reports: 15,000 leaves them room.
+   */
   perAddress: number;
   perDay: number;
   /** Days of usage kept, and the most a summary covers. */
@@ -23,8 +27,8 @@ export interface UsageLimits {
 
 export const USAGE_LIMITS_RELAY: UsageLimits = {
   maxBody: 64 * 1024,
-  perAddress: 3_000,
-  perDay: 200_000,
+  perAddress: 500,
+  perDay: 15_000,
   keepDays: 400,
   maxRange: 62,
 };
@@ -49,8 +53,12 @@ interface Install {
 /** One day's totals, over every app that sent it. */
 export interface DayTotals {
   day: string;
-  /** Apps that sent this day, and of them, the ones whose first day it was. */
+  /**
+   * Apps the Student opened this day (a screen counted), apps that sent it at all (a phone's sync in the background, a
+   * desktop in the tray, with no screen opened), and the ones whose first day it was.
+   */
   active: number;
+  running: number;
   new: number;
   /** Apps by platform, version, system, language, and what they were signed in to. */
   platforms: Counts;
@@ -64,7 +72,7 @@ export interface DayTotals {
   reads: Counts;
   errors: Counts;
   reach: { screens: Counts; actions: Counts };
-  /** Of this day's new apps, how many sent again the next day and seven days on (null: that day isn't over). */
+  /** Of this day's new apps, how many were opened again the next day and seven days on (null: that day isn't over). */
   returned: { nextDay: number | null; week: number | null };
 }
 
@@ -74,6 +82,9 @@ function json(status: number, body: unknown, headers: Record<string, string> = {
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...headers },
   });
 }
+
+/** A day the Student opened the app: at least one screen showed. */
+const opened = (kept: Kept | undefined) => kept !== undefined && Object.keys(kept.screens).length > 0;
 
 const bump = (counts: Counts, name: string, by = 1) => {
   counts[name] = (counts[name] ?? 0) + by;
@@ -116,16 +127,16 @@ export class UsageRelay {
       if (key.slice("usage:day:".length, "usage:day:".length + 10) >= cutoff) break;
       await this.options.store.delete(key);
     }
-    const yesterday = dayOf(this.options.now() - DAY);
+    const today = dayOf(this.options.now());
     for (const key of (await this.options.store.list({ prefix: "usage:count:", limit: 500 })).keys()) {
-      if (key.slice("usage:count:".length, "usage:count:".length + 10) >= yesterday) break;
+      if (key.slice("usage:count:".length, "usage:count:".length + 10) >= today) break;
       await this.options.store.delete(key);
     }
   }
 
   private async receive(request: Request, address: string): Promise<Response> {
-    const text = await request.text();
-    if (text.length > this.limits.maxBody) return json(413, { error: "too-big" });
+    const text = await readLimited(request, this.limits.maxBody);
+    if (text === null) return json(413, { error: "too-big" });
     let body: unknown;
     try {
       body = JSON.parse(text);
@@ -178,6 +189,7 @@ export class UsageRelay {
     const out: DayTotals = {
       day,
       active: 0,
+      running: 0,
       new: 0,
       platforms: {},
       versions: {},
@@ -194,7 +206,8 @@ export class UsageRelay {
     const fresh: string[] = [];
     for (const [key, kept] of sent) {
       const install = key.slice(key.lastIndexOf(":") + 1);
-      out.active++;
+      out.running++;
+      if (opened(kept)) out.active++;
       const first = await this.options.store.get<Install>(KEY.install(install));
       if (first?.first === day) {
         out.new++;
@@ -216,8 +229,8 @@ export class UsageRelay {
       for (const name of Object.keys(kept.actions)) bump(out.reach.actions, name);
     }
     for (const install of fresh) {
-      if (out.returned.nextDay !== null && (await this.options.store.get(KEY.day(addDays(day, 1), install))) !== undefined) out.returned.nextDay++;
-      if (out.returned.week !== null && (await this.options.store.get(KEY.day(addDays(day, 7), install))) !== undefined) out.returned.week++;
+      if (out.returned.nextDay !== null && opened(await this.options.store.get<Kept>(KEY.day(addDays(day, 1), install)))) out.returned.nextDay++;
+      if (out.returned.week !== null && opened(await this.options.store.get<Kept>(KEY.day(addDays(day, 7), install)))) out.returned.week++;
     }
     return out;
   }

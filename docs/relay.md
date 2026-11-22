@@ -112,12 +112,16 @@ curl -sH "Authorization: Bearer $MAINTAINER_TOKEN" \
   "https://edunex-plus-relay.<your-subdomain>.workers.dev/v1/usage?from=2026-11-17&to=2026-11-23" | jq '.days[] | {day, active, new, returned, platforms}'
 ```
 
-Each day says how many apps sent it (`active`), how many sent for the first time (`new`), how many of
-those came back the next day and a week on (`returned`, null until that day is over), the apps by
+Each day says how many apps were opened (`active`: a screen showed), how many sent it at all (`running`:
+a phone's sync in the background or a desktop in the tray counts here too), how many sent for the first
+time (`new`), how many of those were opened again the next day and a week on (`returned`, null until
+that day is over), the apps by
 platform, version, system and language, what they were signed in to, every count added up
 (`screens`, `actions`, `reads`, `errors`), and how many apps used each screen and action at least once
 (`reach`). `from` and `to` default to the last seven days that are over; a range is 62 days at most.
-A day from one address is capped at 3,000 a day (a campus network), and from everyone at 200,000.
+A day from one address is capped at 500 a day (a campus network), and from everyone at 15,000: each day
+is about four writes, and the free plan's 100,000 writes a day are shared with the reports
+(`USAGE_LIMITS_RELAY` in `relay/src/usage.ts`).
 
 ## Limits
 

@@ -36,7 +36,7 @@ describe("usage data", () => {
     h.engine.countUsage("actions", "schedule.export");
     // Not one of the app's names (a course's name, say): counted as "other", never sent as it is.
     h.engine.countUsage("screens", "Tugas Besar IF2211");
-    h.log.add("error", "window", "TypeError: something about 13522001");
+    h.log.add("error", "window", "TypeError: something about 18223901");
     expect(h.world.relay.usage).toEqual([]);
 
     await nextDay(h);
@@ -57,7 +57,7 @@ describe("usage data", () => {
     expect(Object.keys(day!.reads).some((name) => /^six\.[a-z.]+\.ok$/i.test(name))).toBe(true);
     // Nothing in it is the Student's: no NIM, no name, not the error's message.
     expect(personalHits(JSON.stringify(day))).toEqual([]);
-    expect(JSON.stringify(day)).not.toContain("13522001");
+    expect(JSON.stringify(day)).not.toContain("18223901");
 
     // The next day goes the day after, under the same id; the one sent isn't sent again.
     h.engine.countUsage("screens", "tasks");
@@ -75,6 +75,13 @@ describe("usage data", () => {
     h.world.relay.answer = "ok";
     await h.world.clock.advance(4 * HOUR);
     expect(h.world.relay.usage.map((one) => one.day)).toEqual(["2026-10-08"]);
+  });
+
+  it("saves what's counted at once when asked (the phone leaving the front), not only after the timer", async () => {
+    const h = await signedIn();
+    h.engine.countUsage("screens", "home");
+    await h.engine.saveUsage();
+    expect(JSON.parse((await h.storage.read("usage.json"))!).days).toMatchObject({ "2026-10-08": { screens: { home: 1 } } });
   });
 
   it("counts nothing and sends nothing once the Student turns it off, and forgets what it kept", async () => {

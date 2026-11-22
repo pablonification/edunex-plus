@@ -3,6 +3,7 @@
 // Student leaves usage data on (src/engine/usage.ts).
 import { useNavigationContainerRef } from "expo-router";
 import { useEffect } from "react";
+import { AppState } from "react-native";
 import { useBridge } from "../../../src/app/store";
 
 /** A route's name as usage data counts it: no groups, no parameters, no index ("(tabs)/index" is "home"). */
@@ -19,14 +20,22 @@ export function useUsageScreens(): void {
   };
   useEffect(() => {
     let last: string | null = null;
-    return navigation.addListener("state", () => {
+    const count = (again: boolean) => {
       const name = navigation.getCurrentRoute()?.name;
       if (!name) return;
       const screen = usageScreenOf(name);
-      // A screen that only changed what it shows (its tab, a filter) isn't opened again.
-      if (screen === last) return;
+      // A screen that only changed what it shows (its tab, a filter) isn't opened again; the app back in front shows it again.
+      if (screen === last && !again) return;
       last = screen;
       void bridge.invoke("usage.screen", { screen }).catch(() => undefined);
+    };
+    const moved = navigation.addListener("state", () => count(false));
+    const back = AppState.addEventListener("change", (state) => {
+      if (state === "active") count(true);
     });
+    return () => {
+      moved();
+      back.remove();
+    };
   }, [navigation, bridge]);
 }

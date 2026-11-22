@@ -71,6 +71,7 @@ export class Usage {
   private saveTimer: TimerHandle | null = null;
   private sendTimer: TimerHandle | null = null;
   private sending: Promise<void> | null = null;
+  private running = false;
 
   constructor(private readonly options: UsageOptions) {}
 
@@ -89,9 +90,14 @@ export class Usage {
   /** Sends the days that are over, soon after a start and then every few hours. */
   start(): void {
     this.stopTimers();
+    this.running = true;
     const loop = (after: number) => {
       this.sendTimer = this.options.clock.setTimeout(() => {
-        void this.send().finally(() => loop(SEND_EVERY_MS));
+        void this.send()
+          .catch(() => undefined)
+          .finally(() => {
+            if (this.running) loop(SEND_EVERY_MS);
+          });
       }, after);
     };
     loop(FIRST_SEND_MS);
@@ -99,6 +105,7 @@ export class Usage {
 
   /** Stops sending, and saves what's counted. */
   async stop(): Promise<void> {
+    this.running = false;
     this.stopTimers();
     await this.save();
   }
@@ -199,7 +206,8 @@ export class Usage {
     }, SAVE_AFTER_MS);
   }
 
-  private async save(): Promise<void> {
+  /** What's counted, to disk now: the phone calls it as the app leaves the front, where it may be closed before the timer. */
+  async save(): Promise<void> {
     if (this.saveTimer) this.options.clock.clearTimeout(this.saveTimer);
     this.saveTimer = null;
     if (!this.kept || !this.options.enabled()) return;

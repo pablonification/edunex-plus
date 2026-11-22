@@ -95,8 +95,9 @@ Nothing leaves your computer except the app's own requests to:
   unless you turn it off, in Settings → Tentang): the day before's counts described above, and
   nothing else. Never anything the app read from Edunex or SIX, your NIM, your name, a course, a
   grade, what you typed, a file's name or a message from an error. A name that isn't the app's own
-  is sent as "other". The relay doesn't keep the address it came from, keeps each day for 400 days,
-  and only the maintainer can read it, as totals over every app. Turning it off forgets what wasn't
+  is sent as "other". The relay doesn't keep the address it came from, keeps each day for 400 days
+  (and, for the random id, the first and last day it sent), and only the maintainer can read it, as
+  totals over every app. Turning it off forgets what wasn't
   sent and counts nothing more. Signing out of everything, or turning it off and on, makes a new id,
   so your days before and after can't be joined. Why and how: [ADR 0016](adr/0016-usage-data.md);
 - **ntfy** (`ntfy.sh`), only if you turn on phone notifications: the alert's text (for example
