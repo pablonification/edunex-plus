@@ -20,7 +20,10 @@ export function useUsageScreens(): void {
   };
   useEffect(() => {
     let last: string | null = null;
+    // An iPhone woken for a sync in the background draws its screens too, with nobody looking: only the app in front counts.
+    let away = AppState.currentState !== "active";
     const count = (again: boolean) => {
+      if (AppState.currentState !== "active") return;
       const name = navigation.getCurrentRoute()?.name;
       if (!name) return;
       const screen = usageScreenOf(name);
@@ -30,8 +33,13 @@ export function useUsageScreens(): void {
       void bridge.invoke("usage.screen", { screen }).catch(() => undefined);
     };
     const moved = navigation.addListener("state", () => count(false));
+    // Back from the background (not a blip of Control Center or a picker): the screen shows again, so it counts again.
     const back = AppState.addEventListener("change", (state) => {
-      if (state === "active") count(true);
+      if (state === "background") away = true;
+      else if (state === "active" && away) {
+        away = false;
+        count(true);
+      }
     });
     return () => {
       moved();

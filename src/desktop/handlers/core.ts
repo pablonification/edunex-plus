@@ -65,7 +65,8 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
     return { path: file, existing: false };
   },
   "usage.screen": async ({ screen }) => {
-    context.engine.countUsage("screens", screen);
+    // A window in the tray (started there after an update) draws its page with nobody looking: only one on screen counts.
+    if (context.window()?.isVisible()) context.engine.countUsage("screens", screen);
     return {};
   },
   "local.set": async ({ name, value }) => {
