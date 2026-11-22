@@ -9,14 +9,14 @@ import { useState } from "react";
 import { Image, View } from "react-native";
 import { useFormat, useLang, useT } from "../../../../src/app/i18n";
 import { useBridge, useDataset, useUpdateInstall } from "../../../../src/app/store";
-import { reportSendingOf, type Settings, type UpdateCheckResult } from "../../../../src/core/models";
+import { reportSendingOf, type Settings, type UpdateCheckResult, usageDataOf } from "../../../../src/core/models";
 import { pageName } from "../../../../src/core/report";
 import { openReport } from "../../parts/report";
 import { startGuide } from "../../shell/guide/state";
 import { Button } from "../../ui/controls";
 import { Pill } from "../../ui/group";
 import { factsLabel } from "../../ui/layout";
-import { Chevron, ChoiceRow, haptic, SettingRow, SettingsGroup, SheetTitle } from "../../ui/settings-list";
+import { Chevron, ChoiceRow, haptic, SettingRow, SettingsGroup, SheetTitle, SwitchRow } from "../../ui/settings-list";
 import { Sheet } from "../../ui/sheet";
 import { Text } from "../../ui/text";
 import { space, useTheme } from "../../ui/theme";
@@ -71,8 +71,8 @@ export function ReportSettings({ settings, update, report }: { settings: Setting
   );
 }
 
-/** Tentang: the app, its version, Laporkan masalah, the licences; under the card, that it isn't ITB's. */
-export function AboutSettings({ version, relay }: { version: string; relay: boolean }) {
+/** Tentang: the app, its version, Laporkan masalah, the licences, usage data (ADR 0016); under the card, that it isn't ITB's. */
+export function AboutSettings({ version, relay, settings, update }: { version: string; relay: boolean; settings: Settings; update: Update }) {
   const t = useT();
   return (
     <SettingsGroup title={t("settings.about")} note={t("settings.unofficial")}>
@@ -109,6 +109,15 @@ export function AboutSettings({ version, relay }: { version: string; relay: bool
         trailing={<Chevron />}
         testID="action.licences"
       />
+      {relay && (
+        <SwitchRow
+          title={t("usage.settings.send")}
+          hint={t("usage.settings.hint")}
+          value={usageDataOf(settings)}
+          onChange={(usageData) => update({ usageData })}
+          testID="switch.usageData"
+        />
+      )}
     </SettingsGroup>
   );
 }

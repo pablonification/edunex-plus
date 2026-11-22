@@ -7,6 +7,7 @@ import type { z } from "zod";
 import { type ActionName, type ActionOutput, type ActionResult, Actions, type ErrorKind } from "../../../src/core/contract";
 import { isOfficialUrl, isWebLink } from "../../../src/core/links";
 import { UpdateNotice } from "../../../src/core/models";
+import { UNCOUNTED_ACTIONS } from "../../../src/core/usage";
 import type { AppLog } from "../../../src/engine/app-log";
 import { errorLine } from "../../../src/engine/app-log";
 import type { Engine } from "../../../src/engine/engine";
@@ -75,6 +76,10 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
       return {};
     },
     "settings.update": (patch) => engine.updateSettings(patch),
+    "usage.screen": async ({ screen }) => {
+      engine.countUsage("screens", screen);
+      return {};
+    },
     "shell.openExternal": async ({ url }) => {
       if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
       await openPage(context, url);
@@ -133,13 +138,21 @@ export function phoneHandlers(context: HandlerContext): Partial<Handlers> {
 const failure = (kind: ErrorKind, message: string): ActionResult<never> => ({ ok: false, error: { kind, message } });
 
 /** Answers one action like the desktop's registerBridge (src/desktop/ipc.ts): input checked, errors as typed values. */
-export async function answer(handlers: Partial<Handlers>, log: AppLog, name: unknown, input: unknown): Promise<ActionResult<unknown>> {
+export async function answer(
+  handlers: Partial<Handlers>,
+  log: AppLog,
+  name: unknown,
+  input: unknown,
+  /** An action the screens asked for, by name only, for usage data (ADR 0016). */
+  counted?: (action: ActionName) => void,
+): Promise<ActionResult<unknown>> {
   if (typeof name !== "string" || !Object.hasOwn(Actions, name)) return failure("Rejected", "Unknown action");
   const action = name as ActionName;
   const handler = handlers[action] as ((input: unknown) => Promise<unknown>) | undefined;
   if (!handler) return failure("Rejected", `${action} isn't on the phone`);
   const parsed = Actions[action].input.safeParse(input ?? {});
   if (!parsed.success) return failure("Rejected", `Bad input for ${action}`);
+  if (!UNCOUNTED_ACTIONS.has(action)) counted?.(action);
   try {
     return { ok: true, value: await handler(parsed.data) };
   } catch (error) {

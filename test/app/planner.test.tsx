@@ -187,8 +187,9 @@ describe("the study planner", () => {
     expect(ruleWhy("load")).toEqual(["21 SKS. Lebih dari 20 SKS perlu persetujuan dosen wali."]);
     expect(saved()?.terms[0].courses.map((c) => c.code)).toEqual(["II4090", "II4092", "II4010", "II4011", "II4021", "II4022", "II4023"]);
     expect(s.calls.some((c) => c.name === "local.set")).toBe(true);
-    // Never a KRS: the only thing written is the plan on this computer.
-    expect(s.calls.filter((c) => c.name !== "local.set" && c.name !== "app.snapshot" && c.name !== "app.ready").map((c) => c.name)).toEqual([]);
+    // Never a KRS: the only thing written is the plan on this computer (and the screens counted, ADR 0016).
+    const quiet = new Set(["local.set", "app.snapshot", "app.ready", "usage.screen"]);
+    expect(s.calls.filter((c) => !quiet.has(c.name)).map((c) => c.name)).toEqual([]);
   });
 
   it("removing a required course: the rule says what's missing, the header agrees, and it can be undone", async () => {

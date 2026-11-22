@@ -7,8 +7,8 @@ export interface Store {
   get<T>(key: string): Promise<T | undefined>;
   put(key: string, value: unknown): Promise<void>;
   delete(key: string): Promise<unknown>;
-  /** The keys starting with `prefix`, in order. */
-  list<T>(options: { prefix: string; limit?: number }): Promise<Map<string, T>>;
+  /** The keys starting with `prefix`, in order, after `startAfter` when it's given. */
+  list<T>(options: { prefix: string; limit?: number; startAfter?: string }): Promise<Map<string, T>>;
 }
 
 /** Characters a piece of a report holds: at most about 1 MB stored, under the 2 MB a Durable Object value can be. */

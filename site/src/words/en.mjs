@@ -124,8 +124,8 @@ export default {
           body: "What the app reads is saved only on your phone or laptop, and your sign-in is locked by your device's own system. No Edunex Plus server holds it.",
         },
         {
-          title: "No ads, no tracking",
-          body: "No analytics. The app only talks to Edunex, SIX, ITB's public pages, and GitHub for updates. Phone alerts and problem reports only run if you turn them on or send them.",
+          title: "No ads, nothing personal sent",
+          body: "The app talks to Edunex, SIX, ITB's public pages, and GitHub for updates. Once a day it sends counts of the screens and features used, never your data, and Settings turns that off. Phone alerts and problem reports only run if you turn them on or send them.",
         },
         {
           title: "Delete it any time",

@@ -96,7 +96,7 @@ export function SettingsScreen() {
           </Section>
         )}
         <Section index={8}>
-          <AboutSettings version={store.version} relay={!!store.relay} />
+          <AboutSettings version={store.version} relay={!!store.relay} settings={settings} update={update} />
         </Section>
         <Section index={9}>
           <SignOutAll report={report} />

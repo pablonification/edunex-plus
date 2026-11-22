@@ -152,7 +152,7 @@ function slowDown(now: number): Response {
 const bearer = (request: Request) => /^Bearer (\S+)$/.exec(request.headers.get("authorization") ?? "")?.[1] ?? null;
 
 /** The body, or null if it's more than `max` bytes, read no further than that. */
-async function readLimited(request: Request, max: number): Promise<string | null> {
+export async function readLimited(request: Request, max: number): Promise<string | null> {
   if (Number(request.headers.get("content-length") ?? 0) > max) return null;
   if (!request.body) return "";
   const reader = request.body.getReader();

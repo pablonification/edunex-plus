@@ -42,6 +42,11 @@ Everything stays on your computer:
   updates, which notifications showed, errors, the window breaking) is kept in memory only, 300
   lines at most, never on disk, so a problem report can say what led up to it. Quitting the app
   forgets it.
+- **Usage data** (until it's sent): for each day, how many times each screen opened, each feature
+  was used, each page read well or not, and each part of the app logged an error, by the app's own
+  names for them; the app's version, system and language; whether you were signed in to Edunex and
+  SIX that day; and a random id made on this computer. A day waits here until it's over and sent, a
+  week at most.
 - **Problem reports you sent** with **Kirim langsung**, or that went by themselves: when, which
   page, and their issue number, so Settings can list them; and for each problem a fingerprint made
   from what went wrong (never what was in the report), so the same one isn't sent twice.
@@ -86,14 +91,23 @@ Nothing leaves your computer except the app's own requests to:
   Downloads and shows the maintainer's LINE code, and you send them the file there. For GitHub, it
   opens a new issue, filled in (public, so anyone can read it), and saves the report as a file (the
   page, and what the app did) for you to add to it;
+- **The maintainer's relay, for usage data**, once a day while **Kirim data pemakaian** is on (it's on
+  unless you turn it off, in Settings → Tentang): the day before's counts described above, and
+  nothing else. Never anything the app read from Edunex or SIX, your NIM, your name, a course, a
+  grade, what you typed, a file's name or a message from an error. The names come from the
+  app's code, and one that doesn't look like one (a leading capital letter, a space) is sent as "other". The relay doesn't keep the address it came from, keeps each day for 400 days
+  (the random id's first and last day it sent are kept while the relay runs), and only the maintainer can read it, as
+  totals over every app. Turning it off forgets what wasn't
+  sent and counts nothing more. Signing out of everything, or turning it off and on, makes a new id,
+  so your days before and after can't be joined. Why and how: [ADR 0016](adr/0016-usage-data.md);
 - **ntfy** (`ntfy.sh`), only if you turn on phone notifications: the alert's text (for example
   a Task's name and deadline), sent under a private code that only this app and your phones
   use. ntfy's operator can read these messages, and Settings says so. Turning it off cancels
   the reminders already booked there; if ntfy can't be reached then, the app tells you some
   may still arrive.
 
-No other servers, no analytics, no tracking: nothing about how you use the app is ever sent. A
-problem report goes only as described above. Every request says it comes from Edunex Plus
+No other servers. What's sent about how you use the app is the usage data above, only while it's
+on, and a problem report goes only as described above. Every request says it comes from Edunex Plus
 (its User-Agent), and the app reads at a human pace. How it uses each system is written down in
 [API.md](../API.md) (Edunex) and [SIX.md](../SIX.md).
 

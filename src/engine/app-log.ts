@@ -20,6 +20,7 @@ export type AreaLog = (level: LogLevel, message: string) => void;
 
 export class AppLog {
   private readonly kept: LogEntry[] = [];
+  private readonly errorWatchers: ((area: string) => void)[] = [];
 
   constructor(private readonly now: () => number) {}
 
@@ -27,6 +28,12 @@ export class AppLog {
   add(level: LogLevel, area: string, message: string): void {
     this.kept.push({ at: this.now(), level, area: cut(area, MAX_AREA), message: cut(message, MAX_MESSAGE) });
     this.drop();
+    if (level === "error") for (const watcher of this.errorWatchers) watcher(area);
+  }
+
+  /** Told the area of every error as it's logged, never its message (usage data counts them, ADR 0016). */
+  onError(watcher: (area: string) => void): void {
+    this.errorWatchers.push(watcher);
   }
 
   /** Lines about `area`, for a part of the app that writes only those. */

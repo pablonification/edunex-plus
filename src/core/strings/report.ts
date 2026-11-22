@@ -170,6 +170,13 @@ export const reportStrings = {
     en: "Anyone can read the summaries on GitHub. Only the maintainer reads the pages and what the app did.",
   },
 
+  // Usage data (ADR 0016)
+  "usage.settings.send": { id: "Kirim data pemakaian", en: "Send usage data" },
+  "usage.settings.hint": {
+    id: "Layar dan fitur yang dibuka, versi aplikasi dan perangkatmu, tanpa data akunmu",
+    en: "Screens and features opened, the app's version and your device, never your account's data",
+  },
+
   // When something doesn't work
   "report.failed": { id: "Laporan tidak bisa disiapkan. Coba lagi.", en: "The report couldn't be prepared. Try again." },
   "report.saveFailed": { id: "Berkas laporan tidak bisa disimpan. Coba lagi.", en: "The report file couldn't be saved. Try again." },

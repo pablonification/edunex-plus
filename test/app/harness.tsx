@@ -259,6 +259,10 @@ export async function openApp(options: Options = {}) {
       update: await updater.state(),
     }),
     "app.ready": async () => ({}),
+    "usage.screen": async ({ screen }: { screen: string }) => {
+      engine.countUsage("screens", screen);
+      return {};
+    },
     "auth.signIn": async ({ source }: { source: SourceId }) => {
       if (source === "itb") throw new EngineError("Rejected", "itb has no sign-in");
       return { signedIn: await signIns.signIn(source) };

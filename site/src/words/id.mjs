@@ -127,8 +127,8 @@ export default {
           body: "Yang dibaca aplikasi disimpan di HP atau laptopmu saja, dan tanda masukmu dikunci oleh sistem perangkatmu. Tidak ada server Edunex Plus yang menampungnya.",
         },
         {
-          title: "Tanpa iklan, tanpa pelacakan",
-          body: "Tidak ada analitik. Aplikasi hanya menghubungi Edunex, SIX, halaman publik ITB, dan GitHub untuk pembaruan. Notifikasi ke HP dan laporan masalah hanya jalan kalau kamu menyalakan atau mengirimnya.",
+          title: "Tanpa iklan, tanpa data pribadi terkirim",
+          body: "Aplikasi menghubungi Edunex, SIX, halaman publik ITB, dan GitHub untuk pembaruan. Sehari sekali, aplikasi mengirim hitungan layar dan fitur yang dipakai, tanpa datamu, dan bisa dimatikan di Pengaturan. Notifikasi ke HP dan laporan masalah hanya jalan kalau kamu menyalakan atau mengirimnya.",
         },
         {
           title: "Bisa dihapus kapan saja",

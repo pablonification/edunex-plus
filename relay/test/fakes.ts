@@ -22,8 +22,8 @@ export class MemoryStore implements Store {
     return this.data.delete(key);
   }
 
-  async list<T>({ prefix, limit = Number.POSITIVE_INFINITY }: { prefix: string; limit?: number }): Promise<Map<string, T>> {
-    const keys = [...this.data.keys()].filter((key) => key.startsWith(prefix)).sort();
+  async list<T>({ prefix, limit = Number.POSITIVE_INFINITY, startAfter }: { prefix: string; limit?: number; startAfter?: string }): Promise<Map<string, T>> {
+    const keys = [...this.data.keys()].filter((key) => key.startsWith(prefix) && (startAfter === undefined || key > startAfter)).sort();
     return new Map(keys.slice(0, limit).map((key) => [key, structuredClone(this.data.get(key)) as T]));
   }
 }

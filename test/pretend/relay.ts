@@ -4,6 +4,8 @@
 // that problem already. It refuses what the real one refuses (a body too big, something that looks
 // personal), can be told to be busy or to file later, and keeps everything it got. Nothing goes
 // anywhere real.
+
+import { UsageDay } from "../../src/core/usage";
 import { type HttpRequest, type HttpResponse, NetworkError } from "../../src/engine/http/transport";
 import { utf8Length } from "../../src/engine/platform/bytes";
 import { personalHits } from "../kit/privacy-rules";
@@ -34,6 +36,8 @@ export interface Received {
 export class PretendRelay {
   /** Every report it took, in order (one it was told to file later too). */
   readonly reports: Received[] = [];
+  /** Every day of usage data it took (ADR 0016), as relay/src/usage.ts checks it. */
+  readonly usage: UsageDay[] = [];
   /** Every request, with its path and answer. */
   readonly requests: { path: string; status: number | "no answer" }[] = [];
   /** How it answers what comes next: as itself, not at all, busy (429), "stored, filed later" (503), or as a deploy gone wrong (404). */
@@ -97,6 +101,19 @@ export class PretendRelay {
       this.reports.push({ id, envelope, userAgent: request.headers?.["user-agent"], issue, token, notes: [] });
       const seen = this.reports.filter((report) => report.issue === issue).length;
       return reply(201, { id, noteToken: token, issue: { number: issue, url: `${REPO}/${issue}` }, duplicate, seen });
+    }
+    if (request.method === "POST" && url.pathname === "/v1/usage") {
+      let day: unknown;
+      try {
+        day = JSON.parse(text);
+      } catch {
+        return reply(400, { error: "invalid" });
+      }
+      const parsed = UsageDay.safeParse(day);
+      if (!parsed.success) return reply(400, { error: "invalid" });
+      if (this.answer === "busy") return reply(429, { error: "slow-down" }, { "retry-after": "120" });
+      this.usage.push(parsed.data);
+      return reply(202, { ok: true });
     }
     const note = /^\/v1\/reports\/([^/]+)\/note$/.exec(url.pathname);
     if (request.method === "POST" && note) {

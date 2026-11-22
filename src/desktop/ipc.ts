@@ -6,6 +6,7 @@ import { type BrowserWindow, ipcMain } from "electron";
 import type { z } from "zod";
 import { CHANNEL_INVOKE } from "../core/channels";
 import { type ActionName, type ActionOutput, type ActionResult, Actions, type ErrorKind } from "../core/contract";
+import { UNCOUNTED_ACTIONS } from "../core/usage";
 import { type AreaLog, errorLine } from "../engine/app-log";
 import { isEngineError } from "../engine/errors";
 
@@ -19,6 +20,8 @@ export function registerBridge(options: {
   handlers: Handlers;
   /** An action that failed in a way nobody planned for, for the app's own log (src/engine/app-log.ts). */
   log?: AreaLog;
+  /** An action the Student's window asked for, by name only, for usage data (ADR 0016). */
+  counted?(action: ActionName): void;
 }): void {
   ipcMain.handle(CHANNEL_INVOKE, async (event, name: unknown, input: unknown): Promise<ActionResult<unknown>> => {
     const window = options.window();
@@ -30,6 +33,7 @@ export function registerBridge(options: {
     const action = name as ActionName;
     const parsed = Actions[action].input.safeParse(input ?? {});
     if (!parsed.success) return failure("Rejected", `Bad input for ${action}`);
+    if (!UNCOUNTED_ACTIONS.has(action)) options.counted?.(action);
     try {
       const handler = options.handlers[action] as (input: unknown) => Promise<unknown>;
       return { ok: true, value: await handler(parsed.data) };

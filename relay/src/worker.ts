@@ -6,6 +6,7 @@ import { githubSigningKeys } from "./actions";
 import { gitHubApi } from "./github";
 import { LIMITS, Relay } from "./relay";
 import type { Store } from "./store";
+import { UsageRelay } from "./usage";
 
 /** The few parts of Cloudflare's types the relay uses (the runtime's own are a bigger download). */
 interface DurableObjectNamespace {
@@ -30,9 +31,13 @@ const CRON = "/cron";
 /** GitHub's keys, fetched once an hour at most, for the fix bot's tickets. */
 const signingKeys = githubSigningKeys();
 
-/** The one Durable Object that keeps everything. */
+/**
+ * The Durable Object that keeps everything: one named "relay" for the reports, one named "usage" for usage data
+ * (./usage.ts, ADR 0016), so neither waits on the other.
+ */
 export class RelayObject {
   private readonly relay: Relay;
+  private readonly usage: UsageRelay;
 
   constructor(state: { storage: Store }, env: Env) {
     this.relay = new Relay({
@@ -44,18 +49,30 @@ export class RelayObject {
       signingKeys,
       log: (line) => console.log(line),
     });
+    this.usage = new UsageRelay({ store: state.storage, now: () => Date.now(), maintainerToken: env.MAINTAINER_TOKEN ?? "", log: (line) => console.log(line) });
   }
 
   async fetch(request: Request): Promise<Response> {
-    if (new URL(request.url).pathname === CRON) {
+    const { pathname } = new URL(request.url);
+    if (pathname === CRON) {
       await this.relay.cron();
       return new Response(null, { status: 204 });
     }
-    return this.relay.handle(request, request.headers.get("x-relay-address") ?? "");
+    if (pathname === USAGE_CRON) {
+      await this.usage.cron();
+      return new Response(null, { status: 204 });
+    }
+    const address = request.headers.get("x-relay-address") ?? "";
+    return isUsage(pathname) ? this.usage.handle(request, address) : this.relay.handle(request, address);
   }
 }
 
+/** Usage data's path, and the one its cron trigger knocks on. */
+const isUsage = (pathname: string) => pathname === "/v1/usage";
+const USAGE_CRON = "/usage-cron";
+
 const relayOf = (env: Env) => env.RELAY.get(env.RELAY.idFromName("relay"));
+const usageOf = (env: Env) => env.RELAY.get(env.RELAY.idFromName("usage"));
 
 export default {
   fetch(request: Request, env: Env): Promise<Response> {
@@ -65,10 +82,12 @@ export default {
     // Cloudflare says where the request came from; whatever the sender wrote there is replaced.
     const headers = new Headers(request.headers);
     headers.set("x-relay-address", request.headers.get("cf-connecting-ip") ?? "");
-    return relayOf(env).fetch(new Request(request, { headers }));
+    const object = isUsage(new URL(request.url).pathname) ? usageOf(env) : relayOf(env);
+    return object.fetch(new Request(request, { headers }));
   },
 
   async scheduled(_controller: unknown, env: Env): Promise<void> {
     await relayOf(env).fetch(new Request(`https://relay.internal${CRON}`, { method: "POST" }));
+    await usageOf(env).fetch(new Request(`https://relay.internal${USAGE_CRON}`, { method: "POST" }));
   },
 };

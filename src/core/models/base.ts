@@ -156,6 +156,10 @@ export const Settings = z.object({
   reportSending: ReportSending.optional(),
   /** The Student answered, or closed, the question the app asks once, the first time it keeps a problem. */
   reportAsked: z.boolean().optional(),
+
+  // Usage data (ADR 0016)
+  /** "Kirim data pemakaian": the app counts how it's used and sends the counts once a day. On unless turned off; missing from settings saved before it existed. */
+  usageData: z.boolean().optional(),
 });
 export type Settings = z.infer<typeof Settings>;
 
@@ -198,6 +202,9 @@ export const DEFAULT_SETTINGS: Settings = {
   // Problem reports (ADR 0014)
   reportSending: "ask",
   reportAsked: false,
+
+  // Usage data (ADR 0016)
+  usageData: true,
 };
 
 /** The guide offers itself after a new Student's first sign-in, until they take it or skip it (not on settings older than it). */
@@ -205,6 +212,9 @@ export const guideDue = (settings: Pick<Settings, "guideDone">): boolean => sett
 
 /** Whether problem reports go by themselves, as the Student said: "ask" until they say otherwise. */
 export const reportSendingOf = (settings: Pick<Settings, "reportSending">): ReportSending => settings.reportSending ?? "ask";
+
+/** Whether the app counts how it's used and sends the counts (ADR 0016): on until the Student turns it off. */
+export const usageDataOf = (settings: Pick<Settings, "usageData">): boolean => settings.usageData ?? true;
 
 export interface Dataset<T = unknown> {
   value: T;

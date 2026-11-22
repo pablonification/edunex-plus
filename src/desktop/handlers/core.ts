@@ -7,56 +7,85 @@ import { openOfficialPage } from "../open-page";
 import type { HandlerGroup } from "./context";
 import { copyOnThisComputer } from "./files";
 
-type Core = "app.snapshot" | "app.ready" | "sync.refresh" | "settings.update" | "shell.openExternal" | "shell.openLink" | "files.download" | "local.set";
+type Core =
+  | "app.snapshot"
+  | "app.ready"
+  | "sync.refresh"
+  | "settings.update"
+  | "shell.openExternal"
+  | "shell.openLink"
+  | "files.download"
+  | "local.set"
+  | "usage.screen";
 
-export const coreHandlers: HandlerGroup<Core> = (context) => ({
-  "app.snapshot": async () => ({
-    ...context.engine.snapshot(),
-    platform: context.platform,
-    vault: context.vaultMode,
-    update: await context.updater.state(),
-  }),
-  "app.ready": async () => {
-    context.reveal();
-    context.startSyncing();
-    return {};
-  },
-  "sync.refresh": async ({ source }) => {
-    await context.engine.refresh(source);
-    return {};
-  },
-  "settings.update": async (patch) => {
-    const next = await context.engine.updateSettings(patch);
-    context.applySettings(next);
-    return next;
-  },
-  "shell.openExternal": async ({ url }) => {
-    if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
-    // Edunex and SIX in the app's own window, signed in; the rest in the browser (../open-page.ts).
-    await openOfficialPage(context, url);
-    return {};
-  },
-  // A lecturer's link opens like it does on Edunex: any web page, but in the system browser, never in the app.
-  "shell.openLink": async ({ url }) => {
-    if (!isWebLink(url)) throw new EngineError("Rejected", "Only web pages open from a lecturer's link");
-    await shell.openExternal(url);
-    return {};
-  },
-  "files.download": async ({ url, name }) => {
-    if (!isDownloadable(url)) throw new EngineError("Rejected", "Only Edunex's files download from the app");
-    // Already on this computer: that copy is the one, rather than another "Notes (2).docx" next to it.
-    const existing = await copyOnThisComputer(context, url);
-    if (existing) return { path: existing, existing: true };
-    const window = context.window();
-    if (!window) throw new EngineError("Failed", "The window is closed");
-    // A sign-out while it downloads: where it went isn't remembered.
-    const since = context.downloadedFiles.generation();
-    const file = await download(window.webContents, url, name);
-    await context.downloadedFiles.record(url, file, since).catch(() => undefined);
-    return { path: file, existing: false };
-  },
-  "local.set": async ({ name, value }) => {
-    await context.engine.setLocal(name, value);
-    return {};
-  },
-});
+export const coreHandlers: HandlerGroup<Core> = (context) => {
+  /** The screen a hidden window drew (at launch, before it's shown; in the tray after an update): counted once it shows. */
+  let unseen: string | null = null;
+  return {
+    "app.snapshot": async () => ({
+      ...context.engine.snapshot(),
+      platform: context.platform,
+      vault: context.vaultMode,
+      update: await context.updater.state(),
+    }),
+    "app.ready": async () => {
+      context.reveal();
+      context.startSyncing();
+      return {};
+    },
+    "sync.refresh": async ({ source }) => {
+      await context.engine.refresh(source);
+      return {};
+    },
+    "settings.update": async (patch) => {
+      const next = await context.engine.updateSettings(patch);
+      context.applySettings(next);
+      return next;
+    },
+    "shell.openExternal": async ({ url }) => {
+      if (!isOfficialUrl(url)) throw new EngineError("Rejected", "Only official pages open from the app");
+      // Edunex and SIX in the app's own window, signed in; the rest in the browser (../open-page.ts).
+      await openOfficialPage(context, url);
+      return {};
+    },
+    // A lecturer's link opens like it does on Edunex: any web page, but in the system browser, never in the app.
+    "shell.openLink": async ({ url }) => {
+      if (!isWebLink(url)) throw new EngineError("Rejected", "Only web pages open from a lecturer's link");
+      await shell.openExternal(url);
+      return {};
+    },
+    "files.download": async ({ url, name }) => {
+      if (!isDownloadable(url)) throw new EngineError("Rejected", "Only Edunex's files download from the app");
+      // Already on this computer: that copy is the one, rather than another "Notes (2).docx" next to it.
+      const existing = await copyOnThisComputer(context, url);
+      if (existing) return { path: existing, existing: true };
+      const window = context.window();
+      if (!window) throw new EngineError("Failed", "The window is closed");
+      // A sign-out while it downloads: where it went isn't remembered.
+      const since = context.downloadedFiles.generation();
+      const file = await download(window.webContents, url, name);
+      await context.downloadedFiles.record(url, file, since).catch(() => undefined);
+      return { path: file, existing: false };
+    },
+    "usage.screen": async ({ screen }) => {
+      const window = context.window();
+      if (!window || window.isVisible()) {
+        context.engine.countUsage("screens", screen);
+        return {};
+      }
+      // Nobody is looking yet. Its first show fires no visibilitychange in the page (a hidden window's page starts
+      // "visible"), so main counts the screen then.
+      if (unseen === null)
+        window.once("show", () => {
+          if (unseen !== null) context.engine.countUsage("screens", unseen);
+          unseen = null;
+        });
+      unseen = screen;
+      return {};
+    },
+    "local.set": async ({ name, value }) => {
+      await context.engine.setLocal(name, value);
+      return {};
+    },
+  };
+};
