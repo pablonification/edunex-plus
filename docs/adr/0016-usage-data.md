@@ -26,8 +26,10 @@ one Student at a time and with their say-so. They don't answer "how many".
   - with them, the app's version, platform and system, its language, and whether it was signed in to
     Edunex and to SIX that day.
 
-  A name that isn't one of the app's (a course's name passed by mistake) is counted as "other". The
-  relay refuses a day with any name that doesn't look like one.
+  The names come from the app's code. As a backstop, a name that doesn't look like one (a capital
+  letter, a space: a course's name passed by mistake) is counted as "other". That check looks at the
+  name's shape only, so a lowercase word would pass it. The relay refuses a day with any name that
+  doesn't look like one.
 - **Never sent**: anything read from Edunex or SIX, a NIM, a name, a course, a grade, what the
   Student typed, a file's name, an address. The relay doesn't keep the address a day came from.
 - **One random id per app** (a UUID made on the device), so a day can be told from another app's and

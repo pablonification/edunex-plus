@@ -34,6 +34,8 @@ export const USAGE_LIMITS_RELAY: UsageLimits = {
 };
 
 const DAY = 86_400_000;
+/** Days a summary reads from storage at once. */
+const PAGE = 500;
 const dayOf = (at: number) => new Date(at).toISOString().slice(0, 10);
 const addDays = (day: string, days: number) => dayOf(Date.parse(`${day}T00:00:00Z`) + days * DAY);
 
@@ -185,7 +187,6 @@ export class UsageRelay {
   }
 
   private async totals(day: string, today: string): Promise<DayTotals> {
-    const sent = await this.options.store.list<Kept>({ prefix: `usage:day:${day}:` });
     const out: DayTotals = {
       day,
       active: 0,
@@ -204,29 +205,35 @@ export class UsageRelay {
       returned: { nextDay: addDays(day, 1) < today ? 0 : null, week: addDays(day, 7) < today ? 0 : null },
     };
     const fresh: string[] = [];
-    for (const [key, kept] of sent) {
-      const install = key.slice(key.lastIndexOf(":") + 1);
-      out.running++;
-      if (opened(kept)) out.active++;
-      const first = await this.options.store.get<Install>(KEY.install(install));
-      if (first?.first === day) {
-        out.new++;
-        fresh.push(install);
+    // A page at a time, so a day of many big records never sits in memory at once.
+    for (let after: string | undefined, size = PAGE; size === PAGE; ) {
+      const page = await this.options.store.list<Kept>({ prefix: `usage:day:${day}:`, limit: PAGE, ...(after ? { startAfter: after } : {}) });
+      size = page.size;
+      for (const [key, kept] of page) {
+        after = key;
+        const install = key.slice(key.lastIndexOf(":") + 1);
+        out.running++;
+        if (opened(kept)) out.active++;
+        const first = await this.options.store.get<Install>(KEY.install(install));
+        if (first?.first === day) {
+          out.new++;
+          fresh.push(install);
+        }
+        bump(out.platforms, kept.platform);
+        bump(out.versions, kept.version);
+        bump(out.os, kept.os.replace(/\s*\(.*\)$/, "") || "unknown");
+        bump(out.langs, kept.lang);
+        const { edunex, six } = kept.signedIn;
+        if (edunex && six) out.signedIn.both++;
+        else if (!edunex && !six) out.signedIn.neither++;
+        if (edunex) out.signedIn.edunex++;
+        if (six) out.signedIn.six++;
+        for (const kind of ["screens", "actions", "reads", "errors"] as const) {
+          for (const [name, count] of Object.entries(kept[kind])) bump(out[kind], name, Math.min(count, USAGE_LIMITS.count));
+        }
+        for (const name of Object.keys(kept.screens)) bump(out.reach.screens, name);
+        for (const name of Object.keys(kept.actions)) bump(out.reach.actions, name);
       }
-      bump(out.platforms, kept.platform);
-      bump(out.versions, kept.version);
-      bump(out.os, kept.os.replace(/\s*\(.*\)$/, "") || "unknown");
-      bump(out.langs, kept.lang);
-      const { edunex, six } = kept.signedIn;
-      if (edunex && six) out.signedIn.both++;
-      else if (!edunex && !six) out.signedIn.neither++;
-      if (edunex) out.signedIn.edunex++;
-      if (six) out.signedIn.six++;
-      for (const kind of ["screens", "actions", "reads", "errors"] as const) {
-        for (const [name, count] of Object.entries(kept[kind])) bump(out[kind], name, Math.min(count, USAGE_LIMITS.count));
-      }
-      for (const name of Object.keys(kept.screens)) bump(out.reach.screens, name);
-      for (const name of Object.keys(kept.actions)) bump(out.reach.actions, name);
     }
     for (const install of fresh) {
       if (out.returned.nextDay !== null && opened(await this.options.store.get<Kept>(KEY.day(addDays(day, 1), install)))) out.returned.nextDay++;

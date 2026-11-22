@@ -173,8 +173,8 @@ export const reportStrings = {
   // Usage data (ADR 0016)
   "usage.settings.send": { id: "Kirim data pemakaian", en: "Send usage data" },
   "usage.settings.hint": {
-    id: "Hanya hitungan layar dan fitur yang dibuka, tanpa data akunmu",
-    en: "Only counts of screens and features opened, never your account's data",
+    id: "Layar dan fitur yang dibuka, versi aplikasi dan perangkatmu, tanpa data akunmu",
+    en: "Screens and features opened, the app's version and your device, never your account's data",
   },
 
   // When something doesn't work

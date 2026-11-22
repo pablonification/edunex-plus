@@ -99,6 +99,14 @@ describe("the maintainer's totals", () => {
     });
   });
 
+  it("read a day of more apps than one page holds, a page at a time", async () => {
+    const { store, summary } = start();
+    const { usage: _usage, install: _install, day: _day, ...kept } = day(A, "2026-11-13");
+    for (let i = 0; i < 1201; i++) await store.put(`usage:day:2026-11-13:${String(i).padStart(8, "0")}-0000-4000-8000-000000000000`, kept);
+    const { body } = await summary("from=2026-11-13&to=2026-11-13");
+    expect(body.days[0]).toMatchObject({ active: 1201, running: 1201, screens: { home: 4 * 1201 } });
+  });
+
   it("are the maintainer's only, and a range has an end", async () => {
     const { summary } = start();
     expect((await summary("from=2026-11-12&to=2026-11-13", "someone-else-with-a-long-enough-token-000")).status).toBe(401);
