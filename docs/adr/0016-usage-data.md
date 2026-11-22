@@ -26,7 +26,7 @@ one Student at a time and with their say-so. They don't answer "how many".
   - with them, the app's version, platform and system, its language, and whether it was signed in to
     Edunex and to SIX that day.
 
-  The names come from the app's code. As a backstop, a name that doesn't look like one (a capital
+  The names come from the app's code. As a backstop, a name that doesn't look like one (a leading capital
   letter, a space: a course's name passed by mistake) is counted as "other". That check looks at the
   name's shape only, so a lowercase word would pass it. The relay refuses a day with any name that
   doesn't look like one.
