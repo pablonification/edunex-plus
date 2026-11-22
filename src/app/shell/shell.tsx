@@ -123,6 +123,17 @@ function Layout({ arriving }: { arriving: boolean }) {
     });
   };
   const { route, place, go } = useNav();
+  // Usage data (ADR 0016): which screen showed, by its name only. The welcome's preview of the app isn't the Student using it.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each move counts, another Task's page too (a new place)
+  useEffect(() => {
+    if (!arriving) void bridge.invoke("usage.screen", { screen: route.screen }).catch(() => undefined);
+  }, [place, route.screen, arriving, bridge]);
+  useEffect(() => {
+    if (settingsOpen) void bridge.invoke("usage.screen", { screen: "settings" }).catch(() => undefined);
+  }, [settingsOpen, bridge]);
+  useEffect(() => {
+    if (searchOpen) void bridge.invoke("usage.screen", { screen: "search" }).catch(() => undefined);
+  }, [searchOpen, bridge]);
   const pdf = usePdfViewer();
   const main = useRef<HTMLElement>(null);
   const settingsLoaded = SettingsDialog.useLoaded();

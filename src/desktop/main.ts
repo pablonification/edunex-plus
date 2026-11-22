@@ -176,6 +176,8 @@ async function start(): Promise<void> {
     // The demo's pretend relay, when it asks for one, and never the real one: its reports are made up.
     relay: demo ? (demo.relay ?? "") : undefined,
     os: systemName,
+    // Usage data (ADR 0016), from the installed app only: never development or the demo.
+    ...(packaged && !demo ? { usage: { platform: process.platform === "darwin" ? "mac" : process.platform === "win32" ? "windows" : "linux" } as const } : {}),
   });
   engine = current;
   await current.load();
@@ -257,7 +259,7 @@ async function start(): Promise<void> {
     ...phoneHandlers(context),
     ...reportHandlers(context),
   };
-  registerBridge({ window: () => window, isAppUrl, handlers, log: log.for("bridge") });
+  registerBridge({ window: () => window, isAppUrl, handlers, log: log.for("bridge"), counted: (action) => current.countUsage("actions", action) });
   theme = followTheme(() => window, currentPlatform());
   applySettings(current.snapshot().settings);
 

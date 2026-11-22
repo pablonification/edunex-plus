@@ -1,6 +1,7 @@
 // The real engine wired to the pretend world, in-memory disk and keychain.
 import type { Event } from "../../src/core/contract";
 import type { DatasetName, DatasetValue, SourceId, SourceStatus } from "../../src/core/models";
+import type { UsagePlatform } from "../../src/core/usage";
 import { AppLog } from "../../src/engine/app-log";
 import { createEngine, type Engine } from "../../src/engine/engine";
 import { MemoryStorage, MemoryVault } from "../pretend/memory";
@@ -37,6 +38,8 @@ export async function startEngine(
     startDueOnly?: boolean;
     /** Refreshes as the phone does: what was read recently and costs many requests is left alone (EngineDeps.quickRefresh). */
     quickRefresh?: boolean;
+    /** Counts usage data as a release build on this platform does (EngineDeps.usage); none by default. */
+    usage?: UsagePlatform;
   } = {},
 ): Promise<Harness> {
   const world = options.world ?? new PretendWorld({ now: options.now });
@@ -59,6 +62,7 @@ export async function startEngine(
     os: () => "macOS 15.3 (arm64)",
     ...(options.startDueOnly ? { startDueOnly: true } : {}),
     ...(options.quickRefresh ? { quickRefresh: true } : {}),
+    ...(options.usage ? { usage: { platform: options.usage } } : {}),
   });
   // A first start: the tests read alerts in Bahasa Indonesia, which a Student picks in Settings.
   const firstStart = (await storage.read("state.json")) === null;

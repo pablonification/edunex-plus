@@ -240,6 +240,8 @@ async function makeHost(): Promise<Host> {
     // installers are no use here).
     releaseAsset: Platform.OS === "ios" ? /\.ipa$/i : /\.apk$/i,
     os: () => osName(Platform.OS, Platform.Version),
+    // Usage data (ADR 0016), from release builds only: never the demo, development or a QA build on a Student's account.
+    ...(!DEMO && !__DEV__ && !R3_GUARD ? { usage: { platform: Platform.OS === "ios" ? "ios" : "android" } as const } : {}),
     // Opened many times a day: each start shows what's saved and reads only what's due (W2 in PROGRESS.md).
     startDueOnly: true,
     // A pull to refresh reads what's on Beranda, not SIX's records and Edunex's materials again within the hour.
@@ -395,7 +397,7 @@ async function makeHost(): Promise<Host> {
       return { ...now, statuses: resign.shown(now.statuses) };
     };
   const api: BridgeApi = {
-    invoke: (name, input) => answer(handlers, log, name, input),
+    invoke: (name, input) => answer(handlers, log, name, input, (action) => engine.countUsage("actions", action)),
     onEvent(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);

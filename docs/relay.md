@@ -101,6 +101,24 @@ whole: run it before and after a fix.
 `.scratch/` is git-ignored: keep downloaded reports there. The fixtures script writes each page into
 `test/fixtures` and refuses any that still look personal; read them before committing.
 
+## Reading usage data
+
+The app sends each day's usage counts to `POST /v1/usage` once the day is over
+([ADR 0016](adr/0016-usage-data.md)). They're kept in a Durable Object of their own (`relay/src/usage.ts`),
+400 days, with the app's random id but never the address. Only your token reads them, as totals per day:
+
+```sh
+curl -sH "Authorization: Bearer $MAINTAINER_TOKEN" \
+  "https://edunex-plus-relay.<your-subdomain>.workers.dev/v1/usage?from=2026-11-17&to=2026-11-23" | jq '.days[] | {day, active, new, returned, platforms}'
+```
+
+Each day says how many apps sent it (`active`), how many sent for the first time (`new`), how many of
+those came back the next day and a week on (`returned`, null until that day is over), the apps by
+platform, version, system and language, what they were signed in to, every count added up
+(`screens`, `actions`, `reads`, `errors`), and how many apps used each screen and action at least once
+(`reach`). `from` and `to` default to the last seven days that are over; a range is 62 days at most.
+A day from one address is capped at 3,000 a day (a campus network), and from everyone at 200,000.
+
 ## Limits
 
 They're in `relay/src/relay.ts` (`LIMITS`). Change them there and deploy again.

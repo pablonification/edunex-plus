@@ -1,0 +1,59 @@
+# Keeps a day's numbers about the app's reach on the `stats` branch, one file a day
+# (scripts/stats-snapshot.mjs): every release's downloads, stars and forks, and GitHub's traffic,
+# which GitHub itself keeps for 14 days only. Totals only, nothing about a person, and public like
+# the rest of the repository. Usage data (ADR 0016) stays on the relay, for the maintainer's token.
+name: Stats
+
+on:
+  schedule:
+    - cron: "40 23 * * *" # 06:40 WIB, after GitHub has counted the day before
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: stats
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    name: snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write # push the day's file to the stats branch
+    steps:
+      - name: Check out the script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/stats-snapshot.mjs
+          sparse-checkout-cone-mode: false
+
+      - name: Take the day's numbers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # A fine-grained token with Administration: Read on this repository; without it, no traffic.
+          TRAFFIC_TOKEN: ${{ secrets.STATS_TRAFFIC_TOKEN }}
+        run: node scripts/stats-snapshot.mjs "$RUNNER_TEMP/stats"
+
+      - name: Add it to the stats branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          url="https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          if git ls-remote --exit-code --heads "$url" stats >/dev/null; then
+            git clone --quiet --depth 1 --branch stats "$url" branch
+          else
+            git init --quiet branch
+            git -C branch checkout --quiet --orphan stats
+            printf '# Stats\n\nOne file a day from .github/workflows/stats.yml on main: downloads, stars, traffic.\n' > branch/README.md
+          fi
+          cp "$RUNNER_TEMP"/stats/*.json branch/
+          git -C branch add -A
+          git -C branch diff --cached --quiet && exit 0
+          git -C branch commit --quiet -m "stats: $(date -u +%F)"
+          git -C branch push --quiet "$url" HEAD:stats

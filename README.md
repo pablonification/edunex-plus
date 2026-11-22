@@ -90,7 +90,11 @@ the [code signing policy](docs/code-signing.md).
   press **Kirim langsung**, or by itself if you said so when the app asked. A report has your
   name, NIM, contacts and links replaced and your grades and amounts made up first. The whole
   report stays private for the maintainer; the public GitHub issue gets only its summary.
-  **Settings → Laporan masalah** stops it sending by itself. No analytics, no tracking.
+  **Settings → Laporan masalah** stops it sending by itself.
+- **Usage data:** the app counts which screens and features it uses and how its reads went, and
+  sends the counts to the same relay once a day, under a random id made on your device. Never what
+  it read from Edunex or SIX, your NIM, your name or what you typed. **Settings → Tentang → Kirim
+  data pemakaian** turns it off ([ADR 0016](docs/adr/0016-usage-data.md)).
 - On a phone, **Kalender HP** copies your classes and exams into the phone's own calendar, only if
   you turn it on. If that calendar syncs to an account (Google, iCloud), your phone sends them there.
 - **Settings → Keluar & hapus data** signs you out and removes your courses, grades, plans and

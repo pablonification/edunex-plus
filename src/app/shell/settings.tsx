@@ -23,6 +23,7 @@ import {
   type Settings,
   type SourceId,
   type UpdateCheckResult,
+  usageDataOf,
 } from "../../core/models";
 import { pageName } from "../../core/report";
 import type { StringKey } from "../../core/strings";
@@ -254,6 +255,11 @@ function SettingsBody({
             {t("licences.view")}
           </Button>
         </Row>
+        {store.relay && (
+          <Row label={t("usage.settings.send")} hint={t("usage.settings.hint")}>
+            <Switch checked={usageDataOf(settings)} onCheckedChange={(usageData) => update({ usageData })} label={t("usage.settings.send")} />
+          </Row>
+        )}
       </Group>
 
       <ConfirmDialog

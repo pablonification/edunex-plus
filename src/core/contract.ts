@@ -13,6 +13,7 @@ import { scheduleActions } from "./actions/schedule";
 import { sixActions } from "./actions/six";
 import { tasksActions } from "./actions/tasks";
 import { updatesActions } from "./actions/updates";
+import { usageActions } from "./actions/usage";
 import { Settings, SourceStatus, UpdateInstall } from "./models";
 import { Route } from "./route";
 import { DatasetPayload } from "./snapshot";
@@ -40,6 +41,7 @@ export const Actions = {
   ...scheduleActions,
   ...phoneActions,
   ...reportActions,
+  ...usageActions,
 } as const satisfies Record<string, { input: z.ZodType; output: z.ZodType }>;
 export type ActionName = keyof typeof Actions;
 export type ActionInput<N extends ActionName> = z.input<(typeof Actions)[N]["input"]>;

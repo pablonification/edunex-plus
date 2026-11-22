@@ -7,7 +7,16 @@ import { openOfficialPage } from "../open-page";
 import type { HandlerGroup } from "./context";
 import { copyOnThisComputer } from "./files";
 
-type Core = "app.snapshot" | "app.ready" | "sync.refresh" | "settings.update" | "shell.openExternal" | "shell.openLink" | "files.download" | "local.set";
+type Core =
+  | "app.snapshot"
+  | "app.ready"
+  | "sync.refresh"
+  | "settings.update"
+  | "shell.openExternal"
+  | "shell.openLink"
+  | "files.download"
+  | "local.set"
+  | "usage.screen";
 
 export const coreHandlers: HandlerGroup<Core> = (context) => ({
   "app.snapshot": async () => ({
@@ -54,6 +63,10 @@ export const coreHandlers: HandlerGroup<Core> = (context) => ({
     const file = await download(window.webContents, url, name);
     await context.downloadedFiles.record(url, file, since).catch(() => undefined);
     return { path: file, existing: false };
+  },
+  "usage.screen": async ({ screen }) => {
+    context.engine.countUsage("screens", screen);
+    return {};
   },
   "local.set": async ({ name, value }) => {
     await context.engine.setLocal(name, value);

@@ -152,6 +152,10 @@ _Avoid_: breakage, outage (SIX still works; the app hasn't learned it)
 The small service a Problem report goes to when the Student sends it from the app: it files the report as an issue on the app's repository, one issue per problem, and keeps the pages private for the maintainer. Called `relay` in code ([ADR 0015](docs/adr/0015-a-relay-files-reports-and-a-bot-drafts-the-fix.md)).
 _Avoid_: server, backend, telemetry
 
+**Usage data**:
+"Data pemakaian": what the app counts about how it's used, a day at a time, and sends the Report relay once the day is over: screens opened, actions asked for, each feed's reads and how they went, errors by area, under the app's own names only, with a random id made on the device. Never anything read from Edunex or SIX, nor who the Student is. On until the Student turns it off in Settings; release builds only. Called `usage` in code ([ADR 0016](docs/adr/0016-usage-data.md)).
+_Avoid_: tracking, analytics (in UI copy), telemetry (in UI copy)
+
 **Signature**:
 What makes two Problem reports the same problem: the system, the page, the kind (a Changed page or Unrecognised rows) and the check that failed, its numbers aside. Reports with one signature share one issue.
 _Avoid_: fingerprint, hash

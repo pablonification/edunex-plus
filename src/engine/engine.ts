@@ -16,8 +16,10 @@ import {
   SourceId,
   SourceStatus,
   type UpdateCheckResult,
+  usageDataOf,
 } from "../core/models";
 import { isNewerRelease } from "../core/updates";
+import type { UsageKind, UsagePlatform } from "../core/usage";
 import { AlertCenter, type AlertNotice } from "./alerts/center";
 import { sixClassStart } from "./alerts/check-in";
 import type { Detector, PlannedAlert } from "./alerts/detector";
@@ -38,6 +40,7 @@ import { DatasetStore } from "./store/datasets";
 import type { Storage, Vault } from "./store/storage";
 import { Scheduler } from "./sync/scheduler";
 import { createUpdateCheck } from "./updates";
+import { Usage } from "./usage";
 
 export interface EngineDeps {
   transport: Transport;
@@ -99,6 +102,11 @@ export interface EngineDeps {
    * screens share one thread. Unset on the desktop, whose engine has a process of its own.
    */
   yieldToScreens?(): Promise<void>;
+  /**
+   * Usage data (ADR 0016): counts how the app is used and sends the counts to the relay once a day, while the Student
+   * leaves it on (Settings). Only release builds pass it; without it nothing is counted.
+   */
+  usage?: { platform: UsagePlatform };
 }
 
 /**
@@ -143,6 +151,8 @@ export interface Engine {
   updateSettings(patch: Partial<Settings>): Promise<Settings>;
   /** The Student opened the alert history. */
   markAlertsRead(): Promise<void>;
+  /** One more of `name` today in usage data (a screen, an action): nothing when it's off or this build doesn't count. */
+  countUsage(kind: UsageKind, name: string): void;
   /** Works the timed alerts out again now, not at the next 5-minute check: the phone app, once an alert setting changed. */
   planAlerts(): void;
   /** Asks GitHub for a newer release now ("Periksa pembaruan"); "off" where the app never asks (development, the demo). */
@@ -358,6 +368,24 @@ export function createEngine(deps: EngineDeps): Engine {
     online: () => [...statuses.values()].some((status) => status.source !== "itb" && ["connecting", "live", "changed", "action-needed"].includes(status.state)),
     log: log.for("reports"),
   });
+  const usage =
+    deps.usage && relay
+      ? new Usage({
+          clock,
+          storage,
+          transport: deps.transport,
+          relay,
+          userAgent,
+          version: deps.version,
+          platform: deps.usage.platform,
+          os: () => deps.os?.() ?? "",
+          lang: () => settings.lang,
+          enabled: () => usageDataOf(settings),
+          signedIn: () => ({ edunex: sessions.get("edunex") != null, six: sessions.get("six") != null }),
+        })
+      : null;
+  // Errors by area only: the message stays in the log, which only a problem report carries.
+  log.onError((area) => usage?.count("errors", area));
   const updates = deps.checkForUpdates
     ? createUpdateCheck({
         transport: deps.transport,
@@ -548,12 +576,14 @@ export function createEngine(deps: EngineDeps): Engine {
         } catch (error) {
           if (current()) {
             log.add(levelOf(error), spec.name, errorLine(error));
+            usage?.count("reads", `${spec.name}.${isEngineError(error) ? error.kind : "error"}`);
             await settle(spec.name, error);
           }
           throw error; // so the scheduler backs this feed off
         }
         if (current()) {
           log.add("info", spec.name, "ok");
+          usage?.count("reads", `${spec.name}.ok`);
           lastReads.set(spec.name, clock.now());
           await settle(spec.name, null);
           if (deps.startDueOnly) await saveState();
@@ -647,6 +677,8 @@ export function createEngine(deps: EngineDeps): Engine {
     await saveState();
     deps.emit({ type: "settings", settings });
     if (reportSendingOf(settings) !== reportSendingOf(before) || settings.reportAsked !== before.reportAsked) outbox.chose(reportSendingOf(settings));
+    // Turned off: what was counted and not sent is gone, and nothing more is counted.
+    if (!usageDataOf(settings) && usageDataOf(before)) await usage?.forget();
     return settings;
   }
 
@@ -675,7 +707,7 @@ export function createEngine(deps: EngineDeps): Engine {
       // The alerts' and the reports' own files too, in the same order as ever once read: datasets, alerts, reports.
       const datasets = Promise.all([store.load(), phone.load()]);
       const alerted = alerts.load(datasets);
-      await Promise.all([datasets, alerted, outbox.load(alerted)]);
+      await Promise.all([datasets, alerted, outbox.load(alerted), usage?.load()]);
       for (const [source, name] of [
         ["edunex", "edunex.account"],
         ["six", "six.student"],
@@ -734,7 +766,10 @@ export function createEngine(deps: EngineDeps): Engine {
         });
       };
       slice("alerts", () => alerts.start());
-      slice("updates", () => updates?.start());
+      slice("updates", () => {
+        updates?.start();
+        usage?.start();
+      });
       // After an update: what loaded from the old build's files, checked, is saved with this build's stamp, a file at
       // a time with the screens' turn between (SIX's catalog alone is 300 KB of JSON). A write that fails costs nothing
       // but the same check at the next start.
@@ -748,6 +783,7 @@ export function createEngine(deps: EngineDeps): Engine {
       alerts.stop();
       updates?.stop();
       outbox.stop();
+      void usage?.stop();
     },
 
     session(source) {
@@ -799,6 +835,8 @@ export function createEngine(deps: EngineDeps): Engine {
         await alerts.reset();
         // Whether reports go by themselves was this Student's to say: the next one is asked again.
         await outbox.reset();
+        // What this app counted for this Student isn't the next one's: their days go under a new id.
+        await usage?.forget();
         if (
           settings.firstScanDone ||
           settings.guideDone !== false ||
@@ -876,6 +914,9 @@ export function createEngine(deps: EngineDeps): Engine {
     },
 
     updateSettings,
+    countUsage(kind, name) {
+      usage?.count(kind, name);
+    },
 
     markAlertsRead() {
       return alerts.markRead();

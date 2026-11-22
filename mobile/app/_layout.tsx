@@ -20,6 +20,7 @@ import { GuideHost } from "../src/shell/guide/host";
 import { useNobodyIn } from "../src/shell/nobody";
 import { NotificationTaps } from "../src/shell/notification-taps";
 import { SignInHost } from "../src/shell/sign-in";
+import { useUsageScreens } from "../src/shell/usage-screens";
 import { Welcome } from "../src/shell/welcome";
 import { DeferredScreens } from "../src/ui/deferred";
 import { useTheme } from "../src/ui/theme";
@@ -58,6 +59,7 @@ function Frame() {
   const theme = useTheme();
   useWidgetUpdates();
   usePerfWatch();
+  useUsageScreens();
   // What's behind every screen is the page's colour, in both themes: the window's own and the stack's (the navigation's
   // theme, which the native stack paints its container with; left at the library's light one, a fast back swipe on an
   // iPhone showed a white strip down the left edge of the dark page as the screens sprang past their place).
