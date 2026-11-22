@@ -66,6 +66,14 @@ function randomUuid(): string {
   return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
+/** One more of `name` in `counts`, under the day's limits; false when it's past them. Only the record's own names count. */
+function addOne(counts: Record<string, number>, name: string): boolean {
+  const before = Object.hasOwn(counts, name) ? counts[name]! : null;
+  if (before === null && Object.keys(counts).length >= USAGE_LIMITS.names) return false;
+  counts[name] = Math.min(USAGE_LIMITS.count, (before ?? 0) + 1);
+  return true;
+}
+
 export class Usage {
   private kept: Kept | null = null;
   private saveTimer: TimerHandle | null = null;
@@ -113,13 +121,7 @@ export class Usage {
   /** One more of `name` today. Nothing while usage data is off. */
   count(kind: UsageKind, name: string): void {
     if (!this.options.enabled()) return;
-    const day = this.today();
-    const counts = day[kind];
-    const key = usageName(name);
-    const before = Object.hasOwn(counts, key) ? counts[key]! : null;
-    if (before === null && Object.keys(counts).length >= USAGE_LIMITS.names) return;
-    counts[key] = Math.min(USAGE_LIMITS.count, (before ?? 0) + 1);
-    this.saveSoon();
+    if (addOne(this.today()[kind], usageName(name))) this.saveSoon();
   }
 
   /**
