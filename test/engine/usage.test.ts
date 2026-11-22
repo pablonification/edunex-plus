@@ -36,6 +36,8 @@ describe("usage data", () => {
     h.engine.countUsage("actions", "schedule.export");
     // Not one of the app's names (a course's name, say): counted as "other", never sent as it is.
     h.engine.countUsage("screens", "Tugas Besar IF2211");
+    // A name every object has isn't one of the app's either.
+    h.engine.countUsage("screens", "constructor");
     h.log.add("error", "window", "TypeError: something about 18223901");
     expect(h.world.relay.usage).toEqual([]);
 
@@ -50,7 +52,7 @@ describe("usage data", () => {
       os: "macOS 15.3 (arm64)",
       lang: "id",
       signedIn: { edunex: false, six: true },
-      screens: { home: 2, other: 1 },
+      screens: { home: 2, other: 2 },
       actions: { "schedule.export": 1 },
       errors: { window: 1 },
     });

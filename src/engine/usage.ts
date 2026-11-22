@@ -116,8 +116,9 @@ export class Usage {
     const day = this.today();
     const counts = day[kind];
     const key = usageName(name);
-    if (!(key in counts) && Object.keys(counts).length >= USAGE_LIMITS.names) return;
-    counts[key] = Math.min(USAGE_LIMITS.count, (counts[key] ?? 0) + 1);
+    const before = Object.hasOwn(counts, key) ? counts[key]! : null;
+    if (before === null && Object.keys(counts).length >= USAGE_LIMITS.names) return;
+    counts[key] = Math.min(USAGE_LIMITS.count, (before ?? 0) + 1);
     this.saveSoon();
   }
 

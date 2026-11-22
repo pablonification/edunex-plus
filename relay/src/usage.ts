@@ -87,7 +87,7 @@ function json(status: number, body: unknown, headers: Record<string, string> = {
 const opened = (kept: Kept | undefined) => kept !== undefined && Object.keys(kept.screens).length > 0;
 
 const bump = (counts: Counts, name: string, by = 1) => {
-  counts[name] = (counts[name] ?? 0) + by;
+  counts[name] = (Object.hasOwn(counts, name) ? counts[name]! : 0) + by;
 };
 
 export interface UsageOptions {

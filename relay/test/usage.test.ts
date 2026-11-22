@@ -51,6 +51,7 @@ describe("a day the app sends", () => {
   it("is refused when it isn't one: a name that isn't the app's, a value, a day not over or too old", async () => {
     const { send } = start();
     expect((await send(day(A, "2026-11-19", { screens: { "Tugas Besar IF2211": 1 } }))).status).toBe(400);
+    expect((await send(day(A, "2026-11-19", { screens: { constructor: 1 } }))).status).toBe(400);
     expect((await send({ ...day(A, "2026-11-19"), nim: "18223901" })).status).toBe(202); // unknown fields are dropped, not kept
     expect((await send(day(A, "2026-11-21"))).status).toBe(400);
     expect((await send(day(A, "2026-11-01"))).status).toBe(400);

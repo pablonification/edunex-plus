@@ -8,7 +8,9 @@ import { Lang } from "./models/base";
 
 /** A name the app counts under: one of its own (a screen, an action, a feed and how it read), never a value. */
 export const USAGE_NAME = /^[a-z][a-zA-Z0-9.-]{0,63}$/;
-const Name = z.string().regex(USAGE_NAME);
+/** One of the app's names, and never one every object already has ("constructor"), which a count would read wrong. */
+export const isUsageName = (name: string): boolean => USAGE_NAME.test(name) && !(name in Object.prototype);
+const Name = z.string().refine(isUsageName);
 
 /** Names one day keeps for each kind, and the most one name counts: past them a count stops growing. */
 export const USAGE_LIMITS = { names: 200, count: 100_000 } as const;
@@ -58,7 +60,7 @@ export type UsageDay = z.infer<typeof UsageDay>;
 export const UNCOUNTED_ACTIONS: ReadonlySet<string> = new Set(["app.snapshot", "app.ready", "local.set", "report.windowError", "usage.screen"]);
 
 /** A name as the app counts it: its own name when it's one, "other" when it isn't (it never sends a value). */
-export const usageName = (name: string): string => (USAGE_NAME.test(name) ? name : "other");
+export const usageName = (name: string): string => (isUsageName(name) ? name : "other");
 
 /** The day `ms` falls on, on this computer's calendar. */
 export function usageDayOf(ms: number): string {
