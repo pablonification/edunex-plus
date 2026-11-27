@@ -4,6 +4,9 @@
 // reported, and SIX reads again once a whole page comes. A class's popup is a piece of a page, with no </html> of its
 // own: ./check-in.test.ts reads it as before.
 import { describe, expect, it } from "vitest";
+import type { Clock } from "../../src/engine/clock";
+import type { Transport } from "../../src/engine/http/transport";
+import { SixClient } from "../../src/engine/sources/six/client";
 import { bodyText } from "../kit/fixtures";
 import { PRETEND_RELAY } from "../pretend/relay";
 import { PRETEND_SIX_COOKIE } from "../pretend/six";
@@ -92,5 +95,43 @@ describe("SIX's answer cut short by a dropped connection", () => {
         .some((entry) => entry.area === "six.curriculum" && entry.message === "ok"),
     ).toBe(true);
     expect(h.status("six").state).toBe("live");
+  });
+});
+
+describe("which of SIX's answers count as cut short", () => {
+  /** How SIX's client takes `body`, answered with 200 for a page: its text, or the error it raises. */
+  async function take(body: string, options: { popup?: boolean } = {}): Promise<string> {
+    const transport: Transport = { request: async (request) => ({ status: 200, headers: {}, body, url: request.url }) };
+    const clock: Clock = {
+      now: () => 0,
+      setTimeout: (fn) => {
+        queueMicrotask(fn);
+        return { id: 0 };
+      },
+      clearTimeout: () => undefined,
+    };
+    const client = new SixClient(transport, clock, PRETEND_SIX_COOKIE, "EdunexPlus/test");
+    return client.page("/app/mahasiswa:18223901/keuangan", options).then(
+      (html) => html,
+      (error: Error & { kind?: string }) => `${error.kind}: ${error.message}`,
+    );
+  }
+  const whole = '<!DOCTYPE html><html><body><a href="/logout">Logout</a><table></table></body></html>';
+
+  it("a page that starts and never ends, even with an </html> inside it, or that came empty: no answer", async () => {
+    expect(await take("")).toBe("Offline: SIX's answer for /keuangan came empty");
+    expect(await take("  \n ")).toBe("Offline: SIX's answer for /keuangan came empty");
+    expect(await take(whole.slice(0, 60))).toBe("Offline: SIX's answer for /keuangan came cut short");
+    expect(await take(`${whole.slice(0, 60)}<script>w.document.write("</html>")</script><table>`)).toBe("Offline: SIX's answer for /keuangan came cut short");
+  });
+
+  it("a whole page reads, with space or a comment after its end; text that isn't a page goes on to the readers", async () => {
+    expect(await take(whole)).toBe(whole);
+    expect(await take(`\n  ${whole}\n<!-- served in 12 ms -->\n`)).toBe(`\n  ${whole}\n<!-- served in 12 ms -->\n`);
+    expect(await take("Service temporarily unavailable")).toBe("Service temporarily unavailable");
+  });
+
+  it("a class's popup is a piece of a page, never cut short for having no </html>", async () => {
+    expect(await take("<table><tr><th>Pertemuan</th></tr></table>", { popup: true })).toBe("<table><tr><th>Pertemuan</th></tr></table>");
   });
 });
