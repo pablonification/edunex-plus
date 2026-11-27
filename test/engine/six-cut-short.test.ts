@@ -1,7 +1,7 @@
 // #403 and #396: on a shaky connection, SIX's answer arrived empty (the timetable) or stopped partway through the page
 // (a curriculum, cut off in the middle of its specializations, before its minor tab), as the reports kept them. That's a
-// connection that dropped, not SIX changing its page: the Student sees "No connection", their data stays, nothing is
-// reported, and SIX reads again once a whole page comes. A class's popup is a piece of a page, with no </html> of its
+// connection that dropped, not SIX changing its page: the Student isn't told SIX changed (they may see "No connection"
+// for a moment, until SIX's next whole page), their data stays, nothing is reported, and SIX reads again. A class's popup is a piece of a page, with no </html> of its
 // own: ./check-in.test.ts reads it as before.
 import { describe, expect, it } from "vitest";
 import type { Clock } from "../../src/engine/clock";
@@ -122,6 +122,7 @@ describe("which of SIX's answers count as cut short", () => {
     expect(await take("")).toBe("Offline: SIX's answer for /keuangan came empty");
     expect(await take("  \n ")).toBe("Offline: SIX's answer for /keuangan came empty");
     expect(await take(whole.slice(0, 60))).toBe("Offline: SIX's answer for /keuangan came cut short");
+    expect(await take("<!DOC")).toBe("Offline: SIX's answer for /keuangan came cut short");
     expect(await take(`${whole.slice(0, 60)}<script>w.document.write("</html>")</script><table>`)).toBe("Offline: SIX's answer for /keuangan came cut short");
   });
 
@@ -129,6 +130,11 @@ describe("which of SIX's answers count as cut short", () => {
     expect(await take(whole)).toBe(whole);
     expect(await take(`\n  ${whole}\n<!-- served in 12 ms -->\n`)).toBe(`\n  ${whole}\n<!-- served in 12 ms -->\n`);
     expect(await take("Service temporarily unavailable")).toBe("Service temporarily unavailable");
+    // Many comments after the end, then something else: told apart at once, never tried one way after another.
+    const started = performance.now();
+    expect(await take(`${whole}${"<!-- x -->".repeat(2000)}`)).toBe(`${whole}${"<!-- x -->".repeat(2000)}`);
+    expect(await take(`${whole}${"<!-- x -->".repeat(2000)}!`)).toBe("Offline: SIX's answer for /keuangan came cut short");
+    expect(performance.now() - started).toBeLessThan(1000);
   });
 
   it("a class's popup is a piece of a page, never cut short for having no </html>", async () => {
