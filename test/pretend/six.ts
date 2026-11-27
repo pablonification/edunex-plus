@@ -328,7 +328,8 @@ export class PretendSix {
         url: url.toString(),
       };
     let page = this.pages.get(canonical(url.pathname));
-    if (!page) return { status: 404, headers: { "content-type": "text/html" }, body: "<h1>Not Found</h1>", url: url.toString() };
+    // An empty page is still an answer: what a dropped connection leaves of one (#403).
+    if (page === undefined) return { status: 404, headers: { "content-type": "text/html" }, body: "<h1>Not Found</h1>", url: url.toString() };
     const month = url.searchParams.get("bulan");
     if (month && /\/kelas\/jadwal\/mahasiswa\/\d+$/.test(url.pathname)) page = forMonth(page, month, this.addedMeetings);
     return { status: 200, headers: { "content-type": "text/html; charset=UTF-8" }, body: page, url: url.toString() };

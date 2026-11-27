@@ -29,6 +29,8 @@ const MAX_REDIRECTS = 3;
 export const PRIVATE_PAGES = /controlpanel|datainduk|ktm|pddikti/i;
 const SIGNED_IN = /href=["']\/logout\b/i;
 const SIGN_IN_LINK = /href=["'](?:https:\/\/six\.itb\.ac\.id)?\/login\b/i;
+/** The end of a whole page: missing from one a dropped connection cut short. */
+const WHOLE_PAGE = /<\/html\s*>/i;
 /** "/app/mahasiswa:18223901+2026-1/kelas/jadwal/…?bulan=…" → "/kelas/jadwal/…", for status details. */
 const label = (path: string) => path.replace(/^\/app\/mahasiswa:[^/]+/, "").replace(/\?.*$/, "") || "/";
 
@@ -158,6 +160,11 @@ export class SixClient implements SixPages {
     const away = SIGNED_IN.test(response.body) ? null : refreshesAway(response.body, `${SIX_ORIGIN}${path}`, { naming: false });
     if (away) throw new EngineError("Offline", `The network's sign-in (${away}) answered for SIX`, true);
     if (!SIGNED_IN.test(response.body) && SIGN_IN_LINK.test(response.body)) throw new EngineError("Unauthorized", "SIX showed its sign-in page");
+    // A whole SIX page ends with </html>. One that came empty (#403) or stops partway (#396) was cut short by a
+    // connection that dropped, not SIX changing its page: taken as no answer, as Edunex's are (../edunex/client.ts).
+    // Not a class's popup, a piece of a page that has no </html> of its own.
+    if (!popup && !WHOLE_PAGE.test(response.body))
+      throw new EngineError("Offline", `SIX's answer for ${label(asked)} came ${response.body.trim() ? "cut short" : "empty"}`, true);
     return response.body;
   }
 

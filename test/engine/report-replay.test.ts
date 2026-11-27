@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProblemReport, ReportProblem } from "../../src/core/models";
 import { replayReport } from "../../src/engine/report/replay";
-import { edunexJson, sixPage } from "../kit/fixtures";
+import { bodyText, edunexJson, sixPage } from "../kit/fixtures";
 
 const TRANSCRIPT = "/app/mahasiswa:18223901/statusmhs/transkrip/historis/2021000001";
 const PROGRESS = "/app/mahasiswa:18223901/statusmhs/transkrip/kurikulum/2021000001";
@@ -79,6 +79,34 @@ describe("a report read again with today's readers", () => {
       }),
     );
     expect(result).toMatchObject({ verdict: "unknown", now: null });
+  });
+
+  it("a SIX page that came empty (#403) or stops partway (#396) isn't a page change any more: unknown, never 'the same'", async () => {
+    const curricula = "/app/mahasiswa:18223901/kurikulum/kurikulum/list";
+    const [empty, cut] = await replayReport(
+      reportOf(
+        {
+          feed: "six.schedule",
+          check: "SIX jadwal: the month grid is missing",
+          pages: [{ system: "six", path: "/app/mahasiswa:18223901+2026-1/kelas/jadwal/mahasiswa/2021000001?bulan=202611", status: 200, body: "" }],
+        },
+        {
+          feed: "six.curriculum",
+          check: "SIX curriculum structure page: the minor tab is missing",
+          pages: [
+            { system: "six", path: curricula, status: 200, body: sixPage(/\/kurikulum\/kurikulum\/list$/).replaceAll("/1047/struktur", "/1012/struktur") },
+            {
+              system: "six",
+              path: "/app/mahasiswa:18223901/kurikulum/kurikulum/1012/struktur",
+              status: 200,
+              body: bodyText("six", "report-six-cut-short-kurikulum-kurikulum-1012-struktur.html"),
+            },
+          ],
+        },
+      ),
+    );
+    expect(empty).toMatchObject({ verdict: "unknown", now: null });
+    expect(cut).toMatchObject({ verdict: "unknown", now: null });
   });
 
   it("an Edunex address with no check listed, or a SIX page that isn't in the report, can't be read again: unknown, never fixed", async () => {
